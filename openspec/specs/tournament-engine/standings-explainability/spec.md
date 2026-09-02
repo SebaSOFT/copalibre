@@ -134,3 +134,33 @@ When three or more entrants are tied and a tiebreaker comparator separates a sub
 - **WHEN** the tiebreak pipeline proceeds to resolve Entrant B and Entrant C
 - **THEN** a new sub-pipeline evaluation begins strictly between Entrants B and C, evaluating their direct head-to-head match
 - **AND** the explanation trace records both the 3-way parent resolution and the nested 2-way sub-resolution
+
+### Requirement: Strength-of-Schedule (Buchholz & Median-Buchholz) Standings Evaluation
+The system SHALL evaluate Strength-of-Schedule (SoS) tiebreaker comparators by traversing the stage match graph and aggregating the final points achieved by each entrant's opponents. The engine SHALL support:
+1. Standard Buchholz (sum of all opponents' stage points).
+2. Scoped Buchholz (sum of points of opponents against whom the entrant won, drew, or lost).
+3. Median-Buchholz (sum of opponents' points after excluding the highest and lowest scoring opponent).
+
+#### Scenario: Buchholz resolves tie based on opponent strength
+- **GIVEN** Entrant A and Entrant B are tied on 9 points
+- **AND** Entrant A played opponents whose final point total sum is 28
+- **AND** Entrant B played opponents whose final point total sum is 24
+- **WHEN** the tiebreak pipeline evaluates a `buchholz` comparator
+- **THEN** Entrant A is ranked ahead of Entrant B
+- **AND** the explanation trace enumerates Entrant A's opponents and their point contributions (sum: 28)
+
+#### Scenario: Median-Buchholz trims highest and lowest outliers
+- **GIVEN** Entrant A faced opponents with final points [12, 10, 8, 2] (total: 32)
+- **WHEN** evaluating `median-buchholz`
+- **THEN** the highest (12) and lowest (2) scores are trimmed, yielding an effective score of 18 (10 + 8)
+- **AND** the trace explicitly states which opponent scores were trimmed
+
+### Requirement: Sonneborn-Berger / Neustadtl Tiebreak Evaluation
+The system SHALL support the Sonneborn-Berger tiebreaker metric, computed as the sum of final points of all defeated opponents plus half the final points of all drawn opponents ($\sum \text{Points}(W) + 0.5 \times \sum \text{Points}(D)$).
+
+#### Scenario: Sonneborn-Berger rewards quality of victories
+- **GIVEN** Entrant A and Entrant B are tied on points
+- **AND** Entrant A defeated the 1st-place team (12 pts) and lost to others
+- **AND** Entrant B defeated the 8th-place team (3 pts) and lost to others
+- **WHEN** the pipeline evaluates `sonneborn-berger`
+- **THEN** Entrant A's score is 12 and Entrant B's score is 3, placing Entrant A ahead

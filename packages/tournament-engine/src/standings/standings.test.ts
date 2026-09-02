@@ -6,6 +6,8 @@ import { isDuelMatch } from '../types.js';
 import {
   computeAccounting,
   computeStandings,
+  computeCumulativeScores,
+  computeScopedAccounting,
   DEFAULT_POINTS,
   entrantsInGraph,
   toEntrantValues,
@@ -1215,6 +1217,472 @@ describe('computeStandings', () => {
       expect(alfaRow?.statistics['buchholz-wins']).toBe(9);
       expect(alfaRow?.statistics['buchholz-draws']).toBe(8);
       expect(alfaRow?.statistics['buchholz-losses']).toBe(3);
+    });
+  });
+
+  describe('cumulative / progressive score accounting', () => {
+    const progressiveDescriptor = fixtureDescriptor({
+      statistics: [
+        { code: 'points', label: 'Points', aggregation: 'sum' },
+        { code: 'wins', label: 'Wins', aggregation: 'sum' },
+        { code: 'cumulative-score', label: 'Cumulative Score', aggregation: 'sum' },
+        {
+          code: 'cumulative-opponent-points',
+          label: 'Cumulative Opponent Points',
+          aggregation: 'sum',
+        },
+      ],
+    });
+
+    const progressivePipeline: TiebreakPipeline = {
+      id: 'pipe-progressive',
+      version: 1,
+      parameters: [
+        {
+          id: 'points',
+          label: 'Points',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+        {
+          id: 'cumulative-score',
+          label: 'Cumulative Score',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+      ],
+    };
+
+    it('evaluates cumulative-score rewarding early stage performance', () => {
+      // Scenario from specification:
+      // Entrant A won Round 1 (3), won Round 2 (6), lost Round 3 (6) -> 3 + 6 + 6 = 15
+      // Entrant B lost Round 1 (0), won Round 2 (3), won Round 3 (6) -> 0 + 3 + 6 = 9
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1_a',
+          round: 1,
+          sides: [
+            { entrantId: 'teamA', statistics: { score: 1 } },
+            { entrantId: 'dummy1', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'teamA',
+        },
+        {
+          matchId: 'm1_b',
+          round: 1,
+          sides: [
+            { entrantId: 'teamB', statistics: { score: 0 } },
+            { entrantId: 'dummy2', statistics: { score: 1 } },
+          ],
+          winnerEntrantId: 'dummy2',
+        },
+        {
+          matchId: 'm2_a',
+          round: 2,
+          sides: [
+            { entrantId: 'teamA', statistics: { score: 1 } },
+            { entrantId: 'dummy3', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'teamA',
+        },
+        {
+          matchId: 'm2_b',
+          round: 2,
+          sides: [
+            { entrantId: 'teamB', statistics: { score: 1 } },
+            { entrantId: 'dummy4', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'teamB',
+        },
+        {
+          matchId: 'm3_a',
+          round: 3,
+          sides: [
+            { entrantId: 'teamA', statistics: { score: 0 } },
+            { entrantId: 'dummy5', statistics: { score: 1 } },
+          ],
+          winnerEntrantId: 'dummy5',
+        },
+        {
+          matchId: 'm3_b',
+          round: 3,
+          sides: [
+            { entrantId: 'teamB', statistics: { score: 1 } },
+            { entrantId: 'dummy6', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'teamB',
+        },
+      ];
+
+      const standings = computeStandings(
+        progressiveDescriptor,
+        ['teamA', 'teamB', 'dummy1', 'dummy2', 'dummy3', 'dummy4', 'dummy5', 'dummy6'],
+        outcomes,
+        progressivePipeline,
+      );
+
+      const teamARow = standings.rows.find((r) => r.entrantId === 'teamA');
+      const teamBRow = standings.rows.find((r) => r.entrantId === 'teamB');
+
+      expect(teamARow?.statistics['points']).toBe(6);
+      expect(teamBRow?.statistics['points']).toBe(6);
+      expect(teamARow?.statistics['cumulative-score']).toBe(15);
+      expect(teamBRow?.statistics['cumulative-score']).toBe(9);
+
+      // Team A ranks ahead of Team B on cumulative score
+      expect(teamARow?.rank).toBe(1);
+      expect(teamBRow?.rank).toBe(2);
+    });
+
+    it('computes cumulativeScores and cumulativeOpponentPoints via direct helper', () => {
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1',
+          round: 1,
+          sides: [
+            { entrantId: 'p1', statistics: { score: 1 } },
+            { entrantId: 'p2', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'p1',
+        },
+        {
+          matchId: 'm2',
+          round: 2,
+          sides: [
+            { entrantId: 'p1', statistics: { score: 1 } },
+            { entrantId: 'p3', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'p1',
+        },
+        {
+          matchId: 'm3',
+          round: 2,
+          sides: [
+            { entrantId: 'p2', statistics: { score: 1 } },
+            { entrantId: 'untracked', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'p2',
+        },
+      ];
+
+      const result = computeCumulativeScores(['p1', 'p2', 'p3'], outcomes);
+      expect(result.cumulativeScores.get('p1')).toBe(9); // round 1: 3, round 2: 6 -> 3 + 6 = 9
+      expect(result.cumulativeScores.get('p2')).toBe(3); // round 1: 0, round 2: 3 -> 0 + 3 = 3
+      expect(result.cumulativeScores.get('p3')).toBe(0);
+      expect(result.cumulativeOpponentPoints.get('p1')).toBe(6); // p2 has 3 pts, faced in r1 (weight 2) -> 3*2 = 6
+    });
+
+    it('computes standings when only cumulative-score or only cumulative-opponent-points is declared', () => {
+      const onlyScoreDesc = fixtureDescriptor({
+        statistics: [{ code: 'cumulative-score', label: 'Cumulative', aggregation: 'sum' }],
+      });
+      const onlyOppDesc = fixtureDescriptor({
+        statistics: [{ code: 'cumulative-opponent-points', label: 'Opponent', aggregation: 'sum' }],
+      });
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1',
+          sides: [
+            { entrantId: 'x', statistics: {} },
+            { entrantId: 'y', statistics: {} },
+          ],
+          winnerEntrantId: 'x',
+        },
+      ];
+      const acc1 = computeAccounting(onlyScoreDesc, ['x', 'y'], outcomes);
+      const acc2 = computeAccounting(onlyOppDesc, ['x', 'y'], outcomes);
+      expect(acc1[0]?.statistics['cumulative-score']).toBe(3);
+      expect(acc2[0]?.statistics['cumulative-opponent-points']).toBe(0);
+    });
+
+    it('computes scoped accounting directly across overall, head-to-head, and match-losses', () => {
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1',
+          sides: [
+            { entrantId: 'alfa', statistics: {} },
+            { entrantId: 'bravo', statistics: {} },
+          ],
+          winnerEntrantId: 'alfa',
+        },
+        {
+          matchId: 'm2',
+          sides: [
+            { entrantId: 'alfa', statistics: {} },
+            { entrantId: 'charlie', statistics: {} },
+          ],
+          winnerEntrantId: 'charlie',
+        },
+      ];
+
+      const overall = computeScopedAccounting(
+        leagueDescriptor,
+        ['alfa', 'bravo'],
+        outcomes,
+        'overall',
+      );
+      const h2h = computeScopedAccounting(
+        leagueDescriptor,
+        ['alfa', 'bravo'],
+        outcomes,
+        'head-to-head',
+      );
+      const losses = computeScopedAccounting(
+        leagueDescriptor,
+        ['alfa', 'bravo'],
+        outcomes,
+        'match-losses',
+      );
+
+      expect(overall.length).toBe(2);
+      expect(h2h.length).toBe(2);
+      expect(losses.length).toBe(2);
+      expect(overall.find((a) => a.entrantId === 'alfa')?.statistics['losses']).toBe(1);
+      expect(h2h.find((a) => a.entrantId === 'alfa')?.statistics['losses']).toBe(0);
+      expect(losses.find((a) => a.entrantId === 'alfa')?.statistics['losses']).toBe(1);
+    });
+  });
+
+  describe('forfeit accounting', () => {
+    const forfeitDescriptor = fixtureDescriptor({
+      statistics: [
+        { code: 'points', label: 'Points', aggregation: 'sum' },
+        { code: 'wins', label: 'Wins', aggregation: 'sum' },
+        { code: 'losses', label: 'Losses', aggregation: 'sum' },
+        { code: 'match-forfeits', label: 'Match Forfeits', aggregation: 'sum' },
+        { code: 'game-forfeits', label: 'Game Forfeits', aggregation: 'sum' },
+      ],
+    });
+
+    const forfeitPipeline: TiebreakPipeline = {
+      id: 'pipe-forfeits',
+      version: 1,
+      parameters: [
+        {
+          id: 'points',
+          label: 'Points',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+        {
+          id: 'match-forfeits',
+          label: 'Match Forfeits',
+          valueType: 'number',
+          direction: 'lower_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+      ],
+    };
+
+    it('penalizes participant who forfeited over participant with normal losses', () => {
+      // Scenario from specification:
+      // Entrant A and Entrant B are tied on 3 points (1 win, 2 losses).
+      // Entrant B forfeited one match while Entrant A played all 3 matches.
+      // Pipeline evaluates match-forfeits (lower_wins).
+      // Entrant A (0 forfeits) ranks ahead of Entrant B (1 forfeit).
+      const outcomes: RecordedOutcome[] = [
+        // Round 1: Entrant A wins, Entrant B wins
+        {
+          matchId: 'm1',
+          sides: [
+            { entrantId: 'teamA', statistics: {} },
+            { entrantId: 'other1', statistics: {} },
+          ],
+          winnerEntrantId: 'teamA',
+        },
+        {
+          matchId: 'm2',
+          sides: [
+            { entrantId: 'teamB', statistics: {} },
+            { entrantId: 'other2', statistics: {} },
+          ],
+          winnerEntrantId: 'teamB',
+        },
+        // Round 2: Entrant A loses normally, Entrant B loses normally
+        {
+          matchId: 'm3',
+          sides: [
+            { entrantId: 'teamA', statistics: {} },
+            { entrantId: 'other3', statistics: {} },
+          ],
+          winnerEntrantId: 'other3',
+        },
+        {
+          matchId: 'm4',
+          sides: [
+            { entrantId: 'teamB', statistics: {} },
+            { entrantId: 'other3', statistics: {} },
+          ],
+          winnerEntrantId: 'other3',
+        },
+        // Round 3: Entrant A loses normally, Entrant B forfeits
+        {
+          matchId: 'm5',
+          sides: [
+            { entrantId: 'teamA', statistics: {} },
+            { entrantId: 'other4', statistics: {} },
+          ],
+          winnerEntrantId: 'other4',
+        },
+        {
+          matchId: 'm6',
+          sides: [
+            { entrantId: 'teamB', statistics: {} },
+            { entrantId: 'other4', statistics: {} },
+          ],
+          forfeitedBy: 'teamB',
+          winnerEntrantId: 'other4',
+        },
+      ];
+
+      const standings = computeStandings(
+        forfeitDescriptor,
+        ['teamA', 'teamB', 'other1', 'other2', 'other3', 'other4'],
+        outcomes,
+        forfeitPipeline,
+      );
+
+      const aRow = standings.rows.find((r) => r.entrantId === 'teamA');
+      const bRow = standings.rows.find((r) => r.entrantId === 'teamB');
+
+      expect(aRow?.statistics['points']).toBe(3);
+      expect(bRow?.statistics['points']).toBe(3);
+      expect(aRow?.statistics['match-forfeits']).toBe(0);
+      expect(bRow?.statistics['match-forfeits']).toBe(1);
+      expect(bRow?.statistics['game-forfeits']).toBe(1);
+
+      // Entrant A ranks higher than Entrant B
+      expect(aRow?.rank).toBeDefined();
+      expect(bRow?.rank).toBeDefined();
+      expect((aRow?.rank ?? 0) < (bRow?.rank ?? 0)).toBe(true);
+    });
+
+    it('recognizes forfeit via side resultReason forfeit-abandonment', () => {
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1',
+          sides: [
+            { entrantId: 'teamX', statistics: {}, resultReason: 'forfeit-abandonment' },
+            { entrantId: 'teamY', statistics: {} },
+          ],
+          winnerEntrantId: 'teamY',
+        },
+      ];
+
+      const accounting = computeAccounting(forfeitDescriptor, ['teamX', 'teamY'], outcomes);
+      const xAcc = accounting.find((a) => a.entrantId === 'teamX');
+      const yAcc = accounting.find((a) => a.entrantId === 'teamY');
+
+      expect(xAcc?.statistics['match-forfeits']).toBe(1);
+      expect(xAcc?.statistics['points']).toBe(0);
+      expect(yAcc?.statistics['match-forfeits']).toBe(0);
+      expect(yAcc?.statistics['points']).toBe(3);
+    });
+  });
+
+  describe('administrative and random tiebreakers in standings', () => {
+    const adminPipeline: TiebreakPipeline = {
+      id: 'pipe-admin',
+      version: 1,
+      parameters: [
+        {
+          id: 'points',
+          label: 'Points',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+        {
+          id: 'manual',
+          label: 'Manual Points',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'operator-entered',
+        },
+        {
+          id: 'random',
+          label: 'Seeded Coin Flip',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'random',
+        },
+      ],
+    };
+
+    it('resolves standings with manual tiebreaker points override', () => {
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1',
+          sides: [
+            { entrantId: 'team1', statistics: {} },
+            { entrantId: 'team2', statistics: {} },
+          ],
+        },
+      ];
+
+      const standings = computeStandings(
+        leagueDescriptor,
+        ['team1', 'team2'],
+        outcomes,
+        adminPipeline,
+        DEFAULT_POINTS,
+        {
+          manualTiebreakerPoints: {
+            team1: 10,
+            team2: 5,
+          },
+        },
+      );
+
+      expect(standings.fullyResolved).toBe(true);
+      expect(standings.rows[0]?.entrantId).toBe('team1');
+      expect(standings.rows[1]?.entrantId).toBe('team2');
+    });
+
+    it('resolves standings deterministically with seeded random context', () => {
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1',
+          sides: [
+            { entrantId: 'team1', statistics: {} },
+            { entrantId: 'team2', statistics: {} },
+          ],
+        },
+      ];
+
+      const seedContext = { tournamentId: 'tourney-42', stageId: 'finals' };
+
+      const s1 = computeStandings(
+        leagueDescriptor,
+        ['team1', 'team2'],
+        outcomes,
+        adminPipeline,
+        DEFAULT_POINTS,
+        { seedContext },
+      );
+
+      const s2 = computeStandings(
+        leagueDescriptor,
+        ['team1', 'team2'],
+        outcomes,
+        adminPipeline,
+        DEFAULT_POINTS,
+        { seedContext },
+      );
+
+      expect(s1.fullyResolved).toBe(true);
+      expect(s2.fullyResolved).toBe(true);
+      expect(s1.rows.map((r) => r.entrantId)).toEqual(s2.rows.map((r) => r.entrantId));
     });
   });
 });
