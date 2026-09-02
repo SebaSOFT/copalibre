@@ -271,3 +271,23 @@ format rather than in place of one.
 - **WHEN** a stage declares the double-elimination format together with a best-of-three series
 - **THEN** the stage generates a double-elimination bracket whose every fixture holds three matches,
   and the bracket structure is the one that format already generates
+
+### Requirement: Bracket Groups (GSL Dual Tournament) Format Support
+The engine SHALL support the `bracket-groups` duel format, generating an independent dual-tournament or single-elimination mini-bracket for each group in a stage. In the default 4-entrant GSL configuration, each group SHALL generate exactly 5 matches with declarative advancement edges:
+1. Match 1 (Opening A): Seed #1 vs Seed #4.
+2. Match 2 (Opening B): Seed #2 vs Seed #3.
+3. Match 3 (Winners' Match): Winner of Match 1 vs Winner of Match 2 $\to$ Winner qualifies as Seed #1.
+4. Match 4 (Elimination Match): Loser of Match 1 vs Loser of Match 2 $\to$ Loser is eliminated in 4th place.
+5. Match 5 (Decider Match): Loser of Match 3 vs Winner of Match 4 $\to$ Winner qualifies as Seed #2; loser is eliminated in 3rd place.
+
+#### Scenario: GSL dual-tournament bracket generation
+- **GIVEN** a stage with 4 seeded entrants selecting format `bracket-groups`
+- **WHEN** fixtures are generated
+- **THEN** exactly 5 matches are generated across 3 rounds (Round 1: Opening A & B; Round 2: Winners & Elimination; Round 3: Decider)
+- **AND** advancement edges strictly wire winners and losers without requiring external manual bracket adjustments
+
+#### Scenario: Multiple bracket groups operate independently
+- **GIVEN** a stage with 16 entrants split into 4 groups of 4 selecting `bracket-groups`
+- **WHEN** fixtures are generated
+- **THEN** 4 independent 5-match brackets are generated (total 20 matches)
+- **AND** the top 2 finishers from each group (total 8 entrants) qualify into the subsequent playoff stage

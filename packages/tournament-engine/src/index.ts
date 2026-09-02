@@ -74,6 +74,7 @@ export {
   isEliminationFormat,
   isRoundRobinFormat,
   isBracketGroupsFormat,
+  isGauntletFormat,
 } from './formats.js';
 export {
   generateFixtures,
@@ -81,6 +82,11 @@ export {
   generateBracketGroups,
   resolveBracketGroupAdvancement,
   type BracketGroupQualification,
+  generateGauntlet,
+  projectGauntletStandings,
+  computeGauntletStandings,
+  type GauntletStandingRank,
+  type GauntletStandingsResult,
   buildEliminationTree,
   buildDoubleElimination,
   buildRoundRobin,

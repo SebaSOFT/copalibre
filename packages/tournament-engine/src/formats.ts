@@ -24,7 +24,14 @@ export function assertSupportedFormat(
 
 /** Formats whose structure is a knockout tree (advancement moves entrants). */
 export function isEliminationFormat(format: TournamentFormat): boolean {
-  return format === 'single-elimination' || format === 'double-elimination';
+  return (
+    format === 'single-elimination' || format === 'double-elimination' || format === 'gauntlet'
+  );
+}
+
+/** Formats using sequential ladder/stepladder brackets (Gauntlet format). */
+export function isGauntletFormat(format: TournamentFormat): boolean {
+  return format === 'gauntlet';
 }
 
 /** Formats using dual-tournament bracket groups (GSL format). */

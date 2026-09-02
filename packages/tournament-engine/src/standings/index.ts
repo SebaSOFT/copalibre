@@ -24,6 +24,12 @@ import type {
   SeriesTraceNode,
 } from '@copalibre/domain';
 import { resolveSeries } from '@copalibre/domain';
+export {
+  projectGauntletStandings,
+  computeGauntletStandings,
+  type GauntletStandingRank,
+  type GauntletStandingsResult,
+} from '../fixtures/gauntlet.js';
 
 /**
  * Standings assembly. This module computes *accounting parameters* only and
