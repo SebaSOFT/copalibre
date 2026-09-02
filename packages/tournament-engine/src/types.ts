@@ -11,7 +11,7 @@ import type { PlacementOptions } from './fixtures/placement.js';
  */
 
 export type BracketKind =
-  'winners' | 'losers' | 'grand-final' | 'round-robin' | 'placement' | 'bracket-groups';
+  'winners' | 'losers' | 'grand-final' | 'round-robin' | 'placement' | 'bracket-groups' | 'custom';
 
 /** Where a match's participant comes from. */
 export type SlotSource =
@@ -29,6 +29,10 @@ export interface GeneratedMatchBase {
   readonly round: number;
   /** 1-based position within the round. */
   readonly position: number;
+  /** Optional human-readable label: e.g. "Upper Semifinal A", "Grand Final Reset". */
+  readonly label?: string;
+  /** Optional custom branch name: e.g. "consolation", "placement-3rd". */
+  readonly branch?: string;
 }
 
 /** Two sides, a winner and a loser — the only shape advancement edges apply to. */
@@ -105,6 +109,27 @@ export interface BracketGroupsOptions {
   readonly seedingMethod?: 'snake' | 'sequential';
 }
 
+export type CustomBracketSlotSource =
+  | { readonly kind: 'entrant'; readonly seed: number; readonly entrantId?: string }
+  | { readonly kind: 'bye' }
+  | { readonly kind: 'winner-of'; readonly matchId: string }
+  | { readonly kind: 'loser-of'; readonly matchId: string };
+
+export interface CustomBracketMatchDefinition {
+  readonly id: string;
+  readonly round: number;
+  readonly position: number;
+  readonly label?: string;
+  readonly branch?: string;
+  readonly slotA: CustomBracketSlotSource;
+  readonly slotB: CustomBracketSlotSource;
+  readonly series?: SeriesDeclaration;
+}
+
+export interface CustomBracketDefinition {
+  readonly matches: readonly CustomBracketMatchDefinition[];
+}
+
 export interface GenerateFixturesInput {
   readonly format: TournamentFormat;
   readonly entrants: readonly SeededEntrant[];
@@ -116,4 +141,6 @@ export interface GenerateFixturesInput {
   readonly series?: SeriesDeclaration;
   /** Bracket groups (GSL dual tournament) configuration. */
   readonly bracketGroups?: BracketGroupsOptions;
+  /** Custom bracket DAG configuration. */
+  readonly customBracket?: CustomBracketDefinition;
 }

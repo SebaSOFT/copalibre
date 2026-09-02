@@ -36,7 +36,8 @@ export type DuelFormat =
   | 'round-robin-home-away'
   | 'bracket-groups'
   | 'gauntlet'
-  | 'swiss';
+  | 'swiss'
+  | 'custom-bracket';
 
 /**
  * Formats whose matches produce an ordering rather than a winner. They feed the
@@ -55,6 +56,7 @@ export const DUEL_FORMATS: readonly DuelFormat[] = [
   'bracket-groups',
   'gauntlet',
   'swiss',
+  'custom-bracket',
 ];
 
 export const PLACEMENT_FORMATS: readonly PlacementFormat[] = ['free-for-all', 'heats'];

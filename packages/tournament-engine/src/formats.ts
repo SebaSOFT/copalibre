@@ -44,6 +44,11 @@ export function isSwissFormat(format: TournamentFormat): boolean {
   return format === 'swiss';
 }
 
+/** Formats using custom user-defined directed acyclic fixture graphs. */
+export function isCustomBracketFormat(format: TournamentFormat): boolean {
+  return format === 'custom-bracket';
+}
+
 /**
  * Formats where every entrant plays a fixed set of fixtures up front. Placement
  * formats qualify: their rounds are generated at once, they simply produce an
@@ -54,6 +59,7 @@ export function isRoundRobinFormat(format: TournamentFormat): boolean {
     !isEliminationFormat(format) &&
     !isPlacementFormat(format) &&
     !isBracketGroupsFormat(format) &&
-    !isSwissFormat(format)
+    !isSwissFormat(format) &&
+    !isCustomBracketFormat(format)
   );
 }
