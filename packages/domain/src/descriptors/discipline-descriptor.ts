@@ -44,7 +44,7 @@ export type DuelFormat =
  * stage table and never another match: qualification is by result across every
  * heat, so winning a slow heat qualifies nobody.
  */
-export type PlacementFormat = 'free-for-all' | 'heats';
+export type PlacementFormat = 'free-for-all' | 'heats' | 'ffa-bracket' | 'ffa-bracket-groups';
 
 export const DUEL_FORMATS: readonly DuelFormat[] = [
   'single-elimination',
@@ -59,7 +59,12 @@ export const DUEL_FORMATS: readonly DuelFormat[] = [
   'custom-bracket',
 ];
 
-export const PLACEMENT_FORMATS: readonly PlacementFormat[] = ['free-for-all', 'heats'];
+export const PLACEMENT_FORMATS: readonly PlacementFormat[] = [
+  'free-for-all',
+  'heats',
+  'ffa-bracket',
+  'ffa-bracket-groups',
+];
 
 export const SUPPORTED_FORMATS: readonly TournamentFormat[] = [
   ...DUEL_FORMATS,

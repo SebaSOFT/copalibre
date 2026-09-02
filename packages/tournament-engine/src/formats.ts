@@ -49,6 +49,11 @@ export function isCustomBracketFormat(format: TournamentFormat): boolean {
   return format === 'custom-bracket';
 }
 
+/** Formats using multi-round knockout elimination trees with top-K advancement. */
+export function isFFABracketFormat(format: TournamentFormat): boolean {
+  return format === 'ffa-bracket' || format === 'ffa-bracket-groups';
+}
+
 /**
  * Formats where every entrant plays a fixed set of fixtures up front. Placement
  * formats qualify: their rounds are generated at once, they simply produce an

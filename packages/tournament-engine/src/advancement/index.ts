@@ -28,6 +28,8 @@ export interface ResolvedMatch {
   readonly matchId: string;
   readonly slotA: ResolvedSlot;
   readonly slotB: ResolvedSlot;
+  /** Present on placement matches: resolved states of all lobby slots. */
+  readonly slots?: readonly ResolvedSlot[];
   /** True when both sides are known (or one is empty), so the match is playable. */
   readonly playable: boolean;
   /** Set when an outcome exists, or when a bye decides it without being played. */
@@ -60,6 +62,20 @@ export function resolveAdvancement(
   const resolveSlot = (slot: SlotSource, stack: ReadonlySet<string>): ResolvedSlot => {
     if (slot.kind === 'entrant') return { state: 'entrant', entrantId: slot.entrantId };
     if (slot.kind === 'bye') return { state: 'empty' };
+    if (slot.kind === 'placement-top') {
+      if (stack.has(slot.matchId)) return { state: 'pending' };
+      const outcome = outcomeById.get(slot.matchId);
+      if (!outcome) return { state: 'pending' };
+      const placed = outcome.sides.find((s) => s.placement === slot.rank);
+      if (placed) {
+        return { state: 'entrant', entrantId: placed.entrantId };
+      }
+      const indexed = outcome.sides[slot.rank - 1];
+      if (indexed) {
+        return { state: 'entrant', entrantId: indexed.entrantId };
+      }
+      return { state: 'empty' };
+    }
     if (stack.has(slot.matchId)) return { state: 'pending' }; // malformed cycle
 
     const singleMatch = byId.get(slot.matchId);
@@ -164,7 +180,26 @@ export function resolveAdvancement(
     return resolved;
   };
 
-  return duels.map((match) => resolveMatch(match, new Set()));
+  const isFFA = graph.format === 'ffa-bracket' || graph.format === 'ffa-bracket-groups';
+  const matchesToResolve = isFFA ? graph.matches : duels;
+
+  return matchesToResolve.map((match) => {
+    if (isDuelMatch(match)) {
+      return resolveMatch(match, new Set());
+    }
+    const resolvedSlots = match.slots.map((slot) => resolveSlot(slot, new Set([match.id])));
+    const isPlayable = resolvedSlots.every((s) => s.state !== 'pending');
+    const outcome = outcomeById.get(match.id);
+    return {
+      matchId: match.id,
+      slotA: resolvedSlots[0] ?? { state: 'empty' },
+      slotB: resolvedSlots[1] ?? { state: 'empty' },
+      slots: resolvedSlots,
+      playable: isPlayable,
+      winnerEntrantId: outcome?.winnerEntrantId,
+      decidedByBye: false,
+    };
+  });
 }
 
 export const advanceEntrants = resolveAdvancement;
@@ -204,14 +239,15 @@ export function playableMatches(
 ): readonly string[] {
   const decided = new Set(outcomes.map((outcome) => outcome.matchId));
   return resolveAdvancement(graph, outcomes)
-    .filter(
-      (match) =>
-        match.playable &&
-        !decided.has(match.matchId) &&
-        !match.decidedByBye &&
-        match.slotA.state === 'entrant' &&
-        match.slotB.state === 'entrant',
-    )
+    .filter((match) => {
+      if (!match.playable || decided.has(match.matchId) || match.decidedByBye) {
+        return false;
+      }
+      if (match.slots) {
+        return match.slots.every((s) => s.state === 'entrant' || s.state === 'empty');
+      }
+      return match.slotA.state === 'entrant' && match.slotB.state === 'entrant';
+    })
     .map((match) => match.matchId);
 }
 

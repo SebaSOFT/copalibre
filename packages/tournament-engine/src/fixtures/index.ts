@@ -22,6 +22,7 @@ import { generateBracketGroups } from './bracket-groups.js';
 import { generateGauntlet } from './gauntlet.js';
 import { generateSwissRound1 } from './swiss.js';
 import { generateCustomBracketFixtures } from './custom-bracket.js';
+import { generateFFABracketFixtures } from './ffa-bracket.js';
 
 export { buildEliminationTree, seedSlotOrder, nextPowerOfTwo } from './single-elimination.js';
 export { buildDoubleElimination } from './double-elimination.js';
@@ -45,6 +46,7 @@ export {
   type GenerateNextSwissRoundInput,
 } from './swiss.js';
 export { generateCustomBracketFixtures, validateCustomBracket } from './custom-bracket.js';
+export { generateFFABracketFixtures, type FFABracketOptions } from './ffa-bracket.js';
 export { pruneEmptyMatches } from './prune.js';
 export {
   generateGroupedFixtures,
@@ -139,6 +141,15 @@ function buildFor(
       }
       return generateCustomBracketFixtures(input.entrants, input.customBracket, {
         series: input.series,
+      });
+    case 'ffa-bracket':
+    case 'ffa-bracket-groups':
+      return generateFFABracketFixtures(format, input.entrants, {
+        lobbySize: input.ffaBracket?.lobbySize ?? input.placement?.lobbySize,
+        advancingCount: input.ffaBracket?.advancingCount,
+        idPrefix: input.ffaBracket?.idPrefix,
+        groupCount: input.ffaBracket?.groupCount,
+        thresholdFinalists: input.ffaBracket?.thresholdFinalists,
       });
     case 'free-for-all':
     case 'heats':

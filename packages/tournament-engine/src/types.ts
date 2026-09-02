@@ -19,7 +19,8 @@ export type SlotSource =
   /** A structural bye: the opposing slot advances unopposed. */
   | { readonly kind: 'bye' }
   | { readonly kind: 'winner-of'; readonly matchId: string }
-  | { readonly kind: 'loser-of'; readonly matchId: string };
+  | { readonly kind: 'loser-of'; readonly matchId: string }
+  | { readonly kind: 'placement-top'; readonly matchId: string; readonly rank: number };
 
 export interface GeneratedMatchBase {
   /** Deterministic, human-readable: `WB-R2-M1`, `LB-R3-M2`, `GF-R1-M1`, `RR-R1-M1`. */
@@ -130,6 +131,19 @@ export interface CustomBracketDefinition {
   readonly matches: readonly CustomBracketMatchDefinition[];
 }
 
+export interface FFABracketOptions {
+  /** Capacity of each lobby (default 16). */
+  readonly lobbySize?: number;
+  /** Number of top finishers advancing from each lobby (default 4, must be < lobbySize). */
+  readonly advancingCount?: number;
+  /** Custom ID prefix for match identifiers (default 'FFA'). */
+  readonly idPrefix?: string;
+  /** Number of groups for ffa-bracket-groups format (default 2). */
+  readonly groupCount?: number;
+  /** Bracket stops once total advancing participants <= thresholdFinalists. */
+  readonly thresholdFinalists?: number;
+}
+
 export interface GenerateFixturesInput {
   readonly format: TournamentFormat;
   readonly entrants: readonly SeededEntrant[];
@@ -143,4 +157,6 @@ export interface GenerateFixturesInput {
   readonly bracketGroups?: BracketGroupsOptions;
   /** Custom bracket DAG configuration. */
   readonly customBracket?: CustomBracketDefinition;
+  /** FFA elimination bracket configuration. */
+  readonly ffaBracket?: FFABracketOptions;
 }
