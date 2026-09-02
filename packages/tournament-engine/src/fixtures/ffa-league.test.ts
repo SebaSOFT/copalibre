@@ -1,6 +1,10 @@
 import { describe, expect, it } from '@jest/globals';
-import type { DisciplineDescriptor, RecordedOutcome } from '@copalibre/domain';
-import { isPlacementFormat } from '@copalibre/domain';
+import {
+  battleRoyaleDescriptor,
+  isPlacementFormat,
+  type DisciplineDescriptor,
+  type RecordedOutcome,
+} from '@copalibre/domain';
 import { InvalidEntrantsError, UnsupportedFormatError } from '../errors.js';
 import {
   assertSupportedFormat,
@@ -14,7 +18,11 @@ import {
   isSwissFormat,
 } from '../formats.js';
 import { computeAccounting } from '../standings/index.js';
-import { generateFFALeagueFixtures, generateFixtures, generateGroupedFixtures } from './index.js';
+import {
+  generateFFALeagueFixtures,
+  generateFixtures,
+  generateGroupedFixtures,
+} from './index.js';
 import type { PlacementMatch, SeededEntrant } from '../types.js';
 
 describe('FFA League Multi-Division Format Support', () => {
@@ -30,26 +38,10 @@ describe('FFA League Multi-Division Format Support', () => {
 
   const all32Entrants: SeededEntrant[] = [...div1Entrants, ...div2Entrants];
 
-  const testDescriptor: DisciplineDescriptor = {
-    disciplineId: 'battle-royale',
-    name: 'Battle Royale',
-    category: 'esports',
-    primaryFormat: 'ffa-league',
-    supportedFormats: ['ffa-league', 'free-for-all', 'heats'],
-    supportedMatchShapes: ['placement'],
-    rulesets: [],
-    presets: [],
-    standingComparators: ['points'],
-    scoreAggregates: ['points'],
-    statistics: [
-      {
-        code: 'points',
-        name: 'Points',
-        description: 'League championship points',
-        aggregation: 'sum',
-      },
-    ],
-  };
+  const testDescriptor: DisciplineDescriptor = battleRoyaleDescriptor({
+    descriptorId: 'br-desc',
+    alias: 'battle-royale',
+  });
 
   describe('Scenario: 32-player FFA League with 2 divisions of 16 across 5 game days', () => {
     it('generates 10 total placement matches (1 match per division per round)', () => {
