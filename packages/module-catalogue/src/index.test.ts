@@ -17,19 +17,28 @@ describe('default module catalogue', () => {
   it('validates every shipped document with the public schemas', async () => {
     const catalogue = await loadDefaultModuleCatalogue();
 
-    expect(catalogue.disciplines.map((document) => document.alias)).toEqual(['football', 'tennis']);
+    expect(catalogue.disciplines.map((document) => document.alias)).toEqual([
+      'basketball',
+      'football',
+      'tennis',
+    ]);
     expect(catalogue.profiles.map((document) => document.alias)).toEqual([
       'copa-eliminacion',
       'grupos-y-playoff',
       'liga-ida-vuelta',
     ]);
     expect(catalogue.assets.map((asset) => asset.reference.key)).toEqual([
+      'modules/basketball/1.0.0/basketball-01.jpg',
       'modules/football/1.3.0/football-01.jpg',
       'modules/tennis/1.2.0/tennis-01.jpg',
     ]);
     expect(catalogue.assets.every((asset) => asset.body.byteLength > 0)).toBe(true);
     expect(catalogue.disciplines).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          alias: 'basketball',
+          description: expect.objectContaining({ en: expect.any(String) }),
+        }),
         expect.objectContaining({
           alias: 'football',
           description: expect.objectContaining({ en: expect.any(String) }),
@@ -96,6 +105,7 @@ describe('default module catalogue', () => {
     const catalogue = await loadDefaultModuleCatalogue();
 
     expect(catalogue.reservedAliases).toEqual([
+      'basketball',
       'copa-eliminacion',
       'football',
       'grupos-y-playoff',
