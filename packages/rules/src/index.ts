@@ -123,6 +123,7 @@ export {
 } from './tiebreak/binding.js';
 export {
   resolveTiebreak,
+  deterministicTiebreakHash,
   type ComparisonDirection,
   type MissingValueBehavior,
   type TiebreakParameterDefinition,

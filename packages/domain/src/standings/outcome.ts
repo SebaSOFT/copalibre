@@ -49,6 +49,14 @@ export interface RecordedOutcome {
   /** Duel matches only; derivable from statistics via the win condition. */
   readonly winnerEntrantId?: string;
   /**
+   * Entrant ID that forfeited this match, if any.
+   */
+  readonly forfeitedBy?: string;
+  /**
+   * The round number within the stage, when known.
+   */
+  readonly round?: number;
+  /**
    * The fixture this match belongs to. How the accounting engine groups a
    * series' matches back into the one result they contribute — never by
    * parsing `matchId`, which is an opaque UUIDv7 for a persisted match.

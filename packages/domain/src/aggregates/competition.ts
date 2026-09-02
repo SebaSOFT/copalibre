@@ -34,7 +34,7 @@ export interface Fixture {
   readonly awayEntrantId?: string;
 }
 
-export type MatchStatus = 'scheduled' | 'in-progress' | 'finalized' | 'not-required';
+export type MatchStatus = 'scheduled' | 'in-progress' | 'finalized' | 'forfeited' | 'not-required';
 
 /**
  * One side of a stored result. It carries the statistic values the

@@ -87,6 +87,7 @@ export {
   computeStandings,
   computeAccounting,
   computeScopedAccounting,
+  computeCumulativeScores,
   toEntrantValues,
   entrantsInGraph,
   DEFAULT_POINTS,
@@ -94,6 +95,7 @@ export {
   type EntrantAccounting,
   type StandingsRow,
   type Standings,
+  type CumulativeScoresResult,
 } from './standings/index.js';
 export {
   buildOpponentAdjacencyGraph,
