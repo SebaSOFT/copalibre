@@ -530,3 +530,14 @@ requested path, on the same terms as any other public page.
   `/es/some-missing-page`)
 - **THEN** the not-found page's `<html lang>` and copy render in that locale, not a different hardcoded
   language
+
+### Requirement: Product Landing Showcase Reflects Full Format and Tiebreak Capabilities
+The public product showcase page for CopaLibre on `sebasoft.app` SHALL accurately describe all 12 supported tournament formats (8 duel formats, 4 placement formats) and all tiebreaker evaluation models (scopes, strength of schedule, cumulative progression, forfeits, and deterministic random).
+
+#### Scenario: Public product page lists all supported formats
+- **WHEN** a visitor reads the product capabilities on `sebasoft.app/products/copalibre`
+- **THEN** the format specification enumerates Single Elimination, Double Elimination, GSL Bracket Groups, Gauntlet Stepladder, Round Robin, League, Swiss System, Custom DAG Brackets, Simple FFA, Heats, FFA Brackets, and FFA League
+
+#### Scenario: Visual telemetry displays Buchholz and recursive H2H traces
+- **WHEN** viewing the architectural telemetry section
+- **THEN** the JSON decision trace demonstrates Strength of Schedule (Buchholz / Median-Buchholz) and recursive Head-to-Head comparator steps with cryptographic SHA-256 audit proofs
