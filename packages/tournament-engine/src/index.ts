@@ -17,6 +17,8 @@ export type {
   CustomBracketMatchDefinition,
   CustomBracketSlotSource,
   FFABracketOptions,
+  FFALeagueDivision,
+  FFALeagueOptions,
 } from './types.js';
 export { isDuelMatch, isPlacementMatch, slotsOf } from './types.js';
 export {
@@ -84,6 +86,7 @@ export {
   isSwissFormat,
   isCustomBracketFormat,
   isFFABracketFormat,
+  isFFALeagueFormat,
 } from './formats.js';
 export {
   generateFixtures,
@@ -102,6 +105,7 @@ export {
   generateCustomBracketFixtures,
   validateCustomBracket,
   generateFFABracketFixtures,
+  generateFFALeagueFixtures,
   buildEliminationTree,
   buildDoubleElimination,
   buildRoundRobin,

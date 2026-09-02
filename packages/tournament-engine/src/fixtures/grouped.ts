@@ -15,6 +15,8 @@ export interface GenerateGroupedFixturesInput {
   readonly groups: readonly FixtureGroupInput[];
   readonly homeAndAway?: boolean;
   readonly placement?: GenerateFixturesInput['placement'];
+  readonly ffaBracket?: GenerateFixturesInput['ffaBracket'];
+  readonly ffaLeague?: GenerateFixturesInput['ffaLeague'];
 }
 
 /** A generator match plus the stage/zone/group scope required to persist it. */
@@ -44,6 +46,8 @@ export function generateGroupedFixtures(
       entrants: group.entrants,
       homeAndAway: input.homeAndAway,
       placement: input.placement,
+      ffaBracket: input.ffaBracket,
+      ffaLeague: input.ffaLeague,
     });
     if (!generated.ok) return err(generated.error);
     fixtures.push(
