@@ -362,3 +362,12 @@ The engine SHALL support the `ffa-bracket` and `ffa-bracket-groups` placement fo
 - **AND** Round 2 has 2 downstream matches (M5 and M6)
 - **WHEN** slots are wired
 - **THEN** Rank 1 and 3 are mapped to M5, while Rank 2 and 4 are mapped to M6, distributing advancing players across different lobbies
+
+### Requirement: FFA League Multi-Division Format Support
+The engine SHALL support the `ffa-league` placement format, generating a multi-round series of $M$-player placement matches for each declared division. Every entrant SHALL participate in a scheduled fixture across each game round, accumulating points into a division standings table.
+
+#### Scenario: 32-player FFA League with 2 divisions of 16 across 5 game days
+- **GIVEN** 32 entrants split into Division 1 and Division 2 with 5 game rounds
+- **WHEN** fixtures are generated
+- **THEN** 10 total placement matches are generated (1 match per division per round)
+- **AND** standings compute cumulative placement and performance points independently per division across all 5 rounds
