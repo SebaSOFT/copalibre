@@ -16,6 +16,7 @@ export type {
   CustomBracketDefinition,
   CustomBracketMatchDefinition,
   CustomBracketSlotSource,
+  FFABracketOptions,
 } from './types.js';
 export { isDuelMatch, isPlacementMatch, slotsOf } from './types.js';
 export {
@@ -82,6 +83,7 @@ export {
   isGauntletFormat,
   isSwissFormat,
   isCustomBracketFormat,
+  isFFABracketFormat,
 } from './formats.js';
 export {
   generateFixtures,
@@ -99,6 +101,7 @@ export {
   type GenerateNextSwissRoundInput,
   generateCustomBracketFixtures,
   validateCustomBracket,
+  generateFFABracketFixtures,
   buildEliminationTree,
   buildDoubleElimination,
   buildRoundRobin,
