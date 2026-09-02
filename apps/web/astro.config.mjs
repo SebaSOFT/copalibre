@@ -134,6 +134,43 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Tournament formats',
+          translations: {
+            es: 'Formatos de torneo',
+            fr: 'Formats de tournoi',
+            pt: 'Formatos de torneio',
+            it: 'Formati di torneo',
+            de: 'Turnierformate',
+            ru: 'Форматы турниров',
+            zh: '比赛赛制',
+          },
+          items: [
+            'help/formats/swiss',
+            'help/formats/bracket-groups',
+            'help/formats/gauntlet',
+            'help/formats/custom-bracket',
+            'help/formats/ffa-brackets',
+            'help/formats/ffa-league',
+          ],
+        },
+        {
+          label: 'Standings & tiebreakers',
+          translations: {
+            es: 'Clasificaciones y desempates',
+            fr: 'Classements et départages',
+            pt: 'Classificações e desempates',
+            it: 'Classifiche e spareggi',
+            de: 'Tabellen und Tiebreaker',
+            ru: 'Таблицы и тай-брейки',
+            zh: '积分榜与平局决胜',
+          },
+          items: [
+            'help/standings/scopes-and-head-to-head',
+            'help/standings/strength-of-schedule',
+            'help/standings/forfeits-and-admin',
+          ],
+        },
+        {
           label: 'copalibre CLI',
           translations: {
             es: 'CLI de copalibre',

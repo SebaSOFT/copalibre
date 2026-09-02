@@ -98,6 +98,119 @@ where the discipline's field policy permits — a race discipline can allow `low
 to be swapped for a competition-race rule, while a discipline whose win condition is intrinsic marks
 it `forbidden`. This reuses the same override mechanism as every other configurable field.
 
+## Tournament format configurations
+
+Tournament profiles declare competition stages using any of the platform's supported format configurations:
+
+### Swiss system (`swiss`)
+
+Declares round counts, score systems (match wins or game points), and Strength-of-Schedule tiebreakers:
+
+```jsonc
+{
+  "stageId": "swiss-stage",
+  "format": "swiss",
+  "swiss": {
+    "rounds": 5,
+    "scoreSystem": "match-wins",
+    "forfeitLossValue": 0,
+  },
+  "tiebreak": [
+    { "id": "points", "direction": "higher_wins" },
+    { "id": "buchholz", "direction": "higher_wins" },
+    { "id": "sonneborn-berger", "direction": "higher_wins" },
+  ],
+}
+```
+
+### Bracket groups / GSL dual tournament (`bracket-groups`)
+
+Standard 4-team double-elimination groups (Opening, Winners, Elimination, Decider):
+
+```jsonc
+{
+  "stageId": "gsl-groups",
+  "format": "bracket-groups",
+  "groups": [
+    { "groupId": "group-a", "entrants": ["t1", "t2", "t3", "t4"] },
+    { "groupId": "group-b", "entrants": ["t5", "t6", "t7", "t8"] },
+  ],
+}
+```
+
+### Gauntlet stepladder (`gauntlet`)
+
+Ascending ladder where lower seeds contest knockout matches upwards toward the top seed:
+
+```jsonc
+{
+  "stageId": "playoff-gauntlet",
+  "format": "gauntlet",
+  "gauntlet": {
+    "stages": 4,
+  },
+}
+```
+
+### Custom DAG bracket (`custom-bracket`)
+
+Declarative graph specification for asymmetric or bespoke elimination pathways:
+
+```jsonc
+{
+  "stageId": "bespoke-bracket",
+  "format": "custom-bracket",
+  "customBracket": {
+    "nodes": [
+      { "id": "semi-1", "round": 1, "entrantOrigins": [{ "seed": 1 }, { "seed": 4 }] },
+      { "id": "semi-2", "round": 1, "entrantOrigins": [{ "seed": 2 }, { "seed": 3 }] },
+      {
+        "id": "grand-final",
+        "round": 2,
+        "entrantOrigins": [{ "winnerOf": "semi-1" }, { "winnerOf": "semi-2" }],
+      },
+      {
+        "id": "third-place",
+        "round": 2,
+        "entrantOrigins": [{ "loserOf": "semi-1" }, { "loserOf": "semi-2" }],
+      },
+    ],
+  },
+}
+```
+
+### FFA multi-round brackets (`ffa-bracket`)
+
+Multi-round free-for-all lobbies with configured progression cutoffs:
+
+```jsonc
+{
+  "stageId": "br-playoffs",
+  "format": "ffa-bracket",
+  "ffaBracket": {
+    "rounds": 3,
+    "lobbySize": 16,
+    "advancingPerLobby": 8,
+  },
+}
+```
+
+### FFA multi-division league (`ffa-league`)
+
+Multi-round placement league with divisional partition and round-offset lobby scheduling:
+
+```jsonc
+{
+  "stageId": "br-league",
+  "format": "ffa-league",
+  "ffaLeague": {
+    "rounds": 5,
+    "lobbySize": 16,
+    "divisionCount": 2,
+  },
+}
+```
+
 ## Freezing
 
 Once a tournament is `started`, its discipline and profile versions cannot change. Starting happens

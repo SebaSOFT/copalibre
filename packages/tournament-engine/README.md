@@ -1,6 +1,10 @@
 # @copalibre/tournament-engine
 
-Deterministic fixture generation, standings, and advancement for the six MVP formats.
+Deterministic fixture generation, standings, advancement, and qualification across all supported formats:
+
+- **Duel formats**: `single-elimination`, `double-elimination`, `round-robin` (single-leg & home/away), `league`, `bracket-groups` (GSL 4-player dual tournament), `gauntlet` (stepladder ascending bracket), `swiss` (Dutch pairing system), and `custom-bracket` (declarative DAG).
+- **Placement formats**: `free-for-all`, `heats`, `ffa-bracket` (multi-round elimination bracket), `ffa-bracket-groups`, and `ffa-league` (multi-division FFA league).
+- **Standings & Tiebreakers**: multi-scope evaluation (`overall`, `head-to-head`, `match-losses`), Strength-of-Schedule (`buchholz`, `median-buchholz`, `sonneborn-berger`), progressive scoring, and forfeit tracking.
 
 ## Why this is its own package (decision, 0007)
 
