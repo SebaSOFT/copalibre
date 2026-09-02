@@ -18,11 +18,7 @@ import {
   isSwissFormat,
 } from '../formats.js';
 import { computeAccounting } from '../standings/index.js';
-import {
-  generateFFALeagueFixtures,
-  generateFixtures,
-  generateGroupedFixtures,
-} from './index.js';
+import { generateFFALeagueFixtures, generateFixtures, generateGroupedFixtures } from './index.js';
 import type { PlacementMatch, SeededEntrant } from '../types.js';
 
 describe('FFA League Multi-Division Format Support', () => {
@@ -107,7 +103,7 @@ describe('FFA League Multi-Division Format Support', () => {
           matchId: `FFA-L-D1-R${r}-M1`,
           sides: div1Entrants.map((e, idx) => ({
             entrantId: e.entrantId,
-            statistics: { points: Math.max(1, 20 - idx) },
+            statistics: { 'placement-points': Math.max(1, 20 - idx) },
             placement: idx + 1,
           })),
           winnerEntrantId: 'd1-player-1',
@@ -118,7 +114,7 @@ describe('FFA League Multi-Division Format Support', () => {
           matchId: `FFA-L-D2-R${r}-M1`,
           sides: div2Entrants.map((e, idx) => ({
             entrantId: e.entrantId,
-            statistics: { points: idx === 15 ? 25 : 10 },
+            statistics: { 'placement-points': idx === 15 ? 25 : 10 },
             placement: idx === 15 ? 1 : idx + 2,
           })),
           winnerEntrantId: 'd2-player-16',
@@ -132,7 +128,7 @@ describe('FFA League Multi-Division Format Support', () => {
       // d1-player-1 should have 20 * 5 = 100 points
       const d1WinnerRow = d1Accounting.find((row) => row.entrantId === 'd1-player-1');
       expect(d1WinnerRow).toBeDefined();
-      expect(d1WinnerRow?.statistics.points).toBe(100);
+      expect(d1WinnerRow?.statistics['placement-points']).toBe(100);
 
       // Compute accounting for Division 2
       const d2EntrantIds = div2Entrants.map((e) => e.entrantId);
@@ -141,7 +137,7 @@ describe('FFA League Multi-Division Format Support', () => {
       // d2-player-16 should have 25 * 5 = 125 points
       const d2WinnerRow = d2Accounting.find((row) => row.entrantId === 'd2-player-16');
       expect(d2WinnerRow).toBeDefined();
-      expect(d2WinnerRow?.statistics.points).toBe(125);
+      expect(d2WinnerRow?.statistics['placement-points']).toBe(125);
 
       // Verify that Division 1 entrants do not appear in Division 2 accounting and vice-versa
       expect(d1Accounting.some((row) => row.entrantId.startsWith('d2-'))).toBe(false);
