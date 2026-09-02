@@ -136,6 +136,17 @@ export {
 } from './tiebreak/pipeline.js';
 
 export {
+  computeBuchholz,
+  computeScopedBuchholz,
+  computeMedianBuchholz,
+  computeSonnebornBerger,
+  type OpponentScore,
+  type OpponentMatchOutcome,
+  type MedianBuchholzOptions,
+  type MedianBuchholzResult,
+} from './tiebreak/strength-of-schedule.js';
+
+export {
   evaluateNotificationRule,
   dedupeNotifications,
   notificationRulesFrom,

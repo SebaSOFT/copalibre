@@ -4,8 +4,16 @@ import type {
   TraceNode,
   TiebreakScope,
   TiebreakParameterDefinition,
+  OpponentScore,
 } from '@copalibre/rules';
-import { resolveTiebreak } from '@copalibre/rules';
+import {
+  resolveTiebreak,
+  computeBuchholz,
+  computeScopedBuchholz,
+  computeMedianBuchholz,
+  computeSonnebornBerger,
+} from '@copalibre/rules';
+import { buildOpponentAdjacencyGraph } from './opponent-graph.js';
 import { slotsOf, type GeneratedMatch } from '../types.js';
 import type {
   DisciplineDescriptor,
@@ -47,6 +55,12 @@ export const DERIVABLE_STATISTICS = {
   draws: 'draws',
   losses: 'losses',
   points: 'points',
+  buchholz: 'buchholz',
+  buchholzWins: 'buchholz-wins',
+  buchholzDraws: 'buchholz-draws',
+  buchholzLosses: 'buchholz-losses',
+  medianBuchholz: 'median-buchholz',
+  sonnebornBerger: 'sonneborn-berger',
 } as const;
 
 export interface EntrantAccounting {
@@ -346,6 +360,64 @@ export function computeAccounting(
     }
   }
 
+  // Pass 2: Strength-of-Schedule (SoS) metric folding
+  const declaredCodes = new Set(descriptor.statistics.map((s) => s.code));
+  const hasSosStats =
+    declaredCodes.has(DERIVABLE_STATISTICS.buchholz) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.buchholzWins) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.buchholzDraws) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.buchholzLosses) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.medianBuchholz) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.sonnebornBerger);
+
+  if (hasSosStats) {
+    const opponentGraph = buildOpponentAdjacencyGraph(entrantIds, outcomes);
+    const baselinePoints = new Map<string, number>();
+
+    for (const entrantId of entrantIds) {
+      const acc = accumulators.get(entrantId);
+      const pointsStat = acc?.stats[DERIVABLE_STATISTICS.points];
+      const pts = pointsStat ? fold('sum', pointsStat) : 0;
+      baselinePoints.set(entrantId, pts);
+    }
+
+    for (const entrantId of entrantIds) {
+      const acc = accumulators.get(entrantId);
+      if (!acc) continue;
+      const opponentRecords = opponentGraph.get(entrantId) ?? [];
+      const opponentScores: OpponentScore[] = opponentRecords.map((rec) => ({
+        opponentId: rec.opponentId,
+        points: baselinePoints.get(rec.opponentId) ?? 0,
+        outcome: rec.outcome,
+      }));
+
+      if (declaredCodes.has(DERIVABLE_STATISTICS.buchholz)) {
+        const val = computeBuchholz(opponentScores);
+        setDerivedStat(acc, DERIVABLE_STATISTICS.buchholz, val);
+      }
+      if (declaredCodes.has(DERIVABLE_STATISTICS.buchholzWins)) {
+        const val = computeScopedBuchholz(opponentScores, 'win');
+        setDerivedStat(acc, DERIVABLE_STATISTICS.buchholzWins, val);
+      }
+      if (declaredCodes.has(DERIVABLE_STATISTICS.buchholzDraws)) {
+        const val = computeScopedBuchholz(opponentScores, 'draw');
+        setDerivedStat(acc, DERIVABLE_STATISTICS.buchholzDraws, val);
+      }
+      if (declaredCodes.has(DERIVABLE_STATISTICS.buchholzLosses)) {
+        const val = computeScopedBuchholz(opponentScores, 'loss');
+        setDerivedStat(acc, DERIVABLE_STATISTICS.buchholzLosses, val);
+      }
+      if (declaredCodes.has(DERIVABLE_STATISTICS.medianBuchholz)) {
+        const val = computeMedianBuchholz(opponentScores).score;
+        setDerivedStat(acc, DERIVABLE_STATISTICS.medianBuchholz, val);
+      }
+      if (declaredCodes.has(DERIVABLE_STATISTICS.sonnebornBerger)) {
+        const val = computeSonnebornBerger(opponentScores);
+        setDerivedStat(acc, DERIVABLE_STATISTICS.sonnebornBerger, val);
+      }
+    }
+  }
+
   return entrantIds.map((entrantId) => {
     const acc = accumulators.get(entrantId) ?? emptyAccumulator(descriptor);
     const statistics: Record<string, number> = {};
@@ -357,6 +429,19 @@ export function computeAccounting(
 
     return { entrantId, statistics };
   });
+}
+
+function setDerivedStat(
+  acc: EntrantAccumulator,
+  statCode: string,
+  val: number,
+): void {
+  const statAcc = acc.stats[statCode];
+  if (!statAcc) return;
+  statAcc.sum = val;
+  statAcc.count = 1;
+  statAcc.max = val;
+  statAcc.min = val;
 }
 
 function addDerivedStat(
@@ -449,10 +534,6 @@ export function computeScopedAccounting(
   points: PointsRules = DEFAULT_POINTS,
   options?: { readonly seriesDeclaration?: SeriesDeclaration },
 ): readonly EntrantAccounting[] {
-  if (scope === 'overall') {
-    return computeAccounting(descriptor, entrantIds, outcomes, points, options);
-  }
-
   if (scope === 'head-to-head') {
     const entrantSet = new Set(entrantIds);
     const h2hOutcomes = outcomes.filter(
@@ -462,26 +543,15 @@ export function computeScopedAccounting(
   }
 
   if (scope === 'match-losses') {
-    const results: EntrantAccounting[] = [];
-    for (const entrantId of entrantIds) {
+    return entrantIds.flatMap((entrantId) => {
       const lostOutcomes = outcomes.filter(
         (out) =>
           out.winnerEntrantId !== undefined &&
           out.winnerEntrantId !== entrantId &&
           out.sides.some((side) => side.entrantId === entrantId),
       );
-      const [singleAccounting] = computeAccounting(
-        descriptor,
-        [entrantId],
-        lostOutcomes,
-        points,
-        options,
-      );
-      if (singleAccounting) {
-        results.push(singleAccounting);
-      }
-    }
-    return results;
+      return computeAccounting(descriptor, [entrantId], lostOutcomes, points, options);
+    });
   }
 
   return computeAccounting(descriptor, entrantIds, outcomes, points, options);

@@ -96,6 +96,11 @@ export {
   type Standings,
 } from './standings/index.js';
 export {
+  buildOpponentAdjacencyGraph,
+  type OpponentAdjacencyGraph,
+  type OpponentMatchRecord,
+} from './standings/opponent-graph.js';
+export {
   foldStatistics,
   aggregateTo,
   contributorsOf,
