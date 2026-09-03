@@ -54,7 +54,7 @@ const structuredData = {
         </span>
       </div>
 
-      <div class="cl-scoreboard">
+      <h1 class="cl-scoreboard">
         <div class="cl-scoreboard__side cl-scoreboard__side--home">
           <span class="cl-team-name">{model.home.abbreviation ?? model.home.name}</span>
           <span class="cl-team-score">{model.home.score ?? '—'}</span>
@@ -64,7 +64,7 @@ const structuredData = {
           <span class="cl-team-score">{model.away.score ?? '—'}</span>
           <span class="cl-team-name">{model.away.abbreviation ?? model.away.name}</span>
         </div>
-      </div>
+      </h1>
 
       {
         model.scheduledAt ? (
@@ -90,7 +90,7 @@ const structuredData = {
             <ul class="cl-officials-list">
               {model.officials.map((official) => (
                 <li>
-                  <span class="cl-official-name">{official.name}</span>
+                  <span class="cl-official-name">{official.name}</span> —{' '}
                   <span class="cl-official-roles">{official.roles.join(', ')}</span>
                 </li>
               ))}
@@ -186,6 +186,7 @@ const structuredData = {
     max-width: 960px;
     margin: 0 auto;
     padding: var(--cl-space-6, 1.5rem) var(--cl-space-4, 1rem);
+    overflow-x: hidden;
   }
 
   .cl-match-hero {
@@ -330,7 +331,7 @@ const structuredData = {
 
   .cl-rosters-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
     gap: 1.5rem;
   }
 

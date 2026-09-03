@@ -4,6 +4,7 @@ description: Rules for operating matches and correcting tournament data.
 capabilities:
   - platform/async-job-processing
   - platform/persistence-layer
+  - platform/release-process
 roles:
   - super-admin
 ---

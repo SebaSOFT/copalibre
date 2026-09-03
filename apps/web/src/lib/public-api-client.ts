@@ -225,10 +225,16 @@ export function mapBracketResponse(response: PublicBracketResponse): {
       scores: m.slots.map((s) => s.score),
       resultReasons: m.slots.map((s) => s.resultReason as ResultReason | undefined),
       slots: m.slots.map((s): SlotSource => {
-        if (s.kind === 'winner-of')
-          return { kind: 'winner-of', matchNumber: s.matchId ? parseInt(s.matchId) : 0 };
-        if (s.kind === 'loser-of')
-          return { kind: 'loser-of', matchNumber: s.matchId ? parseInt(s.matchId) : 0 };
+        if (s.kind === 'winner-of') {
+          const digits = s.matchId?.match(/\d+/g)?.join('');
+          const parsed = digits ? parseInt(digits, 10) : 0;
+          return { kind: 'winner-of', matchNumber: Number.isNaN(parsed) ? 0 : parsed };
+        }
+        if (s.kind === 'loser-of') {
+          const digits = s.matchId?.match(/\d+/g)?.join('');
+          const parsed = digits ? parseInt(digits, 10) : 0;
+          return { kind: 'loser-of', matchNumber: Number.isNaN(parsed) ? 0 : parsed };
+        }
         return { kind: 'entrant', name: s.name ?? 'TBD', abbreviation: s.abbreviation };
       }),
       ...(m.series === undefined ? {} : { series: m.series as PublicSeriesState }),

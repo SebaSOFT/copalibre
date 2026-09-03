@@ -73,7 +73,7 @@ function descriptor(): DisciplineDescriptor {
     scoringInputs: [],
     // 'free-for-all' is declared alongside 'round-robin' so a series-on-placement
     // refusal (task 1.2) can be proven without a second descriptor fixture.
-    availableFormats: ['round-robin', 'free-for-all', 'swiss'],
+    availableFormats: ['round-robin', 'free-for-all', 'swiss', 'single-elimination'],
     notificationRuleCapabilities: [],
     winCondition: {},
     defaults: {},
@@ -262,7 +262,7 @@ describe('stage creation routes (integration)', () => {
       method: 'POST',
       url: base,
       token: 'organizer',
-      payload: { format: 'single-elimination' },
+      payload: { format: 'double-elimination' },
     });
 
     expect(response.statusCode).toBe(400);
@@ -766,6 +766,136 @@ describe('stage creation routes (integration)', () => {
       const allFixtures = body.fixtures;
       const r2Fixtures = allFixtures.filter((f: { round: number }) => f.round === 2);
       expect(r2Fixtures).toHaveLength(2);
+    });
+  });
+
+  describe('Single-elimination dynamic round progression (POST .../rounds/next)', () => {
+    it('progresses single-elimination from round 1 to round 2 through API and reports real champion', async () => {
+      // 1. Create a 4-entrant single-elimination stage
+      const created = await request({
+        method: 'POST',
+        url: base,
+        token: 'organizer',
+        payload: { name: 'Playoffs', format: 'single-elimination' },
+      });
+      expect(created.statusCode).toBe(201);
+      const { stageId, number: stageNumber } = created.json();
+      const seedingUrl = `${base}/${stageNumber}/seeding`;
+
+      // 2. Initial seeding
+      const preview = await request({ method: 'GET', url: seedingUrl, token: 'organizer' });
+      expect(preview.statusCode).toBe(200);
+      const publish = await request({
+        method: 'POST',
+        url: seedingUrl,
+        token: 'organizer',
+        payload: { seeds: preview.json().seeds },
+      });
+      expect(publish.statusCode).toBe(200);
+
+      // 3. Trying to advance before completing round 1 returns 409
+      const nextBeforeComplete = await request({
+        method: 'POST',
+        url: `${base}/${stageNumber}/rounds/next`,
+        token: 'organizer',
+      });
+      expect(nextBeforeComplete.statusCode).toBe(409);
+      expect(nextBeforeComplete.json().errorCode).toBe('stage-round-incomplete');
+
+      // 4. Complete round 1 matches
+      const competition = new CompetitionRepository(scratch.db);
+      const fixtures = await competition.listFixturesOfStage(stageId);
+      expect(fixtures).toHaveLength(2); // 4 entrants -> 2 matches in R1
+
+      const matches = await competition.listMatchesForStage(stageId);
+      for (const m of matches) {
+        const fixture = fixtures.find((f) => f.fixtureId === m.fixtureId);
+        const homeId = fixture?.homeEntrantId;
+        const awayId = fixture?.awayEntrantId;
+        if (!homeId || !awayId) continue;
+        await withTransaction(scratch.db, (uow) =>
+          competition.recordResult(uow, {
+            matchId: m.matchId,
+            result: {
+              sides: [
+                { entrantId: homeId, statistics: { points: 85 } },
+                { entrantId: awayId, statistics: { points: 65 } },
+              ],
+              winnerEntrantId: homeId,
+              recordedAt: new Date().toISOString(),
+            },
+            organizationId,
+            ...AUDIT,
+          }),
+        );
+      }
+
+      // 5. Advance to round 2 (Final)
+      const nextRes = await request({
+        method: 'POST',
+        url: `${base}/${stageNumber}/rounds/next`,
+        token: 'organizer',
+      });
+      expect(nextRes.statusCode).toBe(200);
+      const body = nextRes.json();
+      expect(body.stageId).toBe(stageId);
+
+      // 6. Verify round 2 fixtures exist and have real entrants (the R1 winners)
+      const allFixtures = body.fixtures;
+      const r2Fixtures = allFixtures.filter((f: { round: number }) => f.round === 2);
+      expect(r2Fixtures).toHaveLength(1);
+      const r2Fixture = r2Fixtures[0];
+      if (!r2Fixture) throw new Error('Round 2 fixture missing');
+      expect(r2Fixture.homeEntrantId).toBe(fixtures[0]?.homeEntrantId);
+      expect(r2Fixture.awayEntrantId).toBe(fixtures[1]?.homeEntrantId);
+
+      // 7. Complete the final match
+      const allMatches = await competition.listMatchesForStage(stageId);
+      const finalMatch = allMatches.find((m) => m.fixtureId === r2Fixture.fixtureId);
+      expect(finalMatch).toBeDefined();
+      if (!finalMatch) throw new Error('Final match missing');
+
+      await withTransaction(scratch.db, (uow) =>
+        competition.recordResult(uow, {
+          matchId: finalMatch.matchId,
+          result: {
+            sides: [
+              { entrantId: r2Fixture.homeEntrantId, statistics: { points: 92 } },
+              { entrantId: r2Fixture.awayEntrantId, statistics: { points: 88 } },
+            ],
+            winnerEntrantId: r2Fixture.homeEntrantId,
+            recordedAt: new Date().toISOString(),
+          },
+          organizationId,
+          ...AUDIT,
+        }),
+      );
+
+      // 8. Attempting to advance again reports stage-already-completed
+      const nextAfterFinal = await request({
+        method: 'POST',
+        url: `${base}/${stageNumber}/rounds/next`,
+        token: 'organizer',
+      });
+      expect(nextAfterFinal.statusCode).toBe(409);
+      expect(nextAfterFinal.json().errorCode).toBe('stage-already-completed');
+
+      // 9. Verify bracket view has real scores and no placeholder or NaN
+      const bracketPreview = await request({
+        method: 'GET',
+        url: seedingUrl,
+        token: 'organizer',
+      });
+      expect(bracketPreview.statusCode).toBe(200);
+      const bracketMatches = bracketPreview.json().matches;
+      const finalNode = bracketMatches.find((b: { round: number }) => b.round === 2);
+      expect(finalNode).toBeDefined();
+      expect(finalNode.slots[0].kind).toBe('entrant');
+      expect(finalNode.slots[0].entrantId).toBe(r2Fixture.homeEntrantId);
+      expect(finalNode.slots[0].score).toBe(92);
+      expect(finalNode.slots[1].kind).toBe('entrant');
+      expect(finalNode.slots[1].entrantId).toBe(r2Fixture.awayEntrantId);
+      expect(finalNode.slots[1].score).toBe(88);
     });
   });
 });

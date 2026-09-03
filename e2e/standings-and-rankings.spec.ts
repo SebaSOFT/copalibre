@@ -568,6 +568,26 @@ test.describe('B2: public tournament page', () => {
     await page.waitForURL(`**/stages/1/matches/2`);
   });
 
+  test('a resolved bracket renders real scores and never NaN or corrupted placeholders (task 5.1)', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);
+
+    // Real score is visible
+    await expect(page.locator('article[data-match="1"]').getByText('Talleres')).toBeVisible();
+    await expect(page.locator('article[data-match="1"]').getByText('2')).toBeVisible();
+    await expect(page.locator('article[data-match="1"]').getByText('Independiente')).toBeVisible();
+    await expect(page.locator('article[data-match="1"]').getByText('1')).toBeVisible();
+
+    // Unresolved slot shows clean text "Ganador del 1", never "Ganador del NaN"
+    await expect(page.locator('article[data-match="2"]').getByText('Ganador del 1')).toBeVisible();
+    await expect(page.locator('article[data-match="2"]').getByText('Ganador del 3')).toBeVisible();
+
+    // Entire stage body must never contain "NaN"
+    await expect(page.locator('body')).not.toContainText('NaN');
+    await expect(page.locator('body')).not.toContainText('NaN0');
+  });
+
   test('filters the leaderboard to one club by URL, keeps whole-table ranks, and clears', async ({
     page,
   }) => {

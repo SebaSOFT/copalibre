@@ -112,6 +112,7 @@ export {
   type DisciplineDescriptor,
   type DisciplineDescriptorDocument,
   type RuleScript,
+  primaryScoreOf,
 } from './descriptors/discipline-descriptor.js';
 export type {
   TableTarget,

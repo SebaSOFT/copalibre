@@ -40,6 +40,7 @@ import { generateFixtures } from '@copalibre/tournament-engine';
 import {
   resolveLabel,
   ageAt,
+  primaryScoreOf,
   type DisciplineDescriptor,
   type StatisticCollector,
   type Tournament,
@@ -557,7 +558,7 @@ export class PublicProjectionsController {
     const result = match.result as unknown as {
       readonly sides?: readonly { readonly statistics?: Record<string, number> }[];
     } | null;
-    const scores = result?.sides === undefined ? undefined : publicScores(result.sides);
+    const scores = result?.sides === undefined ? undefined : publicScores(result.sides, descriptor);
 
     return {
       organizationAlias,
@@ -1075,8 +1076,9 @@ export class PublicProjectionsController {
 
 function publicScores(
   sides: readonly { readonly statistics?: Record<string, number> }[],
+  descriptor?: DisciplineDescriptor,
 ): readonly (number | undefined)[] {
-  return sides.map((side) => Object.values(side.statistics ?? {})[0]);
+  return sides.map((side) => primaryScoreOf(side.statistics, descriptor));
 }
 
 export function seriesResponseOf(series: PublicSeriesState): PublicSeriesStateResponse {

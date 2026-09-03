@@ -328,15 +328,28 @@ export function toBracketMatch(
     position: match.position,
     status: recorded?.status ?? 'scheduled',
     ...(options.matchFormat === undefined ? {} : { format: options.matchFormat }),
-    slots: slotsOf(match).map((slot, index) => ({
-      kind: slot.kind,
-      ...(slot.kind === 'entrant' ? { entrantId: slot.entrantId } : {}),
-      ...(slot.kind === 'winner-of' || slot.kind === 'loser-of' ? { matchId: slot.matchId } : {}),
-      ...(recorded?.scores?.[index] === undefined ? {} : { score: recorded.scores[index] }),
-      ...(recorded?.resultReasons?.[index] === undefined
-        ? {}
-        : { resultReason: recorded.resultReasons[index] }),
-    })),
+    slots: slotsOf(match).map((slot, index) => {
+      const recordedEntrantId = index === 0 ? recorded?.homeEntrantId : recorded?.awayEntrantId;
+      if (recordedEntrantId) {
+        return {
+          kind: 'entrant' as const,
+          entrantId: recordedEntrantId,
+          ...(recorded?.scores?.[index] === undefined ? {} : { score: recorded.scores[index] }),
+          ...(recorded?.resultReasons?.[index] === undefined
+            ? {}
+            : { resultReason: recorded.resultReasons[index] }),
+        };
+      }
+      return {
+        kind: slot.kind,
+        ...(slot.kind === 'entrant' ? { entrantId: slot.entrantId } : {}),
+        ...(slot.kind === 'winner-of' || slot.kind === 'loser-of' ? { matchId: slot.matchId } : {}),
+        ...(recorded?.scores?.[index] === undefined ? {} : { score: recorded.scores[index] }),
+        ...(recorded?.resultReasons?.[index] === undefined
+          ? {}
+          : { resultReason: recorded.resultReasons[index] }),
+      };
+    }),
   };
 }
 

@@ -4,6 +4,7 @@ description: Reglas para operar partidos y corregir datos de torneo.
 capabilities:
   - platform/async-job-processing
   - platform/persistence-layer
+  - platform/release-process
 roles:
   - super-admin
 ---

@@ -171,7 +171,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(ApiExceptionFilter.name);
 
   constructor(
-    private readonly adapterHost: HttpAdapterHost,
+    @Inject(HttpAdapterHost) private readonly adapterHost: HttpAdapterHost,
     @Inject(DATABASE) private readonly db: Kysely<Database>,
   ) {}
 

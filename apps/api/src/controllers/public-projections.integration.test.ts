@@ -446,6 +446,124 @@ describe('public projections routes', () => {
     });
   });
 
+  it('serves match report headline score honoring declared scoringInput when wins is first key in statistics', async () => {
+    const competition = new CompetitionRepository(scratch.db as Kysely<Database>);
+    const now = new Date();
+
+    const { stage, match } = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      const homeTeamId = newId();
+      const awayTeamId = newId();
+      const homeEntrantId = newId();
+      const awayEntrantId = newId();
+      await uow.tx
+        .insertInto('teams')
+        .values([
+          {
+            team_id: homeTeamId,
+            organization_id: organizationId,
+            alias: 'spurs',
+            club_id: null,
+            name: 'Spurs',
+            discipline_id: null,
+            abbreviation: 'SAS',
+            created_at: now,
+          },
+          {
+            team_id: awayTeamId,
+            organization_id: organizationId,
+            alias: 'heat',
+            club_id: null,
+            name: 'Heat',
+            discipline_id: null,
+            abbreviation: 'MIA',
+            created_at: now,
+          },
+        ])
+        .execute();
+      await uow.tx
+        .insertInto('entrants')
+        .values([
+          {
+            entrant_id: homeEntrantId,
+            tournament_id: publishedTournament.tournamentId,
+            entrant_kind: 'team',
+            person_id: null,
+            team_id: homeTeamId,
+            abbreviation: 'SAS',
+            seed: null,
+            status: 'accepted',
+            created_at: now,
+          },
+          {
+            entrant_id: awayEntrantId,
+            tournament_id: publishedTournament.tournamentId,
+            entrant_kind: 'team',
+            person_id: null,
+            team_id: awayTeamId,
+            abbreviation: 'MIA',
+            seed: null,
+            status: 'accepted',
+            created_at: now,
+          },
+        ])
+        .execute();
+
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: publishedTournament.tournamentId,
+        number: 3,
+        name: 'Conference Finals',
+        format: 'single-elimination',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const fixtures = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [{ round: 1, homeEntrantId, awayEntrantId }],
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const fixture = fixtures[0];
+      if (!fixture) throw new Error('Expected at least one fixture');
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture.fixtureId,
+        number: 1,
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+
+      // Deliberately place 'wins' as the first key, followed by 'points'
+      await competition.recordResult(uow, {
+        matchId: match.matchId,
+        result: {
+          sides: [
+            { entrantId: homeEntrantId, statistics: { wins: 1, points: 95 } },
+            { entrantId: awayEntrantId, statistics: { wins: 0, points: 82 } },
+          ],
+          winnerEntrantId: homeEntrantId,
+          recordedAt: '2026-01-01T01:00:00.000Z',
+        },
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      return { stage, match };
+    });
+
+    const response = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/${stage.number}/matches/${match.number}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.payload as string);
+    // Score must be 95-82, NEVER 1-0 from the 'wins' key!
+    expect(body.homeScore).toBe(95);
+    expect(body.awayScore).toBe(82);
+  });
+
   it("serves a person's public profile with computed age and no private fields", async () => {
     const people = new PersonRepository(scratch.db as Kysely<Database>);
     const enrollment = new EnrollmentRepository(scratch.db as Kysely<Database>);
