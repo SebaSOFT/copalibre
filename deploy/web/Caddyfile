@@ -35,6 +35,20 @@
 		reverse_proxy web-ssr:3005
 	}
 
+	@ssrTv {
+		path /tv /tv/*
+	}
+	handle @ssrTv {
+		reverse_proxy web-ssr:3005
+	}
+
+	@ssrInvitations {
+		path /invitations /invitations/*
+	}
+	handle @ssrInvitations {
+		reverse_proxy web-ssr:3005
+	}
+
 	# Every authenticated control-panel screen beyond the login page shares
 	# one client-routed shell — real files (the login page at
 	# /control/, its own static assets, and /control/callback once 0062

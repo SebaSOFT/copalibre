@@ -10,6 +10,11 @@ import {
 import { presentState, type ResultStateLabels } from '../lib/result-state.js';
 import { resolveTvBranding, tvStateColor, type TvBranding } from '../lib/tv-branding.js';
 
+export interface TvClubItem {
+  readonly name: string;
+  readonly emblemObjectId?: string;
+}
+
 /**
  * The `/tv/**` kiosk and overlay surface.
  *
@@ -33,6 +38,9 @@ export interface TvDashboardProps {
   /** Set on the pinned-match route; the full-rotation route leaves this unset. */
   readonly pinnedMatchNumber?: number;
   readonly branding?: TvBranding;
+  readonly tournamentName?: string;
+  readonly organizationName?: string;
+  readonly clubs?: readonly TvClubItem[];
 }
 
 export function TvDashboard({
@@ -40,6 +48,9 @@ export function TvDashboard({
   streamPath,
   pinnedMatchNumber,
   branding,
+  tournamentName,
+  organizationName,
+  clubs,
 }: TvDashboardProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState(initial);
   const resolvedBranding = resolveTvBranding(branding ?? {});
@@ -72,10 +83,42 @@ export function TvDashboard({
     return () => client.close();
   }, [streamPath]);
 
+  const pinnedMatch =
+    pinnedMatchNumber === undefined
+      ? undefined
+      : dashboard.matches.find((match) => match.matchNumber === pinnedMatchNumber);
+
   const matches =
     pinnedMatchNumber === undefined
       ? dashboard.matches
-      : dashboard.matches.filter((match) => match.matchNumber === pinnedMatchNumber);
+      : pinnedMatch
+        ? [pinnedMatch]
+        : [];
+
+  const nearbyMatches =
+    pinnedMatchNumber !== undefined
+      ? dashboard.matches.filter((match) => match.matchNumber !== pinnedMatchNumber)
+      : [];
+
+  if (matches.length === 0) {
+    return (
+      <div
+        className="tv-dashboard"
+        style={
+          resolvedBranding.accentColor
+            ? ({ '--tv-accent': resolvedBranding.accentColor } as React.CSSProperties)
+            : undefined
+        }
+      >
+        <TvStandbyFallback
+          branding={resolvedBranding}
+          clubs={clubs}
+          organizationName={organizationName}
+          tournamentName={tournamentName}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -96,8 +139,88 @@ export function TvDashboard({
       )}
       <div className="tv-dashboard__matches">
         {matches.map((match) => (
-          <TvMatchCard key={match.matchId} match={match} />
+          <TvMatchCard
+            isSpotlight={pinnedMatchNumber !== undefined}
+            key={match.matchId}
+            match={match}
+          />
         ))}
+      </div>
+      {nearbyMatches.length > 0 && (
+        <div className="tv-nearby">
+          <span className="tv-nearby__title">Otros partidos de la fecha</span>
+          <div className="tv-nearby__list">
+            {nearbyMatches.map((match) => (
+              <TvMatchCard key={match.matchId} match={match} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TvStandbyFallback({
+  branding,
+  tournamentName,
+  organizationName,
+  clubs,
+}: {
+  readonly branding: TvBranding;
+  readonly tournamentName?: string;
+  readonly organizationName?: string;
+  readonly clubs?: readonly TvClubItem[];
+}): React.JSX.Element {
+  const displayClubs = clubs && clubs.length > 0 ? clubs.concat(clubs) : [];
+
+  return (
+    <div className="tv-standby">
+      <div className="tv-standby__glow" />
+      <div className="tv-standby__content">
+        <div className="tv-standby__badge">
+          <span className="tv-standby__dot" />
+          <span>Circuito TV en vivo · Esperando encuentro</span>
+        </div>
+        <div className="tv-standby__brand">
+          {branding.logoUrl ? (
+            <img
+              alt={organizationName ?? ''}
+              className="tv-standby__org-logo"
+              src={branding.logoUrl}
+            />
+          ) : (
+            <div className="tv-standby__copalibre-emblem">
+              <img alt="CopaLibre" height="120" src="/copalibre-logo.svg" width="120" />
+            </div>
+          )}
+          <h1 className="tv-standby__tournament">{tournamentName ?? 'Torneo Oficial'}</h1>
+          {organizationName && <p className="tv-standby__organization">{organizationName}</p>}
+        </div>
+        {displayClubs.length > 0 && (
+          <div className="tv-standby__carousel-wrap">
+            <p className="tv-standby__carousel-title">Clubes participantes</p>
+            <div className="tv-standby__carousel">
+              <div className="tv-standby__track">
+                {displayClubs.map((club, idx) => (
+                  <div className="tv-standby__club-pill" key={`${club.name}-${idx}`}>
+                    {club.emblemObjectId ? (
+                      <img
+                        alt=""
+                        className="tv-standby__club-img"
+                        src={`/api/objects/${club.emblemObjectId}`}
+                      />
+                    ) : (
+                      <span className="tv-standby__club-avatar">
+                        {club.name.substring(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                    <span className="tv-standby__club-name">{club.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -122,10 +245,19 @@ const TV_RESULT_STATE_LABELS: ResultStateLabels = {
   cancelled: 'CANCELADO',
 };
 
-function TvMatchCard({ match }: { readonly match: LiveMatch }): React.JSX.Element {
+function TvMatchCard({
+  match,
+  isSpotlight = false,
+}: {
+  readonly match: LiveMatch;
+  readonly isSpotlight?: boolean;
+}): React.JSX.Element {
   const badge = presentState(match.state, TV_RESULT_STATE_LABELS);
   return (
-    <article className="tv-match" style={{ borderInlineStartColor: tvStateColor(match.state) }}>
+    <article
+      className={`tv-match${isSpotlight ? ' tv-match--spotlight' : ''}`}
+      style={{ borderInlineStartColor: tvStateColor(match.state) }}
+    >
       <div className="tv-match__badge">
         <span aria-hidden="true">{badge.icon}</span>
         <span>{badge.label}</span>

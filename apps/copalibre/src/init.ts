@@ -1,3 +1,4 @@
+import { generateKeyPairSync, createPublicKey } from 'node:crypto';
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { getAsset, isSea } from 'node:sea';
@@ -7,8 +8,22 @@ import { readCopalibreVersion } from './banner.js';
 import { writeInstallationMarker, type InstallationMarker } from './installation-marker.js';
 
 export const LOCAL_DEFAULTS = {
-  COPALIBRE_APP_URL: 'http://localhost:4321',
-  COPALIBRE_API_URL: 'http://localhost:3001',
+  COPALIBRE_PORT: '8080',
+  COPALIBRE_APP_URL: 'http://localhost:8080',
+  COPALIBRE_API_URL: 'http://localhost:8080',
+  COPALIBRE_IMAGE: 'ghcr.io/sebasoft/copalibre:1.0.6',
+  COPALIBRE_WEB_IMAGE: 'ghcr.io/sebasoft/copalibre-web:1.0.6',
+  POSTGRES_USER: 'copalibre',
+  POSTGRES_PASSWORD: 'copalibre_dev_password',
+  POSTGRES_DB: 'copalibre',
+  COPALIBRE_BOOTSTRAP_TOKEN: 'copalibre_bootstrap_token_secret',
+  COPALIBRE_JWKS_URI: 'http://api:3001/.well-known/jwks.json',
+  COPALIBRE_JWT_ISSUER: 'http://localhost:8080',
+  COPALIBRE_JWT_AUDIENCE: 'copalibre',
+  COPALIBRE_OIDC_CLIENT_ID: 'copalibre-local',
+  COPALIBRE_EMAIL_PROVIDER: 'smtp',
+  COPALIBRE_EMAIL_FROM: 'noreply@copalibre.local',
+  COPALIBRE_SMTP_URL: 'smtp://host.docker.internal:1025',
   COPALIBRE_DATA_DIR: './data',
   COPALIBRE_API_PORT: '3001',
   COPALIBRE_EVENTS_PORT: '3002',
@@ -27,6 +42,38 @@ export const REQUIRED_SECRETS = [
   'COPALIBRE_EMAIL_FROM',
   'Selected email provider credential',
 ] as const;
+
+export function generateRsaKeypair(): { readonly privateKeyPem: string; readonly jwksJson: string } {
+  const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: {
+      type: 'spki',
+      format: 'pem',
+    },
+    privateKeyEncoding: {
+      type: 'pkcs8',
+      format: 'pem',
+    },
+  });
+
+  const jwk = createPublicKey(publicKey).export({ format: 'jwk' });
+  const keyId = 'copalibre-local-key-1';
+  const jwks = {
+    keys: [
+      {
+        ...jwk,
+        kid: keyId,
+        use: 'sig',
+        alg: 'RS256',
+      },
+    ],
+  };
+
+  return {
+    privateKeyPem: privateKey,
+    jwksJson: JSON.stringify(jwks, null, 2),
+  };
+}
 
 /**
  * The `.env` body `init` writes — pure, so the build-time asset generator
@@ -112,6 +159,8 @@ export interface WriteInstallationAssetsResult {
   readonly directory: string;
   readonly composeFile: string;
   readonly envFile: string;
+  readonly privateKeyFile: string;
+  readonly jwksFile: string;
   readonly moduleDevFile?: string;
   readonly marker: InstallationMarker;
 }
@@ -119,11 +168,8 @@ export interface WriteInstallationAssetsResult {
 /**
  * `copalibre init`'s real work: writes a complete, runnable installation
  * into `cwd` with no source checkout required — the compose file, `.env`,
- * and (opt-in) the module-dev override, plus the marker every later command
- * auto-detects. Every target checked for pre-existence before any write
- * begins, so a partial pre-existing state (e.g. a stray `.env`) refuses
- * cleanly, naming exactly what conflicts, rather than writing some files and
- * leaving others alone.
+ * RSA keypair, gateway Caddyfile, and (opt-in) the module-dev override,
+ * plus the marker every later command auto-detects.
  */
 export async function writeInstallationAssets(
   cwd: string,
@@ -131,12 +177,17 @@ export async function writeInstallationAssets(
 ): Promise<WriteInstallationAssetsResult> {
   const composeTarget = join(cwd, 'docker-compose.yml');
   const envTarget = join(cwd, '.env');
+  const privateKeyTarget = join(cwd, 'jwt-private.pem');
+  const jwksTarget = join(cwd, 'jwks.json');
+  const gatewayTarget = join(cwd, 'deploy', 'gateway', 'Caddyfile');
   const moduleDevTarget = join(cwd, 'docker-compose.module-dev.yml');
   const markerTarget = join(cwd, '.copalibre', 'installation.json');
 
   const targets = [
     composeTarget,
     envTarget,
+    privateKeyTarget,
+    jwksTarget,
     markerTarget,
     ...(options.moduleDev ? [moduleDevTarget] : []),
   ];
@@ -151,6 +202,50 @@ export async function writeInstallationAssets(
   await mkdir(cwd, { recursive: true });
   await writeFile(composeTarget, await readAsset('docker-compose.yml', options.assetsDir), 'utf8');
 
+  // Generate and write RSA keys for local token signing directly alongside .env
+  const { privateKeyPem, jwksJson } = generateRsaKeypair();
+  await writeFile(privateKeyTarget, privateKeyPem, { encoding: 'utf8', mode: 0o600 });
+  await chmod(privateKeyTarget, 0o600);
+  await writeFile(jwksTarget, jwksJson, { encoding: 'utf8', mode: 0o644 });
+
+  // Write gateway Caddyfile
+  await mkdir(dirname(gatewayTarget), { recursive: true });
+  let gatewayCaddyContent: string;
+  try {
+    gatewayCaddyContent = await readAsset('Caddyfile', options.assetsDir);
+  } catch {
+    gatewayCaddyContent = `:80 {
+\thandle /api/* {
+\t\treverse_proxy api:3001
+\t}
+\thandle /auth/* {
+\t\treverse_proxy api:3001
+\t}
+\thandle /organizations/* {
+\t\treverse_proxy api:3001
+\t}
+\thandle /admin/* {
+\t\treverse_proxy api:3001
+\t}
+\thandle /installation/* {
+\t\treverse_proxy api:3001
+\t}
+\thandle /.well-known/* {
+\t\treverse_proxy api:3001
+\t}
+\thandle /events/* {
+\t\treverse_proxy events:3002 {
+\t\t\tflush_interval -1
+\t\t}
+\t}
+\thandle {
+\t\treverse_proxy web:4321
+\t}
+}
+`;
+  }
+  await writeFile(gatewayTarget, gatewayCaddyContent, 'utf8');
+
   if (options.moduleDev) {
     await writeFile(
       moduleDevTarget,
@@ -159,15 +254,11 @@ export async function writeInstallationAssets(
     );
     await mkdir(join(cwd, 'modules-dev'), { recursive: true });
   }
-  // Always explicit, never left to Compose's own cwd-scanning discovery —
-  // `-f` flags passed by hand at invocation time would override (not merge
-  // with) this, silently dropping the module-dev override, so
-  // compose-target.ts's marker-aware dispatch relies on this instead of
-  // passing `-f` itself.
-  const composeFile = options.moduleDev
-    ? 'docker-compose.yml:docker-compose.module-dev.yml'
-    : 'docker-compose.yml';
-  await writeLocalDefaults(envTarget, [`COMPOSE_FILE=${composeFile}`]);
+
+  const extraLines = options.moduleDev
+    ? ['COMPOSE_FILE=docker-compose.yml:docker-compose.module-dev.yml']
+    : [];
+  await writeLocalDefaults(envTarget, extraLines);
 
   const marker = await writeInstallationMarker(cwd, readCopalibreVersion());
 
@@ -175,6 +266,8 @@ export async function writeInstallationAssets(
     directory: cwd,
     composeFile: composeTarget,
     envFile: envTarget,
+    privateKeyFile: privateKeyTarget,
+    jwksFile: jwksTarget,
     ...(options.moduleDev ? { moduleDevFile: moduleDevTarget } : {}),
     marker,
   };

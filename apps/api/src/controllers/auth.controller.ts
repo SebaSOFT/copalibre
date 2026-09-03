@@ -1,9 +1,13 @@
 import * as argon2 from 'argon2';
-import { SignJWT } from 'jose';
+import { createHash, createPublicKey, generateKeyPairSync } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { importPKCS8, SignJWT } from 'jose';
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
 import {
   BadRequestException,
   ForbiddenException,
+  NotFoundException,
   UnauthorizedException,
 } from '../http/error-contract.js';
 import {
@@ -17,6 +21,7 @@ import type { Kysely } from 'kysely';
 import {
   IdentityPrincipalRepository,
   InstallationRoleRepository,
+  OrganizationAccessRepository,
   PersonalAccessTokenRepository,
   AuthVerificationTokenRepository,
   withTransaction,
@@ -38,6 +43,8 @@ import {
   PatCreatedResponse,
   PatResponse,
   AuthSuccessResponse,
+  NativeAcceptInvitationRequest,
+  JwksResponse,
 } from '../dto/auth.dto.js';
 
 /**
@@ -90,6 +97,94 @@ export class NativeAuthController {
     }
 
     const accessToken = await issueLocalJwt(this.db, principal.principal_id, principal.email);
+    return { accessToken, expiresIn: 3600 };
+  }
+
+  @Get('jwks.json')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: 'JSON Web Key Set for local token verification' })
+  @ApiOkResponse({ type: JwksResponse })
+  jwks(): { readonly keys: readonly Record<string, unknown>[] } {
+    return getLocalKeys().jwks;
+  }
+
+  @Post('accept-invitation')
+  @HttpCode(200)
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
+  @SharedThrottle()
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: 'Accept invitation and set password for administrator' })
+  @ApiOkResponse({ type: LoginResponse })
+  async acceptInvitation(@Body() body: NativeAcceptInvitationRequest): Promise<LoginResponse> {
+    if (!body.password || body.password.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters', {
+        errorCode: 'auth-bad-request',
+      });
+    }
+
+    const tokenHash = createHash('sha256').update(body.token).digest('hex');
+
+    const invitation = await this.db
+      .selectFrom('organization_invites')
+      .selectAll()
+      .where('token_hash', '=', tokenHash)
+      .executeTakeFirst();
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found or invalid token', {
+        errorCode: 'auth-not-found',
+      });
+    }
+
+    if (new Date(invitation.expires_at) < new Date()) {
+      throw new BadRequestException('Invitation has expired', {
+        errorCode: 'auth-bad-request',
+      });
+    }
+
+    if (invitation.status !== 'pending' && invitation.status !== 'active') {
+      throw new BadRequestException('Invitation is no longer active', {
+        errorCode: 'auth-bad-request',
+      });
+    }
+
+    const passwordHash = await argon2.hash(body.password);
+    const email = invitation.recipient_email.toLowerCase().trim();
+
+    const principal = await withTransaction(this.db, async (uow) => {
+      let p = await new IdentityPrincipalRepository(this.db).findByEmail(email);
+      if (!p) {
+        p = await new IdentityPrincipalRepository(this.db).create(uow, {
+          email,
+          passwordHash,
+          name: body.name,
+        });
+      } else {
+        await uow.tx
+          .updateTable('identity_principals')
+          .set({ password_hash: passwordHash, updated_at: new Date() })
+          .where('principal_id', '=', p.principalId)
+          .execute();
+      }
+
+      await new OrganizationAccessRepository(this.db).acceptInvitation(uow, {
+        tokenHash,
+        subjectId: p.principalId,
+        verifiedEmail: email,
+        name: body.name,
+        actor: `principal:${p.principalId}`,
+        authorizationContext: 'invitation-acceptance',
+      });
+
+      return p;
+    });
+
+    const accessToken = await issueLocalJwt(
+      this.db,
+      principal.principalId,
+      email,
+      invitation.organization_id,
+    );
     return { accessToken, expiresIn: 3600 };
   }
 
@@ -326,38 +421,121 @@ function toPatResponse(pat: {
   };
 }
 
+let cachedPrivateKey: string | undefined;
+let cachedJwks: { readonly keys: readonly Record<string, unknown>[] } | undefined;
+
+export function getLocalKeys(): {
+  readonly privateKey: string;
+  readonly jwks: { readonly keys: readonly Record<string, unknown>[] };
+} {
+  if (cachedPrivateKey && cachedJwks) {
+    return { privateKey: cachedPrivateKey, jwks: cachedJwks };
+  }
+
+  const cwd = process.cwd();
+  const privateKeyFile =
+    process.env.COPALIBRE_JWT_PRIVATE_KEY_FILE ??
+    (existsSync(join(cwd, 'jwt-private.pem')) ? join(cwd, 'jwt-private.pem') : undefined) ??
+    (existsSync('/var/lib/copalibre/jwt-private.pem') ? '/var/lib/copalibre/jwt-private.pem' : undefined);
+
+  const jwksFile =
+    process.env.COPALIBRE_JWKS_FILE ??
+    (existsSync(join(cwd, 'jwks.json')) ? join(cwd, 'jwks.json') : undefined) ??
+    (existsSync('/var/lib/copalibre/jwks.json') ? '/var/lib/copalibre/jwks.json' : undefined);
+
+  if (privateKeyFile && existsSync(privateKeyFile)) {
+    try {
+      cachedPrivateKey = readFileSync(privateKeyFile, 'utf8');
+    } catch {
+      // ignore
+    }
+  }
+
+  if (jwksFile && existsSync(jwksFile)) {
+    try {
+      cachedJwks = JSON.parse(readFileSync(jwksFile, 'utf8'));
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!cachedPrivateKey || !cachedJwks) {
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+    cachedPrivateKey = cachedPrivateKey ?? privateKey;
+    const jwk = createPublicKey(publicKey).export({ format: 'jwk' });
+    cachedJwks = cachedJwks ?? {
+      keys: [
+        {
+          ...jwk,
+          kid: 'copalibre-local-key-1',
+          use: 'sig',
+          alg: 'RS256',
+        },
+      ],
+    };
+  }
+
+  return { privateKey: cachedPrivateKey, jwks: cachedJwks };
+}
+
+@ApiTags('auth')
+@Controller('.well-known')
+export class WellKnownController {
+  @Get('jwks.json')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: 'JSON Web Key Set for local token verification' })
+  @ApiOkResponse({ type: JwksResponse })
+  jwks(): { readonly keys: readonly Record<string, unknown>[] } {
+    return getLocalKeys().jwks;
+  }
+}
+
 /**
- * Issues a short-lived local JWT for native authentication.
- * Uses HS256 with a server-side secret for simplicity in the local IdP case.
- *
- * `copalibre.super-admin` is appended only when `installation_role_assignments`
- * holds an active super-admin row for this principal — the queryable,
- * floor-invariant-protected source of truth introduced by that change. An
- * externally-issued OIDC token's own `scp` claim is a separate, unaffected
- * source for the same scope (`TokenVerifier`/`packages/auth`).
+ * Issues a short-lived local JWT for native authentication using RS256.
  */
-async function issueLocalJwt(
+export async function issueLocalJwt(
   db: Kysely<Database>,
   principalId: string,
   email: string,
+  organizationId?: string,
 ): Promise<string> {
-  const secret = process.env.COPALIBRE_JWT_SECRET;
-  if (!secret) throw new Error('COPALIBRE_JWT_SECRET is not configured');
+  const { privateKey, jwks } = getLocalKeys();
+  const firstKey = jwks.keys[0];
+  const kid =
+    (firstKey && typeof firstKey.kid === 'string' ? firstKey.kid : undefined) ??
+    'copalibre-local-key-1';
 
   const isSuperAdmin = await new InstallationRoleRepository(db).findActiveByPrincipal(principalId);
   const scopes = ['copalibre.control', 'copalibre.participant'];
   if (isSuperAdmin) scopes.push(SUPER_ADMIN_SCOPE);
 
-  const encoder = new TextEncoder();
-  return new SignJWT({
+  const privateKeyObj = await importPKCS8(privateKey, 'RS256');
+
+  const payload: Record<string, unknown> = {
     sub: principalId,
     email,
     scp: scopes.join(' '),
-  })
-    .setProtectedHeader({ alg: 'HS256' })
+  };
+
+  if (organizationId) {
+    payload.org = organizationId;
+  } else {
+    const memberships = await new OrganizationAccessRepository(db).listOrganizationsForPrincipal(principalId);
+    const firstMembership = memberships[0];
+    if (firstMembership) {
+      payload.org = firstMembership.organizationId;
+    }
+  }
+
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: 'RS256', kid })
     .setIssuedAt()
     .setExpirationTime('1h')
-    .setIssuer(process.env.COPALIBRE_JWT_ISSUER ?? 'copalibre')
+    .setIssuer(process.env.COPALIBRE_JWT_ISSUER ?? 'http://localhost:8080')
     .setAudience(process.env.COPALIBRE_JWT_AUDIENCE ?? 'copalibre')
-    .sign(encoder.encode(secret));
+    .sign(privateKeyObj);
 }

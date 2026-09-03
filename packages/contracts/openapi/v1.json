@@ -7289,6 +7289,60 @@
         ]
       }
     },
+    "/auth/jwks.json": {
+      "get": {
+        "operationId": "NativeAuthController_jwks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JwksResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "JSON Web Key Set for local token verification",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/accept-invitation": {
+      "post": {
+        "operationId": "NativeAuthController_acceptInvitation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NativeAcceptInvitationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Accept invitation and set password for administrator",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/auth/forgot-password": {
       "post": {
         "operationId": "NativeAuthController_forgotPassword",
@@ -7348,6 +7402,28 @@
           }
         },
         "summary": "Reset password using a verification token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/.well-known/jwks.json": {
+      "get": {
+        "operationId": "WellKnownController_jwks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JwksResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "JSON Web Key Set for local token verification",
         "tags": [
           "auth"
         ]
@@ -16227,6 +16303,72 @@
         "required": [
           "accessToken",
           "expiresIn"
+        ]
+      },
+      "JwksKey": {
+        "type": "object",
+        "properties": {
+          "kty": {
+            "type": "string"
+          },
+          "kid": {
+            "type": "string"
+          },
+          "use": {
+            "type": "string"
+          },
+          "alg": {
+            "type": "string"
+          },
+          "n": {
+            "type": "string"
+          },
+          "e": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kty",
+          "kid",
+          "use",
+          "alg",
+          "n",
+          "e"
+        ]
+      },
+      "JwksResponse": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JwksKey"
+            }
+          }
+        },
+        "required": [
+          "keys"
+        ]
+      },
+      "NativeAcceptInvitationRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The invitation token from setupUrl"
+          },
+          "password": {
+            "type": "string",
+            "description": "New password for the administrator (min 8 characters)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name for the administrator"
+          }
+        },
+        "required": [
+          "token",
+          "password"
         ]
       },
       "ForgotPasswordRequest": {

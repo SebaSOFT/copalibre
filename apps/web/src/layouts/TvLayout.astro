@@ -123,6 +123,225 @@ const { title } = Astro.props;
           grid-template-columns: minmax(0, 1fr);
         }
       }
+
+      /* Animated Fallback & Standby Kiosk */
+      .tv-standby {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .tv-standby__glow {
+        position: absolute;
+        width: 60vmin;
+        height: 60vmin;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--cl-brand-cyan) 0%, transparent 70%);
+        filter: blur(40px);
+        opacity: 0.15;
+        animation: tvPulseGlow 4s ease-in-out infinite;
+        pointer-events: none;
+      }
+
+      .tv-standby__content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3vmin;
+        max-width: 80vw;
+      }
+
+      .tv-standby__badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 1vmin;
+        padding: 0.8vmin 2vmin;
+        border-radius: 9999px;
+        background: var(--cl-surface-panel);
+        border: 1px solid var(--cl-border-subtle);
+        font-family: var(--cl-font-mono);
+        font-size: clamp(var(--cl-font-size-sm), 2vmin, var(--cl-font-size-lg));
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--cl-brand-cyan);
+      }
+
+      .tv-standby__dot {
+        width: 1.2vmin;
+        height: 1.2vmin;
+        border-radius: 50%;
+        background: var(--cl-brand-cyan);
+        animation: tvPulseDot 1.5s ease-in-out infinite;
+      }
+
+      .tv-standby__brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5vmin;
+      }
+
+      .tv-standby__copalibre-emblem img,
+      .tv-standby__org-logo {
+        max-height: 16vmin;
+        max-width: 30vmin;
+        object-fit: contain;
+        filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.3));
+        animation: tvPulseGlow 6s ease-in-out infinite;
+      }
+
+      .tv-standby__tournament {
+        margin: 0;
+        font-family: var(--cl-font-display);
+        font-size: clamp(var(--cl-font-size-2xl), 6vmin, calc(var(--cl-font-size-3xl) * 2));
+        font-weight: var(--cl-weight-bold);
+        letter-spacing: -0.02em;
+        color: var(--cl-text-primary);
+      }
+
+      .tv-standby__organization {
+        margin: 0;
+        font-family: var(--cl-font-body);
+        font-size: clamp(var(--cl-font-size-md), 3vmin, var(--cl-font-size-xl));
+        color: var(--cl-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .tv-standby__carousel-wrap {
+        margin-top: 2vmin;
+        width: 100vw;
+        max-width: 90vw;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5vmin;
+      }
+
+      .tv-standby__carousel-title {
+        margin: 0;
+        font-family: var(--cl-font-mono);
+        font-size: clamp(var(--cl-font-size-xs), 1.6vmin, var(--cl-font-size-sm));
+        color: var(--cl-text-muted);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      .tv-standby__carousel {
+        width: 100%;
+        overflow: hidden;
+        mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+        -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+      }
+
+      .tv-standby__track {
+        display: flex;
+        gap: 3vmin;
+        width: max-content;
+        animation: tvMarquee 25s linear infinite;
+      }
+
+      .tv-standby__club-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 1.2vmin;
+        padding: 1vmin 2.5vmin;
+        background: var(--cl-surface-panel);
+        border: 1px solid var(--cl-border-subtle);
+        border-radius: 9999px;
+        white-space: nowrap;
+      }
+
+      .tv-standby__club-img {
+        width: 3.5vmin;
+        height: 3.5vmin;
+        object-fit: contain;
+      }
+
+      .tv-standby__club-avatar {
+        width: 3.5vmin;
+        height: 3.5vmin;
+        border-radius: 50%;
+        background: var(--cl-surface-subtle);
+        color: var(--cl-brand-cyan);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--cl-font-mono);
+        font-weight: 700;
+        font-size: 1.6vmin;
+      }
+
+      .tv-standby__club-name {
+        font-family: var(--cl-font-display);
+        font-weight: var(--cl-weight-semibold);
+        font-size: clamp(var(--cl-font-size-sm), 2.2vmin, var(--cl-font-size-md));
+        color: var(--cl-text-primary);
+      }
+
+      /* Nearby Matches on Pinned Screen */
+      .tv-nearby {
+        margin-top: 2vmin;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5vmin;
+      }
+
+      .tv-nearby__title {
+        font-family: var(--cl-font-mono);
+        font-size: clamp(var(--cl-font-size-xs), 1.8vmin, var(--cl-font-size-sm));
+        color: var(--cl-brand-cyan);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .tv-nearby__list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(30vmin, 1fr));
+        gap: 2vmin;
+      }
+
+      .tv-match--spotlight {
+        border-inline-start-width: 1.5vmin;
+        box-shadow: 0 8px 32px var(--cl-surface-base);
+      }
+
+      @keyframes tvPulseGlow {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 0.15;
+        }
+        50% {
+          transform: scale(1.15);
+          opacity: 0.3;
+        }
+      }
+
+      @keyframes tvMarquee {
+        0% {
+          transform: translateX(0%);
+        }
+        100% {
+          transform: translateX(-50%);
+        }
+      }
+
+      @keyframes tvPulseDot {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.25;
+        }
+      }
     </style>
   </head>
   <body>

@@ -1,0 +1,20 @@
+---
+import '@copalibre/design-tokens/generated/copalibre.css';
+import '../../styles/control.css';
+import { AcceptInvitationForm } from '../../control/components/AcceptInvitationForm.tsx';
+
+export const prerender = false;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
+    <title>CopaLibre · Aceptar invitación</title>
+  </head>
+  <body style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--cl-surface-base, #0a0e1a); font-family: var(--cl-font-body, system-ui, sans-serif);">
+    <AcceptInvitationForm client:load />
+  </body>
+</html>

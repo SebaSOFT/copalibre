@@ -3,26 +3,39 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   formatRequiredSecrets,
+  generateRsaKeypair,
   readAsset,
   writeInstallationAssets,
   writeLocalDefaults,
 } from './init.js';
 
 describe('copalibre init', () => {
-  it('writes only non-secret defaults into a new local file', async () => {
+  it('writes complete defaults into a new local file', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'copalibre-init-'));
     const file = join(directory, '.env');
 
     await writeLocalDefaults(file);
 
     const content = await readFile(file, 'utf8');
-    expect(content).toContain('COPALIBRE_APP_URL=http://localhost:4321');
-    expect(content).not.toContain('BOOTSTRAP_TOKEN=');
+    expect(content).toContain('COPALIBRE_PORT=8080');
+    expect(content).toContain('COPALIBRE_APP_URL=http://localhost:8080');
+    expect(content).toContain('COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.0.6');
+    expect(content).toContain('COPALIBRE_BOOTSTRAP_TOKEN=');
   });
 
   it('lists required secret inputs without assigning values', () => {
     expect(formatRequiredSecrets()).toContain('COPALIBRE_BOOTSTRAP_TOKEN');
     expect(formatRequiredSecrets()).not.toContain('=');
+  });
+
+  it('generates a 2048-bit RSA keypair and valid JWKS', () => {
+    const { privateKeyPem, jwksJson } = generateRsaKeypair();
+    expect(privateKeyPem).toContain('BEGIN PRIVATE KEY');
+    const jwks = JSON.parse(jwksJson);
+    expect(jwks.keys).toHaveLength(1);
+    expect(jwks.keys[0].kty).toBe('RSA');
+    expect(jwks.keys[0].alg).toBe('RS256');
+    expect(jwks.keys[0].kid).toBe('copalibre-local-key-1');
   });
 });
 
@@ -31,19 +44,24 @@ async function stubAssetsDir(): Promise<string> {
   const directory = await mkdtemp(join(tmpdir(), 'copalibre-assets-'));
   await writeFile(join(directory, 'docker-compose.yml'), 'services: {}\n');
   await writeFile(join(directory, 'docker-compose.module-dev.yml'), 'services: {}\n');
+  await writeFile(join(directory, 'Caddyfile'), ':80 {}\n');
   return directory;
 }
 
 describe('writeInstallationAssets', () => {
-  it('writes the compose file, .env, and the marker into an empty directory', async () => {
+  it('writes the compose file, .env, RSA keypair, gateway Caddyfile, and the marker into an empty directory', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
     const assetsDir = await stubAssetsDir();
 
     const result = await writeInstallationAssets(cwd, { assetsDir });
 
     expect(await readFile(result.composeFile, 'utf8')).toBe('services: {}\n');
+    expect(await readFile(result.privateKeyFile, 'utf8')).toContain('BEGIN PRIVATE KEY');
+    expect(await readFile(result.jwksFile, 'utf8')).toContain('copalibre-local-key-1');
+    expect(await readFile(join(cwd, 'deploy', 'gateway', 'Caddyfile'), 'utf8')).toBe(':80 {}\n');
+
     const env = await readFile(result.envFile, 'utf8');
-    expect(env).toContain('COMPOSE_FILE=docker-compose.yml\n');
+    expect(env).not.toContain('COMPOSE_FILE=');
     expect(env).not.toContain('module-dev.yml');
     expect(result.moduleDevFile).toBeUndefined();
     expect(result.marker.mode).toBe('compose');
@@ -70,6 +88,8 @@ describe('writeInstallationAssets', () => {
 
     // Nothing else was written — the pre-existence check ran before any write.
     await expect(readFile(join(cwd, 'docker-compose.yml'), 'utf8')).rejects.toThrow();
+    await expect(readFile(join(cwd, 'jwt-private.pem'), 'utf8')).rejects.toThrow();
+    await expect(readFile(join(cwd, 'jwks.json'), 'utf8')).rejects.toThrow();
     await expect(readFile(join(cwd, '.copalibre', 'installation.json'), 'utf8')).rejects.toThrow();
     expect(await readFile(join(cwd, '.env'), 'utf8')).toBe('PRE_EXISTING=true\n');
   });

@@ -72,3 +72,55 @@ const labels = resultStateLabels(intl);
     }
   </ul>
 </section>
+
+<style>
+  ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--cl-space-3, 0.75rem);
+    list-style: none;
+    padding: 0;
+    margin: var(--cl-space-3, 0.75rem) 0 0 0;
+  }
+
+  li.cl-card {
+    background: var(--cl-surface-panel, #121828);
+    border: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.1));
+    border-radius: var(--cl-radius-md, 8px);
+    padding: var(--cl-space-3, 0.75rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: border-color 0.15s ease;
+  }
+
+  li.cl-card:hover {
+    border-color: var(--cl-brand-cyan, #00d4ff);
+  }
+
+  li.cl-card a {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .cl-badge {
+    align-self: flex-start;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    background: var(--cl-surface-subtle, rgba(255, 255, 255, 0.1));
+    color: var(--cl-text-primary, #f2f6fb);
+  }
+
+  .cl-stat-tile__value {
+    font-family: var(--cl-font-display, inherit);
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--cl-text-primary, #f2f6fb);
+  }
+</style>

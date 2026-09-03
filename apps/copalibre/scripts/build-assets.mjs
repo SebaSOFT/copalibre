@@ -28,6 +28,10 @@ await copyFile(
   join(repoRoot, 'deploy', 'helm', 'copalibre', 'values.yaml'),
   join(assetsDir, 'values.yaml'),
 );
+await copyFile(
+  join(repoRoot, 'deploy', 'gateway', 'Caddyfile'),
+  join(assetsDir, 'Caddyfile'),
+);
 await writeFile(join(assetsDir, '.env.example'), localDefaultsEnvFile(), 'utf8');
 
 process.stdout.write(`Wrote CLI assets to ${assetsDir}\n`);

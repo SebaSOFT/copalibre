@@ -95,3 +95,44 @@ export class PatResponse {
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;
 }
+
+export class NativeAcceptInvitationRequest {
+  @ApiProperty({ description: 'The invitation token from setupUrl' })
+  @IsString()
+  token!: string;
+
+  @ApiProperty({ description: 'New password for the administrator (min 8 characters)' })
+  @IsString()
+  password!: string;
+
+  @ApiPropertyOptional({ description: 'Display name for the administrator' })
+  @IsOptional()
+  @IsString()
+  name?: string;
+}
+
+export class JwksKey {
+  @ApiProperty()
+  kty!: string;
+
+  @ApiProperty()
+  kid!: string;
+
+  @ApiProperty()
+  use!: string;
+
+  @ApiProperty()
+  alg!: string;
+
+  @ApiProperty()
+  n!: string;
+
+  @ApiProperty()
+  e!: string;
+}
+
+export class JwksResponse {
+  @ApiProperty({ type: [JwksKey] })
+  keys!: JwksKey[];
+}
+

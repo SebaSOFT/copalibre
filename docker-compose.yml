@@ -186,6 +186,26 @@ services:
       timeout: 3s
       retries: 20
 
+  gateway:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - '${COPALIBRE_PORT:-8080}:80'
+    depends_on:
+      api:
+        condition: service_healthy
+      events:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    volumes:
+      - ./deploy/gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q --spider http://127.0.0.1:80/ || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   doctor:
     <<: *application-service
     environment:

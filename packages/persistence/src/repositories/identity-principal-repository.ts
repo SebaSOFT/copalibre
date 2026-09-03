@@ -53,10 +53,12 @@ export class IdentityPrincipalRepository {
       throw new InvariantViolationError('Email is already registered');
     }
 
+    const principalId = newId();
     const row = await uow.tx
       .insertInto('identity_principals')
       .values({
-        principal_id: newId(),
+        principal_id: principalId,
+        oidc_subject_id: principalId,
         email,
         password_hash: input.passwordHash ?? null,
         name: input.name ?? null,
@@ -84,7 +86,12 @@ export class IdentityPrincipalRepository {
     const row = await this.db
       .selectFrom('identity_principals')
       .selectAll()
-      .where('oidc_subject_id', '=', subjectId)
+      .where((eb) =>
+        eb.or([
+          eb('oidc_subject_id', '=', subjectId),
+          eb('principal_id', '=', subjectId),
+        ]),
+      )
       .executeTakeFirst();
     return row ? toIdentityPrincipal(row) : undefined;
   }
@@ -106,7 +113,12 @@ export class IdentityPrincipalRepository {
         'participant_identity_links.person_id as person_id',
       ])
       .where('participant_identity_links.organization_id', '=', organizationId)
-      .where('identity_principals.oidc_subject_id', '=', subjectId)
+      .where((eb) =>
+        eb.or([
+          eb('identity_principals.oidc_subject_id', '=', subjectId),
+          eb('identity_principals.principal_id', '=', subjectId),
+        ]),
+      )
       .executeTakeFirst();
     return row
       ? {
