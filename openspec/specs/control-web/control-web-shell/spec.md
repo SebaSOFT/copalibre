@@ -266,3 +266,35 @@ preference.
 - **WHEN** JavaScript is disabled and the control-panel shell's `<noscript>` fallback renders
 - **THEN** its text is in the platform's neutral default language, not hardcoded to any other specific
   language
+
+### Requirement: Primary sidebar navigation reachability
+Every section listed in the control panel's primary sidebar navigation SHALL resolve to a working page
+for an authorized user, both via the nav item itself and via its direct URL.
+
+#### Scenario: Opening every sidebar section
+- **WHEN** an authenticated org-admin clicks each of the primary sidebar sections (Dashboard, Clubs,
+  Tournaments, Live Console, Organization, Analytics, Roles, Venues & Officials)
+- **THEN** each SHALL render its real page content, never a not-found screen
+
+#### Scenario: Requesting a sidebar section's URL directly
+- **WHEN** an authenticated org-admin requests any primary sidebar section's URL directly (not via
+  client-side navigation)
+- **THEN** the same real page content SHALL render
+
+### Requirement: Post-authentication landing destination
+An authenticated user reaching the control panel root with no specific prior destination SHALL land on
+a real, navigable page.
+
+#### Scenario: Logging in with no prior destination
+- **WHEN** a user authenticates from the login page directly (not redirected there from a specific
+  protected URL)
+- **THEN** they SHALL land on their organization's dashboard (or an organization picker, if they belong
+  to more than one), never a not-found screen with no navigation
+
+### Requirement: Mobile sidebar navigation
+The primary sidebar navigation SHALL remain fully reachable at mobile viewport widths.
+
+#### Scenario: Navigating at a phone viewport width
+- **WHEN** the control panel is viewed at a mobile viewport width (≤430px)
+- **THEN** every primary sidebar section SHALL remain reachable through a collapse pattern (such as a
+  hamburger menu or drawer), and no section SHALL be clipped off-screen with no way to reach it

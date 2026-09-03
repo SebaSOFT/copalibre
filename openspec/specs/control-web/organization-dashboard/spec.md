@@ -91,3 +91,13 @@ enforcement implied.
   administration view
 - **THEN** the storage usage summary is not present, matching the same role gate as the rest of that
   view
+
+### Requirement: Tournament status presentation on the dashboard
+The organization dashboard SHALL classify and label each tournament's status as finished, upcoming, or
+live, consistent with the same vocabulary used on public-facing surfaces, and SHALL count only genuinely
+active tournaments in any "active tournaments" summary figure.
+
+#### Scenario: A finished tournament on the dashboard
+- **WHEN** a tournament has completed all its stages with a recorded result
+- **THEN** the dashboard SHALL label it as finished, never "PRÓXIMO" (upcoming), and SHALL NOT include it
+  in an "active tournaments" count
