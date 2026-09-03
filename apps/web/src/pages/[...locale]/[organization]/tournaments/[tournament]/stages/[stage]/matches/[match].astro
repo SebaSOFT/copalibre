@@ -115,10 +115,14 @@ const structuredData = {
                     <table class="cl-data-table">
                       <thead>
                         <tr>
-                          <th scope="col" style="width: 44px;">No.</th>
+                          <th scope="col" style="width: 44px;">
+                            No.
+                          </th>
                           <th scope="col">Player</th>
                           <th scope="col">Roles</th>
-                          <th scope="col" style="width: 80px;">On field</th>
+                          <th scope="col" style="width: 80px;">
+                            On field
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -128,7 +132,9 @@ const structuredData = {
                             <td class="cl-name-cell">{member.name}</td>
                             <td>{member.roles?.join(', ') ?? '—'}</td>
                             <td>
-                              <span class={`cl-indicator ${member.onField ? 'cl-indicator--active' : ''}`}>
+                              <span
+                                class={`cl-indicator ${member.onField ? 'cl-indicator--active' : ''}`}
+                              >
                                 {member.onField ? 'Yes' : 'No'}
                               </span>
                             </td>
@@ -152,10 +158,15 @@ const structuredData = {
           ) : (
             <ol class="cl-timeline-list">
               {model.timeline.map((group) => (
-                <li class="cl-timeline-item" data-workflow-group={group.kind === 'workflow' ? 'true' : undefined}>
+                <li
+                  class="cl-timeline-item"
+                  data-workflow-group={group.kind === 'workflow' ? 'true' : undefined}
+                >
                   {group.events.map((event) => (
                     <div class="cl-timeline-entry">
-                      <time datetime={event.occurredAt} class="cl-timeline-time">{event.occurredAt}</time>
+                      <time datetime={event.occurredAt} class="cl-timeline-time">
+                        {event.occurredAt}
+                      </time>
                       <span class="cl-timeline-label">{event.label}</span>
                       {event.actor ? <span class="cl-timeline-actor">· {event.actor}</span> : null}
                     </div>

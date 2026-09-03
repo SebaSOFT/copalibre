@@ -83,4 +83,3 @@ describe('getLocalKeys and RS256 native token issuance', () => {
     expect(result.payload.scp).toContain('copalibre.control');
   });
 });
-

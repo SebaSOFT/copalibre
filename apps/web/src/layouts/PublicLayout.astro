@@ -92,7 +92,9 @@ const homeUrl = getLocaleHomePath(intl.locale);
         />
       )
     }
-    <a class="cl-skip-link cl-focusable" href="#main">{intl.formatMessage(messages.layoutSkipToContent)}</a>
+    <a class="cl-skip-link cl-focusable" href="#main"
+      >{intl.formatMessage(messages.layoutSkipToContent)}</a
+    >
     <header>
       <nav aria-label={intl.formatMessage(messages.layoutNavAriaLabel)}>
         <a href={homeUrl} class="cl-brand">

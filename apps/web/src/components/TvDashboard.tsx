@@ -89,11 +89,7 @@ export function TvDashboard({
       : dashboard.matches.find((match) => match.matchNumber === pinnedMatchNumber);
 
   const matches =
-    pinnedMatchNumber === undefined
-      ? dashboard.matches
-      : pinnedMatch
-        ? [pinnedMatch]
-        : [];
+    pinnedMatchNumber === undefined ? dashboard.matches : pinnedMatch ? [pinnedMatch] : [];
 
   const nearbyMatches =
     pinnedMatchNumber !== undefined

@@ -436,7 +436,9 @@ export function getLocalKeys(): {
   const privateKeyFile =
     process.env.COPALIBRE_JWT_PRIVATE_KEY_FILE ??
     (existsSync(join(cwd, 'jwt-private.pem')) ? join(cwd, 'jwt-private.pem') : undefined) ??
-    (existsSync('/var/lib/copalibre/jwt-private.pem') ? '/var/lib/copalibre/jwt-private.pem' : undefined);
+    (existsSync('/var/lib/copalibre/jwt-private.pem')
+      ? '/var/lib/copalibre/jwt-private.pem'
+      : undefined);
 
   const jwksFile =
     process.env.COPALIBRE_JWKS_FILE ??
@@ -524,7 +526,9 @@ export async function issueLocalJwt(
   if (organizationId) {
     payload.org = organizationId;
   } else {
-    const memberships = await new OrganizationAccessRepository(db).listOrganizationsForPrincipal(principalId);
+    const memberships = await new OrganizationAccessRepository(db).listOrganizationsForPrincipal(
+      principalId,
+    );
     const firstMembership = memberships[0];
     if (firstMembership) {
       payload.org = firstMembership.organizationId;

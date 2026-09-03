@@ -2,8 +2,14 @@ import React, { useState } from 'react';
 
 export function AcceptInvitationForm({
   initialToken,
+  navigate = (url: string) => {
+    if (typeof window !== 'undefined') {
+      window.location.assign(url);
+    }
+  },
 }: {
   readonly initialToken?: string;
+  readonly navigate?: (url: string) => void;
 } = {}): React.JSX.Element {
   const [token] = useState<string | null>(() => {
     if (initialToken) return initialToken;
@@ -63,7 +69,7 @@ export function AcceptInvitationForm({
       setSuccess(true);
 
       setTimeout(() => {
-        window.location.assign('/control/app');
+        navigate('/control/app');
       }, 1200);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error inesperado al aceptar la invitación');

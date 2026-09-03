@@ -3,7 +3,12 @@ import TvLayout from '../../../../layouts/TvLayout.astro';
 import { TvDashboard } from '../../../../components/TvDashboard.tsx';
 import { tvStreamPath } from '@copalibre/routing';
 import { sampleDashboard } from '../../../../lib/live-sample.ts';
-import { fetchLive, fetchOverview, mapLiveResponse, mapOverviewResponse } from '../../../../lib/public-api-client.ts';
+import {
+  fetchLive,
+  fetchOverview,
+  mapLiveResponse,
+  mapOverviewResponse,
+} from '../../../../lib/public-api-client.ts';
 import type { LiveDashboard } from '../../../../lib/live-state.ts';
 import type { ResultState } from '../../../../lib/result-state.ts';
 

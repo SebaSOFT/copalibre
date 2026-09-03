@@ -43,7 +43,10 @@ export const REQUIRED_SECRETS = [
   'Selected email provider credential',
 ] as const;
 
-export function generateRsaKeypair(): { readonly privateKeyPem: string; readonly jwksJson: string } {
+export function generateRsaKeypair(): {
+  readonly privateKeyPem: string;
+  readonly jwksJson: string;
+} {
   const { privateKey, publicKey } = generateKeyPairSync('rsa', {
     modulusLength: 2048,
     publicKeyEncoding: {

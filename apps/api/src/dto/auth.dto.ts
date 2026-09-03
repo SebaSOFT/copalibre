@@ -135,4 +135,3 @@ export class JwksResponse {
   @ApiProperty({ type: [JwksKey] })
   keys!: JwksKey[];
 }
-
