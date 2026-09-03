@@ -14,6 +14,7 @@ import {
 } from '../../lib/language-preference.js';
 import { ToastProvider } from './ToastProvider.js';
 import { Button } from './ui/atoms/button.js';
+import { NavigationDrawer } from './ui/organisms/navigation-drawer.js';
 
 export function ControlShell({
   organizationAlias,
@@ -92,71 +93,117 @@ function ControlShellChrome({
   // Same locale-prefix routing Starlight's own pages already use for every
   // locale but the default: the root/English pages are unprefixed.
   const helpLocalePrefix = locale === 'en' ? '' : `/${locale}`;
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const logout = (): void => {
     controlTokenStore.clear();
     // A real navigation: /control/ (login) is a separate page from this
     // shell, same boundary as the unauthenticated-visit guard.
     window.location.assign('/control/');
   };
+
+  const navContent = (onNavigate?: () => void) => (
+    <>
+      <div style={brandStyle}>
+        <div style={brandMarkRowStyle}>
+          <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
+          <strong>COPALIBRE CMD</strong>
+        </div>
+        <span style={metaStyle}>BROADCAST OPS</span>
+      </div>
+      <a
+        className="cl-focusable"
+        href={`${helpLocalePrefix}/help/control/${helpPath}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={helpLinkStyle}
+        onClick={onNavigate}
+      >
+        <FormattedMessage {...messages.shellWhatIsThisScreen} />
+      </a>
+      <ul className="cl-control__nav-list">
+        {organizationAlias &&
+          visibleSidenav(role).map((item) => (
+            <li key={item.id}>
+              <a
+                className="cl-focusable"
+                href={`/control/${organizationAlias}${item.path}`}
+                onClick={(e) => {
+                  onNavigate?.();
+                  controlLinkClick(`/control/${organizationAlias}${item.path}`)(e);
+                }}
+                style={{
+                  ...navLinkStyle,
+                  ...(item.id === active ? navLinkActiveStyle : {}),
+                }}
+              >
+                {intl.formatMessage(item.label)}
+              </a>
+            </li>
+          ))}
+        {isSuperAdmin && (
+          <li>
+            <a
+              className="cl-focusable"
+              href="/control/platform"
+              onClick={(e) => {
+                onNavigate?.();
+                controlLinkClick('/control/platform')(e);
+              }}
+              style={{
+                ...navLinkStyle,
+                ...(active === 'platform' ? navLinkActiveStyle : {}),
+              }}
+            >
+              {intl.formatMessage(messages.navPlatformAdministration)}
+            </a>
+          </li>
+        )}
+      </ul>
+      <LanguageSwitcher onChange={onLocaleChange} value={locale} />
+      <Button onClick={logout} style={logoutButtonStyle} type="button" variant="secondary">
+        <FormattedMessage {...messages.shellLogout} />
+      </Button>
+    </>
+  );
+
   return (
     // data-density scopes the denser Control-web spacing composition,
     // design.md Decision 4) to every screen under this shell — never the
     // public/marketing Astro surfaces, which never render this component.
     <div className="cl-control" data-density="control">
-      <nav aria-label={intl.formatMessage(messages.shellSections)} className="cl-control__nav">
-        <div style={brandStyle}>
-          <div style={brandMarkRowStyle}>
-            <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
-            <strong>COPALIBRE CMD</strong>
-          </div>
-          <span style={metaStyle}>BROADCAST OPS</span>
+      <header className="cl-control__mobile-header">
+        <div style={brandMarkRowStyle}>
+          <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
+          <strong>COPALIBRE CMD</strong>
         </div>
-        <a
-          className="cl-focusable"
-          href={`${helpLocalePrefix}/help/control/${helpPath}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={helpLinkStyle}
+        <button
+          type="button"
+          className="cl-control__hamburger-btn cl-focusable"
+          aria-label="Abrir menú de navegación"
+          aria-expanded={drawerOpen}
+          onClick={() => setDrawerOpen(true)}
         >
-          <FormattedMessage {...messages.shellWhatIsThisScreen} />
-        </a>
-        <ul className="cl-control__nav-list">
-          {organizationAlias &&
-            visibleSidenav(role).map((item) => (
-              <li key={item.id}>
-                <a
-                  className="cl-focusable"
-                  href={`/control/${organizationAlias}${item.path}`}
-                  onClick={controlLinkClick(`/control/${organizationAlias}${item.path}`)}
-                  style={{
-                    ...navLinkStyle,
-                    ...(item.id === active ? navLinkActiveStyle : {}),
-                  }}
-                >
-                  {intl.formatMessage(item.label)}
-                </a>
-              </li>
-            ))}
-          {isSuperAdmin && (
-            <li>
-              <a
-                className="cl-focusable"
-                href="/control/platform"
-                onClick={controlLinkClick('/control/platform')}
-                style={{
-                  ...navLinkStyle,
-                  ...(active === 'platform' ? navLinkActiveStyle : {}),
-                }}
-              >
-                {intl.formatMessage(messages.navPlatformAdministration)}
-              </a>
-            </li>
-          )}
-        </ul>
-        <LanguageSwitcher onChange={onLocaleChange} value={locale} />
-        <Button onClick={logout} style={logoutButtonStyle} type="button" variant="secondary">
-          <FormattedMessage {...messages.shellLogout} />
-        </Button>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+      </header>
+
+      <NavigationDrawer open={drawerOpen} onOpenChange={setDrawerOpen} title="COPALIBRE CMD">
+        {navContent(() => setDrawerOpen(false))}
+      </NavigationDrawer>
+
+      <nav aria-label={intl.formatMessage(messages.shellSections)} className="cl-control__nav">
+        {navContent()}
       </nav>
       <main className="cl-control__main">
         <div className="cl-control-screen">{children}</div>

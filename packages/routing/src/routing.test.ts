@@ -178,11 +178,29 @@ describe('what a crawler is told', () => {
 
 describe('parseControlPath', () => {
   it.each([
+    ['/control', { screen: 'root' }],
+    ['/control/', { screen: 'root' }],
     ['/control/callback', { screen: 'callback' }],
     // A real organization alias that merely starts with the reserved word
     // stays an ordinary dashboard, not the callback screen.
     ['/control/callback-league', { screen: 'dashboard', organizationAlias: 'callback-league' }],
     ['/control/liga-mendocina', { screen: 'dashboard', organizationAlias: 'liga-mendocina' }],
+    [
+      '/control/liga-mendocina/tournaments',
+      { screen: 'tournaments', organizationAlias: 'liga-mendocina' },
+    ],
+    [
+      '/control/liga-mendocina/live',
+      { screen: 'liveConsole', organizationAlias: 'liga-mendocina' },
+    ],
+    [
+      '/control/liga-mendocina/organization',
+      { screen: 'organization', organizationAlias: 'liga-mendocina' },
+    ],
+    [
+      '/control/liga-mendocina/analytics',
+      { screen: 'analytics', organizationAlias: 'liga-mendocina' },
+    ],
     ['/control/login', { screen: 'login' }],
     ['/control/forgot-password', { screen: 'forgot-password' }],
     ['/control/reset-password', { screen: 'reset-password' }],
@@ -315,11 +333,7 @@ describe('parseControlPath', () => {
 
   it.each([
     ['/'],
-    ['/control'],
-    ['/control/'],
     ['/liga-mendocina'],
-    ['/control/liga-mendocina/live'],
-    ['/control/liga-mendocina/tournaments'],
     ['/control/liga-mendocina/tournaments/apertura-2026'],
     ['/control/liga-mendocina/tournaments/apertura-2026/stages/1'],
     ['/control/liga-mendocina/tournaments/apertura-2026/stages/1/unknown'],

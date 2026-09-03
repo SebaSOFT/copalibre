@@ -16,6 +16,55 @@ import { messages } from '../i18n/messages.en.js';
 
 export type TournamentLifecycle = 'live' | 'upcoming' | 'draft' | 'finished';
 
+export interface ClassifyTournamentInput {
+  readonly status?: 'draft' | 'published' | 'started' | 'finished' | 'archived' | string;
+  readonly stagesResolved?: boolean;
+  readonly stageCount?: number;
+  readonly resolvedStageCount?: number;
+  readonly matches?: readonly { readonly status?: string }[];
+}
+
+/**
+ * Classifies a tournament into its user-facing lifecycle state:
+ * - 'draft': tournament in draft state
+ * - 'finished': completed all stages with a result, explicitly marked finished, or archived
+ * - 'live': matches in progress, or tournament started
+ * - 'upcoming': published but not yet started / no matches started
+ */
+export function classifyTournamentLifecycle(input: ClassifyTournamentInput): TournamentLifecycle {
+  const status = input.status;
+
+  if (status === 'draft') return 'draft';
+  if (status === 'finished' || status === 'archived') return 'finished';
+
+  // If stages are tracked: all stages resolved with results marks it finished
+  if (input.stagesResolved === true) return 'finished';
+  if (
+    typeof input.stageCount === 'number' &&
+    input.stageCount > 0 &&
+    input.resolvedStageCount === input.stageCount
+  ) {
+    return 'finished';
+  }
+
+  // If matches are provided
+  if (input.matches && input.matches.length > 0) {
+    const allFinalized = input.matches.every(
+      (m) => m.status === 'finalized' || m.status === 'finished' || m.status === 'concluded',
+    );
+    if (allFinalized) return 'finished';
+
+    const hasLive = input.matches.some(
+      (m) => m.status === 'in-progress' || m.status === 'live' || m.status === 'finalized',
+    );
+    if (hasLive) return 'live';
+  }
+
+  if (status === 'started') return 'live';
+
+  return 'upcoming';
+}
+
 export interface TournamentCard {
   readonly tournamentId: string;
   readonly organizationId: string;

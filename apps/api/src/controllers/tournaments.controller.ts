@@ -33,6 +33,7 @@ import {
   CompetitionRepository,
   InvariantViolationError,
   OrganizationRepository,
+  PublicOverviewReadModel,
   TournamentProfileRepository,
   TournamentRepository,
   recordAuditRefusal,
@@ -1223,7 +1224,26 @@ export class TournamentsController {
       resource: { organizationId: organization.organizationId },
     });
 
-    return new TournamentRepository(this.db).listActiveByOrganization(organization.organizationId);
+    const tournaments = await new TournamentRepository(this.db).listActiveByOrganization(
+      organization.organizationId,
+    );
+    const overviewReadModel = new PublicOverviewReadModel(this.db);
+
+    return Promise.all(
+      tournaments.map(async (t) => {
+        if (t.status === 'finished' || t.status === 'archived' || t.status === 'draft') {
+          return t;
+        }
+        const matches = await overviewReadModel.matchesForTournament(t.tournamentId);
+        if (matches.length > 0 && matches.every((m) => m.status === 'finalized')) {
+          return { ...t, status: 'finished' as const };
+        }
+        if (matches.some((m) => m.status === 'in-progress' || m.status === 'finalized')) {
+          return { ...t, status: 'started' as const };
+        }
+        return t;
+      }),
+    );
   }
 }
 

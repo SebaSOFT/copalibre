@@ -2,11 +2,15 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useIntl } from 'react-intl';
 import { ControlShell } from './components/ControlShell.js';
 import {
+  AnalyticsControlRoute,
+  LiveConsoleControlRoute,
   MatchConsoleControlRoute,
+  OrganizationControlRoute,
   RegistrationReviewControlRoute,
   ReportReviewControlRoute,
   RolesPermissionsControlRoute,
   TournamentAuthoringControlRoute,
+  TournamentsControlRoute,
 } from './components/ControlRoutes.js';
 import {
   ControlApiError,
@@ -149,6 +153,22 @@ describe('the control shell', () => {
       unmount();
       localStorage.removeItem('copalibre.language');
     }
+  });
+
+  it('opens mobile navigation drawer on hamburger button click', () => {
+    render(
+      <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
+        <p>contenido</p>
+      </ControlShell>,
+    );
+
+    const hamburger = screen.getByRole('button', { name: 'Abrir menú de navegación' });
+    expect(hamburger).toBeDefined();
+    expect(hamburger.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(hamburger);
+    expect(hamburger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByRole('dialog')).toBeDefined();
   });
 });
 
@@ -303,6 +323,72 @@ describe('the control routes', () => {
 
     expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeDefined();
     await screen.findByRole('region', { name: 'Operar partido' });
+  });
+
+  it('renders the tournaments route inside the shell', async () => {
+    const client: ControlApiClient = minimalControlClient({
+      listActiveTournaments: async () => [],
+    });
+    render(<TournamentsControlRoute client={client} organizationAlias="liga-mendocina" />);
+
+    expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeDefined();
+  });
+
+  it('renders the live console route inside the shell', async () => {
+    const client: ControlApiClient = minimalControlClient({
+      listActiveTournaments: async () => [],
+    });
+    render(<LiveConsoleControlRoute client={client} organizationAlias="liga-mendocina" />);
+
+    expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getAllByText('Consola en vivo').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('renders the organization route inside the shell', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => jsonResponse([])) as typeof fetch;
+    try {
+      const client: ControlApiClient = minimalControlClient({
+        getOrganization: async () => ({
+          organizationId: 'org-1',
+          alias: 'liga-mendocina',
+          name: 'Liga Mendocina',
+          primaryLanguage: 'es',
+          timezone: 'America/Argentina/San_Juan',
+        }),
+        getStorageUsage: async () => ({
+          totalBytes: 1024,
+          objectCount: 2,
+          unreferencedBytes: 0,
+          unreferencedCount: 0,
+        }),
+      });
+      render(<OrganizationControlRoute client={client} organizationAlias="liga-mendocina" />);
+
+      expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeDefined();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('renders the analytics route inside the shell', async () => {
+    const client: ControlApiClient = minimalControlClient({
+      listActiveTournaments: async () => [],
+      getStorageUsage: async () => ({
+        totalBytes: 1024,
+        objectCount: 2,
+        unreferencedBytes: 0,
+        unreferencedCount: 0,
+      }),
+    });
+    render(<AnalyticsControlRoute client={client} organizationAlias="liga-mendocina" />);
+
+    expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getAllByText('Analítica').length).toBeGreaterThan(0);
+    });
   });
 });
 

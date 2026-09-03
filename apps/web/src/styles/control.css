@@ -106,26 +106,124 @@ body {
   max-width: 100%;
 }
 
+.cl-control__mobile-header {
+  display: none;
+}
+
+.cl-drawer__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  animation: cl-drawer-fade-in 150ms ease-out;
+}
+
+.cl-drawer__content {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(320px, 85vw);
+  background: var(--cl-surface-panel);
+  border-right: 1px solid var(--cl-border-muted);
+  padding: var(--cl-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-4);
+  z-index: 1001;
+  overflow-y: auto;
+  animation: cl-drawer-slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cl-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--cl-space-2);
+  border-bottom: 1px solid var(--cl-border-muted);
+}
+
+.cl-drawer__title {
+  margin: 0;
+  font-size: var(--cl-font-size-md, 1rem);
+  font-weight: 700;
+  color: var(--cl-text-primary);
+}
+
+.cl-drawer__close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--cl-text-muted);
+  cursor: pointer;
+  padding: var(--cl-space-1) var(--cl-space-2);
+  line-height: 1;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cl-drawer__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-3);
+}
+
+.cl-control__hamburger-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 1px solid var(--cl-border-muted);
+  border-radius: var(--cl-radius-sm, 4px);
+  color: var(--cl-text-primary);
+  cursor: pointer;
+}
+
+@keyframes cl-drawer-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cl-drawer-slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 /* BREAKPOINTS token md (768px): collapse chrome before tablet content becomes cramped. */
 @media (max-width: 767px) {
   .cl-control {
-    grid-template-columns: minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
   }
 
-  .cl-control__nav,
-  .cl-control > nav {
-    border-right: 0;
+  .cl-control__nav {
+    display: none;
+  }
+
+  .cl-control__mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--cl-space-3) var(--cl-space-4);
+    background: var(--cl-surface-panel);
     border-bottom: 1px solid var(--cl-border-muted);
-  }
-
-  .cl-control__nav-list,
-  .cl-control > nav > ul {
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(min(10rem, 100%), 70%);
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    padding-bottom: var(--cl-space-2);
-    scrollbar-gutter: stable;
+    position: sticky;
+    top: 0;
+    z-index: 50;
   }
 
   .cl-control__main,
@@ -136,15 +234,9 @@ body {
 
 /* 200% zoom at the 375px review width exposes roughly 188 CSS px. */
 @media (max-width: 374px) {
-  .cl-control__nav,
-  .cl-control > nav,
+  .cl-control__mobile-header,
   .cl-control__main,
   .cl-control > main {
     padding: var(--cl-space-3);
-  }
-
-  .cl-control__nav-list,
-  .cl-control > nav > ul {
-    grid-auto-columns: minmax(min(8rem, 100%), 85%);
   }
 }

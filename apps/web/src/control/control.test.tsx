@@ -14,6 +14,7 @@ import {
 } from './session/token-store.js';
 import {
   buildDashboard,
+  classifyTournamentLifecycle,
   isMember,
   type ActivityEntry,
   type TournamentCard,
@@ -98,6 +99,37 @@ describe('the access token is never written down', () => {
     expect(reloadBehaviour('strict-stateless')).toBe('reauthenticate');
     expect(reloadBehaviour('pragmatic-persistent')).toBe('silent-renew');
   });
+
+  it('restores unexpired session from sessionStorage across reloads when storage is configured', () => {
+    const fakeStorage = new Map<string, string>();
+    const storage: Storage = {
+      getItem: (k) => fakeStorage.get(k) ?? null,
+      setItem: (k, v) => fakeStorage.set(k, v),
+      removeItem: (k) => {
+        fakeStorage.delete(k);
+      },
+      clear: () => fakeStorage.clear(),
+      key: (i) => Array.from(fakeStorage.keys())[i] ?? null,
+      get length() {
+        return fakeStorage.size;
+      },
+    };
+
+    let now = 1000;
+    const store1 = createTokenStore(() => now, { storage });
+    store1.write('jwt-token-123', 5000);
+    expect(store1.read()).toBe('jwt-token-123');
+
+    // Simulate page reload by creating a new store instance connected to the same storage
+    const store2 = createTokenStore(() => now, { storage });
+    expect(store2.read()).toBe('jwt-token-123');
+    expect(store2.isExpired()).toBe(false);
+
+    // After expiration:
+    now = 6000;
+    expect(store2.read()).toBeUndefined();
+    expect(store2.isExpired()).toBe(true);
+  });
 });
 
 describe('PKCE', () => {
@@ -173,6 +205,62 @@ describe('the dashboard is scoped to one organization', () => {
     expect(isMember({ organizationId: 'org-1' }, 'org-1')).toBe(true);
     expect(isMember({ organizationId: 'org-2' }, 'org-1')).toBe(false);
     expect(isMember({}, 'org-1')).toBe(false);
+  });
+});
+
+describe('classifyTournamentLifecycle', () => {
+  it('classifies a tournament with all stages resolved and recorded results as finished, never upcoming', () => {
+    expect(classifyTournamentLifecycle({ status: 'published', stagesResolved: true })).toBe(
+      'finished',
+    );
+    expect(
+      classifyTournamentLifecycle({ status: 'published', stageCount: 2, resolvedStageCount: 2 }),
+    ).toBe('finished');
+    expect(
+      classifyTournamentLifecycle({
+        status: 'published',
+        matches: [{ status: 'finalized' }, { status: 'finalized' }],
+      }),
+    ).toBe('finished');
+  });
+
+  it('classifies a tournament with in-progress matches as live, not finished or upcoming', () => {
+    expect(
+      classifyTournamentLifecycle({
+        status: 'published',
+        matches: [{ status: 'finalized' }, { status: 'in-progress' }],
+      }),
+    ).toBe('live');
+    expect(classifyTournamentLifecycle({ status: 'started' })).toBe('live');
+  });
+
+  it('classifies a tournament with no played matches as upcoming', () => {
+    expect(classifyTournamentLifecycle({ status: 'published' })).toBe('upcoming');
+    expect(
+      classifyTournamentLifecycle({
+        status: 'published',
+        matches: [{ status: 'scheduled' }],
+      }),
+    ).toBe('upcoming');
+  });
+
+  it('classifies draft as draft and finished/archived as finished', () => {
+    expect(classifyTournamentLifecycle({ status: 'draft' })).toBe('draft');
+    expect(classifyTournamentLifecycle({ status: 'finished' })).toBe('finished');
+    expect(classifyTournamentLifecycle({ status: 'archived' })).toBe('finished');
+  });
+
+  it('excludes finished tournaments from activeTournaments count', () => {
+    const dashboard = buildDashboard({
+      organizationId: 'org-1',
+      tournaments: [
+        card({ tournamentId: 't-finished', lifecycle: 'finished' }),
+        card({ tournamentId: 't-live', lifecycle: 'live' }),
+        card({ tournamentId: 't-upcoming', lifecycle: 'upcoming' }),
+      ],
+      activity: [],
+    });
+    expect(dashboard.stats.activeTournaments).toBe(1);
   });
 });
 

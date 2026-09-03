@@ -10,12 +10,17 @@
  */
 
 export type ControlRoute =
+  | { readonly screen: 'root' }
   | { readonly screen: 'callback' }
   | { readonly screen: 'login' }
   | { readonly screen: 'forgot-password' }
   | { readonly screen: 'reset-password' }
   | { readonly screen: 'platformAdministration' }
   | { readonly screen: 'dashboard'; readonly organizationAlias: string }
+  | { readonly screen: 'tournaments'; readonly organizationAlias: string }
+  | { readonly screen: 'liveConsole'; readonly organizationAlias: string }
+  | { readonly screen: 'organization'; readonly organizationAlias: string }
+  | { readonly screen: 'analytics'; readonly organizationAlias: string }
   | { readonly screen: 'roles'; readonly organizationAlias: string }
   | { readonly screen: 'auditTrail'; readonly organizationAlias: string }
   | { readonly screen: 'preferences'; readonly organizationAlias: string }
@@ -117,6 +122,7 @@ export type ControlRoute =
 export function parseControlPath(pathname: string): ControlRoute | undefined {
   const segments = pathname.split('/').filter((segment) => segment.length > 0);
   if (segments[0] !== 'control') return undefined;
+  if (segments.length === 1) return { screen: 'root' };
   const [, organizationAlias, ...rest] = segments;
   if (organizationAlias === undefined) return undefined;
 
@@ -134,6 +140,13 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
     return { screen: 'platformAdministration' };
 
   if (rest.length === 0) return { screen: 'dashboard', organizationAlias };
+  if (rest.length === 1 && rest[0] === 'tournaments')
+    return { screen: 'tournaments', organizationAlias };
+  if (rest.length === 1 && rest[0] === 'live') return { screen: 'liveConsole', organizationAlias };
+  if (rest.length === 1 && rest[0] === 'organization')
+    return { screen: 'organization', organizationAlias };
+  if (rest.length === 1 && rest[0] === 'analytics')
+    return { screen: 'analytics', organizationAlias };
   if (rest.length === 1 && rest[0] === 'roles') return { screen: 'roles', organizationAlias };
   if (rest.length === 1 && rest[0] === 'audit-trail')
     return { screen: 'auditTrail', organizationAlias };

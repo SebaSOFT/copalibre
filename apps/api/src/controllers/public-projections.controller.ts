@@ -100,8 +100,14 @@ export class PublicTournamentListingController {
         status = 'live';
       } else {
         const matches = await overviewReadModel.matchesForTournament(t.tournamentId);
-        const isLive = matches.some((m) => m.status === 'in-progress' || m.status === 'finalized');
-        status = isLive ? 'live' : 'upcoming';
+        if (matches.length > 0 && matches.every((m) => m.status === 'finalized')) {
+          status = 'finished';
+        } else {
+          const isLive = matches.some(
+            (m) => m.status === 'in-progress' || m.status === 'finalized',
+          );
+          status = isLive ? 'live' : 'upcoming';
+        }
       }
 
       const desc = descriptorMap.get(t.disciplineRef.descriptorId);
