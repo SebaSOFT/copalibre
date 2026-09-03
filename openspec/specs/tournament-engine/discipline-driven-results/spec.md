@@ -241,3 +241,20 @@ surface rendering the field never has to source the explanation from anywhere el
 - **WHEN** any surface reads a descriptor field that declares a description
 - **THEN** the description is available from that field, not from a separate lookup the surface has to
   perform against a catalogue of its own
+
+### Requirement: Match result score presentation
+Every surface that displays a finalized match's score (control-web, public-web, TV/broadcast surfaces,
+table projections) SHALL present the discipline's declared primary score value, not an arbitrary key of
+the recorded `statistics` map. A finalized match's score presentation SHALL be independent of the
+iteration order of its stored statistics.
+
+#### Scenario: A community discipline whose primary score statistic is not alphabetically or
+positionally first in its statistics map
+- **WHEN** a match is finalized with `statistics` containing `wins`, `losses`, `played`, and `points-for`
+  in any order
+- **THEN** every surface presenting that match's score SHALL show the value of `points-for` (or the
+  discipline's declared equivalent), never the value of an unrelated statistic such as `wins`
+
+#### Scenario: Score matches the match's own recorded event history
+- **WHEN** a match's event timeline records scoring events summing to a given total for each side
+- **THEN** the displayed score for that match SHALL equal that total for each side

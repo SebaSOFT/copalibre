@@ -191,3 +191,19 @@ The system SHALL support manual tiebreak point assignments and deterministic see
 - **WHEN** `random` comparator executes
 - **THEN** Entrants are ordered deterministically by their hashed values
 - **AND** recomputing standings produces the exact same rank and audit trace
+
+### Requirement: Discipline-declared tiebreak application
+A discipline descriptor's declared `defaults.tiebreakers` order SHALL be applied by the standings
+pipeline for that discipline without requiring an organizer to separately configure a stage-level
+override under a differently-named field-policy key.
+
+#### Scenario: A community discipline with no operator-configured standings override
+- **WHEN** a stage's discipline descriptor declares `defaults.tiebreakers: ["wins", "points-for",
+  "points-against"]` and no organizer has set any stage-level standings override
+- **THEN** the stage's standings SHALL rank entrants using that declared tiebreak order, and entrants
+  with different win/loss/point records SHALL NOT all tie at rank 1
+
+#### Scenario: An organizer-configured override still takes precedence
+- **WHEN** an organizer explicitly configures a stage-level tiebreak override
+- **THEN** the standings pipeline SHALL apply the organizer's override instead of the discipline's
+  declared default, using the same field-policy key the descriptor schema itself documents
