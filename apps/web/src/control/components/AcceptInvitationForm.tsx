@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 
-export function AcceptInvitationForm(): React.JSX.Element {
+export function AcceptInvitationForm({
+  initialToken,
+}: {
+  readonly initialToken?: string;
+} = {}): React.JSX.Element {
   const [token] = useState<string | null>(() => {
+    if (initialToken) return initialToken;
     if (typeof window === 'undefined') return null;
     return new URLSearchParams(window.location.search).get('token');
   });
@@ -10,6 +15,7 @@ export function AcceptInvitationForm(): React.JSX.Element {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(() => {
+    if (initialToken) return null;
     if (typeof window === 'undefined') return null;
     const t = new URLSearchParams(window.location.search).get('token');
     return t ? null : 'No se encontró el token de invitación en el enlace.';
@@ -75,7 +81,7 @@ export function AcceptInvitationForm(): React.JSX.Element {
         padding: '2rem',
         background: 'var(--cl-surface-panel)',
         borderRadius: '8px',
-        border: '1px solid var(--cl-border-subtle)',
+        border: '1px solid var(--cl-border-muted)',
         color: 'var(--cl-text-primary)',
         boxShadow: '0 8px 32px var(--cl-surface-base)',
       }}
@@ -85,9 +91,6 @@ export function AcceptInvitationForm(): React.JSX.Element {
           src="/copalibre-logo.svg"
           alt="CopaLibre Logo"
           style={{ width: '48px', height: '48px', marginBottom: '1rem' }}
-          onError={(e) => {
-            (e.currentTarget as HTMLElement).style.display = 'none';
-          }}
         />
         <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '1.5rem', fontWeight: 600 }}>
           Aceptar Invitación
@@ -99,13 +102,14 @@ export function AcceptInvitationForm(): React.JSX.Element {
 
       {error && (
         <div
+          role="alert"
           style={{
             padding: '0.75rem 1rem',
-            marginBottom: '1rem',
-            borderRadius: '4px',
-            background: 'var(--cl-surface-subtle)',
+            marginBottom: '1.25rem',
+            background: 'var(--cl-surface-raised)',
             border: '1px solid var(--cl-state-destructive)',
             color: 'var(--cl-state-destructive)',
+            borderRadius: '4px',
             fontSize: '0.875rem',
           }}
         >
@@ -115,13 +119,15 @@ export function AcceptInvitationForm(): React.JSX.Element {
 
       {success ? (
         <div
+          role="status"
           style={{
-            padding: '1.5rem 1rem',
-            textAlign: 'center',
-            borderRadius: '4px',
-            background: 'var(--cl-surface-subtle)',
+            padding: '1rem',
+            background: 'var(--cl-surface-raised)',
             border: '1px solid var(--cl-state-live)',
             color: 'var(--cl-state-live)',
+            borderRadius: '4px',
+            textAlign: 'center',
+            fontSize: '0.875rem',
           }}
         >
           <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600 }}>¡Cuenta configurada con éxito!</p>
@@ -152,7 +158,7 @@ export function AcceptInvitationForm(): React.JSX.Element {
                 width: '100%',
                 padding: '0.625rem 0.75rem',
                 background: 'var(--cl-surface-base)',
-                border: '1px solid var(--cl-border-subtle)',
+                border: '1px solid var(--cl-border-muted)',
                 borderRadius: '4px',
                 color: 'inherit',
                 fontSize: '0.875rem',
@@ -185,7 +191,7 @@ export function AcceptInvitationForm(): React.JSX.Element {
                 width: '100%',
                 padding: '0.625rem 0.75rem',
                 background: 'var(--cl-surface-base)',
-                border: '1px solid var(--cl-border-subtle)',
+                border: '1px solid var(--cl-border-muted)',
                 borderRadius: '4px',
                 color: 'inherit',
                 fontSize: '0.875rem',
@@ -218,7 +224,7 @@ export function AcceptInvitationForm(): React.JSX.Element {
                 width: '100%',
                 padding: '0.625rem 0.75rem',
                 background: 'var(--cl-surface-base)',
-                border: '1px solid var(--cl-border-subtle)',
+                border: '1px solid var(--cl-border-muted)',
                 borderRadius: '4px',
                 color: 'inherit',
                 fontSize: '0.875rem',
@@ -232,15 +238,15 @@ export function AcceptInvitationForm(): React.JSX.Element {
             disabled={loading || !token}
             style={{
               padding: '0.75rem 1.25rem',
-              background: 'var(--cl-brand-cyan)',
-              color: 'var(--cl-surface-base)',
+              background: !token ? 'var(--cl-surface-raised)' : 'var(--cl-color-cyan-400)',
+              color: !token ? 'var(--cl-text-muted)' : 'var(--cl-color-ink-950)',
               border: 'none',
               borderRadius: '4px',
               fontWeight: 600,
               fontSize: '0.875rem',
               cursor: loading || !token ? 'not-allowed' : 'pointer',
-              opacity: loading || !token ? 0.6 : 1,
-              transition: 'opacity 0.15s ease',
+              opacity: loading || !token ? 0.7 : 1,
+              transition: 'all 0.15s ease',
             }}
           >
             {loading ? 'Configurando cuenta...' : 'Aceptar y Comenzar'}

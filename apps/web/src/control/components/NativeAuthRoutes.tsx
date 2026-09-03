@@ -39,7 +39,7 @@ export function LoginRoute(): React.JSX.Element {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -53,7 +53,7 @@ export function LoginRoute(): React.JSX.Element {
       controlTokenStore.write(data.accessToken, Date.now() + data.expiresIn * 1000);
 
       const searchParams = new URLSearchParams(window.location.search);
-      const returnTo = searchParams.get('returnTo') || '/control/callback';
+      const returnTo = searchParams.get('returnTo') || '/control/';
       navigateControl(returnTo);
     } catch (error) {
       pushError(error);
@@ -130,7 +130,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/forgot-password', {
+      const res = await fetch('/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -197,7 +197,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/reset-password', {
+      const res = await fetch('/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword: password }),
