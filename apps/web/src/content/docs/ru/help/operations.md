@@ -4,6 +4,7 @@ description: Правила проведения матчей и исправл�
 capabilities:
   - platform/async-job-processing
   - platform/persistence-layer
+  - platform/release-process
 roles:
   - super-admin
 ---

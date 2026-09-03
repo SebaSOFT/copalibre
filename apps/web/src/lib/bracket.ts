@@ -14,8 +14,8 @@ import type { PublicSeriesState } from './series.js';
 
 export type SlotSource =
   | { readonly kind: 'entrant'; readonly name: string; readonly abbreviation?: string }
-  | { readonly kind: 'winner-of'; readonly matchNumber: number }
-  | { readonly kind: 'loser-of'; readonly matchNumber: number }
+  | { readonly kind: 'winner-of'; readonly matchNumber?: number; readonly matchId?: string }
+  | { readonly kind: 'loser-of'; readonly matchNumber?: number; readonly matchId?: string }
   | { readonly kind: 'seed'; readonly seed: number };
 
 export interface BracketMatch {
@@ -124,10 +124,34 @@ export function describeSlot(slot: SlotSource): string {
   switch (slot.kind) {
     case 'entrant':
       return slot.name;
-    case 'winner-of':
-      return `Ganador del ${slot.matchNumber}`;
-    case 'loser-of':
-      return `Perdedor del ${slot.matchNumber}`;
+    case 'winner-of': {
+      if (
+        typeof slot.matchNumber === 'number' &&
+        !Number.isNaN(slot.matchNumber) &&
+        slot.matchNumber > 0
+      ) {
+        return `Ganador del ${slot.matchNumber}`;
+      }
+      if (slot.matchId && slot.matchId !== '—') {
+        const clean = slot.matchId.replace(/^SE-|^WB-|^LB-/, '');
+        return `Ganador de ${clean}`;
+      }
+      return 'Por definir';
+    }
+    case 'loser-of': {
+      if (
+        typeof slot.matchNumber === 'number' &&
+        !Number.isNaN(slot.matchNumber) &&
+        slot.matchNumber > 0
+      ) {
+        return `Perdedor del ${slot.matchNumber}`;
+      }
+      if (slot.matchId && slot.matchId !== '—') {
+        const clean = slot.matchId.replace(/^SE-|^WB-|^LB-/, '');
+        return `Perdedor de ${clean}`;
+      }
+      return 'Por definir';
+    }
     case 'seed':
       return `Sembrado ${slot.seed}`;
   }

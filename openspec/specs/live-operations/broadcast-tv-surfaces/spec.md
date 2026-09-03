@@ -11,12 +11,19 @@ own reliability and authorization contract distinct from the public and control 
 The system SHALL serve `/tv/{organization}/tournaments/{tournament}` (full rotation),
 `/tv/{organization}/tournaments/{tournament}/stages/{stage}/matches/{match}` (pinned to one match), and the same
 routes with `?mode=overlay` for transparent chroma-key rendering, reusing the organization/tournament
-alias tuple unchanged from the public routes per the URL and routing contract.
+alias tuple unchanged from the public routes per the URL and routing contract. These routes SHALL be
+rendered dynamically per request via server-side rendering for any published tournament, rather than
+prerendered for a hardcoded fixture list, and SHALL be proxied through the internal and edge reverse proxies
+without 404 or blank document errors.
 
 #### Scenario: Overlay mode renders transparent
 - **WHEN** a `/tv/**` route is requested with `?mode=overlay`
 - **THEN** the response renders with a transparent background suitable for chroma-key capture, with
   no navigation chrome, pointer affordances, or dismissible UI
+
+#### Scenario: Dynamic tournament kiosk rendering
+- **WHEN** an operator navigates to `/tv/{organization}/tournaments/{tournament}` for any active, published tournament
+- **THEN** the kiosk page renders the live dashboard with tournament identity, matches, and rotation schedules rather than a blank or 404 page.
 
 ### Requirement: Device-scoped display token
 Access to a `/tv/**` route or its underlying SSE stream SHALL be authorized by a device-scoped

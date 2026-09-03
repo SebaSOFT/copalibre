@@ -246,3 +246,55 @@ export interface DisciplineDescriptor {
  * its local UUIDv7. Persistent descriptors always carry `descriptorId`.
  */
 export type DisciplineDescriptorDocument = Omit<DisciplineDescriptor, 'descriptorId'>;
+
+const EXCLUDED_SCORE_STATISTICS = new Set([
+  'wins',
+  'losses',
+  'draws',
+  'played',
+  'rank',
+  'position',
+  'seed',
+]);
+
+const STANDARD_SCORE_CODES = [
+  'score',
+  'points',
+  'points-for',
+  'goals',
+  'goals-for',
+  'sets',
+  'runs',
+  'time',
+] as const;
+
+/**
+ * Resolves a side's headline score from its recorded statistics map, respecting
+ * the discipline's declared scoring inputs rather than picking the first map key.
+ */
+export function primaryScoreOf(
+  statistics?: Readonly<Record<string, number>>,
+  descriptorOrCode?: DisciplineDescriptor | string,
+): number | undefined {
+  if (!statistics) return undefined;
+
+  const targetCode =
+    typeof descriptorOrCode === 'string'
+      ? descriptorOrCode
+      : descriptorOrCode?.scoringInputs?.[0]?.code;
+
+  if (targetCode) {
+    if (statistics[targetCode] !== undefined) return statistics[targetCode];
+    if (statistics[`${targetCode}-for`] !== undefined) return statistics[`${targetCode}-for`];
+  }
+
+  for (const candidate of STANDARD_SCORE_CODES) {
+    if (statistics[candidate] !== undefined) return statistics[candidate];
+  }
+
+  for (const [key, value] of Object.entries(statistics)) {
+    if (!EXCLUDED_SCORE_STATISTICS.has(key)) return value;
+  }
+
+  return undefined;
+}

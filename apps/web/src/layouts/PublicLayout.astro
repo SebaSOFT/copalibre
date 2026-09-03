@@ -135,6 +135,7 @@ const homeUrl = getLocaleHomePath(intl.locale);
   :global(body) {
     min-width: 0;
     max-width: 100%;
+    overflow-x: hidden;
     background: var(--cl-surface-base);
     color: var(--cl-text-primary);
     font-family: var(--cl-font-body);
@@ -146,10 +147,18 @@ const homeUrl = getLocaleHomePath(intl.locale);
     box-sizing: border-box;
   }
 
+  header,
+  footer {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   :global(main),
   :global(main > *) {
     min-width: 0;
     max-width: 100%;
+    overflow-x: hidden;
   }
 
   :global(main table) {
