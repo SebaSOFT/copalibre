@@ -93,8 +93,9 @@ span all five Atomic Design tiers — atoms, molecules, organisms, templates und
 badge/button/card; any Control-web screen, present at the time this requirement changes or added at any
 later point, SHALL compose its form controls, tabular listings, cards, modals, and operation feedback
 from this owned layer rather than defining a new one-off inline style object for a pattern the layer
-already covers. New Control-web screens SHALL compose atoms/molecules/organisms/templates from the
-owned layer and reuse an existing template when their shape matches an existing template family.
+already covers. The organization dashboard (`Dashboard.tsx`) SHALL compose inside `ControlShell.tsx`
+(or inherit its `.cl-control__nav` navigation chrome), guaranteeing consistent typography, active states,
+and no unstyled browser default hyperlinks.
 
 #### Scenario: No Chakra dependency in production build
 - **WHEN** the control application's production dependency list is inspected
@@ -111,6 +112,10 @@ owned layer and reuse an existing template when their shape matches an existing 
 - **WHEN** a developer adds a new Control-web route
 - **THEN** the route composes from the owned atomic design layer and reuses an existing template when
   its shape matches an existing template family
+
+#### Scenario: Dashboard navigation renders styled chrome
+- **WHEN** an administrator views the organization dashboard
+- **THEN** the sidebar navigation displays styled uppercase labels with active state highlights and no raw blue unstyled browser links.
 
 ### Requirement: Third-party notice inventory stays current
 Every copied shadcn/ui component file or direct Radix dependency added to the control application

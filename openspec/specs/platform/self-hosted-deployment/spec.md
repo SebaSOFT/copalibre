@@ -13,7 +13,8 @@ The release SHALL ship one Docker image capable of running as any documented pro
 rebuilding the image. The `web` role SHALL serve server-rendered public pages for the subset of public
 routes that require per-request backend data; it SHALL NOT replace the existing static delivery of
 every other public, control-panel-shell, help, and TV route, which continues to be served as static
-files by a separate process in front of it.
+files by a separate process in front of it. In addition, the release container image (`ghcr.io/sebasoft/copalibre:1.0.6`)
+SHALL include `git` in its runtime filesystem layers to support dynamic discipline module cloning and updates via `POST /admin/modules`.
 
 #### Scenario: Same image runs two different roles
 - **WHEN** the image is started once with role `api` and again with role `worker`
@@ -25,13 +26,20 @@ files by a separate process in front of it.
   bracket routes (and their locale-prefixed variants), and nothing else is expected to reach it
   directly — every other public/control/help/TV route is served by the existing static file server
 
+#### Scenario: Module installation in running container
+- **WHEN** an operator invokes module addition requiring git cloning against the `api` container
+- **THEN** git executes successfully inside the container without `spawn git ENOENT` errors.
+
 ### Requirement: Docker Compose Level 1 install
 The repository SHALL provide a `docker-compose.yml` that starts a complete single-host CopaLibre
 installation (all process roles, PostgreSQL, and optional Redis/object storage/SMTP) with one
-command, and a separate dev profile with Compose Watch enabled. The internal web reverse proxy SHALL
-route the tournament overview, live dashboard, and stage bracket URL shapes (and their locale-prefixed
-variants) to the `web` role's server-rendered responses, and SHALL serve every other route as a static
-file, unchanged.
+command, and a separate dev profile with Compose Watch enabled. The installation SHALL include an
+integrated edge reverse proxy service that unifies network ingress under a single published host port
+(`COPALIBRE_PORT`, default 8080 or 80), routing `/api/*`, `/auth/*`, `/organizations/*`, `/admin/*`,
+and `/installation/*` to the `api` service (port 3001), `/events/*` to the `events` service (port 3002,
+preserving SSE streaming), and all other requests (static assets, control panel shell, SSR public pages,
+TV kiosks) to the `web` service (port 4321). Individual microservices (`api`, `events`, `web`, `web-ssr`)
+SHALL NOT require external port exposure in production mode.
 
 #### Scenario: One-command install
 - **WHEN** an operator with Docker installed runs the documented Compose-up command against a fresh
@@ -46,6 +54,14 @@ file, unchanged.
   TV page
 - **THEN** the internal web reverse proxy serves it directly from the static build output, without
   involving the `web` role's server process
+
+#### Scenario: Single-port ingress routing
+- **WHEN** an operator starts the Docker Compose stack with default configuration
+- **THEN** only the edge reverse proxy port is published to the host, and browser calls to `/api/auth/login`, `/organizations?mine=true`, and `/control/platform` resolve through the same origin without CORS or 404 proxy errors.
+
+#### Scenario: Automatic Compose override discovery
+- **WHEN** an operator creates `docker-compose.override.yml` in the installation directory
+- **THEN** Docker Compose automatically applies the override without requiring manual editing of `COMPOSE_FILE` in `.env`.
 
 ### Requirement: copalibre administrative CLI
 The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev --hybrid`, `start`,
@@ -66,14 +82,22 @@ non-zero if any installed module would become incompatible with the target versi
 runnable installation (a Compose file and its environment defaults) into that directory without
 requiring a checkout of this repository's source, and SHALL record the CopaLibre version and an
 installation identifier in that directory so later commands run from it identify the installation
-automatically. A directory already containing an installation SHALL cause `init` to refuse rather than
-overwrite any part of it. `doctor`, `start`, `migrate`, and `upgrade-check`, when run from a
-directory containing a recorded installation, SHALL operate against that directory's own files without
-requiring a checkout; version-sensitive subcommands (`init` re-run, `migrate`, `upgrade-check`) SHALL
-refuse with a message naming both versions when the running CLI's own version does not match the
-directory's recorded version. `init --module-dev` SHALL additionally write a companion Compose
-override file bind-mounting a local module-development directory into the installation, with no
-extra flag needed at the operator's own `docker compose` invocation.
+automatically. `copalibre init` SHALL generate a fully-interpolated `.env` file containing sensible
+defaults for all required runtime variables (`COPALIBRE_JWKS_URI`, `COPALIBRE_JWT_AUDIENCE`,
+`COPALIBRE_JWT_ISSUER`, `COPALIBRE_PORT`, `COPALIBRE_API_PORT`, `COPALIBRE_EVENTS_PORT`, `COPALIBRE_IMAGE`).
+In addition, `copalibre init` SHALL automatically generate a 2048-bit RSA keypair (`jwt-private.pem`
+and `jwks.json`) in the installation directory and configure the environment so asymmetric JWT verification
+works immediately without external OIDC dependencies. A directory already containing an installation
+SHALL cause `init` to refuse rather than overwrite any part of it. `doctor`, `start`, `migrate`, and
+`upgrade-check`, when run from a directory containing a recorded installation, SHALL operate against
+that directory's own files without requiring a checkout; version-sensitive subcommands (`init` re-run,
+`migrate`, `upgrade-check`) SHALL refuse with a message naming both versions when the running CLI's own
+version does not match the directory's recorded version. `init --module-dev` SHALL additionally write a
+companion Compose override file bind-mounting a local module-development directory into the installation,
+with no extra flag needed at the operator's own `docker compose` invocation.
+
+The standalone CLI binary SHALL load `.env` from the current working directory if present, and
+externalize or stub `sharp` to prevent CommonJS `import.meta.url` runtime crashes.
 
 `copalibre login` SHALL accept a personal access token (via flag, stdin, or an interactive prompt),
 validate it against the target installation, and store it so subsequent `statistics-rebuild` and
@@ -111,7 +135,6 @@ SHALL operate over a direct database connection.
   banner appears on stderr, not stdout
 
 #### Scenario: --version prints a larger, distinct mark
-
 - **WHEN** an operator runs `copalibre --version`
 - **THEN** the CLI writes a larger ASCII-art rendering of the CopaLibre mark to stderr, in place of
   the compact per-invocation banner, while stdout still receives only the version number
@@ -191,6 +214,10 @@ SHALL operate over a direct database connection.
 - **WHEN** the same subcommand and flags are run once via the standalone binary and once via `node
   dist/main.js` from a checkout, against the same target installation
 - **THEN** both produce the same output and the same exit code
+
+#### Scenario: Standalone CLI doctor execution on fresh host
+- **WHEN** an operator runs `copalibre doctor` using the standalone SEA binary in a directory initialized with `copalibre init`
+- **THEN** the CLI loads the local `.env` and passes all environmental checks without crashing or missing API URL errors.
 
 ### Requirement: Kubernetes instance mode
 
@@ -358,3 +385,10 @@ request can merge.
 - **WHEN** a pull request introduces a change that prevents one process role's container from
   reaching a healthy state under Compose
 - **THEN** the `deploy-smoke-test` CI job fails and the pull request shows a failing check
+
+### Requirement: Initial Administrator Invitation Web Flow
+The `apps/web` application SHALL provide an `/invitations/accept` route capable of parsing the acceptance token emitted by `copalibre create-admin` and rendering the password definition interface.
+
+#### Scenario: Administrator accepts onboarding invitation
+- **WHEN** an invited administrator navigates to `/invitations/accept?token=<token>`
+- **THEN** the web application renders the invitation acceptance view rather than a 404 Not Found error.

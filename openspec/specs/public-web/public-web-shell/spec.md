@@ -12,7 +12,10 @@ showing tournament identity, schedule/format facts, a standings preview, and rul
 the B1 reference layout. This page SHALL be rendered per request from the current backend state for
 the requested organization/tournament alias pair, rather than pre-rendered ahead of time from a fixed
 set of aliases — any published tournament reachable through the public-read API SHALL be reachable
-through this page without a site rebuild.
+through this page without a site rebuild. All rendered surfaces on this page (and child match/stage pages)
+SHALL adhere strictly to the "Broadcast Command Precision" token design system: match lists, tickers,
+and standings SHALL use `.cl-card`, `.cl-match-card`, and `.cl-data-table` classes rather than unstyled
+HTML lists, and the accessible skip link SHALL be visually hidden until focused.
 
 #### Scenario: Visiting a published tournament's overview
 - **WHEN** an anonymous visitor requests `/{organization}/tournaments/{tournament}` for a published tournament
@@ -31,6 +34,14 @@ through this page without a site rebuild.
 - **WHEN** an anonymous visitor requests `/{organization}/tournaments/{tournament}` for an alias pair
   that does not exist
 - **THEN** the public site returns a not-found response
+
+#### Scenario: Match and ticker surfaces render with design token classes and no raw bullets
+- **WHEN** an anonymous visitor visits the tournament overview or match pages
+- **THEN** matches render as styled cards without browser bullet points, and tables render with tabular figures and border styling.
+
+#### Scenario: Accessible skip link is visually hidden until focused
+- **WHEN** a sighted visitor views any public page
+- **THEN** the skip-to-content link is visually hidden off-screen until keyboard focus navigates to it.
 
 ### Requirement: Public pages function without JavaScript
 Core public content (tournament identity, schedule, standings, rules) SHALL be present in the

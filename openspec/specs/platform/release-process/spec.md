@@ -74,3 +74,10 @@ move the `latest` tag, so a self-hoster pulling `latest` never silently receives
 - **THEN** `ghcr.io/sebasoft/copalibre:0.6.0-preview` and `ghcr.io/sebasoft/copalibre-web:0.6.0-preview`
   are pushed and pullable, but the `latest` tag on both images is left pointing at whatever it pointed
   to before
+
+### Requirement: Container release artifact
+The release workflow `.github/workflows/release.yml` SHALL produce multi-architecture container images supporting both `linux/amd64` and `linux/arm64` architectures via QEMU and Docker Buildx.
+
+#### Scenario: Running release image on ARM64 / Apple Silicon
+- **WHEN** an operator pulls `ghcr.io/sebasoft/copalibre:1.0.6` on an Apple Silicon or ARM64 Linux host
+- **THEN** Docker selects the native `linux/arm64` manifest without platform mismatch warnings or missing image errors.
