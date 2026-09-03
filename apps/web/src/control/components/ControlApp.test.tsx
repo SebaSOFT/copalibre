@@ -169,6 +169,14 @@ describe('ControlApp', () => {
       'Preferencias personales — CopaLibre',
       'Personal Preferences',
     ],
+    ['/control/liga-mendocina/tournaments', 'Torneos — liga-mendocina', 'Torneo'],
+    ['/control/liga-mendocina/live', 'Consola en vivo — liga-mendocina', 'Consola'],
+    [
+      '/control/liga-mendocina/organization',
+      'Organización — liga-mendocina',
+      'Personal Preferences',
+    ],
+    ['/control/liga-mendocina/analytics', 'Analíticas — liga-mendocina', 'Analítica'],
   ])('renders the right screen and title for %s', async (path, title, content) => {
     at(path);
     render(<ControlApp />);
@@ -445,5 +453,34 @@ describe('ControlApp default-returnTo login landing', () => {
 
     await waitFor(() => expect(window.location.pathname).toBe('/control/liga-mendocina'));
     expect(organizationsRequestedBeforeRedirect).toBe(false);
+  });
+
+  it('navigates from /control to the organization dashboard when exactly one organization exists', async () => {
+    stubFetch([membership()]);
+    at('/control');
+    controlTokenStore.write('test-token', Date.now() + 60_000);
+    render(<ControlApp />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/control/liga-mendocina'));
+  });
+
+  it('renders organization picker from /control when multiple organizations exist', async () => {
+    stubFetch([
+      membership({ organizationId: 'org-1' }),
+      membership({
+        organizationId: 'org-2',
+        organizationAlias: 'liga-sanjuanina',
+        organizationName: 'Liga Sanjuanina',
+      }),
+    ]);
+
+    at('/control');
+    controlTokenStore.write('test-token', Date.now() + 60_000);
+    render(<ControlApp />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: /Liga Mendocina/ })).toBeDefined();
+      expect(screen.getByRole('link', { name: /Liga Sanjuanina/ })).toBeDefined();
+    });
   });
 });

@@ -20,6 +20,69 @@ import { ClubManagementRoute } from './ClubManagementRoute.js';
 import { VenueManagementRoute } from './VenueManagementRoute.js';
 import { ScheduleBuilderRoute } from './ScheduleBuilderRoute.js';
 import { PlatformAdministrationRoute } from './PlatformAdministrationRoute.js';
+import { LiveConsoleRoute } from './LiveConsoleRoute.js';
+import { AnalyticsRoute } from './AnalyticsRoute.js';
+import { DashboardRoute } from './DashboardRoute.js';
+
+export function TournamentsControlRoute({
+  organizationAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return <DashboardRoute client={client} organizationAlias={organizationAlias} />;
+}
+
+export function OrganizationControlRoute({
+  organizationAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell
+      active="organization"
+      helpPath="organization"
+      organizationAlias={organizationAlias}
+    >
+      <PreferencesRoute client={client} organizationAlias={organizationAlias} />
+    </ControlShell>
+  );
+}
+
+export function LiveConsoleControlRoute({
+  organizationAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell
+      active="live-console"
+      helpPath="live-console"
+      organizationAlias={organizationAlias}
+    >
+      <LiveConsoleRoute client={client} organizationAlias={organizationAlias} />
+    </ControlShell>
+  );
+}
+
+export function AnalyticsControlRoute({
+  organizationAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell active="analytics" helpPath="analytics" organizationAlias={organizationAlias}>
+      <AnalyticsRoute client={client} organizationAlias={organizationAlias} />
+    </ControlShell>
+  );
+}
 
 export function PlatformAdministrationControlRoute({
   client,

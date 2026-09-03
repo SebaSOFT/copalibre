@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { parseControlPath } from '@copalibre/routing';
 import {
+  AnalyticsControlRoute,
   AuditTrailControlRoute,
   ClubManagementControlRoute,
+  LiveConsoleControlRoute,
   LoadMatchDataControlRoute,
   MatchConsoleControlRoute,
   MatchesViewControlRoute,
+  OrganizationControlRoute,
   PersonProfileControlRoute,
   PlatformAdministrationControlRoute,
   PreferencesControlRoute,
@@ -20,6 +23,7 @@ import {
   SeedingControlRoute,
   StandingsControlRoute,
   TournamentAuthoringControlRoute,
+  TournamentsControlRoute,
   VenueManagementControlRoute,
   ZoneGroupControlRoute,
 } from './ControlRoutes.js';
@@ -119,10 +123,20 @@ export function ControlApp(): React.JSX.Element | null {
   if (isUnauthorizedPlatformRoute) return null;
 
   switch (route.screen) {
+    case 'root':
+      return <RootLandingRoute />;
     case 'platformAdministration':
       return <PlatformAdministrationControlRoute />;
     case 'dashboard':
       return <DashboardRoute organizationAlias={route.organizationAlias} />;
+    case 'tournaments':
+      return <TournamentsControlRoute organizationAlias={route.organizationAlias} />;
+    case 'liveConsole':
+      return <LiveConsoleControlRoute organizationAlias={route.organizationAlias} />;
+    case 'organization':
+      return <OrganizationControlRoute organizationAlias={route.organizationAlias} />;
+    case 'analytics':
+      return <AnalyticsControlRoute organizationAlias={route.organizationAlias} />;
     case 'roles':
       return <RolesPermissionsControlRoute organizationAlias={route.organizationAlias} />;
     case 'auditTrail':
@@ -247,10 +261,20 @@ export function ControlApp(): React.JSX.Element | null {
 function titleFor(route: ReturnType<typeof parseControlPath>): string {
   if (route === undefined) return 'No encontrado — CopaLibre';
   switch (route.screen) {
+    case 'root':
+      return 'Panel de control — CopaLibre';
     case 'callback':
       return 'Completando acceso — CopaLibre';
     case 'dashboard':
       return `Panel — ${route.organizationAlias}`;
+    case 'tournaments':
+      return `Torneos — ${route.organizationAlias}`;
+    case 'liveConsole':
+      return `Consola en vivo — ${route.organizationAlias}`;
+    case 'organization':
+      return `Organización — ${route.organizationAlias}`;
+    case 'analytics':
+      return `Analíticas — ${route.organizationAlias}`;
     case 'roles':
       return `Roles y permisos - ${route.organizationAlias}`;
     case 'auditTrail':
@@ -315,6 +339,58 @@ type LandingState =
   | { readonly kind: 'pending' }
   | { readonly kind: 'landing'; readonly organizations: readonly MyOrganizationResponse[] }
   | { readonly kind: 'error'; readonly message: string };
+
+function RootLandingRoute(): React.JSX.Element {
+  const [state, setState] = useState<LandingState>({ kind: 'pending' });
+
+  useEffect(() => {
+    const token = controlTokenStore.read();
+    if (!token) return;
+
+    createControlApiClient({
+      fetch: globalThis.fetch.bind(globalThis),
+      accessToken: () => controlTokenStore.read(),
+    })
+      .listMyOrganizations()
+      .then((organizations) => {
+        if (organizations.length === 1 && organizations[0]?.organizationAlias) {
+          navigateControl(`/control/${organizations[0].organizationAlias}`);
+          return;
+        }
+        if (organizations.length === 0 && accessTokenHasScope(token, 'copalibre.super-admin')) {
+          navigateControl('/control/platform');
+          return;
+        }
+        setState({ kind: 'landing', organizations });
+      })
+      .catch((cause: unknown) => {
+        setState({
+          kind: 'error',
+          message: cause instanceof Error ? cause.message : 'No se pudo cargar la organización',
+        });
+      });
+  }, []);
+
+  if (state.kind === 'error') {
+    return (
+      <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
+        <h1>Error al cargar organizaciones</h1>
+        <p>{state.message}</p>
+        <a href="/control/login">Volver a iniciar sesión</a>
+      </main>
+    );
+  }
+
+  if (state.kind === 'landing') {
+    return <LoginLanding organizations={state.organizations} />;
+  }
+
+  return (
+    <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
+      <p>Cargando panel de control…</p>
+    </main>
+  );
+}
 
 /**
  * The `/control/callback` screen: completes the PKCE exchange, writes
