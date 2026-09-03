@@ -44,11 +44,50 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  upload-installer:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    name: Publish installer
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.ref || github.event.workflow_run.head_sha }}
+
+      - id: version
+        run: |
+          version=$(node -p "require('./apps/copalibre/package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v${{ steps.version.outputs.version }}"
+          if gh release view "$tag" --json assets --jq '.assets[].name' 2>/dev/null \
+              | grep -qx 'install.sh'; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload installer
+        if: steps.check.outputs.published != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "v${{ steps.version.outputs.version }}" \
+            'apps/copalibre/install.sh#install.sh' --clobber
+
   build-and-upload:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
     name: Build ${{ matrix.target }}
+    needs: upload-installer
     strategy:
       fail-fast: false
       matrix:

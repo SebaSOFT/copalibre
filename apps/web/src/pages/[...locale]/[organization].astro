@@ -10,12 +10,14 @@ import {
 import { pickFeaturedTournament } from '../../lib/organization-page.ts';
 import { publicIntl } from '../../lib/i18n/public-intl.ts';
 import { messages } from '../../lib/i18n/public-messages.en.ts';
-import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { resolvePathLocale } from '../../lib/locale.ts';
+import type { SupportedLanguage } from '@copalibre/domain';
 
 export const prerender = false;
 
-const { locale, organization } = Astro.params;
-const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const { organization } = Astro.params;
+const rawPath = Astro.request?.url ? new URL(Astro.request.url).pathname : Astro.url.pathname;
+const resolvedLocale: SupportedLanguage = resolvePathLocale(rawPath);
 const intl = publicIntl(resolvedLocale);
 
 const listData = await fetchOrganizationTournaments(organization!);
@@ -38,9 +40,27 @@ const finishedTournaments = listData?.tournaments.filter((t) => t.status === 'fi
 const featured = listData ? pickFeaturedTournament(listData.tournaments) : undefined;
 
 const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgPageNotFoundTitle);
+const structuredData = listData
+  ? {
+      '@type': 'SportsOrganization' as const,
+      name: listData.organizationName,
+      url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${canonicalPath}`,
+      ...(listData.organizationEmblemObjectId
+        ? {
+            logo: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${organizationEmblemUrl(organization!)}`,
+          }
+        : {}),
+    }
+  : undefined;
 ---
 
-<PublicLayout title={pageTitle} canonicalPath={canonicalPath} intl={intl} noindex={!listData}>
+<PublicLayout
+  title={pageTitle}
+  canonicalPath={canonicalPath}
+  intl={intl}
+  noindex={!listData}
+  structuredData={structuredData}
+>
   {
     !listData && (
       <div class="cl-org-container">

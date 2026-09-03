@@ -14,7 +14,7 @@ roles:
 совпадает:
 
 ```bash
-curl -fsSL https://www.copalibre.app/install.sh | bash
+curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 ```
 
 Это заменяет только бинарный файл `copalibre`. Это не влияет на работающую установку — см. ниже об

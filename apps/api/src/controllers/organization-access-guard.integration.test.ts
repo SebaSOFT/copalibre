@@ -145,14 +145,6 @@ describe('organization access guards (integration)', () => {
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual([]);
     });
-
-    it('400s when "mine=true" is not supplied', async () => {
-      const missing = await request('admin', '/organizations');
-      expect(missing.statusCode).toBe(400);
-
-      const wrongValue = await request('admin', '/organizations?mine=false');
-      expect(wrongValue.statusCode).toBe(400);
-    });
   });
 
   describe('organization settings', () => {

@@ -7,7 +7,7 @@
 		respond "{\"oidcIssuer\":\"{$COPALIBRE_JWT_ISSUER}\",\"oidcClientId\":\"{$COPALIBRE_OIDC_CLIENT_ID}\"}" 200
 	}
 
-	@ssr path_regexp ^(?:/(?:es|fr|pt|it|de|ru|zh))?/[^/]+/tournaments/[^/]+(?:/live|/stages/\d+)?/?$
+	@ssr path_regexp ^(?:/(?:es|fr|pt|it|de|ru|zh))?/[^/]+/tournaments(?:/.*)?$
 	handle @ssr {
 		reverse_proxy web-ssr:3005
 	}
@@ -24,6 +24,14 @@
 		not path /control /control/* /help /help/* /tv /tv/* /api /api/* /runtime-config.json
 	}
 	handle @ssrOrg {
+		reverse_proxy web-ssr:3005
+	}
+
+	# Dynamic root, sitemap, and player-profile routes rendered on demand by web-ssr
+	@ssrRoot {
+		path / /sitemap.xml /api/player-profile
+	}
+	handle @ssrRoot {
 		reverse_proxy web-ssr:3005
 	}
 

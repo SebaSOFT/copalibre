@@ -422,3 +422,122 @@ clear the filter.
 #### Scenario: A club with no entrants renders an empty state
 - **WHEN** a visitor filters to a club fielding no entrant in this tournament
 - **THEN** the page renders an explicit empty state rather than an error
+
+### Requirement: The public site root is a real, indexable landing page
+The public site SHALL serve real content at `/` — an organization directory or equivalent landing
+content reflecting the installation's actual data — rather than a static placeholder. The root path
+SHALL remain listed in `sitemap.xml` and `Allow`ed in `robots.txt` only while it serves real content.
+
+#### Scenario: The homepage reflects real installation data
+- **WHEN** an anonymous visitor requests `/`
+- **THEN** the rendered page shows content derived from the installation's actual organizations, not a
+  static "under construction" placeholder
+
+#### Scenario: A fresh installation with no published organizations still renders usably
+- **WHEN** an anonymous visitor requests `/` on an installation with zero published organizations
+- **THEN** the page renders a real empty state, not an error and not placeholder copy implying the
+  feature is unbuilt
+
+### Requirement: Public pages carry Open Graph, Twitter Card, and structured data
+Every public canonical page SHALL emit Open Graph (`og:title`, `og:description`, `og:type`, `og:url`,
+`og:image` when a discipline or organization image is available) and Twitter Card meta tags, and SHALL
+emit JSON-LD structured data appropriate to the page (`SportsEvent` for a tournament or match page,
+`SportsOrganization` for an organization page) describing the same data already present in the
+server-rendered HTML.
+
+#### Scenario: A tournament overview page carries Open Graph tags
+- **WHEN** an anonymous visitor requests a tournament overview page
+- **THEN** the response head includes `og:title`, `og:description`, `og:type`, and `og:url` matching the
+  page's own title, description, and canonical URL
+
+#### Scenario: A tournament page carries SportsEvent structured data
+- **WHEN** an anonymous visitor requests a tournament overview page
+- **THEN** the response includes a `application/ld+json` script tag whose `@type` is `SportsEvent` and
+  whose `name`, `startDate` (when known), and `url` match the page's own rendered content
+
+#### Scenario: A page with no discipline or organization image omits og:image
+- **WHEN** a public page renders for a tournament whose discipline declares no `images`
+- **THEN** the response omits `og:image` rather than emitting a broken or placeholder image reference
+
+### Requirement: Public pages declare locale alternates
+Every public canonical page SHALL emit a `<link rel="alternate" hreflang="…">` entry for each locale
+variant that exists for that page (per the "Public routes carry a locale prefix" requirement), plus one
+`hreflang="x-default"` entry pointing at the primary-locale (English) URL.
+
+#### Scenario: A page with two locale variants declares two alternates plus x-default
+- **WHEN** a public page that has both English and Spanish variants is requested in either locale
+- **THEN** the response head includes `hreflang="en"` and `hreflang="es"` alternate links plus one
+  `hreflang="x-default"` link, all pointing at their respective canonical URLs
+
+### Requirement: A locale variant's canonical URL includes its own locale prefix
+A public page's `canonical` link SHALL always point at the URL of the variant actually being served,
+including its locale prefix when the served locale is not the primary locale. A locale variant SHALL
+NOT canonicalize to a different locale's URL.
+
+#### Scenario: A non-primary locale variant canonicalizes to itself
+- **WHEN** an anonymous visitor requests a public page under a non-primary locale prefix (e.g. `/es/…`)
+- **THEN** the page's `canonical` link points at that same `/es/…` URL, not the unprefixed English URL
+
+#### Scenario: The primary locale still canonicalizes unprefixed
+- **WHEN** an anonymous visitor requests a public page with no locale prefix
+- **THEN** the page's `canonical` link points at the unprefixed URL, unchanged from existing behavior
+
+### Requirement: The sitemap enumerates all published organizations and tournaments
+`sitemap.xml` SHALL be generated from a query against the installation's actual published organizations
+and tournaments at request/build time, not from a fixed list. Every published organization and
+tournament, and their public child routes, SHALL appear, each with its full set of locale-variant
+entries per the existing "Sitemap advertises every locale variant" requirement.
+
+#### Scenario: A newly published tournament appears in the sitemap without a code change
+- **WHEN** an organizer publishes a new tournament
+- **AND** `sitemap.xml` is subsequently generated
+- **THEN** the new tournament's canonical route and locale variants appear in the sitemap, with no
+  change to `public-routes.ts` or any other source file required
+
+#### Scenario: An organization with no published tournaments is still listed
+- **WHEN** an organization exists but has not yet published any tournament
+- **THEN** the organization's own canonical route still appears in the sitemap
+
+#### Scenario: A draft tournament is absent from the sitemap
+- **WHEN** an organization has both published and draft tournaments
+- **THEN** only the published tournament's routes appear in the sitemap
+
+### Requirement: Internal navigation stays within the current locale
+Every internal link a public page renders for site-wide navigation (including the brand/logo link)
+SHALL resolve within the locale the current page is being served under, rather than always pointing at
+the unprefixed primary-locale URL.
+
+#### Scenario: The brand link stays in the visitor's locale
+- **WHEN** an anonymous visitor on a non-primary-locale page (e.g. `/es/…`) activates the brand/logo
+  link
+- **THEN** it navigates to that same locale's site root (`/es/`), not the unprefixed English root
+
+#### Scenario: The brand link is unchanged for the primary locale
+- **WHEN** an anonymous visitor on an unprefixed (English) page activates the brand/logo link
+- **THEN** it navigates to the unprefixed site root, unchanged from existing behavior
+
+### Requirement: The 404 page offers a way back into the site
+The public site's not-found page SHALL include a working link back to a reachable page (at minimum the
+current locale's site root), and SHALL render its language and copy in the locale resolved from the
+requested path, on the same terms as any other public page.
+
+#### Scenario: A missing page offers a way home
+- **WHEN** an anonymous visitor requests a public path that does not resolve to any page
+- **THEN** the rendered not-found page includes a link that leads to a working page
+
+#### Scenario: The not-found page matches the requested locale
+- **WHEN** an anonymous visitor requests an unresolved path under a non-primary locale prefix (e.g.
+  `/es/some-missing-page`)
+- **THEN** the not-found page's `<html lang>` and copy render in that locale, not a different hardcoded
+  language
+
+### Requirement: Product Landing Showcase Reflects Full Format and Tiebreak Capabilities
+The public product showcase page for CopaLibre on `sebasoft.app` SHALL accurately describe all 12 supported tournament formats (8 duel formats, 4 placement formats) and all tiebreaker evaluation models (scopes, strength of schedule, cumulative progression, forfeits, and deterministic random).
+
+#### Scenario: Public product page lists all supported formats
+- **WHEN** a visitor reads the product capabilities on `sebasoft.app/products/copalibre`
+- **THEN** the format specification enumerates Single Elimination, Double Elimination, GSL Bracket Groups, Gauntlet Stepladder, Round Robin, League, Swiss System, Custom DAG Brackets, Simple FFA, Heats, FFA Brackets, and FFA League
+
+#### Scenario: Visual telemetry displays Buchholz and recursive H2H traces
+- **WHEN** viewing the architectural telemetry section
+- **THEN** the JSON decision trace demonstrates Strength of Schedule (Buchholz / Median-Buchholz) and recursive Head-to-Head comparator steps with cryptographic SHA-256 audit proofs

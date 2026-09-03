@@ -113,4 +113,9 @@ export const messages: Record<string, string> = {
     '并列名次之间的决定因素。获授权的组织者可在控制面板查看完整说明。',
   'publicWeb.matchesView.fullTraceHeading': '完整的排名比较器追踪记录',
   'publicWeb.matchesView.seeAll': '查看所有比赛',
+
+  'publicWeb.notFound.pageTitle': '页面未找到 — CopaLibre',
+  'publicWeb.notFound.heading': '页面未找到',
+  'publicWeb.notFound.body': '该地址不存在任何内容。',
+  'publicWeb.notFound.homeLink': '返回首页',
 };

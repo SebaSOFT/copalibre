@@ -10,7 +10,8 @@ import type { PlacementOptions } from './fixtures/placement.js';
  * superseded instead of unwinding imperative writes.
  */
 
-export type BracketKind = 'winners' | 'losers' | 'grand-final' | 'round-robin' | 'placement';
+export type BracketKind =
+  'winners' | 'losers' | 'grand-final' | 'round-robin' | 'placement' | 'bracket-groups' | 'custom';
 
 /** Where a match's participant comes from. */
 export type SlotSource =
@@ -18,7 +19,8 @@ export type SlotSource =
   /** A structural bye: the opposing slot advances unopposed. */
   | { readonly kind: 'bye' }
   | { readonly kind: 'winner-of'; readonly matchId: string }
-  | { readonly kind: 'loser-of'; readonly matchId: string };
+  | { readonly kind: 'loser-of'; readonly matchId: string }
+  | { readonly kind: 'placement-top'; readonly matchId: string; readonly rank: number };
 
 export interface GeneratedMatchBase {
   /** Deterministic, human-readable: `WB-R2-M1`, `LB-R3-M2`, `GF-R1-M1`, `RR-R1-M1`. */
@@ -28,6 +30,10 @@ export interface GeneratedMatchBase {
   readonly round: number;
   /** 1-based position within the round. */
   readonly position: number;
+  /** Optional human-readable label: e.g. "Upper Semifinal A", "Grand Final Reset". */
+  readonly label?: string;
+  /** Optional custom branch name: e.g. "consolation", "placement-3rd". */
+  readonly branch?: string;
 }
 
 /** Two sides, a winner and a loser — the only shape advancement edges apply to. */
@@ -98,6 +104,46 @@ export interface SeededEntrant {
   readonly seed: number;
 }
 
+export interface BracketGroupsOptions {
+  readonly idPrefix?: string;
+  readonly groupSize?: number;
+  readonly seedingMethod?: 'snake' | 'sequential';
+}
+
+export type CustomBracketSlotSource =
+  | { readonly kind: 'entrant'; readonly seed: number; readonly entrantId?: string }
+  | { readonly kind: 'bye' }
+  | { readonly kind: 'winner-of'; readonly matchId: string }
+  | { readonly kind: 'loser-of'; readonly matchId: string };
+
+export interface CustomBracketMatchDefinition {
+  readonly id: string;
+  readonly round: number;
+  readonly position: number;
+  readonly label?: string;
+  readonly branch?: string;
+  readonly slotA: CustomBracketSlotSource;
+  readonly slotB: CustomBracketSlotSource;
+  readonly series?: SeriesDeclaration;
+}
+
+export interface CustomBracketDefinition {
+  readonly matches: readonly CustomBracketMatchDefinition[];
+}
+
+export interface FFABracketOptions {
+  /** Capacity of each lobby (default 16). */
+  readonly lobbySize?: number;
+  /** Number of top finishers advancing from each lobby (default 4, must be < lobbySize). */
+  readonly advancingCount?: number;
+  /** Custom ID prefix for match identifiers (default 'FFA'). */
+  readonly idPrefix?: string;
+  /** Number of groups for ffa-bracket-groups format (default 2). */
+  readonly groupCount?: number;
+  /** Bracket stops once total advancing participants <= thresholdFinalists. */
+  readonly thresholdFinalists?: number;
+}
+
 export interface GenerateFixturesInput {
   readonly format: TournamentFormat;
   readonly entrants: readonly SeededEntrant[];
@@ -107,4 +153,31 @@ export interface GenerateFixturesInput {
   readonly placement?: PlacementOptions;
   /** Series configuration for multi-match fixtures. */
   readonly series?: SeriesDeclaration;
+  /** Bracket groups (GSL dual tournament) configuration. */
+  readonly bracketGroups?: BracketGroupsOptions;
+  /** Custom bracket DAG configuration. */
+  readonly customBracket?: CustomBracketDefinition;
+  /** FFA elimination bracket configuration. */
+  readonly ffaBracket?: FFABracketOptions;
+  /** FFA league configuration. */
+  readonly ffaLeague?: FFALeagueOptions;
+}
+
+export interface FFALeagueDivision {
+  readonly divisionId: string;
+  readonly name?: string;
+  readonly entrants: readonly SeededEntrant[];
+}
+
+export interface FFALeagueOptions {
+  /** Number of rounds (match weeks / game days) to generate (default 1). */
+  readonly rounds?: number;
+  /** Maximum lobby capacity (default 16). */
+  readonly lobbySize?: number;
+  /** Explicit division partitions. */
+  readonly divisions?: readonly FFALeagueDivision[];
+  /** Number of divisions to partition entrants into if divisions are not explicitly provided (default 1). */
+  readonly divisionCount?: number;
+  /** Custom ID prefix (default 'FFA-L'). */
+  readonly idPrefix?: string;
 }

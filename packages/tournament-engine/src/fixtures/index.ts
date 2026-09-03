@@ -5,8 +5,13 @@ import {
   type Result,
   validateSeriesDeclaration,
   SeriesConfigurationError,
+  isPlacementFormat,
 } from '@copalibre/domain';
-import { InvalidEntrantsError, UnsupportedFormatError } from '../errors.js';
+import {
+  InvalidCustomBracketError,
+  InvalidEntrantsError,
+  UnsupportedFormatError,
+} from '../errors.js';
 import { assertNoPlacementEdges } from '../advancement/index.js';
 import { assertSupportedFormat } from '../formats.js';
 import type { FixtureGraph, GenerateFixturesInput, GeneratedMatch } from '../types.js';
@@ -14,11 +19,41 @@ import { buildDoubleElimination } from './double-elimination.js';
 import { buildPlacementStage } from './placement.js';
 import { buildRoundRobin } from './round-robin.js';
 import { buildEliminationTree } from './single-elimination.js';
+import { generateBracketGroups } from './bracket-groups.js';
+import { generateGauntlet } from './gauntlet.js';
+import { generateSwissRound1 } from './swiss.js';
+import { generateCustomBracketFixtures } from './custom-bracket.js';
+import { generateFFABracketFixtures } from './ffa-bracket.js';
+import { generateFFALeagueFixtures } from './ffa-league.js';
 
 export { buildEliminationTree, seedSlotOrder, nextPowerOfTwo } from './single-elimination.js';
 export { buildDoubleElimination } from './double-elimination.js';
 export { buildRoundRobin } from './round-robin.js';
 export { buildPlacementStage, roundSeed, type PlacementOptions } from './placement.js';
+export {
+  generateBracketGroups,
+  resolveBracketGroupAdvancement,
+  type BracketGroupQualification,
+} from './bracket-groups.js';
+export {
+  generateGauntlet,
+  projectGauntletStandings,
+  computeGauntletStandings,
+  type GauntletStandingRank,
+  type GauntletStandingsResult,
+} from './gauntlet.js';
+export {
+  generateSwissRound1,
+  generateNextSwissRoundFixtures,
+  type GenerateNextSwissRoundInput,
+} from './swiss.js';
+export { generateCustomBracketFixtures, validateCustomBracket } from './custom-bracket.js';
+export { generateFFABracketFixtures, type FFABracketOptions } from './ffa-bracket.js';
+export {
+  generateFFALeagueFixtures,
+  type FFALeagueOptions,
+  type FFALeagueDivision,
+} from './ffa-league.js';
 export { pruneEmptyMatches } from './prune.js';
 export {
   generateGroupedFixtures,
@@ -39,7 +74,7 @@ export function generateFixtures(
   if (!format.ok) return err(format.error);
 
   if (input.series !== undefined) {
-    if (input.format === 'free-for-all' || input.format === 'heats') {
+    if (isPlacementFormat(input.format)) {
       return err(
         new UnsupportedFormatError('Series configuration is not supported for placement formats', {
           format: input.format,
@@ -52,7 +87,14 @@ export function generateFixtures(
     }
   }
 
-  const invalid = validateEntrants(input.entrants);
+  const entrantsToValidate =
+    input.entrants.length === 0 &&
+    input.ffaLeague?.divisions &&
+    input.ffaLeague.divisions.length > 0
+      ? input.ffaLeague.divisions.flatMap((d) => d.entrants)
+      : input.entrants;
+
+  const invalid = validateEntrants(entrantsToValidate);
   if (invalid) return err(invalid);
 
   const matches = buildFor(format.value, input);
@@ -61,13 +103,13 @@ export function generateFixtures(
   // that is where the graph is built.
   assertNoPlacementEdges({
     format: format.value,
-    entrantCount: input.entrants.length,
+    entrantCount: entrantsToValidate.length,
     matches,
     rounds: [],
   });
   return ok({
     format: format.value,
-    entrantCount: input.entrants.length,
+    entrantCount: entrantsToValidate.length,
     matches,
     rounds: summariseRounds(matches),
   });
@@ -92,6 +134,45 @@ function buildFor(
       return buildRoundRobin(input.entrants, { idPrefix: 'LG', series: input.series });
     case 'round-robin-home-away':
       return buildRoundRobin(input.entrants, { homeAndAway: true, series: input.series });
+    case 'bracket-groups':
+      return generateBracketGroups(input.entrants, {
+        series: input.series,
+        bracketGroups: input.bracketGroups,
+      });
+    case 'gauntlet':
+      return generateGauntlet(input.entrants, {
+        series: input.series,
+      });
+    case 'swiss':
+      return generateSwissRound1(input.entrants, {
+        series: input.series,
+      });
+    case 'custom-bracket':
+      if (!input.customBracket) {
+        throw new InvalidCustomBracketError(
+          'A custom-bracket format requires a customBracket definition',
+        );
+      }
+      return generateCustomBracketFixtures(input.entrants, input.customBracket, {
+        series: input.series,
+      });
+    case 'ffa-bracket':
+    case 'ffa-bracket-groups':
+      return generateFFABracketFixtures(format, input.entrants, {
+        lobbySize: input.ffaBracket?.lobbySize ?? input.placement?.lobbySize,
+        advancingCount: input.ffaBracket?.advancingCount,
+        idPrefix: input.ffaBracket?.idPrefix,
+        groupCount: input.ffaBracket?.groupCount,
+        thresholdFinalists: input.ffaBracket?.thresholdFinalists,
+      });
+    case 'ffa-league':
+      return generateFFALeagueFixtures(format, input.entrants, {
+        rounds: input.ffaLeague?.rounds ?? input.placement?.rounds,
+        lobbySize: input.ffaLeague?.lobbySize ?? input.placement?.lobbySize,
+        divisions: input.ffaLeague?.divisions,
+        divisionCount: input.ffaLeague?.divisionCount,
+        idPrefix: input.ffaLeague?.idPrefix,
+      });
     case 'free-for-all':
     case 'heats':
       // Placement stages carry no advancement edges, so nothing downstream

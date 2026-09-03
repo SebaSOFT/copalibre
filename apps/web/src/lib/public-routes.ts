@@ -1,47 +1,66 @@
 import type { SitemapEntry } from '@copalibre/routing';
+import { fetchOrganizations, fetchOrganizationTournaments } from './public-api-client.js';
 
-/**
- * Locale variants this build advertises for every route below: English
- * (the primary locale, `input.locale` left unset so `publicPath` emits no
- * prefix) plus every non-primary locale with populated content.
- */
-const NON_PRIMARY_LOCALES = ['es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;
+export const NON_PRIMARY_LOCALES = ['es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;
 
-/** Public canonical routes this build advertises. Replaced by a query later. */
-export const PUBLIC_ROUTES: readonly SitemapEntry[] = [
+export interface OrgWithTournaments {
+  readonly organizationAlias: string;
+  readonly tournaments: readonly { readonly alias: string }[];
+}
+
+export function buildSitemapEntries(data: readonly OrgWithTournaments[]): readonly SitemapEntry[] {
+  const entries: SitemapEntry[] = [];
+
+  for (const org of data) {
+    entries.push({
+      input: { organizationAlias: org.organizationAlias },
+      changeFrequency: 'daily',
+    });
+
+    for (const locale of NON_PRIMARY_LOCALES) {
+      entries.push({
+        input: { organizationAlias: org.organizationAlias, locale },
+        changeFrequency: 'daily',
+      });
+    }
+
+    for (const t of org.tournaments) {
+      entries.push({
+        input: { organizationAlias: org.organizationAlias, tournamentAlias: t.alias },
+        changeFrequency: 'hourly',
+      });
+
+      for (const locale of NON_PRIMARY_LOCALES) {
+        entries.push({
+          input: { organizationAlias: org.organizationAlias, tournamentAlias: t.alias, locale },
+          changeFrequency: 'hourly',
+        });
+      }
+    }
+  }
+
+  return entries;
+}
+
+export async function fetchPublicSitemapRoutes(): Promise<readonly SitemapEntry[]> {
+  const orgs = (await fetchOrganizations()) ?? [];
+  const orgData: OrgWithTournaments[] = [];
+
+  for (const org of orgs) {
+    const tournamentList = await fetchOrganizationTournaments(org.alias);
+    orgData.push({
+      organizationAlias: org.alias,
+      tournaments: (tournamentList?.tournaments ?? []).map((t) => ({ alias: t.alias })),
+    });
+  }
+
+  return buildSitemapEntries(orgData);
+}
+
+/** Public canonical routes fallback/fixture for static testing. */
+export const PUBLIC_ROUTES: readonly SitemapEntry[] = buildSitemapEntries([
   {
-    input: { organizationAlias: 'liga-mendocina' },
-    changeFrequency: 'daily',
+    organizationAlias: 'liga-mendocina',
+    tournaments: [{ alias: 'apertura-2026' }],
   },
-  ...NON_PRIMARY_LOCALES.map((locale): SitemapEntry => ({
-    input: { organizationAlias: 'liga-mendocina', locale },
-    changeFrequency: 'daily',
-  })),
-  {
-    input: { organizationAlias: 'liga-mendocina', tournamentAlias: 'apertura-2026' },
-    changeFrequency: 'hourly',
-  },
-  ...NON_PRIMARY_LOCALES.map((locale): SitemapEntry => ({
-    input: { organizationAlias: 'liga-mendocina', tournamentAlias: 'apertura-2026', locale },
-    changeFrequency: 'hourly',
-  })),
-  {
-    input: {
-      organizationAlias: 'liga-mendocina',
-      tournamentAlias: 'apertura-2026',
-      stageNumber: 1,
-      matchNumber: 1,
-    },
-    changeFrequency: 'hourly',
-  },
-  ...NON_PRIMARY_LOCALES.map((locale): SitemapEntry => ({
-    input: {
-      organizationAlias: 'liga-mendocina',
-      tournamentAlias: 'apertura-2026',
-      stageNumber: 1,
-      matchNumber: 1,
-      locale,
-    },
-    changeFrequency: 'hourly',
-  })),
-];
+]);

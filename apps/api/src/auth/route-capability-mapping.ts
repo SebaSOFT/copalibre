@@ -142,6 +142,7 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'MatchControlController.rosterCandidates': 'org.operate-match',
   'MatchControlController.rosters': 'org.operate-match',
   'MatchControlController.setRoster': 'org.operate-match',
+  'StagesController.nextRound': 'org.operate-match',
 
   // org.correct-match-results
   'MatchControlController.correct': 'org.correct-match-results',

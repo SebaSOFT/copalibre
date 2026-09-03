@@ -142,11 +142,36 @@ describe('bindTiebreakPipeline', () => {
     expect(unboundNode?.detail).toContain('defensive-record');
   });
 
-  it('preserves declared direction and missing-value behaviour through binding', () => {
-    const bound = bindTiebreakPipeline(capabilityPipeline, bindingFor(football()));
+  it('preserves declared direction, missing-value, and scope through binding', () => {
+    const bound = bindTiebreakPipeline(
+      {
+        ...capabilityPipeline,
+        parameters: [
+          {
+            capability: 'primary-scoring',
+            label: 'Scored',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            scope: 'overall',
+          },
+          {
+            capability: 'defensive-record',
+            label: 'Conceded',
+            direction: 'lower_wins',
+            missingValue: 'treat-as-worst',
+            scope: 'head-to-head',
+          },
+        ],
+      },
+      bindingFor(football()),
+    );
+    expect(bound.parameters[0]).toMatchObject({
+      scope: 'overall',
+    });
     expect(bound.parameters[1]).toMatchObject({
       direction: 'lower_wins',
       missingValue: 'treat-as-worst',
+      scope: 'head-to-head',
     });
   });
 });

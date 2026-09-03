@@ -271,3 +271,103 @@ format rather than in place of one.
 - **WHEN** a stage declares the double-elimination format together with a best-of-three series
 - **THEN** the stage generates a double-elimination bracket whose every fixture holds three matches,
   and the bracket structure is the one that format already generates
+
+### Requirement: Bracket Groups (GSL Dual Tournament) Format Support
+The engine SHALL support the `bracket-groups` duel format, generating an independent dual-tournament or single-elimination mini-bracket for each group in a stage. In the default 4-entrant GSL configuration, each group SHALL generate exactly 5 matches with declarative advancement edges:
+1. Match 1 (Opening A): Seed #1 vs Seed #4.
+2. Match 2 (Opening B): Seed #2 vs Seed #3.
+3. Match 3 (Winners' Match): Winner of Match 1 vs Winner of Match 2 $\to$ Winner qualifies as Seed #1.
+4. Match 4 (Elimination Match): Loser of Match 1 vs Loser of Match 2 $\to$ Loser is eliminated in 4th place.
+5. Match 5 (Decider Match): Loser of Match 3 vs Winner of Match 4 $\to$ Winner qualifies as Seed #2; loser is eliminated in 3rd place.
+
+#### Scenario: GSL dual-tournament bracket generation
+- **GIVEN** a stage with 4 seeded entrants selecting format `bracket-groups`
+- **WHEN** fixtures are generated
+- **THEN** exactly 5 matches are generated across 3 rounds (Round 1: Opening A & B; Round 2: Winners & Elimination; Round 3: Decider)
+- **AND** advancement edges strictly wire winners and losers without requiring external manual bracket adjustments
+
+#### Scenario: Multiple bracket groups operate independently
+- **GIVEN** a stage with 16 entrants split into 4 groups of 4 selecting `bracket-groups`
+- **WHEN** fixtures are generated
+- **THEN** 4 independent 5-match brackets are generated (total 20 matches)
+- **AND** the top 2 finishers from each group (total 8 entrants) qualify into the subsequent playoff stage
+
+### Requirement: Gauntlet (Stepladder) Format Support
+The engine SHALL support the `gauntlet` duel format, generating a linear chain of $N-1$ matches for $N$ seeded participants ($2 \le N \le 32$). Match 1 SHALL join Seed $N$ and Seed $N-1$; each subsequent Match $i$ ($2 \le i \le N-1$) SHALL join the winner of Match $i-1$ with Seed $N-i$.
+
+#### Scenario: 5-entrant Gauntlet fixture structure
+- **GIVEN** a stage with 5 seeded entrants selecting format `gauntlet`
+- **WHEN** fixtures are generated
+- **THEN** exactly 4 matches across 4 rounds are generated:
+  - Round 1 (M1): Seed 5 vs Seed 4
+  - Round 2 (M2): Winner(M1) vs Seed 3
+  - Round 3 (M3): Winner(M2) vs Seed 2
+  - Round 4 (M4 - Grand Final): Winner(M3) vs Seed 1
+
+#### Scenario: Gauntlet winner advancement
+- **GIVEN** a generated 5-entrant Gauntlet stage
+- **WHEN** Match 1 concludes with Seed 5 winning
+- **THEN** Seed 5 is populated into Slot A of Match 2 against Seed 3
+- **AND** losing entrants are ranked in reverse elimination order (Loser M1: 5th place, Loser M2: 4th place, Loser M3: 3rd place, Loser M4: 2nd place, Winner M4: 1st place)
+
+### Requirement: Swiss System Dynamic Round Pairing Generation
+The engine SHALL support the `swiss` format. Initial generation SHALL produce Round 1 fixtures pairing the top seed half against the bottom seed half ($1 \text{ vs } N/2+1$, $2 \text{ vs } N/2+2$, etc.). Subsequent rounds SHALL be generated dynamically on request once the prior round is complete, grouping participants into score brackets and finding optimal non-repeat pairings.
+
+#### Scenario: Round 1 seed split
+- **GIVEN** a Swiss stage with 8 seeded entrants
+- **WHEN** Round 1 fixtures are generated
+- **THEN** 4 matches are created pairing Seed 1 vs Seed 5, 2 vs 6, 3 vs 7, and 4 vs 8
+
+#### Scenario: Round 2 groups participants by record
+- **GIVEN** 4 winners (1-0) and 4 losers (0-1) from Round 1
+- **WHEN** Round 2 is generated
+- **THEN** 2 matches pair the 1-0 entrants together and 2 matches pair the 0-1 entrants together
+- **AND** no pair repeats a match already played in Round 1
+
+#### Scenario: Odd participant receives a bye
+- **GIVEN** a Swiss stage with 7 active entrants
+- **WHEN** a round is generated
+- **THEN** 3 matches (6 entrants) and 1 bye (1 entrant) are generated
+- **AND** the bye awards a walkover win to the lowest-ranked entrant who has not previously received a bye
+
+### Requirement: Custom Bracket (Declarative DAG) Format Support
+The engine SHALL support the `custom-bracket` format, generating a fixture graph from a user-supplied list of match definitions. The engine SHALL validate before generation that:
+1. Every match identifier is unique within the stage.
+2. The graph contains no cycles (strict DAG).
+3. Every `winner-of` and `loser-of` reference targets an existing match identifier in an earlier round or preceding topological order.
+4. Every `entrant` seed is within the entrant capacity bounds.
+
+#### Scenario: Valid custom DAG generates cleanly
+- **GIVEN** a custom bracket definition declaring 7 matches with custom consolation branch labels
+- **WHEN** fixtures are generated
+- **THEN** the fixture graph is generated with exact round, position, and branch metadata
+- **AND** advancement edges resolve upon match completion per the declared links
+
+#### Scenario: Cyclic reference is rejected
+- **GIVEN** a custom bracket definition where Match A references winner-of(Match B) and Match B references winner-of(Match A)
+- **WHEN** fixture generation is attempted
+- **THEN** generation is rejected with an explicit `CyclicFixtureGraphError` before persistence
+
+### Requirement: FFA Elimination Brackets Format Support
+The engine SHALL support the `ffa-bracket` and `ffa-bracket-groups` placement formats. Given $N$ entrants, a lobby capacity of $M$, and an advancement count of $K$ ($K < M$), the engine SHALL generate a multi-round knockout fixture tree where the top $K$ finishers from each match advance to downstream round matches.
+
+#### Scenario: 64-player Battle Royale bracket (4 lobbies of 16 -> 1 lobby of 16)
+- **GIVEN** 64 entrants, lobby size 16, and advancing count 4 selecting format `ffa-bracket`
+- **WHEN** fixtures are generated
+- **THEN** Round 1 generates 4 matches (M1, M2, M3, M4) with 16 seeded entrants each
+- **AND** Round 2 generates 1 Grand Final match (M5) with 16 slots sourced from top-4 finishers of M1–M4
+
+#### Scenario: Anti-colocation slot distribution
+- **GIVEN** Round 1 match M1 has advancing finishers at ranks 1, 2, 3, 4
+- **AND** Round 2 has 2 downstream matches (M5 and M6)
+- **WHEN** slots are wired
+- **THEN** Rank 1 and 3 are mapped to M5, while Rank 2 and 4 are mapped to M6, distributing advancing players across different lobbies
+
+### Requirement: FFA League Multi-Division Format Support
+The engine SHALL support the `ffa-league` placement format, generating a multi-round series of $M$-player placement matches for each declared division. Every entrant SHALL participate in a scheduled fixture across each game round, accumulating points into a division standings table.
+
+#### Scenario: 32-player FFA League with 2 divisions of 16 across 5 game days
+- **GIVEN** 32 entrants split into Division 1 and Division 2 with 5 game rounds
+- **WHEN** fixtures are generated
+- **THEN** 10 total placement matches are generated (1 match per division per round)
+- **AND** standings compute cumulative placement and performance points independently per division across all 5 rounds

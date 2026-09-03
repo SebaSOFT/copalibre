@@ -3,7 +3,9 @@
 ## Purpose
 Renders competition standings so every ranking and every tiebreak resolution is traceable to the
 engine's own explanation trace, never a UI-only recomputation or approximation.
+
 ## Requirements
+
 ### Requirement: Standings table renders engine-sourced ranking
 The system SHALL render a standings table (rank, participant, matches, win-draw-loss, points, and a
 tiebreak indicator) populated from the published standings projection, not from a client-side
@@ -108,3 +110,84 @@ The system SHALL evaluate declared `TableLayoutDefinition` rules dynamically aga
 - **WHEN** a layout specifies `defaultSort: [{ columnCode: 'goals', direction: 'desc' }, { columnCode: 'goals-per-match', direction: 'desc' }, { columnCode: 'penalties', direction: 'asc' }]`
 - **THEN** tied goal scorers are ordered secondarily by goals-per-match and tertiarily by fewest penalty goals
 
+### Requirement: Head-to-Head (H2H) and Match-Losses Tiebreak Scoping
+The system SHALL support declaring an evaluation scope (`overall`, `head-to-head`, or `match-losses`) on each tiebreak parameter in a tournament profile or ruleset pipeline. When evaluating a parameter scoped to `head-to-head`, the engine SHALL calculate accounting metrics strictly from recorded match outcomes played among the mutually tied participants. When evaluating a parameter scoped to `match-losses`, the engine SHALL calculate accounting metrics strictly from matches each tied participant lost.
+
+#### Scenario: Head-to-Head points resolves a tie among equal overall points
+- **GIVEN** Entrant A and Entrant B have identical overall points in a round-robin group
+- **AND** Entrant A defeated Entrant B in their direct match
+- **WHEN** the tiebreak pipeline evaluates a parameter with `id: "points"` and `scope: "head-to-head"`
+- **THEN** Entrant A is ranked above Entrant B
+- **AND** the explanation trace states that H2H points separated Entrant A and Entrant B
+
+#### Scenario: Match-losses scope filters metrics to lost matches
+- **GIVEN** Entrant A and Entrant B are tied on overall wins
+- **WHEN** evaluating a parameter with `id: "goals-conceded"` and `scope: "match-losses"`
+- **THEN** only goals conceded in matches where the respective entrant lost are summed for comparison
+
+### Requirement: Recursive Sub-Tie Resolution for Multi-Entrant Ties
+When three or more entrants are tied and a tiebreaker comparator separates a subset of them (e.g. separating the top entrant while two entrants remain tied), the engine SHALL recursively restart the evaluation of the tiebreaker pipeline strictly among the remaining tied participants.
+
+#### Scenario: Three-way tie partially resolved triggers recursive H2H sub-evaluation
+- **GIVEN** Entrants A, B, and C are tied on 6 points in a group
+- **AND** H2H goal difference ranks Entrant A 1st (+2), while Entrants B and C remain tied (+0)
+- **WHEN** the tiebreak pipeline proceeds to resolve Entrant B and Entrant C
+- **THEN** a new sub-pipeline evaluation begins strictly between Entrants B and C, evaluating their direct head-to-head match
+- **AND** the explanation trace records both the 3-way parent resolution and the nested 2-way sub-resolution
+
+### Requirement: Strength-of-Schedule (Buchholz & Median-Buchholz) Standings Evaluation
+The system SHALL evaluate Strength-of-Schedule (SoS) tiebreaker comparators by traversing the stage match graph and aggregating the final points achieved by each entrant's opponents. The engine SHALL support:
+1. Standard Buchholz (sum of all opponents' stage points).
+2. Scoped Buchholz (sum of points of opponents against whom the entrant won, drew, or lost).
+3. Median-Buchholz (sum of opponents' points after excluding the highest and lowest scoring opponent).
+
+#### Scenario: Buchholz resolves tie based on opponent strength
+- **GIVEN** Entrant A and Entrant B are tied on 9 points
+- **AND** Entrant A played opponents whose final point total sum is 28
+- **AND** Entrant B played opponents whose final point total sum is 24
+- **WHEN** the tiebreak pipeline evaluates a `buchholz` comparator
+- **THEN** Entrant A is ranked ahead of Entrant B
+- **AND** the explanation trace enumerates Entrant A's opponents and their point contributions (sum: 28)
+
+#### Scenario: Median-Buchholz trims highest and lowest outliers
+- **GIVEN** Entrant A faced opponents with final points [12, 10, 8, 2] (total: 32)
+- **WHEN** evaluating `median-buchholz`
+- **THEN** the highest (12) and lowest (2) scores are trimmed, yielding an effective score of 18 (10 + 8)
+- **AND** the trace explicitly states which opponent scores were trimmed
+
+### Requirement: Sonneborn-Berger / Neustadtl Tiebreak Evaluation
+The system SHALL support the Sonneborn-Berger tiebreaker metric, computed as the sum of final points of all defeated opponents plus half the final points of all drawn opponents ($\sum \text{Points}(W) + 0.5 \times \sum \text{Points}(D)$).
+
+#### Scenario: Sonneborn-Berger rewards quality of victories
+- **GIVEN** Entrant A and Entrant B are tied on points
+- **AND** Entrant A defeated the 1st-place team (12 pts) and lost to others
+- **AND** Entrant B defeated the 8th-place team (3 pts) and lost to others
+- **WHEN** the pipeline evaluates `sonneborn-berger`
+- **THEN** Entrant A's score is 12 and Entrant B's score is 3, placing Entrant A ahead
+
+### Requirement: Cumulative (Progressive) Standings Evaluation
+The system SHALL support the `cumulative-score` tiebreaker metric, calculated as the sum of the cumulative running point totals after each completed round of the stage. The engine SHALL also support `cumulative-opponent-points` which weights opponents by the round they were faced.
+
+#### Scenario: Cumulative score rewards early stage performance
+- **GIVEN** Entrant A won in Round 1 (3 pts), Round 2 (6 pts), and lost in Round 3 (6 pts) -> Cumulative sum = 3 + 6 + 6 = 15
+- **AND** Entrant B lost in Round 1 (0 pts), won in Round 2 (3 pts), and won in Round 3 (6 pts) -> Cumulative sum = 0 + 3 + 6 = 9
+- **WHEN** the tiebreak pipeline evaluates `cumulative-score`
+- **THEN** Entrant A (15) ranks ahead of Entrant B (9)
+
+### Requirement: Match and Game Forfeits Accounting
+The system SHALL record match and game forfeits explicitly. Entrants with fewer forfeits SHALL be ranked ahead of entrants with more forfeits when evaluated by `match-forfeits` or `game-forfeits` comparators.
+
+#### Scenario: Entrant with normal loss ranks above entrant with forfeited match
+- **GIVEN** Entrant A and Entrant B are tied on 3 points and 1 win, 2 losses
+- **AND** Entrant B forfeited one match while Entrant A played all 3 matches
+- **WHEN** the pipeline evaluates `match-forfeits` (lower_wins)
+- **THEN** Entrant A (0 forfeits) ranks ahead of Entrant B (1 forfeit)
+
+### Requirement: Manual and Seeded Deterministic Random Tiebreaker Resolution
+The system SHALL support manual tiebreak point assignments and deterministic seeded pseudo-random resolution (`random`). When `random` is evaluated, the result SHALL be completely deterministic on replay based on a cryptographic hash of the tournament ID, stage ID, and entrant IDs.
+
+#### Scenario: Seeded random produces reproducible ordering
+- **GIVEN** Entrants A and B remain tied after all performance comparators
+- **WHEN** `random` comparator executes
+- **THEN** Entrants are ordered deterministically by their hashed values
+- **AND** recomputing standings produces the exact same rank and audit trace

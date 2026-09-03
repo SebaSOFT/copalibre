@@ -6,6 +6,10 @@ import {
   selectDisciplineBackground,
   type PublicObjectReference,
 } from '../lib/discipline-background.ts';
+import { buildHreflangAlternates, serializeJsonLd, type JsonLdStructuredData } from '../lib/seo.ts';
+import type { SupportedLanguage } from '@copalibre/domain';
+
+import { getLocaleHomePath } from '../lib/locale.ts';
 
 interface Props {
   readonly title: string;
@@ -15,11 +19,37 @@ interface Props {
   readonly noindex?: boolean;
   readonly intl: IntlShape;
   readonly disciplineImages?: readonly PublicObjectReference[];
+  readonly ogType?: string;
+  readonly ogImage?: string;
+  readonly structuredData?: JsonLdStructuredData;
+  readonly localeVariants?: readonly SupportedLanguage[] | readonly string[];
 }
 
-const { title, description, canonicalPath, noindex = false, intl, disciplineImages } = Astro.props;
+const {
+  title,
+  description,
+  canonicalPath,
+  noindex = false,
+  intl,
+  disciplineImages,
+  ogType = 'website',
+  ogImage,
+  structuredData,
+  localeVariants,
+} = Astro.props;
+
 const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
 const background = selectDisciplineBackground(disciplineImages);
+const resolvedOgImage =
+  ogImage ??
+  (background?.url
+    ? background.url.startsWith('http')
+      ? background.url
+      : `${site}${background.url}`
+    : undefined);
+const alternates = buildHreflangAlternates(site, canonicalPath, intl.locale, localeVariants);
+const canonicalUrl = `${site}${canonicalPath}`;
+const homeUrl = getLocaleHomePath(intl.locale);
 ---
 
 <!doctype html>
@@ -30,7 +60,22 @@ const background = selectDisciplineBackground(disciplineImages);
     <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
-    <link rel="canonical" href={`${site}${canonicalPath}`} />
+    <link rel="canonical" href={canonicalUrl} />
+    {alternates.map((alt) => <link rel="alternate" hreflang={alt.hreflang} href={alt.href} />)}
+    <meta property="og:title" content={title} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={canonicalUrl} />
+    {resolvedOgImage && <meta property="og:image" content={resolvedOgImage} />}
+    <meta name="twitter:card" content={resolvedOgImage ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={title} />
+    {description && <meta name="twitter:description" content={description} />}
+    {resolvedOgImage && <meta name="twitter:image" content={resolvedOgImage} />}
+    {
+      structuredData && (
+        <script is:inline type="application/ld+json" set:html={serializeJsonLd(structuredData)} />
+      )
+    }
     {/* Defence in depth: a non-public route that somehow renders says so itself. */}
     {noindex && <meta name="robots" content="noindex, nofollow" />}
   </head>
@@ -50,7 +95,7 @@ const background = selectDisciplineBackground(disciplineImages);
     <a class="cl-focusable" href="#main">{intl.formatMessage(messages.layoutSkipToContent)}</a>
     <header>
       <nav aria-label={intl.formatMessage(messages.layoutNavAriaLabel)}>
-        <a href="/" class="cl-brand">
+        <a href={homeUrl} class="cl-brand">
           <img src="/copalibre-logo.svg" alt="" width="28" height="28" />
           CopaLibre
         </a>

@@ -326,7 +326,7 @@ describe('catalogue loader', () => {
 
   it('rejects a referenced discipline image that is absent from packaged assets', async () => {
     const catalogue = await loadDefaultModuleCatalogue();
-    const discipline = catalogue.disciplines[0];
+    const discipline = catalogue.disciplines.find((candidate) => candidate.alias === 'football');
     if (!discipline) throw new Error('Expected a default discipline');
     await writeFile(join(directory, 'disciplines', 'football.json'), JSON.stringify(discipline));
 

@@ -23,7 +23,7 @@ discipline logic — shipped as a single multi-role Docker image driven by the `
 ## Get Started
 
 ```bash
-curl -fsSL https://www.copalibre.app/install.sh | bash
+curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 mkdir my-league && cd my-league && copalibre init
 # edit .env — see the comments copalibre init writes into it
 copalibre doctor && copalibre start
@@ -35,7 +35,7 @@ Full walkthrough, remote management, TLS, and the contributor checkout: see Full
 ### Full walkthrough
 
 ```bash
-curl -fsSL https://www.copalibre.app/install.sh | bash
+curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 mkdir my-league && cd my-league
 copalibre init      # writes a full installation (compose file, .env, marker) into the cwd
 # edit .env: PostgreSQL password, COPALIBRE_BOOTSTRAP_TOKEN, OIDC JWKS/issuer/audience,
@@ -103,7 +103,8 @@ Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosti
   ruleset versioning, registration review, check-in, and zone/group tournament structures with
   cross-group promotion.
 - **Seeding & bracket builder** — lock/randomize seeds, inspect the exact bracket the fixture
-  engine generated (single/double elimination, round-robin, league).
+  engine generated (single/double elimination, round-robin, league, bracket-groups, gauntlet,
+  swiss, custom DAG brackets, and multi-round FFA brackets).
 - **Match scheduling** — assign venue, time, and officials to a stage's fixtures from a calendar
   view; venues and officials managed as their own control-panel resources.
 - **Multi-match series** — declare a stage's crosses as a best-of/aggregate series instead of a
@@ -144,9 +145,14 @@ available formats) and a **tournament profile** (stages, formats, points, tiebre
 either by hand, through a guided control-panel wizard, or programmatically via an AI agent talking
 to `copalibre mcp`'s discipline-authoring contract. See [`docs/MODULES.md`](docs/MODULES.md).
 
-Seeded today: **football**, **tennis**. Supported formats: single- and double-elimination,
-round-robin (single-leg and home/away), league, and placement stages (free-for-all/heats) that feed
-a standings table instead of another match.
+Seeded today: **football**, **tennis**, and **battle-royale**. Supported duel formats:
+`single-elimination`, `double-elimination` (with bracket reset), `round-robin` (single-leg and
+home/away), `league`, `bracket-groups` (GSL 4-player dual tournament), `gauntlet` (stepladder
+ascending bracket), `swiss` (Dutch pairing system), and `custom-bracket` (declarative DAG).
+Supported placement formats: `free-for-all`, `heats`, `ffa-bracket`, `ffa-bracket-groups`, and
+`ffa-league` (multi-division). Supported tiebreak scopes: `overall`, `head-to-head`, and
+`match-losses`, evaluated alongside Strength-of-Schedule metrics (Buchholz, Median-Buchholz,
+Sonneborn-Berger), progressive cumulative scores, and audited forfeit handling.
 
 ## Development
 

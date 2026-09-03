@@ -123,6 +123,7 @@ export {
 } from './tiebreak/binding.js';
 export {
   resolveTiebreak,
+  deterministicTiebreakHash,
   type ComparisonDirection,
   type MissingValueBehavior,
   type TiebreakParameterDefinition,
@@ -130,7 +131,21 @@ export {
   type TiebreakPipeline,
   type EntrantValues,
   type TiebreakResolution,
+  type TiebreakScope,
+  type ScopedValuesProvider,
+  type ResolveTiebreakOptions,
 } from './tiebreak/pipeline.js';
+
+export {
+  computeBuchholz,
+  computeScopedBuchholz,
+  computeMedianBuchholz,
+  computeSonnebornBerger,
+  type OpponentScore,
+  type OpponentMatchOutcome,
+  type MedianBuchholzOptions,
+  type MedianBuchholzResult,
+} from './tiebreak/strength-of-schedule.js';
 
 export {
   evaluateNotificationRule,

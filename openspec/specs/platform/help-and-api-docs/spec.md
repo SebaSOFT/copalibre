@@ -392,3 +392,28 @@ documented but not granted, SHALL both fail.
 #### Scenario: Adding a capability fails the build until it is documented
 - **WHEN** a new capability is declared and mapped to a role
 - **THEN** the build fails until that role's page accounts for it
+
+### Requirement: Comprehensive Documentation of All Tournament Formats
+The help site SHALL provide dedicated guide pages under `/help/formats/` explaining the configuration, seeding, progression, and match mechanics for every supported format:
+1. `single-elimination` & `double-elimination` (including bracket reset).
+2. `round-robin` (single-leg & home/away).
+3. `bracket-groups` (GSL 4-player dual tournament).
+4. `gauntlet` (Stepladder ascending challenge ladder).
+5. `swiss` (Dutch pairing system, score groups, floaters, and byes).
+6. `custom-bracket` (Declarative DAG specification).
+7. `free-for-all`, `heats`, `ffa-bracket`, `ffa-bracket-groups`, and `ffa-league`.
+
+#### Scenario: An operator reads the Swiss pairing guide
+- **WHEN** an operator visits `/help/formats/swiss/`
+- **THEN** the guide describes the round generation workflow, how score brackets are paired, and how Strength-of-Schedule tiebreakers rank participants
+
+### Requirement: Standings and Tiebreak Mechanics Guide
+The help site SHALL publish a comprehensive reference under `/help/standings/` detailing:
+1. All evaluation scopes (`overall`, `head-to-head`, `match-losses`).
+2. Recursive sub-tie resolution rules for ties of size $\ge 3$.
+3. Strength-of-schedule formulas (Buchholz, Median-Buchholz Cut 1/2, Sonneborn-Berger).
+4. Progressive cumulative scores, forfeit penalties, and deterministic seeded random tiebreakers.
+
+#### Scenario: All 8 interface languages provide complete help parity
+- **WHEN** the documentation lint runs (`yarn workspace @copalibre/web verify:docs`)
+- **THEN** every newly added format and tiebreak help page exists in all 8 supported languages without fallback gaps

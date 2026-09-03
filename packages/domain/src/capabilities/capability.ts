@@ -18,6 +18,16 @@ export const CANONICAL_STATISTICS = {
   losses: 'losses',
   points: 'points',
   scoreDifference: 'score-difference',
+  buchholz: 'buchholz',
+  buchholzWins: 'buchholz-wins',
+  buchholzDraws: 'buchholz-draws',
+  buchholzLosses: 'buchholz-losses',
+  medianBuchholz: 'median-buchholz',
+  sonnebornBerger: 'sonneborn-berger',
+  cumulativeScore: 'cumulative-score',
+  cumulativeOpponentPoints: 'cumulative-opponent-points',
+  matchForfeits: 'match-forfeits',
+  gameForfeits: 'game-forfeits',
 } as const;
 
 export type CanonicalStatistic = (typeof CANONICAL_STATISTICS)[keyof typeof CANONICAL_STATISTICS];

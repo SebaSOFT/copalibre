@@ -59,13 +59,20 @@ const standingsProjection = groupPhaseLayout
       activeClubId,
     )
   : undefined;
+
+const structuredData = {
+  '@type': 'SportsEvent' as const,
+  name: `${intl.formatMessage(messages.bracketPageTitle)} — ${displayName(model)}`,
+  url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${stagePath}`,
+};
 ---
 
 <PublicLayout
   title={`${intl.formatMessage(messages.bracketPageTitle)} — ${displayName(model)}`}
-  canonicalPath={model.canonicalPath}
+  canonicalPath={stagePath}
   intl={intl}
   disciplineImages={overviewData.disciplineImages}
+  structuredData={structuredData}
 >
   <h1>{intl.formatMessage(messages.bracketPageTitle)}</h1>
   <p>

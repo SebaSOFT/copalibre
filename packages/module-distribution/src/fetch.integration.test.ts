@@ -44,6 +44,30 @@ describe('fetchModule / listPublishedVersions (integration, real repository)', (
     expect(versions).toContain('1.0.0');
   });
 
+  it('lists published versions for newly added tournament profile modules', async () => {
+    const profiles = [
+      'double-elimination-bracket',
+      'heats-and-finals',
+      'open-grand-prix',
+      'esports-gsl-groups-to-playoffs',
+      'single-leg-league',
+      'ice-hockey-three-point-cup',
+      'rugby-bonus-point-championship',
+      'cricket-championship-cup',
+      'baseball-pool-playoff',
+      'arena-ffa-deathmatch',
+    ];
+    const results = await Promise.all(
+      profiles.map(async (alias) => {
+        const versions = await listPublishedVersions(CURATED_MODULE_REPOSITORY, alias);
+        return { alias, versions };
+      }),
+    );
+    for (const { versions } of results) {
+      expect(versions).toContain('1.0.0');
+    }
+  }, 30_000);
+
   it('lists no versions for an alias nothing has ever published', async () => {
     const versions = await listPublishedVersions(CURATED_MODULE_REPOSITORY, 'no-such-module-alias');
     expect(versions).toEqual([]);
@@ -62,7 +86,7 @@ describe('fetchModule / listPublishedVersions (integration, real repository)', (
     expect(fetched.directory.endsWith(join('disciplines', 'orbital-frisbee'))).toBe(true);
     await expect(access(join(fetched.directory, 'manifest.json'))).resolves.toBeUndefined();
     await expect(access(join(fetched.directory, 'artifact.json'))).resolves.toBeUndefined();
-  });
+  }, 30_000);
 
   it('fetches and checks out a real tournament-profile module by tag', async () => {
     const fetched = await fetchModule(
@@ -76,7 +100,36 @@ describe('fetchModule / listPublishedVersions (integration, real repository)', (
     expect(fetched.resolvedVersion).toBe('1.0.0');
     expect(fetched.directory.endsWith(join('profiles', 'weekend-cup'))).toBe(true);
     await expect(access(join(fetched.directory, 'manifest.json'))).resolves.toBeUndefined();
-  });
+    await expect(access(join(fetched.directory, 'artifact.json'))).resolves.toBeUndefined();
+  }, 30_000);
+
+  it('fetches and checks out newly published tournament profiles (double-elimination and heats)', async () => {
+    const doubleElim = await fetchModule(
+      CURATED_MODULE_REPOSITORY,
+      'double-elimination-bracket',
+      undefined,
+      workspaceDirectory,
+    );
+    checkoutRoots.push(doubleElim.checkoutRoot);
+    expect(doubleElim.resolvedVersion).toBe('1.0.0');
+    expect(doubleElim.directory.endsWith(join('profiles', 'double-elimination-bracket'))).toBe(
+      true,
+    );
+    await expect(access(join(doubleElim.directory, 'manifest.json'))).resolves.toBeUndefined();
+    await expect(access(join(doubleElim.directory, 'artifact.json'))).resolves.toBeUndefined();
+
+    const heats = await fetchModule(
+      CURATED_MODULE_REPOSITORY,
+      'heats-and-finals',
+      undefined,
+      workspaceDirectory,
+    );
+    checkoutRoots.push(heats.checkoutRoot);
+    expect(heats.resolvedVersion).toBe('1.0.0');
+    expect(heats.directory.endsWith(join('profiles', 'heats-and-finals'))).toBe(true);
+    await expect(access(join(heats.directory, 'manifest.json'))).resolves.toBeUndefined();
+    await expect(access(join(heats.directory, 'artifact.json'))).resolves.toBeUndefined();
+  }, 30_000);
 
   it('rejects a version range no published version satisfies, leaving no checkout behind', async () => {
     await expect(

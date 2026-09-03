@@ -33,14 +33,19 @@ export type DuelFormat =
   | 'round-robin'
   | 'league'
   | 'round-robin-single-leg'
-  | 'round-robin-home-away';
+  | 'round-robin-home-away'
+  | 'bracket-groups'
+  | 'gauntlet'
+  | 'swiss'
+  | 'custom-bracket';
 
 /**
  * Formats whose matches produce an ordering rather than a winner. They feed the
  * stage table and never another match: qualification is by result across every
  * heat, so winning a slow heat qualifies nobody.
  */
-export type PlacementFormat = 'free-for-all' | 'heats';
+export type PlacementFormat =
+  'free-for-all' | 'heats' | 'ffa-bracket' | 'ffa-bracket-groups' | 'ffa-league';
 
 export const DUEL_FORMATS: readonly DuelFormat[] = [
   'single-elimination',
@@ -49,9 +54,19 @@ export const DUEL_FORMATS: readonly DuelFormat[] = [
   'league',
   'round-robin-single-leg',
   'round-robin-home-away',
+  'bracket-groups',
+  'gauntlet',
+  'swiss',
+  'custom-bracket',
 ];
 
-export const PLACEMENT_FORMATS: readonly PlacementFormat[] = ['free-for-all', 'heats'];
+export const PLACEMENT_FORMATS: readonly PlacementFormat[] = [
+  'free-for-all',
+  'heats',
+  'ffa-bracket',
+  'ffa-bracket-groups',
+  'ffa-league',
+];
 
 export const SUPPORTED_FORMATS: readonly TournamentFormat[] = [
   ...DUEL_FORMATS,
@@ -63,7 +78,14 @@ export const SUPPORTED_FORMATS: readonly TournamentFormat[] = [
  * as the name the earlier phases wrote, now that "MVP" no longer distinguishes
  * anything.
  */
-export const MVP_FORMATS: readonly TournamentFormat[] = DUEL_FORMATS;
+export const MVP_FORMATS: readonly TournamentFormat[] = [
+  'single-elimination',
+  'double-elimination',
+  'round-robin',
+  'league',
+  'round-robin-single-leg',
+  'round-robin-home-away',
+];
 
 export function isPlacementFormat(format: TournamentFormat): format is PlacementFormat {
   return (PLACEMENT_FORMATS as readonly string[]).includes(format);

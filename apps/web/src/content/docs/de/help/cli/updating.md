@@ -14,7 +14,7 @@ Stelle — es ist idempotent: prüft zuerst die installierte Version und übersp
 sie bereits übereinstimmt:
 
 ```bash
-curl -fsSL https://www.copalibre.app/install.sh | bash
+curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 ```
 
 Dies ersetzt nur die `copalibre`-Binärdatei. Es hat keine Auswirkung auf eine laufende Installation —

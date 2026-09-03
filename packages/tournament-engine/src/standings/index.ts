@@ -1,5 +1,19 @@
-import type { EntrantValues, TiebreakPipeline, TraceNode } from '@copalibre/rules';
-import { resolveTiebreak } from '@copalibre/rules';
+import type {
+  EntrantValues,
+  TiebreakPipeline,
+  TraceNode,
+  TiebreakScope,
+  TiebreakParameterDefinition,
+  OpponentScore,
+} from '@copalibre/rules';
+import {
+  resolveTiebreak,
+  computeBuchholz,
+  computeScopedBuchholz,
+  computeMedianBuchholz,
+  computeSonnebornBerger,
+} from '@copalibre/rules';
+import { buildOpponentAdjacencyGraph } from './opponent-graph.js';
 import { slotsOf, type GeneratedMatch } from '../types.js';
 import type {
   DisciplineDescriptor,
@@ -10,6 +24,12 @@ import type {
   SeriesTraceNode,
 } from '@copalibre/domain';
 import { resolveSeries } from '@copalibre/domain';
+export {
+  projectGauntletStandings,
+  computeGauntletStandings,
+  type GauntletStandingRank,
+  type GauntletStandingsResult,
+} from '../fixtures/gauntlet.js';
 
 /**
  * Standings assembly. This module computes *accounting parameters* only and
@@ -41,6 +61,16 @@ export const DERIVABLE_STATISTICS = {
   draws: 'draws',
   losses: 'losses',
   points: 'points',
+  buchholz: 'buchholz',
+  buchholzWins: 'buchholz-wins',
+  buchholzDraws: 'buchholz-draws',
+  buchholzLosses: 'buchholz-losses',
+  medianBuchholz: 'median-buchholz',
+  sonnebornBerger: 'sonneborn-berger',
+  cumulativeScore: 'cumulative-score',
+  cumulativeOpponentPoints: 'cumulative-opponent-points',
+  matchForfeits: 'match-forfeits',
+  gameForfeits: 'game-forfeits',
 } as const;
 
 export interface EntrantAccounting {
@@ -340,6 +370,93 @@ export function computeAccounting(
     }
   }
 
+  // Pass 2: Strength-of-Schedule (SoS) metric folding
+  const declaredCodes = new Set(descriptor.statistics.map((s) => s.code));
+  const hasSosStats =
+    declaredCodes.has(DERIVABLE_STATISTICS.buchholz) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.buchholzWins) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.buchholzDraws) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.buchholzLosses) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.medianBuchholz) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.sonnebornBerger);
+
+  if (hasSosStats) {
+    const opponentGraph = buildOpponentAdjacencyGraph(entrantIds, outcomes);
+    const baselinePoints = new Map<string, number>();
+
+    for (const entrantId of entrantIds) {
+      const acc = accumulators.get(entrantId);
+      const pointsStat = acc?.stats[DERIVABLE_STATISTICS.points];
+      const pts = pointsStat ? fold('sum', pointsStat) : 0;
+      baselinePoints.set(entrantId, pts);
+    }
+
+    for (const entrantId of entrantIds) {
+      const acc = accumulators.get(entrantId);
+      if (!acc) continue;
+      const opponentRecords = opponentGraph.get(entrantId) ?? [];
+      const opponentScores: OpponentScore[] = opponentRecords.map((rec) => ({
+        opponentId: rec.opponentId,
+        points: baselinePoints.get(rec.opponentId) ?? 0,
+        outcome: rec.outcome,
+      }));
+
+      if (declaredCodes.has(DERIVABLE_STATISTICS.buchholz)) {
+        const val = computeBuchholz(opponentScores);
+        setDerivedStat(acc, DERIVABLE_STATISTICS.buchholz, val);
+      }
+      if (declaredCodes.has(DERIVABLE_STATISTICS.buchholzWins)) {
+        const val = computeScopedBuchholz(opponentScores, 'win');
+        setDerivedStat(acc, DERIVABLE_STATISTICS.buchholzWins, val);
+      }
+      if (declaredCodes.has(DERIVABLE_STATISTICS.buchholzDraws)) {
+        const val = computeScopedBuchholz(opponentScores, 'draw');
+        setDerivedStat(acc, DERIVABLE_STATISTICS.buchholzDraws, val);
+      }
+      if (declaredCodes.has(DERIVABLE_STATISTICS.buchholzLosses)) {
+        const val = computeScopedBuchholz(opponentScores, 'loss');
+        setDerivedStat(acc, DERIVABLE_STATISTICS.buchholzLosses, val);
+      }
+      if (declaredCodes.has(DERIVABLE_STATISTICS.medianBuchholz)) {
+        const val = computeMedianBuchholz(opponentScores).score;
+        setDerivedStat(acc, DERIVABLE_STATISTICS.medianBuchholz, val);
+      }
+      if (declaredCodes.has(DERIVABLE_STATISTICS.sonnebornBerger)) {
+        const val = computeSonnebornBerger(opponentScores);
+        setDerivedStat(acc, DERIVABLE_STATISTICS.sonnebornBerger, val);
+      }
+    }
+  }
+
+  if (
+    declaredCodes.has(DERIVABLE_STATISTICS.cumulativeScore) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.cumulativeOpponentPoints)
+  ) {
+    const { cumulativeScores, cumulativeOpponentPoints } = computeCumulativeScores(
+      entrantIds,
+      outcomes,
+      points,
+    );
+    for (const entrantId of entrantIds) {
+      const acc = accumulators.get(entrantId);
+      if (!acc) continue;
+      if (declaredCodes.has(DERIVABLE_STATISTICS.cumulativeScore)) {
+        setDerivedStat(
+          acc,
+          DERIVABLE_STATISTICS.cumulativeScore,
+          cumulativeScores.get(entrantId) ?? 0,
+        );
+      }
+      if (declaredCodes.has(DERIVABLE_STATISTICS.cumulativeOpponentPoints)) {
+        setDerivedStat(
+          acc,
+          DERIVABLE_STATISTICS.cumulativeOpponentPoints,
+          cumulativeOpponentPoints.get(entrantId) ?? 0,
+        );
+      }
+    }
+  }
+
   return entrantIds.map((entrantId) => {
     const acc = accumulators.get(entrantId) ?? emptyAccumulator(descriptor);
     const statistics: Record<string, number> = {};
@@ -351,6 +468,15 @@ export function computeAccounting(
 
     return { entrantId, statistics };
   });
+}
+
+function setDerivedStat(acc: EntrantAccumulator, statCode: string, val: number): void {
+  const statAcc = acc.stats[statCode];
+  if (!statAcc) return;
+  statAcc.sum = val;
+  statAcc.count = 1;
+  statAcc.max = val;
+  statAcc.min = val;
 }
 
 function addDerivedStat(
@@ -369,6 +495,103 @@ function addDerivedStat(
   statAcc.min = Math.min(statAcc.min, val);
 }
 
+export interface CumulativeScoresResult {
+  readonly cumulativeScores: ReadonlyMap<string, number>;
+  readonly cumulativeOpponentPoints: ReadonlyMap<string, number>;
+}
+
+/**
+ * Computes progressive cumulative running points per entrant across stage rounds.
+ *
+ * For each round r in 1..R_max, computes the cumulative points earned through round r.
+ * cumulative-score = sum_{r=1}^{R_max} cumulative_points_after_round_r.
+ * cumulative-opponent-points = sum_{r=1}^{R_max} opponent_score * (R_max - r + 1).
+ */
+export function computeCumulativeScores(
+  entrantIds: readonly string[],
+  outcomes: readonly RecordedOutcome[],
+  points: PointsRules = DEFAULT_POINTS,
+): CumulativeScoresResult {
+  let maxRound = 1;
+  for (const outcome of outcomes) {
+    if (outcome.round !== undefined && outcome.round > maxRound) {
+      maxRound = outcome.round;
+    }
+  }
+
+  const roundPoints = new Map<string, Map<number, number>>();
+  const opponentsByRound = new Map<string, Map<number, string[]>>();
+
+  for (const entrantId of entrantIds) {
+    const rMap = new Map<number, number>();
+    const oppMap = new Map<number, string[]>();
+    for (let r = 1; r <= maxRound; r++) {
+      rMap.set(r, 0);
+      oppMap.set(r, []);
+    }
+    roundPoints.set(entrantId, rMap);
+    opponentsByRound.set(entrantId, oppMap);
+  }
+
+  for (const outcome of outcomes) {
+    const round = outcome.round ?? 1;
+    for (const side of outcome.sides) {
+      const entrantId = side.entrantId;
+      const rMap = roundPoints.get(entrantId);
+      if (!rMap) continue;
+
+      const isForfeiter =
+        outcome.forfeitedBy === entrantId || side.resultReason === 'forfeit-abandonment';
+      const otherForfeited = outcome.forfeitedBy !== undefined && outcome.forfeitedBy !== entrantId;
+      const won = !isForfeiter && (outcome.winnerEntrantId === entrantId || otherForfeited);
+      const drawn = outcome.winnerEntrantId === undefined && outcome.forfeitedBy === undefined;
+      const pts = won ? points.win : drawn ? points.draw : points.loss;
+
+      rMap.set(round, (rMap.get(round) ?? 0) + pts);
+
+      const oppMap = opponentsByRound.get(entrantId);
+      if (oppMap) {
+        const opps = outcome.sides.filter((s) => s.entrantId !== entrantId).map((s) => s.entrantId);
+        oppMap.set(round, [...(oppMap.get(round) ?? []), ...opps]);
+      }
+    }
+  }
+
+  const cumulativeScores = new Map<string, number>();
+  const cumulativeOpponentPoints = new Map<string, number>();
+
+  for (const entrantId of entrantIds) {
+    const rMap = roundPoints.get(entrantId);
+    let runningTotal = 0;
+    let sumCumulative = 0;
+    for (let r = 1; r <= maxRound; r++) {
+      runningTotal += rMap?.get(r) ?? 0;
+      sumCumulative += runningTotal;
+    }
+    cumulativeScores.set(entrantId, sumCumulative);
+  }
+
+  for (const entrantId of entrantIds) {
+    const oppMap = opponentsByRound.get(entrantId);
+    let sumOpponentPoints = 0;
+    for (let r = 1; r <= maxRound; r++) {
+      const opps = oppMap?.get(r) ?? [];
+      const weight = maxRound - r + 1;
+      for (const oppId of opps) {
+        const oppTotalPoints = roundPoints.get(oppId);
+        let oppScore = 0;
+        for (let k = 1; k <= maxRound; k++) {
+          oppScore += oppTotalPoints?.get(k) ?? 0;
+        }
+        sumOpponentPoints += oppScore * weight;
+      }
+    }
+    cumulativeOpponentPoints.set(entrantId, sumOpponentPoints);
+  }
+
+  return { cumulativeScores, cumulativeOpponentPoints };
+}
+
 /**
  * Win/draw/loss bookkeeping the engine can compute from the outcome itself.
  *
@@ -382,8 +605,14 @@ function derivedFor(
   entrantId: string,
   points: PointsRules,
 ): Record<string, number> {
-  const won = outcome.winnerEntrantId === entrantId;
-  const drawn = outcome.winnerEntrantId === undefined;
+  const isForfeiter =
+    outcome.forfeitedBy === entrantId ||
+    outcome.sides.some(
+      (s) => s.entrantId === entrantId && s.resultReason === 'forfeit-abandonment',
+    );
+  const otherForfeited = outcome.forfeitedBy !== undefined && outcome.forfeitedBy !== entrantId;
+  const won = !isForfeiter && (outcome.winnerEntrantId === entrantId || otherForfeited);
+  const drawn = outcome.winnerEntrantId === undefined && outcome.forfeitedBy === undefined;
   const declared = new Set(descriptor.statistics.map((statistic) => statistic.code));
   const derived: Record<string, number> = {};
 
@@ -394,6 +623,12 @@ function derivedFor(
   }
   if (declared.has(DERIVABLE_STATISTICS.points)) {
     derived[DERIVABLE_STATISTICS.points] = won ? points.win : drawn ? points.draw : points.loss;
+  }
+  if (declared.has(DERIVABLE_STATISTICS.matchForfeits)) {
+    derived[DERIVABLE_STATISTICS.matchForfeits] = isForfeiter ? 1 : 0;
+  }
+  if (declared.has(DERIVABLE_STATISTICS.gameForfeits)) {
+    derived[DERIVABLE_STATISTICS.gameForfeits] = isForfeiter ? 1 : 0;
   }
   return derived;
 }
@@ -429,6 +664,44 @@ function fold(aggregation: StatisticDefinition['aggregation'], acc: StatisticAcc
 }
 
 /**
+ * Per-entrant accounting derived from recorded outcomes, filtered by tiebreak scope.
+ *
+ * - 'overall': folds all stage outcomes.
+ * - 'head-to-head': filters outcomes to matches where all participating sides belong to `entrantIds`.
+ * - 'match-losses': for each entrant, folds only matches where that entrant participated and lost (was not the winner).
+ */
+export function computeScopedAccounting(
+  descriptor: DisciplineDescriptor,
+  entrantIds: readonly string[],
+  outcomes: readonly RecordedOutcome[],
+  scope: TiebreakScope = 'overall',
+  points: PointsRules = DEFAULT_POINTS,
+  options?: { readonly seriesDeclaration?: SeriesDeclaration },
+): readonly EntrantAccounting[] {
+  if (scope === 'head-to-head') {
+    const entrantSet = new Set(entrantIds);
+    const h2hOutcomes = outcomes.filter(
+      (out) => out.sides.length >= 2 && out.sides.every((side) => entrantSet.has(side.entrantId)),
+    );
+    return computeAccounting(descriptor, entrantIds, h2hOutcomes, points, options);
+  }
+
+  if (scope === 'match-losses') {
+    return entrantIds.flatMap((entrantId) => {
+      const lostOutcomes = outcomes.filter(
+        (out) =>
+          out.winnerEntrantId !== undefined &&
+          out.winnerEntrantId !== entrantId &&
+          out.sides.some((side) => side.entrantId === entrantId),
+      );
+      return computeAccounting(descriptor, [entrantId], lostOutcomes, points, options);
+    });
+  }
+
+  return computeAccounting(descriptor, entrantIds, outcomes, points, options);
+}
+
+/**
  * Accounting reshaped into the `EntrantValues` the comparator pipeline reads.
  * A comparator asking for a code the discipline never declared reads nothing
  * and degrades through its own `missingValue` policy — it is not silently
@@ -444,14 +717,42 @@ export function computeStandings(
   outcomes: readonly RecordedOutcome[],
   pipeline: TiebreakPipeline,
   points: PointsRules = DEFAULT_POINTS,
-  options?: { readonly seriesDeclaration?: SeriesDeclaration },
+  options?: {
+    readonly seriesDeclaration?: SeriesDeclaration;
+    readonly seedContext?: {
+      readonly tournamentId: string;
+      readonly stageId: string;
+    };
+    readonly manualTiebreakerPoints?: Readonly<Record<string, number>>;
+  },
 ): Standings {
   const accounting = computeAccounting(descriptor, entrantIds, outcomes, points, options);
   const seriesDeclaration = options?.seriesDeclaration;
   const grain: SeriesAccountingGrain =
     seriesDeclaration?.standingsAccounting === 'series' ? 'series' : 'match';
   const byId = new Map(accounting.map((row) => [row.entrantId, row]));
-  const resolution = resolveTiebreak(pipeline, entrantIds, toEntrantValues(accounting));
+
+  const scopedValuesProvider = (
+    scope: TiebreakScope,
+    _parameter: TiebreakParameterDefinition,
+    activeGroup: readonly string[],
+  ): EntrantValues => {
+    const scopedAccounting = computeScopedAccounting(
+      descriptor,
+      activeGroup,
+      outcomes,
+      scope,
+      points,
+      options,
+    );
+    return toEntrantValues(scopedAccounting);
+  };
+
+  const resolution = resolveTiebreak(pipeline, entrantIds, toEntrantValues(accounting), {
+    scopedValuesProvider,
+    seedContext: options?.seedContext,
+    manualTiebreakerPoints: options?.manualTiebreakerPoints,
+  });
 
   const rows: StandingsRow[] = [];
   let rank = 1;

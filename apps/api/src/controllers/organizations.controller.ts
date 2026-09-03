@@ -11,11 +11,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from '../http/error-contract.js';
+import { ConflictException, NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiConflictResponse,
@@ -28,6 +24,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
+  IdentityPrincipalRepository,
   InvariantViolationError,
   NotFoundError,
   ObjectMetadataRepository,
@@ -42,7 +39,6 @@ import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import {
   RequireOrganizationCapability,
-  RequireSelf,
   RequireSuperAdmin,
   SUPER_ADMIN_SCOPE,
 } from '../auth/access-requirement.js';
@@ -73,45 +69,39 @@ export class OrganizationsController {
   ) {}
 
   @Get()
-  @SecurityPlaneTag('admin-control')
-  @RequireSelf()
-  @ApiBearerAuth()
+  @SecurityPlaneTag('public-read')
   @ApiOperation({
-    summary: 'List organizations the authenticated caller belongs to',
+    summary: 'List organizations',
     description:
-      'Requires "?mine=true" — the only filter this endpoint supports today. Returns every ' +
-      'organization the caller holds a non-deleted, active role assignment in, with that role. ' +
-      'Never requires an organization to already be known, so it also answers "does this account ' +
-      'belong to any organization at all".',
+      'When called without filters, returns public organizations with at least one published tournament. ' +
+      'When called with "?mine=true", returns organizations the authenticated caller belongs to.',
   })
-  @ApiOkResponse({ type: MyOrganizationResponse, isArray: true })
-  @ApiUnauthorizedResponse({
-    type: ProblemResponse,
-    description: 'Missing or invalid bearer token',
-  })
-  async listMine(
+  @ApiOkResponse({ type: OrganizationResponse, isArray: true })
+  async list(
     @Query('mine') mine: string | undefined,
     @Req() request: RequestWithSubject,
-  ): Promise<MyOrganizationResponse[]> {
-    if (mine !== 'true') {
-      throw new BadRequestException('Only "?mine=true" is supported by this endpoint', {
-        errorCode: 'organization-bad-request',
-      });
+  ): Promise<readonly OrganizationResponse[] | readonly MyOrganizationResponse[]> {
+    if (mine === 'true') {
+      let principalId = request.subject?.principalId;
+      if (!principalId && request.subject?.subjectId) {
+        const principal = await new IdentityPrincipalRepository(this.db).findByOidcSubject(
+          request.subject.subjectId,
+        );
+        principalId = principal?.principalId;
+      }
+      if (!principalId) return [];
+      const memberships = await new OrganizationAccessRepository(
+        this.db,
+      ).listOrganizationsForPrincipal(principalId);
+      return memberships.map((membership) => ({
+        organizationId: membership.organizationId,
+        organizationAlias: membership.organizationAlias,
+        organizationName: membership.organizationName,
+        role: membership.role,
+      }));
     }
-    const principalId = request.subject?.principalId;
-    // No installation principal yet (never accepted an invitation) is not an
-    // error here — it means zero memberships, which this endpoint reports the
-    // same way it reports any other caller with zero: an empty list.
-    if (!principalId) return [];
-    const memberships = await new OrganizationAccessRepository(
-      this.db,
-    ).listOrganizationsForPrincipal(principalId);
-    return memberships.map((membership) => ({
-      organizationId: membership.organizationId,
-      organizationAlias: membership.organizationAlias,
-      organizationName: membership.organizationName,
-      role: membership.role,
-    }));
+
+    return new OrganizationRepository(this.db).listWithPublishedTournaments();
   }
 
   @Get(':alias')

@@ -88,11 +88,11 @@ export const DESCRIPTOR_FIELD_EXPLANATIONS: Readonly<Record<string, string>> = {
   'scoringInputs[].description':
     'Optional: what this input does to the score, in competition terms.',
   availableFormats:
-    "The subset of the platform's eight-format closed set (`single-elimination`, `double-elimination`, `round-robin`, `league`, `round-robin-single-leg`, `round-robin-home-away`, `free-for-all`, `heats`) this discipline supports. A tournament using this discipline may only choose from what is listed here.",
+    "The subset of the platform's supported tournament formats (`single-elimination`, `double-elimination`, `round-robin`, `league`, `round-robin-single-leg`, `round-robin-home-away`, `bracket-groups`, `gauntlet`, `swiss`, `custom-bracket`, `free-for-all`, `heats`, `ffa-bracket`, `ffa-bracket-groups`, `ffa-league`) this discipline supports. A tournament using this discipline may only choose from what is listed here.",
   formatDescriptions:
     "Optional: the discipline's own explanation of a format it lists in `availableFormats`, keyed by format. Absent for a format falls back to the platform's own catalogued description.",
   placementScoring:
-    'For a placement discipline (using `free-for-all` or `heats`): the finishing-position-to-points table, and which declared statistic the points are recorded under. Absent for a discipline that never places.',
+    'For a placement discipline (using `free-for-all`, `heats`, `ffa-bracket`, `ffa-bracket-groups`, or `ffa-league`): the finishing-position-to-points table, and which declared statistic the points are recorded under. Absent for a discipline that never places.',
   'placementScoring.statisticCode':
     'Which declared statistic the placement points are recorded as.',
   'placementScoring.table': 'The finishing-position → points mapping, 1-based.',

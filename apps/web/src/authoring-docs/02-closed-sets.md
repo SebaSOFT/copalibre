@@ -6,7 +6,7 @@ outside it.
 
 ## Formats — `availableFormats`
 
-Exactly eight values exist, and no ninth can be added by a module:
+The supported formats a discipline may declare in `availableFormats`:
 
 - `single-elimination` — one loss eliminates an entrant from the bracket.
 - `double-elimination` — an entrant is eliminated only after two losses, via a winners and a losers
@@ -18,19 +18,27 @@ Exactly eight values exist, and no ninth can be added by a module:
   fixture.
 - `round-robin-home-away` — every entrant plays every other entrant twice, once at each side's home
   venue.
-- `free-for-all` — all entrants compete in the same heat at once; standings rank by finishing position.
+- `bracket-groups` — 4-player GSL dual tournament pods with opening, winners, elimination, and decider
+  matches.
+- `gauntlet` — ascending stepladder elimination ladder from lower seeds upwards to the top seed.
+- `swiss` — Dutch pairing system grouping entrants by accumulated scores across multiple non-elimination
+  rounds.
+- `custom-bracket` — declarative Directed Acyclic Graph (DAG) for bespoke or asymmetric elimination
+  trees.
+- `free-for-all` — all entrants compete in the same lobby at once; standings rank by finishing position.
 - `heats` — entrants compete across multiple heats; standings rank by finishing position across every
   heat.
+- `ffa-bracket` — multi-round elimination bracket with advancing cutoffs per lobby across rounds.
+- `ffa-bracket-groups` — group stage of multi-round FFA lobbies.
+- `ffa-league` — multi-division placement league with scheduled lobby matches and cumulative standings.
 
-**Why closed:** the fixture-generation engine implements exactly these eight structures. Advertising a
-ninth would mean simulating a bracket shape nothing generates — the same "must not advertise support
-it cannot provide" constraint that keeps every other closed set closed.
+**Why closed:** the fixture-generation engine implements exactly these structures. Advertising a format
+nothing generates would violate the guarantee that every declared format can produce valid fixtures.
 
 **When a regulation needs something outside it:** a regulation describing "group stage into knockout"
-is not a ninth format — it is two stages, the first `round-robin` (or `league`), the second
+is not a single new format — it is two stages, the first `round-robin` (or `bracket-groups`, `swiss`), the second
 `single-elimination` (or `double-elimination`), connected by a tournament profile's stage-qualification
-declaration (out of this descriptor's scope; see the tournament-profile module kind). A discipline
-declares which of the eight formats it can be played under in `availableFormats`; a tournament chooses
+declaration. A discipline declares which formats it supports in `availableFormats`; a tournament chooses
 one of those per stage.
 
 ## Series resolution classes — `series.resolutionClass`

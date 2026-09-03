@@ -52,10 +52,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List organizations the authenticated caller belongs to
-         * @description Requires "?mine=true" — the only filter this endpoint supports today. Returns every organization the caller holds a non-deleted, active role assignment in, with that role. Never requires an organization to already be known, so it also answers "does this account belong to any organization at all".
+         * List organizations
+         * @description When called without filters, returns public organizations with at least one published tournament. When called with "?mine=true", returns organizations the authenticated caller belongs to.
          */
-        get: operations["OrganizationsController_listMine"];
+        get: operations["OrganizationsController_list"];
         put?: never;
         /**
          * Create an organization
@@ -1294,6 +1294,26 @@ export interface paths {
         get: operations["StagesController_fixtures"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/rounds/next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate the next round of a Swiss stage
+         * @description Validates that all matches in the current round are finalized, calculates standings, and generates pairings for the next round.
+         */
+        post: operations["StagesController_nextRound"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2573,30 +2593,6 @@ export interface components {
              */
             schemaVersion: string;
         };
-        MyOrganizationResponse: {
-            /** Format: uuid */
-            organizationId: string;
-            /**
-             * @description Human-readable, URL-safe alias; globally unique per installation
-             * @example liga-orbital
-             */
-            organizationAlias: string;
-            /** @example Liga Orbital */
-            organizationName: string;
-            /**
-             * @description The caller's active role in this organization
-             * @enum {string}
-             */
-            role: "admin" | "club-admin" | "tournament-admin" | "referee" | "broadcaster" | "viewer";
-        };
-        ProblemResponse: {
-            /** @example 403 */
-            statusCode: number;
-            /** @example subject may only act on their own records */
-            message: string;
-            /** @example forbidden */
-            errorCode: string;
-        };
         OrganizationResponse: {
             /**
              * Format: uuid
@@ -2646,6 +2642,14 @@ export interface components {
              * @example America/Argentina/San_Juan
              */
             timezone?: string;
+        };
+        ProblemResponse: {
+            /** @example 403 */
+            statusCode: number;
+            /** @example subject may only act on their own records */
+            message: string;
+            /** @example forbidden */
+            errorCode: string;
         };
         UpdateOrganizationSettingsRequest: {
             /** @example Liga Orbital */
@@ -5403,7 +5407,7 @@ export interface operations {
             };
         };
     };
-    OrganizationsController_listMine: {
+    OrganizationsController_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -5417,16 +5421,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MyOrganizationResponse"][];
-                };
-            };
-            /** @description Missing or invalid bearer token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProblemResponse"];
+                    "application/json": components["schemas"]["OrganizationResponse"][];
                 };
             };
         };
@@ -8444,6 +8439,61 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    StagesController_nextRound: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StageFixturesResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

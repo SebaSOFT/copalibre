@@ -73,7 +73,7 @@ function descriptor(): DisciplineDescriptor {
     scoringInputs: [],
     // 'free-for-all' is declared alongside 'round-robin' so a series-on-placement
     // refusal (task 1.2) can be proven without a second descriptor fixture.
-    availableFormats: ['round-robin', 'free-for-all'],
+    availableFormats: ['round-robin', 'free-for-all', 'swiss'],
     notificationRuleCapabilities: [],
     winCondition: {},
     defaults: {},
@@ -655,5 +655,117 @@ describe('stage creation routes (integration)', () => {
         expect(refusal?.resulting_state).toBeNull();
       },
     );
+  });
+
+  describe('Swiss dynamic round progression (POST .../rounds/next)', () => {
+    it('refuses next round if stage format is not swiss', async () => {
+      // Stage 1 is round-robin
+      const res = await request({
+        method: 'POST',
+        url: `${base}/1/rounds/next`,
+        token: 'organizer',
+      });
+      expect(res.statusCode).toBe(409);
+      expect(res.json().errorCode).toBe('stage-not-swiss');
+    });
+
+    it('generates next round fixtures once current round matches are completed', async () => {
+      // Register a 4th team so we have 4 accepted entrants
+      const enrollment = new EnrollmentRepository(scratch.db);
+      const team4 = await withTransaction(scratch.db, (uow) =>
+        enrollment.createTeam(uow, { organizationId, name: 'Belgrano', ...AUDIT }),
+      );
+      const entrant4 = await withTransaction(scratch.db, (uow) =>
+        enrollment.registerEntrant(uow, {
+          tournamentId,
+          entrantRef: { kind: 'team', teamId: team4.teamId },
+          organizationId,
+          ...AUDIT,
+        }),
+      );
+      await withTransaction(scratch.db, (uow) =>
+        enrollment.setEntrantStatus(uow, {
+          entrantId: entrant4.entrantId,
+          status: 'accepted',
+          organizationId,
+          ...AUDIT,
+        }),
+      );
+      acceptedEntrantIds.push(entrant4.entrantId);
+
+      // 1. Create a 4-entrant Swiss stage
+      const created = await request({
+        method: 'POST',
+        url: base,
+        token: 'organizer',
+        payload: { name: 'Fase Suiza', format: 'swiss' },
+      });
+      expect(created.statusCode).toBe(201);
+      const { stageId, number: stageNumber } = created.json();
+      const seedingUrl = `${base}/${stageNumber}/seeding`;
+
+      // 2. Initial generation via seeding
+      const preview = await request({ method: 'GET', url: seedingUrl, token: 'organizer' });
+      expect(preview.statusCode).toBe(200);
+      const publish = await request({
+        method: 'POST',
+        url: seedingUrl,
+        token: 'organizer',
+        payload: { seeds: preview.json().seeds },
+      });
+      expect(publish.statusCode).toBe(200);
+
+      // 3. Trying to advance before completing round 1 returns 409
+      const nextBeforeComplete = await request({
+        method: 'POST',
+        url: `${base}/${stageNumber}/rounds/next`,
+        token: 'organizer',
+      });
+      expect(nextBeforeComplete.statusCode).toBe(409);
+      expect(nextBeforeComplete.json().errorCode).toBe('stage-round-incomplete');
+
+      // 4. Finalize round 1 matches
+      const competition = new CompetitionRepository(scratch.db);
+      const fixtures = await competition.listFixturesOfStage(stageId);
+      expect(fixtures).toHaveLength(2); // 4 entrants / 2 = 2 matches in R1
+
+      const matches = await competition.listMatchesForStage(stageId);
+      for (const m of matches) {
+        const fixture = fixtures.find((f) => f.fixtureId === m.fixtureId);
+        const homeId = fixture?.homeEntrantId;
+        const awayId = fixture?.awayEntrantId;
+        if (!homeId || !awayId) continue;
+        await withTransaction(scratch.db, (uow) =>
+          competition.recordResult(uow, {
+            matchId: m.matchId,
+            result: {
+              sides: [
+                { entrantId: homeId, statistics: { points: 1 } },
+                { entrantId: awayId, statistics: { points: 0 } },
+              ],
+              winnerEntrantId: homeId,
+              recordedAt: new Date().toISOString(),
+            },
+            organizationId,
+            ...AUDIT,
+          }),
+        );
+      }
+
+      // 5. Advance to round 2
+      const nextRes = await request({
+        method: 'POST',
+        url: `${base}/${stageNumber}/rounds/next`,
+        token: 'organizer',
+      });
+      expect(nextRes.statusCode).toBe(200);
+      const body = nextRes.json();
+      expect(body.stageId).toBe(stageId);
+
+      // 6. Verify round 2 fixtures exist
+      const allFixtures = body.fixtures;
+      const r2Fixtures = allFixtures.filter((f: { round: number }) => f.round === 2);
+      expect(r2Fixtures).toHaveLength(2);
+    });
   });
 });

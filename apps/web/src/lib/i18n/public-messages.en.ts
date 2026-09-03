@@ -296,4 +296,22 @@ export const messages = defineMessages({
     id: 'publicWeb.orgPage.notFoundBody',
     defaultMessage: 'No organization exists at this address.',
   },
+
+  // 404 Page (pages/404.astro)
+  notFoundPageTitle: {
+    id: 'publicWeb.notFound.pageTitle',
+    defaultMessage: 'Page not found — CopaLibre',
+  },
+  notFoundHeading: {
+    id: 'publicWeb.notFound.heading',
+    defaultMessage: 'Page not found',
+  },
+  notFoundBody: {
+    id: 'publicWeb.notFound.body',
+    defaultMessage: 'No content exists at this address.',
+  },
+  notFoundHomeLink: {
+    id: 'publicWeb.notFound.homeLink',
+    defaultMessage: 'Return to home',
+  },
 });

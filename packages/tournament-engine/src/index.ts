@@ -13,6 +13,12 @@ export type {
   FixtureGraph,
   SeededEntrant,
   GenerateFixturesInput,
+  CustomBracketDefinition,
+  CustomBracketMatchDefinition,
+  CustomBracketSlotSource,
+  FFABracketOptions,
+  FFALeagueDivision,
+  FFALeagueOptions,
 } from './types.js';
 export { isDuelMatch, isPlacementMatch, slotsOf } from './types.js';
 export {
@@ -23,6 +29,8 @@ export {
   QualificationError,
   DrawError,
   PlacementAdvancementError,
+  CyclicFixtureGraphError,
+  InvalidCustomBracketError,
 } from './errors.js';
 export {
   previewStageTransition,
@@ -69,10 +77,35 @@ export {
   type AllocationInput,
   type AllocationOutcome,
 } from './allocation/index.js';
-export { assertSupportedFormat, isEliminationFormat, isRoundRobinFormat } from './formats.js';
+export {
+  assertSupportedFormat,
+  isEliminationFormat,
+  isRoundRobinFormat,
+  isBracketGroupsFormat,
+  isGauntletFormat,
+  isSwissFormat,
+  isCustomBracketFormat,
+  isFFABracketFormat,
+  isFFALeagueFormat,
+} from './formats.js';
 export {
   generateFixtures,
   generateGroupedFixtures,
+  generateBracketGroups,
+  resolveBracketGroupAdvancement,
+  type BracketGroupQualification,
+  generateGauntlet,
+  projectGauntletStandings,
+  computeGauntletStandings,
+  type GauntletStandingRank,
+  type GauntletStandingsResult,
+  generateSwissRound1,
+  generateNextSwissRoundFixtures,
+  type GenerateNextSwissRoundInput,
+  generateCustomBracketFixtures,
+  validateCustomBracket,
+  generateFFABracketFixtures,
+  generateFFALeagueFixtures,
   buildEliminationTree,
   buildDoubleElimination,
   buildRoundRobin,
@@ -86,6 +119,8 @@ export {
 export {
   computeStandings,
   computeAccounting,
+  computeScopedAccounting,
+  computeCumulativeScores,
   toEntrantValues,
   entrantsInGraph,
   DEFAULT_POINTS,
@@ -93,7 +128,13 @@ export {
   type EntrantAccounting,
   type StandingsRow,
   type Standings,
+  type CumulativeScoresResult,
 } from './standings/index.js';
+export {
+  buildOpponentAdjacencyGraph,
+  type OpponentAdjacencyGraph,
+  type OpponentMatchRecord,
+} from './standings/opponent-graph.js';
 export {
   foldStatistics,
   aggregateTo,

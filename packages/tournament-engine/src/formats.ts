@@ -24,7 +24,39 @@ export function assertSupportedFormat(
 
 /** Formats whose structure is a knockout tree (advancement moves entrants). */
 export function isEliminationFormat(format: TournamentFormat): boolean {
-  return format === 'single-elimination' || format === 'double-elimination';
+  return (
+    format === 'single-elimination' || format === 'double-elimination' || format === 'gauntlet'
+  );
+}
+
+/** Formats using sequential ladder/stepladder brackets (Gauntlet format). */
+export function isGauntletFormat(format: TournamentFormat): boolean {
+  return format === 'gauntlet';
+}
+
+/** Formats using dual-tournament bracket groups (GSL format). */
+export function isBracketGroupsFormat(format: TournamentFormat): boolean {
+  return format === 'bracket-groups';
+}
+
+/** Formats using dynamic round-by-round Swiss pairing. */
+export function isSwissFormat(format: TournamentFormat): boolean {
+  return format === 'swiss';
+}
+
+/** Formats using custom user-defined directed acyclic fixture graphs. */
+export function isCustomBracketFormat(format: TournamentFormat): boolean {
+  return format === 'custom-bracket';
+}
+
+/** Formats using multi-round knockout elimination trees with top-K advancement. */
+export function isFFABracketFormat(format: TournamentFormat): boolean {
+  return format === 'ffa-bracket' || format === 'ffa-bracket-groups';
+}
+
+/** Formats using multi-round division placement league scheduling. */
+export function isFFALeagueFormat(format: TournamentFormat): boolean {
+  return format === 'ffa-league';
 }
 
 /**
@@ -33,5 +65,11 @@ export function isEliminationFormat(format: TournamentFormat): boolean {
  * ordering rather than a winner.
  */
 export function isRoundRobinFormat(format: TournamentFormat): boolean {
-  return !isEliminationFormat(format) && !isPlacementFormat(format);
+  return (
+    !isEliminationFormat(format) &&
+    !isPlacementFormat(format) &&
+    !isBracketGroupsFormat(format) &&
+    !isSwissFormat(format) &&
+    !isCustomBracketFormat(format)
+  );
 }

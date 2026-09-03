@@ -12,7 +12,7 @@ the latest release and replaces the binary in place — it's idempotent, checkin
 version first and skipping the download when it already matches:
 
 ```bash
-curl -fsSL https://www.copalibre.app/install.sh | bash
+curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 ```
 
 This only replaces the `copalibre` binary. It has no effect on a running installation — see below

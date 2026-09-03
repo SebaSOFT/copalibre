@@ -1,8 +1,10 @@
 import { expectGolden } from '../test-support/golden.js';
 import {
   resolveTiebreak,
+  deterministicTiebreakHash,
   type TiebreakPipeline,
   type TiebreakParameterDefinition,
+  type EntrantValues,
 } from './pipeline.js';
 
 const points: TiebreakParameterDefinition = {
@@ -204,5 +206,109 @@ describe('the ratio comparator', () => {
 
     expect(resolution.fullyResolved).toBe(false);
     expect(resolution.rankedGroups).toEqual([['alfa', 'bravo']]);
+  });
+});
+
+describe('deterministicTiebreakHash', () => {
+  it('produces identical hash for identical tournament, stage, and entrant IDs', () => {
+    const h1 = deterministicTiebreakHash('tourney-1', 'stage-1', 'entrant-a');
+    const h2 = deterministicTiebreakHash('tourney-1', 'stage-1', 'entrant-a');
+    expect(h1).toBe(h2);
+  });
+
+  it('produces distinct hashes for different entrants', () => {
+    const hA = deterministicTiebreakHash('tourney-1', 'stage-1', 'entrant-a');
+    const hB = deterministicTiebreakHash('tourney-1', 'stage-1', 'entrant-b');
+    expect(hA).not.toBe(hB);
+  });
+
+  it('produces distinct distributions across stages for same entrants', () => {
+    const s1 = deterministicTiebreakHash('tourney-1', 'stage-1', 'entrant-a');
+    const s2 = deterministicTiebreakHash('tourney-1', 'stage-2', 'entrant-a');
+    expect(s1).not.toBe(s2);
+  });
+});
+
+describe('administrative and random tiebreaker resolution', () => {
+  const randomPipeline: TiebreakPipeline = {
+    id: 'pipe-random',
+    version: 1,
+    parameters: [
+      {
+        id: 'points',
+        label: 'Points',
+        valueType: 'number',
+        direction: 'higher_wins',
+        missingValue: 'treat-as-zero',
+        source: 'calculated',
+      },
+      {
+        id: 'random',
+        label: 'Seeded Coin Flip',
+        valueType: 'number',
+        direction: 'higher_wins',
+        missingValue: 'treat-as-zero',
+        source: 'random',
+      },
+    ],
+  };
+
+  it('deterministically breaks ties using seeded random comparator', () => {
+    const seedContext = { tournamentId: 'world-cup-2026', stageId: 'group-a' };
+    const values: EntrantValues = {
+      alfa: { points: 10 },
+      bravo: { points: 10 },
+    };
+
+    const res1 = resolveTiebreak(randomPipeline, ['alfa', 'bravo'], values, { seedContext });
+    const res2 = resolveTiebreak(randomPipeline, ['alfa', 'bravo'], values, { seedContext });
+
+    expect(res1.fullyResolved).toBe(true);
+    expect(res2.fullyResolved).toBe(true);
+    expect(res1.rankedGroups).toEqual(res2.rankedGroups);
+    expect(res1.trace.length).toBeGreaterThan(0);
+  });
+
+  it('resolves ties using manual tiebreaker points override', () => {
+    const manualPipeline: TiebreakPipeline = {
+      id: 'pipe-manual',
+      version: 1,
+      parameters: [
+        {
+          id: 'points',
+          label: 'Points',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+        {
+          id: 'manual',
+          label: 'Administrative Tiebreaker',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'operator-entered',
+        },
+      ],
+    };
+
+    const values: EntrantValues = {
+      alfa: { points: 10 },
+      bravo: { points: 10 },
+    };
+
+    const manualPoints = {
+      alfa: 2,
+      bravo: 5,
+    };
+
+    const resolution = resolveTiebreak(manualPipeline, ['alfa', 'bravo'], values, {
+      manualTiebreakerPoints: manualPoints,
+    });
+
+    expect(resolution.fullyResolved).toBe(true);
+    // bravo has 5 manual points vs alfa with 2
+    expect(resolution.rankedGroups).toEqual([['bravo'], ['alfa']]);
   });
 });

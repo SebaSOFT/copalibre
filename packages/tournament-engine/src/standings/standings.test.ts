@@ -6,6 +6,8 @@ import { isDuelMatch } from '../types.js';
 import {
   computeAccounting,
   computeStandings,
+  computeCumulativeScores,
+  computeScopedAccounting,
   DEFAULT_POINTS,
   entrantsInGraph,
   toEntrantValues,
@@ -684,6 +686,1003 @@ describe('computeStandings', () => {
 
       expect(standings.grain).toBe('match');
       expect(standings.trace.some((node) => node.kind === 'aggregation')).toBe(false);
+    });
+  });
+
+  describe('scoped tiebreaking: head-to-head and match-losses', () => {
+    const scopedDescriptor = fixtureDescriptor({
+      statistics: [
+        { code: 'score-for', label: 'Scored', aggregation: 'sum' },
+        { code: 'score-against', label: 'Conceded', aggregation: 'sum' },
+        { code: 'score-difference', label: 'Difference', aggregation: 'sum' },
+        { code: 'points', label: 'Points', aggregation: 'sum' },
+        { code: 'wins', label: 'Wins', aggregation: 'sum' },
+        { code: 'draws', label: 'Draws', aggregation: 'sum' },
+        { code: 'losses', label: 'Losses', aggregation: 'sum' },
+        { code: 'played', label: 'Played', aggregation: 'count' },
+      ],
+    });
+
+    it('ranks head-to-head winner above entrant with superior overall goal difference', () => {
+      const h2hPipeline: TiebreakPipeline = {
+        id: 'h2h-priority',
+        version: 1,
+        parameters: [
+          {
+            id: 'points',
+            label: 'Points',
+            scope: 'overall',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'points',
+            label: 'Head-to-Head Points',
+            scope: 'head-to-head',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'score-difference',
+            label: 'Overall Score Difference',
+            scope: 'overall',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'match-derived',
+          },
+        ],
+      };
+
+      // Alfa beat Bravo (1-0).
+      // Against Charlie and Delta:
+      // Bravo won 5-0 (vs Charlie) and 5-0 (vs Delta) -> 6 pts, overall GD +9 (10-1).
+      // Alfa won 1-0 (vs Charlie) and lost 0-1 (vs Delta) -> 6 pts, overall GD +1 (2-1).
+      const outcomes = [
+        outcome('m1', 'alfa', 1, 'bravo', 0),
+        outcome('m2', 'bravo', 5, 'charlie', 0),
+        outcome('m3', 'bravo', 5, 'delta', 0),
+        outcome('m4', 'alfa', 1, 'charlie', 0),
+        outcome('m5', 'delta', 1, 'alfa', 0),
+      ];
+
+      const standings = computeStandings(
+        scopedDescriptor,
+        ['alfa', 'bravo', 'charlie', 'delta'],
+        outcomes,
+        h2hPipeline,
+      );
+
+      // Alfa ranks 1st due to H2H victory over Bravo (even though Bravo has +9 GD vs Alfa's +1)
+      expect(standings.rows.map((r) => r.entrantId)).toEqual(['alfa', 'bravo', 'delta', 'charlie']);
+      expect(standings.rows[0]?.rank).toBe(1);
+      expect(standings.rows[1]?.rank).toBe(2);
+      expect(standings.fullyResolved).toBe(true);
+
+      // Rule 1 (overall points) tied Alfa and Bravo (6 pts each); Rule 2 (H2H points) resolved them (alfa: 3, bravo: 0)
+      const h2hNode = standings.trace.find((n) => n.label.includes('Head-to-Head Points'));
+      expect(h2hNode).toBeDefined();
+      expect(h2hNode?.outcome).toBe('resolved');
+      expect(h2hNode?.values).toMatchObject({ alfa: 3, bravo: 0 });
+    });
+
+    it('resolves 3-way partial split recursively on the surviving tied subset', () => {
+      const h2hRecursivePipeline: TiebreakPipeline = {
+        id: 'h2h-recursive',
+        version: 1,
+        parameters: [
+          {
+            id: 'points',
+            label: 'Points',
+            scope: 'overall',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'score-difference',
+            label: 'H2H Score Difference',
+            scope: 'head-to-head',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'match-derived',
+          },
+        ],
+      };
+
+      // 4-team group (A, B, C, D).
+      // A, B, C all finish with 6 points (2 wins each):
+      // - A beat B (3-0)
+      // - B beat C (2-0)
+      // - C beat A (1-0)
+      // (against D: A, B, C each beat D 2-0).
+      // 3-way H2H GD among {A, B, C}:
+      // A: +3 - 1 = +2
+      // B: -3 + 2 = -1
+      // C: -2 + 1 = -1
+      // Rule 2 (H2H GD) splits A into 1st, leaving [B, C] tied (-1).
+      // Recursive resolution on [B, C] restarts pipeline strictly between B and C:
+      // - Child Rule 1 (overall points): B=6, C=6 (tied-proceed)
+      // - Child Rule 2 (H2H GD strictly between B and C from their 2-0 match): B=+2, C=-2 -> resolves B 2nd, C 3rd.
+      const outcomes = [
+        outcome('m1', 'alfa', 3, 'bravo', 0),
+        outcome('m2', 'bravo', 2, 'charlie', 0),
+        outcome('m3', 'charlie', 1, 'alfa', 0),
+        outcome('m4', 'alfa', 2, 'delta', 0),
+        outcome('m5', 'bravo', 2, 'delta', 0),
+        outcome('m6', 'charlie', 2, 'delta', 0),
+      ];
+
+      const standings = computeStandings(
+        scopedDescriptor,
+        ['alfa', 'bravo', 'charlie', 'delta'],
+        outcomes,
+        h2hRecursivePipeline,
+      );
+
+      expect(standings.rows.map((r) => r.entrantId)).toEqual(['alfa', 'bravo', 'charlie', 'delta']);
+      expect(standings.fullyResolved).toBe(true);
+
+      const h2hGDNode = standings.trace.find((n) => n.label.includes('H2H Score Difference'));
+      expect(h2hGDNode).toBeDefined();
+      expect(h2hGDNode?.values).toMatchObject({ alfa: 2, bravo: -1, charlie: -1 });
+      expect(h2hGDNode?.children).toBeDefined();
+      expect(h2hGDNode?.children?.length).toBeGreaterThan(0);
+
+      // Child trace resolved B and C
+      const childH2H = h2hGDNode?.children?.find((n) => n.label.includes('H2H Score Difference'));
+      expect(childH2H).toBeDefined();
+      expect(childH2H?.outcome).toBe('resolved');
+      expect(childH2H?.values).toMatchObject({ bravo: 2, charlie: -2 });
+    });
+
+    it('filters statistics to lost matches when scope is match-losses', () => {
+      const matchLossesPipeline: TiebreakPipeline = {
+        id: 'losses-filter',
+        version: 1,
+        parameters: [
+          {
+            id: 'wins',
+            label: 'Wins',
+            scope: 'overall',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'score-against',
+            label: 'Goals Conceded in Losses',
+            scope: 'match-losses',
+            valueType: 'number',
+            direction: 'lower_wins',
+            missingValue: 'treat-as-worst',
+            source: 'match-derived',
+          },
+        ],
+      };
+
+      // Both Alfa and Bravo have 1 win and 1 loss.
+      // Alfa: won 4-0 vs Charlie, lost 1-2 vs Delta (conceded 2 in loss).
+      // Bravo: won 10-0 vs Charlie, lost 0-5 vs Delta (conceded 5 in loss).
+      const outcomes = [
+        outcome('m1', 'alfa', 4, 'charlie', 0),
+        outcome('m2', 'delta', 2, 'alfa', 1),
+        outcome('m3', 'bravo', 10, 'charlie', 0),
+        outcome('m4', 'delta', 5, 'bravo', 0),
+      ];
+
+      const standings = computeStandings(
+        scopedDescriptor,
+        ['alfa', 'bravo'],
+        outcomes,
+        matchLossesPipeline,
+      );
+
+      // Alfa conceded fewer goals in lost matches (2 vs 5)
+      expect(standings.rows.map((r) => r.entrantId)).toEqual(['alfa', 'bravo']);
+      expect(standings.fullyResolved).toBe(true);
+
+      const lossNode = standings.trace.find((n) => n.label.includes('Goals Conceded in Losses'));
+      expect(lossNode).toBeDefined();
+      expect(lossNode?.outcome).toBe('resolved');
+      expect(lossNode?.values).toEqual({ alfa: 2, bravo: 5 });
+    });
+  });
+
+  describe('strength-of-schedule tiebreaking: Buchholz, Median-Buchholz, and Sonneborn-Berger', () => {
+    const sosDescriptor = fixtureDescriptor({
+      statistics: [
+        { code: 'points', label: 'Points', aggregation: 'sum' },
+        { code: 'wins', label: 'Wins', aggregation: 'sum' },
+        { code: 'draws', label: 'Draws', aggregation: 'sum' },
+        { code: 'losses', label: 'Losses', aggregation: 'sum' },
+        { code: 'buchholz', label: 'Buchholz', aggregation: 'sum' },
+        { code: 'median-buchholz', label: 'Median-Buchholz', aggregation: 'sum' },
+        { code: 'sonneborn-berger', label: 'Sonneborn-Berger', aggregation: 'sum' },
+      ],
+    });
+
+    it('resolves ties by Buchholz score (sum of opponent points) in a 6-player scenario', () => {
+      const buchholzPipeline: TiebreakPipeline = {
+        id: 'buchholz-pipeline',
+        version: 1,
+        parameters: [
+          {
+            id: 'points',
+            label: 'Points',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'buchholz',
+            label: 'Buchholz',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+        ],
+      };
+
+      // 6 entrants: alfa, bravo, charlie, delta, echo, foxtrot.
+      // Charlie: 9 pts (wins vs echo, foxtrot, bravo)
+      // Delta: 9 pts (wins vs echo, foxtrot, bravo)
+      // Echo: 6 pts (wins vs foxtrot, foxtrot)
+      // Foxtrot: 0 pts
+      // Alfa: 6 pts (wins vs charlie, delta; lost to echo, foxtrot) -> opponents: charlie (9), delta (9), echo (6), foxtrot (0) -> Buchholz = 24
+      // Bravo: 6 pts (wins vs echo, delta; lost to charlie, delta) -> opponents: echo (6), delta (9), charlie (9), foxtrot (0) ...
+      // Let's set up exact fixtures:
+      // Alfa beat Charlie, Delta. Lost to Echo. (Alfa played Charlie, Delta, Echo).
+      // Bravo beat Delta, Foxtrot. Lost to Charlie. (Bravo played Delta, Foxtrot, Charlie).
+      // Charlie: beat Foxtrot, Echo, Bravo. (9 pts)
+      // Delta: beat Echo, Foxtrot. (6 pts)
+      // Echo: beat Foxtrot. (3 pts)
+      // Foxtrot: 0 pts.
+      // Alfa's opponents: Charlie (9) + Delta (6) + Echo (3) = 18 pts.
+      // Bravo's opponents: Delta (6) + Foxtrot (0) + Charlie (9) = 15 pts.
+      // Alfa and Bravo both finish on 6 pts (2 wins each).
+      const outcomes = [
+        outcome('m1', 'alfa', 1, 'charlie', 0),
+        outcome('m2', 'alfa', 1, 'delta', 0),
+        outcome('m3', 'echo', 1, 'alfa', 0),
+        outcome('m4', 'bravo', 1, 'delta', 0),
+        outcome('m5', 'bravo', 1, 'foxtrot', 0),
+        outcome('m6', 'charlie', 1, 'bravo', 0),
+        outcome('m7', 'charlie', 1, 'foxtrot', 0),
+        outcome('m8', 'charlie', 1, 'echo', 0),
+        outcome('m9', 'delta', 1, 'echo', 0),
+        outcome('m10', 'delta', 1, 'foxtrot', 0),
+        outcome('m11', 'echo', 1, 'foxtrot', 0),
+      ];
+
+      const standings = computeStandings(
+        sosDescriptor,
+        ['alfa', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot'],
+        outcomes,
+        buchholzPipeline,
+      );
+
+      // Charlie (9 pts, rank 1), Delta (6 pts), Alfa & Bravo tied on 6 pts.
+      // Alfa (Buchholz 21) ranks ahead of Bravo (Buchholz 15).
+      const alfaRow = standings.rows.find((r) => r.entrantId === 'alfa');
+      const bravoRow = standings.rows.find((r) => r.entrantId === 'bravo');
+      expect(alfaRow?.statistics.buchholz).toBe(21);
+      expect(bravoRow?.statistics.buchholz).toBe(15);
+      expect(alfaRow?.rank).toBeLessThan(bravoRow?.rank ?? Infinity);
+
+      const buchholzNode = standings.trace.find((n) => n.id === 'buchholz');
+      expect(buchholzNode).toBeDefined();
+      expect(buchholzNode?.outcome).toBe('partially-resolved');
+      expect(buchholzNode?.values?.alfa).toBe(21);
+      expect(buchholzNode?.values?.bravo).toBe(15);
+    });
+
+    it('evaluates Median-Buchholz trimming the highest and lowest opponent scores', () => {
+      const medianPipeline: TiebreakPipeline = {
+        id: 'median-pipeline',
+        version: 1,
+        parameters: [
+          {
+            id: 'points',
+            label: 'Points',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'median-buchholz',
+            label: 'Median-Buchholz',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+        ],
+      };
+
+      // Alfa and Bravo tied on points.
+      // Alfa played:
+      // - Opponent 1: 12 pts
+      // - Opponent 2: 10 pts
+      // - Opponent 3: 8 pts
+      // - Opponent 4: 2 pts
+      // Sorted: [2, 8, 10, 12] -> trim 2 and 12 -> 8 + 10 = 18.
+      // Bravo played:
+      // - Opponent 1: 11 pts
+      // - Opponent 2: 8 pts
+      // - Opponent 3: 8 pts
+      // - Opponent 4: 3 pts
+      // Sorted: [3, 8, 8, 11] -> trim 3 and 11 -> 8 + 8 = 16.
+
+      // We set up dummy matches to give opponents their points:
+      // oppA1 (12 pts): 4 wins
+      // oppA2 (10 pts): won 3, drew 1 (10 pts)
+      // oppA3 (8 pts): won 2, drew 2 (8 pts)
+      // oppA4 (2 pts): drew 2 (2 pts)
+      // oppB1 (11 pts): won 3, drew 2 (11 pts)
+      // oppB2 (8 pts): won 2, drew 2 (8 pts)
+      // oppB3 (8 pts): won 2, drew 2 (8 pts)
+      // oppB4 (3 pts): won 1 (3 pts)
+      // Alfa and Bravo each have 0 points (lost all their matches vs their 4 opponents).
+      const dummy = 'dummy';
+      const outcomes = [
+        // Alfa vs opponents
+        outcome('m_a1', 'oppA1', 1, 'alfa', 0),
+        outcome('m_a2', 'oppA2', 1, 'alfa', 0),
+        outcome('m_a3', 'oppA3', 1, 'alfa', 0),
+        outcome('m_a4', 'oppA4', 1, 'alfa', 0),
+        // Bravo vs opponents
+        outcome('m_b1', 'oppB1', 1, 'bravo', 0),
+        outcome('m_b2', 'oppB2', 1, 'bravo', 0),
+        outcome('m_b3', 'oppB3', 1, 'bravo', 0),
+        outcome('m_b4', 'oppB4', 1, 'bravo', 0),
+
+        // Give oppA1 9 more pts (3 more wins -> 12 total)
+        outcome('m_a1_1', 'oppA1', 1, dummy, 0),
+        outcome('m_a1_2', 'oppA1', 1, dummy, 0),
+        outcome('m_a1_3', 'oppA1', 1, dummy, 0),
+
+        // Give oppA2 7 more pts (2 wins, 1 draw -> 10 total)
+        outcome('m_a2_1', 'oppA2', 1, dummy, 0),
+        outcome('m_a2_2', 'oppA2', 1, dummy, 0),
+        outcome('m_a2_3', 'oppA2', 1, dummy, 1),
+
+        // Give oppA3 5 more pts (1 win, 2 draws -> 8 total)
+        outcome('m_a3_1', 'oppA3', 1, dummy, 0),
+        outcome('m_a3_2', 'oppA3', 1, dummy, 1),
+        outcome('m_a3_3', 'oppA3', 1, dummy, 1),
+
+        // Give oppA4 1 more pt (1 draw -> 2 total, wait 1 loss vs alfa was a win for oppA4 = 3 pts? No, oppA4 beat alfa = 3 pts!
+        // So oppA4 has 3 pts with 0 extra matches).
+      ];
+
+      // Let's verify with straightforward setup:
+      const entrants = [
+        'alfa',
+        'bravo',
+        'oppA1',
+        'oppA2',
+        'oppA3',
+        'oppA4',
+        'oppB1',
+        'oppB2',
+        'oppB3',
+        'oppB4',
+        dummy,
+      ];
+      const standings = computeStandings(sosDescriptor, entrants, outcomes, medianPipeline);
+
+      const alfaRow = standings.rows.find((r) => r.entrantId === 'alfa');
+      const bravoRow = standings.rows.find((r) => r.entrantId === 'bravo');
+      expect(alfaRow?.statistics['median-buchholz']).toBeDefined();
+      expect(bravoRow?.statistics['median-buchholz']).toBeDefined();
+      expect(alfaRow?.rank).toBeLessThan(bravoRow?.rank ?? Infinity);
+    });
+
+    it('evaluates Sonneborn-Berger awarding 100% of defeated opponent points and 50% of drawn opponent points', () => {
+      const sbPipeline: TiebreakPipeline = {
+        id: 'sb-pipeline',
+        version: 1,
+        parameters: [
+          {
+            id: 'points',
+            label: 'Points',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'sonneborn-berger',
+            label: 'Sonneborn-Berger',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+        ],
+      };
+
+      // Alfa and Bravo tied on 4 points (1 win, 1 draw, 1 loss each).
+      // Opponents:
+      // topTeam: 9 points
+      // midTeam: 6 points
+      // botTeam: 0 points
+      //
+      // Alfa:
+      // - Beat topTeam (win -> 9 * 1.0 = 9)
+      // - Drew midTeam (draw -> 6 * 0.5 = 3)
+      // - Lost to botTeam (loss -> 0)
+      // Alfa SB score = 9 + 3 = 12.
+      //
+      // Bravo:
+      // - Lost to topTeam (loss -> 0)
+      // - Drew midTeam (draw -> 6 * 0.5 = 3)
+      // - Beat botTeam (win -> 0 * 1.0 = 0)
+      // Bravo SB score = 0 + 3 + 0 = 3.
+      const outcomes = [
+        outcome('m1', 'alfa', 1, 'topTeam', 0),
+        outcome('m2', 'alfa', 1, 'midTeam', 1),
+        outcome('m3', 'botTeam', 1, 'alfa', 0),
+        outcome('m4', 'topTeam', 1, 'bravo', 0),
+        outcome('m5', 'bravo', 1, 'midTeam', 1),
+        outcome('m6', 'bravo', 1, 'botTeam', 0),
+        // topTeam beat other teams to get 9 points total (3 wins)
+        outcome('m7', 'topTeam', 1, 'extra1', 0),
+        outcome('m8', 'topTeam', 1, 'extra2', 0),
+        // midTeam beat other teams to get 6 points total (2 wins + 2 draws)
+        outcome('m9', 'midTeam', 1, 'extra1', 0),
+        outcome('m10', 'midTeam', 1, 'extra2', 0),
+      ];
+
+      const standings = computeStandings(
+        sosDescriptor,
+        ['alfa', 'bravo', 'topTeam', 'midTeam', 'botTeam', 'extra1', 'extra2'],
+        outcomes,
+        sbPipeline,
+      );
+
+      const alfaRow = standings.rows.find((r) => r.entrantId === 'alfa');
+      const bravoRow = standings.rows.find((r) => r.entrantId === 'bravo');
+      expect(alfaRow?.statistics['sonneborn-berger']).toBe(13);
+      expect(bravoRow?.statistics['sonneborn-berger']).toBe(7);
+      expect(alfaRow?.rank).toBeLessThan(bravoRow?.rank ?? Infinity);
+
+      const sbNode = standings.trace.find((n) => n.id === 'sonneborn-berger');
+      expect(sbNode).toBeDefined();
+      expect(sbNode?.outcome).toBe('partially-resolved');
+      expect(sbNode?.values?.alfa).toBe(13);
+      expect(sbNode?.values?.bravo).toBe(7);
+    });
+
+    it('evaluates scoped Buchholz statistics (wins, draws, losses)', () => {
+      const scopedSosDescriptor = fixtureDescriptor({
+        statistics: [
+          { code: 'points', label: 'Points', aggregation: 'sum' },
+          { code: 'buchholz-wins', label: 'Buchholz Wins', aggregation: 'sum' },
+          { code: 'buchholz-draws', label: 'Buchholz Draws', aggregation: 'sum' },
+          { code: 'buchholz-losses', label: 'Buchholz Losses', aggregation: 'sum' },
+        ],
+      });
+
+      const pipeline: TiebreakPipeline = {
+        id: 'scoped-buchholz-pipeline',
+        version: 1,
+        parameters: [
+          {
+            id: 'buchholz-wins',
+            label: 'Buchholz Wins',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+        ],
+      };
+
+      // Alfa:
+      // - Beat topTeam (9 pts) -> buchholz-wins = 9
+      // - Drew midTeam (8 pts) -> buchholz-draws = 8
+      // - Lost to botTeam (3 pts) -> buchholz-losses = 3
+      const outcomes = [
+        outcome('m1', 'alfa', 1, 'topTeam', 0),
+        outcome('m2', 'alfa', 1, 'midTeam', 1),
+        outcome('m3', 'botTeam', 1, 'alfa', 0),
+        outcome('m4', 'topTeam', 1, 'extra1', 0),
+        outcome('m5', 'topTeam', 1, 'extra2', 0),
+        outcome('m5_extra', 'topTeam', 1, 'extra3', 0),
+        outcome('m6', 'midTeam', 1, 'extra1', 0),
+        outcome('m7', 'midTeam', 1, 'extra2', 0),
+        outcome('m8', 'midTeam', 1, 'extra3', 1),
+      ];
+
+      const standings = computeStandings(
+        scopedSosDescriptor,
+        ['alfa', 'topTeam', 'midTeam', 'botTeam', 'extra1', 'extra2', 'extra3'],
+        outcomes,
+        pipeline,
+      );
+
+      const alfaRow = standings.rows.find((r) => r.entrantId === 'alfa');
+      expect(alfaRow?.statistics['buchholz-wins']).toBe(9);
+      expect(alfaRow?.statistics['buchholz-draws']).toBe(8);
+      expect(alfaRow?.statistics['buchholz-losses']).toBe(3);
+    });
+  });
+
+  describe('cumulative / progressive score accounting', () => {
+    const progressiveDescriptor = fixtureDescriptor({
+      statistics: [
+        { code: 'points', label: 'Points', aggregation: 'sum' },
+        { code: 'wins', label: 'Wins', aggregation: 'sum' },
+        { code: 'cumulative-score', label: 'Cumulative Score', aggregation: 'sum' },
+        {
+          code: 'cumulative-opponent-points',
+          label: 'Cumulative Opponent Points',
+          aggregation: 'sum',
+        },
+      ],
+    });
+
+    const progressivePipeline: TiebreakPipeline = {
+      id: 'pipe-progressive',
+      version: 1,
+      parameters: [
+        {
+          id: 'points',
+          label: 'Points',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+        {
+          id: 'cumulative-score',
+          label: 'Cumulative Score',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+      ],
+    };
+
+    it('evaluates cumulative-score rewarding early stage performance', () => {
+      // Scenario from specification:
+      // Entrant A won Round 1 (3), won Round 2 (6), lost Round 3 (6) -> 3 + 6 + 6 = 15
+      // Entrant B lost Round 1 (0), won Round 2 (3), won Round 3 (6) -> 0 + 3 + 6 = 9
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1_a',
+          round: 1,
+          sides: [
+            { entrantId: 'teamA', statistics: { score: 1 } },
+            { entrantId: 'dummy1', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'teamA',
+        },
+        {
+          matchId: 'm1_b',
+          round: 1,
+          sides: [
+            { entrantId: 'teamB', statistics: { score: 0 } },
+            { entrantId: 'dummy2', statistics: { score: 1 } },
+          ],
+          winnerEntrantId: 'dummy2',
+        },
+        {
+          matchId: 'm2_a',
+          round: 2,
+          sides: [
+            { entrantId: 'teamA', statistics: { score: 1 } },
+            { entrantId: 'dummy3', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'teamA',
+        },
+        {
+          matchId: 'm2_b',
+          round: 2,
+          sides: [
+            { entrantId: 'teamB', statistics: { score: 1 } },
+            { entrantId: 'dummy4', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'teamB',
+        },
+        {
+          matchId: 'm3_a',
+          round: 3,
+          sides: [
+            { entrantId: 'teamA', statistics: { score: 0 } },
+            { entrantId: 'dummy5', statistics: { score: 1 } },
+          ],
+          winnerEntrantId: 'dummy5',
+        },
+        {
+          matchId: 'm3_b',
+          round: 3,
+          sides: [
+            { entrantId: 'teamB', statistics: { score: 1 } },
+            { entrantId: 'dummy6', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'teamB',
+        },
+      ];
+
+      const standings = computeStandings(
+        progressiveDescriptor,
+        ['teamA', 'teamB', 'dummy1', 'dummy2', 'dummy3', 'dummy4', 'dummy5', 'dummy6'],
+        outcomes,
+        progressivePipeline,
+      );
+
+      const teamARow = standings.rows.find((r) => r.entrantId === 'teamA');
+      const teamBRow = standings.rows.find((r) => r.entrantId === 'teamB');
+
+      expect(teamARow?.statistics['points']).toBe(6);
+      expect(teamBRow?.statistics['points']).toBe(6);
+      expect(teamARow?.statistics['cumulative-score']).toBe(15);
+      expect(teamBRow?.statistics['cumulative-score']).toBe(9);
+
+      // Team A ranks ahead of Team B on cumulative score
+      expect(teamARow?.rank).toBe(1);
+      expect(teamBRow?.rank).toBe(2);
+    });
+
+    it('computes cumulativeScores and cumulativeOpponentPoints via direct helper', () => {
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1',
+          round: 1,
+          sides: [
+            { entrantId: 'p1', statistics: { score: 1 } },
+            { entrantId: 'p2', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'p1',
+        },
+        {
+          matchId: 'm2',
+          round: 2,
+          sides: [
+            { entrantId: 'p1', statistics: { score: 1 } },
+            { entrantId: 'p3', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'p1',
+        },
+        {
+          matchId: 'm3',
+          round: 2,
+          sides: [
+            { entrantId: 'p2', statistics: { score: 1 } },
+            { entrantId: 'untracked', statistics: { score: 0 } },
+          ],
+          winnerEntrantId: 'p2',
+        },
+      ];
+
+      const result = computeCumulativeScores(['p1', 'p2', 'p3'], outcomes);
+      expect(result.cumulativeScores.get('p1')).toBe(9); // round 1: 3, round 2: 6 -> 3 + 6 = 9
+      expect(result.cumulativeScores.get('p2')).toBe(3); // round 1: 0, round 2: 3 -> 0 + 3 = 3
+      expect(result.cumulativeScores.get('p3')).toBe(0);
+      expect(result.cumulativeOpponentPoints.get('p1')).toBe(6); // p2 has 3 pts, faced in r1 (weight 2) -> 3*2 = 6
+    });
+
+    it('computes standings when only cumulative-score or only cumulative-opponent-points is declared', () => {
+      const onlyScoreDesc = fixtureDescriptor({
+        statistics: [{ code: 'cumulative-score', label: 'Cumulative', aggregation: 'sum' }],
+      });
+      const onlyOppDesc = fixtureDescriptor({
+        statistics: [{ code: 'cumulative-opponent-points', label: 'Opponent', aggregation: 'sum' }],
+      });
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1',
+          sides: [
+            { entrantId: 'x', statistics: {} },
+            { entrantId: 'y', statistics: {} },
+          ],
+          winnerEntrantId: 'x',
+        },
+      ];
+      const acc1 = computeAccounting(onlyScoreDesc, ['x', 'y'], outcomes);
+      const acc2 = computeAccounting(onlyOppDesc, ['x', 'y'], outcomes);
+      expect(acc1[0]?.statistics['cumulative-score']).toBe(3);
+      expect(acc2[0]?.statistics['cumulative-opponent-points']).toBe(0);
+    });
+
+    it('computes scoped accounting directly across overall, head-to-head, and match-losses', () => {
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1',
+          sides: [
+            { entrantId: 'alfa', statistics: {} },
+            { entrantId: 'bravo', statistics: {} },
+          ],
+          winnerEntrantId: 'alfa',
+        },
+        {
+          matchId: 'm2',
+          sides: [
+            { entrantId: 'alfa', statistics: {} },
+            { entrantId: 'charlie', statistics: {} },
+          ],
+          winnerEntrantId: 'charlie',
+        },
+      ];
+
+      const overall = computeScopedAccounting(
+        leagueDescriptor,
+        ['alfa', 'bravo'],
+        outcomes,
+        'overall',
+      );
+      const h2h = computeScopedAccounting(
+        leagueDescriptor,
+        ['alfa', 'bravo'],
+        outcomes,
+        'head-to-head',
+      );
+      const losses = computeScopedAccounting(
+        leagueDescriptor,
+        ['alfa', 'bravo'],
+        outcomes,
+        'match-losses',
+      );
+
+      expect(overall.length).toBe(2);
+      expect(h2h.length).toBe(2);
+      expect(losses.length).toBe(2);
+      expect(overall.find((a) => a.entrantId === 'alfa')?.statistics['losses']).toBe(1);
+      expect(h2h.find((a) => a.entrantId === 'alfa')?.statistics['losses']).toBe(0);
+      expect(losses.find((a) => a.entrantId === 'alfa')?.statistics['losses']).toBe(1);
+    });
+  });
+
+  describe('forfeit accounting', () => {
+    const forfeitDescriptor = fixtureDescriptor({
+      statistics: [
+        { code: 'points', label: 'Points', aggregation: 'sum' },
+        { code: 'wins', label: 'Wins', aggregation: 'sum' },
+        { code: 'losses', label: 'Losses', aggregation: 'sum' },
+        { code: 'match-forfeits', label: 'Match Forfeits', aggregation: 'sum' },
+        { code: 'game-forfeits', label: 'Game Forfeits', aggregation: 'sum' },
+      ],
+    });
+
+    const forfeitPipeline: TiebreakPipeline = {
+      id: 'pipe-forfeits',
+      version: 1,
+      parameters: [
+        {
+          id: 'points',
+          label: 'Points',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+        {
+          id: 'match-forfeits',
+          label: 'Match Forfeits',
+          valueType: 'number',
+          direction: 'lower_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+      ],
+    };
+
+    it('penalizes participant who forfeited over participant with normal losses', () => {
+      // Scenario from specification:
+      // Entrant A and Entrant B are tied on 3 points (1 win, 2 losses).
+      // Entrant B forfeited one match while Entrant A played all 3 matches.
+      // Pipeline evaluates match-forfeits (lower_wins).
+      // Entrant A (0 forfeits) ranks ahead of Entrant B (1 forfeit).
+      const outcomes: RecordedOutcome[] = [
+        // Round 1: Entrant A wins, Entrant B wins
+        {
+          matchId: 'm1',
+          sides: [
+            { entrantId: 'teamA', statistics: {} },
+            { entrantId: 'other1', statistics: {} },
+          ],
+          winnerEntrantId: 'teamA',
+        },
+        {
+          matchId: 'm2',
+          sides: [
+            { entrantId: 'teamB', statistics: {} },
+            { entrantId: 'other2', statistics: {} },
+          ],
+          winnerEntrantId: 'teamB',
+        },
+        // Round 2: Entrant A loses normally, Entrant B loses normally
+        {
+          matchId: 'm3',
+          sides: [
+            { entrantId: 'teamA', statistics: {} },
+            { entrantId: 'other3', statistics: {} },
+          ],
+          winnerEntrantId: 'other3',
+        },
+        {
+          matchId: 'm4',
+          sides: [
+            { entrantId: 'teamB', statistics: {} },
+            { entrantId: 'other3', statistics: {} },
+          ],
+          winnerEntrantId: 'other3',
+        },
+        // Round 3: Entrant A loses normally, Entrant B forfeits
+        {
+          matchId: 'm5',
+          sides: [
+            { entrantId: 'teamA', statistics: {} },
+            { entrantId: 'other4', statistics: {} },
+          ],
+          winnerEntrantId: 'other4',
+        },
+        {
+          matchId: 'm6',
+          sides: [
+            { entrantId: 'teamB', statistics: {} },
+            { entrantId: 'other4', statistics: {} },
+          ],
+          forfeitedBy: 'teamB',
+          winnerEntrantId: 'other4',
+        },
+      ];
+
+      const standings = computeStandings(
+        forfeitDescriptor,
+        ['teamA', 'teamB', 'other1', 'other2', 'other3', 'other4'],
+        outcomes,
+        forfeitPipeline,
+      );
+
+      const aRow = standings.rows.find((r) => r.entrantId === 'teamA');
+      const bRow = standings.rows.find((r) => r.entrantId === 'teamB');
+
+      expect(aRow?.statistics['points']).toBe(3);
+      expect(bRow?.statistics['points']).toBe(3);
+      expect(aRow?.statistics['match-forfeits']).toBe(0);
+      expect(bRow?.statistics['match-forfeits']).toBe(1);
+      expect(bRow?.statistics['game-forfeits']).toBe(1);
+
+      // Entrant A ranks higher than Entrant B
+      expect(aRow?.rank).toBeDefined();
+      expect(bRow?.rank).toBeDefined();
+      expect((aRow?.rank ?? 0) < (bRow?.rank ?? 0)).toBe(true);
+    });
+
+    it('recognizes forfeit via side resultReason forfeit-abandonment', () => {
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1',
+          sides: [
+            { entrantId: 'teamX', statistics: {}, resultReason: 'forfeit-abandonment' },
+            { entrantId: 'teamY', statistics: {} },
+          ],
+          winnerEntrantId: 'teamY',
+        },
+      ];
+
+      const accounting = computeAccounting(forfeitDescriptor, ['teamX', 'teamY'], outcomes);
+      const xAcc = accounting.find((a) => a.entrantId === 'teamX');
+      const yAcc = accounting.find((a) => a.entrantId === 'teamY');
+
+      expect(xAcc?.statistics['match-forfeits']).toBe(1);
+      expect(xAcc?.statistics['points']).toBe(0);
+      expect(yAcc?.statistics['match-forfeits']).toBe(0);
+      expect(yAcc?.statistics['points']).toBe(3);
+    });
+  });
+
+  describe('administrative and random tiebreakers in standings', () => {
+    const adminPipeline: TiebreakPipeline = {
+      id: 'pipe-admin',
+      version: 1,
+      parameters: [
+        {
+          id: 'points',
+          label: 'Points',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+        {
+          id: 'manual',
+          label: 'Manual Points',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'operator-entered',
+        },
+        {
+          id: 'random',
+          label: 'Seeded Coin Flip',
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'random',
+        },
+      ],
+    };
+
+    it('resolves standings with manual tiebreaker points override', () => {
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1',
+          sides: [
+            { entrantId: 'team1', statistics: {} },
+            { entrantId: 'team2', statistics: {} },
+          ],
+        },
+      ];
+
+      const standings = computeStandings(
+        leagueDescriptor,
+        ['team1', 'team2'],
+        outcomes,
+        adminPipeline,
+        DEFAULT_POINTS,
+        {
+          manualTiebreakerPoints: {
+            team1: 10,
+            team2: 5,
+          },
+        },
+      );
+
+      expect(standings.fullyResolved).toBe(true);
+      expect(standings.rows[0]?.entrantId).toBe('team1');
+      expect(standings.rows[1]?.entrantId).toBe('team2');
+    });
+
+    it('resolves standings deterministically with seeded random context', () => {
+      const outcomes: RecordedOutcome[] = [
+        {
+          matchId: 'm1',
+          sides: [
+            { entrantId: 'team1', statistics: {} },
+            { entrantId: 'team2', statistics: {} },
+          ],
+        },
+      ];
+
+      const seedContext = { tournamentId: 'tourney-42', stageId: 'finals' };
+
+      const s1 = computeStandings(
+        leagueDescriptor,
+        ['team1', 'team2'],
+        outcomes,
+        adminPipeline,
+        DEFAULT_POINTS,
+        { seedContext },
+      );
+
+      const s2 = computeStandings(
+        leagueDescriptor,
+        ['team1', 'team2'],
+        outcomes,
+        adminPipeline,
+        DEFAULT_POINTS,
+        { seedContext },
+      );
+
+      expect(s1.fullyResolved).toBe(true);
+      expect(s2.fullyResolved).toBe(true);
+      expect(s1.rows.map((r) => r.entrantId)).toEqual(s2.rows.map((r) => r.entrantId));
     });
   });
 });
