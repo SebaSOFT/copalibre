@@ -199,4 +199,14 @@ export default defineConfig({
       },
     }),
   ],
+  vite: {
+    server: {
+      proxy: {
+        '/auth': 'http://localhost:3001',
+        '/organizations': 'http://localhost:3001',
+        '/admin': 'http://localhost:3001',
+        '/installation': 'http://localhost:3001',
+      },
+    },
+  },
 });

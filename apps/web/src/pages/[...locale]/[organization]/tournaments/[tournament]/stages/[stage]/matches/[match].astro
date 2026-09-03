@@ -43,107 +43,368 @@ const structuredData = {
   disciplineImages={response.disciplineImages}
   structuredData={structuredData}
 >
-  <article>
-    <header>
-      <p>Stage {model.stageNumber} · Round {model.round} · Match {model.matchNumber}</p>
-      <h1>
-        {model.home.abbreviation ?? model.home.name}
-        {model.home.score ?? '—'} – {model.away.score ?? '—'}
-        {model.away.abbreviation ?? model.away.name}
-      </h1>
-      <p>{model.status}</p>
+  <article class="cl-match-page">
+    <header class="cl-match-hero">
+      <div class="cl-match-hero__meta">
+        <span class="cl-badge cl-badge--stage">
+          Stage {model.stageNumber} · Round {model.round} · Match {model.matchNumber}
+        </span>
+        <span class={`cl-badge cl-badge--${model.status.toLowerCase()}`}>
+          {model.status}
+        </span>
+      </div>
+
+      <div class="cl-scoreboard">
+        <div class="cl-scoreboard__side cl-scoreboard__side--home">
+          <span class="cl-team-name">{model.home.abbreviation ?? model.home.name}</span>
+          <span class="cl-team-score">{model.home.score ?? '—'}</span>
+        </div>
+        <div class="cl-scoreboard__divider">–</div>
+        <div class="cl-scoreboard__side cl-scoreboard__side--away">
+          <span class="cl-team-score">{model.away.score ?? '—'}</span>
+          <span class="cl-team-name">{model.away.abbreviation ?? model.away.name}</span>
+        </div>
+      </div>
+
       {
         model.scheduledAt ? (
-          <p>
+          <p class="cl-match-venue">
             <time datetime={model.scheduledAt}>{model.scheduledAt}</time>
             {model.venueName ? ` · ${model.venueName}` : ''}
           </p>
         ) : (
-          <p>Schedule not yet available.</p>
+          <p class="cl-match-venue cl-text-muted">Schedule not yet available.</p>
         )
       }
     </header>
 
-    <section aria-labelledby="officials-heading">
-      <h2 id="officials-heading">Officials</h2>
-      {
-        !model.schedulePublished ? (
-          <p>Schedule has not yet been published.</p>
-        ) : model.officials.length === 0 ? (
-          <p>No officials assigned.</p>
-        ) : (
-          <ul>
-            {model.officials.map((official) => (
-              <li>
-                {official.name} — {official.roles.join(', ')}
-              </li>
-            ))}
-          </ul>
-        )
-      }
-    </section>
+    <div class="cl-match-details">
+      <section class="cl-section-card" aria-labelledby="officials-heading">
+        <h2 id="officials-heading" class="cl-section-title">Officials</h2>
+        {
+          !model.schedulePublished ? (
+            <p class="cl-text-muted">Schedule has not yet been published.</p>
+          ) : model.officials.length === 0 ? (
+            <p class="cl-text-muted">No officials assigned.</p>
+          ) : (
+            <ul class="cl-officials-list">
+              {model.officials.map((official) => (
+                <li>
+                  <span class="cl-official-name">{official.name}</span>
+                  <span class="cl-official-roles">{official.roles.join(', ')}</span>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </section>
 
-    <section aria-labelledby="rosters-heading">
-      <h2 id="rosters-heading">Rosters</h2>
-      {
-        model.home.roster.length === 0 && model.away.roster.length === 0 ? (
-          <p>Rosters are not yet available.</p>
-        ) : (
-          <div>
-            {[model.home, model.away].map((side) => (
-              <section>
-                <h3>{side.name}</h3>
-                {side.roster.length === 0 ? (
-                  <p>Roster not yet available.</p>
-                ) : (
-                  <table>
-                    <thead>
-                      <tr>
-                        <th scope="col">No.</th>
-                        <th scope="col">Player</th>
-                        <th scope="col">Roles</th>
-                        <th scope="col">On field</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {side.roster.map((member) => (
+      <section class="cl-section-card" aria-labelledby="rosters-heading">
+        <h2 id="rosters-heading" class="cl-section-title">Rosters</h2>
+        {
+          model.home.roster.length === 0 && model.away.roster.length === 0 ? (
+            <p class="cl-text-muted">Rosters are not yet available.</p>
+          ) : (
+            <div class="cl-rosters-grid">
+              {[model.home, model.away].map((side) => (
+                <div class="cl-roster-box">
+                  <h3 class="cl-roster-team">{side.name}</h3>
+                  {side.roster.length === 0 ? (
+                    <p class="cl-text-muted">Roster not yet available.</p>
+                  ) : (
+                    <table class="cl-data-table">
+                      <thead>
                         <tr>
-                          <td>{member.number ?? '—'}</td>
-                          <td>{member.name}</td>
-                          <td>{member.roles?.join(', ') ?? '—'}</td>
-                          <td>{member.onField ? 'Yes' : 'No'}</td>
+                          <th scope="col" style="width: 44px;">
+                            No.
+                          </th>
+                          <th scope="col">Player</th>
+                          <th scope="col">Roles</th>
+                          <th scope="col" style="width: 80px;">
+                            On field
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </section>
-            ))}
-          </div>
-        )
-      }
-    </section>
+                      </thead>
+                      <tbody>
+                        {side.roster.map((member) => (
+                          <tr>
+                            <td class="cl-num-cell">{member.number ?? '—'}</td>
+                            <td class="cl-name-cell">{member.name}</td>
+                            <td>{member.roles?.join(', ') ?? '—'}</td>
+                            <td>
+                              <span
+                                class={`cl-indicator ${member.onField ? 'cl-indicator--active' : ''}`}
+                              >
+                                {member.onField ? 'Yes' : 'No'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
+        }
+      </section>
 
-    <section aria-labelledby="timeline-heading">
-      <h2 id="timeline-heading">Event timeline</h2>
-      {
-        model.timeline.length === 0 ? (
-          <p>Events are not yet available.</p>
-        ) : (
-          <ol>
-            {model.timeline.map((group) => (
-              <li data-workflow-group={group.kind === 'workflow' ? 'true' : undefined}>
-                {group.events.map((event) => (
-                  <p>
-                    <time datetime={event.occurredAt}>{event.occurredAt}</time> — {event.label}
-                    {event.actor ? ` · ${event.actor}` : ''}
-                  </p>
-                ))}
-              </li>
-            ))}
-          </ol>
-        )
-      }
-    </section>
+      <section class="cl-section-card" aria-labelledby="timeline-heading">
+        <h2 id="timeline-heading" class="cl-section-title">Event timeline</h2>
+        {
+          model.timeline.length === 0 ? (
+            <p class="cl-text-muted">Events are not yet available.</p>
+          ) : (
+            <ol class="cl-timeline-list">
+              {model.timeline.map((group) => (
+                <li
+                  class="cl-timeline-item"
+                  data-workflow-group={group.kind === 'workflow' ? 'true' : undefined}
+                >
+                  {group.events.map((event) => (
+                    <div class="cl-timeline-entry">
+                      <time datetime={event.occurredAt} class="cl-timeline-time">
+                        {event.occurredAt}
+                      </time>
+                      <span class="cl-timeline-label">{event.label}</span>
+                      {event.actor ? <span class="cl-timeline-actor">· {event.actor}</span> : null}
+                    </div>
+                  ))}
+                </li>
+              ))}
+            </ol>
+          )
+        }
+      </section>
+    </div>
   </article>
 </PublicLayout>
+
+<style>
+  .cl-match-page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: var(--cl-space-6, 1.5rem) var(--cl-space-4, 1rem);
+  }
+
+  .cl-match-hero {
+    background: var(--cl-surface-panel, #121828);
+    border: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.1));
+    border-radius: var(--cl-radius-lg, 12px);
+    padding: var(--cl-space-6, 1.5rem);
+    text-align: center;
+    margin-bottom: var(--cl-space-6, 1.5rem);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .cl-match-hero__meta {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .cl-badge {
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    background: var(--cl-surface-subtle, rgba(255, 255, 255, 0.1));
+    color: var(--cl-text-primary, #f2f6fb);
+  }
+
+  .cl-badge--live {
+    background: rgba(0, 212, 255, 0.15);
+    color: var(--cl-brand-cyan, #00d4ff);
+    border: 1px solid rgba(0, 212, 255, 0.4);
+  }
+
+  .cl-badge--final {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+  }
+
+  .cl-scoreboard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    margin: 1rem 0;
+  }
+
+  .cl-scoreboard__side {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+  }
+
+  .cl-scoreboard__side--home {
+    justify-content: flex-end;
+  }
+
+  .cl-scoreboard__side--away {
+    justify-content: flex-start;
+  }
+
+  .cl-team-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-family: var(--cl-font-display, inherit);
+  }
+
+  .cl-team-score {
+    font-size: 2.5rem;
+    font-weight: 800;
+    font-family: var(--cl-font-display, inherit);
+    color: var(--cl-brand-cyan, #00d4ff);
+    min-width: 2ch;
+    text-align: center;
+  }
+
+  .cl-scoreboard__divider {
+    font-size: 1.5rem;
+    color: var(--cl-text-muted, #94a3b8);
+  }
+
+  .cl-match-venue {
+    margin: 0.5rem 0 0 0;
+    color: var(--cl-text-muted, #94a3b8);
+    font-size: 0.875rem;
+  }
+
+  .cl-match-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-6, 1.5rem);
+  }
+
+  .cl-section-card {
+    background: var(--cl-surface-panel, #121828);
+    border: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.1));
+    border-radius: var(--cl-radius-lg, 12px);
+    padding: var(--cl-space-5, 1.25rem);
+  }
+
+  .cl-section-title {
+    margin: 0 0 1rem 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.1));
+    padding-bottom: 0.5rem;
+  }
+
+  .cl-text-muted {
+    color: var(--cl-text-muted, #94a3b8);
+    font-size: 0.875rem;
+  }
+
+  .cl-officials-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .cl-officials-list li {
+    background: var(--cl-surface-subtle, rgba(255, 255, 255, 0.05));
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.08));
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .cl-official-name {
+    font-weight: 600;
+  }
+
+  .cl-official-roles {
+    color: var(--cl-text-muted, #94a3b8);
+  }
+
+  .cl-rosters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .cl-roster-team {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--cl-brand-cyan, #00d4ff);
+  }
+
+  .cl-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .cl-data-table th,
+  .cl-data-table td {
+    padding: 0.5rem 0.625rem;
+    text-align: left;
+    border-bottom: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.08));
+  }
+
+  .cl-data-table th {
+    background: var(--cl-surface-subtle, rgba(255, 255, 255, 0.05));
+    color: var(--cl-text-muted, #94a3b8);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  .cl-num-cell {
+    font-family: var(--cl-font-mono, monospace);
+    font-weight: 600;
+  }
+
+  .cl-indicator {
+    font-size: 0.75rem;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .cl-indicator--active {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+  }
+
+  .cl-timeline-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cl-timeline-entry {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .cl-timeline-time {
+    font-family: var(--cl-font-mono, monospace);
+    color: var(--cl-brand-cyan, #00d4ff);
+    font-size: 0.8125rem;
+  }
+
+  .cl-timeline-label {
+    font-weight: 500;
+  }
+
+  .cl-timeline-actor {
+    color: var(--cl-text-muted, #94a3b8);
+  }
+</style>

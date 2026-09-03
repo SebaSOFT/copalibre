@@ -3,24 +3,96 @@ import TvLayout from '../../../../layouts/TvLayout.astro';
 import { TvDashboard } from '../../../../components/TvDashboard.tsx';
 import { tvStreamPath } from '@copalibre/routing';
 import { sampleDashboard } from '../../../../lib/live-sample.ts';
+import {
+  fetchLive,
+  fetchOverview,
+  mapLiveResponse,
+  mapOverviewResponse,
+} from '../../../../lib/public-api-client.ts';
+import type { LiveDashboard } from '../../../../lib/live-state.ts';
+import type { ResultState } from '../../../../lib/result-state.ts';
 
-/**
- * The `/tv/**` full-rotation kiosk route (0031, task 2.1).
- *
- * No `PublicLayout`: this surface has no header, nav, footer or skip link —
- * a screen nobody can click has nothing for any of them to do.
- */
-export function getStaticPaths() {
-  return [{ params: { organization: 'liga-mendocina', tournament: 'apertura-2026' } }];
-}
+export const prerender = false;
 
 const { organization, tournament } = Astro.params;
 const organizationAlias = organization ?? 'liga-mendocina';
 const tournamentAlias = tournament ?? 'apertura-2026';
 const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
-const dashboard = sampleDashboard();
+
+let dashboard: LiveDashboard = {
+  matches: [],
+  standingsVersion: 0,
+  usingLastKnown: true,
+};
+let tournamentName = tournamentAlias;
+let organizationName = organizationAlias;
+let clubs: { name: string; emblemObjectId?: string }[] = [];
+
+try {
+  const [live, overview] = await Promise.all([
+    fetchLive(organizationAlias, tournamentAlias),
+    fetchOverview(organizationAlias, tournamentAlias),
+  ]);
+
+  if (overview) {
+    const mappedOverview = mapOverviewResponse(overview);
+    tournamentName = mappedOverview.tournamentName || tournamentAlias;
+    organizationName = mappedOverview.organizationName || organizationAlias;
+    if (mappedOverview.clubs) {
+      clubs = mappedOverview.clubs.map((c) => ({
+        name: c.name,
+        emblemObjectId: c.emblemObjectId,
+      }));
+    }
+
+    if (live && live.matches.length > 0) {
+      dashboard = mapLiveResponse(live);
+    } else if (mappedOverview.matches.length > 0) {
+      dashboard = {
+        standingsVersion: 0,
+        usingLastKnown: true,
+        matches: mappedOverview.matches.map((m, idx) => ({
+          matchId: `overview-${m.stageNumber}-${m.matchNumber ?? idx + 1}`,
+          stageNumber: m.stageNumber,
+          matchNumber: m.matchNumber ?? idx + 1,
+          state: m.state as ResultState,
+          projectionVersion: 0,
+          sides: [
+            {
+              entrantId: `home-${idx}`,
+              name: m.home.name,
+              abbreviation: m.home.abbreviation,
+              score: m.home.score ?? 0,
+              state: m.state as ResultState,
+            },
+            {
+              entrantId: `away-${idx}`,
+              name: m.away.name,
+              abbreviation: m.away.abbreviation,
+              score: m.away.score ?? 0,
+              state: m.state as ResultState,
+            },
+          ],
+        })),
+      };
+    } else if (organizationAlias === 'liga-mendocina') {
+      dashboard = sampleDashboard();
+    }
+  } else if (organizationAlias === 'liga-mendocina') {
+    dashboard = sampleDashboard();
+  }
+} catch {
+  dashboard = sampleDashboard();
+}
 ---
 
-<TvLayout title={`TV — ${tournamentAlias}`}>
-  <TvDashboard client:load initial={dashboard} streamPath={streamPath} />
+<TvLayout title={`TV — ${tournamentName}`}>
+  <TvDashboard
+    client:load
+    initial={dashboard}
+    streamPath={streamPath}
+    tournamentName={tournamentName}
+    organizationName={organizationName}
+    clubs={clubs}
+  />
 </TvLayout>

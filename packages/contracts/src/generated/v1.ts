@@ -1874,6 +1874,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/jwks.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** JSON Web Key Set for local token verification */
+        get: operations["NativeAuthController_jwks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/accept-invitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept invitation and set password for administrator */
+        post: operations["NativeAuthController_acceptInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/forgot-password": {
         parameters: {
             query?: never;
@@ -1902,6 +1936,23 @@ export interface paths {
         put?: never;
         /** Reset password using a verification token */
         post: operations["NativeAuthController_resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/.well-known/jwks.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** JSON Web Key Set for local token verification */
+        get: operations["WellKnownController_jwks"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4665,6 +4716,25 @@ export interface components {
             accessToken: string;
             /** @description Token expiration in seconds */
             expiresIn: number;
+        };
+        JwksKey: {
+            kty: string;
+            kid: string;
+            use: string;
+            alg: string;
+            n: string;
+            e: string;
+        };
+        JwksResponse: {
+            keys: components["schemas"]["JwksKey"][];
+        };
+        NativeAcceptInvitationRequest: {
+            /** @description The invitation token from setupUrl */
+            token: string;
+            /** @description New password for the administrator (min 8 characters) */
+            password: string;
+            /** @description Display name for the administrator */
+            name?: string;
         };
         ForgotPasswordRequest: {
             /** Format: email */
@@ -9366,6 +9436,48 @@ export interface operations {
             };
         };
     };
+    NativeAuthController_jwks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JwksResponse"];
+                };
+            };
+        };
+    };
+    NativeAuthController_acceptInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NativeAcceptInvitationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+        };
+    };
     NativeAuthController_forgotPassword: {
         parameters: {
             query?: never;
@@ -9408,6 +9520,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthSuccessResponse"];
+                };
+            };
+        };
+    };
+    WellKnownController_jwks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JwksResponse"];
                 };
             };
         };

@@ -96,7 +96,7 @@ export class OrganizationAccessGuard implements CanActivate {
       if (!(await access.hasAnyAssignment(organizationId))) return true;
     }
 
-    if (subject.organizationId !== organizationId) {
+    if (subject.organizationId && subject.organizationId !== organizationId) {
       throw new ForbiddenException('Subject is not scoped to this organization');
     }
 
