@@ -82,6 +82,14 @@ export const messages = defineMessages({
   // TournamentHero.astro
   heroLiveCount: { id: 'publicWeb.hero.liveCount', defaultMessage: '{count} LIVE' },
   heroNoLiveMatches: { id: 'publicWeb.hero.noLiveMatches', defaultMessage: 'NO LIVE MATCHES' },
+  heroTournamentEmblemAlt: {
+    id: 'publicWeb.hero.tournamentEmblemAlt',
+    defaultMessage: '{name} emblem',
+  },
+  heroTournamentEmblemPlaceholderAlt: {
+    id: 'publicWeb.hero.tournamentEmblemPlaceholderAlt',
+    defaultMessage: 'No tournament emblem uploaded',
+  },
 
   // BracketView.astro
   bracketRoundAriaLabel: {

@@ -35,6 +35,14 @@
 		reverse_proxy web-ssr:3005
 	}
 
+	# Emblem and photo assets streamed on demand by web-ssr
+	@ssrOrganizations {
+		path /organizations /organizations/*
+	}
+	handle @ssrOrganizations {
+		reverse_proxy web-ssr:3005
+	}
+
 	@ssrTv {
 		path /tv /tv/*
 	}

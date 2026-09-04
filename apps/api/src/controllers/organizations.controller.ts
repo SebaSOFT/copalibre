@@ -98,6 +98,7 @@ export class OrganizationsController {
         organizationAlias: membership.organizationAlias,
         organizationName: membership.organizationName,
         role: membership.role,
+        ...(membership.emblemObjectId ? { emblemObjectId: membership.emblemObjectId } : {}),
       }));
     }
 

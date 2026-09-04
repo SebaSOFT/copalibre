@@ -37,7 +37,7 @@ export interface TvDashboardProps {
 const TV_RESULT_STATE_LABELS: ResultStateLabels = {
   live: 'EN VIVO',
   upcoming: 'PROGRAMADO',
-  final: 'FINALIZADO',
+  final: 'FINAL',
   disputed: 'EN DISPUTA',
   winner: 'GANÓ',
   loser: 'PERDIÓ',
@@ -68,7 +68,20 @@ export function TvDashboard({
     }
     return false;
   });
+  const [isOverlay] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('mode') === 'overlay';
+    }
+    return false;
+  });
   const resolvedBranding = resolveTvBranding(branding ?? {});
+
+  // Overlay mode support (?mode=overlay)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    document.body.classList.toggle('tv-overlay', isOverlay);
+    return () => document.body.classList.remove('tv-overlay');
+  }, [isOverlay]);
 
   // 1. Digital Clock (JetBrains Mono formatting)
   useEffect(() => {
@@ -187,7 +200,7 @@ export function TvDashboard({
   const statusBadge = isLive
     ? { label: 'EN VIVO', type: 'live' }
     : allFinal
-      ? { label: 'TORNEO FINALIZADO', type: 'final' }
+      ? { label: 'FINAL', type: 'final' }
       : { label: 'PROGRAMADO', type: 'upcoming' };
 
   // Spotlight Match (pinned match or active live match or first match)
@@ -196,38 +209,48 @@ export function TvDashboard({
   return (
     <div className="tv-root-container">
       {/* 1. Persistent Score-Bug / Status Bar */}
-      <header className="tv-scorebug cl-chamfer">
-        <div className="tv-scorebug__left">
-          {resolvedBranding.logoUrl ? (
-            <img
-              alt=""
-              aria-hidden="true"
-              className="tv-scorebug__brand-logo"
-              src={resolvedBranding.logoUrl}
-            />
-          ) : (
-            <img
-              alt="CopaLibre"
-              className="tv-scorebug__brand-logo"
-              height="32"
-              src="/copalibre-logo.svg"
-              width="32"
-            />
-          )}
-          <div className="tv-scorebug__titles">
-            <span className="tv-scorebug__tournament">{tournamentName ?? 'Torneo Oficial'}</span>
-            <span className="tv-scorebug__org">{organizationName ?? 'CopaLibre Broadcast'}</span>
+      {!isOverlay && (
+        <header className="tv-scorebug cl-chamfer">
+          <div className="tv-scorebug__left">
+            {resolvedBranding.logoUrl ? (
+              <img
+                alt=""
+                aria-hidden="true"
+                className="tv-scorebug__brand-logo"
+                src={resolvedBranding.logoUrl}
+              />
+            ) : (
+              <img
+                alt="CopaLibre"
+                className="tv-scorebug__brand-logo"
+                height="32"
+                src="/copalibre-logo.svg"
+                width="32"
+              />
+            )}
+            <div className="tv-scorebug__titles">
+              <span className="tv-scorebug__tournament">{tournamentName ?? 'Torneo Oficial'}</span>
+              <span className="tv-scorebug__org">{organizationName ?? 'CopaLibre Broadcast'}</span>
+            </div>
           </div>
-        </div>
 
-        <div className="tv-scorebug__right">
-          <div className={`tv-scorebug__badge tv-scorebug__badge--${statusBadge.type} cl-chamfer`}>
-            <span className="tv-scorebug__dot" />
-            <span>{statusBadge.label}</span>
+          <div className="tv-scorebug__right">
+            <div
+              className={`tv-scorebug__badge tv-scorebug__badge--${statusBadge.type} cl-chamfer`}
+            >
+              <span className="tv-scorebug__dot" />
+              <span>{statusBadge.label}</span>
+            </div>
+            {currentTime && (
+              <span
+                className="tv-scorebug__clock"
+                data-time={currentTime}
+                aria-label={currentTime}
+              />
+            )}
           </div>
-          {currentTime && <span className="tv-scorebug__clock">{currentTime}</span>}
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* 2. Main Stage (Dominant Focal Panel + Secondary Rotating Rail) */}
       <main className="tv-main-stage">
@@ -314,41 +337,43 @@ export function TvDashboard({
         </section>
 
         {/* SECONDARY ROTATING RAIL */}
-        <aside aria-label="Estadísticas y Tablas del Torneo" className="tv-rail-panel cl-chamfer">
-          {/* Navigation Tabs */}
-          <nav aria-label="Secciones del panel lateral" className="tv-rail-nav">
-            <button
-              className={`tv-rail-tab cl-chamfer ${activeTab === 'standings' ? 'tv-rail-tab--active' : ''}`}
-              onClick={() => setActiveTab('standings')}
-              type="button"
-            >
-              Posiciones
-            </button>
-            <button
-              className={`tv-rail-tab cl-chamfer ${activeTab === 'performers' ? 'tv-rail-tab--active' : ''}`}
-              onClick={() => setActiveTab('performers')}
-              type="button"
-            >
-              Destacados
-            </button>
-            <button
-              className={`tv-rail-tab cl-chamfer ${activeTab === 'facts' ? 'tv-rail-tab--active' : ''}`}
-              onClick={() => setActiveTab('facts')}
-              type="button"
-            >
-              Estadísticas
-            </button>
-          </nav>
+        {!isOverlay && (
+          <aside aria-label="Estadísticas y Tablas del Torneo" className="tv-rail-panel cl-chamfer">
+            {/* Navigation Tabs */}
+            <nav aria-label="Secciones del panel lateral" className="tv-rail-nav">
+              <button
+                className={`tv-rail-tab cl-chamfer ${activeTab === 'standings' ? 'tv-rail-tab--active' : ''}`}
+                onClick={() => setActiveTab('standings')}
+                type="button"
+              >
+                Posiciones
+              </button>
+              <button
+                className={`tv-rail-tab cl-chamfer ${activeTab === 'performers' ? 'tv-rail-tab--active' : ''}`}
+                onClick={() => setActiveTab('performers')}
+                type="button"
+              >
+                Destacados
+              </button>
+              <button
+                className={`tv-rail-tab cl-chamfer ${activeTab === 'facts' ? 'tv-rail-tab--active' : ''}`}
+                onClick={() => setActiveTab('facts')}
+                type="button"
+              >
+                Estadísticas
+              </button>
+            </nav>
 
-          {/* Tab Content */}
-          <div className="tv-rail-content" data-testid="tv-rail-content">
-            {activeTab === 'standings' && <TvStandingsView clubs={clubs} standings={standings} />}
+            {/* Tab Content */}
+            <div className="tv-rail-content" data-testid="tv-rail-content">
+              {activeTab === 'standings' && <TvStandingsView clubs={clubs} standings={standings} />}
 
-            {activeTab === 'performers' && <TvPerformersView performers={performers} />}
+              {activeTab === 'performers' && <TvPerformersView performers={performers} />}
 
-            {activeTab === 'facts' && <TvFactsView facts={facts} />}
-          </div>
-        </aside>
+              {activeTab === 'facts' && <TvFactsView facts={facts} />}
+            </div>
+          </aside>
+        )}
       </main>
     </div>
   );

@@ -247,6 +247,8 @@ export interface TournamentsTable {
   created_at: Timestamp;
   /** Set when the tournament is archived; null until then. */
   archived_at: Timestamp | null;
+  /** FK into `object_metadata.object_id`; null until an emblem is uploaded. */
+  emblem_object_id: string | null;
 }
 
 /**

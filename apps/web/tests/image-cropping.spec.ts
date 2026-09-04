@@ -132,6 +132,147 @@ test('cancelling the crop modal leaves the placeholder in place and uploads noth
   expect(uploadCount).toBe(0);
 });
 
+test('club emblem renders as visible image in control panel clubs list', async ({ page }) => {
+  await page.addInitScript(
+    ({ tokenEndpoint }) => {
+      window.fetch = async (input) => {
+        const url = String(input);
+        if (url === tokenEndpoint) {
+          return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
+        }
+        if (url.includes('/auth/pat')) {
+          return Response.json([]);
+        }
+        if (url.endsWith('/organizations/liga-mendocina')) {
+          return Response.json({
+            organizationId: 'org-1',
+            alias: 'liga-mendocina',
+            name: 'Liga Mendocina',
+            primaryLanguage: 'en',
+            timezone: 'America/Argentina/San_Juan',
+          });
+        }
+        if (url.endsWith('/organizations/liga-mendocina/clubs')) {
+          return Response.json([
+            {
+              clubId: 'club-1',
+              name: 'Club Atlético',
+              alias: 'atletico',
+              abbreviation: 'CAT',
+              emblemObjectId: 'emblem-obj-1',
+            },
+          ]);
+        }
+        return Response.json([]);
+      };
+    },
+    { tokenEndpoint: TOKEN_ENDPOINT },
+  );
+
+  await page.route('**/organizations/liga-mendocina/clubs/club-1/emblem', (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    return route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+    });
+  });
+
+  const target = '/control/liga-mendocina/clubs';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const emblemImg = page.locator('.cl-role-user .cl-image-frame img');
+  await expect(emblemImg).toBeVisible();
+  await expect(emblemImg).toHaveAttribute(
+    'src',
+    '/organizations/liga-mendocina/clubs/club-1/emblem',
+  );
+});
+
+test('uploading tournament emblem in control panel renders in tournament settings', async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ tokenEndpoint }) => {
+      let tournamentEmblemId: string | undefined;
+
+      window.fetch = async (input, init) => {
+        const url = String(input);
+        const method = init?.method ?? 'GET';
+
+        if (url === tokenEndpoint) {
+          return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
+        }
+        if (url.includes('/auth/pat')) {
+          return Response.json([]);
+        }
+        if (url.endsWith('/organizations/liga-mendocina')) {
+          return Response.json({
+            organizationId: 'org-1',
+            alias: 'liga-mendocina',
+            name: 'Liga Mendocina',
+            primaryLanguage: 'en',
+            timezone: 'America/Argentina/San_Juan',
+          });
+        }
+        if (url.endsWith('/tournaments/apertura-2026/settings') && method === 'GET') {
+          return Response.json({
+            name: 'Apertura 2026',
+            region: 'Cuyo',
+            capacity: 16,
+            ...(tournamentEmblemId === undefined ? {} : { emblemObjectId: tournamentEmblemId }),
+          });
+        }
+        if (url.endsWith('/tournaments/apertura-2026/emblem') && method === 'POST') {
+          tournamentEmblemId = 'tourn-emblem-obj';
+          return Response.json({ objectId: tournamentEmblemId }, { status: 201 });
+        }
+        return Response.json([]);
+      };
+    },
+    { tokenEndpoint: TOKEN_ENDPOINT },
+  );
+
+  await page.route('**/organizations/liga-mendocina/tournaments/apertura-2026/emblem', (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    return route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+    });
+  });
+
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/settings';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByRole('combobox').selectOption('en');
+
+  await expect(page.getByRole('img', { name: 'No tournament emblem uploaded' })).toBeVisible();
+
+  await page.getByLabel('Upload emblem').setInputFiles({
+    name: 'tournament-emblem.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+  });
+
+  const dialog = page.getByRole('dialog', { name: 'Adjust image' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Use image' }).click();
+  await expect(dialog).toBeHidden();
+
+  await expect(page.getByText('Tournament emblem uploaded.')).toBeVisible();
+  const emblemImg = page.locator('.cl-tournament-settings__emblem-section .cl-image-frame img');
+  await expect(emblemImg).toBeVisible();
+  await expect(emblemImg).toHaveAttribute(
+    'src',
+    '/organizations/liga-mendocina/tournaments/apertura-2026/emblem',
+  );
+});
+
 declare global {
   interface Window {
     __e2eEmblemUploadCount?: number;

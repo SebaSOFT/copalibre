@@ -72,6 +72,26 @@ export function TournamentSettingsRoute({
             if (updated) setSettings(updated);
           }) ?? Promise.resolve()
       }
+      onUploadEmblem={(output) =>
+        api
+          .uploadTournamentEmblem?.(organizationAlias, tournamentAlias, {
+            filename: 'emblem.png',
+            contentType: output.contentType,
+            contentBase64: output.contentBase64,
+          })
+          .then(() =>
+            api.fetchTournamentSettings?.(organizationAlias, tournamentAlias).then((fresh) => {
+              if (fresh) setSettings(fresh);
+            }),
+          ) ?? Promise.resolve()
+      }
+      onDeleteEmblem={() =>
+        api.deleteTournamentEmblem?.(organizationAlias, tournamentAlias).then(() =>
+          api.fetchTournamentSettings?.(organizationAlias, tournamentAlias).then((fresh) => {
+            if (fresh) setSettings(fresh);
+          }),
+        ) ?? Promise.resolve()
+      }
       organizationAlias={organizationAlias}
       settings={settings}
       tournamentAlias={tournamentAlias}

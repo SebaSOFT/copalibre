@@ -1431,6 +1431,75 @@ describe('short labels (integration)', () => {
     );
   });
 
+  it('updates and clears a tournament emblem, preventing unreferenced delete while attached', async () => {
+    const tournamentRepo = new TournamentRepository(scratch.db);
+    const objectRepo = new ObjectMetadataRepository(scratch.db);
+    const d = descriptor();
+
+    const tournament = await withTransaction(scratch.db, async (uow) => {
+      await tournamentRepo.saveDescriptor(uow, d, { organizationId, ...AUDIT });
+      return tournamentRepo.create(uow, {
+        organizationId,
+        alias: 'torneo-emblem',
+        name: 'Torneo Emblem',
+        descriptor: d,
+        ...AUDIT,
+      });
+    });
+    expect(tournament.emblemObjectId).toBeUndefined();
+
+    const objectMetadata = await withTransaction(scratch.db, (uow) =>
+      objectRepo.save(uow, {
+        organizationId,
+        profile: 'filesystem',
+        storageKey: `${organizationId}/tournament-emblem.png`,
+        contentType: 'image/png',
+        sizeBytes: 1024,
+        uploadedBy: AUDIT.actor,
+      }),
+    );
+
+    const updated = await withTransaction(scratch.db, (uow) =>
+      tournamentRepo.updateEmblem(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        emblemObjectId: objectMetadata.objectId,
+        ...AUDIT,
+      }),
+    );
+    expect(updated.emblemObjectId).toBe(objectMetadata.objectId);
+
+    // Deleting object while referenced must fail
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        objectRepo.delete(uow, objectMetadata.objectId, {
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toThrow(/tournament/);
+
+    // Clearing emblem allows object delete
+    const cleared = await withTransaction(scratch.db, (uow) =>
+      tournamentRepo.updateEmblem(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        emblemObjectId: null,
+        ...AUDIT,
+      }),
+    );
+    expect(cleared.emblemObjectId).toBeUndefined();
+
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        objectRepo.delete(uow, objectMetadata.objectId, {
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).resolves.toMatchObject({ objectId: objectMetadata.objectId });
+  });
+
   it('suggests an alias from the name when none is given', async () => {
     const participants = new EnrollmentRepository(scratch.db);
 

@@ -272,4 +272,47 @@ describe('TournamentSettingsRoute', () => {
     );
     expect(await screen.findByText('Settings saved.')).toBeDefined();
   });
+
+  it('renders uploaded tournament emblem and deletes it when requested', async () => {
+    const deleteTournamentEmblem = jest.fn<NonNullable<ControlApiClient['deleteTournamentEmblem']>>(
+      () => Promise.resolve({ success: true }),
+    );
+
+    const fetchTournamentSettings = jest
+      .fn<NonNullable<ControlApiClient['fetchTournamentSettings']>>()
+      .mockResolvedValueOnce({
+        name: 'Copa Verano',
+        emblemObjectId: 'emblem-99',
+      })
+      .mockResolvedValueOnce({
+        name: 'Copa Verano',
+        emblemObjectId: undefined,
+      });
+
+    render(
+      withIntl(
+        <TournamentSettingsRoute
+          client={stubClient({
+            fetchTournamentSettings,
+            deleteTournamentEmblem,
+          })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    const emblemImg = await screen.findByAltText('Tournament emblem');
+    expect(emblemImg.getAttribute('src')).toBe(
+      '/organizations/liga-mendocina/tournaments/apertura-2026/emblem',
+    );
+
+    const removeBtn = screen.getByRole('button', { name: 'Remove emblem' });
+    fireEvent.click(removeBtn);
+
+    await waitFor(() =>
+      expect(deleteTournamentEmblem).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026'),
+    );
+    expect(await screen.findByText('Tournament emblem removed.')).toBeDefined();
+  });
 });

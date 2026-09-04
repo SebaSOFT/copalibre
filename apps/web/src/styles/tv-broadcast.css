@@ -17,8 +17,9 @@
 
 .tv-root-container {
   box-sizing: border-box;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
   margin: 0;
   padding: 2.5vmin 4vmin;
   background-color: var(--tv-bg-base);
@@ -131,6 +132,10 @@
   font-weight: 600;
   color: var(--tv-text-secondary);
   letter-spacing: 0.05em;
+}
+
+.tv-scorebug__clock::after {
+  content: attr(data-time);
 }
 
 /* 2. Main Broadcast Stage (Focal + Rail) */

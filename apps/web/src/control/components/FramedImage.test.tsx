@@ -48,4 +48,18 @@ describe('FramedImage', () => {
     const frame = screen.getByAltText('Club emblem').closest('.cl-image-frame') as HTMLElement;
     expect(frame.style.width).toBe('32px');
   });
+
+  it('resets failed state when src changes', () => {
+    const { rerender } = render(
+      <FramedImage alt="Club emblem" placeholder={<span>placeholder</span>} src="/broken.png" />,
+    );
+
+    fireEvent.error(screen.getByAltText('Club emblem'));
+    expect(screen.getByText('placeholder')).toBeTruthy();
+
+    rerender(
+      <FramedImage alt="Club emblem" placeholder={<span>placeholder</span>} src="/fixed.png" />,
+    );
+    expect(screen.getByAltText('Club emblem')).toBeTruthy();
+  });
 });

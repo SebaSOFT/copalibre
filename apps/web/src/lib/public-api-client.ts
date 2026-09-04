@@ -21,7 +21,7 @@ import type { BracketMatch, SlotSource } from './bracket.js';
 import type { MatchCardData } from './matches-view.js';
 import type { PublicSeriesState } from './series.js';
 
-function getApiBaseUrl(): string {
+export function getApiBaseUrl(): string {
   // We avoid process.env in Astro client code, but this file is strictly server-only
   // because it runs inside the Astro SSR environment during page rendering.
   return process.env.COPALIBRE_API_INTERNAL_URL || 'http://127.0.0.1:3001';
@@ -160,6 +160,7 @@ export function mapOverviewResponse(response: PublicOverviewResponse): OverviewI
     seasonName: response.seasonName,
     status: response.status,
     winners: response.winners,
+    ...(response.emblemObjectId === undefined ? {} : { emblemObjectId: response.emblemObjectId }),
     ruleset: Object.entries(response.ruleset).map(([label, value]) => ({ label, value })),
     matches: response.matches.map((m: PublicOverviewMatchResponse) => ({
       matchNumber: m.matchNumber,
@@ -294,6 +295,10 @@ export function organizationEmblemUrl(organizationAlias: string): string {
 
 export function clubEmblemUrl(organizationAlias: string, clubId: string): string {
   return `/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`;
+}
+
+export function tournamentEmblemUrl(organizationAlias: string, tournamentAlias: string): string {
+  return `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`;
 }
 
 export function personPhotoUrl(organizationAlias: string, personId: string): string {

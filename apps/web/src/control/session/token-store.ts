@@ -59,10 +59,15 @@ export function createTokenStore(
     try {
       const raw = storage.getItem(storageKey);
       if (!raw) return;
-      const parsed = JSON.parse(raw) as { token?: string; expiresAt?: number };
-      if (parsed.token && typeof parsed.expiresAt === 'number' && parsed.expiresAt > now()) {
+      const parsed = JSON.parse(raw) as {
+        token?: string;
+        expiresAt?: number;
+        expiresAtMs?: number;
+      };
+      const expiry = parsed.expiresAt ?? parsed.expiresAtMs;
+      if (parsed.token && typeof expiry === 'number' && expiry > now()) {
         token = parsed.token;
-        expiresAt = parsed.expiresAt;
+        expiresAt = expiry;
       } else {
         storage.removeItem(storageKey);
       }

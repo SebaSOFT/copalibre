@@ -45,6 +45,8 @@ export interface ClubView {
 import type { PublicTournamentWinnerZoneResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 
 export interface OverviewModel {
+  readonly organizationAlias?: string;
+  readonly tournamentAlias?: string;
   readonly organizationName: string;
   readonly tournamentName: string;
   readonly seasonName?: string;
@@ -59,6 +61,7 @@ export interface OverviewModel {
   readonly canonicalPath: string;
   readonly streamPath: string;
   readonly liveCount: number;
+  readonly emblemObjectId?: string;
 }
 
 export interface OverviewInput extends RouteInput {
@@ -72,15 +75,19 @@ export interface OverviewInput extends RouteInput {
   readonly standingsGrain?: 'series' | 'match';
   readonly clubs?: readonly ClubView[];
   readonly ruleset: readonly { readonly label: string; readonly value: string }[];
+  readonly emblemObjectId?: string;
 }
 
 export function buildOverview(input: OverviewInput): OverviewModel {
   return {
+    organizationAlias: input.organizationAlias,
+    tournamentAlias: input.tournamentAlias,
     organizationName: input.organizationName,
     tournamentName: input.tournamentName,
     ...(input.seasonName === undefined ? {} : { seasonName: input.seasonName }),
     ...(input.status === undefined ? {} : { status: input.status }),
     ...(input.winners === undefined ? {} : { winners: input.winners }),
+    ...(input.emblemObjectId === undefined ? {} : { emblemObjectId: input.emblemObjectId }),
     matches: input.matches,
     standings: input.standings,
     ...(input.standingsGrain === undefined ? {} : { standingsGrain: input.standingsGrain }),

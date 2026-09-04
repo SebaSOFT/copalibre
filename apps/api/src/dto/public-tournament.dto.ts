@@ -130,6 +130,12 @@ export class PublicOverviewResponse {
 
   @ApiPropertyOptional({ type: () => [PublicTournamentWinnerZoneResponse] })
   winners?: PublicTournamentWinnerZoneResponse[];
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Object storage ID of the tournament emblem, when one has been uploaded.',
+  })
+  emblemObjectId?: string;
 }
 
 export class PublicLiveMatchSideResponse {
@@ -622,6 +628,12 @@ export class PublicTournamentListingItemResponse {
 
   @ApiPropertyOptional({ type: [PublicTournamentWinnerZoneResponse] })
   winners?: PublicTournamentWinnerZoneResponse[];
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'object_metadata.object_id of the tournament emblem',
+  })
+  emblemObjectId?: string;
 }
 
 export class PublicOrganizationTournamentListResponse {

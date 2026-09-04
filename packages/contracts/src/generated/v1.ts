@@ -423,6 +423,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/emblem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream a tournament's emblem, once it has passed validation */
+        get: operations["TournamentMediaController_serveEmblem"];
+        put?: never;
+        /** Upload a tournament's emblem (must be exactly 410×512px, ±1%) */
+        post: operations["TournamentMediaController_uploadEmblem"];
+        /** Delete a tournament's emblem */
+        delete: operations["TournamentMediaController_deleteEmblem"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations": {
         parameters: {
             query?: never;
@@ -2800,6 +2819,11 @@ export interface components {
             rulesetId?: string;
             /** @description Profile this tournament instantiated, when one was selected at creation. */
             profileRef?: components["schemas"]["ProfileRefResponse"];
+            /**
+             * Format: uuid
+             * @description Object storage ID of the tournament emblem, when one has been uploaded.
+             */
+            emblemObjectId?: string;
         };
         TournamentConfigurationDescriptorRefResponse: {
             /** Format: uuid */
@@ -3059,6 +3083,11 @@ export interface components {
              * @description Optional instant when checked-in team memberships stop being editable.
              */
             checkInClosesAt?: string;
+            /**
+             * @description Object id of the tournament emblem image asset.
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            emblemObjectId?: string;
         };
         TournamentSettingsRequest: {
             /** @example Copa Verano (corregida) */
@@ -3160,6 +3189,23 @@ export interface components {
             };
             /** @description Declared stages in the profile. */
             stages: components["schemas"]["ProfileStageSummaryResponse"][];
+        };
+        UploadImageRequest: {
+            filename: string;
+            contentType: string;
+            /** @description Base64-encoded file content */
+            contentBase64: string;
+        };
+        UploadImageResponse: {
+            /**
+             * Format: uuid
+             * @description object_metadata.object_id of the stored image
+             */
+            objectId: string;
+        };
+        DeleteEmblemResponse: {
+            /** @example true */
+            ok: boolean;
         };
         TeamMemberResponse: {
             /** Format: uuid */
@@ -4451,6 +4497,11 @@ export interface components {
             discipline: components["schemas"]["PublicTournamentDisciplineSummaryResponse"];
             dates?: components["schemas"]["PublicTournamentDatesResponse"];
             winners?: components["schemas"]["PublicTournamentWinnerZoneResponse"][];
+            /**
+             * Format: uuid
+             * @description object_metadata.object_id of the tournament emblem
+             */
+            emblemObjectId?: string;
         };
         PublicOverviewClubResponse: {
             /** Format: uuid */
@@ -4524,6 +4575,11 @@ export interface components {
             /** @enum {string} */
             status?: "upcoming" | "live" | "finished";
             winners?: components["schemas"]["PublicTournamentWinnerZoneResponse"][];
+            /**
+             * Format: uuid
+             * @description Object storage ID of the tournament emblem, when one has been uploaded.
+             */
+            emblemObjectId?: string;
         };
         PublicMatchOfficialResponse: {
             name: string;
@@ -4972,19 +5028,6 @@ export interface components {
              */
             photoObjectId?: string;
             naturalKey?: components["schemas"]["NaturalKeyResponse"];
-        };
-        UploadImageRequest: {
-            filename: string;
-            contentType: string;
-            /** @description Base64-encoded file content */
-            contentBase64: string;
-        };
-        UploadImageResponse: {
-            /**
-             * Format: uuid
-             * @description object_metadata.object_id of the stored image
-             */
-            objectId: string;
         };
         SetPersonNationalityRequest: {
             /**
@@ -6474,6 +6517,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TournamentProfileSummaryResponse"][];
+                };
+            };
+        };
+    };
+    TournamentMediaController_serveEmblem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    TournamentMediaController_uploadEmblem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadImageRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadImageResponse"];
+                };
+            };
+        };
+    };
+    TournamentMediaController_deleteEmblem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tournament emblem removed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteEmblemResponse"];
                 };
             };
         };

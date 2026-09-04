@@ -39,6 +39,8 @@ export const messages: Record<string, string> = {
 
   'publicWeb.hero.liveCount': '{count} 场进行中',
   'publicWeb.hero.noLiveMatches': '当前没有进行中的比赛',
+  'publicWeb.hero.tournamentEmblemAlt': '{name} 徽标',
+  'publicWeb.hero.tournamentEmblemPlaceholderAlt': '未上传锦标赛徽标',
 
   'publicWeb.bracket.roundAriaLabel': '{branch} — 第 {round} 轮',
   'publicWeb.bracket.roundHeading': '第 {round} 轮',

@@ -1636,6 +1636,140 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/emblem": {
+      "post": {
+        "operationId": "TournamentMediaController_uploadEmblem",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadImageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadImageResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a tournament's emblem (must be exactly 410×512px, ±1%)",
+        "tags": [
+          "tournaments"
+        ]
+      },
+      "get": {
+        "operationId": "TournamentMediaController_serveEmblem",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image bytes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Stream a tournament's emblem, once it has passed validation",
+        "tags": [
+          "tournaments"
+        ]
+      },
+      "delete": {
+        "operationId": "TournamentMediaController_deleteEmblem",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tournament emblem removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteEmblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a tournament's emblem",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations": {
       "get": {
         "description": "Scoped to the named tournament; another tournament’s entrants are never included.",
@@ -11128,6 +11262,11 @@
                 "$ref": "#/components/schemas/ProfileRefResponse"
               }
             ]
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Object storage ID of the tournament emblem, when one has been uploaded."
           }
         },
         "required": [
@@ -11743,6 +11882,11 @@
             "type": "string",
             "format": "date-time",
             "description": "Optional instant when checked-in team memberships stop being editable."
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "description": "Object id of the tournament emblem image asset.",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           }
         },
         "required": [
@@ -12016,6 +12160,51 @@
           "version",
           "name",
           "stages"
+        ]
+      },
+      "UploadImageRequest": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "contentBase64": {
+            "type": "string",
+            "description": "Base64-encoded file content"
+          }
+        },
+        "required": [
+          "filename",
+          "contentType",
+          "contentBase64"
+        ]
+      },
+      "UploadImageResponse": {
+        "type": "object",
+        "properties": {
+          "objectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "object_metadata.object_id of the stored image"
+          }
+        },
+        "required": [
+          "objectId"
+        ]
+      },
+      "DeleteEmblemResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "ok"
         ]
       },
       "TeamMemberResponse": {
@@ -15383,6 +15572,11 @@
             "items": {
               "$ref": "#/components/schemas/PublicTournamentWinnerZoneResponse"
             }
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "object_metadata.object_id of the tournament emblem"
           }
         },
         "required": [
@@ -15625,6 +15819,11 @@
             "items": {
               "$ref": "#/components/schemas/PublicTournamentWinnerZoneResponse"
             }
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Object storage ID of the tournament emblem, when one has been uploaded."
           }
         },
         "required": [
@@ -16960,39 +17159,6 @@
         "required": [
           "personId",
           "displayName"
-        ]
-      },
-      "UploadImageRequest": {
-        "type": "object",
-        "properties": {
-          "filename": {
-            "type": "string"
-          },
-          "contentType": {
-            "type": "string"
-          },
-          "contentBase64": {
-            "type": "string",
-            "description": "Base64-encoded file content"
-          }
-        },
-        "required": [
-          "filename",
-          "contentType",
-          "contentBase64"
-        ]
-      },
-      "UploadImageResponse": {
-        "type": "object",
-        "properties": {
-          "objectId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "object_metadata.object_id of the stored image"
-          }
-        },
-        "required": [
-          "objectId"
         ]
       },
       "SetPersonNationalityRequest": {

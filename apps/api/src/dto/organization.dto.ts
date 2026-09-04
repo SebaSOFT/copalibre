@@ -113,6 +113,12 @@ export class MyOrganizationResponse {
     description: "The caller's active role in this organization",
   })
   role!: OrganizationRole;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Object storage ID of the organization emblem',
+  })
+  emblemObjectId?: string;
 }
 
 export class UpdateOrganizationSettingsRequest {
@@ -272,6 +278,12 @@ export class TournamentResponse {
     description: 'Profile this tournament instantiated, when one was selected at creation.',
   })
   profileRef?: ProfileRefResponse;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Object storage ID of the tournament emblem, when one has been uploaded.',
+  })
+  emblemObjectId?: string;
 }
 
 /**
@@ -300,6 +312,12 @@ export class TournamentSettingsResponse {
     description: 'Optional instant when checked-in team memberships stop being editable.',
   })
   checkInClosesAt?: string;
+
+  @ApiPropertyOptional({
+    description: 'Object id of the tournament emblem image asset.',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  emblemObjectId?: string;
 }
 
 /** A partial edit — every field is optional, so only the fields the operator actually changed are sent. */

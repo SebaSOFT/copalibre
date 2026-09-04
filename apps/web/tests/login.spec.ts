@@ -5,7 +5,10 @@ async function mockLoginApi(page: Page): Promise<void> {
     window.fetch = async (input, init) => {
       const url = String(input);
       const method = init?.method ?? 'GET';
-      if (url === '/api/auth/login' && method === 'POST') {
+      if (
+        (url === '/auth/login' || url === '/api/auth/login' || url.endsWith('/auth/login')) &&
+        method === 'POST'
+      ) {
         const body = JSON.parse(String(init?.body));
         if (body.email === 'test@example.com' && body.password === 'password123') {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });

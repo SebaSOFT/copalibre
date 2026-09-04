@@ -494,7 +494,11 @@ export class TournamentsController {
     });
 
     const ruleset = await tournaments.findLatestRuleset(tournament.tournamentId);
-    return this.settingsResponseOf(tournament.name, ruleset?.overrides ?? {});
+    return this.settingsResponseOf(
+      tournament.name,
+      ruleset?.overrides ?? {},
+      tournament.emblemObjectId,
+    );
   }
 
   @Post(':tournamentAlias/settings/preview')
@@ -700,7 +704,7 @@ export class TournamentsController {
             authorizationContext,
           });
         }
-        return this.settingsResponseOf(finalName, nextOverrides);
+        return this.settingsResponseOf(finalName, nextOverrides, tournament.emblemObjectId);
       });
     } catch (error) {
       if (error instanceof InvariantViolationError) {
@@ -726,6 +730,7 @@ export class TournamentsController {
   private settingsResponseOf(
     name: string,
     overrides: Readonly<Record<string, unknown>>,
+    emblemObjectId?: string,
   ): TournamentSettingsResponse {
     return {
       name,
@@ -738,6 +743,7 @@ export class TournamentsController {
       ...(typeof overrides['registration.checkInClosesAt'] === 'string'
         ? { checkInClosesAt: overrides['registration.checkInClosesAt'] }
         : {}),
+      ...(emblemObjectId !== undefined ? { emblemObjectId } : {}),
     };
   }
 

@@ -1,4 +1,4 @@
-import { createControlApiClient } from './lib/api-client.js';
+import { createControlApiClient, tournamentEmblemUrl } from './lib/api-client.js';
 
 function response(body: unknown, status = 200): Response {
   return {
@@ -523,5 +523,55 @@ describe('the control API client', () => {
       '/organizations/liga-orbital/tournaments/copa-verano/internal-matches-view?state=live',
       '/organizations/liga-orbital/tournaments/copa-verano/internal-matches-view?stageNumber=2&groupId=group-1&state=final',
     ]);
+  });
+
+  it('manages tournament emblems and formats tournament emblem URLs', async () => {
+    const calls: Array<{ url: string; method: string; body?: unknown }> = [];
+    const client = createControlApiClient({
+      accessToken: () => 'token',
+      fetch: async (input, init) => {
+        calls.push({
+          url: String(input),
+          method: init?.method ?? 'GET',
+          ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}),
+        });
+        return response({ objectId: 'emblem-1' });
+      },
+    });
+
+    if (!client.uploadTournamentEmblem || !client.deleteTournamentEmblem) {
+      throw new Error('Tournament emblem methods must be available');
+    }
+
+    await client.uploadTournamentEmblem('liga-orbital', 'copa-verano', {
+      filename: 'emblem.png',
+      contentType: 'image/png',
+      contentBase64: 'abc',
+    });
+
+    await client.deleteTournamentEmblem('liga-orbital', 'copa-verano');
+
+    expect(calls).toEqual([
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/emblem',
+        method: 'POST',
+        body: {
+          filename: 'emblem.png',
+          contentType: 'image/png',
+          contentBase64: 'abc',
+        },
+      },
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/emblem',
+        method: 'DELETE',
+      },
+    ]);
+
+    expect(tournamentEmblemUrl('liga-orbital', 'copa-verano')).toBe(
+      '/organizations/liga-orbital/tournaments/copa-verano/emblem',
+    );
+    expect(tournamentEmblemUrl('liga-orbital', 'copa-verano', 'https://api.copalibre.test')).toBe(
+      'https://api.copalibre.test/organizations/liga-orbital/tournaments/copa-verano/emblem',
+    );
   });
 });
