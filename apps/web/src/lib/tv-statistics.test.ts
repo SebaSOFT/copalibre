@@ -348,9 +348,7 @@ describe('tv-statistics', () => {
           matchNumber: 1,
           state: 'final',
           projectionVersion: 1,
-          sides: [
-            { entrantId: 'e1', name: 'Winner', score: 2, state: 'final' },
-          ],
+          sides: [{ entrantId: 'e1', name: 'Winner', score: 2, state: 'final' }],
         },
       ];
       const champion = resolveChampion(matches);
