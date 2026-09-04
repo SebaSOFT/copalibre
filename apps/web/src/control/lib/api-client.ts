@@ -925,6 +925,8 @@ export interface MatchConsoleApiClient {
     matchId: string,
     request: BulkLoadMatchDataRequest,
   ) => Promise<BulkLoadMatchDataResponse>;
+  /** Authenticated control stream configuration for organization events and audit feed. */
+  readonly controlStream?: (organizationAlias: string) => MatchConsoleStream;
   /** Authenticated stream configuration; events never carry console details. */
   readonly matchConsoleStream?: (organizationAlias: string) => MatchConsoleStream;
 }
@@ -2491,6 +2493,11 @@ export function createControlApiClient(input: {
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/bulk-load`,
         { method: 'POST', body, token: input.accessToken?.() },
       ),
+
+    controlStream: (organizationAlias) => ({
+      url: `${baseUrl}/events/control/${encodeURIComponent(organizationAlias)}`,
+      accessToken: input.accessToken,
+    }),
 
     matchConsoleStream: (organizationAlias) => ({
       url: `${baseUrl}/events/control/${encodeURIComponent(organizationAlias)}`,

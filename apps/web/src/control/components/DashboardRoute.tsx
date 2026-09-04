@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { RealtimeClient } from '@copalibre/realtime';
 import { createControlApiClient, type ControlApiClient } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
 import {
@@ -34,6 +35,11 @@ export function DashboardRoute({
   const [tournaments, setTournaments] = useState<readonly TournamentCard[]>([]);
   const [organizationId, setOrganizationId] = useState('');
   const [activity, setActivity] = useState<readonly ActivityEntry[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const reload = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -98,7 +104,24 @@ export function DashboardRoute({
     return () => {
       live = false;
     };
-  }, [api, organizationAlias]);
+  }, [api, organizationAlias, refreshKey]);
+
+  useEffect(() => {
+    const stream =
+      api.controlStream?.(organizationAlias) ?? api.matchConsoleStream?.(organizationAlias);
+    if (!stream) return undefined;
+
+    const realtime = new RealtimeClient({
+      url: stream.url,
+      accessToken: stream.accessToken,
+      heartbeatTimeoutMs: 15_000,
+    });
+    void realtime.connect({
+      onEvent: () => reload(),
+      onProjectionRequired: () => reload(),
+    });
+    return () => realtime.close();
+  }, [api, organizationAlias, reload]);
 
   const model = buildDashboard({ organizationId, tournaments, activity });
   return <Dashboard model={model} organizationAlias={organizationAlias} />;

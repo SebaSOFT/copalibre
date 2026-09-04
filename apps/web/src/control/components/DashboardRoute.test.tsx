@@ -1,4 +1,6 @@
+import { jest } from '@jest/globals';
 import { act, render, screen, waitFor } from '@testing-library/react';
+import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
 import { DashboardRoute } from './DashboardRoute.js';
 import type {
   ControlApiClient,
@@ -285,5 +287,71 @@ describe('DashboardRoute', () => {
     await waitFor(() => expect(screen.getByText('Partido finalizado')).toBeDefined());
     expect(screen.getByText('Club creado')).toBeDefined();
     expect(screen.getAllByText('user:admin-1')).toHaveLength(2);
+  });
+
+  it('subscribes to realtime events via controlStream and refreshes on new events', async () => {
+    let capturedHandlers: RealtimeHandlers | undefined;
+    const connectSpy = jest
+      .spyOn(RealtimeClient.prototype, 'connect')
+      .mockImplementation(async (handlers) => {
+        capturedHandlers = handlers;
+      });
+    const closeSpy = jest.spyOn(RealtimeClient.prototype, 'close').mockImplementation(() => {});
+
+    let fetchCount = 0;
+    const fetchAuditTrail = jest.fn().mockImplementation(async () => {
+      fetchCount += 1;
+      return {
+        records: [
+          {
+            auditId: `audit-${fetchCount}`,
+            organizationId: 'org-1',
+            entityType: 'match',
+            entityId: 'm-1',
+            action: fetchCount === 1 ? 'match.finalized' : 'match.start',
+            actor: 'user:admin-1',
+            occurredAt: new Date().toISOString(),
+            authorizationContext: 'org.operate-match',
+            outcome: 'applied',
+          },
+        ],
+        total: 1,
+        limit: 10,
+        offset: 0,
+      };
+    });
+
+    const { unmount } = render(
+      <DashboardRoute
+        client={client({
+          listActiveTournaments: async () => [tournament()],
+          fetchAuditTrail,
+          controlStream: (org) => ({ url: `https://test/events/control/${org}` }),
+        })}
+        organizationAlias="liga-mendocina"
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('Partido finalizado')).toBeDefined());
+    expect(connectSpy).toHaveBeenCalled();
+    expect(capturedHandlers).toBeDefined();
+
+    await act(async () => {
+      capturedHandlers.onEvent({
+        eventId: 'evt-1',
+        eventType: 'audit.created',
+        organizationId: 'org-1',
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    await waitFor(() => expect(screen.getByText('Partido iniciado')).toBeDefined());
+    expect(fetchAuditTrail).toHaveBeenCalledTimes(2);
+
+    unmount();
+    expect(closeSpy).toHaveBeenCalled();
+
+    connectSpy.mockRestore();
+    closeSpy.mockRestore();
   });
 });

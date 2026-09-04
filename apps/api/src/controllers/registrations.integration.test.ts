@@ -605,6 +605,7 @@ describe('registration review routes', () => {
       .where('action', '=', 'player.role-updated')
       .execute();
     expect(roleUpdatedLogs.length).toBeGreaterThanOrEqual(1);
+    expect(roleUpdatedLogs[0]?.actor).toBe('user:organizer-1');
     expect(
       roleUpdatedLogs.some((l) => (l.resulting_state as { role?: string })?.role === 'substitute'),
     ).toBe(true);
