@@ -11,6 +11,8 @@ import {
 } from '../../../../lib/public-api-client.ts';
 import type { LiveDashboard } from '../../../../lib/live-state.ts';
 import type { ResultState } from '../../../../lib/result-state.ts';
+import type { StandingsRowView } from '../../../../lib/overview.ts';
+import type { TopPerformer } from '../../../../lib/tv-statistics.ts';
 
 export const prerender = false;
 
@@ -28,6 +30,9 @@ let tournamentName = tournamentAlias;
 let organizationName = organizationAlias;
 let clubs: { name: string; emblemObjectId?: string }[] = [];
 
+let standings: StandingsRowView[] = [];
+let topPerformers: TopPerformer[] = [];
+
 try {
   const [live, overview] = await Promise.all([
     fetchLive(organizationAlias, tournamentAlias),
@@ -38,6 +43,7 @@ try {
     const mappedOverview = mapOverviewResponse(overview);
     tournamentName = mappedOverview.tournamentName || tournamentAlias;
     organizationName = mappedOverview.organizationName || organizationAlias;
+    standings = mappedOverview.standings ? [...mappedOverview.standings] : [];
     if (mappedOverview.clubs) {
       clubs = mappedOverview.clubs.map((c) => ({
         name: c.name,
@@ -93,6 +99,10 @@ try {
     streamPath={streamPath}
     tournamentName={tournamentName}
     organizationName={organizationName}
+    organizationAlias={organizationAlias}
+    tournamentAlias={tournamentAlias}
     clubs={clubs}
+    standings={standings}
+    topPerformers={topPerformers}
   />
 </TvLayout>
