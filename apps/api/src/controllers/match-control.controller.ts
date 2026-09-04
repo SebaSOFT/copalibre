@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import {
   ACTOR_GRANULARITIES,
+  MATCH_CAPABILITIES,
   applyMatchCommand,
   EventLog,
   foldLiveScores,
@@ -2047,7 +2048,12 @@ export class MatchControlController {
           .executeTakeFirst(),
         new ProjectionStore(this.db).versionOf('match-console', matchId),
       ]);
-    const capabilities = [...new Set(assignments.flatMap((assignment) => assignment.capabilities))];
+    const isOrgAdmin =
+      request.subject?.grantorContext?.organizationAdminOf === tournament.organizationId ||
+      request.subject?.grantorContext?.isSuperAdmin === true;
+    const capabilities = isOrgAdmin
+      ? [...MATCH_CAPABILITIES]
+      : [...new Set(assignments.flatMap((assignment) => assignment.capabilities))];
     if (capabilities.length === 0) {
       throw new ForbiddenException('Subject holds no match-control capability for this match', {
         errorCode: 'match-control-forbidden',

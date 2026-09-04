@@ -30,6 +30,7 @@ import {
 import {
   SUPPORTED_FORMATS,
   canDecide,
+  isPlayerRole,
   planBulkReview,
   planRosterReconciliation,
   teamMembershipsApply,
@@ -563,7 +564,7 @@ export class RegistrationsController {
     if (!editable.ok)
       throw new ConflictException(editable.error.message, { errorCode: 'registration-conflict' });
 
-    if (!Array.isArray(body.personIds)) {
+    if (!Array.isArray(body.personIds) && !Array.isArray(body.members)) {
       throw new BadRequestException('A team-membership edit names the people on it', {
         errorCode: 'registration-bad-request',
       });
@@ -577,8 +578,24 @@ export class RegistrationsController {
     // Narrowed by the check above: only a 'team' entrant reaches this point.
     const { teamId } = entrant.entrantRef as Extract<Entrant['entrantRef'], { kind: 'team' }>;
 
+    const desiredRoleByPersonId = new Map<string, PlayerRole>();
+    if (Array.isArray(body.members)) {
+      for (const m of body.members) {
+        if (m && typeof m.personId === 'string') {
+          const role: PlayerRole = isPlayerRole(m.role) ? m.role : DEFAULT_TEAM_MEMBERSHIP_ROLE;
+          desiredRoleByPersonId.set(m.personId, role);
+        }
+      }
+    } else if (Array.isArray(body.personIds)) {
+      for (const personId of body.personIds) {
+        if (typeof personId === 'string') {
+          desiredRoleByPersonId.set(personId, DEFAULT_TEAM_MEMBERSHIP_ROLE);
+        }
+      }
+    }
+
     const people = new PersonRepository(this.db);
-    const desired = [...new Set(body.personIds)];
+    const desired = [...desiredRoleByPersonId.keys()];
     const named = await people.findPersons(desired);
     // A person id from another organization is not a name we recognise here,
     // and is refused identically to one that does not exist at all.
@@ -604,10 +621,11 @@ export class RegistrationsController {
 
     await withTransaction(this.db, async (uow) => {
       for (const personId of plan.toEnlist) {
+        const role = desiredRoleByPersonId.get(personId) ?? DEFAULT_TEAM_MEMBERSHIP_ROLE;
         await people.enlist(uow, {
           personId,
           teamId,
-          role: DEFAULT_TEAM_MEMBERSHIP_ROLE,
+          role,
           organizationId,
           actor: actorOf(request),
           authorizationContext: (request.subject?.scopes ?? []).join(' '),
@@ -622,6 +640,22 @@ export class RegistrationsController {
           actor: actorOf(request),
           authorizationContext: (request.subject?.scopes ?? []).join(' '),
         });
+      }
+      for (const player of currentSquad) {
+        const desiredRole = desiredRoleByPersonId.get(player.personId);
+        if (
+          desiredRole &&
+          desiredRole !== player.role &&
+          !plan.toRemove.includes(player.personId)
+        ) {
+          await people.setPlayerRole(uow, {
+            playerId: player.playerId,
+            role: desiredRole,
+            organizationId,
+            actor: actorOf(request),
+            authorizationContext: (request.subject?.scopes ?? []).join(' '),
+          });
+        }
       }
     });
 

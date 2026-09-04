@@ -3272,9 +3272,24 @@ export interface components {
             name: string;
             alias?: string;
         };
+        TeamMembershipMemberInput: {
+            /**
+             * Format: uuid
+             * @description Person identifier
+             */
+            personId: string;
+            /**
+             * @description Member role within the team
+             * @default player
+             * @enum {string}
+             */
+            role: "player" | "substitute" | "coach" | "staff";
+        };
         EditTeamMembershipsRequest: {
-            /** @description The team’s full desired membership. Anyone currently a member but not named here is removed. */
-            personIds: unknown[][];
+            /** @description The team’s full desired membership by person IDs (defaults each to "player"). */
+            personIds?: unknown[][];
+            /** @description The team’s full desired membership with optional roles (defaults to "player" when omitted). */
+            members?: components["schemas"]["TeamMembershipMemberInput"][];
         };
         SetEntrantAbbreviationRequest: {
             /**

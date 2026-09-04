@@ -12299,21 +12299,49 @@
           "name"
         ]
       },
+      "TeamMembershipMemberInput": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Person identifier"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "player",
+              "substitute",
+              "coach",
+              "staff"
+            ],
+            "default": "player",
+            "description": "Member role within the team"
+          }
+        },
+        "required": [
+          "personId"
+        ]
+      },
       "EditTeamMembershipsRequest": {
         "type": "object",
         "properties": {
           "personIds": {
-            "description": "The team’s full desired membership. Anyone currently a member but not named here is removed.",
+            "description": "The team’s full desired membership by person IDs (defaults each to \"player\").",
             "type": "array",
             "items": {
               "type": "array",
               "format": "uuid"
             }
+          },
+          "members": {
+            "description": "The team’s full desired membership with optional roles (defaults to \"player\" when omitted).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamMembershipMemberInput"
+            }
           }
-        },
-        "required": [
-          "personIds"
-        ]
+        }
       },
       "SetEntrantAbbreviationRequest": {
         "type": "object",

@@ -364,6 +364,53 @@ describe('team-membership CSV import target', () => {
     expect(squadB.map((player) => player.personId)).toEqual([personB?.personId]);
   });
 
+  it('correctly assigns coach and staff roles when role column is included in CSV (openspec 0193 task 4.1)', async () => {
+    const people = new PersonRepository(scratch.db);
+    const seeded = await seedTwoRegisteredTeams('copa-membresia-roles-csv');
+    const teamAAlias = seeded.teamA.alias ?? '';
+    const teamBAlias = seeded.teamB.alias ?? '';
+    const sourceCsv = `teamAlias,alias,displayName,role\n${teamAAlias},carlos-bilardo,Carlos Bilardo,coach\n${teamBAlias},marcelo-bielsa,Marcelo Bielsa,staff\n`;
+
+    const created = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments/copa-membresia-roles-csv/imports',
+      token: 'organizer-org1',
+      payload: { target: 'team-membership', sourceCsv },
+    });
+    expect(created.statusCode).toBe(202);
+
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      new CsvImportRepository(scratch.db).storePreview(uow, {
+        importId: created.json().importId,
+        preview: validateCsvImport({
+          target: 'team-membership',
+          allowedParticipantTypes: ['team'],
+          knownTeamAliases: [teamAAlias, teamBAlias],
+          csv: sourceCsv,
+        }),
+      }),
+    );
+
+    const committed = await request({
+      method: 'POST',
+      url: `/organizations/liga-orbital/tournaments/copa-membresia-roles-csv/imports/${created.json().importId}/commit`,
+      token: 'organizer-org1',
+      payload: { sourceHash: created.json().sourceHash },
+    });
+    expect(committed.statusCode).toBe(200);
+
+    const squadA = await people.squadOf(seeded.teamA.teamId);
+    const squadB = await people.squadOf(seeded.teamB.teamId);
+    const personA = await people.findByAlias(organizationId, 'carlos-bilardo');
+    const personB = await people.findByAlias(organizationId, 'marcelo-bielsa');
+
+    const memberA = squadA.find((m) => m.personId === personA?.personId);
+    const memberB = squadB.find((m) => m.personId === personB?.personId);
+
+    expect(memberA?.role).toBe('coach');
+    expect(memberB?.role).toBe('staff');
+  });
+
   it('never commits a preview whose row names an unregistered team', async () => {
     const people = new PersonRepository(scratch.db);
     const seeded = await seedTwoRegisteredTeams('copa-membresia-invalida');

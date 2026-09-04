@@ -13,9 +13,11 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ORGANIZATION_ROLES,
+  PLAYER_ROLES,
   SUPPORTED_LANGUAGES,
   type LocalizedLabel,
   type OrganizationRole,
+  type PlayerRole,
   type SupportedLanguage,
 } from '@copalibre/domain';
 
@@ -1149,16 +1151,43 @@ export class RegistrationResponse {
   hasIdentityLink?: boolean;
 }
 
+export class TeamMembershipMemberInput {
+  @IsString()
+  @ApiProperty({ format: 'uuid', description: 'Person identifier' })
+  personId!: string;
+
+  @IsOptional()
+  @IsIn(PLAYER_ROLES)
+  @ApiPropertyOptional({
+    enum: PLAYER_ROLES,
+    default: 'player',
+    description: 'Member role within the team',
+  })
+  role?: PlayerRole;
+}
+
 export class EditTeamMembershipsRequest {
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @ApiProperty({
+  @ApiPropertyOptional({
     isArray: true,
     format: 'uuid',
-    description:
-      'The team’s full desired membership. Anyone currently a member but not named here is removed.',
+    description: 'The team’s full desired membership by person IDs (defaults each to "player").',
   })
-  personIds!: string[];
+  personIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TeamMembershipMemberInput)
+  @ApiPropertyOptional({
+    isArray: true,
+    type: TeamMembershipMemberInput,
+    description:
+      'The team’s full desired membership with optional roles (defaults to "player" when omitted).',
+  })
+  members?: TeamMembershipMemberInput[];
 }
 
 export class ParticipantTeamMembershipResponse {
