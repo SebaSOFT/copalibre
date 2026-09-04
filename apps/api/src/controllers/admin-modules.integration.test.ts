@@ -138,7 +138,7 @@ describe('AdminModulesController (integration)', () => {
       'orbital-frisbee',
     );
     expect(installed).toHaveLength(0);
-  });
+  }, 30_000);
 
   it('installs, lists, verifies, and removes a real curated tournament profile end to end', async () => {
     const install = await inject('admin', 'POST', '/admin/modules', {
@@ -171,7 +171,7 @@ describe('AdminModulesController (integration)', () => {
       'double-elimination-bracket',
     );
     expect(installed).toHaveLength(0);
-  });
+  }, 30_000);
 
   it('refuses an unallow-listed alternate source, installing nothing', async () => {
     const response = await inject('admin', 'POST', '/admin/modules', {

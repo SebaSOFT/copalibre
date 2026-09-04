@@ -76,9 +76,10 @@ services:
       - clamav-dev-data:/var/lib/clamav
     profiles: ['infrastructure', 'containerized']
 
-  # One-shot: MinIO doesn't auto-create buckets. Pre-provisions the bucket
-  # the object-storage integration suite (and this dev profile generally)
-  # expects, then exits — not a long-running service.
+  # Provisions the MinIO bucket the object-storage integration suite (and
+  # this dev profile generally) expects. Keeps running idle with a healthcheck
+  # so `docker compose --wait` reliably succeeds rather than failing when a
+  # one-shot container exits.
   object-storage-init:
     image: minio/mc:RELEASE.2025-08-13T08-35-41Z
     depends_on:
@@ -89,7 +90,13 @@ services:
       - -c
       - |
         mc alias set local http://object-storage:9000 copalibre_dev_only copalibre_dev_only &&
-        mc mb --ignore-existing local/copalibre-dev
+        mc mb --ignore-existing local/copalibre-dev &&
+        tail -f /dev/null
+    healthcheck:
+      test: ['CMD', 'mc', 'ls', 'local/copalibre-dev']
+      interval: 2s
+      timeout: 2s
+      retries: 20
     profiles: ['infrastructure', 'containerized']
 
   migrate:
