@@ -174,3 +174,15 @@ The submission SHALL commit entirely or not at all.
   the match was actually played
 - **THEN** they are accepted and persisted as given — no recency constraint is applied to a batch
   submission's timestamps that would not already apply to a live one
+
+### Requirement: Supported match-operating authority grant
+An authorized organizer SHALL have a supported, API-reachable path to gain match-operating authority
+(roster selection, event recording, finalization, bulk-load) for a match within their organization,
+without requiring direct database access.
+
+#### Scenario: An org-admin operates a match with no pre-existing assignment
+- **WHEN** an organization admin with no prior per-match assignment attempts to record a match result
+  through the supported API path
+- **THEN** the request SHALL succeed, using either an explicit, grantable assignment or the admin's
+  organization-scoped authority, rather than being refused with no path to remedy it
+
