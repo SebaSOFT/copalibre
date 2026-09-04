@@ -3,6 +3,7 @@ import {
   describeSlot,
   isResolved,
   matchReportUrl,
+  selectStageLayout,
   toRounds,
   toNode,
   type BracketMatch,
@@ -227,5 +228,32 @@ describe('matchReportUrl', () => {
         localePrefix: '/es',
       }),
     ).toBe('/es/liga-central/tournaments/apertura-2026/stages/1/matches/3');
+  });
+});
+
+describe('selectStageLayout', () => {
+  it('selects bracket layout for single-elimination', () => {
+    expect(selectStageLayout('single-elimination')).toBe('bracket');
+  });
+
+  it('selects bracket layout for double-elimination and other elimination formats', () => {
+    expect(selectStageLayout('double-elimination')).toBe('bracket');
+    expect(selectStageLayout('gauntlet')).toBe('bracket');
+    expect(selectStageLayout('bracket-groups')).toBe('bracket');
+    expect(selectStageLayout('custom-bracket')).toBe('bracket');
+    expect(selectStageLayout('ffa-bracket')).toBe('bracket');
+  });
+
+  it('selects grid layout for round-robin and non-elimination formats', () => {
+    expect(selectStageLayout('round-robin')).toBe('grid');
+    expect(selectStageLayout('round-robin-single-leg')).toBe('grid');
+    expect(selectStageLayout('round-robin-home-away')).toBe('grid');
+    expect(selectStageLayout('league')).toBe('grid');
+    expect(selectStageLayout('swiss')).toBe('grid');
+    expect(selectStageLayout('ffa-league')).toBe('grid');
+  });
+
+  it('defaults to bracket when format is unspecified', () => {
+    expect(selectStageLayout(undefined)).toBe('bracket');
   });
 });

@@ -15611,6 +15611,20 @@
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "live",
+              "finished"
+            ]
+          },
+          "winners": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicTournamentWinnerZoneResponse"
+            }
           }
         },
         "required": [
@@ -16030,6 +16044,10 @@
       "PublicBracketResponse": {
         "type": "object",
         "properties": {
+          "format": {
+            "type": "string",
+            "description": "The competition format of the stage"
+          },
           "matches": {
             "type": "array",
             "items": {

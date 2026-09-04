@@ -3,21 +3,27 @@ import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import BracketView from '../../../../../../components/BracketView.astro';
 import ResultLegend from '../../../../../../components/ResultLegend.astro';
 import StandingsPreview from '../../../../../../components/StandingsPreview.astro';
+import { MatchCard } from '../../../../../../components/MatchCard.tsx';
 import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
+import { selectStageLayout, matchReportUrl } from '../../../../../../lib/bracket.ts';
 import {
   fetchBracket,
+  fetchMatchesView,
   fetchOverview,
   fetchPublicTableLayouts,
   fetchPublicTableProjection,
   mapOverviewResponse,
   mapBracketResponse,
+  mapMatchesViewResponse,
 } from '../../../../../../lib/public-api-client.ts';
-import { publicIntl } from '../../../../../../lib/i18n/public-intl.ts';
+import { publicIntl, matchCardLabels } from '../../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
 /**
- * B3, the public bracket. Double elimination is the shape it must survive.
+ * B3, the public bracket / stage matches view.
+ * Double elimination is the shape it must survive for elimination brackets;
+ * non-elimination formats (round-robin, league, etc.) render the compact by-round grid.
  *
  * `[[locale]]` mirrors the tournament overview page — see its comment.
  */
@@ -26,6 +32,7 @@ export const prerender = false;
 const { locale, organization, tournament, stage } = Astro.params;
 const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
 const intl = publicIntl(resolvedLocale);
+const labels = matchCardLabels(intl);
 
 const stageNumber = Number(stage ?? 1);
 if (Number.isNaN(stageNumber)) {
@@ -39,6 +46,14 @@ const bracketData = rawBracketData ? mapBracketResponse(rawBracketData) : undefi
 if (!overviewData || !bracketData) {
   return Astro.rewrite('/404');
 }
+
+const layoutMode = selectStageLayout(bracketData.format);
+const stageMatches =
+  layoutMode === 'grid'
+    ? await fetchMatchesView(organization!, tournament!, { stageNumber }).then((res) =>
+        res ? mapMatchesViewResponse(res).matches : [],
+      )
+    : [];
 
 const model = buildOverview(mapOverviewResponse(overviewData));
 const localePrefix = locale ? `/${locale}` : '';
@@ -60,35 +75,69 @@ const standingsProjection = groupPhaseLayout
     )
   : undefined;
 
+const pageTitle =
+  layoutMode === 'grid'
+    ? `${intl.formatMessage(messages.matchesViewPageTitle)} — ${displayName(model)}`
+    : `${intl.formatMessage(messages.bracketPageTitle)} — ${displayName(model)}`;
+
 const structuredData = {
   '@type': 'SportsEvent' as const,
-  name: `${intl.formatMessage(messages.bracketPageTitle)} — ${displayName(model)}`,
+  name: pageTitle,
   url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${stagePath}`,
 };
 ---
 
 <PublicLayout
-  title={`${intl.formatMessage(messages.bracketPageTitle)} — ${displayName(model)}`}
+  title={pageTitle}
   canonicalPath={stagePath}
   intl={intl}
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
-  <h1>{intl.formatMessage(messages.bracketPageTitle)}</h1>
+  <h1>
+    {
+      layoutMode === 'grid'
+        ? intl.formatMessage(messages.matchesViewPageTitle)
+        : intl.formatMessage(messages.bracketPageTitle)
+    }
+  </h1>
   <p>
     <a href={`${localePrefix}${model.canonicalPath}/matches?stageNumber=${stageNumber}`}>
       {intl.formatMessage(messages.matchesViewSeeAll)}
     </a>
   </p>
-  <BracketView
-    intl={intl}
-    localePrefix={localePrefix}
-    matches={bracketData.matches}
-    organizationAlias={organization!}
-    stageNumber={stageNumber}
-    tournamentAlias={tournament!}
-  />
-  <ResultLegend intl={intl} />
+  {
+    layoutMode === 'bracket' ? (
+      <>
+        <BracketView
+          intl={intl}
+          localePrefix={localePrefix}
+          matches={bracketData.matches}
+          organizationAlias={organization!}
+          stageNumber={stageNumber}
+          tournamentAlias={tournament!}
+        />
+        <ResultLegend intl={intl} />
+      </>
+    ) : (
+      <div class="cl-matches-view__grid">
+        {stageMatches.map((match) => (
+          <MatchCard
+            client:load
+            match={match}
+            labels={labels}
+            reportUrl={matchReportUrl({
+              organizationAlias: organization!,
+              tournamentAlias: tournament!,
+              stageNumber: match.stageNumber,
+              matchNumber: match.matchNumber,
+              localePrefix,
+            })}
+          />
+        ))}
+      </div>
+    )
+  }
   {
     standingsProjection && (
       <StandingsPreview

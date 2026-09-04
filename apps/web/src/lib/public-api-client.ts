@@ -158,6 +158,8 @@ export function mapOverviewResponse(response: PublicOverviewResponse): OverviewI
     organizationName: response.organizationName,
     tournamentName: response.tournamentName,
     seasonName: response.seasonName,
+    status: response.status,
+    winners: response.winners,
     ruleset: Object.entries(response.ruleset).map(([label, value]) => ({ label, value })),
     matches: response.matches.map((m: PublicOverviewMatchResponse) => ({
       matchNumber: m.matchNumber,
@@ -214,9 +216,11 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
 }
 
 export function mapBracketResponse(response: PublicBracketResponse): {
+  format?: string;
   matches: readonly BracketMatch[];
 } {
   return {
+    format: response.format,
     matches: response.matches.map((m) => ({
       matchNumber: m.position,
       roundNumber: m.round,

@@ -4521,6 +4521,9 @@ export interface components {
             ruleset: {
                 [key: string]: string;
             };
+            /** @enum {string} */
+            status?: "upcoming" | "live" | "finished";
+            winners?: components["schemas"]["PublicTournamentWinnerZoneResponse"][];
         };
         PublicMatchOfficialResponse: {
             name: string;
@@ -4638,6 +4641,8 @@ export interface components {
             series?: components["schemas"]["PublicSeriesStateResponse"];
         };
         PublicBracketResponse: {
+            /** @description The competition format of the stage */
+            format?: string;
             matches: components["schemas"]["PublicBracketMatchResponse"][];
         };
         PublicMatchesViewMatchResponse: {

@@ -1,4 +1,5 @@
 import { publicPath, publicStreamPath, type RouteInput } from '@copalibre/routing';
+import { IMPLICIT_SEASON_NAME } from '@copalibre/domain';
 
 /**
  * The public overview's view model.
@@ -41,10 +42,14 @@ export interface ClubView {
   readonly emblemObjectId?: string;
 }
 
+import type { PublicTournamentWinnerZoneResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+
 export interface OverviewModel {
   readonly organizationName: string;
   readonly tournamentName: string;
   readonly seasonName?: string;
+  readonly status?: 'upcoming' | 'live' | 'finished';
+  readonly winners?: readonly PublicTournamentWinnerZoneResponse[];
   readonly matches: readonly OverviewMatch[];
   readonly standings: readonly StandingsRowView[];
   /** Absent when the previewed stage declares no series at all. */
@@ -60,6 +65,8 @@ export interface OverviewInput extends RouteInput {
   readonly organizationName: string;
   readonly tournamentName: string;
   readonly seasonName?: string;
+  readonly status?: 'upcoming' | 'live' | 'finished';
+  readonly winners?: readonly PublicTournamentWinnerZoneResponse[];
   readonly matches: readonly OverviewMatch[];
   readonly standings: readonly StandingsRowView[];
   readonly standingsGrain?: 'series' | 'match';
@@ -72,6 +79,8 @@ export function buildOverview(input: OverviewInput): OverviewModel {
     organizationName: input.organizationName,
     tournamentName: input.tournamentName,
     ...(input.seasonName === undefined ? {} : { seasonName: input.seasonName }),
+    ...(input.status === undefined ? {} : { status: input.status }),
+    ...(input.winners === undefined ? {} : { winners: input.winners }),
     matches: input.matches,
     standings: input.standings,
     ...(input.standingsGrain === undefined ? {} : { standingsGrain: input.standingsGrain }),
@@ -95,7 +104,11 @@ export function shortLabel(side: SideView | StandingsRowView): string {
 
 /** The competition's display name, composed rather than stored. */
 export function displayName(model: OverviewModel): string {
-  return model.seasonName === undefined
-    ? model.tournamentName
-    : `${model.tournamentName} ${model.seasonName}`;
+  if (!model.seasonName || model.seasonName === IMPLICIT_SEASON_NAME) {
+    return model.tournamentName;
+  }
+  if (model.tournamentName.endsWith(model.seasonName)) {
+    return model.tournamentName;
+  }
+  return `${model.tournamentName} ${model.seasonName}`;
 }

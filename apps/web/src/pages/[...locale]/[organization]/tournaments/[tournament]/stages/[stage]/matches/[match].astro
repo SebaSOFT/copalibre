@@ -129,7 +129,14 @@ const structuredData = {
                         {side.roster.map((member) => (
                           <tr>
                             <td class="cl-num-cell">{member.number ?? '—'}</td>
-                            <td class="cl-name-cell">{member.name}</td>
+                            <td class="cl-name-cell">
+                              <a
+                                href={`${locale ? `/${locale}` : ''}/${encodeURIComponent(organization!)}/tournaments/${encodeURIComponent(tournament!)}/players/${encodeURIComponent(member.personId)}`}
+                                class="cl-player-link"
+                              >
+                                {member.name}
+                              </a>
+                            </td>
                             <td>{member.roles?.join(', ') ?? '—'}</td>
                             <td>
                               <span
@@ -365,6 +372,16 @@ const structuredData = {
   .cl-num-cell {
     font-family: var(--cl-font-mono, monospace);
     font-weight: 600;
+  }
+
+  .cl-player-link {
+    color: var(--cl-text, #f8fafc);
+    text-decoration: none;
+  }
+
+  .cl-player-link:hover {
+    color: var(--cl-brand-cyan, #00d4ff);
+    text-decoration: underline;
   }
 
   .cl-indicator {
