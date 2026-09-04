@@ -580,6 +580,10 @@ export interface ControlApiClient {
     stageId: string,
     request: ScheduleRequest,
   ) => Promise<ScheduleResponse>;
+  /** Authenticated control stream configuration for organization events and audit feed. */
+  readonly controlStream?: (organizationAlias: string) => MatchConsoleStream;
+  /** Authenticated stream configuration; events never carry console details. */
+  readonly matchConsoleStream?: (organizationAlias: string) => MatchConsoleStream;
 }
 
 export type InstalledModuleResponse = components['schemas']['InstalledModuleResponse'];

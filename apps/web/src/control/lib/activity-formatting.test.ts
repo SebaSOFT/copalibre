@@ -61,5 +61,20 @@ describe('activity-formatting', () => {
       expect(formatRelativeTime(threeDaysAgo, baseTime, 'es')).toContain('3');
       expect(formatRelativeTime(threeDaysAgo, baseTime, 'en')).toBe('3 days ago');
     });
+
+    it('handles invalid dates gracefully by returning string representation', () => {
+      expect(formatRelativeTime('not-a-date', baseTime)).toBe('not-a-date');
+    });
+
+    it('accepts Date objects in addition to ISO strings', () => {
+      const dateObj = new Date(baseTime - 10_000);
+      expect(formatRelativeTime(dateObj, baseTime, 'es')).toBe('hace un momento');
+    });
+
+    it('uses default parameters when now or locale are omitted', () => {
+      expect(formatActivityAction('match.finalized')).toBe('Partido finalizado');
+      expect(formatRelativeTime(new Date())).toBe('hace un momento');
+      expect(formatRelativeTime(new Date(Date.now() - 5000), Date.now())).toBe('hace un momento');
+    });
   });
 });

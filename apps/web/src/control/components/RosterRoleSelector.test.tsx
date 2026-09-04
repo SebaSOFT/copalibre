@@ -79,4 +79,25 @@ describe('RosterRoleSelector', () => {
 
     expect(screen.getByText(/No hay miembros/)).toBeDefined();
   });
+
+  it('falls back to personId when displayName is absent', () => {
+    const onChange = jest.fn();
+    render(
+      <RosterRoleSelector
+        members={[
+          {
+            personId: 'p-anon',
+            displayName: '',
+            role: 'player',
+          },
+        ]}
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getByText('p-anon')).toBeDefined();
+    const select = screen.getByTestId('role-select-p-anon');
+    fireEvent.change(select, { target: { value: 'coach' } });
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
 });

@@ -226,7 +226,9 @@ describe('RegistrationReviewPage — nationality and profile', () => {
   });
 
   it('opens EditTeamMembersDialog, allows changing member role to coach, and saves', async () => {
-    const onEditTeamMembers = jest.fn();
+    const onEditTeamMembers = jest.fn<
+      NonNullable<Parameters<typeof RegistrationReviewPage>[0]['onEditTeamMembers']>
+    >(() => Promise.resolve());
     renderPage({
       onEditTeamMembers,
       rows: [
@@ -254,6 +256,49 @@ describe('RegistrationReviewPage — nationality and profile', () => {
       expect(onEditTeamMembers).toHaveBeenCalledWith('entrant-1', [
         { personId: 'p-1', role: 'coach' },
       ]);
+    });
+  });
+
+  it('closes EditTeamMembersDialog when cancel button is clicked and falls back to string names', () => {
+    renderPage({
+      rows: [
+        row({
+          personId: undefined,
+          teamId: 'team-1',
+          displayName: 'Club Atlético Talleres',
+          teamMembers: ['Matías Suárez'],
+        }),
+      ],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit members' }));
+    expect(screen.getByText('Edit team members')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByText('Edit team members')).toBeNull();
+  });
+
+  it('displays inline error when saving members fails', async () => {
+    const onEditTeamMembers = jest.fn<
+      NonNullable<Parameters<typeof RegistrationReviewPage>[0]['onEditTeamMembers']>
+    >(() => Promise.reject(new Error('Network error on save')));
+    renderPage({
+      onEditTeamMembers,
+      rows: [
+        row({
+          personId: undefined,
+          teamId: 'team-1',
+          displayName: 'Club Atlético Talleres',
+          teamMembersDetailed: [{ personId: 'p-1', displayName: 'Matías Suárez', role: 'player' }],
+        }),
+      ],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit members' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save members' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Network error on save')).toBeDefined();
     });
   });
 });

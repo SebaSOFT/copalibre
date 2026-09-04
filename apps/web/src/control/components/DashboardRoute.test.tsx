@@ -295,11 +295,12 @@ describe('DashboardRoute', () => {
       .spyOn(RealtimeClient.prototype, 'connect')
       .mockImplementation(async (handlers) => {
         capturedHandlers = handlers;
+        return { attempts: 1, stopped: 'aborted' as const };
       });
     const closeSpy = jest.spyOn(RealtimeClient.prototype, 'close').mockImplementation(() => {});
 
     let fetchCount = 0;
-    const fetchAuditTrail = jest.fn().mockImplementation(async () => {
+    const fetchAuditTrail: ControlApiClient['fetchAuditTrail'] = async () => {
       fetchCount += 1;
       return {
         records: [
@@ -319,14 +320,14 @@ describe('DashboardRoute', () => {
         limit: 10,
         offset: 0,
       };
-    });
+    };
 
     const { unmount } = render(
       <DashboardRoute
         client={client({
           listActiveTournaments: async () => [tournament()],
           fetchAuditTrail,
-          controlStream: (org) => ({ url: `https://test/events/control/${org}` }),
+          controlStream: (org: string) => ({ url: `https://test/events/control/${org}` }),
         })}
         organizationAlias="liga-mendocina"
       />,
@@ -337,21 +338,98 @@ describe('DashboardRoute', () => {
     expect(capturedHandlers).toBeDefined();
 
     await act(async () => {
-      capturedHandlers.onEvent({
+      capturedHandlers?.onEvent({
         eventId: 'evt-1',
-        eventType: 'audit.created',
         organizationId: 'org-1',
-        timestamp: new Date().toISOString(),
+        stream: 'control',
+        entityId: 'm-1',
+        eventType: 'audit.created',
+        projectionVersion: 1,
+        createdAt: new Date().toISOString(),
+        payload: {},
       });
     });
 
     await waitFor(() => expect(screen.getByText('Partido iniciado')).toBeDefined());
-    expect(fetchAuditTrail).toHaveBeenCalledTimes(2);
+    expect(fetchCount).toBe(2);
+
+    await act(async () => {
+      capturedHandlers?.onProjectionRequired?.('replay-window-passed');
+    });
+
+    await waitFor(() => expect(fetchCount).toBe(3));
 
     unmount();
     expect(closeSpy).toHaveBeenCalled();
 
     connectSpy.mockRestore();
     closeSpy.mockRestore();
+  });
+
+  it('falls back to matchConsoleStream when controlStream is omitted', async () => {
+    const connectSpy = jest
+      .spyOn(RealtimeClient.prototype, 'connect')
+      .mockImplementation(async () => ({ attempts: 1, stopped: 'aborted' as const }));
+    const closeSpy = jest.spyOn(RealtimeClient.prototype, 'close').mockImplementation(() => {});
+
+    const { unmount } = render(
+      <DashboardRoute
+        client={client({
+          listActiveTournaments: async () => [tournament()],
+          matchConsoleStream: (org: string) => ({ url: `https://test/events/control/${org}` }),
+        })}
+        organizationAlias="liga-mendocina"
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
+    expect(connectSpy).toHaveBeenCalled();
+
+    unmount();
+    expect(closeSpy).toHaveBeenCalled();
+
+    connectSpy.mockRestore();
+    closeSpy.mockRestore();
+  });
+
+  it('tolerates fetchAuditTrail rejection without crashing the dashboard', async () => {
+    render(
+      <DashboardRoute
+        client={client({
+          listActiveTournaments: async () => [tournament()],
+          fetchAuditTrail: async () => {
+            throw new Error('Audit read unavailable');
+          },
+        })}
+        organizationAlias="liga-mendocina"
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
+    expect(screen.queryByText('Actividad reciente')).toBeDefined();
+  });
+
+  it('instantiates default client when client prop is omitted', async () => {
+    render(<DashboardRoute organizationAlias="liga-mendocina" />);
+    await waitFor(() => expect(screen.getByText(/no tiene torneos/)).toBeDefined());
+  });
+
+  it('handles empty audit records gracefully', async () => {
+    render(
+      <DashboardRoute
+        client={client({
+          listActiveTournaments: async () => [tournament({ organizationId: '' })],
+          fetchAuditTrail: async () => ({
+            records: undefined as unknown as readonly never[],
+            total: 0,
+            limit: 10,
+            offset: 0,
+          }),
+        })}
+        organizationAlias="liga-mendocina"
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
   });
 });
