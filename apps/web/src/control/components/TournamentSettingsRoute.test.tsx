@@ -1,8 +1,9 @@
 import { jest } from '@jest/globals';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TournamentSettingsRoute } from './TournamentSettingsRoute.js';
+import { TournamentSettingsPage } from './TournamentSettingsPage.js';
 import { withIntl } from '../i18n/test-support.js';
-import type { ControlApiClient } from '../lib/api-client.js';
+import type { ControlApiClient, TournamentSettingsResponse } from '../lib/api-client.js';
 
 function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
@@ -314,5 +315,302 @@ describe('TournamentSettingsRoute', () => {
       expect(deleteTournamentEmblem).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026'),
     );
     expect(await screen.findByText('Tournament emblem removed.')).toBeDefined();
+  });
+
+  it('uploads a cropped tournament emblem when file is selected and crop is confirmed', async () => {
+    const uploadTournamentEmblem = jest.fn<NonNullable<ControlApiClient['uploadTournamentEmblem']>>(
+      () => Promise.resolve({ objectId: 'emblem-new' }),
+    );
+
+    const fetchTournamentSettings = jest
+      .fn<NonNullable<ControlApiClient['fetchTournamentSettings']>>()
+      .mockResolvedValueOnce({
+        name: 'Copa Verano',
+      })
+      .mockResolvedValueOnce({
+        name: 'Copa Verano',
+        emblemObjectId: 'emblem-new',
+      });
+
+    render(
+      withIntl(
+        <TournamentSettingsRoute
+          client={stubClient({
+            fetchTournamentSettings,
+            uploadTournamentEmblem,
+          })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByDisplayValue('Copa Verano');
+
+    const fileInput = screen.getByLabelText('Upload emblem');
+    const file = new File(['fake-image'], 'emblem.png', { type: 'image/png' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toBeDefined();
+
+    const img = dialog.querySelector('img');
+    if (img) fireEvent.load(img);
+
+    await waitFor(() =>
+      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(screen.getByText('Use image'));
+
+    await waitFor(() =>
+      expect(uploadTournamentEmblem).toHaveBeenCalledWith(
+        'liga-mendocina',
+        'apertura-2026',
+        expect.objectContaining({
+          filename: 'emblem.png',
+          contentType: 'image/png',
+        }),
+      ),
+    );
+    expect(await screen.findByText('Tournament emblem uploaded.')).toBeDefined();
+  });
+
+  it('cancels emblem cropping when Cancel is clicked in modal', async () => {
+    render(
+      withIntl(
+        <TournamentSettingsRoute
+          client={stubClient()}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByDisplayValue('Copa Verano');
+
+    const fileInput = screen.getByLabelText('Upload emblem');
+    const file = new File(['fake-image'], 'emblem.png', { type: 'image/png' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByText('Cancel'));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+  });
+
+  it('displays an error message when emblem deletion fails', async () => {
+    const deleteTournamentEmblem = jest.fn<NonNullable<ControlApiClient['deleteTournamentEmblem']>>(
+      () => Promise.reject(new Error('Delete failed')),
+    );
+
+    render(
+      withIntl(
+        <TournamentSettingsRoute
+          client={stubClient({
+            fetchTournamentSettings: () =>
+              Promise.resolve({ name: 'Copa Verano', emblemObjectId: 'emblem-1' }),
+            deleteTournamentEmblem,
+          })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByDisplayValue('Copa Verano');
+    const removeBtn = await screen.findByRole('button', { name: 'Remove emblem' });
+    fireEvent.click(removeBtn);
+
+    expect(await screen.findByText('Delete failed')).toBeDefined();
+  });
+
+  it('displays an error message when emblem upload fails', async () => {
+    const uploadTournamentEmblem = jest.fn<NonNullable<ControlApiClient['uploadTournamentEmblem']>>(
+      () => Promise.reject(new Error('Upload failed')),
+    );
+
+    render(
+      withIntl(
+        <TournamentSettingsRoute
+          client={stubClient({
+            uploadTournamentEmblem,
+          })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByDisplayValue('Copa Verano');
+    const fileInput = screen.getByLabelText('Upload emblem');
+    const file = new File(['fake-image'], 'emblem.png', { type: 'image/png' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    const dialog = await screen.findByRole('dialog');
+    const img = dialog.querySelector('img');
+    if (img) fireEvent.load(img);
+
+    await waitFor(() =>
+      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(screen.getByText('Use image'));
+
+    expect(await screen.findByText('Upload failed')).toBeDefined();
+  });
+
+  it('handles non-Error rejection in delete and upload emblem', async () => {
+    const onDeleteEmblem = jest.fn(() => Promise.reject('non-error string delete'));
+    const onUploadEmblem = jest.fn(() => Promise.reject('non-error string upload'));
+
+    render(
+      withIntl(
+        <TournamentSettingsPage
+          onDeleteEmblem={onDeleteEmblem}
+          onUploadEmblem={onUploadEmblem}
+          organizationAlias="liga-mendocina"
+          settings={{ name: 'Copa Verano', emblemObjectId: 'emblem-1' }}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    const removeBtn = screen.getByRole('button', { name: 'Remove emblem' });
+    fireEvent.click(removeBtn);
+
+    expect(await screen.findByText('non-error string delete')).toBeDefined();
+
+    const fileInput = screen.getByLabelText('Upload emblem');
+    const file = new File(['fake-image'], 'emblem.png', { type: 'image/png' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    const dialog = await screen.findByRole('dialog');
+    const img = dialog.querySelector('img');
+    if (img) fireEvent.load(img);
+
+    await waitFor(() =>
+      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(screen.getByText('Use image'));
+
+    expect(await screen.findByText('non-error string upload')).toBeDefined();
+  });
+
+  it('renders correctly without optional upload and delete emblem handlers', () => {
+    render(
+      withIntl(
+        <TournamentSettingsPage
+          organizationAlias="liga-mendocina"
+          settings={{ name: 'Copa Verano', emblemObjectId: 'emblem-1' }}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    expect(screen.queryByLabelText('Upload emblem')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remove emblem' })).toBeNull();
+  });
+
+  it('instantiates default client when client prop is omitted', () => {
+    render(
+      withIntl(
+        <TournamentSettingsRoute
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    expect(screen.getByText('Loading settings…')).toBeDefined();
+  });
+
+  it('handles empty response in save and upload handlers gracefully', async () => {
+    const updateTournamentSettings = jest.fn<
+      NonNullable<ControlApiClient['updateTournamentSettings']>
+    >(() => Promise.resolve(undefined as unknown as TournamentSettingsResponse));
+
+    render(
+      withIntl(
+        <TournamentSettingsRoute
+          client={stubClient({ updateTournamentSettings })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByDisplayValue('Copa Verano');
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(updateTournamentSettings).toHaveBeenCalled());
+  });
+
+  it('handles empty response from fresh settings after delete emblem', async () => {
+    const deleteTournamentEmblem = jest.fn<NonNullable<ControlApiClient['deleteTournamentEmblem']>>(
+      () => Promise.resolve({ success: true }),
+    );
+    const fetchTournamentSettings = jest
+      .fn<NonNullable<ControlApiClient['fetchTournamentSettings']>>()
+      .mockResolvedValueOnce({ name: 'Copa Verano', emblemObjectId: 'emblem-1' })
+      .mockResolvedValueOnce(undefined as unknown as TournamentSettingsResponse);
+
+    render(
+      withIntl(
+        <TournamentSettingsRoute
+          client={stubClient({
+            deleteTournamentEmblem,
+            fetchTournamentSettings,
+          })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByDisplayValue('Copa Verano');
+    const removeBtn = await screen.findByRole('button', { name: 'Remove emblem' });
+    fireEvent.click(removeBtn);
+
+    await waitFor(() => expect(deleteTournamentEmblem).toHaveBeenCalled());
+  });
+
+  it('handles empty response from fresh settings after upload emblem', async () => {
+    const uploadTournamentEmblem = jest.fn<NonNullable<ControlApiClient['uploadTournamentEmblem']>>(
+      () => Promise.resolve({ objectId: 'emblem-new' }),
+    );
+    const fetchTournamentSettings = jest
+      .fn<NonNullable<ControlApiClient['fetchTournamentSettings']>>()
+      .mockResolvedValueOnce({ name: 'Copa Verano' })
+      .mockResolvedValueOnce(undefined as unknown as TournamentSettingsResponse);
+
+    render(
+      withIntl(
+        <TournamentSettingsRoute
+          client={stubClient({
+            uploadTournamentEmblem,
+            fetchTournamentSettings,
+          })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByDisplayValue('Copa Verano');
+    const fileInput = screen.getByLabelText('Upload emblem');
+    const file = new File(['fake-image'], 'emblem.png', { type: 'image/png' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    const dialog = await screen.findByRole('dialog');
+    const img = dialog.querySelector('img');
+    if (img) fireEvent.load(img);
+
+    await waitFor(() =>
+      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(screen.getByText('Use image'));
+
+    await waitFor(() => expect(uploadTournamentEmblem).toHaveBeenCalled());
   });
 });

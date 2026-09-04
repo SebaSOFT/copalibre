@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { FramedImage } from './FramedImage.js';
 
@@ -61,5 +62,20 @@ describe('FramedImage', () => {
       <FramedImage alt="Club emblem" placeholder={<span>placeholder</span>} src="/fixed.png" />,
     );
     expect(screen.getByAltText('Club emblem')).toBeTruthy();
+  });
+
+  it('calls onError callback when image load fails', () => {
+    const onError = jest.fn();
+    render(
+      <FramedImage
+        alt="Club emblem"
+        onError={onError}
+        placeholder={<span>placeholder</span>}
+        src="/broken.png"
+      />,
+    );
+
+    fireEvent.error(screen.getByAltText('Club emblem'));
+    expect(onError).toHaveBeenCalledTimes(1);
   });
 });
