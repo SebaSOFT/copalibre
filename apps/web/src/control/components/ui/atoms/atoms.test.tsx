@@ -137,3 +137,26 @@ describe('governance rules (design.md Decision 7): atoms hold no state/data acce
     expect(source).not.toMatch(/\bmargin(?:-block|-inline)?(?:-start|-end)?\s*:/);
   });
 });
+
+describe('form-control dark theming contract', () => {
+  const cssPath = join(dirname(fileURLToPath(import.meta.url)), '../../../../styles/control.css');
+  const css = readFileSync(cssPath, 'utf8');
+
+  it('declares color-scheme dark for form inputs, selects, and textareas', () => {
+    expect(css).toContain('color-scheme: dark;');
+  });
+
+  it('declares custom dark appearance for checkboxes', () => {
+    expect(css).toMatch(/input\[type=['"]checkbox['"]\]\.cl-checkbox/);
+    expect(css).toContain('appearance: none;');
+  });
+
+  it('declares custom file selector button styling', () => {
+    expect(css).toMatch(/\.cl-input\[type=['"]file['"]\]::file-selector-button/);
+  });
+
+  it('declares link styling with cyan-400 state-live token', () => {
+    expect(css).toContain('.cl-link');
+    expect(css).toContain('var(--cl-state-live)');
+  });
+});

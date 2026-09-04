@@ -347,6 +347,26 @@ export function RegistrationReviewRoute({
               );
             }))
         }
+        onEditTeamMembers={
+          api.editTeamMemberships &&
+          ((entrantId, members) =>
+            api
+              .editTeamMemberships?.(organizationAlias, tournamentAlias, entrantId, { members })
+              .then((updated) => {
+                setRows((current) =>
+                  current.map((row) =>
+                    row.entrantId === entrantId
+                      ? {
+                          ...row,
+                          teamMembers:
+                            updated.teamMembers?.map((m) => m.displayName || m.personId) ?? [],
+                          teamMembersDetailed: updated.teamMembers,
+                        }
+                      : row,
+                  ),
+                );
+              }))
+        }
       />
     </>
   );
@@ -371,9 +391,8 @@ function toReviewRow(
     ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
     ...(row.photoObjectId === undefined ? {} : { photoObjectId: row.photoObjectId }),
     ...(row.hasIdentityLink === undefined ? {} : { hasIdentityLink: row.hasIdentityLink }),
-    // RegistrationResponse identifies the entrant, not its members. Do not
-    // present the team identifier as a person until the API supplies members.
-    teamMembers: [],
+    teamMembers: row.teamMembers?.map((m) => m.displayName || m.personId) ?? [],
+    teamMembersDetailed: row.teamMembers,
     experience: experienceUnrecordedLabel,
     requiresCheckIn: false,
   };

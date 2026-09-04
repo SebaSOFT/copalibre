@@ -569,6 +569,29 @@ describe('registration review routes', () => {
     });
 
     expect(updateResponse.statusCode).toBe(200);
+    expect(
+      updateResponse
+        .json()
+        .teamMembers?.find(
+          (m: { personId: string; role: string }) => m.personId === seeded.p1.personId,
+        )?.role,
+    ).toBe('coach');
+
+    const getResponse = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/copa-roles-test/registrations',
+      token: 'organizer-org1',
+    });
+    expect(getResponse.statusCode).toBe(200);
+    const teamEntrant = getResponse
+      .json()
+      .find((e: { entrantId: string }) => e.entrantId === seeded.entrant.entrantId);
+    expect(
+      teamEntrant?.teamMembers?.find(
+        (m: { personId: string; role: string }) => m.personId === seeded.p1.personId,
+      )?.role,
+    ).toBe('coach');
+
     squad = await people.squadOf(seeded.team.teamId);
     expect(squad.find((p) => p.personId === seeded.p1.personId)?.role).toBe('coach');
     expect(squad.find((p) => p.personId === seeded.p2.personId)?.role).toBe('substitute');
@@ -582,6 +605,7 @@ describe('registration review routes', () => {
       .where('action', '=', 'player.role-updated')
       .execute();
     expect(roleUpdatedLogs.length).toBeGreaterThanOrEqual(1);
+    expect(roleUpdatedLogs[0]?.actor).toBe('user:organizer-1');
     expect(
       roleUpdatedLogs.some((l) => (l.resulting_state as { role?: string })?.role === 'substitute'),
     ).toBe(true);

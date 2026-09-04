@@ -128,6 +128,18 @@ export interface ControlApiClient {
     entrantId: string,
     request: SetEntrantAbbreviationRequest,
   ) => Promise<RegistrationResponse>;
+  readonly editTeamMemberships?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    entrantId: string,
+    body: {
+      readonly personIds?: readonly string[];
+      readonly members?: readonly {
+        readonly personId: string;
+        readonly role?: 'player' | 'substitute' | 'coach' | 'staff';
+      }[];
+    },
+  ) => Promise<RegistrationResponse>;
   readonly fetchStandings: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -568,6 +580,10 @@ export interface ControlApiClient {
     stageId: string,
     request: ScheduleRequest,
   ) => Promise<ScheduleResponse>;
+  /** Authenticated control stream configuration for organization events and audit feed. */
+  readonly controlStream?: (organizationAlias: string) => MatchConsoleStream;
+  /** Authenticated stream configuration; events never carry console details. */
+  readonly matchConsoleStream?: (organizationAlias: string) => MatchConsoleStream;
 }
 
 export type InstalledModuleResponse = components['schemas']['InstalledModuleResponse'];
@@ -913,6 +929,8 @@ export interface MatchConsoleApiClient {
     matchId: string,
     request: BulkLoadMatchDataRequest,
   ) => Promise<BulkLoadMatchDataResponse>;
+  /** Authenticated control stream configuration for organization events and audit feed. */
+  readonly controlStream?: (organizationAlias: string) => MatchConsoleStream;
   /** Authenticated stream configuration; events never carry console details. */
   readonly matchConsoleStream?: (organizationAlias: string) => MatchConsoleStream;
 }
@@ -1439,6 +1457,7 @@ export interface MyOrganizationResponse {
 
 export interface AuditRecordResponse {
   readonly auditId: string;
+  readonly organizationId?: string;
   readonly entityType: string;
   readonly entityId: string;
   readonly action: string;
@@ -1944,6 +1963,19 @@ export function createControlApiClient(input: {
         )}/entrants/${encodeURIComponent(entrantId)}/abbreviation`,
         {
           method: 'PATCH',
+          body,
+          token: input.accessToken?.(),
+        },
+      ),
+
+    editTeamMemberships: (organizationAlias, tournamentAlias, entrantId, body) =>
+      requestJson<RegistrationResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/registrations/${encodeURIComponent(entrantId)}/team-memberships`,
+        {
+          method: 'POST',
           body,
           token: input.accessToken?.(),
         },
@@ -2465,6 +2497,11 @@ export function createControlApiClient(input: {
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/bulk-load`,
         { method: 'POST', body, token: input.accessToken?.() },
       ),
+
+    controlStream: (organizationAlias) => ({
+      url: `${baseUrl}/events/control/${encodeURIComponent(organizationAlias)}`,
+      accessToken: input.accessToken,
+    }),
 
     matchConsoleStream: (organizationAlias) => ({
       url: `${baseUrl}/events/control/${encodeURIComponent(organizationAlias)}`,
