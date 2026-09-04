@@ -1,37 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { RealtimeClient } from '@copalibre/realtime';
-import { EntrantName } from './EntrantName.js';
-import {
-  applyEvent,
-  markConnected,
-  type LiveDashboard,
-  type LiveMatch,
-} from '../lib/live-state.js';
+import { applyEvent, markConnected, type LiveDashboard } from '../lib/live-state.js';
 import { presentState, type ResultStateLabels } from '../lib/result-state.js';
 import { resolveTvBranding, tvStateColor, type TvBranding } from '../lib/tv-branding.js';
+import type { StandingsRowView } from '../lib/overview.js';
+import {
+  deriveTopPerformers,
+  deriveTournamentFacts,
+  resolveChampion,
+  type TopPerformer,
+  type TournamentFact,
+  type ChampionInfo,
+} from '../lib/tv-statistics.js';
 
 export interface TvClubItem {
   readonly name: string;
   readonly emblemObjectId?: string;
 }
 
-/**
- * The `/tv/**` kiosk and overlay surface.
- *
- * Unlike `LiveMatchHero`, this renders no "showing last known state" banner
- * and no reconnect/error UI of any kind — the design decision is explicit:
- * "this surface's UI layer never renders the recoverable-error state... it
- * only ever shows last known good projection while retrying underneath."
- * There is nobody at the venue to dismiss a message.
- *
- * The display token and `?mode=overlay` are read from the URL on mount
- * rather than passed as build-time props, because this page is statically
- * generated and the query string only exists at request time in the
- * browser. Neither is ever appended back onto the stream URL: the token goes
- * out only as an `Authorization` header (`display-token-auth.guard.ts`
- * rejects a `token` query parameter outright), matching the one-time
- * provisioning-link exception this repeats nowhere else.
- */
 export interface TvDashboardProps {
   readonly initial: LiveDashboard;
   readonly streamPath: string;
@@ -40,8 +26,24 @@ export interface TvDashboardProps {
   readonly branding?: TvBranding;
   readonly tournamentName?: string;
   readonly organizationName?: string;
+  readonly organizationAlias?: string;
+  readonly tournamentAlias?: string;
   readonly clubs?: readonly TvClubItem[];
+  readonly standings?: readonly StandingsRowView[];
+  readonly topPerformers?: readonly TopPerformer[];
+  readonly pollIntervalMs?: number;
 }
+
+const TV_RESULT_STATE_LABELS: ResultStateLabels = {
+  live: 'EN VIVO',
+  upcoming: 'PROGRAMADO',
+  final: 'FINALIZADO',
+  disputed: 'EN DISPUTA',
+  winner: 'GANÓ',
+  loser: 'PERDIÓ',
+  tbd: 'A DEFINIR',
+  cancelled: 'CANCELADO',
+};
 
 export function TvDashboard({
   initial,
@@ -50,226 +52,449 @@ export function TvDashboard({
   branding,
   tournamentName,
   organizationName,
+  organizationAlias,
+  tournamentAlias,
   clubs,
+  standings,
+  topPerformers: initialTopPerformers,
+  pollIntervalMs = 15_000,
 }: TvDashboardProps): React.JSX.Element {
-  const [dashboard, setDashboard] = useState(initial);
+  const [dashboard, setDashboard] = useState<LiveDashboard>(initial);
+  const [activeTab, setActiveTab] = useState<'standings' | 'performers' | 'facts'>('standings');
+  const [currentTime, setCurrentTime] = useState<string>('');
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+    return false;
+  });
   const resolvedBranding = resolveTvBranding(branding ?? {});
 
+  // 1. Digital Clock (JetBrains Mono formatting)
   useEffect(() => {
-    const overlay = new URLSearchParams(window.location.search).get('mode') === 'overlay';
-    document.body.classList.toggle('tv-overlay', overlay);
-    return () => document.body.classList.remove('tv-overlay');
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTime(
+        now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      );
+    };
+    updateClock();
+    const timer = setInterval(updateClock, 1000);
+    return () => clearInterval(timer);
   }, []);
 
+  // 2. Motion Preference Listener
   useEffect(() => {
-    // Read once per connection attempt rather than cached in a variable that
-    // outlives it: a revoked-and-reissued token never requires this tab to
-    // navigate, only for its launch URL to be updated on next power-cycle.
-    const token = () => new URLSearchParams(window.location.search).get('token') ?? undefined;
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener?.('change', handler);
+    return () => mediaQuery.removeEventListener?.('change', handler);
+  }, []);
+
+  // 3. Polling Refresh Handler (Fallback when tokenless or projection out of sync)
+  const refreshProjection = useCallback(async () => {
+    if (!organizationAlias || !tournamentAlias) return;
+    try {
+      const res = await fetch(
+        `/api/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/live`,
+      );
+      if (res.ok) {
+        const liveData = await res.json();
+        if (liveData && Array.isArray(liveData.matches)) {
+          setDashboard((current) => ({
+            ...current,
+            matches: liveData.matches,
+          }));
+        }
+      }
+    } catch {
+      // Degrade silently; do not reload page
+    }
+  }, [organizationAlias, tournamentAlias]);
+
+  // 4. Realtime SSE Connection with Graceful Degradation
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const token = new URLSearchParams(window.location.search).get('token');
+
+    // Case A: No token present in URL. Run polling fallback only, NEVER call RealtimeClient to avoid 401 loop
+    if (!token) {
+      if (pollIntervalMs > 0) {
+        const pollTimer = setInterval(() => {
+          void refreshProjection();
+        }, pollIntervalMs);
+        return () => clearInterval(pollTimer);
+      }
+      return;
+    }
+
+    // Case B: Token is present. Layer SSE client on top
     const client = new RealtimeClient({
       url: streamPath,
-      accessToken: () => token(),
+      accessToken: () => token,
       heartbeatTimeoutMs: 30_000,
     });
+
     void client.connect({
       onOpen: () => setDashboard((current) => markConnected(current)),
       onEvent: (event) => setDashboard((current) => applyEvent(current, event)),
-      // The replay window passed; reloading in place is the silent recovery
-      // path — there is no banner offering a person a "click to refresh".
-      onProjectionRequired: () => globalThis.location?.reload(),
-      // No onFailure: the client already retries with backoff underneath;
-      // this surface has nothing to say about a failure it is still handling.
+      // DO NOT RELOAD PAGE ON PROJECTION REQUIRED. Refresh in-memory projection instead
+      onProjectionRequired: () => {
+        void refreshProjection();
+      },
+      onFailure: () => {
+        // Silently fall back to polling on SSE failure
+        void refreshProjection();
+      },
     });
-    return () => client.close();
-  }, [streamPath]);
 
+    return () => client.close();
+  }, [streamPath, refreshProjection, pollIntervalMs]);
+
+  // 5. Automatic Carousel Rotation (respects prefers-reduced-motion)
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+    const interval = setInterval(() => {
+      setActiveTab((current) => {
+        if (current === 'standings') return 'performers';
+        if (current === 'performers') return 'facts';
+        return 'standings';
+      });
+    }, 10_000);
+    return () => clearInterval(interval);
+  }, [prefersReducedMotion]);
+
+  // 6. Data Computations
+  const matches = dashboard.matches;
   const pinnedMatch =
     pinnedMatchNumber === undefined
       ? undefined
-      : dashboard.matches.find((match) => match.matchNumber === pinnedMatchNumber);
+      : matches.find((m) => m.matchNumber === pinnedMatchNumber);
 
-  const matches =
-    pinnedMatchNumber === undefined ? dashboard.matches : pinnedMatch ? [pinnedMatch] : [];
+  const liveMatches = matches.filter((m) => m.state === 'live');
+  const allFinal = matches.length > 0 && matches.every((m) => m.state === 'final');
+  const isLive = liveMatches.length > 0;
 
-  const nearbyMatches =
-    pinnedMatchNumber !== undefined
-      ? dashboard.matches.filter((match) => match.matchNumber !== pinnedMatchNumber)
-      : [];
+  const champion: ChampionInfo | undefined = resolveChampion(matches, standings, clubs);
+  const performers: readonly TopPerformer[] =
+    initialTopPerformers && initialTopPerformers.length > 0
+      ? initialTopPerformers
+      : deriveTopPerformers(undefined, standings, clubs);
+  const facts: readonly TournamentFact[] = deriveTournamentFacts(matches);
 
-  if (matches.length === 0) {
+  // Status Badge Determination
+  const statusBadge = isLive
+    ? { label: 'EN VIVO', type: 'live' }
+    : allFinal
+      ? { label: 'TORNEO FINALIZADO', type: 'final' }
+      : { label: 'PROGRAMADO', type: 'upcoming' };
+
+  // Spotlight Match (pinned match or active live match or first match)
+  const spotlightMatch = pinnedMatch ?? liveMatches[0] ?? matches[0];
+
+  return (
+    <div className="tv-root-container">
+      {/* 1. Persistent Score-Bug / Status Bar */}
+      <header className="tv-scorebug cl-chamfer">
+        <div className="tv-scorebug__left">
+          {resolvedBranding.logoUrl ? (
+            <img
+              alt=""
+              aria-hidden="true"
+              className="tv-scorebug__brand-logo"
+              src={resolvedBranding.logoUrl}
+            />
+          ) : (
+            <img
+              alt="CopaLibre"
+              className="tv-scorebug__brand-logo"
+              height="32"
+              src="/copalibre-logo.svg"
+              width="32"
+            />
+          )}
+          <div className="tv-scorebug__titles">
+            <span className="tv-scorebug__tournament">{tournamentName ?? 'Torneo Oficial'}</span>
+            <span className="tv-scorebug__org">{organizationName ?? 'CopaLibre Broadcast'}</span>
+          </div>
+        </div>
+
+        <div className="tv-scorebug__right">
+          <div className={`tv-scorebug__badge tv-scorebug__badge--${statusBadge.type} cl-chamfer`}>
+            <span className="tv-scorebug__dot" />
+            <span>{statusBadge.label}</span>
+          </div>
+          {currentTime && <span className="tv-scorebug__clock">{currentTime}</span>}
+        </div>
+      </header>
+
+      {/* 2. Main Stage (Dominant Focal Panel + Secondary Rotating Rail) */}
+      <main className="tv-main-stage">
+        {/* DOMINANT FOCAL PANEL */}
+        <section aria-label="Panel Principal de Transmisión" className="tv-focal-panel cl-chamfer">
+          <div className="tv-focal-panel__header">
+            <span className="tv-focal-panel__label">
+              {allFinal && champion ? 'Recapitulativo de Campeonato' : 'Foco del Encuentro'}
+            </span>
+          </div>
+
+          {allFinal && champion ? (
+            /* Champion Spotlight Presentation */
+            <div className="tv-champion" data-testid="tv-champion-panel">
+              <div className="tv-champion__glow" />
+              <div className="tv-champion__badge cl-chamfer">
+                <span>★ {champion.title} ★</span>
+              </div>
+              <div className="tv-champion__emblem-wrap">
+                {champion.emblemObjectId ? (
+                  <img
+                    alt={champion.name}
+                    className="tv-champion__emblem"
+                    src={`/api/objects/${champion.emblemObjectId}`}
+                  />
+                ) : (
+                  <div className="tv-champion__monogram">
+                    {champion.abbreviation ?? champion.name.substring(0, 2).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <h2 className="tv-champion__name">{champion.name}</h2>
+              {champion.record && <p className="tv-champion__record">{champion.record}</p>}
+            </div>
+          ) : spotlightMatch ? (
+            /* Spotlight Match Presentation */
+            <div className="tv-match-spotlight" data-testid="tv-match-spotlight">
+              <div className="tv-match-spotlight__stage">
+                Etapa {spotlightMatch.stageNumber} · Partido {spotlightMatch.matchNumber}
+              </div>
+              <div className="tv-match-spotlight__vs-grid">
+                {/* Home Side */}
+                <TvTeamSide
+                  clubs={clubs}
+                  name={spotlightMatch.sides[0]?.name ?? 'Local'}
+                  abbreviation={spotlightMatch.sides[0]?.abbreviation}
+                />
+
+                {/* Score Center */}
+                <div className="tv-score-center">
+                  <div className="tv-score-center__digits">
+                    {spotlightMatch.sides[0]?.score ?? 0} : {spotlightMatch.sides[1]?.score ?? 0}
+                  </div>
+                  <div
+                    className="cl-chamfer"
+                    style={{
+                      padding: '0.4vmin 1.4vmin',
+                      background: 'var(--tv-bg-elevated)',
+                      border: `1px solid ${tvStateColor(spotlightMatch.state)}`,
+                      fontFamily: 'var(--cl-font-mono)',
+                      fontSize: 'clamp(0.75rem, 1.4vmin, 1rem)',
+                      color: tvStateColor(spotlightMatch.state),
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {presentState(spotlightMatch.state, TV_RESULT_STATE_LABELS).label}
+                  </div>
+                </div>
+
+                {/* Away Side */}
+                <TvTeamSide
+                  clubs={clubs}
+                  name={spotlightMatch.sides[1]?.name ?? 'Visitante'}
+                  abbreviation={spotlightMatch.sides[1]?.abbreviation}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="tv-champion">
+              <h2 className="tv-champion__name">{tournamentName}</h2>
+              <p className="tv-champion__record">Sin encuentros programados actualmente</p>
+            </div>
+          )}
+        </section>
+
+        {/* SECONDARY ROTATING RAIL */}
+        <aside aria-label="Estadísticas y Tablas del Torneo" className="tv-rail-panel cl-chamfer">
+          {/* Navigation Tabs */}
+          <nav aria-label="Secciones del panel lateral" className="tv-rail-nav">
+            <button
+              className={`tv-rail-tab cl-chamfer ${activeTab === 'standings' ? 'tv-rail-tab--active' : ''}`}
+              onClick={() => setActiveTab('standings')}
+              type="button"
+            >
+              Posiciones
+            </button>
+            <button
+              className={`tv-rail-tab cl-chamfer ${activeTab === 'performers' ? 'tv-rail-tab--active' : ''}`}
+              onClick={() => setActiveTab('performers')}
+              type="button"
+            >
+              Destacados
+            </button>
+            <button
+              className={`tv-rail-tab cl-chamfer ${activeTab === 'facts' ? 'tv-rail-tab--active' : ''}`}
+              onClick={() => setActiveTab('facts')}
+              type="button"
+            >
+              Estadísticas
+            </button>
+          </nav>
+
+          {/* Tab Content */}
+          <div className="tv-rail-content" data-testid="tv-rail-content">
+            {activeTab === 'standings' && <TvStandingsView clubs={clubs} standings={standings} />}
+
+            {activeTab === 'performers' && <TvPerformersView performers={performers} />}
+
+            {activeTab === 'facts' && <TvFactsView facts={facts} />}
+          </div>
+        </aside>
+      </main>
+    </div>
+  );
+}
+
+function TvTeamSide({
+  name,
+  abbreviation,
+  clubs,
+}: {
+  readonly name: string;
+  readonly abbreviation?: string;
+  readonly clubs?: readonly TvClubItem[];
+}): React.JSX.Element {
+  const club = clubs?.find((c) => c.name.toLowerCase() === name.toLowerCase());
+
+  return (
+    <div className="tv-team-side">
+      <div className="tv-team-side__emblem-wrap">
+        {club?.emblemObjectId ? (
+          <img
+            alt={name}
+            className="tv-team-side__emblem"
+            src={`/api/objects/${club.emblemObjectId}`}
+          />
+        ) : (
+          <div className="tv-team-side__monogram">
+            {abbreviation ?? name.substring(0, 2).toUpperCase()}
+          </div>
+        )}
+      </div>
+      <span className="tv-team-side__name">{name}</span>
+    </div>
+  );
+}
+
+function TvStandingsView({
+  standings,
+  clubs,
+}: {
+  readonly standings?: readonly StandingsRowView[];
+  readonly clubs?: readonly TvClubItem[];
+}): React.JSX.Element {
+  if (!standings || standings.length === 0) {
     return (
-      <div
-        className="tv-dashboard"
-        style={
-          resolvedBranding.accentColor
-            ? ({ '--tv-accent': resolvedBranding.accentColor } as React.CSSProperties)
-            : undefined
-        }
-      >
-        <TvStandbyFallback
-          branding={resolvedBranding}
-          clubs={clubs}
-          organizationName={organizationName}
-          tournamentName={tournamentName}
-        />
+      <div style={{ padding: '2vmin', color: 'var(--tv-text-secondary)', textAlign: 'center' }}>
+        Tabla de posiciones no disponible
       </div>
     );
   }
 
   return (
-    <div
-      className="tv-dashboard"
-      style={
-        resolvedBranding.accentColor
-          ? ({ '--tv-accent': resolvedBranding.accentColor } as React.CSSProperties)
-          : undefined
-      }
-    >
-      {resolvedBranding.logoUrl && (
-        <img
-          className="tv-dashboard__logo"
-          src={resolvedBranding.logoUrl}
-          alt=""
-          aria-hidden="true"
-        />
-      )}
-      <div className="tv-dashboard__matches">
-        {matches.map((match) => (
-          <TvMatchCard
-            isSpotlight={pinnedMatchNumber !== undefined}
-            key={match.matchId}
-            match={match}
-          />
-        ))}
+    <table className="tv-standings-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Club</th>
+          <th>PJ</th>
+          <th>Pts</th>
+        </tr>
+      </thead>
+      <tbody>
+        {standings.slice(0, 8).map((row) => {
+          const club = clubs?.find((c) => c.name.toLowerCase() === row.name.toLowerCase());
+          return (
+            <tr key={row.name}>
+              <td>{row.position}</td>
+              <td>
+                <div className="tv-table-club-cell">
+                  {club?.emblemObjectId ? (
+                    <img
+                      alt=""
+                      className="tv-table-club-emblem"
+                      src={`/api/objects/${club.emblemObjectId}`}
+                    />
+                  ) : (
+                    <span className="tv-table-club-monogram">
+                      {row.abbreviation ?? row.name.substring(0, 2).toUpperCase()}
+                    </span>
+                  )}
+                  <span>{row.name}</span>
+                </div>
+              </td>
+              <td>{row.played}</td>
+              <td>{row.points}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+function TvPerformersView({
+  performers,
+}: {
+  readonly performers: readonly TopPerformer[];
+}): React.JSX.Element {
+  if (performers.length === 0) {
+    return (
+      <div style={{ padding: '2vmin', color: 'var(--tv-text-secondary)', textAlign: 'center' }}>
+        Sin figuras destacadas registradas
       </div>
-      {nearbyMatches.length > 0 && (
-        <div className="tv-nearby">
-          <span className="tv-nearby__title">Otros partidos de la fecha</span>
-          <div className="tv-nearby__list">
-            {nearbyMatches.map((match) => (
-              <TvMatchCard key={match.matchId} match={match} />
-            ))}
+    );
+  }
+
+  return (
+    <div className="tv-performers-list">
+      {performers.map((p) => (
+        <article className="tv-performer-card cl-chamfer" key={`${p.rank}-${p.name}`}>
+          <div className="tv-performer-card__left">
+            <span className="tv-performer-card__rank">#{p.rank}</span>
+            {p.clubEmblemObjectId ? (
+              <img
+                alt=""
+                className="tv-table-club-emblem"
+                src={`/api/objects/${p.clubEmblemObjectId}`}
+              />
+            ) : null}
+            <div className="tv-performer-card__info">
+              <span className="tv-performer-card__name">{p.name}</span>
+              {p.clubName && <span className="tv-performer-card__club">{p.clubName}</span>}
+            </div>
           </div>
-        </div>
-      )}
+          <span className="tv-performer-card__score">
+            {p.statValue}{' '}
+            <small style={{ fontSize: '0.9rem', color: 'var(--tv-text-secondary)' }}>
+              {p.statLabel}
+            </small>
+          </span>
+        </article>
+      ))}
     </div>
   );
 }
 
-function TvStandbyFallback({
-  branding,
-  tournamentName,
-  organizationName,
-  clubs,
-}: {
-  readonly branding: TvBranding;
-  readonly tournamentName?: string;
-  readonly organizationName?: string;
-  readonly clubs?: readonly TvClubItem[];
-}): React.JSX.Element {
-  const displayClubs = clubs && clubs.length > 0 ? clubs.concat(clubs) : [];
-
+function TvFactsView({ facts }: { readonly facts: readonly TournamentFact[] }): React.JSX.Element {
   return (
-    <div className="tv-standby">
-      <div className="tv-standby__glow" />
-      <div className="tv-standby__content">
-        <div className="tv-standby__badge">
-          <span className="tv-standby__dot" />
-          <span>Circuito TV en vivo · Esperando encuentro</span>
+    <div className="tv-facts-grid">
+      {facts.map((fact) => (
+        <div className="tv-fact-tile cl-chamfer" key={fact.label}>
+          <span className="tv-fact-tile__label">{fact.label}</span>
+          <span className="tv-fact-tile__value">{fact.value}</span>
+          {fact.detail && <span className="tv-fact-tile__detail">{fact.detail}</span>}
         </div>
-        <div className="tv-standby__brand">
-          {branding.logoUrl ? (
-            <img
-              alt={organizationName ?? ''}
-              className="tv-standby__org-logo"
-              src={branding.logoUrl}
-            />
-          ) : (
-            <div className="tv-standby__copalibre-emblem">
-              <img alt="CopaLibre" height="120" src="/copalibre-logo.svg" width="120" />
-            </div>
-          )}
-          <h1 className="tv-standby__tournament">{tournamentName ?? 'Torneo Oficial'}</h1>
-          {organizationName && <p className="tv-standby__organization">{organizationName}</p>}
-        </div>
-        {displayClubs.length > 0 && (
-          <div className="tv-standby__carousel-wrap">
-            <p className="tv-standby__carousel-title">Clubes participantes</p>
-            <div className="tv-standby__carousel">
-              <div className="tv-standby__track">
-                {displayClubs.map((club, idx) => (
-                  <div className="tv-standby__club-pill" key={`${club.name}-${idx}`}>
-                    {club.emblemObjectId ? (
-                      <img
-                        alt=""
-                        className="tv-standby__club-img"
-                        src={`/api/objects/${club.emblemObjectId}`}
-                      />
-                    ) : (
-                      <span className="tv-standby__club-avatar">
-                        {club.name.substring(0, 2).toUpperCase()}
-                      </span>
-                    )}
-                    <span className="tv-standby__club-name">{club.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      ))}
     </div>
-  );
-}
-
-/**
- * Not localized: `/tv/**` is a non-SEO surface the architecture doc
- * explicitly allows "a simpler locale mechanism" than public-web's URL
- * prefixing — out of scope for this change, same boundary as `/control/**`.
- * Kept as the pre-existing Spanish text rather than switched to English, so
- * this surface's appearance does not change as a side effect of this file
- * merely needing to keep compiling against `presentState`'s new signature.
- */
-const TV_RESULT_STATE_LABELS: ResultStateLabels = {
-  live: 'EN VIVO',
-  upcoming: 'PROGRAMADO',
-  final: 'FINAL',
-  disputed: 'EN DISPUTA',
-  winner: 'GANÓ',
-  loser: 'PERDIÓ',
-  tbd: 'A DEFINIR',
-  cancelled: 'CANCELADO',
-};
-
-function TvMatchCard({
-  match,
-  isSpotlight = false,
-}: {
-  readonly match: LiveMatch;
-  readonly isSpotlight?: boolean;
-}): React.JSX.Element {
-  const badge = presentState(match.state, TV_RESULT_STATE_LABELS);
-  return (
-    <article
-      className={`tv-match${isSpotlight ? ' tv-match--spotlight' : ''}`}
-      style={{ borderInlineStartColor: tvStateColor(match.state) }}
-    >
-      <div className="tv-match__badge">
-        <span aria-hidden="true">{badge.icon}</span>
-        <span>{badge.label}</span>
-      </div>
-      <div className="tv-match__sides">
-        {match.sides.map((side) => (
-          <div className="tv-match__side" key={side.entrantId}>
-            <EntrantName
-              abbreviation={side.abbreviation}
-              className="tv-match__name"
-              fullName={side.name}
-            />
-            <span className="tv-match__score">{side.score}</span>
-          </div>
-        ))}
-      </div>
-    </article>
   );
 }
