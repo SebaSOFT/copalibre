@@ -1,6 +1,7 @@
 ---
 import type { IntlShape } from 'react-intl';
 import type { PublicTournamentListingItemResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import ChampionPodium from './ChampionPodium.astro';
 import { messages } from '../lib/i18n/public-messages.en.ts';
 
 interface Props {
@@ -64,71 +65,7 @@ const winners = tournament.winners ?? [];
     </h3>
   </header>
 
-  {
-    isFinished && winners.length > 0 && (
-      <div
-        class="cl-podium-container"
-        aria-label={intl.formatMessage(messages.tournamentsFinishedHeading)}
-      >
-        {winners.map((zone) => (
-          <div class="cl-zone-podium">
-            {zone.zoneName && <div class="cl-zone-title">{zone.zoneName}</div>}
-            <div class="cl-podium-grid">
-              {/* Champion */}
-              <div
-                class="cl-podium-spot cl-champion-spot"
-                data-entrant-id={zone.champion.entrantId}
-              >
-                <div class="cl-medal-badge cl-gold-medal" aria-hidden="true">
-                  1
-                </div>
-                <div class="cl-entrant-info">
-                  <span class="cl-podium-label">
-                    {intl.formatMessage(messages.tournamentsChampion)}
-                  </span>
-                  <span class="cl-entrant-name" title={zone.champion.name}>
-                    {zone.champion.name}
-                    {zone.champion.abbreviation && (
-                      <span class="cl-entrant-abbr" title={zone.champion.name}>
-                        {' '}
-                        ({zone.champion.abbreviation})
-                      </span>
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              {/* Runner-Up */}
-              {zone.runnerUp && (
-                <div
-                  class="cl-podium-spot cl-runner-spot"
-                  data-entrant-id={zone.runnerUp.entrantId}
-                >
-                  <div class="cl-medal-badge cl-silver-medal" aria-hidden="true">
-                    2
-                  </div>
-                  <div class="cl-entrant-info">
-                    <span class="cl-podium-label">
-                      {intl.formatMessage(messages.tournamentsRunnerUp)}
-                    </span>
-                    <span class="cl-entrant-name" title={zone.runnerUp.name}>
-                      {zone.runnerUp.name}
-                      {zone.runnerUp.abbreviation && (
-                        <span class="cl-entrant-abbr" title={zone.runnerUp.name}>
-                          {' '}
-                          ({zone.runnerUp.abbreviation})
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
+  {isFinished && winners.length > 0 && <ChampionPodium winners={winners} intl={intl} />}
 
   <footer class="cl-card-footer">
     <div class="cl-card-actions">

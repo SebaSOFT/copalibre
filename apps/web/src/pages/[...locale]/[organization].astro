@@ -37,6 +37,7 @@ const canonicalPath = `${localePrefix}/${encodeURIComponent(organization!)}`;
 const liveTournaments = listData?.tournaments.filter((t) => t.status === 'live') ?? [];
 const upcomingTournaments = listData?.tournaments.filter((t) => t.status === 'upcoming') ?? [];
 const finishedTournaments = listData?.tournaments.filter((t) => t.status === 'finished') ?? [];
+const orgClubs = listData?.clubs ?? [];
 const featured = listData ? pickFeaturedTournament(listData.tournaments) : undefined;
 
 const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgPageNotFoundTitle);
@@ -187,15 +188,15 @@ const structuredData = listData
             <h2 id="heading-clubs" class="cl-section-title">
               {intl.formatMessage(messages.orgPageClubsHeading)}
             </h2>
-            <span class="cl-section-count">({listData.clubs.length})</span>
+            <span class="cl-section-count">({orgClubs.length})</span>
           </div>
-          {listData.clubs.length === 0 ? (
+          {orgClubs.length === 0 ? (
             <div class="cl-empty-state">
               <p>{intl.formatMessage(messages.orgPageNoClubs)}</p>
             </div>
           ) : (
             <div class="cl-club-grid">
-              {listData.clubs.map((club) => (
+              {orgClubs.map((club) => (
                 <div class="cl-club-card">
                   <EmblemImage
                     alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
@@ -339,7 +340,7 @@ const structuredData = listData
 
   .cl-club-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
     gap: 1rem;
   }
 

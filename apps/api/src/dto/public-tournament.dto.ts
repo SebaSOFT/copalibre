@@ -124,6 +124,12 @@ export class PublicOverviewResponse {
 
   @ApiProperty({ type: 'object', additionalProperties: { type: 'string' } })
   ruleset!: Record<string, string>;
+
+  @ApiPropertyOptional({ enum: ['upcoming', 'live', 'finished'] })
+  status?: 'upcoming' | 'live' | 'finished';
+
+  @ApiPropertyOptional({ type: () => [PublicTournamentWinnerZoneResponse] })
+  winners?: PublicTournamentWinnerZoneResponse[];
 }
 
 export class PublicLiveMatchSideResponse {
@@ -446,6 +452,9 @@ export class PublicBracketMatchResponse {
 }
 
 export class PublicBracketResponse {
+  @ApiPropertyOptional({ description: 'The competition format of the stage' })
+  format?: string;
+
   @ApiProperty({ type: [PublicBracketMatchResponse] })
   matches!: PublicBracketMatchResponse[];
 }

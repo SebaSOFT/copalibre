@@ -1,6 +1,7 @@
 ---
 import PublicLayout from '../../../../layouts/PublicLayout.astro';
 import TournamentHero from '../../../../components/TournamentHero.astro';
+import ChampionPodium from '../../../../components/ChampionPodium.astro';
 import ScoreTicker from '../../../../components/ScoreTicker.astro';
 import StandingsPreview from '../../../../components/StandingsPreview.astro';
 import BroadcastStatusPanel from '../../../../components/BroadcastStatusPanel.astro';
@@ -104,6 +105,11 @@ const structuredData = {
   structuredData={structuredData}
 >
   <TournamentHero model={model} intl={intl} />
+  {
+    model.status === 'finished' && model.winners && model.winners.length > 0 && (
+      <ChampionPodium winners={model.winners} intl={intl} prominent={true} />
+    )
+  }
   <BroadcastStatusPanel model={model} intl={intl} />
   <ScoreTicker model={model} intl={intl} localePrefix={locale ? `/${locale}` : ''} />
   <p>

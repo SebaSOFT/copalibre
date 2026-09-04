@@ -232,3 +232,10 @@ without a name.
 #### Scenario: The close control has an accessible name
 - **WHEN** an open `Modal`'s close control is inspected in the accessibility tree
 - **THEN** it exposes a non-empty accessible name describing its action (e.g. "Close")
+
+### Requirement: Dark theme form control integration
+All form inputs within administrative screens SHALL utilize design token classes and adhere to the dark surface palette.
+
+#### Scenario: Rendering inputs in admin forms
+- **WHEN** an operator views form controls (checkboxes, date inputs, file upload buttons, number spinners) across Clubs, Venues, and Officials
+- **THEN** the elements SHALL render using design tokens without native browser white backgrounds

@@ -730,7 +730,6 @@ export class PersonRepository {
       .where('organization_id', '=', organizationId)
       .where('actor_id', '=', personId)
       .where('actor_granularity', '=', 'person')
-      .where('competition_granularity', '=', 'organization')
       .groupBy('collector_code')
       .execute();
 
@@ -755,13 +754,13 @@ export class PersonRepository {
     for (const descRow of descriptorRows) {
       const descriptor =
         typeof descRow.document === 'string' ? JSON.parse(descRow.document) : descRow.document;
-      const orgCollectors: Array<{ code: string }> = (descriptor.collectors ?? []).filter(
-        (c: { granularity?: { actor: string; competition: string } }) =>
-          c.granularity?.actor === 'person' && c.granularity?.competition === 'organization',
+      const personCollectors: Array<{ code: string }> = (descriptor.collectors ?? []).filter(
+        (c: { granularity?: { actor: string; competition?: string } }) =>
+          c.granularity?.actor === 'person',
       );
-      if (orgCollectors.length > 0) {
+      if (personCollectors.length > 0) {
         const disciplineTotals: PersonCareerStatisticTotal[] = [];
-        for (const c of orgCollectors) {
+        for (const c of personCollectors) {
           const stats = valueByCollector.get(c.code);
           if (stats) {
             disciplineTotals.push({

@@ -1,0 +1,194 @@
+---
+import type { IntlShape } from 'react-intl';
+import type { PublicTournamentWinnerZoneResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import { messages } from '../lib/i18n/public-messages.en.ts';
+
+interface Props {
+  readonly winners: readonly PublicTournamentWinnerZoneResponse[];
+  readonly intl: IntlShape;
+  readonly prominent?: boolean;
+}
+
+const { winners, intl, prominent = false } = Astro.props;
+---
+
+{
+  winners.length > 0 && (
+    <section
+      class:list={['cl-podium-container', { 'cl-podium-prominent': prominent }]}
+      aria-label={intl.formatMessage(messages.tournamentsFinishedHeading)}
+    >
+      {winners.map((zone) => (
+        <div class="cl-zone-podium">
+          {zone.zoneName && <div class="cl-zone-title">{zone.zoneName}</div>}
+          <div class="cl-podium-grid">
+            {/* Champion */}
+            <div class="cl-podium-spot cl-champion-spot" data-entrant-id={zone.champion.entrantId}>
+              <div class="cl-medal-badge cl-gold-medal" aria-hidden="true">
+                1
+              </div>
+              <div class="cl-entrant-info">
+                <span class="cl-podium-label">
+                  {intl.formatMessage(messages.tournamentsChampion)}
+                </span>
+                <span class="cl-entrant-name" title={zone.champion.name}>
+                  {zone.champion.name}
+                  {zone.champion.abbreviation && (
+                    <span class="cl-entrant-abbr" title={zone.champion.name}>
+                      {' '}
+                      ({zone.champion.abbreviation})
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Runner-Up */}
+            {zone.runnerUp && (
+              <div class="cl-podium-spot cl-runner-spot" data-entrant-id={zone.runnerUp.entrantId}>
+                <div class="cl-medal-badge cl-silver-medal" aria-hidden="true">
+                  2
+                </div>
+                <div class="cl-entrant-info">
+                  <span class="cl-podium-label">
+                    {intl.formatMessage(messages.tournamentsRunnerUp)}
+                  </span>
+                  <span class="cl-entrant-name" title={zone.runnerUp.name}>
+                    {zone.runnerUp.name}
+                    {zone.runnerUp.abbreviation && (
+                      <span class="cl-entrant-abbr" title={zone.runnerUp.name}>
+                        {' '}
+                        ({zone.runnerUp.abbreviation})
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </section>
+  )
+}
+
+<style>
+  .cl-podium-container {
+    background-color: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cl-podium-prominent {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(0, 0, 0, 0.4));
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0;
+  }
+
+  .cl-podium-prominent .cl-champion-spot {
+    background-color: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    padding: 0.75rem 1rem;
+  }
+
+  .cl-podium-prominent .cl-entrant-name {
+    font-size: var(--cl-font-size-md, 1rem);
+    font-weight: 700;
+  }
+
+  .cl-podium-prominent .cl-medal-badge {
+    width: 32px;
+    height: 32px;
+    font-size: var(--cl-font-size-sm, 0.875rem);
+  }
+
+  .cl-zone-title {
+    font-size: var(--cl-font-size-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #fbbf24;
+    margin-bottom: 0.35rem;
+  }
+
+  .cl-podium-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  @media (min-width: 480px) {
+    .cl-podium-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .cl-podium-spot {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.03);
+    min-width: 0;
+  }
+
+  .cl-medal-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--cl-font-size-xs);
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .cl-gold-medal {
+    background: linear-gradient(135deg, #fbbf24, #d97706);
+    color: #451a03;
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+  }
+
+  .cl-silver-medal {
+    background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+    color: #0f172a;
+    box-shadow: 0 0 6px rgba(226, 232, 240, 0.3);
+  }
+
+  .cl-entrant-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .cl-podium-label {
+    font-size: var(--cl-font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cl-text-muted, #94a3b8);
+  }
+
+  .cl-entrant-name {
+    font-size: var(--cl-font-size-sm);
+    font-weight: 600;
+    color: #f8fafc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cl-entrant-abbr {
+    color: #94a3b8;
+    font-weight: normal;
+    margin-left: 0.25rem;
+  }
+</style>

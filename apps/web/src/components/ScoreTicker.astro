@@ -24,57 +24,68 @@ const labels = resultStateLabels(intl);
 <section aria-labelledby="ticker-heading">
   <h2 id="ticker-heading">{intl.formatMessage(messages.tickerHeading)}</h2>
   {model.matches.length === 0 && <p>{intl.formatMessage(messages.tickerEmpty)}</p>}
-  <ul>
+  <ul class="cl-ticker-list">
     {
-      model.matches.map((match) => (
-        <li
-          class={`cl-card cl-card--${match.state === 'final' ? 'positive' : match.state === 'disputed' ? 'destructive' : match.state}`}
-        >
-          {match.matchNumber === undefined ? (
-            <>
+      model.matches.map((match) => {
+        const cardContent = (
+          <article
+            class:list={[
+              'cl-card',
+              'cl-chamfer',
+              'cl-match-card',
+              `cl-card--${match.state === 'final' ? 'positive' : match.state === 'disputed' ? 'destructive' : match.state}`,
+            ]}
+          >
+            <div class="cl-match-card__header">
               <span class="cl-badge">{labels[match.state]}</span>
-              <EntrantName
-                abbreviation={match.home.abbreviation}
-                client:load
-                fullName={match.home.name}
-              />
-              <span class="cl-stat-tile__value">{match.home.score ?? '—'}</span>
-              <EntrantName
-                abbreviation={match.away.abbreviation}
-                client:load
-                fullName={match.away.name}
-              />
-              <span class="cl-stat-tile__value">{match.away.score ?? '—'}</span>
-              <time datetime={match.startsAt}>{match.startsAt}</time>
-            </>
-          ) : (
-            <a
-              href={`${localePrefix}${model.canonicalPath}/stages/${match.stageNumber}/matches/${match.matchNumber}`}
-            >
-              <span class="cl-badge">{labels[match.state]}</span>
-              <EntrantName
-                abbreviation={match.home.abbreviation}
-                client:load
-                fullName={match.home.name}
-              />
-              <span class="cl-stat-tile__value">{match.home.score ?? '—'}</span>
-              <EntrantName
-                abbreviation={match.away.abbreviation}
-                client:load
-                fullName={match.away.name}
-              />
-              <span class="cl-stat-tile__value">{match.away.score ?? '—'}</span>
-              <time datetime={match.startsAt}>{match.startsAt}</time>
-            </a>
-          )}
-        </li>
-      ))
+              {match.startsAt && (
+                <time datetime={match.startsAt} class="cl-match-card__clock">
+                  {match.startsAt}
+                </time>
+              )}
+            </div>
+            <ol class="cl-match-card__sides">
+              <li class="cl-match-card__side">
+                <EntrantName
+                  abbreviation={match.home.abbreviation}
+                  client:load
+                  fullName={match.home.name}
+                />
+                <span class="cl-stat-tile__value">{match.home.score ?? '—'}</span>
+              </li>
+              <li class="cl-match-card__side">
+                <EntrantName
+                  abbreviation={match.away.abbreviation}
+                  client:load
+                  fullName={match.away.name}
+                />
+                <span class="cl-stat-tile__value">{match.away.score ?? '—'}</span>
+              </li>
+            </ol>
+          </article>
+        );
+
+        return (
+          <li>
+            {match.matchNumber === undefined ? (
+              cardContent
+            ) : (
+              <a
+                class="cl-match-card-link"
+                href={`${localePrefix}${model.canonicalPath}/stages/${match.stageNumber}/matches/${match.matchNumber}`}
+              >
+                {cardContent}
+              </a>
+            )}
+          </li>
+        );
+      })
     }
   </ul>
 </section>
 
 <style>
-  ul {
+  .cl-ticker-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--cl-space-3, 0.75rem);
@@ -83,44 +94,13 @@ const labels = resultStateLabels(intl);
     margin: var(--cl-space-3, 0.75rem) 0 0 0;
   }
 
-  li.cl-card {
-    background: var(--cl-surface-panel, #121828);
-    border: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.1));
-    border-radius: var(--cl-radius-md, 8px);
-    padding: var(--cl-space-3, 0.75rem);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    transition: border-color 0.15s ease;
-  }
-
-  li.cl-card:hover {
-    border-color: var(--cl-brand-cyan, #00d4ff);
-  }
-
-  li.cl-card a {
+  .cl-match-card-link {
     text-decoration: none;
     color: inherit;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    display: block;
   }
 
-  .cl-badge {
-    align-self: flex-start;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    background: var(--cl-surface-subtle, rgba(255, 255, 255, 0.1));
-    color: var(--cl-text-primary, #f2f6fb);
-  }
-
-  .cl-stat-tile__value {
-    font-family: var(--cl-font-display, inherit);
-    font-weight: 700;
-    font-size: 1.25rem;
-    color: var(--cl-text-primary, #f2f6fb);
+  .cl-match-card-link:hover .cl-match-card {
+    border-color: var(--cl-brand-cyan, #00d4ff);
   }
 </style>

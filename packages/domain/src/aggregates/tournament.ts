@@ -82,3 +82,39 @@ export function transitionTournament(
   }
   return ok(to);
 }
+
+export type PublicTournamentStatus = 'upcoming' | 'live' | 'finished';
+
+/**
+ * Derives a tournament's public-facing status from its lifecycle state
+ * and recorded match statuses. A tournament where every match is finalized
+ * is classified as 'finished', consistent across organization home and tournament overview.
+ */
+export function deriveTournamentStatus(
+  status: TournamentStatus | string,
+  matches: readonly { readonly status?: string; readonly state?: string }[] = [],
+): PublicTournamentStatus {
+  if (status === 'finished' || status === 'archived') {
+    return 'finished';
+  }
+  if (
+    matches.length > 0 &&
+    matches.every((m) => m.status === 'finalized' || m.status === 'finished' || m.state === 'final')
+  ) {
+    return 'finished';
+  }
+  if (
+    status === 'started' ||
+    matches.some(
+      (m) =>
+        m.status === 'in-progress' ||
+        m.status === 'live' ||
+        m.state === 'live' ||
+        m.status === 'finalized' ||
+        m.state === 'final',
+    )
+  ) {
+    return 'live';
+  }
+  return 'upcoming';
+}

@@ -18,6 +18,26 @@ export type SlotSource =
   | { readonly kind: 'loser-of'; readonly matchNumber?: number; readonly matchId?: string }
   | { readonly kind: 'seed'; readonly seed: number };
 
+export type StageLayout = 'bracket' | 'grid';
+
+/**
+ * Selects whether a stage layout renders as a bracket knockout tree or
+ * a compact by-round match grid. Only elimination formats use the bracket tree.
+ */
+export function selectStageLayout(format?: string): StageLayout {
+  if (!format) return 'bracket';
+  const eliminationFormats = [
+    'single-elimination',
+    'double-elimination',
+    'gauntlet',
+    'bracket-groups',
+    'custom-bracket',
+    'ffa-bracket',
+    'ffa-bracket-groups',
+  ];
+  return eliminationFormats.includes(format) ? 'bracket' : 'grid';
+}
+
 export interface BracketMatch {
   readonly matchNumber: number;
   readonly roundNumber: number;

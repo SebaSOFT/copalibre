@@ -23,12 +23,19 @@ draft, with a distinct visual treatment per state.
 - **THEN** its card renders with the draft visual treatment (muted styling) and a resume-editing action, distinct from live and upcoming cards
 
 ### Requirement: Recent activity feed shows audited operational events
-The dashboard SHALL show a chronological feed of recent operational events (e.g. match started,
-registration approved, tournament updated) for the organization, sourced from the audit log.
+The dashboard SHALL display recent organization audit events when activity records exist, rather than rendering an empty placeholder state.
 
 #### Scenario: Audit event appears in the feed
 - **WHEN** an operator approves a registration
 - **THEN** a corresponding entry appears in the organization's recent-activity feed with an actor, timestamp, and event type
+
+#### Scenario: Displaying activity on an active organization
+- **WHEN** an authenticated organizer opens the dashboard of an organization with recorded matches, clubs, or registrations
+- **THEN** the "Actividad reciente" section SHALL display the latest audit events with human-readable descriptions and timestamps
+
+#### Scenario: Empty state for brand new organization
+- **WHEN** an organizer views a newly created organization with zero audit records
+- **THEN** the "Actividad reciente" section SHALL display the empty state message
 
 ### Requirement: Dashboard is scoped to the authenticated organizer's organization
 The dashboard SHALL only display tournaments and activity belonging to organizations the

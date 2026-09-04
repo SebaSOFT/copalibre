@@ -135,17 +135,18 @@ const { profile, intl, organizationAlias } = Astro.props;
     min-width: 0;
   }
   .cl-player-profile__header {
-    border-bottom: 1px solid var(--cl-color-border, #e5e7eb);
+    border-bottom: 1px solid var(--cl-border, rgba(255, 255, 255, 0.1));
     padding-bottom: 16px;
   }
   .cl-player-profile__name {
     margin: 0 0 4px 0;
     font-size: var(--cl-font-size-xl);
     font-weight: 700;
+    color: var(--cl-text, #f8fafc);
     overflow-wrap: anywhere;
   }
   .cl-player-profile__alias {
-    color: var(--cl-color-text-subtle, #6b7280);
+    color: var(--cl-text-muted, #94a3b8);
     font-size: var(--cl-font-size-sm);
   }
   .cl-player-profile__meta {
@@ -156,7 +157,9 @@ const { profile, intl, organizationAlias } = Astro.props;
   }
   .cl-player-profile__tag {
     display: inline-block;
-    background: var(--cl-color-surface-subtle, #f3f4f6);
+    background: var(--cl-surface-subtle, rgba(255, 255, 255, 0.06));
+    color: var(--cl-text, #f8fafc);
+    border: 1px solid var(--cl-border, rgba(255, 255, 255, 0.08));
     padding: 2px 8px;
     border-radius: 4px;
     font-size: var(--cl-font-size-sm);
@@ -166,9 +169,10 @@ const { profile, intl, organizationAlias } = Astro.props;
     margin: 0 0 12px 0;
     font-size: var(--cl-font-size-md);
     font-weight: 600;
+    color: var(--cl-text, #f8fafc);
   }
   .cl-player-profile__empty {
-    color: var(--cl-color-text-subtle, #6b7280);
+    color: var(--cl-text-muted, #94a3b8);
     font-style: italic;
     margin: 0;
   }
@@ -179,7 +183,8 @@ const { profile, intl, organizationAlias } = Astro.props;
     margin: 0;
   }
   .cl-player-profile__stat-item {
-    background: var(--cl-color-surface-subtle, #f3f4f6);
+    background: var(--cl-surface-subtle, rgba(255, 255, 255, 0.06));
+    border: 1px solid var(--cl-border, rgba(255, 255, 255, 0.08));
     padding: 12px;
     border-radius: 6px;
     display: flex;
@@ -188,19 +193,20 @@ const { profile, intl, organizationAlias } = Astro.props;
   }
   .cl-player-profile__stat-label {
     font-size: var(--cl-font-size-xs);
-    color: var(--cl-color-text-subtle, #6b7280);
+    color: var(--cl-text-muted, #94a3b8);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
   .cl-player-profile__stat-value {
     font-size: var(--cl-font-size-xl);
     font-weight: 700;
+    color: var(--cl-text, #f8fafc);
     margin: 0;
   }
   .cl-player-profile__history-table-container {
     overflow-x: auto;
     scrollbar-gutter: stable;
-    border-bottom: 2px solid var(--cl-color-border, #e5e7eb);
+    border-bottom: 2px solid var(--cl-border, rgba(255, 255, 255, 0.1));
   }
   .cl-player-profile__history-table {
     width: 100%;
@@ -212,14 +218,16 @@ const { profile, intl, organizationAlias } = Astro.props;
   .cl-player-profile__history-table th,
   .cl-player-profile__history-table td {
     padding: 8px 12px;
-    border-bottom: 1px solid var(--cl-color-border, #e5e7eb);
+    border-bottom: 1px solid var(--cl-border, rgba(255, 255, 255, 0.1));
+    color: var(--cl-text, #f8fafc);
   }
   .cl-player-profile__history-table th {
-    background: var(--cl-color-surface-subtle, #f3f4f6);
+    background: var(--cl-surface-subtle, rgba(255, 255, 255, 0.06));
     font-weight: 600;
+    color: var(--cl-text-muted, #94a3b8);
   }
   .cl-player-profile__abbr {
-    color: var(--cl-color-text-subtle, #6b7280);
+    color: var(--cl-text-muted, #94a3b8);
   }
   .cl-player-profile__role {
     text-transform: capitalize;

@@ -395,6 +395,8 @@ export {
   TournamentTransitionError,
   type Tournament,
   type TournamentStatus,
+  type PublicTournamentStatus,
+  deriveTournamentStatus,
 } from './aggregates/tournament.js';
 export {
   validateStageCompletion,

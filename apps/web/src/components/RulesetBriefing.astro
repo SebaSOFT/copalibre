@@ -8,20 +8,90 @@ interface Props {
   readonly intl: IntlShape;
 }
 const { model, intl } = Astro.props;
+
+function formatRuleLabel(rawKey: string): string {
+  const clean = rawKey.replace(/^rules?\./i, '');
+  const words = clean
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  return words.join(' ');
+}
+
+function formatRuleValue(value: string): string {
+  if (value === 'true') return 'Yes';
+  if (value === 'false') return 'No';
+  const formatMap: Record<string, string> = {
+    'single-elimination': 'Single Elimination',
+    'double-elimination': 'Double Elimination',
+    'round-robin': 'Round Robin',
+    'round-robin-single-leg': 'Round Robin (Single Leg)',
+    'round-robin-home-away': 'Round Robin (Home & Away)',
+    league: 'League',
+    swiss: 'Swiss',
+    gauntlet: 'Gauntlet',
+    'bracket-groups': 'Bracket Groups',
+    'custom-bracket': 'Custom Bracket',
+    'ffa-bracket': 'FFA Bracket',
+    'ffa-league': 'FFA League',
+  };
+  if (formatMap[value]) {
+    return formatMap[value];
+  }
+  if (/^[a-z]+([-_][a-z]+)+$/i.test(value)) {
+    return value
+      .split(/[-_]+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+  }
+  return value;
+}
 ---
 
-<section aria-labelledby="ruleset-heading">
+<section aria-labelledby="ruleset-heading" class="cl-ruleset-section">
   <h2 id="ruleset-heading">{intl.formatMessage(messages.rulesetHeading)}</h2>
-  <dl>
+  <dl class="cl-ruleset-grid">
     {
       model.ruleset.map((entry) => (
-        <>
-          <>
-            <dt>{entry.label}</dt>
-            <dd>{entry.value}</dd>
-          </>
-        </>
+        <div class="cl-rule-item">
+          <dt class="cl-rule-label">{formatRuleLabel(entry.label)}</dt>
+          <dd class="cl-rule-value">{formatRuleValue(entry.value)}</dd>
+        </div>
       ))
     }
   </dl>
 </section>
+
+<style>
+  .cl-ruleset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--cl-space-3, 0.75rem);
+    margin: var(--cl-space-3, 0.75rem) 0 0 0;
+  }
+
+  .cl-rule-item {
+    background: var(--cl-surface-panel, #121828);
+    border: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.1));
+    border-radius: var(--cl-radius-md, 8px);
+    padding: var(--cl-space-3, 0.75rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .cl-rule-label {
+    font-size: var(--cl-font-size-xs, 0.75rem);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cl-text-muted, #94a3b8);
+  }
+
+  .cl-rule-value {
+    font-size: var(--cl-font-size-md, 1rem);
+    font-weight: 700;
+    color: var(--cl-text, #f8fafc);
+    margin: 0;
+  }
+</style>

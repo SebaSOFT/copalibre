@@ -45,6 +45,7 @@ import {
   type StatisticCollector,
   type Tournament,
   type MatchResult,
+  deriveTournamentStatus,
 } from '@copalibre/domain';
 
 @ApiTags('Public Projections')
@@ -93,22 +94,8 @@ export class PublicTournamentListingController {
     const tournamentItems: PublicTournamentListingItemResponse[] = [];
 
     for (const t of publishedTournaments) {
-      let status: 'upcoming' | 'live' | 'finished';
-      if (t.status === 'finished' || t.status === 'archived') {
-        status = 'finished';
-      } else if (t.status === 'started') {
-        status = 'live';
-      } else {
-        const matches = await overviewReadModel.matchesForTournament(t.tournamentId);
-        if (matches.length > 0 && matches.every((m) => m.status === 'finalized')) {
-          status = 'finished';
-        } else {
-          const isLive = matches.some(
-            (m) => m.status === 'in-progress' || m.status === 'finalized',
-          );
-          status = isLive ? 'live' : 'upcoming';
-        }
-      }
+      const matches = await overviewReadModel.matchesForTournament(t.tournamentId);
+      const status = deriveTournamentStatus(t.status, matches);
 
       const desc = descriptorMap.get(t.disciplineRef.descriptorId);
       const discipline = {
@@ -127,7 +114,7 @@ export class PublicTournamentListingController {
 
       let winners: PublicTournamentWinnerZoneResponse[] | undefined = undefined;
       if (status === 'finished') {
-        winners = await this.resolveTournamentWinners(t);
+        winners = await resolveTournamentWinners(this.db, t);
       }
 
       tournamentItems.push({
@@ -156,89 +143,129 @@ export class PublicTournamentListingController {
       })),
     };
   }
+}
 
-  private async resolveTournamentWinners(
-    tournament: Tournament,
-  ): Promise<PublicTournamentWinnerZoneResponse[]> {
-    const competitionRepo = new CompetitionRepository(this.db);
-    const enrollmentRepo = new EnrollmentRepository(this.db);
-    const stages = await competitionRepo.listStagesOfTournament(tournament.tournamentId);
-    if (stages.length === 0) return [];
+export async function resolveTournamentWinners(
+  db: Kysely<Database>,
+  tournament: Tournament,
+): Promise<PublicTournamentWinnerZoneResponse[]> {
+  const competitionRepo = new CompetitionRepository(db);
+  const enrollmentRepo = new EnrollmentRepository(db);
+  const stages = await competitionRepo.listStagesOfTournament(tournament.tournamentId);
+  if (stages.length === 0) return [];
 
-    const sortedStages = [...stages].sort((a, b) => a.number - b.number);
-    const terminalStage = sortedStages[sortedStages.length - 1];
-    if (!terminalStage) return [];
+  const sortedStages = [...stages].sort((a, b) => a.number - b.number);
+  const terminalStage = sortedStages[sortedStages.length - 1];
+  if (!terminalStage) return [];
 
-    const zoneRows = await this.db
-      .selectFrom('zones')
-      .selectAll()
-      .where('stage_id', '=', terminalStage.stageId)
-      .orderBy('number')
-      .execute();
+  const zoneRows = await db
+    .selectFrom('zones')
+    .selectAll()
+    .where('stage_id', '=', terminalStage.stageId)
+    .orderBy('number')
+    .execute();
 
-    const zonesToProcess: { zoneId?: string; zoneName?: string }[] =
-      zoneRows.length > 0
-        ? zoneRows.map((z) => ({
-            zoneId: z.zone_id,
-            zoneName: z.name,
-          }))
-        : [{ zoneId: undefined, zoneName: undefined }];
+  const zonesToProcess: { zoneId?: string; zoneName?: string }[] =
+    zoneRows.length > 0
+      ? zoneRows.map((z) => ({
+          zoneId: z.zone_id,
+          zoneName: z.name,
+        }))
+      : [{ zoneId: undefined, zoneName: undefined }];
 
-    const results: PublicTournamentWinnerZoneResponse[] = [];
+  const results: PublicTournamentWinnerZoneResponse[] = [];
 
-    for (const zone of zonesToProcess) {
-      const isDuel =
-        terminalStage.format === 'single-elimination' ||
-        terminalStage.format === 'double-elimination';
+  for (const zone of zonesToProcess) {
+    const isDuel =
+      terminalStage.format === 'single-elimination' ||
+      terminalStage.format === 'double-elimination';
 
-      if (isDuel) {
-        let matchQuery = this.db
-          .selectFrom('matches')
-          .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-          .selectAll('matches')
-          .where('fixtures.stage_id', '=', terminalStage.stageId)
-          .where('matches.status', '=', 'finalized');
+    if (isDuel) {
+      let matchQuery = db
+        .selectFrom('matches')
+        .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+        .selectAll('matches')
+        .where('fixtures.stage_id', '=', terminalStage.stageId)
+        .where('matches.status', '=', 'finalized');
 
-        if (zone.zoneId) {
-          matchQuery = matchQuery.where('fixtures.zone_id', '=', zone.zoneId);
+      if (zone.zoneId) {
+        matchQuery = matchQuery.where('fixtures.zone_id', '=', zone.zoneId);
+      }
+
+      const matches = await matchQuery
+        .orderBy('fixtures.round', 'desc')
+        .orderBy('matches.number', 'desc')
+        .execute();
+
+      if (matches.length > 0 && matches[0]) {
+        const finalMatch = matches[0];
+        const result = (
+          typeof finalMatch.result === 'string' ? JSON.parse(finalMatch.result) : finalMatch.result
+        ) as MatchResult | null;
+
+        if (result?.winnerEntrantId) {
+          const championId = result.winnerEntrantId;
+          const runnerUpId = result.sides.find((s) => s.entrantId !== championId)?.entrantId;
+          const entrantIds = runnerUpId ? [championId, runnerUpId] : [championId];
+          const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails(entrantIds);
+          const championDetails = podiumDetails.get(championId);
+
+          if (championDetails) {
+            const runnerUpDetails = runnerUpId ? podiumDetails.get(runnerUpId) : undefined;
+            results.push({
+              ...(zone.zoneId ? { zoneId: zone.zoneId } : {}),
+              ...(zone.zoneName ? { zoneName: zone.zoneName } : {}),
+              champion: {
+                entrantId: championId,
+                name: championDetails.name,
+                abbreviation: championDetails.abbreviation,
+                clubId: championDetails.clubId,
+                emblemObjectId: championDetails.emblemObjectId,
+              },
+              ...(runnerUpDetails && runnerUpId
+                ? {
+                    runnerUp: {
+                      entrantId: runnerUpId,
+                      name: runnerUpDetails.name,
+                      abbreviation: runnerUpDetails.abbreviation,
+                      clubId: runnerUpDetails.clubId,
+                      emblemObjectId: runnerUpDetails.emblemObjectId,
+                    },
+                  }
+                : {}),
+            });
+          }
         }
-
-        const matches = await matchQuery
-          .orderBy('fixtures.round', 'desc')
-          .orderBy('matches.number', 'desc')
-          .execute();
-
-        if (matches.length > 0 && matches[0]) {
-          const finalMatch = matches[0];
-          const result = (
-            typeof finalMatch.result === 'string'
-              ? JSON.parse(finalMatch.result)
-              : finalMatch.result
-          ) as MatchResult | null;
-
-          if (result?.winnerEntrantId) {
-            const championId = result.winnerEntrantId;
-            const runnerUpId = result.sides.find((s) => s.entrantId !== championId)?.entrantId;
-            const entrantIds = runnerUpId ? [championId, runnerUpId] : [championId];
+      }
+    } else {
+      try {
+        const standings = await readStandings(db, tournament, terminalStage.number);
+        if (standings.rows.length > 0) {
+          const rank1 = standings.rows.find((r) => r.rank === 1) ?? standings.rows[0];
+          const rank2 =
+            standings.rows.find((r) => r.rank === 2) ??
+            (standings.rows.length > 1 ? standings.rows[1] : undefined);
+          if (rank1) {
+            const entrantIds = rank2 ? [rank1.entrantId, rank2.entrantId] : [rank1.entrantId];
             const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails(entrantIds);
-            const championDetails = podiumDetails.get(championId);
+            const championDetails = podiumDetails.get(rank1.entrantId);
 
             if (championDetails) {
-              const runnerUpDetails = runnerUpId ? podiumDetails.get(runnerUpId) : undefined;
+              const runnerUpDetails = rank2 ? podiumDetails.get(rank2.entrantId) : undefined;
               results.push({
                 ...(zone.zoneId ? { zoneId: zone.zoneId } : {}),
                 ...(zone.zoneName ? { zoneName: zone.zoneName } : {}),
                 champion: {
-                  entrantId: championId,
+                  entrantId: rank1.entrantId,
                   name: championDetails.name,
                   abbreviation: championDetails.abbreviation,
                   clubId: championDetails.clubId,
                   emblemObjectId: championDetails.emblemObjectId,
                 },
-                ...(runnerUpDetails && runnerUpId
+                ...(runnerUpDetails && rank2
                   ? {
                       runnerUp: {
-                        entrantId: runnerUpId,
+                        entrantId: rank2.entrantId,
                         name: runnerUpDetails.name,
                         abbreviation: runnerUpDetails.abbreviation,
                         clubId: runnerUpDetails.clubId,
@@ -250,54 +277,13 @@ export class PublicTournamentListingController {
             }
           }
         }
-      } else {
-        try {
-          const standings = await readStandings(this.db, tournament, terminalStage.number);
-          if (standings.rows.length > 0) {
-            const rank1 = standings.rows.find((r) => r.rank === 1) ?? standings.rows[0];
-            const rank2 =
-              standings.rows.find((r) => r.rank === 2) ??
-              (standings.rows.length > 1 ? standings.rows[1] : undefined);
-            if (rank1) {
-              const entrantIds = rank2 ? [rank1.entrantId, rank2.entrantId] : [rank1.entrantId];
-              const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails(entrantIds);
-              const championDetails = podiumDetails.get(rank1.entrantId);
-
-              if (championDetails) {
-                const runnerUpDetails = rank2 ? podiumDetails.get(rank2.entrantId) : undefined;
-                results.push({
-                  ...(zone.zoneId ? { zoneId: zone.zoneId } : {}),
-                  ...(zone.zoneName ? { zoneName: zone.zoneName } : {}),
-                  champion: {
-                    entrantId: rank1.entrantId,
-                    name: championDetails.name,
-                    abbreviation: championDetails.abbreviation,
-                    clubId: championDetails.clubId,
-                    emblemObjectId: championDetails.emblemObjectId,
-                  },
-                  ...(runnerUpDetails && rank2
-                    ? {
-                        runnerUp: {
-                          entrantId: rank2.entrantId,
-                          name: runnerUpDetails.name,
-                          abbreviation: runnerUpDetails.abbreviation,
-                          clubId: runnerUpDetails.clubId,
-                          emblemObjectId: runnerUpDetails.emblemObjectId,
-                        },
-                      }
-                    : {}),
-                });
-              }
-            }
-          }
-        } catch {
-          // Fallback if standings cannot be computed
-        }
+      } catch {
+        // Fallback if standings cannot be computed
       }
     }
-
-    return results;
   }
+
+  return results;
 }
 
 @ApiTags('Public Projections')
@@ -414,12 +400,20 @@ export class PublicProjectionsController {
       .orderBy('clubs.name')
       .execute();
 
+    const status = deriveTournamentStatus(tournament.status, matches);
+    let winners: PublicTournamentWinnerZoneResponse[] | undefined = undefined;
+    if (status === 'finished') {
+      winners = await resolveTournamentWinners(this.db, tournament);
+    }
+
     return {
       organizationAlias,
       organizationName,
       tournamentAlias,
       tournamentName: tournament.name,
       seasonName: season.name,
+      status,
+      ...(winners && winners.length > 0 ? { winners } : {}),
       ...(descriptor?.images === undefined
         ? {}
         : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),
@@ -743,7 +737,7 @@ export class PublicProjectionsController {
       })),
     });
     if (!generated.ok) {
-      return { matches: [] };
+      return { format: stage.format, matches: [] };
     }
     const graph = generated.value;
 
@@ -775,6 +769,7 @@ export class PublicProjectionsController {
     );
 
     return {
+      format: stage.format,
       matches: bracketMatches.map((m) => {
         const series = seriesByPosition.get(`${m.round}:${m.position}`);
         return {
