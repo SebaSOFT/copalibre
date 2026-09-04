@@ -392,3 +392,13 @@ The `apps/web` application SHALL provide an `/invitations/accept` route capable 
 #### Scenario: Administrator accepts onboarding invitation
 - **WHEN** an invited administrator navigates to `/invitations/accept?token=<token>`
 - **THEN** the web application renders the invitation acceptance view rather than a 404 Not Found error.
+
+### Requirement: `copalibre dev --hybrid` completes unattended
+`copalibre dev --hybrid` SHALL complete its infrastructure-startup step and proceed to running
+application servers without manual intervention, when all infrastructure containers start successfully.
+
+#### Scenario: A one-shot init container exits successfully
+- **WHEN** the infrastructure profile's one-shot init container (e.g. object-storage bucket
+  provisioning) completes and exits with status 0
+- **THEN** `copalibre dev --hybrid` SHALL treat the infrastructure profile as ready and proceed to
+  migrations and application servers, rather than treating the exited container as a failure
