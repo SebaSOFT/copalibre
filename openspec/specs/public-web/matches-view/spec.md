@@ -137,3 +137,18 @@ text label), matching the same constraint the bracket view already holds to.
 #### Scenario: A live badge carries a text label
 - **WHEN** a match card shows its live/upcoming/final state
 - **THEN** the indicator pairs a color with an icon or text label, not color alone
+
+### Requirement: Stage layout matches its format
+A stage's public presentation SHALL use a layout appropriate to its actual tournament format:
+elimination formats render as a bracket tree; non-elimination formats (round-robin and similar) render
+as a compact by-round match grid.
+
+#### Scenario: A finished round-robin stage
+- **WHEN** a visitor views a stage whose format is round-robin (or round-robin-single-leg)
+- **THEN** the page SHALL render the compact by-round match grid, never an elimination-bracket tree with
+  empty connector space
+
+#### Scenario: A finished single-elimination stage
+- **WHEN** a visitor views a stage whose format is single-elimination
+- **THEN** the page SHALL render the bracket tree, populated with real entrant names and scores for every
+  materialized round

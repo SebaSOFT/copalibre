@@ -552,3 +552,30 @@ The public product showcase page for CopaLibre on `sebasoft.app` SHALL accuratel
 #### Scenario: Visual telemetry displays Buchholz and recursive H2H traces
 - **WHEN** viewing the architectural telemetry section
 - **THEN** the JSON decision trace demonstrates Strength of Schedule (Buchholz / Median-Buchholz) and recursive Head-to-Head comparator steps with cryptographic SHA-256 audit proofs
+
+### Requirement: Organization home tournament status sections
+The organization home page SHALL present tournaments grouped by their real status (Live, Upcoming,
+Final), using the same status determination as the tournament's own overview page, and SHALL include a
+Final section for finished tournaments rather than omitting one.
+
+#### Scenario: A finished tournament on organization home
+- **WHEN** a tournament has completed all its stages with a recorded result
+- **THEN** organization home SHALL list it under a Final section and SHALL NOT badge it "LIVE"
+
+### Requirement: Champion presentation for a finished tournament
+A finished tournament SHALL receive a visually distinct champion presentation, not an ordinary
+standings-table row.
+
+#### Scenario: Viewing a finished tournament's overview
+- **WHEN** a visitor views the overview page of a tournament that has crowned a champion
+- **THEN** the champion (club emblem and name) SHALL be presented with distinct visual emphasis, not
+  merely as rank 1 of the standings table
+
+### Requirement: Tournament overview inline match list styling
+The tournament overview page's inline match list SHALL use the same styled match-card component as the
+dedicated matches page, not an unstyled list.
+
+#### Scenario: Viewing the tournament overview's match section
+- **WHEN** a visitor views a tournament overview page's inline list of matches
+- **THEN** each match SHALL render using the `.cl-match-card` treatment, consistent with the dedicated
+  matches page
