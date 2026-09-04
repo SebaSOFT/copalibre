@@ -9,6 +9,7 @@ import {
   toOfficial,
   toOrganizationInvitation,
   toOrganizationRoleAssignment,
+  toInstallationRoleAssignment,
   toResourceAssignment,
   toSchedule,
   toScheduleSlot,
@@ -602,5 +603,29 @@ describe('scheduling rows', () => {
       matchId: 'm-2',
       slotId: 'slot-2',
     });
+  });
+
+  it('maps an installation role assignment with and without deleted_at', () => {
+    const active = toInstallationRoleAssignment({
+      assignment_id: 'assign-1',
+      principal_id: 'p-1',
+      role: 'superadmin',
+      status: 'active',
+      deleted_at: null,
+      created_at: CREATED,
+      updated_at: CREATED,
+    });
+    expect(active.deletedAt).toBeUndefined();
+
+    const deleted = toInstallationRoleAssignment({
+      assignment_id: 'assign-2',
+      principal_id: 'p-2',
+      role: 'superadmin',
+      status: 'revoked',
+      deleted_at: CREATED,
+      created_at: CREATED,
+      updated_at: CREATED,
+    });
+    expect(deleted.deletedAt).toBeDefined();
   });
 });
