@@ -23,6 +23,14 @@ import { PersonPhotoPlaceholder } from './placeholders.js';
 import { FieldValue } from './ui/molecules/field-value.js';
 import { Modal } from './ui/organisms/modal.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import type { PlayerRole } from '@copalibre/domain';
+import {
+  RosterRoleSelector,
+  type RosterMemberItem,
+  ROSTER_ROLE_LABELS,
+  ROSTER_ROLE_ACCENTS,
+} from './RosterRoleSelector.js';
+import type { TeamMemberResponse } from '../lib/api-client.js';
 import {
   LOCK_EXPLANATION,
   initialReview,
@@ -40,6 +48,7 @@ import { messages } from '../i18n/messages.en.js';
 export interface ReviewRegistrationRow extends RegistrationRow {
   readonly contactEmail: string;
   readonly teamMembers: readonly string[];
+  readonly teamMembersDetailed?: readonly TeamMemberResponse[];
   readonly experience: string;
   readonly requiresCheckIn: boolean;
   readonly checkInClosesAt?: string;
@@ -75,6 +84,7 @@ export function RegistrationReviewPage({
   onEditTeamIdentity,
   onLinkIdentity,
   onUnlinkIdentity,
+  onEditTeamMembers,
 }: {
   readonly organizationAlias: string;
   readonly tournamentName: string;
@@ -106,6 +116,10 @@ export function RegistrationReviewPage({
     request: LinkParticipantIdentityRequest,
   ) => Promise<void> | void;
   readonly onUnlinkIdentity?: (personId: string) => Promise<void> | void;
+  readonly onEditTeamMembers?: (
+    entrantId: string,
+    members: readonly { readonly personId: string; readonly role?: PlayerRole }[],
+  ) => Promise<void> | void;
 }): React.JSX.Element {
   const intl = useIntl();
   const [state, setState] = useState(() => initialReview(10));
@@ -116,6 +130,9 @@ export function RegistrationReviewPage({
   const [addOpen, setAddOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<ReviewRegistrationRow | undefined>(undefined);
   const [linkingRow, setLinkingRow] = useState<ReviewRegistrationRow | undefined>(undefined);
+  const [editingMembersRow, setEditingMembersRow] = useState<ReviewRegistrationRow | undefined>(
+    undefined,
+  );
   const visible = visibleRows(rows, state) as readonly ReviewRegistrationRow[];
   const selected = new Set(state.selected);
   const allVisibleSelected =
@@ -241,14 +258,50 @@ export function RegistrationReviewPage({
                 label={intl.formatMessage(messages.reviewContact)}
                 value={row.contactEmail}
               />
-              <FieldValue
-                label={intl.formatMessage(messages.reviewTeamMembers)}
-                value={
-                  row.teamMembers.length === 0
-                    ? intl.formatMessage(messages.reviewTeamMembersUnavailable)
-                    : row.teamMembers.join(', ')
-                }
-              />
+              <div className="cl-review-team-roster">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.reviewTeamMembers} />
+                </span>
+                {row.teamMembersDetailed && row.teamMembersDetailed.length > 0 ? (
+                  <ul
+                    className="cl-roster-badge-list"
+                    style={{
+                      listStyle: 'none',
+                      padding: 0,
+                      margin: 'var(--cl-space-2) 0',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 'var(--cl-space-2)',
+                    }}
+                  >
+                    {row.teamMembersDetailed.map((member) => (
+                      <li
+                        key={member.personId}
+                        className="cl-roster-badge-item"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 'var(--cl-space-1)',
+                        }}
+                      >
+                        <span>{member.displayName || member.personId}</span>
+                        <span
+                          className={`cl-badge ${ROSTER_ROLE_ACCENTS[member.role as PlayerRole] ?? 'cl-state--muted'}`}
+                          data-testid={`role-badge-${member.personId}`}
+                        >
+                          {ROSTER_ROLE_LABELS[member.role as PlayerRole] ?? member.role}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ margin: 'var(--cl-space-1) 0' }}>
+                    {row.teamMembers.length === 0
+                      ? intl.formatMessage(messages.reviewTeamMembersUnavailable)
+                      : row.teamMembers.join(', ')}
+                  </p>
+                )}
+              </div>
               <FieldValue
                 label={intl.formatMessage(messages.reviewExperience)}
                 value={row.experience}
@@ -322,9 +375,18 @@ export function RegistrationReviewPage({
                 <Button type="button" variant="secondary">
                   <FormattedMessage {...messages.reviewMessage} />
                 </Button>
-                <Button disabled={!teamMembershipEnabled} type="button" variant="secondary">
-                  <FormattedMessage {...messages.reviewEditMembers} />
-                </Button>
+                {(row.teamId !== undefined ||
+                  row.teamMembers.length > 0 ||
+                  (row.teamMembersDetailed && row.teamMembersDetailed.length > 0)) && (
+                  <Button
+                    disabled={!teamMembershipEnabled}
+                    onClick={() => setEditingMembersRow(row)}
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FormattedMessage {...messages.reviewEditMembers} />
+                  </Button>
+                )}
                 {(row.personId !== undefined || row.teamId !== undefined) && (
                   <Button onClick={() => setEditingRow(row)} type="button" variant="secondary">
                     <FormattedMessage {...messages.reviewEditIdentity} />
@@ -459,6 +521,18 @@ export function RegistrationReviewPage({
             await onLinkIdentity?.(linkingRow.personId as string, { email });
             setLinkingRow(undefined);
           }}
+        />
+      )}
+
+      {editingMembersRow !== undefined && (
+        <EditTeamMembersDialog
+          key={editingMembersRow.entrantId}
+          onClose={() => setEditingMembersRow(undefined)}
+          onSubmit={async (members) => {
+            await onEditTeamMembers?.(editingMembersRow.entrantId, members);
+            setEditingMembersRow(undefined);
+          }}
+          row={editingMembersRow}
         />
       )}
     </>
@@ -728,6 +802,82 @@ function LinkIdentityDialog({
             value={email}
           />
         </FormField>
+        {error !== undefined && <p className="cl-inline-alert">{error}</p>}
+      </form>
+    </Modal>
+  );
+}
+
+function EditTeamMembersDialog({
+  row,
+  onClose,
+  onSubmit,
+}: {
+  readonly row: ReviewRegistrationRow;
+  readonly onClose: () => void;
+  readonly onSubmit: (
+    members: readonly { readonly personId: string; readonly role: PlayerRole }[],
+  ) => Promise<void>;
+}): React.JSX.Element {
+  const intl = useIntl();
+  const initialMembers: readonly RosterMemberItem[] =
+    row.teamMembersDetailed && row.teamMembersDetailed.length > 0
+      ? row.teamMembersDetailed.map((m) => ({
+          personId: m.personId,
+          displayName: m.displayName || m.personId,
+          role: m.role as PlayerRole,
+          nationality: m.nationality,
+          photoObjectId: m.photoObjectId,
+        }))
+      : row.teamMembers.map((name, idx) => ({
+          personId: `member-${idx + 1}`,
+          displayName: name,
+          role: 'player' as PlayerRole,
+        }));
+
+  const [members, setMembers] = useState<readonly RosterMemberItem[]>(initialMembers);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+
+  return (
+    <Modal
+      footer={
+        <>
+          <Button onClick={onClose} type="button" variant="secondary">
+            <FormattedMessage {...messages.reviewEditIdentityCancel} />
+          </Button>
+          <Button disabled={busy} form="edit-team-members-form" type="submit">
+            <FormattedMessage {...messages.reviewSaveMembers} />
+          </Button>
+        </>
+      }
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+      open
+      title={intl.formatMessage(messages.reviewEditMembersTitle)}
+    >
+      <form
+        id="edit-team-members-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setBusy(true);
+          setError(undefined);
+          void onSubmit(members.map((m) => ({ personId: m.personId, role: m.role })))
+            .then(onClose)
+            .catch((cause: unknown) =>
+              setError(cause instanceof Error ? cause.message : String(cause)),
+            )
+            .finally(() => setBusy(false));
+        }}
+      >
+        <p className="cl-decision-hint">
+          <FormattedMessage
+            {...messages.reviewEditMembersDescription}
+            values={{ team: row.displayName }}
+          />
+        </p>
+        <RosterRoleSelector disabled={busy} members={members} onChange={setMembers} />
         {error !== undefined && <p className="cl-inline-alert">{error}</p>}
       </form>
     </Modal>

@@ -240,4 +240,50 @@ describe('DashboardRoute', () => {
 
     await waitFor(() => expect(screen.getByRole('link', { name: 'Roles' })).toBeDefined());
   });
+
+  it('renders real audit events in the recent activity feed', async () => {
+    await act(async () => {
+      render(
+        <DashboardRoute
+          client={client({
+            listActiveTournaments: async () => [tournament()],
+            fetchAuditTrail: async () => ({
+              records: [
+                {
+                  auditId: 'audit-1',
+                  organizationId: 'org-1',
+                  entityType: 'match',
+                  entityId: 'm-1',
+                  action: 'match.finalized',
+                  actor: 'user:admin-1',
+                  occurredAt: new Date().toISOString(),
+                  authorizationContext: 'org.operate-match',
+                  outcome: 'applied',
+                },
+                {
+                  auditId: 'audit-2',
+                  organizationId: 'org-1',
+                  entityType: 'club',
+                  entityId: 'c-1',
+                  action: 'club.created',
+                  actor: 'user:admin-1',
+                  occurredAt: new Date(Date.now() - 60_000).toISOString(),
+                  authorizationContext: 'org.manage-clubs',
+                  outcome: 'applied',
+                },
+              ],
+              total: 2,
+              limit: 10,
+              offset: 0,
+            }),
+          })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
+    });
+
+    await waitFor(() => expect(screen.getByText('Partido finalizado')).toBeDefined());
+    expect(screen.getByText('Club creado')).toBeDefined();
+    expect(screen.getAllByText('user:admin-1')).toHaveLength(2);
+  });
 });

@@ -98,6 +98,7 @@ export function LoginRoute(): React.JSX.Element {
       </form>
       <div style={{ marginTop: '1rem' }}>
         <a
+          className="cl-link cl-focusable"
           href="/control/forgot-password"
           onClick={(e) => {
             e.preventDefault();
@@ -168,6 +169,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
       </form>
       <div style={{ marginTop: '2rem' }}>
         <a
+          className="cl-link cl-focusable"
           href="/control/login"
           onClick={(e) => {
             e.preventDefault();
@@ -219,6 +221,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
       <AuthLayout>
         <p>Enlace de recuperación inválido.</p>
         <a
+          className="cl-link cl-focusable"
           href="/control/login"
           onClick={(e) => {
             e.preventDefault();
@@ -263,6 +266,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
       {success && (
         <div style={{ marginTop: '2rem' }}>
           <a
+            className="cl-link cl-focusable"
             href="/control/login"
             onClick={(e) => {
               e.preventDefault();

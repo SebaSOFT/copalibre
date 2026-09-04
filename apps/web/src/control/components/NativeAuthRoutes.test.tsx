@@ -33,6 +33,10 @@ describe('NativeAuthRoutes', () => {
       </ControlIntl>,
     );
 
+    const forgotLink = screen.getByRole('link', { name: /¿Olvidaste tu contraseña\?/i });
+    expect(forgotLink.className).toContain('cl-link');
+    expect(forgotLink.className).toContain('cl-focusable');
+
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'test@example.com' } });
     fireEvent.change(screen.getByLabelText(/Contraseña/i), { target: { value: 'password' } });
     fireEvent.click(screen.getByRole('button', { name: /Ingresar/i }));

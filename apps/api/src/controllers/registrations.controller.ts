@@ -67,6 +67,7 @@ import {
   ReviewRegistrationRequest,
   SetEntrantAbbreviationRequest,
   TeamIdentityResponse,
+  TeamMemberResponse,
   UpdatePersonIdentityRequest,
   UpdateTeamIdentityRequest,
 } from '../dto/organization.dto.js';
@@ -128,14 +129,52 @@ export class RegistrationsController {
         (ref): ref is Extract<Entrant['entrantRef'], { kind: 'person' }> => ref.kind === 'person',
       )
       .map((ref) => ref.personId);
-    const persons = await new PersonRepository(this.db).findPersons(personIds);
+    const people = new PersonRepository(this.db);
+    const persons = await people.findPersons(personIds);
     const personById = new Map(persons.map((person) => [person.personId, person]));
     const linkedPersonIds = await new IdentityPrincipalRepository(this.db).linkedPersonIds(
       organizationId,
       personIds,
     );
 
-    return visible.map((entrant) => toResponse(entrant, personById, linkedPersonIds));
+    const teamEntrants = visible.filter(
+      (entrant): entrant is Entrant & { entrantRef: { kind: 'team'; teamId: string } } =>
+        entrant.entrantRef.kind === 'team',
+    );
+    const teamMembersByTeamId = new Map<string, TeamMemberResponse[]>();
+    if (teamEntrants.length > 0) {
+      const allTeamSquads = await Promise.all(
+        teamEntrants.map(async (te) => ({
+          teamId: te.entrantRef.teamId,
+          squad: await people.squadOf(te.entrantRef.teamId),
+        })),
+      );
+      const allMemberPersonIds = [
+        ...new Set(allTeamSquads.flatMap(({ squad }) => squad.map((p) => p.personId))),
+      ];
+      const memberPersons = await people.findPersons(allMemberPersonIds);
+      const memberPersonById = new Map(memberPersons.map((p) => [p.personId, p]));
+
+      for (const { teamId, squad } of allTeamSquads) {
+        teamMembersByTeamId.set(
+          teamId,
+          squad.map((player) => {
+            const person = memberPersonById.get(player.personId);
+            return {
+              personId: player.personId,
+              displayName: person?.displayName ?? 'Unknown',
+              role: player.role,
+              ...(person?.nationality ? { nationality: person.nationality } : {}),
+              ...(person?.photoObjectId ? { photoObjectId: person.photoObjectId } : {}),
+            };
+          }),
+        );
+      }
+    }
+
+    return visible.map((entrant) =>
+      toResponse(entrant, personById, linkedPersonIds, teamMembersByTeamId),
+    );
   }
 
   @Post(':entrantId/review')
@@ -783,14 +822,17 @@ function toResponse(
     { displayName: string; nationality?: string; photoObjectId?: string }
   > = new Map(),
   linkedPersonIds: ReadonlySet<string> = new Set(),
+  teamMembersByTeamId: ReadonlyMap<string, TeamMemberResponse[]> = new Map(),
 ): RegistrationResponse {
   if (entrant.entrantRef.kind === 'team') {
+    const teamMembers = teamMembersByTeamId.get(entrant.entrantRef.teamId);
     return {
       entrantId: entrant.entrantId,
       tournamentId: entrant.tournamentId,
       status: entrant.status,
       teamId: entrant.entrantRef.teamId,
       ...(entrant.abbreviation === undefined ? {} : { abbreviation: entrant.abbreviation }),
+      ...(teamMembers !== undefined ? { teamMembers } : {}),
     };
   }
 

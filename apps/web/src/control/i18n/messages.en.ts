@@ -722,6 +722,15 @@ export const messages = defineMessages({
   reviewExperience: { id: 'control.review.experience', defaultMessage: 'Experience' },
   reviewMessage: { id: 'control.review.message', defaultMessage: 'Message' },
   reviewEditMembers: { id: 'control.review.editMembers', defaultMessage: 'Edit members' },
+  reviewEditMembersTitle: {
+    id: 'control.review.editMembersTitle',
+    defaultMessage: 'Edit team members',
+  },
+  reviewEditMembersDescription: {
+    id: 'control.review.editMembersDescription',
+    defaultMessage: 'Change member roles within {team}.',
+  },
+  reviewSaveMembers: { id: 'control.review.saveMembers', defaultMessage: 'Save members' },
   reviewRevoke: { id: 'control.review.revoke', defaultMessage: 'Revoke' },
   reviewEmptyFilter: {
     id: 'control.review.emptyFilter',

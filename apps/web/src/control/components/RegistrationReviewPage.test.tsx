@@ -203,4 +203,57 @@ describe('RegistrationReviewPage — nationality and profile', () => {
 
     expect(onBulkReview).toHaveBeenCalledWith({ entrantIds: ['entrant-1'], decision: 'refused' });
   });
+
+  it('renders team member role badges when teamMembersDetailed is present', () => {
+    renderPage({
+      rows: [
+        row({
+          personId: undefined,
+          teamId: 'team-1',
+          displayName: 'Club Atlético Talleres',
+          teamMembersDetailed: [
+            { personId: 'p-1', displayName: 'Matías Suárez', role: 'player' },
+            { personId: 'p-2', displayName: 'Javier Gandolfi', role: 'coach' },
+          ],
+        }),
+      ],
+    });
+
+    expect(screen.getByText('Matías Suárez')).toBeDefined();
+    expect(screen.getByText('Javier Gandolfi')).toBeDefined();
+    expect(screen.getByTestId('role-badge-p-1').textContent).toBe('Jugador');
+    expect(screen.getByTestId('role-badge-p-2').textContent).toBe('Coach');
+  });
+
+  it('opens EditTeamMembersDialog, allows changing member role to coach, and saves', async () => {
+    const onEditTeamMembers = jest.fn();
+    renderPage({
+      onEditTeamMembers,
+      rows: [
+        row({
+          personId: undefined,
+          teamId: 'team-1',
+          displayName: 'Club Atlético Talleres',
+          teamMembersDetailed: [{ personId: 'p-1', displayName: 'Matías Suárez', role: 'player' }],
+        }),
+      ],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit members' }));
+
+    expect(screen.getByText('Edit team members')).toBeDefined();
+    const roleSelect = screen.getByTestId('role-select-p-1') as HTMLSelectElement;
+    expect(roleSelect.value).toBe('player');
+
+    fireEvent.change(roleSelect, { target: { value: 'coach' } });
+    expect(roleSelect.value).toBe('coach');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save members' }));
+
+    await waitFor(() => {
+      expect(onEditTeamMembers).toHaveBeenCalledWith('entrant-1', [
+        { personId: 'p-1', role: 'coach' },
+      ]);
+    });
+  });
 });

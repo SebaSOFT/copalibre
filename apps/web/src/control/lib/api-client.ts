@@ -128,6 +128,18 @@ export interface ControlApiClient {
     entrantId: string,
     request: SetEntrantAbbreviationRequest,
   ) => Promise<RegistrationResponse>;
+  readonly editTeamMemberships?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    entrantId: string,
+    body: {
+      readonly personIds?: readonly string[];
+      readonly members?: readonly {
+        readonly personId: string;
+        readonly role?: 'player' | 'substitute' | 'coach' | 'staff';
+      }[];
+    },
+  ) => Promise<RegistrationResponse>;
   readonly fetchStandings: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -1439,6 +1451,7 @@ export interface MyOrganizationResponse {
 
 export interface AuditRecordResponse {
   readonly auditId: string;
+  readonly organizationId?: string;
   readonly entityType: string;
   readonly entityId: string;
   readonly action: string;
@@ -1944,6 +1957,19 @@ export function createControlApiClient(input: {
         )}/entrants/${encodeURIComponent(entrantId)}/abbreviation`,
         {
           method: 'PATCH',
+          body,
+          token: input.accessToken?.(),
+        },
+      ),
+
+    editTeamMemberships: (organizationAlias, tournamentAlias, entrantId, body) =>
+      requestJson<RegistrationResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/registrations/${encodeURIComponent(entrantId)}/team-memberships`,
+        {
+          method: 'POST',
           body,
           token: input.accessToken?.(),
         },

@@ -240,3 +240,104 @@ body {
     padding: var(--cl-space-3);
   }
 }
+
+/* Form controls & links themed to dark Broadcast Command Precision palette */
+.cl-control input,
+.cl-control select,
+.cl-control textarea,
+.cl-input,
+.cl-select,
+.cl-textarea {
+  color-scheme: dark;
+}
+
+.cl-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
+}
+
+.cl-input[type='file'] {
+  padding: var(--cl-space-1);
+}
+
+.cl-input[type='file']::file-selector-button {
+  background: var(--cl-surface-raised);
+  color: var(--cl-text-primary);
+  border: 1px solid var(--cl-border-muted);
+  padding: var(--cl-space-1) var(--cl-space-3);
+  margin-right: var(--cl-space-3);
+  font-family: var(--cl-font-body);
+  font-size: var(--cl-font-size-sm);
+  cursor: pointer;
+  border-radius: var(--cl-radius-sm, 4px);
+  transition: background 120ms ease;
+}
+
+.cl-input[type='file']::file-selector-button:hover {
+  background: var(--cl-surface-hover, var(--cl-surface-raised));
+}
+
+input[type='checkbox'].cl-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  min-height: 1.25rem;
+  min-width: 1.25rem;
+  margin: 0;
+  cursor: pointer;
+  border-radius: var(--cl-radius-sm, 4px);
+  background: var(--cl-surface-base);
+  border: 1px solid var(--cl-border-default);
+  display: inline-grid;
+  place-content: center;
+  flex-shrink: 0;
+  color-scheme: dark;
+}
+
+input[type='checkbox'].cl-checkbox:hover {
+  border-color: var(--cl-border-hover);
+}
+
+input[type='checkbox'].cl-checkbox:checked {
+  background: var(--cl-state-live);
+  border-color: var(--cl-state-live);
+}
+
+input[type='checkbox'].cl-checkbox:checked::before {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  background-color: var(--cl-ink-950);
+  clip-path: polygon(14% 44%, 0 58%, 40% 98%, 100% 16%, 86% 2%, 40% 68%);
+}
+
+input[type='checkbox'].cl-checkbox:focus-visible {
+  outline: 2px solid var(--cl-focus-ring);
+  outline-offset: 2px;
+}
+
+.cl-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cl-space-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cl-link {
+  color: var(--cl-state-live);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.cl-link:hover {
+  opacity: 0.85;
+}
+
+.cl-link:focus-visible {
+  outline: 2px solid var(--cl-focus-ring);
+  outline-offset: 2px;
+}
