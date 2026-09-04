@@ -536,6 +536,13 @@ export const messages: Record<string, string> = {
   'control.settings.mutationClass':
     '{mutationClass, select, safe {安全} requires_rebuild {需要重建} blocked_after_results {结果后被锁定} other {未知}}',
   'control.settings.link': '锦标赛设置',
+  'control.settings.emblemHeading': '锦标赛徽标',
+  'control.settings.emblemAlt': '锦标赛徽标',
+  'control.settings.emblemPlaceholderAlt': '未上传锦标赛徽标',
+  'control.settings.uploadEmblem': '上传徽标',
+  'control.settings.removeEmblem': '删除徽标',
+  'control.settings.emblemUploaded': '已上传锦标赛徽标。',
+  'control.settings.emblemRemoved': '已删除锦标赛徽标。',
   'control.rulesetOverrides.title': '规则',
   'control.rulesetOverrides.link': '规则',
   'control.rulesetOverrides.fields': '覆盖字段',

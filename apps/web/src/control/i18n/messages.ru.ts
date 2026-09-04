@@ -553,6 +553,13 @@ export const messages: Record<string, string> = {
   'control.settings.mutationClass':
     '{mutationClass, select, safe {Безопасно} requires_rebuild {Требует пересборки} blocked_after_results {Заблокировано после результатов} other {Неизвестно}}',
   'control.settings.link': 'Настройки турнира',
+  'control.settings.emblemHeading': 'Эмблема турнира',
+  'control.settings.emblemAlt': 'Эмблема турнира',
+  'control.settings.emblemPlaceholderAlt': 'Эмблема турнира не загружена',
+  'control.settings.uploadEmblem': 'Загрузить эмблему',
+  'control.settings.removeEmblem': 'Удалить эмблему',
+  'control.settings.emblemUploaded': 'Эмблема турнира загружена.',
+  'control.settings.emblemRemoved': 'Эмблема турнира удалена.',
   'control.rulesetOverrides.title': 'Регламент',
   'control.rulesetOverrides.link': 'Регламент',
   'control.rulesetOverrides.fields': 'Поля переопределения',

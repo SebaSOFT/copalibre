@@ -553,6 +553,13 @@ export const messages: Record<string, string> = {
   'control.settings.mutationClass':
     '{mutationClass, select, safe {Segura} requires_rebuild {Requiere reconstrucción} blocked_after_results {Bloqueada tras resultados} other {Desconocida}}',
   'control.settings.link': 'Configuración del torneo',
+  'control.settings.emblemHeading': 'Escudo del torneo',
+  'control.settings.emblemAlt': 'Escudo del torneo',
+  'control.settings.emblemPlaceholderAlt': 'Sin escudo del torneo cargado',
+  'control.settings.uploadEmblem': 'Subir escudo',
+  'control.settings.removeEmblem': 'Eliminar escudo',
+  'control.settings.emblemUploaded': 'Escudo del torneo subido.',
+  'control.settings.emblemRemoved': 'Escudo del torneo eliminado.',
   'control.rulesetOverrides.title': 'Reglamento',
   'control.rulesetOverrides.link': 'Reglamento',
   'control.rulesetOverrides.fields': 'Campos personalizados',

@@ -5,7 +5,12 @@ async function mockForgotPasswordApi(page: Page): Promise<void> {
     window.fetch = async (input, init) => {
       const url = String(input);
       const method = init?.method ?? 'GET';
-      if (url === '/api/auth/forgot-password' && method === 'POST') {
+      if (
+        (url === '/auth/forgot-password' ||
+          url === '/api/auth/forgot-password' ||
+          url.endsWith('/auth/forgot-password')) &&
+        method === 'POST'
+      ) {
         const body = JSON.parse(String(init?.body));
         if (body.email) {
           return Response.json({ success: true }, { status: 200 });

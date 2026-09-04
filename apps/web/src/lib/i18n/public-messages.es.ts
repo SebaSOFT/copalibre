@@ -39,6 +39,8 @@ export const messages: Record<string, string> = {
 
   'publicWeb.hero.liveCount': '{count} EN VIVO',
   'publicWeb.hero.noLiveMatches': 'SIN PARTIDOS EN VIVO',
+  'publicWeb.hero.tournamentEmblemAlt': 'Escudo de {name}',
+  'publicWeb.hero.tournamentEmblemPlaceholderAlt': 'Sin escudo del torneo cargado',
 
   'publicWeb.bracket.roundAriaLabel': '{branch} — ronda {round}',
   'publicWeb.bracket.roundHeading': 'Ronda {round}',

@@ -8,6 +8,7 @@ import {
   fetchOverview,
   mapLiveResponse,
   mapOverviewResponse,
+  tournamentEmblemUrl,
 } from '../../../../lib/public-api-client.ts';
 import type { LiveDashboard } from '../../../../lib/live-state.ts';
 import type { ResultState } from '../../../../lib/result-state.ts';
@@ -28,6 +29,7 @@ let dashboard: LiveDashboard = {
 };
 let tournamentName = tournamentAlias;
 let organizationName = organizationAlias;
+let tournamentEmblem: string | undefined;
 let clubs: { name: string; emblemObjectId?: string }[] = [];
 
 let standings: StandingsRowView[] = [];
@@ -43,6 +45,9 @@ try {
     const mappedOverview = mapOverviewResponse(overview);
     tournamentName = mappedOverview.tournamentName || tournamentAlias;
     organizationName = mappedOverview.organizationName || organizationAlias;
+    if (mappedOverview.emblemObjectId) {
+      tournamentEmblem = tournamentEmblemUrl(organizationAlias, tournamentAlias);
+    }
     standings = mappedOverview.standings ? [...mappedOverview.standings] : [];
     if (mappedOverview.clubs) {
       clubs = mappedOverview.clubs.map((c) => ({
@@ -97,6 +102,7 @@ try {
     client:load
     initial={dashboard}
     streamPath={streamPath}
+    branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
     tournamentName={tournamentName}
     organizationName={organizationName}
     organizationAlias={organizationAlias}

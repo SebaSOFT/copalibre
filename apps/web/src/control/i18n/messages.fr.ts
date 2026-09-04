@@ -555,6 +555,13 @@ export const messages: Record<string, string> = {
   'control.settings.mutationClass':
     '{mutationClass, select, safe {Sans risque} requires_rebuild {Nécessite une reconstruction} blocked_after_results {Bloqué après résultats} other {Inconnu}}',
   'control.settings.link': 'Paramètres du tournoi',
+  'control.settings.emblemHeading': 'Écusson du tournoi',
+  'control.settings.emblemAlt': 'Écusson du tournoi',
+  'control.settings.emblemPlaceholderAlt': 'Aucun écusson de tournoi téléversé',
+  'control.settings.uploadEmblem': 'Téléverser un écusson',
+  'control.settings.removeEmblem': 'Supprimer l’écusson',
+  'control.settings.emblemUploaded': 'Écusson du tournoi téléversé.',
+  'control.settings.emblemRemoved': 'Écusson du tournoi supprimé.',
   'control.rulesetOverrides.title': 'Règlement',
   'control.rulesetOverrides.link': 'Règlement',
   'control.rulesetOverrides.fields': 'Champs de dérogation',

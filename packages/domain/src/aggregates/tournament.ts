@@ -29,6 +29,8 @@ export interface Tournament {
   readonly archivedAt?: string;
   /** Profile this tournament instantiated, pinned at start. */
   readonly profileRef?: { readonly profileId: string; readonly version: string };
+  /** FK into `object_metadata.object_id`; absent until an emblem is uploaded. */
+  readonly emblemObjectId?: string;
 }
 
 /** A started tournament's modules are frozen; see canChangeModuleVersion. */

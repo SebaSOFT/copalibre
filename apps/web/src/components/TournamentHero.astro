@@ -2,17 +2,38 @@
 import type { IntlShape } from 'react-intl';
 import { displayName, type OverviewModel } from '../lib/overview.ts';
 import { messages } from '../lib/i18n/public-messages.en.ts';
+import { tournamentEmblemUrl } from '../lib/public-api-client.ts';
+import EmblemImage from './EmblemImage.astro';
 
 interface Props {
   readonly model: OverviewModel;
   readonly intl: IntlShape;
 }
 const { model, intl } = Astro.props;
+const tournamentName = displayName(model);
+const emblemSrc =
+  model.emblemObjectId && model.organizationAlias && model.tournamentAlias
+    ? tournamentEmblemUrl(model.organizationAlias, model.tournamentAlias)
+    : undefined;
 ---
 
 <section class="cl-card cl-card--live cl-chamfer">
-  <p>{model.organizationName}</p>
-  <h1>{displayName(model)}</h1>
+  <div class="cl-tournament-hero__header">
+    {
+      emblemSrc && (
+        <EmblemImage
+          alt={intl.formatMessage(messages.heroTournamentEmblemAlt, { name: tournamentName })}
+          placeholderAlt={intl.formatMessage(messages.heroTournamentEmblemPlaceholderAlt)}
+          size={56}
+          src={emblemSrc}
+        />
+      )
+    }
+    <div class="cl-tournament-hero__titles">
+      <p>{model.organizationName}</p>
+      <h1>{tournamentName}</h1>
+    </div>
+  </div>
   {/* The count is the label: "live" as a colour alone is not a state. */}
   <p class="cl-badge">
     {
@@ -22,3 +43,15 @@ const { model, intl } = Astro.props;
     }
   </p>
 </section>
+
+<style>
+  .cl-tournament-hero__header {
+    display: flex;
+    align-items: center;
+    gap: var(--cl-space-3, 0.75rem);
+  }
+  .cl-tournament-hero__titles {
+    display: flex;
+    flex-direction: column;
+  }
+</style>

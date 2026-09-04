@@ -36,7 +36,13 @@ async function mockControlApis(page: Page): Promise<void> {
           unreferencedCount: 0,
         });
       }
-      if (url.includes('/organizations/liga-mendocina')) {
+      if (url.includes('/organizations/liga-mendocina/tournaments')) {
+        return Response.json([]);
+      }
+      if (
+        url.endsWith('/organizations/liga-mendocina') ||
+        url.includes('/organizations/liga-mendocina?')
+      ) {
         return Response.json({
           organizationId: 'org-1',
           alias: 'liga-mendocina',

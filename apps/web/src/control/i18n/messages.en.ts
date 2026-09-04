@@ -1500,6 +1500,34 @@ export const messages = defineMessages({
     id: 'control.settings.link',
     defaultMessage: 'Tournament settings',
   },
+  settingsEmblemHeading: {
+    id: 'control.settings.emblemHeading',
+    defaultMessage: 'Tournament emblem',
+  },
+  settingsEmblemAlt: {
+    id: 'control.settings.emblemAlt',
+    defaultMessage: 'Tournament emblem',
+  },
+  settingsEmblemPlaceholderAlt: {
+    id: 'control.settings.emblemPlaceholderAlt',
+    defaultMessage: 'No tournament emblem uploaded',
+  },
+  settingsUploadEmblem: {
+    id: 'control.settings.uploadEmblem',
+    defaultMessage: 'Upload emblem',
+  },
+  settingsRemoveEmblem: {
+    id: 'control.settings.removeEmblem',
+    defaultMessage: 'Remove emblem',
+  },
+  settingsEmblemUploaded: {
+    id: 'control.settings.emblemUploaded',
+    defaultMessage: 'Tournament emblem uploaded.',
+  },
+  settingsEmblemRemoved: {
+    id: 'control.settings.emblemRemoved',
+    defaultMessage: 'Tournament emblem removed.',
+  },
 
   // TournamentRulesetPage.tsx, TournamentRulesetRoute.tsx (openspec 0169)
   rulesetOverridesTitle: { id: 'control.rulesetOverrides.title', defaultMessage: 'Ruleset' },

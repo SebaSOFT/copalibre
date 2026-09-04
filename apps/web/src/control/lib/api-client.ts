@@ -481,6 +481,15 @@ export interface ControlApiClient {
     organizationAlias: string,
     request: UploadImageRequest,
   ) => Promise<{ readonly objectId: string }>;
+  readonly uploadTournamentEmblem?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    request: UploadImageRequest,
+  ) => Promise<{ readonly objectId: string }>;
+  readonly deleteTournamentEmblem?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<{ readonly success: boolean }>;
   /** An organization's aggregate storage usage. */
   readonly getStorageUsage?: (
     organizationAlias: string,
@@ -1055,6 +1064,7 @@ export interface TournamentSettingsResponse {
   readonly region?: string;
   readonly capacity?: number;
   readonly checkInClosesAt?: string;
+  readonly emblemObjectId?: string;
 }
 
 export type TournamentSettingsRequest = Partial<TournamentSettingsResponse>;
@@ -1269,6 +1279,7 @@ export interface TournamentResponse {
   readonly rulesetId?: string;
   readonly organizationId?: string;
   readonly status?: 'draft' | 'published' | 'started' | 'finished' | 'archived';
+  readonly emblemObjectId?: string;
 }
 
 export type TournamentConfigurationExportResponse =
@@ -1453,6 +1464,7 @@ export interface MyOrganizationResponse {
   readonly organizationAlias: string;
   readonly organizationName: string;
   readonly role: OrganizationRole;
+  readonly emblemObjectId?: string;
 }
 
 export interface AuditRecordResponse {
@@ -2550,6 +2562,20 @@ export function createControlApiClient(input: {
         { method: 'POST', body, token: input.accessToken?.() },
       ),
 
+    uploadTournamentEmblem: (organizationAlias, tournamentAlias, body) =>
+      requestJson(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    deleteTournamentEmblem: (organizationAlias, tournamentAlias) =>
+      requestJson(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`,
+        { method: 'DELETE', token: input.accessToken?.() },
+      ),
+
     getStorageUsage: (organizationAlias) =>
       requestJson<OrganizationStorageUsageResponse>(
         input.fetch,
@@ -2721,6 +2747,14 @@ export function clubEmblemUrl(organizationAlias: string, clubId: string, baseUrl
 
 export function organizationEmblemUrl(organizationAlias: string, baseUrl = ''): string {
   return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/emblem`;
+}
+
+export function tournamentEmblemUrl(
+  organizationAlias: string,
+  tournamentAlias: string,
+  baseUrl = '',
+): string {
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`;
 }
 
 async function requestText(

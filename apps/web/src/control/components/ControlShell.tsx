@@ -6,7 +6,11 @@ import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
-import { createControlApiClient } from '../lib/api-client.js';
+import {
+  createControlApiClient,
+  organizationEmblemUrl,
+  type MyOrganizationResponse,
+} from '../lib/api-client.js';
 import { accessTokenHasScope, controlTokenStore } from '../session/token-store.js';
 import {
   writeStoredLanguagePreference,
@@ -14,6 +18,7 @@ import {
 } from '../../lib/language-preference.js';
 import { ToastProvider } from './ToastProvider.js';
 import { Button } from './ui/atoms/button.js';
+import { FramedImage } from './FramedImage.js';
 import { NavigationDrawer } from './ui/organisms/navigation-drawer.js';
 
 export function ControlShell({
@@ -69,6 +74,7 @@ function ControlShellChrome({
   const intl = useIntl();
   const isSuperAdmin = accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
   const [role, setRole] = useState<OrganizationRole | undefined>(undefined);
+  const [currentOrg, setCurrentOrg] = useState<MyOrganizationResponse | undefined>(undefined);
   useEffect(() => {
     if (!organizationAlias) return;
     let cancelled = false;
@@ -80,6 +86,7 @@ function ControlShellChrome({
       .then((organizations) => {
         if (cancelled) return;
         const mine = organizations.find((one) => one.organizationAlias === organizationAlias);
+        setCurrentOrg(mine);
         setRole(mine?.role);
       })
       .catch(() => {
@@ -101,13 +108,31 @@ function ControlShellChrome({
     window.location.assign('/control/');
   };
 
+  const orgEmblem =
+    organizationAlias && currentOrg?.emblemObjectId !== undefined
+      ? organizationEmblemUrl(organizationAlias)
+      : undefined;
+
+  const brandMarkNode = (
+    <div style={brandMarkRowStyle}>
+      {orgEmblem ? (
+        <FramedImage
+          alt={currentOrg?.organizationName ?? 'Organization emblem'}
+          placeholder={<img src="/copalibre-logo.svg" alt="" width="24" height="24" />}
+          size={24}
+          src={orgEmblem}
+        />
+      ) : (
+        <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
+      )}
+      <strong>COPALIBRE CMD</strong>
+    </div>
+  );
+
   const navContent = (onNavigate?: () => void) => (
     <>
       <div style={brandStyle}>
-        <div style={brandMarkRowStyle}>
-          <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
-          <strong>COPALIBRE CMD</strong>
-        </div>
+        {brandMarkNode}
         <span style={metaStyle}>BROADCAST OPS</span>
       </div>
       <a
@@ -172,10 +197,7 @@ function ControlShellChrome({
     // public/marketing Astro surfaces, which never render this component.
     <div className="cl-control" data-density="control">
       <header className="cl-control__mobile-header">
-        <div style={brandMarkRowStyle}>
-          <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
-          <strong>COPALIBRE CMD</strong>
-        </div>
+        {brandMarkNode}
         <button
           type="button"
           className="cl-control__hamburger-btn cl-focusable"

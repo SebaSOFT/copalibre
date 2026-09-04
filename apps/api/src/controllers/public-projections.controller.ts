@@ -125,6 +125,7 @@ export class PublicTournamentListingController {
         discipline,
         ...(dates ? { dates } : {}),
         ...(winners && winners.length > 0 ? { winners } : {}),
+        ...(t.emblemObjectId ? { emblemObjectId: t.emblemObjectId } : {}),
       });
     }
 
@@ -414,6 +415,7 @@ export class PublicProjectionsController {
       seasonName: season.name,
       status,
       ...(winners && winners.length > 0 ? { winners } : {}),
+      ...(tournament.emblemObjectId ? { emblemObjectId: tournament.emblemObjectId } : {}),
       ...(descriptor?.images === undefined
         ? {}
         : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),

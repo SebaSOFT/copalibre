@@ -50,6 +50,7 @@ import {
   ClubMediaController,
   OrganizationMediaController,
   PersonMediaController,
+  TournamentMediaController,
 } from '../controllers/identity-media.controller.js';
 import { PublicObjectsController } from '../controllers/public-objects.controller.js';
 
@@ -66,6 +67,7 @@ export const OPENAPI_CONTROLLERS = [
   OrganizationsController,
   TournamentsController,
   TournamentProfilesController,
+  TournamentMediaController,
   RegistrationsController,
   EntrantsController,
   DisciplinesController,

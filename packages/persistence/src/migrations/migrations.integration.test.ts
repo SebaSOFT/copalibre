@@ -198,6 +198,16 @@ describe('migrations (integration)', () => {
       ]),
     );
 
+    const tournamentEmblemDown = await migrateDownOneStep(scratch.db);
+    expect(tournamentEmblemDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0033-organization-invite-rescission',
+    );
+    const afterTournamentEmblemDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterTournamentEmblemDownTables.find((table) => table.name === 'tournaments')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'emblem_object_id' })]));
+
     const inviteRescissionDown = await migrateDownOneStep(scratch.db);
     expect(inviteRescissionDown.error).toBeUndefined();
     await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0032-role-scope-columns');

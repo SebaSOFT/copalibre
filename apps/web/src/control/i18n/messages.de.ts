@@ -557,6 +557,13 @@ export const messages: Record<string, string> = {
   'control.settings.mutationClass':
     '{mutationClass, select, safe {Unbedenklich} requires_rebuild {Erfordert Neuaufbau} blocked_after_results {Nach Ergebnissen gesperrt} other {Unbekannt}}',
   'control.settings.link': 'Turniereinstellungen',
+  'control.settings.emblemHeading': 'Turnierwappen',
+  'control.settings.emblemAlt': 'Turnierwappen',
+  'control.settings.emblemPlaceholderAlt': 'Kein Turnierwappen hochgeladen',
+  'control.settings.uploadEmblem': 'Wappen hochladen',
+  'control.settings.removeEmblem': 'Wappen entfernen',
+  'control.settings.emblemUploaded': 'Turnierwappen hochgeladen.',
+  'control.settings.emblemRemoved': 'Turnierwappen entfernt.',
   'control.rulesetOverrides.title': 'Reglement',
   'control.rulesetOverrides.link': 'Reglement',
   'control.rulesetOverrides.fields': 'Überschreibbare Felder',

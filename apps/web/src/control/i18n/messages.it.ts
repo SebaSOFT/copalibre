@@ -553,6 +553,13 @@ export const messages: Record<string, string> = {
   'control.settings.mutationClass':
     '{mutationClass, select, safe {Sicura} requires_rebuild {Richiede ricostruzione} blocked_after_results {Bloccata dopo i risultati} other {Sconosciuta}}',
   'control.settings.link': 'Impostazioni torneo',
+  'control.settings.emblemHeading': 'Stemma del torneo',
+  'control.settings.emblemAlt': 'Stemma del torneo',
+  'control.settings.emblemPlaceholderAlt': 'Nessuno stemma del torneo caricato',
+  'control.settings.uploadEmblem': 'Carica stemma',
+  'control.settings.removeEmblem': 'Rimuovi stemma',
+  'control.settings.emblemUploaded': 'Stemma del torneo caricato.',
+  'control.settings.emblemRemoved': 'Stemma del torneo rimosso.',
   'control.rulesetOverrides.title': 'Regolamento',
   'control.rulesetOverrides.link': 'Regolamento',
   'control.rulesetOverrides.fields': 'Campi di override',
