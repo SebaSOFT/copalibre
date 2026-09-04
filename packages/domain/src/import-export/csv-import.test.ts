@@ -148,5 +148,35 @@ describe('validateCsvImport', () => {
         expect.objectContaining({ message: expect.stringContaining('live match operations') }),
       ]);
     });
+
+    it('accepts an optional role column with valid player roles', () => {
+      const preview = validateCsvImport({
+        target: 'team-membership',
+        allowedParticipantTypes: ['team'],
+        knownTeamAliases: ['club-atletico'],
+        csv: 'teamAlias,alias,displayName,role\nclub-atletico,carlos-bilardo,Carlos Bilardo,coach\nclub-atletico,dr-brown,Doc Brown,staff\n',
+      });
+
+      expect(preview.valid).toBe(true);
+      expect(preview.rows[0]?.values.role).toBe('coach');
+      expect(preview.rows[1]?.values.role).toBe('staff');
+    });
+
+    it('rejects an invalid role in the role column', () => {
+      const preview = validateCsvImport({
+        target: 'team-membership',
+        allowedParticipantTypes: ['team'],
+        knownTeamAliases: ['club-atletico'],
+        csv: 'teamAlias,alias,displayName,role\nclub-atletico,juan-perez,Juan Perez,referee\n',
+      });
+
+      expect(preview.valid).toBe(false);
+      expect(preview.rows[0]?.errors).toEqual([
+        {
+          column: 'role',
+          message: expect.stringContaining('role must be one of: player, substitute, coach, staff'),
+        },
+      ]);
+    });
   });
 });

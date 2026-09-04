@@ -483,6 +483,110 @@ describe('registration review routes', () => {
     expect(after).toHaveLength(before.length);
   });
 
+  it('persists specified roles such as coach and defaults omitted roles to player (openspec 0193 tasks 3.1, 3.2)', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const enrollment = new EnrollmentRepository(scratch.db);
+    const people = new PersonRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    const seedAudit = { actor: 'user:seed', authorizationContext: 'seed' };
+
+    const seeded = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...seedAudit });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-roles-test',
+        name: 'Copa Roles Test',
+        descriptor,
+        ...seedAudit,
+      });
+      const team = await enrollment.createTeam(uow, {
+        organizationId,
+        name: 'Club Roles FC',
+        ...seedAudit,
+      });
+      const entrant = await enrollment.registerEntrant(uow, {
+        organizationId,
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: team.teamId },
+        ...seedAudit,
+      });
+      const p1 = await people.register(uow, {
+        organizationId,
+        displayName: 'Coach Person',
+        ...seedAudit,
+      });
+      const p2 = await people.register(uow, {
+        organizationId,
+        displayName: 'Default Player Person',
+        ...seedAudit,
+      });
+      const p3 = await people.register(uow, {
+        organizationId,
+        displayName: 'Staff Person',
+        ...seedAudit,
+      });
+      return { entrant, team, p1: p1.person, p2: p2.person, p3: p3.person };
+    });
+
+    const response = await request({
+      method: 'POST',
+      url: `/organizations/liga-orbital/tournaments/copa-roles-test/registrations/${seeded.entrant.entrantId}/team-memberships`,
+      token: 'organizer-org1',
+      payload: {
+        members: [
+          { personId: seeded.p1.personId, role: 'coach' },
+          { personId: seeded.p2.personId },
+        ],
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    const coachMember = body.teamMembers.find(
+      (m: { personId: string }) => m.personId === seeded.p1.personId,
+    );
+    const defaultMember = body.teamMembers.find(
+      (m: { personId: string }) => m.personId === seeded.p2.personId,
+    );
+    expect(coachMember).toMatchObject({ role: 'coach' });
+    expect(defaultMember).toMatchObject({ role: 'player' });
+
+    let squad = await people.squadOf(seeded.team.teamId);
+    expect(squad.find((p) => p.personId === seeded.p1.personId)?.role).toBe('coach');
+    expect(squad.find((p) => p.personId === seeded.p2.personId)?.role).toBe('player');
+
+    const updateResponse = await request({
+      method: 'POST',
+      url: `/organizations/liga-orbital/tournaments/copa-roles-test/registrations/${seeded.entrant.entrantId}/team-memberships`,
+      token: 'organizer-org1',
+      payload: {
+        members: [
+          { personId: seeded.p1.personId, role: 'coach' },
+          { personId: seeded.p2.personId, role: 'substitute' },
+          { personId: seeded.p3.personId, role: 'staff' },
+        ],
+      },
+    });
+
+    expect(updateResponse.statusCode).toBe(200);
+    squad = await people.squadOf(seeded.team.teamId);
+    expect(squad.find((p) => p.personId === seeded.p1.personId)?.role).toBe('coach');
+    expect(squad.find((p) => p.personId === seeded.p2.personId)?.role).toBe('substitute');
+    expect(squad.find((p) => p.personId === seeded.p3.personId)?.role).toBe('staff');
+
+    const roleUpdatedLogs = await scratch.db
+      .selectFrom('audit_log')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .where('entity_type', '=', 'player')
+      .where('action', '=', 'player.role-updated')
+      .execute();
+    expect(roleUpdatedLogs.length).toBeGreaterThanOrEqual(1);
+    expect(
+      roleUpdatedLogs.some((l) => (l.resulting_state as { role?: string })?.role === 'substitute'),
+    ).toBe(true);
+  });
+
   it('refuses a team-membership edit against a person-kind entrant', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const enrollment = new EnrollmentRepository(scratch.db);

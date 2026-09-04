@@ -49,6 +49,7 @@ export const AUDIT_ACTIONS = [
   'person.removed',
   'player.enlisted',
   'player.dismissed',
+  'player.role-updated',
   'participant.identity-linked',
   'participant.identity-unlinked',
   /** A login identity is created for the first time, by self-service signup or first OIDC login. */

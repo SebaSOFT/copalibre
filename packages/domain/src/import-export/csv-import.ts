@@ -1,6 +1,7 @@
 import { parse } from 'csv-parse/sync';
 import { Alias } from '../identifiers/alias.js';
 import type { ParticipantType } from '../descriptors/discipline-descriptor.js';
+import { PLAYER_ROLES, isPlayerRole } from '../aggregates/person.js';
 
 export const MAX_CSV_IMPORT_BYTES = 4 * 1024 * 1024;
 
@@ -155,6 +156,14 @@ function validateRow(
       errors.push({
         column: 'teamAlias',
         message: `No team registered as an entrant in this tournament has alias "${teamAlias}"`,
+      });
+    }
+
+    const role = values.role?.trim();
+    if (role && !isPlayerRole(role)) {
+      errors.push({
+        column: 'role',
+        message: `role must be one of: ${PLAYER_ROLES.join(', ')}`,
       });
     }
   }

@@ -235,6 +235,8 @@ export {
   isDuplicateMembership,
   squadOfDiscipline,
   PersonError,
+  PLAYER_ROLES,
+  isPlayerRole,
   type Person,
   type Player,
   type PlayerRole,
