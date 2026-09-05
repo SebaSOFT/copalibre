@@ -83,3 +83,49 @@ describe('TournamentCard CTAs consume the shared Button (openspec 0198)', () => 
     expect(source).not.toContain('cl-button-live');
   });
 });
+
+describe('public tables and filter pills (openspec 0199)', () => {
+  const matchesPage = readFileSync(
+    join(here, '../pages/[...locale]/[organization]/tournaments/[tournament]/matches.astro'),
+    'utf8',
+  );
+  const overviewPage = readFileSync(
+    join(here, '../pages/[...locale]/[organization]/tournaments/[tournament].astro'),
+    'utf8',
+  );
+  const matchReport = readFileSync(
+    join(
+      here,
+      '../pages/[...locale]/[organization]/tournaments/[tournament]/stages/[stage]/matches/[match].astro',
+    ),
+    'utf8',
+  );
+  const standings = read('StandingsPreview.astro');
+
+  it('renders the state filter as a bounded pill group, not bare anchors', () => {
+    expect(matchesPage).toContain('class="cl-pill-group"');
+    // Every filter option is a pill, and the active one is marked for assistive tech too.
+    expect(matchesPage.match(/class="cl-pill cl-focusable"/g)).toHaveLength(4);
+    expect(matchesPage.match(/aria-current=/g)).toHaveLength(4);
+  });
+
+  it('renders standings through the shared table treatment', () => {
+    expect(standings).toContain('<table class="cl-table">');
+    expect(standings).toContain('cl-table-scroll');
+    expect(standings).toContain("'cl-table__num'");
+  });
+
+  it('renders the standings club filter through the shared pill, not a local duplicate', () => {
+    expect(standings).toContain('cl-pill');
+    expect(standings).not.toContain('.cl-club-filter__btn {');
+  });
+
+  it('renders match-report rosters through the shared table, with no page-local duplicate', () => {
+    expect(matchReport).toContain('<table class="cl-table">');
+    expect(matchReport).not.toContain('.cl-data-table {');
+  });
+
+  it('styles the overview’s see-all-matches link rather than leaving it bare', () => {
+    expect(overviewPage).toMatch(/class="cl-pill cl-focusable"[\s\S]{0,120}matchesViewSeeAll/);
+  });
+});

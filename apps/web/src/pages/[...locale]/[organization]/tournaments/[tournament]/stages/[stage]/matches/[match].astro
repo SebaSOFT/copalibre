@@ -112,7 +112,7 @@ const structuredData = {
                   {side.roster.length === 0 ? (
                     <p class="cl-text-muted">Roster not yet available.</p>
                   ) : (
-                    <table class="cl-data-table">
+                    <table class="cl-table">
                       <thead>
                         <tr>
                           <th scope="col" style="width: 44px;">
@@ -347,26 +347,6 @@ const structuredData = {
     font-size: 1rem;
     font-weight: 600;
     color: var(--cl-brand-cyan, #00d4ff);
-  }
-
-  .cl-data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.875rem;
-  }
-
-  .cl-data-table th,
-  .cl-data-table td {
-    padding: 0.5rem 0.625rem;
-    text-align: left;
-    border-bottom: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.08));
-  }
-
-  .cl-data-table th {
-    background: var(--cl-surface-subtle, rgba(255, 255, 255, 0.05));
-    color: var(--cl-text-muted, #94a3b8);
-    font-size: 0.75rem;
-    text-transform: uppercase;
   }
 
   .cl-num-cell {

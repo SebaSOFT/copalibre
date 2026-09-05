@@ -633,6 +633,27 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('heading', { name: 'Matches' })).toBeVisible();
   });
 
+  test('0199: standings render a visible header row and never overflow the page at 375px', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const table = page.locator('table.cl-table').first();
+    await expect(table).toBeVisible();
+
+    // The defect this replaces: plain text columns with no header treatment.
+    const header = table.locator('thead th').first();
+    await expect(header).toBeVisible();
+    await expect(header).toHaveCSS('text-transform', 'uppercase');
+
+    // A wide table scrolls inside its own box; the document never scrolls sideways.
+    const pageOverflows = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    );
+    expect(pageOverflows).toBe(false);
+  });
+
   test('opens player career popup on leaderboard player click and allows standalone navigation', async ({
     page,
   }) => {

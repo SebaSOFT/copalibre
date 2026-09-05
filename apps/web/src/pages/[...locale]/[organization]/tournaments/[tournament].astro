@@ -113,7 +113,10 @@ const structuredData = {
   <BroadcastStatusPanel model={model} intl={intl} />
   <ScoreTicker model={model} intl={intl} localePrefix={locale ? `/${locale}` : ''} />
   <p>
-    <a href={`${locale ? `/${locale}` : ''}${model.canonicalPath}/matches`}>
+    <a
+      class="cl-pill cl-focusable"
+      href={`${locale ? `/${locale}` : ''}${model.canonicalPath}/matches`}
+    >
       {intl.formatMessage(messages.matchesViewSeeAll)}
     </a>
   </p>

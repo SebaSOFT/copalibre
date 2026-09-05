@@ -239,3 +239,35 @@ All form inputs within administrative screens SHALL utilize design token classes
 #### Scenario: Rendering inputs in admin forms
 - **WHEN** an operator views form controls (checkboxes, date inputs, file upload buttons, number spinners) across Clubs, Venues, and Officials
 - **THEN** the elements SHALL render using design tokens without native browser white backgrounds
+
+### Requirement: Button atom implements the accepted CTA treatments
+The owned Button atom SHALL provide primary (cyan fill, dark text), secondary (raised neutral fill
+with a muted border), and destructive (red fill or outlined red, with a destructive verb label) visual
+treatments resolved from `surface`/`state-live`, `surface-raised`/`border-muted`, and
+`state-destructive` tokens respectively, each rendering distinct default, hover, active, focus-visible,
+and disabled states, and each carrying the chamfered control geometry. No Control-web screen SHALL
+render an ad hoc button style outside this atom.
+
+#### Scenario: Primary and secondary buttons are visually distinct
+- **WHEN** a primary and a secondary Button are rendered side by side
+- **THEN** the primary renders the `state-live` fill with dark text and the secondary renders the
+  raised neutral fill with a muted border, matching the supplied reference's pairing, and each meets
+  the documented contrast contract
+
+#### Scenario: Every button carries the chamfered control geometry
+- **WHEN** any Button variant is rendered
+- **THEN** it carries the chamfered control geometry, not square or rounded corners
+
+#### Scenario: Hover, active, and disabled are visually distinct from default
+- **WHEN** a Button is hovered, activated, or disabled
+- **THEN** each of those states renders differently from the button's default state
+
+#### Scenario: A destructive button never uses a non-destructive treatment
+- **WHEN** a Button is rendered with `variant="destructive"`
+- **THEN** it renders the `state-destructive` token and a destructive verb label, never the primary or
+  secondary fill
+
+#### Scenario: A loading button communicates state without an ambiguous spinner
+- **WHEN** a Button is rendered in its loading state
+- **THEN** it does not imply indeterminate progress with no textual cue: it renders a textual
+  "Loading" label rather than a bare spinner
