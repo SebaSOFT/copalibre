@@ -110,7 +110,7 @@ const isPlayerRanking =
         <span class="cl-club-filter__label">Club:</span>
         <a
           href={`${canonicalPath}${effectiveLayoutCode ? `?tab=${encodeURIComponent(effectiveLayoutCode)}` : ''}`}
-          class={`cl-club-filter__btn ${!activeClubId ? 'cl-club-filter__btn--active' : ''}`}
+          class={`cl-pill cl-focusable ${!activeClubId ? 'cl-pill--active' : ''}`}
           aria-pressed={!activeClubId ? 'true' : 'false'}
           data-club-filter="all"
         >
@@ -122,7 +122,7 @@ const isPlayerRanking =
           return (
             <a
               href={clubUrl}
-              class={`cl-club-filter__btn ${isClubActive ? 'cl-club-filter__btn--active' : ''}`}
+              class={`cl-pill cl-focusable ${isClubActive ? 'cl-pill--active' : ''}`}
               aria-pressed={isClubActive ? 'true' : 'false'}
               data-club-filter={club.clubId}
               title={club.name}
@@ -153,11 +153,11 @@ const isPlayerRanking =
     )
   }
 
-  <div class="cl-table-container">
+  <div class="cl-table-container cl-table-scroll">
     {rows.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
     {
       rows.length > 0 && (
-        <table>
+        <table class="cl-table">
           <thead>
             <tr>
               {columns.map((column) => (
@@ -185,7 +185,7 @@ const isPlayerRanking =
                       : playerPageUrl;
 
                   return (
-                    <td class="cl-stat-tile__value">
+                    <td class={isPlayerNameCell ? undefined : 'cl-table__num'}>
                       {isPlayerNameCell && row.actorId ? (
                         <a
                           href={playerPageUrl}
@@ -381,23 +381,6 @@ const isPlayerRanking =
     font-size: var(--cl-font-size-sm);
     font-weight: 600;
     color: var(--cl-text-muted, #94a3b8);
-  }
-  .cl-club-filter__btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 9999px;
-    font-size: var(--cl-font-size-sm);
-    text-decoration: none;
-    background: var(--cl-surface-subtle, rgba(255, 255, 255, 0.08));
-    color: inherit;
-    border: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.1));
-  }
-  .cl-club-filter__btn--active {
-    background: var(--cl-brand-cyan, #00d4ff);
-    color: #0a0e1a;
-    font-weight: 600;
   }
   .cl-player-link {
     color: var(--cl-brand-cyan, #00d4ff);

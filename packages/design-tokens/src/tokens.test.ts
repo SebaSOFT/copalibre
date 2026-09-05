@@ -350,3 +350,35 @@ describe('button CTA treatments (openspec 0198)', () => {
     expect(css).toContain('.cl-chamfer--control');
   });
 });
+
+describe('public table and pill treatments (openspec 0199)', () => {
+  const css = generateCss();
+
+  it('gives every table a header treatment and tabular figures', () => {
+    expect(css).toMatch(/\.cl-table \{[^}]*font-variant-numeric: tabular-nums/);
+    expect(css).toMatch(/\.cl-table thead th \{[^}]*var\(--cl-surface-raised\)/);
+    expect(css).toMatch(/\.cl-table thead th \{[^}]*text-transform: uppercase/);
+  });
+
+  it('separates rows with a muted border and right-aligns numeric columns', () => {
+    expect(css).toMatch(/\.cl-table th,\n\.cl-table td \{[^}]*var\(--cl-border-subtle\)/);
+    expect(css).toContain('.cl-table__num { text-align: right; }');
+  });
+
+  it('scrolls a wide table inside its own container', () => {
+    expect(css).toMatch(/\.cl-table-scroll \{[^}]*overflow-x: auto/);
+  });
+
+  it('renders pills as bounded, gapped controls meeting the touch target', () => {
+    expect(css).toMatch(/\.cl-pill-group \{[^}]*gap: var\(--cl-space-2\)/);
+    expect(css).toMatch(/\.cl-pill \{[^}]*min-height: var\(--cl-touch-target\)/);
+    expect(css).toMatch(/\.cl-pill \{[^}]*border: 1px solid var\(--cl-border-muted\)/);
+  });
+
+  it('marks the active pill by fill and border, not color alone', () => {
+    expect(css).toMatch(
+      /\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*var\(--cl-state-live\)/,
+    );
+    expect(css).toMatch(/\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*border-color/);
+  });
+});

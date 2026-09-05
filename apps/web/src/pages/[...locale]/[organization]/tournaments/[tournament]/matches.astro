@@ -78,18 +78,26 @@ const structuredData = {
 >
   <h1>{intl.formatMessage(messages.matchesViewPageTitle)}</h1>
 
-  <nav aria-label={intl.formatMessage(messages.matchesViewPageTitle)}>
-    <a href={filterUrl('all')} aria-current={state === 'all' ? 'true' : undefined}
-      >{labels.filters.all}</a
+  <nav class="cl-pill-group" aria-label={intl.formatMessage(messages.matchesViewPageTitle)}>
+    <a
+      class="cl-pill cl-focusable"
+      href={filterUrl('all')}
+      aria-current={state === 'all' ? 'true' : undefined}>{labels.filters.all}</a
     >
-    <a href={filterUrl('live')} aria-current={state === 'live' ? 'true' : undefined}
-      >{labels.filters.live}</a
+    <a
+      class="cl-pill cl-focusable"
+      href={filterUrl('live')}
+      aria-current={state === 'live' ? 'true' : undefined}>{labels.filters.live}</a
     >
-    <a href={filterUrl('upcoming')} aria-current={state === 'upcoming' ? 'true' : undefined}
-      >{labels.filters.upcoming}</a
+    <a
+      class="cl-pill cl-focusable"
+      href={filterUrl('upcoming')}
+      aria-current={state === 'upcoming' ? 'true' : undefined}>{labels.filters.upcoming}</a
     >
-    <a href={filterUrl('final')} aria-current={state === 'final' ? 'true' : undefined}
-      >{labels.filters.final}</a
+    <a
+      class="cl-pill cl-focusable"
+      href={filterUrl('final')}
+      aria-current={state === 'final' ? 'true' : undefined}>{labels.filters.final}</a
     >
   </nav>
 
