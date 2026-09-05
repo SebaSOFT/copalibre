@@ -457,6 +457,27 @@ function components(): string {
     '}',
     ...buttons,
     '',
+    '/* A control reads as pressable through its own states, not only its fill. */',
+    '.cl-btn:hover:not(:disabled) { filter: brightness(1.12); }',
+    '.cl-btn:active:not(:disabled) { filter: brightness(0.92); }',
+    '.cl-btn:disabled {',
+    '  opacity: 0.55;',
+    '  cursor: not-allowed;',
+    '  filter: none;',
+    '}',
+    '',
+    /*
+     * The public (Persuade) treatment: the display face, uppercase, tracked out.
+     * Operator screens keep body type — a dense console label like "Exportar
+     * configuración JSON" is harder to read in caps, not easier.
+     */
+    '.cl-btn--persuade {',
+    '  font-family: var(--cl-font-display);',
+    '  text-transform: uppercase;',
+    '  letter-spacing: 0.06em;',
+    '  font-weight: var(--cl-weight-bold);',
+    '}',
+    '',
     '.cl-inline-alert {',
     '  display: flex;',
     '  gap: var(--cl-space-2);',

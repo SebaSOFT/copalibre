@@ -1,0 +1,56 @@
+---
+/**
+ * The CopaLibre brand lockup: mark plus wordmark as one unit.
+ *
+ * Before this component the shell rendered the wordmark as bare text inside an
+ * `<a>`, so it inherited the global link color and the browser's default
+ * underline — the brand read as an unstyled link on every public page.
+ */
+interface Props {
+  /** Wraps the lockup in a link when set; renders a plain lockup otherwise. */
+  readonly href?: string;
+  readonly class?: string;
+}
+
+const { href, class: extraClass = '' } = Astro.props;
+const classes = `cl-logo ${extraClass}`.trim();
+---
+
+{
+  href ? (
+    <a class={`${classes} cl-focusable`} href={href}>
+      <img src="/copalibre-logo.svg" alt="" width="28" height="28" />
+      <span class="cl-logo__wordmark">CopaLibre</span>
+    </a>
+  ) : (
+    <span class={classes}>
+      <img src="/copalibre-logo.svg" alt="" width="28" height="28" />
+      <span class="cl-logo__wordmark">CopaLibre</span>
+    </span>
+  )
+}
+
+<style>
+  .cl-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+    /* The lockup is the brand, not a link: no inherited link color, no underline. */
+    color: var(--cl-text-primary);
+    text-decoration: none;
+  }
+
+  .cl-logo__wordmark {
+    font-family: var(--cl-font-display);
+    font-weight: var(--cl-weight-bold);
+    font-size: var(--cl-font-size-lg);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+
+  /* Hover moves the wordmark toward live cyan without ever underlining it. */
+  a.cl-logo:hover .cl-logo__wordmark {
+    color: var(--cl-state-live);
+  }
+</style>

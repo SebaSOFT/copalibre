@@ -9,6 +9,7 @@ import { Checkbox } from './checkbox.js';
 import { Label } from './label.js';
 import { Select } from './select.js';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './card.js';
+import { Button } from './button.js';
 
 describe('form-control atoms', () => {
   it('renders the default and error state classes for Input', () => {
@@ -158,5 +159,72 @@ describe('form-control dark theming contract', () => {
   it('declares link styling with cyan-400 state-live token', () => {
     expect(css).toContain('.cl-link');
     expect(css).toContain('var(--cl-state-live)');
+  });
+});
+
+describe('Button atom CTA treatments (openspec 0198)', () => {
+  const VARIANTS = ['primary', 'secondary', 'destructive', 'destructive-outline'] as const;
+
+  it.each(VARIANTS)('renders the %s variant class', (variant) => {
+    render(<Button variant={variant}>Publish</Button>);
+    expect(screen.getByRole('button', { name: 'Publish' }).className).toContain(
+      `cl-btn--${variant}`,
+    );
+  });
+
+  it('carries the chamfered control geometry on every variant', () => {
+    render(
+      <>
+        {VARIANTS.map((variant) => (
+          <Button key={variant} variant={variant}>
+            {variant}
+          </Button>
+        ))}
+      </>,
+    );
+    for (const variant of VARIANTS) {
+      const className = screen.getByRole('button', { name: variant }).className;
+      expect(className).toContain('cl-chamfer');
+      expect(className).toContain('cl-chamfer--control');
+    }
+  });
+
+  it('does not double-apply chamfer when the caller supplies its own', () => {
+    render(<Button className="cl-chamfer cl-chamfer--tr">Publish</Button>);
+    const className = screen.getByRole('button', { name: 'Publish' }).className;
+    expect(className.match(/cl-chamfer(?![\w-])/g)).toHaveLength(1);
+    expect(className).toContain('cl-chamfer--tr');
+  });
+
+  it('defaults to the primary variant and stays keyboard-focusable', () => {
+    render(<Button>Publish</Button>);
+    const className = screen.getByRole('button', { name: 'Publish' }).className;
+    expect(className).toContain('cl-btn--primary');
+    expect(className).toContain('cl-focusable');
+  });
+});
+
+describe('button CTA token contract (openspec 0198)', () => {
+  const cssPath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    '../../../../../../../packages/design-tokens/generated/copalibre.css',
+  );
+  const css = readFileSync(cssPath, 'utf8');
+
+  it('renders hover, active and disabled states distinctly from the default', () => {
+    expect(css).toContain('.cl-btn:hover:not(:disabled)');
+    expect(css).toContain('.cl-btn:active:not(:disabled)');
+    expect(css).toContain('.cl-btn:disabled');
+  });
+
+  it('keeps primary on state-live and secondary on the raised neutral pairing', () => {
+    expect(css).toMatch(/\.cl-btn--primary \{[^}]*var\(--cl-state-live\)/);
+    expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-surface-raised\)/);
+    expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-border-muted\)/);
+  });
+
+  it('offers the public display-type treatment as its own modifier', () => {
+    expect(css).toMatch(/\.cl-btn--persuade \{[^}]*var\(--cl-font-display\)/);
+    expect(css).toMatch(/\.cl-btn--persuade \{[^}]*text-transform: uppercase/);
   });
 });
