@@ -37,6 +37,8 @@ Before adding a new domain primitive or abstraction, check whether an existing d
 
 Preserve system traceability. Mutations that affect tournament state require explicit authorization, audit records, and durable outbox events in the same transaction. Model sport behavior through `DisciplineDescriptor` data and rules; do not hardcode sport-specific UI or controller logic. Prefer UUIDs for identifiers and do not expose personal data unnecessarily.
 
+This pillar governs interaction design, not just data modeling: a live-operations surface (e.g., the Live Match Operations Console's event recording) must render each discipline's own one-tap event flows from its `DisciplineDescriptor` config — never ship one sport's example (e.g., football's goal/foul/offside) as the hardcoded flow for every discipline. Any sport-specific example given during design work (football, basketball, etc.) is illustrative of the _pattern_ the config-driven engine must support, not the target sport to build for.
+
 Versioned first-party modules are JSON from `packages/module-catalogue/`, installed only through `apps/seed`; migrations and application startup never seed them. SQLite integration parsing must preserve `{{ ... }}` rule expressions as strings rather than treating them as nested JSON.
 
 ## Domain Language and Data Evolution
