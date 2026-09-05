@@ -152,3 +152,17 @@ as a compact by-round match grid.
 - **WHEN** a visitor views a stage whose format is single-elimination
 - **THEN** the page SHALL render the bracket tree, populated with real entrant names and scores for every
   materialized round
+
+### Requirement: Finalized match scheduling banner suppression
+A finalized match view SHALL NOT display placeholder banners indicating that a schedule or official assignment is pending.
+
+#### Scenario: Viewing a finalized match
+- **WHEN** a spectator navigates to a match detail view for a match with status FINAL
+- **THEN** the view SHALL NOT render "Schedule not yet available" or "Schedule has not yet been published" notices
+
+### Requirement: Rank badge micro-typography and spacing
+Rank badges rendered within standings or match summary cards SHALL maintain visual separation from team names and score figures.
+
+#### Scenario: Displaying rank badges in standings
+- **WHEN** a standings row or card displays a rank indicator badge adjacent to team text or scores
+- **THEN** the badge SHALL be separated by at least 6px of spacing and not visually crowd adjacent digits
