@@ -72,9 +72,9 @@ const structuredData = {
             <time datetime={model.scheduledAt}>{model.scheduledAt}</time>
             {model.venueName ? ` · ${model.venueName}` : ''}
           </p>
-        ) : (
+        ) : model.status === 'upcoming' ? (
           <p class="cl-match-venue cl-text-muted">Schedule not yet available.</p>
-        )
+        ) : null
       }
     </header>
 
@@ -82,7 +82,7 @@ const structuredData = {
       <section class="cl-section-card" aria-labelledby="officials-heading">
         <h2 id="officials-heading" class="cl-section-title">Officials</h2>
         {
-          !model.schedulePublished ? (
+          !model.schedulePublished && model.status === 'upcoming' ? (
             <p class="cl-text-muted">Schedule has not yet been published.</p>
           ) : model.officials.length === 0 ? (
             <p class="cl-text-muted">No officials assigned.</p>

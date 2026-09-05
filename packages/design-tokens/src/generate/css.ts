@@ -489,6 +489,7 @@ function components(): string {
     '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); color: var(--cl-state-live); font-variant-numeric: tabular-nums; }',
     '.cl-match-card__sides { display: grid; gap: var(--cl-space-2); margin: 0; padding: 0; list-style: none; }',
     '.cl-match-card__side { display: flex; align-items: center; gap: var(--cl-space-2); min-width: 0; }',
+    '.cl-match-card__side .cl-badge--rank { font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; flex: 0 0 auto; }',
     ".cl-match-card__side > span[data-testid='entrant-name'] { flex: 1 1 auto; font-family: var(--cl-font-display); font-weight: var(--cl-weight-medium); font-size: var(--cl-font-size-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
     '.cl-match-card__side .cl-stat-tile__value { flex: 0 0 auto; font-size: var(--cl-font-size-2xl); background: none; padding: 0; }',
     '.cl-match-card__scope, .cl-match-card__venue, .cl-match-card__event { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: 0.04em; }',
