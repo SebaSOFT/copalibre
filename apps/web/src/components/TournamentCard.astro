@@ -2,6 +2,7 @@
 import type { IntlShape } from 'react-intl';
 import type { PublicTournamentListingItemResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import ChampionPodium from './ChampionPodium.astro';
+import Button from './Button.astro';
 import { messages } from '../lib/i18n/public-messages.en.ts';
 
 interface Props {
@@ -69,14 +70,14 @@ const winners = tournament.winners ?? [];
 
   <footer class="cl-card-footer">
     <div class="cl-card-actions">
-      <a href={tournamentUrl} class="cl-action-button cl-button-primary">
+      <Button href={tournamentUrl} variant="primary">
         {intl.formatMessage(messages.tournamentsViewDetails)}
-      </a>
+      </Button>
       {
         isLive && (
-          <a href={liveUrl} class="cl-action-button cl-button-live">
+          <Button href={liveUrl} variant="secondary">
             {intl.formatMessage(messages.livePageTitle)} &rarr;
-          </a>
+          </Button>
         )
       }
     </div>
@@ -314,21 +315,6 @@ const winners = tournament.winners ?? [];
     flex-wrap: wrap;
   }
 
-  .cl-action-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: var(--cl-touch-target);
-    padding: 0.5rem 1rem;
-    font-size: var(--cl-font-size-sm);
-    font-weight: 600;
-    border-radius: 6px;
-    text-decoration: none;
-    transition:
-      background-color 0.2s,
-      color 0.2s;
-  }
-
   /* BREAKPOINTS.sm: compact card padding at the 375px review width. */
   @media (max-width: 375px) {
     .cl-tournament-card {
@@ -336,8 +322,9 @@ const winners = tournament.winners ?? [];
       padding: 1rem;
     }
 
+    /* `:global` reaches the Button component's own elements from the parent. */
     .cl-card-actions,
-    .cl-action-button {
+    .cl-card-actions :global(.cl-btn) {
       width: 100%;
     }
   }
@@ -346,25 +333,5 @@ const winners = tournament.winners ?? [];
     .cl-live-pulse {
       animation: none;
     }
-  }
-
-  .cl-button-primary {
-    background-color: var(--cl-primary, #0284c7);
-    color: #ffffff;
-  }
-
-  .cl-button-primary:hover {
-    background-color: var(--cl-primary-hover, #0369a1);
-  }
-
-  .cl-button-live {
-    background-color: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-  }
-
-  .cl-button-live:hover {
-    background-color: rgba(239, 68, 68, 0.25);
-    color: #fca5a5;
   }
 </style>

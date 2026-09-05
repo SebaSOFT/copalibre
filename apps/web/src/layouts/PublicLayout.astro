@@ -10,6 +10,7 @@ import { buildHreflangAlternates, serializeJsonLd, type JsonLdStructuredData } f
 import type { SupportedLanguage } from '@copalibre/domain';
 
 import { getLocaleHomePath } from '../lib/locale.ts';
+import Logo from '../components/Logo.astro';
 
 interface Props {
   readonly title: string;
@@ -97,10 +98,7 @@ const homeUrl = getLocaleHomePath(intl.locale);
     >
     <header>
       <nav aria-label={intl.formatMessage(messages.layoutNavAriaLabel)}>
-        <a href={homeUrl} class="cl-brand">
-          <img src="/copalibre-logo.svg" alt="" width="28" height="28" />
-          CopaLibre
-        </a>
+        <Logo href={homeUrl} />
       </nav>
     </header>
     <main id="main">
@@ -175,12 +173,6 @@ const homeUrl = getLocaleHomePath(intl.locale);
 
   :global(.cl-inline-alert p) {
     margin: 0;
-  }
-
-  .cl-brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
   }
 
   .cl-discipline-background {

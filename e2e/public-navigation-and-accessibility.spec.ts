@@ -115,9 +115,9 @@ test.afterAll(async () => {
 test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () => {
   test('8.1: from a /es/ tournament page, brand link navigates to /es/ root', async ({ page }) => {
     await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
-    await expect(page.locator('a.cl-brand')).toHaveAttribute('href', '/es/');
+    await expect(page.locator('a.cl-logo')).toHaveAttribute('href', '/es/');
 
-    await page.locator('a.cl-brand').click();
+    await page.locator('a.cl-logo').click();
     await page.waitForURL('**/es/**');
     expect(page.url()).toMatch(/\/es\/?$/);
   });
@@ -126,11 +126,35 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
-    await expect(page.locator('a.cl-brand')).toHaveAttribute('href', '/');
+    await expect(page.locator('a.cl-logo')).toHaveAttribute('href', '/');
 
-    await page.locator('a.cl-brand').click();
+    await page.locator('a.cl-logo').click();
     await page.waitForURL((url) => url.pathname === '/' || url.pathname === '');
     expect(new URL(page.url()).pathname).toBe('/');
+  });
+
+  test('0198: the shell header renders the brand lockup, not a default-styled link', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const lockup = page.locator('a.cl-logo');
+    await expect(lockup).toBeVisible();
+    // Mark and wordmark are one unit.
+    await expect(lockup.locator('img')).toBeVisible();
+    await expect(lockup.locator('.cl-logo__wordmark')).toHaveText('CopaLibre');
+
+    // The defect this replaces: browser-default underlined link text.
+    await expect(lockup).toHaveCSS('text-decoration-line', 'none');
+  });
+
+  test('0198: public CTAs render the shared chamfered button treatment', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION}`);
+
+    const cta = page.locator('a.cl-btn').first();
+    await expect(cta).toBeVisible();
+    await expect(cta).toHaveClass(/cl-chamfer--control/);
+    await expect(cta).toHaveCSS('text-decoration-line', 'none');
   });
 
   test('8.2: 404 page resolves requested Spanish locale and renders Spanish copy with link', async ({
@@ -141,7 +165,7 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
 
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
     await expect(page.getByText('No existe ninguna organización en esta dirección.')).toBeVisible();
-    const brandLink = page.locator('a.cl-brand');
+    const brandLink = page.locator('a.cl-logo');
     await expect(brandLink).toHaveAttribute('href', '/es/');
   });
 
@@ -153,7 +177,7 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
 
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.getByText('No organization exists at this address.')).toBeVisible();
-    const brandLink = page.locator('a.cl-brand');
+    const brandLink = page.locator('a.cl-logo');
     await expect(brandLink).toHaveAttribute('href', '/');
   });
 

@@ -9,6 +9,7 @@ import { Checkbox } from './checkbox.js';
 import { Label } from './label.js';
 import { Select } from './select.js';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './card.js';
+import { Button } from './button.js';
 
 describe('form-control atoms', () => {
   it('renders the default and error state classes for Input', () => {
@@ -158,5 +159,47 @@ describe('form-control dark theming contract', () => {
   it('declares link styling with cyan-400 state-live token', () => {
     expect(css).toContain('.cl-link');
     expect(css).toContain('var(--cl-state-live)');
+  });
+});
+
+describe('Button atom CTA treatments (openspec 0198)', () => {
+  const VARIANTS = ['primary', 'secondary', 'destructive', 'destructive-outline'] as const;
+
+  it.each(VARIANTS)('renders the %s variant class', (variant) => {
+    render(<Button variant={variant}>Publish</Button>);
+    expect(screen.getByRole('button', { name: 'Publish' }).className).toContain(
+      `cl-btn--${variant}`,
+    );
+  });
+
+  it('carries the chamfered control geometry on every variant', () => {
+    render(
+      <>
+        {VARIANTS.map((variant) => (
+          <Button key={variant} variant={variant}>
+            {variant}
+          </Button>
+        ))}
+      </>,
+    );
+    for (const variant of VARIANTS) {
+      const className = screen.getByRole('button', { name: variant }).className;
+      expect(className).toContain('cl-chamfer');
+      expect(className).toContain('cl-chamfer--control');
+    }
+  });
+
+  it('does not double-apply chamfer when the caller supplies its own', () => {
+    render(<Button className="cl-chamfer cl-chamfer--tr">Publish</Button>);
+    const className = screen.getByRole('button', { name: 'Publish' }).className;
+    expect(className.match(/cl-chamfer(?![\w-])/g)).toHaveLength(1);
+    expect(className).toContain('cl-chamfer--tr');
+  });
+
+  it('defaults to the primary variant and stays keyboard-focusable', () => {
+    render(<Button>Publish</Button>);
+    const className = screen.getByRole('button', { name: 'Publish' }).className;
+    expect(className).toContain('cl-btn--primary');
+    expect(className).toContain('cl-focusable');
   });
 });

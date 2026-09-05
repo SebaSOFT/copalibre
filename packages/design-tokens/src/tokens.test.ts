@@ -325,3 +325,28 @@ describe('the style guide', () => {
     expect(generateStyleGuide('"><script>x</script>')).not.toContain('<script>x</script>');
   });
 });
+
+describe('button CTA treatments (openspec 0198)', () => {
+  const css = generateCss();
+
+  it('renders hover, active and disabled states distinctly from the default', () => {
+    expect(css).toContain('.cl-btn:hover:not(:disabled)');
+    expect(css).toContain('.cl-btn:active:not(:disabled)');
+    expect(css).toContain('.cl-btn:disabled');
+  });
+
+  it('keeps primary on state-live and secondary on the raised neutral pairing', () => {
+    expect(css).toMatch(/\.cl-btn--primary \{[^}]*var\(--cl-state-live\)/);
+    expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-surface-raised\)/);
+    expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-border-muted\)/);
+  });
+
+  it('offers the public display-type treatment as its own modifier', () => {
+    expect(css).toMatch(/\.cl-btn--persuade \{[^}]*var\(--cl-font-display\)/);
+    expect(css).toMatch(/\.cl-btn--persuade \{[^}]*text-transform: uppercase/);
+  });
+
+  it('declares the chamfer geometry buttons opt into', () => {
+    expect(css).toContain('.cl-chamfer--control');
+  });
+});
