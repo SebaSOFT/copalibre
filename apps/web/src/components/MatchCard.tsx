@@ -50,7 +50,7 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
           <EntrantName fullName={match.homeName ?? 'TBD'} abbreviation={match.homeAbbreviation} />
           {match.homePosition !== undefined && (
             <span
-              className="cl-badge"
+              className="cl-badge cl-badge--rank"
               title={applyTemplate(labels.position, { position: match.homePosition })}
             >
               #{match.homePosition}
@@ -62,7 +62,7 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
           <EntrantName fullName={match.awayName ?? 'TBD'} abbreviation={match.awayAbbreviation} />
           {match.awayPosition !== undefined && (
             <span
-              className="cl-badge"
+              className="cl-badge cl-badge--rank"
               title={applyTemplate(labels.position, { position: match.awayPosition })}
             >
               #{match.awayPosition}
