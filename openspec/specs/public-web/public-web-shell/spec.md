@@ -579,3 +579,25 @@ dedicated matches page, not an unstyled list.
 - **WHEN** a visitor views a tournament overview page's inline list of matches
 - **THEN** each match SHALL render using the `.cl-match-card` treatment, consistent with the dedicated
   matches page
+
+### Requirement: Public-web shell renders a styled brand lockup
+Every public-web page sharing the site shell SHALL render the CopaLibre mark and wordmark as one
+styled `Logo` unit. The wordmark SHALL NOT render as a bare, default-styled link relying on browser
+link-blue as its only visual treatment.
+
+#### Scenario: The shell header renders a lockup, not a bare link
+- **WHEN** any public page using the shared shell is rendered
+- **THEN** the mark and wordmark appear as one styled unit, with no default browser link-blue text
+  visible
+
+### Requirement: Public-web CTAs implement the accepted CTA treatments
+Every primary and secondary call-to-action on a public-web page SHALL be rendered by an owned
+public-web Button component built on the same `.cl-btn` token classes, with the same variant treatments
+(`state-live` primary with dark text, raised neutral secondary with a muted border) and the same
+chamfered control geometry that `control-web/admin-interface-components` requires of the Control-web
+Button atom. A public-web CTA SHALL NOT carry hand-written, non-token color values.
+
+#### Scenario: Primary and secondary public CTAs are visually distinct
+- **WHEN** a public tournament card renders a primary action alongside a secondary one
+- **THEN** their fill colors are visually distinct, each resolved from a design token rather than a
+  hand-written hex value, and each meets the documented contrast contract
