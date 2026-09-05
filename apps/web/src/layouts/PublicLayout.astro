@@ -82,7 +82,7 @@ const homeUrl = getLocaleHomePath(intl.locale);
   </head>
   <body>
     {
-      background && (
+      background ? (
         <img
           class="cl-discipline-background"
           src={background.url}
@@ -90,6 +90,15 @@ const homeUrl = getLocaleHomePath(intl.locale);
           aria-hidden="true"
           decoding="async"
           style={`opacity: ${background.opacity};`}
+        />
+      ) : (
+        /*
+         * A discipline that ships no imagery gets a deliberate neutral ground,
+         * not the bare base surface — and never another discipline's picture.
+         */
+        <div
+          class="cl-discipline-background cl-discipline-background--neutral"
+          aria-hidden="true"
         />
       )
     }
@@ -184,6 +193,21 @@ const homeUrl = getLocaleHomePath(intl.locale);
     object-fit: cover;
     pointer-events: none;
     user-select: none;
+  }
+
+  /*
+   * Token-drawn, sport-agnostic: a soft lift from the base surface that reads
+   * as a deliberate ground on any discipline, including one nobody has drawn
+   * for yet.
+   */
+  .cl-discipline-background--neutral {
+    background:
+      radial-gradient(
+        120% 80% at 50% 0%,
+        color-mix(in srgb, var(--cl-surface-raised) 70%, transparent),
+        transparent 70%
+      ),
+      var(--cl-surface-base);
   }
 
   body > :not(.cl-discipline-background) {
