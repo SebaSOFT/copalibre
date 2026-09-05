@@ -166,3 +166,16 @@ Rank badges rendered within standings or match summary cards SHALL maintain visu
 #### Scenario: Displaying rank badges in standings
 - **WHEN** a standings row or card displays a rank indicator badge adjacent to team text or scores
 - **THEN** the badge SHALL be separated by at least 6px of spacing and not visually crowd adjacent digits
+
+### Requirement: The state filter renders as discrete, bounded controls
+The matches view's state filter (`All`/`Live`/`Upcoming`/`Final`) SHALL render each option as a
+discrete, visually bounded control with spacing between options and a visible active state, never as
+concatenated inline text.
+
+#### Scenario: Filter options are visually separated
+- **WHEN** the matches view's state filter is rendered
+- **THEN** each option is a separately bounded control with visible spacing from its neighbors
+
+#### Scenario: The active filter is visually distinguishable
+- **WHEN** a visitor selects a state filter option
+- **THEN** that option shows a visible active state distinct from the unselected options
