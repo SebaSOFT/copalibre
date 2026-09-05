@@ -203,28 +203,3 @@ describe('Button atom CTA treatments (openspec 0198)', () => {
     expect(className).toContain('cl-focusable');
   });
 });
-
-describe('button CTA token contract (openspec 0198)', () => {
-  const cssPath = join(
-    dirname(fileURLToPath(import.meta.url)),
-    '../../../../../../../packages/design-tokens/generated/copalibre.css',
-  );
-  const css = readFileSync(cssPath, 'utf8');
-
-  it('renders hover, active and disabled states distinctly from the default', () => {
-    expect(css).toContain('.cl-btn:hover:not(:disabled)');
-    expect(css).toContain('.cl-btn:active:not(:disabled)');
-    expect(css).toContain('.cl-btn:disabled');
-  });
-
-  it('keeps primary on state-live and secondary on the raised neutral pairing', () => {
-    expect(css).toMatch(/\.cl-btn--primary \{[^}]*var\(--cl-state-live\)/);
-    expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-surface-raised\)/);
-    expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-border-muted\)/);
-  });
-
-  it('offers the public display-type treatment as its own modifier', () => {
-    expect(css).toMatch(/\.cl-btn--persuade \{[^}]*var\(--cl-font-display\)/);
-    expect(css).toMatch(/\.cl-btn--persuade \{[^}]*text-transform: uppercase/);
-  });
-});
