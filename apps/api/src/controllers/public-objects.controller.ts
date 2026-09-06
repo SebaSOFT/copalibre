@@ -31,11 +31,18 @@ export class PublicObjectsController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<Buffer> {
     const rows = await this.db.selectFrom('discipline_descriptors').select('document').execute();
+    // A key must be referenced by a descriptor *and* belong to that descriptor's
+    // own module namespace. Every supported install path already enforces the
+    // deterministic `modules/<alias>/<version>/` key (module-distribution's
+    // "Validation is identical at import and in review"), so this is defence in
+    // depth: a row written outside those paths must not be able to serve one
+    // discipline's imagery behind another discipline's tournament.
     const referenced = rows.some((row) => {
       const descriptor = (
         typeof row.document === 'string' ? JSON.parse(row.document) : row.document
       ) as DisciplineDescriptor;
-      return descriptor.images?.some((reference) => reference.key === key) ?? false;
+      if (!descriptor.images?.some((reference) => reference.key === key)) return false;
+      return key.startsWith(`modules/${descriptor.alias}/${descriptor.version}/`);
     });
     if (!referenced) throw backgroundNotFound();
 

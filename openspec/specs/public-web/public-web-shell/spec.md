@@ -601,3 +601,24 @@ Button atom. A public-web CTA SHALL NOT carry hand-written, non-token color valu
 - **WHEN** a public tournament card renders a primary action alongside a secondary one
 - **THEN** their fill colors are visually distinct, each resolved from a design token rather than a
   hand-written hex value, and each meets the documented contrast contract
+
+### Requirement: Public tabular data renders through a shared Table component
+Every tabular data view on a public-web page — tournament standings, per-match rosters, and the match
+event timeline — SHALL render through a shared Table component providing a visible header row, muted
+row borders, `tabular-nums` alignment on numeric columns, and a horizontal-scroll affordance rather
+than page overflow when the table is wider than the viewport.
+
+#### Scenario: Standings render with a visible header and aligned figures
+- **WHEN** a visitor opens a tournament's standings
+- **THEN** the table shows a visible header row and every numeric column (GP, W, L, PTS, etc.) aligns
+  using tabular figures
+
+#### Scenario: A wide table scrolls within itself at 375px
+- **WHEN** a public table wider than 375px is viewed at that width
+- **THEN** the table scrolls horizontally within its own container and the surrounding page does not
+  overflow horizontally
+
+#### Scenario: Match rosters and event timeline use the same table treatment
+- **WHEN** a visitor opens a match report page
+- **THEN** the roster tables and the event timeline render through the same Table component as
+  standings, not as unstyled text columns

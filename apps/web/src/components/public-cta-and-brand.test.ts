@@ -129,3 +129,29 @@ describe('public tables and filter pills (openspec 0199)', () => {
     expect(overviewPage).toMatch(/class="cl-pill cl-focusable"[\s\S]{0,120}matchesViewSeeAll/);
   });
 });
+
+describe('discipline backdrop (openspec 0200)', () => {
+  const layout = readFileSync(join(here, '../layouts/PublicLayout.astro'), 'utf8');
+
+  it('renders the discipline’s own image when one is available', () => {
+    // The backdrop was already data-driven; 0200 keeps that path intact.
+    expect(layout).toContain('selectDisciplineBackground(disciplineImages)');
+    expect(layout).toContain('src={background.url}');
+  });
+
+  it('falls back to a deliberate neutral ground, never another discipline’s picture', () => {
+    expect(layout).toContain('cl-discipline-background--neutral');
+    expect(layout).toMatch(
+      /\.cl-discipline-background--neutral \{[\s\S]*?var\(--cl-surface-base\)/,
+    );
+  });
+
+  it('draws the neutral ground from tokens, with no hand-written color', () => {
+    const neutralRule = layout.slice(
+      layout.indexOf('.cl-discipline-background--neutral {'),
+      layout.indexOf('body > :not(.cl-discipline-background)'),
+    );
+    expect(neutralRule).not.toMatch(HEX_LITERAL);
+    expect(neutralRule).toContain('var(--cl-surface-raised)');
+  });
+});
