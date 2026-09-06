@@ -10,16 +10,28 @@ own reliability and authorization contract distinct from the public and control 
 ### Requirement: Kiosk and overlay routes
 The system SHALL serve `/tv/{organization}/tournaments/{tournament}` (full rotation),
 `/tv/{organization}/tournaments/{tournament}/stages/{stage}/matches/{match}` (pinned to one match), and the same
-routes with `?mode=overlay` for transparent chroma-key rendering, reusing the organization/tournament
-alias tuple unchanged from the public routes per the URL and routing contract. These routes SHALL be
-rendered dynamically per request via server-side rendering for any published tournament, rather than
-prerendered for a hardcoded fixture list, and SHALL be proxied through the internal and edge reverse proxies
-without 404 or blank document errors.
+routes with `?mode=overlay-lower` or `?mode=overlay-full` for chroma-key/broadcast-graphic rendering,
+reusing the organization/tournament alias tuple unchanged from the public routes per the URL and
+routing contract. A bare `?mode=overlay` SHALL be treated as an alias for `?mode=overlay-lower`. These
+routes SHALL be rendered dynamically per request via server-side rendering for any published
+tournament, rather than prerendered for a hardcoded fixture list, and SHALL be proxied through the
+internal and edge reverse proxies without 404 or blank document errors.
 
 #### Scenario: Overlay mode renders transparent
-- **WHEN** a `/tv/**` route is requested with `?mode=overlay`
-- **THEN** the response renders with a transparent background suitable for chroma-key capture, with
-  no navigation chrome, pointer affordances, or dismissible UI
+- **WHEN** a `/tv/**` route is requested with `?mode=overlay-lower` (or bare `?mode=overlay`)
+- **THEN** the server-rendered response renders with a transparent background suitable for chroma-key
+  capture, before any client script runs, with no navigation chrome, pointer affordances, or
+  dismissible UI
+
+#### Scenario: Overlay-full mode renders an opaque, full-bleed scene
+- **WHEN** a `/tv/**` route is requested with `?mode=overlay-full`
+- **THEN** the response renders an opaque, full-bleed broadcast graphic using the same match/tournament
+  data as `overlay-lower`, with no navigation chrome, pointer affordances, or dismissible UI
+
+#### Scenario: An overlay mode adapts to a portrait browser source without a separate URL
+- **WHEN** either overlay mode is rendered in a portrait-dimensioned viewport
+- **THEN** the layout adapts to a vertical composition using the same URL, with no additional query
+  parameter or route required
 
 #### Scenario: Dynamic tournament kiosk rendering
 - **WHEN** an operator navigates to `/tv/{organization}/tournaments/{tournament}` for any active, published tournament

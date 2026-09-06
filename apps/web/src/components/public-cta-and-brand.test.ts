@@ -155,3 +155,38 @@ describe('discipline backdrop (openspec 0200)', () => {
     expect(neutralRule).toContain('var(--cl-surface-raised)');
   });
 });
+
+describe('TV backdrop and focal panel (openspec 0202)', () => {
+  const layout = readFileSync(join(here, '../layouts/TvLayout.astro'), 'utf8');
+  const tvCss = readFileSync(join(here, '../styles/tv-broadcast.css'), 'utf8');
+
+  it('carries the discipline backdrop on non-overlay presentations only', () => {
+    // A lower third is meant to be keyed out; imagery is what must not survive the key.
+    expect(layout).toContain(
+      "const backdrop = overlayMode === 'lower' ? undefined : selectDisciplineBackground(disciplineImages)",
+    );
+  });
+
+  it('reuses the public pages’ backdrop source and opacity rather than a second mechanism', () => {
+    expect(layout).toContain("from '../lib/discipline-background.ts'");
+    expect(layout).toContain('opacity: ${backdrop.opacity}');
+  });
+
+  it('blurs the backdrop so it reads as ground, not as a picture', () => {
+    const rule = layout.slice(
+      layout.indexOf('.tv-backdrop {'),
+      layout.indexOf('#tv-root {\n        position'),
+    );
+    expect(rule).toContain('filter: blur(');
+    expect(rule).toContain('object-fit: cover');
+  });
+
+  it('distributes the focal panel’s content instead of centring it in dead space', () => {
+    const rule = tvCss.slice(
+      tvCss.indexOf('.tv-match-spotlight {'),
+      tvCss.indexOf('.tv-match-spotlight__stage'),
+    );
+    expect(rule).toContain('justify-content: space-between');
+    expect(rule).not.toContain('justify-content: center');
+  });
+});
