@@ -225,6 +225,13 @@ describe('the CSS output', () => {
     expect(css).toContain('.cl-match-console-screen__scoreboard {');
   });
 
+  it('lays the dashboard summary tiles out in one column below md and three above it', () => {
+    expect(css).toContain('.cl-stat-grid {');
+    expect(css).toContain('  grid-template-columns: 1fr;');
+    expect(css).toContain(`@media (min-width: ${BREAKPOINTS.md}) {`);
+    expect(css).toContain('  .cl-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }');
+  });
+
   it('scopes the Control-web density spacing under [data-density="control"]', () => {
     expect(css).toContain('[data-density="control"] {');
     for (const name of Object.keys(CONTROL_DENSITY_SPACING)) {

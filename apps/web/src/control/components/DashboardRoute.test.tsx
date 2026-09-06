@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
 import { DashboardRoute } from './DashboardRoute.js';
 import type {
@@ -407,6 +407,56 @@ describe('DashboardRoute', () => {
 
     await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
     expect(screen.queryByText('Actividad reciente')).toBeDefined();
+  });
+
+  it("renders the organization's audit records through the DataTable organism", async () => {
+    render(
+      <DashboardRoute
+        client={client({
+          listActiveTournaments: async () => [tournament()],
+          fetchAuditTrail: async () => ({
+            records: [
+              {
+                auditId: 'audit-1',
+                organizationId: 'org-1',
+                entityType: 'match',
+                entityId: 'm-1',
+                action: 'match.finalized',
+                actor: 'user:referee-1',
+                occurredAt: new Date().toISOString(),
+                authorizationContext: 'org.operate-match',
+                outcome: 'applied',
+              },
+              {
+                auditId: 'audit-2',
+                organizationId: 'org-1',
+                entityType: 'entrant',
+                entityId: 'e-1',
+                action: 'entrant.registered',
+                actor: 'user:admin-1',
+                occurredAt: new Date().toISOString(),
+                authorizationContext: 'org.manage-registrations',
+                outcome: 'applied',
+                reason: 'Inscripción confirmada',
+              },
+            ],
+            total: 2,
+            limit: 10,
+            offset: 0,
+          }),
+        })}
+        organizationAlias="liga-mendocina"
+      />,
+    );
+
+    const table = await waitFor(() => screen.getByRole('table'));
+    expect(within(table).getByRole('columnheader', { name: 'Acción' })).toBeDefined();
+    expect(within(table).getByRole('columnheader', { name: 'Quién' })).toBeDefined();
+    expect(within(table).getByRole('columnheader', { name: 'Cuándo' })).toBeDefined();
+    expect(within(table).getByText('user:referee-1')).toBeDefined();
+    expect(within(table).getByText('user:admin-1')).toBeDefined();
+    // The reason a record carries rides with its own row, not a separate panel.
+    expect(within(table).getByText('Inscripción confirmada')).toBeDefined();
   });
 
   it('instantiates default client when client prop is omitted', async () => {

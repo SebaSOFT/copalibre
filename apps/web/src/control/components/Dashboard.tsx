@@ -9,6 +9,7 @@ import { createControlApiClient, type DisplayTokenResponse } from '../lib/api-cl
 import { messages } from '../i18n/messages.en.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
+import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { ControlShell } from './ControlShell.js';
 
 interface DeviceEntry {
@@ -97,8 +98,8 @@ function DashboardContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-fetches when the tournament set changes, not on every model identity change
   }, [organizationAlias, tournamentAliases]);
 
-  return (
-    <>
+  const sections = (
+    <div className="cl-dashboard-sections">
       <QuickStats stats={model.stats} />
       <section aria-label={intl.formatMessage(messages.dashboardTournaments)}>
         {visibleTournaments.length === 0 && (
@@ -153,6 +154,13 @@ function DashboardContent({
       </section>
       <DeviceHeartbeat devices={devices} now={now} />
       <ActivityLog entries={model.activity} />
-    </>
+    </div>
+  );
+
+  return (
+    <ListScreenTemplate
+      listing={sections}
+      title={<FormattedMessage {...messages.navDashboard} />}
+    />
   );
 }

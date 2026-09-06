@@ -23,6 +23,7 @@ import { Dashboard } from './components/Dashboard.js';
 import { DeviceHeartbeat } from './components/DeviceHeartbeat.js';
 import { TournamentCard as Card } from './components/TournamentCard.js';
 import { QuickStats } from './components/QuickStats.js';
+import { ActivityLog } from './components/ActivityLog.js';
 import { Badge } from './components/ui/atoms/badge.js';
 import { Button } from './components/ui/atoms/button.js';
 import { withIntl } from './i18n/test-support.js';
@@ -292,6 +293,50 @@ describe('what the dashboard renders', () => {
     expect(screen.getByTestId('activeTournaments').textContent).toBe('4');
     expect(screen.getByTestId('pendingRegistrations').textContent).toBe('9');
     expect(screen.getByTestId('matchesToday').textContent).toBe('2');
+  });
+
+  // jsdom computes no layout, so the column count itself is asserted through the
+  // generated stylesheet (packages/design-tokens tokens.test.ts) and at a real
+  // viewport (e2e/control-dashboard-layout.spec.ts). What this test owns is that
+  // the tiles are handed to that grid at all, rather than stacked in a bare section.
+  it('hands its tiles to the summary grid rather than stacking them', () => {
+    const { container } = render(
+      withIntl(
+        <QuickStats stats={{ activeTournaments: 4, pendingRegistrations: 9, matchesToday: 2 }} />,
+      ),
+    );
+
+    const grid = container.querySelector('.cl-stat-grid');
+    expect(grid).not.toBeNull();
+    expect(grid?.querySelectorAll('.cl-stat-tile')).toHaveLength(3);
+  });
+
+  it('renders the activity feed through the DataTable organism', () => {
+    render(
+      withIntl(
+        <ActivityLog
+          entries={[entry({ reason: 'Documentación completa' })]}
+          now={Date.parse('2026-08-01T20:05:00.000Z')}
+        />,
+      ),
+    );
+
+    const table = screen.getByRole('table');
+    expect(screen.getByRole('columnheader', { name: 'Action' })).toBeDefined();
+    expect(screen.getByRole('columnheader', { name: 'Who' })).toBeDefined();
+    expect(screen.getByRole('columnheader', { name: 'When' })).toBeDefined();
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(2);
+    expect(screen.getByText('registration.approved')).toBeDefined();
+    expect(screen.getByText('user:organizer-1')).toBeDefined();
+    // A reason is a per-row detail, shown only for the rows that carry one.
+    expect(screen.getByText('Documentación completa')).toBeDefined();
+  });
+
+  it('says so when there is no activity instead of showing an empty table body', () => {
+    render(withIntl(<ActivityLog entries={[]} />));
+
+    expect(screen.getByRole('table').querySelectorAll('tbody tr')).toHaveLength(0);
+    expect(screen.getByText('No activity yet.')).toBeDefined();
   });
 
   it.each([
