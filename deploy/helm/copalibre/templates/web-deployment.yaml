@@ -31,6 +31,11 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+            # The Caddyfile's own default is docker-compose.yml's service name,
+            # which nothing in Kubernetes can resolve — this chart's Service is
+            # release-scoped. Always set, never left to the image's default.
+            - name: COPALIBRE_WEB_SSR_UPSTREAM
+              value: {{ .Values.web.ssrUpstream | default (printf "%s-web-ssr:%v" (include "copalibre.fullname" .) (index .Values.roles "web-ssr").port) | quote }}
           lifecycle:
             preStop:
               # Same reasoning as templates/deployment.yaml: give kube-proxy
