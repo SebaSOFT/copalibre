@@ -210,3 +210,23 @@ test('0201: ?mode=overlay-full renders an opaque full-frame scene', async ({ pag
   // eslint-disable-next-line no-restricted-syntax -- asserting a computed browser style value, not an app styling literal
   expect(['rgba(0, 0, 0, 0)', 'transparent']).not.toContain(background);
 });
+
+test('0202: the kiosk carries the discipline backdrop, the lower third does not', async ({
+  page,
+  context,
+}) => {
+  await context.route('**/*.js', (route) => route.abort());
+
+  // A venue display shows the tournament's own discipline imagery as ground.
+  await page.goto(TV_PATH);
+  const kioskBackdrop = page.locator('img.tv-backdrop');
+  if ((await kioskBackdrop.count()) > 0) {
+    await expect(kioskBackdrop).toHaveAttribute('aria-hidden', 'true');
+    const filter = await kioskBackdrop.evaluate((el) => getComputedStyle(el).filter);
+    expect(filter).toContain('blur');
+  }
+
+  // The lower third is keyed out, so imagery must never reach it.
+  await page.goto(`${TV_PATH}?mode=overlay-lower`);
+  await expect(page.locator('img.tv-backdrop')).toHaveCount(0);
+});

@@ -10,6 +10,7 @@ import {
   mapOverviewResponse,
   tournamentEmblemUrl,
 } from '../../../../../../../../lib/public-api-client.ts';
+import type { PublicObjectReference } from '../../../../../../../../lib/discipline-background.ts';
 import type { LiveDashboard } from '../../../../../../../../lib/live-state.ts';
 import type { ResultState } from '../../../../../../../../lib/result-state.ts';
 
@@ -30,6 +31,9 @@ let tournamentName = tournamentAlias;
 let organizationName = organizationAlias;
 let tournamentEmblem: string | undefined;
 let clubs: { name: string; emblemObjectId?: string }[] = [];
+/* The kiosk carries the tournament's own discipline imagery, the same source the
+ * public pages already render. An overlay never does — see TvLayout. */
+let disciplineImages: PublicObjectReference[] | undefined;
 
 try {
   const [live, overview] = await Promise.all([
@@ -39,6 +43,7 @@ try {
 
   if (overview) {
     const mappedOverview = mapOverviewResponse(overview);
+    disciplineImages = overview.disciplineImages;
     tournamentName = mappedOverview.tournamentName || tournamentAlias;
     organizationName = mappedOverview.organizationName || organizationAlias;
     if (mappedOverview.emblemObjectId) {
@@ -111,6 +116,7 @@ const presentation = overlayMode ?? 'kiosk';
   title={`TV — ${tournamentName} — Partido ${matchNumber}`}
   overlayMode={overlayMode}
   chromaKey={chromaKey}
+  disciplineImages={disciplineImages}
 >
   <TvDashboard
     client:load

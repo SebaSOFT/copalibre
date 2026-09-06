@@ -264,9 +264,21 @@
 .tv-match-spotlight {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /*
+   * The panel is as tall as the frame, so centring a small cluster inside it
+   * left most of the height empty (0202). Distributing the blocks uses that
+   * height instead: the stage label reads at the top, the matchup takes the
+   * space it deserves in the middle, and the state sits at the foot.
+   */
+  justify-content: space-between;
   height: 100%;
   gap: 3vmin;
+  padding-block: 2vmin;
+}
+
+/* The matchup is the panel's subject, so it takes the height the others leave. */
+.tv-match-spotlight__vs-grid {
+  flex: 1;
 }
 
 .tv-match-spotlight__stage {
@@ -283,6 +295,12 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 3vmin;
+}
+
+/* Emblems scale with the room they are given rather than staying thumbnail-sized. */
+.tv-match-spotlight__vs-grid .tv-team-side__emblem-wrap {
+  width: clamp(14vmin, 18vmin, 22vmin);
+  height: clamp(14vmin, 18vmin, 22vmin);
 }
 
 .tv-team-side {

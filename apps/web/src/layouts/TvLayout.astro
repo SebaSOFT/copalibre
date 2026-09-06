@@ -1,6 +1,10 @@
 ---
 import '@copalibre/design-tokens/generated/copalibre.css';
 import '../styles/tv-broadcast.css';
+import {
+  selectDisciplineBackground,
+  type PublicObjectReference,
+} from '../lib/discipline-background.ts';
 
 export type TvOverlayMode = 'lower' | 'full';
 
@@ -15,10 +19,18 @@ interface Props {
   readonly overlayMode?: TvOverlayMode;
   /** Paints a solid key colour instead of alpha, for switchers that need one. */
   readonly chromaKey?: string;
+  readonly disciplineImages?: readonly PublicObjectReference[];
 }
 
-const { title, overlayMode, chromaKey } = Astro.props;
+const { title, overlayMode, chromaKey, disciplineImages } = Astro.props;
 const rootClass = overlayMode ? `tv-overlay tv-overlay--${overlayMode}` : '';
+/*
+ * A venue display carries the tournament's own discipline imagery, the same
+ * source and opacity the public pages use, blurred so it reads as ground rather
+ * than as a picture behind the scores. A lower third never does: it is meant to
+ * be keyed out, and imagery is exactly what must not survive the key.
+ */
+const backdrop = overlayMode === 'lower' ? undefined : selectDisciplineBackground(disciplineImages);
 ---
 
 <!doctype html>
@@ -90,6 +102,28 @@ const rootClass = overlayMode ? `tv-overlay tv-overlay--${overlayMode}` : '';
         height: auto;
         min-height: 0;
         padding: 3vmin;
+      }
+
+      /*
+       * Blurred, so it reads as ground rather than as a photograph competing
+       * with the scores a room reads from ten metres away.
+       */
+      .tv-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: blur(12px);
+        transform: scale(1.06); /* hides the blur's soft edge at the frame */
+        pointer-events: none;
+        user-select: none;
+      }
+
+      #tv-root {
+        position: relative;
+        z-index: 1;
       }
     </style>
     <style is:global>
@@ -402,6 +436,18 @@ const rootClass = overlayMode ? `tv-overlay tv-overlay--${overlayMode}` : '';
     </style>
   </head>
   <body>
+    {
+      backdrop && (
+        <img
+          class="tv-backdrop"
+          src={backdrop.url}
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+          style={`opacity: ${backdrop.opacity};`}
+        />
+      )
+    }
     <div id="tv-root">
       <slot />
     </div>
