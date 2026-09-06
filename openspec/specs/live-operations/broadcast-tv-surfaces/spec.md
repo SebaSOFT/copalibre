@@ -120,3 +120,28 @@ cues).
 #### Scenario: Club branding on team references
 - **WHEN** a team/club is referenced anywhere on a TV surface
 - **THEN** that club's emblem SHALL be shown alongside its name, when the club has one uploaded
+
+### Requirement: The kiosk's dominant focal panel uses its available height
+The TV kiosk's dominant focal-match panel SHALL size and populate its content to use the panel's
+available height, rather than leaving a majority of it empty above a fixed-height container.
+
+#### Scenario: The focal panel has no large empty area
+- **WHEN** the TV kiosk renders its dominant focal panel for an in-progress match
+- **THEN** the panel's content extends to use its available height, with no more than a small,
+  intentional margin remaining below the lowest content element
+
+### Requirement: A non-overlay TV surface carries the tournament's discipline backdrop
+A TV surface rendered in a non-overlay presentation SHALL render the tournament's own discipline
+background imagery, blurred and at the same low opacity the public surfaces use, over the broadcast
+ink base. An overlay presentation SHALL NOT render that imagery: a transparent overlay stays
+transparent, and a solid key colour stays solid.
+
+#### Scenario: A venue kiosk shows the discipline's own imagery
+- **WHEN** a TV kiosk route renders for a tournament whose discipline ships background imagery
+- **THEN** that imagery renders blurred behind the kiosk content, over the ink base
+
+#### Scenario: An overlay presentation stays keyable
+- **WHEN** a TV route renders in the lower-third overlay presentation, with or without a requested key
+  colour
+- **THEN** no discipline imagery is rendered, and the background remains transparent or the solid key
+  colour as requested
