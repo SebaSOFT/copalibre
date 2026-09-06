@@ -18,9 +18,22 @@ export interface TvClubItem {
   readonly emblemObjectId?: string;
 }
 
+/**
+ * `lower` is a compact score bug meant to sit over a camera feed; `full` is a
+ * self-contained broadcast scene for a stream with no camera source; `kiosk`
+ * (the default) is the venue display.
+ */
+export type TvPresentation = 'kiosk' | 'lower' | 'full';
+
 export interface TvDashboardProps {
   readonly initial: LiveDashboard;
   readonly streamPath: string;
+  /**
+   * Supplied by the server from the request URL. Deriving it from
+   * `window.location` instead meant the first response — the one a broadcast
+   * consumer actually captures — never carried the overlay presentation.
+   */
+  readonly presentation?: TvPresentation;
   /** Set on the pinned-match route; the full-rotation route leaves this unset. */
   readonly pinnedMatchNumber?: number;
   readonly branding?: TvBranding;
@@ -48,6 +61,7 @@ const TV_RESULT_STATE_LABELS: ResultStateLabels = {
 export function TvDashboard({
   initial,
   streamPath,
+  presentation = 'kiosk',
   pinnedMatchNumber,
   branding,
   tournamentName,
@@ -68,20 +82,8 @@ export function TvDashboard({
     }
     return false;
   });
-  const [isOverlay] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return new URLSearchParams(window.location.search).get('mode') === 'overlay';
-    }
-    return false;
-  });
+  const isOverlay = presentation === 'lower';
   const resolvedBranding = resolveTvBranding(branding ?? {});
-
-  // Overlay mode support (?mode=overlay)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    document.body.classList.toggle('tv-overlay', isOverlay);
-    return () => document.body.classList.remove('tv-overlay');
-  }, [isOverlay]);
 
   // 1. Digital Clock (JetBrains Mono formatting)
   useEffect(() => {
@@ -205,6 +207,47 @@ export function TvDashboard({
 
   // Spotlight Match (pinned match or active live match or first match)
   const spotlightMatch = pinnedMatch ?? liveMatches[0] ?? matches[0];
+
+  /*
+   * A lower third is a strip, not a scene: it names the two sides, their score
+   * and the match state, and leaves the rest of the frame to the footage it is
+   * composited over. Everything the kiosk shows around that — the rotating
+   * rail, the standings, the champion recap — belongs to a full-frame
+   * presentation, not over someone's camera.
+   */
+  if (presentation === 'lower') {
+    return (
+      <div className="tv-root-container tv-lower-third" data-testid="tv-lower-third">
+        {spotlightMatch ? (
+          <div className="tv-lower-third__bug cl-chamfer">
+            <span className={`tv-lower-third__state tv-lower-third__state--${statusBadge.type}`}>
+              {statusBadge.label}
+            </span>
+            <span className="tv-lower-third__side">
+              {spotlightMatch.sides[0]?.abbreviation ?? spotlightMatch.sides[0]?.name ?? 'Local'}
+            </span>
+            <span className="tv-lower-third__score">
+              {spotlightMatch.sides[0]?.score ?? 0}
+              <span className="tv-lower-third__score-sep">:</span>
+              {spotlightMatch.sides[1]?.score ?? 0}
+            </span>
+            <span className="tv-lower-third__side">
+              {spotlightMatch.sides[1]?.abbreviation ??
+                spotlightMatch.sides[1]?.name ??
+                'Visitante'}
+            </span>
+            {currentTime && (
+              <span
+                className="tv-lower-third__clock"
+                data-time={currentTime}
+                aria-label={currentTime}
+              />
+            )}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="tv-root-container">
