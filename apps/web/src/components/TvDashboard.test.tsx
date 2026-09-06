@@ -186,26 +186,25 @@ describe('overlay presentations (openspec 0201)', () => {
     streamPath: '/stream',
   } as const;
 
-  const matchProps = {
-    ...baseProps,
-    initial: {
-      standingsVersion: 0,
-      usingLastKnown: true,
-      matches: [
-        {
-          matchId: 'm1',
-          stageNumber: 1,
-          matchNumber: 1,
-          state: 'live' as const,
-          projectionVersion: 1,
-          sides: [
-            { entrantId: 'h', name: 'Talleres', abbreviation: 'TAL', score: 2, state: 'live' },
-            { entrantId: 'a', name: 'Club Andes', abbreviation: 'AND', score: 1, state: 'live' },
-          ],
-        },
-      ],
-    },
+  const liveMatch: LiveDashboard = {
+    standingsVersion: 0,
+    usingLastKnown: true,
+    matches: [
+      {
+        matchId: 'm1',
+        stageNumber: 1,
+        matchNumber: 1,
+        state: 'live',
+        projectionVersion: 1,
+        sides: [
+          { entrantId: 'h', name: 'Talleres', abbreviation: 'TAL', score: 2, state: 'live' },
+          { entrantId: 'a', name: 'Club Andes', abbreviation: 'AND', score: 1, state: 'live' },
+        ],
+      },
+    ],
   };
+
+  const matchProps = { ...baseProps, initial: liveMatch };
 
   it('renders only a compact score bug in the lower third, not the kiosk furniture', () => {
     render(<TvDashboard {...matchProps} presentation="lower" />);
