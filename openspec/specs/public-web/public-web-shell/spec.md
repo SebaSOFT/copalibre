@@ -622,3 +622,17 @@ than page overflow when the table is wider than the viewport.
 - **WHEN** a visitor opens a match report page
 - **THEN** the roster tables and the event timeline render through the same Table component as
   standings, not as unstyled text columns
+
+### Requirement: Public pages render a discipline-appropriate backdrop
+A public-web page's backdrop presentation SHALL be consistent with its tournament's declared
+discipline. A page SHALL NOT render another discipline's hardcoded iconography, and a discipline with
+no dedicated backdrop treatment SHALL render a neutral fallback rather than a mismatched one.
+
+#### Scenario: A basketball tournament never shows football iconography
+- **WHEN** a public page is rendered for a tournament whose discipline is basketball
+- **THEN** no football-specific backdrop asset (pitch markings, goal, ball) is rendered
+
+#### Scenario: A discipline with no imagery renders a deliberate neutral ground
+- **WHEN** a public page is rendered for a tournament whose discipline ships no background imagery
+- **THEN** the page renders an explicit token-drawn neutral ground rather than no backdrop at all, and
+  never another discipline's imagery
