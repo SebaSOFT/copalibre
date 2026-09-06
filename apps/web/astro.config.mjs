@@ -206,6 +206,8 @@ export default defineConfig({
         '/organizations': 'http://localhost:3001',
         '/admin': 'http://localhost:3001',
         '/installation': 'http://localhost:3001',
+        '/objects': 'http://localhost:3001',
+        '/api': 'http://localhost:3001',
       },
     },
   },

@@ -575,3 +575,102 @@
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Lower third (openspec 0201)
+ *
+ * A strip anchored to the bottom of the frame, sized by its own content, so
+ * the footage it is composited over stays visible. Everything here is
+ * vmin-relative like the rest of this sheet: the same graphic has to read on a
+ * 1080p stream and a phone-shaped vertical one.
+ * ------------------------------------------------------------------------ */
+.tv-lower-third {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  min-height: 0;
+  height: auto;
+}
+
+.tv-lower-third__bug {
+  display: inline-flex;
+  align-items: center;
+  gap: 2vmin;
+  padding: 1.6vmin 3vmin;
+  background: var(--cl-surface-panel);
+  color: var(--cl-text-primary);
+  border-inline-start: 1vmin solid var(--tv-accent, var(--cl-state-live));
+  /* Readable over bright footage without hiding it. */
+  box-shadow: 0 0.5vmin 3vmin rgb(0 0 0 / 45%);
+}
+
+.tv-lower-third__state {
+  font-family: var(--cl-font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: clamp(0.7rem, 1.7vmin, 1.2rem);
+  padding: 0.4vmin 1.2vmin;
+  background: var(--cl-surface-raised);
+}
+
+.tv-lower-third__state--live {
+  background: var(--cl-state-live);
+  color: var(--cl-surface-base);
+}
+
+.tv-lower-third__state--final {
+  background: var(--cl-state-positive, var(--cl-surface-raised));
+  color: var(--cl-surface-base);
+}
+
+.tv-lower-third__side {
+  font-family: var(--cl-font-display);
+  font-weight: 600;
+  font-size: clamp(1rem, 3.2vmin, 2.4rem);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.tv-lower-third__score {
+  font-family: var(--cl-font-display);
+  font-weight: 800;
+  font-size: clamp(1.4rem, 4.4vmin, 3.4rem);
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.6vmin;
+}
+
+.tv-lower-third__score-sep {
+  color: var(--cl-text-muted);
+}
+
+.tv-lower-third__clock {
+  font-family: var(--cl-font-mono, 'JetBrains Mono', monospace);
+  font-size: clamp(0.8rem, 1.8vmin, 1.3rem);
+  color: var(--cl-text-muted);
+  letter-spacing: 0.05em;
+}
+
+.tv-lower-third__clock::after {
+  content: attr(data-time);
+}
+
+/*
+ * A portrait browser source is a vertical stream (a phone-shaped scene), not a
+ * squeezed landscape one: the bug spans the width and sits above the lower
+ * third of the frame, where a vertical player's own chrome does not cover it.
+ */
+@media (orientation: portrait) {
+  .tv-lower-third__bug {
+    width: 100%;
+    justify-content: space-between;
+    gap: 1.5vmin;
+  }
+
+  .tv-overlay--lower #tv-root {
+    padding: 4vmin 3vmin 18vmin;
+  }
+}

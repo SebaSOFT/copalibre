@@ -2,15 +2,32 @@
 import '@copalibre/design-tokens/generated/copalibre.css';
 import '../styles/tv-broadcast.css';
 
+export type TvOverlayMode = 'lower' | 'full';
+
 interface Props {
   readonly title: string;
+  /**
+   * Decided on the server, never from `window`: a broadcast consumer reads the
+   * first response (OBS/vMix capture the document, and a still capture may never
+   * run hydration at all), so an overlay that only becomes transparent after
+   * React mounts is an overlay that renders opaque exactly when it matters.
+   */
+  readonly overlayMode?: TvOverlayMode;
+  /** Paints a solid key colour instead of alpha, for switchers that need one. */
+  readonly chromaKey?: string;
 }
 
-const { title } = Astro.props;
+const { title, overlayMode, chromaKey } = Astro.props;
+const rootClass = overlayMode ? `tv-overlay tv-overlay--${overlayMode}` : '';
 ---
 
 <!doctype html>
-<html lang="en">
+<html
+  lang="en"
+  class={rootClass}
+  data-chroma={chromaKey ? '' : undefined}
+  style={chromaKey ? `--tv-chroma: ${chromaKey};` : undefined}
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -40,8 +57,39 @@ const { title } = Astro.props;
         /* Title-safe margin: ~5% of the shorter viewport dimension. */
         padding: 5vmin;
       }
-      .tv-overlay #tv-root {
+      /*
+       * Transparency has to reach the document, not just the root box: the
+       * page's own html/body ground would otherwise keep the frame opaque and
+       * no amount of transparency below it would show through.
+       */
+      .tv-overlay--lower,
+      .tv-overlay--lower body,
+      .tv-overlay--lower #tv-root {
         background: transparent;
+      }
+
+      /* A solid key colour for switchers that cannot take an alpha channel. */
+      .tv-overlay--lower[data-chroma] body {
+        background: var(--tv-chroma);
+      }
+
+      /*
+       * A full-frame overlay is the whole picture for a stream with no camera
+       * source, so it keeps its own ground rather than punching a hole.
+       */
+      .tv-overlay--full,
+      .tv-overlay--full body {
+        background: var(--cl-surface-base);
+      }
+
+      /*
+       * A lower third occupies its own strip and leaves the rest of the frame
+       * to the camera feed underneath it.
+       */
+      .tv-overlay--lower #tv-root {
+        height: auto;
+        min-height: 0;
+        padding: 3vmin;
       }
     </style>
     <style is:global>

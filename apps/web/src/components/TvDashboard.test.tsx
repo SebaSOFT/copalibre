@@ -179,3 +179,64 @@ describe('TvDashboard', () => {
     expect(screen.getByText('Total anotaciones')).toBeDefined();
   });
 });
+
+describe('overlay presentations (openspec 0201)', () => {
+  const baseProps = {
+    initial: { matches: [], standingsVersion: 0, usingLastKnown: true },
+    streamPath: '/stream',
+  } as const;
+
+  const liveMatch: LiveDashboard = {
+    standingsVersion: 0,
+    usingLastKnown: true,
+    matches: [
+      {
+        matchId: 'm1',
+        stageNumber: 1,
+        matchNumber: 1,
+        state: 'live',
+        projectionVersion: 1,
+        sides: [
+          { entrantId: 'h', name: 'Talleres', abbreviation: 'TAL', score: 2, state: 'live' },
+          { entrantId: 'a', name: 'Club Andes', abbreviation: 'AND', score: 1, state: 'live' },
+        ],
+      },
+    ],
+  };
+
+  const matchProps = { ...baseProps, initial: liveMatch };
+
+  it('renders only a compact score bug in the lower third, not the kiosk furniture', () => {
+    render(<TvDashboard {...matchProps} presentation="lower" />);
+
+    expect(screen.getByTestId('tv-lower-third')).toBeTruthy();
+    // A lower third sits over footage: the rail, the scorebug header and the
+    // rotating panel all belong to a full-frame presentation instead.
+    expect(screen.queryByTestId('tv-rail-content')).toBeNull();
+    expect(document.querySelector('.tv-scorebug')).toBeNull();
+  });
+
+  it('shows both sides and the score in the bug', () => {
+    render(<TvDashboard {...matchProps} presentation="lower" />);
+
+    const bug = screen.getByTestId('tv-lower-third');
+    expect(bug.textContent).toContain('TAL');
+    expect(bug.textContent).toContain('AND');
+    expect(bug.textContent).toContain('2');
+    expect(bug.textContent).toContain('1');
+  });
+
+  it('renders the full kiosk composition for the full-frame presentation', () => {
+    render(<TvDashboard {...matchProps} presentation="full" />);
+
+    expect(screen.queryByTestId('tv-lower-third')).toBeNull();
+    expect(document.querySelector('.tv-scorebug')).not.toBeNull();
+  });
+
+  it('defaults to the kiosk presentation when none is supplied', () => {
+    render(<TvDashboard {...matchProps} />);
+
+    expect(screen.queryByTestId('tv-lower-third')).toBeNull();
+    expect(document.querySelector('.tv-scorebug')).not.toBeNull();
+  });
+});

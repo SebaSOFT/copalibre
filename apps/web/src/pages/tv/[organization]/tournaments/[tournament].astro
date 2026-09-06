@@ -95,11 +95,27 @@ try {
 } catch {
   dashboard = sampleDashboard();
 }
+
+/*
+ * The presentation is a property of the request, resolved here so the very
+ * first response already carries it. `overlay` stays valid as the name an
+ * existing OBS browser source is already configured with.
+ */
+const modeParam = Astro.url.searchParams.get('mode');
+const overlayMode =
+  modeParam === 'overlay' || modeParam === 'overlay-lower'
+    ? 'lower'
+    : modeParam === 'overlay-full'
+      ? 'full'
+      : undefined;
+const chromaKey = Astro.url.searchParams.get('chroma') ?? undefined;
+const presentation = overlayMode ?? 'kiosk';
 ---
 
-<TvLayout title={`TV — ${tournamentName}`}>
+<TvLayout title={`TV — ${tournamentName}`} overlayMode={overlayMode} chromaKey={chromaKey}>
   <TvDashboard
     client:load
+    presentation={presentation}
     initial={dashboard}
     streamPath={streamPath}
     branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
