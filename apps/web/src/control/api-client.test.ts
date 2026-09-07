@@ -128,6 +128,40 @@ describe('the control API client', () => {
     });
   });
 
+  it('sends a segment clock command with its segment and idempotency key', async () => {
+    let url = '';
+    let body = '';
+    let idempotencyKey: string | null = null;
+    const client = createControlApiClient({
+      fetch: async (input, init) => {
+        url = String(input);
+        body = String(init?.body ?? '');
+        idempotencyKey = new Headers(init?.headers).get('idempotency-key');
+        return response({
+          matchId: 'match-1',
+          status: 'in-progress',
+          clockRunning: false,
+          runningTimers: [],
+        });
+      },
+    });
+
+    await client.sendMatchCommand(
+      'liga-mendocina',
+      'apertura-2026',
+      'match-1',
+      'pause',
+      'segment-1',
+      'key-1',
+    );
+
+    expect(url).toBe(
+      '/organizations/liga-mendocina/tournaments/apertura-2026/matches/match-1/commands/pause',
+    );
+    expect(JSON.parse(body)).toEqual({ segmentId: 'segment-1' });
+    expect(idempotencyKey).toBe('key-1');
+  });
+
   it('bulk reviews through the batch endpoint that records per-entrant audit rows server-side', async () => {
     let url = '';
     const client = createControlApiClient({

@@ -85,7 +85,7 @@ import {
   CorrectionRequestDto,
   ClockAdjustmentRequest,
   ConsoleRosterResponse,
-  FinalizeRequest,
+  MatchCommandRequest,
   MatchConsoleResponse,
   MatchStateResponse,
   RecordEventRequest,
@@ -192,10 +192,12 @@ export class MatchControlController {
   @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Start, pause, resume or finalize',
+    summary: 'Start, pause, resume, end a segment, or finalize',
     description:
-      'Pausing stops the clock, not the competition: a paused match is still in progress. ' +
-      'Finalizing needs its own capability — recording events never implies declaring a result.',
+      'Pausing stops the clock, not the competition: a paused match is still in progress, and ' +
+      'ending a segment closes that half rather than the match. Start/pause/resume/end name the ' +
+      'segment they act on and share the clock-control capability with manual adjustment; ' +
+      'finalizing needs its own — recording events never implies declaring a result.',
   })
   @ApiOkResponse({ type: MatchStateResponse })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
@@ -206,7 +208,7 @@ export class MatchControlController {
     @Param('matchId') matchId: string,
     @Param('command') command: string,
     @Req() request: RequestWithSubject,
-    @Body() body?: FinalizeRequest,
+    @Body() body?: MatchCommandRequest,
     @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<MatchStateResponse> {
     if (!isMatchCommand(command)) {
@@ -270,8 +272,29 @@ export class MatchControlController {
     });
 
     const segments = await competition.listSegments(matchId);
-    const active = segments.find((segment) => segment.state === 'active');
-    const transition = applyMatchCommand(match, command, active);
+    // The segment the operator named, not merely whichever is running: after a
+    // pause nothing is running, so resolving the target by "currently active"
+    // alone left `resume` with nothing to restart and the clock stopped for
+    // good. An absent `segmentId` keeps the original behavior for the callers
+    // that send no body at all.
+    const running = segments.find((segment) => segment.state === 'active');
+    const target =
+      body?.segmentId !== undefined
+        ? segments.find((segment) => segment.segmentId === body.segmentId)
+        : (running ??
+          // Nothing is running, so "resume" means the half the match is in —
+          // `listSegments` is ordered by number, so the first segment not yet
+          // ended is that one. Only the commands that set a clock running may
+          // reach for it; pause and end still act on what is actually running.
+          (command === 'start' || command === 'resume'
+            ? segments.find((segment) => segment.state !== 'completed')
+            : undefined));
+    if (body?.segmentId !== undefined && !target) {
+      throw new NotFoundException(`No segment "${body.segmentId}" in this match`, {
+        errorCode: 'match-control-not-found',
+      });
+    }
+    const transition = applyMatchCommand(match, command, target);
     if (!transition.ok) {
       throw new BadRequestException(transition.error.message, {
         errorCode: 'match-control-bad-request',
@@ -301,10 +324,24 @@ export class MatchControlController {
           ...audit,
         });
 
-        if (active) {
+        if (target && transition.value.segmentState) {
+          // Only one segment runs at a time: starting or resuming one stops
+          // whichever was left running, the same rule the manual adjustment's
+          // `activate` already enforces.
+          if (transition.value.clockRunning) {
+            for (const segment of segments) {
+              if (segment.segmentId !== target.segmentId && segment.state === 'active') {
+                await competition.setSegmentState(uow, {
+                  segmentId: segment.segmentId,
+                  state: 'pending',
+                  ...audit,
+                });
+              }
+            }
+          }
           await competition.setSegmentState(uow, {
-            segmentId: active.segmentId,
-            state: transition.value.clockRunning ? 'active' : 'pending',
+            segmentId: target.segmentId,
+            state: transition.value.segmentState,
             ...audit,
           });
         }
@@ -2370,7 +2407,13 @@ export class MatchControlController {
 }
 
 function isMatchCommand(value: string): value is MatchCommand {
-  return value === 'start' || value === 'pause' || value === 'resume' || value === 'finalize';
+  return (
+    value === 'start' ||
+    value === 'pause' ||
+    value === 'resume' ||
+    value === 'end' ||
+    value === 'finalize'
+  );
 }
 
 /**
@@ -2512,7 +2555,7 @@ function rosterRoleSnapshotPayload(
   return payload;
 }
 
-function finalizeFingerprint(body: FinalizeRequest | undefined): string {
+function finalizeFingerprint(body: MatchCommandRequest | undefined): string {
   return fingerprintOf(body);
 }
 

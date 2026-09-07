@@ -434,6 +434,9 @@ function components(): string {
     '.cl-sync-indicator__icon--offline { color: var(--cl-text-muted); }',
     '.cl-sync-indicator__icon--offline .cl-sync-indicator__dot { background: transparent; border: 2px solid currentColor; }',
     '.cl-sync-indicator__detail { position: absolute; top: 100%; left: 0; z-index: 2; display: grid; gap: var(--cl-space-1); white-space: nowrap; border: 1px solid var(--cl-border-muted); background: var(--cl-surface-panel); padding: var(--cl-space-2) var(--cl-space-3); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
+    // Wraps rather than scrolls: on a phone held sideways at the touchline the
+    // three clock commands must all stay reachable without a horizontal swipe.
+    '.cl-clock-commands { display: flex; flex-wrap: wrap; gap: var(--cl-space-3); }',
     '.cl-match-console-screen__workspace { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--cl-space-5); min-width: 0; }',
     '.cl-match-console-screen__workspace > * { min-width: 0; }',
     '@media (max-width: 600px) { .cl-match-console-screen__workspace { grid-template-columns: 1fr; } }',

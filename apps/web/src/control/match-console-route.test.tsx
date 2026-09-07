@@ -131,6 +131,12 @@ function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApi
     setMatchRoster: async () => projection,
     adjustMatchClock: async () => projection,
     resolveMatchTimer: async () => projection,
+    sendMatchCommand: async () => ({
+      matchId: 'match-1',
+      status: 'in-progress',
+      clockRunning: true,
+      runningTimers: [],
+    }),
     recordMatchEvent: async () => ({
       eventId: 'event-2',
       definitionCode: 'penalty-goal',
@@ -147,6 +153,249 @@ function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApi
     ...overrides,
   };
 }
+
+const FIRST_SEGMENT: MatchConsoleResponse['segments'][number] = {
+  segmentId: 'segment-1',
+  type: 'half',
+  number: 1,
+  state: 'active',
+  elapsedSeconds: 120,
+  durationSeconds: 2700,
+};
+
+describe('MatchConsoleRoute clock commands', () => {
+  /**
+   * The console reconciles against whatever the server projection says after a
+   * drain, so a stub that never moves would undo every optimistic patch. This
+   * one applies the command the way the server does: only one segment runs.
+   */
+  function clockServer(): {
+    readonly sent: unknown[];
+    readonly overrides: Partial<MatchConsoleApiClient>;
+  } {
+    const sent: unknown[] = [];
+    let state: MatchConsoleResponse = projection;
+    const stateAfter = {
+      start: 'active',
+      resume: 'active',
+      pause: 'pending',
+      end: 'completed',
+    } as const;
+    return {
+      sent,
+      overrides: {
+        fetchMatchConsole: async () => state,
+        sendMatchCommand: async (_organization, _tournament, matchId, command, segmentId) => {
+          sent.push({ matchId, command, segmentId });
+          state = {
+            ...state,
+            segments: state.segments.map((segment) =>
+              segment.segmentId === segmentId
+                ? { ...segment, state: stateAfter[command] }
+                : segment,
+            ),
+          };
+          return {
+            matchId,
+            status: 'in-progress',
+            clockRunning: stateAfter[command] === 'active',
+            runningTimers: [],
+          };
+        },
+      },
+    };
+  }
+
+  it('pauses the selected segment through the durable queue, then resumes it', async () => {
+    const { sent, overrides } = clockServer();
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client(overrides)}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    // A running segment offers Pause and End; Start has nothing to start.
+    expect(screen.getByRole('button', { name: 'Start' })).toHaveProperty('disabled', true);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    });
+
+    await waitFor(() =>
+      expect(sent).toEqual([{ matchId: 'match-1', command: 'pause', segmentId: 'segment-1' }]),
+    );
+    // A stopped clock is what re-arms Start and disarms Pause.
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Pause' })).toHaveProperty('disabled', true),
+    );
+    expect(screen.getByRole('button', { name: 'Start' })).toHaveProperty('disabled', false);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    });
+    await waitFor(() => expect(sent).toHaveLength(2));
+    expect(sent[1]).toEqual({ matchId: 'match-1', command: 'resume', segmentId: 'segment-1' });
+  });
+
+  it('ends the segment and then offers no further clock command for it', async () => {
+    const { sent, overrides } = clockServer();
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client(overrides)}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'End period' }));
+    });
+
+    await waitFor(() =>
+      expect(sent).toEqual([{ matchId: 'match-1', command: 'end', segmentId: 'segment-1' }]),
+    );
+    for (const name of ['Start', 'Pause', 'End period']) {
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name })).toHaveProperty('disabled', true),
+      );
+    }
+  });
+
+  it('starts a scheduled match rather than resuming it, and stops the segment that was running', async () => {
+    const sent: unknown[] = [];
+    const scheduled: MatchConsoleResponse = {
+      ...projection,
+      status: 'scheduled',
+      segments: [
+        { ...FIRST_SEGMENT, segmentId: 'segment-1', state: 'active' },
+        { ...FIRST_SEGMENT, segmentId: 'segment-2', number: 2, state: 'pending' },
+      ],
+    };
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              fetchMatchConsole: async () => scheduled,
+              sendMatchCommand: async (_organization, _tournament, matchId, command, segmentId) => {
+                sent.push({ command, segmentId });
+                return { matchId, status: 'in-progress', clockRunning: true, runningTimers: [] };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    // Select the second period, which is not the one currently running.
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Active segment'), {
+        target: { value: 'segment-2' },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    });
+
+    // A scheduled match is started, never resumed.
+    await waitFor(() => expect(sent).toEqual([{ command: 'start', segmentId: 'segment-2' }]));
+    // And the optimistic patch stops the one that was running: only one at a time.
+    expect(screen.getByLabelText('Active segment')).toBeDefined();
+  });
+
+  it('queues a clock command durably, exactly as a recorded event is queued', async () => {
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              sendMatchCommand: async () => {
+                throw new TypeError('Failed to fetch');
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    });
+
+    await waitFor(async () => expect(await listPending('match-1')).toHaveLength(1));
+    const [queued] = await listPending('match-1');
+    expect(queued).toMatchObject({
+      status: 'pending',
+      action: { kind: 'clock-command', command: 'pause', segmentId: 'segment-1' },
+    });
+  });
+});
+
+describe('MatchConsoleRoute event ledger', () => {
+  const manyEvents = {
+    ...projection,
+    events: ['one', 'two', 'three', 'four', 'five'].map((name, index) => ({
+      eventId: `event-${name}`,
+      definitionCode: `goal-${name}`,
+      segmentId: 'segment-1',
+      sequence: index + 1,
+      occurredAt: '2026-08-03T20:00:00.000Z',
+      side: 'entrant-a',
+    })),
+  };
+
+  it('shows only the most recent events when collapsed, and every one when expanded', async () => {
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client({ fetchMatchConsole: async () => manyEvents })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    // Collapsed by default: the three most recent, newest first — the event
+    // just recorded is never the one collapsing hides.
+    expect(screen.getByText(/goal-five/)).toBeDefined();
+    expect(screen.getByText(/goal-four/)).toBeDefined();
+    expect(screen.getByText(/goal-three/)).toBeDefined();
+    expect(screen.queryByText(/goal-two/)).toBeNull();
+    expect(screen.queryByText(/goal-one/)).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Show full history' }));
+    });
+
+    expect(screen.getByText(/goal-one/)).toBeDefined();
+    expect(screen.getByText(/goal-two/)).toBeDefined();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
+    });
+    expect(screen.queryByText(/goal-one/)).toBeNull();
+  });
+});
 
 /** The console's one always-visible connectivity signal; its detail opens on focus or hover. */
 function syncIndicator(): HTMLElement {
@@ -1324,12 +1573,18 @@ describe('MatchConsoleRoute', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Apply clock' }));
       });
 
-      fireEvent.mouseEnter(syncIndicator().parentElement as HTMLElement);
+      const indicator = syncIndicator().parentElement as HTMLElement;
+      fireEvent.mouseEnter(indicator);
       await waitFor(() => {
         expect(screen.getByText('No queued actions')).toBeDefined();
         expect(screen.queryByText('Not yet synced')).toBeNull();
         expect(screen.getByText(/^Last synced /)).toBeDefined();
       });
+
+      // And it closes again the moment the pointer leaves: the detail is only
+      // ever borrowed space, never permanent layout.
+      fireEvent.mouseLeave(indicator);
+      expect(screen.queryByText('No queued actions')).toBeNull();
     });
 
     it('shows online and offline as one glanceable icon with an accessible name', async () => {

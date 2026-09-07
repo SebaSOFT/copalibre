@@ -68,6 +68,12 @@ function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApi
     setMatchRoster: async () => scheduledProjection(),
     adjustMatchClock: async () => scheduledProjection(),
     resolveMatchTimer: async () => scheduledProjection(),
+    sendMatchCommand: async () => ({
+      matchId: 'match-1',
+      status: 'in-progress',
+      clockRunning: true,
+      runningTimers: [],
+    }),
     recordMatchEvent: async () => {
       throw new Error('not used in this test');
     },
@@ -270,6 +276,23 @@ describe('LoadMatchDataRoute', () => {
     });
     await act(async () => renderRoute(api));
     expect(await screen.findByText(/Could not load this match/i)).toBeDefined();
+  });
+
+  it('labels entrants with no resolvable name everywhere it lists them, never their ids', async () => {
+    const api = client({
+      fetchMatchConsole: async () =>
+        scheduledProjection({
+          entrants: [{ entrantId: ENTRANT_HOME }, { entrantId: ENTRANT_AWAY }],
+        }),
+    });
+    await act(async () => renderRoute(api));
+    await waitFor(() => expect(screen.getByText('Home One')).toBeDefined());
+
+    // The roster heading, the event-attribution select, and the winner select
+    // all resolve through the same placeholder rather than a truncated id.
+    expect(screen.getAllByText('Unnamed entrant').length).toBeGreaterThan(1);
+    expect(screen.queryByText(ENTRANT_HOME.slice(-8))).toBeNull();
+    expect(screen.queryByText(ENTRANT_AWAY.slice(-8))).toBeNull();
   });
 
   it('names the entrant, renders a badge-less role, and submits a chosen winner with a filled number', async () => {

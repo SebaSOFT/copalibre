@@ -6,8 +6,10 @@ import {
   ControlApiError,
   createControlApiClient,
   type ConsoleEventDefinition,
+  type ConsoleSegment,
   type MatchConsoleApiClient,
   type MatchConsoleResponse,
+  type SegmentClockCommand,
 } from '../lib/api-client.js';
 import {
   currentEpochMilliseconds,
@@ -44,6 +46,21 @@ import { MatchConsoleTemplate } from './ui/templates/match-console-template.js';
 import { messages } from '../i18n/messages.en.js';
 
 const RECONCILIATION_TIMEOUT_MS = 8_000;
+
+/**
+ * How many events stay visible with the ledger collapsed. Three is what makes
+ * collapsing safe: the operator can confirm what they just recorded — and the
+ * one before it, when a substitution and its card land together — without
+ * spending the screen the recording controls need during play.
+ */
+const LEDGER_PEEK_COUNT = 3;
+
+const SEGMENT_STATE_AFTER: Readonly<Record<SegmentClockCommand, ConsoleSegment['state']>> = {
+  start: 'active',
+  resume: 'active',
+  pause: 'pending',
+  end: 'completed',
+};
 
 type ConsoleStatus =
   | { readonly kind: 'loading' }
@@ -115,6 +132,7 @@ export function MatchConsoleRoute({
   );
   const [lastSyncedAt, setLastSyncedAt] = useState<number>();
   const [syncDetailShown, setSyncDetailShown] = useState(false);
+  const [ledgerExpanded, setLedgerExpanded] = useState(false);
   const projectionVersion = useRef(0);
   const finalizationInFlight = useRef(false);
   const drainingRef = useRef(false);
@@ -301,6 +319,40 @@ export function MatchConsoleRoute({
         ?.category === eventCategory
     );
   });
+  const newestFirst = [...displayedEvents].reverse();
+  const ledgerEvents = ledgerExpanded ? newestFirst : newestFirst.slice(0, LEDGER_PEEK_COUNT);
+
+  const selectedSegment = projection.segments.find(
+    (segment) => segment.segmentId === selectedSegmentId,
+  );
+  const segmentRunning = selectedSegment?.state === 'active';
+  const segmentEnded = selectedSegment?.state === 'completed';
+  const clockCommandsLabel = intl.formatMessage(messages.matchConsoleClockCommands);
+  // A match that has not kicked off starts; one already in progress resumes.
+  // Both are "press Start" to the official holding the whistle — the
+  // distinction is the domain's, between beginning a match and restarting a
+  // clock, and it belongs here rather than in front of them.
+  const clockCommands: readonly {
+    readonly command: SegmentClockCommand;
+    readonly label: string;
+    readonly disabled: boolean;
+  }[] = [
+    {
+      command: projection.status === 'scheduled' ? 'start' : 'resume',
+      label: intl.formatMessage(messages.matchConsoleStartClock),
+      disabled: segmentRunning || segmentEnded,
+    },
+    {
+      command: 'pause',
+      label: intl.formatMessage(messages.matchConsolePauseClock),
+      disabled: !segmentRunning,
+    },
+    {
+      command: 'end',
+      label: intl.formatMessage(messages.matchConsoleEndSegment),
+      disabled: segmentEnded,
+    },
+  ];
 
   // Write-ahead (design.md's own decision, by name): persisted to the
   // durable queue *before* any send is attempted, so a dropped connection —
@@ -314,6 +366,41 @@ export function MatchConsoleRoute({
     await enqueue(action, newIdempotencyKey(), currentEpochMilliseconds());
     await refreshPendingMutations();
     await drain();
+  }
+
+  /**
+   * Queued like every other mutating command (0123's requirement covers these
+   * too), so a whistle blown in a dead zone is replayed rather than lost. The
+   * optimistic patch mirrors what the server does: only one segment runs, so
+   * starting one stops whichever was running.
+   */
+  async function issueClockCommand(command: SegmentClockCommand): Promise<void> {
+    const resulting = SEGMENT_STATE_AFTER[command];
+    await mutate(
+      {
+        kind: 'clock-command',
+        organizationAlias,
+        tournamentAlias,
+        matchId,
+        command,
+        segmentId: selectedSegmentId,
+      },
+      () =>
+        setProjection((current) =>
+          current
+            ? {
+                ...current,
+                segments: current.segments.map((segment) =>
+                  segment.segmentId === selectedSegmentId
+                    ? { ...segment, state: resulting }
+                    : resulting === 'active' && segment.state === 'active'
+                      ? { ...segment, state: 'pending' }
+                      : segment,
+                ),
+              }
+            : current,
+        ),
+    );
   }
 
   function record(definition: ConsoleEventDefinition): void {
@@ -672,6 +759,24 @@ export function MatchConsoleRoute({
             <FormattedMessage {...messages.matchConsoleApplyClock} />
           </Button>
         </div>
+        <div className="cl-card__content">
+          {/* The whistle, not a correction: these record the moment the clock
+              actually changed, while "apply clock" above stays the way to fix a
+              value that was recorded wrong. Both land in one audit trail. */}
+          <div className="cl-clock-commands" role="group" aria-label={clockCommandsLabel}>
+            {clockCommands.map(({ command, label, disabled }) => (
+              <Button
+                disabled={!canControlClock || selectedSegmentId === '' || disabled}
+                key={command}
+                onClick={() => void issueClockCommand(command)}
+                type="button"
+                variant={command === 'end' ? 'secondary' : 'primary'}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        </div>
       </Card>
 
       <Card className="cl-chamfer cl-chamfer--control">
@@ -944,6 +1049,22 @@ export function MatchConsoleRoute({
           <h2 className="cl-card__title">
             <FormattedMessage {...messages.matchConsoleEventLedger} />
           </h2>
+          {/* Collapsed is the default because the recording controls above have
+              to fit one screen during play; the peek strip is what keeps
+              collapsing from hiding the event just recorded from the operator
+              who just recorded it. */}
+          <Button
+            aria-expanded={ledgerExpanded}
+            onClick={() => setLedgerExpanded((expanded) => !expanded)}
+            type="button"
+            variant="secondary"
+          >
+            <FormattedMessage
+              {...(ledgerExpanded
+                ? messages.matchConsoleCollapseLedger
+                : messages.matchConsoleExpandLedger)}
+            />
+          </Button>
         </header>
         <div className="cl-card__content">
           <div className="cl-role-user">
@@ -960,7 +1081,7 @@ export function MatchConsoleRoute({
             ))}
           </div>
           <ol className="cl-platform-update-list">
-            {[...displayedEvents].reverse().map((event) => (
+            {ledgerEvents.map((event) => (
               <li key={event.eventId} className="cl-role-user">
                 <strong>
                   {event.definitionCode} ·{' '}

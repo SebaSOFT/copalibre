@@ -408,7 +408,22 @@ export class SetMatchRosterRequest {
   members!: SetMatchRosterMemberRequest[];
 }
 
-export class FinalizeRequest {
+/**
+ * The body every `commands/:command` route shares. Named for the route rather
+ * than for finalize alone, because start/pause/resume/end use it too: they send
+ * only `segmentId`, and finalize sends only the result.
+ */
+export class MatchCommandRequest {
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'The segment a start/pause/resume/end command acts on. Absent falls back to whichever ' +
+      'segment is currently running — which is no segment at all once one has been paused',
+  })
+  @IsOptional()
+  @IsString()
+  segmentId?: string;
+
   @ApiProperty({
     type: [Object],
     description:
@@ -563,7 +578,7 @@ export class BulkLoadMatchDataRequest {
 
   @ApiProperty({
     type: [Object],
-    description: 'One entry per side, matching FinalizeRequest’s existing shape',
+    description: 'One entry per side, matching MatchCommandRequest’s existing shape',
   })
   // Inline object shape with no named class to transform into, so the pipe
   // validates it as an opaque object only.

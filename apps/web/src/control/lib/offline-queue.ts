@@ -5,6 +5,7 @@ import {
   type FinalizeMatchRequest,
   type MatchConsoleApiClient,
   type RecordMatchEventRequest,
+  type SegmentClockCommand,
   type SetMatchRosterRequest,
 } from './api-client.js';
 
@@ -13,8 +14,9 @@ import {
  * — the durable queue's own record of *what to replay*, not the HTTP
  * request itself. Finalize is included (design.md: "a queued finalize... is
  * refused and surfaced for the operator to resolve explicitly", not
- * excluded from the queue); start/pause/resume are not, since nothing in
- * the console today calls them through a queueable path.
+ * excluded from the queue), and so are the segment clock commands now that
+ * the console issues them: a whistle blown in a dead zone is exactly the
+ * action the accepted requirement means by one the console "cannot send".
  */
 export type QueuedAction =
   | {
@@ -23,6 +25,14 @@ export type QueuedAction =
       readonly tournamentAlias: string;
       readonly matchId: string;
       readonly request: ClockAdjustmentRequest;
+    }
+  | {
+      readonly kind: 'clock-command';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+      readonly matchId: string;
+      readonly command: SegmentClockCommand;
+      readonly segmentId: string;
     }
   | {
       readonly kind: 'timer-resolve';
@@ -201,6 +211,15 @@ async function replay(client: MatchConsoleApiClient, mutation: QueuedMutation): 
         action.request,
         idempotencyKey,
       );
+    case 'clock-command':
+      return client.sendMatchCommand(
+        action.organizationAlias,
+        action.tournamentAlias,
+        action.matchId,
+        action.command,
+        action.segmentId,
+        idempotencyKey,
+      );
     case 'timer-resolve':
       return client.resolveMatchTimer(
         action.organizationAlias,
@@ -282,6 +301,8 @@ export function describeQueuedAction(action: QueuedAction): string {
       return `Roster for ${action.entrantId}: ${action.request.members.length} named`;
     case 'clock-adjust':
       return `Clock set to ${action.request.elapsedSeconds}s`;
+    case 'clock-command':
+      return `Clock ${action.command} on segment ${action.segmentId}`;
     case 'timer-resolve':
       return `Timer ${action.timerId} resolved`;
   }

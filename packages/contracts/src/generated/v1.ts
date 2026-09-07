@@ -758,8 +758,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Start, pause, resume or finalize
-         * @description Pausing stops the clock, not the competition: a paused match is still in progress. Finalizing needs its own capability — recording events never implies declaring a result.
+         * Start, pause, resume, end a segment, or finalize
+         * @description Pausing stops the clock, not the competition: a paused match is still in progress, and ending a segment closes that half rather than the match. Start/pause/resume/end name the segment they act on and share the clock-control capability with manual adjustment; finalizing needs its own — recording events never implies declaring a result.
          */
         post: operations["MatchControlController_command"];
         delete?: never;
@@ -3633,7 +3633,12 @@ export interface components {
             /** @description Monotonic server-issued projection version */
             projectionVersion: number;
         };
-        FinalizeRequest: {
+        MatchCommandRequest: {
+            /**
+             * Format: uuid
+             * @description The segment a start/pause/resume/end command acts on. Absent falls back to whichever segment is currently running — which is no segment at all once one has been paused
+             */
+            segmentId?: string;
             /** @description One entry per side: entrant id, its declared statistics, placement for a heat, and why the result is what it is when not an ordinarily played one */
             sides: Record<string, never>[];
             /**
@@ -3765,7 +3770,7 @@ export interface components {
             segments: components["schemas"]["BulkSegmentInput"][];
             /** @description The match’s full event history, in the order it actually happened */
             events: components["schemas"]["BulkEventInput"][];
-            /** @description One entry per side, matching FinalizeRequest’s existing shape */
+            /** @description One entry per side, matching MatchCommandRequest’s existing shape */
             result: Record<string, never>[];
         };
         BulkLoadMatchDataResponse: {
@@ -7222,7 +7227,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["FinalizeRequest"];
+                "application/json": components["schemas"]["MatchCommandRequest"];
             };
         };
         responses: {

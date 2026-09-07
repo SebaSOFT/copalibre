@@ -124,15 +124,6 @@ entrant in one match, never as a team-membership list.
 - **WHEN** a referee has event-entry authorization for a match but not finalize authorization
 - **THEN** the finalize action is unavailable or rejected for that user
 
-### Requirement: Operational telemetry is truthful
-The console SHALL display stream latency, packet loss, spectator count, and stream uptime only when
-a measured source provides the value and source metadata. A metric without a measured source SHALL be
-shown as unavailable and SHALL NOT be replaced with an estimated or placeholder value.
-
-#### Scenario: Telemetry source is unavailable
-- **WHEN** no telemetry source provides packet-loss data for a match
-- **THEN** the packet-loss tile is labelled unavailable rather than displaying a fabricated value
-
 ### Requirement: Match console renders tactile dual jersey number grids
 
 The match console (Screen A2) SHALL render side-by-side interactive jersey number button grids for competing entrants, displaying jersey numbers, names, tactical roles, and active on-field status.
@@ -333,17 +324,34 @@ against will never be played.
 ### Requirement: Sync status is always visible while the console is open
 
 The console SHALL display, at all times while open — not only when a problem occurs — whether it is
-currently online or offline, how many actions are queued and not yet confirmed by the server, and when
-the queue was last successfully drained.
+currently online or offline, as a single glanceable icon. The number of actions queued and not yet
+confirmed by the server, and when the queue was last successfully drained, SHALL be available on demand
+(hover or focus on the icon) rather than permanently occupying the console's visible layout.
 
 #### Scenario: Going offline shows an offline indicator
 - **WHEN** the console loses connectivity
-- **THEN** an offline indicator becomes visible without requiring any operator action
+- **THEN** the icon visibly switches to its offline state without requiring any operator action
 
 #### Scenario: A queued action is reflected in the visible count
-- **WHEN** an action is durably queued because it could not be sent
-- **THEN** the visible queued-action count increases to include it
+- **WHEN** an action is durably queued because it could not be sent, and an operator focuses or hovers
+  the connectivity icon
+- **THEN** the on-demand detail shown includes the current queued-action count
 
 #### Scenario: A successful drain updates the last-synced time
-- **WHEN** the queue is successfully drained after a reconnection
-- **THEN** the visible last-synced time updates to reflect it
+- **WHEN** the queue is successfully drained after a reconnection, and an operator focuses or hovers
+  the connectivity icon
+- **THEN** the on-demand detail shown includes the updated last-synced time
+
+### Requirement: Team and participant references always resolve to a display name
+Every team or participant reference rendered anywhere in the match console — the score header, event
+recording controls, and roster selection — SHALL resolve to that entrant's display name or short code.
+A raw identifier SHALL NOT be rendered as a substitute when a name is unavailable; the console SHALL
+instead show a clearly labeled placeholder (e.g. "Unnamed entrant") rather than an internal id.
+
+#### Scenario: The score header shows team names, not ids
+- **WHEN** the console renders its score header for a match with two named entrants
+- **THEN** both entrants' names (or short codes) are shown, with no raw identifier visible
+
+#### Scenario: An entrant with no resolvable name shows a labeled placeholder, not an id
+- **WHEN** the console renders a reference to an entrant whose name cannot be resolved
+- **THEN** it shows a clearly labeled placeholder rather than the entrant's raw identifier

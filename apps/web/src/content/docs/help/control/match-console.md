@@ -28,6 +28,27 @@ tournament's public screen.
   this screen — any later correction goes through the audited correction/supersession flow, not by
   reloading it here.
 
+## Running the clock
+
+Each segment has its own clock, and you drive it with three buttons under the segment you selected:
+
+- **Start** begins that segment's clock, and stops whichever segment was running — only one runs at
+  a time.
+- **Pause** stops it where it stands. A paused match is still in progress: pausing stops a clock,
+  not the competition.
+- **End period** closes that segment. It accepts no further Start or Pause afterwards, and it does
+  not end the match — finalizing the result is its own separate action.
+
+These record the moment you actually blew the whistle. The elapsed-seconds field beside them stays
+what it always was: the way to correct a value that was recorded wrong, after the fact. Both land in
+the same audit trail, with who did it, when, and what the clock read before and after.
+
+## Reading the event ledger
+
+The ledger starts collapsed, showing the three most recent events, so the recording controls stay on
+one screen while you work. What you just recorded is always among them — collapsing removes older
+history from view, never your latest confirmation. **Show full history** opens the whole match.
+
 ## What you cannot do after loading the result
 
 Once the match is finished, this screen no longer lets you keep adding events as if the match were

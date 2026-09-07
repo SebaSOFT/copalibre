@@ -419,6 +419,21 @@ export const messages = defineMessages({
     id: 'control.matchConsole.neverSynced',
     defaultMessage: 'Not yet synced',
   },
+  matchConsoleClockCommands: {
+    id: 'control.matchConsole.clockCommands',
+    defaultMessage: 'Clock commands',
+  },
+  matchConsoleStartClock: { id: 'control.matchConsole.startClock', defaultMessage: 'Start' },
+  matchConsolePauseClock: { id: 'control.matchConsole.pauseClock', defaultMessage: 'Pause' },
+  matchConsoleEndSegment: { id: 'control.matchConsole.endSegment', defaultMessage: 'End period' },
+  matchConsoleExpandLedger: {
+    id: 'control.matchConsole.expandLedger',
+    defaultMessage: 'Show full history',
+  },
+  matchConsoleCollapseLedger: {
+    id: 'control.matchConsole.collapseLedger',
+    defaultMessage: 'Show less',
+  },
   matchConsoleUnnamedEntrant: {
     id: 'control.matchConsole.unnamedEntrant',
     defaultMessage: 'Unnamed entrant',
