@@ -1077,6 +1077,8 @@ export interface TournamentSettingsResponse {
   readonly capacity?: number;
   readonly checkInClosesAt?: string;
   readonly emblemObjectId?: string;
+  /** Organizer-set: shown in the public organization page's featured block. */
+  readonly featured: boolean;
 }
 
 export type TournamentSettingsRequest = Partial<TournamentSettingsResponse>;

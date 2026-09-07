@@ -634,6 +634,13 @@ export class PublicTournamentListingItemResponse {
     description: 'object_metadata.object_id of the tournament emblem',
   })
   emblemObjectId?: string;
+
+  @ApiProperty({
+    description:
+      'Whether the organizer flagged this tournament as featured. Independent of `status`: live is ' +
+      'urgent, featured is curated, and a tournament can be either, both, or neither.',
+  })
+  featured!: boolean;
 }
 
 export class PublicOrganizationTournamentListResponse {

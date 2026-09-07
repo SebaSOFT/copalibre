@@ -249,6 +249,8 @@ export interface TournamentsTable {
   archived_at: Timestamp | null;
   /** FK into `object_metadata.object_id`; null until an emblem is uploaded. */
   emblem_object_id: string | null;
+  /** Organizer-set "this one matters" flag for the public organization page. */
+  featured: ColumnType<boolean, boolean | undefined, boolean>;
 }
 
 /**

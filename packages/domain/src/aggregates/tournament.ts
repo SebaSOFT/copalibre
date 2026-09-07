@@ -31,6 +31,12 @@ export interface Tournament {
   readonly profileRef?: { readonly profileId: string; readonly version: string };
   /** FK into `object_metadata.object_id`; absent until an emblem is uploaded. */
   readonly emblemObjectId?: string;
+  /**
+   * The organizer's own "this one matters" flag for the public organization
+   * page, deliberately independent of `status`: live is urgent, featured is
+   * curated, and a tournament can be either, both, or neither.
+   */
+  readonly featured: boolean;
 }
 
 /** A started tournament's modules are frozen; see canChangeModuleVersion. */

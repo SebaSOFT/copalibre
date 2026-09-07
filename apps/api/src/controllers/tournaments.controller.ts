@@ -497,6 +497,7 @@ export class TournamentsController {
     return this.settingsResponseOf(
       tournament.name,
       ruleset?.overrides ?? {},
+      tournament.featured,
       tournament.emblemObjectId,
     );
   }
@@ -674,6 +675,10 @@ export class TournamentsController {
     }
 
     const finalName = body.name ?? tournament.name;
+    // A record field, applied directly like the name beside it — never routed
+    // through the descriptor's field policies, which classify ruleset overrides
+    // and have no opinion about a portal presentation flag.
+    const finalFeatured = body.featured ?? tournament.featured;
     try {
       return await withTransaction(this.db, async (uow) => {
         if (body.name !== undefined) {
@@ -681,6 +686,15 @@ export class TournamentsController {
             tournamentId: tournament.tournamentId,
             organizationId: tournament.organizationId,
             name: body.name,
+            actor,
+            authorizationContext,
+          });
+        }
+        if (body.featured !== undefined && body.featured !== tournament.featured) {
+          await tournaments.setFeatured(uow, {
+            tournamentId: tournament.tournamentId,
+            organizationId: tournament.organizationId,
+            featured: body.featured,
             actor,
             authorizationContext,
           });
@@ -704,7 +718,12 @@ export class TournamentsController {
             authorizationContext,
           });
         }
-        return this.settingsResponseOf(finalName, nextOverrides, tournament.emblemObjectId);
+        return this.settingsResponseOf(
+          finalName,
+          nextOverrides,
+          finalFeatured,
+          tournament.emblemObjectId,
+        );
       });
     } catch (error) {
       if (error instanceof InvariantViolationError) {
@@ -730,10 +749,12 @@ export class TournamentsController {
   private settingsResponseOf(
     name: string,
     overrides: Readonly<Record<string, unknown>>,
+    featured: boolean,
     emblemObjectId?: string,
   ): TournamentSettingsResponse {
     return {
       name,
+      featured,
       ...(typeof overrides['registration.region'] === 'string'
         ? { region: overrides['registration.region'] }
         : {}),

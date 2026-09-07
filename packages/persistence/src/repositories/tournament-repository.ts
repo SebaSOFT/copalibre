@@ -705,6 +705,52 @@ export class TournamentRepository {
   }
 
   /**
+   * Sets or clears the organizer's featured flag — a presentation choice about
+   * the organization's public page, carrying no competition meaning, audited
+   * like every other tournament-record change.
+   */
+  async setFeatured(
+    uow: UnitOfWork,
+    input: {
+      readonly tournamentId: string;
+      readonly organizationId: string;
+      readonly featured: boolean;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<Tournament> {
+    const current = await this.findById(input.tournamentId);
+    if (!current || current.organizationId !== input.organizationId) {
+      throw new NotFoundError(`Tournament ${input.tournamentId} does not exist`, {
+        tournamentId: input.tournamentId,
+      });
+    }
+
+    const row = await uow.tx
+      .updateTable('tournaments')
+      .set({ featured: input.featured })
+      .where('tournament_id', '=', input.tournamentId)
+      .where('organization_id', '=', input.organizationId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const updated = toTournament(row);
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'tournament',
+      entityId: input.tournamentId,
+      action: 'tournament.featured_updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { featured: current.featured },
+      resultingState: { featured: updated.featured },
+    });
+
+    return updated;
+  }
+
+  /**
    * Sets or clears a tournament's official emblem reference.
    */
   async updateEmblem(

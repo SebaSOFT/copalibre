@@ -8,7 +8,12 @@ import type { ControlApiClient, TournamentSettingsResponse } from '../lib/api-cl
 function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
     fetchTournamentSettings: () =>
-      Promise.resolve({ name: 'Copa Verano', region: 'South America', capacity: 16 }),
+      Promise.resolve({
+        name: 'Copa Verano',
+        region: 'South America',
+        capacity: 16,
+        featured: false,
+      }),
     ...overrides,
   } as unknown as ControlApiClient;
 }
@@ -80,7 +85,14 @@ describe('TournamentSettingsRoute', () => {
   it('refuses to save once the preview reports a blocked field, and applies otherwise', async () => {
     const updateTournamentSettings = jest.fn<
       NonNullable<ControlApiClient['updateTournamentSettings']>
-    >(() => Promise.resolve({ name: 'Copa Verano', region: 'South America', capacity: 8 }));
+    >(() =>
+      Promise.resolve({
+        name: 'Copa Verano',
+        region: 'South America',
+        capacity: 8,
+        featured: false,
+      }),
+    );
     render(
       withIntl(
         <TournamentSettingsRoute
@@ -191,12 +203,15 @@ describe('TournamentSettingsRoute', () => {
   it('starts from a tournament with no region, capacity or check-in close time set', async () => {
     const updateTournamentSettings = jest.fn<
       NonNullable<ControlApiClient['updateTournamentSettings']>
-    >(() => Promise.resolve({ name: 'Copa Verano', region: 'Europe', capacity: 8 }));
+    >(() =>
+      Promise.resolve({ name: 'Copa Verano', region: 'Europe', capacity: 8, featured: false }),
+    );
     render(
       withIntl(
         <TournamentSettingsRoute
           client={stubClient({
-            fetchTournamentSettings: () => Promise.resolve({ name: 'Copa Verano' }),
+            fetchTournamentSettings: () =>
+              Promise.resolve({ name: 'Copa Verano', featured: false }),
             updateTournamentSettings,
           })}
           organizationAlias="liga-mendocina"
@@ -218,15 +233,46 @@ describe('TournamentSettingsRoute', () => {
     );
   });
 
-  it('clearing capacity back to empty omits it from the saved request', async () => {
-    const updateTournamentSettings = jest.fn<
-      NonNullable<ControlApiClient['updateTournamentSettings']>
-    >(() => Promise.resolve({ name: 'Copa Verano' }));
+  it('sends the featured flag only when the operator actually changed it', async () => {
+    const updateTournamentSettings =
+      jest.fn<NonNullable<ControlApiClient['updateTournamentSettings']>>();
+    updateTournamentSettings.mockResolvedValue({ name: 'Copa Verano', featured: true });
     render(
       withIntl(
         <TournamentSettingsRoute
           client={stubClient({
-            fetchTournamentSettings: () => Promise.resolve({ name: 'Copa Verano', capacity: 16 }),
+            fetchTournamentSettings: () =>
+              Promise.resolve({ name: 'Copa Verano', featured: false }),
+            updateTournamentSettings,
+          })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByDisplayValue('Copa Verano');
+    fireEvent.click(screen.getByLabelText('Feature on the organization’s public page'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    // Only the changed field travels: an unchanged flag is not a proposed edit.
+    await waitFor(() =>
+      expect(updateTournamentSettings).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {
+        featured: true,
+      }),
+    );
+  });
+
+  it('clearing capacity back to empty omits it from the saved request', async () => {
+    const updateTournamentSettings = jest.fn<
+      NonNullable<ControlApiClient['updateTournamentSettings']>
+    >(() => Promise.resolve({ name: 'Copa Verano', featured: false }));
+    render(
+      withIntl(
+        <TournamentSettingsRoute
+          client={stubClient({
+            fetchTournamentSettings: () =>
+              Promise.resolve({ name: 'Copa Verano', capacity: 16, featured: false }),
             updateTournamentSettings,
           })}
           organizationAlias="liga-mendocina"
@@ -251,7 +297,9 @@ describe('TournamentSettingsRoute', () => {
   it('saves a settings edit and reflects the applied result', async () => {
     const updateTournamentSettings = jest.fn<
       NonNullable<ControlApiClient['updateTournamentSettings']>
-    >(() => Promise.resolve({ name: 'Copa Verano', region: 'Europe', capacity: 16 }));
+    >(() =>
+      Promise.resolve({ name: 'Copa Verano', region: 'Europe', capacity: 16, featured: false }),
+    );
     render(
       withIntl(
         <TournamentSettingsRoute
@@ -283,10 +331,12 @@ describe('TournamentSettingsRoute', () => {
       .fn<NonNullable<ControlApiClient['fetchTournamentSettings']>>()
       .mockResolvedValueOnce({
         name: 'Copa Verano',
+        featured: false,
         emblemObjectId: 'emblem-99',
       })
       .mockResolvedValueOnce({
         name: 'Copa Verano',
+        featured: false,
         emblemObjectId: undefined,
       });
 
@@ -326,9 +376,11 @@ describe('TournamentSettingsRoute', () => {
       .fn<NonNullable<ControlApiClient['fetchTournamentSettings']>>()
       .mockResolvedValueOnce({
         name: 'Copa Verano',
+        featured: false,
       })
       .mockResolvedValueOnce({
         name: 'Copa Verano',
+        featured: false,
         emblemObjectId: 'emblem-new',
       });
 
@@ -410,7 +462,7 @@ describe('TournamentSettingsRoute', () => {
         <TournamentSettingsRoute
           client={stubClient({
             fetchTournamentSettings: () =>
-              Promise.resolve({ name: 'Copa Verano', emblemObjectId: 'emblem-1' }),
+              Promise.resolve({ name: 'Copa Verano', emblemObjectId: 'emblem-1', featured: false }),
             deleteTournamentEmblem,
           })}
           organizationAlias="liga-mendocina"
@@ -470,7 +522,7 @@ describe('TournamentSettingsRoute', () => {
           onDeleteEmblem={onDeleteEmblem}
           onUploadEmblem={onUploadEmblem}
           organizationAlias="liga-mendocina"
-          settings={{ name: 'Copa Verano', emblemObjectId: 'emblem-1' }}
+          settings={{ name: 'Copa Verano', emblemObjectId: 'emblem-1', featured: false }}
           tournamentAlias="apertura-2026"
         />,
       ),
@@ -502,7 +554,7 @@ describe('TournamentSettingsRoute', () => {
       withIntl(
         <TournamentSettingsPage
           organizationAlias="liga-mendocina"
-          settings={{ name: 'Copa Verano', emblemObjectId: 'emblem-1' }}
+          settings={{ name: 'Copa Verano', emblemObjectId: 'emblem-1', featured: false }}
           tournamentAlias="apertura-2026"
         />,
       ),
@@ -552,7 +604,7 @@ describe('TournamentSettingsRoute', () => {
     );
     const fetchTournamentSettings = jest
       .fn<NonNullable<ControlApiClient['fetchTournamentSettings']>>()
-      .mockResolvedValueOnce({ name: 'Copa Verano', emblemObjectId: 'emblem-1' })
+      .mockResolvedValueOnce({ name: 'Copa Verano', emblemObjectId: 'emblem-1', featured: false })
       .mockResolvedValueOnce(undefined as unknown as TournamentSettingsResponse);
 
     render(
@@ -581,7 +633,7 @@ describe('TournamentSettingsRoute', () => {
     );
     const fetchTournamentSettings = jest
       .fn<NonNullable<ControlApiClient['fetchTournamentSettings']>>()
-      .mockResolvedValueOnce({ name: 'Copa Verano' })
+      .mockResolvedValueOnce({ name: 'Copa Verano', featured: false })
       .mockResolvedValueOnce(undefined as unknown as TournamentSettingsResponse);
 
     render(

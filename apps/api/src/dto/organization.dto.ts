@@ -318,6 +318,13 @@ export class TournamentSettingsResponse {
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
   emblemObjectId?: string;
+
+  @ApiProperty({
+    description:
+      'Whether the organizer has flagged this tournament as featured on the organization’s public ' +
+      'page. Independent of whether it is live.',
+  })
+  featured!: boolean;
 }
 
 /** A partial edit — every field is optional, so only the fields the operator actually changed are sent. */
@@ -343,6 +350,16 @@ export class TournamentSettingsRequest {
     example: 16,
   })
   capacity?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiPropertyOptional({
+    description:
+      'Flags the tournament as featured on the organization’s public page. A record field like ' +
+      '`name`, not a ruleset override: it carries no competition meaning and is not ' +
+      'mutation-classified against the discipline descriptor.',
+  })
+  featured?: boolean;
 
   @IsOptional()
   @IsString()

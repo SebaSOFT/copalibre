@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { pickFeaturedTournament } from './organization-page.js';
+import { featuredTournaments, pickFeaturedTournament } from './organization-page.js';
 import type { PublicTournamentListingItemResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 
 const discipline = { descriptorId: 'd-1', version: '1.0.0' };
@@ -13,9 +13,48 @@ function tournament(
     name: 'Apertura 2026',
     status: 'upcoming',
     discipline,
+    featured: false,
     ...overrides,
   };
 }
+
+describe('featuredTournaments', () => {
+  it('prefers every organizer-flagged tournament, most recent first', () => {
+    const older = tournament({
+      tournamentId: 'flagged-old',
+      featured: true,
+      dates: { startedAt: '2026-01-01T00:00:00.000Z' },
+    });
+    const newer = tournament({
+      tournamentId: 'flagged-new',
+      featured: true,
+      dates: { startedAt: '2026-06-01T00:00:00.000Z' },
+    });
+    const live = tournament({ tournamentId: 'live-1', status: 'live' });
+
+    // The live one is not flagged, so it does not belong in this block at all —
+    // it has its own section, which is the whole point of the change.
+    expect(featuredTournaments([older, live, newer]).map((t) => t.tournamentId)).toEqual([
+      'flagged-new',
+      'flagged-old',
+    ]);
+  });
+
+  it('falls back to the pre-flag behavior for an organization that has flagged nothing', () => {
+    const live = tournament({ tournamentId: 'live-1', status: 'live' });
+    const finished = tournament({
+      tournamentId: 'finished-1',
+      status: 'finished',
+      dates: { archivedAt: '2026-06-01T00:00:00.000Z' },
+    });
+
+    expect(featuredTournaments([finished, live]).map((t) => t.tournamentId)).toEqual(['live-1']);
+  });
+
+  it('is empty only when the organization has no tournaments at all', () => {
+    expect(featuredTournaments([])).toEqual([]);
+  });
+});
 
 describe('pickFeaturedTournament', () => {
   it('picks the live tournament even when a more recent finished one exists', () => {

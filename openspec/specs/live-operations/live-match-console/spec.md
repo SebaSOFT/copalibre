@@ -389,3 +389,41 @@ event from the operator who just recorded it.
 #### Scenario: Expanding the ledger reveals full history
 - **WHEN** an operator expands a collapsed ledger
 - **THEN** the full recorded event history for the match becomes visible
+
+### Requirement: Person-payload-field prompts render a localized label
+
+A person-payload-field prompt in the event-recording controls (a secondary actor field such as an
+assist provider or a substitution's outgoing player) SHALL render a localized label resolved for the
+console's active language, whichever way the active discipline declared that field — as a
+`personPayloadFields` entry, as a statistic effect's payload-field target, or as a tag effect's
+payload-field target. The label SHALL be declared by the discipline descriptor alongside the event
+definition, so a discipline can name its own fields without a frontend release.
+
+The underlying JSON Schema field key SHALL NOT be rendered as a substitute for a label a discipline
+declared. Where a discipline declares no label for a prompted field, the console SHALL render the
+field's key rather than a label derived from it — a generated label is indistinguishable from a
+translated one, and no language would have approved it.
+
+#### Scenario: A secondary field renders its localized label
+
+- **WHEN** the console renders a secondary-field chip for an event definition whose discipline
+  declares a label for that field
+- **THEN** the chip shows that label, resolved for the console's active language, not the field's
+  underlying key
+
+#### Scenario: A field declared through an effect is labelled like any other
+
+- **WHEN** the prompted field reaches the console through a statistic or tag effect's payload-field
+  target rather than through the definition's person-payload-field list
+- **THEN** it renders its declared label exactly as a person-payload-field entry does
+
+#### Scenario: The same event definition renders correctly in every supported language
+
+- **WHEN** the console's active language changes
+- **THEN** every person-payload-field chip's label updates to that language's resolved value, with no
+  language showing the raw field key
+
+#### Scenario: An undeclared label shows the key rather than an invented one
+
+- **WHEN** the active discipline declares a prompted secondary field but no label for it
+- **THEN** the chip shows the field's key, and no label is derived from that key

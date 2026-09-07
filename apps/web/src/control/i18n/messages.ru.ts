@@ -548,6 +548,7 @@ export const messages: Record<string, string> = {
   'control.settings.regionLabel': 'Регион',
   'control.settings.capacityLabel': 'Вместимость',
   'control.settings.checkInClosesAtLabel': 'Окончание регистрации',
+  'control.settings.featuredLabel': 'Выделить на публичной странице организации',
   'control.settings.preview': 'Предпросмотр',
   'control.settings.save': 'Сохранить',
   'control.settings.saved': 'Настройки сохранены.',

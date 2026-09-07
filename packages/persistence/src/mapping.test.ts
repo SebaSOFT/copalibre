@@ -155,6 +155,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       created_at: CREATED,
       archived_at: null,
       emblem_object_id: null,
+      featured: false,
     };
     expect(toTournament(row)).toEqual({
       tournamentId: 't-1',
@@ -164,6 +165,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       disciplineRef: { descriptorId: 'd-1', version: '3.0.0' },
       rulesetId: undefined,
       status: 'draft',
+      featured: false,
     });
   });
 
@@ -410,6 +412,7 @@ describe('mapping edge cases', () => {
       created_at: CREATED,
       archived_at: null,
       emblem_object_id: null,
+      featured: false,
     };
     expect(toTournament(row).rulesetId).toBe('rs-1');
     expect(toTournament({ ...row, archived_at: CREATED }).archivedAt).toBe(

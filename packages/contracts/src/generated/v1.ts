@@ -3088,6 +3088,8 @@ export interface components {
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             emblemObjectId?: string;
+            /** @description Whether the organizer has flagged this tournament as featured on the organization’s public page. Independent of whether it is live. */
+            featured: boolean;
         };
         TournamentSettingsRequest: {
             /** @example Copa Verano (corregida) */
@@ -3102,6 +3104,8 @@ export interface components {
              * @example 16
              */
             capacity?: number;
+            /** @description Flags the tournament as featured on the organization’s public page. A record field like `name`, not a ruleset override: it carries no competition meaning and is not mutation-classified against the discipline descriptor. */
+            featured?: boolean;
             /**
              * Format: date-time
              * @description Optional instant when checked-in team memberships stop being editable.
@@ -4515,6 +4519,8 @@ export interface components {
              * @description object_metadata.object_id of the tournament emblem
              */
             emblemObjectId?: string;
+            /** @description Whether the organizer flagged this tournament as featured. Independent of `status`: live is urgent, featured is curated, and a tournament can be either, both, or neither. */
+            featured: boolean;
         };
         PublicOverviewClubResponse: {
             /** Format: uuid */

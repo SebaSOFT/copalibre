@@ -548,6 +548,7 @@ export const messages: Record<string, string> = {
   'control.settings.regionLabel': 'Región',
   'control.settings.capacityLabel': 'Capacidad',
   'control.settings.checkInClosesAtLabel': 'Cierre de check-in',
+  'control.settings.featuredLabel': 'Destacar en la página pública de la organización',
   'control.settings.preview': 'Vista previa',
   'control.settings.save': 'Guardar',
   'control.settings.saved': 'Configuración guardada.',

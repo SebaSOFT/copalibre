@@ -733,10 +733,20 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('heading', { name: 'Upcoming' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Finished & Archive' })).toBeVisible();
 
-    // Featured block names the live tournament — it also appears in
-    // its normal "Live & Active" section below, so both the heading and the
-    // now-doubled tournament link are the evidence.
+    // No tournament in this seed carries the organizer's featured flag, so the
+    // block falls back to naming the live one exactly as it did before 0207 —
+    // the regression that proves an organization which never touches the toggle
+    // sees no change at all.
     await expect(page.getByRole('heading', { name: 'Featured' })).toBeVisible();
+
+    // Live is urgent and comes first; featured is curated and follows it (0207).
+    const sectionHeadings = await page
+      .locator('h2.cl-section-title')
+      .allTextContents()
+      .then((all) => all.map((heading) => heading.trim()));
+    expect(sectionHeadings.indexOf('Live & Active')).toBeLessThan(
+      sectionHeadings.indexOf('Featured'),
+    );
 
     // Check Live tournament
     await expect(page.getByRole('link', { name: 'Torneo Relámpago 2026' }).first()).toBeVisible();

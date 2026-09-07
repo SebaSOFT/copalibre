@@ -126,6 +126,7 @@ export class PublicTournamentListingController {
         ...(dates ? { dates } : {}),
         ...(winners && winners.length > 0 ? { winners } : {}),
         ...(t.emblemObjectId ? { emblemObjectId: t.emblemObjectId } : {}),
+        featured: t.featured,
       });
     }
 

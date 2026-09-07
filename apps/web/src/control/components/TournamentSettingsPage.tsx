@@ -56,6 +56,7 @@ export function TournamentSettingsPage({
     settings.capacity === undefined ? '' : String(settings.capacity),
   );
   const [checkInClosesAt, setCheckInClosesAt] = useState(settings.checkInClosesAt ?? '');
+  const [featured, setFeatured] = useState(settings.featured);
   const [preview, setPreview] = useState<readonly MutationFieldPreview[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -74,6 +75,7 @@ export function TournamentSettingsPage({
       ...(checkInClosesAt === (settings.checkInClosesAt ?? '')
         ? {}
         : { checkInClosesAt: checkInClosesAt.trim() === '' ? undefined : checkInClosesAt }),
+      ...(featured === settings.featured ? {} : { featured }),
     };
   }
 
@@ -242,6 +244,22 @@ export function TournamentSettingsPage({
                 value={checkInClosesAt}
               />
             </FormField>
+            {/* Not a registration field and not mutation-classified: featured is
+                a record flag about the public page, like the name above it. */}
+            <label
+              className="cl-toggle cl-focusable"
+              htmlFor="settings-featured"
+              style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
+            >
+              <input
+                checked={featured}
+                className="cl-checkbox cl-focusable"
+                id="settings-featured"
+                onChange={(event) => setFeatured(event.target.checked)}
+                type="checkbox"
+              />
+              <span>{intl.formatMessage(messages.settingsFeaturedLabel)}</span>
+            </label>
 
             <div className="cl-role-user">
               <Button

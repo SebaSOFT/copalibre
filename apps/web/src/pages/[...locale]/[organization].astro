@@ -7,7 +7,7 @@ import {
   organizationEmblemUrl,
   clubEmblemUrl,
 } from '../../lib/public-api-client.ts';
-import { pickFeaturedTournament } from '../../lib/organization-page.ts';
+import { featuredTournaments } from '../../lib/organization-page.ts';
 import { publicIntl } from '../../lib/i18n/public-intl.ts';
 import { messages } from '../../lib/i18n/public-messages.en.ts';
 import { resolvePathLocale } from '../../lib/locale.ts';
@@ -38,7 +38,8 @@ const liveTournaments = listData?.tournaments.filter((t) => t.status === 'live')
 const upcomingTournaments = listData?.tournaments.filter((t) => t.status === 'upcoming') ?? [];
 const finishedTournaments = listData?.tournaments.filter((t) => t.status === 'finished') ?? [];
 const orgClubs = listData?.clubs ?? [];
-const featured = listData ? pickFeaturedTournament(listData.tournaments) : undefined;
+// Live first, featured second: live is urgent, featured is curated (0207).
+const featured = listData ? featuredTournaments(listData.tournaments) : [];
 
 const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgPageNotFoundTitle);
 const structuredData = listData
@@ -91,28 +92,6 @@ const structuredData = listData
           </div>
         </header>
 
-        {featured && (
-          <section
-            class="cl-listing-section cl-section-featured"
-            aria-labelledby="heading-featured"
-          >
-            <div class="cl-section-header">
-              <h2 id="heading-featured" class="cl-section-title">
-                {intl.formatMessage(messages.orgPageFeaturedHeading)}
-              </h2>
-            </div>
-            <div class="cl-tournaments-grid cl-grid-featured">
-              <TournamentCard
-                tournament={featured}
-                organizationAlias={organization!}
-                localePrefix={localePrefix}
-                intl={intl}
-                featured={true}
-              />
-            </div>
-          </section>
-        )}
-
         {listData.tournaments.length === 0 && (
           <div class="cl-empty-state">
             <p>{intl.formatMessage(messages.tournamentsEmpty)}</p>
@@ -135,6 +114,30 @@ const structuredData = listData
                   organizationAlias={organization!}
                   localePrefix={localePrefix}
                   intl={intl}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {featured.length > 0 && (
+          <section
+            class="cl-listing-section cl-section-featured"
+            aria-labelledby="heading-featured"
+          >
+            <div class="cl-section-header">
+              <h2 id="heading-featured" class="cl-section-title">
+                {intl.formatMessage(messages.orgPageFeaturedHeading)}
+              </h2>
+            </div>
+            <div class="cl-tournaments-grid cl-grid-featured">
+              {featured.map((t) => (
+                <TournamentCard
+                  tournament={t}
+                  organizationAlias={organization!}
+                  localePrefix={localePrefix}
+                  intl={intl}
+                  featured={true}
                 />
               ))}
             </div>
