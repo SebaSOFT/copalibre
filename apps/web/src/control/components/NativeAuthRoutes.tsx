@@ -8,6 +8,7 @@ import { Button } from './ui/atoms/button.js';
 import { Input } from './ui/atoms/input.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { useToast } from './ToastProvider.js';
+import { AuthScreenTemplate } from './ui/templates/auth-screen-template.js';
 
 const messages = defineMessages({
   loginTitle: { id: 'auth.loginTitle', defaultMessage: 'Ingresá para operar' },
@@ -63,7 +64,7 @@ export function LoginRoute(): React.JSX.Element {
   };
 
   return (
-    <AuthLayout>
+    <AuthScreenTemplate tagline="Control de torneos">
       <p className="context">
         <FormattedMessage {...messages.loginContext} />
       </p>
@@ -116,7 +117,7 @@ export function LoginRoute(): React.JSX.Element {
       <Button onClick={() => beginOidcLogin()} type="button" variant="secondary">
         <FormattedMessage {...messages.oidcButton} />
       </Button>
-    </AuthLayout>
+    </AuthScreenTemplate>
   );
 }
 
@@ -146,7 +147,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
   };
 
   return (
-    <AuthLayout>
+    <AuthScreenTemplate tagline="Control de torneos">
       <h1>
         <FormattedMessage {...messages.forgotTitle} />
       </h1>
@@ -179,7 +180,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
           <FormattedMessage {...messages.forgotBack} />
         </a>
       </div>
-    </AuthLayout>
+    </AuthScreenTemplate>
   );
 }
 
@@ -218,7 +219,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
 
   if (!token) {
     return (
-      <AuthLayout>
+      <AuthScreenTemplate tagline="Control de torneos">
         <p>Enlace de recuperación inválido.</p>
         <a
           className="cl-link cl-focusable"
@@ -230,12 +231,12 @@ export function ResetPasswordRoute(): React.JSX.Element {
         >
           <FormattedMessage {...messages.forgotBack} />
         </a>
-      </AuthLayout>
+      </AuthScreenTemplate>
     );
   }
 
   return (
-    <AuthLayout>
+    <AuthScreenTemplate tagline="Control de torneos">
       <h1>
         <FormattedMessage {...messages.resetTitle} />
       </h1>
@@ -277,63 +278,6 @@ export function ResetPasswordRoute(): React.JSX.Element {
           </a>
         </div>
       )}
-    </AuthLayout>
-  );
-}
-
-function AuthLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <main
-      style={{
-        minHeight: '100vh',
-        minWidth: 0,
-        maxWidth: '100%',
-        display: 'grid',
-        gridTemplateRows: 'auto 1fr',
-        padding: 'clamp(24px, 5vw, 64px)',
-        fontFamily: 'var(--cl-font-body)',
-        overflowWrap: 'anywhere',
-      }}
-    >
-      <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-3)' }}>
-        <img
-          alt=""
-          height="44"
-          src="/copalibre-logo.svg"
-          style={{ border: '1px solid var(--cl-state-live)', padding: '4px' }}
-          width="44"
-        />
-        <div style={{ display: 'grid', gap: '2px' }}>
-          <strong
-            style={{ fontFamily: 'var(--cl-font-display)', fontSize: 'var(--cl-font-size-md)' }}
-          >
-            CopaLibre
-          </strong>
-          <span
-            style={{
-              color: 'var(--cl-text-muted)',
-              fontFamily: 'var(--cl-font-mono)',
-              fontSize: 'var(--cl-font-size-xs)',
-            }}
-          >
-            Control de torneos
-          </span>
-        </div>
-      </header>
-      <section
-        style={{
-          width: 'min(100%, 560px)',
-          minWidth: 0,
-          maxWidth: '100%',
-          boxSizing: 'border-box',
-          alignSelf: 'center',
-          marginBlock: 'var(--cl-space-8)',
-          borderLeft: '4px solid var(--cl-state-live)',
-          padding: 'var(--cl-space-6) 0 var(--cl-space-6) var(--cl-space-6)',
-        }}
-      >
-        {children}
-      </section>
-    </main>
+    </AuthScreenTemplate>
   );
 }

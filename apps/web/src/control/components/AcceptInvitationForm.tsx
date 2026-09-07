@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
+import { Button } from './ui/atoms/button.js';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
+import { Input } from './ui/atoms/input.js';
+import { FormField } from './ui/molecules/form-field.js';
 
+/**
+ * Invitation acceptance: the one unauthenticated screen that built its own
+ * card, its own inputs and its own button out of inline styles, with soft
+ * corners no other Control-web surface uses and a self-set `margin` the
+ * component tier is not allowed to own. It now composes the same atoms its
+ * sibling auth screens already use, inside the shared auth template.
+ */
 export function AcceptInvitationForm({
   initialToken,
   navigate = (url: string) => {
@@ -10,7 +21,7 @@ export function AcceptInvitationForm({
 }: {
   readonly initialToken?: string;
   readonly navigate?: (url: string) => void;
-} = {}): React.JSX.Element {
+}): React.JSX.Element {
   const [token] = useState<string | null>(() => {
     if (initialToken) return initialToken;
     if (typeof window === 'undefined') return null;
@@ -79,186 +90,70 @@ export function AcceptInvitationForm({
   };
 
   return (
-    <div
-      style={{
-        maxWidth: '440px',
-        width: '100%',
-        margin: '2rem auto',
-        padding: '2rem',
-        background: 'var(--cl-surface-panel)',
-        borderRadius: '8px',
-        border: '1px solid var(--cl-border-muted)',
-        color: 'var(--cl-text-primary)',
-        boxShadow: '0 8px 32px var(--cl-surface-base)',
-      }}
-    >
-      <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-        <img
-          src="/copalibre-logo.svg"
-          alt="CopaLibre Logo"
-          style={{ width: '48px', height: '48px', marginBottom: '1rem' }}
-        />
-        <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '1.5rem', fontWeight: 600 }}>
-          Aceptar Invitación
-        </h1>
-        <p style={{ margin: 0, color: 'var(--cl-text-muted)', fontSize: '0.875rem' }}>
-          Configurá tu cuenta de administrador de CopaLibre
-        </p>
-      </div>
+    <Card aria-labelledby="accept-invitation-title">
+      <CardHeader>
+        <CardTitle id="accept-invitation-title">Aceptar invitación</CardTitle>
+        <CardDescription>Configurá tu cuenta de administrador de CopaLibre</CardDescription>
+      </CardHeader>
 
-      {error && (
-        <div
-          role="alert"
-          style={{
-            padding: '0.75rem 1rem',
-            marginBottom: '1.25rem',
-            background: 'var(--cl-surface-raised)',
-            border: '1px solid var(--cl-state-destructive)',
-            color: 'var(--cl-state-destructive)',
-            borderRadius: '4px',
-            fontSize: '0.875rem',
-          }}
-        >
-          {error}
-        </div>
-      )}
+      <CardContent>
+        {error && (
+          <p className="cl-inline-alert cl-inline-alert--destructive" role="alert">
+            {error}
+          </p>
+        )}
 
-      {success ? (
-        <div
-          role="status"
-          style={{
-            padding: '1rem',
-            background: 'var(--cl-surface-raised)',
-            border: '1px solid var(--cl-state-live)',
-            color: 'var(--cl-state-live)',
-            borderRadius: '4px',
-            textAlign: 'center',
-            fontSize: '0.875rem',
-          }}
-        >
-          <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600 }}>¡Cuenta configurada con éxito!</p>
-          <p style={{ margin: 0, fontSize: '0.875rem' }}>Redirigiendo a la consola de control...</p>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.25rem' }}>
-          <div>
-            <label
-              htmlFor="name"
-              style={{
-                display: 'block',
-                marginBottom: '0.375rem',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-              }}
-            >
-              Nombre completo (opcional)
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ej. Ana Pérez"
-              disabled={loading || !token}
-              style={{
-                width: '100%',
-                padding: '0.625rem 0.75rem',
-                background: 'var(--cl-surface-base)',
-                border: '1px solid var(--cl-border-muted)',
-                borderRadius: '4px',
-                color: 'inherit',
-                fontSize: '0.875rem',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="password"
-              style={{
-                display: 'block',
-                marginBottom: '0.375rem',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-              }}
-            >
-              Contraseña (mínimo 8 caracteres)
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-              disabled={loading || !token}
-              style={{
-                width: '100%',
-                padding: '0.625rem 0.75rem',
-                background: 'var(--cl-surface-base)',
-                border: '1px solid var(--cl-border-muted)',
-                borderRadius: '4px',
-                color: 'inherit',
-                fontSize: '0.875rem',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="confirmPassword"
-              style={{
-                display: 'block',
-                marginBottom: '0.375rem',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-              }}
-            >
-              Confirmar contraseña
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              minLength={8}
-              disabled={loading || !token}
-              style={{
-                width: '100%',
-                padding: '0.625rem 0.75rem',
-                background: 'var(--cl-surface-base)',
-                border: '1px solid var(--cl-border-muted)',
-                borderRadius: '4px',
-                color: 'inherit',
-                fontSize: '0.875rem',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || !token}
-            style={{
-              padding: '0.75rem 1.25rem',
-              background: !token ? 'var(--cl-surface-raised)' : 'var(--cl-color-cyan-400)',
-              color: !token ? 'var(--cl-text-muted)' : 'var(--cl-color-ink-950)',
-              border: 'none',
-              borderRadius: '4px',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              cursor: loading || !token ? 'not-allowed' : 'pointer',
-              opacity: loading || !token ? 0.7 : 1,
-              transition: 'all 0.15s ease',
-            }}
+        {success ? (
+          <div
+            className="cl-inline-alert cl-inline-alert--live cl-inline-alert--stacked"
+            role="status"
           >
-            {loading ? 'Configurando cuenta...' : 'Aceptar y Comenzar'}
-          </button>
-        </form>
-      )}
-    </div>
+            <p className="cl-inline-alert__title">¡Cuenta configurada con éxito!</p>
+            <p className="cl-inline-alert__body">Redirigiendo a la consola de control…</p>
+          </div>
+        ) : (
+          <form className="cl-auth-form" onSubmit={handleSubmit}>
+            <FormField id="name" label="Nombre completo (opcional)">
+              <Input
+                disabled={loading || !token}
+                id="name"
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ej. Ana Pérez"
+                type="text"
+                value={name}
+              />
+            </FormField>
+
+            <FormField id="password" label="Contraseña (mínimo 8 caracteres)">
+              <Input
+                disabled={loading || !token}
+                id="password"
+                minLength={8}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                type="password"
+                value={password}
+              />
+            </FormField>
+
+            <FormField id="confirmPassword" label="Confirmar contraseña">
+              <Input
+                disabled={loading || !token}
+                id="confirmPassword"
+                minLength={8}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                type="password"
+                value={confirmPassword}
+              />
+            </FormField>
+
+            <Button disabled={loading || !token} type="submit">
+              {loading ? 'Configurando cuenta…' : 'Aceptar y comenzar'}
+            </Button>
+          </form>
+        )}
+      </CardContent>
+    </Card>
   );
 }

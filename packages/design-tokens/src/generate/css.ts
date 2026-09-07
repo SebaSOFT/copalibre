@@ -405,6 +405,19 @@ function components(): string {
     '.cl-form-screen__footer { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: var(--cl-space-2); padding-block: var(--cl-space-3); background: var(--cl-surface-base); }',
     '.cl-list-screen__empty { margin: 0; padding: var(--cl-space-5); color: var(--cl-text-muted); }',
     '',
+    '/* The unauthenticated screens: brand header, one centred panel, and the page gutter that keeps it off the viewport edge at every width. */',
+    '.cl-auth-screen { display: grid; grid-template-rows: auto 1fr; min-height: 100vh; min-width: 0; max-width: 100%; padding: clamp(24px, 5vw, 64px); font-family: var(--cl-font-body); overflow-wrap: anywhere; }',
+    '.cl-auth-screen__header { display: flex; align-items: center; gap: var(--cl-space-3); }',
+    '.cl-auth-screen__mark { border: 1px solid var(--cl-state-live); padding: var(--cl-space-1); }',
+    '.cl-auth-screen__brand { display: grid; gap: 2px; }',
+    '.cl-auth-screen__wordmark { font-family: var(--cl-font-display); font-size: var(--cl-font-size-md); }',
+    '.cl-auth-screen__tagline { color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
+    // The live-accent rail is the auth surface's own identity, kept exactly as
+    // the shipped login/forgot/reset screens carry it. A Card composed inside
+    // this panel sits 24px inboard of it, so the two read as a rail plus a
+    // card rather than a doubled border.
+    '.cl-auth-screen__panel { width: min(100%, 560px); min-width: 0; max-width: 100%; box-sizing: border-box; align-self: center; margin-block: var(--cl-space-8); display: grid; gap: var(--cl-space-5); border-left: 4px solid var(--cl-state-live); padding: var(--cl-space-6) 0 var(--cl-space-6) var(--cl-space-6); }',
+    '',
     '.cl-match-console-screen__header { display: flex; justify-content: space-between; align-items: start; gap: var(--cl-space-4); flex-wrap: wrap; min-width: 0; }',
     '.cl-match-console-screen__header > * { min-width: 0; }',
     '.cl-match-console-screen__title { margin: var(--cl-space-1) 0 0; font-family: var(--cl-font-display); text-transform: uppercase; overflow-wrap: anywhere; word-break: break-word; }',
@@ -571,6 +584,22 @@ function components(): string {
     '  border-left: var(--cl-space-1) solid var(--cl-state-upcoming);',
     '  background: var(--cl-surface-raised);',
     '}',
+    '',
+    '/* An alert is its accent *and* its words: the variant colours the rail, the text says what happened. */',
+    '.cl-inline-alert--destructive { border-left-color: var(--cl-state-destructive); }',
+    '.cl-inline-alert--live { border-left-color: var(--cl-state-live); }',
+    // Only where an alert carries more than one line. The base rule stays a
+    // row: BroadcastStatusPanel and the public surfaces already lay their
+    // single-line alerts out along it.
+    '.cl-inline-alert--stacked { flex-direction: column; }',
+    '.cl-inline-alert__title { margin: 0; font-weight: var(--cl-weight-bold); }',
+    '.cl-inline-alert__body { margin: 0; color: var(--cl-text-secondary); font-size: var(--cl-font-size-sm); }',
+    // A card's content is a grid that owns its own spacing, so an alert placed
+    // in it brings no paragraph margin of its own.
+    '.cl-card__content > .cl-inline-alert { margin: 0; }',
+    '',
+    "/* An unauthenticated screen's form: one column, the fields evenly spaced. */",
+    '.cl-auth-form { display: grid; gap: var(--cl-space-4); }',
     '',
     '/* Summary tiles are a row of peers, not a stack: one column below the md breakpoint, three above it. */',
     '.cl-stat-grid {',
