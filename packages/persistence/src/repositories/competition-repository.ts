@@ -1612,6 +1612,9 @@ export class CompetitionRepository {
       action: `segment.${input.state}`,
       actor: input.actor,
       authorizationContext: input.authorizationContext,
+      // Both sides of the move, matching `adjustSegmentClock` — an explicit
+      // Start/Pause/End has to read from the same trail as a correction to it.
+      previousState: { ...toSegment(existing) },
       resultingState: { ...segment },
     });
     return segment;

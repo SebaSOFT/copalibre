@@ -914,6 +914,18 @@ export interface MatchConsoleApiClient {
     timerId: string,
     idempotencyKey: string,
   ) => Promise<MatchConsoleResponse>;
+  /**
+   * Start, pause, resume or end one segment's clock. The whistle, not a later
+   * correction — `adjustMatchClock` remains the path for fixing a wrong value.
+   */
+  readonly sendMatchCommand: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    command: SegmentClockCommand,
+    segmentId: string,
+    idempotencyKey: string,
+  ) => Promise<MatchStateResponse>;
   readonly recordMatchEvent: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -1650,6 +1662,9 @@ export interface MatchConsoleResponse {
   readonly capabilities: readonly MatchCapability[];
   readonly projectionVersion: number;
 }
+
+/** The clock commands an official issues in the moment, as they happen. */
+export type SegmentClockCommand = 'start' | 'pause' | 'resume' | 'end';
 
 export interface ClockAdjustmentRequest {
   readonly segmentId: string;
@@ -2501,6 +2516,20 @@ export function createControlApiClient(input: {
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/timers/${encodeURIComponent(timerId)}/resolve`,
         { method: 'POST', token: input.accessToken?.(), idempotencyKey },
+      ),
+
+    sendMatchCommand: (
+      organizationAlias,
+      tournamentAlias,
+      matchId,
+      command,
+      segmentId,
+      idempotencyKey,
+    ) =>
+      requestJson<MatchStateResponse>(
+        input.fetch,
+        `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/commands/${command}`,
+        { method: 'POST', body: { segmentId }, token: input.accessToken?.(), idempotencyKey },
       ),
 
     recordMatchEvent: (organizationAlias, tournamentAlias, matchId, body, idempotencyKey) =>

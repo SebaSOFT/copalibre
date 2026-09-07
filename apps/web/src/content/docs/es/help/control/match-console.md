@@ -27,6 +27,30 @@ vivo a la pantalla pública del torneo.
   sobrescribe desde esta pantalla — cualquier corrección posterior pasa por el flujo auditado de
   corrección/supersesión, no por volver a cargar acá.
 
+## Manejar el reloj
+
+Cada segmento tiene su propio reloj, y lo manejás con tres botones debajo del segmento que
+seleccionaste:
+
+- **Iniciar** arranca el reloj de ese segmento y detiene el que estuviera corriendo — solo corre uno
+  a la vez.
+- **Pausar** lo detiene donde está. Un partido en pausa sigue en curso: la pausa detiene un reloj, no
+  la competencia.
+- **Terminar período** cierra ese segmento. Después no acepta más Iniciar ni Pausar, y no termina el
+  partido — cargar el resultado es una acción aparte.
+
+Estos registran el momento en que realmente tocaste el silbato. El campo de segundos transcurridos
+que está al lado sigue siendo lo que siempre fue: la forma de corregir un valor mal registrado,
+después del hecho. Ambos caminos quedan en la misma auditoría, con quién lo hizo, cuándo, y qué
+marcaba el reloj antes y después.
+
+## Leer el registro de eventos
+
+El registro arranca contraído, mostrando los tres eventos más recientes, para que los controles de
+registro entren en una sola pantalla mientras trabajás. Lo que acabás de registrar siempre está
+entre ellos: contraer saca de la vista el historial viejo, nunca tu última confirmación. **Ver
+historial completo** abre el partido entero.
+
 ## Qué NO se puede hacer después de cargar el resultado
 
 Una vez finalizado el partido, esta pantalla no permite seguir agregando eventos como si el partido

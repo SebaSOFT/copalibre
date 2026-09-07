@@ -28,6 +28,30 @@ den öffentlichen Bildschirm des Turniers übertragen.
   nicht von diesem Bildschirm aus überschrieben — jede spätere Korrektur läuft über den
   protokollierten Korrektur-/Ersetzungsablauf, nicht durch erneutes Laden hier.
 
+## Die Uhr steuern
+
+Jeder Abschnitt hat seine eigene Uhr, gesteuert über drei Schaltflächen unter dem ausgewählten
+Abschnitt:
+
+- **Starten** setzt die Uhr dieses Abschnitts in Gang und stoppt die, die gerade lief — es läuft
+  immer nur eine.
+- **Pausieren** hält sie an, wo sie steht. Ein pausiertes Spiel läuft weiterhin: die Pause stoppt
+  eine Uhr, nicht den Wettbewerb.
+- **Abschnitt beenden** schließt diesen Abschnitt ab. Danach nimmt er weder Starten noch Pausieren
+  an, und das Spiel endet damit nicht — das Ergebnis einzutragen ist eine eigene Handlung.
+
+Sie halten den Moment fest, in dem tatsächlich gepfiffen wurde. Das Feld für die verstrichenen
+Sekunden daneben bleibt, was es immer war: der Weg, einen falsch erfassten Wert im Nachhinein zu
+korrigieren. Beide Wege landen in derselben Prüfspur, mit wer, wann, und was die Uhr davor und
+danach anzeigte.
+
+## Das Ereignisprotokoll lesen
+
+Das Protokoll startet eingeklappt und zeigt die drei jüngsten Ereignisse, damit die
+Erfassungssteuerung während der Arbeit auf einen Bildschirm passt. Was gerade erfasst wurde, ist
+immer darunter: Einklappen nimmt alte Historie aus dem Blick, nie die letzte Bestätigung.
+**Vollständigen Verlauf anzeigen** öffnet das ganze Spiel.
+
 ## Was nach dem Eintragen des Ergebnisses nicht möglich ist
 
 Sobald das Spiel beendet ist, erlaubt dieser Bildschirm nicht mehr, weiter Ereignisse hinzuzufügen,

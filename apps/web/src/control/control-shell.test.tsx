@@ -302,6 +302,12 @@ describe('the control routes', () => {
       setMatchRoster: async () => projection,
       adjustMatchClock: async () => projection,
       resolveMatchTimer: async () => projection,
+      sendMatchCommand: async () => ({
+        matchId: 'match-1',
+        status: 'in-progress',
+        clockRunning: true,
+        runningTimers: [],
+      }),
       recordMatchEvent: async () => {
         throw new Error('not used in this test');
       },

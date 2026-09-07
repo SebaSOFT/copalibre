@@ -11,7 +11,7 @@ import { err, ok, type Result } from '../result.js';
  * console asks them and when a replay asks them six months later.
  */
 
-export type MatchCommand = 'start' | 'pause' | 'resume' | 'finalize';
+export type MatchCommand = 'start' | 'pause' | 'resume' | 'end' | 'finalize';
 
 export class MatchOperationError extends DomainError {
   readonly code = 'MATCH_OPERATION_INVALID';
@@ -24,19 +24,26 @@ export class MatchOperationError extends DomainError {
  * started is in progress until it is finalized, and pausing stops the clock
  * rather than the competition. Modelling a paused match as a fourth status
  * would make every reader ask "is paused still live?" — it is.
+ *
+ * `end` is the same kind of statement about a segment: the half is over, the
+ * match is not. It leaves the match in progress, which is why it shares
+ * `in-progress` with pause and resume rather than reaching toward `finalize`.
  */
 const LEGAL_FROM: Readonly<Record<MatchCommand, readonly MatchStatus[]>> = Object.freeze({
   start: ['scheduled'],
   pause: ['in-progress'],
   resume: ['in-progress'],
+  end: ['in-progress'],
   finalize: ['in-progress'],
 });
 
 export interface MatchTransition {
   readonly command: MatchCommand;
   readonly status: MatchStatus;
-  /** Whether the active segment's clock is running after this command. */
+  /** Whether the targeted segment's clock is running after this command. */
   readonly clockRunning: boolean;
+  /** What the targeted segment becomes; absent when the command targets no segment. */
+  readonly segmentState?: Segment['state'];
 }
 
 /**
@@ -50,7 +57,8 @@ export interface MatchTransition {
 export function applyMatchCommand(
   match: Pick<Match, 'matchId' | 'status'>,
   command: MatchCommand,
-  activeSegment?: Pick<Segment, 'state'>,
+  /** The segment the command acts on — the one the operator selected, not merely whichever is running. */
+  segment?: Pick<Segment, 'state'>,
 ): Result<MatchTransition, MatchOperationError> {
   if (!LEGAL_FROM[command].includes(match.status)) {
     return err(
@@ -61,7 +69,7 @@ export function applyMatchCommand(
     );
   }
 
-  if (command === 'pause' && activeSegment?.state !== 'active') {
+  if (command === 'pause' && segment?.state !== 'active') {
     return err(
       new MatchOperationError(`Match "${match.matchId}" has no running segment to pause`, {
         matchId: match.matchId,
@@ -70,15 +78,38 @@ export function applyMatchCommand(
     );
   }
 
+  // A completed segment is a played half. Reopening one is a correction of the
+  // record, which belongs to the audited correction workflow, not to a button
+  // an official can press twice by accident on a busy touchline.
+  if (segment?.state === 'completed' && command !== 'finalize') {
+    return err(
+      new MatchOperationError(
+        `Match "${match.matchId}" has that segment already ended; "${command}" is not available for it`,
+        { matchId: match.matchId, command },
+      ),
+    );
+  }
+
+  if (command === 'end' && segment === undefined) {
+    return err(
+      new MatchOperationError(`Match "${match.matchId}" has no segment to end`, {
+        matchId: match.matchId,
+        command,
+      }),
+    );
+  }
+
   switch (command) {
     case 'start':
-      return ok({ command, status: 'in-progress', clockRunning: true });
+      return ok({ command, status: 'in-progress', clockRunning: true, segmentState: 'active' });
     case 'pause':
-      return ok({ command, status: 'in-progress', clockRunning: false });
+      return ok({ command, status: 'in-progress', clockRunning: false, segmentState: 'pending' });
     case 'resume':
-      return ok({ command, status: 'in-progress', clockRunning: true });
+      return ok({ command, status: 'in-progress', clockRunning: true, segmentState: 'active' });
+    case 'end':
+      return ok({ command, status: 'in-progress', clockRunning: false, segmentState: 'completed' });
     case 'finalize':
-      return ok({ command, status: 'finalized', clockRunning: false });
+      return ok({ command, status: 'finalized', clockRunning: false, segmentState: 'pending' });
   }
 }
 

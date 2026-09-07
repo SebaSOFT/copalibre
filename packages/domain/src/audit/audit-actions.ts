@@ -122,6 +122,7 @@ export const AUDIT_ACTIONS = [
   'match.start',
   'match.pause',
   'match.resume',
+  'match.end',
   'match.finalize',
 
   // Segments and events

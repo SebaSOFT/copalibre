@@ -68,6 +68,12 @@ function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApi
     setMatchRoster: async () => scheduledProjection(),
     adjustMatchClock: async () => scheduledProjection(),
     resolveMatchTimer: async () => scheduledProjection(),
+    sendMatchCommand: async () => ({
+      matchId: 'match-1',
+      status: 'in-progress',
+      clockRunning: true,
+      runningTimers: [],
+    }),
     recordMatchEvent: async () => {
       throw new Error('not used in this test');
     },

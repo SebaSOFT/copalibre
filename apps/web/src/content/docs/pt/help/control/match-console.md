@@ -27,6 +27,28 @@ vivo para a tela pública do torneio.
   sobrescrito nesta tela — qualquer correção posterior passa pelo fluxo auditado de
   correção/substituição, não recarregando aqui.
 
+## Controlar o relógio
+
+Cada segmento tem seu próprio relógio, controlado por três botões abaixo do segmento selecionado:
+
+- **Iniciar** começa o relógio daquele segmento e para o que estiver correndo — só um corre por vez.
+- **Pausar** o interrompe onde está. Uma partida pausada continua em andamento: a pausa para um
+  relógio, não a competição.
+- **Encerrar período** fecha aquele segmento. Depois disso ele não aceita mais Iniciar nem Pausar, e
+  não encerra a partida — registrar o resultado é uma ação separada.
+
+Eles registram o momento em que você realmente apitou. O campo de segundos decorridos ao lado
+continua sendo o que sempre foi: a forma de corrigir um valor registrado errado, depois do fato. Os
+dois caminhos ficam na mesma auditoria, com quem fez, quando, e o que o relógio marcava antes e
+depois.
+
+## Ler o registro de eventos
+
+O registro começa recolhido, mostrando os três eventos mais recentes, para que os controles de
+registro caibam em uma tela enquanto você trabalha. O que você acabou de registrar está sempre entre
+eles: recolher tira da vista o histórico antigo, nunca a sua última confirmação. **Ver histórico
+completo** abre a partida inteira.
+
 ## O que você não pode fazer depois de registrar o resultado
 
 Uma vez finalizada a partida, esta tela não permite mais adicionar eventos como se a partida

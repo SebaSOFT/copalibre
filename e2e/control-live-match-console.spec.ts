@@ -269,6 +269,35 @@ async function mockMatchConsole(
           return Response.json(state);
         }
 
+        const clockCommand = ['start', 'pause', 'resume', 'end'].find(
+          (name) => url === `${path}/commands/${name}` && method === 'POST',
+        );
+        if (clockCommand) {
+          if (!state.capabilities.includes('match.control-clock')) {
+            return new Response('Forbidden', { status: 403 });
+          }
+          const resulting =
+            clockCommand === 'end' ? 'completed' : clockCommand === 'pause' ? 'pending' : 'active';
+          state = {
+            ...state,
+            segments: state.segments.map((segment) =>
+              segment.segmentId === body.segmentId
+                ? { ...segment, state: resulting }
+                : resulting === 'active' && segment.state === 'active'
+                  ? { ...segment, state: 'pending' }
+                  : segment,
+            ),
+            projectionVersion: state.projectionVersion + 1,
+          };
+          persist();
+          return Response.json({
+            matchId: state.matchId,
+            status: state.status,
+            clockRunning: resulting === 'active',
+            runningTimers: [],
+          });
+        }
+
         if (url === `${path}/commands/finalize` && method === 'POST') {
           finalizeAttempts += 1;
           if (loseFirstFinalize && finalizeAttempts === 1) throw new Error('network lost');
@@ -493,4 +522,74 @@ test('reduces connectivity to one icon whose detail opens on focus', async ({ pa
 
   await indicator.focus();
   await expect(page.getByText('Sin acciones en cola')).toBeVisible();
+});
+
+test('starts, pauses and ends a segment’s clock from the console', async ({ page }) => {
+  await mockMatchConsole(page);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  // The fixture's segment is already running, so the clock is advancing and
+  // Iniciar has nothing to start.
+  await expect(page.getByRole('button', { name: 'Iniciar' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Pausar' }).click();
+  await expect(page.getByRole('button', { name: 'Pausar' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Iniciar' })).toBeEnabled();
+
+  await page.getByRole('button', { name: 'Iniciar' }).click();
+  await expect(page.getByRole('button', { name: 'Pausar' })).toBeEnabled();
+
+  await page.getByRole('button', { name: 'Terminar período' }).click();
+  // An ended period accepts no further clock command.
+  for (const name of ['Iniciar', 'Pausar', 'Terminar período']) {
+    await expect(page.getByRole('button', { name })).toBeDisabled();
+  }
+
+  // Polled, not read once: the buttons disable on the optimistic patch, which
+  // lands before the request that caused it does.
+  await expect
+    .poll(async () =>
+      (await capturedRequests(page))
+        .filter((request) => request.url.includes('/commands/'))
+        .map((request) => request.url.split('/commands/')[1]),
+    )
+    .toEqual(['pause', 'resume', 'end']);
+});
+
+test('does not offer clock commands without the clock-control capability', async ({ page }) => {
+  await mockMatchConsole(page, { capabilities: ['match.record-event'] });
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  for (const name of ['Iniciar', 'Pausar', 'Terminar período']) {
+    await expect(page.getByRole('button', { name })).toBeDisabled();
+  }
+});
+
+test('collapses the ledger to a peek strip that still shows what was just recorded', async ({
+  page,
+}) => {
+  await mockMatchConsole(page);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const ledger = page.locator('ol.cl-platform-update-list');
+  const recorded = await ledger.getByRole('listitem').count();
+  for (let index = 0; index < 4; index += 1) {
+    await page.getByRole('button', { name: 'Gol', exact: true }).click();
+    await expect(ledger.getByRole('listitem')).toHaveCount(Math.min(recorded + index + 1, 3));
+  }
+
+  // Collapsed: only the most recent three, the last one recorded among them.
+  await expect(ledger.getByRole('listitem')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Ver historial completo' }).click();
+  await expect(ledger.getByRole('listitem')).toHaveCount(recorded + 4);
+  await page.getByRole('button', { name: 'Ver menos' }).click();
+  await expect(ledger.getByRole('listitem')).toHaveCount(3);
 });

@@ -523,6 +523,83 @@ describe('live match console (integration)', () => {
     await request('POST', `${base()}/commands/resume`, 'referee');
   });
 
+  it('restarts a paused segment’s clock on resume', async () => {
+    const paused = await request('POST', `${base()}/commands/pause`, 'referee');
+    expect(paused.statusCode).toBe(201);
+    expect(paused.json().clockRunning).toBe(false);
+
+    const resumed = await request('POST', `${base()}/commands/resume`, 'referee');
+    expect(resumed.statusCode).toBe(201);
+    expect(resumed.json().clockRunning).toBe(true);
+  });
+
+  it('audits a pause and its resume with the segment states they moved between', async () => {
+    const before = (await new AuditReader(scratch.db).historyFor('segment', segmentId)).length;
+
+    const paused = await request('POST', `${base()}/commands/pause`, 'referee', { segmentId });
+    expect(paused.statusCode).toBe(201);
+    expect(paused.json().clockRunning).toBe(false);
+
+    const resumed = await request('POST', `${base()}/commands/resume`, 'referee', { segmentId });
+    expect(resumed.statusCode).toBe(201);
+    expect(resumed.json().clockRunning).toBe(true);
+
+    // One audit record per command, each naming the state the segment reached —
+    // the same `segment.*` shape a manual adjustment already writes, so both
+    // paths read as one trail rather than two.
+    const history = await new AuditReader(scratch.db).historyFor('segment', segmentId);
+    expect(history.length).toBe(before + 2);
+    expect(history.slice(-2).map((entry) => entry.action)).toEqual([
+      'segment.pending',
+      'segment.active',
+    ]);
+    for (const entry of history.slice(-2)) {
+      expect(entry.actor).toBeTruthy();
+      expect(entry.occurredAt).toBeTruthy();
+      expect(entry.previousState).toBeDefined();
+      expect(entry.resultingState).toBeDefined();
+    }
+    expect(history.slice(-2)[0]?.previousState).toMatchObject({ state: 'active' });
+    expect(history.slice(-2)[0]?.resultingState).toMatchObject({ state: 'pending' });
+    expect(history.slice(-2)[1]?.resultingState).toMatchObject({ state: 'active' });
+  });
+
+  it('ends a segment, and refuses every further clock command for it', async () => {
+    const ended = await request('POST', `${base()}/commands/end`, 'referee', { segmentId });
+    expect(ended.statusCode).toBe(201);
+    expect(ended.json().clockRunning).toBe(false);
+    // Ending a half does not end the match.
+    expect(ended.json().status).toBe('in-progress');
+    expect(
+      (await new AuditReader(scratch.db).historyFor('segment', segmentId)).some(
+        (entry) => entry.action === 'segment.completed',
+      ),
+    ).toBe(true);
+
+    for (const command of ['start', 'pause', 'resume', 'end']) {
+      const refused = await request('POST', `${base()}/commands/${command}`, 'referee', {
+        segmentId,
+      });
+      expect(refused.statusCode).toBe(400);
+    }
+
+    // Leave the segment running again for the tests that follow.
+    await request('POST', `${base()}/clock`, 'referee', {
+      segmentId,
+      elapsedSeconds: 90,
+      activate: true,
+    });
+  });
+
+  it('refuses a clock command from an official without the clock-control capability', async () => {
+    for (const command of ['start', 'pause', 'resume', 'end']) {
+      const refused = await request('POST', `${base()}/commands/${command}`, 'unassigned', {
+        segmentId,
+      });
+      expect(refused.statusCode).toBe(403);
+    }
+  });
+
   it('commits every declared-effect kind once and isolates an A2 script failure', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const tournament = await tournaments.findByScopedAlias('liga-prueba', 'apertura');

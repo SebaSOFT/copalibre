@@ -2947,7 +2947,7 @@
     },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/commands/{command}": {
       "post": {
-        "description": "Pausing stops the clock, not the competition: a paused match is still in progress. Finalizing needs its own capability — recording events never implies declaring a result.",
+        "description": "Pausing stops the clock, not the competition: a paused match is still in progress, and ending a segment closes that half rather than the match. Start/pause/resume/end name the segment they act on and share the clock-control capability with manual adjustment; finalizing needs its own — recording events never implies declaring a result.",
         "operationId": "MatchControlController_command",
         "parameters": [
           {
@@ -2996,7 +2996,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FinalizeRequest"
+                "$ref": "#/components/schemas/MatchCommandRequest"
               }
             }
           }
@@ -3038,7 +3038,7 @@
             "bearer": []
           }
         ],
-        "summary": "Start, pause, resume or finalize",
+        "summary": "Start, pause, resume, end a segment, or finalize",
         "tags": [
           "match-control"
         ]
@@ -13346,9 +13346,14 @@
           "projectionVersion"
         ]
       },
-      "FinalizeRequest": {
+      "MatchCommandRequest": {
         "type": "object",
         "properties": {
+          "segmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The segment a start/pause/resume/end command acts on. Absent falls back to whichever segment is currently running — which is no segment at all once one has been paused"
+          },
           "sides": {
             "description": "One entry per side: entrant id, its declared statistics, placement for a heat, and why the result is what it is when not an ordinarily played one",
             "type": "array",
@@ -13661,7 +13666,7 @@
             }
           },
           "result": {
-            "description": "One entry per side, matching FinalizeRequest’s existing shape",
+            "description": "One entry per side, matching MatchCommandRequest’s existing shape",
             "type": "array",
             "items": {
               "type": "object"
