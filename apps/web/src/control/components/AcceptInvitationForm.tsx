@@ -21,7 +21,7 @@ export function AcceptInvitationForm({
 }: {
   readonly initialToken?: string;
   readonly navigate?: (url: string) => void;
-} = {}): React.JSX.Element {
+}): React.JSX.Element {
   const [token] = useState<string | null>(() => {
     if (initialToken) return initialToken;
     if (typeof window === 'undefined') return null;

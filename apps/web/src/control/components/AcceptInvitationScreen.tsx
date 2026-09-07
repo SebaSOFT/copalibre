@@ -12,7 +12,7 @@ export function AcceptInvitationScreen({
   initialToken,
 }: {
   readonly initialToken?: string;
-} = {}): React.JSX.Element {
+}): React.JSX.Element {
   return (
     <AuthScreenTemplate tagline="Control de torneos">
       <AcceptInvitationForm initialToken={initialToken} />
