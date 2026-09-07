@@ -19,6 +19,90 @@ const ALLOWED_BUTTON_FILES = new Set([
 const ALLOWED_INPUT_FILES = new Set(['JerseyGrid.tsx']);
 
 /**
+ * Raw `<input>`s that predate this scanner actually working.
+ *
+ * Until 2026-09-07 this check matched per line, so Prettier — which wraps any
+ * element with more than a couple of props — hid almost every real occurrence.
+ * Fixing the match surfaced 48 of them across 15 screens at once. Converting
+ * them is a component-library change, not a scanner fix, so they are recorded
+ * here instead of being silently permitted.
+ *
+ * **This is a debt register, not permission.** A count may only go down. Adding
+ * a raw input to any of these files fails the check, as does adding one to a
+ * file not listed; removing one fails too, until the number here is lowered to
+ * match. Delete an entry when its file reaches zero.
+ */
+const KNOWN_RAW_INPUTS = new Map([
+  ['ClubManagementRoute.tsx', 1],
+  ['DescriptorBuilderWizard.tsx', 5],
+  ['LoadMatchDataRoute.tsx', 4],
+  ['PreferencesRoute.tsx', 1],
+  ['RegistrationReviewPage.tsx', 8],
+  ['RegistrationReviewRoute.tsx', 1],
+  ['RolesPermissionsPage.tsx', 2],
+  ['RosterSelectionStep.tsx', 3],
+  ['ScheduleBuilderRoute.tsx', 1],
+  ['SeedingBuilderRoute.tsx', 5],
+  ['TournamentRulesetPage.tsx', 3],
+  ['TournamentSettingsPage.tsx', 2],
+  ['TournamentSetupWizard.tsx', 5],
+  ['VenueManagementRoute.tsx', 3],
+  ['ZoneGroupRoute.tsx', 4],
+]);
+
+/**
+ * Checks a file's content for violations of UI ownership.
+ *
+ * @param {string} filename - Base name or relative path of the file
+ * @param {string} content - Source code content of the file
+ * @returns {readonly { line: number, message: string }[]} List of violations found
+ */
+/**
+ * Every raw element the owned library replaces, and what replaces it.
+ *
+ * `[\\s>/]` after the tag name is what makes this see a real component: Prettier
+ * writes any element with more than a couple of props across several lines, so
+ * the character after `<button` is usually a newline. Matching per line — as
+ * this scanner did until this was fixed — meant the tag name sat alone on its
+ * line with nothing after it to match, and the gate reported green on files
+ * built entirely from raw elements.
+ */
+const RAW_ELEMENT_RULES = [
+  { tag: 'dialog', replacement: '`Modal` organism' },
+  { tag: 'table', replacement: '`DataTable` organism' },
+  { tag: 'textarea', replacement: '`Textarea` atom' },
+  { tag: 'button', replacement: '`Button` atom', allowed: ALLOWED_BUTTON_FILES },
+  { tag: 'input', replacement: '`Input` atom', allowed: ALLOWED_INPUT_FILES },
+];
+
+/**
+ * Blanks comments out rather than removing them, so every remaining character
+ * keeps its original offset and reported line numbers stay true.
+ */
+function withoutComments(content) {
+  return (
+    content
+      .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, ' '))
+      // `[^:]` so a URL's `//` is not read as the start of a comment.
+      .replace(
+        /(^|[^:])\/\/[^\n]*/gm,
+        (match, prefix) => prefix + ' '.repeat(match.length - prefix.length),
+      )
+      // A lone `*` continuation line, which the previous line-based scanner
+      // skipped and which a block-comment strip alone would not catch when the
+      // opening `/*` is elsewhere.
+      .replace(/^[ \t]*\*[^\n]*/gm, (line) => ' '.repeat(line.length))
+  );
+}
+
+/** 1-indexed line number for a character offset. */
+function lineOf(content, offset) {
+  let line = 1;
+  for (let i = 0; i < offset; i++) if (content[i] === '\n') line++;
+  return line;
+}
+
+/**
  * Checks a file's content for violations of UI ownership.
  *
  * @param {string} filename - Base name or relative path of the file
@@ -27,79 +111,64 @@ const ALLOWED_INPUT_FILES = new Set(['JerseyGrid.tsx']);
  */
 export function checkFileOwnership(filename, content) {
   const violations = [];
-  const lines = content.split('\n');
   const baseName = filename.split('/').pop() ?? filename;
+  const source = withoutComments(content);
 
-  for (let i = 0; i < lines.length; i++) {
-    const lineNum = i + 1;
-    const line = lines[i];
+  for (const rule of RAW_ELEMENT_RULES) {
+    if (rule.allowed?.has(baseName)) continue;
 
-    // Ignore comments
-    const trimmed = line.trim();
-    if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) {
-      continue;
-    }
-
-    // 1. Raw <dialog> is prohibited (use Modal organism)
-    if (/<dialog[\s>]/.test(line)) {
-      violations.push({
-        line: lineNum,
-        message: 'Raw <dialog> detected. Use the owned `Modal` organism instead.',
-      });
-    }
-
-    // 2. Raw <table> is prohibited (use DataTable organism)
-    if (/<table[\s>]/.test(line)) {
-      violations.push({
-        line: lineNum,
-        message: 'Raw <table> detected. Use the owned `DataTable` organism instead.',
-      });
-    }
-
-    // 3. Raw <textarea> is prohibited (use Textarea atom)
-    if (/<textarea[\s>]/.test(line)) {
-      violations.push({
-        line: lineNum,
-        message: 'Raw <textarea> detected. Use the owned `Textarea` atom instead.',
-      });
-    }
-
-    // 4. Raw <button> checks
-    if (/<button[\s>]/.test(line)) {
-      if (!ALLOWED_BUTTON_FILES.has(baseName)) {
-        violations.push({
-          line: lineNum,
-          message: `Raw <button> detected in ${baseName}. Use the owned \`Button\` atom instead.`,
-        });
+    const pattern = new RegExp(`<${rule.tag}[\\s>/]`, 'g');
+    let match;
+    while ((match = pattern.exec(source)) !== null) {
+      // A checkbox, radio or file input has no owned atom to use instead, so it
+      // stays raw by design rather than by oversight.
+      if (rule.tag === 'input') {
+        const tagEnd = source.indexOf('>', match.index);
+        const element = source.slice(match.index, tagEnd === -1 ? undefined : tagEnd);
+        if (/type=["'](checkbox|radio|file)["']/.test(element)) continue;
       }
-    }
 
-    // 5. Raw <input> checks
-    if (/<input[\s>]/.test(line)) {
-      if (!ALLOWED_INPUT_FILES.has(baseName)) {
-        // Collect full element tag if multiline
-        let elementText = line;
-        let j = i;
-        while (!elementText.includes('>') && j + 1 < lines.length && j - i < 10) {
-          j++;
-          elementText += ' ' + lines[j];
-        }
-
-        const isCheckbox = /type=["']checkbox["']/.test(elementText);
-        const isRadio = /type=["']radio["']/.test(elementText);
-        const isFile = /type=["']file["']/.test(elementText);
-
-        if (!isCheckbox && !isRadio && !isFile) {
-          violations.push({
-            line: lineNum,
-            message: `Raw <input> detected in ${baseName}. Use the owned \`Input\` atom instead.`,
-          });
-        }
-      }
+      violations.push({
+        line: lineOf(source, match.index),
+        message: `Raw <${rule.tag}> detected in ${baseName}. Use the owned ${rule.replacement} instead.`,
+      });
     }
   }
 
-  return violations;
+  return reconcileWithBaseline(
+    baseName,
+    violations.sort((a, b) => a.line - b.line),
+  );
+}
+
+/**
+ * Applies the debt register: a file's known raw inputs are not reported, but any
+ * beyond its recorded count are, and a file that has improved is reported so the
+ * number gets lowered rather than quietly leaving room to regress.
+ */
+function reconcileWithBaseline(baseName, violations) {
+  const allowance = KNOWN_RAW_INPUTS.get(baseName);
+  if (allowance === undefined) return violations;
+
+  const rawInputs = violations.filter((violation) => violation.message.includes('Raw <input>'));
+  const rest = violations.filter((violation) => !violation.message.includes('Raw <input>'));
+
+  if (rawInputs.length > allowance) {
+    return [...rest, ...rawInputs.slice(allowance)];
+  }
+  if (rawInputs.length < allowance) {
+    return [
+      ...rest,
+      {
+        line: 1,
+        message:
+          `${baseName} now has ${rawInputs.length} raw <input>(s), fewer than the ${allowance} ` +
+          'recorded in KNOWN_RAW_INPUTS. Lower the number there (or delete the entry at zero) so ' +
+          'the debt cannot grow back.',
+      },
+    ];
+  }
+  return rest;
 }
 
 /**

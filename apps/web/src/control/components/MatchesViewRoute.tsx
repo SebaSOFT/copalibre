@@ -5,6 +5,7 @@ import { controlTokenStore } from '../session/token-store.js';
 import { MatchCard } from '../../components/MatchCard.js';
 import type { MatchCardData } from '../../lib/matches-view.js';
 import { matchCardLabelsFromControlIntl } from '../lib/matches-view-labels.js';
+import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
 
 type StateFilter = 'all' | 'live' | 'upcoming' | 'final';
@@ -82,15 +83,15 @@ export function MatchesViewRoute({
         </h1>
         <div role="group" aria-label={intl.formatMessage(messages.matchesViewControlTitle)}>
           {(['all', 'live', 'upcoming', 'final'] as const).map((option) => (
-            <button
-              key={option}
-              className="cl-btn cl-btn--secondary"
-              type="button"
+            <Button
               aria-pressed={state === option}
+              key={option}
               onClick={() => setState(option)}
+              type="button"
+              variant="secondary"
             >
               {labels.filters[option]}
-            </button>
+            </Button>
           ))}
         </div>
       </div>

@@ -322,10 +322,12 @@ presentation.
 ### Requirement: Organization-scoped tournament listing page
 
 The public site SHALL serve an organization page at `/{organization}`, showing the organization's name
-and emblem, a featured block for its current or most recent tournament, every published tournament for
-that organization — name, discipline, status, and season/dates — and a grid of the organization's clubs.
-The page SHALL be reachable without already knowing a specific tournament's alias, and SHALL be rendered
-per request from current backend state, matching the existing overview page's "reachable without a site
+and emblem, a **Live** section listing every currently-live tournament, a **Featured** section for
+organizer-flagged tournaments (or, when none are flagged, the existing live-or-most-recent fallback),
+every published tournament for that organization — name, discipline, status, and season/dates — and a
+grid of the organization's clubs. The Live section SHALL render before the Featured section. The page
+SHALL be reachable without already knowing a specific tournament's alias, and SHALL be rendered per
+request from current backend state, matching the existing overview page's "reachable without a site
 rebuild" guarantee. Every emblem shown on this page, and every placeholder shown in its place, SHALL
 render inside the platform's standard 4:5 framed-image presentation.
 
@@ -349,17 +351,27 @@ The previously served path `/{organization}/tournaments` SHALL NOT be served.
 - **WHEN** an anonymous visitor requests `/{organization}/tournaments`
 - **THEN** the public site returns a not-found response
 
+#### Scenario: The Live section lists every currently-live tournament
+- **WHEN** an organization has more than one tournament with status `live`
+- **THEN** the Live section lists all of them, and it renders before the Featured section
+
+#### Scenario: The Featured section prefers organizer-flagged tournaments
+- **WHEN** an organization has at least one tournament with `featured: true`
+- **THEN** the Featured section shows the flagged tournament(s), most-recently-flagged first when more
+  than one, rather than the automatic live-or-most-recent computation
+
 #### Scenario: The featured block names the live tournament
-- **WHEN** an organization has a tournament whose status is `live`
-- **THEN** the featured block names that tournament
+- **WHEN** an organization has no tournament flagged `featured` and has a tournament whose status is
+  `live`
+- **THEN** the Featured section names that tournament
 
 #### Scenario: The featured block falls back to the most recent tournament
-- **WHEN** an organization has no live tournament
-- **THEN** the featured block names its most recent tournament by date
+- **WHEN** an organization has no tournament flagged `featured` and no live tournament
+- **THEN** the Featured section names its most recent tournament by date
 
 #### Scenario: An organization with no tournaments shows no featured block
 - **WHEN** an organization has no published tournaments
-- **THEN** no featured block is rendered, and the listing is empty rather than an error
+- **THEN** no Live or Featured section is rendered, and the listing is empty rather than an error
 
 #### Scenario: The club grid shows the organization's clubs
 - **WHEN** an organization has registered clubs

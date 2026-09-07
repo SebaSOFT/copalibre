@@ -198,12 +198,13 @@ function ControlShellChrome({
     <div className="cl-control" data-density="control">
       <header className="cl-control__mobile-header">
         {brandMarkNode}
-        <button
-          type="button"
-          className="cl-control__hamburger-btn cl-focusable"
-          aria-label="Abrir menú de navegación"
+        <Button
           aria-expanded={drawerOpen}
+          aria-label="Abrir menú de navegación"
+          className="cl-control__hamburger-btn"
           onClick={() => setDrawerOpen(true)}
+          type="button"
+          variant="secondary"
         >
           <svg
             width="24"
@@ -217,7 +218,7 @@ function ControlShellChrome({
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
-        </button>
+        </Button>
       </header>
 
       <NavigationDrawer open={drawerOpen} onOpenChange={setDrawerOpen} title="COPALIBRE CMD">
