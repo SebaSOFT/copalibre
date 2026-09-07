@@ -200,7 +200,7 @@ function ControlShellChrome({
         {brandMarkNode}
         <Button
           aria-expanded={drawerOpen}
-          aria-label="Abrir menú de navegación"
+          aria-label={intl.formatMessage(messages.shellOpenNavigation)}
           className="cl-control__hamburger-btn"
           onClick={() => setDrawerOpen(true)}
           type="button"

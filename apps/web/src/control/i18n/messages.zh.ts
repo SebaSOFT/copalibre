@@ -6,6 +6,7 @@
 export const messages: Record<string, string> = {
   'control.shell.sections': '版块',
   'control.shell.whatIsThisScreen': '这是什么界面？',
+  'control.shell.openNavigation': '打开导航菜单',
   'control.shell.language': '语言',
   'control.shell.logout': '退出登录',
 

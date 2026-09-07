@@ -223,6 +223,11 @@ jobs:
       - run: node scripts/check-help-locale-parity.mjs
       - run: node --test scripts/check-help-coverage.test.mjs
       - run: node scripts/check-help-coverage.mjs
+      # Interface text that never entered a message catalogue (openspec 0209).
+      # Blocking, not informational: known findings are recorded in the script's
+      # own debt register, so this only fails on a literal nobody has seen yet.
+      - run: node --test scripts/check-ui-text-catalogue-coverage.test.mjs
+      - run: node scripts/check-ui-text-catalogue-coverage.mjs
       # Descriptor-authoring guide coverage (openspec 0163): every field the
       # discipline descriptor schema declares has a non-empty explanation,
       # and no explanation names a field the schema no longer has — the same

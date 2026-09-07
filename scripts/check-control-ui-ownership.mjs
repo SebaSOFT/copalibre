@@ -83,9 +83,10 @@ function withoutComments(content) {
   return (
     content
       .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, ' '))
-      // `[^:]` so a URL's `//` is not read as the start of a comment.
+      // `[^:/]` so neither a URL's `//` nor the third slash of `file:///`
+      // is read as the start of a comment.
       .replace(
-        /(^|[^:])\/\/[^\n]*/gm,
+        /(^|[^:/])\/\/[^\n]*/gm,
         (match, prefix) => prefix + ' '.repeat(match.length - prefix.length),
       )
       // A lone `*` continuation line, which the previous line-based scanner

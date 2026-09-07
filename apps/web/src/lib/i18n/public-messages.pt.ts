@@ -28,6 +28,11 @@ export const messages: Record<string, string> = {
   'publicWeb.ruleset.heading': 'Regulamento',
 
   'publicWeb.standings.heading': 'Classificação',
+  'publicWeb.standings.tableLayouts': 'Layouts de tabela',
+  'publicWeb.standings.filterByClub': 'Filtrar por clube',
+  'publicWeb.standings.closeDialog': 'Fechar diálogo',
+  'publicWeb.home.pageTitle': 'CopaLibre — Operação de torneios',
+  'publicWeb.home.organizationsLabel': 'Organizações',
   'publicWeb.standings.empty': 'A classificação aparece quando a primeira partida é disputada.',
   'publicWeb.standings.team': 'Equipe',
   'publicWeb.standings.played': 'PJ',

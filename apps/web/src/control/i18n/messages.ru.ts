@@ -8,6 +8,7 @@
 export const messages: Record<string, string> = {
   'control.shell.sections': 'Разделы',
   'control.shell.whatIsThisScreen': 'Что это за экран?',
+  'control.shell.openNavigation': 'Открыть меню навигации',
   'control.shell.language': 'Язык',
   'control.shell.logout': 'Выйти',
 

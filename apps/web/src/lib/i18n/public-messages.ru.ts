@@ -28,6 +28,11 @@ export const messages: Record<string, string> = {
   'publicWeb.ruleset.heading': 'Регламент',
 
   'publicWeb.standings.heading': 'Турнирная таблица',
+  'publicWeb.standings.tableLayouts': 'Виды таблиц',
+  'publicWeb.standings.filterByClub': 'Фильтр по клубу',
+  'publicWeb.standings.closeDialog': 'Закрыть диалог',
+  'publicWeb.home.pageTitle': 'CopaLibre — Управление турнирами',
+  'publicWeb.home.organizationsLabel': 'Организации',
   'publicWeb.standings.empty': 'Таблица появится после первого сыгранного матча.',
   'publicWeb.standings.team': 'Команда',
   'publicWeb.standings.played': 'И',

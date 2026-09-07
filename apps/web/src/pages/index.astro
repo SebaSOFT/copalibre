@@ -3,6 +3,7 @@ import PublicLayout from '../layouts/PublicLayout.astro';
 import EmblemImage from '../components/EmblemImage.astro';
 import { fetchOrganizations, organizationEmblemUrl } from '../lib/public-api-client.ts';
 import { publicIntl } from '../lib/i18n/public-intl.ts';
+import { messages } from '../lib/i18n/public-messages.en.ts';
 
 export const prerender = false;
 
@@ -11,7 +12,7 @@ const organizations = (await fetchOrganizations()) ?? [];
 ---
 
 <PublicLayout
-  title="CopaLibre — Tournament Operations"
+  title={intl.formatMessage(messages.homePageTitle)}
   description="Self-hosted, transparent tournament management for clubs, leagues, and federations."
   canonicalPath="/"
   intl={intl}
@@ -28,7 +29,10 @@ const organizations = (await fetchOrganizations()) ?? [];
           <p>No published tournaments available yet.</p>
         </div>
       ) : (
-        <section class="cl-org-directory" aria-label="Organizations">
+        <section
+          class="cl-org-directory"
+          aria-label={intl.formatMessage(messages.homeOrganizationsLabel)}
+        >
           <h2>Organizations</h2>
           <div class="cl-org-grid">
             {organizations.map((org) => (

@@ -55,6 +55,26 @@ export const messages = defineMessages({
 
   // StandingsPreview.astro
   standingsHeading: { id: 'publicWeb.standings.heading', defaultMessage: 'Standings' },
+  standingsTableLayouts: {
+    id: 'publicWeb.standings.tableLayouts',
+    defaultMessage: 'Table layouts',
+  },
+  standingsFilterByClub: {
+    id: 'publicWeb.standings.filterByClub',
+    defaultMessage: 'Filter by club',
+  },
+  standingsCloseDialog: {
+    id: 'publicWeb.standings.closeDialog',
+    defaultMessage: 'Close dialog',
+  },
+  homePageTitle: {
+    id: 'publicWeb.home.pageTitle',
+    defaultMessage: 'CopaLibre — Tournament Operations',
+  },
+  homeOrganizationsLabel: {
+    id: 'publicWeb.home.organizationsLabel',
+    defaultMessage: 'Organizations',
+  },
   standingsEmpty: {
     id: 'publicWeb.standings.empty',
     defaultMessage: 'Standings appear once the first match is played.',

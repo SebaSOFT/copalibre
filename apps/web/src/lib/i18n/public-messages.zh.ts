@@ -28,6 +28,11 @@ export const messages: Record<string, string> = {
   'publicWeb.ruleset.heading': '规则',
 
   'publicWeb.standings.heading': '排名',
+  'publicWeb.standings.tableLayouts': '表格布局',
+  'publicWeb.standings.filterByClub': '按俱乐部筛选',
+  'publicWeb.standings.closeDialog': '关闭对话框',
+  'publicWeb.home.pageTitle': 'CopaLibre — 赛事运营',
+  'publicWeb.home.organizationsLabel': '组织',
   'publicWeb.standings.empty': '排名将在首场比赛结束后显示。',
   'publicWeb.standings.team': '队伍',
   'publicWeb.standings.played': '场次',
