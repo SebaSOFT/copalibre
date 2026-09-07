@@ -130,3 +130,58 @@ test('comments with element tags are ignored', () => {
   const violations = checkFileOwnership('GoodRoute.tsx', code);
   assert.equal(violations.length, 0);
 });
+
+test('sees an element Prettier wrapped across lines, not only a single-line one', () => {
+  // The whole reason this scanner was rewritten: it matched per line, so the
+  // character after `<button` was a newline that never reached the pattern, and
+  // every real multi-prop element in the codebase went unseen.
+  const singleLine = `const a = <button type="button">x</button>;`;
+  const wrapped = [
+    'const a = (',
+    '  <button',
+    '    type="button"',
+    '    onClick={handle}',
+    '  >x</button>',
+    ');',
+  ].join('\n');
+
+  assert.equal(checkFileOwnership('Wrapped.tsx', singleLine).length, 1);
+  assert.equal(checkFileOwnership('Wrapped.tsx', wrapped).length, 1);
+  assert.equal(checkFileOwnership('Wrapped.tsx', wrapped)[0].line, 2);
+});
+
+test('a wrapped checkbox, radio or file input stays exempt', () => {
+  const wrappedCheckbox = ['<input', '  className="cl-checkbox"', '  type="checkbox"', '/>'].join(
+    '\n',
+  );
+  assert.equal(checkFileOwnership('Toggles.tsx', wrappedCheckbox).length, 0);
+});
+
+test('an element named only in a comment is not a violation', () => {
+  const commented = ['// <button> in prose', '/* <table> in a block */', 'const ok = 1;'].join(
+    '\n',
+  );
+  assert.equal(checkFileOwnership('Commented.tsx', commented).length, 0);
+});
+
+test('a URL is not mistaken for a line comment when blanking comments', () => {
+  const code = ['const docs = "https://example.com";', 'const a = <button type="button" />;'].join(
+    '\n',
+  );
+  assert.equal(checkFileOwnership('Urls.tsx', code).length, 1);
+});
+
+test('the raw-input debt register admits its recorded count and nothing beyond it', () => {
+  const input = ['<input', '  type="text"', '/>'].join('\n');
+  // PreferencesRoute.tsx is recorded at 1.
+  assert.equal(checkFileOwnership('PreferencesRoute.tsx', input).length, 0);
+  assert.equal(checkFileOwnership('PreferencesRoute.tsx', `${input}\n${input}`).length, 1);
+  // An unlisted file gets no allowance at all.
+  assert.equal(checkFileOwnership('NotListed.tsx', input).length, 1);
+});
+
+test('the debt register ratchets: improving below the recorded count asks for it to be lowered', () => {
+  const violations = checkFileOwnership('PreferencesRoute.tsx', 'const nothing = 1;');
+  assert.equal(violations.length, 1);
+  assert.match(violations[0].message, /fewer than the 1 recorded/);
+});
