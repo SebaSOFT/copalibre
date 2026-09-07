@@ -352,3 +352,16 @@ shape the tournament's series-declaration preview already uses.
 #### Scenario: A preview reports classification without applying anything
 - **WHEN** an operator submits a ruleset-override or stage-configuration edit to the preview endpoint
 - **THEN** the response reports the resulting mutation classification and no stored ruleset or stage configuration changes
+
+### Requirement: Featured toggle is an explicit tournament setting
+Tournament settings SHALL expose an explicit Featured toggle, editable by an organization admin,
+alongside the existing public-registration and check-in toggles. Setting it SHALL be classified a
+`safe` mutation.
+
+#### Scenario: An organization admin flags a tournament featured
+- **WHEN** an organization admin enables the Featured toggle for a published tournament
+- **THEN** the tournament's `featured` value updates to `true` and the mutation is classified `safe`
+
+#### Scenario: A non-admin cannot set the Featured toggle
+- **WHEN** a user without the organization-admin role attempts to change the Featured toggle
+- **THEN** the request is rejected and the tournament's `featured` value is unchanged
