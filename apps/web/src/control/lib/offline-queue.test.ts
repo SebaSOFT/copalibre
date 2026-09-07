@@ -294,6 +294,37 @@ describe('describeQueuedAction (0159 task 3.6)', () => {
     ).toBe('Event goal for person-7');
   });
 
+  it('describes every other queued kind structurally, ids and all', () => {
+    expect(
+      describeQueuedAction({
+        kind: 'roster-select',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        entrantId: 'entrant-a',
+        request: { members: [{ personId: 'person-1', onField: true }] },
+      }),
+    ).toBe('Roster for entrant-a: 1 named');
+    expect(
+      describeQueuedAction({
+        kind: 'clock-adjust',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        request: { segmentId: 'segment-1', elapsedSeconds: 754 },
+      }),
+    ).toBe('Clock set to 754s');
+    expect(
+      describeQueuedAction({
+        kind: 'timer-resolve',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        timerId: 'timer-1',
+      }),
+    ).toBe('Timer timer-1 resolved');
+  });
+
   it('names the clock command and the segment it acted on', () => {
     expect(
       describeQueuedAction({

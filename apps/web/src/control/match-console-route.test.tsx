@@ -154,6 +154,15 @@ function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApi
   };
 }
 
+const FIRST_SEGMENT: MatchConsoleResponse['segments'][number] = {
+  segmentId: 'segment-1',
+  type: 'half',
+  number: 1,
+  state: 'active',
+  elapsedSeconds: 120,
+  durationSeconds: 2700,
+};
+
 describe('MatchConsoleRoute clock commands', () => {
   /**
    * The console reconciles against whatever the server projection says after a
@@ -261,6 +270,51 @@ describe('MatchConsoleRoute clock commands', () => {
         expect(screen.getByRole('button', { name })).toHaveProperty('disabled', true),
       );
     }
+  });
+
+  it('starts a scheduled match rather than resuming it, and stops the segment that was running', async () => {
+    const sent: unknown[] = [];
+    const scheduled: MatchConsoleResponse = {
+      ...projection,
+      status: 'scheduled',
+      segments: [
+        { ...FIRST_SEGMENT, segmentId: 'segment-1', state: 'active' },
+        { ...FIRST_SEGMENT, segmentId: 'segment-2', number: 2, state: 'pending' },
+      ],
+    };
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              fetchMatchConsole: async () => scheduled,
+              sendMatchCommand: async (_organization, _tournament, matchId, command, segmentId) => {
+                sent.push({ command, segmentId });
+                return { matchId, status: 'in-progress', clockRunning: true, runningTimers: [] };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    // Select the second period, which is not the one currently running.
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Active segment'), {
+        target: { value: 'segment-2' },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    });
+
+    // A scheduled match is started, never resumed.
+    await waitFor(() => expect(sent).toEqual([{ command: 'start', segmentId: 'segment-2' }]));
+    // And the optimistic patch stops the one that was running: only one at a time.
+    expect(screen.getByLabelText('Active segment')).toBeDefined();
   });
 
   it('queues a clock command durably, exactly as a recorded event is queued', async () => {
@@ -1519,12 +1573,18 @@ describe('MatchConsoleRoute', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Apply clock' }));
       });
 
-      fireEvent.mouseEnter(syncIndicator().parentElement as HTMLElement);
+      const indicator = syncIndicator().parentElement as HTMLElement;
+      fireEvent.mouseEnter(indicator);
       await waitFor(() => {
         expect(screen.getByText('No queued actions')).toBeDefined();
         expect(screen.queryByText('Not yet synced')).toBeNull();
         expect(screen.getByText(/^Last synced /)).toBeDefined();
       });
+
+      // And it closes again the moment the pointer leaves: the detail is only
+      // ever borrowed space, never permanent layout.
+      fireEvent.mouseLeave(indicator);
+      expect(screen.queryByText('No queued actions')).toBeNull();
     });
 
     it('shows online and offline as one glanceable icon with an accessible name', async () => {
