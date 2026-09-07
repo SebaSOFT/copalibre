@@ -11887,10 +11887,15 @@
             "type": "string",
             "description": "Object id of the tournament emblem image asset.",
             "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "featured": {
+            "type": "boolean",
+            "description": "Whether the organizer has flagged this tournament as featured on the organization’s public page. Independent of whether it is live."
           }
         },
         "required": [
-          "name"
+          "name",
+          "featured"
         ]
       },
       "TournamentSettingsRequest": {
@@ -11909,6 +11914,10 @@
             "type": "number",
             "description": "Maximum number of participants/entrants for the tournament.",
             "example": 16
+          },
+          "featured": {
+            "type": "boolean",
+            "description": "Flags the tournament as featured on the organization’s public page. A record field like `name`, not a ruleset override: it carries no competition meaning and is not mutation-classified against the discipline descriptor."
           },
           "checkInClosesAt": {
             "type": "string",
@@ -15602,6 +15611,10 @@
             "type": "string",
             "format": "uuid",
             "description": "object_metadata.object_id of the tournament emblem"
+          },
+          "featured": {
+            "type": "boolean",
+            "description": "Whether the organizer flagged this tournament as featured. Independent of `status`: live is urgent, featured is curated, and a tournament can be either, both, or neither."
           }
         },
         "required": [
@@ -15609,7 +15622,8 @@
           "alias",
           "name",
           "status",
-          "discipline"
+          "discipline",
+          "featured"
         ]
       },
       "PublicOverviewClubResponse": {

@@ -1492,6 +1492,10 @@ export const messages = defineMessages({
     id: 'control.settings.checkInClosesAtLabel',
     defaultMessage: 'Check-in closes at',
   },
+  settingsFeaturedLabel: {
+    id: 'control.settings.featuredLabel',
+    defaultMessage: 'Feature on the organization’s public page',
+  },
   settingsPreview: { id: 'control.settings.preview', defaultMessage: 'Preview' },
   settingsSave: { id: 'control.settings.save', defaultMessage: 'Save' },
   settingsSaved: { id: 'control.settings.saved', defaultMessage: 'Settings saved.' },

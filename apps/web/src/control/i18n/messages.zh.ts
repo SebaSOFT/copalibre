@@ -531,6 +531,7 @@ export const messages: Record<string, string> = {
   'control.settings.regionLabel': '地区',
   'control.settings.capacityLabel': '容量',
   'control.settings.checkInClosesAtLabel': '签到截止时间',
+  'control.settings.featuredLabel': '在组织公开页面中重点展示',
   'control.settings.preview': '预览',
   'control.settings.save': '保存',
   'control.settings.saved': '设置已保存。',

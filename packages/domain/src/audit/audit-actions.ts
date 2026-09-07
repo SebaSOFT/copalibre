@@ -82,6 +82,7 @@ export const AUDIT_ACTIONS = [
   'tournament.archived',
   'tournament.renamed',
   'tournament.emblem_updated',
+  'tournament.featured_updated',
   'ruleset.versioned',
   'ruleset.compiled',
   'stage-configuration.created',

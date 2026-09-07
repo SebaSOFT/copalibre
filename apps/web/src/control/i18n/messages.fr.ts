@@ -550,6 +550,7 @@ export const messages: Record<string, string> = {
   'control.settings.regionLabel': 'Région',
   'control.settings.capacityLabel': 'Capacité',
   'control.settings.checkInClosesAtLabel': 'Clôture des inscriptions',
+  'control.settings.featuredLabel': 'Mettre en avant sur la page publique de l’organisation',
   'control.settings.preview': 'Aperçu',
   'control.settings.save': 'Enregistrer',
   'control.settings.saved': 'Paramètres enregistrés.',

@@ -163,6 +163,7 @@ export function toTournament(row: TournamentRow): Tournament {
     ...(row.emblem_object_id === null || row.emblem_object_id === undefined
       ? {}
       : { emblemObjectId: row.emblem_object_id }),
+    featured: row.featured ?? false,
   };
 }
 
