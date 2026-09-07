@@ -45,15 +45,36 @@ the discipline's event definition declares that behavior.
 - **THEN** the console presents a goal/missed choice before opening the confirmation form, prefilled with event type, active period, and event time
 
 ### Requirement: Clock and timer operations are authorized auditable commands
-Manual clock adjustment, segment selection, and timer resolution SHALL be explicit server-validated
-commands. Each SHALL require its independently granted match capability, record actor, timestamp,
-prior state, and resulting state, and accept only timer-resolution behavior declared for the active
-discipline.
+Manual clock adjustment, explicit segment Start/Pause/End, segment selection, and timer resolution
+SHALL be explicit server-validated commands. Each SHALL require its independently granted match
+capability, record actor, timestamp, prior state, and resulting state, and accept only timer-resolution
+behavior declared for the active discipline. Start, Pause, and End SHALL be authorized by the same
+`match.control-clock` capability as manual elapsed-time adjustment.
 
 #### Scenario: Referee adjusts the active period
 - **WHEN** an official with the clock-control capability changes the active segment or elapsed time
 - **THEN** the system records the prior and resulting clock state and returns an authoritative
   projection
+
+#### Scenario: Referee starts a segment's clock
+- **WHEN** an official with the clock-control capability issues a Start command for the active segment
+- **THEN** the system records the prior (not-running) and resulting (running) clock state, and the
+  console reflects the clock advancing
+
+#### Scenario: Referee pauses a running segment's clock
+- **WHEN** an official with the clock-control capability issues a Pause command while the segment's
+  clock is running
+- **THEN** the system records the prior (running) and resulting (paused) clock state at the paused
+  elapsed time
+
+#### Scenario: Referee ends a segment's clock
+- **WHEN** an official with the clock-control capability issues an End command for the active segment
+- **THEN** the system records the resulting (ended) clock state and the segment is no longer eligible
+  for further Start/Pause commands
+
+#### Scenario: Start/Pause/End require the same capability as manual adjustment
+- **WHEN** an official without the clock-control capability issues a Start, Pause, or End command
+- **THEN** the system rejects the command without changing the clock state
 
 #### Scenario: Invalid timer resolution is rejected
 - **WHEN** an official attempts to resolve a timer without its required capability or through a path
@@ -355,3 +376,16 @@ instead show a clearly labeled placeholder (e.g. "Unnamed entrant") rather than 
 #### Scenario: An entrant with no resolvable name shows a labeled placeholder, not an id
 - **WHEN** the console renders a reference to an entrant whose name cannot be resolved
 - **THEN** it shows a clearly labeled placeholder rather than the entrant's raw identifier
+
+### Requirement: The event ledger is collapsible without hiding the most recent events
+The console's event ledger SHALL support a collapsed state showing at least the most recently recorded
+2-3 events, and an expanded state showing full match history. Collapsing the ledger SHALL NOT hide an
+event from the operator who just recorded it.
+
+#### Scenario: A collapsed ledger still shows the latest events
+- **WHEN** the event ledger is collapsed
+- **THEN** the most recent 2-3 recorded events remain visible in a peek strip
+
+#### Scenario: Expanding the ledger reveals full history
+- **WHEN** an operator expands a collapsed ledger
+- **THEN** the full recorded event history for the match becomes visible
