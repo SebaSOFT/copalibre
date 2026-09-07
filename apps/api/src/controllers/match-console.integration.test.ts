@@ -317,6 +317,35 @@ describe('live match console (integration)', () => {
     ]);
   });
 
+  it('labels the goal’s assist field, which reaches the console through a statistic effect', async () => {
+    // The route the reported defect came through: `assistedBy` is not in
+    // `personPayloadFields` — it arrives via the assists statistic's
+    // `awardTo.payloadField`, and must be labelled just the same.
+    const consoleRead = await request('GET', `${base()}/console`, 'referee');
+    const goal = consoleRead
+      .json()
+      .eventDefinitions.find((definition: { code: string }) => definition.code === 'goal');
+
+    expect(goal.secondaryActorFields).toContainEqual({
+      field: 'assistedBy',
+      label: { en: 'Assisted by', es: 'Asistido por' },
+    });
+    // Auto-snapshotted, never prompted for, so it is not a chip at all.
+    expect(goal.secondaryActorFields.map((entry: { field: string }) => entry.field)).not.toContain(
+      'goalkeeperId',
+    );
+
+    // The other declaration route, for contrast: the substitution's fields come
+    // from `personPayloadFields` and are labelled through the same map.
+    const substitution = consoleRead
+      .json()
+      .eventDefinitions.find((definition: { code: string }) => definition.code === 'substitution');
+    expect(substitution.secondaryActorFields).toEqual([
+      { field: 'playerOutId', label: { en: 'Player out', es: 'Sale' } },
+      { field: 'playerInId', label: { en: 'Player in', es: 'Entra' } },
+    ]);
+  });
+
   it('admits only assigned active referees', async () => {
     expect((await request('GET', `${base()}/console`, 'unassigned')).statusCode).toBe(403);
     expect((await request('GET', `${base()}/console`, 'inactive')).statusCode).toBe(403);

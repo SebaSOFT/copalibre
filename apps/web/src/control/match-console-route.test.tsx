@@ -715,7 +715,9 @@ describe('MatchConsoleRoute', () => {
       eventDefinitions: [
         {
           ...projection.eventDefinitions[3],
-          secondaryActorFields: ['assistedBy'],
+          secondaryActorFields: [
+            { field: 'assistedBy', label: { en: 'Assisted by', es: 'Asistido por' } },
+          ],
         },
       ],
       eligiblePersonIds: ['person-scorer', 'person-assist'],
@@ -755,7 +757,8 @@ describe('MatchConsoleRoute', () => {
       );
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'assistedBy' }));
+    // Named by the discipline's own label, never the payload key.
+    fireEvent.click(screen.getByRole('button', { name: 'Assisted by' }));
     fireEvent.click(screen.getByRole('button', { name: 'Assist' }));
     await act(async () => {
       fireEvent.click(screen.getAllByRole('button', { name: 'Gol' })[0] as HTMLButtonElement);
@@ -774,7 +777,9 @@ describe('MatchConsoleRoute', () => {
       eventDefinitions: [
         {
           ...projection.eventDefinitions[3],
-          secondaryActorFields: ['assistedBy'],
+          secondaryActorFields: [
+            { field: 'assistedBy', label: { en: 'Assisted by', es: 'Asistido por' } },
+          ],
         },
       ],
       eligiblePersonIds: ['person-scorer', 'person-assist'],

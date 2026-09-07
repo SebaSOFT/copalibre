@@ -7,6 +7,7 @@ import {
   type ConsoleRoster,
   type ConsoleRosterMember,
   type ConsoleRosterRole,
+  type ConsoleSecondaryActorField,
 } from '../lib/api-client.js';
 import { countryFlag } from '../lib/country.js';
 import { memberByNumber } from '../lib/match-console.js';
@@ -54,7 +55,7 @@ export function JerseyGrid({
   readonly disabled: boolean;
   readonly primarySide: string;
   readonly primaryPersonId: string;
-  readonly secondaryFields: readonly string[];
+  readonly secondaryFields: readonly ConsoleSecondaryActorField[];
   readonly secondarySelections: Readonly<Record<string, string>>;
   /** `undefined` means a jersey tap sets the primary actor. */
   readonly activeField: string | undefined;
@@ -125,7 +126,10 @@ export function JerseyGrid({
           >
             {intl.formatMessage(messages.matchConsolePerson)}
           </button>
-          {secondaryFields.map((field) => (
+          {/* The discipline names its own fields; an undeclared one shows its
+              key rather than a label invented from it, which would read as a
+              translation nobody wrote. */}
+          {secondaryFields.map(({ field, label }) => (
             <button
               aria-pressed={activeField === field}
               key={field}
@@ -133,7 +137,7 @@ export function JerseyGrid({
               style={chipStyle(activeField === field)}
               type="button"
             >
-              {field}
+              {label === undefined ? field : resolveLabel(label, language)}
             </button>
           ))}
         </div>

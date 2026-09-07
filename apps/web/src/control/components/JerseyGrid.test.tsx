@@ -74,7 +74,7 @@ describe('JerseyGrid', () => {
   it('clicking a jersey while a secondary field is active selects that field instead', () => {
     const { onSelectPrimary, onSelectSecondary } = renderGrid({
       activeField: 'assistedBy',
-      secondaryFields: ['assistedBy'],
+      secondaryFields: [{ field: 'assistedBy' }],
     });
     fireEvent.click(screen.getByRole('button', { name: 'B One' }));
     expect(onSelectSecondary).toHaveBeenCalledWith('assistedBy', 'b1');
@@ -82,9 +82,26 @@ describe('JerseyGrid', () => {
   });
 
   it('switching the active-field chip notifies the parent', () => {
-    const { onChangeActiveField } = renderGrid({ secondaryFields: ['assistedBy'] });
+    const { onChangeActiveField } = renderGrid({ secondaryFields: [{ field: 'assistedBy' }] });
     fireEvent.click(screen.getByRole('button', { name: 'assistedBy' }));
     expect(onChangeActiveField).toHaveBeenCalledWith('assistedBy');
+  });
+
+  it('names a secondary field by its declared label, resolved for the active language', () => {
+    renderGrid({
+      secondaryFields: [{ field: 'assistedBy', label: { en: 'Assisted by', es: 'Asistido por' } }],
+    });
+
+    expect(screen.getByRole('button', { name: 'Assisted by' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'assistedBy' })).toBeNull();
+  });
+
+  it('falls back to the field key when the discipline declared no label for it', () => {
+    // Deliberately the raw key, not a label derived from it: an invented
+    // "Assisted By" would read as a translation nobody wrote.
+    renderGrid({ secondaryFields: [{ field: 'assistedBy' }] });
+
+    expect(screen.getByRole('button', { name: 'assistedBy' })).toBeDefined();
   });
 
   it("renders a member's nationality flag next to their jersey name", () => {

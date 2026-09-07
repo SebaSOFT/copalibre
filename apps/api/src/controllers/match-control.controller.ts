@@ -29,6 +29,7 @@ import {
   soleMemberWithRole,
   type DisciplineDescriptor,
   type EventDefinition,
+  type LocalizedLabel,
   type MatchCommand,
   type MatchRoster,
   type MatchRosterMember,
@@ -2477,7 +2478,9 @@ function toTimerDto(timer: RunningTimer) {
  * substitution's `playerOutId`/`playerInId`, say — which an `awardTo`/
  * `target` effect has nothing to attach to.
  */
-function secondaryActorFieldsOf(definition: EventDefinition): string[] {
+function secondaryActorFieldsOf(
+  definition: EventDefinition,
+): { readonly field: string; readonly label?: string | LocalizedLabel }[] {
   const fields = new Set<string>(definition.personPayloadFields ?? []);
   for (const effect of definition.effects ?? []) {
     if (effect.kind === 'statistic' && typeof effect.awardTo === 'object') {
@@ -2487,7 +2490,14 @@ function secondaryActorFieldsOf(definition: EventDefinition): string[] {
       fields.add(effect.target.payloadField);
     }
   }
-  return [...fields];
+  // The label is keyed by the field, so it attaches the same way no matter
+  // which of the three declarations above put the field in front of an
+  // operator. An undeclared one travels without a label rather than with a
+  // guess made from its key.
+  return [...fields].map((field) => {
+    const label = definition.payloadFieldLabels?.[field];
+    return label === undefined ? { field } : { field, label };
+  });
 }
 
 type RosterMemberRow = {
