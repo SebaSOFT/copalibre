@@ -40,8 +40,9 @@ cronômetro, selecionar uma convocação ou finalizar uma partida grava primeiro
 durável — _antes_ mesmo de tentar enviar — para que uma queda de sinal nunca faça perder algo que
 você já fez.
 
-- **O status de sincronização** está sempre visível no topo da tela: se você está online, quantas
-  ações ainda aguardam envio, e quando a última realmente foi sincronizada.
+- **Um ponto de conexão** está sempre visível no topo da tela: preenchido quando você está online,
+  vazado quando não está. Passe o mouse ou dê foco nele para ver quantas ações ainda aguardam envio
+  e quando a última realmente foi sincronizada.
 - **Uma ação enfileirada permanece enfileirada**, sem se perder, mesmo com conexão instável, uma
   zona sem sinal, ou até fechando e reabrindo esta tela — reabri-la retoma o envio do que ainda
   estiver pendente.

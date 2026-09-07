@@ -400,9 +400,9 @@ export const messages = defineMessages({
     defaultMessage: 'Awaiting authoritative projection...',
   },
   // Sync status — always visible, not only surfaced on failure.
-  matchConsoleSyncStatus: {
-    id: 'control.matchConsole.syncStatus',
-    defaultMessage: 'Sync status',
+  matchConsoleSyncState: {
+    id: 'control.matchConsole.syncState',
+    defaultMessage: 'Sync status: {state}',
   },
   matchConsoleOnline: { id: 'control.matchConsole.online', defaultMessage: 'Online' },
   matchConsoleOffline: { id: 'control.matchConsole.offline', defaultMessage: 'Offline' },
@@ -418,6 +418,10 @@ export const messages = defineMessages({
   matchConsoleNeverSynced: {
     id: 'control.matchConsole.neverSynced',
     defaultMessage: 'Not yet synced',
+  },
+  matchConsoleUnnamedEntrant: {
+    id: 'control.matchConsole.unnamedEntrant',
+    defaultMessage: 'Unnamed entrant',
   },
   matchConsoleRefusedAction: {
     id: 'control.matchConsole.refusedAction',
@@ -536,21 +540,6 @@ export const messages = defineMessages({
     defaultMessage: 'Clock {time}',
   },
   matchConsoleLogNote: { id: 'control.matchConsole.logNote', defaultMessage: 'Log note' },
-  matchConsoleOperationalSignal: {
-    id: 'control.matchConsole.operationalSignal',
-    defaultMessage: 'Operational signal',
-  },
-  matchConsoleLatency: { id: 'control.matchConsole.latency', defaultMessage: 'Latency' },
-  matchConsolePacketLoss: {
-    id: 'control.matchConsole.packetLoss',
-    defaultMessage: 'Packet loss',
-  },
-  matchConsoleViewers: { id: 'control.matchConsole.viewers', defaultMessage: 'Viewers' },
-  matchConsoleUptime: { id: 'control.matchConsole.uptime', defaultMessage: 'Uptime' },
-  matchConsoleUnavailable: {
-    id: 'control.matchConsole.unavailable',
-    defaultMessage: 'Unavailable',
-  },
 
   // JerseyGrid.tsx
   matchConsoleJerseyGridLabel: {

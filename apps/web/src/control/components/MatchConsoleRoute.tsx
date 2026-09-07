@@ -37,6 +37,7 @@ import { Input } from './ui/atoms/input.js';
 import { Textarea } from './ui/atoms/textarea.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { ClockRing } from './ui/organisms/clock-ring.js';
+import { EntrantName } from '../../components/EntrantName.js';
 import { JerseyGrid } from './JerseyGrid.js';
 import { RosterSelectionStep } from './RosterSelectionStep.js';
 import { MatchConsoleTemplate } from './ui/templates/match-console-template.js';
@@ -113,6 +114,7 @@ export function MatchConsoleRoute({
     typeof navigator === 'undefined' ? true : navigator.onLine,
   );
   const [lastSyncedAt, setLastSyncedAt] = useState<number>();
+  const [syncDetailShown, setSyncDetailShown] = useState(false);
   const projectionVersion = useRef(0);
   const finalizationInFlight = useRef(false);
   const drainingRef = useRef(false);
@@ -132,7 +134,7 @@ export function MatchConsoleRoute({
               loaded.segments[0]?.segmentId ||
               '',
           );
-          setSelectedSide((current) => current || loaded.entrantIds[0] || '');
+          setSelectedSide((current) => current || loaded.entrants[0]?.entrantId || '');
           setSelectedPersonId((current) => current || loaded.eligiblePersonIds[0] || '');
           setSelectedStaffId((current) => current || loaded.eligibleStaffIds[0] || '');
           setStatus({ kind: 'ready' });
@@ -284,6 +286,9 @@ export function MatchConsoleRoute({
     ...new Set(permittedEvents.flatMap((definition) => definition.secondaryActorFields)),
   ];
   const sentOff = sentOffPersonIds(projection.events);
+  // The projection names both sides itself; nothing here reads a name off a
+  // roster, which only exists once players have actually been named to it.
+  const entrantById = new Map(projection.entrants.map((entrant) => [entrant.entrantId, entrant]));
   const canRecord = projection.capabilities.includes('match.record-event');
   const canSelectRoster = projection.capabilities.includes('match.select-roster');
   const canControlClock = projection.capabilities.includes('match.control-clock');
@@ -394,7 +399,7 @@ export function MatchConsoleRoute({
     setFinalizeIdempotencyKey(idempotencyKey);
     setFinalizing(true);
     const request = {
-      sides: current.entrantIds.map((entrantId) => ({ entrantId, statistics: {} })),
+      sides: current.entrants.map(({ entrantId }) => ({ entrantId, statistics: {} })),
       ...(selectedSide ? { winnerEntrantId: selectedSide } : {}),
     };
     // Write-ahead here too (design.md: "a queued finalize... is refused and
@@ -517,38 +522,72 @@ export function MatchConsoleRoute({
     </>
   );
 
+  // One glanceable icon, because "can I reach the server" is the only
+  // connectivity question this screen's operator asks mid-match. The queued
+  // count and last-synced time still matter — but as the answer to a question
+  // asked deliberately, so they are disclosed on hover or focus rather than
+  // permanently spending the space the console needs for its controls.
+  // `role="status"` names itself from `aria-label` rather than its content, so
+  // the same sentence serves twice: as the icon's accessible name, and as the
+  // live-region text a screen reader announces the moment the state flips.
+  const syncStateLabel = intl.formatMessage(messages.matchConsoleSyncState, {
+    state: online
+      ? intl.formatMessage(messages.matchConsoleOnline)
+      : intl.formatMessage(messages.matchConsoleOffline),
+  });
   const syncStatusNode = (
-    <div aria-label={intl.formatMessage(messages.matchConsoleSyncStatus)} className="cl-role-user">
-      <span>
-        {online
-          ? intl.formatMessage(messages.matchConsoleOnline)
-          : intl.formatMessage(messages.matchConsoleOffline)}
+    <div
+      className="cl-sync-indicator"
+      onBlur={() => setSyncDetailShown(false)}
+      onFocus={() => setSyncDetailShown(true)}
+      onMouseEnter={() => setSyncDetailShown(true)}
+      onMouseLeave={() => setSyncDetailShown(false)}
+    >
+      <span
+        aria-label={syncStateLabel}
+        className={`cl-sync-indicator__icon cl-sync-indicator__icon--${online ? 'online' : 'offline'} cl-focusable`}
+        role="status"
+        tabIndex={0}
+      >
+        <span aria-hidden="true" className="cl-sync-indicator__dot" />
+        <span className="cl-visually-hidden">{syncStateLabel}</span>
       </span>
-      <span>
-        {intl.formatMessage(messages.matchConsoleQueuedCount, {
-          count: pendingMutations.filter((mutation) => mutation.status === 'pending').length,
-        })}
-      </span>
-      <span>
-        {lastSyncedAt === undefined
-          ? intl.formatMessage(messages.matchConsoleNeverSynced)
-          : intl.formatMessage(messages.matchConsoleLastSynced, {
-              time: new Date(lastSyncedAt).toLocaleTimeString(intl.locale),
+      {syncDetailShown && (
+        <div className="cl-sync-indicator__detail">
+          <span>
+            {intl.formatMessage(messages.matchConsoleQueuedCount, {
+              count: pendingMutations.filter((mutation) => mutation.status === 'pending').length,
             })}
-      </span>
+          </span>
+          <span>
+            {lastSyncedAt === undefined
+              ? intl.formatMessage(messages.matchConsoleNeverSynced)
+              : intl.formatMessage(messages.matchConsoleLastSynced, {
+                  time: new Date(lastSyncedAt).toLocaleTimeString(intl.locale),
+                })}
+          </span>
+        </div>
+      )}
     </div>
   );
 
   const scoreboardNode = (
     <section aria-label={intl.formatMessage(messages.matchConsoleCurrentScoreboard)}>
-      {projection.liveScores.map((side) => (
-        <div key={side.entrantId} className="cl-match-console-screen__score-side">
-          <span className="cl-match-console-screen__score-entrant" title={side.entrantId}>
-            {side.entrantId}
-          </span>
-          <strong>{side.score}</strong>
-        </div>
-      ))}
+      {projection.liveScores.map((side) => {
+        const entrant = entrantById.get(side.entrantId);
+        return (
+          <div key={side.entrantId} className="cl-match-console-screen__score-side">
+            <EntrantName
+              className="cl-match-console-screen__score-entrant"
+              {...(entrant?.abbreviation === undefined
+                ? {}
+                : { abbreviation: entrant.abbreviation })}
+              fullName={entrant?.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
+            />
+            <strong>{side.score}</strong>
+          </div>
+        );
+      })}
     </section>
   );
 
@@ -662,7 +701,7 @@ export function MatchConsoleRoute({
           {rosterStepOpen && (
             <RosterSelectionStep
               api={api}
-              entrantIds={projection.entrantIds}
+              entrants={projection.entrants}
               existingRosters={projection.rosters}
               matchId={matchId}
               onSaved={() => void reload()}
@@ -948,31 +987,6 @@ export function MatchConsoleRoute({
               value={logNote}
             />
           </FormField>
-        </div>
-      </Card>
-
-      <Card className="cl-chamfer cl-chamfer--control">
-        <header className="cl-card__header">
-          <h2 className="cl-card__title">
-            <FormattedMessage {...messages.matchConsoleOperationalSignal} />
-          </h2>
-        </header>
-        <div className="cl-card__content">
-          <div className="cl-match-console-screen__telemetry">
-            {[
-              messages.matchConsoleLatency,
-              messages.matchConsolePacketLoss,
-              messages.matchConsoleViewers,
-              messages.matchConsoleUptime,
-            ].map((metric) => (
-              <div key={metric.id} className="cl-match-console-screen__telemetry-item">
-                <span className="cl-label">{intl.formatMessage(metric)}</span>
-                <strong>
-                  <FormattedMessage {...messages.matchConsoleUnavailable} />
-                </strong>
-              </div>
-            ))}
-          </div>
         </div>
       </Card>
     </>

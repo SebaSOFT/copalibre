@@ -291,7 +291,7 @@ describe('the control routes', () => {
       rosters: [],
       rosterRoles: [],
       eligibleStaffIds: [],
-      entrantIds: [],
+      entrants: [],
       capabilities: [],
       projectionVersion: 1,
     };

@@ -60,19 +60,19 @@ export function segmentLabel(
  */
 export function isEventPermitted(
   definition: ConsoleEventDefinition,
-  projection: Pick<MatchConsoleResponse, 'entrantIds' | 'eligiblePersonIds' | 'eligibleStaffIds'>,
+  projection: Pick<MatchConsoleResponse, 'entrants' | 'eligiblePersonIds' | 'eligibleStaffIds'>,
   activeSegment: MatchConsoleResponse['segments'][number] | undefined,
 ): boolean {
   if (!activeSegment || !definition.permittedSegmentTypes.includes(activeSegment.type)) {
     return false;
   }
-  if (definition.actorRequirement === 'side') return projection.entrantIds.length > 0;
+  if (definition.actorRequirement === 'side') return projection.entrants.length > 0;
   if (definition.actorRequirement === 'person') {
-    return projection.entrantIds.length > 0 && projection.eligiblePersonIds.length > 0;
+    return projection.entrants.length > 0 && projection.eligiblePersonIds.length > 0;
   }
   if (definition.actorRequirement === 'person-or-staff') {
     return (
-      projection.entrantIds.length > 0 &&
+      projection.entrants.length > 0 &&
       (projection.eligiblePersonIds.length > 0 || projection.eligibleStaffIds.length > 0)
     );
   }

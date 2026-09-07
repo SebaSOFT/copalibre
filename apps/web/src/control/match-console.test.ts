@@ -117,7 +117,7 @@ describe('segmentLabel', () => {
 });
 
 describe('isEventPermitted', () => {
-  const base = { entrantIds: ['e1'], eligiblePersonIds: [], eligibleStaffIds: [] };
+  const base = { entrants: [{ entrantId: 'e1' }], eligiblePersonIds: [], eligibleStaffIds: [] };
 
   it('refuses every definition when there is no active segment', () => {
     expect(isEventPermitted(definition(), base, undefined)).toBe(false);
@@ -131,7 +131,7 @@ describe('isEventPermitted', () => {
   it('permits a side-attributed definition once an entrant exists', () => {
     const def = definition({ actorRequirement: 'side' });
     expect(isEventPermitted(def, base, segment())).toBe(true);
-    expect(isEventPermitted(def, { ...base, entrantIds: [] }, segment())).toBe(false);
+    expect(isEventPermitted(def, { ...base, entrants: [] }, segment())).toBe(false);
   });
 
   it('permits a person-attributed definition only when an eligible person exists', () => {
@@ -149,7 +149,7 @@ describe('isEventPermitted', () => {
 
   it('permits an unattributed definition whenever the segment matches', () => {
     const def = definition({ actorRequirement: 'none' });
-    expect(isEventPermitted(def, { ...base, entrantIds: [] }, segment())).toBe(true);
+    expect(isEventPermitted(def, { ...base, entrants: [] }, segment())).toBe(true);
   });
 });
 

@@ -3597,6 +3597,14 @@ export interface components {
             /** @description Short tactile-console badge text, e.g. 'GK', 'C'. Falls back to `code` when absent */
             badge?: string;
         };
+        ConsoleEntrantResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            /** @description Display name — the team name, or the person’s name for an individual entrant */
+            name?: string;
+            /** @description Tournament-scoped abbreviation, when one is persisted */
+            abbreviation?: string;
+        };
         MatchConsoleResponse: {
             /** Format: uuid */
             matchId: string;
@@ -3618,8 +3626,8 @@ export interface components {
             rosterRoles: components["schemas"]["ConsoleRosterRoleResponse"][];
             /** @description Coaches and staff attached to an entrant contesting this match */
             eligibleStaffIds: string[];
-            /** @description Entrants contesting this match */
-            entrantIds: string[];
+            /** @description Entrants contesting this match, with the identity the console renders */
+            entrants: components["schemas"]["ConsoleEntrantResponse"][];
             /** @description Capabilities granted to this subject for this match */
             capabilities: string[];
             /** @description Monotonic server-issued projection version */

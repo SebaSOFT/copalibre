@@ -41,8 +41,9 @@ erfassen, die Uhr anpassen, einen Kader auswählen oder ein Spiel abschließen s
 dauerhafte lokale Warteschlange — _bevor_ überhaupt versucht wird, es zu senden — sodass ein
 Verbindungsabbruch nie etwas verloren gehen lässt, das bereits erledigt wurde.
 
-- **Der Synchronisierungsstatus** ist immer oben am Bildschirm sichtbar: ob eine Verbindung besteht,
-  wie viele Aktionen noch auf das Senden warten, und wann die letzte tatsächlich durchgegangen ist.
+- **Ein Verbindungspunkt** ist immer oben am Bildschirm sichtbar: gefüllt, wenn eine Verbindung
+  besteht, hohl, wenn nicht. Mit der Maus darauf zeigen oder ihn fokussieren zeigt, wie viele
+  Aktionen noch auf das Senden warten und wann die letzte tatsächlich durchgegangen ist.
 - **Eine wartende Aktion bleibt wartend**, nicht verloren, bei einer instabilen Verbindung, einem
   Funkloch oder selbst beim Schließen und erneuten Öffnen dieses Bildschirms — erneutes Öffnen
   nimmt das Senden alles noch Wartenden wieder auf.

@@ -56,7 +56,10 @@ function mockProjection(overrides: Partial<MatchConsoleResponse> = {}): MatchCon
     ],
     rosterRoles: [],
     eligibleStaffIds: [],
-    entrantIds: ['entrant-home', 'entrant-away'],
+    entrants: [
+      { entrantId: 'entrant-home', name: 'Club Atlético' },
+      { entrantId: 'entrant-away', name: 'Deportivo Cuyo' },
+    ],
     capabilities: [
       'match.control-clock',
       'match.record-event',

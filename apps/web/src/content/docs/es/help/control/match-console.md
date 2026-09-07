@@ -40,8 +40,9 @@ evento, ajustar el reloj, seleccionar una convocatoria o finalizar un partido es
 cola local durable, _antes_ de intentar enviarlo — así una señal cortada nunca hace perder algo que
 ya hiciste.
 
-- **El estado de sincronización** siempre está visible en la parte superior de la pantalla: si estás
-  en línea, cuántas acciones siguen esperando para enviarse, y cuándo se sincronizó la última.
+- **Un punto de conexión** siempre está visible en la parte superior de la pantalla: relleno si
+  estás en línea, hueco si no. Pasá el mouse o enfocalo para ver cuántas acciones siguen esperando
+  para enviarse y cuándo se sincronizó la última.
 - **Una acción en cola queda en cola**, no se pierde, con una conexión intermitente, una zona sin
   señal, o incluso al cerrar y volver a abrir esta pantalla — reabrirla retoma el envío de lo que
   todavía esté esperando.

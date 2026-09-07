@@ -49,7 +49,10 @@ function scheduledProjection(overrides: Partial<MatchConsoleResponse> = {}): Mat
     rosters: [],
     rosterRoles: [],
     eligibleStaffIds: [],
-    entrantIds: [ENTRANT_HOME, ENTRANT_AWAY],
+    entrants: [
+      { entrantId: ENTRANT_HOME, name: 'Club Atlético' },
+      { entrantId: ENTRANT_AWAY, name: 'Deportivo Cuyo' },
+    ],
     capabilities: ['match.select-roster', 'match.record-event', 'match.finalize'],
     projectionVersion: 1,
     ...overrides,
@@ -269,12 +272,15 @@ describe('LoadMatchDataRoute', () => {
     expect(await screen.findByText(/Could not load this match/i)).toBeDefined();
   });
 
-  it('shows the roster team name, a badge-less role, and submits a chosen winner with a filled number', async () => {
+  it('names the entrant, renders a badge-less role, and submits a chosen winner with a filled number', async () => {
     const submitted: BulkLoadMatchDataRequest[] = [];
     const api = client({
       fetchMatchConsole: async () =>
         scheduledProjection({
-          rosters: [{ entrantId: ENTRANT_HOME, teamName: 'Home FC', members: [] }],
+          entrants: [
+            { entrantId: ENTRANT_HOME, name: 'Home FC' },
+            { entrantId: ENTRANT_AWAY, name: 'Away FC' },
+          ],
           rosterRoles: [
             { code: 'captain', label: 'Captain', badge: 'C' },
             { code: 'super-sub', label: 'Super sub' },
@@ -288,7 +294,10 @@ describe('LoadMatchDataRoute', () => {
     await act(async () => renderRoute(api));
     await waitFor(() => expect(screen.getByText('Home One')).toBeDefined());
 
-    expect(screen.getByText('Home FC')).toBeDefined();
+    // Named in its roster card and in the attribution/winner selects alike;
+    // nothing falls back to a truncated identifier.
+    expect(screen.getAllByText('Home FC').length).toBeGreaterThan(0);
+    expect(screen.queryByText(ENTRANT_HOME.slice(-8))).toBeNull();
     // The second role declares no badge — falls back to its own code.
     expect(screen.getAllByRole('checkbox', { name: 'super-sub' })[0]).toBeDefined();
 

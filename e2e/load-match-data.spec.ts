@@ -76,7 +76,10 @@ function scheduledProjection() {
     rosters: [],
     rosterRoles: [],
     eligibleStaffIds: [],
-    entrantIds: ['entrant-a', 'entrant-b'],
+    entrants: [
+      { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
+      { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },
+    ],
     capabilities: ['match.select-roster', 'match.record-event', 'match.finalize'],
     projectionVersion: 1,
   };

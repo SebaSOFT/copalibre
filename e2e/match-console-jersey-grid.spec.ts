@@ -93,6 +93,7 @@ function projection() {
     rosters: [
       {
         entrantId: 'entrant-a',
+        teamName: 'Club Atlético Norte',
         members: [
           {
             personId: 'person-a1',
@@ -107,6 +108,7 @@ function projection() {
       },
       {
         entrantId: 'entrant-b',
+        teamName: 'Deportivo Cuyo',
         members: [{ personId: 'person-b1', number: 4, name: 'Defender', onField: true }],
       },
     ],
@@ -115,7 +117,10 @@ function projection() {
       { code: 'captain', label: 'Captain', badge: 'C' },
     ],
     eligibleStaffIds: [],
-    entrantIds: ['entrant-a', 'entrant-b'],
+    entrants: [
+      { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
+      { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },
+    ],
     capabilities: ['match.record-event', 'match.control-clock', 'match.finalize'],
     projectionVersion: 1,
   };
@@ -255,4 +260,10 @@ test('logs an own goal through the same generic event palette, no dedicated work
       definitionCode: 'own-goal',
       personId: 'person-b1',
     });
+});
+
+test('labels each jersey panel with its team name, never an identifier', async ({ page }) => {
+  await expect(page.getByRole('heading', { name: 'Club Atlético Norte' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Deportivo Cuyo' })).toBeVisible();
+  await expect(page.getByText('entrant-a', { exact: false })).toHaveCount(0);
 });

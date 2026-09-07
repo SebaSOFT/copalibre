@@ -209,7 +209,7 @@ function TeamPanel({
         <h3 style={teamHeaderStyle}>
           <EntrantName
             abbreviation={roster.teamAbbreviation}
-            fullName={roster.teamName ?? roster.entrantId.slice(-8)}
+            fullName={roster.teamName ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
           />
         </h3>
       </div>

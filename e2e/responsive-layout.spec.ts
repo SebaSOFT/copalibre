@@ -119,7 +119,10 @@ async function installResponsiveControlFixture(page: Page): Promise<void> {
             rosters: [],
             rosterRoles: [],
             eligibleStaffIds: [],
-            entrantIds: ['entrant-a', 'entrant-b'],
+            entrants: [
+              { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
+              { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },
+            ],
             capabilities: [],
             projectionVersion: 1,
           });

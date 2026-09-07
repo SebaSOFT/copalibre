@@ -1593,6 +1593,20 @@ export interface ConsoleRosterMember {
   readonly onField: boolean;
 }
 
+/**
+ * One side of the match, with the identity every console surface renders.
+ * Present for both entrants of the fixture regardless of whether a roster has
+ * been selected — a roster is only the players named for this match, never the
+ * source of the entrant's own name.
+ */
+export interface ConsoleEntrant {
+  readonly entrantId: string;
+  /** The team's name, or the person's name for an individual entrant. */
+  readonly name?: string;
+  /** The resolved tournament-scoped abbreviation, when one is persisted. */
+  readonly abbreviation?: string;
+}
+
 export interface ConsoleRoster {
   readonly entrantId: string;
   /** The entrant's team name, when the entrant is a team. */
@@ -1632,7 +1646,7 @@ export interface MatchConsoleResponse {
   readonly rosters: readonly ConsoleRoster[];
   readonly rosterRoles: readonly ConsoleRosterRole[];
   readonly eligibleStaffIds: readonly string[];
-  readonly entrantIds: readonly string[];
+  readonly entrants: readonly ConsoleEntrant[];
   readonly capabilities: readonly MatchCapability[];
   readonly projectionVersion: number;
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
 import {
+  type ConsoleEntrant,
   type ConsoleRoster,
   type ConsoleRosterRole,
   type MatchConsoleApiClient,
@@ -27,7 +28,7 @@ interface MemberSelection {
  * re-openable during the match.
  */
 export function RosterSelectionStep({
-  entrantIds,
+  entrants,
   rosterRoles,
   existingRosters,
   organizationAlias,
@@ -36,7 +37,7 @@ export function RosterSelectionStep({
   api,
   onSaved,
 }: {
-  readonly entrantIds: readonly string[];
+  readonly entrants: readonly ConsoleEntrant[];
   readonly rosterRoles: readonly ConsoleRosterRole[];
   readonly existingRosters: readonly ConsoleRoster[];
   readonly organizationAlias: string;
@@ -51,12 +52,12 @@ export function RosterSelectionStep({
       aria-label={intl.formatMessage(messages.matchConsoleRosterStepLabel)}
       style={stepStyle}
     >
-      {entrantIds.map((entrantId) => (
+      {entrants.map((entrant) => (
         <EntrantRosterEditor
           api={api}
-          entrantId={entrantId}
-          existingRoster={existingRosters.find((roster) => roster.entrantId === entrantId)}
-          key={entrantId}
+          entrant={entrant}
+          existingRoster={existingRosters.find((roster) => roster.entrantId === entrant.entrantId)}
+          key={entrant.entrantId}
           matchId={matchId}
           onSaved={onSaved}
           organizationAlias={organizationAlias}
@@ -69,7 +70,7 @@ export function RosterSelectionStep({
 }
 
 function EntrantRosterEditor({
-  entrantId,
+  entrant,
   rosterRoles,
   existingRoster,
   organizationAlias,
@@ -78,7 +79,7 @@ function EntrantRosterEditor({
   api,
   onSaved,
 }: {
-  readonly entrantId: string;
+  readonly entrant: ConsoleEntrant;
   readonly rosterRoles: readonly ConsoleRosterRole[];
   readonly existingRoster: ConsoleRoster | undefined;
   readonly organizationAlias: string;
@@ -88,6 +89,7 @@ function EntrantRosterEditor({
   readonly onSaved: () => void;
 }): React.JSX.Element {
   const intl = useIntl();
+  const { entrantId } = entrant;
   const [candidates, setCandidates] = useState<readonly RosterCandidate[]>();
   const [selections, setSelections] = useState<Record<string, MemberSelection>>({});
   const [status, setStatus] = useState<{ readonly saving: boolean; readonly error?: string }>({
@@ -190,7 +192,9 @@ function EntrantRosterEditor({
 
   return (
     <Card className="cl-chamfer cl-chamfer--control" style={editorStyle}>
-      <h3 style={headerStyle}>{existingRoster?.teamName ?? entrantId.slice(-8)}</h3>
+      <h3 style={headerStyle}>
+        {entrant.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
+      </h3>
       {status.error && (
         <p className="cl-inline-alert" role="alert">
           {status.error}

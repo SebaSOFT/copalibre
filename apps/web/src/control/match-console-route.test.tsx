@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { MatchConsoleRoute } from './components/MatchConsoleRoute.js';
 import {
@@ -115,7 +115,10 @@ const projection: MatchConsoleResponse = {
   ],
   rosterRoles: [],
   eligibleStaffIds: ['staff-1'],
-  entrantIds: ['entrant-a', 'entrant-b'],
+  entrants: [
+    { entrantId: 'entrant-a', name: 'Club Atlético', abbreviation: 'CAT' },
+    { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },
+  ],
   capabilities: ['match.record-event', 'match.control-clock', 'match.finalize'],
   projectionVersion: 1,
 };
@@ -145,7 +148,56 @@ function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApi
   };
 }
 
+/** The console's one always-visible connectivity signal; its detail opens on focus or hover. */
+function syncIndicator(): HTMLElement {
+  return screen.getByRole('status', { name: /^Sync status: / });
+}
+
 describe('MatchConsoleRoute', () => {
+  it('names both entrants in the score header, never their raw identifiers', async () => {
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client()}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    const scoreboard = screen.getByLabelText('Current scoreboard');
+    expect(within(scoreboard).getByText('Club Atlético')).toBeDefined();
+    expect(within(scoreboard).getByText('Deportivo Cuyo')).toBeDefined();
+    expect(scoreboard.textContent).not.toContain('entrant-a');
+    expect(scoreboard.textContent).not.toContain('entrant-b');
+  });
+
+  it('labels an entrant with no resolvable name rather than showing its id', async () => {
+    const unnamed = {
+      ...projection,
+      entrants: [{ entrantId: 'entrant-a' }, { entrantId: 'entrant-b' }],
+    };
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client({ fetchMatchConsole: async () => unnamed })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    const scoreboard = screen.getByLabelText('Current scoreboard');
+    expect(within(scoreboard).getAllByText('Unnamed entrant')).toHaveLength(2);
+    expect(scoreboard.textContent).not.toContain('entrant-a');
+  });
+
   it('renders authoritative score and records the descriptor-selected final outcome', async () => {
     const requests: unknown[] = [];
     await act(async () => {
@@ -171,7 +223,7 @@ describe('MatchConsoleRoute', () => {
       );
     });
 
-    expect(screen.getByLabelText('Current scoreboard').textContent).toContain('ntrant-a1');
+    expect(screen.getByLabelText('Current scoreboard').textContent).toContain('Club Atlético1');
     fireEvent.click(screen.getByRole('button', { name: 'Penal' }));
     expect(screen.getByLabelText('Event outcome')).toBeDefined();
     fireEvent.change(screen.getByLabelText('Event description'), {
@@ -539,7 +591,7 @@ describe('MatchConsoleRoute', () => {
     expect(screen.queryByRole('button', { name: 'Goal' })).toBeNull();
   });
 
-  it('labels telemetry as unavailable without numeric placeholders', async () => {
+  it('renders no broadcast-stream telemetry panel at all', async () => {
     await act(async () => {
       render(
         withIntl(
@@ -553,8 +605,12 @@ describe('MatchConsoleRoute', () => {
       );
     });
 
-    expect(screen.getAllByText('Unavailable')).toHaveLength(4);
-    expect(screen.queryByText('0 ms')).toBeNull();
+    // The console operator records the match; stream health is a
+    // broadcast-operator question this screen deliberately no longer answers.
+    for (const label of ['Operational signal', 'Latency', 'Packet loss', 'Viewers', 'Uptime']) {
+      expect(screen.queryByText(label)).toBeNull();
+    }
+    expect(screen.queryByText('Unavailable')).toBeNull();
   });
 
   it('attributes person-or-staff events to a fixture staff member', async () => {
@@ -1190,7 +1246,9 @@ describe('MatchConsoleRoute', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Apply clock' }));
 
-      await waitFor(() => expect(screen.getByText('1 queued action')).toBeDefined());
+      await waitFor(async () => expect(await listPending('match-1')).toHaveLength(1));
+      fireEvent.focus(syncIndicator());
+      expect(screen.getByText('1 queued action')).toBeDefined();
       expect(screen.queryByRole('alert')).toBeNull();
       const pending = await listPending('match-1');
       expect(pending).toHaveLength(1);
@@ -1238,7 +1296,7 @@ describe('MatchConsoleRoute', () => {
       await waitFor(async () => expect(await listPending('match-1')).toHaveLength(0));
     });
 
-    it('shows queued count and last-synced time, never fabricating a value before a real drain', async () => {
+    it('shows queued count and last-synced time on demand, never fabricating a value before a real drain', async () => {
       await act(async () => {
         render(
           withIntl(
@@ -1252,18 +1310,51 @@ describe('MatchConsoleRoute', () => {
         );
       });
 
+      // Neither detail permanently occupies the console's layout: the icon is
+      // the only always-visible connectivity signal.
+      expect(screen.queryByText('No queued actions')).toBeNull();
+      expect(screen.queryByText('Not yet synced')).toBeNull();
+
+      fireEvent.focus(syncIndicator());
       expect(screen.getByText('No queued actions')).toBeDefined();
       expect(screen.getByText('Not yet synced')).toBeDefined();
+      fireEvent.blur(syncIndicator());
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Apply clock' }));
       });
 
+      fireEvent.mouseEnter(syncIndicator().parentElement as HTMLElement);
       await waitFor(() => {
         expect(screen.getByText('No queued actions')).toBeDefined();
         expect(screen.queryByText('Not yet synced')).toBeNull();
         expect(screen.getByText(/^Last synced /)).toBeDefined();
       });
+    });
+
+    it('shows online and offline as one glanceable icon with an accessible name', async () => {
+      await act(async () => {
+        render(
+          withIntl(
+            <MatchConsoleRoute
+              client={client()}
+              matchId="match-1"
+              organizationAlias="liga"
+              tournamentAlias="apertura"
+            />,
+          ),
+        );
+      });
+
+      expect(syncIndicator().className).toContain('cl-sync-indicator__icon--online');
+      expect(screen.getByRole('status', { name: 'Sync status: Online' })).toBeDefined();
+
+      await act(async () => {
+        globalThis.dispatchEvent(new Event('offline'));
+      });
+
+      expect(screen.getByRole('status', { name: 'Sync status: Offline' })).toBeDefined();
+      expect(syncIndicator().className).toContain('cl-sync-indicator__icon--offline');
     });
   });
 });
