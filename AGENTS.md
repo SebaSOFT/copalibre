@@ -25,6 +25,28 @@ yarn test:verify-discovery
 
 Use focused commands while iterating, for example `yarn workspace @copalibre/web test --testPathPatterns 'match-console'`. Integration tests use PostgreSQL through `DATABASE_URL`; `yarn workspace @copalibre/persistence test:sqlite` is portable fast feedback, not replacement for PostgreSQL behavior. Before pushing, run `yarn workspace @copalibre/<workspace> test:coverage` for every touched workspace. Root `yarn test` does not enforce CI coverage thresholds.
 
+### Running the gate suite without flooding context
+
+`rtk`'s shell hook rewrites git/gh/jest/tsc/eslint/playwright, but there is **no `yarn` subcommand** — and every gate here runs through a Yarn script, so none of them are filtered automatically. Use these forms:
+
+```bash
+rtk err yarn lint                 # errors/warnings only
+rtk err yarn format:check
+rtk err yarn typecheck            # grouped tsc errors; silent when clean
+rtk test yarn test                # last 5 lines: the pass/fail summary
+rtk test yarn test:integration
+rtk test yarn test:e2e
+rtk proxy yarn <script>           # unfiltered, when filtered output looks wrong
+```
+
+**Coverage is the exception — never wrap it.** `rtk test` prints only the final 5 lines, and Jest prints its threshold verdict _above_ the `Test Suites:` summary, so a coverage failure is invisible through that window (and through any `tail -5`). Jest still exits 0 locally, so the failure surfaces only as CI's "Unit tests" job. Grep for the verdict explicitly:
+
+```bash
+yarn workspace @copalibre/<workspace> test:coverage 2>&1 | grep -E "does not meet|Tests:"
+```
+
+`@copalibre/web` sits a fraction of a point over its 85% branch threshold, so almost any new UI code trips it; budget tests for the branches a change adds rather than discovering it in CI.
+
 Yarn must use the conventional `node-modules` linker with the global cache. Do not enable PnP or Zero-Installs, and do not commit Yarn cache artifacts. Workspace scripts that execute a root development tool should follow the existing explicit `../../node_modules/.bin/<tool>` pattern when Yarn does not expose the hoisted binary.
 
 ## Code and Architecture
@@ -112,6 +134,8 @@ for the full skill instructions; this section is the quick-reference cheat sheet
   and more (`rtk --help` lists ~50 subcommands).
 - A shell hook transparently rewrites plain commands (`git status` → `rtk git status`) — no manual
   invocation needed for day-to-day git/gh/test/lint calls; 0 token overhead to the rewrite itself.
+  It has no `yarn` subcommand, so this repo's Yarn-script gates are **not** rewritten; see
+  ["Running the gate suite without flooding context"](#running-the-gate-suite-without-flooding-context).
 - Useful direct invocations: `rtk gain` (savings analytics), `rtk gain --history`, `rtk discover` (finds
   missed savings opportunities in session history), `rtk proxy <cmd>` (bypass filtering to debug a raw
   command that looks wrong when filtered), `rtk err` / `rtk test` (show only failures/warnings from a
