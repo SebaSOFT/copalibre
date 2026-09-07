@@ -17,6 +17,10 @@ export const messages = defineMessages({
     id: 'control.shell.whatIsThisScreen',
     defaultMessage: 'What is this screen?',
   },
+  shellOpenNavigation: {
+    id: 'control.shell.openNavigation',
+    defaultMessage: 'Open navigation menu',
+  },
   shellLanguage: { id: 'control.shell.language', defaultMessage: 'Language' },
   shellLogout: { id: 'control.shell.logout', defaultMessage: 'Log out' },
 

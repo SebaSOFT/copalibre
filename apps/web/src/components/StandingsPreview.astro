@@ -80,7 +80,7 @@ const isPlayerRanking =
 
   {
     layouts.length > 1 && (
-      <nav class="cl-table-tabs" aria-label="Table Layouts">
+      <nav class="cl-table-tabs" aria-label={intl.formatMessage(messages.standingsTableLayouts)}>
         <ul role="tablist">
           {layouts.map((l) => {
             const isActive = l.code === effectiveLayoutCode;
@@ -106,7 +106,11 @@ const isPlayerRanking =
 
   {
     clubs.length > 0 && (
-      <div class="cl-club-filter" role="group" aria-label="Filter by club">
+      <div
+        class="cl-club-filter"
+        role="group"
+        aria-label={intl.formatMessage(messages.standingsFilterByClub)}
+      >
         <span class="cl-club-filter__label">Club:</span>
         <a
           href={`${canonicalPath}${effectiveLayoutCode ? `?tab=${encodeURIComponent(effectiveLayoutCode)}` : ''}`}
@@ -216,7 +220,7 @@ const isPlayerRanking =
         <button
           type="button"
           class="cl-player-dialog__close"
-          aria-label="Close dialog"
+          aria-label={intl.formatMessage(messages.standingsCloseDialog)}
           data-close-dialog>✕</button
         >
       </div>
