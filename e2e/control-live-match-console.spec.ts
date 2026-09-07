@@ -167,7 +167,10 @@ function projection(input: { readonly capabilities?: readonly string[] } = {}) {
     rosters: [],
     rosterRoles: [],
     eligibleStaffIds: [],
-    entrantIds: ['entrant-a', 'entrant-b'],
+    entrants: [
+      { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
+      { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },
+    ],
     capabilities: input.capabilities ?? [
       'match.record-event',
       'match.control-clock',
@@ -398,6 +401,8 @@ test('guards duplicate finalization and retries a lost response with the same ke
   // queue leaves it queued silently (no error banner); the retry below is
   // exactly that silent-requeue path, the same key reused, now getting
   // through.
+  // The queued count is on-demand detail behind the connectivity icon now.
+  await page.getByRole('status', { name: /^Estado de sincronización: / }).focus();
   await expect(page.getByText('1 acción en cola')).toBeVisible();
   await page.getByRole('button', { name: 'Confirmar finalización' }).click();
   await expect(page.getByText('FINALIZED')).toBeVisible();
@@ -445,13 +450,47 @@ test('does not grant event recording from the roster-selection capability alone'
   await expect(page.getByRole('button', { name: 'Finalizar partido' })).toBeDisabled();
 });
 
-test('labels every unavailable telemetry signal without fabricated figures', async ({ page }) => {
+test('carries no broadcast-stream telemetry panel', async ({ page }) => {
+  await mockMatchConsole(page);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+  await expect(page.getByRole('button', { name: 'Gol', exact: true })).toBeVisible();
+
+  for (const label of ['Señal operativa', 'Latencia', 'Packet loss', 'Espectadores', 'Uptime']) {
+    await expect(page.getByText(label, { exact: true })).toHaveCount(0);
+  }
+  await expect(page.getByText('Unavailable')).toHaveCount(0);
+});
+
+test('names both sides in the score header before any roster exists', async ({ page }) => {
+  // This projection carries no rosters at all — the entrants name themselves,
+  // so the header never falls back to an identifier while waiting for one.
   await mockMatchConsole(page);
   const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await expect(page.getByText('Unavailable')).toHaveCount(4);
-  await expect(page.getByText('0 ms')).toHaveCount(0);
+  const scoreboard = page.getByLabel('Marcador actual');
+  await expect(scoreboard.getByText('Club Atlético Norte')).toBeVisible();
+  await expect(scoreboard.getByText('Deportivo Cuyo')).toBeVisible();
+  await expect(scoreboard).not.toContainText('entrant-a');
+  await expect(scoreboard).not.toContainText('entrant-b');
+});
+
+test('reduces connectivity to one icon whose detail opens on focus', async ({ page }) => {
+  await mockMatchConsole(page);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const indicator = page.getByRole('status', { name: 'Estado de sincronización: En línea' });
+  await expect(indicator).toBeVisible();
+  await expect(page.getByText('Sin acciones en cola')).toHaveCount(0);
+
+  await indicator.focus();
+  await expect(page.getByText('Sin acciones en cola')).toBeVisible();
 });

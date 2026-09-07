@@ -184,6 +184,25 @@ export class ConsoleLiveScoreResponse {
   statistics!: Record<string, number>;
 }
 
+/**
+ * One of the two sides contesting the match, carrying the identity the console
+ * renders. Resolved for every entrant of the fixture, not only those that
+ * already have a roster selected — the console names its sides before anyone
+ * has been named to a roster.
+ */
+export class ConsoleEntrantResponse {
+  @ApiProperty({ format: 'uuid' })
+  entrantId!: string;
+
+  @ApiPropertyOptional({
+    description: 'Display name — the team name, or the person’s name for an individual entrant',
+  })
+  name?: string;
+
+  @ApiPropertyOptional({ description: 'Tournament-scoped abbreviation, when one is persisted' })
+  abbreviation?: string;
+}
+
 /** The protected read model a live-match console uses to render and recover. */
 export class MatchConsoleResponse {
   @ApiProperty({ format: 'uuid' })
@@ -237,8 +256,11 @@ export class MatchConsoleResponse {
   })
   eligibleStaffIds!: string[];
 
-  @ApiProperty({ type: [String], description: 'Entrants contesting this match' })
-  entrantIds!: string[];
+  @ApiProperty({
+    type: [ConsoleEntrantResponse],
+    description: 'Entrants contesting this match, with the identity the console renders',
+  })
+  entrants!: ConsoleEntrantResponse[];
 
   @ApiProperty({
     type: [String],

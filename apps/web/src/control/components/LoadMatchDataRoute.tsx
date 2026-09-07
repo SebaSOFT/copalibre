@@ -126,8 +126,8 @@ export function LoadMatchDataRoute({
         if (!live) return;
         setProjection(loaded);
         const entries = await Promise.all(
-          loaded.entrantIds.map(
-            async (entrantId) =>
+          loaded.entrants.map(
+            async ({ entrantId }) =>
               [
                 entrantId,
                 await api.fetchRosterCandidates(
@@ -197,7 +197,7 @@ export function LoadMatchDataRoute({
     );
   }
 
-  const includedMembers = projection.entrantIds.flatMap((entrantId) => {
+  const includedMembers = projection.entrants.flatMap(({ entrantId }) => {
     const candidates = candidatesByEntrant.get(entrantId) ?? [];
     return candidates
       .filter((candidate) => selections[entrantId]?.[candidate.personId]?.included)
@@ -326,7 +326,7 @@ export function LoadMatchDataRoute({
     if (!projection) return;
     setSubmitting(true);
     const request = buildBulkLoadRequest({
-      rosters: projection.entrantIds.map((entrantId) => ({
+      rosters: projection.entrants.map(({ entrantId }) => ({
         entrantId,
         members: Object.entries(selections[entrantId] ?? {})
           .filter(([, selection]) => selection.included)
@@ -349,7 +349,7 @@ export function LoadMatchDataRoute({
         ...(row.personId === '' ? {} : { personId: row.personId }),
         ...(row.notes.trim() === '' ? {} : { notes: row.notes.trim() }),
       })),
-      entrantIds: projection.entrantIds,
+      entrantIds: projection.entrants.map((entrant) => entrant.entrantId),
       ...(winnerEntrantId ? { winnerEntrantId } : {}),
     });
     try {
@@ -398,14 +398,14 @@ export function LoadMatchDataRoute({
           </h2>
         </header>
         <div className="cl-card__content">
-          {projection.entrantIds.map((entrantId) => {
+          {projection.entrants.map((entrant) => {
+            const entrantId = entrant.entrantId;
             const candidates = candidatesByEntrant.get(entrantId);
             return (
               <Card key={entrantId} className="cl-chamfer cl-chamfer--control">
                 <header className="cl-card__header">
                   <h3 className="cl-label">
-                    {projection.rosters.find((roster) => roster.entrantId === entrantId)
-                      ?.teamName ?? entrantId.slice(-8)}
+                    {entrant.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
                   </h3>
                 </header>
                 <div className="cl-card__content">
@@ -628,9 +628,9 @@ export function LoadMatchDataRoute({
                       <option value="">
                         {intl.formatMessage(messages.loadMatchDataEventNoAttribution)}
                       </option>
-                      {projection.entrantIds.map((entrantId) => (
-                        <option key={entrantId} value={entrantId}>
-                          {entrantId.slice(-8)}
+                      {projection.entrants.map((entrant) => (
+                        <option key={entrant.entrantId} value={entrant.entrantId}>
+                          {entrant.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
                         </option>
                       ))}
                     </select>
@@ -769,9 +769,9 @@ export function LoadMatchDataRoute({
               value={winnerEntrantId}
             >
               <option value="">{intl.formatMessage(messages.loadMatchDataNoWinnerDraw)}</option>
-              {projection.entrantIds.map((entrantId) => (
-                <option key={entrantId} value={entrantId}>
-                  {entrantId.slice(-8)}
+              {projection.entrants.map((entrant) => (
+                <option key={entrant.entrantId} value={entrant.entrantId}>
+                  {entrant.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
                 </option>
               ))}
             </select>

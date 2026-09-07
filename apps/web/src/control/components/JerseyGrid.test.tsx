@@ -112,9 +112,10 @@ describe('JerseyGrid', () => {
     expect(screen.queryByText('entrant-a'.slice(-8))).toBeNull();
   });
 
-  it('falls back to the raw entrant id suffix when no team name is known', () => {
+  it('labels an entrant with no known team name rather than showing its id', () => {
     renderGrid({ rosters: [{ entrantId: 'entrant-abcdefgh', members: [] }] });
-    expect(screen.getByText('abcdefgh')).toBeDefined();
+    expect(screen.getByText('Unnamed entrant')).toBeDefined();
+    expect(screen.queryByText('abcdefgh')).toBeNull();
   });
 
   it('shows a placeholder emblem when the entrant has no club', () => {

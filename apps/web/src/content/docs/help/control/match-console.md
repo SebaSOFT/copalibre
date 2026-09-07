@@ -40,8 +40,9 @@ Pitch-side connectivity drops. This screen is built for that: recording an event
 clock, selecting a roster, or finalizing a match writes to a durable local queue _before_ it's
 ever sent — so a dropped signal never loses something you already did.
 
-- **Sync status** is always visible at the top of the screen: whether you're online, how many
-  actions are still waiting to send, and when the last one actually went through.
+- **A connection dot** is always visible at the top of the screen: filled when you're online,
+  hollow when you're not. Hover or focus it to see how many actions are still waiting to send and
+  when the last one actually went through.
 - **A queued action stays queued**, not lost, through a spotty connection, a dead zone, or even
   closing and reopening this screen — reopening it resumes sending whatever is still waiting.
 - **Once connectivity returns**, everything queued sends automatically, in the order you did it.

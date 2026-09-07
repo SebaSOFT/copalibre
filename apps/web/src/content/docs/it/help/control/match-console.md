@@ -42,8 +42,9 @@ evento, regolare il cronometro, selezionare una formazione o finalizzare una par
 in una coda locale durevole — _prima ancora_ di tentare l'invio — così un segnale interrotto non fa
 mai perdere qualcosa che hai già fatto.
 
-- **Lo stato di sincronizzazione** è sempre visibile in alto nella schermata: se sei online, quante
-  azioni sono ancora in attesa di invio, e quando l'ultima è effettivamente andata a buon fine.
+- **Un punto di connessione** è sempre visibile in alto nella schermata: pieno quando sei online,
+  vuoto quando non lo sei. Passaci sopra il mouse o dagli il focus per vedere quante azioni sono
+  ancora in attesa di invio e quando l'ultima è effettivamente andata a buon fine.
 - **Un'azione in coda resta in coda**, senza andare persa, con una connessione instabile, una zona
   senza segnale, o anche chiudendo e riaprendo questa schermata — riaprirla riprende l'invio di
   tutto ciò che è ancora in attesa.

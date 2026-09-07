@@ -307,6 +307,16 @@ describe('live match console (integration)', () => {
     });
   });
 
+  it('names both entrants of the fixture, independent of whether a roster exists', async () => {
+    // Identity comes from the entrants themselves, not from a roster: the
+    // console has to name its two sides long before anyone is named to one.
+    const consoleRead = await request('GET', `${base()}/console`, 'referee');
+    expect(consoleRead.json().entrants).toMatchObject([
+      { entrantId: entrantIds[0], name: 'Norte' },
+      { entrantId: entrantIds[1], name: 'Sur' },
+    ]);
+  });
+
   it('admits only assigned active referees', async () => {
     expect((await request('GET', `${base()}/console`, 'unassigned')).statusCode).toBe(403);
     expect((await request('GET', `${base()}/console`, 'inactive')).statusCode).toBe(403);

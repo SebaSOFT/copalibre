@@ -624,7 +624,7 @@ export class MatchControlController {
         .execute(),
       competition.listEvents(matchId),
     ]);
-    const identity = await this.teamIdentityByEntrant(rosters.map((roster) => roster.entrant_id));
+    const identity = await this.identityByEntrant(rosters.map((roster) => roster.entrant_id));
     return this.buildRosterResponses(matchId, rosters, events, identity);
   }
 
@@ -2065,7 +2065,7 @@ export class MatchControlController {
     );
     const eligibleStaffIds = await this.eligibleStaffIds(entrantIds);
     const { teamNameByEntrant, teamAbbreviationByEntrant, clubIdByEntrant } =
-      await this.teamIdentityByEntrant(entrantIds);
+      await this.identityByEntrant(entrantIds);
 
     return {
       matchId,
@@ -2133,7 +2133,15 @@ export class MatchControlController {
         ...(role.badge === undefined ? {} : { badge: role.badge }),
       })),
       eligibleStaffIds: [...eligibleStaffIds],
-      entrantIds,
+      entrants: entrantIds.map((entrantId) => ({
+        entrantId,
+        ...(teamNameByEntrant.get(entrantId) === undefined
+          ? {}
+          : { name: teamNameByEntrant.get(entrantId) }),
+        ...(teamAbbreviationByEntrant.get(entrantId) === undefined
+          ? {}
+          : { abbreviation: teamAbbreviationByEntrant.get(entrantId) }),
+      })),
       capabilities,
       projectionVersion: version?.version ?? 0,
     };
@@ -2160,12 +2168,13 @@ export class MatchControlController {
   }
 
   /**
-   * A team entrant's name and its club id, keyed by entrant id — what
-   * `JerseyGrid.tsx`'s team header needs to replace the raw
-   * `entrantId.slice(-8)` it renders today, and to resolve the club's
-   * emblem via the entity-scoped serve route.
+   * An entrant's display name, abbreviation, and club id, keyed by entrant id —
+   * what every console surface needs so no screen falls back to rendering a raw
+   * identifier, and what resolves a club's emblem via the entity-scoped serve
+   * route. `resolveEntrantNames` covers person entrants too, so an individual
+   * competitor is named by the same path a team is.
    */
-  private async teamIdentityByEntrant(entrantIds: readonly string[]): Promise<{
+  private async identityByEntrant(entrantIds: readonly string[]): Promise<{
     readonly teamNameByEntrant: ReadonlyMap<string, string>;
     readonly teamAbbreviationByEntrant: ReadonlyMap<string, string>;
     readonly clubIdByEntrant: ReadonlyMap<string, string>;

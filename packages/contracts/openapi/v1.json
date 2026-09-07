@@ -13211,6 +13211,26 @@
           "label"
         ]
       },
+      "ConsoleEntrantResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name — the team name, or the person’s name for an individual entrant"
+          },
+          "abbreviation": {
+            "type": "string",
+            "description": "Tournament-scoped abbreviation, when one is persisted"
+          }
+        },
+        "required": [
+          "entrantId"
+        ]
+      },
       "MatchConsoleResponse": {
         "type": "object",
         "properties": {
@@ -13289,11 +13309,11 @@
               "type": "string"
             }
           },
-          "entrantIds": {
-            "description": "Entrants contesting this match",
+          "entrants": {
+            "description": "Entrants contesting this match, with the identity the console renders",
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/ConsoleEntrantResponse"
             }
           },
           "capabilities": {
@@ -13321,7 +13341,7 @@
           "rosters",
           "rosterRoles",
           "eligibleStaffIds",
-          "entrantIds",
+          "entrants",
           "capabilities",
           "projectionVersion"
         ]

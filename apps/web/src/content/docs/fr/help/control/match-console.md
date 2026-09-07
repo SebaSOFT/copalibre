@@ -41,8 +41,9 @@ ajuster le chronomètre, sélectionner une feuille de match ou finaliser un matc
 une file d'attente locale durable — _avant_ même d'être envoyé — pour qu'une coupure ne fasse jamais
 perdre quelque chose que vous avez déjà fait.
 
-- **L'état de synchronisation** est toujours visible en haut de l'écran : si vous êtes en ligne,
-  combien d'actions attendent encore d'être envoyées, et quand la dernière a réellement abouti.
+- **Un point de connexion** est toujours visible en haut de l'écran : plein lorsque vous êtes en
+  ligne, creux sinon. Survolez-le ou donnez-lui le focus pour voir combien d'actions attendent
+  encore d'être envoyées et quand la dernière a réellement abouti.
 - **Une action en file d'attente le reste**, sans être perdue, malgré une connexion instable, une
   zone blanche, ou même en fermant et rouvrant cet écran — le rouvrir reprend l'envoi de tout ce qui
   attend encore.
