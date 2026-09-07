@@ -300,8 +300,15 @@ export function MatchConsoleRoute({
   const permittedEvents = projection.eventDefinitions.filter((definition) =>
     isEventPermitted(definition, projection, activeSegment),
   );
-  const secondaryActorFieldNames = [
-    ...new Set(permittedEvents.flatMap((definition) => definition.secondaryActorFields)),
+  // Deduplicated by field name, keeping the first declaration's label: two
+  // event definitions may prompt for the same field, and the chip row shows it
+  // once.
+  const secondaryActorFields = [
+    ...new Map(
+      permittedEvents
+        .flatMap((definition) => definition.secondaryActorFields)
+        .map((entry) => [entry.field, entry] as const),
+    ).values(),
   ];
   const sentOff = sentOffPersonIds(projection.events);
   // The projection names both sides itself; nothing here reads a name off a
@@ -419,7 +426,7 @@ export function MatchConsoleRoute({
     const payloadDescription = descriptionFor(definition, description);
     const secondaryActorPayload = Object.fromEntries(
       definition.secondaryActorFields
-        .map((field) => [field, secondaryActorSelections[field]] as const)
+        .map(({ field }) => [field, secondaryActorSelections[field]] as const)
         .filter((entry): entry is [string, string] => Boolean(entry[1])),
     );
     const payload = {
@@ -833,7 +840,7 @@ export function MatchConsoleRoute({
               primarySide={selectedSide}
               rosterRoles={projection.rosterRoles}
               rosters={projection.rosters}
-              secondaryFields={secondaryActorFieldNames}
+              secondaryFields={secondaryActorFields}
               secondarySelections={secondaryActorSelections}
               sentOffPersonIds={sentOff}
             />

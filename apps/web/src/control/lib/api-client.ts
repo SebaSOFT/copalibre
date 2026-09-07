@@ -1578,7 +1578,14 @@ export interface ConsoleEventDefinition {
    * types, since a free-text field like `reason` is a string too but names
    * nobody.
    */
-  readonly secondaryActorFields: readonly string[];
+  readonly secondaryActorFields: readonly ConsoleSecondaryActorField[];
+}
+
+/** One secondary-actor prompt: the payload field, and what to call it on screen. */
+export interface ConsoleSecondaryActorField {
+  readonly field: string;
+  /** Declared by the discipline. Absent means the console shows the field key itself. */
+  readonly label?: string | LocalizedLabel;
 }
 
 export interface ConsoleLiveScore {
