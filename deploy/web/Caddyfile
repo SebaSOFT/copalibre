@@ -1,6 +1,15 @@
+# COPALIBRE_WEB_SSR_UPSTREAM addresses the on-demand renderer. Its default is
+# docker-compose.yml's own service name, so Compose needs no variable at all;
+# Kubernetes overrides it, because the chart's Service is release-scoped
+# ({release}-web-ssr) and no hostname baked into this image could name it.
 :4321 {
 	root * /srv
 
+	# What the web role's own health probe targets: answered here, by this
+	# server, so an unavailable renderer degrades the dynamic routes below
+	# without also marking every static surface unready. A dedicated /healthz
+	# would have to be added to @ssrOrg's exclusion list to avoid being
+	# swallowed by it; this path is already excluded and already answered.
 	handle /runtime-config.json {
 		header Content-Type "application/json"
 		header Cache-Control "no-store"
@@ -9,7 +18,7 @@
 
 	@ssr path_regexp ^(?:/(?:es|fr|pt|it|de|ru|zh))?/[^/]+/tournaments(?:/.*)?$
 	handle @ssr {
-		reverse_proxy web-ssr:3005
+		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
 	}
 
 	# The organization landing page — same on-demand renderer as
@@ -24,7 +33,7 @@
 		not path /control /control/* /help /help/* /tv /tv/* /api /api/* /runtime-config.json
 	}
 	handle @ssrOrg {
-		reverse_proxy web-ssr:3005
+		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
 	}
 
 	# Dynamic root, sitemap, and player-profile routes rendered on demand by web-ssr
@@ -32,7 +41,7 @@
 		path / /sitemap.xml /api/player-profile
 	}
 	handle @ssrRoot {
-		reverse_proxy web-ssr:3005
+		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
 	}
 
 	# Emblem and photo assets streamed on demand by web-ssr
@@ -40,21 +49,21 @@
 		path /organizations /organizations/*
 	}
 	handle @ssrOrganizations {
-		reverse_proxy web-ssr:3005
+		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
 	}
 
 	@ssrTv {
 		path /tv /tv/*
 	}
 	handle @ssrTv {
-		reverse_proxy web-ssr:3005
+		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
 	}
 
 	@ssrInvitations {
 		path /invitations /invitations/*
 	}
 	handle @ssrInvitations {
-		reverse_proxy web-ssr:3005
+		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
 	}
 
 	# Every authenticated control-panel screen beyond the login page shares

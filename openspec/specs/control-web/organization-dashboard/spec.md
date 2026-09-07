@@ -108,3 +108,16 @@ active tournaments in any "active tournaments" summary figure.
 - **WHEN** a tournament has completed all its stages with a recorded result
 - **THEN** the dashboard SHALL label it as finished, never "PRÓXIMO" (upcoming), and SHALL NOT include it
   in an "active tournaments" count
+
+### Requirement: Summary tiles lay out in a responsive grid
+The dashboard's summary tiles (active tournaments, pending registrations, matches today) SHALL lay out
+in a responsive grid using available horizontal width at desktop widths, and SHALL stack to a single
+column at mobile widths.
+
+#### Scenario: Summary tiles sit in a row at desktop width
+- **WHEN** the dashboard is rendered at a desktop viewport width
+- **THEN** the three summary tiles render side by side in a single row, not stacked
+
+#### Scenario: Summary tiles stack at mobile width
+- **WHEN** the dashboard is rendered at a mobile viewport width
+- **THEN** the summary tiles stack in a single column
