@@ -5,6 +5,7 @@ import { render, screen } from '@testing-library/react';
 import { ListScreenTemplate } from './list-screen-template.js';
 import { FormScreenTemplate } from './form-screen-template.js';
 import { MatchConsoleTemplate } from './match-console-template.js';
+import { AuthScreenTemplate } from './auth-screen-template.js';
 
 describe('ListScreenTemplate', () => {
   it('renders the same layout structure for two different content sets', () => {
@@ -94,6 +95,51 @@ describe('MatchConsoleTemplate', () => {
     expect(screen.getByText('Mendoza vs San Juan')).toBeDefined();
     expect(screen.getByText('EN VIVO')).toBeDefined();
     expect(screen.getByText('2 - 1')).toBeDefined();
+  });
+});
+
+describe('AuthScreenTemplate', () => {
+  it('gives every unauthenticated screen the same brand header and one centred panel', () => {
+    const { container: login } = render(
+      <AuthScreenTemplate tagline="Control de torneos">
+        <p>Ingresá para operar</p>
+      </AuthScreenTemplate>,
+    );
+    const { container: invitation } = render(
+      <AuthScreenTemplate tagline="Control de torneos">
+        <p>Aceptar invitación</p>
+      </AuthScreenTemplate>,
+    );
+
+    for (const container of [login, invitation]) {
+      expect(container.querySelector('.cl-auth-screen')).not.toBeNull();
+      expect(container.querySelector('.cl-auth-screen__header')).not.toBeNull();
+      expect(container.querySelector('.cl-auth-screen__panel')).not.toBeNull();
+    }
+    expect(screen.getByText('Ingresá para operar')).toBeDefined();
+    expect(screen.getByText('Aceptar invitación')).toBeDefined();
+  });
+
+  it('owns the page gutter, so no screen inside it sets its own', () => {
+    // The invitation screen ran flush to both mobile edges precisely because it
+    // centred its own card in a bare <body> instead of composing this template.
+    const cssPath = join(
+      dirname(fileURLToPath(import.meta.url)),
+      '../../../../../../../packages/design-tokens/src/generate/css.ts',
+    );
+    const css = readFileSync(cssPath, 'utf8');
+    expect(css).toContain('.cl-auth-screen { display: grid;');
+    expect(css).toContain('padding: clamp(24px, 5vw, 64px)');
+  });
+
+  it("renders its brand mark as decorative, never as the screen's only heading", () => {
+    const { container } = render(
+      <AuthScreenTemplate tagline="Control de torneos">
+        <h1>Aceptar invitación</h1>
+      </AuthScreenTemplate>,
+    );
+    expect(container.querySelector('.cl-auth-screen__mark')?.getAttribute('alt')).toBe('');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Aceptar invitación');
   });
 });
 

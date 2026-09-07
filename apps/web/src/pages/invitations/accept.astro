@@ -1,7 +1,7 @@
 ---
 import '@copalibre/design-tokens/generated/copalibre.css';
 import '../../styles/control.css';
-import { AcceptInvitationForm } from '../../control/components/AcceptInvitationForm.tsx';
+import { AcceptInvitationScreen } from '../../control/components/AcceptInvitationScreen.tsx';
 
 export const prerender = false;
 const token = Astro.url.searchParams.get('token') ?? '';
@@ -15,9 +15,12 @@ const token = Astro.url.searchParams.get('token') ?? '';
     <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
     <title>CopaLibre · Aceptar invitación</title>
   </head>
-  <body
-    style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--cl-surface-base, #0a0e1a); font-family: var(--cl-font-body, system-ui, sans-serif);"
-  >
-    <AcceptInvitationForm client:load initialToken={token} />
+  <!--
+    The screen's layout is the auth template's, the same one login,
+    forgot-password and reset-password use: this body only supplies the
+    surface colour every control page shares.
+  -->
+  <body style="margin: 0; background: var(--cl-surface-base); color: var(--cl-text-primary);">
+    <AcceptInvitationScreen client:load initialToken={token} />
   </body>
 </html>
