@@ -2,8 +2,13 @@ import { useIntl } from 'react-intl';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '../../lib/language-preference.js';
 import { messages } from './messages.en.js';
 
-/** Each language's own name, in its own language — never translated. */
-const LANGUAGE_NAMES: Readonly<Record<SupportedLanguage, string>> = {
+/**
+ * Each language's own name, in its own language — never translated.
+ *
+ * Exported so the workbench's language selector labels its options identically
+ * to the application's switcher rather than keeping a second list (0213).
+ */
+export const LANGUAGE_NAMES: Readonly<Record<SupportedLanguage, string>> = {
   en: 'English',
   es: 'Español',
   fr: 'Français',

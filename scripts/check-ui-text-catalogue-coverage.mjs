@@ -162,8 +162,11 @@ export function scanWebSources(dirPath) {
         continue;
       }
       const isSource = entry.endsWith('.tsx') || entry.endsWith('.astro');
-      const isTest = entry.includes('.test.');
-      if (!isSource || isTest) continue;
+      // A test's fixtures and a story's demonstration text are development
+      // artifacts: neither ships, and neither is text a user of the product
+      // ever reads, so neither belongs in a message catalogue.
+      const isDevelopmentOnly = entry.includes('.test.') || entry.includes('.stories.');
+      if (!isSource || isDevelopmentOnly) continue;
 
       const relPath = relative(dirPath, fullPath);
       const findings = checkTextCatalogueCoverage(relPath, readFileSync(fullPath, 'utf8'));

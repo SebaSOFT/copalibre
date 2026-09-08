@@ -233,7 +233,12 @@ function components(): string {
     ...cards,
     '',
     '.cl-card__header { display: grid; gap: var(--cl-space-1); margin-block-end: var(--cl-space-3); }',
-    '.cl-card__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
+    // A card's title is often a single long compound — `Turniereinstellungen`,
+    // `Plattformverwaltung` — which has no break opportunity and sets the
+    // card's min-content width above the viewport at the 188px reference,
+    // pushing the page sideways. The same treatment the match-console titles
+    // already carry, for the same reason.
+    '.cl-card__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; overflow-wrap: anywhere; word-break: break-word; }',
     '.cl-card__description { margin: 0; color: var(--cl-text-muted); }',
     '.cl-card__content { display: grid; gap: var(--cl-space-3); min-width: 0; }',
     '.cl-card__footer { display: flex; gap: var(--cl-space-2); margin-block-start: var(--cl-space-4); }',
@@ -356,8 +361,27 @@ function components(): string {
     '',
     '.cl-data-entity-card__header { display: flex; align-items: center; justify-content: space-between; }',
     '.cl-data-entity-card__metadata { display: grid; gap: var(--cl-space-2); }',
-    '.cl-data-entity-card__metadata-item { display: flex; justify-content: space-between; gap: var(--cl-space-2); }',
-    '.cl-data-entity-card__metadata-label { color: var(--cl-text-muted); }',
+    // `min-width: 0` on the row and a break opportunity on the label: a flex
+    // item will not shrink below its own min-content width, so a long label
+    // like `Austragungsorte & Offizielle` pushed the whole card past the 188px
+    // reference width and scrolled the page sideways.
+    '.cl-data-entity-card__metadata-item { display: flex; justify-content: space-between; gap: var(--cl-space-2); min-width: 0; }',
+    '.cl-data-entity-card__metadata-label { color: var(--cl-text-muted); min-width: 0; overflow-wrap: anywhere; }',
+    // The accent a DataEntityCard carries for its subject's lifecycle. `.cl-card`
+    // already draws a left border in the muted token; an accent recolours that
+    // one edge rather than adding a second treatment, so a card with an accent
+    // and one without stay the same size. `muted` is the default made explicit,
+    // which a call site needs when it wants to state "no state" rather than
+    // omit the prop.
+    //
+    // These exist because the prop did not: `DataEntityCard` has emitted
+    // `cl-state--<accent>` since it gained `accent`, and nothing defined the
+    // class, so every accent rendered identically to none (found 2026-09-08 by
+    // putting the four accents side by side in the workbench).
+    '.cl-state--live { border-left-color: var(--cl-state-live); }',
+    '.cl-state--upcoming { border-left-color: var(--cl-state-upcoming); }',
+    '.cl-state--positive { border-left-color: var(--cl-state-positive); }',
+    '.cl-state--muted { border-left-color: var(--cl-border-muted); }',
     // A card's counts read as figures, sized below the screen's summary tiles so
     // they never compete with its headline numbers.
     '.cl-data-entity-card__metadata-figure { font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; color: var(--cl-text-primary); }',
@@ -374,10 +398,17 @@ function components(): string {
     '.cl-entity-card-actions__destructive { margin-inline-start: auto; }',
     '',
     '.cl-table-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cl-space-3); }',
-    '.cl-table-toolbar__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
+    // `min-width: 0` because a flex item refuses to shrink below its own
+    // min-content width by default, and the break properties because a long
+    // compound has no break opportunity to shrink to — both are needed, and
+    // either alone still overflows at the 188px reference width.
+    '.cl-table-toolbar__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }',
     '.cl-table-toolbar__filters, .cl-table-toolbar__actions { display: flex; flex-wrap: wrap; gap: var(--cl-space-2); align-items: center; }',
     '',
-    '.cl-pagination { display: flex; align-items: center; gap: var(--cl-space-3); }',
+    // Three touch targets plus their gaps exceed the 188px reference width on
+    // their own, and a touch target is not negotiable — so the row wraps and
+    // centres instead of overflowing. Above that width it is still one line.
+    '.cl-pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: var(--cl-space-3); }',
     '.cl-pagination__status { color: var(--cl-text-muted); font-family: var(--cl-font-mono); }',
     '',
     '.cl-field-value { display: grid; gap: var(--cl-space-1); background: var(--cl-surface-base); padding: var(--cl-space-3); border: 1px solid var(--cl-border-muted); }',
@@ -472,6 +503,11 @@ function components(): string {
     '/* A row-identity chip (avatar initials + label) reused by any listing showing one person per row. */',
     '.cl-role-user { display: flex; align-items: center; gap: var(--cl-space-3); min-width: 0; flex-wrap: wrap; }',
     '.cl-role-user__avatar { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 32px; background: var(--cl-surface-raised); border: 1px solid var(--cl-border-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
+    // An email address has no break opportunity a browser will take by
+    // default, so the identity column set a min-content width wider than the
+    // 188px reference. `anywhere` rather than `break-word`: the address must
+    // break mid-token, since it is one token.
+    '.cl-role-user > span { min-width: 0; overflow-wrap: anywhere; }',
     '.cl-role-user__id { display: block; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
     '.cl-role-status { display: flex; align-items: center; gap: var(--cl-space-2); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
     '.cl-role-status--active { color: var(--cl-state-live); }',
@@ -682,7 +718,11 @@ function components(): string {
     '',
     "/* The matches-view card (openspec 0172) — shared by MatchCard.tsx on both public-web and control-web, so it lives here rather than in either surface's own page-scoped styles. */",
     '.cl-match-card { display: grid; gap: var(--cl-space-3); min-width: 0; }',
-    '.cl-match-card__header { display: flex; align-items: center; justify-content: space-between; gap: var(--cl-space-3); }',
+    // The state badge and the clock sit on one line until they cannot: at the
+    // 188px reference width a longer translation of the state — `IN DIRETTA`
+    // for `LIVE` — plus a running clock exceeds the card, so the pair wraps
+    // rather than widening the card past the viewport.
+    '.cl-match-card__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cl-space-3); min-width: 0; }',
     '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); color: var(--cl-state-live); font-variant-numeric: tabular-nums; }',
     '.cl-match-card__sides { display: grid; gap: var(--cl-space-2); margin: 0; padding: 0; list-style: none; }',
     '.cl-match-card__side { display: flex; align-items: center; gap: var(--cl-space-2); min-width: 0; }',
