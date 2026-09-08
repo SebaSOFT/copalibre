@@ -425,3 +425,56 @@ added later is covered without the check being edited.
 #### Scenario: The check passes when every component is covered
 - **WHEN** every owned library component has at least one story
 - **THEN** the check passes
+
+### Requirement: Inline alert component
+The component library SHALL provide an `Alert` atom for a message that sits in the flow of a screen,
+distinct from the toast mechanism that reports the result of an action. It SHALL declare its tone —
+informational, success, warning, or destructive — and the live-region politeness with which assistive
+technology announces it, as properties rather than leaving either to each call site. It SHALL accept
+rich content, not a single string. It SHALL render a dismiss control when, and only when, the caller
+supplies a way to dismiss it; that control SHALL carry an accessible name, and dismissing SHALL remove
+the alert from the live region. No screen SHALL hand-write alert markup or its class names.
+
+#### Scenario: Tone and politeness are declared, not improvised
+- **WHEN** a screen shows a failure and, elsewhere, a saved-successfully confirmation
+- **THEN** each composes `Alert` with its own tone and politeness, rather than both carrying the same
+  class with the announcement contract decided ad hoc at each call site
+
+#### Scenario: A dismissable alert renders a named control
+- **WHEN** a caller supplies a dismiss handler
+- **THEN** the alert renders a dismiss control with an accessible name, and invoking it removes the
+  alert from the live region
+
+#### Scenario: An alert with no dismiss handler has no dismiss control
+- **WHEN** a caller supplies no dismiss handler
+- **THEN** the alert renders no dismiss control, so a message a screen owns cannot be closed into a
+  state the screen did not plan for
+
+#### Scenario: An alert carries more than a line of text
+- **WHEN** a screen reports several validation problems at once
+- **THEN** they render as a list inside the alert, rather than the alert's class being applied to a
+  list element to get the same result
+
+### Requirement: The library owns the patterns its screens repeat
+The component library SHALL provide a listing, a page section, a stat tile, a tag, a disclosure, and a
+segmented control, each at the atomic tier its composition warrants, so a screen composes them instead
+of rebuilding them. A screen SHALL NOT hand-write the markup or class names these components own.
+
+#### Scenario: A screen lists records without rebuilding a list
+- **WHEN** a screen renders a sequence of records that is not tabular
+- **THEN** it composes the listing component, rather than an unordered list with its own reset styles
+
+#### Scenario: A labelled section composes the page-section component
+- **WHEN** a screen groups content under a heading with an accessible label
+- **THEN** it composes the page-section component, rather than a section element with its own heading
+  and spacing
+
+#### Scenario: One segmented control serves both surfaces
+- **WHEN** an operator screen offers a filter or view switch, and a public page offers its own
+- **THEN** both compose the same segmented-control component, rather than one hand-built tab list per
+  surface
+
+#### Scenario: A figure reuses the stat tile's numeral treatment
+- **WHEN** a component outside a stat tile needs the display-font tabular numeral — a match score, a
+  count on a card
+- **THEN** it composes the owned value component, rather than borrowing the stat tile's own class
