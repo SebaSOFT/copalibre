@@ -237,8 +237,8 @@ jobs:
       - run: yarn workspace @copalibre/domain build
       - run: node --test scripts/check-descriptor-guide-coverage.test.mjs
       - run: node scripts/check-descriptor-guide-coverage.mjs
-      - run: node --test scripts/check-control-ui-ownership.test.mjs
-      - run: node scripts/check-control-ui-ownership.mjs
+      - run: node --test scripts/check-ui-ownership.test.mjs
+      - run: node scripts/check-ui-ownership.mjs
       # Role manual capability lists (openspec 0165): generated from
       # role-capabilities.ts, gated against it in both directions —
       # an undocumented grant and an over-promised claim both fail.

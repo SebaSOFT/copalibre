@@ -184,6 +184,14 @@ operation feedback from the component library's atoms, molecules, and organisms;
 new one-off inline style object (e.g. a `React.CSSProperties` literal) duplicating a pattern the library
 already provides.
 
+A component outside the owned library SHALL NOT hand-write a design-system class that an owned
+component already applies, because composing an owned component's markup by hand bypasses that
+component exactly as using a raw element does. The automated check enforcing this SHALL detect such a
+class regardless of the element carrying it. Files that already contain such classes when the rule is
+introduced MAY be recorded in an explicit, dated backlog list so the check still fails for anything
+new; each entry SHALL name a file rather than exempting a pattern, and a recorded count SHALL only be
+allowed to decrease.
+
 #### Scenario: A new form screen uses FormScreenTemplate and the form-field molecule
 - **WHEN** a new screen renders a labeled multi-field form with validation
 - **THEN** it composes `FormScreenTemplate` and the form-field molecule, rather than defining its own
@@ -193,6 +201,24 @@ already provides.
 - **WHEN** a new screen renders a tabular list of records
 - **THEN** it composes `ListScreenTemplate` and the `DataTable` organism, rather than a hand-rolled
   layout and CSS grid table
+
+#### Scenario: The design system's own class names are owned too
+- **WHEN** a component outside the owned library writes a class an owned component already applies —
+  a `<div>` carrying the card class, a `<span>` carrying the badge class, an element carrying the
+  button or data-table class
+- **THEN** the ownership check reports it, because composing an owned component's markup by hand
+  bypasses that component exactly as a raw element does
+
+#### Scenario: A backlogged file cannot grow new violations silently
+- **WHEN** a file recorded in the known backlog gains another hand-written owned class
+- **THEN** the check reports the addition, and the check continues to fail outright for any file not on
+  that list
+
+#### Scenario: A backlogged file that improves does not leave room to regress
+- **WHEN** a file recorded in the known backlog has fewer hand-written owned classes than its recorded
+  count
+- **THEN** the check reports that the recorded count must be lowered, so the reclaimed room cannot be
+  refilled silently
 
 ### Requirement: Template migration for remaining Control-web screens
 Every Control-web screen that shipped in 0141-admin-atomic-design-system SHALL use `ListScreenTemplate` or `FormScreenTemplate` when their shape matches. The 11 remaining screens identified in 0141-admin-atomic-design-system SHALL be migrated onto the atomic tier system and SHALL NOT hand-roll layouts, tables, cards, or alerts after this change is complete. `MatchConsoleRoute.tsx` SHALL introduce its own template and SHALL consume it rather than constructing category rows or extended-match headers directly. Migrated screens SHALL assert their template-derived DOM shape in their updated `*.test.tsx` suites.
@@ -298,3 +324,94 @@ trigger on close.
 - **WHEN** an open `DropdownMenu` is inspected in the accessibility tree
 - **THEN** its trigger and its items carry menu semantics, and the trigger reports whether the menu is
   open
+
+### Requirement: Every component is reviewable in isolation
+The repository SHALL provide a component workbench that renders any React component of the operator,
+public and broadcast surfaces on its own, without running the application or seeding data, and SHALL
+group what it renders by the surface the component belongs to. Every owned library component SHALL be
+present in it, showing the states a reviewer has to judge — including its empty, error, and disabled
+states where it has them — so a state that is hard to reach in the running application is not thereby
+hard to review.
+
+#### Scenario: A reviewer opens a component without running the app
+- **WHEN** a reviewer starts the workbench
+- **THEN** every owned library component is listed and renders on its own, with no API, database, or
+  seeded tournament required
+
+#### Scenario: Components are grouped by the surface they belong to
+- **WHEN** a reviewer browses the workbench
+- **THEN** the operator, public and broadcast components appear under their own surface groups, and the
+  owned library appears under its atomic tiers
+
+#### Scenario: A state that is hard to reach in the app is one click away
+- **WHEN** a reviewer wants to see a tabular view with no rows, an overlay while it is open, or a
+  screen in its error state
+- **THEN** each is a listed entry in the workbench, rather than a state reached by driving the running
+  application into it
+
+### Requirement: A component's prop combinations are shown together, not sampled
+Every owned library component SHALL be presented both with its full set of props individually
+adjustable and as a rendering of its variant axes side by side, so a difference between two states is
+visible in one view rather than by switching between entries. A component with named variants, tones,
+accents or validity states SHALL show all of them together.
+
+#### Scenario: A reviewer compares two variants of the same component
+- **WHEN** a component declares more than one variant, tone, accent or validity state
+- **THEN** the workbench renders all of them in one view, labelled, alongside each other
+
+#### Scenario: A reviewer explores a prop the variant view does not cover
+- **WHEN** a reviewer wants a combination the side-by-side view does not enumerate
+- **THEN** every prop the component accepts is adjustable in the workbench without editing code
+
+### Requirement: Any component is viewable in any supported interface language
+The workbench SHALL offer a selection of every supported interface language and SHALL re-render the
+displayed component under that language's message catalogue, using the same catalogues the application
+loads rather than a copy maintained for the workbench. Text a component receives as a prop SHALL be
+sourced from the message catalogue, so that changing the language changes what is rendered and the
+effect of a language's word lengths on the component's layout is visible.
+
+#### Scenario: A reviewer checks a component in a language whose words run long
+- **WHEN** a reviewer selects a language whose translations are substantially longer than English
+- **THEN** the component re-renders with that language's real strings, and any truncation, wrapping or
+  overflow the longer text causes is visible in the workbench
+
+#### Scenario: The workbench and the application cannot disagree about a translation
+- **WHEN** a message catalogue is added or changed
+- **THEN** the workbench reflects it without a second catalogue being updated, because it reads the
+  application's own
+
+#### Scenario: A component holding untranslated text shows it
+- **WHEN** a component renders text that never entered a message catalogue
+- **THEN** that text stays in its original language under every selection, making the gap visible
+  rather than hiding it behind a story's own literal
+
+### Requirement: Any component is viewable at the widths the product declares
+The workbench SHALL offer a selection of viewport widths taken from the widths the codebase itself
+declares — its layout breakpoints and the narrowest reference width its responsive rules are written
+against — and SHALL re-render the displayed component at the selected width. The selection SHALL
+include the narrowest reference width, not only conventional device sizes, because that is the width
+the product's own responsive rules are written against.
+
+#### Scenario: A reviewer checks a component at the narrowest supported width
+- **WHEN** a reviewer selects the narrowest declared reference width
+- **THEN** the component renders at that width, and any horizontal overflow is visible without
+  building or navigating the application
+
+#### Scenario: Language and width are checked together
+- **WHEN** a reviewer selects both a long-word language and the narrowest width
+- **THEN** the component renders under both at once, which is the combination its layout is most
+  likely to fail
+
+### Requirement: An owned component without a story fails the build
+Every component in the owned library SHALL have at least one story, and CI SHALL fail when one does
+not, so the workbench cannot silently fall behind the library it exists to show. The set of components
+checked SHALL be derived from the library directory rather than from a maintained list, so a component
+added later is covered without the check being edited.
+
+#### Scenario: A new library component ships without a story
+- **WHEN** a component is added to the owned library with no accompanying story
+- **THEN** the ownership check fails in CI, naming the component that has none
+
+#### Scenario: The check passes when every component is covered
+- **WHEN** every owned library component has at least one story
+- **THEN** the check passes

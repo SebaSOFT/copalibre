@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkFileOwnership, checkStoryCoverage } from './check-control-ui-ownership.mjs';
+import { checkFileOwnership, checkStoryCoverage, scanEverySurface } from './check-ui-ownership.mjs';
 
 test('valid component with owned primitives reports zero violations', () => {
   const cleanCode = `
@@ -97,15 +97,18 @@ test('raw <button> in allowed exception files passes', () => {
       );
     }
   `;
-  assert.equal(checkFileOwnership('JerseyGrid.tsx', code).length, 0);
-  assert.equal(checkFileOwnership('CountrySelect.tsx', code).length, 0);
-  assert.equal(checkFileOwnership('ToastProvider.tsx', code).length, 0);
-  // StandingsPage.tsx is also in KNOWN_HANDWRITTEN_CLASSES at 2, so it has to
-  // carry those to satisfy that ratchet while this test exercises the button
-  // exception. The two registers are independent; meeting one is not meeting
-  // the other.
-  const withRecordedClasses = `${code}\n<div className="cl-card" /><span className="cl-badge" />`;
-  assert.equal(checkFileOwnership('StandingsPage.tsx', withRecordedClasses).length, 0);
+  assert.equal(checkFileOwnership('control/components/JerseyGrid.tsx', code).length, 0);
+  assert.equal(checkFileOwnership('control/components/CountrySelect.tsx', code).length, 0);
+  assert.equal(checkFileOwnership('control/components/ToastProvider.tsx', code).length, 0);
+  // StandingsPage.tsx also carries 1 raw governed element and 2 owned classes
+  // in the registers, so the fixture has to satisfy both while this test
+  // exercises the button exception. The registers are independent; meeting one
+  // is not meeting the others.
+  const withRecordedClasses = `${code}\n<select />\n<div className="cl-card" /><span className="cl-badge" />`;
+  assert.equal(
+    checkFileOwnership('control/components/StandingsPage.tsx', withRecordedClasses).length,
+    0,
+  );
 });
 
 test('raw text or number <input> triggers violation', () => {
@@ -180,17 +183,23 @@ test('a URL is not mistaken for a line comment when blanking comments', () => {
   assert.equal(checkFileOwnership('Urls.tsx', code).length, 1);
 });
 
-test('the raw-input debt register admits its recorded count and nothing beyond it', () => {
+test('the raw-element debt register admits its recorded count and nothing beyond it', () => {
   const input = ['<input', '  type="text"', '/>'].join('\n');
-  // PreferencesRoute.tsx is recorded at 1.
-  assert.equal(checkFileOwnership('PreferencesRoute.tsx', input).length, 0);
-  assert.equal(checkFileOwnership('PreferencesRoute.tsx', `${input}\n${input}`).length, 1);
+  // control/components/PreferencesRoute.tsx is recorded at 1.
+  assert.equal(checkFileOwnership('control/components/PreferencesRoute.tsx', input).length, 0);
+  assert.equal(
+    checkFileOwnership('control/components/PreferencesRoute.tsx', `${input}\n${input}`).length,
+    1,
+  );
   // An unlisted file gets no allowance at all.
   assert.equal(checkFileOwnership('NotListed.tsx', input).length, 1);
 });
 
 test('the debt register ratchets: improving below the recorded count asks for it to be lowered', () => {
-  const violations = checkFileOwnership('PreferencesRoute.tsx', 'const nothing = 1;');
+  const violations = checkFileOwnership(
+    'control/components/PreferencesRoute.tsx',
+    'const nothing = 1;',
+  );
   assert.equal(violations.length, 1);
   assert.match(violations[0].message, /fewer than the 1 recorded/);
 });
@@ -227,24 +236,28 @@ test("a BEM child of an owned class is that component's own structure, not a byp
 test('the owned-class register admits its recorded count and nothing beyond it', () => {
   const badge = '<span className="cl-badge" />';
   // ActivityLog.tsx is recorded at 1.
-  assert.equal(checkFileOwnership('ActivityLog.tsx', badge).length, 0);
-  assert.equal(checkFileOwnership('ActivityLog.tsx', `${badge}\n${badge}`).length, 1);
+  assert.equal(checkFileOwnership('control/components/ActivityLog.tsx', badge).length, 0);
+  assert.equal(
+    checkFileOwnership('control/components/ActivityLog.tsx', `${badge}\n${badge}`).length,
+    1,
+  );
   assert.equal(checkFileOwnership('NotListed.tsx', badge).length, 1);
 });
 
 test('the owned-class register ratchets down, naming its own register', () => {
-  const violations = checkFileOwnership('ActivityLog.tsx', 'const nothing = 1;');
+  const violations = checkFileOwnership('control/components/ActivityLog.tsx', 'const nothing = 1;');
   assert.equal(violations.length, 1);
   assert.match(violations[0].message, /fewer than the 1 recorded in KNOWN_HANDWRITTEN_CLASSES/);
 });
 
 test('the two registers ratchet independently on the same file', () => {
-  // LoadMatchDataRoute.tsx is recorded at 4 raw inputs and 2 owned classes.
-  // Meeting one register while missing the other reports only the one missed.
+  // control/components/LoadMatchDataRoute.tsx is recorded at 9 raw governed
+  // elements and 2 owned classes. Meeting one register while missing the other
+  // reports only the one missed.
   const input = ['<input', '  type="text"', '/>'].join('\n');
   const violations = checkFileOwnership(
-    'LoadMatchDataRoute.tsx',
-    [input, input, input, input, '<div className="cl-card" />'].join('\n'),
+    'control/components/LoadMatchDataRoute.tsx',
+    [...Array(9).fill(input), '<div className="cl-card" />'].join('\n'),
   );
   assert.equal(violations.length, 1);
   assert.match(violations[0].message, /KNOWN_HANDWRITTEN_CLASSES/);
@@ -273,4 +286,77 @@ test('a tier file that exports no component needs no story', () => {
   mkdirSync(join(root, 'molecules'));
   writeFileSync(join(root, 'molecules', 'shapes.tsx'), 'export const rows = [];');
   assert.deepEqual(checkStoryCoverage(root), []);
+});
+
+test('a raw <select> is a violation, because a Select atom exists to replace it', () => {
+  const code = ['<select', '  value={value}', '  onChange={onChange}', '>', '</select>'].join('\n');
+  const violations = checkFileOwnership('control/components/NotListed.tsx', code);
+  assert.equal(violations.length, 1);
+  assert.match(violations[0].message, /Raw <select> detected/);
+  assert.match(violations[0].message, /`Select` atom/);
+});
+
+test('an .astro file is scanned like any other source', () => {
+  // The public site is mostly .astro, and nothing read it before: being
+  // unreadable by the tool was never a decision that the rule did not apply.
+  const code = [
+    '---',
+    'const x = 1;',
+    '---',
+    '<div class="cl-card">',
+    '  <button>Go</button>',
+    '</div>',
+  ].join('\n');
+  const violations = checkFileOwnership('components/NotListed.astro', code);
+  assert.equal(violations.length, 2);
+  assert.equal(violations[0].line, 4);
+  assert.equal(violations[1].line, 5);
+});
+
+test('a class styled in a <style> block is not a class applied to an element', () => {
+  // `.cl-card-actions :global(.cl-btn) { … }` styles the button an owned
+  // component renders. Reporting it would tell an author to stop styling the
+  // design system from the one place that is supposed to.
+  const code = [
+    '<div class="wrapper" />',
+    '<style>',
+    '  .cl-card-actions :global(.cl-btn) { margin: 0; }',
+    '  .cl-badge { text-transform: none; }',
+    '</style>',
+  ].join('\n');
+  assert.deepEqual(checkFileOwnership('components/NotListed.astro', code), []);
+});
+
+test('registers key on the path, so two files with one name are not confused', () => {
+  // Widening the scan to pages/ made a bare name unsafe: `index.astro`,
+  // `[match].astro`, `[tournament].astro` and `emblem.ts` each exist more than
+  // once, and a name-keyed allowance would silently cover a file nobody audited.
+  const card = '<div class="cl-card" />';
+  const registered =
+    'pages/[...locale]/[organization]/tournaments/[tournament]/players/[personId].astro';
+  assert.equal(checkFileOwnership(registered, card).length, 0);
+  assert.equal(checkFileOwnership('pages/somewhere/else/[personId].astro', card).length, 1);
+});
+
+test('a file inside a ui/ directory is the design language, not a bypass of it', () => {
+  // Ownership is expressed by directory on every surface: control/components/ui
+  // and components/ui alike. That is why the public primitives moved there
+  // rather than being named in an allowlist.
+  const uiPath = fileURLToPath(new URL('../apps/web/src/components/ui/atoms', import.meta.url));
+  const scanned = Object.keys(
+    scanEverySurface(fileURLToPath(new URL('../apps/web/src', import.meta.url))),
+  );
+  assert.ok(existsSync(join(uiPath, 'Button.astro')), 'expected the public Button primitive');
+  assert.equal(
+    scanned.filter((f) => f.includes('/ui/')).length,
+    0,
+    'no file inside a ui/ directory should be scanned',
+  );
+});
+
+test('the repository passes the widened check', () => {
+  // The registers are a measurement, not an estimate: this is the assertion
+  // that they match what the tree actually contains, on every surface.
+  const results = scanEverySurface(fileURLToPath(new URL('../apps/web/src', import.meta.url)));
+  assert.deepEqual(results, {});
 });
