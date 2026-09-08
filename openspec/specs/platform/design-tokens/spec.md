@@ -204,3 +204,18 @@ only, never in the underlying token values.
 #### Scenario: Match console header resizes on compact viewport
 - **WHEN** the console header compresses
 - **THEN** the spacing and motion tokens produce the expected compact density and keep chroma contract intact.
+
+### Requirement: The token style guide is reachable from the component workbench
+The generated style guide SHALL be reachable from the component workbench, so a reviewer comparing a
+component against the tokens it consumes does not have to open a second surface. It SHALL remain
+generated from the token source rather than restated by hand in the workbench, so the two can never
+disagree about what a token looks like.
+
+#### Scenario: A reviewer reaches the tokens from the workbench
+- **WHEN** a reviewer opens the component workbench
+- **THEN** the generated style guide is one of its entries, alongside the component groups
+
+#### Scenario: A token change reaches the workbench without being retyped
+- **WHEN** a token's value changes and the token package is rebuilt
+- **THEN** the style guide shown in the workbench reflects the new value, because the workbench
+  presents the generated artifact rather than a hand-maintained copy of it
