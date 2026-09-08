@@ -192,6 +192,11 @@ introduced MAY be recorded in an explicit, dated backlog list so the check still
 new; each entry SHALL name a file rather than exempting a pattern, and a recorded count SHALL only be
 allowed to decrease.
 
+The set of governed elements SHALL cover every element the owned library replaces. Where the library
+provides a control for an element, a raw use of that element SHALL be a violation, and an element for
+which the library provides no replacement SHALL NOT be governed. An element that has an owned
+replacement and is nonetheless ungoverned is a gap in the rule, not a permitted use.
+
 #### Scenario: A new form screen uses FormScreenTemplate and the form-field molecule
 - **WHEN** a new screen renders a labeled multi-field form with validation
 - **THEN** it composes `FormScreenTemplate` and the form-field molecule, rather than defining its own
@@ -208,6 +213,11 @@ allowed to decrease.
   button or data-table class
 - **THEN** the ownership check reports it, because composing an owned component's markup by hand
   bypasses that component exactly as a raw element does
+
+#### Scenario: Every element with an owned replacement is governed
+- **WHEN** the library provides a component that replaces a raw element — including a select control
+- **THEN** a raw use of that element is reported, and existing uses are recorded per file in the
+  backlog rather than silently permitted
 
 #### Scenario: A backlogged file cannot grow new violations silently
 - **WHEN** a file recorded in the known backlog gains another hand-written owned class
