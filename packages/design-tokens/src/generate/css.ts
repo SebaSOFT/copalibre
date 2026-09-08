@@ -1,5 +1,7 @@
 import {
   BREAKPOINTS,
+  FONT_SOURCE,
+  TRACKING,
   COLOR_PRIMITIVES,
   CONTROL_DENSITY_SPACING,
   FONT_SIZE,
@@ -35,6 +37,17 @@ import { SEMANTIC_COLORS, type SemanticColor } from '../semantic.js';
 
 export function generateCss(): string {
   return [
+    /*
+     * First, and before any rule: CSS requires `@import` to precede everything
+     * but `@charset`, and a browser drops one that appears later.
+     *
+     * It lives here rather than in each layout's `<head>` because this session
+     * found the same defect four times — styling that only one layout loaded,
+     * so every other surface silently went without it. Every surface already
+     * imports this stylesheet; none of them can forget to.
+     */
+    `@import url('${FONT_SOURCE}');`,
+    '',
     header(),
     `:root {`,
     ...Object.entries(COLOR_PRIMITIVES).map(([name, value]) => `  --cl-color-${name}: ${value};`),
@@ -48,6 +61,7 @@ export function generateCss(): string {
     `  --cl-font-mono: ${TYPOGRAPHY.mono};`,
     ...Object.entries(FONT_WEIGHTS).map(([name, value]) => `  --cl-weight-${name}: ${value};`),
     ...Object.entries(FONT_SIZE).map(([name, value]) => `  --cl-font-size-${name}: ${value};`),
+    ...Object.entries(TRACKING).map(([name, value]) => `  --cl-tracking-${name}: ${value};`),
     '',
     ...Object.entries(SPACING).map(([name, value]) => `  --cl-space-${name}: ${value};`),
     ...Object.entries(RADIUS).map(([name, value]) => `  --cl-radius-${name}: ${value};`),
@@ -109,10 +123,20 @@ function reducedMotion(): string {
 /**
  * The chamfered corner, and the square one it falls back to.
  *
+ * One diagonal pair is cut — top-right and bottom-left at `--cl-chamfer-size`,
+ * top-left and bottom-right square.
+ *
  * `corner-shape: bevel` where it exists, `clip-path` where it does not, and a
  * plain rectangle where neither does. The fallback is square rather than
  * rounded because a wrong-radius corner reads as a rendering bug, while a
  * square one reads as a deliberate, plainer surface.
+ *
+ * **To chamfer only some corners, set `border-radius: 0` on the ones you do not
+ * want** — with `corner-shape: bevel` the standard shorthand selects them, so
+ * `border-radius: var(--cl-chamfer-size) 0 var(--cl-chamfer-size) 0` cuts one
+ * diagonal pair. Prefer that to writing another `clip-path` polygon: a polygon
+ * has to be kept in step with the `corner-shape` branch by hand, which is
+ * exactly how the two paths came to disagree about the shape in the first place.
  */
 function chamfer(): string {
   return [
@@ -123,11 +147,15 @@ function chamfer(): string {
     '',
     '@supports (clip-path: polygon(0 0)) {',
     '  .cl-chamfer {',
+    // Top-right and bottom-left cut; top-left and bottom-right square.
+    //
+    // Kept in step with the `corner-shape` branch below by hand, which is the
+    // hazard: the two used to disagree, one cutting a diagonal pair and the
+    // other bevelling all four. Change one, change the other.
     '    clip-path: polygon(',
-    '      var(--cl-chamfer-size) 0%, 100% 0%,',
-    '      100% calc(100% - var(--cl-chamfer-size)),',
-    '      calc(100% - var(--cl-chamfer-size)) 100%,',
-    '      0% 100%, 0% var(--cl-chamfer-size)',
+    '      0% 0%, calc(100% - var(--cl-chamfer-size)) 0%,',
+    '      100% var(--cl-chamfer-size), 100% 100%,',
+    '      var(--cl-chamfer-size) 100%, 0% calc(100% - var(--cl-chamfer-size))',
     '    );',
     '  }',
     '}',
@@ -136,7 +164,9 @@ function chamfer(): string {
     '  .cl-chamfer {',
     '    clip-path: none;',
     '    corner-shape: bevel;',
-    '    border-radius: var(--cl-chamfer-size);',
+    // `0` on the corners that stay square, per-corner shorthand rather than a
+    // second polygon: top-left, top-right, bottom-right, bottom-left.
+    '    border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size);',
     '  }',
     '}',
     '',
@@ -183,11 +213,12 @@ function imageFrame(): string {
     '',
     '@supports (clip-path: polygon(0 0)) {',
     '  .cl-image-frame {',
+    // The same diagonal pair `.cl-chamfer` cuts, so a framed image sits in a
+    // chamfered card without the two shapes disagreeing.
     '    clip-path: polygon(',
-    '      var(--cl-chamfer-size) 0%, 100% 0%,',
-    '      100% calc(100% - var(--cl-chamfer-size)),',
-    '      calc(100% - var(--cl-chamfer-size)) 100%,',
-    '      0% 100%, 0% var(--cl-chamfer-size)',
+    '      0% 0%, calc(100% - var(--cl-chamfer-size)) 0%,',
+    '      100% var(--cl-chamfer-size), 100% 100%,',
+    '      var(--cl-chamfer-size) 100%, 0% calc(100% - var(--cl-chamfer-size))',
     '    );',
     '  }',
     '}',
@@ -196,7 +227,7 @@ function imageFrame(): string {
     '  .cl-image-frame {',
     '    clip-path: none;',
     '    corner-shape: bevel;',
-    '    border-radius: var(--cl-chamfer-size);',
+    '    border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size);',
     '  }',
     '}',
     '',
@@ -258,6 +289,24 @@ function components(): string {
     '  color-scheme: dark;',
     '}',
     '',
+    /*
+     * The same diagonal cut the chamfer utility makes, on the controls
+     * themselves rather than on a wrapper.
+     *
+     * `corner-shape` only, with no `clip-path` fallback: these carry
+     * `.cl-focusable`, whose focus ring is a `box-shadow`, and `clip-path`
+     * clips box-shadows away. A browser without `corner-shape` therefore keeps
+     * square controls and a visible focus ring, which is the right way round —
+     * the fallback philosophy is already "a plain rectangle where neither
+     * works", and a focus indicator is not decoration to trade for a bevel.
+     */
+    '@supports (corner-shape: bevel) {',
+    '  .cl-input, .cl-select, .cl-textarea {',
+    '    corner-shape: bevel;',
+    '    border-radius: 0 var(--cl-radius-chamfer-control) 0 var(--cl-radius-chamfer-control);',
+    '  }',
+    '}',
+    '',
     '.cl-input::-webkit-calendar-picker-indicator {',
     '  filter: invert(0.8);',
     '  cursor: pointer;',
@@ -290,7 +339,7 @@ function components(): string {
     '  height: var(--cl-touch-target);',
     '  border: 1px solid;',
     '}',
-    'input[type="checkbox"].cl-checkbox {',
+    'input[type="checkbox"].cl-checkbox, input[type="radio"] {',
     '  appearance: none;',
     '  -webkit-appearance: none;',
     '  width: 1.25rem;',
@@ -307,12 +356,23 @@ function components(): string {
     '  flex-shrink: 0;',
     '  color-scheme: dark;',
     '}',
-    'input[type="checkbox"].cl-checkbox:hover {',
+    'input[type="checkbox"].cl-checkbox:hover, input[type="radio"]:hover {',
     '  border-color: var(--cl-border-hover);',
     '}',
-    'input[type="checkbox"].cl-checkbox:checked {',
+    'input[type="checkbox"].cl-checkbox:checked, input[type="radio"]:checked {',
     '  background: var(--cl-state-live);',
     '  border-color: var(--cl-state-live);',
+    '}',
+    /*
+     * A radio's mark is a square, not the checkbox's tick: the shape says
+     * "one of these" where the tick says "this one is on", and a chamfered box
+     * with a round dot inside would be two geometries arguing.
+     */
+    'input[type="radio"]:checked::before {',
+    '  content: "";',
+    '  width: 0.5rem;',
+    '  height: 0.5rem;',
+    '  background-color: var(--cl-ink-950);',
     '}',
     'input[type="checkbox"].cl-checkbox:checked::before {',
     '  content: "";',
@@ -349,8 +409,33 @@ function components(): string {
     '  outline-offset: 2px;',
     '}',
     '.cl-checkbox__indicator { color: var(--cl-state-live); }',
+    /*
+     * Checkboxes and radios cut all four corners, unlike every other surface,
+     * which cuts one diagonal pair. A 20px box carrying an asymmetric cut reads
+     * as a rendering slip rather than a shape; symmetry is what makes it read
+     * as deliberate at that size.
+     *
+     * `--cl-radius-md` (4px) rather than the 8px control chamfer: eight on a
+     * twenty-pixel box leaves a diamond.
+     */
+    '@supports (corner-shape: bevel) {',
+    // The 44px target the Checkbox atom renders — a Radix `<button
+    // role="checkbox">`, not an `<input>`, so this keys on the class.
+    '  .cl-checkbox {',
+    '    corner-shape: bevel;',
+    '    border-radius: var(--cl-radius-chamfer-control);',
+    '  }',
+    // The 20px native controls: a proportionate cut, because eight pixels off
+    // each corner of a twenty-pixel box leaves a diamond.
+    '  input[type="checkbox"].cl-checkbox, input[type="radio"] {',
+    '    border-radius: var(--cl-radius-md);',
+    '  }',
+    '}',
     '.cl-select__icon { margin-inline-start: var(--cl-space-2); }',
-    '.cl-select__content { padding: var(--cl-space-1); }',
+    // `popper` positioning exposes the trigger's width, so the panel lines up
+    // with the box it belongs to rather than sizing itself to its longest
+    // option. `max-height` is the space Radix measured to the viewport edge.
+    '.cl-select__content { padding: var(--cl-space-1); min-width: var(--radix-select-trigger-width); max-height: var(--radix-select-content-available-height); overflow-y: auto; }',
     '.cl-select__item { padding: var(--cl-space-2) var(--cl-space-3); cursor: pointer; }',
     '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); }',
     '',
@@ -411,8 +496,12 @@ function components(): string {
     '.cl-pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: var(--cl-space-3); }',
     '.cl-pagination__status { color: var(--cl-text-muted); font-family: var(--cl-font-mono); }',
     '',
-    '.cl-field-value { display: grid; gap: var(--cl-space-1); background: var(--cl-surface-base); padding: var(--cl-space-3); border: 1px solid var(--cl-border-muted); }',
-    '.cl-field-value__label { display: block; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
+    // `min-width: 0` and a break opportunity for the same reason the entity
+    // card's metadata row needs them: a grid item will not shrink below its own
+    // min-content width, and a value like an unhyphenated club name has no
+    // break the browser will take on its own.
+    '.cl-field-value { display: grid; gap: var(--cl-space-1); background: var(--cl-surface-base); padding: var(--cl-space-3); border: 1px solid var(--cl-border-muted); min-width: 0; overflow-wrap: anywhere; }',
+    '.cl-field-value__label { display: block; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); min-width: 0; overflow-wrap: anywhere; }',
     '',
     '.cl-clock-ring { display: flex; align-items: center; gap: var(--cl-space-2); }',
     '',
@@ -425,8 +514,13 @@ function components(): string {
     '',
     '.cl-modal__overlay { position: fixed; inset: 0; }',
     '.cl-modal__content { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(480px, calc(100vw - var(--cl-space-8))); max-height: 85vh; overflow-y: auto; padding: var(--cl-space-4); }',
-    '.cl-modal__header { display: flex; align-items: start; justify-content: space-between; gap: var(--cl-space-3); }',
-    '.cl-modal__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
+    // The title and the close control share a row, and a long compound title
+    // pushed the dialog past the 188px reference width. The same treatment the
+    // card and toolbar titles already carry — this one was missed because the
+    // workbench was rendering it inside a 240px column, where nothing could
+    // overflow because nothing had room to try.
+    '.cl-modal__header { display: flex; align-items: start; justify-content: space-between; gap: var(--cl-space-3); min-width: 0; }',
+    '.cl-modal__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }',
     '.cl-modal__description { margin: 0; color: var(--cl-text-muted); }',
     '.cl-modal__close { background: transparent; border: 0; color: var(--cl-text-primary); }',
     '.cl-modal__body { margin-block: var(--cl-space-4); display: grid; gap: var(--cl-space-3); }',
@@ -549,6 +643,11 @@ function components(): string {
     '  border: 1px solid transparent;',
     '  padding: var(--cl-space-2) var(--cl-space-4);',
     '  transition: background var(--cl-motion-fast) var(--cl-motion-easing);',
+    // A label of two words wraps on its space and fits; a single compound —
+    // `Turniereinstellungen` — has no break the browser will take, so the
+    // button grew past the 188px reference width and pushed the page sideways.
+    '  max-width: 100%;',
+    '  overflow-wrap: anywhere;',
     '}',
     ...buttons,
     '',
@@ -569,7 +668,7 @@ function components(): string {
     '.cl-btn--persuade {',
     '  font-family: var(--cl-font-display);',
     '  text-transform: uppercase;',
-    '  letter-spacing: 0.06em;',
+    '  letter-spacing: var(--cl-tracking-widest);',
     '  font-weight: var(--cl-weight-bold);',
     '}',
     '',
@@ -596,7 +695,7 @@ function components(): string {
     '  font-size: var(--cl-font-size-xs);',
     '  font-weight: var(--cl-weight-semibold);',
     '  text-transform: uppercase;',
-    '  letter-spacing: 0.05em;',
+    '  letter-spacing: var(--cl-tracking-wider);',
     '  white-space: nowrap;',
     '}',
     '/* Numeric columns read right-aligned against the figure above them. */',
@@ -724,6 +823,38 @@ function components(): string {
     '  border: 0;',
     '}',
     '',
+    /*
+     * A link's colour, for every surface.
+     *
+     * This lived as `:global(a)` inside `PublicLayout.astro`, so only the public
+     * pages ever loaded it: every link in the operator panel rendered in the
+     * browser's default blue, against a dark panel, in production. A base
+     * element treatment belongs with the tokens, where every surface that loads
+     * the stylesheet gets it.
+     */
+    'a { color: var(--cl-state-live); }',
+    '',
+    /*
+     * Headings use the display face.
+     *
+     * Fourteen component classes reach for `--cl-font-display` deliberately,
+     * but nothing gave a bare `<h1>`-`<h6>` a family, so a page heading rendered
+     * in the body face — the condensed identity the product shows off appeared
+     * only where a component happened to ask for it.
+     *
+     * Family and tracking only: whether a given heading is uppercase is the
+     * component's or the page's call, and several already decide it.
+     */
+    'h1, h2, h3, h4, h5, h6 { font-family: var(--cl-font-display); letter-spacing: var(--cl-tracking-wide); }',
+    '',
+    /*
+     * An alert's paragraphs carry no margin of their own — the alert is already
+     * a flex container with its own gap. Also formerly trapped in the public
+     * layout, which is why a block-form alert spaced differently depending on
+     * which surface rendered it.
+     */
+    '.cl-inline-alert p { margin: 0; }',
+    '',
     '.cl-focusable:focus-visible {',
     '  outline: none;',
     `  box-shadow: 0 0 0 ${FOCUS_RING.innerWidth} var(--cl-surface-base),`,
@@ -738,12 +869,22 @@ function components(): string {
     // rather than widening the card past the viewport.
     '.cl-match-card__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cl-space-3); min-width: 0; }',
     '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); color: var(--cl-state-live); font-variant-numeric: tabular-nums; }',
+    // A grid of match cards, promoted out of `MatchCardGrid.astro`'s scoped
+    // style so the React surfaces can compose it too. While it lived there,
+    // `LiveMatchHero` had no grid to reach and stacked one full-width card per
+    // row, wasting most of a 1440px viewport.
+    //
+    // `min(100%, 280px)` rather than a bare 280px floor: a hard minimum wider
+    // than the viewport makes the page itself scroll sideways at the 188px
+    // reference width. The local copy had that latent bug and never hit it,
+    // because it was only ever rendered inside a page that constrained it.
+    '.cl-match-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--cl-space-3); list-style: none; padding: 0; margin: 0; }',
     '.cl-match-card__sides { display: grid; gap: var(--cl-space-2); margin: 0; padding: 0; list-style: none; }',
     '.cl-match-card__side { display: flex; align-items: center; gap: var(--cl-space-2); min-width: 0; }',
     '.cl-match-card__side .cl-badge--rank { font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; flex: 0 0 auto; }',
     ".cl-match-card__side > span[data-testid='entrant-name'] { flex: 1 1 auto; font-family: var(--cl-font-display); font-weight: var(--cl-weight-medium); font-size: var(--cl-font-size-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
     '.cl-match-card__side .cl-stat-tile__value { flex: 0 0 auto; font-size: var(--cl-font-size-2xl); background: none; padding: 0; }',
-    '.cl-match-card__scope, .cl-match-card__venue, .cl-match-card__event { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: 0.04em; }',
+    '.cl-match-card__scope, .cl-match-card__venue, .cl-match-card__event { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
     '.cl-match-card__event { color: var(--cl-text-secondary); }',
     '.cl-match-card__series { display: grid; gap: var(--cl-space-1); padding: var(--cl-space-3); background: var(--cl-surface-raised); border-left: 2px solid var(--cl-state-upcoming); }',
     '.cl-match-card__series .cl-series__score { margin: 0; font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); }',
@@ -752,7 +893,16 @@ function components(): string {
     '.cl-match-card__trace { border-top: 1px solid var(--cl-border-muted); padding-top: var(--cl-space-2); }',
     '.cl-match-card__trace > summary { cursor: pointer; color: var(--cl-focus-ring); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
     '.cl-match-card__trace-lines { margin: var(--cl-space-2) 0 0; padding-left: var(--cl-space-4); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
-    '.cl-matches-view__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--cl-space-4); }',
+    // `min(100%, 280px)` rather than a bare floor: a hard minimum wider than
+    // the viewport makes the page scroll sideways. Flagged when the entity-card
+    // grid got the same treatment and left alone because this route was not in
+    // the responsive gate's list — which only ever meant nobody was looking.
+    // `auto-fill`, matching `.cl-match-card-grid`. With `auto-fit` the empty
+    // tracks collapse, so a tournament with one match rendered a single card
+    // 1408px wide on the matches view while the same card sat at 343px on the
+    // live page — two grids for one kind of card, disagreeing about what a card
+    // is. A match card has a size; a row with one of them is a row with a gap.
+    '.cl-matches-view__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--cl-space-4); }',
   ].join('\n');
 }
 

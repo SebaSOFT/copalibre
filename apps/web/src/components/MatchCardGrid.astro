@@ -85,13 +85,10 @@ const labels = resultStateLabels(intl);
 </section>
 
 <style>
+  /* Layout comes from the token layer now; only this grid's own offset from
+     what precedes it stays here, because that spacing is this page's. */
   .cl-match-card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--cl-space-3, 0.75rem);
-    list-style: none;
-    padding: 0;
-    margin: var(--cl-space-3, 0.75rem) 0 0 0;
+    margin-block-start: var(--cl-space-3);
   }
 
   .cl-match-card-link {

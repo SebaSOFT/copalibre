@@ -65,10 +65,33 @@ export const Matrix: Story = {
 /**
  * The worst case a button has: a long action label at the narrowest declared
  * width. Select the 188px viewport to see whether it wraps or overflows.
+ *
+ * Two labels, because they fail differently. A multi-word label wraps on its
+ * space and fits; a single compound has no break opportunity, and that is the
+ * one that overflowed — this story only had the first kind, which is why the
+ * defect survived until a modal's trigger happened to carry the second.
  */
 export const LongLabel: Story = {
   render: function Render() {
     const intl = useIntl();
-    return <Button variant="primary">{intl.formatMessage(storyText.savePromotionPlan)}</Button>;
+    return (
+      <StoryMatrix
+        minColumn="150px"
+        cells={[
+          {
+            label: 'multi-word',
+            children: (
+              <Button variant="primary">{intl.formatMessage(storyText.savePromotionPlan)}</Button>
+            ),
+          },
+          {
+            label: 'single compound',
+            children: (
+              <Button variant="primary">{intl.formatMessage(storyText.settingsTitle)}</Button>
+            ),
+          },
+        ]}
+      />
+    );
   },
 };
