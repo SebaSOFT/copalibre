@@ -93,7 +93,7 @@ export function SeedingBuilderPage({
   );
 
   const listingNode = (
-    <div className="cl-platform-sections">
+    <div className="cl-screen-sections">
       {blocked && feedback.kind === 'blocked' && (
         <p className="cl-inline-alert" role="alert">
           {intl.formatMessage(feedback.descriptor, feedback.values)}

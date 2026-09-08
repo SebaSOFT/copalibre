@@ -91,6 +91,52 @@ describe('DataEntityCard', () => {
     render(<DataEntityCard actions={<button type="button">Ver</button>} title="Con acciones" />);
     expect(screen.getByRole('button', { name: 'Ver' })).toBeDefined();
   });
+
+  it('renders a plain title by default and a linked one when given a href', () => {
+    const { container: plain } = render(<DataEntityCard title="Liga Mendocina" />);
+    expect(plain.querySelector('.cl-card__title a')).toBeNull();
+    expect(plain.querySelector('.cl-card__title')?.textContent).toBe('Liga Mendocina');
+
+    render(
+      <DataEntityCard title="Apertura 2026" titleHref="/control/liga/tournaments/a/matches-view" />,
+    );
+    expect(screen.getByRole('link', { name: 'Apertura 2026' }).getAttribute('href')).toBe(
+      '/control/liga/tournaments/a/matches-view',
+    );
+  });
+
+  it('navigates a linked title through the handler it is given', () => {
+    const onTitleNavigate = jest.fn();
+    render(
+      <DataEntityCard onTitleNavigate={onTitleNavigate} title="Apertura" titleHref="/somewhere" />,
+    );
+
+    fireEvent.click(screen.getByRole('link', { name: 'Apertura' }));
+
+    expect(onTitleNavigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('carries the lifecycle accent on the card itself, from a closed set', () => {
+    const { container } = render(<DataEntityCard accent="live" title="Apertura" />);
+
+    expect(container.querySelector('.cl-card')?.className).toContain('cl-state--live');
+  });
+
+  it('renders a numeric metadata value as a figure and a prose one plainly', () => {
+    const { container } = render(
+      <DataEntityCard
+        metadata={[
+          { label: 'Partidos hoy', numeric: true, value: '4' },
+          { label: 'Alias', value: 'apertura-2026' },
+        ]}
+        title="Apertura"
+      />,
+    );
+
+    const figures = container.querySelectorAll('.cl-data-entity-card__metadata-figure');
+    expect(figures).toHaveLength(1);
+    expect(figures[0]?.textContent).toBe('4');
+  });
 });
 
 describe('TableToolbar and Pagination', () => {

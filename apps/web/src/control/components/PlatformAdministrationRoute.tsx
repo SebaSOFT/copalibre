@@ -460,7 +460,7 @@ export function PlatformAdministrationRoute({
     <ListScreenTemplate
       breadcrumb={<FormattedMessage {...messages.platformSectionLabel} />}
       listing={
-        <div className="cl-platform-sections">
+        <div className="cl-screen-sections">
           <Card aria-labelledby="platform-organization-heading" role="region">
             <CardHeader>
               <CardTitle id="platform-organization-heading">

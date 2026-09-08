@@ -8,7 +8,6 @@ import { type DashboardModel } from '../lib/dashboard.js';
 import { createControlApiClient, type DisplayTokenResponse } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlTokenStore } from '../session/token-store.js';
-import { Button } from './ui/atoms/button.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { ControlShell } from './ControlShell.js';
 
@@ -99,58 +98,29 @@ function DashboardContent({
   }, [organizationAlias, tournamentAliases]);
 
   const sections = (
-    <div className="cl-dashboard-sections">
+    <div className="cl-screen-sections">
       <QuickStats stats={model.stats} />
       <section aria-label={intl.formatMessage(messages.dashboardTournaments)}>
+        <h2>
+          <FormattedMessage {...messages.dashboardTournaments} />
+        </h2>
         {visibleTournaments.length === 0 && (
           <p>
             <FormattedMessage {...messages.dashboardNoTournaments} />
           </p>
         )}
-        {visibleTournaments.map((card) => (
-          <div key={card.tournamentId}>
-            <TournamentCard card={card} />
-            <p style={{ display: 'flex', gap: 'var(--cl-space-2)', flexWrap: 'wrap' }}>
-              <Button
-                onClick={() => download(card.alias, 'participants/team')}
-                type="button"
-                variant="secondary"
-              >
-                <FormattedMessage {...messages.dashboardParticipantsCsv} />
-              </Button>
-              <Button
-                onClick={() => download(card.alias, 'results')}
-                type="button"
-                variant="secondary"
-              >
-                <FormattedMessage {...messages.dashboardResultsCsv} />
-              </Button>
-              <Button
-                onClick={() => download(card.alias, 'standings')}
-                type="button"
-                variant="secondary"
-              >
-                <FormattedMessage {...messages.dashboardStandingsCsv} />
-              </Button>
-              <Button
-                onClick={() => downloadConfiguration(card.alias)}
-                type="button"
-                variant="secondary"
-              >
-                <FormattedMessage {...messages.dashboardConfigurationJson} />
-              </Button>
-              {card.lifecycle === 'finished' && (
-                <Button
-                  onClick={() => archive(card.alias)}
-                  type="button"
-                  variant="destructive-outline"
-                >
-                  <FormattedMessage {...messages.dashboardArchive} />
-                </Button>
-              )}
-            </p>
-          </div>
-        ))}
+        <div className="cl-entity-card-grid">
+          {visibleTournaments.map((card) => (
+            <TournamentCard
+              card={card}
+              key={card.tournamentId}
+              onArchive={archive}
+              onExport={download}
+              onExportConfiguration={downloadConfiguration}
+              organizationAlias={organizationAlias}
+            />
+          ))}
+        </div>
       </section>
       <DeviceHeartbeat devices={devices} now={now} />
       <ActivityLog entries={model.activity} />

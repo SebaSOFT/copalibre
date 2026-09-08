@@ -27,6 +27,10 @@ supported path, not an accident.
   organization dashboard — the same document a fresh installation could re-import to reproduce the
   tournament's rules, not its results.
 
+All four are also on the organization dashboard: each tournament's card carries an **Export** menu
+holding participants, results, standings, and configuration for that tournament, so exporting one
+tournament's data needs no trip through the screen each export otherwise belongs to.
+
 Every export replaces an internal database identifier with the entity's public alias, so an exported file
 never leaks an identifier nothing outside the installation should see.
 

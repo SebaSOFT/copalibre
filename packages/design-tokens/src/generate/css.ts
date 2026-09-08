@@ -358,6 +358,20 @@ function components(): string {
     '.cl-data-entity-card__metadata { display: grid; gap: var(--cl-space-2); }',
     '.cl-data-entity-card__metadata-item { display: flex; justify-content: space-between; gap: var(--cl-space-2); }',
     '.cl-data-entity-card__metadata-label { color: var(--cl-text-muted); }',
+    // A card's counts read as figures, sized below the screen's summary tiles so
+    // they never compete with its headline numbers.
+    '.cl-data-entity-card__metadata-figure { font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; color: var(--cl-text-primary); }',
+    // Tournaments are however many an organization has, so auto-fit — the same
+    // rule the matches view already uses, not the fixed three of the summary tiles.
+    // `min(100%, 280px)` rather than a bare 280px floor: a hard minimum wider
+    // than the viewport makes the page itself scroll sideways, which the
+    // responsive gate checks down to 188px. The same idiom the form grid uses.
+    '.cl-entity-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: var(--cl-space-4); }',
+    // The footer ranks its actions: the primary and the grouped menu lead, the
+    // destructive one is pushed to the end by the footer rather than by a margin
+    // on the button, since no component below the template tier owns its own.
+    '.cl-entity-card-actions { display: flex; align-items: center; gap: var(--cl-space-2); flex-wrap: wrap; width: 100%; }',
+    '.cl-entity-card-actions__destructive { margin-inline-start: auto; }',
     '',
     '.cl-table-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cl-space-3); }',
     '.cl-table-toolbar__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
@@ -386,6 +400,15 @@ function components(): string {
     '.cl-modal__close { background: transparent; border: 0; color: var(--cl-text-primary); }',
     '.cl-modal__body { margin-block: var(--cl-space-4); display: grid; gap: var(--cl-space-3); }',
     '.cl-modal__footer { display: flex; justify-content: flex-end; gap: var(--cl-space-2); }',
+    '',
+    // The menu surface reuses the dialog surface, since both are the same thing
+    // — a layer floating over the screen — and a second definition of that would
+    // be a second thing to keep in step.
+    '.cl-dropdown-menu__content { min-width: 12rem; padding: var(--cl-space-1); display: grid; gap: 2px; z-index: 40; }',
+    '.cl-dropdown-menu__item { padding: var(--cl-space-2) var(--cl-space-3); font-size: var(--cl-font-size-sm); color: var(--cl-text-primary); cursor: pointer; user-select: none; }',
+    '.cl-dropdown-menu__item[data-highlighted] { background: var(--cl-surface-raised); outline: none; }',
+    ".cl-dropdown-menu__item[data-variant='destructive'] { color: var(--cl-state-destructive); }",
+    '.cl-dropdown-menu__item[data-disabled] { color: var(--cl-text-muted); pointer-events: none; }',
     '',
     '/* Templates own inter-section spacing (design.md Decision 7) — no component below this tier sets its own external margin. */',
     '.cl-list-screen, .cl-form-screen, .cl-match-console-screen { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); min-width: 0; }',
@@ -454,11 +477,11 @@ function components(): string {
     '.cl-role-status--active { color: var(--cl-state-live); }',
     '.cl-role-status--inactive { color: var(--cl-text-muted); }',
     '',
-    '.cl-platform-sections { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); min-width: 0; }',
-    '.cl-platform-sections > * { min-width: 0; }',
-    '/* The organization dashboard stacks several sections in one screen, the same shape the platform screen already uses. */',
-    '.cl-dashboard-sections { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); min-width: 0; }',
-    '.cl-dashboard-sections > * { min-width: 0; }',
+    // One name for one rule. The dashboard's and the platform screen's own
+    // section wrappers were byte-identical: a screen that stacks sections is a
+    // screen that stacks sections, whichever screen it is.
+    '.cl-screen-sections { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); min-width: 0; }',
+    '.cl-screen-sections > * { min-width: 0; }',
     '/* The dashboard activity feed renders through DataTable; these are the cell treatments its rows carry. */',
     '.cl-activity-feed { display: grid; gap: var(--cl-space-3); min-width: 0; }',
     '.cl-activity-feed > h2 { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; font-size: var(--cl-font-size-lg); }',

@@ -1029,4 +1029,8 @@ export const messages: Record<string, string> = {
   'control.matchesView.series.decided': '{winner} venceu a série',
   'control.matchesView.series.aggregate': 'No agregado {home}–{away}',
   'control.matchesView.seeAll': 'Ver todas as partidas',
+
+  'control.dashboard.open': 'Abrir',
+  'control.dashboard.export': 'Exportar',
+  'control.dashboard.resumeEditing': 'Retomar edição',
 };

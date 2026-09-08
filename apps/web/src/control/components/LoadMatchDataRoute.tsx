@@ -387,7 +387,7 @@ export function LoadMatchDataRoute({
   const titleNode = <FormattedMessage {...messages.loadMatchDataTitle} />;
 
   const listingNode = (
-    <div className="cl-platform-sections">
+    <div className="cl-screen-sections">
       <Card
         aria-label={intl.formatMessage(messages.loadMatchDataRosterHeading)}
         className="cl-chamfer cl-chamfer--control"
