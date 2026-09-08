@@ -19,7 +19,7 @@ const read = (file: string): string => readFileSync(join(here, file), 'utf8');
 const HEX_LITERAL = /#[0-9a-fA-F]{3,8}\b/g;
 
 describe('public-web Button component (openspec 0198)', () => {
-  const source = read('Button.astro');
+  const source = read('ui/atoms/Button.astro');
 
   it('renders the shared button token classes rather than its own styling', () => {
     expect(source).toContain('cl-btn');
@@ -47,7 +47,7 @@ describe('public-web Button component (openspec 0198)', () => {
 });
 
 describe('public-web Logo lockup (openspec 0198)', () => {
-  const source = read('Logo.astro');
+  const source = read('ui/atoms/Logo.astro');
 
   it('renders mark and wordmark as one unit', () => {
     expect(source).toContain('copalibre-logo.svg');
@@ -76,7 +76,7 @@ describe('TournamentCard CTAs consume the shared Button (openspec 0198)', () => 
   const source = read('TournamentCard.astro');
 
   it('renders CTAs through the Button component, not hand-rolled anchors', () => {
-    expect(source).toContain("import Button from './Button.astro'");
+    expect(source).toContain("import Button from './ui/atoms/Button.astro'");
     expect(source).toMatch(/<Button\b[^>]*variant="primary"/);
     expect(source).not.toContain('cl-action-button');
     expect(source).not.toContain('cl-button-primary');

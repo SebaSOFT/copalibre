@@ -47,6 +47,14 @@ yarn workspace @copalibre/<workspace> test:coverage 2>&1 | grep -E "does not mee
 
 `@copalibre/web` sits a fraction of a point over its 85% branch threshold, so almost any new UI code trips it; budget tests for the branches a change adds rather than discovering it in CI.
 
+**Never run a build-producing suite alongside the e2e suite.** `apps/web/src/help-static.integration.test.ts` shells out to `verify:docs`, which runs `astro build` into `apps/web/dist` — the same directory Playwright's `webServer` builds and then serves. Running `yarn test:integration` (or anything else that builds `apps/web`) while `yarn test:e2e` is in flight races two builds into one output directory, and the result is an SSR manifest pointing at a chunk that no longer exists:
+
+```
+ERR_MODULE_NOT_FOUND … dist/server/chunks/_organization__<hash>.mjs
+```
+
+What that looks like from the test side is not a build error. It is a login page with no email field, a `page.goto` timeout, an emblem that never renders — failures that read as application defects and send you looking in the wrong place. Run the e2e suite on its own, and `rm -rf apps/web/dist` first if a previous run was interrupted.
+
 **Generated CSS is a build artifact, not a source file.** `packages/design-tokens/generated/copalibre.css` is `.gitignore`d, and every page in `apps/web` imports it directly, so an out-of-date copy serves stale rules rather than failing: a change to `generate/css.ts` then appears to have no effect in the browser. `apps/web`'s `dev` and `build` scripts regenerate it, so a plain `yarn workspace @copalibre/web build` — including the one Playwright's `webServer` runs — is always current. Regenerate it by hand only when running something that bypasses that build:
 
 ```bash
@@ -78,9 +86,29 @@ Two toolbar controls carry most of the value, and both are worth using on any UI
   for nearly every component, and it is one selection away rather than a build.
 
 Visual review here is a person's job by design: there are no screenshot baselines and no diffing
-service. The only automated rule is coverage — `scripts/check-control-ui-ownership.mjs` fails when an
+service. The only automated rule is coverage — `scripts/check-ui-ownership.mjs` fails when an
 owned library component has no sibling `*.stories.tsx`, and derives the list from the tier
 directories so a newly added component is covered without the check being edited.
+
+### Component ownership, on every surface
+
+`scripts/check-ui-ownership.mjs` (formerly `check-control-ui-ownership.mjs`) governs the operator
+panel, the public site and the broadcast overlays alike, reading `.tsx`, `.ts` and `.astro`. It
+enforces three things: no raw element the library replaces (`dialog`, `table`, `textarea`, `button`,
+`input`, `select`), no hand-writing a class an owned component applies (`cl-card`, `cl-badge`,
+`cl-btn`, `cl-data-table`), and a story for every owned library component.
+
+**Ownership is a directory, not a list.** A file inside a `ui/` directory _defines_ the design
+language; a file outside one _composes_ it. That holds identically for `control/components/ui` (the
+React library) and `components/ui` (the server-rendered public primitives — `Button.astro`,
+`StateBadge.astro`, `EmblemImage.astro`, `Logo.astro`, `PersonPhotoImage.astro`). A new primitive
+goes in a `ui/` directory; nothing else needs telling.
+
+Existing violations live in two ratcheting registers, `KNOWN_RAW_ELEMENTS` and
+`KNOWN_HANDWRITTEN_CLASSES`. Both key on the **path** relative to `apps/web/src`, never the file
+name — `index.astro`, `[match].astro`, `[tournament].astro` and `emblem.ts` each exist more than
+once. A count may only go down: adding a violation to a listed file fails, so does adding one to an
+unlisted file, and _removing_ one fails until the recorded number is lowered. Delete an entry at zero.
 
 Yarn must use the conventional `node-modules` linker with the global cache. Do not enable PnP or Zero-Installs, and do not commit Yarn cache artifacts. Workspace scripts that execute a root development tool should follow the existing explicit `../../node_modules/.bin/<tool>` pattern when Yarn does not expose the hoisted binary.
 

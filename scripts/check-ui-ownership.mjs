@@ -1,22 +1,37 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
- * Validates that all Control UI components in apps/web/src/control/components/
- * compose owned UI atoms and organisms instead of using raw un-governed HTML elements.
+ * Validates that every surface the application renders composes the owned
+ * component library instead of using raw un-governed HTML elements or
+ * hand-writing the classes an owned component applies.
  *
- * Enforces OpenSpec change 0153 (Complete Atomic Component Coverage).
+ * Enforces OpenSpec 0153 (Complete Atomic Component Coverage), extended by 0213
+ * (owned class names, story coverage) and 0215 (every surface, the select
+ * control, path-keyed registers).
+ *
+ * "Owned" is expressed by directory, not by a list: a file inside a `ui/`
+ * directory defines the design language and a file outside one composes it.
+ * That holds identically for `control/components/ui` and `components/ui`, which
+ * is why the public surface needed no new mechanism to be governed.
  */
 
 const ALLOWED_BUTTON_FILES = new Set([
-  'JerseyGrid.tsx',
-  'CountrySelect.tsx',
-  'ToastProvider.tsx',
-  'StandingsPage.tsx',
+  'control/components/JerseyGrid.tsx',
+  'control/components/CountrySelect.tsx',
+  'control/components/ToastProvider.tsx',
+  'control/components/StandingsPage.tsx',
 ]);
 
-const ALLOWED_INPUT_FILES = new Set(['JerseyGrid.tsx']);
+const ALLOWED_INPUT_FILES = new Set(['control/components/JerseyGrid.tsx']);
+
+/**
+ * Files whose native `<select>` is deliberate. Audited per file rather than
+ * inherited from the button/input allowlist: being exempt for one element says
+ * nothing about another.
+ */
+const ALLOWED_SELECT_FILES = new Set([]);
 
 /**
  * Raw `<input>`s that predate this scanner actually working.
@@ -32,22 +47,42 @@ const ALLOWED_INPUT_FILES = new Set(['JerseyGrid.tsx']);
  * file not listed; removing one fails too, until the number here is lowered to
  * match. Delete an entry when its file reaches zero.
  */
-const KNOWN_RAW_INPUTS = new Map([
-  ['ClubManagementRoute.tsx', 1],
-  ['DescriptorBuilderWizard.tsx', 5],
-  ['LoadMatchDataRoute.tsx', 4],
-  ['PreferencesRoute.tsx', 1],
-  ['RegistrationReviewPage.tsx', 8],
-  ['RegistrationReviewRoute.tsx', 1],
-  ['RolesPermissionsPage.tsx', 2],
-  ['RosterSelectionStep.tsx', 3],
-  ['ScheduleBuilderRoute.tsx', 1],
-  ['SeedingBuilderRoute.tsx', 5],
-  ['TournamentRulesetPage.tsx', 3],
-  ['TournamentSettingsPage.tsx', 2],
-  ['TournamentSetupWizard.tsx', 5],
-  ['VenueManagementRoute.tsx', 3],
-  ['ZoneGroupRoute.tsx', 4],
+const KNOWN_RAW_ELEMENTS = new Map([
+  // Public surface. `<table>` and `<dialog>` have no server-renderable owner —
+  // there is no `DataTable.astro` or `Modal.astro` — so these wait on 0214
+  // before they can be lowered. `StandingsPreview.astro`'s `<button>` does not:
+  // `ui/atoms/Button.astro` exists and it could compose it today.
+  ['components/PlayerProfileView.astro', 1],
+  ['components/StandingsPreview.astro', 4],
+  // React on the broadcast surface. The owned atoms are React and importable,
+  // so these are payable now.
+  ['components/TvDashboard.tsx', 4],
+  ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 1],
+  [
+    'pages/[...locale]/[organization]/tournaments/[tournament]/stages/[stage]/matches/[match].astro',
+    1,
+  ],
+  // Operator surface. Every one of these has an owned atom to compose.
+  ['control/components/ClubManagementRoute.tsx', 1],
+  ['control/components/DescriptorBuilderWizard.tsx', 12],
+  ['control/components/LoadMatchDataRoute.tsx', 9],
+  ['control/components/MatchConsoleRoute.tsx', 2],
+  ['control/components/PlatformAdministrationRoute.tsx', 1],
+  ['control/components/PreferencesRoute.tsx', 1],
+  ['control/components/ProfileBuilderWizard.tsx', 2],
+  ['control/components/RegistrationReviewPage.tsx', 10],
+  ['control/components/RegistrationReviewRoute.tsx', 1],
+  ['control/components/RolesPermissionsPage.tsx', 6],
+  ['control/components/RosterRoleSelector.tsx', 1],
+  ['control/components/RosterSelectionStep.tsx', 3],
+  ['control/components/ScheduleBuilderRoute.tsx', 2],
+  ['control/components/SeedingBuilderRoute.tsx', 5],
+  ['control/components/StandingsPage.tsx', 1],
+  ['control/components/TournamentRulesetPage.tsx', 3],
+  ['control/components/TournamentSettingsPage.tsx', 2],
+  ['control/components/TournamentSetupWizard.tsx', 13],
+  ['control/components/VenueManagementRoute.tsx', 3],
+  ['control/components/ZoneGroupRoute.tsx', 5],
 ]);
 
 /**
@@ -73,6 +108,7 @@ const RAW_ELEMENT_RULES = [
   { tag: 'textarea', replacement: '`Textarea` atom' },
   { tag: 'button', replacement: '`Button` atom', allowed: ALLOWED_BUTTON_FILES },
   { tag: 'input', replacement: '`Input` atom', allowed: ALLOWED_INPUT_FILES },
+  { tag: 'select', replacement: '`Select` atom', allowed: ALLOWED_SELECT_FILES },
 ];
 
 /**
@@ -99,7 +135,7 @@ const OWNED_CLASS_RULES = [
  * (2026-09-08), counted per file.
  *
  * **A debt register, not permission**, on the same ratchet as
- * `KNOWN_RAW_INPUTS`: a count may only go down. A new hand-written class in any
+ * `KNOWN_RAW_ELEMENTS`: a count may only go down. A new hand-written class in any
  * of these files fails, as does one in a file not listed, and improving below
  * the recorded number fails until it is lowered. Delete an entry at zero.
  *
@@ -109,17 +145,36 @@ const OWNED_CLASS_RULES = [
  * counted until the library has something for it.
  */
 const KNOWN_HANDWRITTEN_CLASSES = new Map([
-  ['ActivityLog.tsx', 1],
-  ['BracketCanvas.tsx', 2],
-  ['DeviceHeartbeat.tsx', 1],
-  ['LiveConsoleRoute.tsx', 3],
-  ['LoadMatchDataRoute.tsx', 2],
-  ['RegistrationReviewPage.tsx', 3],
-  ['RosterRoleSelector.tsx', 2],
-  ['SeedingBuilderPage.tsx', 2],
-  ['SeedingBuilderRoute.tsx', 2],
-  ['StandingsPage.tsx', 2],
-  ['TournamentCard.tsx', 1],
+  // Operator surface — an owned atom exists for every one of these.
+  ['control/components/ActivityLog.tsx', 1],
+  ['control/components/BracketCanvas.tsx', 2],
+  ['control/components/DeviceHeartbeat.tsx', 1],
+  ['control/components/LiveConsoleRoute.tsx', 3],
+  ['control/components/LoadMatchDataRoute.tsx', 2],
+  ['control/components/RegistrationReviewPage.tsx', 3],
+  ['control/components/RosterRoleSelector.tsx', 2],
+  ['control/components/SeedingBuilderPage.tsx', 2],
+  ['control/components/SeedingBuilderRoute.tsx', 2],
+  ['control/components/StandingsPage.tsx', 2],
+  ['control/components/TournamentCard.tsx', 1],
+  // Public and broadcast surfaces. Most of these wait on 0214: there is no
+  // `Card` and no general-purpose `Badge` either surface can compose —
+  // `ui/atoms/StateBadge.astro` covers a result state and nothing else, so a
+  // stage name, a jersey number or a rank has nowhere to go today.
+  ['components/LiveMatchHero.tsx', 2],
+  ['components/MatchCard.tsx', 4],
+  ['components/MatchCardGrid.astro', 2],
+  ['components/MatchNode.astro', 2],
+  ['components/ResultLegend.astro', 1],
+  ['components/ScoreTicker.astro', 1],
+  ['components/TournamentHero.astro', 2],
+  ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 1],
+  ['pages/[...locale]/[organization]/tournaments/[tournament]/players/[personId].astro', 1],
+  [
+    'pages/[...locale]/[organization]/tournaments/[tournament]/stages/[stage]/matches/[match].astro',
+    2,
+  ],
+  ['pages/index.astro', 1],
 ]);
 
 /**
@@ -143,6 +198,18 @@ function withoutComments(content) {
   );
 }
 
+/**
+ * Blanks `<style>` blocks, preserving offsets like `withoutComments`.
+ *
+ * An Astro component's scoped stylesheet is where a class is *defined*, not
+ * where it is applied: `.cl-card-actions :global(.cl-btn) { … }` styles the
+ * button an owned component renders, and reporting it would tell an author to
+ * stop styling the design system from the one place that is supposed to.
+ */
+function withoutStyleBlocks(content) {
+  return content.replace(/<style[\s\S]*?<\/style>/gi, (block) => block.replace(/[^\n]/g, ' '));
+}
+
 /** 1-indexed line number for a character offset. */
 function lineOf(content, offset) {
   let line = 1;
@@ -159,11 +226,18 @@ function lineOf(content, offset) {
  */
 export function checkFileOwnership(filename, content) {
   const violations = [];
+  // The registers and allowlists key on the path relative to `apps/web/src`,
+  // not the file's name. Widening the scan to `pages/` made a bare name unsafe:
+  // `index.astro`, `[match].astro`, `[tournament].astro` and `emblem.ts` each
+  // exist more than once, so a name-keyed allowance would silently apply to a
+  // file nobody audited. The message still reads as a name, which is what a
+  // reader wants to see.
+  const key = filename;
   const baseName = filename.split('/').pop() ?? filename;
-  const source = withoutComments(content);
+  const source = withoutStyleBlocks(withoutComments(content));
 
   for (const rule of RAW_ELEMENT_RULES) {
-    if (rule.allowed?.has(baseName)) continue;
+    if (rule.allowed?.has(key)) continue;
 
     const pattern = new RegExp(`<${rule.tag}[\\s>/]`, 'g');
     let match;
@@ -200,6 +274,7 @@ export function checkFileOwnership(filename, content) {
   }
 
   return reconcileWithBaseline(
+    key,
     baseName,
     violations.sort((a, b) => a.line - b.line),
   );
@@ -215,12 +290,12 @@ export function checkFileOwnership(filename, content) {
  * rather than quietly leaving room to regress. Everything neither register
  * covers is reported outright.
  */
-function reconcileWithBaseline(baseName, violations) {
+function reconcileWithBaseline(key, baseName, violations) {
   let remaining = violations;
   const withheld = [];
 
   for (const register of REGISTERS) {
-    const allowance = register.counts.get(baseName);
+    const allowance = register.counts.get(key);
     if (allowance === undefined) continue;
 
     const matched = remaining.filter((violation) => register.matches(violation));
@@ -245,10 +320,10 @@ function reconcileWithBaseline(baseName, violations) {
 /** The two ratchets, each owning the violations it recognises by message. */
 const REGISTERS = [
   {
-    counts: KNOWN_RAW_INPUTS,
-    registerName: 'KNOWN_RAW_INPUTS',
-    noun: 'raw <input>(s)',
-    matches: (violation) => violation.message.includes('Raw <input>'),
+    counts: KNOWN_RAW_ELEMENTS,
+    registerName: 'KNOWN_RAW_ELEMENTS',
+    noun: 'raw governed element(s)',
+    matches: (violation) => violation.message.startsWith('Raw <'),
   },
   {
     counts: KNOWN_HANDWRITTEN_CLASSES,
@@ -310,36 +385,48 @@ export function checkStoryCoverage(uiPath) {
 }
 
 /**
- * Scans a directory recursively for Control components and returns all violations.
+ * Every surface the application renders, relative to `apps/web/src`.
  *
- * @param {string} dirPath - Absolute path to control components directory
+ * The rule was written for the operator panel and only ever read it, so the
+ * public site and the broadcast overlays were ungoverned — not by a decision,
+ * but because nothing walked them. All three render from the same tokens and
+ * compose the same patterns; a hand-written `cl-card` costs the same on any of
+ * them, and a fix made to the atom reaches none of them.
+ */
+export const SCANNED_SURFACES = ['control/components', 'components', 'layouts', 'pages'];
+
+/** Source a surface is written in. `.astro` is most of the public site. */
+function isScannableSource(entry) {
+  if (entry.includes('.test.') || entry.includes('.stories.')) return false;
+  return entry.endsWith('.tsx') || entry.endsWith('.ts') || entry.endsWith('.astro');
+}
+
+/**
+ * Scans one surface recursively and returns its violations, keyed by the path
+ * relative to `rootDir` so a caller can report where a file actually lives.
+ *
+ * @param {string} dirPath - Absolute path to the surface directory
+ * @param {string} [rootDir] - Absolute path violations are reported relative to
  * @returns {Record<string, readonly { line: number, message: string }[]>}
  */
-export function scanControlComponents(dirPath) {
+export function scanControlComponents(dirPath, rootDir = dirPath) {
   const results = {};
 
   function scan(current) {
-    const entries = readdirSync(current);
-    for (const entry of entries) {
+    for (const entry of readdirSync(current)) {
       const fullPath = join(current, entry);
-      const stat = statSync(fullPath);
 
-      if (stat.isDirectory()) {
-        // Skip the owned ui/ primitives directory
+      if (statSync(fullPath).isDirectory()) {
+        // The owned library is what everything else is measured against.
         if (entry === 'ui') continue;
         scan(fullPath);
-      } else if (
-        (entry.endsWith('.tsx') || entry.endsWith('.ts')) &&
-        !entry.endsWith('.test.tsx') &&
-        !entry.endsWith('.test.ts')
-      ) {
-        const content = readFileSync(fullPath, 'utf8');
-        const relPath = relative(dirPath, fullPath);
-        const fileViolations = checkFileOwnership(entry, content);
-        if (fileViolations.length > 0) {
-          results[relPath] = fileViolations;
-        }
+        continue;
       }
+      if (!isScannableSource(entry)) continue;
+
+      const rel = relative(rootDir, fullPath);
+      const violations = checkFileOwnership(rel, readFileSync(fullPath, 'utf8'));
+      if (violations.length > 0) results[rel] = violations;
     }
   }
 
@@ -347,18 +434,38 @@ export function scanControlComponents(dirPath) {
   return results;
 }
 
+/**
+ * Scans every surface under `apps/web/src`.
+ *
+ * @param {string} webSrcDir - Absolute path to `apps/web/src`
+ * @returns {Record<string, readonly { line: number, message: string }[]>}
+ */
+export function scanEverySurface(webSrcDir) {
+  const results = {};
+  for (const surface of SCANNED_SURFACES) {
+    const dir = join(webSrcDir, surface);
+    if (!existsSync(dir)) continue;
+    Object.assign(results, scanControlComponents(dir, webSrcDir));
+  }
+  return results;
+}
+
 // CLI runner when executed directly
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 
 if (isMain) {
-  const componentsDir = join(
-    fileURLToPath(import.meta.url),
-    '../../apps/web/src/control/components',
-  );
+  const webSrc = join(fileURLToPath(import.meta.url), '../../apps/web/src');
 
-  const violationsMap = scanControlComponents(componentsDir);
+  const violationsMap = scanEverySurface(webSrc);
   const fileCount = Object.keys(violationsMap).length;
-  const missingStories = checkStoryCoverage(join(componentsDir, 'ui'));
+  // Both owned layers, for the same reason the ownership rule reads both. The
+  // public primitives are `.astro`, which the coverage rule does not require a
+  // story for — Storybook has no Astro renderer — but a React primitive added
+  // there later is covered without this line changing again.
+  const missingStories = [
+    ...checkStoryCoverage(join(webSrc, 'control/components/ui')),
+    ...checkStoryCoverage(join(webSrc, 'components/ui')),
+  ];
 
   if (missingStories.length > 0) {
     console.error(
@@ -368,9 +475,7 @@ if (isMain) {
   }
 
   if (fileCount > 0) {
-    console.error(
-      `\x1b[31m[FAIL]\x1b[0m Found Control UI ownership violations in ${fileCount} file(s):`,
-    );
+    console.error(`\x1b[31m[FAIL]\x1b[0m Found UI ownership violations in ${fileCount} file(s):`);
     for (const [file, violations] of Object.entries(violationsMap)) {
       console.error(`\n  \x1b[1m${file}\x1b[0m:`);
       for (const v of violations) {
@@ -383,8 +488,8 @@ if (isMain) {
   if (missingStories.length > 0) process.exit(1);
 
   console.log(
-    '\x1b[32m[PASS]\x1b[0m All Control UI components comply with atomic ownership, and every ' +
-      'owned library component has a story.',
+    '\x1b[32m[PASS]\x1b[0m Every surface composes the owned component library, and every owned ' +
+      'library component has a story.',
   );
   process.exit(0);
 }
