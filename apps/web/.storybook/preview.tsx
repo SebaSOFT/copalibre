@@ -6,6 +6,10 @@ import { ToastProvider } from '../src/control/components/ToastProvider.js';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '../src/lib/language-preference.js';
 import '@copalibre/design-tokens/generated/copalibre.css';
 import '../src/styles/control.css';
+// The broadcast surface's own stylesheet. Without it the TV stories rendered
+// as unstyled text: `TvDashboard`'s rules used to live inside `TvLayout.astro`,
+// where nothing but that page could load them.
+import '../src/styles/tv-broadcast.css';
 
 /**
  * Widths the codebase declares, not device presets (0213 design.md Decision 5).
@@ -56,10 +60,21 @@ const withLanguage: Decorator = (Story, context) => {
 };
 
 /**
- * `ControlShell` sets `data-density="control"` on its root, and the denser
- * operator spacing is scoped to that attribute. Outside it an operator
- * component renders at the wrong spacing, so the workbench supplies it — for
- * the operator surface only, which is the one that has it in the application.
+ * The operator surface's spacing scope and page chrome — deliberately *not* its
+ * shell.
+ *
+ * `ControlShell` puts `data-density="control"` on a root that also carries
+ * `.cl-control`, and it is tempting to reproduce both. `.cl-control` is the
+ * whole application layout: a two-column grid, `minmax(180px, 240px)` of
+ * sidebar beside the main column, at `min-height: 100vh`. Applying it to a
+ * single component makes that component the *sidebar* — capped at 240px wide
+ * and stretched to the full viewport height. A table then refuses to widen, and
+ * a card or a button stretches vertically to fill a column it was never in.
+ *
+ * Only the density attribute carries spacing (it redefines `--cl-density-*` and
+ * nothing else), so that is what the workbench applies. The background, colour
+ * and font are page chrome the shell happened to supply on the same element;
+ * they are supplied here directly rather than by borrowing a layout with them.
  *
  * Derived from the story's own title rather than a per-story parameter, so a
  * new operator story cannot forget to opt in.
@@ -67,7 +82,15 @@ const withLanguage: Decorator = (Story, context) => {
 const withSurfaceChrome: Decorator = (Story, context) => {
   if (!context.title.startsWith('Admin/')) return <Story />;
   return (
-    <div className="cl-control" data-density="control">
+    <div
+      data-density="control"
+      style={{
+        background: 'var(--cl-surface-base)',
+        color: 'var(--cl-text-primary)',
+        fontFamily: 'var(--cl-font-body)',
+        padding: 'var(--cl-space-4)',
+      }}
+    >
       <Story />
     </div>
   );

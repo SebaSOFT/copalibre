@@ -12,46 +12,61 @@ import type { SupportedLanguage } from '../lib/language-preference.js';
  * stay the truth and the "using last known" notice remains. That failure mode
  * is worth reviewing, and it is otherwise reachable only by breaking the API.
  */
+/**
+ * Six matches, not two.
+ *
+ * The grid is the thing worth reviewing here, and two cards cannot show it: at
+ * a desktop width they occupy two of four column tracks and the layout reads
+ * the same as it did when there was no grid at all. A fixture has to be big
+ * enough to exercise what the story exists to demonstrate.
+ */
+const SIDES: readonly (readonly [string, string, number, string, string, number])[] = [
+  ['Club Atlético Independiente', 'CAI', 2, 'Deportivo San Juan', 'DSJ', 1],
+  ['Unión de Rivadavia', 'UNR', 3, 'Atlético Chimbas', 'ACH', 0],
+  ['Sportivo Desamparados', 'SDE', 1, 'Villa Krause', 'VKR', 1],
+  ['Peñarol de San Juan', 'PSJ', 0, 'Trinidad FC', 'TFC', 2],
+  ['San Martín', 'SMA', 4, 'Del Bono', 'DBO', 2],
+  ['Colón Junior', 'CJR', 1, 'Marquesado', 'MAR', 3],
+];
+
 const DASHBOARD: LiveDashboard = {
   standingsVersion: 12,
   usingLastKnown: true,
-  matches: [
-    {
-      matchId: 'm-1',
+  matches: SIDES.map(([home, homeAbbr, homeScore, away, awayAbbr, awayScore], index) => {
+    const live = index % 2 === 0;
+    return {
+      matchId: `m-${index + 1}`,
       stageNumber: 1,
-      matchNumber: 7,
-      state: 'live',
+      matchNumber: index + 1,
+      state: live ? ('live' as const) : ('final' as const),
       projectionVersion: 12,
-      clockSeconds: 4726,
+      ...(live ? { clockSeconds: 4726 - index * 600 } : {}),
       sides: [
         {
-          entrantId: 'e-1',
-          name: 'Club Atlético Independiente',
-          abbreviation: 'CAI',
-          score: 2,
-          state: 'live',
+          entrantId: `e-${index}-h`,
+          name: home,
+          abbreviation: homeAbbr,
+          score: homeScore,
+          state: live
+            ? ('live' as const)
+            : homeScore > awayScore
+              ? ('winner' as const)
+              : ('loser' as const),
         },
         {
-          entrantId: 'e-2',
-          name: 'Deportivo San Juan',
-          abbreviation: 'DSJ',
-          score: 1,
-          state: 'live',
+          entrantId: `e-${index}-a`,
+          name: away,
+          abbreviation: awayAbbr,
+          score: awayScore,
+          state: live
+            ? ('live' as const)
+            : awayScore > homeScore
+              ? ('winner' as const)
+              : ('loser' as const),
         },
       ],
-    },
-    {
-      matchId: 'm-2',
-      stageNumber: 1,
-      matchNumber: 8,
-      state: 'final',
-      projectionVersion: 9,
-      sides: [
-        { entrantId: 'e-3', name: 'Unión de Rivadavia', score: 3, state: 'winner' },
-        { entrantId: 'e-4', name: 'Atlético Chimbas', score: 0, state: 'loser' },
-      ],
-    },
-  ],
+    };
+  }),
 };
 
 function labelsFor(locale: SupportedLanguage) {

@@ -36,6 +36,22 @@ const meta = {
   title: 'Public/MatchCard',
   component: MatchCard,
   args: { match: BASE, labels: labelsFor('en') },
+  /*
+   * Rendered in the grid it actually ships inside.
+   *
+   * `matches.astro` and `MatchesViewRoute` both place this card in
+   * `.cl-matches-view__grid`, so a bare story showed it 1408px wide at desktop
+   * — four times its real width, and nothing like the 343px it occupies beside
+   * its siblings. A card reviewed at a width it never has is a card reviewed
+   * against the wrong constraints.
+   */
+  decorators: [
+    (Story) => (
+      <div className="cl-matches-view__grid">
+        <Story />
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof MatchCard>;
 
 export default meta;

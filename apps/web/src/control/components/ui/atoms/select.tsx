@@ -41,7 +41,18 @@ export function Select({
         <RadixSelect.Icon className="cl-select__icon">▾</RadixSelect.Icon>
       </RadixSelect.Trigger>
       <RadixSelect.Portal>
-        <RadixSelect.Content className="cl-select__content cl-dialog-surface">
+        {/*
+         * `popper` rather than Radix's default `item-aligned`, which positions
+         * the panel so the *selected* item sits on top of the trigger — the
+         * value you are changing disappears behind the list of values you are
+         * choosing from. `popper` opens the panel beside the trigger instead,
+         * offset by the same 4px the DropdownMenu organism uses.
+         */}
+        <RadixSelect.Content
+          className="cl-select__content cl-dialog-surface"
+          position="popper"
+          sideOffset={4}
+        >
           <RadixSelect.Viewport>
             {options.map((option) => (
               <RadixSelect.Item

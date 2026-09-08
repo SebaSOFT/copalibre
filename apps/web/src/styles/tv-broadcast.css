@@ -692,3 +692,143 @@
     padding: 4vmin 3vmin 18vmin;
   }
 }
+
+/* ==========================================================================
+   TvDashboard's own rules.
+   
+   Moved out of `TvLayout.astro`'s `<style is:global>` block. They were global
+   to the document but private to that one file, so the React component they
+   style could not be rendered correctly anywhere else — including the
+   component workbench, where the broadcast surface rendered as unstyled text.
+   A component's styling belongs where the component's consumers can reach it.
+   `TvLayout.astro` keeps what is genuinely the page's: the document chrome,
+   the overlay modes and the chroma key.
+   ========================================================================== */
+/**
+   * Sized for a screen read from 5-10m rather than arm's length (0031
+   * 2.3) — a fixed rem scale would be right for one panel size and wrong
+   * for the next, so every measure here is vmin-relative instead.
+   */
+.tv-dashboard {
+  --tv-accent: var(--cl-focus-ring);
+  display: flex;
+  flex-direction: column;
+  gap: 3vmin;
+  height: 100%;
+  font-family: var(--cl-font-body);
+}
+.tv-dashboard__logo {
+  max-height: 6vmin;
+  max-width: 20vmin;
+  object-fit: contain;
+  align-self: flex-end;
+}
+.tv-dashboard__matches {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(40vmin, 1fr));
+  gap: 3vmin;
+  flex: 1;
+}
+.tv-match {
+  background: var(--cl-surface-panel);
+  color: var(--cl-text-primary);
+  border-inline-start: 1vmin solid var(--cl-border-muted);
+  padding: 3vmin;
+  display: flex;
+  flex-direction: column;
+  gap: 2vmin;
+}
+.tv-match__badge {
+  display: flex;
+  align-items: center;
+  gap: 1vmin;
+  font-family: var(--cl-font-display);
+  font-weight: var(--cl-weight-semibold);
+  text-transform: uppercase;
+  font-size: clamp(var(--cl-font-size-lg), 3vmin, calc(var(--cl-font-size-lg) * 2));
+  letter-spacing: 0.05em;
+}
+.tv-match__sides {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5vmin;
+}
+.tv-match__side {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 3vmin;
+  min-width: 0;
+}
+.tv-match__name {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--cl-font-display);
+  font-weight: var(--cl-weight-medium);
+  font-size: clamp(var(--cl-font-size-xl), 5vmin, calc(var(--cl-font-size-3xl) * 2));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tv-match__score {
+  font-family: var(--cl-font-display);
+  font-weight: var(--cl-weight-bold);
+  font-size: clamp(var(--cl-font-size-2xl), 9vmin, calc(var(--cl-font-size-3xl) * 4));
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* BREAKPOINTS token md: keep a single scorecard column on tablet-sized panels. */
+@media (max-width: 768px) {
+  .tv-dashboard__matches {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Nearby Matches on Pinned Screen */
+.tv-nearby {
+  margin-top: 2vmin;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5vmin;
+}
+
+.tv-nearby__title {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-xs), 1.8vmin, var(--cl-font-size-sm));
+  color: var(--cl-brand-cyan);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tv-nearby__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(30vmin, 1fr));
+  gap: 2vmin;
+}
+
+.tv-match--spotlight {
+  border-inline-start-width: 1.5vmin;
+  box-shadow: 0 8px 32px var(--cl-surface-base);
+}
+
+@keyframes tvPulseGlow {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.3;
+  }
+}
+
+@keyframes tvPulseDot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
