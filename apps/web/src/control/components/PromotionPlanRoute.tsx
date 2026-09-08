@@ -207,7 +207,7 @@ export function PromotionPlanRoute({
   const titleNode = <FormattedMessage {...messages.promotionTitle} />;
 
   const listingNode = (
-    <div className="cl-platform-sections">
+    <div className="cl-screen-sections">
       <Card
         aria-label={intl.formatMessage(messages.promotionConfigHeading)}
         className="cl-chamfer cl-chamfer--control"

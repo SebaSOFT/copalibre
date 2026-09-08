@@ -172,6 +172,26 @@ describe('the CSS output', () => {
     expect(css).toContain('--cl-state-live: var(--cl-color-cyan-400);');
   });
 
+  it('names a screen’s section stack once, not once per screen', () => {
+    // `cl-dashboard-sections` and `cl-platform-sections` were byte-identical.
+    // Asserting the old names are gone is what makes a missed call site fail
+    // here rather than render unstyled in a browser.
+    expect(css).toContain('.cl-screen-sections {');
+    expect(css).not.toContain('cl-dashboard-sections');
+    expect(css).not.toContain('cl-platform-sections');
+  });
+
+  it('lays entity cards out with auto-fit, since an organization has however many it has', () => {
+    expect(css).toContain(
+      '.cl-entity-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));',
+    );
+  });
+
+  it('styles the menu surface from the dialog surface rather than defining a second one', () => {
+    expect(css).toContain('.cl-dropdown-menu__content {');
+    expect(css).toContain(".cl-dropdown-menu__item[data-variant='destructive']");
+  });
+
   it('collapses motion under prefers-reduced-motion', () => {
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
     expect(css).toContain(`--cl-motion-base: ${MOTION.instant};`);

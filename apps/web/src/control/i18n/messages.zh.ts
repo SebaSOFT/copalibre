@@ -984,4 +984,8 @@ export const messages: Record<string, string> = {
   'control.matchesView.series.decided': '{winner} 赢得系列赛',
   'control.matchesView.series.aggregate': '两回合总比分 {home}–{away}',
   'control.matchesView.seeAll': '查看所有比赛',
+
+  'control.dashboard.open': '打开',
+  'control.dashboard.export': '导出',
+  'control.dashboard.resumeEditing': '继续编辑',
 };

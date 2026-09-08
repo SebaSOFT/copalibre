@@ -97,13 +97,20 @@ export interface DashboardModel {
   readonly activity: readonly ActivityEntry[];
 }
 
+/**
+ * What a lifecycle is called.
+ *
+ * It used to carry an accent *class* alongside the label, which the card then
+ * pasted onto its own markup. The card now names its tone through the library's
+ * closed set instead, so the class string has no reader and is gone with it.
+ */
 export const LIFECYCLE_PRESENTATION: Readonly<
-  Record<TournamentLifecycle, { readonly label: MessageDescriptor; readonly accent: string }>
+  Record<TournamentLifecycle, { readonly label: MessageDescriptor }>
 > = {
-  live: { label: messages.lifecycleLive, accent: 'cl-state--live' },
-  upcoming: { label: messages.lifecycleUpcoming, accent: 'cl-state--upcoming' },
-  draft: { label: messages.lifecycleDraft, accent: 'cl-state--muted' },
-  finished: { label: messages.lifecycleFinished, accent: 'cl-state--positive' },
+  live: { label: messages.lifecycleLive },
+  upcoming: { label: messages.lifecycleUpcoming },
+  draft: { label: messages.lifecycleDraft },
+  finished: { label: messages.lifecycleFinished },
 };
 
 /**

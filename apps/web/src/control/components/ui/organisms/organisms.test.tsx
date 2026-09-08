@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { jest } from '@jest/globals';
 import { DataTable } from './data-table.js';
 import { Modal } from './modal.js';
+import { DropdownMenu } from './dropdown-menu.js';
 
 interface Row {
   readonly id: string;
@@ -138,5 +139,80 @@ describe('Modal', () => {
     );
     expect(screen.getByText('Detalle')).toBeDefined();
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeDefined();
+  });
+});
+
+describe('DropdownMenu', () => {
+  const items = [
+    { id: 'participants', label: 'Participantes CSV', onSelect: () => {} },
+    { id: 'results', label: 'Resultados CSV', onSelect: () => {} },
+  ];
+
+  it('renders nothing until it is open', () => {
+    render(<DropdownMenu items={items} trigger={<button type="button">Exportar</button>} />);
+
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Exportar' })).toBeDefined();
+  });
+
+  it('names its surface and lists every item as a menu item', () => {
+    render(
+      <DropdownMenu
+        items={items}
+        onOpenChange={() => {}}
+        open
+        trigger={<button type="button">Exportar</button>}
+      />,
+    );
+
+    expect(screen.getByRole('menu', { name: 'Exportar' })).toBeDefined();
+    expect(screen.getAllByRole('menuitem')).toHaveLength(2);
+  });
+
+  it('runs an item’s onSelect', () => {
+    const onSelect = jest.fn();
+    render(
+      <DropdownMenu
+        items={[{ id: 'one', label: 'Resultados CSV', onSelect }]}
+        onOpenChange={() => {}}
+        open
+        trigger={<button type="button">Exportar</button>}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Resultados CSV' }));
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes on Escape, so a keyboard user is never trapped in it', () => {
+    const onOpenChange = jest.fn();
+    render(
+      <DropdownMenu
+        items={items}
+        onOpenChange={onOpenChange}
+        open
+        trigger={<button type="button">Exportar</button>}
+      />,
+    );
+
+    fireEvent.keyDown(screen.getByRole('menu'), { code: 'Escape', key: 'Escape' });
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('marks a destructive item so it does not read like the rest', () => {
+    render(
+      <DropdownMenu
+        items={[{ id: 'one', label: 'Archivar', onSelect: () => {}, variant: 'destructive' }]}
+        onOpenChange={() => {}}
+        open
+        trigger={<button type="button">Acciones</button>}
+      />,
+    );
+
+    expect(screen.getByRole('menuitem', { name: 'Archivar' }).dataset['variant']).toBe(
+      'destructive',
+    );
   });
 });

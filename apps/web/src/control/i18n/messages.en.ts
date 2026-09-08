@@ -2936,4 +2936,12 @@ export const messages = defineMessages({
     defaultMessage: 'On aggregate {home}–{away}',
   },
   matchesViewSeeAll: { id: 'control.matchesView.seeAll', defaultMessage: 'See every match' },
+
+  // Dashboard tournament card (openspec 0211)
+  dashboardOpen: { id: 'control.dashboard.open', defaultMessage: 'Open' },
+  dashboardExport: { id: 'control.dashboard.export', defaultMessage: 'Export' },
+  dashboardResumeEditing: {
+    id: 'control.dashboard.resumeEditing',
+    defaultMessage: 'Resume editing',
+  },
 });

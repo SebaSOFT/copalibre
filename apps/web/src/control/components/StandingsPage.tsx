@@ -219,7 +219,7 @@ export function StandingsPage({
   );
 
   const listingNode = (
-    <div className="cl-platform-sections">
+    <div className="cl-screen-sections">
       {tabs.length === 0 && status === undefined && (
         <p className="cl-list-screen__empty">
           <FormattedMessage {...messages.standingsNoLayouts} />
@@ -333,7 +333,7 @@ export function TiebreakTrace({
   return (
     <div
       aria-label={intl.formatMessage(messages.standingsTraceAriaLabel)}
-      className="cl-platform-sections"
+      className="cl-screen-sections"
     >
       <h2 className="cl-label">
         <FormattedMessage {...messages.standingsTraceTitle} />

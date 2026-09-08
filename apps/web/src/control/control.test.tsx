@@ -345,9 +345,98 @@ describe('what the dashboard renders', () => {
     ['draft', 'DRAFT'],
     ['finished', 'FINISHED'],
   ] as const)('labels a %s tournament as %s, not only by colour', (lifecycle, label) => {
-    render(withIntl(<Card card={card({ lifecycle })} />));
+    render(
+      withIntl(
+        <Card
+          card={card({ lifecycle })}
+          onArchive={() => {}}
+          onExport={() => {}}
+          onExportConfiguration={() => {}}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
 
-    expect(screen.getByTestId('lifecycle').textContent).toBe(label);
+    expect(screen.getByText(label)).toBeDefined();
+  });
+
+  it('links its title and its primary action to that tournament’s matches view', () => {
+    // `.../matches` is not a route — `parseControlPath` accepts it only as
+    // `matches/{matchId}`, one console — so the listing is `matches-view`.
+    render(
+      withIntl(
+        <Card
+          card={card({ lifecycle: 'live' })}
+          onArchive={() => {}}
+          onExport={() => {}}
+          onExportConfiguration={() => {}}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    const href = '/control/liga-mendocina/tournaments/apertura-2026/matches-view';
+    expect(screen.getByRole('link', { name: 'Torneo Apertura' }).getAttribute('href')).toBe(href);
+    expect(screen.getByRole('link', { name: 'Open' }).getAttribute('href')).toBe(href);
+  });
+
+  it('sends a draft back into editing rather than into a match listing it has none of', () => {
+    render(
+      withIntl(
+        <Card
+          card={card({ lifecycle: 'draft' })}
+          onArchive={() => {}}
+          onExport={() => {}}
+          onExportConfiguration={() => {}}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    expect(screen.getByRole('link', { name: 'Resume editing' }).getAttribute('href')).toBe(
+      '/control/liga-mendocina/tournaments/apertura-2026/settings',
+    );
+  });
+
+  it('offers archiving only on a finished tournament', () => {
+    const props = {
+      onArchive: () => {},
+      onExport: () => {},
+      onExportConfiguration: () => {},
+      organizationAlias: 'liga-mendocina',
+    };
+    const { unmount } = render(withIntl(<Card card={card({ lifecycle: 'live' })} {...props} />));
+    expect(screen.queryByRole('button', { name: 'Archive' })).toBeNull();
+    unmount();
+
+    render(withIntl(<Card card={card({ lifecycle: 'finished' })} {...props} />));
+    expect(screen.getByRole('button', { name: 'Archive' })).toBeDefined();
+  });
+
+  it('keeps every export inside the menu, so the footer is never a button row', () => {
+    render(
+      withIntl(
+        <Card
+          card={card({ lifecycle: 'live' })}
+          onArchive={() => {}}
+          onExport={() => {}}
+          onExportConfiguration={() => {}}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    // This is the defect the change exists to fix: four equal-weight export
+    // buttons per card, which at 375px wrapped into four ragged rows.
+    for (const name of [
+      'Participants CSV',
+      'Results CSV',
+      'Standings CSV',
+      'Export configuration JSON',
+    ]) {
+      expect(screen.queryByRole('button', { name })).toBeNull();
+    }
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDefined();
   });
 
   it('renders the sidenav, the cards and the activity log', () => {
@@ -417,10 +506,21 @@ describe('what the dashboard renders', () => {
           organizationAlias="liga-mendocina"
         />,
       );
-      fireEvent.click(screen.getByRole('button', { name: 'Participantes CSV' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Resultados CSV' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Posiciones CSV' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Exportar configuración JSON' }));
+      // The exports live behind the card's own menu now, so each is chosen the
+      // way an operator chooses it: open the menu, pick the item. Radix closes
+      // the menu on select, hence the reopen before each one.
+      for (const name of [
+        'Participantes CSV',
+        'Resultados CSV',
+        'Posiciones CSV',
+        'Exportar configuración JSON',
+      ]) {
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Exportar' }), {
+          code: 'Enter',
+          key: 'Enter',
+        });
+        fireEvent.click(await screen.findByRole('menuitem', { name }));
+      }
 
       await waitFor(() => expect(click).toHaveBeenCalledTimes(4));
       expect(requests).toEqual([

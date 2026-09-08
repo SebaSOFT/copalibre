@@ -386,7 +386,7 @@ export function ZoneGroupRoute({
   const selectedZone = zones.find((z) => z.number === selectedZoneNumber);
 
   const listingNode = (
-    <div className="cl-platform-sections">
+    <div className="cl-screen-sections">
       <Card
         aria-label={intl.formatMessage(messages.zoneGroupZonesHeading)}
         className="cl-chamfer cl-chamfer--control"

@@ -348,7 +348,7 @@ export function VenueManagementRoute({
   const selectedSchedule = schedules.find((s) => s.scheduleId === selectedScheduleId);
 
   const listingNode = (
-    <div className="cl-platform-sections">
+    <div className="cl-screen-sections">
       {/* Venues */}
       <Card
         aria-label={intl.formatMessage(messages.resourceManagementVenuesHeading)}

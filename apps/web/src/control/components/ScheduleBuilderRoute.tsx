@@ -306,7 +306,7 @@ export function ScheduleBuilderRoute({
   );
 
   const listingNode = (
-    <div className="cl-platform-sections">
+    <div className="cl-screen-sections">
       {fixtures.length === 0 && (
         <p className="cl-card__description">
           <FormattedMessage {...messages.scheduleBuilderNoFixtures} />

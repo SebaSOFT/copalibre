@@ -287,7 +287,9 @@ describe('ControlApp session guard and callback', () => {
     render(<ControlApp />);
 
     await waitFor(() => expect(document.title).toBe('Panel — liga-mendocina'));
-    expect(screen.queryByText('Torneos')).not.toBeNull();
+    // The nav entry specifically: the dashboard's tournament section now carries
+    // a heading of the same word, so an unscoped text query matches both.
+    expect(screen.queryAllByRole('link', { name: 'Torneos' })).not.toHaveLength(0);
   });
 
   it('completes the callback and client-side-navigates to returnTo, without a page reload', async () => {
