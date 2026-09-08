@@ -10,7 +10,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { escapeCsvFormulaCell, stringifyCsv } from '@copalibre/domain';
+import { escapeCsvFormulaCell, stringifyCsv } from '@copalibre/domain/import-export';
 import { CompetitionRepository, type Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';

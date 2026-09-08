@@ -25,16 +25,13 @@ export {
   InvalidSemanticVersionError,
 } from './identifiers/semantic-version.js';
 export { Alias, type AliasScope } from './identifiers/alias.js';
-export {
-  MAX_CSV_IMPORT_BYTES,
-  validateCsvImport,
-  type ParticipantImportTarget,
-  type CsvImportTarget,
-  type CsvImportError,
-  type CsvImportPreview,
-  type CsvImportPreviewRow,
-} from './import-export/csv-import.js';
-export { stringifyCsv, escapeCsvFormulaCell } from './import-export/csv-export.js';
+/*
+ * CSV import/export is deliberately absent from this barrel: it depends on
+ * `csv-parse`/`csv-stringify`, which read `Buffer` at module scope, so keeping
+ * it here put Node-only code in the import graph of every browser file that
+ * touches the domain. It lives at `@copalibre/domain/import-export`, and every
+ * consumer of it is server-side.
+ */
 export { suggestAlias, suggestAvailableAlias, isSuggestable } from './identifiers/suggest-alias.js';
 export {
   Abbreviation,

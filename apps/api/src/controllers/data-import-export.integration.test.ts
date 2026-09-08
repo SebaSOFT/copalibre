@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
-import { footballDescriptor, validateCsvImport } from '@copalibre/domain';
+import { footballDescriptor } from '@copalibre/domain';
+import { validateCsvImport } from '@copalibre/domain/import-export';
 import {
   AuditReader,
   CsvImportRepository,

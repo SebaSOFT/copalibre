@@ -6,7 +6,11 @@ import {
   type ClaimedJob,
   type Database,
 } from '@copalibre/persistence';
-import { validateCsvImport, type CsvImportPreview, type CsvImportTarget } from '@copalibre/domain';
+import {
+  validateCsvImport,
+  type CsvImportPreview,
+  type CsvImportTarget,
+} from '@copalibre/domain/import-export';
 import type { Kysely } from 'kysely';
 import type { JobHandler } from './dispatcher.js';
 import { payloadOf } from './relay-runner.js';

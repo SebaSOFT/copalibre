@@ -11,7 +11,8 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { MAX_CSV_IMPORT_BYTES, isPlayerRole, type PlayerRole } from '@copalibre/domain';
+import { isPlayerRole, type PlayerRole } from '@copalibre/domain';
+import { MAX_CSV_IMPORT_BYTES } from '@copalibre/domain/import-export';
 import {
   CsvImportRepository,
   EnrollmentRepository,
