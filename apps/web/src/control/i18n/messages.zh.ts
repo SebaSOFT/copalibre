@@ -346,6 +346,8 @@ export const messages: Record<string, string> = {
   'control.roles.role.broadcaster': '转播',
   'control.roles.role.viewer': '观察员',
   'control.roles.inviteDialog.close': '关闭',
+  'control.registration.modalClose': '关闭',
+  'control.shell.drawerClose': '关闭菜单',
   'control.roles.inviteDialog.email': '电子邮箱',
   'control.roles.inviteDialog.role': '角色',
   'control.roles.inviteDialog.roleAriaLabel': '邀请角色',

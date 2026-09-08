@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   createControlApiClient,
@@ -365,15 +366,11 @@ export function ZoneGroupRoute({
   }
 
   if (loading) {
-    return <p className="cl-inline-alert">{intl.formatMessage(messages.zoneGroupLoading)}</p>;
+    return <Alert tone="info">{intl.formatMessage(messages.zoneGroupLoading)}</Alert>;
   }
 
   if (loadError) {
-    return (
-      <p className="cl-inline-alert" role="alert">
-        {loadError}
-      </p>
-    );
+    return <Alert tone="destructive">{loadError}</Alert>;
   }
 
   const breadcrumbNode = (

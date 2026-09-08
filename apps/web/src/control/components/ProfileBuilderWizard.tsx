@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
@@ -249,26 +250,31 @@ export function ProfileBuilderWizard({
         )}
 
         {problems.length > 0 && (
-          <ul className="cl-inline-alert" style={{ marginTop: 'var(--cl-space-4)' }}>
-            {problems.map((problem) => (
-              <li key={problem.id}>{intl.formatMessage(problem)}</li>
-            ))}
-          </ul>
+          <Alert block className="cl-inline-alert--spaced" tone="destructive">
+            <ul>
+              {problems.map((problem) => (
+                <li key={problem.id}>{intl.formatMessage(problem)}</li>
+              ))}
+            </ul>
+          </Alert>
         )}
 
         {failures.length > 0 && (
-          <ul
-            className="cl-inline-alert"
-            data-testid="profile-server-failures"
-            style={{ marginTop: 'var(--cl-space-4)' }}
+          <Alert
+            block
+            className="cl-inline-alert--spaced"
+            testId="profile-server-failures"
+            tone="destructive"
           >
-            {failures.map((failure, index) => (
-              <li key={`${failure.stage}-${failure.field ?? index}`}>
-                [{failure.stage}
-                {failure.field ? `:${failure.field}` : ''}] {failure.message}
-              </li>
-            ))}
-          </ul>
+            <ul>
+              {failures.map((failure, index) => (
+                <li key={`${failure.stage}-${failure.field ?? index}`}>
+                  [{failure.stage}
+                  {failure.field ? `:${failure.field}` : ''}] {failure.message}
+                </li>
+              ))}
+            </ul>
+          </Alert>
         )}
 
         <footer

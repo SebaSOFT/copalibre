@@ -76,14 +76,14 @@ describe('DataTable', () => {
 describe('Modal', () => {
   it('renders its title and body when open, nothing when closed', () => {
     const { rerender } = render(
-      <Modal onOpenChange={() => {}} open={false} title="Invitar">
+      <Modal closeLabel="Close" onOpenChange={() => {}} open={false} title="Invitar">
         Contenido
       </Modal>,
     );
     expect(screen.queryByRole('dialog')).toBeNull();
 
     rerender(
-      <Modal onOpenChange={() => {}} open title="Invitar">
+      <Modal closeLabel="Close" onOpenChange={() => {}} open title="Invitar">
         Contenido
       </Modal>,
     );
@@ -95,7 +95,7 @@ describe('Modal', () => {
   it('closes on Escape', () => {
     const onOpenChange = jest.fn();
     render(
-      <Modal onOpenChange={onOpenChange} open title="Invitar">
+      <Modal closeLabel="Close" onOpenChange={onOpenChange} open title="Invitar">
         Contenido
       </Modal>,
     );
@@ -106,7 +106,7 @@ describe('Modal', () => {
   it('closes via its own close button', () => {
     const onOpenChange = jest.fn();
     render(
-      <Modal onOpenChange={onOpenChange} open title="Invitar">
+      <Modal closeLabel="Close" onOpenChange={onOpenChange} open title="Invitar">
         Contenido
       </Modal>,
     );
@@ -116,7 +116,7 @@ describe('Modal', () => {
 
   it('renders with no description and no footer', () => {
     render(
-      <Modal onOpenChange={() => {}} open title="Invitar">
+      <Modal closeLabel="Close" onOpenChange={() => {}} open title="Invitar">
         Contenido
       </Modal>,
     );
@@ -128,6 +128,7 @@ describe('Modal', () => {
   it('renders a description and footer when supplied', () => {
     render(
       <Modal
+        closeLabel="Close"
         description="Detalle"
         footer={<button type="button">Guardar</button>}
         onOpenChange={() => {}}

@@ -76,15 +76,15 @@ test('text named only in a comment is not a finding', () => {
 
 test('the debt register admits its recorded count and nothing beyond it', () => {
   const one = '<nav aria-label="Sections" />';
-  // modal.tsx is recorded at 1.
-  assert.equal(checkTextCatalogueCoverage('modal.tsx', one).length, 0);
-  assert.equal(checkTextCatalogueCoverage('modal.tsx', `${one}\n${one}`).length, 1);
+  // AcceptInvitationForm.tsx is recorded at 1.
+  assert.equal(checkTextCatalogueCoverage('AcceptInvitationForm.tsx', one).length, 0);
+  assert.equal(checkTextCatalogueCoverage('AcceptInvitationForm.tsx', `${one}\n${one}`).length, 1);
   // A file not listed gets no allowance.
   assert.equal(checkTextCatalogueCoverage('NotListed.tsx', one).length, 1);
 });
 
 test('the debt register ratchets: improving below the recorded count asks for it to be lowered', () => {
-  const findings = checkTextCatalogueCoverage('modal.tsx', 'const nothing = 1;');
+  const findings = checkTextCatalogueCoverage('AcceptInvitationForm.tsx', 'const nothing = 1;');
   assert.equal(findings.length, 1);
   assert.match(findings[0].message, /fewer than the 1 recorded/);
 });

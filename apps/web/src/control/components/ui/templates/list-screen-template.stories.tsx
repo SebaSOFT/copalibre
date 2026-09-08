@@ -55,7 +55,16 @@ export const Populated: Story = {
             rows={ROWS}
           />
         }
-        pagination={<Pagination onPageChange={() => undefined} page={1} pageCount={4} />}
+        pagination={
+          <Pagination
+            navigationLabel={intl.formatMessage(storyText.tournaments)}
+            nextLabel={intl.formatMessage(storyText.save)}
+            onPageChange={() => undefined}
+            page={1}
+            pageCount={4}
+            previousLabel={intl.formatMessage(storyText.cancel)}
+          />
+        }
         title={intl.formatMessage(storyText.venuesAndOfficials)}
         toolbar={
           <TableToolbar

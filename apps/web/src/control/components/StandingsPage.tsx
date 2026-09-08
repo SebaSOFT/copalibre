@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { EntrantName } from '../../components/EntrantName.js';
 import type {
@@ -226,7 +227,7 @@ export function StandingsPage({
         </p>
       )}
 
-      {status !== undefined && <p className="cl-inline-alert">{status}</p>}
+      {status !== undefined && <Alert tone="info">{status}</Alert>}
 
       {projection && (
         <>

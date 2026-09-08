@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   ControlApiError,
@@ -192,7 +193,7 @@ export function PromotionPlanRoute({
   }
 
   if (loading) {
-    return <p className="cl-inline-alert">{intl.formatMessage(messages.promotionLoading)}</p>;
+    return <Alert tone="info">{intl.formatMessage(messages.promotionLoading)}</Alert>;
   }
 
   const breadcrumbNode = (
@@ -295,11 +296,7 @@ export function PromotionPlanRoute({
           </h2>
         </header>
         <div className="cl-card__content">
-          {previewError && (
-            <p className="cl-inline-alert" role="alert">
-              {previewError}
-            </p>
-          )}
+          {previewError && <Alert tone="destructive">{previewError}</Alert>}
           {preview && !previewError && (
             <ol className="cl-platform-update-list">
               {preview.combined.map((entrant, index) => (

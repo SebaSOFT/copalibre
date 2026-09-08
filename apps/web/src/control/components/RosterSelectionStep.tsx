@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { useIntl } from 'react-intl';
 import {
   type ConsoleEntrant,
@@ -180,9 +181,7 @@ function EntrantRosterEditor({
     return (
       <Card className="cl-chamfer cl-chamfer--control" style={editorStyle}>
         {status.error ? (
-          <p className="cl-inline-alert" role="alert">
-            {status.error}
-          </p>
+          <Alert tone="destructive">{status.error}</Alert>
         ) : (
           <p>{intl.formatMessage(messages.matchConsoleRosterLoading)}</p>
         )}
@@ -195,11 +194,7 @@ function EntrantRosterEditor({
       <h3 style={headerStyle}>
         {entrant.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
       </h3>
-      {status.error && (
-        <p className="cl-inline-alert" role="alert">
-          {status.error}
-        </p>
-      )}
+      {status.error && <Alert tone="destructive">{status.error}</Alert>}
       <ul style={listStyle}>
         {candidates.map((candidate) => {
           const selection = selections[candidate.personId];

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
 import { RealtimeClient } from '@copalibre/realtime';
@@ -288,11 +289,11 @@ export function MatchConsoleRoute({
 
   if (!projection) {
     return (
-      <p className="cl-inline-alert">
+      <Alert tone="destructive">
         {status.kind === 'error'
           ? status.message
           : intl.formatMessage(messages.matchConsoleLoading)}
-      </p>
+      </Alert>
     );
   }
 
@@ -573,42 +574,44 @@ export function MatchConsoleRoute({
 
   const alertsNode = (
     <>
-      {status.kind === 'error' && <p className="cl-inline-alert">{status.message}</p>}
+      {status.kind === 'error' && <Alert tone="destructive">{status.message}</Alert>}
       {stale && (
-        <p className="cl-inline-alert">
+        <Alert tone="info">
           <FormattedMessage {...messages.matchConsoleAwaitingProjection} />
-        </p>
+        </Alert>
       )}
       {pendingMutations.some((mutation) => mutation.status === 'refused') && (
         <ul>
           {pendingMutations
             .filter((mutation) => mutation.status === 'refused')
             .map((mutation) => (
-              <li className="cl-inline-alert" key={mutation.id}>
-                <span>
-                  {intl.formatMessage(messages.matchConsoleRefusedAction, {
-                    kind: mutation.action.kind,
-                    reason: mutation.refusalReason ?? '',
-                  })}
-                </span>
-                {/* What was actually recorded, kept in front of the operator. A refusal
+              <li key={mutation.id}>
+                <Alert block tone="destructive">
+                  <span>
+                    {intl.formatMessage(messages.matchConsoleRefusedAction, {
+                      kind: mutation.action.kind,
+                      reason: mutation.refusalReason ?? '',
+                    })}
+                  </span>
+                  {/* What was actually recorded, kept in front of the operator. A refusal
                     caused by a series decision means this match will never be played, and
                     these contents are the only basis for deciding whether the result
                     belongs elsewhere — as a correction to an earlier game, most often. */}
-                <span className="cl-card__description">
-                  {intl.formatMessage(messages.matchConsoleRefusedContents, {
-                    contents: describeQueuedAction(mutation.action),
-                  })}
-                </span>
-                <Button
-                  onClick={() =>
-                    void remove(mutation.id).then(() => void refreshPendingMutations())
-                  }
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage {...messages.matchConsoleDismiss} />
-                </Button>
+                  <span className="cl-card__description">
+                    {intl.formatMessage(messages.matchConsoleRefusedContents, {
+                      contents: describeQueuedAction(mutation.action),
+                    })}
+                  </span>
+                  <Button
+                    onClick={() =>
+                      void remove(mutation.id).then(() => void refreshPendingMutations())
+                    }
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FormattedMessage {...messages.matchConsoleDismiss} />
+                  </Button>
+                </Alert>
               </li>
             ))}
         </ul>
@@ -846,7 +849,7 @@ export function MatchConsoleRoute({
             />
           ) : (
             !rosterStepOpen && (
-              <p className="cl-inline-alert">
+              <Alert tone="info">
                 <FormattedMessage {...messages.matchConsoleNoRosterSelected} />
                 {canSelectRoster && (
                   <>
@@ -860,7 +863,7 @@ export function MatchConsoleRoute({
                     </Button>
                   </>
                 )}
-              </p>
+              </Alert>
             )
           )}
           <div className="cl-platform-form-grid">
@@ -963,7 +966,7 @@ export function MatchConsoleRoute({
               <FormattedMessage {...messages.matchConsoleFinalizeMatch} />
             </Button>
           ) : (
-            <div className="cl-inline-alert">
+            <Alert block tone="info">
               <strong>
                 <FormattedMessage {...messages.matchConsoleFinalizeImmutable} />
               </strong>
@@ -990,7 +993,7 @@ export function MatchConsoleRoute({
                   <FormattedMessage {...messages.matchConsoleConfirmFinalization} />
                 </Button>
               </div>
-            </div>
+            </Alert>
           )}
         </div>
       </Card>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   createControlApiClient,
@@ -89,9 +90,9 @@ function StageSettingsSection({
           <FormattedMessage {...messages.stageDelete} />
         </Button>
         {seeded && (
-          <p className="cl-inline-alert">
+          <Alert tone="info">
             <FormattedMessage {...messages.stageSeededExplanation} />
-          </p>
+          </Alert>
         )}
       </div>
     </div>
@@ -214,9 +215,9 @@ function StageConfigurationSection({
           <FormattedMessage {...messages.stageConfigurationApply} />
         </Button>
         {seeded && (
-          <p className="cl-inline-alert">
+          <Alert tone="info">
             <FormattedMessage {...messages.stageConfigurationSeededExplanation} />
-          </p>
+          </Alert>
         )}
       </div>
     </div>
@@ -309,7 +310,7 @@ export function SeedingBuilderRoute({
     };
   }, [api, organizationAlias, tournamentAlias, stageNumber]);
 
-  if (seeding === undefined) return <p className="cl-inline-alert">{status}</p>;
+  if (seeding === undefined) return <Alert tone="info">{status}</Alert>;
 
   const assignments: readonly SeedAssignment[] = seeding.seeds.map((seed) => ({
     ...seed,

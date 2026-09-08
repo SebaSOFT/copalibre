@@ -244,10 +244,13 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
 
-    // Verify close control exposes accessible name "Close"
-    const closeButton = dialog.getByRole('button', { name: 'Close' });
+    // The close control has an accessible name, in the interface language.
+    // It was the literal "Close" for every viewer until 0214 made it a required
+    // prop sourced from the caller's catalogue, so this asserts the name exists
+    // and is translated rather than asserting one hardcoded English word.
+    const closeButton = dialog.getByRole('button', { name: /cerrar|close/i });
     await expect(closeButton).toBeVisible();
-    await expect(closeButton).toHaveAttribute('aria-label', 'Close');
+    await expect(closeButton).toHaveAttribute('aria-label', /cerrar|close/i);
 
     // Click close button and confirm modal dismisses
     await closeButton.click();

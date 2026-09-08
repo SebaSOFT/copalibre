@@ -5,19 +5,26 @@ export interface PaginationProps {
   readonly page: number;
   readonly pageCount: number;
   readonly onPageChange: (page: number) => void;
-  readonly previousLabel?: string;
-  readonly nextLabel?: string;
+  /**
+   * Required, all three: these defaulted to the literals `'Previous'`, `'Next'`
+   * and `'Pagination'`, so the control stayed English in every interface
+   * language. Copy belongs to the caller, which has an `intl` and a catalogue.
+   */
+  readonly previousLabel: string;
+  readonly nextLabel: string;
+  readonly navigationLabel: string;
 }
 
 export function Pagination({
   page,
   pageCount,
   onPageChange,
-  previousLabel = 'Previous',
-  nextLabel = 'Next',
+  previousLabel,
+  nextLabel,
+  navigationLabel,
 }: PaginationProps): React.JSX.Element {
   return (
-    <nav aria-label="Pagination" className="cl-pagination">
+    <nav aria-label={navigationLabel} className="cl-pagination">
       <Button
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}

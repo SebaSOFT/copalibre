@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { Button } from './ui/atoms/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
@@ -97,20 +98,12 @@ export function AcceptInvitationForm({
       </CardHeader>
 
       <CardContent>
-        {error && (
-          <p className="cl-inline-alert cl-inline-alert--destructive" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <Alert tone="destructive">{error}</Alert>}
 
         {success ? (
-          <div
-            className="cl-inline-alert cl-inline-alert--live cl-inline-alert--stacked"
-            role="status"
-          >
-            <p className="cl-inline-alert__title">¡Cuenta configurada con éxito!</p>
-            <p className="cl-inline-alert__body">Redirigiendo a la consola de control…</p>
-          </div>
+          <Alert heading="¡Cuenta configurada con éxito!" tone="success">
+            Redirigiendo a la consola de control…
+          </Alert>
         ) : (
           <form className="cl-auth-form" onSubmit={handleSubmit}>
             <FormField id="name" label="Nombre completo (opcional)">

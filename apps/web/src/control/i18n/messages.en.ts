@@ -950,6 +950,11 @@ export const messages = defineMessages({
   rolesRoleBroadcaster: { id: 'control.roles.role.broadcaster', defaultMessage: 'Broadcast' },
   rolesRoleViewer: { id: 'control.roles.role.viewer', defaultMessage: 'Viewer' },
   rolesInviteDialogClose: { id: 'control.roles.inviteDialog.close', defaultMessage: 'Close' },
+  registrationModalClose: {
+    id: 'control.registration.modalClose',
+    defaultMessage: 'Close',
+  },
+  shellDrawerClose: { id: 'control.shell.drawerClose', defaultMessage: 'Close menu' },
   rolesInviteDialogEmail: { id: 'control.roles.inviteDialog.email', defaultMessage: 'Email' },
   rolesInviteDialogRole: { id: 'control.roles.inviteDialog.role', defaultMessage: 'Role' },
   rolesInviteDialogRoleAriaLabel: {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Alert, type AlertTone } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   createControlApiClient,
@@ -45,7 +46,10 @@ export function RegistrationReviewRoute({
   const [rows, setRows] = useState<readonly ReviewRegistrationRow[]>([]);
   const [status, setStatus] = useState<LoadStatus>('loading');
   const [csv, setCsv] = useState<CsvImportPreviewResponse>();
-  const [csvStatus, setCsvStatus] = useState('');
+  const [csvStatus, setCsvStatus] = useState<{
+    readonly text: string;
+    readonly tone: AlertTone;
+  }>();
   const [abbreviationCandidates, setAbbreviationCandidates] = useState<
     readonly RegistrationResponse[]
   >([]);
@@ -96,16 +100,16 @@ export function RegistrationReviewRoute({
 
   if (status === 'loading' && rows.length === 0) {
     return (
-      <p className="cl-inline-alert">
+      <Alert tone="info">
         <FormattedMessage {...messages.registrationLoading} />
-      </p>
+      </Alert>
     );
   }
   if (status === 'failed' && rows.length === 0) {
     return (
-      <p className="cl-inline-alert">
+      <Alert tone="destructive">
         <FormattedMessage {...messages.registrationLoadFailed} />
-      </p>
+      </Alert>
     );
   }
 
@@ -144,7 +148,10 @@ export function RegistrationReviewRoute({
                   })
                   .then((created) => {
                     setCsv(created);
-                    setCsvStatus(intl.formatMessage(messages.registrationImportQueued));
+                    setCsvStatus({
+                      text: intl.formatMessage(messages.registrationImportQueued),
+                      tone: 'info',
+                    });
                     return csvApi.fetchCsvImport(
                       organizationAlias,
                       tournamentAlias,
@@ -153,17 +160,20 @@ export function RegistrationReviewRoute({
                   })
                   .then((preview) => {
                     setCsv(preview);
-                    setCsvStatus(preview.status);
+                    setCsvStatus({ text: preview.status, tone: 'info' });
                   })
                   .catch(() =>
-                    setCsvStatus(intl.formatMessage(messages.registrationImportCreateFailed)),
+                    setCsvStatus({
+                      text: intl.formatMessage(messages.registrationImportCreateFailed),
+                      tone: 'destructive',
+                    }),
                   ),
               );
             }}
             type="file"
           />
         </FormField>
-        {csvStatus && <p className="cl-inline-alert">{csvStatus}</p>}
+        {csvStatus && <Alert tone={csvStatus.tone}>{csvStatus.text}</Alert>}
         {csv?.preview && (
           <div>
             <p>
@@ -191,7 +201,10 @@ export function RegistrationReviewRoute({
                   .commitCsvImport(organizationAlias, tournamentAlias, csv.importId, csv.sourceHash)
                   .then((next) => {
                     setCsv(next);
-                    setCsvStatus(intl.formatMessage(messages.registrationImportConfirmed));
+                    setCsvStatus({
+                      text: intl.formatMessage(messages.registrationImportConfirmed),
+                      tone: 'success',
+                    });
                   })
               }
               type="button"

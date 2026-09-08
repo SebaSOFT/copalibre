@@ -10,7 +10,7 @@ import { storyText } from '../story-text.js';
 const meta = {
   title: 'Admin/Organisms/Modal',
   component: Modal,
-  args: { open: false, onOpenChange: () => undefined, title: '', children: null },
+  args: { open: false, onOpenChange: () => undefined, title: '', children: null, closeLabel: '' },
   argTypes: { open: { control: 'boolean' } },
 } satisfies Meta<typeof Modal>;
 
@@ -32,6 +32,7 @@ export const Open: Story = {
           {intl.formatMessage(storyText.settingsTitle)}
         </Button>
         <Modal
+          closeLabel={intl.formatMessage(storyText.cancel)}
           onOpenChange={setOpen}
           open={open}
           title={intl.formatMessage(storyText.settingsTitle)}
@@ -51,6 +52,7 @@ export const WithDescriptionAndFooter: Story = {
     const [open, setOpen] = useState(args.open);
     return (
       <Modal
+        closeLabel={intl.formatMessage(storyText.cancel)}
         description={intl.formatMessage(storyText.saved)}
         footer={
           <>
@@ -85,6 +87,7 @@ export const LongContentAtNarrowWidth: Story = {
     const [open, setOpen] = useState(args.open);
     return (
       <Modal
+        closeLabel={intl.formatMessage(storyText.cancel)}
         footer={
           <Button variant="primary">{intl.formatMessage(storyText.savePromotionPlan)}</Button>
         }

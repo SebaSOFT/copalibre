@@ -355,6 +355,8 @@ export const messages: Record<string, string> = {
   'control.roles.role.broadcaster': 'Übertragung',
   'control.roles.role.viewer': 'Betrachter',
   'control.roles.inviteDialog.close': 'Schließen',
+  'control.registration.modalClose': 'Schließen',
+  'control.shell.drawerClose': 'Menü schließen',
   'control.roles.inviteDialog.email': 'E-Mail',
   'control.roles.inviteDialog.role': 'Rolle',
   'control.roles.inviteDialog.roleAriaLabel': 'Rolle der Einladung',

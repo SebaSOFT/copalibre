@@ -475,7 +475,12 @@ describe('control routes', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Publicar sembrado' }));
     });
 
-    expect((await screen.findByRole('status')).textContent).toContain('Sin fixtures generados');
+    // Two polite live regions now, not one: the Alert atom gives every
+    // informational alert the `role="status"` it previously lacked, so this
+    // screen's stage-locked explanation announces alongside the publish result.
+    // Asserting on the one under test rather than on "the only status".
+    const statuses = await screen.findAllByRole('status');
+    expect(statuses.map((node) => node.textContent).join(' ')).toContain('Sin fixtures generados');
     // Once on load, once to refresh after the confirmed publish.
     expect(fetchSeeding).toHaveBeenCalledTimes(2);
   });

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { Button } from './ui/atoms/button.js';
@@ -212,15 +213,11 @@ export function TournamentRulesetPage({
             </ul>
           )}
 
-          {error !== undefined && (
-            <p className="cl-inline-alert" role="alert">
-              {error}
-            </p>
-          )}
+          {error !== undefined && <Alert tone="destructive">{error}</Alert>}
           {saved && (
-            <p className="cl-inline-alert">
+            <Alert tone="success">
               <FormattedMessage {...messages.settingsSaved} />
-            </p>
+            </Alert>
           )}
         </form>
       }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import {
   createControlApiClient,
@@ -493,9 +494,7 @@ export function PreferencesRoute({
               <FormattedMessage {...controlMessages.orgIdentityLoading} />
             </p>
           ) : orgLoadError ? (
-            <p className="cl-inline-alert" role="alert">
-              {orgLoadError}
-            </p>
+            <Alert tone="destructive">{orgLoadError}</Alert>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <FramedImage
@@ -575,11 +574,11 @@ export function PreferencesRoute({
           </p>
 
           {rebuildResult && (
-            <p className="cl-inline-alert">
+            <Alert tone="info">
               {intl.formatMessage(controlMessages.statisticsRebuildResult, {
                 matches: rebuildResult.matches,
               })}
-            </p>
+            </Alert>
           )}
 
           <div
@@ -629,9 +628,9 @@ export function PreferencesRoute({
             )}
           </div>
           {rebuildConfirming && (
-            <p className="cl-inline-alert" role="alert">
+            <Alert tone="destructive">
               <FormattedMessage {...controlMessages.statisticsRebuildConfirmPrompt} />
-            </p>
+            </Alert>
           )}
         </Card>
       )}
@@ -657,9 +656,7 @@ export function PreferencesRoute({
               <FormattedMessage {...controlMessages.storageUsageLoading} />
             </p>
           ) : storageError ? (
-            <p className="cl-inline-alert" role="alert">
-              {storageError}
-            </p>
+            <Alert tone="destructive">{storageError}</Alert>
           ) : storageUsage !== undefined ? (
             <p style={{ marginTop: '1rem', fontWeight: 600 }}>
               <FormattedMessage
