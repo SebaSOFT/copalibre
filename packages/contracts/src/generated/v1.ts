@@ -3976,6 +3976,16 @@ export interface components {
             /** @description One cell per declared column, keyed by column code */
             cells: components["schemas"]["TableCellResponse"];
         };
+        TableProjectionSegmentResponse: {
+            /**
+             * Format: uuid
+             * @description Absent when the segment covers a stage that has no groups
+             */
+            groupId?: string;
+            /** @description The group’s own name, e.g. "Group A" */
+            groupName?: string;
+            rows: components["schemas"]["TableRowResponse"][];
+        };
         TableProjectionResponse: {
             layoutCode: string;
             /** @enum {string} */
@@ -3987,6 +3997,8 @@ export interface components {
             rows: components["schemas"]["TableRowResponse"][];
             /** @description Freshest `statistic-totals` projection version among this scope’s matches; 0 when none has been folded yet */
             projectionVersion: number;
+            /** @description Stage-scoped reads only: the same figures split into one ranked block per group, or a single block when the stage has no groups */
+            segments?: components["schemas"]["TableProjectionSegmentResponse"][];
             /**
              * @description Whether a team-granularity, stage-scoped column counts one result per series or one per played match. Absent for a tournament-scoped or non-team layout, or a stage declaring no series at all.
              * @enum {string}
