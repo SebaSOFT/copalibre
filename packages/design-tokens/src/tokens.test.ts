@@ -23,6 +23,9 @@ import {
   assertBadge,
 } from './components.js';
 import { FORBIDDEN, formatHits, scanForForbidden } from './forbidden.js';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { generateCss } from './generate/css.js';
 import { generateTailwindModule, generateTailwindTheme } from './generate/tailwind.js';
 import { generateStyleGuide } from './generate/style-guide.js';
@@ -387,5 +390,34 @@ describe('public table and pill treatments (openspec 0199)', () => {
       /\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*var\(--cl-state-live\)/,
     );
     expect(css).toMatch(/\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*border-color/);
+  });
+});
+
+/**
+ * The generated stylesheet is `.gitignore`d, so it is only ever as fresh as the
+ * last `build:tokens`. Every page in `apps/web` imports it directly, which means
+ * a stale copy does not fail anything — it just serves last week's rules, and a
+ * change to this file appears to have no effect. That is how an overflow fix in
+ * 0211 read as inert against a browser that was rendering the previous build.
+ *
+ * `apps/web`'s own build now regenerates it, so a stale file should be
+ * impossible. This is the check that says so out loud if it happens anyway.
+ */
+describe('the generated stylesheet', () => {
+  const generatedPath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    '..',
+    'generated',
+    'copalibre.css',
+  );
+
+  it('matches what the source generates, or has not been built yet', () => {
+    if (!existsSync(generatedPath)) return; // Nothing on disk can be serving stale rules.
+
+    expect(readFileSync(generatedPath, 'utf8')).toBe(
+      // If this fails: run `yarn workspace @copalibre/design-tokens build:tokens`.
+      // Something is serving CSS that no longer matches `generate/css.ts`.
+      generateCss(),
+    );
   });
 });

@@ -47,6 +47,14 @@ yarn workspace @copalibre/<workspace> test:coverage 2>&1 | grep -E "does not mee
 
 `@copalibre/web` sits a fraction of a point over its 85% branch threshold, so almost any new UI code trips it; budget tests for the branches a change adds rather than discovering it in CI.
 
+**Generated CSS is a build artifact, not a source file.** `packages/design-tokens/generated/copalibre.css` is `.gitignore`d, and every page in `apps/web` imports it directly, so an out-of-date copy serves stale rules rather than failing: a change to `generate/css.ts` then appears to have no effect in the browser. `apps/web`'s `dev` and `build` scripts regenerate it, so a plain `yarn workspace @copalibre/web build` — including the one Playwright's `webServer` runs — is always current. Regenerate it by hand only when running something that bypasses that build:
+
+```bash
+yarn workspace @copalibre/design-tokens build:tokens
+```
+
+A design-tokens unit test compares the file on disk against `generateCss()` and names this command when they differ, so a stale artifact fails a test instead of quietly rendering last week's stylesheet.
+
 Yarn must use the conventional `node-modules` linker with the global cache. Do not enable PnP or Zero-Installs, and do not commit Yarn cache artifacts. Workspace scripts that execute a root development tool should follow the existing explicit `../../node_modules/.bin/<tool>` pattern when Yarn does not expose the hoisted binary.
 
 ## Code and Architecture
