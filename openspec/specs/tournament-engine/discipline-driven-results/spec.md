@@ -258,3 +258,22 @@ positionally first in its statistics map
 #### Scenario: Score matches the match's own recorded event history
 - **WHEN** a match's event timeline records scoring events summing to a given total for each side
 - **THEN** the displayed score for that match SHALL equal that total for each side
+
+### Requirement: A stage table projection reports the group each row belongs to
+A stage-scoped table projection SHALL report, for every row, the group that row's figures were
+accumulated within, so a reader can find the leader of each group from a single request rather than
+one request per group. A stage that has no groups SHALL report its rows as one segment covering the
+whole stage, so a reader needs no knowledge of the stage's format to find its leader.
+
+#### Scenario: A grouped stage separates its rows
+- **WHEN** a stage-scoped table projection is read for a stage drawn into groups
+- **THEN** each row reports its own group, and the rows of each group are ranked within that group
+
+#### Scenario: An ungrouped stage reports one segment
+- **WHEN** a stage-scoped table projection is read for a stage with no groups
+- **THEN** the rows form a single segment covering the stage, ranked against each other
+
+#### Scenario: A format without a group phase still yields a leader
+- **WHEN** a stage-scoped table projection is read for a stage whose format is an elimination bracket
+- **THEN** its entrants are ranked from their recorded outcomes as one segment, and the top-ranked
+  entrant is reported like any other segment leader

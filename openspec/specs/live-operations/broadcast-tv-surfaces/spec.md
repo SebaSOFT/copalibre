@@ -145,3 +145,15 @@ transparent, and a solid key colour stays solid.
   colour
 - **THEN** no discipline imagery is rendered, and the background remains transparent or the solid key
   colour as requested
+
+### Requirement: TV surfaces present the tournament ticker at broadcast scale
+A TV surface SHALL present the same tournament ticker as the public pages, sized for reading at
+distance rather than at arm's length, and SHALL honour a reduced-motion preference the same way.
+
+#### Scenario: The ticker renders on a venue display
+- **WHEN** a TV kiosk route is displayed for a tournament with live matches
+- **THEN** the ticker renders with the tournament's current results at the surface's own type scale
+
+#### Scenario: An overlay presentation does not carry the ticker
+- **WHEN** a TV route is requested in the lower-third overlay presentation
+- **THEN** the ticker is not rendered, since that presentation exists to leave the frame clear

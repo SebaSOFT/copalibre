@@ -648,3 +648,25 @@ no dedicated backdrop treatment SHALL render a neutral fallback rather than a mi
 - **WHEN** a public page is rendered for a tournament whose discipline ships no background imagery
 - **THEN** the page renders an explicit token-drawn neutral ground rather than no backdrop at all, and
   never another discipline's imagery
+
+### Requirement: Public tournament pages present a tournament ticker
+A public tournament page SHALL present a ticker carrying that tournament's live and most recently
+finished matches, its leaders, and its next scheduled matches. Statistic-bearing items SHALL read from
+the tournament's declared discipline rather than a hardcoded metric, and an item kind with no data for
+that tournament SHALL be omitted rather than rendered empty.
+
+#### Scenario: A live tournament's ticker carries current results
+- **WHEN** a visitor opens a tournament page while a match is live
+- **THEN** the ticker includes that match with its current score
+
+#### Scenario: Every format yields a leader item
+- **WHEN** the ticker renders for a tournament whose format has no group phase
+- **THEN** a leader item still appears, naming the stage's top-ranked entrant
+
+#### Scenario: A discipline declaring no player ranking shows no top-performer items
+- **WHEN** the ticker renders for a tournament whose discipline declares no player-ranking layout
+- **THEN** no top-performer item appears, and the remaining item kinds render normally
+
+#### Scenario: Reduced motion stops the scroll without hiding content
+- **WHEN** a visitor whose system requests reduced motion opens the page
+- **THEN** the ticker does not scroll continuously, and every item still becomes readable
