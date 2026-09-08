@@ -1,7 +1,7 @@
 import { Controller, Get, Header, Inject, Param, Req } from '@nestjs/common';
 import { NotFoundException } from '../http/error-contract.js';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
-import { escapeCsvFormulaCell, stringifyCsv } from '@copalibre/domain';
+import { escapeCsvFormulaCell, stringifyCsv } from '@copalibre/domain/import-export';
 import {
   OrganizationRepository,
   TournamentRepository,

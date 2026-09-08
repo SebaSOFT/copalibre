@@ -76,6 +76,53 @@ const RAW_ELEMENT_RULES = [
 ];
 
 /**
+ * Classes an owned component already applies.
+ *
+ * A raw `<button>` is caught by the element rules above; a `<div>` wearing the
+ * design system's own class name is not, because it is not a governed element.
+ * It bypasses the component exactly as the raw element does — the class name
+ * becomes the API, and nothing checks the markup around it.
+ *
+ * Only the base class is matched, never its BEM children: `cl-card__header`
+ * inside a `Card` is that component's own structure, not a bypass of it, and
+ * counting those inflates the problem by an order of magnitude.
+ */
+const OWNED_CLASS_RULES = [
+  { className: 'cl-card', replacement: '`Card` atom' },
+  { className: 'cl-badge', replacement: '`Badge` atom' },
+  { className: 'cl-btn', replacement: '`Button` atom' },
+  { className: 'cl-data-table', replacement: '`DataTable` organism' },
+];
+
+/**
+ * Hand-written owned classes present when this rule was introduced
+ * (2026-09-08), counted per file.
+ *
+ * **A debt register, not permission**, on the same ratchet as
+ * `KNOWN_RAW_INPUTS`: a count may only go down. A new hand-written class in any
+ * of these files fails, as does one in a file not listed, and improving below
+ * the recorded number fails until it is lowered. Delete an entry at zero.
+ *
+ * `TournamentCard.tsx`'s single `cl-btn` is a genuine library gap rather than
+ * an oversight: it styles an `<a>` as a button, and the `Button` atom renders a
+ * `<button>`, which cannot be a link. It is recorded here so the gap stays
+ * counted until the library has something for it.
+ */
+const KNOWN_HANDWRITTEN_CLASSES = new Map([
+  ['ActivityLog.tsx', 1],
+  ['BracketCanvas.tsx', 2],
+  ['DeviceHeartbeat.tsx', 1],
+  ['LiveConsoleRoute.tsx', 3],
+  ['LoadMatchDataRoute.tsx', 2],
+  ['RegistrationReviewPage.tsx', 3],
+  ['RosterRoleSelector.tsx', 2],
+  ['SeedingBuilderPage.tsx', 2],
+  ['SeedingBuilderRoute.tsx', 2],
+  ['StandingsPage.tsx', 2],
+  ['TournamentCard.tsx', 1],
+]);
+
+/**
  * Blanks comments out rather than removing them, so every remaining character
  * keeps its original offset and reported line numbers stay true.
  */
@@ -136,6 +183,22 @@ export function checkFileOwnership(filename, content) {
     }
   }
 
+  for (const rule of OWNED_CLASS_RULES) {
+    // `(?![\w-])` so only the base class matches: `cl-card__header` and
+    // `cl-card--muted` are a component's own structure and modifiers, not a
+    // second element bypassing it.
+    const pattern = new RegExp(`${rule.className}(?![\\w-])`, 'g');
+    let match;
+    while ((match = pattern.exec(source)) !== null) {
+      violations.push({
+        line: lineOf(source, match.index),
+        message:
+          `Hand-written \`${rule.className}\` class in ${baseName}. Compose the owned ` +
+          `${rule.replacement} instead of writing the class it applies.`,
+      });
+    }
+  }
+
   return reconcileWithBaseline(
     baseName,
     violations.sort((a, b) => a.line - b.line),
@@ -143,33 +206,107 @@ export function checkFileOwnership(filename, content) {
 }
 
 /**
- * Applies the debt register: a file's known raw inputs are not reported, but any
- * beyond its recorded count are, and a file that has improved is reported so the
- * number gets lowered rather than quietly leaving room to regress.
+ * Applies the debt registers.
+ *
+ * Two independent ratchets run over the same violation list: one for raw
+ * `<input>`s, one for hand-written owned classes. Each behaves the same way —
+ * violations up to the recorded count are withheld, anything beyond it is
+ * reported, and a file that has improved is reported so the number gets lowered
+ * rather than quietly leaving room to regress. Everything neither register
+ * covers is reported outright.
  */
 function reconcileWithBaseline(baseName, violations) {
-  const allowance = KNOWN_RAW_INPUTS.get(baseName);
-  if (allowance === undefined) return violations;
+  let remaining = violations;
+  const withheld = [];
 
-  const rawInputs = violations.filter((violation) => violation.message.includes('Raw <input>'));
-  const rest = violations.filter((violation) => !violation.message.includes('Raw <input>'));
+  for (const register of REGISTERS) {
+    const allowance = register.counts.get(baseName);
+    if (allowance === undefined) continue;
 
-  if (rawInputs.length > allowance) {
-    return [...rest, ...rawInputs.slice(allowance)];
-  }
-  if (rawInputs.length < allowance) {
-    return [
-      ...rest,
-      {
+    const matched = remaining.filter((violation) => register.matches(violation));
+    remaining = remaining.filter((violation) => !register.matches(violation));
+
+    if (matched.length > allowance) {
+      withheld.push(...matched.slice(allowance));
+    } else if (matched.length < allowance) {
+      withheld.push({
         line: 1,
         message:
-          `${baseName} now has ${rawInputs.length} raw <input>(s), fewer than the ${allowance} ` +
-          'recorded in KNOWN_RAW_INPUTS. Lower the number there (or delete the entry at zero) so ' +
-          'the debt cannot grow back.',
-      },
-    ];
+          `${baseName} now has ${matched.length} ${register.noun}, fewer than the ${allowance} ` +
+          `recorded in ${register.registerName}. Lower the number there (or delete the entry at ` +
+          'zero) so the debt cannot grow back.',
+      });
+    }
   }
-  return rest;
+
+  return [...remaining, ...withheld].sort((a, b) => a.line - b.line);
+}
+
+/** The two ratchets, each owning the violations it recognises by message. */
+const REGISTERS = [
+  {
+    counts: KNOWN_RAW_INPUTS,
+    registerName: 'KNOWN_RAW_INPUTS',
+    noun: 'raw <input>(s)',
+    matches: (violation) => violation.message.includes('Raw <input>'),
+  },
+  {
+    counts: KNOWN_HANDWRITTEN_CLASSES,
+    registerName: 'KNOWN_HANDWRITTEN_CLASSES',
+    noun: 'hand-written owned class(es)',
+    matches: (violation) => violation.message.startsWith('Hand-written'),
+  },
+];
+
+/**
+ * The library tiers. A file in one of these exports a library member; a file at
+ * the root of `ui/` (a story helper, a shared type) does not, which is why the
+ * coverage rule is derived from the tier directories rather than from a list
+ * somebody has to remember to extend.
+ */
+const LIBRARY_TIERS = ['atoms', 'molecules', 'organisms', 'templates'];
+
+/** `export function Pascal(` or `export const Pascal =` — a component, by name. */
+const EXPORTS_COMPONENT = /export\s+(?:function|const)\s+[A-Z]\w*/;
+
+/**
+ * Every owned library component has a story, so the workbench cannot silently
+ * fall behind the library it exists to show (OpenSpec 0213).
+ *
+ * Derived from the directory rather than from a maintained list: `0213` was
+ * written when the library had 23 members and `0211` added a 24th before it
+ * shipped, which is exactly how a hand-kept list goes stale.
+ *
+ * @param {string} uiPath - Absolute path to the owned `ui/` directory
+ * @returns {readonly { component: string, message: string }[]}
+ */
+export function checkStoryCoverage(uiPath) {
+  const missing = [];
+
+  for (const tier of LIBRARY_TIERS) {
+    const tierPath = join(uiPath, tier);
+    let entries;
+    try {
+      entries = readdirSync(tierPath);
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      if (!entry.endsWith('.tsx')) continue;
+      if (entry.includes('.test.') || entry.includes('.stories.')) continue;
+      if (!EXPORTS_COMPONENT.test(readFileSync(join(tierPath, entry), 'utf8'))) continue;
+
+      const story = entry.replace(/\.tsx$/, '.stories.tsx');
+      if (entries.includes(story)) continue;
+      missing.push({
+        component: `${tier}/${entry}`,
+        message: `${tier}/${entry} has no ${story}. Every owned library component needs a story.`,
+      });
+    }
+  }
+
+  return missing;
 }
 
 /**
@@ -221,6 +358,14 @@ if (isMain) {
 
   const violationsMap = scanControlComponents(componentsDir);
   const fileCount = Object.keys(violationsMap).length;
+  const missingStories = checkStoryCoverage(join(componentsDir, 'ui'));
+
+  if (missingStories.length > 0) {
+    console.error(
+      `\x1b[31m[FAIL]\x1b[0m ${missingStories.length} owned library component(s) without a story:`,
+    );
+    for (const missing of missingStories) console.error(`    ${missing.message}`);
+  }
 
   if (fileCount > 0) {
     console.error(
@@ -233,8 +378,13 @@ if (isMain) {
       }
     }
     process.exit(1);
-  } else {
-    console.log('\x1b[32m[PASS]\x1b[0m All Control UI components comply with atomic ownership.');
-    process.exit(0);
   }
+
+  if (missingStories.length > 0) process.exit(1);
+
+  console.log(
+    '\x1b[32m[PASS]\x1b[0m All Control UI components comply with atomic ownership, and every ' +
+      'owned library component has a story.',
+  );
+  process.exit(0);
 }

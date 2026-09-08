@@ -55,6 +55,33 @@ yarn workspace @copalibre/design-tokens build:tokens
 
 A design-tokens unit test compares the file on disk against `generateCss()` and names this command when they differ, so a stale artifact fails a test instead of quietly rendering last week's stylesheet.
 
+### The component workbench
+
+`yarn workspace @copalibre/web storybook` starts Storybook on port 6006 with every owned library
+component, the public and TV components, and the generated token style guide. It is a **local review
+surface**: there is no `build-storybook` script and nothing is hosted, so what it shows is always the
+checked-out branch. It is not built in CI — nothing automated consumes it.
+
+Stories are grouped by surface first (`Admin/`, `Public/`, `TV/`, `Tokens/`) and the library by tier
+(`Admin/Atoms`, `Admin/Molecules`, `Admin/Organisms`, `Admin/Templates`), because a component's
+surface decides what "correct" looks like. Each library component has a `Playground` with every prop
+adjustable and a `Matrix` putting its variants side by side.
+
+Two toolbar controls carry most of the value, and both are worth using on any UI change:
+
+- **Language** — all eight supported languages, rendered from the application's own catalogues. Story
+  text comes from real message descriptors (`ui/story-text.ts`), never literals, so switching to
+  German or Russian shows what a real translation does to the layout. A component whose text is
+  hardcoded stays English under every selection, which is how the workbench makes that visible.
+- **Viewport** — 1440px, the 767px and 374px breakpoints `control.css` declares, and the **188px**
+  zoom floor the token generator names as its narrowest reference. German at 188px is the worst case
+  for nearly every component, and it is one selection away rather than a build.
+
+Visual review here is a person's job by design: there are no screenshot baselines and no diffing
+service. The only automated rule is coverage — `scripts/check-control-ui-ownership.mjs` fails when an
+owned library component has no sibling `*.stories.tsx`, and derives the list from the tier
+directories so a newly added component is covered without the check being edited.
+
 Yarn must use the conventional `node-modules` linker with the global cache. Do not enable PnP or Zero-Installs, and do not commit Yarn cache artifacts. Workspace scripts that execute a root development tool should follow the existing explicit `../../node_modules/.bin/<tool>` pattern when Yarn does not expose the hoisted binary.
 
 ## Code and Architecture

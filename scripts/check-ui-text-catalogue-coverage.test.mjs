@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkTextCatalogueCoverage } from './check-ui-text-catalogue-coverage.mjs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { checkTextCatalogueCoverage, scanWebSources } from './check-ui-text-catalogue-coverage.mjs';
 
 test('a catalogue-sourced attribute is not a finding', () => {
   const code = `
@@ -84,4 +87,14 @@ test('the debt register ratchets: improving below the recorded count asks for it
   const findings = checkTextCatalogueCoverage('modal.tsx', 'const nothing = 1;');
   assert.equal(findings.length, 1);
   assert.match(findings[0].message, /fewer than the 1 recorded/);
+});
+
+test('a story file is not scanned: its text is a demonstration, not interface copy', () => {
+  const root = mkdtempSync(join(tmpdir(), 'catalogue-coverage-'));
+  writeFileSync(join(root, 'Thing.stories.tsx'), '<iframe title="A demonstration frame" />');
+  assert.deepEqual(scanWebSources(root), {});
+
+  // The same string in a real component is still a finding.
+  writeFileSync(join(root, 'Thing.tsx'), '<iframe title="A demonstration frame" />');
+  assert.equal(Object.keys(scanWebSources(root)).length, 1);
 });

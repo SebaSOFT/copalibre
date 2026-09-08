@@ -48,6 +48,20 @@ First used by phase `0004-persistence-postgres-outbox-audit`.
 - Selector convention: prefer `getByRole`/`getByLabel`; use `data-testid` for elements with
   no accessible name (mirrors the pattern proven in sebasoft-app).
 
+## Visual review (Storybook)
+
+- Start: `yarn workspace @copalibre/web storybook` (port 6006). Local only — no static build, nothing
+  hosted, not run in CI.
+- Every owned library component has a `Playground` (all props adjustable) and a `Matrix` (variants
+  side by side); the public and TV components and the generated token style guide are there too,
+  grouped by surface.
+- **This is not an automated gate.** There are no screenshot baselines and no visual diffing: a person
+  looks. The one automated rule is that an owned library component without a sibling `*.stories.tsx`
+  fails `scripts/check-control-ui-ownership.mjs`.
+- The two toolbar controls are where the value is. Set the language to German or Russian and the
+  viewport to 188px — the zoom floor the token generator writes its responsive rules against — and
+  most layout failures show up there before anywhere else.
+
 ## CI
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, and the dependency license scan
