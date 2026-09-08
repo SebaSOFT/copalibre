@@ -271,3 +271,30 @@ render an ad hoc button style outside this atom.
 - **WHEN** a Button is rendered in its loading state
 - **THEN** it does not imply indeterminate progress with no textual cue: it renders a textual
   "Loading" label rather than a bare spinner
+
+### Requirement: DropdownMenu organism for a grouped set of actions
+The component library SHALL provide a `DropdownMenu` organism for presenting a set of related actions
+behind one trigger, consuming the component library's own tokens, so no screen hand-builds menu markup
+or substitutes a row of buttons for a grouped set. The organism SHALL expose its trigger and its items
+to assistive technology as a menu, SHALL open and close by keyboard as well as pointer, SHALL move
+focus through its items with the arrow keys, SHALL close on Escape, and SHALL return focus to its
+trigger on close.
+
+#### Scenario: A screen groups related actions instead of listing them
+- **WHEN** a screen presents several related actions on one entity — its export formats, for example
+- **THEN** it composes the `DropdownMenu` organism rather than rendering one control per action or
+  defining its own menu markup
+
+#### Scenario: The menu is operable by keyboard alone
+- **WHEN** an operator focuses a `DropdownMenu` trigger and presses Enter or Space
+- **THEN** the menu opens, the arrow keys move focus among its items, Enter activates the focused item,
+  and Escape closes the menu and returns focus to the trigger
+
+#### Scenario: Choosing an item runs that action and closes the menu
+- **WHEN** an operator activates one of a `DropdownMenu`'s items
+- **THEN** that item's action runs and the menu closes, leaving focus on the trigger
+
+#### Scenario: The menu is announced as a menu
+- **WHEN** an open `DropdownMenu` is inspected in the accessibility tree
+- **THEN** its trigger and its items carry menu semantics, and the trigger reports whether the menu is
+  open
