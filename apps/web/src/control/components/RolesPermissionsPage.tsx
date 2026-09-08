@@ -383,6 +383,7 @@ export function InviteDialog({
   const [tournamentId, setTournamentId] = useState<string>('');
   return (
     <Modal
+      closeLabel={intl.formatMessage(messages.rolesInviteDialogClose)}
       footer={
         <>
           <Button onClick={onClose} type="button" variant="secondary">

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   clubEmblemUrl,
@@ -160,14 +161,10 @@ export function ClubManagementRoute({
   const selectedClub = clubs.find((club) => club.clubId === selectedClubId);
 
   if (loading) {
-    return <p className="cl-inline-alert">{intl.formatMessage(messages.clubManagementLoading)}</p>;
+    return <Alert tone="info">{intl.formatMessage(messages.clubManagementLoading)}</Alert>;
   }
   if (loadError) {
-    return (
-      <p className="cl-inline-alert" role="alert">
-        {loadError}
-      </p>
-    );
+    return <Alert tone="destructive">{loadError}</Alert>;
   }
 
   const titleNode = <FormattedMessage {...messages.clubManagementTitle} />;

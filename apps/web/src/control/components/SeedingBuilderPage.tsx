@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { BracketCanvas } from './BracketCanvas.js';
 import { Button } from './ui/atoms/button.js';
@@ -95,9 +96,7 @@ export function SeedingBuilderPage({
   const listingNode = (
     <div className="cl-screen-sections">
       {blocked && feedback.kind === 'blocked' && (
-        <p className="cl-inline-alert" role="alert">
-          {intl.formatMessage(feedback.descriptor, feedback.values)}
-        </p>
+        <Alert tone="destructive">{intl.formatMessage(feedback.descriptor, feedback.values)}</Alert>
       )}
 
       <div className="cl-platform-form-grid">

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
@@ -769,9 +770,9 @@ export function TournamentSetupWizard({
                   </FormField>
                 </div>
                 {selectedCondition === undefined && (
-                  <p className="cl-inline-alert">
+                  <Alert tone="info">
                     <FormattedMessage {...messages.wizardRuleConditionlessExplanation} />
-                  </p>
+                  </Alert>
                 )}
                 {selectedCondition && (
                   <ElementAuthoringFields
@@ -817,11 +818,13 @@ export function TournamentSetupWizard({
         )}
 
         {problems.length > 0 && (
-          <ul className="cl-inline-alert" style={{ marginTop: 'var(--cl-space-4)' }}>
-            {problems.map((problem) => (
-              <li key={problem.id}>{intl.formatMessage(problem)}</li>
-            ))}
-          </ul>
+          <Alert block className="cl-inline-alert--spaced" tone="destructive">
+            <ul>
+              {problems.map((problem) => (
+                <li key={problem.id}>{intl.formatMessage(problem)}</li>
+              ))}
+            </ul>
+          </Alert>
         )}
 
         <footer

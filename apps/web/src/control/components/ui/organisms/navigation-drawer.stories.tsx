@@ -8,7 +8,7 @@ import { storyText } from '../story-text.js';
 const meta = {
   title: 'Admin/Organisms/NavigationDrawer',
   component: NavigationDrawer,
-  args: { open: false, onOpenChange: () => undefined, title: '', children: null },
+  args: { open: false, onOpenChange: () => undefined, title: '', children: null, closeLabel: '' },
   argTypes: { open: { control: 'boolean' }, title: { control: 'text' } },
 } satisfies Meta<typeof NavigationDrawer>;
 
@@ -35,6 +35,7 @@ export const Open: Story = {
           {intl.formatMessage(storyText.tournaments)}
         </Button>
         <NavigationDrawer
+          closeLabel={intl.formatMessage(storyText.cancel)}
           onOpenChange={setOpen}
           open={open}
           title={intl.formatMessage(storyText.rolesTitle)}
@@ -71,6 +72,7 @@ export const Closed: Story = {
           {intl.formatMessage(storyText.tournaments)}
         </Button>
         <NavigationDrawer
+          closeLabel={intl.formatMessage(storyText.cancel)}
           onOpenChange={setOpen}
           open={open}
           title={intl.formatMessage(storyText.rolesTitle)}

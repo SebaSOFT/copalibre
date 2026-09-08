@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   createControlApiClient,
@@ -72,16 +73,16 @@ export function PersonProfileRoute({
 
   if (status === 'loading') {
     return (
-      <p className="cl-inline-alert">
+      <Alert tone="info">
         <FormattedMessage {...messages.personProfileLoading} />
-      </p>
+      </Alert>
     );
   }
   if (status === 'failed' || person === undefined) {
     return (
-      <p className="cl-inline-alert">
+      <Alert tone="destructive">
         <FormattedMessage {...messages.personProfileLoadFailed} />
-      </p>
+      </Alert>
     );
   }
 

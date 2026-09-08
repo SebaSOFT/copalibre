@@ -221,7 +221,12 @@ function ControlShellChrome({
         </Button>
       </header>
 
-      <NavigationDrawer open={drawerOpen} onOpenChange={setDrawerOpen} title="COPALIBRE CMD">
+      <NavigationDrawer
+        closeLabel={intl.formatMessage(messages.shellDrawerClose)}
+        onOpenChange={setDrawerOpen}
+        open={drawerOpen}
+        title="COPALIBRE CMD"
+      >
         {navContent(() => setDrawerOpen(false))}
       </NavigationDrawer>
 

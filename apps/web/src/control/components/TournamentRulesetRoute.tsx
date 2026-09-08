@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage } from 'react-intl';
 import { createControlApiClient, type ControlApiClient } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
@@ -45,16 +46,16 @@ export function TournamentRulesetRoute({
 
   if (failed) {
     return (
-      <p className="cl-inline-alert">
+      <Alert tone="destructive">
         <FormattedMessage {...messages.settingsLoadFailed} />
-      </p>
+      </Alert>
     );
   }
   if (overrides === undefined) {
     return (
-      <p className="cl-inline-alert">
+      <Alert tone="info">
         <FormattedMessage {...messages.settingsLoading} />
-      </p>
+      </Alert>
     );
   }
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
 import {
@@ -171,11 +172,11 @@ export function LoadMatchDataRoute({
 
   if (status.kind === 'loading' || !projection) {
     return (
-      <p className="cl-inline-alert">
+      <Alert tone="destructive">
         {status.kind === 'error'
           ? status.message
           : intl.formatMessage(messages.loadMatchDataLoading)}
-      </p>
+      </Alert>
     );
   }
 
@@ -189,12 +190,10 @@ export function LoadMatchDataRoute({
     projection.segments.length > 0 || projection.events.length > 0 || projection.result !== null;
 
   if (!canBulkLoad) {
-    return <p className="cl-inline-alert">{intl.formatMessage(messages.loadMatchDataForbidden)}</p>;
+    return <Alert tone="destructive">{intl.formatMessage(messages.loadMatchDataForbidden)}</Alert>;
   }
   if (hasPriorActivity) {
-    return (
-      <p className="cl-inline-alert">{intl.formatMessage(messages.loadMatchDataNotScheduled)}</p>
-    );
+    return <Alert tone="info">{intl.formatMessage(messages.loadMatchDataNotScheduled)}</Alert>;
   }
 
   const includedMembers = projection.entrants.flatMap(({ entrantId }) => {
@@ -731,7 +730,7 @@ export function LoadMatchDataRoute({
             </Button>
           </div>
           {csvErrors && csvErrors.length > 0 && (
-            <div className="cl-inline-alert" role="alert">
+            <Alert block tone="destructive">
               <p>
                 {intl.formatMessage(messages.loadMatchDataCsvErrorsHeading, {
                   count: csvErrors.length,
@@ -745,7 +744,7 @@ export function LoadMatchDataRoute({
                   </li>
                 ))}
               </ul>
-            </div>
+            </Alert>
           )}
         </div>
       </Card>

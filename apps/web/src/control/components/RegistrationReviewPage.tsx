@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
@@ -420,7 +421,7 @@ export function RegistrationReviewPage({
                 </Button>
               </div>
               {!teamMembershipEnabled && (
-                <p className="cl-inline-alert">{intl.formatMessage(LOCK_EXPLANATION)}</p>
+                <Alert tone="info">{intl.formatMessage(LOCK_EXPLANATION)}</Alert>
               )}
             </div>
           </details>
@@ -570,6 +571,7 @@ function AddParticipantDialog({
 
   return (
     <Modal
+      closeLabel={intl.formatMessage(messages.registrationModalClose)}
       footer={
         <>
           <Button
@@ -659,7 +661,7 @@ function AddParticipantDialog({
             value={alias}
           />
         </FormField>
-        {error !== undefined && <p className="cl-inline-alert">{error}</p>}
+        {error !== undefined && <Alert tone="destructive">{error}</Alert>}
       </form>
     </Modal>
   );
@@ -682,6 +684,7 @@ function EditIdentityDialog({
 
   return (
     <Modal
+      closeLabel={intl.formatMessage(messages.registrationModalClose)}
       footer={
         <>
           <Button onClick={onClose} type="button" variant="secondary">
@@ -737,7 +740,7 @@ function EditIdentityDialog({
             value={alias}
           />
         </FormField>
-        {error !== undefined && <p className="cl-inline-alert">{error}</p>}
+        {error !== undefined && <Alert tone="destructive">{error}</Alert>}
       </form>
     </Modal>
   );
@@ -759,6 +762,7 @@ function LinkIdentityDialog({
 
   return (
     <Modal
+      closeLabel={intl.formatMessage(messages.registrationModalClose)}
       footer={
         <>
           <Button onClick={onClose} type="button" variant="secondary">
@@ -802,7 +806,7 @@ function LinkIdentityDialog({
             value={email}
           />
         </FormField>
-        {error !== undefined && <p className="cl-inline-alert">{error}</p>}
+        {error !== undefined && <Alert tone="destructive">{error}</Alert>}
       </form>
     </Modal>
   );
@@ -841,6 +845,7 @@ function EditTeamMembersDialog({
 
   return (
     <Modal
+      closeLabel={intl.formatMessage(messages.registrationModalClose)}
       footer={
         <>
           <Button onClick={onClose} type="button" variant="secondary">
@@ -878,7 +883,7 @@ function EditTeamMembersDialog({
           />
         </p>
         <RosterRoleSelector disabled={busy} members={members} onChange={setMembers} />
-        {error !== undefined && <p className="cl-inline-alert">{error}</p>}
+        {error !== undefined && <Alert tone="destructive">{error}</Alert>}
       </form>
     </Modal>
   );

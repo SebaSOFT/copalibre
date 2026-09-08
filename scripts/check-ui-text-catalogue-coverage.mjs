@@ -57,12 +57,10 @@ const KNOWN_HARDCODED = new Map([
   // No intl is threaded into this TV component at all, so wiring it is a
   // surface change rather than an attribute swap — TV surfaces are 0201/0202's.
   ['TvDashboard.tsx', 3],
-  // Owned library primitives. A primitive taking a hardcoded label is the
-  // deeper problem: copy belongs to the caller, so the fix is a required label
-  // prop, which changes every call site. That is 0214's shape of work.
-  ['pagination.tsx', 1],
-  ['modal.tsx', 1],
-  ['navigation-drawer.tsx', 1],
+  // The three owned primitives that carried hardcoded labels are gone: 0214
+  // made each one a required prop, so the copy comes from the caller's
+  // catalogue and follows the interface language like everything else.
+  // `pagination.tsx`, `modal.tsx` and `navigation-drawer.tsx` were here.
   // No intl in scope; the form predates the shell's own provider wiring.
   ['AcceptInvitationForm.tsx', 1],
 ]);

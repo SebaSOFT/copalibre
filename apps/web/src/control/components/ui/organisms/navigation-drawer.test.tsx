@@ -6,7 +6,12 @@ describe('NavigationDrawer', () => {
   it('renders children and title when open', () => {
     const onOpenChange = jest.fn();
     render(
-      <NavigationDrawer onOpenChange={onOpenChange} open={true} title="Menu Title">
+      <NavigationDrawer
+        closeLabel="Close menu"
+        onOpenChange={onOpenChange}
+        open={true}
+        title="Menu Title"
+      >
         <p>Drawer Content</p>
       </NavigationDrawer>,
     );
@@ -14,7 +19,7 @@ describe('NavigationDrawer', () => {
     expect(screen.getByText('Menu Title')).toBeDefined();
     expect(screen.getByText('Drawer Content')).toBeDefined();
 
-    const closeBtn = screen.getByRole('button', { name: 'Cerrar menú' });
+    const closeBtn = screen.getByRole('button', { name: 'Close menu' });
     fireEvent.click(closeBtn);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
@@ -22,7 +27,12 @@ describe('NavigationDrawer', () => {
   it('does not render children when closed', () => {
     const onOpenChange = jest.fn();
     render(
-      <NavigationDrawer onOpenChange={onOpenChange} open={false} title="Menu Title">
+      <NavigationDrawer
+        closeLabel="Close menu"
+        onOpenChange={onOpenChange}
+        open={false}
+        title="Menu Title"
+      >
         <p>Drawer Content</p>
       </NavigationDrawer>,
     );

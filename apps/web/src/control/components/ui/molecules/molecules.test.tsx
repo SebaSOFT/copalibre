@@ -159,7 +159,16 @@ describe('TableToolbar and Pagination', () => {
   });
 
   it('disables previous on the first page and next on the last', () => {
-    render(<Pagination onPageChange={() => {}} page={1} pageCount={3} />);
+    render(
+      <Pagination
+        navigationLabel="Pagination"
+        nextLabel="Next"
+        previousLabel="Previous"
+        onPageChange={() => {}}
+        page={1}
+        pageCount={3}
+      />,
+    );
     expect((screen.getByRole('button', { name: 'Previous' }) as HTMLButtonElement).disabled).toBe(
       true,
     );
@@ -170,7 +179,16 @@ describe('TableToolbar and Pagination', () => {
 
   it('disables next on the last page and calls onPageChange with the target page', () => {
     const onPageChange = jest.fn();
-    render(<Pagination onPageChange={onPageChange} page={3} pageCount={3} />);
+    render(
+      <Pagination
+        navigationLabel="Pagination"
+        nextLabel="Next"
+        previousLabel="Previous"
+        onPageChange={onPageChange}
+        page={3}
+        pageCount={3}
+      />,
+    );
     expect((screen.getByRole('button', { name: 'Next' }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
     expect(onPageChange).toHaveBeenCalledWith(2);
@@ -179,6 +197,7 @@ describe('TableToolbar and Pagination', () => {
   it('accepts custom previous/next labels', () => {
     render(
       <Pagination
+        navigationLabel="Paginación"
         nextLabel="Siguiente"
         onPageChange={() => {}}
         page={2}

@@ -50,6 +50,7 @@ export function ImageCropModal({
 
   return (
     <Modal
+      closeLabel={intl.formatMessage(messages.imageCropModalClose)}
       footer={
         <>
           <Button disabled={busy} onClick={onCancel} type="button" variant="secondary">

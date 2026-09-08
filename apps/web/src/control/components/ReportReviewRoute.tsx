@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { createControlApiClient, type ControlApiClient } from '../lib/api-client.js';
 import { KIND_LABEL, summaryOf, type ReportRow } from '../lib/reports.js';
@@ -75,14 +76,14 @@ export function ReportReviewRoute({
         <FormattedMessage {...messages.reportTitle} />
       </h1>
       {status === 'loading' && rows.length === 0 && (
-        <p className="cl-inline-alert">
+        <Alert tone="info">
           <FormattedMessage {...messages.reportLoading} />
-        </p>
+        </Alert>
       )}
       {status === 'failed' && rows.length === 0 && (
-        <p className="cl-inline-alert">
+        <Alert tone="destructive">
           <FormattedMessage {...messages.reportLoadFailed} />
-        </p>
+        </Alert>
       )}
       {status === 'ready' && rows.length === 0 && (
         <p>

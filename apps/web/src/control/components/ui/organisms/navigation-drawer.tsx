@@ -6,6 +6,11 @@ export interface NavigationDrawerProps {
   readonly onOpenChange: (open: boolean) => void;
   readonly title: string;
   readonly children: ReactNode;
+  /**
+   * Required: the close control was the literal Spanish `"Cerrar menú"` for
+   * every viewer, in every one of the eight interface languages.
+   */
+  readonly closeLabel: string;
 }
 
 /**
@@ -18,6 +23,7 @@ export function NavigationDrawer({
   onOpenChange,
   title,
   children,
+  closeLabel,
 }: NavigationDrawerProps): React.JSX.Element {
   return (
     <RadixDialog.Root onOpenChange={onOpenChange} open={open}>
@@ -31,7 +37,7 @@ export function NavigationDrawer({
             <RadixDialog.Title className="cl-drawer__title">{title}</RadixDialog.Title>
             <RadixDialog.Close asChild>
               <button
-                aria-label="Cerrar menú"
+                aria-label={closeLabel}
                 className="cl-focusable cl-drawer__close"
                 type="button"
               >

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Alert, type AlertTone } from './ui/atoms/alert.js';
 import { useIntl } from 'react-intl';
 import {
   createControlApiClient,
@@ -62,6 +63,15 @@ export function TournamentAuthoringPage({
     };
   }, [api, organizationAlias]);
 
+  /**
+   * One alert shows loading, an empty catalogue and a load failure, so its tone
+   * follows the status rather than being fixed at the call site — the tone is a
+   * claim about what happened, and here what happened varies.
+   */
+  function toneFor(current: AuthoringStatus): AlertTone {
+    return current.kind === 'loadFailed' ? 'destructive' : 'info';
+  }
+
   function statusMessage(current: AuthoringStatus): string | undefined {
     switch (current.kind) {
       case 'loading':
@@ -82,12 +92,12 @@ export function TournamentAuthoringPage({
   }
 
   if (disciplines.length === 0) {
-    return <p className="cl-inline-alert">{statusMessage(status)}</p>;
+    return <Alert tone={toneFor(status)}>{statusMessage(status)}</Alert>;
   }
 
   return (
     <>
-      {status.kind !== 'ready' && <p className="cl-inline-alert">{statusMessage(status)}</p>}
+      {status.kind !== 'ready' && <Alert tone={toneFor(status)}>{statusMessage(status)}</Alert>}
       <TournamentSetupWizard
         disciplines={disciplines}
         loadProfiles={api.listCompatibleProfiles}

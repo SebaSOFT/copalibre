@@ -670,3 +670,32 @@ that tournament SHALL be omitted rather than rendered empty.
 #### Scenario: Reduced motion stops the scroll without hiding content
 - **WHEN** a visitor whose system requests reduced motion opens the page
 - **THEN** the ticker does not scroll continuously, and every item still becomes readable
+
+### Requirement: Every surface is held to the component library
+The ownership rule SHALL apply to every surface the application renders — the operator panel, the
+public site, and the broadcast overlays — rather than to one of them. A file on any surface SHALL NOT
+use a raw element the owned library replaces, and SHALL NOT hand-write a class an owned component
+applies, on the same terms and with the same recorded, one-directional backlog the operator surface is
+held to. The check SHALL read every file format these surfaces are written in, not only the format one
+surface happens to use.
+
+#### Scenario: A public page bypasses an owned component
+- **WHEN** a public page or layout writes a class an owned component applies, or uses a raw element the
+  library replaces
+- **THEN** the ownership check reports it, exactly as it does for an operator screen
+
+#### Scenario: A broadcast overlay is held to the same rule
+- **WHEN** a broadcast surface uses a raw governed element
+- **THEN** the ownership check reports it, because a surface's audience does not change what owns its
+  markup
+
+#### Scenario: A pattern with no server-renderable component is a library gap, not debt
+- **WHEN** a surface writes an owned component's class because no component exists that surface can
+  compose
+- **THEN** it is recorded as a missing library member rather than entered in the backlog, because a
+  recorded count that nobody is able to lower defeats the ratchet
+
+#### Scenario: A surface's own file format is not an exemption
+- **WHEN** a surface is written in a format the check did not previously read
+- **THEN** its violations are reported, because being unreadable by the tool was never a decision that
+  the rule did not apply
