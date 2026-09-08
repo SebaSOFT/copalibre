@@ -14240,6 +14240,29 @@
           "cells"
         ]
       },
+      "TableProjectionSegmentResponse": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Absent when the segment covers a stage that has no groups"
+          },
+          "groupName": {
+            "type": "string",
+            "description": "The group’s own name, e.g. \"Group A\""
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableRowResponse"
+            }
+          }
+        },
+        "required": [
+          "rows"
+        ]
+      },
       "TableProjectionResponse": {
         "type": "object",
         "properties": {
@@ -14281,6 +14304,13 @@
           "projectionVersion": {
             "type": "number",
             "description": "Freshest `statistic-totals` projection version among this scope’s matches; 0 when none has been folded yet"
+          },
+          "segments": {
+            "description": "Stage-scoped reads only: the same figures split into one ranked block per group, or a single block when the stage has no groups",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableProjectionSegmentResponse"
+            }
           },
           "grain": {
             "type": "string",

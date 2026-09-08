@@ -2,6 +2,7 @@
 import PublicLayout from '../../../../layouts/PublicLayout.astro';
 import TournamentHero from '../../../../components/TournamentHero.astro';
 import ChampionPodium from '../../../../components/ChampionPodium.astro';
+import MatchCardGrid from '../../../../components/MatchCardGrid.astro';
 import ScoreTicker from '../../../../components/ScoreTicker.astro';
 import StandingsPreview from '../../../../components/StandingsPreview.astro';
 import BroadcastStatusPanel from '../../../../components/BroadcastStatusPanel.astro';
@@ -13,7 +14,8 @@ import {
   fetchPublicTableProjection,
   mapOverviewResponse,
 } from '../../../../lib/public-api-client.ts';
-import { publicIntl } from '../../../../lib/i18n/public-intl.ts';
+import { publicIntl, tickerLabels } from '../../../../lib/i18n/public-intl.ts';
+import { buildTickerItems } from '../../../../lib/ticker-items.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
@@ -78,6 +80,34 @@ const activeProjection = activeLayout
     )
   : undefined;
 
+/*
+  The ticker's own reads, both optional: a discipline that declares no
+  player-ranking layout contributes no performer items, and a stage projection
+  always yields at least one segment, so every format produces a leader.
+*/
+const performerLayout = declaredLayouts.find((one) => one.target === 'player-ranking');
+const [performerProjection, leaderProjection] = await Promise.all([
+  performerLayout
+    ? fetchPublicTableProjection(organization!, tournament!, performerLayout.code)
+    : Promise.resolve(undefined),
+  defaultLayout && defaultLayout.target === 'group-phase' && Number.isFinite(earliestStageNumber)
+    ? fetchPublicTableProjection(
+        organization!,
+        tournament!,
+        defaultLayout.code,
+        earliestStageNumber,
+      )
+    : Promise.resolve(undefined),
+]);
+
+const tickerItems = buildTickerItems({
+  matches: model.matches,
+  ...(performerProjection === undefined ? {} : { performers: performerProjection }),
+  ...(leaderProjection === undefined ? {} : { leaders: leaderProjection }),
+  labels: tickerLabels(intl),
+  language: resolvedLocale,
+});
+
 const localePrefix = locale ? `/${locale}` : '';
 const canonicalPath = `${localePrefix}${model.canonicalPath}`;
 const earliestStart = overviewData.matches
@@ -104,6 +134,7 @@ const structuredData = {
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
+  <ScoreTicker items={tickerItems} label={intl.formatMessage(messages.tickerLabel)} />
   <TournamentHero model={model} intl={intl} />
   {
     model.status === 'finished' && model.winners && model.winners.length > 0 && (
@@ -111,7 +142,7 @@ const structuredData = {
     )
   }
   <BroadcastStatusPanel model={model} intl={intl} />
-  <ScoreTicker model={model} intl={intl} localePrefix={locale ? `/${locale}` : ''} />
+  <MatchCardGrid model={model} intl={intl} localePrefix={locale ? `/${locale}` : ''} />
   <p>
     <a
       class="cl-pill cl-focusable"

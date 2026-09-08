@@ -9,6 +9,7 @@ import {
 } from '@copalibre/tournament-engine';
 import { aggregateTo } from '@copalibre/tournament-engine';
 import {
+  IMPLICIT_GROUP_NAME,
   findTableLayout,
   resolveEffectiveTableLayouts,
   type ActorGranularity,
@@ -60,6 +61,27 @@ export interface TableProjectionResult {
    * changes the unit of.
    */
   readonly countColumnCode?: string;
+}
+
+/**
+ * One ranked block of a stage's table.
+ *
+ * A grouped stage ranks within each group, because a group table that mixes
+ * groups together ranks nobody against anybody they actually played. A stage
+ * with no groups is one segment covering the stage — so a reader looking for
+ * "the leader of this phase" needs no knowledge of the stage's format, which
+ * is the point: `computeStandings` takes no format argument, so an elimination
+ * bracket ranks its entrants from recorded outcomes exactly as a league does.
+ */
+export interface TableProjectionSegment {
+  /** Absent when the segment covers a stage that has no groups. */
+  readonly groupId?: string;
+  readonly groupName?: string;
+  readonly rows: readonly TableRow[];
+}
+
+export interface SegmentedTableProjectionResult extends TableProjectionResult {
+  readonly segments: readonly TableProjectionSegment[];
 }
 
 export interface TableLayoutSummary {
@@ -224,6 +246,57 @@ export async function readTableProjection(
     projectionVersion,
     ...(bridged?.grain === undefined ? {} : { grain: bridged.grain, countColumnCode }),
   };
+}
+
+/**
+ * A stage's table projection, split into one ranked block per group.
+ *
+ * Reads the whole-stage projection for `rows` — unchanged, so a caller that
+ * only wants the merged table keeps what it had — then adds a segment per
+ * group. The alternative a client would otherwise be pushed into is a request
+ * per group plus the zone and group listings needed to discover them, which
+ * for a page rendered server-side is `1 + zones + groups` round trips to
+ * answer one question.
+ */
+export async function readSegmentedTableProjection(
+  db: Kysely<Database>,
+  scope: TableProjectionScope,
+  layoutCode: string,
+): Promise<SegmentedTableProjectionResult> {
+  const whole = await readTableProjection(db, scope, layoutCode);
+  if (scope.stageId === undefined || scope.groupId !== undefined) {
+    return { ...whole, segments: [{ rows: whole.rows }] };
+  }
+
+  const competition = new CompetitionRepository(db);
+  const zones = await competition.listZonesOfStage(scope.stageId);
+  const groups = (
+    await Promise.all(zones.map((zone) => competition.listGroupsOfZone(zone.zoneId)))
+  ).flat();
+
+  /*
+    A stage that was never drawn into groups still has one: `createFixtures`
+    makes an implicit zone and group so every fixture has a scope. That is a
+    storage device, not something a reader should be shown — and its name is a
+    fixed `IMPLICIT_GROUP_NAME`, which a caller would otherwise print verbatim
+    as a heading in whatever language that constant happens to be written in.
+    So it reports as the undivided stage it is.
+  */
+  const undivided =
+    groups.length === 0 || (groups.length === 1 && groups[0]?.name === IMPLICIT_GROUP_NAME);
+  if (undivided) return { ...whole, segments: [{ rows: whole.rows }] };
+
+  const segments = await Promise.all(
+    groups.map(async (group) => {
+      const scoped = await readTableProjection(
+        db,
+        { ...scope, groupId: group.groupId },
+        layoutCode,
+      );
+      return { groupId: group.groupId, groupName: group.name, rows: scoped.rows };
+    }),
+  );
+  return { ...whole, segments };
 }
 
 /** Every collector/statistic code a layout's columns or filter could resolve. */

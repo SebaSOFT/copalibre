@@ -1,106 +1,191 @@
 ---
-import type { IntlShape } from 'react-intl';
-import { EntrantName } from './EntrantName.tsx';
-import type { OverviewModel } from '../lib/overview.ts';
-import { messages } from '../lib/i18n/public-messages.en.ts';
-import { resultStateLabels } from '../lib/i18n/public-intl.ts';
+import type { TickerItem } from '../lib/ticker-items.ts';
 
 interface Props {
-  readonly model: OverviewModel;
-  readonly intl: IntlShape;
-  /** Optional non-default locale segment from the enclosing public route. */
-  readonly localePrefix?: string;
+  readonly items: readonly TickerItem[];
+  /** Accessible name for the rail; the caller holds the catalogue. */
+  readonly label: string;
+  /**
+   * `tv` reads at distance and sizes itself in vmin, as the rest of that
+   * surface does; `web` reads at arm's length.
+   */
+  readonly scale?: 'web' | 'tv';
 }
-const { model, intl, localePrefix = '' } = Astro.props;
-const labels = resultStateLabels(intl);
+const { items, label, scale = 'web' } = Astro.props;
+
+/*
+  Items are duplicated once so the loop has no visible seam — the track
+  translates to exactly -50% and snaps back onto an identical frame. The copy
+  is `aria-hidden`, so a screen reader hears the rail once.
+*/
 ---
 
 {
-  /*
-  Rendered server-side and complete. A ticker that needs JavaScript to say the
-  score is a ticker that says nothing on a venue TV behind a hotel proxy.
-*/
-}
-<section aria-labelledby="ticker-heading">
-  <h2 id="ticker-heading">{intl.formatMessage(messages.tickerHeading)}</h2>
-  {model.matches.length === 0 && <p>{intl.formatMessage(messages.tickerEmpty)}</p>}
-  <ul class="cl-ticker-list">
-    {
-      model.matches.map((match) => {
-        const cardContent = (
-          <article
-            class:list={[
-              'cl-card',
-              'cl-chamfer',
-              'cl-match-card',
-              `cl-card--${match.state === 'final' ? 'positive' : match.state === 'disputed' ? 'destructive' : match.state}`,
-            ]}
-          >
-            <div class="cl-match-card__header">
-              <span class="cl-badge">{labels[match.state]}</span>
-              {match.startsAt && (
-                <time datetime={match.startsAt} class="cl-match-card__clock">
-                  {match.startsAt}
-                </time>
-              )}
+  items.length > 0 && (
+    <div
+      class:list={['cl-ticker', `cl-ticker--${scale}`]}
+      data-ticker
+      aria-label={label}
+      role="region"
+    >
+      <div class="cl-ticker__track" data-ticker-track>
+        {[0, 1].map((copy) =>
+          items.map((item) => (
+            <div class="cl-ticker__item" aria-hidden={copy === 1 ? 'true' : undefined}>
+              <span class:list={['cl-badge', `cl-badge--${item.tone}`]}>{item.badge}</span>
+              <span class="cl-ticker__subject">{item.subject}</span>
+              <span class="cl-ticker__figure">{item.figure}</span>
+              {item.opponent && <span class="cl-ticker__subject">{item.opponent}</span>}
+              {item.meta && <span class="cl-ticker__meta">({item.meta})</span>}
+              <span class="cl-ticker__sep" aria-hidden="true">
+                ///
+              </span>
             </div>
-            <ol class="cl-match-card__sides">
-              <li class="cl-match-card__side">
-                <EntrantName
-                  abbreviation={match.home.abbreviation}
-                  client:load
-                  fullName={match.home.name}
-                />
-                <span class="cl-stat-tile__value">{match.home.score ?? '—'}</span>
-              </li>
-              <li class="cl-match-card__side">
-                <EntrantName
-                  abbreviation={match.away.abbreviation}
-                  client:load
-                  fullName={match.away.name}
-                />
-                <span class="cl-stat-tile__value">{match.away.score ?? '—'}</span>
-              </li>
-            </ol>
-          </article>
-        );
+          )),
+        )}
+      </div>
+    </div>
+  )
+}
 
-        return (
-          <li>
-            {match.matchNumber === undefined ? (
-              cardContent
-            ) : (
-              <a
-                class="cl-match-card-link"
-                href={`${localePrefix}${model.canonicalPath}/stages/${match.stageNumber}/matches/${match.matchNumber}`}
-              >
-                {cardContent}
-              </a>
-            )}
-          </li>
-        );
-      })
+<script>
+  /*
+    Motion lives here rather than in a keyframe because it has to.
+    `@copalibre/design-tokens` emits a global reduced-motion rule setting
+    `animation-duration: 0.01ms !important` on every element, so that a
+    component added later inherits the accommodation without remembering it.
+    For a fade that is exactly right. For a transport it is not: a marquee
+    collapsed to nothing freezes at 0% and hides every item past the fold —
+    and `!important` defeats a substitute step-animation just as thoroughly.
+    A transform written from script is neither an animation nor a transition,
+    so it stays under this component's control in both directions.
+  */
+  const PIXELS_PER_SECOND = 40;
+  const STEP_INTERVAL_MS = 3500;
+
+  function startTicker(rail: HTMLElement) {
+    const track = rail.querySelector<HTMLElement>('[data-ticker-track]');
+    if (!track) return;
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let stop: (() => void) | undefined;
+
+    function scrollContinuously(track: HTMLElement) {
+      let offset = 0;
+      let last = performance.now();
+      let frame = 0;
+      const tick = (now: number) => {
+        const span = track.scrollWidth / 2;
+        offset = span > 0 ? (offset + ((now - last) / 1000) * PIXELS_PER_SECOND) % span : 0;
+        last = now;
+        track.style.transform = `translateX(${-offset}px)`;
+        frame = requestAnimationFrame(tick);
+      };
+      frame = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(frame);
     }
-  </ul>
-</section>
+
+    /*
+      Under reduced motion the rail still shows everything, one item at a time:
+      it jumps to each item's own offset and holds. Freezing the track instead
+      would leave every item past the first screen unreachable.
+    */
+    function stepBetweenItems(track: HTMLElement) {
+      const items = [...track.querySelectorAll<HTMLElement>('.cl-ticker__item')];
+      const half = Math.ceil(items.length / 2);
+      let index = 0;
+      const advance = () => {
+        index = (index + 1) % Math.max(half, 1);
+        const target = items[index];
+        track.style.transform = `translateX(${-(target?.offsetLeft ?? 0)}px)`;
+      };
+      const timer = window.setInterval(advance, STEP_INTERVAL_MS);
+      return () => window.clearInterval(timer);
+    }
+
+    const apply = () => {
+      stop?.();
+      track.style.transform = 'translateX(0px)';
+      stop = reduced.matches ? stepBetweenItems(track) : scrollContinuously(track);
+    };
+
+    apply();
+    reduced.addEventListener('change', apply);
+  }
+
+  for (const rail of document.querySelectorAll<HTMLElement>('[data-ticker]')) startTicker(rail);
+</script>
 
 <style>
-  .cl-ticker-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  .cl-ticker {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    z-index: 20;
+    user-select: none;
+    background: color-mix(in srgb, var(--cl-ink-950, #05070a) 90%, transparent);
+    border-block-end: 1px solid var(--cl-ink-700, #26303c);
+    backdrop-filter: blur(6px);
+  }
+
+  .cl-ticker--web {
+    height: 44px;
+    font-size: var(--cl-font-size-xs, 0.75rem);
+  }
+
+  /* Distance reading: the rest of the TV sheet is vmin-relative, so this is too. */
+  .cl-ticker--tv {
+    height: 6vmin;
+    font-size: clamp(var(--cl-font-size-sm, 0.875rem), 2vmin, 2.5vmin);
+  }
+
+  .cl-ticker__track {
+    display: flex;
+    align-items: center;
+    width: max-content;
+    padding-inline: var(--cl-space-6, 1.5rem);
+    gap: var(--cl-space-8, 2rem);
+    font-family: var(--cl-font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--cl-text-secondary, #9fb0c0);
+    will-change: transform;
+  }
+
+  .cl-ticker__item {
+    display: inline-flex;
+    align-items: center;
     gap: var(--cl-space-3, 0.75rem);
-    list-style: none;
-    padding: 0;
-    margin: var(--cl-space-3, 0.75rem) 0 0 0;
+    white-space: nowrap;
   }
 
-  .cl-match-card-link {
-    text-decoration: none;
-    color: inherit;
-    display: block;
+  .cl-ticker__subject {
+    font-family: var(--cl-font-display);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--cl-text-primary, #eef4fa);
   }
 
-  .cl-match-card-link:hover .cl-match-card {
-    border-color: var(--cl-brand-cyan, #00d4ff);
+  .cl-ticker__figure {
+    font-family: var(--cl-font-display);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    background: var(--cl-ink-900, #0b1017);
+    border: 1px solid var(--cl-ink-700, #26303c);
+    color: var(--cl-brand-cyan, #00d4ff);
+  }
+
+  .cl-ticker__meta {
+    font-size: 0.85em;
+    color: var(--cl-text-muted, #6b7c8c);
+  }
+
+  .cl-ticker__sep {
+    font-weight: 700;
+    color: var(--cl-ink-700, #26303c);
+    margin-inline: var(--cl-space-2, 0.5rem);
   }
 </style>

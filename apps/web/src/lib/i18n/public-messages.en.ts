@@ -125,9 +125,9 @@ export const messages = defineMessages({
       'Results update automatically when connected. Otherwise, this page already has everything.',
   },
 
-  // ScoreTicker.astro
-  tickerHeading: { id: 'publicWeb.ticker.heading', defaultMessage: 'Matches' },
-  tickerEmpty: { id: 'publicWeb.ticker.empty', defaultMessage: 'No matches scheduled yet.' },
+  // MatchCardGrid.astro
+  matchGridHeading: { id: 'publicWeb.matchGrid.heading', defaultMessage: 'Matches' },
+  matchGridEmpty: { id: 'publicWeb.matchGrid.empty', defaultMessage: 'No matches scheduled yet.' },
 
   // matches.astro / MatchCard.tsx
   matchesViewPageTitle: { id: 'publicWeb.matchesView.pageTitle', defaultMessage: 'Matches' },
@@ -341,5 +341,47 @@ export const messages = defineMessages({
   notFoundHomeLink: {
     id: 'publicWeb.notFound.homeLink',
     defaultMessage: 'Return to home',
+  },
+
+  // ScoreTicker.astro / tv-statistics.ts
+  tickerLabel: { id: 'publicWeb.ticker.label', defaultMessage: 'Tournament ticker' },
+  tickerLeader: { id: 'publicWeb.ticker.leader', defaultMessage: 'Leader' },
+  tickerVersus: { id: 'publicWeb.ticker.versus', defaultMessage: 'VS' },
+  tvStatsHomeSide: { id: 'publicWeb.tvStats.homeSide', defaultMessage: 'Home' },
+  tvStatsAwaySide: { id: 'publicWeb.tvStats.awaySide', defaultMessage: 'Away' },
+  tvStatsPoints: { id: 'publicWeb.tvStats.points', defaultMessage: 'Points' },
+  tvStatsPointsShort: { id: 'publicWeb.tvStats.pointsShort', defaultMessage: 'Pts' },
+  tvStatsUnnamedActor: {
+    id: 'publicWeb.tvStats.unnamedActor',
+    defaultMessage: 'Competitor {reference}',
+  },
+  tvStatsScheduledMatches: {
+    id: 'publicWeb.tvStats.scheduledMatches',
+    defaultMessage: 'Scheduled matches',
+  },
+  tvStatsStatus: { id: 'publicWeb.tvStats.status', defaultMessage: 'Status' },
+  tvStatsInProgress: { id: 'publicWeb.tvStats.inProgress', defaultMessage: 'In progress' },
+  tvStatsMatchesPlayed: { id: 'publicWeb.tvStats.matchesPlayed', defaultMessage: 'Matches played' },
+  tvStatsTotalScored: { id: 'publicWeb.tvStats.totalScored', defaultMessage: 'Total scored' },
+  tvStatsAveragePerMatch: {
+    id: 'publicWeb.tvStats.averagePerMatch',
+    defaultMessage: 'Average per match',
+  },
+  tvStatsHighestResult: { id: 'publicWeb.tvStats.highestResult', defaultMessage: 'Highest result' },
+  tvStatsChampionTitle: {
+    id: 'publicWeb.tvStats.championTitle',
+    defaultMessage: 'Tournament champion',
+  },
+  tvStatsTableLeaderTitle: {
+    id: 'publicWeb.tvStats.tableLeaderTitle',
+    defaultMessage: 'Table leader',
+  },
+  tvStatsStandingsRecord: {
+    id: 'publicWeb.tvStats.standingsRecord',
+    defaultMessage: '1st · {points} pts · {played} played',
+  },
+  tvStatsGrandFinalRecord: {
+    id: 'publicWeb.tvStats.grandFinalRecord',
+    defaultMessage: 'Grand final winner ({winner} – {loser})',
   },
 });

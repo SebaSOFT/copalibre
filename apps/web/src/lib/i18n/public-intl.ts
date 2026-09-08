@@ -69,6 +69,60 @@ export function resultStateLabels(intl: IntlShape): ResultStateLabels {
   };
 }
 
+/** The ticker's own vocabulary; the state badges reuse `resultStateLabels`. */
+export function tickerLabels(intl: IntlShape) {
+  const state = resultStateLabels(intl);
+  return {
+    live: state.live,
+    upcoming: state.upcoming,
+    final: state.final,
+    leader: intl.formatMessage(messages.tickerLeader),
+    versus: intl.formatMessage(messages.tickerVersus),
+  };
+}
+
+/**
+ * Every phrase `tv-statistics` puts on screen.
+ *
+ * Resolved here because this is the layer that knows the language; the
+ * derivations themselves stay pure, and testable without an `IntlShape`.
+ */
+export function tvStatisticsLabels(intl: IntlShape) {
+  return {
+    homeSide: intl.formatMessage(messages.tvStatsHomeSide),
+    awaySide: intl.formatMessage(messages.tvStatsAwaySide),
+    points: intl.formatMessage(messages.tvStatsPoints),
+    pointsShort: intl.formatMessage(messages.tvStatsPointsShort),
+    /*
+      Resolved to the reader's language but left as templates: the values are
+      not known here, and these cross into a `client:load` island whose props
+      Astro serializes as JSON — so a function to fill them later could not
+      survive the trip. Formatting each placeholder to itself returns the
+      translated string with its placeholders intact, for `fill` to complete.
+    */
+    unnamedActor: intl.formatMessage(messages.tvStatsUnnamedActor, {
+      reference: '{reference}',
+    }),
+    scheduledMatches: intl.formatMessage(messages.tvStatsScheduledMatches),
+    status: intl.formatMessage(messages.tvStatsStatus),
+    inProgress: intl.formatMessage(messages.tvStatsInProgress),
+    matchesPlayed: intl.formatMessage(messages.tvStatsMatchesPlayed),
+    totalScored: intl.formatMessage(messages.tvStatsTotalScored),
+    averagePerMatch: intl.formatMessage(messages.tvStatsAveragePerMatch),
+    highestResult: intl.formatMessage(messages.tvStatsHighestResult),
+    championTitle: intl.formatMessage(messages.tvStatsChampionTitle),
+    tableLeaderTitle: intl.formatMessage(messages.tvStatsTableLeaderTitle),
+    standingsRecord: intl.formatMessage(messages.tvStatsStandingsRecord, {
+      points: '{points}',
+      played: '{played}',
+    }),
+    grandFinalRecord: intl.formatMessage(messages.tvStatsGrandFinalRecord, {
+      winner: '{winner}',
+      loser: '{loser}',
+    }),
+  };
+}
+
 /** Resolves every non-`played` result-reason label once. */
 export function resultReasonLabels(intl: IntlShape): ResultReasonLabels {
   return {

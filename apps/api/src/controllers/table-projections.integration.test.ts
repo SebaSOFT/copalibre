@@ -588,6 +588,39 @@ describe('table projections (integration)', () => {
       expect(response.json().rows).toHaveLength(2);
     });
 
+    it('reports an undrawn stage as one unnamed segment, not as its implicit group', async () => {
+      // The guarantee the ticker rests on: every stage yields at least one
+      // ranked block, so a reader looking for "the leader of this phase" needs
+      // no knowledge of the stage's format. `computeStandings` takes no format
+      // argument, so an elimination bracket ranks its entrants just as a league
+      // does — and both arrive here as a single segment.
+      //
+      // This stage was never drawn into groups, but it has one all the same:
+      // `createFixtures` creates an implicit zone and group so every fixture
+      // has a scope. Reporting that group's identity would put its fixed
+      // internal name in front of a reader as though it were a real group.
+      const response = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
+      );
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.segments).toHaveLength(1);
+      expect(body.segments[0].groupId).toBeUndefined();
+      expect(body.segments[0].groupName).toBeUndefined();
+      expect(body.segments[0].rows).toEqual(body.rows);
+      expect(body.segments[0].rows[0].rank).toBe(1);
+    });
+
+    it('leaves a tournament-wide table unsegmented, having no stage to group by', async () => {
+      const response = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+      );
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().segments).toBeUndefined();
+    });
+
     it('filters a stage-scoped table by clubId without throwing', async () => {
       const matching = await getAnonymous(
         `/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?clubId=${clubTalleresId}`,

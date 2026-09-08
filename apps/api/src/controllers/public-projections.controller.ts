@@ -31,11 +31,15 @@ import { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
 import { readStandings } from '../standings/read.js';
 import { readMatchesView } from '../matches-view/read.js';
-import { listEffectiveTableLayouts, readTableProjection } from '../table-projections/read.js';
+import {
+  listEffectiveTableLayouts,
+  readSegmentedTableProjection,
+  readTableProjection,
+} from '../table-projections/read.js';
 
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
 import { publicSeriesState, readStageSeries, type PublicSeriesState } from './stage-series.js';
-import { tableResponse } from './table-projections.controller.js';
+import { segmentedTableResponse, tableResponse } from './table-projections.controller.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
 import {
   resolveLabel,
@@ -967,7 +971,7 @@ export class PublicProjectionsController {
         errorCode: 'public-projection-not-found',
       });
 
-    const result = await readTableProjection(
+    const result = await readSegmentedTableProjection(
       this.db,
       {
         organizationId: tournament.organizationId,
@@ -980,7 +984,7 @@ export class PublicProjectionsController {
       },
       layoutCode,
     );
-    return tableResponse(result);
+    return segmentedTableResponse(result);
   }
 
   @Get('persons/:personId/public/profile')
