@@ -54,9 +54,25 @@ upcoming/attention tokens, green positive-result tokens, red destructive/dispute
 reserved (non-core-chrome) team-accent slot, and the Barlow Condensed / Barlow / JetBrains Mono
 typography stack.
 
+A typeface the token set names SHALL also be delivered by it: naming a family in a font stack is a
+declaration of intent, not a guarantee that the face exists on the machine rendering it. The
+stylesheet that declares the families SHALL be the same artifact that loads them, so a surface cannot
+obtain one without the other. Every heading element SHALL resolve to the display family without a
+component having to ask for it, since a heading rendered in the body face is the identity silently
+not being applied.
+
 #### Scenario: Core chrome never uses the reserved team-accent color
 - **WHEN** any core UI component token (navigation, primary buttons, system badges) is inspected
 - **THEN** none of them resolve to the reserved team-accent color value
+
+#### Scenario: A named family is actually available to render
+- **WHEN** a surface loads the generated stylesheet
+- **THEN** each named family is available to the renderer, and two different families do not measure
+  the same string identically — which is what a silent fallback to one system face looks like
+
+#### Scenario: A heading uses the display face without being told to
+- **WHEN** a page renders a bare heading element that no component class styles
+- **THEN** it resolves to the display family, rather than inheriting the body face
 
 ### Requirement: State badges pair color with text
 Any generated badge/status component token SHALL require a text label alongside its color, and
@@ -70,9 +86,60 @@ SHALL NOT define a color-only state representation.
 The token set SHALL define one shared chamfer size applied via `clip-path` or the `corner-shape`
 property, with a documented `@supports` fallback to square corners on unsupported browsers.
 
+**The geometry SHALL be identical whichever path renders it.** Where the motif is expressed twice —
+once for browsers with `corner-shape` and once as a fallback — the two SHALL cut the same corners at
+the same size. A shape that depends on the viewer's browser is not a motif.
+
+The chamfer SHALL cut one diagonal pair: the top-right and bottom-left corners, leaving top-left and
+bottom-right square. Small square controls — a checkbox, a radio — are the exception and SHALL cut all
+four, because an asymmetric cut at that size reads as a rendering fault rather than a shape.
+
+Where a component chamfers only some of its corners, that SHALL be expressed by setting a zero radius
+on the corners that stay square, not by authoring a second `clip-path` polygon: a polygon has to be
+kept in step with the `corner-shape` rule by hand, which is how the two came to disagree.
+
+A component whose focus indicator is drawn outside its own box — a `box-shadow` ring — SHALL NOT be
+clipped to its chamfer, because clipping removes the indicator. Such a component keeps square corners
+on browsers that cannot bevel without clipping.
+
 #### Scenario: Unsupported browser falls back gracefully
 - **WHEN** a browser without `corner-shape`/`clip-path` chamfer support renders a chamfered component
 - **THEN** the component renders with square corners and remains fully usable, not visually broken
+
+#### Scenario: Both rendering paths cut the same shape
+- **WHEN** the motif is expressed once for `corner-shape` and once as a fallback
+- **THEN** both cut the same corners at the same size, so the shape does not depend on the browser
+
+#### Scenario: A focus ring survives the chamfer
+- **WHEN** a component draws its focus indicator as a shadow outside its own box
+- **THEN** it is not clipped to the chamfer, and the indicator stays visible on every browser
+
+### Requirement: A component's styling is reachable wherever the component renders
+Styling that a component depends on SHALL live where every surface rendering that component can load
+it — the shared token stylesheet, or a stylesheet a surface imports — and SHALL NOT live inside a
+single page or layout's own `<style>` block, scoped or global.
+
+A layout's own block is for what belongs to the page: document chrome, presentation modes, the
+backdrop. The moment it styles a class the layout's own file does not render, that styling has become
+unreachable to every other surface, and the component is correct on one page and wrong everywhere
+else. This fails quietly, because the page that owns the rule always looks right.
+
+The same rule applies to base element treatments — link colour, heading family — which belong to every
+surface and therefore to the shared stylesheet, not to whichever layout happened to need them first.
+
+#### Scenario: A component's rules are loadable by a second surface
+- **WHEN** a component is rendered on a surface other than the one it was written for
+- **THEN** it carries its styling with it, because that styling is not private to another page
+
+#### Scenario: A layout does not style what it does not render
+- **WHEN** a layout's own style block declares a class that appears nowhere in that layout's markup
+- **THEN** that declaration belongs in the shared stylesheet instead, where the components using it
+  can reach it
+
+#### Scenario: A base element treatment applies on every surface
+- **WHEN** a surface renders a link or a heading
+- **THEN** it receives the same treatment as every other surface, rather than depending on which
+  layout wrapped it
 
 ### Requirement: Forbidden cyberpunk-wireframe token isolation
 The generated token output SHALL NOT contain any value from the `sebasoft-app` cyberpunk-wireframe
