@@ -1,5 +1,7 @@
 ---
 import TvLayout from '../../../../../../../../layouts/TvLayout.astro';
+import { publicIntl, tvStatisticsLabels } from '../../../../../../../../lib/i18n/public-intl.ts';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import { TvDashboard } from '../../../../../../../../components/TvDashboard.tsx';
 import { tvStreamPath } from '@copalibre/routing';
 import { sampleDashboard } from '../../../../../../../../lib/live-sample.ts';
@@ -110,6 +112,10 @@ const overlayMode =
       : undefined;
 const chromaKey = Astro.url.searchParams.get('chroma') ?? undefined;
 const presentation = overlayMode ?? 'kiosk';
+
+/* Same query-param language the tournament kiosk takes; TV routes carry no locale segment. */
+const langParam = Astro.url.searchParams.get('lang');
+const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
 ---
 
 <TvLayout
@@ -119,6 +125,8 @@ const presentation = overlayMode ?? 'kiosk';
   disciplineImages={disciplineImages}
 >
   <TvDashboard
+    labels={tvStatisticsLabels(publicIntl(language))}
+    language={language}
     client:load
     presentation={presentation}
     initial={dashboard}

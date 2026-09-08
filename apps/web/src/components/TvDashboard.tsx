@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
+import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
+import type { SupportedLanguage } from '@copalibre/domain';
 import { RealtimeClient } from '@copalibre/realtime';
 import { applyEvent, markConnected, type LiveDashboard } from '../lib/live-state.js';
 import { presentState, type ResultStateLabels } from '../lib/result-state.js';
@@ -11,6 +13,7 @@ import {
   type TopPerformer,
   type TournamentFact,
   type ChampionInfo,
+  type TvStatisticsLabels,
 } from '../lib/tv-statistics.js';
 
 export interface TvClubItem {
@@ -44,6 +47,15 @@ export interface TvDashboardProps {
   readonly clubs?: readonly TvClubItem[];
   readonly standings?: readonly StandingsRowView[];
   readonly topPerformers?: readonly TopPerformer[];
+  /**
+   * The discipline's own player-ranking projection. Passing `undefined` sends
+   * `deriveTopPerformers` down its standings fallback, which is what this
+   * surface did unconditionally before: the projection branch never ran outside
+   * its own tests.
+   */
+  readonly performerProjection?: TableProjectionResponse;
+  readonly labels: TvStatisticsLabels;
+  readonly language: SupportedLanguage;
   readonly pollIntervalMs?: number;
 }
 
@@ -71,6 +83,9 @@ export function TvDashboard({
   clubs,
   standings,
   topPerformers: initialTopPerformers,
+  performerProjection,
+  labels,
+  language,
   pollIntervalMs = 15_000,
 }: TvDashboardProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState<LiveDashboard>(initial);
@@ -191,12 +206,12 @@ export function TvDashboard({
   const allFinal = matches.length > 0 && matches.every((m) => m.state === 'final');
   const isLive = liveMatches.length > 0;
 
-  const champion: ChampionInfo | undefined = resolveChampion(matches, standings, clubs);
+  const champion: ChampionInfo | undefined = resolveChampion(labels, matches, standings, clubs);
   const performers: readonly TopPerformer[] =
     initialTopPerformers && initialTopPerformers.length > 0
       ? initialTopPerformers
-      : deriveTopPerformers(undefined, standings, clubs);
-  const facts: readonly TournamentFact[] = deriveTournamentFacts(matches);
+      : deriveTopPerformers(labels, language, performerProjection, standings, clubs);
+  const facts: readonly TournamentFact[] = deriveTournamentFacts(labels, matches);
 
   // Status Badge Determination
   const statusBadge = isLive

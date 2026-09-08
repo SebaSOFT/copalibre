@@ -1,9 +1,33 @@
 import { deriveTopPerformers, deriveTournamentFacts, resolveChampion } from './tv-statistics.js';
+import { publicIntl, tvStatisticsLabels } from './i18n/public-intl.js';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import type { OverviewMatch, StandingsRowView } from './overview.js';
 import type { LiveMatch } from './live-state.js';
 
+const labels = tvStatisticsLabels(publicIntl('en'));
+
 describe('tv-statistics', () => {
+  describe('label serializability', () => {
+    it('carries no function, because these props cross into a hydrated island', () => {
+      // The defect this pins: `labels` is passed to `TvDashboard`, a
+      // `client:load` island whose props Astro serializes as JSON. A function
+      // among them does not survive that, and the island then renders nothing
+      // at all — the whole broadcast scorebug gone, with no type error and no
+      // console message to say why.
+      for (const [name, value] of Object.entries(labels)) {
+        expect(`${name}:${typeof value}`).toBe(`${name}:string`);
+      }
+      expect(() => structuredClone(labels)).not.toThrow();
+    });
+
+    it('keeps its placeholders intact so a translated template can still be filled', () => {
+      expect(labels.standingsRecord).toContain('{points}');
+      expect(labels.standingsRecord).toContain('{played}');
+      expect(labels.grandFinalRecord).toContain('{winner}');
+      expect(labels.unnamedActor).toContain('{reference}');
+    });
+  });
+
   describe('deriveTopPerformers', () => {
     it('derives top performers from a TableProjectionResponse', () => {
       const projection: TableProjectionResponse = {
@@ -37,7 +61,7 @@ describe('tv-statistics', () => {
 
       const clubs = [{ name: 'Lionel Messi', emblemObjectId: 'emblem-inter' }];
 
-      const performers = deriveTopPerformers(projection, undefined, clubs);
+      const performers = deriveTopPerformers(labels, 'en', projection, undefined, clubs);
       expect(performers).toHaveLength(2);
       expect(performers[0]?.name).toBe('Lionel Messi');
       expect(performers[0]?.statValue).toBe('12');
@@ -65,10 +89,10 @@ describe('tv-statistics', () => {
           },
         ],
       };
-      const performers = deriveTopPerformers(projection);
+      const performers = deriveTopPerformers(labels, 'en', projection);
       expect(performers).toHaveLength(1);
-      expect(performers[0]?.name).toBe('Jugador player');
-      expect(performers[0]?.statLabel).toBe('Puntos');
+      expect(performers[0]?.name).toBe('Competitor player');
+      expect(performers[0]?.statLabel).toBe('Points');
       expect(performers[0]?.statValue).toBe('10');
     });
 
@@ -78,7 +102,7 @@ describe('tv-statistics', () => {
         { position: 2, name: 'River Plate', abbreviation: 'RIV', played: 5, points: 12 },
       ];
 
-      const performers = deriveTopPerformers(undefined, standings);
+      const performers = deriveTopPerformers(labels, 'en', undefined, standings);
       expect(performers).toHaveLength(2);
       expect(performers[0]?.name).toBe('Boca Juniors');
       expect(performers[0]?.statValue).toBe(15);
@@ -86,8 +110,58 @@ describe('tv-statistics', () => {
     });
 
     it('returns empty array when neither projection nor standings exist', () => {
-      expect(deriveTopPerformers(undefined, undefined)).toEqual([]);
+      expect(deriveTopPerformers(labels, 'en', undefined, undefined)).toEqual([]);
     });
+  });
+
+  it('ranks by the layout’s own defaultSort, not by its first column', () => {
+    const projection: TableProjectionResponse = {
+      layoutCode: 'top-scorers',
+      target: 'player-ranking',
+      label: { en: 'Top scorers', es: 'Goleadores' },
+      // The layout opens with its rank column and ranks by goals — reading
+      // `columns[0]` reported each player's position where the goals belonged.
+      defaultSort: [{ columnCode: 'goals', direction: 'desc' }],
+      projectionVersion: 1,
+      columns: [
+        { code: 'rank', header: { en: 'Rank', es: 'Puesto' }, format: 'number' },
+        { code: 'goals', header: { en: 'Goals', es: 'Goles' }, format: 'number' },
+      ],
+      rows: [
+        {
+          actorId: 'player-1',
+          entrantName: 'Lionel Messi',
+          rank: 1,
+          sharedRank: false,
+          cells: { rank: { formatted: '1', raw: 1 }, goals: { formatted: '12', raw: 12 } },
+        },
+      ],
+    };
+
+    expect(deriveTopPerformers(labels, 'en', projection)[0]?.statValue).toBe('12');
+  });
+
+  it('resolves a LocalizedLabel header instead of discarding it', () => {
+    const projection: TableProjectionResponse = {
+      layoutCode: 'top-scorers',
+      target: 'player-ranking',
+      label: { en: 'Top scorers' },
+      defaultSort: [{ columnCode: 'goals', direction: 'desc' }],
+      projectionVersion: 1,
+      columns: [{ code: 'goals', header: { en: 'Goals', es: 'Goles' }, format: 'number' }],
+      rows: [
+        {
+          actorId: 'player-1',
+          entrantName: 'Lionel Messi',
+          rank: 1,
+          sharedRank: false,
+          cells: { goals: { formatted: '12', raw: 12 } },
+        },
+      ],
+    };
+
+    expect(deriveTopPerformers(labels, 'en', projection)[0]?.statLabel).toBe('Goals');
+    expect(deriveTopPerformers(labels, 'es', projection)[0]?.statLabel).toBe('Goles');
   });
 
   describe('deriveTournamentFacts', () => {
@@ -127,14 +201,14 @@ describe('tv-statistics', () => {
         },
       ];
 
-      const facts = deriveTournamentFacts(matches);
+      const facts = deriveTournamentFacts(labels, matches);
       expect(facts).toEqual([
-        { label: 'Partidos disputados', value: 4 },
-        { label: 'Total anotaciones', value: 11 },
-        { label: 'Promedio por partido', value: '2.8' },
+        { label: 'Matches played', value: 4 },
+        { label: 'Total scored', value: 11 },
+        { label: 'Average per match', value: '2.8' },
         {
-          label: 'Mayor resultado',
-          value: '7 goles',
+          label: 'Highest result',
+          value: 7,
           detail: 'Team C 5 - 2 Team D',
         },
       ]);
@@ -166,10 +240,10 @@ describe('tv-statistics', () => {
         },
       ];
 
-      const facts = deriveTournamentFacts(liveMatches);
+      const facts = deriveTournamentFacts(labels, liveMatches);
       expect(facts[0]?.value).toBe(2);
       expect(facts[1]?.value).toBe(7);
-      expect(facts[3]?.value).toBe('6 goles');
+      expect(facts[3]?.value).toBe(6);
       expect(facts[3]?.detail).toBe('Team X 4 - 2 Team Y');
     });
 
@@ -185,10 +259,10 @@ describe('tv-statistics', () => {
         },
       ];
 
-      const facts = deriveTournamentFacts(matches);
+      const facts = deriveTournamentFacts(labels, matches);
       expect(facts).toEqual([
-        { label: 'Partidos en agenda', value: 1 },
-        { label: 'Estado', value: 'En desarrollo' },
+        { label: 'Scheduled matches', value: 1 },
+        { label: 'Status', value: 'In progress' },
       ]);
     });
   });
@@ -211,10 +285,10 @@ describe('tv-statistics', () => {
       ];
       const clubs = [{ name: 'Huracán', emblemObjectId: 'emblem-huracan' }];
 
-      const champion = resolveChampion(matches, standings, clubs);
+      const champion = resolveChampion(labels, matches, standings, clubs);
       expect(champion).toBeDefined();
       expect(champion?.name).toBe('Huracán');
-      expect(champion?.title).toBe('CAMPEÓN DEL TORNEO');
+      expect(champion?.title).toBe('Tournament champion');
       expect(champion?.emblemObjectId).toBe('emblem-huracan');
     });
 
@@ -256,12 +330,12 @@ describe('tv-statistics', () => {
       ];
 
       const clubs = [{ name: 'Real Madrid', emblemObjectId: 'rma-emblem' }];
-      const champion = resolveChampion(matches, undefined, clubs);
+      const champion = resolveChampion(labels, matches, undefined, clubs);
       expect(champion).toBeDefined();
       expect(champion?.name).toBe('Real Madrid');
       expect(champion?.abbreviation).toBe('RMA');
       expect(champion?.emblemObjectId).toBe('rma-emblem');
-      expect(champion?.record).toContain('GANADOR DE LA GRAN FINAL (3 - 1)');
+      expect(champion?.record).toContain('Grand final winner (3 – 1)');
     });
 
     it('resolves champion from final match with home/away when away team wins', () => {
@@ -277,12 +351,12 @@ describe('tv-statistics', () => {
       ];
 
       const clubs = [{ name: 'Arsenal', emblemObjectId: 'ars-emblem' }];
-      const champion = resolveChampion(matches, undefined, clubs);
+      const champion = resolveChampion(labels, matches, undefined, clubs);
       expect(champion).toBeDefined();
       expect(champion?.name).toBe('Arsenal');
       expect(champion?.abbreviation).toBe('ARS');
       expect(champion?.emblemObjectId).toBe('ars-emblem');
-      expect(champion?.record).toContain('GANADOR DE LA GRAN FINAL (2 - 1)');
+      expect(champion?.record).toContain('Grand final winner (2 – 1)');
     });
 
     it('resolves leader if tournament is not finished yet', () => {
@@ -300,15 +374,16 @@ describe('tv-statistics', () => {
         { position: 1, name: 'Huracán', abbreviation: 'HUR', played: 1, points: 3 },
       ];
 
-      const leader = resolveChampion(matches, standings);
-      expect(leader?.title).toBe('LÍDER DE LA TABLA');
+      const leader = resolveChampion(labels, matches, standings);
+      expect(leader?.title).toBe('Table leader');
       expect(leader?.name).toBe('Huracán');
     });
 
     it('returns undefined if no matches or standings exist or no winner resolved', () => {
-      expect(resolveChampion([], [])).toBeUndefined();
+      expect(resolveChampion(labels, [], [])).toBeUndefined();
       expect(
         resolveChampion(
+          labels,
           [
             {
               stageNumber: 1,
@@ -328,7 +403,7 @@ describe('tv-statistics', () => {
       const standings: StandingsRowView[] = [
         { position: 2, name: 'Team Two', abbreviation: 'TT', played: 1, points: 3 },
       ];
-      const res = resolveChampion([], standings);
+      const res = resolveChampion(labels, [], standings);
       expect(res?.name).toBe('Team Two');
     });
 
@@ -351,7 +426,7 @@ describe('tv-statistics', () => {
           sides: [{ entrantId: 'e1', name: 'Winner', score: 2, state: 'final' }],
         },
       ];
-      const champion = resolveChampion(matches);
+      const champion = resolveChampion(labels, matches);
       expect(champion?.name).toBe('Winner');
     });
   });

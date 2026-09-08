@@ -53,8 +53,8 @@ export const messages: Record<string, string> = {
   'publicWeb.broadcastStatus.note':
     'Os resultados são atualizados automaticamente quando há conexão. Caso contrário, esta página já traz tudo.',
 
-  'publicWeb.ticker.heading': 'Partidas',
-  'publicWeb.ticker.empty': 'Ainda não há partidas programadas.',
+  'publicWeb.matchGrid.heading': 'Partidas',
+  'publicWeb.matchGrid.empty': 'Ainda não há partidas programadas.',
 
   'publicWeb.series.ariaLabel': 'Série melhor de {bestOf}: {home} a {away}',
   'publicWeb.series.gameWonHome': 'Jogo {number}: vencido pelo mandante',
@@ -127,4 +127,24 @@ export const messages: Record<string, string> = {
   'publicWeb.notFound.heading': 'Página não encontrada',
   'publicWeb.notFound.body': 'Nenhum conteúdo existe neste endereço.',
   'publicWeb.notFound.homeLink': 'Voltar ao início',
+
+  'publicWeb.ticker.label': 'Ticker do torneio',
+  'publicWeb.ticker.leader': 'Líder',
+  'publicWeb.ticker.versus': 'VS',
+  'publicWeb.tvStats.homeSide': 'Casa',
+  'publicWeb.tvStats.awaySide': 'Fora',
+  'publicWeb.tvStats.points': 'Pontos',
+  'publicWeb.tvStats.pointsShort': 'Pts',
+  'publicWeb.tvStats.unnamedActor': 'Competidor {reference}',
+  'publicWeb.tvStats.scheduledMatches': 'Partidas agendadas',
+  'publicWeb.tvStats.status': 'Estado',
+  'publicWeb.tvStats.inProgress': 'Em andamento',
+  'publicWeb.tvStats.matchesPlayed': 'Partidas disputadas',
+  'publicWeb.tvStats.totalScored': 'Total marcado',
+  'publicWeb.tvStats.averagePerMatch': 'Média por partida',
+  'publicWeb.tvStats.highestResult': 'Maior resultado',
+  'publicWeb.tvStats.championTitle': 'Campeão do torneio',
+  'publicWeb.tvStats.tableLeaderTitle': 'Líder da tabela',
+  'publicWeb.tvStats.standingsRecord': '1.º · {points} pts · {played} jogadas',
+  'publicWeb.tvStats.grandFinalRecord': 'Vencedor da grande final ({winner} – {loser})',
 };

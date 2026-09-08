@@ -53,8 +53,8 @@ export const messages: Record<string, string> = {
   'publicWeb.broadcastStatus.note':
     'Результаты обновляются автоматически при наличии соединения. В противном случае на этой странице уже есть все данные.',
 
-  'publicWeb.ticker.heading': 'Матчи',
-  'publicWeb.ticker.empty': 'Пока нет запланированных матчей.',
+  'publicWeb.matchGrid.heading': 'Матчи',
+  'publicWeb.matchGrid.empty': 'Пока нет запланированных матчей.',
 
   'publicWeb.series.ariaLabel': 'Серия до {bestOf} побед: {home} — {away}',
   'publicWeb.series.gameWonHome': 'Матч {number}: выиграл хозяин',
@@ -126,4 +126,24 @@ export const messages: Record<string, string> = {
   'publicWeb.notFound.heading': 'Страница не найдена',
   'publicWeb.notFound.body': 'По этому адресу ничего не найдено.',
   'publicWeb.notFound.homeLink': 'На главную',
+
+  'publicWeb.ticker.label': 'Бегущая строка турнира',
+  'publicWeb.ticker.leader': 'Лидер',
+  'publicWeb.ticker.versus': 'VS',
+  'publicWeb.tvStats.homeSide': 'Дома',
+  'publicWeb.tvStats.awaySide': 'В гостях',
+  'publicWeb.tvStats.points': 'Очки',
+  'publicWeb.tvStats.pointsShort': 'Очк',
+  'publicWeb.tvStats.unnamedActor': 'Участник {reference}',
+  'publicWeb.tvStats.scheduledMatches': 'Запланированные матчи',
+  'publicWeb.tvStats.status': 'Статус',
+  'publicWeb.tvStats.inProgress': 'Идёт',
+  'publicWeb.tvStats.matchesPlayed': 'Сыгранные матчи',
+  'publicWeb.tvStats.totalScored': 'Всего набрано',
+  'publicWeb.tvStats.averagePerMatch': 'В среднем за матч',
+  'publicWeb.tvStats.highestResult': 'Лучший результат',
+  'publicWeb.tvStats.championTitle': 'Чемпион турнира',
+  'publicWeb.tvStats.tableLeaderTitle': 'Лидер таблицы',
+  'publicWeb.tvStats.standingsRecord': '1-е · {points} очк · {played} сыграно',
+  'publicWeb.tvStats.grandFinalRecord': 'Победитель большого финала ({winner} – {loser})',
 };

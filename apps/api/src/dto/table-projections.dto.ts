@@ -45,6 +45,25 @@ export class TableRowResponse {
   cells!: Record<string, TableCellResponse>;
 }
 
+/**
+ * One ranked block of a stage's table — a group, or the whole stage when it has
+ * none. A reader finds each block's leader at `rows[0]` without knowing the
+ * stage's format.
+ */
+export class TableProjectionSegmentResponse {
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Absent when the segment covers a stage that has no groups',
+  })
+  groupId?: string;
+
+  @ApiPropertyOptional({ description: 'The group\u2019s own name, e.g. "Group A"' })
+  groupName?: string;
+
+  @ApiProperty({ type: TableRowResponse, isArray: true })
+  rows!: TableRowResponse[];
+}
+
 export class TableColumnResponse {
   @ApiProperty()
   code!: string;
@@ -119,6 +138,14 @@ export class TableProjectionResponse {
       'Freshest `statistic-totals` projection version among this scope’s matches; 0 when none has been folded yet',
   })
   projectionVersion!: number;
+
+  @ApiPropertyOptional({
+    type: TableProjectionSegmentResponse,
+    isArray: true,
+    description:
+      'Stage-scoped reads only: the same figures split into one ranked block per group, or a single block when the stage has no groups',
+  })
+  segments?: TableProjectionSegmentResponse[];
 
   @ApiPropertyOptional({
     description:

@@ -52,8 +52,8 @@ export const messages: Record<string, string> = {
 
   'publicWeb.broadcastStatus.note': '连接正常时结果会自动更新。若未连接，本页面已包含所有信息。',
 
-  'publicWeb.ticker.heading': '比赛',
-  'publicWeb.ticker.empty': '暂无已安排的比赛。',
+  'publicWeb.matchGrid.heading': '比赛',
+  'publicWeb.matchGrid.empty': '暂无已安排的比赛。',
 
   'publicWeb.series.ariaLabel': '{bestOf} 局系列赛：{home} 比 {away}',
   'publicWeb.series.gameWonHome': '第 {number} 场：主队获胜',
@@ -125,4 +125,24 @@ export const messages: Record<string, string> = {
   'publicWeb.notFound.heading': '页面未找到',
   'publicWeb.notFound.body': '该地址不存在任何内容。',
   'publicWeb.notFound.homeLink': '返回首页',
+
+  'publicWeb.ticker.label': '赛事滚动条',
+  'publicWeb.ticker.leader': '领先者',
+  'publicWeb.ticker.versus': 'VS',
+  'publicWeb.tvStats.homeSide': '主场',
+  'publicWeb.tvStats.awaySide': '客场',
+  'publicWeb.tvStats.points': '积分',
+  'publicWeb.tvStats.pointsShort': '分',
+  'publicWeb.tvStats.unnamedActor': '参赛者 {reference}',
+  'publicWeb.tvStats.scheduledMatches': '已安排的比赛',
+  'publicWeb.tvStats.status': '状态',
+  'publicWeb.tvStats.inProgress': '进行中',
+  'publicWeb.tvStats.matchesPlayed': '已赛场次',
+  'publicWeb.tvStats.totalScored': '总得分',
+  'publicWeb.tvStats.averagePerMatch': '场均得分',
+  'publicWeb.tvStats.highestResult': '最高比分',
+  'publicWeb.tvStats.championTitle': '赛事冠军',
+  'publicWeb.tvStats.tableLeaderTitle': '榜首',
+  'publicWeb.tvStats.standingsRecord': '第 1 名 · {points} 分 · {played} 场',
+  'publicWeb.tvStats.grandFinalRecord': '总决赛冠军（{winner} – {loser}）',
 };

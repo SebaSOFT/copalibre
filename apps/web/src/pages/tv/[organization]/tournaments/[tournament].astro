@@ -1,5 +1,6 @@
 ---
 import TvLayout from '../../../../layouts/TvLayout.astro';
+import ScoreTicker from '../../../../components/ScoreTicker.astro';
 import { TvDashboard } from '../../../../components/TvDashboard.tsx';
 import { tvStreamPath } from '@copalibre/routing';
 import { sampleDashboard } from '../../../../lib/live-sample.ts';
@@ -13,8 +14,17 @@ import {
 import type { PublicObjectReference } from '../../../../lib/discipline-background.ts';
 import type { LiveDashboard } from '../../../../lib/live-state.ts';
 import type { ResultState } from '../../../../lib/result-state.ts';
-import type { StandingsRowView } from '../../../../lib/overview.ts';
+import type { OverviewMatch, StandingsRowView } from '../../../../lib/overview.ts';
 import type { TopPerformer } from '../../../../lib/tv-statistics.ts';
+import { buildTickerItems } from '../../../../lib/ticker-items.ts';
+import { publicIntl, tickerLabels, tvStatisticsLabels } from '../../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../../lib/i18n/public-messages.en.ts';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import {
+  fetchPublicTableLayouts,
+  fetchPublicTableProjection,
+} from '../../../../lib/public-api-client.ts';
+import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 
 export const prerender = false;
 
@@ -22,6 +32,15 @@ const { organization, tournament } = Astro.params;
 const organizationAlias = organization ?? 'liga-mendocina';
 const tournamentAlias = tournament ?? 'apertura-2026';
 const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
+
+/*
+  A TV route carries no locale segment, so the language comes from the query the
+  same way `mode` and `chroma` already do. English is the default a venue gets
+  without asking, not a claim that TV is English-only.
+*/
+const langParam = Astro.url.searchParams.get('lang');
+const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
+const intl = publicIntl(language);
 
 let dashboard: LiveDashboard = {
   matches: [],
@@ -38,6 +57,9 @@ let disciplineImages: PublicObjectReference[] | undefined;
 
 let standings: StandingsRowView[] = [];
 let topPerformers: TopPerformer[] = [];
+let performerProjection: TableProjectionResponse | undefined;
+let leaderProjection: TableProjectionResponse | undefined;
+let overviewMatches: readonly OverviewMatch[] = [];
 
 try {
   const [live, overview] = await Promise.all([
@@ -54,6 +76,8 @@ try {
       tournamentEmblem = tournamentEmblemUrl(organizationAlias, tournamentAlias);
     }
     standings = mappedOverview.standings ? [...mappedOverview.standings] : [];
+    overviewMatches = mappedOverview.matches;
+
     if (mappedOverview.clubs) {
       clubs = mappedOverview.clubs.map((c) => ({
         name: c.name,
@@ -102,6 +126,41 @@ try {
 }
 
 /*
+  The ticker's own projections, read in their own guard.
+  Deliberately outside the block above: a failure here must cost the ticker its
+  items and nothing else. Folded into that try, a table read that 404s would
+  have been caught by its `catch` and replaced the whole live dashboard with
+  sample data — a broadcast showing invented scores because a statistics table
+  was missing.
+*/
+try {
+  const layouts = await fetchPublicTableLayouts(organizationAlias, tournamentAlias);
+  const declared = layouts?.layouts ?? [];
+  const performerLayout = declared.find((one) => one.target === 'player-ranking');
+  const groupLayout = declared.find((one) => one.target === 'group-phase');
+  const earliestStage = overviewMatches.reduce(
+    (earliest, match) => Math.min(earliest, match.stageNumber),
+    Infinity,
+  );
+  [performerProjection, leaderProjection] = await Promise.all([
+    performerLayout
+      ? fetchPublicTableProjection(organizationAlias, tournamentAlias, performerLayout.code)
+      : Promise.resolve(undefined),
+    groupLayout && Number.isFinite(earliestStage)
+      ? fetchPublicTableProjection(
+          organizationAlias,
+          tournamentAlias,
+          groupLayout.code,
+          earliestStage,
+        )
+      : Promise.resolve(undefined),
+  ]);
+} catch {
+  performerProjection = undefined;
+  leaderProjection = undefined;
+}
+
+/*
  * The presentation is a property of the request, resolved here so the very
  * first response already carries it. `overlay` stays valid as the name an
  * existing OBS browser source is already configured with.
@@ -115,6 +174,21 @@ const overlayMode =
       : undefined;
 const chromaKey = Astro.url.searchParams.get('chroma') ?? undefined;
 const presentation = overlayMode ?? 'kiosk';
+
+/*
+  The overlay presentations exist to leave the frame clear for the footage they
+  are composited over, so the rail is a kiosk-only fixture.
+*/
+const tickerItems =
+  presentation === 'kiosk'
+    ? buildTickerItems({
+        matches: overviewMatches,
+        ...(performerProjection === undefined ? {} : { performers: performerProjection }),
+        ...(leaderProjection === undefined ? {} : { leaders: leaderProjection }),
+        labels: tickerLabels(intl),
+        language,
+      })
+    : [];
 ---
 
 <TvLayout
@@ -123,6 +197,7 @@ const presentation = overlayMode ?? 'kiosk';
   chromaKey={chromaKey}
   disciplineImages={disciplineImages}
 >
+  <ScoreTicker items={tickerItems} label={intl.formatMessage(messages.tickerLabel)} scale="tv" />
   <TvDashboard
     client:load
     presentation={presentation}
@@ -136,5 +211,8 @@ const presentation = overlayMode ?? 'kiosk';
     clubs={clubs}
     standings={standings}
     topPerformers={topPerformers}
+    performerProjection={performerProjection}
+    labels={tvStatisticsLabels(intl)}
+    language={language}
   />
 </TvLayout>
