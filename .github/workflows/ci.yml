@@ -435,6 +435,7 @@ jobs:
           name: web-build-dist
           path: apps/web/dist
           retention-days: 1
+          include-hidden-files: true
 
   # The public site build is inspected from the verified producer artifact:
   # the page must be complete without JavaScript, and the sitemap must not advertise
