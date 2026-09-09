@@ -447,7 +447,7 @@ export function PreferencesRoute({
                       display: 'flex',
                       justifyContent: 'space-between',
                       padding: '1rem',
-                      borderBottom: '1px solid var(--cl-border-base)',
+                      borderBottom: '1px solid var(--cl-border-muted)',
                     }}
                   >
                     <div>

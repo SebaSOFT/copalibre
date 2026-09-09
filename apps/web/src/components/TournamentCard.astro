@@ -86,8 +86,8 @@ const winners = tournament.winners ?? [];
 
 <style>
   .cl-tournament-card {
-    background-color: var(--cl-surface, #1e293b);
-    border: 1px solid var(--cl-border, #334155);
+    background-color: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
     border-radius: 12px;
     padding: 1.5rem;
     display: flex;
@@ -101,18 +101,18 @@ const winners = tournament.winners ?? [];
   }
 
   .cl-tournament-card:hover {
-    border-color: var(--cl-border-hover, #64748b);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    border-color: var(--cl-border-hover);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--cl-color-ink-950) 30%, transparent);
   }
 
   .cl-card-live {
-    border-color: rgba(239, 68, 68, 0.4);
+    border-color: color-mix(in srgb, var(--cl-state-live) 40%, transparent);
   }
 
   .cl-card-featured {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 1) 0%, rgba(15, 23, 42, 1) 100%);
-    border-color: rgba(239, 68, 68, 0.6);
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+    background: linear-gradient(135deg, var(--cl-surface-raised) 0%, var(--cl-surface-base) 100%);
+    border-color: color-mix(in srgb, var(--cl-primary) 60%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--cl-primary) 15%, transparent);
   }
 
   .cl-card-header {
@@ -136,8 +136,8 @@ const winners = tournament.winners ?? [];
     letter-spacing: 0.05em;
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--cl-text-muted, #94a3b8);
+    background-color: color-mix(in srgb, var(--cl-text-primary) 10%, transparent);
+    color: var(--cl-text-muted);
   }
 
   .cl-status-badge {
@@ -152,17 +152,17 @@ const winners = tournament.winners ?? [];
   }
 
   .cl-badge-live {
-    background-color: rgba(239, 68, 68, 0.2);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.4);
+    background-color: color-mix(in srgb, var(--cl-state-live) 20%, transparent);
+    color: var(--cl-state-live);
+    border: 1px solid color-mix(in srgb, var(--cl-state-live) 40%, transparent);
   }
 
   .cl-live-pulse {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background-color: #ef4444;
-    box-shadow: 0 0 8px #ef4444;
+    background-color: var(--cl-state-live);
+    box-shadow: 0 0 8px var(--cl-state-live);
     animation: cl-pulse 1.5s infinite;
   }
 
@@ -179,13 +179,13 @@ const winners = tournament.winners ?? [];
   }
 
   .cl-badge-upcoming {
-    background-color: rgba(59, 130, 246, 0.2);
-    color: #60a5fa;
+    background-color: color-mix(in srgb, var(--cl-primary) 20%, transparent);
+    color: var(--cl-primary);
   }
 
   .cl-badge-finished {
-    background-color: rgba(148, 163, 184, 0.2);
-    color: #cbd5e1;
+    background-color: color-mix(in srgb, var(--cl-text-muted) 20%, transparent);
+    color: var(--cl-text-secondary);
   }
 
   .cl-tournament-name {
@@ -199,20 +199,20 @@ const winners = tournament.winners ?? [];
   .cl-tournament-link {
     display: block;
     overflow: hidden;
-    color: var(--cl-text, #f8fafc);
+    color: var(--cl-text-primary);
     text-decoration: none;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .cl-tournament-link:hover {
-    color: var(--cl-primary-hover, #38bdf8);
+    color: var(--cl-primary-hover);
     text-decoration: underline;
   }
 
   .cl-podium-container {
-    background-color: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background-color: color-mix(in srgb, var(--cl-color-ink-950) 25%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cl-text-primary) 7%, transparent);
     border-radius: 8px;
     padding: 0.85rem 1rem;
     display: flex;
@@ -225,7 +225,7 @@ const winners = tournament.winners ?? [];
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #fbbf24;
+    color: var(--cl-state-upcoming);
     margin-bottom: 0.35rem;
   }
 
@@ -247,7 +247,7 @@ const winners = tournament.winners ?? [];
     gap: 0.65rem;
     padding: 0.5rem;
     border-radius: 6px;
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: color-mix(in srgb, var(--cl-text-primary) 3%, transparent);
     min-width: 0;
   }
 
@@ -264,15 +264,15 @@ const winners = tournament.winners ?? [];
   }
 
   .cl-gold-medal {
-    background: linear-gradient(135deg, #fbbf24, #d97706);
-    color: #451a03;
-    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+    background: linear-gradient(135deg, var(--cl-state-upcoming), var(--cl-color-amber-800));
+    color: var(--cl-color-ink-950);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--cl-state-upcoming) 40%, transparent);
   }
 
   .cl-silver-medal {
-    background: linear-gradient(135deg, #e2e8f0, #94a3b8);
-    color: #0f172a;
-    box-shadow: 0 0 6px rgba(226, 232, 240, 0.3);
+    background: linear-gradient(135deg, var(--cl-text-secondary), var(--cl-text-muted));
+    color: var(--cl-surface-base);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--cl-text-secondary) 30%, transparent);
   }
 
   .cl-entrant-info {
@@ -286,20 +286,20 @@ const winners = tournament.winners ?? [];
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--cl-text-muted, #94a3b8);
+    color: var(--cl-text-muted);
   }
 
   .cl-entrant-name {
     font-size: var(--cl-font-size-sm);
     font-weight: 600;
-    color: #f8fafc;
+    color: var(--cl-text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .cl-entrant-abbr {
-    color: #94a3b8;
+    color: var(--cl-text-muted);
     font-weight: normal;
     margin-left: 0.25rem;
   }

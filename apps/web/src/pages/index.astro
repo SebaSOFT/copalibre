@@ -74,16 +74,16 @@ const organizations = (await fetchOrganizations()) ?? [];
 
   .cl-home-header p {
     margin: 0;
-    color: var(--cl-text-muted, #94a3b8);
+    color: var(--cl-text-muted);
     font-size: 1.125rem;
   }
 
   .cl-empty-state {
     padding: 48px 24px;
     text-align: center;
-    border: 1px dashed var(--cl-border-muted, #334155);
+    border: 1px dashed var(--cl-border-muted);
     border-radius: 4px;
-    color: var(--cl-text-muted, #94a3b8);
+    color: var(--cl-text-muted);
   }
 
   .cl-org-directory h2 {
@@ -105,13 +105,13 @@ const organizations = (await fetchOrganizations()) ?? [];
     padding: 16px;
     text-decoration: none;
     color: inherit;
-    border: 1px solid var(--cl-border-muted, #334155);
-    background: var(--cl-surface-card, #1e293b);
+    border: 1px solid var(--cl-border-muted);
+    background: var(--cl-surface-panel);
     transition: border-color 0.15s ease-in-out;
   }
 
   .cl-org-card:hover {
-    border-color: var(--cl-state-live, #0ea5e9);
+    border-color: var(--cl-state-live);
   }
 
   .cl-org-info {
@@ -131,6 +131,6 @@ const organizations = (await fetchOrganizations()) ?? [];
 
   .cl-org-alias {
     font-size: 0.875rem;
-    color: var(--cl-text-muted, #94a3b8);
+    color: var(--cl-text-muted);
   }
 </style>

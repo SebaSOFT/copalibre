@@ -274,12 +274,14 @@ describe('StandingsPage', () => {
     );
 
     // `defaultSort[0]` is 'points' — tll leads with 6, ind trails with 3, so
-    // the leader's bar is full width and the trailer's is exactly half.
+    // the leader's bar is full and the trailer's is exactly half. The
+    // proportion is carried by `scaleX` rather than `width`: animating a layout
+    // property relayouts the row on every frame.
     const bars = screen
       .getByLabelText('Points distribution')
-      .querySelectorAll<HTMLElement>('[aria-hidden="true"][style*="width"]');
-    const widths = [...bars].map((bar) => bar.style.width);
-    expect(widths).toEqual(['100%', '50%']);
+      .querySelectorAll<HTMLElement>('[aria-hidden="true"][style*="transform"]');
+    const scales = [...bars].map((bar) => bar.style.transform);
+    expect(scales).toEqual(['scaleX(1)', 'scaleX(0.5)']);
   });
 
   it('charts nothing when the layout declares no default sort to scale against', () => {

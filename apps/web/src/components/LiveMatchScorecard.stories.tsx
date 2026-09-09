@@ -22,7 +22,7 @@ export const Playground: Story = {
     awayTeam: {
       name: 'Deportivo Central',
       score: 1,
-      color: 'var(--cl-color-magenta-500)',
+      color: 'var(--cl-accent-team)',
     },
     events: [
       { minute: 14, player: 'G. Valenzuela', team: 'home' },

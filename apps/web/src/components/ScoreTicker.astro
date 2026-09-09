@@ -124,39 +124,39 @@ const { items, label, scale = 'web' } = Astro.props;
     position: relative;
     z-index: 20;
     user-select: none;
-    background: color-mix(in srgb, var(--cl-ink-950, #05070a) 90%, transparent);
-    border-block-end: 1px solid var(--cl-ink-700, #26303c);
+    background: color-mix(in srgb, var(--cl-color-ink-950) 90%, transparent);
+    border-block-end: 1px solid var(--cl-color-ink-700);
     backdrop-filter: blur(6px);
   }
 
   .cl-ticker--web {
     height: 44px;
-    font-size: var(--cl-font-size-xs, 0.75rem);
+    font-size: var(--cl-font-size-xs);
   }
 
   /* Distance reading: the rest of the TV sheet is vmin-relative, so this is too. */
   .cl-ticker--tv {
     height: 6vmin;
-    font-size: clamp(var(--cl-font-size-sm, 0.875rem), 2vmin, 2.5vmin);
+    font-size: clamp(var(--cl-font-size-sm), 2vmin, 2.5vmin);
   }
 
   .cl-ticker__track {
     display: flex;
     align-items: center;
     width: max-content;
-    padding-inline: var(--cl-space-6, 1.5rem);
-    gap: var(--cl-space-8, 2rem);
+    padding-inline: var(--cl-space-6);
+    gap: var(--cl-space-8);
     font-family: var(--cl-font-mono);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--cl-text-secondary, #9fb0c0);
+    color: var(--cl-text-secondary);
     will-change: transform;
   }
 
   .cl-ticker__item {
     display: inline-flex;
     align-items: center;
-    gap: var(--cl-space-3, 0.75rem);
+    gap: var(--cl-space-3);
     white-space: nowrap;
   }
 
@@ -164,7 +164,7 @@ const { items, label, scale = 'web' } = Astro.props;
     font-family: var(--cl-font-display);
     font-weight: 700;
     letter-spacing: 0.05em;
-    color: var(--cl-text-primary, #eef4fa);
+    color: var(--cl-text-primary);
   }
 
   .cl-ticker__figure {
@@ -173,19 +173,19 @@ const { items, label, scale = 'web' } = Astro.props;
     font-variant-numeric: tabular-nums;
     padding: 0.15em 0.4em;
     border-radius: 3px;
-    background: var(--cl-ink-900, #0b1017);
-    border: 1px solid var(--cl-ink-700, #26303c);
-    color: var(--cl-brand-cyan, #00d4ff);
+    background: var(--cl-color-ink-900);
+    border: 1px solid var(--cl-color-ink-700);
+    color: var(--cl-primary);
   }
 
   .cl-ticker__meta {
     font-size: 0.85em;
-    color: var(--cl-text-muted, #6b7c8c);
+    color: var(--cl-text-muted);
   }
 
   .cl-ticker__sep {
     font-weight: 700;
-    color: var(--cl-ink-700, #26303c);
-    margin-inline: var(--cl-space-2, 0.5rem);
+    color: var(--cl-color-ink-700);
+    margin-inline: var(--cl-space-2);
   }
 </style>

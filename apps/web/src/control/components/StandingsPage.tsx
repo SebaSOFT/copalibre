@@ -403,8 +403,13 @@ export function PointsDistribution({
                   display: 'block',
                   height: '100%',
                   background: 'var(--cl-state-live)',
-                  transition: 'width 400ms ease-out',
-                  width: `${bar.widthPercent}%`,
+                  // Scaled rather than resized: animating `width` relayouts the
+                  // row on every frame, and the reduced-motion override only
+                  // reaches durations, not the cost of the property.
+                  width: '100%',
+                  transformOrigin: 'left',
+                  transform: `scaleX(${bar.widthPercent / 100})`,
+                  transition: 'transform var(--cl-motion-slow) var(--cl-motion-easing)',
                 }}
               />
             </span>

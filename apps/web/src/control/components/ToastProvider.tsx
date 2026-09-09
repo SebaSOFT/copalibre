@@ -199,7 +199,7 @@ const toastStyles = `
       transform var(--cl-motion-base) var(--cl-motion-easing);
   }
   .cl-toast[data-severity='success'] { border-color: var(--cl-state-positive); }
-  .cl-toast[data-severity='error'] { border-color: var(--cl-state-negative); }
+  .cl-toast[data-severity='error'] { border-color: var(--cl-state-destructive); }
   .cl-toast[data-severity='info'] { border-color: var(--cl-state-live); }
   .cl-toast[data-exiting='true'] { opacity: 0; transform: translateX(var(--cl-space-4)); }
   .cl-toast__body { display: grid; min-width: 0; gap: var(--cl-space-2); }

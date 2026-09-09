@@ -43,7 +43,34 @@ export const SEMANTIC_COLORS = {
   'surface-base': { primitive: 'ink-950', purpose: 'Broadcast base', nonColourCue: 'n/a' },
   'surface-panel': { primitive: 'ink-900', purpose: 'Panel', nonColourCue: 'n/a' },
   'surface-raised': { primitive: 'ink-850', purpose: 'Raised or selected', nonColourCue: 'Border' },
+  /** A raised surface under the pointer: one step lighter, never a new hue. */
+  'surface-hover': { primitive: 'ink-700', purpose: 'Hovered surface', nonColourCue: 'n/a' },
   'border-muted': { primitive: 'ink-700', purpose: 'Structure', nonColourCue: 'n/a' },
+  /** Structure that has to carry emphasis on its own: a toast edge, a bracket connector. */
+  'border-strong': { primitive: 'text-400', purpose: 'Emphasised structure', nonColourCue: 'n/a' },
+  /**
+   * A border under the pointer moves toward the accent rather than merely
+   * brightening, so hovering a control and then activating it read as one
+   * progression into `state-live`.
+   */
+  'border-hover': { primitive: 'cyan-700', purpose: 'Hovered structure', nonColourCue: 'n/a' },
+  /**
+   * The brand accent as an *action* role, so a link or a primary control names
+   * what it is instead of reaching for the cyan primitive.
+   *
+   * Seeded from `cyan-400` and deliberately uncalibrated: 0220 owns
+   * primary/secondary action calibration against its reference measurements, and
+   * this change has no reference to calibrate from. `primary-hover` holds the
+   * same value for that reason — the system's existing hover idiom is a
+   * `filter: brightness()` on the control, not a second colour — so 0220 can
+   * give it a measured value without any call site changing.
+   */
+  primary: { primitive: 'cyan-400', purpose: 'Primary action', nonColourCue: 'Action label' },
+  'primary-hover': {
+    primitive: 'cyan-400',
+    purpose: 'Primary action, hovered (awaiting 0220 calibration)',
+    nonColourCue: 'Action label',
+  },
   'text-primary': { primitive: 'text-50', purpose: 'Body text', nonColourCue: 'n/a' },
   'text-secondary': { primitive: 'text-200', purpose: 'Secondary text', nonColourCue: 'n/a' },
   'text-muted': {

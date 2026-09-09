@@ -210,6 +210,13 @@ for (const path of [
   '/404',
   '/tv/liga-mendocina/tournaments/apertura-2026',
   '/tv/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1',
+  // Help renders through Starlight's own layout, whose theme maps onto the
+  // CopaLibre tokens rather than composing the public shell — so it is the one
+  // surface a public-route check does not cover. One page per locale direction
+  // of the pair the docs gate builds.
+  '/help/',
+  '/help/standings/strength-of-schedule/',
+  '/es/help/',
 ]) {
   test(`${path} has no page overflow at every reference width`, async ({ page }) => {
     for (const width of [...REFERENCE_WIDTHS, EFFECTIVE_200_PERCENT_ZOOM_WIDTH]) {

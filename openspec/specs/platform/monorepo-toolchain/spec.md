@@ -4,7 +4,9 @@
 Gives every later CopaLibre change a working repository skeleton — workspace layout, package
 manager, TypeScript wiring, lint/format gate, base test runners, and CI — so feature phases only add
 behavior, never re-derive toolchain setup.
+
 ## Requirements
+
 ### Requirement: Workspace layout
 The repository SHALL provide a Yarn workspace containing `apps/api`, `apps/events`, `apps/worker`,
 `apps/scheduler`, `apps/migrate`, `apps/doctor`, `apps/web`, and `packages/domain`, `packages/rules`,
@@ -126,3 +128,35 @@ get fast feedback without the cost of the full browser and deployment verificati
 - **WHEN** the CI workflow is triggered manually (`workflow_dispatch`)
 - **THEN** the end-to-end and deploy-verification jobs run regardless of branch
 
+### Requirement: Remediate known transitive dependency security advisories
+The toolchain SHALL enforce explicit package resolutions and lockfile pinning to remediate known high-, medium-, and low-severity security advisories across all production, development, and transitive dependencies whenever upstream fixes are available.
+
+The repository SHALL remediate known unmitigated Dependabot alerts with available compatible patches and track GitHub closure separately until the fix reaches the default branch. Transitive packages requiring fixed versions SHALL be pinned in the root `package.json` resolutions map.
+
+#### Scenario: Transitive fast-uri instances resolve to patched release
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** both direct and transitive instances of `fast-uri` resolve to version `3.1.6` or greater (for the v3 line) and `4.1.3` or greater (for the v4 line), remediating CVE-2026-75931, CVE-2026-75899, CVE-2026-76172, and CVE-2026-75975
+
+#### Scenario: Transitive qs instances resolve to patched release
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** all transitive instances of `qs` resolve to version `6.16.0` or greater, remediating CVE-2026-82562 and CVE-2026-82417
+
+#### Scenario: Transitive ai-sdk provider utils resolves to patched release
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** transitive instances of `@ai-sdk/provider-utils` resolve to version `4.0.33` or greater, remediating CVE-2026-8769
+
+#### Scenario: Monorepo test and verification gates remain green under patched dependencies
+- **WHEN** the monorepo test gate (`yarn test`, `yarn test:integration`, `yarn workspace @copalibre/web verify:docs`) is executed
+- **THEN** all test suites pass without regression under the upgraded dependency versions
+
+#### Scenario: Transitive SVG optimizer resolves to patched release
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** v4 instances of `svgo` resolve to version `4.1.0` or greater, remediating GHSA-w27v-7q3p-w38r and GHSA-4vpr-x523-8j87
+
+#### Scenario: A vulnerable duplicate fails CI
+- **WHEN** any affected lockfile entry or resolution falls below its supported major line’s patched floor
+- **THEN** the CI install check fails, even if another instance of that package is patched
+
+#### Scenario: Closure follows release rather than manual dismissal
+- **WHEN** remediation is merged to the integration branch while the default branch still has vulnerable versions
+- **THEN** release tracking identifies the patched versions and pending default-branch closure, without claiming GitHub alerts are already fixed

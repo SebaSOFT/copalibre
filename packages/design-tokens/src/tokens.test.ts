@@ -208,10 +208,12 @@ describe('the CSS output', () => {
   });
 
   it('declares the ambient cyan glow token and tactical grid utility', () => {
-    expect(css).toContain('--cl-glow-cyan: 0 0 20px rgba(0, 212, 255, 0.4);');
+    expect(css).toContain(
+      '--cl-glow-cyan: 0 0 20px color-mix(in srgb, var(--cl-primary) 40%, transparent);',
+    );
     expect(css).toContain('.cl-tactical-grid {');
     expect(css).toContain(
-      'linear-gradient(to right, color-mix(in srgb, var(--cl-color-cyan-400) 6%, transparent) 1px, transparent 1px)',
+      'linear-gradient(to right, color-mix(in srgb, var(--cl-primary) 6%, transparent) 1px, transparent 1px)',
     );
     expect(css).toContain('background-size: var(--cl-space-6) var(--cl-space-8);');
   });
@@ -411,7 +413,7 @@ describe('public table and pill treatments (openspec 0199)', () => {
   });
 
   it('separates rows with a muted border and right-aligns numeric columns', () => {
-    expect(css).toMatch(/\.cl-table th,\n\.cl-table td \{[^}]*var\(--cl-border-subtle\)/);
+    expect(css).toMatch(/\.cl-table th,\n\.cl-table td \{[^}]*var\(--cl-border-muted\)/);
     expect(css).toContain('.cl-table__num { text-align: right; }');
   });
 

@@ -851,6 +851,10 @@ jobs:
           cache: yarn
       - run: yarn install --immutable
       - run: yarn workspace @copalibre/design-tokens scan:forbidden
+      # Closure between what the stylesheet declares and what every first-party
+      # surface references. A `var(--cl-*)` naming an undeclared token renders
+      # its fallback instead of failing, so nothing but this check sees it.
+      - run: yarn workspace @copalibre/design-tokens check:integrity
 
   # Real PostgreSQL, no mocks.
   integration-tests:
