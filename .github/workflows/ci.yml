@@ -108,6 +108,7 @@ jobs:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
+      - run: node --test scripts/dependency-security.test.mjs
 
   lint:
     name: Lint (zero warnings)

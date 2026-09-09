@@ -277,12 +277,9 @@ All form inputs within administrative screens SHALL utilize design token classes
 - **THEN** the elements SHALL render using design tokens without native browser white backgrounds
 
 ### Requirement: Button atom implements the accepted CTA treatments
-The owned Button atom SHALL provide primary (cyan fill, dark text), secondary (raised neutral fill
-with a muted border), and destructive (red fill or outlined red, with a destructive verb label) visual
-treatments resolved from `surface`/`state-live`, `surface-raised`/`border-muted`, and
-`state-destructive` tokens respectively, each rendering distinct default, hover, active, focus-visible,
-and disabled states, and each carrying the chamfered control geometry. No Control-web screen SHALL
-render an ad hoc button style outside this atom.
+The owned Button atom SHALL provide primary (cyan fill, dark ink text), secondary (raised neutral panel fill with a muted border and light text), and destructive (red fill or outlined red, with a destructive verb label) visual treatments resolved from `surface`/`state-live`, `surface-raised`/`border-muted`, and `state-destructive` tokens respectively, each rendering distinct default, hover, active, focus-visible, and disabled states.
+
+Every Button variant SHALL utilize the display typeface (`Barlow Condensed`), bold (700) weight, uppercase transformation, and wide letter-spacing (`var(--cl-tracking-wider)`), and SHALL carry the asymmetric beveled chamfer geometry (`corner-shape: bevel; border-radius: 0 var(--cl-radius-chamfer-control) 0 var(--cl-radius-chamfer-control)` cutting Top-Right and Bottom-Left). Primary buttons SHALL emit an ambient cyan glow (`--cl-glow-cyan`) on hover and active states. No Control-web screen SHALL render an ad hoc button style outside this atom.
 
 #### Scenario: Primary and secondary buttons are visually distinct
 - **WHEN** a primary and a secondary Button are rendered side by side
@@ -307,6 +304,14 @@ render an ad hoc button style outside this atom.
 - **WHEN** a Button is rendered in its loading state
 - **THEN** it does not imply indeterminate progress with no textual cue: it renders a textual
   "Loading" label rather than a bare spinner
+
+#### Scenario: Primary button renders uppercase condensed type, asymmetric chamfer, and ambient glow
+- **WHEN** a primary Button is rendered
+- **THEN** it renders in `Barlow Condensed` bold uppercase, features beveled Top-Right and Bottom-Left corners via `corner-shape: bevel`, and emits an ambient cyan glow on hover
+
+#### Scenario: Secondary and destructive buttons share the asymmetric chamfer geometry
+- **WHEN** a secondary or destructive Button is rendered
+- **THEN** it renders in `Barlow Condensed` uppercase with the same Top-Right and Bottom-Left beveled corners as the primary button
 
 ### Requirement: DropdownMenu organism for a grouped set of actions
 The component library SHALL provide a `DropdownMenu` organism for presenting a set of related actions
@@ -507,3 +512,17 @@ of rebuilding them. A screen SHALL NOT hand-write the markup or class names thes
 - **WHEN** a component outside a stat tile needs the display-font tabular numeral — a match score, a
   count on a card
 - **THEN** it composes the owned value component, rather than borrowing the stat tile's own class
+
+### Requirement: CalloutBanner Component for Operations and Marketing Actions
+The component library SHALL provide a `CalloutBanner` molecule presenting a full-height solid electric cyan left vertical rail, rich description text, and a right-aligned chamfered action button with an external or navigation arrow glyph.
+
+#### Scenario: Callout banner renders full-height cyan accent rail and action button
+- **WHEN** `CalloutBanner` is rendered
+- **THEN** it displays an uninterrupted electric cyan vertical rail along its left border and places its action button aligned to the right margin
+
+### Requirement: Tactical LanguageSelector Pill
+The component library SHALL provide a `LanguageSelector` atom rendering the interface language options inside an asymmetric beveled chamfered pill, displaying a `文A` translation icon, active language code in uppercase monospace font, and a dropdown chevron indicator.
+
+#### Scenario: Language selector renders chamfered pill geometry
+- **WHEN** `LanguageSelector` is rendered
+- **THEN** it displays as a high-contrast dark panel pill with Top-Right and Bottom-Left beveled corners, translation glyph, and active locale abbreviation

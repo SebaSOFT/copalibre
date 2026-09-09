@@ -186,6 +186,8 @@ authentication contract). Every change is planned and tracked as an OpenSpec pro
 - [`docs/MCP.md`](docs/MCP.md) — `copalibre mcp`, its tool set, and how an AI agent connects
 - [`docs/MODULES.md`](docs/MODULES.md) — discipline and tournament-profile authoring
 - [`docs/AUTH.md`](docs/AUTH.md) — JWT/OIDC authentication contract
+- [`docs/security/dependency-remediation.md`](docs/security/dependency-remediation.md) — patched
+  dependency advisories and release closure tracking
 - [`docs/TESTING.md`](docs/TESTING.md) — testing conventions
 - [`docs/SCREEN-STORY-REVIEW.md`](docs/SCREEN-STORY-REVIEW.md) — operator Storybook coverage,
   fixture boundaries, responsive review evidence, and deferred UX gaps
