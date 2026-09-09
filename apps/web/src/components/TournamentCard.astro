@@ -106,13 +106,13 @@ const winners = tournament.winners ?? [];
   }
 
   .cl-card-live {
-    border-color: color-mix(in srgb, var(--cl-state-destructive) 40%, transparent);
+    border-color: color-mix(in srgb, var(--cl-state-live) 40%, transparent);
   }
 
   .cl-card-featured {
     background: linear-gradient(135deg, var(--cl-surface-raised) 0%, var(--cl-surface-base) 100%);
-    border-color: color-mix(in srgb, var(--cl-state-destructive) 60%, transparent);
-    box-shadow: 0 0 20px color-mix(in srgb, var(--cl-state-destructive) 15%, transparent);
+    border-color: color-mix(in srgb, var(--cl-primary) 60%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--cl-primary) 15%, transparent);
   }
 
   .cl-card-header {
@@ -152,17 +152,17 @@ const winners = tournament.winners ?? [];
   }
 
   .cl-badge-live {
-    background-color: color-mix(in srgb, var(--cl-state-destructive) 20%, transparent);
-    color: var(--cl-state-destructive);
-    border: 1px solid color-mix(in srgb, var(--cl-state-destructive) 40%, transparent);
+    background-color: color-mix(in srgb, var(--cl-state-live) 20%, transparent);
+    color: var(--cl-state-live);
+    border: 1px solid color-mix(in srgb, var(--cl-state-live) 40%, transparent);
   }
 
   .cl-live-pulse {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background-color: var(--cl-state-destructive);
-    box-shadow: 0 0 8px var(--cl-state-destructive);
+    background-color: var(--cl-state-live);
+    box-shadow: 0 0 8px var(--cl-state-live);
     animation: cl-pulse 1.5s infinite;
   }
 
@@ -264,8 +264,8 @@ const winners = tournament.winners ?? [];
   }
 
   .cl-gold-medal {
-    background: linear-gradient(135deg, var(--cl-state-upcoming), var(--cl-state-upcoming));
-    color: var(--cl-state-upcoming);
+    background: linear-gradient(135deg, var(--cl-state-upcoming), var(--cl-color-amber-800));
+    color: var(--cl-color-ink-950);
     box-shadow: 0 0 8px color-mix(in srgb, var(--cl-state-upcoming) 40%, transparent);
   }
 
