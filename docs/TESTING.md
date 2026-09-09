@@ -84,3 +84,12 @@ screens intentionally expose their current incomplete UX rather than a fictional
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, and the dependency license scan
 on every pull request. Later phases append integration/e2e/build jobs per their tasks.md.
+
+## Bounded Local Execution & CI Resource Allocation
+
+Established by change `0221-conditional-ci-resource-optimization`:
+
+- **Jest worker caps**: Cap Jest concurrency (`--maxWorkers=2`) when running suites locally or across parallel jobs to prevent memory pressure and thread contention.
+- **Dynamic worker fixture ports**: E2E mock servers allocate unique ports dynamically based on worker index (`3001 + workerIndex`), managed via `e2e/fixtures.ts`. This eliminates port 3001 `EADDRINUSE` collisions and enables concurrent worker scaling locally (`yarn test:e2e --workers=4`) and across parallel CI shards.
+- **Decoupled web build and inspection**: Web production builds output once per configuration. `verify:build` and `verify:docs` can inspect this verified output (`WEB_EXISTING_BUILD=1`), and Playwright E2E can serve it directly (`PLAYWRIGHT_EXISTING_BUILD=1`) without redundant rebuilds. Standalone local invocations continue to build before preview when these flags are omitted. Run build and browser execution in exclusive phases on a single checkout to avoid directory collisions.
+- **Partitioned groups**: Unit tests are partitioned into two balanced workspace groups (max 2 concurrent). Integration tests run in two isolated groups: Group 1 requires only PostgreSQL, while Group 2 initializes PostgreSQL, MinIO, and ClamAV. Stable aggregate checks (`Unit tests`, `Integration tests`, `E2E tests`, `Public web build`, `Help docs build`) preserve gate authority and distinguish intentional scope skips from failures.

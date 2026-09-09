@@ -8,7 +8,8 @@ export interface WorkerPortFixture {
 
 export const test = base.extend<Record<string, never>, WorkerPortFixture>({
   workerPort: [
-    async (_fixtures, use, workerInfo) => {
+    // eslint-disable-next-line no-empty-pattern
+    async ({}, use, workerInfo) => {
       const port = 3001 + workerInfo.workerIndex;
       await use(port);
     },
