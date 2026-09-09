@@ -297,9 +297,9 @@ jobs:
         if: matrix.group == 2
         run: |
           yarn workspace @copalibre/api test:coverage --maxWorkers=2
-          yarn workspace @copalibre/api test:sqlite --maxWorkers=2
-          yarn workspace @copalibre/persistence test:sqlite --maxWorkers=2
-          yarn workspace @copalibre/seed test:sqlite --maxWorkers=2
+          yarn workspace @copalibre/api test:sqlite
+          yarn workspace @copalibre/persistence test:sqlite
+          yarn workspace @copalibre/seed test:sqlite
           yarn workspace @copalibre/object-storage test:coverage --maxWorkers=2
           yarn workspace @copalibre/worker test:coverage --maxWorkers=2
           yarn workspace @copalibre/scheduler test:coverage --maxWorkers=2
