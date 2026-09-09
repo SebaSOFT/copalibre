@@ -83,35 +83,30 @@ SHALL NOT define a color-only state representation.
 - **THEN** the build fails or the component renders a visible validation error, never a color-only badge
 
 ### Requirement: Chamfered-corner motif with progressive enhancement
-The token set SHALL define one shared chamfer size applied via `clip-path` or the `corner-shape`
-property, with a documented `@supports` fallback to square corners on unsupported browsers.
+The token set SHALL define one shared chamfer size applied exclusively via the `corner-shape: bevel`
+property and 4-value `border-radius`, without any `clip-path` fallback.
 
-**The geometry SHALL be identical whichever path renders it.** Where the motif is expressed twice —
-once for browsers with `corner-shape` and once as a fallback — the two SHALL cut the same corners at
-the same size. A shape that depends on the viewer's browser is not a motif.
-
-The chamfer SHALL cut one diagonal pair: the top-right and bottom-left corners, leaving top-left and
-bottom-right square. Small square controls — a checkbox, a radio — are the exception and SHALL cut all
-four, because an asymmetric cut at that size reads as a rendering fault rather than a shape.
+The chamfer SHALL cut one diagonal pair: the top-right and bottom-left corners (`border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size)`),
+leaving top-left and bottom-right square. Small square controls — a checkbox, a radio — are the exception
+and SHALL cut all four, because an asymmetric cut at that size reads as a rendering fault rather than a shape.
 
 Where a component chamfers only some of its corners, that SHALL be expressed by setting a zero radius
-on the corners that stay square, not by authoring a second `clip-path` polygon: a polygon has to be
-kept in step with the `corner-shape` rule by hand, which is how the two came to disagree.
+on the corners that stay square (`border-radius: 0`), never by authoring polygon masks.
 
-A component whose focus indicator is drawn outside its own box — a `box-shadow` ring — SHALL NOT be
-clipped to its chamfer, because clipping removes the indicator. Such a component keeps square corners
-on browsers that cannot bevel without clipping.
+A component whose focus indicator or ambient glow is drawn outside its own box — such as a `box-shadow`
+ring or `--cl-glow-cyan` — SHALL NOT be clipped to its chamfer because `clip-path` is strictly prohibited
+for chamfer geometry. External focus rings and ambient glows stay intact across all rendering contexts.
 
 #### Scenario: Unsupported browser falls back gracefully
-- **WHEN** a browser without `corner-shape`/`clip-path` chamfer support renders a chamfered component
-- **THEN** the component renders with square corners and remains fully usable, not visually broken
+- **WHEN** a browser without `corner-shape` support renders a chamfered component
+- **THEN** the component renders with square corners (via zero or ignored radius) and remains fully usable without visual clipping defects
 
 #### Scenario: Both rendering paths cut the same shape
-- **WHEN** the motif is expressed once for `corner-shape` and once as a fallback
-- **THEN** both cut the same corners at the same size, so the shape does not depend on the browser
+- **WHEN** the chamfer motif is rendered via `corner-shape: bevel` with 4-value `border-radius`
+- **THEN** both diagonal corner cuts (top-right and bottom-left) match the specified `--cl-chamfer-size` dimensions identically, standardizing single-path beveling without clip-path divergence
 
 #### Scenario: A focus ring survives the chamfer
-- **WHEN** a component draws its focus indicator as a shadow outside its own box
+- **WHEN** a component draws its focus indicator or ambient glow as a shadow outside its own box
 - **THEN** it is not clipped to the chamfer, and the indicator stays visible on every browser
 
 ### Requirement: A component's styling is reachable wherever the component renders
