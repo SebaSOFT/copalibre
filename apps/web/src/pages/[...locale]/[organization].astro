@@ -239,7 +239,7 @@ const structuredData = listData
     display: flex;
     align-items: center;
     gap: 1.25rem;
-    border-bottom: 1px solid var(--cl-border, #334155);
+    border-bottom: 1px solid var(--cl-border-muted);
     padding-bottom: 1.5rem;
     min-width: 0;
   }
@@ -249,7 +249,7 @@ const structuredData = listData
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--cl-primary, #38bdf8);
+    color: var(--cl-primary);
     margin-bottom: 0.25rem;
   }
 
@@ -258,7 +258,7 @@ const structuredData = listData
     font-weight: 800;
     margin: 0;
     line-height: 1.2;
-    color: var(--cl-text, #f8fafc);
+    color: var(--cl-text-primary);
     overflow-wrap: anywhere;
   }
 
@@ -278,12 +278,12 @@ const structuredData = listData
     font-size: var(--cl-font-size-xl);
     font-weight: 700;
     margin: 0;
-    color: var(--cl-text, #f8fafc);
+    color: var(--cl-text-primary);
   }
 
   .cl-section-count {
     font-size: var(--cl-font-size-sm);
-    color: var(--cl-text-muted, #94a3b8);
+    color: var(--cl-text-muted);
     font-weight: 600;
   }
 
@@ -291,8 +291,8 @@ const structuredData = listData
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background-color: #ef4444;
-    box-shadow: 0 0 10px #ef4444;
+    background-color: var(--cl-state-destructive);
+    box-shadow: 0 0 10px var(--cl-state-destructive);
     animation: cl-pulse-live 1.5s infinite;
   }
 
@@ -335,10 +335,10 @@ const structuredData = listData
   .cl-empty-state {
     padding: 3rem 1rem;
     text-align: center;
-    background-color: var(--cl-surface, #1e293b);
+    background-color: var(--cl-surface-panel);
     border-radius: 12px;
-    border: 1px dashed var(--cl-border, #334155);
-    color: var(--cl-text-muted, #94a3b8);
+    border: 1px dashed var(--cl-border-muted);
+    color: var(--cl-text-muted);
   }
 
   .cl-club-grid {
@@ -352,8 +352,8 @@ const structuredData = listData
     align-items: center;
     gap: 0.75rem;
     padding: 1rem;
-    background-color: var(--cl-surface, #1e293b);
-    border: 1px solid var(--cl-border, #334155);
+    background-color: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
     border-radius: 12px;
   }
 
@@ -366,7 +366,7 @@ const structuredData = listData
   .cl-club-name {
     font-size: var(--cl-font-size-sm);
     font-weight: 600;
-    color: var(--cl-text, #f8fafc);
+    color: var(--cl-text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -374,7 +374,7 @@ const structuredData = listData
 
   .cl-club-abbr {
     font-size: var(--cl-font-size-sm);
-    color: var(--cl-text-muted, #94a3b8);
+    color: var(--cl-text-muted);
   }
 
   /* BREAKPOINTS.sm: retain readable padding at the 375px review width. */

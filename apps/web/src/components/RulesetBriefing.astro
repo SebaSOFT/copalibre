@@ -66,32 +66,32 @@ function formatRuleValue(value: string): string {
   .cl-ruleset-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: var(--cl-space-3, 0.75rem);
-    margin: var(--cl-space-3, 0.75rem) 0 0 0;
+    gap: var(--cl-space-3);
+    margin: var(--cl-space-3) 0 0 0;
   }
 
   .cl-rule-item {
-    background: var(--cl-surface-panel, #121828);
-    border: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.1));
-    border-radius: var(--cl-radius-md, 8px);
-    padding: var(--cl-space-3, 0.75rem);
+    background: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
+    border-radius: var(--cl-radius-md);
+    padding: var(--cl-space-3);
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
   }
 
   .cl-rule-label {
-    font-size: var(--cl-font-size-xs, 0.75rem);
+    font-size: var(--cl-font-size-xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--cl-text-muted, #94a3b8);
+    color: var(--cl-text-muted);
   }
 
   .cl-rule-value {
-    font-size: var(--cl-font-size-md, 1rem);
+    font-size: var(--cl-font-size-md);
     font-weight: 700;
-    color: var(--cl-text, #f8fafc);
+    color: var(--cl-text-primary);
     margin: 0;
   }
 </style>

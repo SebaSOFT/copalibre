@@ -111,7 +111,7 @@ export function LoginRoute(): React.JSX.Element {
       </div>
 
       <hr
-        style={{ margin: '2rem 0', border: 'none', borderTop: '1px solid var(--cl-border-base)' }}
+        style={{ margin: '2rem 0', border: 'none', borderTop: '1px solid var(--cl-border-muted)' }}
       />
 
       <Button onClick={() => beginOidcLogin()} type="button" variant="secondary">

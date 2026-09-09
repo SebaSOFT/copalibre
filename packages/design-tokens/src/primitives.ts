@@ -133,6 +133,12 @@ export const RADIUS = {
   none: '0',
   sm: '2px',
   md: '4px',
+  /**
+   * The scale's own next step, not the `12px` two match-page panels were
+   * falling back to: `--cl-radius-lg` was referenced but never declared, so
+   * that literal was the only value it ever had.
+   */
+  lg: '8px',
   /** The chamfer's cut, not a corner radius: see `generate/css.ts`. */
   chamfer: '14px',
   'chamfer-control': '8px',

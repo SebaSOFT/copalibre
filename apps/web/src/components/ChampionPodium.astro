@@ -74,8 +74,8 @@ const { winners, intl, prominent = false } = Astro.props;
 
 <style>
   .cl-podium-container {
-    background-color: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background-color: color-mix(in srgb, var(--cl-color-ink-950) 25%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cl-text-primary) 7%, transparent);
     border-radius: 8px;
     padding: 0.85rem 1rem;
     display: flex;
@@ -84,28 +84,32 @@ const { winners, intl, prominent = false } = Astro.props;
   }
 
   .cl-podium-prominent {
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(0, 0, 0, 0.4));
-    border: 1px solid rgba(251, 191, 36, 0.3);
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cl-state-upcoming) 8%, transparent),
+      color-mix(in srgb, var(--cl-color-ink-950) 40%, transparent)
+    );
+    border: 1px solid color-mix(in srgb, var(--cl-state-upcoming) 30%, transparent);
     border-radius: 12px;
     padding: 1.25rem 1.5rem;
     margin: 1rem 0;
   }
 
   .cl-podium-prominent .cl-champion-spot {
-    background-color: rgba(251, 191, 36, 0.1);
-    border: 1px solid rgba(251, 191, 36, 0.25);
+    background-color: color-mix(in srgb, var(--cl-state-upcoming) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cl-state-upcoming) 25%, transparent);
     padding: 0.75rem 1rem;
   }
 
   .cl-podium-prominent .cl-entrant-name {
-    font-size: var(--cl-font-size-md, 1rem);
+    font-size: var(--cl-font-size-md);
     font-weight: 700;
   }
 
   .cl-podium-prominent .cl-medal-badge {
     width: 32px;
     height: 32px;
-    font-size: var(--cl-font-size-sm, 0.875rem);
+    font-size: var(--cl-font-size-sm);
   }
 
   .cl-zone-title {
@@ -113,7 +117,7 @@ const { winners, intl, prominent = false } = Astro.props;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #fbbf24;
+    color: var(--cl-state-upcoming);
     margin-bottom: 0.35rem;
   }
 
@@ -135,7 +139,7 @@ const { winners, intl, prominent = false } = Astro.props;
     gap: 0.65rem;
     padding: 0.5rem;
     border-radius: 6px;
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: color-mix(in srgb, var(--cl-text-primary) 3%, transparent);
     min-width: 0;
   }
 
@@ -152,15 +156,15 @@ const { winners, intl, prominent = false } = Astro.props;
   }
 
   .cl-gold-medal {
-    background: linear-gradient(135deg, #fbbf24, #d97706);
-    color: #451a03;
-    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+    background: linear-gradient(135deg, var(--cl-state-upcoming), var(--cl-state-upcoming));
+    color: var(--cl-state-upcoming);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--cl-state-upcoming) 40%, transparent);
   }
 
   .cl-silver-medal {
-    background: linear-gradient(135deg, #e2e8f0, #94a3b8);
-    color: #0f172a;
-    box-shadow: 0 0 6px rgba(226, 232, 240, 0.3);
+    background: linear-gradient(135deg, var(--cl-text-secondary), var(--cl-text-muted));
+    color: var(--cl-surface-base);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--cl-text-secondary) 30%, transparent);
   }
 
   .cl-entrant-info {
@@ -174,20 +178,20 @@ const { winners, intl, prominent = false } = Astro.props;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--cl-text-muted, #94a3b8);
+    color: var(--cl-text-muted);
   }
 
   .cl-entrant-name {
     font-size: var(--cl-font-size-sm);
     font-weight: 600;
-    color: #f8fafc;
+    color: var(--cl-text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .cl-entrant-abbr {
-    color: #94a3b8;
+    color: var(--cl-text-muted);
     font-weight: normal;
     margin-left: 0.25rem;
   }

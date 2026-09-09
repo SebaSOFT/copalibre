@@ -166,7 +166,7 @@ export function LiveMatchScorecard({
         >
           <span
             style={{
-              color: awayTeam.color ?? 'var(--cl-color-magenta-500)',
+              color: awayTeam.color ?? 'var(--cl-accent-team)',
               fontSize: 'var(--cl-font-size-sm)',
             }}
             aria-hidden="true"

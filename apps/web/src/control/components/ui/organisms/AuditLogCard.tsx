@@ -142,7 +142,7 @@ export function AuditLogCard({
                   <div style={{ color: 'var(--cl-state-destructive)' }}>
                     - Score: {item.diff.previous}
                   </div>
-                  <div style={{ color: 'var(--cl-result-positive)' }}>
+                  <div style={{ color: 'var(--cl-state-positive)' }}>
                     + Score: {item.diff.current}
                   </div>
                 </div>

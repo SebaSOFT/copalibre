@@ -1,0 +1,187 @@
+import { describe, expect, it } from '@jest/globals';
+import {
+  RAW_COLOUR_EXCEPTIONS,
+  checkFile,
+  collectDeclaredTokens,
+  findRawColours,
+  findTokenReferences,
+  formatIntegrityHits,
+} from './integrity.js';
+import { generateCss } from './generate/css.js';
+
+const declared = collectDeclaredTokens(generateCss());
+
+describe('the token manifest', () => {
+  it('is read from the generated stylesheet, which is what surfaces load', () => {
+    expect(declared.has('--cl-text-primary')).toBe(true);
+    expect(declared.has('--cl-surface-panel')).toBe(true);
+    expect(declared.has('--cl-space-4')).toBe(true);
+  });
+
+  it('declares the roles this change added', () => {
+    for (const token of [
+      '--cl-border-strong',
+      '--cl-border-hover',
+      '--cl-surface-hover',
+      '--cl-primary',
+      '--cl-primary-hover',
+      '--cl-radius-lg',
+    ]) {
+      expect(declared.has(token)).toBe(true);
+    }
+  });
+
+  it('does not declare the aliases this change removed', () => {
+    for (const alias of [
+      '--cl-text',
+      '--cl-surface',
+      '--cl-border',
+      '--cl-border-subtle',
+      '--cl-border-default',
+      '--cl-brand-cyan',
+      '--cl-result-positive',
+      '--cl-state-negative',
+      '--cl-color-magenta-500',
+    ]) {
+      expect(declared.has(alias)).toBe(false);
+    }
+  });
+});
+
+describe('reference closure', () => {
+  it('is what the generated stylesheet has with itself', () => {
+    expect(
+      checkFile('generated/copalibre.css', generateCss(), declared, {
+        rawColoursForbidden: false,
+      }),
+    ).toEqual([]);
+  });
+
+  it('reports an undeclared token with its line', () => {
+    const hits = checkFile('a.css', '.x {\n  color: var(--cl-text);\n}\n', declared);
+
+    expect(hits).toEqual([
+      { file: 'a.css', line: 2, kind: 'undeclared-token', detail: '--cl-text' },
+    ]);
+  });
+
+  it('reports a declared token carrying a raw fallback, because the fallback is the value that ships', () => {
+    const hits = checkFile('a.css', '.x { color: var(--cl-text-primary, #38bdf8); }', declared);
+
+    expect(hits).toEqual([{ file: 'a.css', line: 1, kind: 'raw-colour', detail: '#38bdf8' }]);
+  });
+
+  it('accepts a declared token with no fallback', () => {
+    expect(checkFile('a.css', '.x { color: var(--cl-text-primary); }', declared)).toEqual([]);
+  });
+
+  it('finds the fallback a reference carries', () => {
+    expect(findTokenReferences('color: var(--cl-primary, #38bdf8);')).toEqual([
+      { token: '--cl-primary', line: 1, fallback: '#38bdf8' },
+    ]);
+  });
+
+  it('ignores a token named in a comment', () => {
+    expect(
+      checkFile('a.css', '/* var(--cl-text) is gone */\n.x { color: red; }', declared),
+    ).toEqual([]);
+  });
+
+  it('ignores a token named in a line comment', () => {
+    expect(checkFile('a.tsx', '// var(--cl-text) was here\nconst a = 1;\n', declared)).toEqual([]);
+  });
+});
+
+describe('raw colour', () => {
+  it.each([
+    ['#38bdf8', '.x { color: #38bdf8; }'],
+    ['rgba(0, 0, 0, 0.65)', '.x { background: rgba(0, 0, 0, 0.65); }'],
+    ['hsl(210, 40%, 50%)', '.x { color: hsl(210, 40%, 50%); }'],
+  ])('rejects %s', (detail, source) => {
+    expect(checkFile('a.css', source, declared)).toEqual([
+      { file: 'a.css', line: 1, kind: 'raw-colour', detail },
+    ]);
+  });
+
+  it('accepts color-mix over a declared token, which is how a scrim stays in the palette', () => {
+    const source =
+      '.x { background: color-mix(in srgb, var(--cl-color-ink-950) 65%, transparent); }';
+
+    expect(checkFile('a.css', source, declared)).toEqual([]);
+  });
+
+  it('is permitted in the manifest itself, where the palette states its values', () => {
+    expect(
+      checkFile('generated/copalibre.css', ':root { --cl-color-cyan-400: #00D4FF; }', declared, {
+        rawColoursForbidden: false,
+      }),
+    ).toEqual([]);
+  });
+
+  it('is not confused by a non-colour function call', () => {
+    expect(findRawColours('.x { width: calc(100% - 4px); }')).toEqual([]);
+  });
+});
+
+describe('the exception registry', () => {
+  const chromaKey = {
+    file: 'apps/web/src/styles/tv-broadcast.css',
+    line: 1,
+    value: '#00b140',
+    why: 'The chroma key a vision mixer cuts against; not a product colour.',
+  };
+
+  it('admits the exact file, line and value it names', () => {
+    const hits = checkFile(chromaKey.file, '.tv { background: #00b140; }', declared, {
+      rawColoursForbidden: true,
+      exceptions: [chromaKey],
+    });
+
+    expect(hits).toEqual([]);
+  });
+
+  it('does not travel to another line, so moving the value revokes its approval', () => {
+    const hits = checkFile(chromaKey.file, '\n.tv { background: #00b140; }', declared, {
+      rawColoursForbidden: true,
+      exceptions: [chromaKey],
+    });
+
+    expect(hits).toEqual([
+      { file: chromaKey.file, line: 2, kind: 'raw-colour', detail: '#00b140' },
+    ]);
+  });
+
+  it('does not cover a different value on the approved line', () => {
+    const hits = checkFile(chromaKey.file, '.tv { background: #38bdf8; }', declared, {
+      rawColoursForbidden: true,
+      exceptions: [chromaKey],
+    });
+
+    expect(hits).toEqual([
+      { file: chromaKey.file, line: 1, kind: 'raw-colour', detail: '#38bdf8' },
+    ]);
+  });
+
+  it('does not cover the same value in another file', () => {
+    const hits = checkFile('apps/web/src/styles/control.css', '.x { color: #00b140; }', declared, {
+      rawColoursForbidden: true,
+      exceptions: [chromaKey],
+    });
+
+    expect(hits).toHaveLength(1);
+  });
+
+  it('is empty, because every first-party colour now resolves to a token', () => {
+    expect(RAW_COLOUR_EXCEPTIONS).toEqual([]);
+  });
+});
+
+describe('the report', () => {
+  it('names the file, the line and what is wrong', () => {
+    const hits = checkFile('apps/web/src/a.css', '.x { color: var(--cl-text); }', declared);
+
+    expect(formatIntegrityHits(hits)).toBe(
+      'apps/web/src/a.css:1  references undeclared token --cl-text',
+    );
+  });
+});

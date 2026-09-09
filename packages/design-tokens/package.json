@@ -12,7 +12,8 @@
     "build:tailwind": "tsc --build && node dist/bin/build.js",
     "scan:forbidden": "tsc --build && node dist/bin/build.js && node dist/bin/scan.js",
     "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
-    "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage"
+    "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage",
+    "check:integrity": "tsc --build && node dist/bin/build.js && node dist/bin/check-integrity.js"
   },
   "type": "module",
   "devDependencies": {

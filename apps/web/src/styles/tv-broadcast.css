@@ -1,18 +1,18 @@
 /* TV Broadcast Overlay — Broadcast Command Precision System */
 
 :root {
-  --tv-bg-base: #060913;
-  --tv-bg-surface: #0e1424;
-  --tv-bg-elevated: #161f36;
-  --tv-border: rgba(255, 255, 255, 0.12);
-  --tv-border-active: #00d4ff;
-  --tv-text-primary: #ffffff;
-  --tv-text-secondary: #94a3b8;
-  --tv-text-muted: #64748b;
-  --tv-live-red: #ef4444;
-  --tv-live-cyan: #00d4ff;
-  --tv-gold: #f59e0b;
-  --tv-gold-glow: rgba(245, 158, 11, 0.25);
+  --tv-bg-base: var(--cl-surface-base);
+  --tv-bg-surface: var(--cl-surface-panel);
+  --tv-bg-elevated: var(--cl-surface-raised);
+  --tv-border: color-mix(in srgb, var(--cl-text-primary) 12%, transparent);
+  --tv-border-active: var(--cl-primary);
+  --tv-text-primary: var(--cl-text-primary);
+  --tv-text-secondary: var(--cl-text-secondary);
+  --tv-text-muted: var(--cl-text-muted);
+  --tv-live-red: var(--cl-state-destructive);
+  --tv-live-cyan: var(--cl-primary);
+  --tv-gold: var(--cl-state-upcoming);
+  --tv-gold-glow: color-mix(in srgb, var(--cl-state-upcoming) 25%, transparent);
 }
 
 .tv-root-container {
@@ -24,7 +24,7 @@
   padding: 2.5vmin 4vmin;
   background-color: var(--tv-bg-base);
   color: var(--tv-text-primary);
-  font-family: var(--cl-font-body, 'Barlow', sans-serif);
+  font-family: var(--cl-font-body);
   display: flex;
   flex-direction: column;
   gap: 2.5vmin;
@@ -60,7 +60,7 @@
 }
 
 .tv-scorebug__tournament {
-  font-family: var(--cl-font-display, 'Barlow Condensed', sans-serif);
+  font-family: var(--cl-font-display);
   font-size: clamp(1.4rem, 2.8vmin, 2.5rem);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -70,7 +70,7 @@
 }
 
 .tv-scorebug__org {
-  font-family: var(--cl-font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--cl-font-mono);
   font-size: clamp(0.75rem, 1.4vmin, 1rem);
   color: var(--tv-text-secondary);
   letter-spacing: 0.08em;
@@ -88,7 +88,7 @@
   align-items: center;
   gap: 0.8vmin;
   padding: 0.5vmin 1.5vmin;
-  font-family: var(--cl-font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--cl-font-mono);
   font-size: clamp(0.8rem, 1.6vmin, 1.1rem);
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -98,19 +98,19 @@
 }
 
 .tv-scorebug__badge--live {
-  background: rgba(239, 68, 68, 0.15);
+  background: color-mix(in srgb, var(--cl-state-destructive) 15%, transparent);
   border-color: var(--tv-live-red);
-  color: #fca5a5;
+  color: var(--cl-state-destructive);
 }
 
 .tv-scorebug__badge--final {
-  background: rgba(0, 212, 255, 0.12);
+  background: color-mix(in srgb, var(--cl-primary) 12%, transparent);
   border-color: var(--tv-live-cyan);
-  color: #7dd3fc;
+  color: var(--cl-primary);
 }
 
 .tv-scorebug__badge--upcoming {
-  background: rgba(148, 163, 184, 0.12);
+  background: color-mix(in srgb, var(--cl-text-muted) 12%, transparent);
   border-color: var(--tv-text-secondary);
   color: var(--tv-text-primary);
 }
@@ -127,7 +127,7 @@
 }
 
 .tv-scorebug__clock {
-  font-family: var(--cl-font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--cl-font-mono);
   font-size: clamp(0.9rem, 1.8vmin, 1.3rem);
   font-weight: 600;
   color: var(--tv-text-secondary);
@@ -166,7 +166,7 @@
 }
 
 .tv-focal-panel__label {
-  font-family: var(--cl-font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--cl-font-mono);
   font-size: clamp(0.8rem, 1.6vmin, 1.1rem);
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -200,10 +200,10 @@
   align-items: center;
   gap: 1vmin;
   padding: 0.6vmin 2vmin;
-  background: rgba(245, 158, 11, 0.15);
+  background: color-mix(in srgb, var(--cl-state-upcoming) 15%, transparent);
   border: 1px solid var(--tv-gold);
-  color: #fde68a;
-  font-family: var(--cl-font-mono, 'JetBrains Mono', monospace);
+  color: var(--cl-state-upcoming);
+  font-family: var(--cl-font-mono);
   font-size: clamp(0.9rem, 1.8vmin, 1.2rem);
   font-weight: 700;
   letter-spacing: 0.15em;
@@ -216,7 +216,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(0 10px 25px rgba(245, 158, 11, 0.35));
+  filter: drop-shadow(0 10px 25px color-mix(in srgb, var(--cl-state-upcoming) 35%, transparent));
 }
 
 .tv-champion__emblem {
@@ -232,7 +232,7 @@
   background: var(--tv-bg-elevated);
   border: 2px solid var(--tv-gold);
   color: var(--tv-gold);
-  font-family: var(--cl-font-display, 'Barlow Condensed', sans-serif);
+  font-family: var(--cl-font-display);
   font-size: 8vmin;
   font-weight: 800;
   display: flex;
@@ -242,7 +242,7 @@
 
 .tv-champion__name {
   margin: 0;
-  font-family: var(--cl-font-display, 'Barlow Condensed', sans-serif);
+  font-family: var(--cl-font-display);
   font-size: clamp(2.2rem, 6vmin, 4.5rem);
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -253,7 +253,7 @@
 
 .tv-champion__record {
   margin: 0;
-  font-family: var(--cl-font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--cl-font-mono);
   font-size: clamp(0.9rem, 1.8vmin, 1.3rem);
   color: var(--tv-text-secondary);
   letter-spacing: 0.08em;
@@ -282,7 +282,7 @@
 }
 
 .tv-match-spotlight__stage {
-  font-family: var(--cl-font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--cl-font-mono);
   font-size: clamp(0.85rem, 1.6vmin, 1.1rem);
   color: var(--tv-live-cyan);
   letter-spacing: 0.1em;
@@ -332,7 +332,7 @@
   background: var(--tv-bg-elevated);
   border: 1px solid var(--tv-border);
   color: var(--tv-live-cyan);
-  font-family: var(--cl-font-display, 'Barlow Condensed', sans-serif);
+  font-family: var(--cl-font-display);
   font-size: 5vmin;
   font-weight: 700;
   display: flex;
@@ -341,7 +341,7 @@
 }
 
 .tv-team-side__name {
-  font-family: var(--cl-font-display, 'Barlow Condensed', sans-serif);
+  font-family: var(--cl-font-display);
   font-size: clamp(1.4rem, 3.5vmin, 2.5rem);
   font-weight: 700;
   text-transform: uppercase;
@@ -360,12 +360,12 @@
 }
 
 .tv-score-center__digits {
-  font-family: var(--cl-font-display, 'Barlow Condensed', sans-serif);
+  font-family: var(--cl-font-display);
   font-size: clamp(3.5rem, 9vmin, 7rem);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.05em;
-  color: #ffffff;
+  color: var(--cl-text-primary);
 }
 
 /* 4. Secondary Rotating Rail (Companion Panel) */
@@ -390,14 +390,16 @@
   background: transparent;
   border: none;
   color: var(--tv-text-muted);
-  font-family: var(--cl-font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--cl-font-mono);
   font-size: clamp(0.75rem, 1.4vmin, 1rem);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 0.6vmin 1.2vmin;
   cursor: pointer;
-  transition: all 150ms ease-out;
+  transition:
+    color var(--cl-motion-fast) var(--cl-motion-easing),
+    background-color var(--cl-motion-fast) var(--cl-motion-easing);
 }
 
 .tv-rail-tab:focus-visible {
@@ -422,7 +424,7 @@
 .tv-standings-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: var(--cl-font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--cl-font-mono);
   font-size: clamp(0.85rem, 1.6vmin, 1.15rem);
 }
 
@@ -436,7 +438,7 @@
 
 .tv-standings-table td {
   padding: 1.2vmin 1.2vmin;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid color-mix(in srgb, var(--cl-text-primary) 6%, transparent);
   vertical-align: middle;
 }
 
@@ -495,7 +497,7 @@
 }
 
 .tv-performer-card__rank {
-  font-family: var(--cl-font-display, 'Barlow Condensed', sans-serif);
+  font-family: var(--cl-font-display);
   font-size: clamp(1.2rem, 2.5vmin, 2rem);
   font-weight: 800;
   color: var(--tv-live-cyan);
@@ -508,23 +510,23 @@
 }
 
 .tv-performer-card__name {
-  font-family: var(--cl-font-display, 'Barlow Condensed', sans-serif);
+  font-family: var(--cl-font-display);
   font-size: clamp(1.1rem, 2.2vmin, 1.6rem);
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .tv-performer-card__club {
-  font-family: var(--cl-font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--cl-font-mono);
   font-size: clamp(0.75rem, 1.3vmin, 0.95rem);
   color: var(--tv-text-secondary);
 }
 
 .tv-performer-card__score {
-  font-family: var(--cl-font-display, 'Barlow Condensed', sans-serif);
+  font-family: var(--cl-font-display);
   font-size: clamp(1.6rem, 3.2vmin, 2.6rem);
   font-weight: 800;
-  color: #ffffff;
+  color: var(--cl-text-primary);
 }
 
 /* 4C. Facts Grid */
@@ -544,22 +546,22 @@
 }
 
 .tv-fact-tile__label {
-  font-family: var(--cl-font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--cl-font-mono);
   font-size: clamp(0.75rem, 1.4vmin, 1rem);
   color: var(--tv-text-secondary);
   text-transform: uppercase;
 }
 
 .tv-fact-tile__value {
-  font-family: var(--cl-font-display, 'Barlow Condensed', sans-serif);
+  font-family: var(--cl-font-display);
   font-size: clamp(1.8rem, 3.8vmin, 3rem);
   font-weight: 800;
-  color: #ffffff;
+  color: var(--cl-text-primary);
   line-height: 1.1;
 }
 
 .tv-fact-tile__detail {
-  font-family: var(--cl-font-body, 'Barlow', sans-serif);
+  font-family: var(--cl-font-body);
   font-size: clamp(0.75rem, 1.3vmin, 0.95rem);
   color: var(--tv-live-cyan);
 }
@@ -619,7 +621,7 @@
   color: var(--cl-text-primary);
   border-inline-start: 1vmin solid var(--tv-accent, var(--cl-state-live));
   /* Readable over bright footage without hiding it. */
-  box-shadow: 0 0.5vmin 3vmin rgb(0 0 0 / 45%);
+  box-shadow: 0 0.5vmin 3vmin color-mix(in srgb, var(--cl-color-ink-950) 45%, transparent);
 }
 
 .tv-lower-third__state {
@@ -638,7 +640,7 @@
 }
 
 .tv-lower-third__state--final {
-  background: var(--cl-state-positive, var(--cl-surface-raised));
+  background: var(--cl-state-positive);
   color: var(--cl-surface-base);
 }
 
@@ -666,7 +668,7 @@
 }
 
 .tv-lower-third__clock {
-  font-family: var(--cl-font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--cl-font-mono);
   font-size: clamp(0.8rem, 1.8vmin, 1.3rem);
   color: var(--cl-text-muted);
   letter-spacing: 0.05em;
@@ -795,7 +797,7 @@
 .tv-nearby__title {
   font-family: var(--cl-font-mono);
   font-size: clamp(var(--cl-font-size-xs), 1.8vmin, var(--cl-font-size-sm));
-  color: var(--cl-brand-cyan);
+  color: var(--cl-primary);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }

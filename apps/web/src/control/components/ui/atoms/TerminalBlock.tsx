@@ -95,7 +95,7 @@ export function TerminalBlock({
               width: '10px',
               height: '10px',
               borderRadius: '50%',
-              background: 'var(--cl-result-positive)',
+              background: 'var(--cl-state-positive)',
               display: 'inline-block',
             }}
           />

@@ -192,18 +192,18 @@ const structuredData = {
   .cl-match-page {
     max-width: 960px;
     margin: 0 auto;
-    padding: var(--cl-space-6, 1.5rem) var(--cl-space-4, 1rem);
+    padding: var(--cl-space-6) var(--cl-space-4);
     overflow-x: hidden;
   }
 
   .cl-match-hero {
-    background: var(--cl-surface-panel, #121828);
-    border: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.1));
-    border-radius: var(--cl-radius-lg, 12px);
-    padding: var(--cl-space-6, 1.5rem);
+    background: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
+    border-radius: var(--cl-radius-lg);
+    padding: var(--cl-space-6);
     text-align: center;
-    margin-bottom: var(--cl-space-6, 1.5rem);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    margin-bottom: var(--cl-space-6);
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--cl-color-ink-950) 30%, transparent);
   }
 
   .cl-match-hero__meta {
@@ -219,19 +219,19 @@ const structuredData = {
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
-    background: var(--cl-surface-subtle, rgba(255, 255, 255, 0.1));
-    color: var(--cl-text-primary, #f2f6fb);
+    background: var(--cl-surface-raised);
+    color: var(--cl-text-primary);
   }
 
   .cl-badge--live {
-    background: rgba(0, 212, 255, 0.15);
-    color: var(--cl-brand-cyan, #00d4ff);
-    border: 1px solid rgba(0, 212, 255, 0.4);
+    background: color-mix(in srgb, var(--cl-primary) 15%, transparent);
+    color: var(--cl-primary);
+    border: 1px solid color-mix(in srgb, var(--cl-primary) 40%, transparent);
   }
 
   .cl-badge--final {
-    background: rgba(16, 185, 129, 0.15);
-    color: #34d399;
+    background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent);
+    color: var(--cl-state-positive);
   }
 
   .cl-scoreboard {
@@ -260,52 +260,52 @@ const structuredData = {
   .cl-team-name {
     font-size: 1.5rem;
     font-weight: 700;
-    font-family: var(--cl-font-display, inherit);
+    font-family: var(--cl-font-display);
   }
 
   .cl-team-score {
     font-size: 2.5rem;
     font-weight: 800;
-    font-family: var(--cl-font-display, inherit);
-    color: var(--cl-brand-cyan, #00d4ff);
+    font-family: var(--cl-font-display);
+    color: var(--cl-primary);
     min-width: 2ch;
     text-align: center;
   }
 
   .cl-scoreboard__divider {
     font-size: 1.5rem;
-    color: var(--cl-text-muted, #94a3b8);
+    color: var(--cl-text-muted);
   }
 
   .cl-match-venue {
     margin: 0.5rem 0 0 0;
-    color: var(--cl-text-muted, #94a3b8);
+    color: var(--cl-text-muted);
     font-size: 0.875rem;
   }
 
   .cl-match-details {
     display: flex;
     flex-direction: column;
-    gap: var(--cl-space-6, 1.5rem);
+    gap: var(--cl-space-6);
   }
 
   .cl-section-card {
-    background: var(--cl-surface-panel, #121828);
-    border: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.1));
-    border-radius: var(--cl-radius-lg, 12px);
-    padding: var(--cl-space-5, 1.25rem);
+    background: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
+    border-radius: var(--cl-radius-lg);
+    padding: var(--cl-space-5);
   }
 
   .cl-section-title {
     margin: 0 0 1rem 0;
     font-size: 1.125rem;
     font-weight: 600;
-    border-bottom: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.1));
+    border-bottom: 1px solid var(--cl-border-muted);
     padding-bottom: 0.5rem;
   }
 
   .cl-text-muted {
-    color: var(--cl-text-muted, #94a3b8);
+    color: var(--cl-text-muted);
     font-size: 0.875rem;
   }
 
@@ -319,10 +319,10 @@ const structuredData = {
   }
 
   .cl-officials-list li {
-    background: var(--cl-surface-subtle, rgba(255, 255, 255, 0.05));
+    background: var(--cl-surface-raised);
     padding: 0.5rem 0.75rem;
     border-radius: 6px;
-    border: 1px solid var(--cl-border-subtle, rgba(255, 255, 255, 0.08));
+    border: 1px solid var(--cl-border-muted);
     display: flex;
     gap: 0.5rem;
     font-size: 0.875rem;
@@ -333,7 +333,7 @@ const structuredData = {
   }
 
   .cl-official-roles {
-    color: var(--cl-text-muted, #94a3b8);
+    color: var(--cl-text-muted);
   }
 
   .cl-rosters-grid {
@@ -346,21 +346,21 @@ const structuredData = {
     margin: 0 0 0.75rem 0;
     font-size: 1rem;
     font-weight: 600;
-    color: var(--cl-brand-cyan, #00d4ff);
+    color: var(--cl-primary);
   }
 
   .cl-num-cell {
-    font-family: var(--cl-font-mono, monospace);
+    font-family: var(--cl-font-mono);
     font-weight: 600;
   }
 
   .cl-player-link {
-    color: var(--cl-text, #f8fafc);
+    color: var(--cl-text-primary);
     text-decoration: none;
   }
 
   .cl-player-link:hover {
-    color: var(--cl-brand-cyan, #00d4ff);
+    color: var(--cl-primary);
     text-decoration: underline;
   }
 
@@ -368,12 +368,12 @@ const structuredData = {
     font-size: 0.75rem;
     padding: 1px 6px;
     border-radius: 4px;
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--cl-text-primary) 10%, transparent);
   }
 
   .cl-indicator--active {
-    background: rgba(16, 185, 129, 0.2);
-    color: #34d399;
+    background: color-mix(in srgb, var(--cl-state-positive) 20%, transparent);
+    color: var(--cl-state-positive);
   }
 
   .cl-timeline-list {
@@ -393,8 +393,8 @@ const structuredData = {
   }
 
   .cl-timeline-time {
-    font-family: var(--cl-font-mono, monospace);
-    color: var(--cl-brand-cyan, #00d4ff);
+    font-family: var(--cl-font-mono);
+    color: var(--cl-primary);
     font-size: 0.8125rem;
   }
 
@@ -403,6 +403,6 @@ const structuredData = {
   }
 
   .cl-timeline-actor {
-    color: var(--cl-text-muted, #94a3b8);
+    color: var(--cl-text-muted);
   }
 </style>
