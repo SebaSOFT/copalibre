@@ -21,7 +21,17 @@ const config: StorybookConfig = {
    * transforms JSX — every `.tsx` under `src/` fails import analysis and the
    * dev server answers 404, leaving the preview blank with no visible error.
    */
-  viteFinal: (config) => ({ ...config, plugins: [...(config.plugins ?? []), react()] }),
+  viteFinal: (config) => ({
+    ...config,
+    plugins: [...(config.plugins ?? []), react()],
+    server: {
+      ...config.server,
+      proxy: {
+        ...config.server?.proxy,
+        '/__preview': 'http://localhost:4321',
+      },
+    },
+  }),
   core: {
     // A local review surface should not phone home about what is being
     // reviewed; nothing here needs Storybook's usage analytics.

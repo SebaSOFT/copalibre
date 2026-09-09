@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { createControlApiClient, type ControlApiClient } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
-import { MatchCard } from '../../components/MatchCard.js';
+import { MatchCard } from '../../components/ui/organisms/MatchCard.js';
 import type { MatchCardData } from '../../lib/matches-view.js';
 import { matchCardLabelsFromControlIntl } from '../lib/matches-view-labels.js';
 import { Button } from './ui/atoms/button.js';

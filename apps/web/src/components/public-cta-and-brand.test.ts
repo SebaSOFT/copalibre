@@ -73,10 +73,10 @@ describe('public-web Logo lockup (openspec 0198)', () => {
 });
 
 describe('TournamentCard CTAs consume the shared Button (openspec 0198)', () => {
-  const source = read('TournamentCard.astro');
+  const source = read('ui/organisms/TournamentCard.astro');
 
   it('renders CTAs through the Button component, not hand-rolled anchors', () => {
-    expect(source).toContain("import Button from './ui/atoms/Button.astro'");
+    expect(source).toContain("import Button from '../atoms/Button.astro'");
     expect(source).toMatch(/<Button\b[^>]*variant="primary"/);
     expect(source).not.toContain('cl-action-button');
     expect(source).not.toContain('cl-button-primary');
@@ -100,7 +100,7 @@ describe('public tables and filter pills (openspec 0199)', () => {
     ),
     'utf8',
   );
-  const standings = read('StandingsPreview.astro');
+  const standings = read('ui/organisms/StandingsPreview.astro');
 
   it('renders the state filter as a bounded pill group, not bare anchors', () => {
     expect(matchesPage).toContain('class="cl-pill-group"');

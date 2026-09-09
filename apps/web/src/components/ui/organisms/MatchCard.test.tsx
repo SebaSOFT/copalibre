@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MatchCard } from './MatchCard.js';
-import type { MatchCardData } from '../lib/matches-view.js';
-import type { MatchCardLabels } from '../lib/i18n/public-intl.js';
+import type { MatchCardData } from '../../../lib/matches-view.js';
+import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 
 const labels: MatchCardLabels = {
   state: {

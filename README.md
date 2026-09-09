@@ -195,6 +195,7 @@ authentication contract). Every change is planned and tracked as an OpenSpec pro
   review workflow for translated interface strings
 - [`docs/BROADCAST-TV.md`](docs/BROADCAST-TV.md) — the `/tv/` kiosk/overlay surface and
   device-token pairing
+- [`docs/reviews/`](docs/reviews/) — design system and operational surface review evidence
 - [`docs/deployment/reverse-proxy/`](docs/deployment/reverse-proxy/) — Caddy and NGINX examples
 - [`CHANGELOG.md`](CHANGELOG.md) — release history, generated from commit history
 - `/help/` and `/help/api-reference/` on a running instance — operator help and the interactive,

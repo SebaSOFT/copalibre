@@ -85,6 +85,8 @@ export function generateCss(): string {
     '',
     components(),
     '',
+    surfaceLevels(),
+    '',
     formControls(),
     '',
     dialog(),
@@ -127,6 +129,64 @@ function reducedMotion(): string {
 }
 
 /**
+ * Surface levels, assigned from what a container is rather than how deep it sits.
+ *
+ * The reference project layers in both directions inside one composition:
+ * `ExplainableStandingsDemo` puts its card at `ink-950` under an `ink-900` band,
+ * while `AuditedResultsDemo` puts the same shape at `ink-900` over an `ink-950`
+ * band. So content *alternates* against whatever it sits on. Chrome does not —
+ * both lift their header and chips to `ink-850` regardless of depth.
+ *
+ * Written as zero-specificity `:where()` rules so a component's own state rules
+ * (selected, error, hover) still win without `!important`, and so the same rule
+ * governs Astro markup and React islands — the only layer both renderers share.
+ */
+function surfaceLevels(): string {
+  return [
+    // Every level rule is zero-specificity and ordered from general to
+    // specific, so the cascade resolves them by intent rather than by weight.
+    ':where(.cl-card, .cl-well) { background: var(--cl-surface-panel); }',
+    '',
+    '/* A band names the level its children alternate against. */',
+    '.cl-band { --cl-content-level: panel; background: var(--cl-surface-panel); }',
+    '.cl-band--base { --cl-content-level: base; background: var(--cl-surface-base); }',
+    '',
+    // The alternation itself: a content container inside a panel-level band
+    // drops to base, and one inside a base-level band lifts to panel. Two flat
+    // rules rather than a counter, because direction is what matters and a
+    // miscounted depth is invisible until someone notices the wrong shade.
+    ':where(.cl-band) :where(.cl-card, .cl-well) { background: var(--cl-surface-base); }',
+    ':where(.cl-band--base) :where(.cl-card, .cl-well) { background: var(--cl-surface-panel); }',
+    ':where(.cl-card) :where(.cl-well) { background: var(--cl-surface-panel); }',
+    ':where(.cl-band--base) :where(.cl-card) :where(.cl-well) { background: var(--cl-surface-base); }',
+    '',
+    // Style queries read the parent's inherited level, including through
+    // layout wrappers. Each content surface then supplies the opposite level
+    // to its descendants, so the alternation has no hardcoded depth limit.
+    ':where(.cl-card, .cl-well) { --cl-content-level: panel; }',
+    '@container style(--cl-content-level: panel) {',
+    '  :where(.cl-card, .cl-well) { --cl-content-level: base; background: var(--cl-surface-base); }',
+    '}',
+    '@container style(--cl-content-level: base) {',
+    '  :where(.cl-card, .cl-well) { --cl-content-level: panel; background: var(--cl-surface-panel); }',
+    '}',
+    '',
+    '/* Chrome lifts wherever it sits, so a header reads as a header at any depth. */',
+    ':where(.cl-chrome, .cl-card__header, .cl-card__footer) { background: var(--cl-surface-chrome); }',
+    '',
+    // Every boundary carries the border the semantic contract already requires
+    // of a panel, so two levels never rely on their fill difference alone.
+    ':where(.cl-card, .cl-well, .cl-chrome, .cl-card__header, .cl-card__footer) { border: 1px solid var(--cl-border-muted); }',
+    '',
+    "/* Rows alternate as opaque roles, so a row's contrast is checkable. */",
+    '.cl-row { background: var(--cl-surface-row); }',
+    '.cl-row--alt { background: var(--cl-surface-row-alt); }',
+    // A figure that changes width as it updates is a column nobody can scan.
+    '.cl-row__figure { font-variant-numeric: tabular-nums; text-align: right; }',
+  ].join('\n');
+}
+
+/**
  * The signature asymmetric chamfered corner.
  *
  * One diagonal pair is cut — top-right and bottom-left at `--cl-chamfer-size`,
@@ -138,16 +198,53 @@ function reducedMotion(): string {
  * focus rings render intact without being clipped.
  */
 function chamfer(): string {
+  const size = 'var(--cl-chamfer-size)';
   return [
-    '.cl-chamfer {',
+    '.cl-chamfer, .cl-chamfer-tr, .cl-chamfer-bl {',
     `  --cl-chamfer-size: ${RADIUS.chamfer};`,
-    '  corner-shape: bevel;',
-    '  border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size);',
     '}',
     '',
     '/* Operator surfaces cut less: density over drama. */',
     '.cl-chamfer--control {',
     `  --cl-chamfer-size: ${RADIUS['chamfer-control']};`,
+    '}',
+    '',
+    // Two tiers rather than one. A browser that has only the per-corner
+    // longhands still bevels; without this it would fall all the way back to
+    // square while supporting the geometry perfectly well.
+    '@supports (corner-top-right-shape: bevel) or (corner-shape: bevel) {',
+    '  .cl-chamfer-tr {',
+    '    border-radius: 0;',
+    `    border-top-right-radius: ${size};`,
+    '    corner-top-right-shape: bevel;',
+    '  }',
+    '  .cl-chamfer-bl {',
+    '    border-radius: 0;',
+    `    border-bottom-left-radius: ${size};`,
+    '    corner-bottom-left-shape: bevel;',
+    '  }',
+    '  .cl-chamfer, .cl-chamfer--control {',
+    '    border-radius: 0;',
+    `    border-top-right-radius: ${size};`,
+    `    border-bottom-left-radius: ${size};`,
+    '    corner-top-right-shape: bevel;',
+    '    corner-bottom-left-shape: bevel;',
+    '  }',
+    '}',
+    '',
+    '@supports (corner-shape: bevel) {',
+    '  .cl-chamfer-tr {',
+    `    border-radius: 0 ${size} 0 0;`,
+    '    corner-shape: round bevel round round;',
+    '  }',
+    '  .cl-chamfer-bl {',
+    `    border-radius: 0 0 0 ${size};`,
+    '    corner-shape: round round round bevel;',
+    '  }',
+    '  .cl-chamfer, .cl-chamfer--control {',
+    `    border-radius: 0 ${size} 0 ${size};`,
+    '    corner-shape: round bevel round bevel;',
+    '  }',
     '}',
   ].join('\n');
 }
@@ -223,9 +320,27 @@ function components(): string {
     ].join('\n'),
   );
 
+  // A variant that states its hovered fill gets it from the contract; the
+  // brightness filter below stays for the ones that do not, so a hover is
+  // never left to chance.
+  const buttonHovers = Object.entries(BUTTON_VARIANTS)
+    .filter(([, tokens]) => tokens.hover !== undefined)
+    .map(([variant, tokens]) => {
+      const hover = tokens.hover as NonNullable<typeof tokens.hover>;
+      return [
+        `.cl-btn--${variant}:hover:not(:disabled) {`,
+        `  background: var(--cl-${hover.background});`,
+        ...(hover.border === undefined ? [] : [`  border-color: var(--cl-${hover.border});`]),
+        '  filter: none;',
+        '}',
+      ].join('\n');
+    });
+
   return [
+    // No `background` here: a card's level comes from what it sits on, which
+    // `surfaceLevels()` decides. A fixed value at this specificity would beat
+    // those zero-specificity rules and pin every card to one shade.
     '.cl-card {',
-    '  background: var(--cl-surface-panel);',
     '  color: var(--cl-text-primary);',
     '  border-left: var(--cl-space-1) solid var(--cl-border-muted);',
     '  padding: var(--cl-space-4);',
@@ -560,7 +675,7 @@ function components(): string {
     '.cl-match-console-screen__primary { display: grid; align-content: start; gap: var(--cl-space-5); min-width: 0; }',
     '.cl-match-console-screen__rail { display: grid; align-content: start; gap: var(--cl-space-5); min-width: 0; }',
     '.cl-match-console-screen__scoreboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); border: 1px solid var(--cl-border-muted); background: var(--cl-surface-panel); min-width: 0; }',
-    '.cl-match-console-screen__score-side { display: flex; justify-content: space-between; align-items: center; gap: var(--cl-space-3); padding: var(--cl-space-4); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); min-width: 0; }',
+    '.cl-match-console-screen__score-side { display: flex; justify-content: space-between; align-items: center; gap: var(--cl-space-3); padding: var(--cl-space-4); font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; font-size: var(--cl-font-size-lg); min-width: 0; }',
     '.cl-match-console-screen__score-entrant { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
     '',
     '/* A row-identity chip (avatar initials + label) reused by any listing showing one person per row. */',
@@ -594,6 +709,14 @@ function components(): string {
     '.cl-platform-update-list { margin: 0; padding: var(--cl-space-4); list-style-position: inside; border: 1px solid var(--cl-state-upcoming); color: var(--cl-text-secondary); }',
     '.cl-platform-modules-header { display: flex; justify-content: space-between; align-items: start; gap: var(--cl-space-4); flex-wrap: wrap; }',
     '/* A badge is a colour *and* a label; the token contract refuses one without. */',
+    /*
+     * The badge's chamfer is a stated exception, and a deliberate divergence:
+     * the reference project paints badges square, with no chamfer class at any
+     * call site. The inherited diagonal pair is worse than either — at badge
+     * proportions its two cuts land at opposite ends of a short label and the
+     * result reads as a skewed box rather than as the motif. Cutting the left
+     * pair reads as a tag; cutting all four would read as a pill.
+     */
     '.cl-badge {',
     '  display: inline-flex;',
     '  align-items: center;',
@@ -602,6 +725,23 @@ function components(): string {
     '  font-weight: var(--cl-weight-semibold);',
     '  text-transform: uppercase;',
     '  padding: var(--cl-space-1) var(--cl-space-2);',
+    '}',
+    '',
+    '@supports (corner-top-left-shape: bevel) or (corner-shape: bevel) {',
+    '  .cl-badge {',
+    '    border-radius: 0;',
+    '    border-top-left-radius: var(--cl-radius-chamfer);',
+    '    border-bottom-left-radius: var(--cl-radius-chamfer);',
+    '    corner-top-left-shape: bevel;',
+    '    corner-bottom-left-shape: bevel;',
+    '  }',
+    '}',
+    '',
+    '@supports (corner-shape: bevel) {',
+    '  .cl-badge {',
+    '    border-radius: var(--cl-radius-chamfer) 0 0 var(--cl-radius-chamfer);',
+    '    corner-shape: bevel round round bevel;',
+    '  }',
     '}',
     '',
     '.cl-btn {',
@@ -626,6 +766,7 @@ function components(): string {
     '',
     '/* A control reads as pressable through its own states, not only its fill. */',
     '.cl-btn:hover:not(:disabled) { filter: brightness(1.12); }',
+    ...buttonHovers,
     '.cl-btn:active:not(:disabled) { filter: brightness(0.92); }',
     '.cl-btn--primary:hover:not(:disabled),',
     '.cl-btn--primary:active:not(:disabled) {',

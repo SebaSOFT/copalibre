@@ -43,6 +43,25 @@ export const SEMANTIC_COLORS = {
   'surface-base': { primitive: 'ink-950', purpose: 'Broadcast base', nonColourCue: 'n/a' },
   'surface-panel': { primitive: 'ink-900', purpose: 'Panel', nonColourCue: 'n/a' },
   'surface-raised': { primitive: 'ink-850', purpose: 'Raised or selected', nonColourCue: 'Border' },
+  /**
+   * Chrome: a panel header, a footer, a chip, a tag, an icon well. It lifts to
+   * this level wherever it sits, so a header reads as a header at any depth —
+   * unlike content, which alternates against the band beneath it.
+   *
+   * It currently shares `ink-850` with `surface-raised`. That is a real
+   * collision to resolve where selection is styled, not here: the reference
+   * project has no selected state to measure, and the token contract already
+   * requires `surface-raised` to carry a border plus label or state text rather
+   * than to be identified by its fill.
+   */
+  'surface-chrome': {
+    primitive: 'ink-850',
+    purpose: 'Chrome above its band',
+    nonColourCue: 'Border',
+  },
+  /** Table rows over a well, alternating. Opaque, so contrast is checkable. */
+  'surface-row': { primitive: 'ink-930', purpose: 'Table row', nonColourCue: 'n/a' },
+  'surface-row-alt': { primitive: 'ink-940', purpose: 'Alternate table row', nonColourCue: 'n/a' },
   /** A raised surface under the pointer: one step lighter, never a new hue. */
   'surface-hover': { primitive: 'ink-700', purpose: 'Hovered surface', nonColourCue: 'n/a' },
   'border-muted': { primitive: 'ink-700', purpose: 'Structure', nonColourCue: 'n/a' },
@@ -58,17 +77,19 @@ export const SEMANTIC_COLORS = {
    * The brand accent as an *action* role, so a link or a primary control names
    * what it is instead of reaching for the cyan primitive.
    *
-   * Seeded from `cyan-400` and deliberately uncalibrated: 0220 owns
-   * primary/secondary action calibration against its reference measurements, and
-   * this change has no reference to calibrate from. `primary-hover` holds the
-   * same value for that reason — the system's existing hover idiom is a
-   * `filter: brightness()` on the control, not a second colour — so 0220 can
-   * give it a measured value without any call site changing.
+   * Calibrated against the reference project (0220). Its primary control fills
+   * with `--cl-state-live` — the same `cyan-400` this role was seeded from — so
+   * the base needed no change, and reading that from source rather than sampling
+   * a screenshot is what settled it: a flat-region sample of the same button
+   * read `#4CC8FC`, which is display variance, not intent.
+   *
+   * The hover did need a value. The reference lightens the fill rather than
+   * relying on a filter, so `primary-hover` now names `cyan-300`.
    */
   primary: { primitive: 'cyan-400', purpose: 'Primary action', nonColourCue: 'Action label' },
   'primary-hover': {
-    primitive: 'cyan-400',
-    purpose: 'Primary action, hovered (awaiting 0220 calibration)',
+    primitive: 'cyan-300',
+    purpose: 'Primary action, hovered',
     nonColourCue: 'Action label',
   },
   'text-primary': { primitive: 'text-50', purpose: 'Body text', nonColourCue: 'n/a' },

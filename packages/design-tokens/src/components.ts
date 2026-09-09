@@ -41,6 +41,14 @@ export interface ButtonTokens {
   readonly text: SemanticColor;
   readonly border: SemanticColor | 'transparent';
   readonly minSize: string;
+  /**
+   * The hovered treatment, where the reference project states one rather than
+   * leaving it to a brightness filter. A variant without this keeps the filter.
+   */
+  readonly hover?: {
+    readonly background: SemanticColor;
+    readonly border?: SemanticColor;
+  };
 }
 
 export const BUTTON_VARIANTS: Record<ButtonVariant, ButtonTokens> = {
@@ -50,12 +58,18 @@ export const BUTTON_VARIANTS: Record<ButtonVariant, ButtonTokens> = {
     text: 'surface-base',
     border: 'transparent',
     minSize: TOUCH_TARGET,
+    // The reference lightens the fill on hover rather than filtering it.
+    hover: { background: 'primary-hover' },
   },
   secondary: {
     background: 'surface-raised',
     text: 'text-primary',
     border: 'border-muted',
     minSize: TOUCH_TARGET,
+    // The reference moves both fill and outline, so the two states differ by
+    // more than brightness — which is what makes a secondary readable as
+    // interactive next to a filled primary.
+    hover: { background: 'surface-hover', border: 'border-strong' },
   },
   destructive: {
     background: 'state-destructive',

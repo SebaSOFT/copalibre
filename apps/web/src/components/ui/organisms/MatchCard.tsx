@@ -1,8 +1,8 @@
-import { EntrantName } from './EntrantName.js';
-import { presentState } from '../lib/result-state.js';
-import { seriesScore, seriesSegments, seriesPending, toSeriesInput } from '../lib/series.js';
-import { applyTemplate, formatClock, type MatchCardData } from '../lib/matches-view.js';
-import type { MatchCardLabels } from '../lib/i18n/public-intl.js';
+import { EntrantName } from '../atoms/EntrantName.js';
+import { presentState } from '../../../lib/result-state.js';
+import { seriesScore, seriesSegments, seriesPending, toSeriesInput } from '../../../lib/series.js';
+import { applyTemplate, formatClock, type MatchCardData } from '../../../lib/matches-view.js';
+import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 
 /**
  * The matches-view card: one shared React component for both the public

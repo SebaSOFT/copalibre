@@ -1,11 +1,11 @@
 ---
 import type { IntlShape } from 'react-intl';
-import { EntrantName } from './EntrantName.tsx';
-import StateBadge from './ui/atoms/StateBadge.astro';
-import SeriesStateBar from './SeriesStateBar.astro';
-import { matchReportUrl, toNode, type BracketMatch } from '../lib/bracket.ts';
-import { toSeriesInput } from '../lib/series.ts';
-import { resultReasonLabels, resultStateLabels } from '../lib/i18n/public-intl.ts';
+import { EntrantName } from '../atoms/EntrantName.tsx';
+import StateBadge from '../atoms/StateBadge.astro';
+import SeriesStateBar from '../molecules/SeriesStateBar.astro';
+import { matchReportUrl, toNode, type BracketMatch } from '../../../lib/bracket.ts';
+import { toSeriesInput } from '../../../lib/series.ts';
+import { resultReasonLabels, resultStateLabels } from '../../../lib/i18n/public-intl.ts';
 
 interface Props {
   readonly match: BracketMatch;

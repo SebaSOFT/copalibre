@@ -157,3 +157,18 @@ distance rather than at arm's length, and SHALL honour a reduced-motion preferen
 #### Scenario: An overlay presentation does not carry the ticker
 - **WHEN** a TV route is requested in the lower-third overlay presentation
 - **THEN** the ticker is not rendered, since that presentation exists to leave the frame clear
+
+### Requirement: Broadcast TV styling is token-backed and readable over video
+TV display and overlay components SHALL consume declared CopaLibre tokens for their reusable styling.
+They SHALL preserve title-safe layout, readable scrims over video, explicit state cues, and
+reduced-motion-safe feedback; chroma-key values remain an explicit rendering exception.
+
+#### Scenario: A TV overlay renders over live video
+- **WHEN** a broadcast overlay displays score or state information over a video source
+- **THEN** its text remains readable through an approved panel or scrim, state is not colour-only, and
+  the component does not rely on ornamental glow for legibility
+
+#### Scenario: A TV stylesheet declares a value
+- **WHEN** `tv-broadcast.css` or a TV component declares colour, border, radius, or motion
+- **THEN** the value resolves to a declared token, except a chroma-key value registered as an explicit
+  rendering exception

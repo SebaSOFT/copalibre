@@ -2,8 +2,8 @@
 import type { IntlShape } from 'react-intl';
 import type { PublicTournamentListingItemResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import ChampionPodium from './ChampionPodium.astro';
-import Button from './ui/atoms/Button.astro';
-import { messages } from '../lib/i18n/public-messages.en.ts';
+import Button from '../atoms/Button.astro';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 interface Props {
   readonly tournament: PublicTournamentListingItemResponse;

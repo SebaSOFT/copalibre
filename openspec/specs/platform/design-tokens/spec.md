@@ -281,3 +281,26 @@ disagree about what a token looks like.
 - **WHEN** a token's value changes and the token package is rebuilt
 - **THEN** the style guide shown in the workbench reflects the new value, because the workbench
   presents the generated artifact rather than a hand-maintained copy of it
+
+### Requirement: Surface styling resolves through declared tokens
+Generated primitives, semantic tokens, component contracts, and surface aliases SHALL form a complete
+contract for Control, public, TV, and help/docs rendering. A surface may add a token only when its
+meaning is documented and it is emitted by the generated stylesheet.
+
+#### Scenario: A surface needs a hover border
+- **WHEN** a shared or surface component renders a hover border
+- **THEN** it resolves through a declared semantic or component token rather than an undeclared alias or
+  raw colour fallback
+
+#### Scenario: A token is changed
+- **WHEN** a declared token's value or role changes
+- **THEN** every generated output and first-party surface consuming that name remains resolvable
+
+### Requirement: Motion declarations are explicit and reduced-motion-safe
+First-party UI styling SHALL not use unrestricted `transition: all` or animate layout-affecting
+properties for ordinary interaction feedback. Motion SHALL name the affected compositor-safe property
+and preserve the generated reduced-motion behavior.
+
+#### Scenario: An interactive surface adds a transition
+- **WHEN** an interactive component adds visual feedback
+- **THEN** it names only the supported property or properties and uses the shared motion contract

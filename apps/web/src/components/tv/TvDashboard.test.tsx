@@ -1,8 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TvDashboard } from './TvDashboard.js';
-import type { LiveDashboard } from '../lib/live-state.js';
-import type { StandingsRowView } from '../lib/overview.js';
-import { publicIntl, tvStatisticsLabels } from '../lib/i18n/public-intl.js';
+import type { LiveDashboard } from '../../lib/live-state.js';
+import type { StandingsRowView } from '../../lib/overview.js';
+import { publicIntl, tvStatisticsLabels } from '../../lib/i18n/public-intl.js';
 
 const tvLabels = tvStatisticsLabels(publicIntl('en'));
 

@@ -29,19 +29,28 @@ test('the invitation card carries the chamfer geometry every Control-web card us
     return {
       classes: element.className,
       clipPath: style.clipPath,
-      cornerShape: style.getPropertyValue('corner-shape'),
-      borderRadius: style.borderTopLeftRadius,
+      supported:
+        CSS.supports('corner-top-right-shape', 'bevel') || CSS.supports('corner-shape', 'bevel'),
+      topRightShape: style.getPropertyValue('corner-top-right-shape'),
+      bottomLeftShape: style.getPropertyValue('corner-bottom-left-shape'),
+      radii: [
+        style.borderTopLeftRadius,
+        style.borderTopRightRadius,
+        style.borderBottomRightRadius,
+        style.borderBottomLeftRadius,
+      ],
     };
   });
 
   expect(geometry.classes).toContain('cl-chamfer');
-  // The token layer cuts the corner one of two ways depending on what the
-  // browser supports: corner-shape where it exists, clip-path where it does
-  // not. Either is the chamfer; a plain rounded corner is neither.
-  const chamfered = geometry.cornerShape === 'bevel' || geometry.clipPath !== 'none';
-  expect(chamfered, `neither corner-shape nor clip-path applied: ${JSON.stringify(geometry)}`).toBe(
-    true,
-  );
+  expect(geometry.clipPath).toBe('none');
+  if (geometry.supported) {
+    expect(geometry.topRightShape).toBe('bevel');
+    expect(geometry.bottomLeftShape).toBe('bevel');
+    expect(geometry.radii).toEqual(['0px', '8px', '0px', '8px']);
+  } else {
+    expect(geometry.radii).toEqual(['0px', '0px', '0px', '0px']);
+  }
 });
 
 test('the invitation card keeps a horizontal gutter at a mobile viewport', async ({ page }) => {
