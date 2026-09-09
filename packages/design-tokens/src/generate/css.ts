@@ -69,6 +69,7 @@ export function generateCss(): string {
     '',
     ...Object.entries(MOTION).map(([name, value]) => `  --cl-motion-${name}: ${value};`),
     `  --cl-touch-target: ${TOUCH_TARGET};`,
+    `  --cl-glow-cyan: 0 0 20px rgba(0, 212, 255, 0.4);`,
     `}`,
     '',
     reducedMotion(),
@@ -76,6 +77,8 @@ export function generateCss(): string {
     chamfer(),
     '',
     imageFrame(),
+    '',
+    tacticalGrid(),
     '',
     components(),
     '',
@@ -121,53 +124,22 @@ function reducedMotion(): string {
 }
 
 /**
- * The chamfered corner, and the square one it falls back to.
+ * The signature asymmetric chamfered corner.
  *
  * One diagonal pair is cut — top-right and bottom-left at `--cl-chamfer-size`,
  * top-left and bottom-right square.
  *
- * `corner-shape: bevel` where it exists, `clip-path` where it does not, and a
- * plain rectangle where neither does. The fallback is square rather than
- * rounded because a wrong-radius corner reads as a rendering bug, while a
- * square one reads as a deliberate, plainer surface.
- *
- * **To chamfer only some corners, set `border-radius: 0` on the ones you do not
- * want** — with `corner-shape: bevel` the standard shorthand selects them, so
- * `border-radius: var(--cl-chamfer-size) 0 var(--cl-chamfer-size) 0` cuts one
- * diagonal pair. Prefer that to writing another `clip-path` polygon: a polygon
- * has to be kept in step with the `corner-shape` branch by hand, which is
- * exactly how the two paths came to disagree about the shape in the first place.
+ * Exclusively driven by `corner-shape: bevel` and `border-radius`:
+ * `border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size)`.
+ * No `clip-path` is used, ensuring borders, outlines, box-shadow glows and
+ * focus rings render intact without being clipped.
  */
 function chamfer(): string {
   return [
     '.cl-chamfer {',
     `  --cl-chamfer-size: ${RADIUS.chamfer};`,
-    '  border-radius: 0;',
-    '}',
-    '',
-    '@supports (clip-path: polygon(0 0)) {',
-    '  .cl-chamfer {',
-    // Top-right and bottom-left cut; top-left and bottom-right square.
-    //
-    // Kept in step with the `corner-shape` branch below by hand, which is the
-    // hazard: the two used to disagree, one cutting a diagonal pair and the
-    // other bevelling all four. Change one, change the other.
-    '    clip-path: polygon(',
-    '      0% 0%, calc(100% - var(--cl-chamfer-size)) 0%,',
-    '      100% var(--cl-chamfer-size), 100% 100%,',
-    '      var(--cl-chamfer-size) 100%, 0% calc(100% - var(--cl-chamfer-size))',
-    '    );',
-    '  }',
-    '}',
-    '',
-    '@supports (corner-shape: bevel) {',
-    '  .cl-chamfer {',
-    '    clip-path: none;',
-    '    corner-shape: bevel;',
-    // `0` on the corners that stay square, per-corner shorthand rather than a
-    // second polygon: top-left, top-right, bottom-right, bottom-left.
-    '    border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size);',
-    '  }',
+    '  corner-shape: bevel;',
+    '  border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size);',
     '}',
     '',
     '/* Operator surfaces cut less: density over drama. */',
@@ -181,8 +153,7 @@ function chamfer(): string {
  * A fixed 4:5 frame for a profile image (organization/club emblem, person
  * picture) or its placeholder — chamfered the same way `.cl-chamfer` already
  * is, `object-fit: cover` so a source whose stored aspect isn't exactly 4:5
- * (an image saved before this existed) still fills the frame without
- * distortion.
+ * still fills the frame without distortion.
  */
 function imageFrame(): string {
   return [
@@ -191,12 +162,13 @@ function imageFrame(): string {
     '  aspect-ratio: 4 / 5;',
     '  max-height: 512px;',
     '  border: 1px solid var(--cl-border-muted);',
-    '  border-radius: 0;',
     '  overflow: hidden;',
     '  display: flex;',
     '  align-items: center;',
     '  justify-content: center;',
     '  background: var(--cl-surface-raised);',
+    '  corner-shape: bevel;',
+    '  border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size);',
     '}',
     '',
     '.cl-image-frame img {',
@@ -211,29 +183,23 @@ function imageFrame(): string {
     '  height: 55%;',
     '}',
     '',
-    '@supports (clip-path: polygon(0 0)) {',
-    '  .cl-image-frame {',
-    // The same diagonal pair `.cl-chamfer` cuts, so a framed image sits in a
-    // chamfered card without the two shapes disagreeing.
-    '    clip-path: polygon(',
-    '      0% 0%, calc(100% - var(--cl-chamfer-size)) 0%,',
-    '      100% var(--cl-chamfer-size), 100% 100%,',
-    '      var(--cl-chamfer-size) 100%, 0% calc(100% - var(--cl-chamfer-size))',
-    '    );',
-    '  }',
-    '}',
-    '',
-    '@supports (corner-shape: bevel) {',
-    '  .cl-image-frame {',
-    '    clip-path: none;',
-    '    corner-shape: bevel;',
-    '    border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size);',
-    '  }',
-    '}',
-    '',
     '/* Operator surfaces cut less: density over drama. */',
     '.cl-image-frame--control {',
     `  --cl-chamfer-size: ${RADIUS['image-frame-control']};`,
+    '}',
+  ].join('\n');
+}
+
+/**
+ * Coordinate grid utility for tournament brackets, heroes, and tactical backdrops.
+ */
+function tacticalGrid(): string {
+  return [
+    '.cl-tactical-grid {',
+    '  background-image:',
+    '    linear-gradient(to right, color-mix(in srgb, var(--cl-color-cyan-400) 6%, transparent) 1px, transparent 1px),',
+    '    linear-gradient(to bottom, color-mix(in srgb, var(--cl-color-cyan-400) 6%, transparent) 1px, transparent 1px);',
+    '  background-size: var(--cl-space-6) var(--cl-space-8);',
     '}',
   ].join('\n');
 }
@@ -638,22 +604,30 @@ function components(): string {
     '.cl-btn {',
     '  min-height: var(--cl-touch-target);',
     '  min-width: var(--cl-touch-target);',
-    '  font-family: var(--cl-font-body);',
-    '  font-weight: var(--cl-weight-semibold);',
+    '  font-family: var(--cl-font-display);',
+    '  font-weight: var(--cl-weight-bold);',
+    '  text-transform: uppercase;',
+    '  letter-spacing: var(--cl-tracking-wider);',
     '  border: 1px solid transparent;',
     '  padding: var(--cl-space-2) var(--cl-space-4);',
-    '  transition: background var(--cl-motion-fast) var(--cl-motion-easing);',
+    '  transition: background var(--cl-motion-fast) var(--cl-motion-easing), box-shadow var(--cl-motion-fast) var(--cl-motion-easing), filter var(--cl-motion-fast) var(--cl-motion-easing);',
     // A label of two words wraps on its space and fits; a single compound —
     // `Turniereinstellungen` — has no break the browser will take, so the
     // button grew past the 188px reference width and pushed the page sideways.
     '  max-width: 100%;',
     '  overflow-wrap: anywhere;',
+    '  corner-shape: bevel;',
+    '  border-radius: 0 var(--cl-radius-chamfer-control) 0 var(--cl-radius-chamfer-control);',
     '}',
     ...buttons,
     '',
     '/* A control reads as pressable through its own states, not only its fill. */',
     '.cl-btn:hover:not(:disabled) { filter: brightness(1.12); }',
     '.cl-btn:active:not(:disabled) { filter: brightness(0.92); }',
+    '.cl-btn--primary:hover:not(:disabled),',
+    '.cl-btn--primary:active:not(:disabled) {',
+    '  box-shadow: var(--cl-glow-cyan);',
+    '}',
     '.cl-btn:disabled {',
     '  opacity: 0.55;',
     '  cursor: not-allowed;',

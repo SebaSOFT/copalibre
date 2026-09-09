@@ -200,12 +200,20 @@ describe('the CSS output', () => {
     expect(css).toContain(`--cl-motion-base: ${MOTION.instant};`);
   });
 
-  it('falls back from corner-shape to clip-path to a square corner', () => {
-    // Square rather than rounded: a wrong-radius corner reads as a bug, a
-    // square one reads as a plainer surface.
-    expect(css).toContain('@supports (corner-shape: bevel)');
-    expect(css).toContain('@supports (clip-path: polygon(0 0))');
-    expect(css.indexOf('.cl-chamfer {')).toBeLessThan(css.indexOf('@supports (clip-path'));
+  it('uses corner-shape and border-radius for chamfer styling without clip-path', () => {
+    expect(css).toContain('corner-shape: bevel;');
+    expect(css).toContain('border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size);');
+    expect(css).not.toMatch(/\.cl-chamfer\s*\{[^}]*clip-path/);
+    expect(css).not.toMatch(/\.cl-image-frame\s*\{[^}]*clip-path/);
+  });
+
+  it('declares the ambient cyan glow token and tactical grid utility', () => {
+    expect(css).toContain('--cl-glow-cyan: 0 0 20px rgba(0, 212, 255, 0.4);');
+    expect(css).toContain('.cl-tactical-grid {');
+    expect(css).toContain(
+      'linear-gradient(to right, color-mix(in srgb, var(--cl-color-cyan-400) 6%, transparent) 1px, transparent 1px)',
+    );
+    expect(css).toContain('background-size: var(--cl-space-6) var(--cl-space-8);');
   });
 
   it('meets the touch target on every button', () => {
@@ -374,6 +382,18 @@ describe('button CTA treatments (openspec 0198)', () => {
   it('offers the public display-type treatment as its own modifier', () => {
     expect(css).toMatch(/\.cl-btn--persuade \{[^}]*var\(--cl-font-display\)/);
     expect(css).toMatch(/\.cl-btn--persuade \{[^}]*text-transform: uppercase/);
+  });
+
+  it('standardizes buttons with display font, uppercase, tracked wide, chamfers and ambient cyan glow', () => {
+    expect(css).toContain('font-family: var(--cl-font-display);');
+    expect(css).toContain('font-weight: var(--cl-weight-bold);');
+    expect(css).toContain('text-transform: uppercase;');
+    expect(css).toContain('letter-spacing: var(--cl-tracking-wider);');
+    expect(css).toContain(
+      'border-radius: 0 var(--cl-radius-chamfer-control) 0 var(--cl-radius-chamfer-control);',
+    );
+    expect(css).toContain('.cl-btn--primary:hover:not(:disabled)');
+    expect(css).toContain('box-shadow: var(--cl-glow-cyan);');
   });
 
   it('declares the chamfer geometry buttons opt into', () => {

@@ -104,6 +104,7 @@ tmp/
 .claude/
 .gemini/
 .opencode/
+.impeccable/
 openspec/changes/*
 apps/web/public/openapi/
 apps/web/public/vendor/
