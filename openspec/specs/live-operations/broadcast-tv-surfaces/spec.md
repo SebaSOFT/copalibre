@@ -172,3 +172,18 @@ reduced-motion-safe feedback; chroma-key values remain an explicit rendering exc
 - **WHEN** `tv-broadcast.css` or a TV component declares colour, border, radius, or motion
 - **THEN** the value resolves to a declared token, except a chroma-key value registered as an explicit
   rendering exception
+
+### Requirement: Reusable TV presentation is owned by a TV UI tier
+A TV presentation pattern used by more than one broadcast route SHALL be composed from an owned TV UI
+component rather than duplicated stylesheet rules. Relocated TV components SHALL preserve title-safe
+layout, readable scrims over video, non-colour-only state cues, and their registered chroma-key
+exception.
+
+#### Scenario: A TV component is reused
+- **WHEN** a TV presentation pattern appears in more than one broadcast route
+- **THEN** it is composed from an owned TV UI component rather than duplicated bespoke stylesheet rules
+
+#### Scenario: A TV component is relocated into the tier
+- **WHEN** an existing TV component moves into the owned tier
+- **THEN** its overlay remains readable over video, its state cues remain non-colour-only, and it
+  introduces no undeclared token

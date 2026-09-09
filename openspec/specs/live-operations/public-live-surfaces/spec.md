@@ -146,3 +146,12 @@ requirement; the component tier that will own it is established by `0220-operati
 #### Scenario: A public live state is conveyed
 - **WHEN** a public live surface shows live, upcoming, or final state
 - **THEN** the state carries a textual or icon cue and is not distinguished by colour alone
+
+### Requirement: Reusable public live presentation is owned
+Reusable public live cards, badges, tickers, and match presentation patterns SHALL be owned by the public
+UI tier and composed by the routes that display them. State presentation SHALL retain its textual or icon
+cue alongside colour after relocation.
+
+#### Scenario: A public live card is reused
+- **WHEN** a public live card, badge, or ticker appears on more than one page
+- **THEN** pages compose the owned public component rather than redefining its colour and layout rules

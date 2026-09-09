@@ -710,3 +710,19 @@ public UI tier is established by `0220-operational-surface-parity`.
 - **WHEN** a public page or layout declares a card, badge, or image treatment
 - **THEN** every colour, border, radius, and transition value resolves to a declared token, and any raw
   colour is rejected unless it is a registered image-derived overlay exception
+
+### Requirement: Reusable public presentation is owned by a public UI tier
+Reusable public Astro cards, badges, image frames, headers, and navigation patterns SHALL live in an
+owned public UI tier that pages and layouts compose, rather than being redefined per page.
+Document-specific styling MAY remain local when it does not define reusable component behavior.
+Components moved into that tier SHALL continue to resolve every value through declared CopaLibre tokens.
+
+#### Scenario: A public pattern is used by more than one route
+- **WHEN** a card, badge, or image treatment appears on more than one public route
+- **THEN** those routes compose the owned public component rather than redeclaring its colour and layout
+  rules
+
+#### Scenario: A component is relocated into the public tier
+- **WHEN** an existing public component moves into the owned tier
+- **THEN** its rendered output is unchanged and it introduces no undeclared token or unapproved raw
+  colour

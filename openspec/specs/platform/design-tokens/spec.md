@@ -83,15 +83,31 @@ SHALL NOT define a color-only state representation.
 - **THEN** the build fails or the component renders a visible validation error, never a color-only badge
 
 ### Requirement: Chamfered-corner motif with progressive enhancement
-The token set SHALL define one shared chamfer size applied exclusively via the `corner-shape: bevel`
-property and 4-value `border-radius`, without any `clip-path` fallback.
+The token set SHALL define one shared chamfer size, and a smaller control size, applied exclusively
+through `corner-shape` and `border-radius` without any `clip-path` fallback.
 
-The chamfer SHALL cut one diagonal pair: the top-right and bottom-left corners (`border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size)`),
-leaving top-left and bottom-right square. Small square controls — a checkbox, a radio — are the exception
-and SHALL cut all four, because an asymmetric cut at that size reads as a rendering fault rather than a shape.
+The motif SHALL be a family rather than a single cut. It SHALL provide the diagonal pair — top-right
+and bottom-left — as its default, each single corner of that pair on its own, and the control-sized
+variant, so a composition can cut the corners its shape calls for instead of receiving the default
+everywhere. The default SHALL remain the diagonal pair, and top-left and bottom-right SHALL remain
+square in it.
 
-Where a component chamfers only some of its corners, that SHALL be expressed by setting a zero radius
-on the corners that stay square (`border-radius: 0`), never by authoring polygon masks.
+Corner geometry SHALL be expressed per corner. A browser that supports only the per-corner longhands
+SHALL receive them; a browser that supports the shorthand SHALL receive it; a browser that supports
+neither SHALL receive square corners and a fully usable component.
+
+Small square controls — a checkbox, a radio — are an exception and SHALL cut all four, because an
+asymmetric cut at that size reads as a rendering fault rather than a shape.
+
+A badge is a second stated exception: it SHALL cut one vertical pair — both left corners at the shared
+chamfer size, both right corners square. At badge proportions the diagonal pair puts its two cuts at
+opposite ends of a short label, which reads as a skewed box rather than as the motif; a vertical pair
+reads as a tag, while cutting all four would read as a pill. This is a deliberate divergence from the
+reference project, which paints badges square, and SHALL be recorded as such where the calibration is
+documented, so a later reviewer does not read it as drift.
+
+Where a component chamfers only some of its corners, that SHALL be expressed by leaving the other
+corners at a zero radius, never by authoring polygon masks.
 
 A component whose focus indicator or ambient glow is drawn outside its own box — such as a `box-shadow`
 ring or `--cl-glow-cyan` — SHALL NOT be clipped to its chamfer because `clip-path` is strictly prohibited
@@ -99,11 +115,24 @@ for chamfer geometry. External focus rings and ambient glows stay intact across 
 
 #### Scenario: Unsupported browser falls back gracefully
 - **WHEN** a browser without `corner-shape` support renders a chamfered component
-- **THEN** the component renders with square corners (via zero or ignored radius) and remains fully usable without visual clipping defects
+- **THEN** the component renders with square corners and remains fully usable without visual clipping defects
+
+#### Scenario: A browser with only the per-corner longhands still gets the motif
+- **WHEN** a browser supports the per-corner corner-shape longhands but not the shorthand
+- **THEN** the chamfered corners still bevel, rather than falling back to square
+
+#### Scenario: A composition cuts only the corner it needs
+- **WHEN** a composition applies a single-corner variant
+- **THEN** that corner bevels at the shared size and every other corner stays square
 
 #### Scenario: Both rendering paths cut the same shape
-- **WHEN** the chamfer motif is rendered via `corner-shape: bevel` with 4-value `border-radius`
-- **THEN** both diagonal corner cuts (top-right and bottom-left) match the specified `--cl-chamfer-size` dimensions identically, standardizing single-path beveling without clip-path divergence
+- **WHEN** the chamfer motif is rendered through the supported path
+- **THEN** the cut corners match the specified chamfer size identically, with no `clip-path` divergence
+
+#### Scenario: A badge cuts its left corners only
+- **WHEN** a badge is rendered on any surface
+- **THEN** both of its left corners are cut at the shared chamfer size and both right corners are square,
+  with no `clip-path` involved
 
 #### Scenario: A focus ring survives the chamfer
 - **WHEN** a component draws its focus indicator or ambient glow as a shadow outside its own box
