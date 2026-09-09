@@ -1,12 +1,12 @@
 ---
 import PublicLayout from '../../../../layouts/PublicLayout.astro';
-import TournamentHero from '../../../../components/TournamentHero.astro';
-import ChampionPodium from '../../../../components/ChampionPodium.astro';
-import MatchCardGrid from '../../../../components/MatchCardGrid.astro';
-import ScoreTicker from '../../../../components/ScoreTicker.astro';
-import StandingsPreview from '../../../../components/StandingsPreview.astro';
-import BroadcastStatusPanel from '../../../../components/BroadcastStatusPanel.astro';
-import RulesetBriefing from '../../../../components/RulesetBriefing.astro';
+import TournamentHero from '../../../../components/ui/molecules/TournamentHero.astro';
+import ChampionPodium from '../../../../components/ui/organisms/ChampionPodium.astro';
+import MatchCardGrid from '../../../../components/ui/organisms/MatchCardGrid.astro';
+import ScoreTicker from '../../../../components/ui/organisms/ScoreTicker.astro';
+import StandingsPreview from '../../../../components/ui/organisms/StandingsPreview.astro';
+import BroadcastStatusPanel from '../../../../components/ui/molecules/BroadcastStatusPanel.astro';
+import RulesetBriefing from '../../../../components/ui/molecules/RulesetBriefing.astro';
 import { buildOverview, displayName } from '../../../../lib/overview.ts';
 import {
   fetchOverview,

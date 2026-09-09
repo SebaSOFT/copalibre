@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { EntrantName } from '../../components/EntrantName.js';
+import { EntrantName } from '../../components/ui/atoms/EntrantName.js';
 import type {
   TableLayoutSummaryResponse,
   TableProjectionResponseData,

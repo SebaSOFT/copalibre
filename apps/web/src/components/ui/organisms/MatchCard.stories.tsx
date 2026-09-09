@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MatchCard } from './MatchCard.js';
-import { matchCardLabels, publicIntl } from '../lib/i18n/public-intl.js';
-import type { MatchCardData } from '../lib/matches-view.js';
-import type { SupportedLanguage } from '../lib/language-preference.js';
+import { matchCardLabels, publicIntl } from '../../../lib/i18n/public-intl.js';
+import type { MatchCardData } from '../../../lib/matches-view.js';
+import type { SupportedLanguage } from '../../../lib/language-preference.js';
 
 /**
  * `MatchCard` takes its labels pre-formatted rather than importing react-intl

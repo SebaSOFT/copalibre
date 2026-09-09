@@ -10,12 +10,22 @@
 
 export const COLOR_PRIMITIVES = {
   'ink-950': '#0A0E1A',
+  /**
+   * The two table-row steps, resolved from the reference project's translucent
+   * rows — `ink-900` at 20% and 40% over an `ink-950` well — into opaque values.
+   * Flat rather than translucent so a row's contrast is checkable from the token
+   * itself instead of from a composite against whatever happens to sit behind it.
+   */
+  'ink-940': '#0C101D',
+  'ink-930': '#0D1220',
   'ink-900': '#121828',
   'ink-850': '#1A2236',
   'ink-700': '#243049',
   'text-50': '#F2F6FB',
   'text-200': '#B8C4D8',
   'text-400': '#8C9AB5',
+  /** The hovered action fill, measured from the reference project's primary CTA. */
+  'cyan-300': '#33DFFF',
   'cyan-400': '#00D4FF',
   'cyan-700': '#006B82',
   'amber-400': '#FF9C1E',

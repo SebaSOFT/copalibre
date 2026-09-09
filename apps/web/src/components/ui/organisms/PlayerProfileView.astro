@@ -1,9 +1,9 @@
 ---
 import type { IntlShape } from 'react-intl';
 import type { PublicPersonProfileResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
-import { messages } from '../lib/i18n/public-messages.en.ts';
-import { personPhotoUrl } from '../lib/public-api-client.ts';
-import PersonPhotoImage from './ui/atoms/PersonPhotoImage.astro';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import { personPhotoUrl } from '../../../lib/public-api-client.ts';
+import PersonPhotoImage from '../atoms/PersonPhotoImage.astro';
 
 interface Props {
   readonly profile: PublicPersonProfileResponse;

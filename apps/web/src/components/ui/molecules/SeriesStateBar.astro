@@ -1,7 +1,12 @@
 ---
 import type { IntlShape } from 'react-intl';
-import { seriesScore, seriesSegments, type SegmentState, type SeriesInput } from '../lib/series.ts';
-import { messages } from '../lib/i18n/public-messages.en.ts';
+import {
+  seriesScore,
+  seriesSegments,
+  type SegmentState,
+  type SeriesInput,
+} from '../../../lib/series.ts';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 interface Props {
   readonly series: SeriesInput;

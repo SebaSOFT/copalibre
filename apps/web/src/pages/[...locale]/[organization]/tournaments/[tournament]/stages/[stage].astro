@@ -1,9 +1,9 @@
 ---
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
-import BracketView from '../../../../../../components/BracketView.astro';
-import ResultLegend from '../../../../../../components/ResultLegend.astro';
-import StandingsPreview from '../../../../../../components/StandingsPreview.astro';
-import { MatchCard } from '../../../../../../components/MatchCard.tsx';
+import BracketView from '../../../../../../components/ui/organisms/BracketView.astro';
+import ResultLegend from '../../../../../../components/ui/molecules/ResultLegend.astro';
+import StandingsPreview from '../../../../../../components/ui/organisms/StandingsPreview.astro';
+import { MatchCard } from '../../../../../../components/ui/organisms/MatchCard.tsx';
 import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
 import { selectStageLayout, matchReportUrl } from '../../../../../../lib/bracket.ts';
 import {

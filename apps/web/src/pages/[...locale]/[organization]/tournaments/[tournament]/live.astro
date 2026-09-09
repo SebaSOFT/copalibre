@@ -1,9 +1,9 @@
 ---
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
-import ResultLegend from '../../../../../components/ResultLegend.astro';
+import ResultLegend from '../../../../../components/ui/molecules/ResultLegend.astro';
 import StateBadge from '../../../../../components/ui/atoms/StateBadge.astro';
-import { LiveMatchHero } from '../../../../../components/LiveMatchHero.tsx';
-import { EntrantName } from '../../../../../components/EntrantName.tsx';
+import { LiveMatchHero } from '../../../../../components/ui/organisms/LiveMatchHero.tsx';
+import { EntrantName } from '../../../../../components/ui/atoms/EntrantName.tsx';
 import { buildOverview, displayName } from '../../../../../lib/overview.ts';
 import {
   fetchLive,

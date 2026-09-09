@@ -7,6 +7,7 @@ import {
   SPACING,
   TOUCH_TARGET,
 } from './primitives.js';
+import { CONTRAST_GATES, contrastRatio } from './contrast.js';
 import { PROTECTED_TOKENS, SEMANTIC_COLORS, isProtected, resolveSemantic } from './semantic.js';
 import {
   BUTTON_VARIANTS,
@@ -205,6 +206,118 @@ describe('the CSS output', () => {
     expect(css).toContain('border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size);');
     expect(css).not.toMatch(/\.cl-chamfer\s*\{[^}]*clip-path/);
     expect(css).not.toMatch(/\.cl-image-frame\s*\{[^}]*clip-path/);
+  });
+
+  it('meets AA for text and essential indicators on every surface level', () => {
+    // Every level a container can resolve to, including the two row steps this
+    // change adds. A level whose body text fails here is a level nobody can
+    // read on, which is the failure adding surfaces quietly introduces.
+    const levels = [
+      'surface-base',
+      'surface-panel',
+      'surface-chrome',
+      'surface-raised',
+      'surface-row',
+      'surface-row-alt',
+    ] as const;
+
+    for (const level of levels) {
+      const background = COLOR_PRIMITIVES[SEMANTIC_COLORS[level].primitive];
+      expect(
+        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['text-primary'].primitive], background),
+      ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+      expect(
+        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['text-secondary'].primitive], background),
+      ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+      // Muted panel separators are decorative. Essential indicators must use
+      // the strong role; a 1.2:1 separator is not a WCAG non-text AA pass.
+      expect(
+        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['border-strong'].primitive], background),
+      ).toBeGreaterThanOrEqual(CONTRAST_GATES.nonTextIndicator);
+    }
+  });
+
+  it('keeps the calibrated action legible against its own fill', () => {
+    const primary = COLOR_PRIMITIVES[SEMANTIC_COLORS.primary.primitive];
+    const hover = COLOR_PRIMITIVES[SEMANTIC_COLORS['primary-hover'].primitive];
+    const onAction = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-base'].primitive];
+    expect(contrastRatio(onAction, primary)).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+    expect(contrastRatio(onAction, hover)).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+  });
+
+  it('offers the chamfer as a family, not a single cut', () => {
+    // A composition that wants one corner cut should not have to take the pair.
+    expect(css).toContain('border-radius: 0 var(--cl-chamfer-size) 0 0;');
+    expect(css).toContain('corner-shape: round bevel round round;');
+    expect(css).toContain('border-radius: 0 0 0 var(--cl-chamfer-size);');
+    expect(css).toContain('corner-shape: round round round bevel;');
+    expect(css).toContain('corner-shape: round bevel round bevel;');
+  });
+
+  it('bevels for a browser that has only the per-corner longhands', () => {
+    // Without this tier such a browser falls back to square while supporting
+    // the geometry perfectly well.
+    expect(css).toContain('@supports (corner-top-right-shape: bevel) or (corner-shape: bevel) {');
+    expect(css).toContain('corner-top-right-shape: bevel;');
+    expect(css).toContain('corner-bottom-left-shape: bevel;');
+  });
+
+  it('cuts a badge on its left pair, never with clip-path', () => {
+    // A deliberate divergence from the reference project, which paints badges
+    // square: the inherited diagonal pair reads as a skewed box at this size.
+    expect(css).toContain('border-radius: var(--cl-radius-chamfer) 0 0 var(--cl-radius-chamfer);');
+    expect(css).toContain('corner-shape: bevel round round bevel;');
+    expect(css).not.toMatch(/\.cl-badge\s*\{[^}]*clip-path/);
+  });
+
+  it('assigns a surface level from what a container is, not how deep it sits', () => {
+    // Content alternates against its band; the same card is lighter on a dark
+    // band and darker on a light one.
+    expect(css).toContain(
+      ':where(.cl-band) :where(.cl-card, .cl-well) { background: var(--cl-surface-base); }',
+    );
+    expect(css).toContain(
+      ':where(.cl-band--base) :where(.cl-card, .cl-well) { background: var(--cl-surface-panel); }',
+    );
+    // Chrome does not alternate: a header reads as a header at any depth.
+    expect(css).toContain(
+      ':where(.cl-chrome, .cl-card__header, .cl-card__footer) { background: var(--cl-surface-chrome); }',
+    );
+    // Every boundary carries the border the contract requires of a panel.
+    expect(css).toContain(
+      ':where(.cl-card, .cl-well, .cl-chrome, .cl-card__header, .cl-card__footer) { border: 1px solid var(--cl-border-muted); }',
+    );
+  });
+
+  it("lets the level rules win over a card's own styling", () => {
+    // `.cl-card` outweighs a `:where()` rule, so a background declared there
+    // would pin every card to one shade and silently defeat alternation.
+    const cardBlock = css.slice(
+      css.indexOf('.cl-card {'),
+      css.indexOf('}', css.indexOf('.cl-card {')),
+    );
+    expect(cardBlock).not.toContain('background:');
+    expect(css.indexOf('.cl-card {')).toBeLessThan(
+      css.indexOf(':where(.cl-card, .cl-well) { background'),
+    );
+  });
+
+  it('declares table rows as opaque roles rather than translucent fills', () => {
+    // Contrast has to be checkable from the token, not from a composite
+    // against whatever happens to sit behind the row.
+    expect(css).toContain('.cl-row { background: var(--cl-surface-row); }');
+    expect(css).toContain('.cl-row--alt { background: var(--cl-surface-row-alt); }');
+    expect(css).not.toMatch(/\.cl-row[^{]*\{[^}]*color-mix/);
+  });
+
+  it('states each button hover in the contract instead of filtering brightness', () => {
+    expect(css).toContain('.cl-btn--primary:hover:not(:disabled) {');
+    expect(css).toContain('background: var(--cl-primary-hover);');
+    // The secondary moves both fill and outline, so the two states differ by
+    // more than brightness.
+    expect(css).toContain('.cl-btn--secondary:hover:not(:disabled) {');
+    expect(css).toContain('background: var(--cl-surface-hover);');
+    expect(css).toContain('border-color: var(--cl-border-strong);');
   });
 
   it('declares the ambient cyan glow token and tactical grid utility', () => {

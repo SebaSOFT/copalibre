@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { LiveMatchHero } from './LiveMatchHero.js';
-import { publicIntl, resultStateLabels } from '../lib/i18n/public-intl.js';
-import { messages as publicMessages } from '../lib/i18n/public-messages.en.js';
-import type { LiveDashboard } from '../lib/live-state.js';
-import type { SupportedLanguage } from '../lib/language-preference.js';
+import { publicIntl, resultStateLabels } from '../../../lib/i18n/public-intl.js';
+import { messages as publicMessages } from '../../../lib/i18n/public-messages.en.js';
+import type { LiveDashboard } from '../../../lib/live-state.js';
+import type { SupportedLanguage } from '../../../lib/language-preference.js';
 
 /**
  * The island starts from what the server rendered and patches it from a stream.

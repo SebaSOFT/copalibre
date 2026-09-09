@@ -53,11 +53,11 @@ const KNOWN_RAW_ELEMENTS = new Map([
   // there is no `DataTable.astro` or `Modal.astro` — so these wait on 0214
   // before they can be lowered. `StandingsPreview.astro`'s `<button>` does not:
   // `ui/atoms/Button.astro` exists and it could compose it today.
-  ['components/PlayerProfileView.astro', 1],
-  ['components/StandingsPreview.astro', 4],
+  ['components/ui/organisms/PlayerProfileView.astro', 1],
+  ['components/ui/organisms/StandingsPreview.astro', 4],
   // React on the broadcast surface. The owned atoms are React and importable,
   // so these are payable now.
-  ['components/TvDashboard.tsx', 4],
+  ['components/tv/TvDashboard.tsx', 4],
   ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 1],
   [
     'pages/[...locale]/[organization]/tournaments/[tournament]/stages/[stage]/matches/[match].astro',

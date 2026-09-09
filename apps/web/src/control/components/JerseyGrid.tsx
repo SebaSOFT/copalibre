@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { isSupportedLanguage, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
-import { EntrantName } from '../../components/EntrantName.js';
+import { EntrantName } from '../../components/ui/atoms/EntrantName.js';
 import {
   clubEmblemUrl,
   type ConsoleRoster,

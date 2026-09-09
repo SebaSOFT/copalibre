@@ -2,10 +2,10 @@ import { useEffect, useState, useCallback } from 'react';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import type { SupportedLanguage } from '@copalibre/domain';
 import { RealtimeClient } from '@copalibre/realtime';
-import { applyEvent, markConnected, type LiveDashboard } from '../lib/live-state.js';
-import { presentState, type ResultStateLabels } from '../lib/result-state.js';
-import { resolveTvBranding, tvStateColor, type TvBranding } from '../lib/tv-branding.js';
-import type { StandingsRowView } from '../lib/overview.js';
+import { applyEvent, markConnected, type LiveDashboard } from '../../lib/live-state.js';
+import { presentState, type ResultStateLabels } from '../../lib/result-state.js';
+import { resolveTvBranding, tvStateColor, type TvBranding } from '../../lib/tv-branding.js';
+import type { StandingsRowView } from '../../lib/overview.js';
 import {
   deriveTopPerformers,
   deriveTournamentFacts,
@@ -14,7 +14,7 @@ import {
   type TournamentFact,
   type ChampionInfo,
   type TvStatisticsLabels,
-} from '../lib/tv-statistics.js';
+} from '../../lib/tv-statistics.js';
 
 export interface TvClubItem {
   readonly name: string;

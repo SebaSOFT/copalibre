@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TvDashboard, type TvPresentation } from './TvDashboard.js';
-import { publicIntl, tvStatisticsLabels } from '../lib/i18n/public-intl.js';
-import type { LiveDashboard } from '../lib/live-state.js';
-import type { StandingsRowView } from '../lib/overview.js';
-import type { TopPerformer } from '../lib/tv-statistics.js';
-import type { SupportedLanguage } from '../lib/language-preference.js';
+import { publicIntl, tvStatisticsLabels } from '../../lib/i18n/public-intl.js';
+import type { LiveDashboard } from '../../lib/live-state.js';
+import type { StandingsRowView } from '../../lib/overview.js';
+import type { TopPerformer } from '../../lib/tv-statistics.js';
+import type { SupportedLanguage } from '../../lib/language-preference.js';
 
 /**
  * The broadcast surface in each mode it ships.

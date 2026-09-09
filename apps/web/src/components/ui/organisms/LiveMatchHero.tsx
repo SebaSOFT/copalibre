@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { RealtimeClient } from '@copalibre/realtime';
-import { EntrantName } from './EntrantName.js';
-import { applyEvent, markConnected, type LiveDashboard } from '../lib/live-state.js';
-import { presentState, type ResultStateLabels } from '../lib/result-state.js';
+import { EntrantName } from '../atoms/EntrantName.js';
+import { applyEvent, markConnected, type LiveDashboard } from '../../../lib/live-state.js';
+import { presentState, type ResultStateLabels } from '../../../lib/result-state.js';
 
 /**
  * The one interactive island on the public live screen.

@@ -1,0 +1,83 @@
+---
+/**
+ * The source-rendered preview seam.
+ *
+ * Storybook has no Astro renderer, so a server-rendered component can only be
+ * reviewed two ways: by re-creating its markup in React, or by rendering the
+ * real thing and looking at it. The first proves nothing — an imitation agrees
+ * with itself — so this route renders the production component through the
+ * production renderer, and the workbench frames it.
+ *
+ * It exists only while the dev server runs. Outside development it answers 404
+ * like any unknown path, so there is nothing to strip from a build or a route
+ * table, and nothing to exclude from the sitemap (which is built from the API's
+ * published routes, not from this directory).
+ *
+ * It accepts an allowlisted component id and a supported locale, never markup:
+ * a preview that interpolated arbitrary input would be a rendering hole in the
+ * one surface whose whole purpose is telling the truth about what renders.
+ */
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@copalibre/domain';
+import '@copalibre/design-tokens/generated/copalibre.css';
+import ResultLegend from '../components/ui/molecules/ResultLegend.astro';
+import ScoreTicker from '../components/ui/organisms/ScoreTicker.astro';
+import { publicIntl, tickerLabels } from '../lib/i18n/public-intl.ts';
+import { referenceGroupMatches } from '../lib/reference-fixtures.ts';
+import { buildTickerItems } from '../lib/ticker-items.ts';
+
+/**
+ * Only these render. An id outside the list is a 404 rather than a blank frame,
+ * so a typo in a story reads as a missing preview instead of a broken component.
+ *
+ * `0223` extends this list as it builds each composition; the seam is the
+ * mechanism, not the catalogue.
+ */
+const PREVIEWABLE = new Set(['result-legend', 'score-ticker']);
+
+const component = Astro.params.component ?? '';
+const requested = Astro.url.searchParams.get('locale') ?? 'en';
+const locale: SupportedLanguage = (SUPPORTED_LANGUAGES as readonly string[]).includes(requested)
+  ? (requested as SupportedLanguage)
+  : 'en';
+
+if (!import.meta.env.DEV || !PREVIEWABLE.has(component)) {
+  return new Response(null, { status: 404 });
+}
+
+const intl = publicIntl(locale);
+const ticker = buildTickerItems({
+  matches: referenceGroupMatches(),
+  labels: tickerLabels(intl),
+  language: locale,
+});
+---
+
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{component} — preview</title>
+    <style>
+      /* The frame supplies the viewport; this supplies only the ground. */
+      body {
+        margin: 0;
+        padding: var(--cl-space-4);
+        background: var(--cl-surface-base);
+        color: var(--cl-text-primary);
+        font-family: var(--cl-font-body);
+      }
+    </style>
+  </head>
+  <body class="cl-band--base" data-preview={component} data-locale={locale}>
+    {component === 'result-legend' && <ResultLegend intl={intl} />}
+    {
+      component === 'score-ticker' && (
+        <ScoreTicker
+          items={ticker}
+          label={intl.formatMessage({ id: 'ticker.label', defaultMessage: 'Live scores' })}
+        />
+      )
+    }
+  </body>
+</html>

@@ -63,6 +63,7 @@ export {
   type ForbiddenPattern,
   type ForbiddenHit,
 } from './forbidden.js';
+export { contrastRatio, relativeLuminance, CONTRAST_GATES } from './contrast.js';
 export { generateCss } from './generate/css.js';
 export {
   generateTailwindTheme,

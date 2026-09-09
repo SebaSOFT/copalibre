@@ -40,7 +40,7 @@ import { Input } from './ui/atoms/input.js';
 import { Textarea } from './ui/atoms/textarea.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { ClockRing } from './ui/organisms/clock-ring.js';
-import { EntrantName } from '../../components/EntrantName.js';
+import { EntrantName } from '../../components/ui/atoms/EntrantName.js';
 import { JerseyGrid } from './JerseyGrid.js';
 import { RosterSelectionStep } from './RosterSelectionStep.js';
 import { MatchConsoleTemplate } from './ui/templates/match-console-template.js';
