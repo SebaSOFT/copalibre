@@ -131,3 +131,18 @@ because the series ended early SHALL be shown as no longer required rather than 
 #### Scenario: An unplayed game states that it will not be played
 - **WHEN** a spectator views the fifth game of a series decided in four
 - **THEN** it is shown as no longer required, distinguishable from a game that is merely upcoming
+
+### Requirement: Public live presentation resolves through declared tokens
+Public live cards, badges, image frames, and match presentation SHALL resolve their colour, typography,
+spacing, border, and motion values from declared CopaLibre tokens. State presentation SHALL retain its
+textual or icon cue alongside colour. Where a reusable pattern lives is not constrained by this
+requirement; the component tier that will own it is established by `0220-operational-surface-parity`.
+
+#### Scenario: A public live card is styled
+- **WHEN** a public live card or badge declares colour, border, or motion
+- **THEN** every value resolves to a declared token and no raw colour is introduced outside the approved
+  exception registry
+
+#### Scenario: A public live state is conveyed
+- **WHEN** a public live surface shows live, upcoming, or final state
+- **THEN** the state carries a textual or icon cue and is not distinguished by colour alone

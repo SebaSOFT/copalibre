@@ -699,3 +699,14 @@ surface happens to use.
 - **WHEN** a surface is written in a format the check did not previously read
 - **THEN** its violations are reported, because being unreadable by the tool was never a decision that
   the rule did not apply
+
+### Requirement: Public document chrome and presentation are token-backed
+Public Astro document chrome, navigation, cards, badges, and image presentation SHALL resolve their
+colour, typography, spacing, border, and motion values from declared CopaLibre tokens. This requirement
+governs what a public style may reference, not where the component that declares it lives; the owned
+public UI tier is established by `0220-operational-surface-parity`.
+
+#### Scenario: A public page declares presentation styling
+- **WHEN** a public page or layout declares a card, badge, or image treatment
+- **THEN** every colour, border, radius, and transition value resolves to a declared token, and any raw
+  colour is rejected unless it is a registered image-derived overlay exception

@@ -526,3 +526,12 @@ The component library SHALL provide a `LanguageSelector` atom rendering the inte
 #### Scenario: Language selector renders chamfered pill geometry
 - **WHEN** `LanguageSelector` is rendered
 - **THEN** it displays as a high-contrast dark panel pill with Top-Right and Bottom-Left beveled corners, translation glyph, and active locale abbreviation
+
+### Requirement: Control composition cannot bypass the token contract
+Every Control-web atom, molecule, organism, template, and composing screen SHALL consume declared
+CopaLibre tokens for colour, typography, spacing, borders, and motion. A reusable presentation pattern
+SHALL live in the owned Control component tiers rather than being recreated as ungoverned screen CSS.
+
+#### Scenario: A Control screen needs a reusable status treatment
+- **WHEN** more than one Control screen needs the same status presentation
+- **THEN** the treatment is provided by an owned component that resolves only declared tokens
