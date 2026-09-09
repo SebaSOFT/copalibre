@@ -69,7 +69,7 @@ export function ProfileBuilderWizard({
           aria-label={intl.formatMessage(messages.profileWizardSteps)}
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, minmax(6rem, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))',
             gap: 'var(--cl-space-3)',
             listStyle: 'none',
             padding: 0,

@@ -71,7 +71,7 @@ export function DescriptorBuilderWizard({
           aria-label={intl.formatMessage(messages.descriptorWizardSteps)}
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(6, minmax(6rem, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))',
             gap: 'var(--cl-space-3)',
             listStyle: 'none',
             padding: 0,

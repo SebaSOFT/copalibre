@@ -83,6 +83,9 @@ const withSurfaceChrome: Decorator = (Story, context) => {
   if (!context.title.startsWith('Admin/')) return <Story />;
   return (
     <div
+      // Screens normally inherit these containment/wrapping rules from the
+      // control main column. Use its standalone scope, never the sidebar grid.
+      className={context.title.startsWith('Admin/Screens/') ? 'cl-control-screen' : undefined}
       data-density="control"
       style={{
         background: 'var(--cl-surface-base)',

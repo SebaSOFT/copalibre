@@ -90,6 +90,17 @@ service. The only automated rule is coverage — `scripts/check-ui-ownership.mjs
 owned library component has no sibling `*.stories.tsx`, and derives the list from the tier
 directories so a newly added component is covered without the check being edited.
 
+Operator screens live under `Admin/Screens`, beside their source as `*.stories.tsx`. Use `Loaded`,
+`Empty`, `Loading`, and `Failed` for supported states and descriptive names for workflow states.
+`screen-story-fixtures.ts` shares identities and typed data, not a comprehensive mock API. Each
+screen declares its own narrow client; an undeclared method throws, while optional capabilities
+must be explicitly absent. Do not replace production UI with a Storybook-only layout.
+
+Screen coverage is incremental: `scripts/covered-control-screens.mjs` records achieved coverage.
+Losing a registered source/story fails ownership checks; adding a story requires extending the
+register. An uncovered screen does not fail. The library's all-components rule is unchanged.
+See `docs/SCREEN-STORY-REVIEW.md` for fixture boundaries, deferred screens, and review findings.
+
 ### Component ownership, on every surface
 
 `scripts/check-ui-ownership.mjs` (formerly `check-control-ui-ownership.mjs`) governs the operator

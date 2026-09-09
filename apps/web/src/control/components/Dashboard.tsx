@@ -5,7 +5,11 @@ import { DeviceHeartbeat } from './DeviceHeartbeat.js';
 import { QuickStats } from './QuickStats.js';
 import { TournamentCard } from './TournamentCard.js';
 import { type DashboardModel } from '../lib/dashboard.js';
-import { createControlApiClient, type DisplayTokenResponse } from '../lib/api-client.js';
+import {
+  createControlApiClient,
+  type DisplayTokenResponse,
+  type ControlApiClient,
+} from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
@@ -20,13 +24,20 @@ interface DeviceEntry {
 export function Dashboard({
   model,
   organizationAlias,
+  client,
 }: {
+  readonly client?: ControlApiClient;
   readonly model: DashboardModel;
   readonly organizationAlias: string;
 }): React.JSX.Element {
   return (
-    <ControlShell active="tournaments" helpPath="overview" organizationAlias={organizationAlias}>
-      <DashboardContent model={model} organizationAlias={organizationAlias} />
+    <ControlShell
+      active="tournaments"
+      client={client}
+      helpPath="overview"
+      organizationAlias={organizationAlias}
+    >
+      <DashboardContent client={client} model={model} organizationAlias={organizationAlias} />
     </ControlShell>
   );
 }
@@ -34,15 +45,19 @@ export function Dashboard({
 function DashboardContent({
   model,
   organizationAlias,
+  client,
 }: {
+  readonly client?: ControlApiClient;
   readonly model: DashboardModel;
   readonly organizationAlias: string;
 }): React.JSX.Element {
   const intl = useIntl();
-  const api = createControlApiClient({
-    fetch: globalThis.fetch.bind(globalThis),
-    accessToken: () => controlTokenStore.read(),
-  });
+  const api =
+    client ??
+    createControlApiClient({
+      fetch: globalThis.fetch.bind(globalThis),
+      accessToken: () => controlTokenStore.read(),
+    });
   const download = (tournamentAlias: string, kind: 'participants/team' | 'results' | 'standings') =>
     void api.downloadCsvExport?.(organizationAlias, tournamentAlias, kind).then((csv) => {
       const link = document.createElement('a');
@@ -95,7 +110,7 @@ function DashboardContent({
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-fetches when the tournament set changes, not on every model identity change
-  }, [organizationAlias, tournamentAliases]);
+  }, [client, organizationAlias, tournamentAliases]);
 
   const sections = (
     <div className="cl-screen-sections">

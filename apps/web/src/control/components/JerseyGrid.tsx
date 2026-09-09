@@ -343,7 +343,7 @@ function chipStyle(active: boolean): React.CSSProperties {
 }
 const panelsStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 12rem), 1fr))',
   gap: 'var(--cl-space-4)',
 };
 const teamPanelStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-2)' };
@@ -359,7 +359,7 @@ const sectionLabelStyle: React.CSSProperties = {
 };
 const jerseyGridStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 84px), 1fr))',
   gap: 'var(--cl-space-2)',
 };
 const jerseyNumberStyle: React.CSSProperties = {

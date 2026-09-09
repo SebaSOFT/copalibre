@@ -677,7 +677,7 @@ export function PlatformAdministrationRoute({
                   <FormattedMessage {...messages.platformModulesDescription} />
                 </CardDescription>
               </div>
-              <div style={{ display: 'flex', gap: 'var(--cl-space-3)' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--cl-space-3)' }}>
                 <Button
                   disabled={busy === 'outdated'}
                   onClick={() => void checkOutdated()}

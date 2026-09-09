@@ -75,7 +75,7 @@ export function RosterRoleSelector({
             </span>
           </div>
 
-          <div style={{ minWidth: '160px' }}>
+          <div style={{ minWidth: 'min(100%, 160px)' }}>
             <FormField
               id={`role-select-${member.personId}`}
               label={`Rol de ${member.displayName || member.personId}`}

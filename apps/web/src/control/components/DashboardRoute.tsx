@@ -124,5 +124,5 @@ export function DashboardRoute({
   }, [api, organizationAlias, reload]);
 
   const model = buildDashboard({ organizationId, tournaments, activity });
-  return <Dashboard model={model} organizationAlias={organizationAlias} />;
+  return <Dashboard client={api} model={model} organizationAlias={organizationAlias} />;
 }
