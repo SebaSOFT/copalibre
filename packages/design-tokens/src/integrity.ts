@@ -9,7 +9,7 @@
  * different palette to a public page.
  */
 
-export type IntegrityKind = 'undeclared-token' | 'raw-colour' | 'unsafe-motion';
+export type IntegrityKind = 'undeclared-token' | 'raw-colour' | 'unsafe-motion' | 'invisible-text';
 
 export interface IntegrityHit {
   readonly file: string;
@@ -89,10 +89,10 @@ function stripComments(source: string): string {
 
 export function collectDeclaredTokens(generatedCss: string): ReadonlySet<string> {
   const declared = new Set<string>();
-  for (const match of stripComments(generatedCss).matchAll(TOKEN_DECLARATION)) {
-    const [, token] = match;
-    if (token !== undefined) declared.add(token);
-  }
+  stripComments(generatedCss).replace(TOKEN_DECLARATION, (match, token: string) => {
+    declared.add(token);
+    return match;
+  });
   return declared;
 }
 
@@ -103,25 +103,88 @@ function eachLine<T>(source: string, scan: (line: string, index: number) => read
 }
 
 export function findTokenReferences(source: string): readonly TokenReference[] {
-  return eachLine(source, (line, number) =>
-    [...line.matchAll(TOKEN_REFERENCE)].flatMap<TokenReference>((match) => {
-      const [, token, fallback] = match;
-      if (token === undefined) return [];
-      return [
-        {
-          token,
-          line: number,
-          ...(fallback === undefined ? {} : { fallback: fallback.trim() }),
-        },
-      ];
-    }),
-  );
+  return eachLine(source, (line, number) => {
+    const references: TokenReference[] = [];
+    line.replace(TOKEN_REFERENCE, (match, token: string, fallback?: string) => {
+      references.push({
+        token,
+        line: number,
+        ...(fallback === undefined ? {} : { fallback: fallback.trim() }),
+      });
+      return match;
+    });
+    return references;
+  });
 }
 
 export function findRawColours(source: string): readonly RawColour[] {
   return eachLine(source, (line, number) =>
     [...line.matchAll(RAW_COLOUR)].map((match) => ({ value: match[0], line: number })),
   );
+}
+
+const RULE_BLOCK = /([^{}]+)\{([^{}]*)\}/g;
+const COLOUR_DECLARATION = /(?<![-\w])color\s*:\s*([^;]+)/;
+const BACKGROUND_DECLARATION = /background(?:-color)?\s*:\s*([^;]+)/;
+const TOKEN_IN_VALUE = /var\(\s*(--cl-[a-z0-9-]+)\s*\)/g;
+
+/**
+ * The stylesheet portion of a file, with everything else blanked out.
+ *
+ * Declarations are only brace-delimited and semicolon-terminated in real CSS. A
+ * JS style object uses the same words with different punctuation, so scanning
+ * one for rule blocks compares declarations that never shared an element.
+ * Non-CSS regions are replaced space-for-space to keep line numbers honest.
+ */
+function cssPortionOf(file: string, source: string): string | undefined {
+  if (file.endsWith('.css')) return source;
+  if (!file.endsWith('.astro')) return undefined;
+
+  const blank = (text: string): string => text.replace(/[^\n]/g, ' ');
+  const kept: string[] = [];
+  let cursor = 0;
+
+  for (const style of source.matchAll(/<style[^>]*>[\s\S]*?<\/style>/g)) {
+    kept.push(blank(source.slice(cursor, style.index)), style[0]);
+    cursor = style.index + style[0].length;
+  }
+  kept.push(blank(source.slice(cursor)));
+
+  return kept.join('');
+}
+
+/**
+ * Text painted in its own background.
+ *
+ * A gradient collapsed to one stop, or a label mapped to the role behind it,
+ * produces a rule that is valid CSS, passes every token check, and renders
+ * nothing. This shipped once here: the champion medal's `#451a03` label was
+ * grouped with the ambers around it, so the winner's rank went amber-on-amber
+ * and simply vanished. `color-mix` backgrounds are skipped — a token mixed
+ * toward transparent is a scrim, not the same paint.
+ */
+export function findInvisibleText(file: string, source: string): readonly RawColour[] {
+  const css = cssPortionOf(file, source);
+  if (css === undefined) return [];
+
+  const found: RawColour[] = [];
+  for (const block of stripComments(css).matchAll(RULE_BLOCK)) {
+    const [, , body = ''] = block;
+    const colour = COLOUR_DECLARATION.exec(body)?.[1];
+    const background = BACKGROUND_DECLARATION.exec(body)?.[1];
+    if (colour === undefined || background === undefined) continue;
+    if (background.includes('color-mix')) continue;
+
+    const [textToken] = [...colour.matchAll(TOKEN_IN_VALUE)].map((m) => m[1]);
+    const backgroundTokens = [...background.matchAll(TOKEN_IN_VALUE)].map((m) => m[1]);
+    if (textToken === undefined || !backgroundTokens.includes(textToken)) continue;
+
+    found.push({
+      value: textToken,
+      line: css.slice(0, block.index + block[0].indexOf('{')).split('\n').length,
+    });
+  }
+  return found;
 }
 
 export function findUnsafeMotion(source: string): readonly RawColour[] {
@@ -196,7 +259,16 @@ export function checkFile(
     detail: motion.value,
   }));
 
-  return [...undeclared, ...rawColours, ...unsafeMotion].sort((a, b) => a.line - b.line);
+  const invisibleText: IntegrityHit[] = findInvisibleText(file, source).map((hit) => ({
+    file,
+    line: hit.line,
+    kind: 'invisible-text' as const,
+    detail: hit.value,
+  }));
+
+  return [...undeclared, ...rawColours, ...unsafeMotion, ...invisibleText].sort(
+    (a, b) => a.line - b.line,
+  );
 }
 
 export function formatIntegrityHits(hits: readonly IntegrityHit[]): string {
@@ -208,7 +280,9 @@ export function formatIntegrityHits(hits: readonly IntegrityHit[]): string {
             ? `references undeclared token ${hit.detail}`
             : hit.kind === 'raw-colour'
               ? `hardcodes ${hit.detail}`
-              : `animates a layout property or every property: ${hit.detail}`
+              : hit.kind === 'unsafe-motion'
+                ? `animates a layout property or every property: ${hit.detail}`
+                : `paints text in its own background: ${hit.detail}`
         }`,
     )
     .join('\n');

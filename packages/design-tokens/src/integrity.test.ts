@@ -3,6 +3,7 @@ import {
   RAW_COLOUR_EXCEPTIONS,
   checkFile,
   collectDeclaredTokens,
+  findInvisibleText,
   findRawColours,
   findTokenReferences,
   formatIntegrityHits,
@@ -150,6 +151,95 @@ describe('unsafe motion', () => {
     const hits = checkFile('apps/web/src/a.css', '.x { transition: all 150ms; }', declared);
 
     expect(formatIntegrityHits(hits)).toContain('animates a layout property or every property');
+  });
+});
+
+describe('invisible text', () => {
+  it('catches the gold medal defect that actually shipped', () => {
+    // The champion's rank went amber-on-amber and vanished; every other check
+    // passed, because both halves resolve to a declared token.
+    const source = [
+      '<style>',
+      '  .cl-gold-medal {',
+      '    background: linear-gradient(135deg, var(--cl-state-upcoming), var(--cl-state-upcoming));',
+      '    color: var(--cl-state-upcoming);',
+      '  }',
+      '</style>',
+    ].join('\n');
+
+    const hits = checkFile('a.astro', source, declared);
+
+    expect(hits).toEqual([
+      { file: 'a.astro', line: 2, kind: 'invisible-text', detail: '--cl-state-upcoming' },
+    ]);
+  });
+
+  it('accepts the repaired rule', () => {
+    const source = [
+      '<style>',
+      '  .cl-gold-medal {',
+      '    background: linear-gradient(135deg, var(--cl-state-upcoming), var(--cl-color-amber-800));',
+      '    color: var(--cl-color-ink-950);',
+      '  }',
+      '</style>',
+    ].join('\n');
+
+    expect(checkFile('a.astro', source, declared)).toEqual([]);
+  });
+
+  it('accepts text over a color-mix of the same token, which is a scrim not the same paint', () => {
+    const source =
+      '.x { background: color-mix(in srgb, var(--cl-text-primary) 10%, transparent); color: var(--cl-text-primary); }';
+
+    expect(checkFile('a.css', source, declared)).toEqual([]);
+  });
+
+  it('ignores a JS style object, whose punctuation a rule-block scan cannot read', () => {
+    // `background: cond ? a : b` has no terminating semicolon, so a CSS-shaped
+    // scan runs past it into the next declaration and compares unrelated values.
+    const source = [
+      'function optionStyle(selected: boolean): React.CSSProperties {',
+      '  return {',
+      "    background: selected ? 'var(--cl-state-live)' : 'transparent',",
+      "    color: selected ? 'var(--cl-surface-base)' : 'inherit',",
+      '  };',
+      '}',
+    ].join('\n');
+
+    expect(checkFile('a.tsx', source, declared)).toEqual([]);
+  });
+
+  it.each([
+    ['a rule with no background', '.x { color: var(--cl-text-primary); }'],
+    ['a rule with no colour', '.x { background: var(--cl-surface-base); }'],
+    [
+      'different tokens',
+      '.x { color: var(--cl-text-primary); background: var(--cl-surface-base); }',
+    ],
+    ['a non-token value', '.x { color: inherit; background: transparent; }'],
+  ])('accepts %s', (_label, source) => {
+    expect(checkFile('a.css', source, declared)).toEqual([]);
+  });
+
+  it('ignores a file that is neither CSS nor Astro', () => {
+    expect(
+      findInvisibleText('a.ts', '.x { color: var(--cl-a); background: var(--cl-a); }'),
+    ).toEqual([]);
+  });
+
+  it('ignores an Astro component with no style block at all', () => {
+    expect(findInvisibleText('a.astro', '<div>no styles here</div>')).toEqual([]);
+  });
+
+  it('ignores an Astro component’s frontmatter, scanning only its style block', () => {
+    const source = [
+      '---',
+      "const style = { background: 'var(--cl-surface-base)', color: 'var(--cl-surface-base)' };",
+      '---',
+      '<style>.x { color: var(--cl-text-primary); background: var(--cl-surface-base); }</style>',
+    ].join('\n');
+
+    expect(checkFile('a.astro', source, declared)).toEqual([]);
   });
 });
 
