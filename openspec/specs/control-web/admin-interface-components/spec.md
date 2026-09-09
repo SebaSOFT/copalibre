@@ -343,6 +343,12 @@ present in it, showing the states a reviewer has to judge — including its empt
 states where it has them — so a state that is hard to reach in the running application is not thereby
 hard to review.
 
+An operator screen SHALL be renderable the same way, in the states worth judging — loaded, empty,
+error, and its mid-operation state where it has one — supplied through the injection seam the screen
+already offers rather than by running the application against real data. A screen that cannot be
+rendered without inventing data SHALL be recorded as such rather than given a fabricated fixture,
+because a story that looks correct and is not gets reviewed as though it were.
+
 #### Scenario: A reviewer opens a component without running the app
 - **WHEN** a reviewer starts the workbench
 - **THEN** every owned library component is listed and renders on its own, with no API, database, or
@@ -358,6 +364,16 @@ hard to review.
   screen in its error state
 - **THEN** each is a listed entry in the workbench, rather than a state reached by driving the running
   application into it
+
+#### Scenario: An operator screen is reviewable mid-operation
+- **WHEN** a reviewer wants a screen in a state that only occurs part-way through an operation — a
+  console during a match, an import between preview and commit, a builder holding a conflict
+- **THEN** that state is a listed entry, rather than one reached by seeding a tournament and driving
+  the application into it
+
+#### Scenario: A screen that cannot render honestly is named rather than faked
+- **WHEN** a screen cannot be rendered without data that only a real tournament produces
+- **THEN** it is recorded with the reason instead of being given invented data
 
 ### Requirement: A component's prop combinations are shown together, not sampled
 Every owned library component SHALL be presented both with its full set of props individually
@@ -418,6 +434,11 @@ not, so the workbench cannot silently fall behind the library it exists to show.
 checked SHALL be derived from the library directory rather than from a maintained list, so a component
 added later is covered without the check being edited.
 
+A screen that has a story SHALL keep one: the check SHALL record which screens are covered and SHALL
+fail when a recorded screen loses its story. It SHALL NOT require a story for a screen that has none,
+because a rule that fails every uncovered file the day it is introduced is a rule that gets
+suppressed rather than satisfied.
+
 #### Scenario: A new library component ships without a story
 - **WHEN** a component is added to the owned library with no accompanying story
 - **THEN** the ownership check fails in CI, naming the component that has none
@@ -425,6 +446,14 @@ added later is covered without the check being edited.
 #### Scenario: The check passes when every component is covered
 - **WHEN** every owned library component has at least one story
 - **THEN** the check passes
+
+#### Scenario: A screen loses the story it had
+- **WHEN** a screen recorded as covered no longer has a story
+- **THEN** the check fails, naming that screen
+
+#### Scenario: A screen that never had a story does not fail the build
+- **WHEN** a screen has no story and is not recorded as covered
+- **THEN** the check passes, so coverage grows without the rule being suppressed
 
 ### Requirement: Inline alert component
 The component library SHALL provide an `Alert` atom for a message that sits in the flow of a screen,
