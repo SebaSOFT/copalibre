@@ -9,7 +9,7 @@
  * different palette to a public page.
  */
 
-export type IntegrityKind = 'undeclared-token' | 'raw-colour';
+export type IntegrityKind = 'undeclared-token' | 'raw-colour' | 'unsafe-motion';
 
 export interface IntegrityHit {
   readonly file: string;
@@ -61,6 +61,22 @@ const TOKEN_REFERENCE = /var\(\s*(--cl-[a-z0-9-]+)\s*(?:,([^)]*))?\)/g;
  */
 const RAW_COLOUR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|lab|lch)\(\s*[^)]*[0-9][^)]*\)/g;
 
+/**
+ * Motion that cannot be made safe by shortening it.
+ *
+ * `transition: all` animates whatever a future edit happens to add, and a
+ * transition on a layout property relayouts its ancestors every frame. The
+ * generated reduced-motion block collapses *durations*, so neither of these is
+ * something a motion-sensitive viewer's setting can undo — only not writing
+ * them works.
+ */
+const LAYOUT_PROPERTIES =
+  'width|height|top|left|right|bottom|margin|padding|inset|flex-basis|font-size';
+const UNSAFE_MOTION = new RegExp(
+  String.raw`transition(?:-property)?\s*:\s*(?:'|")?\s*(all\b|(?:[^;'"]*\b(?:${LAYOUT_PROPERTIES})\b))`,
+  'g',
+);
+
 /** Comments hold examples and prose; neither is a declaration or a reference. */
 function stripComments(source: string): string {
   return source
@@ -105,6 +121,12 @@ export function findTokenReferences(source: string): readonly TokenReference[] {
 export function findRawColours(source: string): readonly RawColour[] {
   return eachLine(source, (line, number) =>
     [...line.matchAll(RAW_COLOUR)].map((match) => ({ value: match[0], line: number })),
+  );
+}
+
+export function findUnsafeMotion(source: string): readonly RawColour[] {
+  return eachLine(source, (line, number) =>
+    [...line.matchAll(UNSAFE_MOTION)].map((match) => ({ value: match[0].trim(), line: number })),
   );
 }
 
@@ -167,7 +189,14 @@ export function checkFile(
         }))
     : [];
 
-  return [...undeclared, ...rawColours].sort((a, b) => a.line - b.line);
+  const unsafeMotion: IntegrityHit[] = findUnsafeMotion(source).map((motion) => ({
+    file,
+    line: motion.line,
+    kind: 'unsafe-motion' as const,
+    detail: motion.value,
+  }));
+
+  return [...undeclared, ...rawColours, ...unsafeMotion].sort((a, b) => a.line - b.line);
 }
 
 export function formatIntegrityHits(hits: readonly IntegrityHit[]): string {
@@ -177,7 +206,9 @@ export function formatIntegrityHits(hits: readonly IntegrityHit[]): string {
         `${hit.file}:${hit.line}  ${
           hit.kind === 'undeclared-token'
             ? `references undeclared token ${hit.detail}`
-            : `hardcodes ${hit.detail}`
+            : hit.kind === 'raw-colour'
+              ? `hardcodes ${hit.detail}`
+              : `animates a layout property or every property: ${hit.detail}`
         }`,
     )
     .join('\n');

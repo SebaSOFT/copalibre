@@ -123,6 +123,36 @@ describe('raw colour', () => {
   });
 });
 
+describe('unsafe motion', () => {
+  it.each([
+    ['transition: all', '.x { transition: all 150ms ease-out; }'],
+    ['transition: width', ".x { transition: 'width 400ms ease-out'; }"],
+    ['transition: height', '.x { transition: height var(--cl-motion-base); }'],
+    ['transition-property: all', '.x { transition-property: all; }'],
+  ])('rejects %s, which no reduced-motion setting can undo', (_label, source) => {
+    const hits = checkFile('a.css', source, declared);
+
+    expect(hits).toHaveLength(1);
+    expect(hits[0]?.kind).toBe('unsafe-motion');
+  });
+
+  it.each([
+    ['.x { transition: opacity var(--cl-motion-fast) var(--cl-motion-easing); }'],
+    ['.x { transition: transform var(--cl-motion-slow) var(--cl-motion-easing); }'],
+    [
+      '.x { transition: color var(--cl-motion-fast) var(--cl-motion-easing), background-color var(--cl-motion-fast) var(--cl-motion-easing); }',
+    ],
+  ])('accepts a compositor-safe property list: %s', (source) => {
+    expect(checkFile('a.css', source, declared)).toEqual([]);
+  });
+
+  it('names the offending declaration in the report', () => {
+    const hits = checkFile('apps/web/src/a.css', '.x { transition: all 150ms; }', declared);
+
+    expect(formatIntegrityHits(hits)).toContain('animates a layout property or every property');
+  });
+});
+
 describe('the exception registry', () => {
   const chromaKey = {
     file: 'apps/web/src/styles/tv-broadcast.css',
