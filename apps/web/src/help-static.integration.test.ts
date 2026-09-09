@@ -13,6 +13,7 @@ const API_REFERENCE_OUTPUT = join(
 async function runWorkspaceScript(workspace: string, script: string): Promise<void> {
   await execFileAsync('yarn', ['workspace', workspace, 'run', script], {
     cwd: REPOSITORY_ROOT,
+    env: process.env,
   });
 }
 

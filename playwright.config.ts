@@ -25,8 +25,11 @@ export default defineConfig({
     // webServer treats as an early exit. build+preview is a plain foreground server and
     // exercises the production output, which the public no-JS-baseline tests want anyway.
     command:
-      `yarn workspace @copalibre/web build && ` +
-      `ASTRO_PREVIEW_BACKGROUND=1 yarn workspace @copalibre/web preview --port ${port}`,
+      process.env.PLAYWRIGHT_EXISTING_BUILD === 'true' ||
+      process.env.PLAYWRIGHT_EXISTING_BUILD === '1'
+        ? `ASTRO_PREVIEW_BACKGROUND=1 yarn workspace @copalibre/web preview --port ${port}`
+        : `yarn workspace @copalibre/web build && ` +
+          `ASTRO_PREVIEW_BACKGROUND=1 yarn workspace @copalibre/web preview --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
