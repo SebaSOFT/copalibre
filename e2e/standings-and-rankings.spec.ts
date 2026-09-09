@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from './fixtures.js';
+import type { Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -258,7 +259,7 @@ test('A5: renders the discipline’s own GF/GC/Dif columns, switches to a fracti
 test.describe('B2: public tournament page', () => {
   let apiServer: Server;
 
-  test.beforeAll(async () => {
+  test.beforeAll(async ({ workerPort }) => {
     const overview = {
       organizationAlias: ORGANIZATION,
       organizationName: 'Liga Mendocina',
@@ -476,7 +477,7 @@ test.describe('B2: public tournament page', () => {
       res.statusCode = 404;
       res.end(JSON.stringify({ message: 'not found' }));
     });
-    await new Promise<void>((resolve) => apiServer.listen(3001, '127.0.0.1', resolve));
+    await new Promise<void>((resolve) => apiServer.listen(workerPort, '127.0.0.1', resolve));
   });
 
   test.afterAll(async () => {

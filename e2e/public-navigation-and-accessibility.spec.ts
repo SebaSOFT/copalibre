@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -62,7 +62,7 @@ const overview = {
 
 let apiServer: Server;
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
@@ -105,7 +105,7 @@ test.beforeAll(async () => {
     res.end(JSON.stringify({ message: 'not found' }));
   });
 
-  await new Promise<void>((resolve) => apiServer.listen(3001, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => apiServer.listen(workerPort, '127.0.0.1', resolve));
 });
 
 test.afterAll(async () => {

@@ -17,11 +17,18 @@ import type {
 import type { ResultReason } from '@copalibre/domain';
 import type { OverviewInput, MatchState } from './overview.js';
 import type { LiveDashboard } from './live-state.js';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type { BracketMatch, SlotSource } from './bracket.js';
 import type { MatchCardData } from './matches-view.js';
 import type { PublicSeriesState } from './series.js';
 
+export const requestApiStorage = new AsyncLocalStorage<{ apiBaseUrl?: string }>();
+
 export function getApiBaseUrl(): string {
+  const store = requestApiStorage.getStore();
+  if (store?.apiBaseUrl) {
+    return store.apiBaseUrl;
+  }
   // We avoid process.env in Astro client code, but this file is strictly server-only
   // because it runs inside the Astro SSR environment during page rendering.
   return process.env.COPALIBRE_API_INTERNAL_URL || 'http://127.0.0.1:3001';

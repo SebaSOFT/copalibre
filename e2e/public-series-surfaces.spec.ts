@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures.js';
 
 /**
  * The public bracket for a cross settled by a series (0159 tasks 7.3, 7.4).
@@ -101,7 +101,7 @@ let bracketFixture: { matches: unknown[] } = {
 
 let apiServer: Server;
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     if (req.url === `${TOURNAMENT}/overview`) {
@@ -119,7 +119,7 @@ test.beforeAll(async () => {
     res.statusCode = 404;
     res.end(JSON.stringify({ message: 'not found' }));
   });
-  await new Promise<void>((resolve) => apiServer.listen(3001, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => apiServer.listen(workerPort, '127.0.0.1', resolve));
 });
 
 test.afterAll(async () => {
