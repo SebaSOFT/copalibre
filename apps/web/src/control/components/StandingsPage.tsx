@@ -380,10 +380,10 @@ export function PointsDistribution({
       <div className="cl-card__content">
         {bars.map((bar) => (
           <div
+            className="cl-standings-distribution-row"
             key={bar.actorId}
             style={{
               display: 'grid',
-              gridTemplateColumns: 'minmax(6rem, 1fr) 4fr 3rem',
               gap: 'var(--cl-space-3)',
               alignItems: 'center',
             }}

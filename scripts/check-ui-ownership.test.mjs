@@ -5,6 +5,30 @@ import { existsSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { checkFileOwnership, checkStoryCoverage, scanEverySurface } from './check-ui-ownership.mjs';
+import { checkScreenStoryCoverage } from './check-ui-ownership.mjs';
+
+test('registered screen coverage matches the repository', () => {
+  const root = fileURLToPath(new URL('../apps/web/src/control/components', import.meta.url));
+  assert.deepEqual(checkScreenStoryCoverage(root), []);
+});
+
+test('screens ratchet both ways without gating uncovered screens', () => {
+  const root = mkdtempSync(join(tmpdir(), 'screen-coverage-'));
+  writeFileSync(join(root, 'Uncovered.tsx'), 'export function Uncovered() { return null; }');
+  assert.deepEqual(checkScreenStoryCoverage(root, []), []);
+  writeFileSync(join(root, 'Covered.tsx'), 'export function Covered() { return null; }');
+  assert.equal(checkScreenStoryCoverage(root, ['Covered.tsx']).length, 1);
+  writeFileSync(join(root, 'Covered.stories.tsx'), 'export default {};');
+  assert.deepEqual(checkScreenStoryCoverage(root, ['Covered.tsx']), []);
+  assert.match(checkScreenStoryCoverage(root, [])[0].message, /extend the register/);
+});
+
+test('a registered screen cannot lose its source or directory', () => {
+  const root = mkdtempSync(join(tmpdir(), 'screen-source-'));
+  writeFileSync(join(root, 'Gone.stories.tsx'), 'export default {};');
+  assert.equal(checkScreenStoryCoverage(root, ['Gone.tsx']).length, 1);
+  assert.equal(checkScreenStoryCoverage(join(root, 'absent'), ['Gone.tsx']).length, 1);
+});
 
 test('valid component with owned primitives reports zero violations', () => {
   const cleanCode = `

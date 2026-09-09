@@ -7,6 +7,20 @@ body {
   font-family: var(--cl-font-body);
 }
 
+.cl-standings-distribution-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 4fr) 3rem;
+}
+
+@media (max-width: 374px) {
+  .cl-standings-distribution-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .cl-standings-distribution-row > :first-child {
+    grid-column: 1 / -1;
+  }
+}
+
 *,
 *::before,
 *::after {

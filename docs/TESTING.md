@@ -64,6 +64,22 @@ First used by phase `0004-persistence-postgres-outbox-audit`.
   viewport to 188px — the zoom floor the token generator writes its responsive rules against — and
   most layout failures show up there before anywhere else.
 
+Screen stories are grouped under `Admin/Screens`. Their shared `screen-story-fixtures.ts` holds
+stable UUIDv7 identities, timestamps and typed projections. Each route story owns its API methods,
+using `storyClient` to throw on undeclared reads instead of silently returning empty data.
+Explicitly absent optional methods model unavailable capabilities. Loading promises remain pending;
+failure fixtures reject. Workflow stories use `play` to enter states through the real controls.
+The existing intl, toast and control-density decorators are reused.
+
+`scripts/covered-control-screens.mjs` is the achieved-coverage register: removing a covered story
+fails `check-ui-ownership.mjs`; adding a story requires extending the register. Uncovered screens
+are allowed, unlike owned library components which all require stories. Run
+`node --test scripts/check-ui-ownership.test.mjs` to exercise both directions.
+
+Review every state in German at 1440, 767, 374 and 188px, then all eight languages at 188px.
+Read `docs/SCREEN-STORY-REVIEW.md` before interpreting a loading/error example: several existing
+screens intentionally expose their current incomplete UX rather than a fictional improved layout.
+
 ## CI
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, and the dependency license scan

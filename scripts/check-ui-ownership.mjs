@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { COVERED_CONTROL_SCREENS } from './covered-control-screens.mjs';
 
 /**
  * Validates that every surface the application renders composes the owned
@@ -341,6 +342,36 @@ const REGISTERS = [
  */
 const LIBRARY_TIERS = ['atoms', 'molecules', 'organisms', 'templates'];
 
+/**
+ * Screens ratchet from existing coverage, unlike the all-required library.
+ * New uncovered screens are allowed; a new story must join the register.
+ * @param {string} screensPath
+ * @param {readonly string[]} covered
+ */
+export function checkScreenStoryCoverage(screensPath, covered = COVERED_CONTROL_SCREENS) {
+  const entries = existsSync(screensPath) ? readdirSync(screensPath) : [];
+  const violations = [];
+  for (const component of covered) {
+    const story = component.replace(/\.tsx$/, '.stories.tsx');
+    if (!entries.includes(component) || !entries.includes(story)) {
+      violations.push({
+        component,
+        message: `${component} is registered: keep both its source and ${story}.`,
+      });
+    }
+  }
+  for (const story of entries.filter((entry) => entry.endsWith('.stories.tsx'))) {
+    const component = story.replace(/\.stories\.tsx$/, '.tsx');
+    if (!covered.includes(component)) {
+      violations.push({
+        component,
+        message: `${story} is not in COVERED_CONTROL_SCREENS; extend the register.`,
+      });
+    }
+  }
+  return violations;
+}
+
 /** `export function Pascal(` or `export const Pascal =` — a component, by name. */
 const EXPORTS_COMPONENT = /export\s+(?:function|const)\s+[A-Z]\w*/;
 
@@ -463,6 +494,7 @@ if (isMain) {
   // story for — Storybook has no Astro renderer — but a React primitive added
   // there later is covered without this line changing again.
   const missingStories = [
+    ...checkScreenStoryCoverage(join(webSrc, 'control/components')),
     ...checkStoryCoverage(join(webSrc, 'control/components/ui')),
     ...checkStoryCoverage(join(webSrc, 'components/ui')),
   ];

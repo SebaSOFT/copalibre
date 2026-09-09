@@ -186,63 +186,43 @@ describe('DashboardRoute', () => {
   });
 
   it('hides the Roles navigation entry once a club-admin role resolves', async () => {
-    Object.defineProperty(globalThis, 'fetch', {
-      configurable: true,
-      value: async (input: RequestInfo | URL) => {
-        const url = String(input);
-        if (url === '/organizations?mine=true') {
-          return new Response(
-            JSON.stringify([
-              {
-                organizationId: 'org-1',
-                organizationAlias: 'liga-mendocina',
-                organizationName: 'Liga Mendocina',
-                role: 'club-admin',
-              },
-            ]),
-            { headers: { 'content-type': 'application/json' } },
-          );
-        }
-        return new Response('[]', { headers: { 'content-type': 'application/json' } });
+    const memberships = [
+      {
+        organizationId: 'org-1',
+        organizationAlias: 'liga-mendocina',
+        organizationName: 'Liga Mendocina',
+        role: 'club-admin' as const,
       },
-    });
-
+    ];
     await act(async () => {
-      render(<DashboardRoute client={client()} organizationAlias="liga-mendocina" />);
+      render(
+        <DashboardRoute
+          client={client({ listMyOrganizations: async () => memberships })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
     });
-
     await waitFor(() => expect(screen.queryByRole('link', { name: 'Roles' })).toBeNull());
   });
-
   it('keeps the Roles navigation entry for admin', async () => {
-    Object.defineProperty(globalThis, 'fetch', {
-      configurable: true,
-      value: async (input: RequestInfo | URL) => {
-        const url = String(input);
-        if (url === '/organizations?mine=true') {
-          return new Response(
-            JSON.stringify([
-              {
-                organizationId: 'org-1',
-                organizationAlias: 'liga-mendocina',
-                organizationName: 'Liga Mendocina',
-                role: 'admin',
-              },
-            ]),
-            { headers: { 'content-type': 'application/json' } },
-          );
-        }
-        return new Response('[]', { headers: { 'content-type': 'application/json' } });
+    const memberships = [
+      {
+        organizationId: 'org-1',
+        organizationAlias: 'liga-mendocina',
+        organizationName: 'Liga Mendocina',
+        role: 'admin' as const,
       },
-    });
-
+    ];
     await act(async () => {
-      render(<DashboardRoute client={client()} organizationAlias="liga-mendocina" />);
+      render(
+        <DashboardRoute
+          client={client({ listMyOrganizations: async () => memberships })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
     });
-
     await waitFor(() => expect(screen.getByRole('link', { name: 'Roles' })).toBeDefined());
   });
-
   it('renders real audit events in the recent activity feed', async () => {
     await act(async () => {
       render(

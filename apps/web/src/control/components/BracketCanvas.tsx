@@ -140,7 +140,11 @@ export function BracketCanvas({
   );
 }
 
-const wrapperStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-3)' };
+const wrapperStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr)',
+  gap: 'var(--cl-space-3)',
+};
 const toolbarStyle: React.CSSProperties = {
   display: 'flex',
   gap: 'var(--cl-space-2)',
@@ -148,7 +152,7 @@ const toolbarStyle: React.CSSProperties = {
 };
 const zoomLabelStyle: React.CSSProperties = {
   fontFamily: 'var(--cl-font-mono)',
-  minWidth: '4rem',
+  minWidth: '3ch',
   textAlign: 'center',
 };
 const scrollStyle: React.CSSProperties = { overflow: 'auto', maxHeight: '70vh' };

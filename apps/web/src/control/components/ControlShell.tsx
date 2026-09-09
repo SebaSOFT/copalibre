@@ -10,6 +10,7 @@ import {
   createControlApiClient,
   organizationEmblemUrl,
   type MyOrganizationResponse,
+  type ControlApiClient,
 } from '../lib/api-client.js';
 import { accessTokenHasScope, controlTokenStore } from '../session/token-store.js';
 import {
@@ -26,7 +27,9 @@ export function ControlShell({
   active = 'tournaments',
   helpPath,
   children,
+  client,
 }: {
+  readonly client?: ControlApiClient;
   readonly organizationAlias?: string;
   /** A `SIDENAV` item's stable `id`, e.g. `'roles'` — never its display label. */
   readonly active?: string;
@@ -40,6 +43,7 @@ export function ControlShell({
     <ControlIntl locale={locale}>
       <ToastProvider>
         <ControlShellChrome
+          client={client}
           active={active}
           helpPath={helpPath}
           locale={locale}
@@ -57,6 +61,7 @@ export function ControlShell({
 }
 
 function ControlShellChrome({
+  client,
   organizationAlias,
   active,
   helpPath,
@@ -64,6 +69,7 @@ function ControlShellChrome({
   onLocaleChange,
   children,
 }: {
+  readonly client?: ControlApiClient;
   readonly organizationAlias?: string;
   readonly active: string;
   readonly helpPath: string;
@@ -78,10 +84,13 @@ function ControlShellChrome({
   useEffect(() => {
     if (!organizationAlias) return;
     let cancelled = false;
-    createControlApiClient({
-      fetch: globalThis.fetch.bind(globalThis),
-      accessToken: () => controlTokenStore.read(),
-    })
+    (
+      client ??
+      createControlApiClient({
+        fetch: globalThis.fetch.bind(globalThis),
+        accessToken: () => controlTokenStore.read(),
+      })
+    )
       .listMyOrganizations()
       .then((organizations) => {
         if (cancelled) return;
@@ -96,7 +105,7 @@ function ControlShellChrome({
     return () => {
       cancelled = true;
     };
-  }, [organizationAlias]);
+  }, [client, organizationAlias]);
   // Same locale-prefix routing Starlight's own pages already use for every
   // locale but the default: the root/English pages are unprefixed.
   const helpLocalePrefix = locale === 'en' ? '' : `/${locale}`;

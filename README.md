@@ -187,6 +187,8 @@ authentication contract). Every change is planned and tracked as an OpenSpec pro
 - [`docs/MODULES.md`](docs/MODULES.md) — discipline and tournament-profile authoring
 - [`docs/AUTH.md`](docs/AUTH.md) — JWT/OIDC authentication contract
 - [`docs/TESTING.md`](docs/TESTING.md) — testing conventions
+- [`docs/SCREEN-STORY-REVIEW.md`](docs/SCREEN-STORY-REVIEW.md) — operator Storybook coverage,
+  fixture boundaries, responsive review evidence, and deferred UX gaps
 - [`docs/i18n-glossary.md`](docs/i18n-glossary.md) — domain-term glossary and content-accuracy
   review workflow for translated interface strings
 - [`docs/BROADCAST-TV.md`](docs/BROADCAST-TV.md) — the `/tv/` kiosk/overlay surface and
