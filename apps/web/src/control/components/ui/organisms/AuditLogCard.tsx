@@ -116,7 +116,7 @@ export function AuditLogCard({
                         background: 'var(--cl-surface-base)',
                         padding: '1px 6px',
                         borderRadius: 'var(--cl-radius-sm)',
-                        fontSize: '0.7rem',
+                        fontSize: 'var(--cl-font-size-xs)',
                       }}
                     >
                       {item.latencyMs}ms latency

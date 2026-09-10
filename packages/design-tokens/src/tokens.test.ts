@@ -32,6 +32,14 @@ import { fileURLToPath } from 'node:url';
 import { generateCss } from './generate/css.js';
 import { generateTailwindModule, generateTailwindTheme } from './generate/tailwind.js';
 import { generateStyleGuide } from './generate/style-guide.js';
+import { designTokenDifferences, readDesignTokens } from './design-document.js';
+
+describe('committed design documentation', () => {
+  it('matches the token source in both directions from any working directory', () => {
+    const document = readFileSync(new URL('../../../DESIGN.md', import.meta.url), 'utf8');
+    expect(designTokenDifferences(readDesignTokens(document))).toEqual([]);
+  });
+});
 
 describe('the token source', () => {
   it('resolves a semantic token to its primitive', () => {

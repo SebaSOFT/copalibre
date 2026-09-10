@@ -369,7 +369,7 @@ export function TvDashboard({
                       background: 'var(--tv-bg-elevated)',
                       border: `1px solid ${tvStateColor(spotlightMatch.state)}`,
                       fontFamily: 'var(--cl-font-mono)',
-                      fontSize: 'clamp(0.75rem, 1.4vmin, 1rem)',
+                      fontSize: 'clamp(var(--cl-font-size-xs), 1.4vmin, var(--cl-font-size-base))',
                       color: tvStateColor(spotlightMatch.state),
                       textTransform: 'uppercase',
                     }}
@@ -558,7 +558,9 @@ function TvPerformersView({
           </div>
           <span className="tv-performer-card__score">
             {p.statValue}{' '}
-            <small style={{ fontSize: '0.9rem', color: 'var(--tv-text-secondary)' }}>
+            <small
+              style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--tv-text-secondary)' }}
+            >
               {p.statLabel}
             </small>
           </span>

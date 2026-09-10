@@ -93,7 +93,7 @@ export function TiebreakerSequence({
                     style={{
                       background: 'var(--cl-state-live)',
                       color: 'var(--cl-surface-base)',
-                      fontSize: '0.65rem',
+                      fontSize: 'var(--cl-font-size-xs)',
                       fontWeight: 'var(--cl-weight-bold)',
                       padding: '1px 4px',
                       borderRadius: 'var(--cl-radius-sm)',

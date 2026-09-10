@@ -1,17 +1,10 @@
 {
   "detector": {
     "ignoreRules": [],
-    "ignoreFiles": [],
+    "ignoreFiles": [
+      "apps/web/src/control/components/PreferencesRoute.test.tsx"
+    ],
     "ignoreValues": [
-      {
-        "rule": "side-tab",
-        "value": "*",
-        "files": [
-          "packages/design-tokens/src/generate/css.ts"
-        ],
-        "createdAt": "2026-09-07T02:45:46.856Z",
-        "reason": "cl-auth-screen__panel lifts the shipped AuthLayout rail verbatim (NativeAuthRoutes.tsx:331 at HEAD~1, borderLeft 4px solid state-live); the left accent is also the Card atom's own long-standing treatment (css.ts:230). Not a new choice in 0204, and restyling it would change three shipped auth screens outside this change's scope."
-      },
       {
         "rule": "layout-transition",
         "value": "*",
@@ -20,7 +13,35 @@
         ],
         "createdAt": "2026-09-09T13:05:04.412Z",
         "reason": "Negative test fixtures for the layout-transition rule itself: integrity.test.ts asserts findUnsafeMotion rejects 'transition: width' and 'transition: height'. The strings are the subject under test, never shipped CSS."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          "packages/design-tokens/src/design-document.test.ts"
+        ],
+        "createdAt": "2026-09-10T21:46:48.378Z",
+        "reason": "Agent: parser fixtures exercise quoted font-family serialization and malformed frontmatter; these strings are test inputs, never rendered typography."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "apps/web/src/components/ui/organisms/LiveMatchScorecard.tsx",
+          "apps/web/src/control/components/ui/molecules/CalloutBanner.tsx",
+          "apps/web/src/control/components/ui/organisms/AuditLogCard.tsx",
+          "packages/design-tokens/src/generate/css.ts"
+        ],
+        "createdAt": "2026-09-10T21:46:48.470Z",
+        "reason": "0224 review: DESIGN.md Cards and Inline Alerts prescribe a left state rail paired with a written state label. The auth panel, live scorecard, callout and audit card implement that documented cue; retain it without applying the generic side-tab heuristic."
       }
     ]
+  },
+  "hook": {
+    "enabled": true,
+    "limits": {
+      "maxFindings": 5,
+      "maxChars": 8000
+    }
   }
 }
