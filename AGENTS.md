@@ -88,6 +88,12 @@ Use the workbench toolbar controls during UI review:
   court. Bundled images are preview-only; switching backgrounds leaves discipline, match data and
   layout mode intact. Opaque kiosk panels still cover the backdrop.
 
+A top-level **Reference index** story lists every supplied reference, the story that renders it, and
+the production surface consuming it. A row with an empty consumer column is a finding, not an
+omission: `apps/web/src/reference-index.test.ts` fails if a listed consumer path does not exist, if a
+listed story title is not declared by any stories file, or if an unconsumed row carries no
+explanation. Start a UI review there rather than by browsing the sidebar.
+
 Visual review here is a person's job by design: there are no screenshot baselines and no diffing
 service. The only automated rule is coverage — `scripts/check-ui-ownership.mjs` fails when an
 owned library component has no sibling `*.stories.tsx`, and derives the list from the tier
