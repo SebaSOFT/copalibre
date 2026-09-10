@@ -13,6 +13,8 @@ export interface FilePickerProps {
   readonly error?: string;
   readonly hint?: string;
   readonly className?: string;
+  readonly ariaLabel?: string;
+  readonly clearLabel?: string;
   readonly value?: File | FileList | readonly File[] | null;
   readonly onChange?: (files: FileList | null) => void;
   readonly onClear?: () => void;
@@ -29,6 +31,7 @@ export function FilePicker({
   name,
   label,
   'aria-label': ariaLabel,
+  clearLabel = 'Clear selected file',
   accept,
   maxSizeBytes,
   multiple = false,
@@ -169,7 +172,7 @@ export function FilePicker({
                 type="button"
                 className="cl-btn cl-btn--secondary cl-file-picker__clear"
                 onClick={handleClear}
-                aria-label="Clear selected file"
+                aria-label={clearLabel}
               >
                 Clear
               </button>
