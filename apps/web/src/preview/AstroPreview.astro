@@ -19,10 +19,11 @@
  */
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@copalibre/domain';
 import '@copalibre/design-tokens/generated/copalibre.css';
+import BracketView from '../components/ui/organisms/BracketView.astro';
 import ResultLegend from '../components/ui/molecules/ResultLegend.astro';
 import ScoreTicker from '../components/ui/organisms/ScoreTicker.astro';
-import { publicIntl, tickerLabels } from '../lib/i18n/public-intl.ts';
-import { referenceGroupMatches } from '../lib/reference-fixtures.ts';
+import { publicIntl, tickerChromeLabels, tickerLabels } from '../lib/i18n/public-intl.ts';
+import { referenceBracket, referenceGroupMatches } from '../lib/reference-fixtures.ts';
 import { buildTickerItems } from '../lib/ticker-items.ts';
 
 /**
@@ -32,7 +33,13 @@ import { buildTickerItems } from '../lib/ticker-items.ts';
  * `0223` extends this list as it builds each composition; the seam is the
  * mechanism, not the catalogue.
  */
-const PREVIEWABLE = new Set(['result-legend', 'score-ticker']);
+const PREVIEWABLE = new Set([
+  'result-legend',
+  'score-ticker',
+  'score-ticker-empty',
+  'score-ticker-stale',
+  'bracket-stage',
+]);
 
 const component = Astro.params.component ?? '';
 const requested = Astro.url.searchParams.get('locale') ?? 'en';
@@ -50,6 +57,8 @@ const ticker = buildTickerItems({
   labels: tickerLabels(intl),
   language: locale,
 });
+const tickerChrome = tickerChromeLabels(intl);
+const tickerLabel = intl.formatMessage({ id: 'ticker.label', defaultMessage: 'Live scores' });
 ---
 
 <html lang={locale}>
@@ -74,8 +83,48 @@ const ticker = buildTickerItems({
     {
       component === 'score-ticker' && (
         <ScoreTicker
+          emptyLabel={tickerChrome.empty}
           items={ticker}
-          label={intl.formatMessage({ id: 'ticker.label', defaultMessage: 'Live scores' })}
+          label={tickerLabel}
+          pauseLabel={tickerChrome.pause}
+          resumeLabel={tickerChrome.resume}
+          staleLabel={tickerChrome.stale}
+        />
+      )
+    }
+    {
+      /* Eight entrants, four quarter-finals decided and a final still waiting on
+         its sources — the case the graph, its key and its textual view all have
+         to describe without inventing an advancement. */
+      component === 'bracket-stage' && (
+        <BracketView
+          intl={intl}
+          matches={referenceBracket()}
+          organizationAlias="reference-league"
+          stageNumber={1}
+          tournamentAlias="reference-cup"
+        />
+      )
+    }
+    {
+      /* A tournament with nothing to report says so, rather than collapsing to
+         a gap the page below then moves into. */
+      component === 'score-ticker-empty' && (
+        <ScoreTicker emptyLabel={tickerChrome.empty} items={[]} label={tickerLabel} />
+      )
+    }
+    {
+      /* The condition the rail must never hide: these are the last known
+         scores, not the current ones. */
+      component === 'score-ticker-stale' && (
+        <ScoreTicker
+          emptyLabel={tickerChrome.empty}
+          items={ticker}
+          label={tickerLabel}
+          pauseLabel={tickerChrome.pause}
+          resumeLabel={tickerChrome.resume}
+          stale={true}
+          staleLabel={tickerChrome.stale}
         />
       )
     }

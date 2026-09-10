@@ -1,8 +1,11 @@
 import { describe, it, expect } from '@jest/globals';
 import {
+  championshipMatch,
   describeSlot,
   isResolved,
   matchReportUrl,
+  nodeOutcomes,
+  stageOutcomes,
   selectStageLayout,
   toRounds,
   toNode,
@@ -255,5 +258,121 @@ describe('selectStageLayout', () => {
 
   it('defaults to bracket when format is unspecified', () => {
     expect(selectStageLayout(undefined)).toBe('bracket');
+  });
+});
+
+describe('the stage’s last cross', () => {
+  const cross = (matchNumber: number, roundNumber: number, branch = 'winners'): BracketMatch => ({
+    matchNumber,
+    roundNumber,
+    branch,
+    state: 'upcoming',
+    slots: [
+      { kind: 'winner-of', matchNumber: 1 },
+      { kind: 'winner-of', matchNumber: 2 },
+    ],
+  });
+
+  it('names the single match holding the highest round number', () => {
+    const found = championshipMatch([cross(1, 1), cross(2, 1), cross(3, 2)]);
+    expect(found?.matchNumber).toBe(3);
+  });
+
+  it('names none where two branches share the last round', () => {
+    expect(championshipMatch([cross(1, 2), cross(2, 2, 'losers')])).toBeUndefined();
+  });
+
+  it('names none for an empty stage', () => {
+    expect(championshipMatch([])).toBeUndefined();
+  });
+});
+
+describe('the outcome each side of a cross reads as', () => {
+  const played = (
+    scores: readonly (number | undefined)[],
+    state: BracketMatch['state'] = 'final',
+  ): BracketMatch => ({
+    matchNumber: 1,
+    roundNumber: 1,
+    branch: 'winners',
+    state,
+    scores,
+    slots: [
+      { kind: 'entrant', name: 'Meridian Seven' },
+      { kind: 'entrant', name: 'Solaris Prime' },
+    ],
+  });
+
+  it('reads a decided cross from the result the projection recorded', () => {
+    expect(nodeOutcomes(played([2, 0]))).toEqual(['advancing', 'eliminated']);
+    expect(nodeOutcomes(played([0, 2]))).toEqual(['eliminated', 'advancing']);
+  });
+
+  it('claims nothing about a cross still being played', () => {
+    expect(nodeOutcomes(played([1, 1], 'live'))).toEqual([undefined, undefined]);
+  });
+
+  it('claims nothing where the recorded scores are level', () => {
+    expect(nodeOutcomes(played([1, 1]))).toEqual([undefined, undefined]);
+  });
+
+  it('marks a slot with no entrant as pending, whatever the score column says', () => {
+    const match: BracketMatch = {
+      matchNumber: 5,
+      roundNumber: 2,
+      branch: 'winners',
+      state: 'upcoming',
+      slots: [
+        { kind: 'winner-of', matchNumber: 1 },
+        { kind: 'winner-of', matchNumber: 2 },
+      ],
+    };
+    expect(nodeOutcomes(match)).toEqual(['pending', 'pending']);
+  });
+
+  it('prefers the winner a series recorded over any arithmetic on its scores', () => {
+    const match: BracketMatch = {
+      matchNumber: 9,
+      roundNumber: 3,
+      branch: 'winners',
+      state: 'final',
+      scores: [1, 3],
+      slots: [
+        { kind: 'entrant', name: 'Meridian Seven' },
+        { kind: 'entrant', name: 'Solaris Prime' },
+      ],
+      series: {
+        span: 3,
+        resolutionClass: 'best-of',
+        games: [],
+        homeGamesWon: 2,
+        awayGamesWon: 1,
+        status: 'decided',
+        winner: 'home',
+        explanation: 'Best of three; the home side took games one and three.',
+      },
+    };
+    expect(nodeOutcomes(match)).toEqual(['advancing', 'eliminated']);
+  });
+
+  it('claims nothing for a cross with more than two sides', () => {
+    const ffa: BracketMatch = {
+      matchNumber: 1,
+      roundNumber: 1,
+      branch: 'winners',
+      state: 'final',
+      scores: [10, 8, 6],
+      slots: [
+        { kind: 'entrant', name: 'Meridian Seven' },
+        { kind: 'entrant', name: 'Solaris Prime' },
+        { kind: 'entrant', name: 'Neon Syndicate' },
+      ],
+    };
+    expect(nodeOutcomes(ffa)).toEqual([undefined, undefined, undefined]);
+  });
+
+  it('keys the stage’s legend to the outcomes it actually contains', () => {
+    expect(stageOutcomes([played([2, 0])])).toEqual(['advancing', 'eliminated']);
+    expect(stageOutcomes([played([1, 1], 'live')])).toEqual([]);
   });
 });

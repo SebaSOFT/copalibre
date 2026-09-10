@@ -82,6 +82,23 @@ export function tickerLabels(intl: IntlShape) {
 }
 
 /**
+ * The ticker's own chrome: its controls and the conditions it has to state.
+ *
+ * Separate from `tickerLabels`, which names what an *entry* says. These are what
+ * the rail says about itself — that it is paused, that its data is old, that
+ * there is nothing to report — and a rail that cannot say those is a rail that
+ * presents a stale score as a current one.
+ */
+export function tickerChromeLabels(intl: IntlShape) {
+  return {
+    pause: intl.formatMessage(messages.tickerPause),
+    resume: intl.formatMessage(messages.tickerResume),
+    stale: intl.formatMessage(messages.tickerStale),
+    empty: intl.formatMessage(messages.tickerEmpty),
+  };
+}
+
+/**
  * Every phrase `tv-statistics` puts on screen.
  *
  * Resolved here because this is the layer that knows the language; the

@@ -10,43 +10,97 @@ interface Props {
    * surface does; `web` reads at arm's length.
    */
   readonly scale?: 'web' | 'tv';
+  /**
+   * True when the entries are the last known ones rather than current.
+   *
+   * A rail that keeps presenting an old score as a live one is the single worst
+   * thing this component can do, so the condition is stated on the rail itself
+   * rather than left for the reader to infer from a clock that stopped moving.
+   */
+  readonly stale?: boolean;
+  readonly staleLabel?: string;
+  /** Shown in place of the entries when the tournament has nothing to report. */
+  readonly emptyLabel?: string;
+  readonly pauseLabel?: string;
+  readonly resumeLabel?: string;
 }
-const { items, label, scale = 'web' } = Astro.props;
+const {
+  items,
+  label,
+  scale = 'web',
+  stale = false,
+  staleLabel,
+  emptyLabel,
+  pauseLabel,
+  resumeLabel,
+} = Astro.props;
 
 /*
   Items are duplicated once so the loop has no visible seam — the track
   translates to exactly -50% and snaps back onto an identical frame. The copy
-  is `aria-hidden`, so a screen reader hears the rail once.
+  is `aria-hidden`, so a screen reader hears the rail once, and under reduced
+  motion the stylesheet drops it entirely rather than showing every entry twice
+  in a list nobody is scrolling past.
 */
 ---
 
-{
-  items.length > 0 && (
-    <div
-      class:list={['cl-ticker', `cl-ticker--${scale}`]}
-      data-ticker
-      aria-label={label}
-      role="region"
-    >
-      <div class="cl-ticker__track" data-ticker-track>
-        {[0, 1].map((copy) =>
-          items.map((item) => (
-            <div class="cl-ticker__item" aria-hidden={copy === 1 ? 'true' : undefined}>
-              <span class:list={['cl-badge', `cl-badge--${item.tone}`]}>{item.badge}</span>
-              <span class="cl-ticker__subject">{item.subject}</span>
-              <span class="cl-ticker__figure">{item.figure}</span>
-              {item.opponent && <span class="cl-ticker__subject">{item.opponent}</span>}
-              {item.meta && <span class="cl-ticker__meta">({item.meta})</span>}
-              <span class="cl-ticker__sep" aria-hidden="true">
-                ///
-              </span>
-            </div>
-          )),
+<div
+  class:list={['cl-ticker', `cl-ticker--${scale}`]}
+  data-ticker
+  data-stale={stale ? 'true' : undefined}
+  aria-label={label}
+  role="region"
+>
+  {
+    items.length === 0 ? (
+      <p class="cl-ticker__notice">{emptyLabel}</p>
+    ) : (
+      <>
+        {stale && staleLabel && (
+          <p class="cl-ticker__notice cl-ticker__notice--stale" role="status">
+            {staleLabel}
+          </p>
         )}
-      </div>
-    </div>
-  )
-}
+        <div class="cl-ticker__track" data-ticker-track>
+          {[0, 1].map((copy) =>
+            items.map((item) => (
+              <div class="cl-ticker__item" aria-hidden={copy === 1 ? 'true' : undefined}>
+                <span class:list={['cl-badge', `cl-badge--${item.tone}`]}>{item.badge}</span>
+                <span class="cl-ticker__subject">{item.subject}</span>
+                <span class="cl-ticker__figure">{item.figure}</span>
+                {item.opponent && <span class="cl-ticker__subject">{item.opponent}</span>}
+                {/* Only where the discipline declares one; nothing here derives it. */}
+                {item.overtime && <span class="cl-ticker__overtime">{item.overtime}</span>}
+                {item.meta && <span class="cl-ticker__meta">({item.meta})</span>}
+                <span class="cl-ticker__sep" aria-hidden="true">
+                  ///
+                </span>
+              </div>
+            )),
+          )}
+        </div>
+        {/*
+          Hidden until the script that gives it meaning has run. A pause button
+          that does nothing without JavaScript is a broken control on the one
+          surface that has to keep working without it — so it arrives with the
+          behaviour or it does not arrive.
+        */}
+        <button
+          class="cl-ticker__pause cl-focusable"
+          type="button"
+          hidden
+          data-ticker-pause
+          data-pause-label={pauseLabel}
+          data-resume-label={resumeLabel}
+          aria-label={pauseLabel}
+          aria-pressed="false"
+        >
+          <span aria-hidden="true">⏸</span>
+        </button>
+      </>
+    )
+  }
+</div>
 
 <script>
   /*
@@ -61,14 +115,15 @@ const { items, label, scale = 'web' } = Astro.props;
     so it stays under this component's control in both directions.
   */
   const PIXELS_PER_SECOND = 40;
-  const STEP_INTERVAL_MS = 3500;
 
   function startTicker(rail: HTMLElement) {
     const track = rail.querySelector<HTMLElement>('[data-ticker-track]');
     if (!track) return;
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const pause = rail.querySelector<HTMLButtonElement>('[data-ticker-pause]');
     let stop: (() => void) | undefined;
+    let paused = false;
 
     function scrollContinuously(track: HTMLElement) {
       let offset = 0;
@@ -76,9 +131,12 @@ const { items, label, scale = 'web' } = Astro.props;
       let frame = 0;
       const tick = (now: number) => {
         const span = track.scrollWidth / 2;
-        offset = span > 0 ? (offset + ((now - last) / 1000) * PIXELS_PER_SECOND) % span : 0;
+        const elapsed = now - last;
         last = now;
-        track.style.transform = `translateX(${-offset}px)`;
+        if (!paused) {
+          offset = span > 0 ? (offset + (elapsed / 1000) * PIXELS_PER_SECOND) % span : 0;
+          track.style.transform = `translateX(${-offset}px)`;
+        }
         frame = requestAnimationFrame(tick);
       };
       frame = requestAnimationFrame(tick);
@@ -86,28 +144,34 @@ const { items, label, scale = 'web' } = Astro.props;
     }
 
     /*
-      Under reduced motion the rail still shows everything, one item at a time:
-      it jumps to each item's own offset and holds. Freezing the track instead
-      would leave every item past the first screen unreachable.
+      Under reduced motion the rail is a static list and nothing here moves it:
+      the stylesheet wraps the track, drops the duplicated copy and lets the
+      rail scroll natively, so every entry stays reachable by keyboard and by
+      scroll without a single animated pixel. Leaving the transform alone is the
+      whole implementation — a "slower" or "stepped" substitute is still motion.
     */
-    function stepBetweenItems(track: HTMLElement) {
-      const items = [...track.querySelectorAll<HTMLElement>('.cl-ticker__item')];
-      const half = Math.ceil(items.length / 2);
-      let index = 0;
-      const advance = () => {
-        index = (index + 1) % Math.max(half, 1);
-        const target = items[index];
-        track.style.transform = `translateX(${-(target?.offsetLeft ?? 0)}px)`;
-      };
-      const timer = window.setInterval(advance, STEP_INTERVAL_MS);
-      return () => window.clearInterval(timer);
+    function holdStill(track: HTMLElement) {
+      track.style.transform = '';
+      return () => {};
     }
 
     const apply = () => {
       stop?.();
-      track.style.transform = 'translateX(0px)';
-      stop = reduced.matches ? stepBetweenItems(track) : scrollContinuously(track);
+      if (!reduced.matches) track.style.transform = 'translateX(0px)';
+      stop = reduced.matches ? holdStill(track) : scrollContinuously(track);
+      // Nothing is moving, so there is nothing to pause.
+      if (pause) pause.hidden = reduced.matches;
     };
+
+    if (pause) {
+      pause.hidden = false;
+      pause.addEventListener('click', () => {
+        paused = !paused;
+        pause.setAttribute('aria-pressed', paused ? 'true' : 'false');
+        const next = paused ? pause.dataset.resumeLabel : pause.dataset.pauseLabel;
+        if (next) pause.setAttribute('aria-label', next);
+      });
+    }
 
     apply();
     reduced.addEventListener('change', apply);
@@ -178,6 +242,12 @@ const { items, label, scale = 'web' } = Astro.props;
     color: var(--cl-primary);
   }
 
+  /* A period the discipline declared, not a clock that ran long. */
+  .cl-ticker__overtime {
+    font-weight: 700;
+    color: var(--cl-state-upcoming);
+  }
+
   .cl-ticker__meta {
     font-size: 0.85em;
     color: var(--cl-text-muted);
@@ -187,5 +257,78 @@ const { items, label, scale = 'web' } = Astro.props;
     font-weight: 700;
     color: var(--cl-color-ink-700);
     margin-inline: var(--cl-space-2);
+  }
+
+  /* The rail speaking about itself: empty, or showing what it last knew. */
+  .cl-ticker__notice {
+    margin: 0;
+    padding-inline: var(--cl-space-6);
+    font-family: var(--cl-font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--cl-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cl-ticker__notice--stale {
+    flex: 0 0 auto;
+    color: var(--cl-state-upcoming);
+    border-inline-end: 1px solid var(--cl-color-ink-700);
+    margin-inline-end: var(--cl-space-4);
+    padding-block: var(--cl-space-1);
+  }
+
+  .cl-ticker__pause {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    display: grid;
+    place-items: center;
+    min-width: var(--cl-touch-target);
+    padding-inline: var(--cl-space-3);
+    border: 0;
+    border-inline-start: 1px solid var(--cl-color-ink-700);
+    background: var(--cl-color-ink-900);
+    color: var(--cl-text-secondary);
+    cursor: pointer;
+  }
+
+  .cl-ticker__pause[aria-pressed='true'] {
+    color: var(--cl-primary);
+  }
+
+  /*
+    Reduced motion: a static list, not a slower marquee.
+
+    The rail keeps its declared height so nothing beneath it moves, the track
+    wraps instead of running off the side, and the rail scrolls natively — every
+    entry reachable, no pixel animated. The aria-hidden duplicate goes, because
+    a list nobody is scrolling past has no seam to hide.
+  */
+  @media (prefers-reduced-motion: reduce) {
+    .cl-ticker {
+      overflow-y: auto;
+      align-items: flex-start;
+    }
+
+    .cl-ticker__track {
+      flex-wrap: wrap;
+      width: 100%;
+      transform: none !important;
+      will-change: auto;
+      column-gap: var(--cl-space-6);
+      row-gap: var(--cl-space-2);
+      padding-block: var(--cl-space-2);
+    }
+
+    .cl-ticker__item[aria-hidden='true'] {
+      display: none;
+    }
+
+    .cl-ticker__pause {
+      display: none;
+    }
   }
 </style>

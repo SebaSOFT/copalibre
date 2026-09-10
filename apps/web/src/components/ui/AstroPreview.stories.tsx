@@ -47,6 +47,38 @@ export const ScoreTicker: Story = {
 };
 
 /**
+ * A tournament with nothing to report.
+ *
+ * The rail keeps its height and says so, rather than collapsing to a gap the
+ * page below then jumps into the moment the first fixture arrives.
+ */
+export const ScoreTickerEmpty: Story = {
+  args: { component: 'score-ticker-empty', height: 140 },
+};
+
+/**
+ * The last known scores, stated as such.
+ *
+ * The one thing this component must never do is present an old score as a
+ * current one, so the condition is on the rail rather than inferred from a
+ * clock that stopped moving.
+ */
+export const ScoreTickerStale: Story = {
+  args: { component: 'score-ticker-stale', height: 140 },
+};
+
+/**
+ * The bracket stage over the eight-entrant fixture.
+ *
+ * Below 768px the graph gives way to the textual round-and-branch view, which
+ * carries the same seeds, sources and outcomes rather than a reduced set of
+ * them — switch the workbench viewport to 374px to read it.
+ */
+export const BracketStage: Story = {
+  args: { component: 'bracket-stage', height: 640 },
+};
+
+/**
  * An id the route does not allowlist.
  *
  * It renders the unavailable state rather than an empty frame — the same state a

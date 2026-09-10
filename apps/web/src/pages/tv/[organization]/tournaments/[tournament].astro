@@ -17,7 +17,12 @@ import type { ResultState } from '../../../../lib/result-state.ts';
 import type { OverviewMatch, StandingsRowView } from '../../../../lib/overview.ts';
 import type { TopPerformer } from '../../../../lib/tv-statistics.ts';
 import { buildTickerItems } from '../../../../lib/ticker-items.ts';
-import { publicIntl, tickerLabels, tvStatisticsLabels } from '../../../../lib/i18n/public-intl.ts';
+import {
+  publicIntl,
+  tickerChromeLabels,
+  tickerLabels,
+  tvStatisticsLabels,
+} from '../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import {
@@ -179,6 +184,7 @@ const presentation = overlayMode ?? 'kiosk';
   The overlay presentations exist to leave the frame clear for the footage they
   are composited over, so the rail is a kiosk-only fixture.
 */
+const tickerChrome = tickerChromeLabels(intl);
 const tickerItems =
   presentation === 'kiosk'
     ? buildTickerItems({
@@ -197,7 +203,15 @@ const tickerItems =
   chromaKey={chromaKey}
   disciplineImages={disciplineImages}
 >
-  <ScoreTicker items={tickerItems} label={intl.formatMessage(messages.tickerLabel)} scale="tv" />
+  <ScoreTicker
+    emptyLabel={tickerChrome.empty}
+    items={tickerItems}
+    label={intl.formatMessage(messages.tickerLabel)}
+    pauseLabel={tickerChrome.pause}
+    resumeLabel={tickerChrome.resume}
+    scale="tv"
+    staleLabel={tickerChrome.stale}
+  />
   <TvDashboard
     client:load
     presentation={presentation}
