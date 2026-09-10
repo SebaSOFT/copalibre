@@ -1003,4 +1003,5 @@ export const messages: Record<string, string> = {
   'control.platform.modules.updateCalloutTitle': '安装此版本',
   'control.platform.modules.updateCalloutDescription':
     '在下方输入别名并安装。模块通过 seed 应用安装；此列表不会应用任何内容。',
+  'control.auditTrail.correctionTitle': '该记录改动了什么',
 };

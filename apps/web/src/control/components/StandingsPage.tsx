@@ -8,7 +8,9 @@ import type {
   TableRowResponseData,
 } from '../lib/api-client.js';
 import {
+  comparatorChain,
   distributionBars,
+  localizedText,
   nextSort,
   sortRows,
   tableColumns,
@@ -21,7 +23,8 @@ import { Button } from './ui/atoms/button.js';
 import { Select } from './ui/atoms/select.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
-import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
+import type { DataTableColumn } from './ui/organisms/data-table.js';
+import { StandingsFigure, StandingsPanel } from './ui/organisms/StandingsPanel.js';
 
 /**
  * A5 — every declared table layout (group standings, top scorers, goalkeeper
@@ -95,6 +98,8 @@ export function StandingsPage({
     ? distributionBars(projection, { nameColumnCode: nameColumnCode ?? primaryNameColumn })
     : [];
   const isGroupPhase = projection?.target === 'group-phase';
+  const chain = useMemo(() => comparatorChain(projection, columns), [projection, columns]);
+  const decidingCode = chain.find((rule) => rule.triggered)?.columnCode;
 
   const expand = (actorId: string): void => {
     if (traces[actorId] !== undefined || pending.includes(actorId)) return;
@@ -136,10 +141,19 @@ export function StandingsPage({
       render: (row: TableRowResponseData) => {
         const cell = row.cells[column.code];
         const isEntrantName = row.entrantName !== undefined && cell?.formatted === row.entrantName;
-        return isEntrantName ? (
-          <EntrantName abbreviation={row.entrantAbbreviation} fullName={row.entrantName} />
-        ) : (
-          (cell?.formatted ?? '—')
+        if (isEntrantName) {
+          return <EntrantName abbreviation={row.entrantAbbreviation} fullName={row.entrantName} />;
+        }
+        // The comparator that separated two level rows is marked in the column
+        // that did it, on the rows it decided — so "what separated them" is
+        // answered where the reader is already looking.
+        return (
+          <StandingsFigure
+            deciding={column.code === decidingCode && tiebreakIndicator(row).kind !== 'none'}
+            decidingLabel={intl.formatMessage(messages.standingsPanelDecidedBy)}
+          >
+            {cell?.formatted ?? '—'}
+          </StandingsFigure>
         );
       },
     }));
@@ -163,7 +177,7 @@ export function StandingsPage({
     }
 
     return baseCols;
-  }, [projection, columns, sort, isGroupPhase, intl]);
+  }, [projection, columns, sort, isGroupPhase, intl, decidingCode]);
 
   const breadcrumbNode = (
     <span>
@@ -249,10 +263,24 @@ export function StandingsPage({
             </div>
           )}
 
-          <DataTable
-            ariaLabel={intl.formatMessage(messages.standingsSectionLabel)}
+          {/*
+            The panel presents the table; it does not replace it. `DataTable`
+            still renders every cell the projection declared, and the chain in
+            the footer is the layout's own `defaultSort` — the first of those
+            rules that separated two level rows is marked as the one that did.
+          */}
+          <StandingsPanel
             columns={dataTableColumns}
             emptyMessage={intl.formatMessage(messages.standingsNoResultsYet)}
+            eyebrow={localizedText(projection.label, intl.locale)}
+            tableAriaLabel={intl.formatMessage(messages.standingsSectionLabel)}
+            tiebreakerTitle={intl.formatMessage(messages.standingsTiebreakerSequenceTitle)}
+            tiebreakers={chain.map((rule) => ({
+              step: rule.step,
+              label: rule.label,
+              triggered: rule.triggered,
+            }))}
+            title={tournamentName}
             renderRowDetail={
               isGroupPhase
                 ? (row) => (

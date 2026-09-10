@@ -1032,6 +1032,11 @@ export const messages = defineMessages({
     id: 'control.auditTrail.loadFailed',
     defaultMessage: 'Could not load the audit trail.',
   },
+  // 0223 — the ledger entry a corrected record expands into.
+  auditTrailCorrectionTitle: {
+    id: 'control.auditTrail.correctionTitle',
+    defaultMessage: 'What this record changed',
+  },
   auditTrailColumnTime: { id: 'control.auditTrail.columnTime', defaultMessage: 'When' },
   auditTrailColumnActor: { id: 'control.auditTrail.columnActor', defaultMessage: 'Who' },
   auditTrailColumnAction: { id: 'control.auditTrail.columnAction', defaultMessage: 'Action' },

@@ -169,3 +169,64 @@ export interface TiebreakIndicator {
 export function tiebreakIndicator(row: TableRowResponseData): TiebreakIndicator {
   return row.sharedRank ? { kind: 'shared', icon: '=' } : { kind: 'none', icon: '' };
 }
+
+export interface ComparatorChainRule {
+  readonly step: number;
+  readonly columnCode: string;
+  readonly label: string;
+  /** True on the first rule that actually separated two otherwise-level rows. */
+  readonly triggered: boolean;
+}
+
+/**
+ * The comparator chain, read from the layout's own declared `defaultSort`.
+ *
+ * `defaultSort` *is* the tiebreaker sequence: an ordered list of columns the
+ * layout ranks by, where the first that separates two rows decides between
+ * them. So this derives nothing about the competition — it names, in order, the
+ * rules the projection already said it applied, and marks the one that did the
+ * separating.
+ *
+ * "Did the separating" is checked against adjacent rows only, because the rows
+ * arrive already ranked: two entrants a comparator had to decide between are
+ * neighbours in that order, and a pair further apart was separated earlier in
+ * the chain.
+ */
+export function comparatorChain(
+  projection: TableProjectionResponseData | undefined,
+  columns: readonly TableColumnView[],
+): readonly ComparatorChainRule[] {
+  const rules = projection?.defaultSort ?? [];
+  if (rules.length === 0) return [];
+
+  const labelFor = (code: string): string =>
+    columns.find((column) => column.code === code)?.shortLabel ?? code;
+
+  const rows = projection?.rows ?? [];
+  const separated = (index: number): boolean =>
+    rows.slice(1).some((row, position) => {
+      const previous = rows[position];
+      if (previous === undefined) return false;
+      // Every earlier rule had to be level, or this one was not what decided it.
+      const levelEarlier = rules
+        .slice(0, index)
+        .every(
+          (rule) => compareCells(previous.cells[rule.columnCode], row.cells[rule.columnCode]) === 0,
+        );
+      if (!levelEarlier) return false;
+      const current = rules[index];
+      if (current === undefined) return false;
+      return compareCells(previous.cells[current.columnCode], row.cells[current.columnCode]) !== 0;
+    });
+
+  // Only the first rule that separated anybody is the decider; a later rule
+  // that also differs never got the chance to be consulted.
+  const decidingIndex = rules.findIndex((_, index) => index > 0 && separated(index));
+
+  return rules.map((rule, index) => ({
+    step: index + 1,
+    columnCode: rule.columnCode,
+    label: labelFor(rule.columnCode),
+    triggered: index === decidingIndex,
+  }));
+}

@@ -1052,4 +1052,5 @@ export const messages: Record<string, string> = {
   'control.platform.modules.updateCalloutTitle': 'Installer cette version',
   'control.platform.modules.updateCalloutDescription':
     'Saisissez l’alias ci-dessous et installez-le. Les modules s’installent via l’application de préchargement ; rien n’est appliqué depuis cette liste.',
+  'control.auditTrail.correctionTitle': 'Ce que cet enregistrement a modifié',
 };

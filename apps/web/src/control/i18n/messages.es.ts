@@ -1050,4 +1050,5 @@ export const messages: Record<string, string> = {
   'control.platform.modules.updateCalloutTitle': 'Instalar esta versión',
   'control.platform.modules.updateCalloutDescription':
     'Introduce el alias abajo e instálalo. Los módulos se instalan mediante la aplicación de siembra; nada se aplica desde esta lista.',
+  'control.auditTrail.correctionTitle': 'Lo que cambió este registro',
 };

@@ -6,6 +6,8 @@ import { Input } from './ui/atoms/input.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
+import { AuditLogCard } from './ui/organisms/AuditLogCard.js';
+import { toAuditLogItem } from '../lib/audit-log.js';
 
 /**
  * Read-only by design: the audit trail is inspected, never edited — there is
@@ -115,6 +117,22 @@ export function AuditTrailPage({
             rowKey={(row) => row.auditId}
             emptyMessage={intl.formatMessage(messages.auditTrailEmpty)}
             ariaLabel={intl.formatMessage(messages.auditTrailTitle)}
+            /*
+              The ledger entry for a record that changed something: the fields
+              that actually differ, before and after. Only where the record
+              carries both states — a record with no previous state is not a
+              correction, and is not dressed as one. Nothing is fetched or
+              revealed here that the row above did not already carry to this
+              authorized surface.
+            */
+            renderRowDetail={(row) =>
+              row.previousState === undefined || row.resultingState === undefined ? null : (
+                <AuditLogCard
+                  items={[toAuditLogItem(row)]}
+                  title={intl.formatMessage(messages.auditTrailCorrectionTitle)}
+                />
+              )
+            }
           />
         )
       }

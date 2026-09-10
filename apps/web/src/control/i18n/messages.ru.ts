@@ -1048,4 +1048,5 @@ export const messages: Record<string, string> = {
   'control.platform.modules.updateCalloutTitle': 'Установить эту версию',
   'control.platform.modules.updateCalloutDescription':
     'Введите псевдоним ниже и установите его. Модули устанавливаются через приложение начальной загрузки; из этого списка ничего не применяется.',
+  'control.auditTrail.correctionTitle': 'Что изменила эта запись',
 };

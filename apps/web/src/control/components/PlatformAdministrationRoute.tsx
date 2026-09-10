@@ -729,7 +729,7 @@ export function PlatformAdministrationRoute({
               {outdated.length > 0 && (
                 <div
                   aria-label={intl.formatMessage(messages.platformUpdatesAvailable)}
-                  className="cl-platform-update-list"
+                  className="cl-editorial-list"
                   role="group"
                 >
                   {outdated.map((entry) => (
