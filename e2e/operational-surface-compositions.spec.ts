@@ -255,14 +255,18 @@ test.describe('Public header, expanding in page flow (0223)', () => {
     await expect(toggle).toBeFocused();
   });
 
-  test('the primary action is reachable from the row and from inside the opened menu', async ({
-    page,
-  }) => {
+  test('the primary action stays in the row, open or closed', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}`);
 
-    await expect(page.locator('.cl-public-header__cta')).toBeVisible();
+    const cta = page.locator('.cl-public-header__cta');
+    await expect(cta).toBeVisible();
+
+    // The menu displaces the page rather than covering it, so the row — and the
+    // action in it — is never hidden behind the opened navigation. That is why
+    // there is no second copy of it inside the menu.
     await page.locator('[data-public-nav-toggle]').click();
-    await expect(page.locator('.cl-public-header__nav-cta')).toBeVisible();
+    await expect(cta).toBeVisible();
+    await expect(page.locator('a.cl-btn--primary:visible')).toHaveCount(1);
   });
 
   test('the locale control offers a language and moves the page to it', async ({ page }) => {
@@ -433,4 +437,64 @@ test.describe('Representative widths keep the page inside the viewport (0223)', 
     );
     expect(overflows).toBe(false);
   });
+});
+
+test.describe('Eight languages at the narrow floor (0223)', () => {
+  // The workbench's declared zoom floor. German and Russian are the cases that
+  // actually break at it, and they only break in their own catalogue — which is
+  // why this sweeps every language rather than checking the one the reviewer
+  // happens to be working in.
+  const NARROW = { width: 188, height: 720 };
+
+  for (const locale of ['en', 'es', 'de', 'fr', 'it', 'pt', 'ru', 'zh']) {
+    test(`${locale}: the page stays inside 188px and its controls keep their names`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(NARROW);
+      const prefix = locale === 'en' ? '' : `/${locale}`;
+      await page.goto(`${prefix}/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/1`);
+
+      const overflows = await page.evaluate(
+        () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      );
+      expect(overflows).toBe(false);
+
+      // A control whose label vanished in translation is a control nobody can
+      // describe; an empty name here is the failure, not a short one.
+      const toggle = page.locator('[data-public-nav-toggle]');
+      await expect(toggle).toBeVisible();
+      expect((await toggle.getAttribute('aria-label'))?.trim()).not.toBe('');
+
+      // Below the graph's floor the textual stage is what carries the bracket.
+      await expect(page.locator('.cl-bracket-stage__outline')).toBeVisible();
+    });
+  }
+});
+
+test('the rendered faces and accent are the ones the token contract declares (0223)', async ({
+  page,
+}) => {
+  await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/1`);
+
+  // Recorded rather than eyeballed: what a reviewer would otherwise write down
+  // from a screenshot, asserted against the roles the stylesheet declares.
+  const resolved = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    const label = document.querySelector('.cl-bracket-stage__round-label');
+    return {
+      display: root.getPropertyValue('--cl-font-display').trim(),
+      body: root.getPropertyValue('--cl-font-body').trim(),
+      mono: root.getPropertyValue('--cl-font-mono').trim(),
+      primary: root.getPropertyValue('--cl-primary').trim(),
+      roundLabelFace: label ? getComputedStyle(label).fontFamily : '',
+    };
+  });
+
+  expect(resolved.display).not.toBe('');
+  expect(resolved.body).not.toBe('');
+  expect(resolved.primary).not.toBe('');
+  // The round label is chrome, and chrome is set in the mono face.
+  expect(resolved.roundLabelFace).toContain(
+    resolved.mono.split(',')[0]?.replace(/['"]/g, '') ?? '',
+  );
 });

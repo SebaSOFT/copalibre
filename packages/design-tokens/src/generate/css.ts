@@ -820,6 +820,10 @@ function components(): string {
     '}',
     '',
     '.cl-btn {',
+    // A link wearing the button treatment is a button, underline included —
+    // until now every call site removed it inline, and the one that forgot
+    // shipped an underlined button.
+    '  text-decoration: none;',
     '  min-height: var(--cl-touch-target);',
     '  min-width: var(--cl-touch-target);',
     '  font-family: var(--cl-font-display);',
@@ -1353,7 +1357,10 @@ function compositions(): string {
     '',
     '.cl-public-header__row { display: flex; align-items: center; justify-content: space-between; gap: var(--cl-space-3); padding: var(--cl-space-3) var(--cl-space-4); min-width: 0; }',
     '',
-    '.cl-public-header__actions { display: flex; align-items: center; gap: var(--cl-space-2); min-width: 0; flex: 0 0 auto; }',
+    // Wraps, and every child may shrink. At the 188px zoom floor the brand,
+    // the locale control, the action and the toggle cannot share one line, and
+    // a row that refused to wrap pushed the whole page sideways instead.
+    '.cl-public-header__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--cl-space-2); min-width: 0; }',
     '',
     '.cl-public-header__nav { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; }',
     '',
@@ -1393,7 +1400,6 @@ function compositions(): string {
     `@media (min-width: ${BREAKPOINTS.md}) {`,
     // Nothing to disclose once every link is already in the row.
     '  .cl-public-header__toggle { display: none; }',
-    '  .cl-public-header__nav-cta { display: none; }',
     '}',
   ].join('\n');
 }

@@ -111,7 +111,9 @@ library tiers and `control/i18n`. Each React surface requires a sibling `*.stori
 only the declared non-screen categories (routers, providers, fixtures, and deferred). Explicit
 router/provider/deferred exclusions use paths relative to `apps/web/src`; Astro files remain outside
 the React story gate. See `docs/SCREEN-STORY-REVIEW.md` for fixture boundaries and review findings,
-and `docs/reviews/0222-owned-control-coverage.md` for the current coverage and background review.
+`docs/reviews/0222-owned-control-coverage.md` for the current coverage and background review, and
+`docs/reviews/0223-operational-surface-compositions.md` for the composition parity pass — including
+what that pass deliberately leaves unreviewed.
 
 ### Component ownership, on every surface
 

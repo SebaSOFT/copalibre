@@ -149,7 +149,16 @@ test.describe('Tournament ticker (OpenSpec 0210)', () => {
     await expect(ticker.getByText('11').first()).toBeVisible();
   });
 
-  test('under reduced motion the rail steps instead of scrolling, and still reaches its later items', async ({
+  /*
+    0223 replaced 0210's stepping with a static list.
+
+    Stepping was still motion — the rail jumped between items on a timer, which
+    is exactly what a reader who asked for no motion did not ask for. The
+    requirement it was solving (every item stays reachable, none stranded past
+    the fold) is now met by wrapping the track and letting the rail scroll
+    natively instead, so nothing moves on its own and everything is reachable.
+  */
+  test('under reduced motion the rail is a static list, with nothing stranded past the fold', async ({
     browser,
   }) => {
     const context = await browser.newContext({ reducedMotion: 'reduce' });
@@ -158,6 +167,7 @@ test.describe('Tournament ticker (OpenSpec 0210)', () => {
 
     const track = page.locator('[data-ticker-track]');
     await expect(track).toBeVisible();
+    await expect(track).toHaveCSS('flex-wrap', 'wrap');
 
     const offsetAt = async () =>
       track.evaluate((element) => {
@@ -165,12 +175,19 @@ test.describe('Tournament ticker (OpenSpec 0210)', () => {
         return matrix.m41;
       });
 
-    // It starts at rest: nothing has scrolled it off its first item.
+    // It starts at rest, and stays there: no transport, no timer.
+    expect(await offsetAt()).toBe(0);
+    await page.waitForTimeout(5_000);
     expect(await offsetAt()).toBe(0);
 
-    // And it advances in discrete jumps rather than sliding, so every item
-    // becomes readable instead of being stranded past the fold.
-    await expect.poll(offsetAt, { timeout: 15_000 }).toBeLessThan(0);
+    // Every item is laid out rather than queued behind the first one, and the
+    // rail keeps its declared height so the page below it does not move.
+    const rail = page.locator('[data-ticker]');
+    await expect(rail).toHaveCSS('height', '44px');
+    const reachable = await rail.evaluate(
+      (element) => element.scrollHeight >= element.clientHeight,
+    );
+    expect(reachable).toBe(true);
 
     await context.close();
   });

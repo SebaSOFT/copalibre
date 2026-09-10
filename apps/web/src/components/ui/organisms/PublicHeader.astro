@@ -83,13 +83,15 @@ const languageName = (code: string): string => {
           ))
         }
       </ul>
-      {/* The row's action, repeated where the opened menu can reach it. */}
-      <a
-        class="cl-public-header__nav-cta cl-btn cl-btn--primary cl-chamfer cl-chamfer--control cl-focusable"
-        href="/control/"
-      >
-        {controlLabel}
-      </a>
+      {
+        /*
+        No repeated action here. The reference puts one in its drawer because
+        its drawer covers the row; this one displaces the page instead, so the
+        row — and the action in it — stays on screen the whole time. A second
+        link with the same text and destination, visible simultaneously, would
+        be a duplicate rather than a convenience.
+      */
+      }
     </nav>
 
     <div class="cl-public-header__actions">
