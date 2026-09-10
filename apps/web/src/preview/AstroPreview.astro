@@ -20,6 +20,7 @@
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@copalibre/domain';
 import '@copalibre/design-tokens/generated/copalibre.css';
 import BracketView from '../components/ui/organisms/BracketView.astro';
+import PublicHeader from '../components/ui/organisms/PublicHeader.astro';
 import ResultLegend from '../components/ui/molecules/ResultLegend.astro';
 import ScoreTicker from '../components/ui/organisms/ScoreTicker.astro';
 import { publicIntl, tickerChromeLabels, tickerLabels } from '../lib/i18n/public-intl.ts';
@@ -39,6 +40,7 @@ const PREVIEWABLE = new Set([
   'score-ticker-empty',
   'score-ticker-stale',
   'bracket-stage',
+  'public-header',
 ]);
 
 const component = Astro.params.component ?? '';
@@ -89,6 +91,20 @@ const tickerLabel = intl.formatMessage({ id: 'ticker.label', defaultMessage: 'Li
           pauseLabel={tickerChrome.pause}
           resumeLabel={tickerChrome.resume}
           staleLabel={tickerChrome.stale}
+        />
+      )
+    }
+    {
+      /* Brand, locale and menu control in a stable row. Narrow the frame below
+         768px and open the menu: the content beneath moves down rather than
+         being covered, which is the whole difference from the operator drawer. */
+      component === 'public-header' && (
+        <PublicHeader
+          intl={intl}
+          localeOptions={SUPPORTED_LANGUAGES.map((language) => ({
+            locale: language,
+            href: language === 'en' ? '/' : `/${language}/`,
+          }))}
         />
       )
     }

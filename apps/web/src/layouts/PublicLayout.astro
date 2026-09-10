@@ -9,8 +9,7 @@ import {
 import { buildHreflangAlternates, serializeJsonLd, type JsonLdStructuredData } from '../lib/seo.ts';
 import type { SupportedLanguage } from '@copalibre/domain';
 
-import { getLocaleHomePath } from '../lib/locale.ts';
-import Logo from '../components/ui/atoms/Logo.astro';
+import PublicHeader from '../components/ui/organisms/PublicHeader.astro';
 
 interface Props {
   readonly title: string;
@@ -50,7 +49,15 @@ const resolvedOgImage =
     : undefined);
 const alternates = buildHreflangAlternates(site, canonicalPath, intl.locale, localeVariants);
 const canonicalUrl = `${site}${canonicalPath}`;
-const homeUrl = getLocaleHomePath(intl.locale);
+/*
+  The same alternates, as site-relative paths for the header's locale control.
+  Reusing the hreflang computation rather than repeating it means the control
+  can only offer a language the page actually publishes — `x-default` dropped,
+  since it names no language a reader would pick.
+*/
+const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, localeVariants)
+  .filter((alternate) => alternate.hreflang !== 'x-default')
+  .map((alternate) => ({ locale: alternate.hreflang, href: alternate.href }));
 ---
 
 <!doctype html>
@@ -105,11 +112,7 @@ const homeUrl = getLocaleHomePath(intl.locale);
     <a class="cl-skip-link cl-focusable" href="#main"
       >{intl.formatMessage(messages.layoutSkipToContent)}</a
     >
-    <header>
-      <nav aria-label={intl.formatMessage(messages.layoutNavAriaLabel)}>
-        <Logo href={homeUrl} />
-      </nav>
-    </header>
+    <PublicHeader intl={intl} localeOptions={localeOptions} />
     <main id="main">
       <slot />
     </main>

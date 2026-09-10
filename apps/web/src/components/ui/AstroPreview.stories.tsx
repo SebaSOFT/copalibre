@@ -68,6 +68,18 @@ export const ScoreTickerStale: Story = {
 };
 
 /**
+ * The public header, and the reason it is worth framing rather than imitating.
+ *
+ * With the frame below 768px the menu expands into the page: the content
+ * beneath it moves down instead of being covered. Reload with JavaScript
+ * disabled and the navigation is simply already open, which is the state the
+ * markup ships in.
+ */
+export const PublicHeader: Story = {
+  args: { component: 'public-header', height: 360 },
+};
+
+/**
  * The bracket stage over the eight-entrant fixture.
  *
  * Below 768px the graph gives way to the textual round-and-branch view, which

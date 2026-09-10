@@ -238,7 +238,6 @@ export function TerminalBlock({
               // in is the one thing wrapping destroys, so long lines scroll
               // inside this region instead of re-flowing.
               whiteSpace: isFile ? 'pre' : 'pre-wrap',
-              margin: 0,
             }}
           >
             <code>{code}</code>

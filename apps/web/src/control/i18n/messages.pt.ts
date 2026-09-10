@@ -1035,4 +1035,17 @@ export const messages: Record<string, string> = {
   'control.dashboard.open': 'Abrir',
   'control.dashboard.export': 'Exportar',
   'control.dashboard.resumeEditing': 'Retomar edição',
+
+  // 0223 — standings panel chrome, metric availability, module updates.
+  'control.standings.panelDecidedBy': 'Definiu esta posição',
+  'control.standings.tiebreakerSequenceTitle': 'Sequência de desempate',
+  'control.standings.rankColumn': 'Posição',
+  'control.metric.unavailable': 'Não disponível',
+  'control.metric.demonstration': 'Valor de demonstração',
+  'control.platform.modules.updateEyebrow': 'Atualização de módulo',
+  'control.platform.modules.updateHeadline': '{alias} {currentVersion} → {latestVersion}',
+  'control.platform.modules.updateKind': 'Tipo de atualização: {upgrade}',
+  'control.platform.modules.updateCalloutTitle': 'Instalar esta versão',
+  'control.platform.modules.updateCalloutDescription':
+    'Introduza o alias abaixo e instale-o. Os módulos são instalados através da aplicação de semeadura; nada é aplicado a partir desta lista.',
 };

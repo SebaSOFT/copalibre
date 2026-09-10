@@ -16,6 +16,17 @@ export const messages = defineMessages({
   // Layout chrome (layouts/PublicLayout.astro)
   layoutSkipToContent: { id: 'publicWeb.layout.skipToContent', defaultMessage: 'Skip to content' },
   layoutNavAriaLabel: { id: 'publicWeb.layout.navAriaLabel', defaultMessage: 'Main' },
+  // 0223 — the public header's own controls and destinations.
+  headerOpenMenu: { id: 'publicWeb.header.openMenu', defaultMessage: 'Open the menu' },
+  headerCloseMenu: { id: 'publicWeb.header.closeMenu', defaultMessage: 'Close the menu' },
+  headerLanguage: { id: 'publicWeb.header.language', defaultMessage: 'Language' },
+  headerNavHome: { id: 'publicWeb.header.navHome', defaultMessage: 'Home' },
+  headerNavHelp: { id: 'publicWeb.header.navHelp', defaultMessage: 'Help' },
+  headerNavApiReference: {
+    id: 'publicWeb.header.navApiReference',
+    defaultMessage: 'API reference',
+  },
+  headerControlPanel: { id: 'publicWeb.header.controlPanel', defaultMessage: 'Control panel' },
   layoutFooter: {
     id: 'publicWeb.layout.footer',
     defaultMessage: 'Published with CopaLibre — AGPL-3.0',

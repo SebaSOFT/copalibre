@@ -1327,38 +1327,65 @@ function compositions(): string {
     '}',
     '',
     /*
-     * The public header. Brand, locale and toggle hold a stable row; the menu
-     * expands *in flow* underneath it, so the ticker and the page move down
-     * rather than being covered. That is the deliberate difference from the
-     * operator surface's modal drawer, which stays as it is.
+     * The public header.
+     *
+     * One navigation landmark, not two. On a wide viewport it sits in the row
+     * between the brand and the actions; below the medium breakpoint it takes a
+     * whole line of the same wrapping flex row, which is what makes the menu
+     * expand *in page flow* — the ticker and the content below it move down
+     * rather than being covered.
+     *
+     * That is the deliberate difference from the operator surface's modal
+     * drawer, which keeps its overlay, its focus trap and its return-focus
+     * exactly as they are: a dense task surface wants the page held still
+     * behind the menu, and a public results page does not.
      */
     '.cl-public-header { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--cl-surface-base) 92%, transparent); border-block-end: 1px solid var(--cl-border-muted); backdrop-filter: blur(6px); }',
     '',
     '.cl-public-header__row { display: flex; align-items: center; justify-content: space-between; gap: var(--cl-space-3); padding: var(--cl-space-3) var(--cl-space-4); min-width: 0; }',
     '',
-    '.cl-public-header__actions { display: flex; align-items: center; gap: var(--cl-space-2); min-width: 0; }',
+    '.cl-public-header__actions { display: flex; align-items: center; gap: var(--cl-space-2); min-width: 0; flex: 0 0 auto; }',
     '',
-    '.cl-public-header__links { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; }',
+    '.cl-public-header__nav { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; }',
     '',
-    '.cl-public-header__link { color: var(--cl-text-secondary); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); text-decoration: none; overflow-wrap: anywhere; }',
+    // The closed menu is closed for everyone: `hidden` takes its links out of
+    // the tab order, which a `visibility` or an off-screen trick would not.
+    '.cl-public-header__nav[hidden] { display: none; }',
+    '',
+    '.cl-public-header__links { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; margin: 0; padding: 0; list-style: none; }',
+    '',
+    '.cl-public-header__link { display: inline-flex; align-items: center; min-height: var(--cl-touch-target); color: var(--cl-text-secondary); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); text-decoration: none; overflow-wrap: anywhere; }',
     '',
     '.cl-public-header__link:hover, .cl-public-header__link:focus-visible { color: var(--cl-text-primary); }',
     '',
-    '.cl-public-header__drawer { display: grid; gap: var(--cl-space-4); padding: var(--cl-space-4); border-block-start: 1px solid var(--cl-border-muted); }',
+    '.cl-public-header__toggle { display: inline-grid; place-items: center; min-width: var(--cl-touch-target); min-height: var(--cl-touch-target); background: transparent; border: 1px solid var(--cl-border-muted); color: var(--cl-text-primary); cursor: pointer; }',
     '',
-    '.cl-public-header__drawer .cl-public-header__links { flex-direction: column; align-items: stretch; gap: var(--cl-space-3); }',
+    // The icon changes with the state, so the control reads as opened or closed
+    // without relying on the reader remembering which way it was.
+    '.cl-public-header__toggle .cl-public-header__toggle-open { display: none; }',
+    ".cl-public-header__toggle[aria-expanded='true'] .cl-public-header__toggle-open { display: block; }",
+    ".cl-public-header__toggle[aria-expanded='true'] .cl-public-header__toggle-closed { display: none; }",
+    '',
+    // The locale control is a native disclosure, so it opens with no script.
+    '.cl-public-header__locale { position: relative; }',
+    '.cl-public-header__locale > summary { display: inline-grid; place-items: center; min-width: var(--cl-touch-target); min-height: var(--cl-touch-target); padding-inline: var(--cl-space-2); border: 1px solid var(--cl-border-muted); color: var(--cl-text-secondary); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; cursor: pointer; list-style: none; }',
+    '.cl-public-header__locale > summary::-webkit-details-marker { display: none; }',
+    '.cl-public-header__locale-list { position: absolute; inset-inline-end: 0; z-index: 1; display: grid; gap: var(--cl-space-1); margin: var(--cl-space-1) 0 0; padding: var(--cl-space-2); list-style: none; background: var(--cl-surface-chrome); border: 1px solid var(--cl-border-muted); }',
     '',
     /*
-     * Above the small breakpoint the links live in the row and the toggle has
-     * nothing to disclose, so the toggle goes and the drawer never appears.
-     * Below it the row keeps only brand, locale and toggle.
+     * Below the medium breakpoint the navigation takes its own line of the
+     * wrapping row, and the CTA the row already carries is repeated at the end
+     * of it so the primary action is reachable from inside the opened menu too.
      */
-    `@media (max-width: ${BREAKPOINTS.sm}) {`,
-    '  .cl-public-header__row > .cl-public-header__links { display: none; }',
+    `@media (max-width: ${BREAKPOINTS.md}) {`,
+    '  .cl-public-header__row { flex-wrap: wrap; }',
+    '  .cl-public-header__nav { order: 3; flex-basis: 100%; flex-direction: column; align-items: stretch; gap: var(--cl-space-3); padding-block: var(--cl-space-4); border-block-start: 1px solid var(--cl-border-muted); }',
+    '  .cl-public-header__links { flex-direction: column; align-items: stretch; gap: var(--cl-space-2); }',
     '}',
     `@media (min-width: ${BREAKPOINTS.md}) {`,
+    // Nothing to disclose once every link is already in the row.
     '  .cl-public-header__toggle { display: none; }',
-    '  .cl-public-header__drawer { display: none; }',
+    '  .cl-public-header__nav-cta { display: none; }',
     '}',
   ].join('\n');
 }

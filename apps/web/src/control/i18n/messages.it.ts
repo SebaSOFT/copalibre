@@ -1040,4 +1040,17 @@ export const messages: Record<string, string> = {
   'control.dashboard.open': 'Apri',
   'control.dashboard.export': 'Esporta',
   'control.dashboard.resumeEditing': 'Riprendi modifica',
+
+  // 0223 — standings panel chrome, metric availability, module updates.
+  'control.standings.panelDecidedBy': 'Ha deciso questa posizione',
+  'control.standings.tiebreakerSequenceTitle': 'Sequenza di spareggio',
+  'control.standings.rankColumn': 'Posizione',
+  'control.metric.unavailable': 'Non disponibile',
+  'control.metric.demonstration': 'Valore dimostrativo',
+  'control.platform.modules.updateEyebrow': 'Aggiornamento del modulo',
+  'control.platform.modules.updateHeadline': '{alias} {currentVersion} → {latestVersion}',
+  'control.platform.modules.updateKind': 'Tipo di aggiornamento: {upgrade}',
+  'control.platform.modules.updateCalloutTitle': 'Installa questa versione',
+  'control.platform.modules.updateCalloutDescription':
+    'Inserisci l’alias qui sotto e installalo. I moduli si installano tramite l’applicazione di seeding; da questo elenco non viene applicato nulla.',
 };
