@@ -1,5 +1,6 @@
 import { useIntl } from 'react-intl';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '../../lib/language-preference.js';
+import { Select } from '../components/ui/atoms/select.js';
 import { messages } from './messages.en.js';
 
 /**
@@ -33,30 +34,14 @@ export function LanguageSwitcher({
 }): React.JSX.Element {
   const intl = useIntl();
   return (
-    <select
+    <Select
       aria-label={intl.formatMessage(messages.shellLanguage)}
-      className="cl-focusable"
-      onChange={(event) => onChange(event.target.value as SupportedLanguage)}
-      style={selectStyle}
+      onValueChange={(val) => onChange(val as SupportedLanguage)}
+      options={SUPPORTED_LANGUAGES.map((language) => ({
+        value: language,
+        label: LANGUAGE_NAMES[language],
+      }))}
       value={value}
-    >
-      {SUPPORTED_LANGUAGES.map((language) => (
-        <option key={language} value={language}>
-          {LANGUAGE_NAMES[language]}
-        </option>
-      ))}
-    </select>
+    />
   );
 }
-
-const selectStyle: React.CSSProperties = {
-  display: 'block',
-  width: '100%',
-  minHeight: 'var(--cl-touch-target)',
-  marginTop: 'var(--cl-space-3)',
-  background: 'var(--cl-surface-base)',
-  color: 'var(--cl-text-secondary)',
-  border: '1px solid var(--cl-border-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-};

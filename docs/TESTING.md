@@ -71,10 +71,10 @@ Explicitly absent optional methods model unavailable capabilities. Loading promi
 failure fixtures reject. Workflow stories use `play` to enter states through the real controls.
 The existing intl, toast and control-density decorators are reused.
 
-`scripts/covered-control-screens.mjs` is the achieved-coverage register: removing a covered story
-fails `check-ui-ownership.mjs`; adding a story requires extending the register. Uncovered screens
-are allowed, unlike owned library components which all require stories. Run
-`node --test scripts/check-ui-ownership.test.mjs` to exercise both directions.
+`scripts/check-ui-ownership.mjs` derives screen story coverage directly from the filesystem:
+every control component requires a sibling `*.stories.tsx`, excluding only the four explicit categories
+(routers, providers, fixtures, and deferred). Run `node --test scripts/check-ui-ownership.test.mjs`
+to exercise both directions.
 
 Review every state in German at 1440, 767, 374 and 188px, then all eight languages at 188px.
 Read `docs/SCREEN-STORY-REVIEW.md` before interpreting a loading/error example: several existing

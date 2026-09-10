@@ -18,7 +18,10 @@ import {
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
+import { Checkbox } from './ui/atoms/checkbox.js';
+import { FilePicker } from './ui/atoms/file-picker.js';
 import { Input } from './ui/atoms/input.js';
+import { Select } from './ui/atoms/select.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
@@ -418,15 +421,14 @@ export function LoadMatchDataRoute({
                         return (
                           <li key={candidate.personId} className="cl-role-user">
                             <label className="cl-toggle cl-focusable">
-                              <input
+                              <Checkbox
+                                aria-label={candidate.name}
                                 checked={selection.included}
-                                className="cl-checkbox cl-focusable"
-                                onChange={(event) =>
+                                onCheckedChange={(checked) =>
                                   updateSelection(entrantId, candidate.personId, {
-                                    included: event.target.checked,
+                                    included: checked,
                                   })
                                 }
-                                type="checkbox"
                               />
                               <span>{candidate.name}</span>
                             </label>
@@ -441,16 +443,15 @@ export function LoadMatchDataRoute({
                               value={selection.number}
                             />
                             <label className="cl-toggle cl-focusable">
-                              <input
+                              <Checkbox
+                                aria-label={intl.formatMessage(messages.matchConsoleOnField)}
                                 checked={selection.onField}
-                                className="cl-checkbox cl-focusable"
                                 disabled={!selection.included}
-                                onChange={(event) =>
+                                onCheckedChange={(checked) =>
                                   updateSelection(entrantId, candidate.personId, {
-                                    onField: event.target.checked,
+                                    onField: checked,
                                   })
                                 }
-                                type="checkbox"
                               />
                               <span>{intl.formatMessage(messages.matchConsoleOnField)}</span>
                             </label>
@@ -458,18 +459,17 @@ export function LoadMatchDataRoute({
                               <span className="cl-role-user">
                                 {projection.rosterRoles.map((role) => (
                                   <label key={role.code} className="cl-toggle cl-focusable">
-                                    <input
+                                    <Checkbox
+                                      aria-label={role.badge ?? role.code}
                                       checked={selection.roles.includes(role.code)}
-                                      className="cl-checkbox cl-focusable"
                                       disabled={!selection.included}
-                                      onChange={(event) =>
+                                      onCheckedChange={(checked) =>
                                         updateSelection(entrantId, candidate.personId, {
-                                          roles: event.target.checked
+                                          roles: checked
                                             ? [...selection.roles, role.code]
                                             : selection.roles.filter((code) => code !== role.code),
                                         })
                                       }
-                                      type="checkbox"
                                     />
                                     <span>{role.badge ?? role.code}</span>
                                   </label>
@@ -564,42 +564,36 @@ export function LoadMatchDataRoute({
                     id={`event-def-${row.key}`}
                     label={intl.formatMessage(messages.loadMatchDataEventDefinition)}
                   >
-                    <select
+                    <Select
                       aria-label={intl.formatMessage(messages.loadMatchDataEventDefinition)}
-                      className="cl-select cl-select--default cl-focusable"
                       id={`event-def-${row.key}`}
-                      onChange={(event) =>
-                        updateEvent(row.key, { definitionCode: event.target.value })
-                      }
+                      onValueChange={(val) => updateEvent(row.key, { definitionCode: val })}
+                      options={projection.eventDefinitions.map(
+                        (definition: ConsoleEventDefinition) => ({
+                          value: definition.code,
+                          label: resolveLabel(definition.label, language),
+                        }),
+                      )}
                       value={row.definitionCode}
-                    >
-                      {projection.eventDefinitions.map((definition: ConsoleEventDefinition) => (
-                        <option key={definition.code} value={definition.code}>
-                          {resolveLabel(definition.label, language)}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </FormField>
                   <FormField
                     id={`event-seg-${row.key}`}
                     label={intl.formatMessage(messages.loadMatchDataEventSegment)}
                   >
-                    <select
+                    <Select
                       aria-label={intl.formatMessage(messages.loadMatchDataEventSegment)}
-                      className="cl-select cl-select--default cl-focusable"
                       id={`event-seg-${row.key}`}
-                      onChange={(event) =>
-                        updateEvent(row.key, { segmentNumber: event.target.value })
-                      }
+                      onValueChange={(val) => updateEvent(row.key, { segmentNumber: val })}
+                      options={[
+                        { value: '', label: '' },
+                        ...segments.map((segment, segmentIndex) => ({
+                          value: String(segmentIndex + 1),
+                          label: `${segmentIndex + 1}. ${segment.type || '—'}`,
+                        })),
+                      ]}
                       value={row.segmentNumber}
-                    >
-                      <option value="" />
-                      {segments.map((segment, segmentIndex) => (
-                        <option key={segment.key} value={String(segmentIndex + 1)}>
-                          {segmentIndex + 1}. {segment.type || '—'}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </FormField>
                   <FormField
                     id={`event-occurred-${row.key}`}
@@ -617,43 +611,44 @@ export function LoadMatchDataRoute({
                     id={`event-side-${row.key}`}
                     label={intl.formatMessage(messages.loadMatchDataEventSide)}
                   >
-                    <select
+                    <Select
                       aria-label={intl.formatMessage(messages.loadMatchDataEventSide)}
-                      className="cl-select cl-select--default cl-focusable"
                       id={`event-side-${row.key}`}
-                      onChange={(event) => updateEvent(row.key, { side: event.target.value })}
+                      onValueChange={(val) => updateEvent(row.key, { side: val })}
+                      options={[
+                        {
+                          value: '',
+                          label: intl.formatMessage(messages.loadMatchDataEventNoAttribution),
+                        },
+                        ...projection.entrants.map((entrant) => ({
+                          value: entrant.entrantId,
+                          label:
+                            entrant.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant),
+                        })),
+                      ]}
                       value={row.side}
-                    >
-                      <option value="">
-                        {intl.formatMessage(messages.loadMatchDataEventNoAttribution)}
-                      </option>
-                      {projection.entrants.map((entrant) => (
-                        <option key={entrant.entrantId} value={entrant.entrantId}>
-                          {entrant.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </FormField>
                   <FormField
                     id={`event-person-${row.key}`}
                     label={intl.formatMessage(messages.loadMatchDataEventPerson)}
                   >
-                    <select
+                    <Select
                       aria-label={intl.formatMessage(messages.loadMatchDataEventPerson)}
-                      className="cl-select cl-select--default cl-focusable"
                       id={`event-person-${row.key}`}
-                      onChange={(event) => updateEvent(row.key, { personId: event.target.value })}
+                      onValueChange={(val) => updateEvent(row.key, { personId: val })}
+                      options={[
+                        {
+                          value: '',
+                          label: intl.formatMessage(messages.loadMatchDataEventNoAttribution),
+                        },
+                        ...includedMembers.map((member) => ({
+                          value: member.personId,
+                          label: member.name,
+                        })),
+                      ]}
                       value={row.personId}
-                    >
-                      <option value="">
-                        {intl.formatMessage(messages.loadMatchDataEventNoAttribution)}
-                      </option>
-                      {includedMembers.map((member) => (
-                        <option key={member.personId} value={member.personId}>
-                          {member.name}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </FormField>
                   <FormField
                     id={`event-notes-${row.key}`}
@@ -711,20 +706,16 @@ export function LoadMatchDataRoute({
             {intl.formatMessage(messages.loadMatchDataCsvHelp)}
           </p>
           <div className="cl-role-user">
-            <label className="cl-btn cl-btn--secondary cl-focusable">
-              {intl.formatMessage(messages.loadMatchDataCsvChooseFile)}
-              <input
-                accept=".csv,text/csv"
-                aria-label={intl.formatMessage(messages.loadMatchDataCsvChooseFile)}
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) loadCsv(file);
-                  event.target.value = '';
-                }}
-                style={{ display: 'none' }}
-                type="file"
-              />
-            </label>
+            <FilePicker
+              accept=".csv,text/csv"
+              aria-label={intl.formatMessage(messages.loadMatchDataCsvChooseFile)}
+              id="load-match-data-csv"
+              label={intl.formatMessage(messages.loadMatchDataCsvChooseFile)}
+              onChange={(files) => {
+                const file = files?.[0];
+                if (file) loadCsv(file);
+              }}
+            />
             <Button onClick={() => downloadCsvTemplate()} type="button" variant="secondary">
               <FormattedMessage {...messages.loadMatchDataCsvDownloadTemplate} />
             </Button>
@@ -760,20 +751,19 @@ export function LoadMatchDataRoute({
         </header>
         <div className="cl-card__content">
           <FormField id="match-winner" label={intl.formatMessage(messages.loadMatchDataWinner)}>
-            <select
+            <Select
               aria-label={intl.formatMessage(messages.loadMatchDataWinner)}
-              className="cl-select cl-select--default cl-focusable"
               id="match-winner"
-              onChange={(event) => setWinnerEntrantId(event.target.value)}
+              onValueChange={(val) => setWinnerEntrantId(val)}
+              options={[
+                { value: '', label: intl.formatMessage(messages.loadMatchDataNoWinnerDraw) },
+                ...projection.entrants.map((entrant) => ({
+                  value: entrant.entrantId,
+                  label: entrant.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant),
+                })),
+              ]}
               value={winnerEntrantId}
-            >
-              <option value="">{intl.formatMessage(messages.loadMatchDataNoWinnerDraw)}</option>
-              {projection.entrants.map((entrant) => (
-                <option key={entrant.entrantId} value={entrant.entrantId}>
-                  {entrant.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
-                </option>
-              ))}
-            </select>
+            />
           </FormField>
         </div>
         <footer className="cl-card__footer">

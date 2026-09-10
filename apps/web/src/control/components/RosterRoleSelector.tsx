@@ -1,4 +1,5 @@
 import type { PlayerRole } from '@copalibre/domain';
+import { Select } from './ui/atoms/select.js';
 import { FormField } from './ui/molecules/form-field.js';
 
 export interface RosterMemberItem {
@@ -80,21 +81,18 @@ export function RosterRoleSelector({
               id={`role-select-${member.personId}`}
               label={`Rol de ${member.displayName || member.personId}`}
             >
-              <select
+              <Select
                 aria-label={`Rol de ${member.displayName || member.personId}`}
-                className="cl-select cl-select--default cl-focusable"
                 data-testid={`role-select-${member.personId}`}
                 disabled={disabled}
                 id={`role-select-${member.personId}`}
-                onChange={(e) => handleRoleChange(member.personId, e.target.value as PlayerRole)}
+                onValueChange={(val) => handleRoleChange(member.personId, val as PlayerRole)}
+                options={ROSTER_ROLES.map((role) => ({
+                  value: role,
+                  label: ROSTER_ROLE_LABELS[role],
+                }))}
                 value={member.role}
-              >
-                {ROSTER_ROLES.map((role) => (
-                  <option key={role} value={role}>
-                    {ROSTER_ROLE_LABELS[role]}
-                  </option>
-                ))}
-              </select>
+              />
             </FormField>
           </div>
         </div>

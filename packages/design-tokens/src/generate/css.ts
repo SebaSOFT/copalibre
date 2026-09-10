@@ -16,12 +16,13 @@ import {
   BUTTON_VARIANTS,
   CARD_STATES,
   CHECKBOX_TOKENS,
+  RADIO_TOKENS,
+  FILE_PICKER_TOKENS,
   DIALOG_TOKENS,
   FOCUS_RING,
   INPUT_TOKENS,
   SELECT_TOKENS,
   TEXTAREA_TOKENS,
-  type FormControlState,
   type FormControlTokenSet,
 } from '../components.js';
 import { SEMANTIC_COLORS, type SemanticColor } from '../semantic.js';
@@ -173,6 +174,9 @@ function surfaceLevels(): string {
     '',
     '/* Chrome lifts wherever it sits, so a header reads as a header at any depth. */',
     ':where(.cl-chrome, .cl-card__header, .cl-card__footer) { background: var(--cl-surface-chrome); }',
+    '',
+    '/* Under the broadcast surface, constrain to a single alternation step. */',
+    ':where([data-surface="broadcast"], .cl-broadcast, .tv-root-container) :where(.cl-card, .cl-well) :where(.cl-card, .cl-well) { background: var(--cl-surface-panel); }',
     '',
     // Every boundary carries the border the semantic contract already requires
     // of a panel, so two levels never rely on their fill difference alone.
@@ -493,6 +497,59 @@ function components(): string {
     '  outline-offset: 2px;',
     '}',
     '.cl-checkbox__indicator { color: var(--cl-state-live); }',
+    '.cl-radio {',
+    '  display: inline-flex;',
+    '  align-items: center;',
+    '  justify-content: center;',
+    '  width: var(--cl-touch-target);',
+    '  height: var(--cl-touch-target);',
+    '  border: 1px solid;',
+    '}',
+    '.cl-radio__indicator {',
+    '  width: 0.5rem;',
+    '  height: 0.5rem;',
+    '  background-color: var(--cl-state-live);',
+    '}',
+    '.cl-radio-group {',
+    '  display: flex;',
+    '  flex-direction: column;',
+    '  gap: var(--cl-space-2);',
+    '}',
+    '.cl-file-picker {',
+    '  display: flex;',
+    '  flex-direction: column;',
+    '  gap: var(--cl-space-2);',
+    '}',
+    '.cl-file-picker__zone {',
+    '  display: flex;',
+    '  flex-direction: column;',
+    '  align-items: center;',
+    '  justify-content: center;',
+    '  padding: var(--cl-space-4);',
+    '  border: 1px dashed var(--cl-border-muted);',
+    '  cursor: pointer;',
+    '  background: var(--cl-surface-panel);',
+    '  min-height: var(--cl-touch-target);',
+    '  transition: border-color var(--cl-motion-fast), background var(--cl-motion-fast);',
+    '}',
+    '.cl-file-picker__zone:hover {',
+    '  border-color: var(--cl-border-hover);',
+    '}',
+    '.cl-file-picker__zone:focus-visible {',
+    '  outline: 2px solid var(--cl-focus-ring);',
+    '  outline-offset: 2px;',
+    '}',
+    '.cl-file-picker__input {',
+    '  position: absolute;',
+    '  width: 1px;',
+    '  height: 1px;',
+    '  padding: 0;',
+    '  margin: -1px;',
+    '  overflow: hidden;',
+    '  clip: rect(0, 0, 0, 0);',
+    '  white-space: nowrap;',
+    '  border-width: 0;',
+    '}',
     /*
      * Checkboxes and radios cut all four corners, unlike every other surface,
      * which cuts one diagonal pair. A 20px box carrying an asymmetric cut reads
@@ -503,9 +560,13 @@ function components(): string {
      * twenty-pixel box leaves a diamond.
      */
     '@supports (corner-shape: bevel) {',
-    // The 44px target the Checkbox atom renders — a Radix `<button
-    // role="checkbox">`, not an `<input>`, so this keys on the class.
-    '  .cl-checkbox {',
+    // The 44px target the Checkbox and Radio atoms render — Radix `<button>`,
+    // not an `<input>`, so this keys on the class.
+    '  .cl-checkbox, .cl-radio {',
+    '    corner-shape: bevel;',
+    '    border-radius: var(--cl-radius-chamfer-control);',
+    '  }',
+    '  .cl-file-picker__zone {',
     '    corner-shape: bevel;',
     '    border-radius: var(--cl-radius-chamfer-control);',
     '  }',
@@ -1026,22 +1087,27 @@ function components(): string {
 
 /** One state-keyed rule block per form-control atom. */
 function formControls(): string {
-  const groups: readonly [string, Record<FormControlState, FormControlTokenSet>][] = [
+  const groups: readonly [string, Record<string, FormControlTokenSet>][] = [
     ['input', INPUT_TOKENS],
     ['select', SELECT_TOKENS],
     ['textarea', TEXTAREA_TOKENS],
     ['checkbox', CHECKBOX_TOKENS],
+    ['radio', RADIO_TOKENS],
+    ['file-picker', FILE_PICKER_TOKENS],
   ];
 
   return groups
     .map(([atom, states]) =>
-      (Object.entries(states) as [FormControlState, FormControlTokenSet][])
+      (Object.entries(states) as [string, FormControlTokenSet][])
         .map(([state, tokens]) =>
           [
             `.cl-${atom}--${state} {`,
             `  background: var(--cl-${tokens.background});`,
             `  color: var(--cl-${tokens.text});`,
             `  border-color: var(--cl-${tokens.border});`,
+            ...(tokens.focusRing
+              ? [`  --cl-control-focus-ring: var(--cl-${tokens.focusRing});`]
+              : []),
             '}',
           ].join('\n'),
         )

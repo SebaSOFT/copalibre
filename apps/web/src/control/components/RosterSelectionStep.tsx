@@ -12,6 +12,7 @@ import { currentEpochMilliseconds, newIdempotencyKey } from '../lib/match-consol
 import { drainQueue, enqueue } from '../lib/offline-queue.js';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
+import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
 import { messages } from '../i18n/messages.en.js';
 
@@ -202,13 +203,10 @@ function EntrantRosterEditor({
           return (
             <li key={candidate.personId} style={rowStyle}>
               <label style={checkboxLabelStyle}>
-                <input
+                <Checkbox
+                  aria-label={candidate.name}
                   checked={selection.included}
-                  className="cl-checkbox cl-focusable"
-                  onChange={(event) =>
-                    update(candidate.personId, { included: event.target.checked })
-                  }
-                  type="checkbox"
+                  onCheckedChange={(checked) => update(candidate.personId, { included: checked })}
                 />
                 {candidate.name}
               </label>
@@ -223,14 +221,11 @@ function EntrantRosterEditor({
                 value={selection.number}
               />
               <label style={checkboxLabelStyle}>
-                <input
+                <Checkbox
+                  aria-label={intl.formatMessage(messages.matchConsoleOnField)}
                   checked={selection.onField}
-                  className="cl-checkbox cl-focusable"
                   disabled={!selection.included}
-                  onChange={(event) =>
-                    update(candidate.personId, { onField: event.target.checked })
-                  }
-                  type="checkbox"
+                  onCheckedChange={(checked) => update(candidate.personId, { onField: checked })}
                 />
                 {intl.formatMessage(messages.matchConsoleOnField)}
               </label>
@@ -238,18 +233,17 @@ function EntrantRosterEditor({
                 <span style={roleRowStyle}>
                   {rosterRoles.map((role) => (
                     <label key={role.code} style={checkboxLabelStyle}>
-                      <input
+                      <Checkbox
+                        aria-label={role.badge ?? role.code}
                         checked={selection.roles.includes(role.code)}
-                        className="cl-checkbox cl-focusable"
                         disabled={!selection.included}
-                        onChange={(event) =>
+                        onCheckedChange={(checked) =>
                           update(candidate.personId, {
-                            roles: event.target.checked
+                            roles: checked
                               ? [...selection.roles, role.code]
                               : selection.roles.filter((code) => code !== role.code),
                           })
                         }
-                        type="checkbox"
                       />
                       {role.badge ?? role.code}
                     </label>

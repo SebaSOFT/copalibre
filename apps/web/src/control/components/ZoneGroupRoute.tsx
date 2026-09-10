@@ -14,6 +14,8 @@ import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
+import { RadioGroup, RadioGroupItem } from './ui/atoms/radio.js';
+import { Select } from './ui/atoms/select.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
@@ -461,30 +463,25 @@ export function ZoneGroupRoute({
           </h2>
         </header>
         <div className="cl-card__content">
-          <div className="cl-role-user">
+          <RadioGroup
+            className="cl-role-user"
+            name="zone-assign-mode"
+            onValueChange={(val) => setZoneMode(val as AssignMode)}
+            value={zoneMode}
+          >
             <label className="cl-toggle cl-focusable">
-              <input
-                checked={zoneMode === 'draw'}
-                name="zone-assign-mode"
-                onChange={() => setZoneMode('draw')}
-                type="radio"
-              />
+              <RadioGroupItem id="zone-mode-draw" value="draw" />
               <span>
                 <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
               </span>
             </label>
             <label className="cl-toggle cl-focusable">
-              <input
-                checked={zoneMode === 'manual'}
-                name="zone-assign-mode"
-                onChange={() => setZoneMode('manual')}
-                type="radio"
-              />
+              <RadioGroupItem id="zone-mode-manual" value="manual" />
               <span>
                 <FormattedMessage {...messages.zoneGroupManualPlacement} />
               </span>
             </label>
-          </div>
+          </RadioGroup>
 
           {zoneMode === 'draw' ? (
             <div className="cl-platform-form-grid">
@@ -559,19 +556,16 @@ export function ZoneGroupRoute({
       {zones.length > 0 && (
         <>
           <FormField id="zone-select" label={intl.formatMessage(messages.zoneGroupSelectZone)}>
-            <select
+            <Select
               aria-label={intl.formatMessage(messages.zoneGroupSelectZone)}
-              className="cl-select cl-select--default cl-focusable"
               id="zone-select"
-              onChange={(event) => setSelectedZoneNumber(Number(event.target.value))}
-              value={selectedZoneNumber ?? ''}
-            >
-              {zones.map((zone) => (
-                <option key={zone.number} value={zone.number}>
-                  {zone.name}
-                </option>
-              ))}
-            </select>
+              onValueChange={(val) => setSelectedZoneNumber(Number(val))}
+              options={zones.map((zone) => ({
+                value: String(zone.number),
+                label: zone.name,
+              }))}
+              value={selectedZoneNumber !== undefined ? String(selectedZoneNumber) : ''}
+            />
           </FormField>
 
           <Card
@@ -654,30 +648,25 @@ export function ZoneGroupRoute({
               </h2>
             </header>
             <div className="cl-card__content">
-              <div className="cl-role-user">
+              <RadioGroup
+                className="cl-role-user"
+                name="group-assign-mode"
+                onValueChange={(val) => setGroupMode(val as AssignMode)}
+                value={groupMode}
+              >
                 <label className="cl-toggle cl-focusable">
-                  <input
-                    checked={groupMode === 'draw'}
-                    name="group-assign-mode"
-                    onChange={() => setGroupMode('draw')}
-                    type="radio"
-                  />
+                  <RadioGroupItem id="group-mode-draw" value="draw" />
                   <span>
                     <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
                   </span>
                 </label>
                 <label className="cl-toggle cl-focusable">
-                  <input
-                    checked={groupMode === 'manual'}
-                    name="group-assign-mode"
-                    onChange={() => setGroupMode('manual')}
-                    type="radio"
-                  />
+                  <RadioGroupItem id="group-mode-manual" value="manual" />
                   <span>
                     <FormattedMessage {...messages.zoneGroupManualPlacement} />
                   </span>
                 </label>
-              </div>
+              </RadioGroup>
 
               {groupMode === 'draw' ? (
                 <div className="cl-platform-form-grid">

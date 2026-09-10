@@ -18,6 +18,7 @@ import {
 } from '../lib/table-projections.js';
 import { messages } from '../i18n/messages.en.js';
 import { Button } from './ui/atoms/button.js';
+import { Select } from './ui/atoms/select.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
@@ -201,19 +202,16 @@ export function StandingsPage({
 
       {groupSelector && (
         <FormField id="standings-group" label={intl.formatMessage(messages.standingsGroupSelector)}>
-          <select
+          <Select
             aria-label={intl.formatMessage(messages.standingsGroupSelector)}
-            className="cl-select cl-select--default cl-focusable"
             id="standings-group"
-            onChange={(event) => groupSelector.onSelect(event.target.value)}
+            onValueChange={groupSelector.onSelect}
+            options={groupSelector.options.map((option) => ({
+              value: option.groupId,
+              label: option.label,
+            }))}
             value={groupSelector.selectedGroupId ?? ''}
-          >
-            {groupSelector.options.map((option) => (
-              <option key={option.groupId} value={option.groupId}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          />
         </FormField>
       )}
     </div>

@@ -10,7 +10,9 @@ import type {
 } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 import { Button } from './ui/atoms/button.js';
+import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
+import { Select } from './ui/atoms/select.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
@@ -263,25 +265,23 @@ function RoleSelect({
   readonly onChange: (role: OrganizationRole) => void;
 }): React.JSX.Element {
   const intl = useIntl();
+  const roles = assignableRoles.includes(row.role)
+    ? assignableRoles
+    : [row.role, ...assignableRoles];
   return (
-    <select
+    <Select
       aria-label={intl.formatMessage(messages.rolesRoleOf, { email: row.email })}
-      className="cl-select cl-select--default cl-focusable"
       disabled={disabled}
-      onChange={(event) => onChange(event.target.value as OrganizationRole)}
+      onValueChange={(val) => onChange(val as OrganizationRole)}
+      options={roles.map((role) => ({
+        value: role,
+        label: intl.formatMessage(ROLE_LABEL[role]),
+      }))}
       title={
         isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
       }
       value={row.role}
-    >
-      {(assignableRoles.includes(row.role) ? assignableRoles : [row.role, ...assignableRoles]).map(
-        (role) => (
-          <option key={role} value={role}>
-            {intl.formatMessage(ROLE_LABEL[role])}
-          </option>
-        ),
-      )}
-    </select>
+    />
   );
 }
 
@@ -299,16 +299,14 @@ function RoleStatusToggle({
   const intl = useIntl();
   return (
     <label className="cl-role-status">
-      <input
+      <Checkbox
         aria-label={intl.formatMessage(messages.rolesStatusOf, { email: row.email })}
         checked={row.status === 'active'}
-        className="cl-checkbox cl-focusable"
         disabled={disabled}
-        onChange={(event) => onChange(event.target.checked ? 'active' : 'inactive')}
+        onCheckedChange={(checked) => onChange(checked ? 'active' : 'inactive')}
         title={
           isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
         }
-        type="checkbox"
       />
       <span
         className={row.status === 'active' ? 'cl-role-status--active' : 'cl-role-status--inactive'}
@@ -429,37 +427,33 @@ export function InviteDialog({
           />
         </FormField>
         <FormField id="invite-role" label={intl.formatMessage(messages.rolesInviteDialogRole)}>
-          <select
+          <Select
             aria-label={intl.formatMessage(messages.rolesInviteDialogRoleAriaLabel)}
-            className="cl-select cl-select--default cl-focusable"
             id="invite-role"
-            onChange={(event) => setRole(event.target.value as OrganizationRole)}
+            onValueChange={(val) => setRole(val as OrganizationRole)}
+            options={assignableRoles.map((one) => ({
+              value: one,
+              label: intl.formatMessage(ROLE_LABEL[one]),
+            }))}
             value={role}
-          >
-            {assignableRoles.map((one) => (
-              <option key={one} value={one}>
-                {intl.formatMessage(ROLE_LABEL[one])}
-              </option>
-            ))}
-          </select>
+          />
         </FormField>
         {role === 'club-admin' && (
           <FormField id="invite-club" label={intl.formatMessage(messages.rolesInviteDialogClub)}>
-            <select
+            <Select
               aria-label={intl.formatMessage(messages.rolesInviteDialogClubAriaLabel)}
-              className="cl-select cl-select--default cl-focusable"
               id="invite-club"
-              onChange={(event) => setClubId(event.target.value)}
+              onValueChange={(val) => setClubId(val)}
+              options={[
+                { value: '', label: '' },
+                ...clubs.map((club) => ({
+                  value: club.clubId,
+                  label: club.name,
+                })),
+              ]}
               required
               value={clubId}
-            >
-              <option value="" />
-              {clubs.map((club) => (
-                <option key={club.clubId} value={club.clubId}>
-                  {club.name}
-                </option>
-              ))}
-            </select>
+            />
           </FormField>
         )}
         {role === 'tournament-admin' && (
@@ -467,30 +461,24 @@ export function InviteDialog({
             id="invite-tournament"
             label={intl.formatMessage(messages.rolesInviteDialogTournament)}
           >
-            <select
+            <Select
               aria-label={intl.formatMessage(messages.rolesInviteDialogTournamentAriaLabel)}
-              className="cl-select cl-select--default cl-focusable"
               id="invite-tournament"
-              onChange={(event) => setTournamentId(event.target.value)}
+              onValueChange={(val) => setTournamentId(val)}
+              options={[
+                { value: '', label: '' },
+                ...tournaments.map((tournament) => ({
+                  value: tournament.tournamentId,
+                  label: tournament.name,
+                })),
+              ]}
               required
               value={tournamentId}
-            >
-              <option value="" />
-              {tournaments.map((tournament) => (
-                <option key={tournament.tournamentId} value={tournament.tournamentId}>
-                  {tournament.name}
-                </option>
-              ))}
-            </select>
+            />
           </FormField>
         )}
         <label className="cl-toggle cl-focusable">
-          <input
-            checked={active}
-            className="cl-checkbox cl-focusable"
-            onChange={(event) => setActive(event.target.checked)}
-            type="checkbox"
-          />
+          <Checkbox checked={active} onCheckedChange={(checked) => setActive(checked)} />
           <span>
             <FormattedMessage {...messages.rolesInviteDialogActiveOnAccept} />
           </span>

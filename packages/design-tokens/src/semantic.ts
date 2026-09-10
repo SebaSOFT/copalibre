@@ -42,6 +42,11 @@ export const SEMANTIC_COLORS = {
   },
   'surface-base': { primitive: 'ink-950', purpose: 'Broadcast base', nonColourCue: 'n/a' },
   'surface-panel': { primitive: 'ink-900', purpose: 'Panel', nonColourCue: 'n/a' },
+  'surface-content': {
+    primitive: 'ink-900',
+    purpose: 'Content surface alternating against its band',
+    nonColourCue: 'Border',
+  },
   'surface-raised': { primitive: 'ink-850', purpose: 'Raised or selected', nonColourCue: 'Border' },
   /**
    * Chrome: a panel header, a footer, a chip, a tag, an icon well. It lifts to

@@ -42,7 +42,7 @@ export function CardContent({
   className = '',
   ...rest
 }: HTMLAttributes<HTMLDivElement>): React.JSX.Element {
-  return <div className={`cl-card__content ${className}`} {...rest} />;
+  return <div className={`cl-card__content cl-card__body ${className}`} {...rest} />;
 }
 
 export function CardFooter({
@@ -50,4 +50,11 @@ export function CardFooter({
   ...rest
 }: HTMLAttributes<HTMLDivElement>): React.JSX.Element {
   return <div className={`cl-card__footer ${className}`} {...rest} />;
+}
+
+export function CardSection({
+  className = '',
+  ...rest
+}: HTMLAttributes<HTMLElement>): React.JSX.Element {
+  return <section className={`cl-band ${className}`} {...rest} />;
 }

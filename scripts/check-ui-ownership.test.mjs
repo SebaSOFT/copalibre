@@ -12,28 +12,40 @@ test('registered screen coverage matches the repository', () => {
   assert.deepEqual(checkScreenStoryCoverage(root), []);
 });
 
-test('screens ratchet both ways without gating uncovered screens', () => {
+test('screens require stories based on the filesystem, excluding categories (design.md)', () => {
   const root = mkdtempSync(join(tmpdir(), 'screen-coverage-'));
   writeFileSync(join(root, 'Uncovered.tsx'), 'export function Uncovered() { return null; }');
-  assert.deepEqual(checkScreenStoryCoverage(root, []), []);
-  writeFileSync(join(root, 'Covered.tsx'), 'export function Covered() { return null; }');
-  assert.equal(checkScreenStoryCoverage(root, ['Covered.tsx']).length, 1);
-  writeFileSync(join(root, 'Covered.stories.tsx'), 'export default {};');
-  assert.deepEqual(checkScreenStoryCoverage(root, ['Covered.tsx']), []);
-  assert.match(checkScreenStoryCoverage(root, [])[0].message, /extend the register/);
+  const violations = checkScreenStoryCoverage(root);
+  assert.equal(violations.length, 1);
+  assert.match(violations[0].message, /Uncovered\.tsx has no Uncovered\.stories\.tsx/);
+
+  writeFileSync(join(root, 'Uncovered.stories.tsx'), 'export default {};');
+  assert.deepEqual(checkScreenStoryCoverage(root), []);
 });
 
-test('a registered screen cannot lose its source or directory', () => {
-  const root = mkdtempSync(join(tmpdir(), 'screen-source-'));
-  writeFileSync(join(root, 'Gone.stories.tsx'), 'export default {};');
-  assert.equal(checkScreenStoryCoverage(root, ['Gone.tsx']).length, 1);
-  assert.equal(checkScreenStoryCoverage(join(root, 'absent'), ['Gone.tsx']).length, 1);
+test('excluded categories require no story: routers, providers, and test fixtures', () => {
+  const root = mkdtempSync(join(tmpdir(), 'screen-exclusions-'));
+  // Category (b): Routers or route tables
+  writeFileSync(join(root, 'ControlRoutes.tsx'), 'export function ControlRoutes() {}');
+  writeFileSync(join(root, 'NativeAuthRoutes.tsx'), 'export function NativeAuthRoutes() {}');
+  writeFileSync(join(root, 'ControlOrNotFound.tsx'), 'export function ControlOrNotFound() {}');
+  // Category (c): Context providers and composition roots
+  writeFileSync(join(root, 'ControlApp.tsx'), 'export function ControlApp() {}');
+  writeFileSync(join(root, 'ToastProvider.tsx'), 'export function ToastProvider() {}');
+  writeFileSync(join(root, 'ControlIntl.tsx'), 'export function ControlIntl() {}');
+  // Category (a): Test and fixture modules
+  writeFileSync(join(root, 'screen-story-fixtures.ts'), 'export const fixtures = {};');
+
+  assert.deepEqual(checkScreenStoryCoverage(root), []);
 });
 
 test('valid component with owned primitives reports zero violations', () => {
   const cleanCode = `
     import { Button } from './ui/atoms/button.js';
     import { Input } from './ui/atoms/input.js';
+    import { Checkbox } from './ui/atoms/checkbox.js';
+    import { FilePicker } from './ui/atoms/file-picker.js';
+    import { RadioGroup, RadioGroupItem } from './ui/atoms/radio.js';
     import { Modal } from './ui/organisms/modal.js';
     import { DataTable } from './ui/organisms/data-table.js';
     import { Textarea } from './ui/atoms/textarea.js';
@@ -44,12 +56,11 @@ test('valid component with owned primitives reports zero violations', () => {
           <Input value="hello" onChange={() => {}} />
           <Textarea value="details" />
           <Button variant="primary">Submit</Button>
-          <label className="cl-toggle cl-focusable">
-            <input type="checkbox" className="cl-checkbox cl-focusable" />
-            <span>Accept</span>
-          </label>
-          <input type="file" onChange={() => {}} />
-          <input type="radio" name="plan" />
+          <Checkbox checked={true} onCheckedChange={() => {}} />
+          <FilePicker label="Upload" onChange={() => {}} />
+          <RadioGroup value="plan" onValueChange={() => {}}>
+            <RadioGroupItem value="a" />
+          </RadioGroup>
         </Modal>
       );
     }
@@ -124,11 +135,9 @@ test('raw <button> in allowed exception files passes', () => {
   assert.equal(checkFileOwnership('control/components/JerseyGrid.tsx', code).length, 0);
   assert.equal(checkFileOwnership('control/components/CountrySelect.tsx', code).length, 0);
   assert.equal(checkFileOwnership('control/components/ToastProvider.tsx', code).length, 0);
-  // StandingsPage.tsx also carries 1 raw governed element and 2 owned classes
-  // in the registers, so the fixture has to satisfy both while this test
-  // exercises the button exception. The registers are independent; meeting one
-  // is not meeting the others.
-  const withRecordedClasses = `${code}\n<select />\n<div className="cl-card" /><span className="cl-badge" />`;
+  // StandingsPage.tsx carries 2 owned classes in the registers, so the fixture
+  // has to satisfy that while this test exercises the button exception.
+  const withRecordedClasses = `${code}\n<div className="cl-card" /><span className="cl-badge" />`;
   assert.equal(
     checkFileOwnership('control/components/StandingsPage.tsx', withRecordedClasses).length,
     0,
@@ -186,11 +195,23 @@ test('sees an element Prettier wrapped across lines, not only a single-line one'
   assert.equal(checkFileOwnership('Wrapped.tsx', wrapped)[0].line, 2);
 });
 
-test('a wrapped checkbox, radio or file input stays exempt', () => {
+test('raw checkbox, radio, and file inputs trigger violations naming their atom', () => {
   const wrappedCheckbox = ['<input', '  className="cl-checkbox"', '  type="checkbox"', '/>'].join(
     '\n',
   );
-  assert.equal(checkFileOwnership('Toggles.tsx', wrappedCheckbox).length, 0);
+  const checkboxViolations = checkFileOwnership('Toggles.tsx', wrappedCheckbox);
+  assert.equal(checkboxViolations.length, 1);
+  assert.match(checkboxViolations[0].message, /`Checkbox` atom/);
+
+  const radio = '<input type="radio" value="x" />';
+  const radioViolations = checkFileOwnership('Toggles.tsx', radio);
+  assert.equal(radioViolations.length, 1);
+  assert.match(radioViolations[0].message, /`Radio` atom/);
+
+  const file = '<input type="file" />';
+  const fileViolations = checkFileOwnership('Toggles.tsx', file);
+  assert.equal(fileViolations.length, 1);
+  assert.match(fileViolations[0].message, /`FilePicker` atom/);
 });
 
 test('an element named only in a comment is not a violation', () => {
@@ -209,10 +230,15 @@ test('a URL is not mistaken for a line comment when blanking comments', () => {
 
 test('the raw-element debt register admits its recorded count and nothing beyond it', () => {
   const input = ['<input', '  type="text"', '/>'].join('\n');
-  // control/components/PreferencesRoute.tsx is recorded at 1.
-  assert.equal(checkFileOwnership('control/components/PreferencesRoute.tsx', input).length, 0);
+  const threeInputs = [input, input, input].join('\n');
+  // control/components/TournamentRulesetPage.tsx is recorded at 3.
   assert.equal(
-    checkFileOwnership('control/components/PreferencesRoute.tsx', `${input}\n${input}`).length,
+    checkFileOwnership('control/components/TournamentRulesetPage.tsx', threeInputs).length,
+    0,
+  );
+  assert.equal(
+    checkFileOwnership('control/components/TournamentRulesetPage.tsx', `${threeInputs}\n${input}`)
+      .length,
     1,
   );
   // An unlisted file gets no allowance at all.
@@ -221,11 +247,11 @@ test('the raw-element debt register admits its recorded count and nothing beyond
 
 test('the debt register ratchets: improving below the recorded count asks for it to be lowered', () => {
   const violations = checkFileOwnership(
-    'control/components/PreferencesRoute.tsx',
+    'control/components/TournamentRulesetPage.tsx',
     'const nothing = 1;',
   );
   assert.equal(violations.length, 1);
-  assert.match(violations[0].message, /fewer than the 1 recorded/);
+  assert.match(violations[0].message, /fewer than the 3 recorded/);
 });
 
 test('a hand-written owned class is a violation, the way a raw element is', () => {
@@ -275,13 +301,13 @@ test('the owned-class register ratchets down, naming its own register', () => {
 });
 
 test('the two registers ratchet independently on the same file', () => {
-  // control/components/LoadMatchDataRoute.tsx is recorded at 9 raw governed
+  // control/components/SeedingBuilderRoute.tsx is recorded at 5 raw governed
   // elements and 2 owned classes. Meeting one register while missing the other
   // reports only the one missed.
   const input = ['<input', '  type="text"', '/>'].join('\n');
   const violations = checkFileOwnership(
-    'control/components/LoadMatchDataRoute.tsx',
-    [...Array(9).fill(input), '<div className="cl-card" />'].join('\n'),
+    'control/components/SeedingBuilderRoute.tsx',
+    [...Array(5).fill(input), '<div className="cl-card" />'].join('\n'),
   );
   assert.equal(violations.length, 1);
   assert.match(violations[0].message, /KNOWN_HANDWRITTEN_CLASSES/);

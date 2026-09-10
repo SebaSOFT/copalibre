@@ -61,3 +61,50 @@ export const Bare: Story = {
     return <Card>{intl.formatMessage(storyText.loading)}</Card>;
   },
 };
+
+/**
+ * Renders the same card on a dark and light band, with lifted chrome and
+ * a selected container beside them (task 2.5).
+ */
+export const AlternationAndChrome: Story = {
+  render: function Render() {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div
+          className="cl-band cl-chamfer"
+          style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
+        >
+          <h4>Panel Band (.cl-band)</h4>
+          <Card>
+            <CardHeader>
+              <CardTitle>Header lifts to chrome</CardTitle>
+            </CardHeader>
+            <CardContent>Body drops to base</CardContent>
+            <CardFooter>Footer is chrome</CardFooter>
+          </Card>
+        </div>
+        <div
+          className="cl-band cl-band--base cl-chamfer"
+          style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
+        >
+          <h4>Base Band (.cl-band--base)</h4>
+          <Card>
+            <CardHeader>
+              <CardTitle>Header lifts to chrome</CardTitle>
+            </CardHeader>
+            <CardContent>Body lifts to panel</CardContent>
+            <CardFooter>Footer is chrome</CardFooter>
+          </Card>
+        </div>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div className="cl-chrome cl-chamfer" style={{ padding: '1rem' }}>
+            Lifted Chrome
+          </div>
+          <div className="cl-card--live cl-chamfer" style={{ padding: '1rem' }}>
+            Selected Container
+          </div>
+        </div>
+      </div>
+    );
+  },
+};

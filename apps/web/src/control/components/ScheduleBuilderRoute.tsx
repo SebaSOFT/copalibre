@@ -21,6 +21,8 @@ import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
+import { Checkbox } from './ui/atoms/checkbox.js';
+import { Select } from './ui/atoms/select.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
@@ -463,33 +465,29 @@ export function ScheduleBuilderRoute({
                           id={`slot-${row.matchId}`}
                           label={intl.formatMessage(messages.scheduleBuilderStartTime)}
                         >
-                          <select
+                          <Select
                             aria-label={`${intl.formatMessage(messages.scheduleBuilderStartTime)} — ${rowLabel}`}
-                            className="cl-select cl-select--default cl-focusable"
                             id={`slot-${row.matchId}`}
-                            onChange={(event) =>
-                              setDraft(row.matchId, { slotId: event.target.value })
-                            }
+                            onValueChange={(val) => setDraft(row.matchId, { slotId: val })}
+                            options={[
+                              {
+                                value: '',
+                                label: intl.formatMessage(messages.scheduleBuilderUnassigned),
+                              },
+                              ...allSlots.map((slot) => {
+                                const venue = venues.find((v) => v.venueId === slot.venueId);
+                                const isOccupied =
+                                  slot.matchCount >= (venue?.concurrentCapacity ?? 1) &&
+                                  draft.slotId !== slot.slotId;
+                                return {
+                                  value: slot.slotId,
+                                  label: `${new Date(slot.startsAt).toISOString().slice(0, 16)}${venue ? ` @ ${venue.name}` : ''} (${slot.matchCount}/${venue?.concurrentCapacity ?? 1})${isOccupied ? ' (Full)' : ''}`,
+                                  disabled: isOccupied,
+                                };
+                              }),
+                            ]}
                             value={draft.slotId}
-                          >
-                            <option value="">
-                              {intl.formatMessage(messages.scheduleBuilderUnassigned)}
-                            </option>
-                            {allSlots.map((slot) => {
-                              const venue = venues.find((v) => v.venueId === slot.venueId);
-                              const isOccupied =
-                                slot.matchCount >= (venue?.concurrentCapacity ?? 1) &&
-                                draft.slotId !== slot.slotId;
-                              return (
-                                <option key={slot.slotId} disabled={isOccupied} value={slot.slotId}>
-                                  {new Date(slot.startsAt).toISOString().slice(0, 16)}
-                                  {venue ? ` @ ${venue.name}` : ''}
-                                  {` (${slot.matchCount}/${venue?.concurrentCapacity ?? 1})`}
-                                  {isOccupied ? ' (Full)' : ''}
-                                </option>
-                              );
-                            })}
-                          </select>
+                          />
                         </FormField>
 
                         {contingencyNode(row)}
@@ -500,11 +498,11 @@ export function ScheduleBuilderRoute({
                           </legend>
                           {officials.map((official) => (
                             <label key={official.officialId} className="cl-toggle cl-focusable">
-                              <input
+                              <Checkbox
                                 checked={draft.officialIds.includes(official.officialId)}
-                                className="cl-checkbox cl-focusable"
-                                onChange={() => toggleOfficial(row.matchId, official.officialId)}
-                                type="checkbox"
+                                onCheckedChange={() =>
+                                  toggleOfficial(row.matchId, official.officialId)
+                                }
                               />
                               <span>{official.displayName}</span>
                             </label>

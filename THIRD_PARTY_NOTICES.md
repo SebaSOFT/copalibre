@@ -23,6 +23,7 @@ matches wherever the file lives.
 | `textarea.tsx`      | shadcn/ui `textarea`                            | 2.3.0   | MIT     |
 | `select.tsx`        | shadcn/ui `select` on Radix Select              | 2.3.0   | MIT     |
 | `checkbox.tsx`      | shadcn/ui `checkbox` on Radix Checkbox          | 2.3.0   | MIT     |
+| `radio.tsx`         | shadcn/ui `radio-group` on Radix RadioGroup     | 2.3.0   | MIT     |
 | `label.tsx`         | shadcn/ui `label` on Radix Label                | 2.3.0   | MIT     |
 | `modal.tsx`         | shadcn/ui `dialog` on Radix Dialog              | 2.3.0   | MIT     |
 | `dropdown-menu.tsx` | shadcn/ui `dropdown-menu` on Radix DropdownMenu | 2.3.0   | MIT     |

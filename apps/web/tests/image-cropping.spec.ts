@@ -273,6 +273,36 @@ test('uploading tournament emblem in control panel renders in tournament setting
   );
 });
 
+test('focusing FilePicker and choosing a file displays the chosen filename and clear control', async ({
+  page,
+}) => {
+  await mockOrganizationApi(page, { uploaded: { calls: 0 } });
+  const target = '/control/liga-mendocina/preferences';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByRole('combobox').selectOption('en');
+
+  const fileInput = page.getByLabel('Upload emblem');
+  await fileInput.focus();
+  await expect(fileInput).toBeFocused();
+
+  await fileInput.setInputFiles({
+    name: 'keyboard-selected.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+  });
+
+  const dialog = page.getByRole('dialog', { name: 'Adjust image' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toBeHidden();
+
+  await expect(page.locator('.cl-file-picker__filename')).toHaveText('keyboard-selected.png');
+  await expect(page.getByRole('button', { name: 'Clear selected file' })).toBeVisible();
+});
+
 declare global {
   interface Window {
     __e2eEmblemUploadCount?: number;

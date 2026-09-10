@@ -21,6 +21,7 @@ import type { DisciplineOption } from '../lib/wizard.js';
 import { Button } from './ui/atoms/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
+import { Select } from './ui/atoms/select.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 import { FormField } from './ui/molecules/form-field.js';
@@ -506,24 +507,20 @@ export function PlatformAdministrationRoute({
                     id="platform-org-language"
                     label={intl.formatMessage(messages.platformPrimaryLanguage)}
                   >
-                    <select
-                      className="cl-select cl-select--default cl-focusable"
+                    <Select
                       id="platform-org-language"
-                      onChange={(event) =>
+                      onValueChange={(val) =>
                         setOrganization((current) => ({
                           ...current,
-                          primaryLanguage: event.target
-                            .value as CreateOrganizationRequest['primaryLanguage'],
+                          primaryLanguage: val as CreateOrganizationRequest['primaryLanguage'],
                         }))
                       }
-                      value={organization.primaryLanguage}
-                    >
-                      {LANGUAGES.map((language) => (
-                        <option key={language} value={language}>
-                          {language}
-                        </option>
-                      ))}
-                    </select>
+                      options={LANGUAGES.map((language) => ({
+                        value: language,
+                        label: language,
+                      }))}
+                      value={organization.primaryLanguage ?? 'es'}
+                    />
                   </FormField>
                   <FormField
                     id="platform-org-timezone"

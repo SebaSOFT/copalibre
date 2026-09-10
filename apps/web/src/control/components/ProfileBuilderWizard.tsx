@@ -4,6 +4,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
+import { Select } from './ui/atoms/select.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { TRANSLATABLE_LANGUAGES } from '../lib/descriptor-authoring.js';
@@ -172,24 +173,23 @@ export function ProfileBuilderWizard({
               id="profile-discipline"
               label={intl.formatMessage(messages.profileFieldDiscipline)}
             >
-              <select
+              <Select
                 aria-describedby="profile-discipline-hint"
-                className="cl-select cl-select--default cl-focusable"
                 id="profile-discipline"
-                onChange={(event) => patch({ disciplineAlias: event.target.value, stages: [] })}
+                onValueChange={(val) => patch({ disciplineAlias: val, stages: [] })}
+                options={[
+                  { value: '', label: '' },
+                  ...disciplines
+                    .filter((discipline): discipline is DisciplineOption & { alias: string } =>
+                      Boolean(discipline.alias),
+                    )
+                    .map((discipline) => ({
+                      value: discipline.alias,
+                      label: discipline.alias,
+                    })),
+                ]}
                 value={state.disciplineAlias}
-              >
-                <option value="" />
-                {disciplines
-                  .filter((discipline): discipline is DisciplineOption & { alias: string } =>
-                    Boolean(discipline.alias),
-                  )
-                  .map((discipline) => (
-                    <option key={discipline.alias} value={discipline.alias}>
-                      {discipline.alias}
-                    </option>
-                  ))}
-              </select>
+              />
               <DecisionHint
                 id="profile-discipline-hint"
                 text={intl.formatMessage(messages.profileDecisionDiscipline)}
@@ -399,19 +399,18 @@ function StageList({
           placeholder={intl.formatMessage(messages.profileFieldStageName)}
           value={draft.name}
         />
-        <select
+        <Select
           aria-label={intl.formatMessage(messages.profileFieldStageFormat)}
-          className="cl-select cl-select--default cl-focusable"
-          onChange={(event) => setDraft({ ...draft, format: event.target.value })}
+          onValueChange={(val) => setDraft({ ...draft, format: val })}
+          options={[
+            { value: '', label: '' },
+            ...allowedFormats.map((format) => ({
+              value: format,
+              label: format,
+            })),
+          ]}
           value={draft.format}
-        >
-          <option value="" />
-          {allowedFormats.map((format) => (
-            <option key={format} value={format}>
-              {format}
-            </option>
-          ))}
-        </select>
+        />
         <Button
           disabled={draft.name.trim() === '' || draft.format.trim() === ''}
           onClick={() => {
