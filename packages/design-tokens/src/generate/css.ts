@@ -343,6 +343,18 @@ function components(): string {
     });
 
   return [
+    /*
+     * `hidden` means hidden, whatever a component set its own display to.
+     *
+     * The UA rule is `[hidden] { display: none }` at zero specificity, so any
+     * class declaring `display` — every button, grid or flex container below —
+     * silently outranks it. What that produces is the worst kind of failure
+     * this system can ship: a control a page hid because its script never ran,
+     * still on screen and doing nothing when clicked. Found exactly that way,
+     * by the no-JavaScript end-to-end tests.
+     */
+    '[hidden] { display: none !important; }',
+    '',
     // No `background` here: a card's level comes from what it sits on, which
     // `surfaceLevels()` decides. A fixed value at this specificity would beat
     // those zero-specificity rules and pin every card to one shade.
@@ -1347,8 +1359,7 @@ function compositions(): string {
     '',
     // The closed menu is closed for everyone: `hidden` takes its links out of
     // the tab order, which a `visibility` or an off-screen trick would not.
-    '.cl-public-header__nav[hidden] { display: none; }',
-    '',
+    // The reset at the top of `components()` is what makes it stick.
     '.cl-public-header__links { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; margin: 0; padding: 0; list-style: none; }',
     '',
     '.cl-public-header__link { display: inline-flex; align-items: center; min-height: var(--cl-touch-target); color: var(--cl-text-secondary); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); text-decoration: none; overflow-wrap: anywhere; }',

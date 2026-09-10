@@ -219,3 +219,63 @@ test('refuses to author a profile stage format the discipline does not declare, 
   // Only round-robin is declared by the discipline — no other option exists to select instead.
   await expect(profileWizard.getByRole('combobox').last()).toHaveText(/round-robin/);
 });
+
+/**
+ * The authored document, and the copy that has to admit when it failed (0223).
+ *
+ * A clipboard write is denied outright in a non-secure context and by policy in
+ * several browsers, and the old behaviour was to swallow that: the author saw
+ * nothing change and walked away believing they had the file. So this drives
+ * the real control with the clipboard refused, and checks that it says so and
+ * that the text is still there to select by hand.
+ */
+test('shows the authored module document as a file, and reports a refused clipboard', async ({
+  page,
+}) => {
+  await mockBuilderApi(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: () => Promise.reject(new Error('NotAllowedError')) },
+    });
+  });
+
+  const target = '/control/platform';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByRole('button', { name: 'Crear una disciplina' }).click();
+  const wizard = page.getByRole('region', { name: 'Crear una disciplina' });
+
+  await wizard.getByLabel('Alias', { exact: true }).fill('e2e-copy-sport');
+  await wizard.getByLabel('Nombre *').fill('Copy Sport');
+  await wizard.getByRole('button', { name: 'Continuar' }).click();
+  await wizard.getByLabel('Autor').fill('E2E Author');
+  await wizard.getByRole('button', { name: 'Continuar' }).click();
+  await wizard.getByLabel('team', { exact: true }).check();
+  await wizard.getByRole('button', { name: 'Continuar' }).click();
+  await wizard.getByPlaceholder('Código de la estadística').fill('points');
+  await wizard.getByPlaceholder('Etiqueta de la estadística').fill('Points');
+  await wizard.getByRole('button', { name: 'Agregar' }).first().click();
+  await wizard.getByRole('button', { name: 'Continuar' }).click();
+  await wizard.getByLabel('round-robin', { exact: true }).check();
+  await wizard.getByRole('button', { name: 'Continuar' }).click();
+
+  // The file variant: a filename header, no window dots, no prompt.
+  const block = page.locator('.cl-terminal-block--file');
+  await expect(block).toBeVisible();
+  await expect(block.getByText('e2e-copy-sport.json')).toBeVisible();
+  await expect(block.getByTestId('dot-red')).toHaveCount(0);
+
+  // The document is the one about to be submitted, not a summary of it.
+  await expect(block.locator('pre')).toContainText('"alias": "e2e-copy-sport"');
+
+  await page.getByRole('button', { name: 'Copiar el documento del módulo' }).click();
+  await expect(
+    page.getByText('No se pudo copiar: selecciona el texto para copiarlo').first(),
+  ).toBeVisible();
+
+  // Still selectable by hand, which is the fallback the message points at.
+  await expect(block.locator('pre')).toBeVisible();
+});
