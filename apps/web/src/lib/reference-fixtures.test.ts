@@ -16,6 +16,7 @@ import {
   referenceGroupMatches,
   referenceLiveDashboard,
   referenceStandings,
+  referenceStandingsTable,
   referenceSeries,
 } from './reference-fixtures.js';
 
@@ -170,5 +171,51 @@ describe('basketball fixture', () => {
     expect(referenceBasketballDashboard().matches[0]?.matchId).not.toBe(
       referenceLiveDashboard().matches[0]?.matchId,
     );
+  });
+});
+
+describe('referenceStandingsTable', () => {
+  const table = referenceStandingsTable();
+
+  it('agrees with the standings positions the same fixtures publish', () => {
+    expect(table.rows.map((row) => row.name)).toEqual(referenceStandings().map((row) => row.name));
+  });
+
+  it('computes points that the six-match schedule can actually produce', () => {
+    const total = table.rows.reduce((sum, row) => sum + (row.statistics.points ?? 0), 0);
+    // Six matches, three points each, less one for the single drawn match.
+    expect(total).toBe(17);
+  });
+
+  it('leaves the top two level on points, so a comparator has to decide them', () => {
+    const [first, second] = table.rows;
+    expect(first?.statistics.points).toBe(second?.statistics.points);
+    expect(first?.tieBroken).toBe(true);
+    expect(second?.tieBroken).toBe(true);
+  });
+
+  it('orders the level pair by the head-to-head it names as the decider', () => {
+    const [first, second] = table.rows;
+    expect(table.decidingCode).toBe('head-to-head');
+    expect(first?.statistics['head-to-head']).toBeGreaterThan(
+      second?.statistics['head-to-head'] ?? 0,
+    );
+  });
+
+  it('leaves rows nothing had to separate on zero head-to-head', () => {
+    for (const row of table.rows.filter((entry) => !entry.tieBroken)) {
+      expect(row.statistics['head-to-head']).toBe(0);
+    }
+  });
+
+  it('declares the comparator chain in configured order, decider included', () => {
+    expect(table.tiebreakerCodes).toEqual(['points', 'head-to-head', 'score-difference']);
+    expect(table.tiebreakerCodes).toContain(table.decidingCode);
+  });
+
+  it('names every column it puts a statistic in', () => {
+    for (const row of table.rows) {
+      expect(Object.keys(row.statistics).sort()).toEqual([...table.columns].sort());
+    }
   });
 });

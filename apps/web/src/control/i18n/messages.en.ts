@@ -1392,6 +1392,16 @@ export const messages = defineMessages({
     id: 'control.standings.distributionEmpty',
     defaultMessage: 'No data to chart.',
   },
+  // 0223 — the standings panel's own chrome, distinct from the table's data labels.
+  standingsPanelDecidedBy: {
+    id: 'control.standings.panelDecidedBy',
+    defaultMessage: 'Decided this position',
+  },
+  standingsTiebreakerSequenceTitle: {
+    id: 'control.standings.tiebreakerSequenceTitle',
+    defaultMessage: 'Tiebreaker sequence',
+  },
+  standingsRankColumn: { id: 'control.standings.rankColumn', defaultMessage: 'Position' },
   standingsSharedRank: { id: 'control.standings.sharedRank', defaultMessage: 'Shared position' },
   standingsTieBroken: { id: 'control.standings.tieBroken', defaultMessage: 'Tiebreak applied' },
   standingsExportCsv: { id: 'control.standings.exportCsv', defaultMessage: 'Export CSV' },

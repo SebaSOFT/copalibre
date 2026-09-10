@@ -86,6 +86,8 @@ export function generateCss(): string {
     '',
     components(),
     '',
+    compositions(),
+    '',
     surfaceLevels(),
     '',
     formControls(),
@@ -1082,6 +1084,282 @@ function components(): string {
     // live page — two grids for one kind of card, disagreeing about what a card
     // is. A match card has a size; a row with one of them is a row with a gap.
     '.cl-matches-view__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--cl-space-4); }',
+  ].join('\n');
+}
+
+/**
+ * The compositions `0223` builds over `0220`'s owners.
+ *
+ * Every rule here styles a pattern assembled from components that already
+ * exist — a badge worn as chrome, a table dressed as a standings panel, the
+ * bracket's rounds laid out as a stage — so nothing below introduces a second
+ * implementation of a predecessor. It sits after `components()` and before
+ * `surfaceLevels()` deliberately: a composition may set its own chrome, and the
+ * level rules that follow are zero-specificity, so the alternation still
+ * resolves by intent rather than by source order.
+ */
+function compositions(): string {
+  return [
+    /*
+     * The operational-tag family: chrome, not state. A state badge reports a
+     * condition and takes the state's colour; these name a region and take the
+     * chrome level, a border and the mono face, which is what stops a reader
+     * mistaking a section label for a live indicator.
+     *
+     * They wrap. A section label carrying a German compound at the 188px floor
+     * has no break the browser will take on its own, and a clipped label is a
+     * label that stopped naming its section.
+     */
+    '.cl-badge--eyebrow, .cl-badge--section {',
+    '  background: var(--cl-surface-chrome);',
+    '  border: 1px solid var(--cl-border-muted);',
+    '  color: var(--cl-text-secondary);',
+    '  font-family: var(--cl-font-mono);',
+    '  font-weight: var(--cl-weight-medium);',
+    '  letter-spacing: var(--cl-tracking-wider);',
+    '  max-width: 100%;',
+    '  white-space: normal;',
+    '  overflow-wrap: anywhere;',
+    '}',
+    '',
+    '.cl-badge--eyebrow { font-size: var(--cl-font-size-xs); }',
+    '.cl-badge--section { font-size: var(--cl-font-size-sm); padding: var(--cl-space-1) var(--cl-space-3); }',
+    '',
+    /*
+     * The live dot is emphasis, never the cue: the label beside it is the cue.
+     * Under reduced motion the global accommodation collapses the pulse to
+     * nothing and the dot stays put and visible, which is the correct outcome
+     * — the information was never in the movement.
+     */
+    '.cl-badge__dot {',
+    '  flex: 0 0 auto;',
+    '  width: 6px;',
+    '  height: 6px;',
+    '  border-radius: 50%;',
+    '  background: currentColor;',
+    '  animation: cl-badge-pulse var(--cl-motion-slow) ease-in-out infinite alternate;',
+    '}',
+    '',
+    '@keyframes cl-badge-pulse { from { opacity: 1; } to { opacity: 0.45; } }',
+    '',
+    '@media (prefers-reduced-motion: reduce) { .cl-badge__dot { animation: none; opacity: 1; } }',
+    '',
+    /*
+     * The bracket's outcome key. Three channels per entry — glyph, box and
+     * word — so advancement and elimination separate without the fill and
+     * without a colour-vision assumption.
+     */
+    '.cl-outcome-legend {',
+    '  display: flex;',
+    '  flex-wrap: wrap;',
+    '  gap: var(--cl-space-4);',
+    '  margin: 0;',
+    '  padding: 0;',
+    '  list-style: none;',
+    '}',
+    '',
+    '.cl-outcome-legend__item { display: inline-flex; align-items: center; gap: var(--cl-space-2); min-width: 0; }',
+    '',
+    '.cl-outcome-legend__glyph {',
+    '  display: grid;',
+    '  place-items: center;',
+    '  flex: 0 0 auto;',
+    '  width: 20px;',
+    '  height: 20px;',
+    '  border: 1px solid var(--cl-border-muted);',
+    '  background: var(--cl-surface-chrome);',
+    '  color: var(--cl-text-secondary);',
+    '  font-family: var(--cl-font-mono);',
+    '  font-size: var(--cl-font-size-xs);',
+    '  line-height: 1;',
+    '}',
+    '',
+    '.cl-outcome-legend__glyph--advancing { background: var(--cl-primary); border-color: var(--cl-primary); color: var(--cl-surface-base); }',
+    '',
+    '.cl-outcome-legend__label { color: var(--cl-text-secondary); font-size: var(--cl-font-size-sm); overflow-wrap: anywhere; }',
+    '',
+    /*
+     * The standings panel dresses `.cl-data-table`; it does not replace it.
+     * Header and footer are chrome, the table sits in the well, and the footer
+     * carries the tiebreaker sequence because that is where a reader looks
+     * after finding two entrants level.
+     */
+    '.cl-standings-panel { display: grid; min-width: 0; }',
+    '',
+    '.cl-standings-panel__header {',
+    '  display: flex;',
+    '  flex-wrap: wrap;',
+    '  align-items: baseline;',
+    '  justify-content: space-between;',
+    '  gap: var(--cl-space-3);',
+    '  padding: var(--cl-space-3) var(--cl-space-4);',
+    '}',
+    '',
+    '.cl-standings-panel__title { margin: 0; font-size: var(--cl-font-size-md); }',
+    '',
+    '.cl-standings-panel__footer { display: grid; gap: var(--cl-space-2); padding: var(--cl-space-3) var(--cl-space-4); }',
+    '',
+    // Rank and figures are read down a column, so they align down a column.
+    '.cl-standings-panel__rank { font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; text-align: right; }',
+    '.cl-standings-panel__figure { font-variant-numeric: tabular-nums; text-align: right; }',
+    '',
+    /*
+     * The deciding comparator is marked in the column that decided it, not
+     * announced somewhere else on the page: a reader who has just found two
+     * equal point totals is already looking at the row.
+     */
+    '.cl-standings-panel__figure--deciding {',
+    '  color: var(--cl-primary);',
+    '  font-weight: var(--cl-weight-bold);',
+    '  text-decoration: underline;',
+    '  text-underline-offset: 3px;',
+    '}',
+    '',
+    /*
+     * Numbered steps. The marker is a flex peer of the heading rather than a
+     * float or a list marker, so a title that wraps to three lines keeps its
+     * number beside its first line instead of drifting into the paragraph.
+     */
+    '.cl-step-heading { display: flex; align-items: flex-start; gap: var(--cl-space-3); min-width: 0; }',
+    '',
+    '.cl-step-heading__marker {',
+    '  display: grid;',
+    '  place-items: center;',
+    '  flex: 0 0 auto;',
+    '  width: 32px;',
+    '  height: 32px;',
+    '  background: var(--cl-primary);',
+    '  color: var(--cl-surface-base);',
+    '  font-family: var(--cl-font-display);',
+    '  font-weight: var(--cl-weight-bold);',
+    '  font-variant-numeric: tabular-nums;',
+    '}',
+    '',
+    '.cl-step-heading__title { margin: 0; min-width: 0; overflow-wrap: anywhere; }',
+    '',
+    // Metrics are peers on a row and a stack on a phone, like every other tile grid here.
+    '.cl-metric-strip { display: grid; grid-template-columns: 1fr; gap: var(--cl-space-4); min-width: 0; }',
+    '.cl-metric-strip > * { min-width: 0; }',
+    `@media (min-width: ${BREAKPOINTS.md}) {`,
+    '  .cl-metric-strip { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }',
+    '}',
+    '',
+    '.cl-metric-strip__label { display: block; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); overflow-wrap: anywhere; }',
+    '',
+    /*
+     * An unavailable metric is set in the muted role at body size, not in the
+     * display face a number gets: the difference is what stops "—" reading as
+     * a measured value of zero.
+     */
+    '.cl-metric-strip__unavailable { color: var(--cl-text-muted); font-family: var(--cl-font-body); font-size: var(--cl-font-size-sm); }',
+    '',
+    // Fixture numbers exist to demonstrate the layout; the workbench says so.
+    '.cl-metric-strip__demonstration { display: block; margin-top: var(--cl-space-1); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
+    '',
+    /*
+     * The inverse informational card lifts off its band instead of sinking
+     * into it — the reference's own reversal, used where a card is the point of
+     * the section rather than one of several entries in it.
+     */
+    '.cl-card--inverse { background: var(--cl-surface-chrome); }',
+    ':where(.cl-band, .cl-band--base) .cl-card--inverse { background: var(--cl-surface-chrome); }',
+    '.cl-card--inverse .cl-card__title { color: var(--cl-text-primary); }',
+    '',
+    /*
+     * The file variant of the code block: a filename header and a copy action,
+     * no window dots and no prompt. The terminal variant keeps its own.
+     */
+    '.cl-terminal-block--file .cl-terminal-block__dots { display: none; }',
+    '.cl-terminal-block--file .cl-terminal-block__header { justify-content: space-between; }',
+    '.cl-terminal-block--file .cl-terminal-block__title { font-family: var(--cl-font-mono); color: var(--cl-text-primary); }',
+    '',
+    /*
+     * The code body scrolls in its own labelled region. `pre-wrap` would keep
+     * the page narrow but destroys the one thing a YAML block has to preserve —
+     * which column a key sits in — so long lines scroll instead.
+     */
+    '.cl-terminal-block--file .cl-terminal-block__body { overflow-x: auto; }',
+    '.cl-terminal-block--file .cl-terminal-block__body pre { white-space: pre; margin: 0; }',
+    '',
+    /*
+     * The bracket stage: columns of rounds inside one bounded scroll region.
+     * The region scrolls, never the page body — a public results page that
+     * pans sideways loses its own navigation.
+     */
+    '.cl-bracket-stage { display: grid; gap: var(--cl-space-4); min-width: 0; }',
+    '',
+    '.cl-bracket-stage__scroll { overflow-x: auto; scrollbar-gutter: stable; max-width: 100%; }',
+    '',
+    '.cl-bracket-stage__rounds { display: flex; align-items: flex-start; gap: var(--cl-space-6); width: max-content; padding-bottom: var(--cl-space-2); }',
+    '',
+    '.cl-bracket-stage__round { display: grid; gap: var(--cl-space-4); align-content: start; min-width: 200px; }',
+    '',
+    // The round label sits on an accent rule, so a column is identifiable from its head.
+    '.cl-bracket-stage__round-label {',
+    '  margin: 0;',
+    '  padding-bottom: var(--cl-space-2);',
+    '  border-bottom: 2px solid var(--cl-primary);',
+    '  color: var(--cl-text-secondary);',
+    '  font-family: var(--cl-font-mono);',
+    '  font-size: var(--cl-font-size-xs);',
+    '  text-transform: uppercase;',
+    '  letter-spacing: var(--cl-tracking-wide);',
+    '}',
+    '',
+    '.cl-bracket-stage__node { min-width: 0; }',
+    '.cl-bracket-stage__node--pending { border-style: dashed; }',
+    '',
+    /*
+     * The textual view. Not a degraded copy: it carries seeds, sources and
+     * outcomes, and it is what renders below the graph's floor or wherever the
+     * graph cannot represent a topology.
+     */
+    '.cl-bracket-stage__outline { display: grid; gap: var(--cl-space-4); margin: 0; padding: 0; }',
+    '.cl-bracket-stage__outline-branch { display: grid; gap: var(--cl-space-2); }',
+    '.cl-bracket-stage__outline-list { margin: 0; padding-left: var(--cl-space-5); display: grid; gap: var(--cl-space-1); }',
+    '.cl-bracket-stage__outline-list li { overflow-wrap: anywhere; }',
+    '',
+    `@media (max-width: ${BREAKPOINTS.sm}) {`,
+    '  .cl-bracket-stage__scroll { display: none; }',
+    '}',
+    `@media (min-width: ${BREAKPOINTS.md}) {`,
+    '  .cl-bracket-stage__outline { display: none; }',
+    '}',
+    '',
+    /*
+     * The public header. Brand, locale and toggle hold a stable row; the menu
+     * expands *in flow* underneath it, so the ticker and the page move down
+     * rather than being covered. That is the deliberate difference from the
+     * operator surface's modal drawer, which stays as it is.
+     */
+    '.cl-public-header { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--cl-surface-base) 92%, transparent); border-block-end: 1px solid var(--cl-border-muted); backdrop-filter: blur(6px); }',
+    '',
+    '.cl-public-header__row { display: flex; align-items: center; justify-content: space-between; gap: var(--cl-space-3); padding: var(--cl-space-3) var(--cl-space-4); min-width: 0; }',
+    '',
+    '.cl-public-header__actions { display: flex; align-items: center; gap: var(--cl-space-2); min-width: 0; }',
+    '',
+    '.cl-public-header__links { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; }',
+    '',
+    '.cl-public-header__link { color: var(--cl-text-secondary); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); text-decoration: none; overflow-wrap: anywhere; }',
+    '',
+    '.cl-public-header__link:hover, .cl-public-header__link:focus-visible { color: var(--cl-text-primary); }',
+    '',
+    '.cl-public-header__drawer { display: grid; gap: var(--cl-space-4); padding: var(--cl-space-4); border-block-start: 1px solid var(--cl-border-muted); }',
+    '',
+    '.cl-public-header__drawer .cl-public-header__links { flex-direction: column; align-items: stretch; gap: var(--cl-space-3); }',
+    '',
+    /*
+     * Above the small breakpoint the links live in the row and the toggle has
+     * nothing to disclose, so the toggle goes and the drawer never appears.
+     * Below it the row keeps only brand, locale and toggle.
+     */
+    `@media (max-width: ${BREAKPOINTS.sm}) {`,
+    '  .cl-public-header__row > .cl-public-header__links { display: none; }',
+    '}',
+    `@media (min-width: ${BREAKPOINTS.md}) {`,
+    '  .cl-public-header__toggle { display: none; }',
+    '  .cl-public-header__drawer { display: none; }',
+    '}',
   ].join('\n');
 }
 
