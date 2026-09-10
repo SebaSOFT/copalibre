@@ -306,7 +306,7 @@ describe('what the dashboard renders', () => {
       ),
     );
 
-    const grid = container.querySelector('.cl-stat-grid');
+    const grid = container.querySelector('.cl-metric-strip');
     expect(grid).not.toBeNull();
     expect(grid?.querySelectorAll('.cl-stat-tile')).toHaveLength(3);
   });

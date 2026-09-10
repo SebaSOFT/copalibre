@@ -9,6 +9,7 @@ import { Select } from './ui/atoms/select.js';
 import { Textarea } from './ui/atoms/textarea.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { FormField } from './ui/molecules/form-field.js';
+import { StepHeading } from './ui/molecules/StepHeading.js';
 import {
   SERIES_RESOLUTION_CLASSES,
   WIZARD_STEPS,
@@ -148,6 +149,9 @@ export function TournamentSetupWizard({
   const profiles = loadProfiles ? asyncProfiles : initialProfiles;
 
   const problems = stepProblems(state, disciplines, vocabulary);
+  const activeStepIndex = WIZARD_STEPS.findIndex((step) => step.id === state.step);
+  const activeStep = WIZARD_STEPS[activeStepIndex];
+  const activeStepNumber = activeStepIndex + 1;
   const conditions = vocabulary.entries.filter((entry) => entry.kind === 'condition');
   const actions = vocabulary.entries.filter((entry) => entry.kind === 'action');
   const selectedCondition = conditions.find(
@@ -280,6 +284,18 @@ export function TournamentSetupWizard({
       </Card>
 
       <Card className="cl-chamfer cl-chamfer--control">
+        {/*
+          The strip above says where the operator is in the sequence; this says
+          what they are doing. Until now the panel carried no heading at all, so
+          a screen reader moving by heading arrived at a form with no subject.
+        */}
+        {activeStep !== undefined && (
+          <StepHeading
+            level={2}
+            step={activeStepNumber}
+            title={intl.formatMessage(activeStep.label)}
+          />
+        )}
         {state.step === 'name' && (
           <div className="cl-platform-form-grid">
             <FormField id="wizard-name" label={intl.formatMessage(messages.wizardFieldName)}>

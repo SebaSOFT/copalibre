@@ -44,6 +44,7 @@ import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { messages } from '../i18n/messages.en.js';
 import type { SupportedLanguage } from '../../lib/language-preference.js';
 import { ToastProvider } from './ToastProvider.js';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/atoms/card.js';
 
 /**
  * The one persistent root for every control-panel screen, now also
@@ -488,14 +489,22 @@ function LoginLandingBody({
   const intl = useIntl();
 
   if (organizations.length === 0) {
+    // The inverse card: this message *is* the page, not one entry on it, so it
+    // lifts off the ground rather than sinking into it.
     return (
       <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-        <h1>
-          <FormattedMessage {...messages.landingEmptyTitle} />
-        </h1>
-        <p>
-          <FormattedMessage {...messages.landingEmptyBody} />
-        </p>
+        <Card variant="inverse">
+          <CardHeader>
+            <CardTitle>
+              <FormattedMessage {...messages.landingEmptyTitle} />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>
+              <FormattedMessage {...messages.landingEmptyBody} />
+            </p>
+          </CardContent>
+        </Card>
       </main>
     );
   }

@@ -227,6 +227,20 @@ export const messages = defineMessages({
   // Dashboard (QuickStats.tsx, TournamentCard.tsx, ActivityLog.tsx, Dashboard.tsx)
   dashboardSummary: { id: 'control.dashboard.summary', defaultMessage: 'Summary' },
   // 0223 — a measurement that does not exist says so, rather than reading as zero.
+  // 0223 — the authored module document, shown as the file it becomes.
+  descriptorDocumentRegion: {
+    id: 'control.descriptor.documentRegion',
+    defaultMessage: 'Authored module document',
+  },
+  descriptorDocumentCopy: {
+    id: 'control.descriptor.documentCopy',
+    defaultMessage: 'Copy the module document',
+  },
+  descriptorDocumentCopied: { id: 'control.descriptor.documentCopied', defaultMessage: 'Copied' },
+  descriptorDocumentCopyFailed: {
+    id: 'control.descriptor.documentCopyFailed',
+    defaultMessage: 'Copy failed — select the text to copy it',
+  },
   metricUnavailable: { id: 'control.metric.unavailable', defaultMessage: 'Not available' },
   metricDemonstration: {
     id: 'control.metric.demonstration',

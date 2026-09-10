@@ -1049,4 +1049,9 @@ export const messages: Record<string, string> = {
   'control.platform.modules.updateCalloutDescription':
     'Введите псевдоним ниже и установите его. Модули устанавливаются через приложение начальной загрузки; из этого списка ничего не применяется.',
   'control.auditTrail.correctionTitle': 'Что изменила эта запись',
+  'control.descriptor.documentRegion': 'Составленный документ модуля',
+  'control.descriptor.documentCopy': 'Скопировать документ модуля',
+  'control.descriptor.documentCopied': 'Скопировано',
+  'control.descriptor.documentCopyFailed':
+    'Не удалось скопировать — выделите текст, чтобы скопировать его',
 };

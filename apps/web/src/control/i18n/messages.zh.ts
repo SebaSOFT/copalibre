@@ -1004,4 +1004,8 @@ export const messages: Record<string, string> = {
   'control.platform.modules.updateCalloutDescription':
     '在下方输入别名并安装。模块通过 seed 应用安装；此列表不会应用任何内容。',
   'control.auditTrail.correctionTitle': '该记录改动了什么',
+  'control.descriptor.documentRegion': '已编写的模块文档',
+  'control.descriptor.documentCopy': '复制模块文档',
+  'control.descriptor.documentCopied': '已复制',
+  'control.descriptor.documentCopyFailed': '复制失败 — 请选中文本进行复制',
 };

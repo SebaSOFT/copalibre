@@ -965,19 +965,13 @@ function components(): string {
     "/* An unauthenticated screen's form: one column, the fields evenly spaced. */",
     '.cl-auth-form { display: grid; gap: var(--cl-space-4); }',
     '',
-    '/* Summary tiles are a row of peers, not a stack: one column below the md breakpoint, three above it. */',
-    '.cl-stat-grid {',
-    '  display: grid;',
-    '  grid-template-columns: 1fr;',
-    '  gap: var(--cl-space-4);',
-    '  min-width: 0;',
-    '}',
-    '',
-    '.cl-stat-grid > * { min-width: 0; }',
-    '',
-    `@media (min-width: ${BREAKPOINTS.md}) {`,
-    '  .cl-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }',
-    '}',
+    /*
+     * Summary tiles are a row of peers, not a stack. `0223` folded the
+     * dashboard's own `.cl-stat-grid` into `.cl-metric-strip`, which does the
+     * same job for any number of tiles rather than for exactly three — two
+     * rules laying out one pattern is the duplication this system exists to
+     * avoid.
+     */
     '',
     '.cl-stat-tile {',
     '  background: var(--cl-surface-chrome);',

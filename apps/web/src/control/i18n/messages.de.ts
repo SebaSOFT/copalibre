@@ -1066,4 +1066,8 @@ export const messages: Record<string, string> = {
   'control.platform.modules.updateCalloutDescription':
     'Alias unten eingeben und installieren. Module werden über die Seed-Anwendung installiert; aus dieser Liste wird nichts angewendet.',
   'control.auditTrail.correctionTitle': 'Was dieser Eintrag geändert hat',
+  'control.descriptor.documentRegion': 'Verfasstes Moduldokument',
+  'control.descriptor.documentCopy': 'Moduldokument kopieren',
+  'control.descriptor.documentCopied': 'Kopiert',
+  'control.descriptor.documentCopyFailed': 'Kopieren fehlgeschlagen — Text zum Kopieren markieren',
 };

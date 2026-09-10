@@ -1054,4 +1054,8 @@ export const messages: Record<string, string> = {
   'control.platform.modules.updateCalloutDescription':
     'Inserisci l’alias qui sotto e installalo. I moduli si installano tramite l’applicazione di seeding; da questo elenco non viene applicato nulla.',
   'control.auditTrail.correctionTitle': 'Che cosa ha cambiato questo record',
+  'control.descriptor.documentRegion': 'Documento del modulo redatto',
+  'control.descriptor.documentCopy': 'Copia il documento del modulo',
+  'control.descriptor.documentCopied': 'Copiato',
+  'control.descriptor.documentCopyFailed': 'Copia non riuscita — seleziona il testo per copiarlo',
 };

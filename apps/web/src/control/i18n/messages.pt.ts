@@ -1049,4 +1049,8 @@ export const messages: Record<string, string> = {
   'control.platform.modules.updateCalloutDescription':
     'Introduza o alias abaixo e instale-o. Os módulos são instalados através da aplicação de semeadura; nada é aplicado a partir desta lista.',
   'control.auditTrail.correctionTitle': 'O que este registo alterou',
+  'control.descriptor.documentRegion': 'Documento do módulo criado',
+  'control.descriptor.documentCopy': 'Copiar o documento do módulo',
+  'control.descriptor.documentCopied': 'Copiado',
+  'control.descriptor.documentCopyFailed': 'Falha ao copiar — selecione o texto para o copiar',
 };
