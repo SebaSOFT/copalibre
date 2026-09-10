@@ -102,3 +102,11 @@ HTMLCanvasElement.prototype.getContext = function getContext(kind) {
 HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
   callback(new Blob(['jsdom-mock-png-bytes'], { type: type ?? 'image/png' }));
 };
+
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}

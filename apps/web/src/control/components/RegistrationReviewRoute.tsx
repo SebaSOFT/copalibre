@@ -13,7 +13,7 @@ import { AbbreviationReviewSection } from './AbbreviationReviewSection.js';
 import { RegistrationReviewPage, type ReviewRegistrationRow } from './RegistrationReviewPage.js';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { FilePicker } from './ui/atoms/file-picker.js';
 import { messages } from '../i18n/messages.en.js';
 
 type LoadStatus = 'loading' | 'ready' | 'failed';
@@ -128,51 +128,45 @@ export function RegistrationReviewRoute({
         aria-label={intl.formatMessage(messages.registrationImportSection)}
         className="cl-chamfer cl-chamfer--control"
       >
-        <FormField
+        <FilePicker
+          accept=".csv,text/csv"
+          aria-label={intl.formatMessage(messages.registrationCsvLabel)}
           id="registration-csv-file"
           label={intl.formatMessage(messages.registrationCsvLabel)}
-        >
-          <input
-            accept=".csv,text/csv"
-            aria-label={intl.formatMessage(messages.registrationCsvLabel)}
-            className="cl-input cl-input--default cl-focusable"
-            id="registration-csv-file"
-            onChange={(event) => {
-              const file = event.currentTarget.files?.[0];
-              if (!file) return;
-              void file.text().then((sourceCsv) =>
-                csvApi
-                  .createCsvImport(organizationAlias, tournamentAlias, {
-                    target: 'team',
-                    sourceCsv,
-                  })
-                  .then((created) => {
-                    setCsv(created);
-                    setCsvStatus({
-                      text: intl.formatMessage(messages.registrationImportQueued),
-                      tone: 'info',
-                    });
-                    return csvApi.fetchCsvImport(
-                      organizationAlias,
-                      tournamentAlias,
-                      created.importId,
-                    );
-                  })
-                  .then((preview) => {
-                    setCsv(preview);
-                    setCsvStatus({ text: preview.status, tone: 'info' });
-                  })
-                  .catch(() =>
-                    setCsvStatus({
-                      text: intl.formatMessage(messages.registrationImportCreateFailed),
-                      tone: 'destructive',
-                    }),
-                  ),
-              );
-            }}
-            type="file"
-          />
-        </FormField>
+          onChange={(files) => {
+            const file = files?.[0];
+            if (!file) return;
+            void file.text().then((sourceCsv) =>
+              csvApi
+                .createCsvImport(organizationAlias, tournamentAlias, {
+                  target: 'team',
+                  sourceCsv,
+                })
+                .then((created) => {
+                  setCsv(created);
+                  setCsvStatus({
+                    text: intl.formatMessage(messages.registrationImportQueued),
+                    tone: 'info',
+                  });
+                  return csvApi.fetchCsvImport(
+                    organizationAlias,
+                    tournamentAlias,
+                    created.importId,
+                  );
+                })
+                .then((preview) => {
+                  setCsv(preview);
+                  setCsvStatus({ text: preview.status, tone: 'info' });
+                })
+                .catch(() =>
+                  setCsvStatus({
+                    text: intl.formatMessage(messages.registrationImportCreateFailed),
+                    tone: 'destructive',
+                  }),
+                ),
+            );
+          }}
+        />
         {csvStatus && <Alert tone={csvStatus.tone}>{csvStatus.text}</Alert>}
         {csv?.preview && (
           <div>

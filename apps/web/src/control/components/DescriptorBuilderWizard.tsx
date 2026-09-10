@@ -3,7 +3,9 @@ import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
+import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
+import { Select } from './ui/atoms/select.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { FormField } from './ui/molecules/form-field.js';
 import {
@@ -195,17 +197,17 @@ export function DescriptorBuilderWizard({
                     className="cl-toggle cl-focusable"
                     style={{ display: 'flex', gap: 'var(--cl-space-2)' }}
                   >
-                    <input
+                    <Checkbox
+                      aria-label={type}
                       checked={state.participantTypes.includes(type)}
-                      className="cl-checkbox cl-focusable"
-                      onChange={(event) =>
+                      id={`descriptor-participant-type-${type}`}
+                      onCheckedChange={(checked) =>
                         patch({
-                          participantTypes: event.target.checked
+                          participantTypes: checked
                             ? [...state.participantTypes, type]
                             : state.participantTypes.filter((one) => one !== type),
                         })
                       }
-                      type="checkbox"
                     />
                     <span>{type}</span>
                   </label>
@@ -249,11 +251,11 @@ export function DescriptorBuilderWizard({
               className="cl-toggle cl-focusable"
               style={{ display: 'flex', gap: 'var(--cl-space-2)' }}
             >
-              <input
+              <Checkbox
+                aria-label={intl.formatMessage(messages.descriptorFieldAllowMidTournamentChanges)}
                 checked={state.allowMidTournamentChanges}
-                className="cl-checkbox cl-focusable"
-                onChange={(event) => patch({ allowMidTournamentChanges: event.target.checked })}
-                type="checkbox"
+                id="descriptor-mid-tournament-changes"
+                onCheckedChange={(checked) => patch({ allowMidTournamentChanges: checked })}
               />
               <span>
                 <FormattedMessage {...messages.descriptorFieldAllowMidTournamentChanges} />
@@ -336,17 +338,17 @@ export function DescriptorBuilderWizard({
                     className="cl-toggle cl-focusable"
                     style={{ display: 'flex', gap: 'var(--cl-space-2)' }}
                   >
-                    <input
+                    <Checkbox
+                      aria-label={format}
                       checked={state.availableFormats.includes(format)}
-                      className="cl-checkbox cl-focusable"
-                      onChange={(event) =>
+                      id={`descriptor-format-${format}`}
+                      onCheckedChange={(checked) =>
                         patch({
-                          availableFormats: event.target.checked
+                          availableFormats: checked
                             ? [...state.availableFormats, format]
                             : state.availableFormats.filter((one) => one !== format),
                         })
                       }
-                      type="checkbox"
                     />
                     <span>{format}</span>
                   </label>
@@ -382,25 +384,27 @@ export function DescriptorBuilderWizard({
               id="descriptor-win-condition-mode"
               label={intl.formatMessage(messages.descriptorFieldWinConditionMode)}
             >
-              <select
+              <Select
                 aria-describedby="descriptor-win-condition-mode-hint"
-                className="cl-select cl-select--default cl-focusable"
+                aria-label={intl.formatMessage(messages.descriptorFieldWinConditionMode)}
                 id="descriptor-win-condition-mode"
-                onChange={(event) =>
+                onValueChange={(val) =>
                   patch({
-                    winConditionMode: event.target
-                      .value as DescriptorWizardState['winConditionMode'],
+                    winConditionMode: val as DescriptorWizardState['winConditionMode'],
                   })
                 }
+                options={[
+                  {
+                    value: 'simple',
+                    label: intl.formatMessage(messages.descriptorWinConditionModeSimple),
+                  },
+                  {
+                    value: 'segmented',
+                    label: intl.formatMessage(messages.descriptorWinConditionModeSegmented),
+                  },
+                ]}
                 value={state.winConditionMode}
-              >
-                <option value="simple">
-                  {intl.formatMessage(messages.descriptorWinConditionModeSimple)}
-                </option>
-                <option value="segmented">
-                  {intl.formatMessage(messages.descriptorWinConditionModeSegmented)}
-                </option>
-              </select>
+              />
               <DecisionHint
                 id="descriptor-win-condition-mode-hint"
                 text={intl.formatMessage(messages.descriptorDecisionWinConditionMode)}
@@ -430,19 +434,19 @@ export function DescriptorBuilderWizard({
                   id="descriptor-segment-name"
                   label={intl.formatMessage(messages.descriptorFieldSegmentName)}
                 >
-                  <select
-                    className="cl-select cl-select--default cl-focusable"
+                  <Select
+                    aria-label={intl.formatMessage(messages.descriptorFieldSegmentName)}
                     id="descriptor-segment-name"
-                    onChange={(event) => patch({ segmentName: event.target.value })}
+                    onValueChange={(val) => patch({ segmentName: val })}
+                    options={[
+                      { value: '', label: '' },
+                      ...state.segmentTypes.map((segment) => ({
+                        value: segment.name,
+                        label: segment.name,
+                      })),
+                    ]}
                     value={state.segmentName}
-                  >
-                    <option value="" />
-                    {state.segmentTypes.map((segment) => (
-                      <option key={segment.name} value={segment.name}>
-                        {segment.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </FormField>
                 <FormField
                   id="descriptor-segment-target"
@@ -715,11 +719,11 @@ function SegmentTypeList({
           className="cl-toggle cl-focusable"
           style={{ display: 'flex', gap: 'var(--cl-space-2)' }}
         >
-          <input
+          <Checkbox
+            aria-label={intl.formatMessage(messages.descriptorFieldSegmentTimed)}
             checked={draft.timed}
-            className="cl-checkbox cl-focusable"
-            onChange={(event) => setDraft({ ...draft, timed: event.target.checked })}
-            type="checkbox"
+            id="descriptor-segment-timed"
+            onCheckedChange={(checked) => setDraft({ ...draft, timed: checked })}
           />
           <span>
             <FormattedMessage {...messages.descriptorFieldSegmentTimed} />
@@ -790,20 +794,18 @@ function StatisticList({
           placeholder={intl.formatMessage(messages.descriptorFieldStatisticLabel)}
           value={draft.label}
         />
-        <select
+        <Select
           aria-label={intl.formatMessage(messages.descriptorFieldAggregation)}
-          className="cl-select cl-select--default cl-focusable"
-          onChange={(event) =>
-            setDraft({ ...draft, aggregation: event.target.value as StatisticDraft['aggregation'] })
+          id="descriptor-statistic-aggregation"
+          onValueChange={(val) =>
+            setDraft({ ...draft, aggregation: val as StatisticDraft['aggregation'] })
           }
+          options={AGGREGATION_MODES.map((mode) => ({
+            value: mode,
+            label: mode,
+          }))}
           value={draft.aggregation}
-        >
-          {AGGREGATION_MODES.map((mode) => (
-            <option key={mode} value={mode}>
-              {mode}
-            </option>
-          ))}
-        </select>
+        />
         <Button
           disabled={draft.code.trim() === '' || draft.label.trim() === ''}
           onClick={() => {
@@ -885,50 +887,46 @@ function EventDefinitionList({
           placeholder={intl.formatMessage(messages.descriptorFieldEventLabel)}
           value={draft.label}
         />
-        <select
+        <Select
           aria-label={intl.formatMessage(messages.descriptorFieldEventCategory)}
-          className="cl-select cl-select--default cl-focusable"
-          onChange={(event) =>
-            setDraft({ ...draft, category: event.target.value as EventDefinitionDraft['category'] })
+          id="descriptor-event-category"
+          onValueChange={(val) =>
+            setDraft({ ...draft, category: val as EventDefinitionDraft['category'] })
           }
+          options={EVENT_CATEGORIES.map((category) => ({
+            value: category,
+            label: category,
+          }))}
           value={draft.category}
-        >
-          {EVENT_CATEGORIES.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </select>
-        <select
+        />
+        <Select
           aria-label={intl.formatMessage(messages.descriptorFieldEventActorRequirement)}
-          className="cl-select cl-select--default cl-focusable"
-          onChange={(event) =>
+          id="descriptor-event-actor-requirement"
+          onValueChange={(val) =>
             setDraft({
               ...draft,
-              actorRequirement: event.target.value as EventDefinitionDraft['actorRequirement'],
+              actorRequirement: val as EventDefinitionDraft['actorRequirement'],
             })
           }
+          options={ACTOR_REQUIREMENTS.map((requirement) => ({
+            value: requirement,
+            label: requirement,
+          }))}
           value={draft.actorRequirement}
-        >
-          {ACTOR_REQUIREMENTS.map((requirement) => (
-            <option key={requirement} value={requirement}>
-              {requirement}
-            </option>
-          ))}
-        </select>
-        <select
+        />
+        <Select
           aria-label={intl.formatMessage(messages.descriptorFieldEventAwardsStatistic)}
-          className="cl-select cl-select--default cl-focusable"
-          onChange={(event) => setDraft({ ...draft, awardsStatisticCode: event.target.value })}
+          id="descriptor-event-awards-statistic"
+          onValueChange={(val) => setDraft({ ...draft, awardsStatisticCode: val })}
+          options={[
+            { value: '', label: intl.formatMessage(messages.descriptorEventAwardsNone) },
+            ...statistics.map((statistic) => ({
+              value: statistic.code,
+              label: statistic.code,
+            })),
+          ]}
           value={draft.awardsStatisticCode}
-        >
-          <option value="">{intl.formatMessage(messages.descriptorEventAwardsNone)}</option>
-          {statistics.map((statistic) => (
-            <option key={statistic.code} value={statistic.code}>
-              {statistic.code}
-            </option>
-          ))}
-        </select>
+        />
         {draft.awardsStatisticCode !== '' && (
           <Input
             aria-label={intl.formatMessage(messages.descriptorFieldEventAwardsDelta)}
@@ -945,18 +943,18 @@ function EventDefinitionList({
                 className="cl-toggle cl-focusable"
                 style={{ display: 'flex', gap: 'var(--cl-space-2)' }}
               >
-                <input
+                <Checkbox
+                  aria-label={segment.name}
                   checked={draft.permittedSegmentTypes.includes(segment.name)}
-                  className="cl-checkbox cl-focusable"
-                  onChange={(event) =>
+                  id={`descriptor-permitted-segment-${segment.name}`}
+                  onCheckedChange={(checked) =>
                     setDraft({
                       ...draft,
-                      permittedSegmentTypes: event.target.checked
+                      permittedSegmentTypes: checked
                         ? [...draft.permittedSegmentTypes, segment.name]
                         : draft.permittedSegmentTypes.filter((name) => name !== segment.name),
                     })
                   }
-                  type="checkbox"
                 />
                 <span>{segment.name}</span>
               </label>
@@ -1043,17 +1041,18 @@ function ScoringInputList({
           placeholder={intl.formatMessage(messages.descriptorFieldScoringInputLabel)}
           value={draft.label}
         />
-        <select
+        <Select
           aria-label={intl.formatMessage(messages.descriptorFieldScoringInputSource)}
-          className="cl-select cl-select--default cl-focusable"
-          onChange={(event) =>
-            setDraft({ ...draft, source: event.target.value as ScoringInputDraft['source'] })
+          id="descriptor-scoring-input-source"
+          onValueChange={(val) =>
+            setDraft({ ...draft, source: val as ScoringInputDraft['source'] })
           }
+          options={[
+            { value: 'event-derived', label: 'event-derived' },
+            { value: 'operator-entered', label: 'operator-entered' },
+          ]}
           value={draft.source}
-        >
-          <option value="event-derived">event-derived</option>
-          <option value="operator-entered">operator-entered</option>
-        </select>
+        />
         <Button
           disabled={draft.code.trim() === '' || draft.label.trim() === ''}
           onClick={() => {

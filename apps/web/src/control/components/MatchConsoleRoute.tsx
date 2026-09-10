@@ -37,6 +37,7 @@ import {
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
+import { Select } from './ui/atoms/select.js';
 import { Textarea } from './ui/atoms/textarea.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { ClockRing } from './ui/organisms/clock-ring.js';
@@ -698,20 +699,17 @@ export function MatchConsoleRoute({
         </header>
         <div className="cl-platform-form-grid">
           <FormField id="console-segment" label={intl.formatMessage(messages.matchConsoleSegment)}>
-            <select
+            <Select
               aria-label={intl.formatMessage(messages.matchConsoleActiveSegment)}
-              className="cl-select cl-select--default cl-focusable"
               disabled={!canControlClock}
               id="console-segment"
-              onChange={(event) => setSelectedSegmentId(event.target.value)}
+              onValueChange={setSelectedSegmentId}
+              options={projection.segments.map((segment) => ({
+                value: segment.segmentId,
+                label: `${segment.type} ${segment.number} · ${segment.state}`,
+              }))}
               value={selectedSegmentId}
-            >
-              {projection.segments.map((segment) => (
-                <option key={segment.segmentId} value={segment.segmentId}>
-                  {segment.type} {segment.number} · {segment.state}
-                </option>
-              ))}
-            </select>
+            />
           </FormField>
           <FormField
             id="console-elapsed-seconds"
@@ -868,24 +866,26 @@ export function MatchConsoleRoute({
           )}
           <div className="cl-platform-form-grid">
             <FormField id="console-staff" label={intl.formatMessage(messages.matchConsoleStaff)}>
-              <select
+              <Select
                 aria-label={intl.formatMessage(messages.matchConsoleEventStaff)}
-                className="cl-select cl-select--default cl-focusable"
                 disabled={!canRecord || projection.eligibleStaffIds.length === 0}
                 id="console-staff"
-                onChange={(event) => {
-                  setSelectedStaffId(event.target.value);
-                  if (event.target.value) setSelectedPersonId('');
+                onValueChange={(val) => {
+                  setSelectedStaffId(val);
+                  if (val) setSelectedPersonId('');
                 }}
+                options={[
+                  {
+                    value: '',
+                    label: intl.formatMessage(messages.matchConsoleNoAttribution),
+                  },
+                  ...projection.eligibleStaffIds.map((personId) => ({
+                    value: personId,
+                    label: personId.slice(-8),
+                  })),
+                ]}
                 value={selectedStaffId}
-              >
-                <option value="">{intl.formatMessage(messages.matchConsoleNoAttribution)}</option>
-                {projection.eligibleStaffIds.map((personId) => (
-                  <option key={personId} value={personId}>
-                    {personId.slice(-8)}
-                  </option>
-                ))}
-              </select>
+              />
             </FormField>
           </div>
           <div className="cl-role-user">

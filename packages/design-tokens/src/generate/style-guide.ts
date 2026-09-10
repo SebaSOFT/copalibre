@@ -2,6 +2,8 @@ import {
   BUTTON_VARIANTS,
   CARD_STATES,
   CHECKBOX_TOKENS,
+  RADIO_TOKENS,
+  FILE_PICKER_TOKENS,
   INPUT_TOKENS,
   SELECT_TOKENS,
   TEXTAREA_TOKENS,
@@ -46,6 +48,8 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
       ['select', SELECT_TOKENS],
       ['textarea', TEXTAREA_TOKENS],
       ['checkbox', CHECKBOX_TOKENS],
+      ['radio', RADIO_TOKENS],
+      ['file-picker', FILE_PICKER_TOKENS],
     ] as const
   )
     .map(
@@ -143,6 +147,24 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
       </div>
       <div class="cl-dialog-backdrop" style="padding: var(--cl-space-4); width: 240px;">
         <p>Fondo del diálogo</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Niveles de superficie y alternancia (0222)</h2>
+    <div class="cl-band cl-chamfer" style="padding: var(--cl-space-4); margin-bottom: var(--cl-space-4); width: 100%;">
+      <p>Banda nivel panel (base: <code>--cl-surface-panel</code>)</p>
+      <div class="cl-card" style="padding: var(--cl-space-3);">
+        <header class="cl-card__header" style="padding: var(--cl-space-2);">Cabecera chrome (<code>--cl-surface-chrome</code>)</header>
+        <div class="cl-card__body" style="padding: var(--cl-space-2);">Cuerpo alternado (<code>--cl-surface-base</code>)</div>
+      </div>
+    </div>
+    <div class="cl-band cl-band--base cl-chamfer" style="padding: var(--cl-space-4); width: 100%;">
+      <p>Banda nivel base (base: <code>--cl-surface-base</code>)</p>
+      <div class="cl-card" style="padding: var(--cl-space-3);">
+        <header class="cl-card__header" style="padding: var(--cl-space-2);">Cabecera chrome (<code>--cl-surface-chrome</code>)</header>
+        <div class="cl-card__body" style="padding: var(--cl-space-2);">Cuerpo alternado (<code>--cl-surface-panel</code>)</div>
       </div>
     </div>
   </section>

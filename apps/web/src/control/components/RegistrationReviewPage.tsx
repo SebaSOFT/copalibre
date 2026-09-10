@@ -3,6 +3,10 @@ import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
+import { Checkbox } from './ui/atoms/checkbox.js';
+import { FilePicker } from './ui/atoms/file-picker.js';
+import { Input } from './ui/atoms/input.js';
+import { Select } from './ui/atoms/select.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { CountrySelect } from './CountrySelect.js';
 import {
@@ -150,20 +154,17 @@ export function RegistrationReviewPage({
   const toolbarNode = (
     <div className="cl-table-toolbar">
       <div className="cl-table-toolbar__filters">
-        <select
+        <Select
           aria-label={intl.formatMessage(messages.reviewStatusFieldLabel)}
-          className="cl-select cl-select--default cl-focusable"
-          onChange={(event) =>
-            setState((current) => setFilter(current, event.target.value as StatusFilter, rows))
+          onValueChange={(value) =>
+            setState((current) => setFilter(current, value as StatusFilter, rows))
           }
+          options={FILTERS.map((filter) => ({
+            value: filter.value,
+            label: intl.formatMessage(filter.label),
+          }))}
           value={state.filter}
-        >
-          {FILTERS.map((filter) => (
-            <option key={filter.value} value={filter.value}>
-              {intl.formatMessage(filter.label)}
-            </option>
-          ))}
-        </select>
+        />
       </div>
       <div className="cl-table-toolbar__actions">
         <Button onClick={() => setAddOpen(true)} type="button">
@@ -200,12 +201,10 @@ export function RegistrationReviewPage({
       tabIndex={0}
     >
       <div className="cl-role-user">
-        <input
+        <Checkbox
           aria-label={intl.formatMessage(messages.reviewSelectVisible)}
           checked={allVisibleSelected}
-          className="cl-checkbox cl-focusable"
-          onChange={() => setState((current) => toggleAllVisible(current, rows))}
-          type="checkbox"
+          onCheckedChange={() => setState((current) => toggleAllVisible(current, rows))}
         />
         <span>
           <FormattedMessage {...messages.reviewColumnName} />
@@ -228,15 +227,13 @@ export function RegistrationReviewPage({
         return (
           <details className="cl-focusable" key={row.entrantId}>
             <summary className="cl-role-user">
-              <input
+              <Checkbox
                 aria-label={intl.formatMessage(messages.reviewSelectRow, {
                   displayName: row.displayName,
                 })}
                 checked={selected.has(row.entrantId)}
-                className="cl-checkbox cl-focusable"
-                onChange={() => setState((current) => toggleRow(current, row.entrantId))}
-                onClick={(event) => event.stopPropagation()}
-                type="checkbox"
+                onCheckedChange={() => setState((current) => toggleRow(current, row.entrantId))}
+                onClick={(event: React.MouseEvent) => event.stopPropagation()}
               />
               <span>
                 <strong>
@@ -345,24 +342,17 @@ export function RegistrationReviewPage({
                         : undefined
                     }
                   />
-                  <FormField
+                  <FilePicker
+                    accept="image/*"
+                    aria-label={intl.formatMessage(messages.reviewUploadPhoto)}
                     id={`review-photo-${personId}`}
                     label={intl.formatMessage(messages.reviewUploadPhoto)}
-                  >
-                    <input
-                      accept="image/*"
-                      aria-label={intl.formatMessage(messages.reviewUploadPhoto)}
-                      className="cl-input cl-input--default cl-focusable"
-                      id={`review-photo-${personId}`}
-                      onChange={(event) => {
-                        const file = event.currentTarget.files?.[0];
-                        if (!file) return;
-                        setPhotoCrop({ personId, src: URL.createObjectURL(file) });
-                        event.currentTarget.value = '';
-                      }}
-                      type="file"
-                    />
-                  </FormField>
+                    onChange={(files) => {
+                      const file = files?.[0];
+                      if (!file) return;
+                      setPhotoCrop({ personId, src: URL.createObjectURL(file) });
+                    }}
+                  />
                   <a
                     className="cl-focusable"
                     href={`/control/${organizationAlias}/persons/${personId}`}
@@ -623,26 +613,23 @@ function AddParticipantDialog({
           id="add-participant-kind"
           label={intl.formatMessage(messages.reviewParticipantKindLabel)}
         >
-          <select
+          <Select
             aria-label={intl.formatMessage(messages.reviewParticipantKindLabel)}
-            className="cl-select cl-select--default cl-focusable"
             id="add-participant-kind"
-            onChange={(event) => setKind(event.target.value as ParticipantKind)}
+            onValueChange={(value) => setKind(value as ParticipantKind)}
+            options={[
+              { value: 'person', label: intl.formatMessage(messages.reviewParticipantKindPerson) },
+              { value: 'team', label: intl.formatMessage(messages.reviewParticipantKindTeam) },
+            ]}
             value={kind}
-          >
-            <option value="person">
-              {intl.formatMessage(messages.reviewParticipantKindPerson)}
-            </option>
-            <option value="team">{intl.formatMessage(messages.reviewParticipantKindTeam)}</option>
-          </select>
+          />
         </FormField>
         <FormField
           id="add-participant-name"
           label={intl.formatMessage(messages.reviewParticipantNameLabel)}
         >
-          <input
+          <Input
             aria-label={intl.formatMessage(messages.reviewParticipantNameLabel)}
-            className="cl-input cl-input--default cl-focusable"
             id="add-participant-name"
             onChange={(event) => setName(event.target.value)}
             required
@@ -653,9 +640,8 @@ function AddParticipantDialog({
           id="add-participant-alias"
           label={intl.formatMessage(messages.reviewParticipantAliasLabel)}
         >
-          <input
+          <Input
             aria-label={intl.formatMessage(messages.reviewParticipantAliasLabel)}
-            className="cl-input cl-input--default cl-focusable"
             id="add-participant-alias"
             onChange={(event) => setAlias(event.target.value)}
             value={alias}
@@ -719,9 +705,8 @@ function EditIdentityDialog({
           id="edit-identity-name"
           label={intl.formatMessage(messages.reviewParticipantNameLabel)}
         >
-          <input
+          <Input
             aria-label={intl.formatMessage(messages.reviewParticipantNameLabel)}
-            className="cl-input cl-input--default cl-focusable"
             id="edit-identity-name"
             onChange={(event) => setName(event.target.value)}
             required
@@ -732,9 +717,8 @@ function EditIdentityDialog({
           id="edit-identity-alias"
           label={intl.formatMessage(messages.reviewParticipantAliasLabel)}
         >
-          <input
+          <Input
             aria-label={intl.formatMessage(messages.reviewParticipantAliasLabel)}
-            className="cl-input cl-input--default cl-focusable"
             id="edit-identity-alias"
             onChange={(event) => setAlias(event.target.value)}
             value={alias}
@@ -796,9 +780,8 @@ function LinkIdentityDialog({
           id="link-identity-email"
           label={intl.formatMessage(messages.reviewLinkIdentityEmailLabel)}
         >
-          <input
+          <Input
             aria-label={intl.formatMessage(messages.reviewLinkIdentityEmailLabel)}
-            className="cl-input cl-input--default cl-focusable"
             id="link-identity-email"
             onChange={(event) => setEmail(event.target.value)}
             required

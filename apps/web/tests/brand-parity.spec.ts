@@ -58,4 +58,51 @@ test.describe('Brand Design System Parity (0217)', () => {
       expect(overflow).toBe(true);
     });
   }
+
+  test('nested surface levels: card alternates against dark and light bands, header lifts chrome, and selected container differs', async ({
+    page,
+  }) => {
+    await mockLoginApi(page);
+    await page.goto('/control/login');
+
+    const result = await page.evaluate(() => {
+      const container = document.createElement('div');
+      container.innerHTML = `
+        <div class="cl-band">
+          <div class="cl-card card-panel">
+            <div class="cl-card__header header-panel">Header</div>
+            <div class="cl-card__content content-panel">Content</div>
+          </div>
+          <div class="cl-card card-selected" style="background: var(--cl-surface-raised); border-color: var(--cl-state-live);">Selected</div>
+        </div>
+        <div class="cl-band cl-band--base">
+          <div class="cl-card card-base">
+            <div class="cl-card__header header-base">Header</div>
+            <div class="cl-card__content content-base">Content</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(container);
+
+      const cardPanel = container.querySelector('.card-panel');
+      const cardBase = container.querySelector('.card-base');
+      const headerPanel = container.querySelector('.header-panel');
+      const headerBase = container.querySelector('.header-base');
+      const cardSelected = container.querySelector('.card-selected');
+
+      const cardPanelBg = cardPanel ? getComputedStyle(cardPanel).backgroundColor : '';
+      const cardBaseBg = cardBase ? getComputedStyle(cardBase).backgroundColor : '';
+      const headerPanelBg = headerPanel ? getComputedStyle(headerPanel).backgroundColor : '';
+      const headerBaseBg = headerBase ? getComputedStyle(headerBase).backgroundColor : '';
+      const selectedBorder = cardSelected ? getComputedStyle(cardSelected).borderColor : '';
+      const headerBorder = headerPanel ? getComputedStyle(headerPanel).borderColor : '';
+
+      container.remove();
+      return { cardPanelBg, cardBaseBg, headerPanelBg, headerBaseBg, selectedBorder, headerBorder };
+    });
+
+    expect(result.cardPanelBg).not.toBe(result.cardBaseBg);
+    expect(result.headerPanelBg).toBe(result.headerBaseBg);
+    expect(result.selectedBorder).not.toBe(result.headerBorder);
+  });
 });

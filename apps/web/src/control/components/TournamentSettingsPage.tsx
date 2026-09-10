@@ -3,6 +3,9 @@ import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { Button } from './ui/atoms/button.js';
+import { Checkbox } from './ui/atoms/checkbox.js';
+import { FilePicker } from './ui/atoms/file-picker.js';
+import { Input } from './ui/atoms/input.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { FramedImage } from './FramedImage.js';
@@ -154,23 +157,16 @@ export function TournamentSettingsPage({
                 />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--cl-space-2)' }}>
                   {onUploadEmblem && (
-                    <FormField
+                    <FilePicker
+                      accept="image/*"
+                      aria-label={intl.formatMessage(messages.settingsUploadEmblem)}
                       id="tournament-emblem-upload"
                       label={intl.formatMessage(messages.settingsUploadEmblem)}
-                    >
-                      <input
-                        accept="image/*"
-                        aria-label={intl.formatMessage(messages.settingsUploadEmblem)}
-                        className="cl-input cl-input--default cl-focusable"
-                        id="tournament-emblem-upload"
-                        onChange={(event) => {
-                          const file = event.currentTarget.files?.[0];
-                          if (file) setEmblemCropSrc(URL.createObjectURL(file));
-                          event.currentTarget.value = '';
-                        }}
-                        type="file"
-                      />
-                    </FormField>
+                      onChange={(files) => {
+                        const file = files?.[0];
+                        if (file) setEmblemCropSrc(URL.createObjectURL(file));
+                      }}
+                    />
                   )}
                   {settings.emblemObjectId !== undefined && onDeleteEmblem && (
                     <Button
@@ -199,8 +195,7 @@ export function TournamentSettingsPage({
             </div>
 
             <FormField id="settings-name" label={intl.formatMessage(messages.settingsNameLabel)}>
-              <input
-                className="cl-input cl-input--default cl-focusable"
+              <Input
                 id="settings-name"
                 onChange={(event) => setName(event.target.value)}
                 value={name}
@@ -210,8 +205,7 @@ export function TournamentSettingsPage({
               id="settings-region"
               label={intl.formatMessage(messages.settingsRegionLabel)}
             >
-              <input
-                className="cl-input cl-input--default cl-focusable"
+              <Input
                 id="settings-region"
                 onChange={(event) => setRegion(event.target.value)}
                 value={region}
@@ -221,8 +215,7 @@ export function TournamentSettingsPage({
               id="settings-capacity"
               label={intl.formatMessage(messages.settingsCapacityLabel)}
             >
-              <input
-                className="cl-input cl-input--default cl-focusable"
+              <Input
                 id="settings-capacity"
                 onChange={(event) => setCapacity(event.target.value)}
                 type="number"
@@ -233,8 +226,7 @@ export function TournamentSettingsPage({
               id="settings-check-in-closes-at"
               label={intl.formatMessage(messages.settingsCheckInClosesAtLabel)}
             >
-              <input
-                className="cl-input cl-input--default cl-focusable"
+              <Input
                 id="settings-check-in-closes-at"
                 onChange={(event) => setCheckInClosesAt(event.target.value)}
                 type="datetime-local"
@@ -248,13 +240,7 @@ export function TournamentSettingsPage({
               htmlFor="settings-featured"
               style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
             >
-              <input
-                checked={featured}
-                className="cl-checkbox cl-focusable"
-                id="settings-featured"
-                onChange={(event) => setFeatured(event.target.checked)}
-                type="checkbox"
-              />
+              <Checkbox checked={featured} id="settings-featured" onCheckedChange={setFeatured} />
               <span>{intl.formatMessage(messages.settingsFeaturedLabel)}</span>
             </label>
 

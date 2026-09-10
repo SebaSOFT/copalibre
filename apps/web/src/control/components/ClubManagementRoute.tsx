@@ -13,6 +13,7 @@ import { ImageCropModal } from './ImageCropModal.js';
 import { ClubEmblemPlaceholder } from './placeholders.js';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
+import { FilePicker } from './ui/atoms/file-picker.js';
 import { Input } from './ui/atoms/input.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
@@ -280,23 +281,16 @@ export function ClubManagementRoute({
             />
 
             {api.uploadClubEmblem && (
-              <FormField
+              <FilePicker
+                accept="image/*"
+                aria-label={intl.formatMessage(messages.clubManagementUploadEmblem)}
                 id="edit-club-emblem"
                 label={intl.formatMessage(messages.clubManagementUploadEmblem)}
-              >
-                <input
-                  accept="image/*"
-                  aria-label={intl.formatMessage(messages.clubManagementUploadEmblem)}
-                  className="cl-input cl-input--default cl-focusable"
-                  id="edit-club-emblem"
-                  onChange={(event) => {
-                    const file = event.currentTarget.files?.[0];
-                    if (file) setEmblemCropSrc(URL.createObjectURL(file));
-                    event.currentTarget.value = '';
-                  }}
-                  type="file"
-                />
-              </FormField>
+                onChange={(files) => {
+                  const file = files?.[0];
+                  if (file) setEmblemCropSrc(URL.createObjectURL(file));
+                }}
+              />
             )}
 
             <div className="cl-platform-form-grid">

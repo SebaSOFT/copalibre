@@ -96,9 +96,9 @@ Operator screens live under `Admin/Screens`, beside their source as `*.stories.t
 screen declares its own narrow client; an undeclared method throws, while optional capabilities
 must be explicitly absent. Do not replace production UI with a Storybook-only layout.
 
-Screen coverage is incremental: `scripts/covered-control-screens.mjs` records achieved coverage.
-Losing a registered source/story fails ownership checks; adding a story requires extending the
-register. An uncovered screen does not fail. The library's all-components rule is unchanged.
+Screen coverage is derived dynamically from the filesystem: `scripts/check-ui-ownership.mjs`
+walks the control components directory and requires a sibling `*.stories.tsx` for every screen,
+excluding only the 4 declared non-screen categories (routers, providers, fixtures, and deferred).
 See `docs/SCREEN-STORY-REVIEW.md` for fixture boundaries, deferred screens, and review findings.
 
 ### Component ownership, on every surface

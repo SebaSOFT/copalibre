@@ -12,6 +12,7 @@ import {
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
+import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
@@ -642,11 +643,10 @@ export function VenueManagementRoute({
                 </legend>
                 {venues.map((venue) => (
                   <label key={venue.venueId} className="cl-toggle cl-focusable">
-                    <input
+                    <Checkbox
+                      aria-label={venue.name}
                       checked={newScheduleVenueIds.includes(venue.venueId)}
-                      className="cl-checkbox cl-focusable"
-                      onChange={() => toggleScheduleVenue(venue.venueId)}
-                      type="checkbox"
+                      onCheckedChange={() => toggleScheduleVenue(venue.venueId)}
                     />
                     <span>{venue.name}</span>
                   </label>
@@ -740,12 +740,12 @@ export function VenueManagementRoute({
                 </legend>
                 {OFFICIAL_ROLES.map((role) => (
                   <label key={role} className="cl-toggle cl-focusable">
-                    <input
+                    <Checkbox
                       aria-label={roleLabel(role)}
                       checked={newOfficialRoles.includes(role)}
-                      className="cl-checkbox cl-focusable"
-                      onChange={() => toggleRole(newOfficialRoles, role, setNewOfficialRoles)}
-                      type="checkbox"
+                      onCheckedChange={() =>
+                        toggleRole(newOfficialRoles, role, setNewOfficialRoles)
+                      }
                     />
                     <span>{roleLabel(role)}</span>
                   </label>
@@ -788,12 +788,12 @@ export function VenueManagementRoute({
                 </legend>
                 {OFFICIAL_ROLES.map((role) => (
                   <label key={role} className="cl-toggle cl-focusable">
-                    <input
+                    <Checkbox
                       aria-label={roleLabel(role)}
                       checked={editOfficialRoles.includes(role)}
-                      className="cl-checkbox cl-focusable"
-                      onChange={() => toggleRole(editOfficialRoles, role, setEditOfficialRoles)}
-                      type="checkbox"
+                      onCheckedChange={() =>
+                        toggleRole(editOfficialRoles, role, setEditOfficialRoles)
+                      }
                     />
                     <span>{roleLabel(role)}</span>
                   </label>

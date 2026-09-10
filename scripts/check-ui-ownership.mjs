@@ -1,7 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { COVERED_CONTROL_SCREENS } from './covered-control-screens.mjs';
 
 /**
  * Validates that every surface the application renders composes the owned
@@ -27,27 +26,6 @@ const ALLOWED_BUTTON_FILES = new Set([
 
 const ALLOWED_INPUT_FILES = new Set(['control/components/JerseyGrid.tsx']);
 
-/**
- * Files whose native `<select>` is deliberate. Audited per file rather than
- * inherited from the button/input allowlist: being exempt for one element says
- * nothing about another.
- */
-const ALLOWED_SELECT_FILES = new Set([]);
-
-/**
- * Raw `<input>`s that predate this scanner actually working.
- *
- * Until 2026-09-07 this check matched per line, so Prettier — which wraps any
- * element with more than a couple of props — hid almost every real occurrence.
- * Fixing the match surfaced 48 of them across 15 screens at once. Converting
- * them is a component-library change, not a scanner fix, so they are recorded
- * here instead of being silently permitted.
- *
- * **This is a debt register, not permission.** A count may only go down. Adding
- * a raw input to any of these files fails the check, as does adding one to a
- * file not listed; removing one fails too, until the number here is lowered to
- * match. Delete an entry when its file reaches zero.
- */
 const KNOWN_RAW_ELEMENTS = new Map([
   // Public surface. `<table>` and `<dialog>` have no server-renderable owner —
   // there is no `DataTable.astro` or `Modal.astro` — so these wait on 0214
@@ -63,27 +41,9 @@ const KNOWN_RAW_ELEMENTS = new Map([
     'pages/[...locale]/[organization]/tournaments/[tournament]/stages/[stage]/matches/[match].astro',
     1,
   ],
-  // Operator surface. Every one of these has an owned atom to compose.
-  ['control/components/ClubManagementRoute.tsx', 1],
-  ['control/components/DescriptorBuilderWizard.tsx', 12],
-  ['control/components/LoadMatchDataRoute.tsx', 9],
-  ['control/components/MatchConsoleRoute.tsx', 2],
-  ['control/components/PlatformAdministrationRoute.tsx', 1],
-  ['control/components/PreferencesRoute.tsx', 1],
-  ['control/components/ProfileBuilderWizard.tsx', 2],
-  ['control/components/RegistrationReviewPage.tsx', 10],
-  ['control/components/RegistrationReviewRoute.tsx', 1],
-  ['control/components/RolesPermissionsPage.tsx', 6],
-  ['control/components/RosterRoleSelector.tsx', 1],
-  ['control/components/RosterSelectionStep.tsx', 3],
-  ['control/components/ScheduleBuilderRoute.tsx', 2],
+  // Operator surface — converted screens eliminated; only remaining items:
   ['control/components/SeedingBuilderRoute.tsx', 5],
-  ['control/components/StandingsPage.tsx', 1],
   ['control/components/TournamentRulesetPage.tsx', 3],
-  ['control/components/TournamentSettingsPage.tsx', 2],
-  ['control/components/TournamentSetupWizard.tsx', 13],
-  ['control/components/VenueManagementRoute.tsx', 3],
-  ['control/components/ZoneGroupRoute.tsx', 5],
 ]);
 
 /**
@@ -109,7 +69,7 @@ const RAW_ELEMENT_RULES = [
   { tag: 'textarea', replacement: '`Textarea` atom' },
   { tag: 'button', replacement: '`Button` atom', allowed: ALLOWED_BUTTON_FILES },
   { tag: 'input', replacement: '`Input` atom', allowed: ALLOWED_INPUT_FILES },
-  { tag: 'select', replacement: '`Select` atom', allowed: ALLOWED_SELECT_FILES },
+  { tag: 'select', replacement: '`Select` atom' },
 ];
 
 /**
@@ -151,7 +111,7 @@ const KNOWN_HANDWRITTEN_CLASSES = new Map([
   ['control/components/BracketCanvas.tsx', 2],
   ['control/components/DeviceHeartbeat.tsx', 1],
   ['control/components/LiveConsoleRoute.tsx', 3],
-  ['control/components/LoadMatchDataRoute.tsx', 2],
+  ['control/components/LoadMatchDataRoute.tsx', 1],
   ['control/components/RegistrationReviewPage.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 2],
   ['control/components/SeedingBuilderPage.tsx', 2],
@@ -243,12 +203,22 @@ export function checkFileOwnership(filename, content) {
     const pattern = new RegExp(`<${rule.tag}[\\s>/]`, 'g');
     let match;
     while ((match = pattern.exec(source)) !== null) {
-      // A checkbox, radio or file input has no owned atom to use instead, so it
-      // stays raw by design rather than by oversight.
       if (rule.tag === 'input') {
         const tagEnd = source.indexOf('>', match.index);
         const element = source.slice(match.index, tagEnd === -1 ? undefined : tagEnd);
-        if (/type=["'](checkbox|radio|file)["']/.test(element)) continue;
+        let replacement = rule.replacement;
+        if (/type=["']checkbox["']/.test(element)) {
+          replacement = '`Checkbox` atom';
+        } else if (/type=["']radio["']/.test(element)) {
+          replacement = '`Radio` atom';
+        } else if (/type=["']file["']/.test(element)) {
+          replacement = '`FilePicker` atom';
+        }
+        violations.push({
+          line: lineOf(source, match.index),
+          message: `Raw <${rule.tag}> detected in ${baseName}. Use the owned ${replacement} instead.`,
+        });
+        continue;
       }
 
       violations.push({
@@ -343,29 +313,68 @@ const REGISTERS = [
 const LIBRARY_TIERS = ['atoms', 'molecules', 'organisms', 'templates'];
 
 /**
- * Screens ratchet from existing coverage, unlike the all-required library.
- * New uncovered screens are allowed; a new story must join the register.
- * @param {string} screensPath
- * @param {readonly string[]} covered
+ * Exclusion categories for screen story coverage (design.md):
+ * (a) story, test, or test-support modules
+ * (b) routers or route tables
+ * (c) context providers or composition roots
+ * (d) recorded in an explicit "cannot render honestly" register with a stated reason
  */
-export function checkScreenStoryCoverage(screensPath, covered = COVERED_CONTROL_SCREENS) {
-  const entries = existsSync(screensPath) ? readdirSync(screensPath) : [];
+export const SCREEN_STORY_EXCLUSIONS = {
+  // (b) Routers or route tables: pure routing wrappers or tables with no distinct screen UI
+  routers: new Set(['ControlRoutes.tsx', 'NativeAuthRoutes.tsx', 'ControlOrNotFound.tsx']),
+  // (c) Context providers or composition roots: providers and application entry points
+  providersAndRoots: new Set(['ControlApp.tsx', 'ToastProvider.tsx', 'ControlIntl.tsx']),
+  // (d) Recorded in an explicit "cannot render honestly" register with a stated reason:
+  cannotRenderHonestly: new Map([
+    // Empty: every real screen can be rendered honestly in Storybook
+  ]),
+};
+
+function isTestOrStoryOrSupport(filename) {
+  return (
+    filename.includes('.stories.') ||
+    filename.includes('.test.') ||
+    filename.endsWith('.test.ts') ||
+    filename.endsWith('.test.tsx') ||
+    filename.includes('test-support') ||
+    filename.includes('fixtures')
+  );
+}
+
+export function isScreenExcluded(filename) {
+  const base = filename.split('/').pop() ?? filename;
+  if (isTestOrStoryOrSupport(base)) return true;
+  if (SCREEN_STORY_EXCLUSIONS.routers.has(base)) return true;
+  if (SCREEN_STORY_EXCLUSIONS.providersAndRoots.has(base)) return true;
+  if (SCREEN_STORY_EXCLUSIONS.cannotRenderHonestly.has(base)) return true;
+  return false;
+}
+
+/**
+ * Derives screen story coverage directly from the filesystem rather than a static register (0222).
+ * Walks `screensPath` and requires a `.stories.tsx` beside every `.tsx` unless excluded by category.
+ *
+ * Note on Astro pages:
+ * Astro pages under `pages/` are not walked: Storybook currently has no Astro
+ * renderer. OpenSpec 0220 addresses the public and broadcast tier extraction seam.
+ *
+ * @param {string} screensPath
+ * @returns {readonly { component: string, message: string }[]}
+ */
+export function checkScreenStoryCoverage(screensPath) {
+  if (!existsSync(screensPath)) return [];
+  const entries = readdirSync(screensPath);
   const violations = [];
-  for (const component of covered) {
-    const story = component.replace(/\.tsx$/, '.stories.tsx');
-    if (!entries.includes(component) || !entries.includes(story)) {
+
+  for (const entry of entries) {
+    if (!entry.endsWith('.tsx')) continue;
+    if (isScreenExcluded(entry)) continue;
+
+    const story = entry.replace(/\.tsx$/, '.stories.tsx');
+    if (!entries.includes(story)) {
       violations.push({
-        component,
-        message: `${component} is registered: keep both its source and ${story}.`,
-      });
-    }
-  }
-  for (const story of entries.filter((entry) => entry.endsWith('.stories.tsx'))) {
-    const component = story.replace(/\.stories\.tsx$/, '.tsx');
-    if (!covered.includes(component)) {
-      violations.push({
-        component,
-        message: `${story} is not in COVERED_CONTROL_SCREENS; extend the register.`,
+        component: entry,
+        message: `${entry} has no ${story}. Every screen requires a story unless explicitly excluded by category.`,
       });
     }
   }
@@ -495,6 +504,7 @@ if (isMain) {
   // there later is covered without this line changing again.
   const missingStories = [
     ...checkScreenStoryCoverage(join(webSrc, 'control/components')),
+    ...checkScreenStoryCoverage(join(webSrc, 'control/i18n')),
     ...checkStoryCoverage(join(webSrc, 'control/components/ui')),
     ...checkStoryCoverage(join(webSrc, 'components/ui')),
   ];

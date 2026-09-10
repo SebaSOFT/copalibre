@@ -3,7 +3,9 @@ import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
+import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
+import { Select } from './ui/atoms/select.js';
 import { Textarea } from './ui/atoms/textarea.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { FormField } from './ui/molecules/form-field.js';
@@ -302,14 +304,12 @@ export function TournamentSetupWizard({
             id="wizard-discipline"
             label={intl.formatMessage(messages.wizardFieldDiscipline)}
           >
-            <select
+            <Select
               aria-describedby="wizard-discipline-hint"
-              className="cl-select cl-select--default cl-focusable"
+              aria-label={intl.formatMessage(messages.wizardFieldDiscipline)}
               id="wizard-discipline"
-              onChange={(event) => {
-                const discipline = disciplines.find(
-                  (one) => one.descriptorId === event.target.value,
-                );
+              onValueChange={(val) => {
+                const discipline = disciplines.find((one) => one.descriptorId === val);
                 patch({
                   descriptorId: discipline?.descriptorId,
                   descriptorVersion: discipline?.version,
@@ -318,18 +318,16 @@ export function TournamentSetupWizard({
                   profileVersion: undefined,
                 });
               }}
-              value={state.descriptorId ?? ''}
-            >
-              {disciplines.map((discipline) => (
-                <option key={discipline.descriptorId} value={discipline.descriptorId}>
-                  {localizedText(discipline.name, intl.locale)}
-                  {discipline.description === undefined
+              options={disciplines.map((discipline) => ({
+                value: discipline.descriptorId,
+                label: `${localizedText(discipline.name, intl.locale)}${
+                  discipline.description === undefined
                     ? ''
-                    : ` — ${localizedText(discipline.description, intl.locale)}`}{' '}
-                  · {discipline.version}
-                </option>
-              ))}
-            </select>
+                    : ` — ${localizedText(discipline.description, intl.locale)}`
+                } · ${discipline.version}`,
+              }))}
+              value={state.descriptorId ?? ''}
+            />
             <DecisionHint
               id="wizard-discipline-hint"
               text={intl.formatMessage(messages.wizardDecisionDiscipline)}
@@ -340,29 +338,26 @@ export function TournamentSetupWizard({
         {state.step === 'format' && (
           <div className="cl-platform-form-grid">
             <FormField id="wizard-format" label={intl.formatMessage(messages.wizardFieldFormat)}>
-              <select
+              <Select
                 aria-describedby="wizard-format-hint"
-                className="cl-select cl-select--default cl-focusable"
+                aria-label={intl.formatMessage(messages.wizardFieldFormat)}
                 id="wizard-format"
-                onChange={(event) =>
+                onValueChange={(val) =>
                   patch({
-                    format: event.target.value,
+                    format: val,
                     profileId: undefined,
                     profileVersion: undefined,
                   })
                 }
-                value={state.format ?? ''}
-              >
-                {formats.map((format) => {
+                options={formats.map((format) => {
                   const description = formatOptionDescription(format);
-                  return (
-                    <option key={format} value={format}>
-                      {format}
-                      {description === undefined ? '' : ` — ${description}`}
-                    </option>
-                  );
+                  return {
+                    value: format,
+                    label: `${format}${description === undefined ? '' : ` — ${description}`}`,
+                  };
                 })}
-              </select>
+                value={state.format ?? ''}
+              />
               <DecisionHint
                 id="wizard-format-hint"
                 text={decisionHintText('format', messages.wizardDecisionFormat)}
@@ -374,28 +369,27 @@ export function TournamentSetupWizard({
                 id="wizard-profile"
                 label={intl.formatMessage(messages.wizardFieldProfile)}
               >
-                <select
-                  className="cl-select cl-select--default cl-focusable"
+                <Select
+                  aria-label={intl.formatMessage(messages.wizardFieldProfile)}
                   id="wizard-profile"
-                  onChange={(event) => {
-                    const selectedProfile = profiles.find(
-                      (p) => p.profileId === event.target.value,
-                    );
+                  onValueChange={(val) => {
+                    const selectedProfile = profiles.find((p) => p.profileId === val);
                     patch({
                       profileId: selectedProfile?.profileId,
                       profileVersion: selectedProfile?.version,
                     });
                   }}
+                  options={[
+                    { value: '', label: intl.formatMessage(messages.wizardProfileNone) },
+                    ...profiles.map((profile) => ({
+                      value: profile.profileId,
+                      label: `${localizedText(profile.name, intl.locale)} (${profile.stages
+                        .map((s) => s.name)
+                        .join(' → ')}) · ${profile.version}`,
+                    })),
+                  ]}
                   value={state.profileId ?? ''}
-                >
-                  <option value="">{intl.formatMessage(messages.wizardProfileNone)}</option>
-                  {profiles.map((profile) => (
-                    <option key={profile.profileId} value={profile.profileId}>
-                      {localizedText(profile.name, intl.locale)} (
-                      {profile.stages.map((s) => s.name).join(' → ')}) · {profile.version}
-                    </option>
-                  ))}
-                </select>
+                />
               </FormField>
             )}
 
@@ -405,21 +399,21 @@ export function TournamentSetupWizard({
                 htmlFor="wizard-enable-series"
                 style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
               >
-                <input
+                <Checkbox
+                  aria-describedby="tournament-series-hint"
+                  aria-label={intl.formatMessage(messages.wizardEnableSeries)}
                   checked={state.seriesEnabled}
-                  className="cl-checkbox cl-focusable"
                   id="wizard-enable-series"
-                  onChange={(event) =>
+                  onCheckedChange={(checked) =>
                     patch({
-                      seriesEnabled: event.target.checked,
+                      seriesEnabled: checked,
                       // Defaults appear only once the operator opts in, so an
                       // untouched wizard submits no series at all.
-                      ...(event.target.checked && state.seriesSpan === undefined
+                      ...(checked && state.seriesSpan === undefined
                         ? { seriesSpan: 3, seriesResolutionClass: 'best-of' as const }
                         : {}),
                     })
                   }
-                  type="checkbox"
                 />
                 <span>
                   <FormattedMessage {...messages.wizardEnableSeries} />
@@ -464,25 +458,23 @@ export function TournamentSetupWizard({
                     id="wizard-series-class"
                     label={intl.formatMessage(messages.wizardFieldSeriesResolutionClass)}
                   >
-                    <select
+                    <Select
                       aria-describedby="wizard-series-class-hint"
-                      className="cl-select cl-select--default cl-focusable"
+                      aria-label={intl.formatMessage(messages.wizardFieldSeriesResolutionClass)}
                       id="wizard-series-class"
-                      onChange={(event) =>
+                      onValueChange={(val) =>
                         patch({
-                          seriesResolutionClass: event.target
-                            .value as WizardState['seriesResolutionClass'],
+                          seriesResolutionClass: val as WizardState['seriesResolutionClass'],
                         })
                       }
+                      options={SERIES_RESOLUTION_CLASSES.map((resolutionClass) => ({
+                        value: resolutionClass,
+                        label: `${intl.formatMessage(
+                          SERIES_CLASS_LABELS[resolutionClass],
+                        )} — ${intl.formatMessage(SERIES_CLASS_DESCRIPTIONS[resolutionClass])}`,
+                      }))}
                       value={state.seriesResolutionClass ?? ''}
-                    >
-                      {SERIES_RESOLUTION_CLASSES.map((resolutionClass) => (
-                        <option key={resolutionClass} value={resolutionClass}>
-                          {intl.formatMessage(SERIES_CLASS_LABELS[resolutionClass])} —{' '}
-                          {intl.formatMessage(SERIES_CLASS_DESCRIPTIONS[resolutionClass])}
-                        </option>
-                      ))}
-                    </select>
+                    />
                     <DecisionHint
                       id="wizard-series-class-hint"
                       text={decisionHintText(
@@ -502,13 +494,12 @@ export function TournamentSetupWizard({
                       gridColumn: '1 / -1',
                     }}
                   >
-                    <input
+                    <Checkbox
                       aria-describedby="wizard-series-neutral-ground-hint"
+                      aria-label={intl.formatMessage(messages.wizardFieldSeriesNeutralGround)}
                       checked={state.seriesNeutralGround}
-                      className="cl-checkbox cl-focusable"
                       id="wizard-series-neutral-ground"
-                      onChange={(event) => patch({ seriesNeutralGround: event.target.checked })}
-                      type="checkbox"
+                      onCheckedChange={(checked) => patch({ seriesNeutralGround: checked })}
                     />
                     <span>
                       <FormattedMessage {...messages.wizardFieldSeriesNeutralGround} />
@@ -527,24 +518,25 @@ export function TournamentSetupWizard({
                       id="wizard-series-accounting"
                       label={intl.formatMessage(messages.wizardFieldSeriesStandingsAccounting)}
                     >
-                      <select
+                      <Select
                         aria-describedby="wizard-series-accounting-hint"
-                        className="cl-select cl-select--default cl-focusable"
+                        aria-label={intl.formatMessage(
+                          messages.wizardFieldSeriesStandingsAccounting,
+                        )}
                         id="wizard-series-accounting"
-                        onChange={(event) =>
+                        onValueChange={(val) =>
                           patch({
-                            seriesStandingsAccounting: event.target.value as SeriesAccountingGrain,
+                            seriesStandingsAccounting: val as SeriesAccountingGrain,
                           })
                         }
+                        options={(['match', 'series'] as const).map((grain) => ({
+                          value: grain,
+                          label: `${intl.formatMessage(
+                            SERIES_ACCOUNTING_LABELS[grain],
+                          )} — ${intl.formatMessage(SERIES_ACCOUNTING_DESCRIPTIONS[grain])}`,
+                        }))}
                         value={state.seriesStandingsAccounting}
-                      >
-                        {(['match', 'series'] as const).map((grain) => (
-                          <option key={grain} value={grain}>
-                            {intl.formatMessage(SERIES_ACCOUNTING_LABELS[grain])} —{' '}
-                            {intl.formatMessage(SERIES_ACCOUNTING_DESCRIPTIONS[grain])}
-                          </option>
-                        ))}
-                      </select>
+                      />
                       <DecisionHint
                         id="wizard-series-accounting-hint"
                         text={decisionHintText(
@@ -600,13 +592,12 @@ export function TournamentSetupWizard({
               htmlFor="wizard-public-registration"
               style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
             >
-              <input
+              <Checkbox
                 aria-describedby="wizard-public-registration-hint"
+                aria-label={intl.formatMessage(messages.wizardPublicRegistration)}
                 checked={state.publicRegistration}
-                className="cl-checkbox cl-focusable"
                 id="wizard-public-registration"
-                onChange={(event) => patch({ publicRegistration: event.target.checked })}
-                type="checkbox"
+                onCheckedChange={(checked) => patch({ publicRegistration: checked })}
               />
               <span>
                 <FormattedMessage {...messages.wizardPublicRegistration} />
@@ -624,13 +615,12 @@ export function TournamentSetupWizard({
               htmlFor="wizard-requires-check-in"
               style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
             >
-              <input
+              <Checkbox
                 aria-describedby="wizard-requires-check-in-hint"
+                aria-label={intl.formatMessage(messages.wizardRequiresCheckIn)}
                 checked={state.requiresCheckIn}
-                className="cl-checkbox cl-focusable"
                 id="wizard-requires-check-in"
-                onChange={(event) => patch({ requiresCheckIn: event.target.checked })}
-                type="checkbox"
+                onCheckedChange={(checked) => patch({ requiresCheckIn: checked })}
               />
               <span>
                 <FormattedMessage {...messages.wizardRequiresCheckIn} />
@@ -674,12 +664,11 @@ export function TournamentSetupWizard({
               htmlFor="wizard-enable-custom-rule"
               style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
             >
-              <input
+              <Checkbox
+                aria-label={intl.formatMessage(messages.wizardEnableCustomRule)}
                 checked={state.customRuleEnabled}
-                className="cl-checkbox cl-focusable"
                 id="wizard-enable-custom-rule"
-                onChange={(event) => patch({ customRuleEnabled: event.target.checked })}
-                type="checkbox"
+                onCheckedChange={(checked) => patch({ customRuleEnabled: checked })}
               />
               <span>
                 <FormattedMessage {...messages.wizardEnableCustomRule} />
@@ -721,24 +710,23 @@ export function TournamentSetupWizard({
                     id="wizard-rule-condition"
                     label={intl.formatMessage(messages.wizardRuleCondition)}
                   >
-                    <select
+                    <Select
                       aria-describedby="wizard-rule-condition-hint"
-                      className="cl-select cl-select--default cl-focusable"
+                      aria-label={intl.formatMessage(messages.wizardRuleCondition)}
                       id="wizard-rule-condition"
-                      onChange={(event) =>
-                        patch({ customRuleConditionType: event.target.value || undefined })
-                      }
+                      onValueChange={(val) => patch({ customRuleConditionType: val || undefined })}
+                      options={[
+                        {
+                          value: '',
+                          label: intl.formatMessage(messages.wizardRuleConditionAlways),
+                        },
+                        ...conditions.map((entry) => ({
+                          value: entry.type,
+                          label: `${entry.type} — ${entry.description}`,
+                        })),
+                      ]}
                       value={state.customRuleConditionType ?? ''}
-                    >
-                      <option value="">
-                        {intl.formatMessage(messages.wizardRuleConditionAlways)}
-                      </option>
-                      {conditions.map((entry) => (
-                        <option key={entry.type} value={entry.type}>
-                          {entry.type} — {entry.description}
-                        </option>
-                      ))}
-                    </select>
+                    />
                     <DecisionHint
                       id="wizard-rule-condition-hint"
                       text={selectedCondition?.description}
@@ -748,24 +736,23 @@ export function TournamentSetupWizard({
                     id="wizard-rule-action"
                     label={intl.formatMessage(messages.wizardRuleAction)}
                   >
-                    <select
+                    <Select
                       aria-describedby="wizard-rule-action-hint"
-                      className="cl-select cl-select--default cl-focusable"
+                      aria-label={intl.formatMessage(messages.wizardRuleAction)}
                       id="wizard-rule-action"
-                      onChange={(event) =>
-                        patch({ customRuleActionType: event.target.value || undefined })
-                      }
+                      onValueChange={(val) => patch({ customRuleActionType: val || undefined })}
+                      options={[
+                        {
+                          value: '',
+                          label: intl.formatMessage(messages.wizardRuleChooseAction),
+                        },
+                        ...actions.map((entry) => ({
+                          value: entry.type,
+                          label: `${entry.type} — ${entry.description}`,
+                        })),
+                      ]}
                       value={state.customRuleActionType ?? ''}
-                    >
-                      <option value="">
-                        {intl.formatMessage(messages.wizardRuleChooseAction)}
-                      </option>
-                      {actions.map((entry) => (
-                        <option key={entry.type} value={entry.type}>
-                          {entry.type} — {entry.description}
-                        </option>
-                      ))}
-                    </select>
+                    />
                     <DecisionHint id="wizard-rule-action-hint" text={selectedAction?.description} />
                   </FormField>
                 </div>
@@ -900,19 +887,19 @@ function ElementAuthoringFields({
           return (
             <FormField id={key} key={key} label={label}>
               {Array.isArray(choices) ? (
-                <select
-                  className="cl-select cl-select--default cl-focusable"
+                <Select
+                  aria-label={label}
                   id={key}
-                  onChange={(event) => onValueChange(key, event.target.value)}
+                  onValueChange={(val) => onValueChange(key, val)}
+                  options={[
+                    { value: '', label: '' },
+                    ...choices.map((choice) => ({
+                      value: String(choice),
+                      label: String(choice),
+                    })),
+                  ]}
                   value={values[key] ?? ''}
-                >
-                  <option value="" />
-                  {choices.map((choice) => (
-                    <option key={String(choice)} value={String(choice)}>
-                      {String(choice)}
-                    </option>
-                  ))}
-                </select>
+                />
               ) : (
                 <Input
                   id={key}

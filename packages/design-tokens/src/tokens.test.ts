@@ -12,6 +12,8 @@ import { PROTECTED_TOKENS, SEMANTIC_COLORS, isProtected, resolveSemantic } from 
 import {
   BUTTON_VARIANTS,
   CHECKBOX_TOKENS,
+  RADIO_TOKENS,
+  FILE_PICKER_TOKENS,
   DIALOG_TOKENS,
   FORM_SECTION_TOKENS,
   INPUT_TOKENS,
@@ -215,6 +217,7 @@ describe('the CSS output', () => {
     const levels = [
       'surface-base',
       'surface-panel',
+      'surface-content',
       'surface-chrome',
       'surface-raised',
       'surface-row',
@@ -287,6 +290,10 @@ describe('the CSS output', () => {
     expect(css).toContain(
       ':where(.cl-card, .cl-well, .cl-chrome, .cl-card__header, .cl-card__footer) { border: 1px solid var(--cl-border-muted); }',
     );
+    // Broadcast surface is constrained to a single alternation step.
+    expect(css).toContain(
+      ':where([data-surface="broadcast"], .cl-broadcast, .tv-root-container) :where(.cl-card, .cl-well) :where(.cl-card, .cl-well) { background: var(--cl-surface-panel); }',
+    );
   });
 
   it("lets the level rules win over a card's own styling", () => {
@@ -353,11 +360,52 @@ describe('the CSS output', () => {
   });
 
   it('emits a rule per form-control atom/state', () => {
-    for (const atom of ['input', 'select', 'textarea', 'checkbox']) {
+    for (const atom of ['input', 'select', 'textarea', 'checkbox', 'radio']) {
       for (const state of ['default', 'focus', 'error', 'disabled']) {
         expect(css).toContain(`.cl-${atom}--${state} {`);
       }
     }
+    for (const state of [
+      'default',
+      'focus',
+      'error',
+      'disabled',
+      'drag-active',
+      'selection-present',
+    ]) {
+      expect(css).toContain(`.cl-file-picker--${state} {`);
+    }
+  });
+
+  it('defines component token contracts for radio and file-selection controls', () => {
+    const radioStates = ['default', 'focus', 'error', 'disabled'] as const;
+    for (const state of radioStates) {
+      const tokens = RADIO_TOKENS[state];
+      expect(tokens.background in SEMANTIC_COLORS).toBe(true);
+      expect(tokens.text in SEMANTIC_COLORS).toBe(true);
+      expect(tokens.border in SEMANTIC_COLORS).toBe(true);
+      expect(tokens.focusRing && tokens.focusRing in SEMANTIC_COLORS).toBe(true);
+    }
+
+    const fileStates = [
+      'default',
+      'focus',
+      'error',
+      'disabled',
+      'drag-active',
+      'selection-present',
+    ] as const;
+    for (const state of fileStates) {
+      const tokens = FILE_PICKER_TOKENS[state];
+      expect(tokens.background in SEMANTIC_COLORS).toBe(true);
+      expect(tokens.text in SEMANTIC_COLORS).toBe(true);
+      expect(tokens.border in SEMANTIC_COLORS).toBe(true);
+      expect(tokens.focusRing && tokens.focusRing in SEMANTIC_COLORS).toBe(true);
+    }
+
+    expect(FILE_PICKER_TOKENS.error.border).toBe('state-destructive');
+    expect(FILE_PICKER_TOKENS.error.focusRing).toBe('state-destructive');
+    expect(FILE_PICKER_TOKENS['drag-active'].border).toBe('primary');
   });
 
   it('emits the dialog backdrop and surface rules', () => {
@@ -472,6 +520,12 @@ describe('the style guide', () => {
       expect(html).toContain(`data-font-size="${name}"`);
       expect(html).toContain(`var(--cl-font-size-${name})`);
     }
+  });
+
+  it('renders radio, file-picker and surface alternation samples', () => {
+    expect(html).toContain('<strong>radio</strong>');
+    expect(html).toContain('<strong>file-picker</strong>');
+    expect(html).toContain('Niveles de superficie y alternancia');
   });
 
   it('escapes what it interpolates', () => {

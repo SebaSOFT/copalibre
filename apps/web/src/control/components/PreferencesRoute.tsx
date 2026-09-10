@@ -16,6 +16,7 @@ import { ImageCropModal } from './ImageCropModal.js';
 import { ClubEmblemPlaceholder } from './placeholders.js';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
+import { FilePicker } from './ui/atoms/file-picker.js';
 import { Input } from './ui/atoms/input.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { messages as controlMessages } from '../i18n/messages.en.js';
@@ -515,23 +516,16 @@ export function PreferencesRoute({
               />
 
               {api.uploadOrganizationEmblem && (
-                <FormField
+                <FilePicker
+                  accept="image/*"
+                  aria-label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
                   id="org-emblem-upload"
                   label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
-                >
-                  <input
-                    accept="image/*"
-                    aria-label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
-                    className="cl-input cl-input--default cl-focusable"
-                    id="org-emblem-upload"
-                    onChange={(event) => {
-                      const file = event.currentTarget.files?.[0];
-                      if (file) setEmblemCropSrc(URL.createObjectURL(file));
-                      event.currentTarget.value = '';
-                    }}
-                    type="file"
-                  />
-                </FormField>
+                  onChange={(files) => {
+                    const file = files?.[0];
+                    if (file) setEmblemCropSrc(URL.createObjectURL(file));
+                  }}
+                />
               )}
 
               <div
