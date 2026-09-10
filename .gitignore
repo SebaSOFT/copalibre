@@ -104,7 +104,18 @@ tmp/
 .claude/
 .gemini/
 .opencode/
-.impeccable/
+# Impeccable keeps team-shared and per-developer state side by side: `config.json`
+# carries the committed detector suppressions and build-path default, `design.json`
+# is DESIGN.md's sidecar and is regenerated with it. Everything else here is local —
+# `*.local.json` overrides, the hook dedup cache, generated decision comps.
+.impeccable/*
+!.impeccable/config.json
+!.impeccable/design.json
+# .github/ is tracked (workflows, templates), so the agent-tooling subdirectories
+# an installer drops into it have to be ignored one by one.
+.github/agents/
+.github/hooks/
+.github/skills/
 openspec/changes/*
 apps/web/public/openapi/
 apps/web/public/vendor/

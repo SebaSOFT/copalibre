@@ -14,6 +14,11 @@ export default tseslint.config(
       '**/.astro/**',
       '**/node_modules/**',
       '.claude/worktrees/**',
+      // Vendored agent-tooling bundles. `npx impeccable install` drops minified
+      // browser scripts here; they are gitignored, so CI never lints them, but
+      // locally they contributed 726 errors to `yarn lint` — a required gate —
+      // for code this repository neither writes nor ships.
+      '.claude/skills/**',
       '.tmp/**',
       'playwright-report/**',
       'test-results/**',
