@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "packages/design-tokens/src/generate/css.ts"
+        ],
+        "createdAt": "2026-09-07T02:45:46.856Z",
+        "reason": "cl-auth-screen__panel lifts the shipped AuthLayout rail verbatim (NativeAuthRoutes.tsx:331 at HEAD~1, borderLeft 4px solid state-live); the left accent is also the Card atom's own long-standing treatment (css.ts:230). Not a new choice in 0204, and restyling it would change three shipped auth screens outside this change's scope."
+      },
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "packages/design-tokens/src/integrity.test.ts"
+        ],
+        "createdAt": "2026-09-09T13:05:04.412Z",
+        "reason": "Negative test fixtures for the layout-transition rule itself: integrity.test.ts asserts findUnsafeMotion rejects 'transition: width' and 'transition: height'. The strings are the subject under test, never shipped CSS."
+      }
+    ]
+  }
+}
