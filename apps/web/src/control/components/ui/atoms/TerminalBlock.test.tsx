@@ -35,3 +35,112 @@ describe('the TerminalBlock atom', () => {
     expect(writeTextMock).toHaveBeenCalledWith('copalibre start');
   });
 });
+
+describe('the TerminalBlock file variant', () => {
+  const YAML = 'services:\n  api:\n    image: ghcr.io/sebasoft/copalibre-api:latest\n';
+
+  it('drops the window dots and the prompt, keeping the filename header', () => {
+    render(<TerminalBlock code={YAML} language="yaml" title="compose.yaml" variant="file" />);
+    expect(screen.queryByTestId('dot-red')).toBeNull();
+    expect(screen.queryByText('$')).toBeNull();
+    expect(screen.getByText('compose.yaml')).not.toBeNull();
+  });
+
+  it('leaves the terminal variant with the ornaments it had', () => {
+    render(<TerminalBlock command="copalibre start" title="bash" />);
+    expect(screen.getByTestId('dot-red')).not.toBeNull();
+    expect(screen.getByText('$')).not.toBeNull();
+  });
+
+  it('copies the source exactly, newlines and indentation included', async () => {
+    const writeText = jest.fn<() => Promise<void>>().mockResolvedValue();
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    render(<TerminalBlock code={YAML} copyLabel="Copy file" title="compose.yaml" variant="file" />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Copy file' }));
+    });
+
+    expect(writeText).toHaveBeenCalledWith(YAML);
+  });
+
+  it('reports success rather than leaving the reader guessing', async () => {
+    const writeText = jest.fn<() => Promise<void>>().mockResolvedValue();
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    render(
+      <TerminalBlock
+        code={YAML}
+        copiedLabel="Copied"
+        copyLabel="Copy file"
+        title="compose.yaml"
+        variant="file"
+      />,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Copy file' }));
+    });
+
+    expect(screen.getAllByText('Copied').length).toBeGreaterThan(0);
+  });
+
+  it('reports a denied clipboard rather than failing silently', async () => {
+    const writeText = jest
+      .fn<() => Promise<void>>()
+      .mockRejectedValue(new Error('NotAllowedError'));
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    render(
+      <TerminalBlock
+        code={YAML}
+        copyFailedLabel="Copy failed"
+        copyLabel="Copy file"
+        title="compose.yaml"
+        variant="file"
+      />,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Copy file' }));
+    });
+
+    expect(screen.getAllByText('Copy failed').length).toBeGreaterThan(0);
+  });
+
+  it('reports an absent clipboard the same way', async () => {
+    Object.assign(navigator, { clipboard: undefined });
+
+    render(
+      <TerminalBlock
+        code={YAML}
+        copyFailedLabel="Copy failed"
+        copyLabel="Copy file"
+        title="compose.yaml"
+        variant="file"
+      />,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Copy file' }));
+    });
+
+    expect(screen.getAllByText('Copy failed').length).toBeGreaterThan(0);
+  });
+
+  it('leaves the code as selectable text, so a page without JavaScript can be copied from', () => {
+    const { container } = render(<TerminalBlock code={YAML} title="compose.yaml" variant="file" />);
+    const pre = container.querySelector('pre');
+    expect(pre?.textContent).toBe(YAML);
+  });
+
+  it('scrolls long lines inside its own labelled region rather than widening the page', () => {
+    render(
+      <TerminalBlock
+        code={YAML}
+        codeRegionLabel="compose.yaml contents"
+        title="compose.yaml"
+        variant="file"
+      />,
+    );
+    const region = screen.getByRole('region', { name: 'compose.yaml contents' });
+    expect(region.getAttribute('tabindex')).toBe('0');
+  });
+});

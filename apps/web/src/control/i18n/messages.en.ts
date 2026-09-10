@@ -146,6 +146,28 @@ export const messages = defineMessages({
     id: 'control.platform.modules.updatesAvailable',
     defaultMessage: 'Available module updates',
   },
+  // 0223 — the editorial presentation of an update that is already listed here.
+  platformUpdateEyebrow: {
+    id: 'control.platform.modules.updateEyebrow',
+    defaultMessage: 'Module update',
+  },
+  platformUpdateHeadline: {
+    id: 'control.platform.modules.updateHeadline',
+    defaultMessage: '{alias} {currentVersion} → {latestVersion}',
+  },
+  platformUpdateKind: {
+    id: 'control.platform.modules.updateKind',
+    defaultMessage: 'Upgrade type: {upgrade}',
+  },
+  platformUpdateCalloutTitle: {
+    id: 'control.platform.modules.updateCalloutTitle',
+    defaultMessage: 'Install this version',
+  },
+  platformUpdateCalloutDescription: {
+    id: 'control.platform.modules.updateCalloutDescription',
+    defaultMessage:
+      'Enter the alias below and install it. Modules are installed through the seed application; nothing is applied from this list.',
+  },
   platformModuleAlias: { id: 'control.platform.modules.alias', defaultMessage: 'Module alias' },
   platformVersionRange: {
     id: 'control.platform.modules.range',
@@ -204,6 +226,12 @@ export const messages = defineMessages({
 
   // Dashboard (QuickStats.tsx, TournamentCard.tsx, ActivityLog.tsx, Dashboard.tsx)
   dashboardSummary: { id: 'control.dashboard.summary', defaultMessage: 'Summary' },
+  // 0223 — a measurement that does not exist says so, rather than reading as zero.
+  metricUnavailable: { id: 'control.metric.unavailable', defaultMessage: 'Not available' },
+  metricDemonstration: {
+    id: 'control.metric.demonstration',
+    defaultMessage: 'Demonstration figure',
+  },
   dashboardActiveTournaments: {
     id: 'control.dashboard.activeTournaments',
     defaultMessage: 'Active tournaments',

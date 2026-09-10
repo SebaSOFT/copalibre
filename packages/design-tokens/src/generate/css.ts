@@ -769,7 +769,7 @@ function components(): string {
     // into the scroll its own region already provides.
     '.cl-activity-feed__action-code, .cl-activity-feed__time, .cl-activity-feed .cl-badge { white-space: nowrap; overflow-wrap: normal; }',
     '.cl-platform-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: var(--cl-space-4); align-items: end; }',
-    '.cl-platform-update-list { margin: 0; padding: var(--cl-space-4); list-style-position: inside; border: 1px solid var(--cl-state-upcoming); color: var(--cl-text-secondary); }',
+    '.cl-platform-update-list { display: grid; gap: var(--cl-space-4); margin: 0; padding: 0; min-width: 0; }',
     '.cl-platform-modules-header { display: flex; justify-content: space-between; align-items: start; gap: var(--cl-space-4); flex-wrap: wrap; }',
     '/* A badge is a colour *and* a label; the token contract refuses one without. */',
     /*

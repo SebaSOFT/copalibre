@@ -24,6 +24,7 @@ import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
+import { EditorialCard } from './ui/molecules/EditorialCard.js';
 import { FormField } from './ui/molecules/form-field.js';
 
 const LANGUAGES = ['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;
@@ -719,18 +720,37 @@ export function PlatformAdministrationRoute({
                   }
                 />
               )}
+              {/*
+                The updates this route already fetched, read as writing rather
+                than as a bare list. Every value below comes from
+                `listOutdatedModules`; nothing is a release note this file made
+                up, and no listing, feed or subscription was added to show them.
+              */}
               {outdated.length > 0 && (
-                <ul
+                <div
                   aria-label={intl.formatMessage(messages.platformUpdatesAvailable)}
                   className="cl-platform-update-list"
+                  role="group"
                 >
                   {outdated.map((entry) => (
-                    <li key={entry.alias}>
-                      <strong>{entry.alias}</strong>: {entry.currentVersion} → {entry.latestVersion}{' '}
-                      ({entry.upgrade})
-                    </li>
+                    <EditorialCard
+                      callout={{
+                        title: intl.formatMessage(messages.platformUpdateCalloutTitle),
+                        description: intl.formatMessage(messages.platformUpdateCalloutDescription),
+                      }}
+                      dateline={intl.formatMessage(messages.platformUpdateKind, {
+                        upgrade: entry.upgrade,
+                      })}
+                      eyebrow={intl.formatMessage(messages.platformUpdateEyebrow)}
+                      key={entry.alias}
+                      title={intl.formatMessage(messages.platformUpdateHeadline, {
+                        alias: entry.alias,
+                        currentVersion: entry.currentVersion,
+                        latestVersion: entry.latestVersion,
+                      })}
+                    />
                   ))}
-                </ul>
+                </div>
               )}
               <form
                 className="cl-platform-form-grid"

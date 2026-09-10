@@ -1,6 +1,7 @@
 import { useIntl } from 'react-intl';
 import type { QuickStats as Stats } from '../lib/dashboard.js';
 import { messages } from '../i18n/messages.en.js';
+import { StatTile } from './ui/atoms/StatTile.js';
 
 const TILES = [
   { key: 'activeTournaments', label: messages.dashboardActiveTournaments },
@@ -14,12 +15,16 @@ export function QuickStats({ stats }: { readonly stats: Stats }): React.JSX.Elem
     <section aria-label={intl.formatMessage(messages.dashboardSummary)}>
       <div className="cl-stat-grid">
         {TILES.map((tile) => (
-          <div className="cl-stat-tile cl-chamfer cl-chamfer--control" key={tile.key}>
-            <div className="cl-stat-tile__value" data-testid={tile.key}>
-              {stats[tile.key]}
-            </div>
-            <div>{intl.formatMessage(tile.label)}</div>
-          </div>
+          <StatTile
+            key={tile.key}
+            label={intl.formatMessage(tile.label)}
+            unavailableLabel={intl.formatMessage(messages.metricUnavailable)}
+            value={
+              stats[tile.key] === undefined ? undefined : (
+                <span data-testid={tile.key}>{stats[tile.key]}</span>
+              )
+            }
+          />
         ))}
       </div>
     </section>
