@@ -88,6 +88,12 @@ Use the workbench toolbar controls during UI review:
   court. Bundled images are preview-only; switching backgrounds leaves discipline, match data and
   layout mode intact. Opaque kiosk panels still cover the backdrop.
 
+A top-level **Reference index** story lists every supplied reference, the story that renders it, and
+the production surface consuming it. A row with an empty consumer column is a finding, not an
+omission: `apps/web/src/reference-index.test.ts` fails if a listed consumer path does not exist, if a
+listed story title is not declared by any stories file, or if an unconsumed row carries no
+explanation. Start a UI review there rather than by browsing the sidebar.
+
 Visual review here is a person's job by design: there are no screenshot baselines and no diffing
 service. The only automated rule is coverage — `scripts/check-ui-ownership.mjs` fails when an
 owned library component has no sibling `*.stories.tsx`, and derives the list from the tier
@@ -105,7 +111,9 @@ library tiers and `control/i18n`. Each React surface requires a sibling `*.stori
 only the declared non-screen categories (routers, providers, fixtures, and deferred). Explicit
 router/provider/deferred exclusions use paths relative to `apps/web/src`; Astro files remain outside
 the React story gate. See `docs/SCREEN-STORY-REVIEW.md` for fixture boundaries and review findings,
-and `docs/reviews/0222-owned-control-coverage.md` for the current coverage and background review.
+`docs/reviews/0222-owned-control-coverage.md` for the current coverage and background review, and
+`docs/reviews/0223-operational-surface-compositions.md` for the composition parity pass — including
+what that pass deliberately leaves unreviewed.
 
 ### Component ownership, on every surface
 

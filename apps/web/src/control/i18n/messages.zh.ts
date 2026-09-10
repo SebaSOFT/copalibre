@@ -990,4 +990,22 @@ export const messages: Record<string, string> = {
   'control.dashboard.open': '打开',
   'control.dashboard.export': '导出',
   'control.dashboard.resumeEditing': '继续编辑',
+
+  // 0223 — standings panel chrome, metric availability, module updates.
+  'control.standings.panelDecidedBy': '决定了该名次',
+  'control.standings.tiebreakerSequenceTitle': '决胜顺序',
+  'control.standings.rankColumn': '名次',
+  'control.metric.unavailable': '无数据',
+  'control.metric.demonstration': '演示数值',
+  'control.platform.modules.updateEyebrow': '模块更新',
+  'control.platform.modules.updateHeadline': '{alias} {currentVersion} → {latestVersion}',
+  'control.platform.modules.updateKind': '升级类型：{upgrade}',
+  'control.platform.modules.updateCalloutTitle': '安装此版本',
+  'control.platform.modules.updateCalloutDescription':
+    '在下方输入别名并安装。模块通过 seed 应用安装；此列表不会应用任何内容。',
+  'control.auditTrail.correctionTitle': '该记录改动了什么',
+  'control.descriptor.documentRegion': '已编写的模块文档',
+  'control.descriptor.documentCopy': '复制模块文档',
+  'control.descriptor.documentCopied': '已复制',
+  'control.descriptor.documentCopyFailed': '复制失败 — 请选中文本进行复制',
 };

@@ -11,10 +11,10 @@ agent building a new screen starts from existing parts instead of a blank inline
 
 ### Requirement: Owned atom layer for form controls and entity display
 The component library SHALL provide an owned atom for each of: single-line text input, select,
-textarea, checkbox/switch, label, badge, button, and card (with compound subparts: header, title,
-description, content, footer) — each consuming `packages/design-tokens` values (color, spacing, radius,
-typography) rather than a hardcoded value, following the shadcn/ui-style, Radix-Primitives-backed
-pattern the existing `badge`/`button`/`card` atoms already establish.
+textarea, checkbox/switch, radio group, file selection, label, badge, button, and card (with compound
+subparts: header, title, description, content, footer) — each consuming `packages/design-tokens` values
+(color, spacing, radius, typography) rather than a hardcoded value, following the shadcn/ui-style,
+Radix-Primitives-backed pattern the existing `badge`/`button`/`card` atoms already establish.
 
 #### Scenario: An atom renders using token values, not hardcoded styles
 - **WHEN** the text-input atom is inspected
@@ -22,7 +22,8 @@ pattern the existing `badge`/`button`/`card` atoms already establish.
   hardcoded hex color, pixel spacing, or font value in the component source
 
 #### Scenario: Every interactive atom meets the documented touch-target minimum
-- **WHEN** any interactive atom (input, select, textarea, checkbox, button) is rendered
+- **WHEN** any interactive atom (input, select, textarea, checkbox, radio, file selection, button) is
+  rendered
 - **THEN** its minimum height/width meets the token package's documented touch-target size
 
 ### Requirement: Labeled form-field molecule with consistent error state
@@ -433,33 +434,6 @@ the product's own responsive rules are written against.
 - **THEN** the component renders under both at once, which is the combination its layout is most
   likely to fail
 
-### Requirement: An owned component without a story fails the build
-Every component in the owned library SHALL have at least one story, and CI SHALL fail when one does
-not, so the workbench cannot silently fall behind the library it exists to show. The set of components
-checked SHALL be derived from the library directory rather than from a maintained list, so a component
-added later is covered without the check being edited.
-
-A screen that has a story SHALL keep one: the check SHALL record which screens are covered and SHALL
-fail when a recorded screen loses its story. It SHALL NOT require a story for a screen that has none,
-because a rule that fails every uncovered file the day it is introduced is a rule that gets
-suppressed rather than satisfied.
-
-#### Scenario: A new library component ships without a story
-- **WHEN** a component is added to the owned library with no accompanying story
-- **THEN** the ownership check fails in CI, naming the component that has none
-
-#### Scenario: The check passes when every component is covered
-- **WHEN** every owned library component has at least one story
-- **THEN** the check passes
-
-#### Scenario: A screen loses the story it had
-- **WHEN** a screen recorded as covered no longer has a story
-- **THEN** the check fails, naming that screen
-
-#### Scenario: A screen that never had a story does not fail the build
-- **WHEN** a screen has no story and is not recorded as covered
-- **THEN** the check passes, so coverage grows without the rule being suppressed
-
 ### Requirement: Inline alert component
 The component library SHALL provide an `Alert` atom for a message that sits in the flow of a screen,
 distinct from the toast mechanism that reports the result of an action. It SHALL declare its tone —
@@ -535,3 +509,179 @@ SHALL live in the owned Control component tiers rather than being recreated as u
 #### Scenario: A Control screen needs a reusable status treatment
 - **WHEN** more than one Control screen needs the same status presentation
 - **THEN** the treatment is provided by an owned component that resolves only declared tokens
+
+### Requirement: A native form control in a surface file is a violation, not an exemption
+The ownership check SHALL treat a native `<input type="checkbox">`, `<input type="radio">`,
+`<input type="file">` and `<select>` in any surface file as a violation, on the same footing as the raw
+elements it already reports. No control type SHALL be skipped on the grounds that the library owns no
+replacement: where that is true the check SHALL fail until the atom exists, rather than passing
+silently and leaving the gap invisible.
+
+The debt registers and per-element allowlists for these controls SHALL be empty when this change lands,
+and the entries SHALL be deleted rather than left at zero, so a reader cannot mistake a register for
+permission.
+
+#### Scenario: A raw checkbox is added to a screen
+- **WHEN** a native checkbox input is added to any surface file
+- **THEN** the ownership check fails, naming the file and the owned atom to compose instead
+
+#### Scenario: A control type with no owned atom fails rather than being skipped
+- **WHEN** a control type is used that the owned library has no atom for
+- **THEN** the check reports it, rather than exempting it on the grounds that no replacement exists
+
+#### Scenario: No allowance remains for the converted control types
+- **WHEN** the ownership check's registers and allowlists are inspected
+- **THEN** they contain no entry for checkbox, radio, file or select controls
+
+### Requirement: Owned file-selection atom
+The component library SHALL provide a file-selection atom that every screen accepting a file composes,
+covering: an accessible name and a keyboard-operable trigger, a visible focus indicator, the accepted
+types and size limit stated as readable text before a selection is attempted rather than only as a
+rejection afterwards, the selected filename — or the count when several are selected — displayed after
+selection, a way to clear or replace the selection, and an error state whose message is linked to the
+control for assistive technology.
+
+Drag-and-drop SHALL be an enhancement over the keyboard and pointer path, never a replacement for it: a
+file SHALL be selectable with the keyboard alone, and the drop target SHALL NOT be the only way to
+reach the control.
+
+The atom SHALL carry the same touch-target minimum and token-driven styling as the other form-control
+atoms, and SHALL NOT hardcode a colour, spacing, or radius value.
+
+#### Scenario: A file is selected without a pointer
+- **WHEN** an operator reaches the file-selection control by keyboard and activates it
+- **THEN** the file chooser opens and the selection completes without a pointer being used
+
+#### Scenario: The constraints are readable before a file is chosen
+- **WHEN** the control is rendered
+- **THEN** the accepted file types and the size limit are visible as text, before any selection is
+  attempted
+
+#### Scenario: A rejected file explains itself
+- **WHEN** a selected file is rejected for its type or size
+- **THEN** the control enters its error state and the reason is announced through the message linked to
+  the control
+
+#### Scenario: The chosen file is visible after selection
+- **WHEN** a file has been selected
+- **THEN** its name — or the count, when several were selected — is displayed, with a way to clear or
+  replace the selection
+
+### Requirement: Owned radio-group atom
+The component library SHALL provide a radio-group atom for a single choice among a small set of visible
+options, with a group-level accessible name, arrow-key movement within the group, one tab stop for the
+group, a visible focus indicator on the focused option, and a selected state that carries a non-colour
+cue in addition to its colour.
+
+#### Scenario: A group is one tab stop
+- **WHEN** an operator tabs into a radio group
+- **THEN** focus lands on the selected option, or the first when none is selected, and the arrow keys
+  move between options without leaving the group
+
+#### Scenario: The selected option is not identified by colour alone
+- **WHEN** an option is selected
+- **THEN** its selected state is conveyed by a mark or shape in addition to colour
+
+### Requirement: A composed container is visually distinct without a call-site decision
+A card or section composed inside another SHALL render at a distinguishable surface level without the
+composing screen applying a variant, modifier, or prop to say so, with its level following what the
+container is — content alternating against its band, chrome lifting at any depth. A screen SHALL NOT be able to produce
+a container indistinguishable from its surroundings by omitting an attribute, and SHALL NOT hand-apply
+a surface class to achieve the distinction. Broadcast content SHALL alternate only once; deeper
+content containers SHALL retain that level with boundary borders, while chrome and selection retain
+their distinct treatments.
+
+#### Scenario: A screen composes a panel with no extra props
+- **WHEN** a screen composes a card with a header and a body inside a section, passing no variant or
+  modifier
+- **THEN** the card alternates against the section and its header lifts to the chrome level, each
+  distinguishable from what surrounds it
+
+#### Scenario: A screen cannot hand-write the level it wants
+- **WHEN** a screen applies a surface class directly to achieve nesting contrast
+- **THEN** the ownership check reports it, as it already does for hand-written owned classes
+
+### Requirement: A component without a story fails the build
+Every component in the owned library SHALL have at least one story, and CI SHALL fail when one does
+not, so the workbench cannot silently fall behind the library it exists to show. The set of components
+checked SHALL be derived recursively from the library directory rather than from a maintained list, so a component
+added later is covered without the check being edited.
+
+Every React screen and route component of the operator, public and broadcast surfaces SHALL have a
+story, and the set checked SHALL likewise be derived recursively from the filesystem, including nested
+directories on all three surfaces, rather than from a register of opted-in files. Coverage SHALL NOT
+be limited to Control directories. A module that renders no interface of its own — a router, a provider, a composition
+root, a test-support helper — SHALL be excluded by a stated rule naming what makes it exempt, so an
+exclusion is a declared category rather than an omission from a list. Explicit module exclusions SHALL
+use paths relative to `apps/web/src`; matching a filename alone SHALL NOT exempt an unrelated screen.
+
+A screen that cannot be rendered without data only a real tournament produces SHALL be recorded with
+its reason rather than given a fabricated fixture, and that record SHALL be the only way a surface
+component passes without a story.
+
+Astro pages are outside this requirement until a source-rendered Astro story seam exists; the check
+SHALL NOT report them.
+
+#### Scenario: A new library component ships without a story
+- **WHEN** a component is added to the owned library with no accompanying story
+- **THEN** the ownership check fails in CI, naming the component that has none
+
+#### Scenario: The check passes when every component is covered
+- **WHEN** every owned library component and every React surface screen has a story, or an exemption
+  recorded under a stated rule
+- **THEN** the check passes
+
+#### Scenario: A new screen ships without a story
+- **WHEN** a React screen or route component is added with no accompanying story
+- **THEN** the check fails, naming that screen — rather than passing because it was never registered
+
+#### Scenario: A screen loses the story it had
+- **WHEN** a screen that had a story no longer has one
+- **THEN** the check fails, naming that screen
+
+#### Scenario: A component that renders no interface is exempt by rule
+- **WHEN** a router, provider, composition root, or test-support module has no story
+- **THEN** the check passes, because it matches a stated exclusion category rather than because it was
+  left off a list
+
+#### Scenario: A screen that cannot render honestly is named rather than faked
+- **WHEN** a screen cannot be rendered without data that only a real tournament produces
+- **THEN** it is recorded with the reason instead of being given invented data
+
+#### Scenario: A nested public or broadcast screen has no story
+- **WHEN** a React screen is added inside a nested public or broadcast directory without a sibling story
+- **THEN** the check fails and names its relative path without requiring a coverage-register edit
+
+#### Scenario: A library component is nested inside a tier
+- **WHEN** an owned React component is added inside a nested library-tier directory without a story
+- **THEN** the check fails and names that component
+
+#### Scenario: An excluded router shares a filename with a screen elsewhere
+- **WHEN** a screen without a story has the same filename as an explicitly excluded router at another path
+- **THEN** the screen still fails coverage and the router's exemption remains scoped to its own path
+
+### Requirement: TV stories support selectable preview backgrounds
+TV Storybook stories SHALL offer a shared background selector with neutral, green chroma, and named
+bundled sport-scene samples. Named chroma and sport-background example stories SHALL make those
+contexts discoverable. Samples SHALL include bright and dark sporting environments and work without
+remote image requests. The selector SHALL be keyboard-operable and coexist with language and viewport
+controls.
+
+The backdrop SHALL be preview-only context behind the production TV component: transparent overlay
+regions reveal it, while opaque panels retain their actual styling. Choosing a sport scene SHALL NOT
+change the discipline, match data, rules or layout mode. Green chroma SHALL NOT replace a semantic
+state colour or introduce production chroma configuration.
+
+#### Scenario: An overlay is reviewed on green chroma
+- **WHEN** a reviewer opens the green-chroma TV example
+- **THEN** green chroma is visible through the overlay's transparent regions and its panels retain
+  their production colours and borders
+
+#### Scenario: A reviewer switches sport samples
+- **WHEN** a reviewer uses the background selector to switch between bright and dark sport scenes
+- **THEN** the backdrop changes while the same discipline, match state and TV layout remain rendered
+- **AND** language and viewport controls remain usable
+
+#### Scenario: An opaque TV panel is previewed
+- **WHEN** a sport backdrop is selected for an opaque kiosk or panel presentation
+- **THEN** its real opaque surfaces remain intact rather than becoming transparent to expose the image

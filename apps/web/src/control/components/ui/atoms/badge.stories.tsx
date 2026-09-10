@@ -7,7 +7,12 @@ import { storyText } from '../story-text.js';
 const meta = {
   title: 'Admin/Atoms/Badge',
   component: Badge,
-  argTypes: { label: { control: 'text' }, className: { control: 'text' } },
+  argTypes: {
+    label: { control: 'text' },
+    className: { control: 'text' },
+    variant: { control: 'inline-radio', options: ['default', 'eyebrow', 'section'] },
+    dot: { control: 'boolean' },
+  },
 } satisfies Meta<typeof Badge>;
 
 export default meta;
@@ -32,6 +37,9 @@ export const Matrix: Story = {
         cells={[
           { label: 'base', children: <Badge label={label} /> },
           { label: 'rank', children: <Badge className="cl-badge--rank" label="4" /> },
+          { label: 'eyebrow', children: <Badge label={label} variant="eyebrow" /> },
+          { label: 'section', children: <Badge label={label} variant="section" /> },
+          { label: 'eyebrow + dot', children: <Badge dot label={label} variant="eyebrow" /> },
         ]}
       />
     );
@@ -74,5 +82,28 @@ export const LongLabel: Story = {
   render: function Render() {
     const intl = useIntl();
     return <Badge label={intl.formatMessage(storyText.venuesAndOfficials)} />;
+  },
+};
+
+/**
+ * The operational-tag family — 0223's reference scenario.
+ *
+ * A section label carrying a German compound at 188px is the case the variant
+ * exists to survive: it wraps and stays complete rather than being clipped,
+ * which a fixed-height chip would not do. Set the workbench language to German
+ * and the viewport to 188px to see it.
+ */
+export const OperationalTags: Story = {
+  args: { label: '' },
+  render: function Render() {
+    const intl = useIntl();
+    return (
+      <div style={{ display: 'grid', gap: 'var(--cl-space-3)', justifyItems: 'start' }}>
+        <Badge label={intl.formatMessage(storyText.tournaments)} variant="eyebrow" />
+        <Badge dot label={intl.formatMessage(storyText.platformTitle)} variant="eyebrow" />
+        <Badge label={intl.formatMessage(storyText.venuesAndOfficials)} variant="section" />
+        <Badge label={intl.formatMessage(storyText.savePromotionPlan)} variant="section" />
+      </div>
+    );
   },
 };

@@ -7,6 +7,7 @@ import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
+import { TerminalBlock } from './ui/atoms/TerminalBlock.js';
 import { FormField } from './ui/molecules/form-field.js';
 import {
   ACTOR_REQUIREMENTS,
@@ -50,6 +51,12 @@ export function DescriptorBuilderWizard({
   }
 
   const isLastStep = state.step === 'winCondition';
+  // Rendered only on the last step, so the wizard does not serialize the whole
+  // document on every keystroke of every earlier one.
+  const authoredDocument = isLastStep
+    ? JSON.stringify(toAuthoredModuleRequest(state).document, undefined, 2)
+    : '';
+  const documentFilename = `${state.alias === undefined || state.alias === '' ? 'discipline' : state.alias}.json`;
 
   return (
     <section
@@ -589,6 +596,27 @@ export function DescriptorBuilderWizard({
               ))}
             </ul>
           </Alert>
+        )}
+
+        {/*
+          The document itself, on the step that installs it. Versioned modules
+          are JSON in this repository's own model, so an author about to install
+          one wants the file — to read before committing to it, and to keep
+          under version control afterwards. It is shown, never generated on the
+          side: this is `toAuthoredModuleRequest`'s own document, the same bytes
+          the button below submits.
+        */}
+        {isLastStep && (
+          <TerminalBlock
+            code={authoredDocument}
+            codeRegionLabel={intl.formatMessage(messages.descriptorDocumentRegion)}
+            copiedLabel={intl.formatMessage(messages.descriptorDocumentCopied)}
+            copyFailedLabel={intl.formatMessage(messages.descriptorDocumentCopyFailed)}
+            copyLabel={intl.formatMessage(messages.descriptorDocumentCopy)}
+            language="json"
+            title={documentFilename}
+            variant="file"
+          />
         )}
 
         <footer

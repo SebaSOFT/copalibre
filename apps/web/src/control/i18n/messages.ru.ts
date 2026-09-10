@@ -1035,4 +1035,23 @@ export const messages: Record<string, string> = {
   'control.dashboard.open': 'Открыть',
   'control.dashboard.export': 'Экспорт',
   'control.dashboard.resumeEditing': 'Продолжить редактирование',
+
+  // 0223 — standings panel chrome, metric availability, module updates.
+  'control.standings.panelDecidedBy': 'Определил это место',
+  'control.standings.tiebreakerSequenceTitle': 'Последовательность тай-брейков',
+  'control.standings.rankColumn': 'Место',
+  'control.metric.unavailable': 'Нет данных',
+  'control.metric.demonstration': 'Демонстрационное значение',
+  'control.platform.modules.updateEyebrow': 'Обновление модуля',
+  'control.platform.modules.updateHeadline': '{alias} {currentVersion} → {latestVersion}',
+  'control.platform.modules.updateKind': 'Тип обновления: {upgrade}',
+  'control.platform.modules.updateCalloutTitle': 'Установить эту версию',
+  'control.platform.modules.updateCalloutDescription':
+    'Введите псевдоним ниже и установите его. Модули устанавливаются через приложение начальной загрузки; из этого списка ничего не применяется.',
+  'control.auditTrail.correctionTitle': 'Что изменила эта запись',
+  'control.descriptor.documentRegion': 'Составленный документ модуля',
+  'control.descriptor.documentCopy': 'Скопировать документ модуля',
+  'control.descriptor.documentCopied': 'Скопировано',
+  'control.descriptor.documentCopyFailed':
+    'Не удалось скопировать — выделите текст, чтобы скопировать его',
 };

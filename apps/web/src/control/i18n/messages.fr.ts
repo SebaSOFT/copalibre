@@ -1039,4 +1039,23 @@ export const messages: Record<string, string> = {
   'control.dashboard.open': 'Ouvrir',
   'control.dashboard.export': 'Exporter',
   'control.dashboard.resumeEditing': 'Reprendre la modification',
+
+  // 0223 — standings panel chrome, metric availability, module updates.
+  'control.standings.panelDecidedBy': 'A départagé cette position',
+  'control.standings.tiebreakerSequenceTitle': 'Séquence de départage',
+  'control.standings.rankColumn': 'Position',
+  'control.metric.unavailable': 'Non disponible',
+  'control.metric.demonstration': 'Chiffre de démonstration',
+  'control.platform.modules.updateEyebrow': 'Mise à jour de module',
+  'control.platform.modules.updateHeadline': '{alias} {currentVersion} → {latestVersion}',
+  'control.platform.modules.updateKind': 'Type de mise à jour : {upgrade}',
+  'control.platform.modules.updateCalloutTitle': 'Installer cette version',
+  'control.platform.modules.updateCalloutDescription':
+    'Saisissez l’alias ci-dessous et installez-le. Les modules s’installent via l’application de préchargement ; rien n’est appliqué depuis cette liste.',
+  'control.auditTrail.correctionTitle': 'Ce que cet enregistrement a modifié',
+  'control.descriptor.documentRegion': 'Document du module rédigé',
+  'control.descriptor.documentCopy': 'Copier le document du module',
+  'control.descriptor.documentCopied': 'Copié',
+  'control.descriptor.documentCopyFailed':
+    'Échec de la copie — sélectionnez le texte pour le copier',
 };

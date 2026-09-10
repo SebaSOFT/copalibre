@@ -23,6 +23,16 @@ export interface TickerItem {
   readonly figure: string;
   /** Parenthesised trailing text: a clock, a kickoff time, a metric name. */
   readonly meta?: string;
+  /**
+   * The extra-period label, and only where the discipline configures one.
+   *
+   * A match running past its regulation time is not evidence that the format
+   * has an overtime: a fixture that simply started late looks identical from
+   * here. So nothing derives this — the caller supplies it from the descriptor
+   * or the entry carries none, which is what keeps the label off every
+   * discipline that declares no such period.
+   */
+  readonly overtime?: string;
 }
 
 export interface TickerLabels {
@@ -34,9 +44,24 @@ export interface TickerLabels {
   readonly versus: string;
 }
 
+/**
+ * Names the extra period a match is in, or nothing.
+ *
+ * The descriptor is the authority. A caller that has no overtime configured
+ * supplies no resolver, and no entry can then carry the label — which is the
+ * rule stated as a type rather than as a comment somebody has to remember.
+ */
+export type OvertimeResolver = (match: OverviewMatch) => string | undefined;
+
 /** A live or finished fixture reads as a score; one not yet played reads as `VS`. */
-function matchItem(match: OverviewMatch, index: number, labels: TickerLabels): TickerItem {
+function matchItem(
+  match: OverviewMatch,
+  index: number,
+  labels: TickerLabels,
+  overtimeFor?: OvertimeResolver,
+): TickerItem {
   const played = match.home.score !== undefined && match.away.score !== undefined;
+  const overtime = overtimeFor?.(match);
   const tone =
     match.state === 'live' ? 'live' : match.state === 'upcoming' ? 'upcoming' : 'positive';
   return {
@@ -53,6 +78,7 @@ function matchItem(match: OverviewMatch, index: number, labels: TickerLabels): T
     opponent: match.away.name,
     figure: played ? `${match.home.score} : ${match.away.score}` : labels.versus,
     ...(match.startsAt === '' ? {} : { meta: match.startsAt }),
+    ...(overtime === undefined ? {} : { overtime }),
   };
 }
 
@@ -71,9 +97,13 @@ export function buildTickerItems(input: {
   readonly leaders?: TableProjectionResponse;
   readonly labels: TickerLabels;
   readonly language: SupportedLanguage;
+  /** Supplied only by a surface whose discipline declares an extra period. */
+  readonly overtimeFor?: OvertimeResolver;
 }): readonly TickerItem[] {
-  const { matches, performers, leaders, labels, language } = input;
-  const items: TickerItem[] = matches.map((match, index) => matchItem(match, index, labels));
+  const { matches, performers, leaders, labels, language, overtimeFor } = input;
+  const items: TickerItem[] = matches.map((match, index) =>
+    matchItem(match, index, labels, overtimeFor),
+  );
 
   if (performers && performers.rows.length > 0) {
     const column = primaryColumn(performers);

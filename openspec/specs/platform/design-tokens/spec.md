@@ -243,11 +243,11 @@ path.
 
 ### Requirement: Form-control and overlay component token contracts
 `packages/design-tokens` SHALL define component token contracts for text input, select, textarea,
-checkbox, and dialog/overlay (backdrop, surface, elevation) controls — resolved background, text,
-border, and focus-ring values per interaction state (default, focus, error, disabled) for form controls,
-and backdrop/surface/elevation values for the dialog/overlay contract — matching the pattern
-`BadgeSpec`/`ButtonVariant`/`CARD_STATES` already establish for their respective components, so no
-Control-web atom or organism hand-picks a color, spacing, or shadow value outside this contract.
+checkbox, radio, file selection, and dialog/overlay (backdrop, surface, elevation) controls — resolved
+background, text, border, and focus-ring values per interaction state (default, focus, error, disabled)
+for form controls, and backdrop/surface/elevation values for the dialog/overlay contract — matching the
+pattern `BadgeSpec`/`ButtonVariant`/`CARD_STATES` already establish for their respective components, so
+no Control-web atom or organism hand-picks a color, spacing, or shadow value outside this contract.
 
 #### Scenario: An error-state input resolves to the destructive semantic color
 - **WHEN** the text-input component token contract's error state is inspected
@@ -333,3 +333,79 @@ and preserve the generated reduced-motion behavior.
 #### Scenario: An interactive surface adds a transition
 - **WHEN** an interactive component adds visual feedback
 - **THEN** it names only the supported property or properties and uses the shared motion contract
+
+### Requirement: A container resolves its own surface level, without a call-site decision
+
+A card or section SHALL resolve its surface level from what it is, with no modifier class, prop, or
+decision at the call site. A content container SHALL alternate against the level it sits on; chrome — a
+panel header, a footer, a chip, a tag, an eyebrow, an icon well — SHALL lift to the chrome level at any
+depth. `0220` calibrates those levels against the reference project; this change makes the assignment
+automatic so a screen never states it.
+
+The levels SHALL be their own semantic roles rather than reusing `surface-raised`, whose contracted
+meaning is a selected or active container: lifted chrome and a selected container SHALL NOT resolve to
+the same value, because a reader cannot then tell chrome from selection.
+
+The resolved backgrounds SHALL be visibly different; distinct token names resolving to the same
+colour SHALL NOT satisfy this requirement. Selection SHALL retain its border and explicit label or
+mark. Review SHALL use the differentiation examples in `../copalibre-app` and actual selected
+components on both dark and light bands.
+
+Broadcast content SHALL be an explicit exception to repeated alternation: the first content container
+against the broadcast base takes the alternate content level, and deeper content containers retain
+that level. Chrome SHALL retain its chrome role and selected containers their distinct state
+background. Operator and public content SHALL continue alternating normally.
+
+Every boundary between two levels SHALL carry the border cue the semantic token contract already
+requires of a panel, so two adjacent levels are separable without relying on the fill difference alone.
+
+#### Scenario: A screen composes a panel with no extra props
+- **WHEN** a screen composes a card with a header and a body inside a section, passing no variant or
+  modifier
+- **THEN** the card alternates against the section, its header lifts to the chrome level, and each
+  boundary carries a border
+
+#### Scenario: The same card adapts to the band it sits on
+- **WHEN** one card is composed on a dark band and an identical card on a lighter band
+- **THEN** each resolves away from its own band, without either call site saying so
+
+#### Scenario: Chrome and selection are not the same colour
+- **WHEN** lifted chrome and a selected container are rendered side by side
+- **THEN** their computed background colours differ visibly, even after resolving token aliases
+- **AND** selection retains its border and explicit label or mark
+
+#### Scenario: Broadcast content stops alternating after one step
+- **WHEN** three content containers are nested beneath a broadcast base
+- **THEN** the first takes the alternate content level and the second and third retain that level
+- **AND** each boundary carries a border while chrome and selection retain their own treatments
+
+#### Scenario: The broadcast cap does not affect other surfaces
+- **WHEN** the same nested composition is rendered on operator or public surfaces
+- **THEN** its content continues alternating against the enclosing content level
+
+#### Scenario: Text stays legible at every level
+- **WHEN** the generated surface levels are checked
+- **THEN** the text and border tokens rendered on each level meet the AA gates the token package
+  enforces
+
+#### Scenario: A boundary is drawn, not merely tinted
+- **WHEN** two levels sit directly against each other
+- **THEN** a border cue marks the boundary, so the two are separable without relying on the fill
+  difference alone
+
+### Requirement: Radio and file-selection component token contracts
+`packages/design-tokens` SHALL define component token contracts for the radio control and the
+file-selection control — resolved background, text, border, and focus-ring values per interaction state
+(default, focus, error, disabled), and for file selection additionally its drag-active and
+selection-present states — following the pattern the existing form-control contracts establish, so
+neither atom picks a colour, spacing, or shadow value outside the contract.
+
+#### Scenario: A file-selection control in its drag-active state resolves to contract tokens
+- **WHEN** the file-selection component token contract's drag-active state is inspected
+- **THEN** its background and border values resolve to documented semantic tokens, not independently
+  chosen values
+
+#### Scenario: A rejected file resolves to the same destructive colour as every other error
+- **WHEN** the file-selection contract's error state is inspected
+- **THEN** its border and focus-ring values resolve to the same destructive semantic token used by the
+  other form-control error states

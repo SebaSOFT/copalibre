@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { AuditLogCard } from './AuditLogCard.js';
+import { referenceAuditTrail } from '../../../../lib/reference-fixtures.js';
 
 const SAMPLE_ITEMS = [
   {
@@ -52,4 +53,42 @@ export const SingleCorrection: Story = {
     title: 'Score Correction Event',
     items: [SAMPLE_ITEMS[0]],
   },
+};
+
+/**
+ * The canonical correction — 0223's reference scenario for this predecessor.
+ *
+ * Two events on one match, in the order they were recorded: the table referee
+ * enters 1-1, and three minutes later the tournament director corrects it to
+ * 2-1 with the reason the match report gave. Told as a sequence rather than as
+ * a contradiction, which is the whole difference between an audit trail and a
+ * record that disagrees with itself.
+ *
+ * A different match from the live 3:1 beside it in the workbench, deliberately:
+ * one pairing cannot hold two results at once.
+ */
+export const ReferenceCorrection: Story = {
+  args: {
+    title: 'Match operations audit trail',
+    items: referenceAuditTrail().map((entry) => ({
+      id: String(entry.eventNumber),
+      type: entry.previous === undefined ? ('standard' as const) : ('correction' as const),
+      timestamp: entry.recordedAt,
+      actor: entry.actor,
+      action: entry.action,
+      ...(entry.previous === undefined
+        ? {}
+        : { diff: { previous: entry.previous, current: entry.resulting } }),
+    })),
+  },
+};
+
+/**
+ * The trail with nothing in it.
+ *
+ * A surface with no recorded activity is not a broken surface, and reviewing
+ * the empty case is how that stays true.
+ */
+export const NothingRecorded: Story = {
+  args: { title: 'Match operations audit trail', items: [] },
 };

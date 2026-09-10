@@ -254,3 +254,32 @@ describe('buildTickerItems', () => {
     expect(items.some((item) => item.kind === 'leader')).toBe(false);
   });
 });
+
+describe('the configured-only overtime label', () => {
+  it('labels no entry where the caller supplies no resolver', () => {
+    const items = buildTickerItems({ matches, labels, language: 'en' });
+    expect(items.every((item) => item.overtime === undefined)).toBe(true);
+  });
+
+  it('labels an entry only where the descriptor named a period for it', () => {
+    const items = buildTickerItems({
+      matches,
+      labels,
+      language: 'en',
+      overtimeFor: (match) => (match.matchNumber === 1 ? 'ET' : undefined),
+    });
+    const [first, ...rest] = items.filter((item) => item.kind === 'match');
+    expect(first?.overtime).toBe('ET');
+    expect(rest.every((item) => item.overtime === undefined)).toBe(true);
+  });
+
+  it('never labels a discipline whose resolver declines every match', () => {
+    const items = buildTickerItems({
+      matches,
+      labels,
+      language: 'en',
+      overtimeFor: () => undefined,
+    });
+    expect(items.every((item) => item.overtime === undefined)).toBe(true);
+  });
+});

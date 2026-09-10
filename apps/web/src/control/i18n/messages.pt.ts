@@ -1035,4 +1035,22 @@ export const messages: Record<string, string> = {
   'control.dashboard.open': 'Abrir',
   'control.dashboard.export': 'Exportar',
   'control.dashboard.resumeEditing': 'Retomar edição',
+
+  // 0223 — standings panel chrome, metric availability, module updates.
+  'control.standings.panelDecidedBy': 'Definiu esta posição',
+  'control.standings.tiebreakerSequenceTitle': 'Sequência de desempate',
+  'control.standings.rankColumn': 'Posição',
+  'control.metric.unavailable': 'Não disponível',
+  'control.metric.demonstration': 'Valor de demonstração',
+  'control.platform.modules.updateEyebrow': 'Atualização de módulo',
+  'control.platform.modules.updateHeadline': '{alias} {currentVersion} → {latestVersion}',
+  'control.platform.modules.updateKind': 'Tipo de atualização: {upgrade}',
+  'control.platform.modules.updateCalloutTitle': 'Instalar esta versão',
+  'control.platform.modules.updateCalloutDescription':
+    'Introduza o alias abaixo e instale-o. Os módulos são instalados através da aplicação de semeadura; nada é aplicado a partir desta lista.',
+  'control.auditTrail.correctionTitle': 'O que este registo alterou',
+  'control.descriptor.documentRegion': 'Documento do módulo criado',
+  'control.descriptor.documentCopy': 'Copiar o documento do módulo',
+  'control.descriptor.documentCopied': 'Copiado',
+  'control.descriptor.documentCopyFailed': 'Falha ao copiar — selecione o texto para o copiar',
 };

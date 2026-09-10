@@ -95,3 +95,39 @@ export const LongLabel: Story = {
     );
   },
 };
+
+/**
+ * Each variant paired with the state it is most often reviewed without —
+ * 0223's reference scenario for the action control.
+ *
+ * Disabled is the pair that matters. A primary action and a disabled primary
+ * action sit next to each other here because the question a reviewer has to be
+ * able to answer at a glance is whether the difference is visible at all;
+ * checked in greyscale, it answers whether the difference survives without
+ * colour. Hover and focus are live states a static story cannot fake, so they
+ * are left to the browser rather than imitated with a class.
+ */
+export const StatePairs: Story = {
+  render: function Render() {
+    const intl = useIntl();
+    const label = intl.formatMessage(storyText.save);
+    return (
+      <StoryMatrix
+        cells={(['primary', 'secondary', 'destructive', 'destructive-outline'] as const).flatMap(
+          (variant) => [
+            { label: variant, children: <Button variant={variant}>{label}</Button> },
+            {
+              label: `${variant}, disabled`,
+              children: (
+                <Button disabled variant={variant}>
+                  {label}
+                </Button>
+              ),
+            },
+          ],
+        )}
+        minColumn="150px"
+      />
+    );
+  },
+};

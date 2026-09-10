@@ -146,6 +146,28 @@ export const messages = defineMessages({
     id: 'control.platform.modules.updatesAvailable',
     defaultMessage: 'Available module updates',
   },
+  // 0223 — the editorial presentation of an update that is already listed here.
+  platformUpdateEyebrow: {
+    id: 'control.platform.modules.updateEyebrow',
+    defaultMessage: 'Module update',
+  },
+  platformUpdateHeadline: {
+    id: 'control.platform.modules.updateHeadline',
+    defaultMessage: '{alias} {currentVersion} → {latestVersion}',
+  },
+  platformUpdateKind: {
+    id: 'control.platform.modules.updateKind',
+    defaultMessage: 'Upgrade type: {upgrade}',
+  },
+  platformUpdateCalloutTitle: {
+    id: 'control.platform.modules.updateCalloutTitle',
+    defaultMessage: 'Install this version',
+  },
+  platformUpdateCalloutDescription: {
+    id: 'control.platform.modules.updateCalloutDescription',
+    defaultMessage:
+      'Enter the alias below and install it. Modules are installed through the seed application; nothing is applied from this list.',
+  },
   platformModuleAlias: { id: 'control.platform.modules.alias', defaultMessage: 'Module alias' },
   platformVersionRange: {
     id: 'control.platform.modules.range',
@@ -204,6 +226,26 @@ export const messages = defineMessages({
 
   // Dashboard (QuickStats.tsx, TournamentCard.tsx, ActivityLog.tsx, Dashboard.tsx)
   dashboardSummary: { id: 'control.dashboard.summary', defaultMessage: 'Summary' },
+  // 0223 — a measurement that does not exist says so, rather than reading as zero.
+  // 0223 — the authored module document, shown as the file it becomes.
+  descriptorDocumentRegion: {
+    id: 'control.descriptor.documentRegion',
+    defaultMessage: 'Authored module document',
+  },
+  descriptorDocumentCopy: {
+    id: 'control.descriptor.documentCopy',
+    defaultMessage: 'Copy the module document',
+  },
+  descriptorDocumentCopied: { id: 'control.descriptor.documentCopied', defaultMessage: 'Copied' },
+  descriptorDocumentCopyFailed: {
+    id: 'control.descriptor.documentCopyFailed',
+    defaultMessage: 'Copy failed — select the text to copy it',
+  },
+  metricUnavailable: { id: 'control.metric.unavailable', defaultMessage: 'Not available' },
+  metricDemonstration: {
+    id: 'control.metric.demonstration',
+    defaultMessage: 'Demonstration figure',
+  },
   dashboardActiveTournaments: {
     id: 'control.dashboard.activeTournaments',
     defaultMessage: 'Active tournaments',
@@ -1004,6 +1046,11 @@ export const messages = defineMessages({
     id: 'control.auditTrail.loadFailed',
     defaultMessage: 'Could not load the audit trail.',
   },
+  // 0223 — the ledger entry a corrected record expands into.
+  auditTrailCorrectionTitle: {
+    id: 'control.auditTrail.correctionTitle',
+    defaultMessage: 'What this record changed',
+  },
   auditTrailColumnTime: { id: 'control.auditTrail.columnTime', defaultMessage: 'When' },
   auditTrailColumnActor: { id: 'control.auditTrail.columnActor', defaultMessage: 'Who' },
   auditTrailColumnAction: { id: 'control.auditTrail.columnAction', defaultMessage: 'Action' },
@@ -1392,6 +1439,16 @@ export const messages = defineMessages({
     id: 'control.standings.distributionEmpty',
     defaultMessage: 'No data to chart.',
   },
+  // 0223 — the standings panel's own chrome, distinct from the table's data labels.
+  standingsPanelDecidedBy: {
+    id: 'control.standings.panelDecidedBy',
+    defaultMessage: 'Decided this position',
+  },
+  standingsTiebreakerSequenceTitle: {
+    id: 'control.standings.tiebreakerSequenceTitle',
+    defaultMessage: 'Tiebreaker sequence',
+  },
+  standingsRankColumn: { id: 'control.standings.rankColumn', defaultMessage: 'Position' },
   standingsSharedRank: { id: 'control.standings.sharedRank', defaultMessage: 'Shared position' },
   standingsTieBroken: { id: 'control.standings.tieBroken', defaultMessage: 'Tiebreak applied' },
   standingsExportCsv: { id: 'control.standings.exportCsv', defaultMessage: 'Export CSV' },

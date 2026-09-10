@@ -1,6 +1,7 @@
 import { useIntl } from 'react-intl';
 import type { QuickStats as Stats } from '../lib/dashboard.js';
 import { messages } from '../i18n/messages.en.js';
+import { MetricStrip } from './ui/molecules/MetricStrip.js';
 
 const TILES = [
   { key: 'activeTournaments', label: messages.dashboardActiveTournaments },
@@ -11,17 +12,16 @@ const TILES = [
 export function QuickStats({ stats }: { readonly stats: Stats }): React.JSX.Element {
   const intl = useIntl();
   return (
-    <section aria-label={intl.formatMessage(messages.dashboardSummary)}>
-      <div className="cl-stat-grid">
-        {TILES.map((tile) => (
-          <div className="cl-stat-tile cl-chamfer cl-chamfer--control" key={tile.key}>
-            <div className="cl-stat-tile__value" data-testid={tile.key}>
-              {stats[tile.key]}
-            </div>
-            <div>{intl.formatMessage(tile.label)}</div>
-          </div>
-        ))}
-      </div>
-    </section>
+    <MetricStrip
+      ariaLabel={intl.formatMessage(messages.dashboardSummary)}
+      metrics={TILES.map((tile) => ({
+        key: tile.key,
+        label: intl.formatMessage(tile.label),
+        unavailableLabel: intl.formatMessage(messages.metricUnavailable),
+        ...(stats[tile.key] === undefined
+          ? {}
+          : { value: <span data-testid={tile.key}>{stats[tile.key]}</span> }),
+      }))}
+    />
   );
 }

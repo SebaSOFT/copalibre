@@ -16,6 +16,17 @@ export const messages = defineMessages({
   // Layout chrome (layouts/PublicLayout.astro)
   layoutSkipToContent: { id: 'publicWeb.layout.skipToContent', defaultMessage: 'Skip to content' },
   layoutNavAriaLabel: { id: 'publicWeb.layout.navAriaLabel', defaultMessage: 'Main' },
+  // 0223 — the public header's own controls and destinations.
+  headerOpenMenu: { id: 'publicWeb.header.openMenu', defaultMessage: 'Open the menu' },
+  headerCloseMenu: { id: 'publicWeb.header.closeMenu', defaultMessage: 'Close the menu' },
+  headerLanguage: { id: 'publicWeb.header.language', defaultMessage: 'Language' },
+  headerNavHome: { id: 'publicWeb.header.navHome', defaultMessage: 'Home' },
+  headerNavHelp: { id: 'publicWeb.header.navHelp', defaultMessage: 'Help' },
+  headerNavApiReference: {
+    id: 'publicWeb.header.navApiReference',
+    defaultMessage: 'API reference',
+  },
+  headerControlPanel: { id: 'publicWeb.header.controlPanel', defaultMessage: 'Control panel' },
   layoutFooter: {
     id: 'publicWeb.layout.footer',
     defaultMessage: 'Published with CopaLibre — AGPL-3.0',
@@ -117,6 +128,33 @@ export const messages = defineMessages({
     defaultMessage: '{branch} — round {round}',
   },
   bracketRoundHeading: { id: 'publicWeb.bracket.roundHeading', defaultMessage: 'Round {round}' },
+  // 0223 — the bracket stage's own chrome, its key, and its textual view.
+  bracketStageAriaLabel: { id: 'publicWeb.bracket.stageAriaLabel', defaultMessage: 'Bracket' },
+  bracketScrollAriaLabel: {
+    id: 'publicWeb.bracket.scrollAriaLabel',
+    defaultMessage: 'Bracket graph, scrolls sideways',
+  },
+  bracketLegendLabel: { id: 'publicWeb.bracket.legendLabel', defaultMessage: 'Bracket key' },
+  bracketOutcomeAdvancing: {
+    id: 'publicWeb.bracket.outcomeAdvancing',
+    defaultMessage: 'Advancing',
+  },
+  bracketOutcomeEliminated: {
+    id: 'publicWeb.bracket.outcomeEliminated',
+    defaultMessage: 'Eliminated',
+  },
+  bracketOutcomePending: {
+    id: 'publicWeb.bracket.outcomePending',
+    defaultMessage: 'Not yet decided',
+  },
+  bracketOutlineHeading: {
+    id: 'publicWeb.bracket.outlineHeading',
+    defaultMessage: 'Rounds and branches',
+  },
+  bracketChampionshipTitle: {
+    id: 'publicWeb.bracket.championshipTitle',
+    defaultMessage: 'Final',
+  },
 
   // BroadcastStatusPanel.astro
   broadcastStatusNote: {
@@ -347,6 +385,17 @@ export const messages = defineMessages({
   tickerLabel: { id: 'publicWeb.ticker.label', defaultMessage: 'Tournament ticker' },
   tickerLeader: { id: 'publicWeb.ticker.leader', defaultMessage: 'Leader' },
   tickerVersus: { id: 'publicWeb.ticker.versus', defaultMessage: 'VS' },
+  // 0223 — the ticker's own controls and conditions.
+  tickerPause: { id: 'publicWeb.ticker.pause', defaultMessage: 'Pause the ticker' },
+  tickerResume: { id: 'publicWeb.ticker.resume', defaultMessage: 'Resume the ticker' },
+  tickerStale: {
+    id: 'publicWeb.ticker.stale',
+    defaultMessage: 'Last known scores — the live connection was lost',
+  },
+  tickerEmpty: {
+    id: 'publicWeb.ticker.empty',
+    defaultMessage: 'No fixtures to report yet',
+  },
   tvStatsHomeSide: { id: 'publicWeb.tvStats.homeSide', defaultMessage: 'Home' },
   tvStatsAwaySide: { id: 'publicWeb.tvStats.awaySide', defaultMessage: 'Away' },
   tvStatsPoints: { id: 'publicWeb.tvStats.points', defaultMessage: 'Points' },

@@ -14,7 +14,7 @@ import {
   fetchPublicTableProjection,
   mapOverviewResponse,
 } from '../../../../lib/public-api-client.ts';
-import { publicIntl, tickerLabels } from '../../../../lib/i18n/public-intl.ts';
+import { publicIntl, tickerChromeLabels, tickerLabels } from '../../../../lib/i18n/public-intl.ts';
 import { buildTickerItems } from '../../../../lib/ticker-items.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
@@ -100,6 +100,7 @@ const [performerProjection, leaderProjection] = await Promise.all([
     : Promise.resolve(undefined),
 ]);
 
+const tickerChrome = tickerChromeLabels(intl);
 const tickerItems = buildTickerItems({
   matches: model.matches,
   ...(performerProjection === undefined ? {} : { performers: performerProjection }),
@@ -134,7 +135,14 @@ const structuredData = {
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
-  <ScoreTicker items={tickerItems} label={intl.formatMessage(messages.tickerLabel)} />
+  <ScoreTicker
+    emptyLabel={tickerChrome.empty}
+    items={tickerItems}
+    label={intl.formatMessage(messages.tickerLabel)}
+    pauseLabel={tickerChrome.pause}
+    resumeLabel={tickerChrome.resume}
+    staleLabel={tickerChrome.stale}
+  />
   <TournamentHero model={model} intl={intl} />
   {
     model.status === 'finished' && model.winners && model.winners.length > 0 && (

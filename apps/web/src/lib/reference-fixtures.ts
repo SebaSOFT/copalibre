@@ -388,3 +388,159 @@ export function referenceBasketballDashboard(): LiveDashboard {
     usingLastKnown: false,
   };
 }
+
+/** One entrant's line in the reference standings table. */
+export interface ReferenceStandingsRow {
+  readonly rank: number;
+  readonly entrantId: string;
+  readonly name: string;
+  readonly abbreviation: string;
+  /** True while two entrants still share a position nothing has separated. */
+  readonly sharedRank: boolean;
+  /** True where a comparator past the first decided this row's position. */
+  readonly tieBroken: boolean;
+  readonly statistics: Readonly<Record<string, number>>;
+}
+
+export interface ReferenceStandingsTable {
+  /**
+   * Statistic codes in the order a football descriptor declares them. Codes
+   * only: the labels are the consuming surface's catalogue entries, and a
+   * fixture holding English strings is a fixture that renders English in eight
+   * languages.
+   */
+  readonly columns: readonly string[];
+  readonly rows: readonly ReferenceStandingsRow[];
+  /** The configured chain, in order. The first that separates two rows decides. */
+  readonly tiebreakerCodes: readonly string[];
+  /** Which of those actually decided this table — the head-to-head, here. */
+  readonly decidingCode: string;
+}
+
+/**
+ * The tied standings as a full statistical table, computed from the results.
+ *
+ * Derived rather than written down: every figure below is arithmetic over
+ * `referenceGroupMatches()`, so a fixture result that changes changes the table
+ * with it, and the two cannot drift into telling different stories. That is the
+ * same rule the production surfaces hold to — the projection decides, the
+ * presentation renders — applied to the demonstration data.
+ *
+ * `head-to-head` carries the points each level entrant took from their meeting,
+ * which is what makes the decider a column a reader can see rather than a step
+ * they have to reconstruct.
+ */
+export function referenceStandingsTable(): ReferenceStandingsTable {
+  const matches = referenceGroupMatches();
+  const byName = new Map<string, (typeof REFERENCE_ENTRANTS)[number]>(
+    REFERENCE_ENTRANTS.map((entrant) => [entrant.name, entrant]),
+  );
+
+  const totals = new Map<
+    string,
+    { played: number; wins: number; draws: number; losses: number; for: number; against: number }
+  >();
+  const blank = (): {
+    played: number;
+    wins: number;
+    draws: number;
+    losses: number;
+    for: number;
+    against: number;
+  } => ({ played: 0, wins: 0, draws: 0, losses: 0, for: 0, against: 0 });
+
+  for (const match of matches) {
+    const home = match.home.score;
+    const away = match.away.score;
+    if (home === undefined || away === undefined) continue;
+    for (const [side, own, other] of [
+      [match.home.name, home, away],
+      [match.away.name, away, home],
+    ] as const) {
+      const line = totals.get(side) ?? blank();
+      line.played += 1;
+      line.for += own;
+      line.against += other;
+      if (own > other) line.wins += 1;
+      else if (own === other) line.draws += 1;
+      else line.losses += 1;
+      totals.set(side, line);
+    }
+  }
+
+  const points = (line: ReturnType<typeof blank>): number => line.wins * 3 + line.draws;
+
+  /** Points each entrant took from the matches between the entrants named. */
+  const headToHead = (name: string, against: readonly string[]): number =>
+    matches.reduce((sum, match) => {
+      const home = match.home.score;
+      const away = match.away.score;
+      if (home === undefined || away === undefined) return sum;
+      const isHome = match.home.name === name && against.includes(match.away.name);
+      const isAway = match.away.name === name && against.includes(match.home.name);
+      if (!isHome && !isAway) return sum;
+      const own = isHome ? home : away;
+      const other = isHome ? away : home;
+      return sum + (own > other ? 3 : own === other ? 1 : 0);
+    }, 0);
+
+  const names = [...totals.keys()];
+  const levelOn = (value: number): readonly string[] =>
+    names.filter((name) => points(totals.get(name) ?? blank()) === value);
+
+  const ordered = names
+    .map((name) => {
+      const line = totals.get(name) ?? blank();
+      const level = levelOn(points(line));
+      return {
+        name,
+        line,
+        level,
+        headToHead: level.length > 1 ? headToHead(name, level) : 0,
+      };
+    })
+    .sort(
+      (a, b) =>
+        points(b.line) - points(a.line) ||
+        b.headToHead - a.headToHead ||
+        b.line.for - b.line.against - (a.line.for - a.line.against),
+    );
+
+  return {
+    columns: [
+      'played',
+      'wins',
+      'draws',
+      'losses',
+      'goals-for',
+      'goals-against',
+      'score-difference',
+      'head-to-head',
+      'points',
+    ],
+    tiebreakerCodes: ['points', 'head-to-head', 'score-difference'],
+    decidingCode: 'head-to-head',
+    rows: ordered.map((entry, index) => {
+      const entrant = byName.get(entry.name);
+      return {
+        rank: index + 1,
+        entrantId: entrant?.id ?? entry.name,
+        name: entry.name,
+        abbreviation: entrant?.abbreviation ?? entry.name.slice(0, 3).toUpperCase(),
+        sharedRank: false,
+        tieBroken: entry.level.length > 1,
+        statistics: {
+          played: entry.line.played,
+          wins: entry.line.wins,
+          draws: entry.line.draws,
+          losses: entry.line.losses,
+          'goals-for': entry.line.for,
+          'goals-against': entry.line.against,
+          'score-difference': entry.line.for - entry.line.against,
+          'head-to-head': entry.headToHead,
+          points: points(entry.line),
+        },
+      };
+    }),
+  };
+}
