@@ -47,17 +47,19 @@ export const SEMANTIC_COLORS = {
     purpose: 'Content surface alternating against its band',
     nonColourCue: 'Border',
   },
-  'surface-raised': { primitive: 'ink-850', purpose: 'Raised or selected', nonColourCue: 'Border' },
+  'surface-raised': {
+    primitive: 'cyan-950',
+    purpose: 'Selected or active container',
+    nonColourCue: 'Border plus label or state mark',
+  },
   /**
    * Chrome: a panel header, a footer, a chip, a tag, an icon well. It lifts to
    * this level wherever it sits, so a header reads as a header at any depth —
    * unlike content, which alternates against the band beneath it.
    *
-   * It currently shares `ink-850` with `surface-raised`. That is a real
-   * collision to resolve where selection is styled, not here: the reference
-   * project has no selected state to measure, and the token contract already
-   * requires `surface-raised` to carry a border plus label or state text rather
-   * than to be identified by its fill.
+   * Neutral chrome keeps the reference project's ink-850. Selection uses a
+   * separate cyan-tinted fill, inspired by the reference's emphasized comparator
+   * chip, together with its required border and label/state mark.
    */
   'surface-chrome': {
     primitive: 'ink-850',

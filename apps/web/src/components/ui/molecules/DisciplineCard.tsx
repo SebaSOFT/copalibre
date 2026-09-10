@@ -99,7 +99,7 @@ export function DisciplineCard({
 
           <span
             style={{
-              background: 'var(--cl-surface-raised)',
+              background: 'var(--cl-surface-chrome)',
               border: '1px solid var(--cl-border-muted)',
               color: 'var(--cl-text-secondary)',
               fontSize: '0.65rem',

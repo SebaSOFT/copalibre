@@ -62,7 +62,7 @@ export const BUTTON_VARIANTS: Record<ButtonVariant, ButtonTokens> = {
     hover: { background: 'primary-hover' },
   },
   secondary: {
-    background: 'surface-raised',
+    background: 'surface-chrome',
     text: 'text-primary',
     border: 'border-muted',
     minSize: TOUCH_TARGET,
@@ -140,19 +140,19 @@ export type FilePickerTokens = Record<FilePickerState, FormControlTokenSet>;
 
 const FORM_CONTROL_STATES: Record<FormControlState, FormControlTokenSet> = {
   default: {
-    background: 'surface-raised',
+    background: 'surface-chrome',
     text: 'text-primary',
     border: 'border-muted',
     focusRing: 'focus-ring',
   },
   focus: {
-    background: 'surface-raised',
+    background: 'surface-chrome',
     text: 'text-primary',
     border: 'focus-ring',
     focusRing: 'focus-ring',
   },
   error: {
-    background: 'surface-raised',
+    background: 'surface-chrome',
     text: 'text-primary',
     border: 'state-destructive',
     focusRing: 'state-destructive',
@@ -240,7 +240,7 @@ export const TOOLBAR_DENSITY_TOKENS: ToolbarDensityTokens = {
   height: TOUCH_TARGET,
   padding: '8px',
   gap: '8px',
-  background: 'surface-raised',
+  background: 'surface-chrome',
   border: 'border-muted',
 };
 

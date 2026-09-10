@@ -123,7 +123,7 @@ export function ChampionshipMatchCard({
             justifyContent: 'space-between',
             padding: 'var(--cl-space-2) var(--cl-space-3)',
             background: homeParticipant.winner
-              ? 'var(--cl-surface-raised)'
+              ? 'var(--cl-surface-chrome)'
               : 'var(--cl-surface-base)',
             borderLeft: homeParticipant.winner
               ? '3px solid var(--cl-state-live)'
@@ -183,7 +183,7 @@ export function ChampionshipMatchCard({
             justifyContent: 'space-between',
             padding: 'var(--cl-space-2) var(--cl-space-3)',
             background: awayParticipant.winner
-              ? 'var(--cl-surface-raised)'
+              ? 'var(--cl-surface-chrome)'
               : 'var(--cl-surface-base)',
             borderLeft: awayParticipant.winner
               ? '3px solid var(--cl-state-live)'

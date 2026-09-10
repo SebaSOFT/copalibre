@@ -189,7 +189,7 @@ const toastStyles = `
     gap: var(--cl-space-3);
     padding: var(--cl-space-4);
     border: 1px solid var(--cl-border-strong);
-    background: var(--cl-surface-raised);
+    background: var(--cl-surface-chrome);
     color: var(--cl-text-primary);
     box-shadow: 0 12px 28px color-mix(in srgb, var(--cl-surface-base) 70%, transparent);
     pointer-events: auto;

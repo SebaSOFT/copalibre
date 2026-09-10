@@ -275,7 +275,7 @@ body {
 }
 
 .cl-input[type='file']::file-selector-button {
-  background: var(--cl-surface-raised);
+  background: var(--cl-surface-chrome);
   color: var(--cl-text-primary);
   border: 1px solid var(--cl-border-muted);
   padding: var(--cl-space-1) var(--cl-space-3);
@@ -288,7 +288,7 @@ body {
 }
 
 .cl-input[type='file']::file-selector-button:hover {
-  background: var(--cl-surface-hover, var(--cl-surface-raised));
+  background: var(--cl-surface-hover, var(--cl-surface-chrome));
 }
 
 input[type='checkbox'].cl-checkbox {

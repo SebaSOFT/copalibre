@@ -152,7 +152,7 @@ describe('discipline backdrop (openspec 0200)', () => {
       layout.indexOf('body > :not(.cl-discipline-background)'),
     );
     expect(neutralRule).not.toMatch(HEX_LITERAL);
-    expect(neutralRule).toContain('var(--cl-surface-raised)');
+    expect(neutralRule).toContain('var(--cl-surface-chrome)');
   });
 });
 

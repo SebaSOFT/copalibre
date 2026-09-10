@@ -1,7 +1,17 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './card.js';
+import { useState } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  CardSection,
+} from './card.js';
 import { Button } from './button.js';
+import { FilePicker } from './file-picker.js';
 import { storyText } from '../story-text.js';
 
 /**
@@ -62,49 +72,48 @@ export const Bare: Story = {
   },
 };
 
-/**
- * Renders the same card on a dark and light band, with lifted chrome and
- * a selected container beside them (task 2.5).
- */
+/** Real selection state alongside chrome and content on each calibrated band. */
+function SurfaceSample({ base }: { readonly base: boolean }) {
+  const intl = useIntl();
+  const [file, setFile] = useState<File | null>(
+    () => new File(['name\nExample'], 'entrants.csv', { type: 'text/csv' }),
+  );
+  return (
+    <CardSection
+      aria-label={base ? 'Base band' : 'Panel band'}
+      className={base ? 'cl-band--base' : undefined}
+      style={{ padding: 'clamp(var(--cl-space-2), 3vw, var(--cl-space-6))' }}
+    >
+      <Card>
+        <CardHeader>
+          <CardTitle>{intl.formatMessage(storyText.settingsTitle)}</CardTitle>
+        </CardHeader>
+        <CardContent style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
+          <p>{intl.formatMessage(storyText.saved)}</p>
+          <FilePicker
+            id={base ? 'base-selection' : 'panel-selection'}
+            label={intl.formatMessage(storyText.reportTitle)}
+            clearLabel={intl.formatMessage(storyText.dismiss)}
+            accept=".csv"
+            maxSizeBytes={1024 * 1024}
+            value={file}
+            onChange={(files) => setFile(files?.[0] ?? null)}
+            onClear={() => setFile(null)}
+          />
+        </CardContent>
+        <CardFooter>
+          <Button variant="secondary">{intl.formatMessage(storyText.cancel)}</Button>
+        </CardFooter>
+      </Card>
+    </CardSection>
+  );
+}
+
 export const AlternationAndChrome: Story = {
-  render: function Render() {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-        <div
-          className="cl-band cl-chamfer"
-          style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
-        >
-          <h4>Panel Band (.cl-band)</h4>
-          <Card>
-            <CardHeader>
-              <CardTitle>Header lifts to chrome</CardTitle>
-            </CardHeader>
-            <CardContent>Body drops to base</CardContent>
-            <CardFooter>Footer is chrome</CardFooter>
-          </Card>
-        </div>
-        <div
-          className="cl-band cl-band--base cl-chamfer"
-          style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
-        >
-          <h4>Base Band (.cl-band--base)</h4>
-          <Card>
-            <CardHeader>
-              <CardTitle>Header lifts to chrome</CardTitle>
-            </CardHeader>
-            <CardContent>Body lifts to panel</CardContent>
-            <CardFooter>Footer is chrome</CardFooter>
-          </Card>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div className="cl-chrome cl-chamfer" style={{ padding: '1rem' }}>
-            Lifted Chrome
-          </div>
-          <div className="cl-card--live cl-chamfer" style={{ padding: '1rem' }}>
-            Selected Container
-          </div>
-        </div>
-      </div>
-    );
-  },
+  render: () => (
+    <div className="cl-control-screen" style={{ display: 'grid', gap: 'var(--cl-space-6)' }}>
+      <SurfaceSample base={false} />
+      <SurfaceSample base={true} />
+    </div>
+  ),
 };

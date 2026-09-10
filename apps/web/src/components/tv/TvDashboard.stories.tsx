@@ -17,13 +17,9 @@ import type { SupportedLanguage } from '../../lib/language-preference.js';
  * 1920×1080, not on a phone. The narrow viewports are still worth one pass,
  * because `kiosk` is also what a venue's vertical screen shows.
  *
- * The chroma-key variant is deliberately absent. `?chroma` is handled by
- * `TvLayout.astro`, which puts `data-chroma` and a `--tv-chroma` custom
- * property on the document root; the rule that acts on it is
- * `.tv-overlay--lower[data-chroma] body`. A story renders inside that document
- * rather than owning it, so a chroma story could only fake the selector — and a
- * faked one would report green while the real page did something else. It stays
- * covered by `tv-broadcast.spec.ts`, which drives the actual route.
+ * The TV background toolbar previews transparent overlays against green chroma
+ * or local sport scenes. It changes only the surroundings; production `?chroma`
+ * routing remains covered by `tv-broadcast.spec.ts` on the actual route.
  */
 const DASHBOARD: LiveDashboard = {
   standingsVersion: 12,
@@ -106,6 +102,21 @@ export const Kiosk: Story = { render: render('kiosk') };
 
 /** The compact score bug meant to sit over a camera feed. */
 export const OverlayLower: Story = { render: render('lower') };
+
+export const GreenChroma: Story = {
+  render: render('lower'),
+  parameters: { tvBackdrop: 'chroma' },
+};
+
+export const FootballBackdrop: Story = {
+  render: render('lower'),
+  parameters: { tvBackdrop: 'football' },
+};
+
+export const BasketballBackdrop: Story = {
+  render: render('lower'),
+  parameters: { tvBackdrop: 'basketball' },
+};
 
 /** The self-contained broadcast scene, for a stream with no camera source. */
 export const OverlayFull: Story = { render: render('full') };

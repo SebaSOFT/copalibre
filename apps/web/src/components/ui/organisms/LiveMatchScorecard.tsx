@@ -207,7 +207,7 @@ export function LiveMatchScorecard({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 'var(--cl-space-2)',
-                background: 'var(--cl-surface-raised)',
+                background: 'var(--cl-surface-chrome)',
                 padding: 'var(--cl-space-1) var(--cl-space-2)',
                 borderRadius: 'var(--cl-radius-sm)',
                 fontSize: 'var(--cl-font-size-xs)',
@@ -244,7 +244,7 @@ export function LiveMatchScorecard({
           className="cl-scorecard__comparator-trace"
           style={{
             borderLeft: '3px solid var(--cl-state-live)',
-            background: 'var(--cl-surface-raised)',
+            background: 'var(--cl-surface-chrome)',
             padding: 'var(--cl-space-2) var(--cl-space-3)',
             marginTop: 'var(--cl-space-2)',
             display: 'flex',

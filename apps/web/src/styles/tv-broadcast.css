@@ -3,7 +3,7 @@
 :root {
   --tv-bg-base: var(--cl-surface-base);
   --tv-bg-surface: var(--cl-surface-panel);
-  --tv-bg-elevated: var(--cl-surface-raised);
+  --tv-bg-elevated: var(--cl-surface-chrome);
   --tv-border: color-mix(in srgb, var(--cl-text-primary) 12%, transparent);
   --tv-border-active: var(--cl-primary);
   --tv-text-primary: var(--cl-text-primary);
@@ -409,7 +409,7 @@
 
 .tv-rail-tab--active {
   color: var(--tv-live-cyan);
-  background: var(--tv-bg-elevated);
+  background: var(--cl-surface-raised);
   border-bottom: 2px solid var(--tv-live-cyan);
 }
 
@@ -605,6 +605,8 @@
  * 1080p stream and a phone-shaped vertical one.
  * ------------------------------------------------------------------------ */
 .tv-lower-third {
+  /* Intrinsic overlay transparency also works outside TvLayout, including Storybook. */
+  background-color: transparent;
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
@@ -631,7 +633,7 @@
   letter-spacing: 0.08em;
   font-size: clamp(0.7rem, 1.7vmin, 1.2rem);
   padding: 0.4vmin 1.2vmin;
-  background: var(--cl-surface-raised);
+  background: var(--cl-surface-chrome);
 }
 
 .tv-lower-third__state--live {

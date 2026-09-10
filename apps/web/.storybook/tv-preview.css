@@ -1,0 +1,25 @@
+/* Preview surroundings only. TV components keep their production surfaces. */
+.cl-story-tv-stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--cl-surface-base);
+  background-position: center;
+  background-size: cover;
+  color: var(--cl-text-primary);
+}
+
+.cl-story-tv-stage[data-backdrop='chroma'] {
+  /* A compositing sample, deliberately independent of semantic state colours. */
+  background-color: #00ff00;
+}
+
+.cl-story-tv-stage > .tv-root-container {
+  flex: 1;
+  height: auto;
+}
+
+.cl-story-tv-stage > .tv-lower-third {
+  flex: 0;
+  margin-block-start: auto;
+}
