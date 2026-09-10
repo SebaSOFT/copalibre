@@ -127,7 +127,7 @@ const cropAreaStyle: CSSProperties = {
   width: '100%',
   aspectRatio: '4 / 5',
   maxHeight: '60vh',
-  background: 'var(--cl-surface-raised)',
+  background: 'var(--cl-surface-chrome)',
 };
 
 const controlsStyle: CSSProperties = {

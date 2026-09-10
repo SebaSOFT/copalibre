@@ -28,6 +28,8 @@ export const COLOR_PRIMITIVES = {
   'cyan-300': '#33DFFF',
   'cyan-400': '#00D4FF',
   'cyan-700': '#006B82',
+  /** Cyan at 20% over ink-900, resolved opaque for predictable selection contrast. */
+  'cyan-950': '#0E3E53',
   'amber-400': '#FF9C1E',
   'amber-800': '#7A4300',
   'green-500': '#22C55E',

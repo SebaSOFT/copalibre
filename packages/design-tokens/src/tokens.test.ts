@@ -237,7 +237,21 @@ describe('the CSS output', () => {
       expect(
         contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['border-strong'].primitive], background),
       ).toBeGreaterThanOrEqual(CONTRAST_GATES.nonTextIndicator);
+      expect(
+        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['focus-ring'].primitive], background),
+      ).toBeGreaterThanOrEqual(CONTRAST_GATES.nonTextIndicator);
     }
+  });
+
+  it('separates actual selection fills from neutral chrome without tinting ordinary controls', () => {
+    const selected = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-raised'].primitive];
+    const chrome = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-chrome'].primitive];
+    expect(selected).not.toBe(chrome);
+    expect(chrome).toBe(COLOR_PRIMITIVES['ink-850']);
+    expect(FILE_PICKER_TOKENS['selection-present'].background).toBe('surface-raised');
+    expect(FILE_PICKER_TOKENS['selection-present'].border).toBe('border-strong');
+    expect(INPUT_TOKENS.default.background).toBe('surface-chrome');
+    expect(BUTTON_VARIANTS.secondary.background).toBe('surface-chrome');
   });
 
   it('keeps the calibrated action legible against its own fill', () => {
@@ -292,7 +306,7 @@ describe('the CSS output', () => {
     );
     // Broadcast surface is constrained to a single alternation step.
     expect(css).toContain(
-      ':where([data-surface="broadcast"], .cl-broadcast, .tv-root-container) :where(.cl-card, .cl-well) :where(.cl-card, .cl-well) { background: var(--cl-surface-panel); }',
+      ':where([data-surface="broadcast"], .cl-broadcast, .tv-root-container) :where(.cl-card, .cl-well) { --cl-content-level: panel; background: var(--cl-surface-content); }',
     );
   });
 
@@ -544,7 +558,7 @@ describe('button CTA treatments (openspec 0198)', () => {
 
   it('keeps primary on state-live and secondary on the raised neutral pairing', () => {
     expect(css).toMatch(/\.cl-btn--primary \{[^}]*var\(--cl-state-live\)/);
-    expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-surface-raised\)/);
+    expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-surface-chrome\)/);
     expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-border-muted\)/);
   });
 
@@ -575,7 +589,7 @@ describe('public table and pill treatments (openspec 0199)', () => {
 
   it('gives every table a header treatment and tabular figures', () => {
     expect(css).toMatch(/\.cl-table \{[^}]*font-variant-numeric: tabular-nums/);
-    expect(css).toMatch(/\.cl-table thead th \{[^}]*var\(--cl-surface-raised\)/);
+    expect(css).toMatch(/\.cl-table thead th \{[^}]*var\(--cl-surface-chrome\)/);
     expect(css).toMatch(/\.cl-table thead th \{[^}]*text-transform: uppercase/);
   });
 

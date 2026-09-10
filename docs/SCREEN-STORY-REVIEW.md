@@ -31,7 +31,12 @@ the `cl-control` sidebar grid and introduces no new provider.
 Shell-owning stories set the isolated Storybook origin's stored language before mounting because the
 real shell owns its own IntlProvider. No access token or personal credential is seeded.
 
-## Deferred source files
+## Original 0216 deferred source files
+
+This table records the 0216 boundary. Change 0222 subsequently added stories for
+`AcceptInvitationForm`, `AcceptInvitationScreen` and `PreferencesRoute` and removed the opt-in
+coverage register. Current coverage recursively includes operator, public and TV React surfaces;
+see the [0222 follow-up review](reviews/0222-owned-control-coverage.md).
 
 | Source                     | Reason                                                                                                                                                                                                          |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -45,7 +50,7 @@ real shell owns its own IntlProvider. No access token or personal credential is 
 | PreferencesRoute.tsx       | Organization reads accept a client, but PAT load/create/revoke bypass it using raw fetch. A client-only story would still reach live auth endpoints.                                                            |
 
 Do not add fake auth data or override global fetch to hide these dependencies. Keep them outside the
-coverage register until an explicit seam is designed; existing real-route tests remain authoritative.
+story coverage until an explicit seam is designed; existing real-route tests remain authoritative.
 
 ## Existing UX exposed by stories
 

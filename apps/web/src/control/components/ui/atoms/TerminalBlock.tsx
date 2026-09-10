@@ -60,7 +60,7 @@ export function TerminalBlock({
           justifyContent: 'space-between',
           padding: 'var(--cl-space-2) var(--cl-space-3)',
           borderBottom: '1px solid var(--cl-border-muted)',
-          background: 'var(--cl-surface-raised)',
+          background: 'var(--cl-surface-chrome)',
           gap: 'var(--cl-space-2)',
         }}
       >

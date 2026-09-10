@@ -391,7 +391,7 @@ export function PointsDistribution({
               style={{
                 display: 'block',
                 height: 12,
-                background: 'var(--cl-surface-raised)',
+                background: 'var(--cl-surface-chrome)',
                 border: '1px solid var(--cl-border-muted)',
               }}
             >

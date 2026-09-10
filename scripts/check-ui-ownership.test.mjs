@@ -4,11 +4,16 @@ import { fileURLToPath } from 'node:url';
 import { existsSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkFileOwnership, checkStoryCoverage, scanEverySurface } from './check-ui-ownership.mjs';
-import { checkScreenStoryCoverage } from './check-ui-ownership.mjs';
+import {
+  checkFileOwnership,
+  checkStoryCoverage,
+  scanEverySurface,
+  checkScreenStoryCoverage,
+  SCREEN_STORY_EXCLUSIONS,
+} from './check-ui-ownership.mjs';
 
-test('registered screen coverage matches the repository', () => {
-  const root = fileURLToPath(new URL('../apps/web/src/control/components', import.meta.url));
+test('recursive story coverage includes every React surface in the repository', () => {
+  const root = fileURLToPath(new URL('../apps/web/src', import.meta.url));
   assert.deepEqual(checkScreenStoryCoverage(root), []);
 });
 
@@ -25,17 +30,95 @@ test('screens require stories based on the filesystem, excluding categories (des
 
 test('excluded categories require no story: routers, providers, and test fixtures', () => {
   const root = mkdtempSync(join(tmpdir(), 'screen-exclusions-'));
+  const components = join(root, 'control/components');
+  const i18n = join(root, 'control/i18n');
+  mkdirSync(components, { recursive: true });
+  mkdirSync(i18n, { recursive: true });
   // Category (b): Routers or route tables
-  writeFileSync(join(root, 'ControlRoutes.tsx'), 'export function ControlRoutes() {}');
-  writeFileSync(join(root, 'NativeAuthRoutes.tsx'), 'export function NativeAuthRoutes() {}');
-  writeFileSync(join(root, 'ControlOrNotFound.tsx'), 'export function ControlOrNotFound() {}');
+  writeFileSync(join(components, 'ControlRoutes.tsx'), 'export function ControlRoutes() {}');
+  writeFileSync(join(components, 'NativeAuthRoutes.tsx'), 'export function NativeAuthRoutes() {}');
+  writeFileSync(
+    join(components, 'ControlOrNotFound.tsx'),
+    'export function ControlOrNotFound() {}',
+  );
   // Category (c): Context providers and composition roots
-  writeFileSync(join(root, 'ControlApp.tsx'), 'export function ControlApp() {}');
-  writeFileSync(join(root, 'ToastProvider.tsx'), 'export function ToastProvider() {}');
-  writeFileSync(join(root, 'ControlIntl.tsx'), 'export function ControlIntl() {}');
+  writeFileSync(join(components, 'ControlApp.tsx'), 'export function ControlApp() {}');
+  writeFileSync(join(components, 'ToastProvider.tsx'), 'export function ToastProvider() {}');
+  writeFileSync(join(i18n, 'ControlIntl.tsx'), 'export function ControlIntl() {}');
   // Category (a): Test and fixture modules
-  writeFileSync(join(root, 'screen-story-fixtures.ts'), 'export const fixtures = {};');
+  writeFileSync(join(root, 'screen-story-fixtures.tsx'), 'export const fixtures = {};');
 
+  assert.deepEqual(checkScreenStoryCoverage(root), []);
+});
+
+test('nested screens on every surface fail without a sibling story, including route directories', () => {
+  const root = mkdtempSync(join(tmpdir(), 'nested-screen-coverage-'));
+  const directories = [
+    'control/components/nested',
+    'components/public/nested',
+    'components/tv/nested',
+    'pages/nested',
+  ];
+  for (const directory of directories) {
+    mkdirSync(join(root, directory), { recursive: true });
+    writeFileSync(join(root, directory, 'Screen.tsx'), 'export function Screen() { return null; }');
+    writeFileSync(join(root, directory, 'page.astro'), '<main />');
+  }
+  assert.deepEqual(
+    checkScreenStoryCoverage(root)
+      .map(({ component }) => component)
+      .sort(),
+    directories.map((directory) => `${directory}/Screen.tsx`).sort(),
+  );
+  for (const directory of directories) {
+    writeFileSync(join(root, directory, 'Screen.stories.tsx'), 'export default {};');
+  }
+  assert.deepEqual(checkScreenStoryCoverage(root), []);
+});
+
+test('router, provider and deferred exemptions do not leak to same-named screens elsewhere', () => {
+  const root = mkdtempSync(join(tmpdir(), 'path-story-coverage-'));
+  const deferred = 'control/components/Deferred.tsx';
+  SCREEN_STORY_EXCLUSIONS.cannotRenderHonestly.set(deferred, 'Requires live tournament state');
+  try {
+    for (const path of ['control/components', 'components/tv']) {
+      mkdirSync(join(root, path), { recursive: true });
+      for (const name of ['ControlRoutes', 'ToastProvider', 'Deferred']) {
+        writeFileSync(
+          join(root, path, `${name}.tsx`),
+          `export function ${name}() { return null; }`,
+        );
+      }
+    }
+    assert.deepEqual(
+      checkScreenStoryCoverage(root)
+        .map(({ component }) => component)
+        .sort(),
+      [
+        'components/tv/ControlRoutes.tsx',
+        'components/tv/Deferred.tsx',
+        'components/tv/ToastProvider.tsx',
+      ],
+    );
+  } finally {
+    SCREEN_STORY_EXCLUSIONS.cannotRenderHonestly.delete(deferred);
+  }
+});
+
+test('nested library stories are required on each surface without counting ui support modules', () => {
+  const root = mkdtempSync(join(tmpdir(), 'nested-library-coverage-'));
+  for (const surface of ['control/components', 'components', 'components/tv']) {
+    const ui = join(root, surface, 'ui');
+    mkdirSync(join(ui, 'atoms/nested'), { recursive: true });
+    writeFileSync(join(ui, 'story-matrix.tsx'), 'export function Matrix() { return null; }');
+    writeFileSync(join(ui, 'atoms/nested/Thing.tsx'), 'export function Thing() { return null; }');
+  }
+  assert.equal(checkScreenStoryCoverage(root).length, 3);
+  for (const surface of ['control/components', 'components', 'components/tv']) {
+    const ui = join(root, surface, 'ui');
+    assert.equal(checkStoryCoverage(ui)[0].component, 'atoms/nested/Thing.tsx');
+    writeFileSync(join(ui, 'atoms/nested/Thing.stories.tsx'), 'export default {};');
+  }
   assert.deepEqual(checkScreenStoryCoverage(root), []);
 });
 

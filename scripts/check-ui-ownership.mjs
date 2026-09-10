@@ -321,9 +321,17 @@ const LIBRARY_TIERS = ['atoms', 'molecules', 'organisms', 'templates'];
  */
 export const SCREEN_STORY_EXCLUSIONS = {
   // (b) Routers or route tables: pure routing wrappers or tables with no distinct screen UI
-  routers: new Set(['ControlRoutes.tsx', 'NativeAuthRoutes.tsx', 'ControlOrNotFound.tsx']),
+  routers: new Set([
+    'control/components/ControlRoutes.tsx',
+    'control/components/NativeAuthRoutes.tsx',
+    'control/components/ControlOrNotFound.tsx',
+  ]),
   // (c) Context providers or composition roots: providers and application entry points
-  providersAndRoots: new Set(['ControlApp.tsx', 'ToastProvider.tsx', 'ControlIntl.tsx']),
+  providersAndRoots: new Set([
+    'control/components/ControlApp.tsx',
+    'control/components/ToastProvider.tsx',
+    'control/i18n/ControlIntl.tsx',
+  ]),
   // (d) Recorded in an explicit "cannot render honestly" register with a stated reason:
   cannotRenderHonestly: new Map([
     // Empty: every real screen can be rendered honestly in Storybook
@@ -344,40 +352,51 @@ function isTestOrStoryOrSupport(filename) {
 export function isScreenExcluded(filename) {
   const base = filename.split('/').pop() ?? filename;
   if (isTestOrStoryOrSupport(base)) return true;
-  if (SCREEN_STORY_EXCLUSIONS.routers.has(base)) return true;
-  if (SCREEN_STORY_EXCLUSIONS.providersAndRoots.has(base)) return true;
-  if (SCREEN_STORY_EXCLUSIONS.cannotRenderHonestly.has(base)) return true;
+  if (SCREEN_STORY_EXCLUSIONS.routers.has(filename)) return true;
+  if (SCREEN_STORY_EXCLUSIONS.providersAndRoots.has(filename)) return true;
+  if (SCREEN_STORY_EXCLUSIONS.cannotRenderHonestly.has(filename)) return true;
   return false;
 }
 
 /**
  * Derives screen story coverage directly from the filesystem rather than a static register (0222).
- * Walks `screensPath` and requires a `.stories.tsx` beside every `.tsx` unless excluded by category.
+ * Walks every React surface recursively, including nested library tiers. Explicit
+ * exclusions and diagnostics use paths relative to `webSrcDir`, never basenames.
  *
  * Note on Astro pages:
  * Astro pages under `pages/` are not walked: Storybook currently has no Astro
  * renderer. OpenSpec 0220 addresses the public and broadcast tier extraction seam.
  *
- * @param {string} screensPath
+ * @param {string} webSrcDir
  * @returns {readonly { component: string, message: string }[]}
  */
-export function checkScreenStoryCoverage(screensPath) {
-  if (!existsSync(screensPath)) return [];
-  const entries = readdirSync(screensPath);
+export function checkScreenStoryCoverage(webSrcDir) {
+  if (!existsSync(webSrcDir)) return [];
   const violations = [];
 
-  for (const entry of entries) {
-    if (!entry.endsWith('.tsx')) continue;
-    if (isScreenExcluded(entry)) continue;
-
-    const story = entry.replace(/\.tsx$/, '.stories.tsx');
-    if (!entries.includes(story)) {
-      violations.push({
-        component: entry,
-        message: `${entry} has no ${story}. Every screen requires a story unless explicitly excluded by category.`,
-      });
+  function scan(directory) {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === 'ui') {
+          violations.push(...checkStoryCoverage(path, webSrcDir));
+        } else {
+          scan(path);
+        }
+        continue;
+      }
+      const component = relative(webSrcDir, path);
+      if (!entry.name.endsWith('.tsx') || isScreenExcluded(component)) continue;
+      const story = entry.name.replace(/\.tsx$/, '.stories.tsx');
+      if (!existsSync(join(directory, story))) {
+        violations.push({
+          component,
+          message: `${component} has no ${story}. Every screen requires a story unless explicitly excluded by category.`,
+        });
+      }
     }
   }
+  scan(webSrcDir);
   return violations;
 }
 
@@ -393,32 +412,34 @@ const EXPORTS_COMPONENT = /export\s+(?:function|const)\s+[A-Z]\w*/;
  * shipped, which is exactly how a hand-kept list goes stale.
  *
  * @param {string} uiPath - Absolute path to the owned `ui/` directory
+ * @param {string} [rootDir] - Root for diagnostic paths
  * @returns {readonly { component: string, message: string }[]}
  */
-export function checkStoryCoverage(uiPath) {
+export function checkStoryCoverage(uiPath, rootDir = uiPath) {
   const missing = [];
 
-  for (const tier of LIBRARY_TIERS) {
-    const tierPath = join(uiPath, tier);
-    let entries;
-    try {
-      entries = readdirSync(tierPath);
-    } catch {
-      continue;
-    }
+  function scan(directory) {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        scan(path);
+        continue;
+      }
+      if (!entry.name.endsWith('.tsx') || isTestOrStoryOrSupport(entry.name)) continue;
+      if (!EXPORTS_COMPONENT.test(readFileSync(path, 'utf8'))) continue;
 
-    for (const entry of entries) {
-      if (!entry.endsWith('.tsx')) continue;
-      if (entry.includes('.test.') || entry.includes('.stories.')) continue;
-      if (!EXPORTS_COMPONENT.test(readFileSync(join(tierPath, entry), 'utf8'))) continue;
-
-      const story = entry.replace(/\.tsx$/, '.stories.tsx');
-      if (entries.includes(story)) continue;
+      const story = entry.name.replace(/\.tsx$/, '.stories.tsx');
+      if (existsSync(join(directory, story))) continue;
+      const component = relative(rootDir, path);
       missing.push({
-        component: `${tier}/${entry}`,
-        message: `${tier}/${entry} has no ${story}. Every owned library component needs a story.`,
+        component,
+        message: `${component} has no ${story}. Every owned library component needs a story.`,
       });
     }
+  }
+  for (const tier of LIBRARY_TIERS) {
+    const tierPath = join(uiPath, tier);
+    if (existsSync(tierPath)) scan(tierPath);
   }
 
   return missing;
@@ -498,16 +519,7 @@ if (isMain) {
 
   const violationsMap = scanEverySurface(webSrc);
   const fileCount = Object.keys(violationsMap).length;
-  // Both owned layers, for the same reason the ownership rule reads both. The
-  // public primitives are `.astro`, which the coverage rule does not require a
-  // story for — Storybook has no Astro renderer — but a React primitive added
-  // there later is covered without this line changing again.
-  const missingStories = [
-    ...checkScreenStoryCoverage(join(webSrc, 'control/components')),
-    ...checkScreenStoryCoverage(join(webSrc, 'control/i18n')),
-    ...checkStoryCoverage(join(webSrc, 'control/components/ui')),
-    ...checkStoryCoverage(join(webSrc, 'components/ui')),
-  ];
+  const missingStories = checkScreenStoryCoverage(webSrc);
 
   if (missingStories.length > 0) {
     console.error(

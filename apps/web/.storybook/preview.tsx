@@ -10,6 +10,9 @@ import '../src/styles/control.css';
 // as unstyled text: `TvDashboard`'s rules used to live inside `TvLayout.astro`,
 // where nothing but that page could load them.
 import '../src/styles/tv-broadcast.css';
+import './tv-preview.css';
+import footballField from './assets/football-field.webp';
+import basketballCourt from './assets/basketball-court.webp';
 
 /**
  * Widths the codebase declares, not device presets (0213 design.md Decision 5).
@@ -80,6 +83,26 @@ const withLanguage: Decorator = (Story, context) => {
  * new operator story cannot forget to opt in.
  */
 const withSurfaceChrome: Decorator = (Story, context) => {
+  if (context.title.startsWith('TV/')) {
+    const choice = context.globals.tvBackdrop ?? 'story';
+    const backdrop = choice === 'story' ? (context.parameters.tvBackdrop ?? 'neutral') : choice;
+    const scene =
+      backdrop === 'football'
+        ? footballField
+        : backdrop === 'basketball'
+          ? basketballCourt
+          : undefined;
+    return (
+      <div
+        className="cl-story-tv-stage"
+        data-surface="broadcast"
+        data-backdrop={backdrop}
+        style={{ backgroundImage: scene ? `url(${scene})` : undefined }}
+      >
+        <Story />
+      </div>
+    );
+  }
   if (!context.title.startsWith('Admin/')) return <Story />;
   return (
     <div
@@ -119,9 +142,25 @@ const preview: Preview = {
   },
   initialGlobals: {
     locale: 'en',
+    tvBackdrop: 'story',
     viewport: { value: 'desktop', isRotated: false },
   },
   globalTypes: {
+    tvBackdrop: {
+      description: 'TV preview backdrop — independent of discipline and match data',
+      toolbar: {
+        title: 'TV background',
+        icon: 'photo',
+        dynamicTitle: true,
+        items: [
+          { value: 'story', title: 'Story default' },
+          { value: 'neutral', title: 'Neutral' },
+          { value: 'chroma', title: 'Green chroma' },
+          { value: 'football', title: 'Football · bright field' },
+          { value: 'basketball', title: 'Basketball · dark court' },
+        ],
+      },
+    },
     locale: {
       description: 'Interface language — the catalog the story renders under',
       toolbar: {

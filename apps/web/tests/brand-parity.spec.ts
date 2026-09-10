@@ -59,50 +59,72 @@ test.describe('Brand Design System Parity (0217)', () => {
     });
   }
 
-  test('nested surface levels: card alternates against dark and light bands, header lifts chrome, and selected container differs', async ({
+  test('content alternates on public/control surfaces, broadcast stops after one step, and selection differs from chrome', async ({
     page,
   }) => {
     await mockLoginApi(page);
     await page.goto('/control/login');
+    await expect(page.getByRole('button', { name: 'Ingresar' })).toBeVisible();
 
     const result = await page.evaluate(() => {
       const container = document.createElement('div');
+      const content = `
+        <div class="cl-card first">
+          <div class="cl-card__header">Header</div>
+          <div class="cl-card__content">
+            <div class="cl-file-picker__zone cl-file-picker--selection-present">
+              <span class="cl-file-picker__filename">entrants.csv</span>
+            </div>
+            <div class="layout-wrapper"><div class="cl-well second">
+              <div class="layout-wrapper"><div class="cl-card third">Nested content</div></div>
+            </div></div>
+          </div>
+        </div>`;
       container.innerHTML = `
-        <div class="cl-band">
-          <div class="cl-card card-panel">
-            <div class="cl-card__header header-panel">Header</div>
-            <div class="cl-card__content content-panel">Content</div>
-          </div>
-          <div class="cl-card card-selected" style="background: var(--cl-surface-raised); border-color: var(--cl-state-live);">Selected</div>
-        </div>
-        <div class="cl-band cl-band--base">
-          <div class="cl-card card-base">
-            <div class="cl-card__header header-base">Header</div>
-            <div class="cl-card__content content-base">Content</div>
-          </div>
-        </div>
-      `;
+        <section class="cl-band" data-surface="control">${content}</section>
+        <section class="cl-band cl-band--base" data-surface="public">${content}</section>
+        <section class="cl-band cl-band--base" data-surface="broadcast">${content}</section>`;
       document.body.appendChild(container);
-
-      const cardPanel = container.querySelector('.card-panel');
-      const cardBase = container.querySelector('.card-base');
-      const headerPanel = container.querySelector('.header-panel');
-      const headerBase = container.querySelector('.header-base');
-      const cardSelected = container.querySelector('.card-selected');
-
-      const cardPanelBg = cardPanel ? getComputedStyle(cardPanel).backgroundColor : '';
-      const cardBaseBg = cardBase ? getComputedStyle(cardBase).backgroundColor : '';
-      const headerPanelBg = headerPanel ? getComputedStyle(headerPanel).backgroundColor : '';
-      const headerBaseBg = headerBase ? getComputedStyle(headerBase).backgroundColor : '';
-      const selectedBorder = cardSelected ? getComputedStyle(cardSelected).borderColor : '';
-      const headerBorder = headerPanel ? getComputedStyle(headerPanel).borderColor : '';
-
+      const surfaces = Array.from(container.querySelectorAll('section')).map((section) => {
+        const style = (selector: string) => {
+          const element = section.querySelector(selector);
+          if (!element) throw new Error(`Missing surface fixture: ${selector}`);
+          return getComputedStyle(element);
+        };
+        const selected = style('.cl-file-picker__zone');
+        const chrome = style('.cl-card__header');
+        return {
+          band: getComputedStyle(section).backgroundColor,
+          levels: ['.first', '.second', '.third'].map(
+            (selector) => style(selector).backgroundColor,
+          ),
+          borders: ['.first', '.second', '.third'].map(
+            (selector) => style(selector).borderTopStyle,
+          ),
+          chrome: chrome.backgroundColor,
+          selected: selected.backgroundColor,
+          selectedBorder: selected.borderTopColor,
+          chromeBorder: chrome.borderTopColor,
+          filename: section.querySelector('.cl-file-picker__filename')?.textContent,
+        };
+      });
       container.remove();
-      return { cardPanelBg, cardBaseBg, headerPanelBg, headerBaseBg, selectedBorder, headerBorder };
+      return surfaces;
     });
 
-    expect(result.cardPanelBg).not.toBe(result.cardBaseBg);
-    expect(result.headerPanelBg).toBe(result.headerBaseBg);
-    expect(result.selectedBorder).not.toBe(result.headerBorder);
+    for (const surface of result) {
+      expect(surface.levels[0]).not.toBe(surface.band);
+      expect(surface.selected).not.toBe(surface.chrome);
+      expect(surface.selectedBorder).not.toBe(surface.chromeBorder);
+      expect(surface.filename).toBe('entrants.csv');
+      expect(surface.borders).toEqual(['solid', 'solid', 'solid']);
+    }
+    for (const surface of result.slice(0, 2)) {
+      expect(surface.levels[0]).not.toBe(surface.levels[1]);
+      expect(surface.levels[0]).toBe(surface.levels[2]);
+    }
+    expect(result[0].levels[0]).not.toBe(result[1].levels[0]);
+    expect(result[0].chrome).toBe(result[1].chrome);
+    expect(new Set(result[2].levels).size).toBe(1);
   });
 });

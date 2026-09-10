@@ -75,7 +75,7 @@ Stories are grouped by surface first (`Admin/`, `Public/`, `TV/`, `Tokens/`) and
 surface decides what "correct" looks like. Each library component has a `Playground` with every prop
 adjustable and a `Matrix` putting its variants side by side.
 
-Two toolbar controls carry most of the value, and both are worth using on any UI change:
+Use the workbench toolbar controls during UI review:
 
 - **Language** — all eight supported languages, rendered from the application's own catalogues. Story
   text comes from real message descriptors (`ui/story-text.ts`), never literals, so switching to
@@ -84,6 +84,9 @@ Two toolbar controls carry most of the value, and both are worth using on any UI
 - **Viewport** — 1440px, the 767px and 374px breakpoints `control.css` declares, and the **188px**
   zoom floor the token generator names as its narrowest reference. German at 188px is the worst case
   for nearly every component, and it is one selection away rather than a build.
+- **TV background** — story default, neutral, green chroma, bright football field or dark basketball
+  court. Bundled images are preview-only; switching backgrounds leaves discipline, match data and
+  layout mode intact. Opaque kiosk panels still cover the backdrop.
 
 Visual review here is a person's job by design: there are no screenshot baselines and no diffing
 service. The only automated rule is coverage — `scripts/check-ui-ownership.mjs` fails when an
@@ -97,9 +100,12 @@ screen declares its own narrow client; an undeclared method throws, while option
 must be explicitly absent. Do not replace production UI with a Storybook-only layout.
 
 Screen coverage is derived dynamically from the filesystem: `scripts/check-ui-ownership.mjs`
-walks the control components directory and requires a sibling `*.stories.tsx` for every screen,
-excluding only the 4 declared non-screen categories (routers, providers, fixtures, and deferred).
-See `docs/SCREEN-STORY-REVIEW.md` for fixture boundaries, deferred screens, and review findings.
+recursively walks `apps/web/src` across operator, public and TV React surfaces, including nested
+library tiers and `control/i18n`. Each React surface requires a sibling `*.stories.tsx`, excluding
+only the declared non-screen categories (routers, providers, fixtures, and deferred). Explicit
+router/provider/deferred exclusions use paths relative to `apps/web/src`; Astro files remain outside
+the React story gate. See `docs/SCREEN-STORY-REVIEW.md` for fixture boundaries and review findings,
+and `docs/reviews/0222-owned-control-coverage.md` for the current coverage and background review.
 
 ### Component ownership, on every surface
 

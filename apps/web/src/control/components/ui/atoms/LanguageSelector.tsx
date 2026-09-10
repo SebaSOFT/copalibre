@@ -33,7 +33,7 @@ export function LanguageSelector({
         display: 'inline-flex',
         alignItems: 'center',
         position: 'relative',
-        background: 'var(--cl-surface-raised)',
+        background: 'var(--cl-surface-chrome)',
         border: '1px solid var(--cl-border-muted)',
         color: 'var(--cl-text-primary)',
         height: 'var(--cl-touch-target)',

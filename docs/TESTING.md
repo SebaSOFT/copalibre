@@ -60,9 +60,15 @@ First used by phase `0004-persistence-postgres-outbox-audit`.
   fails `scripts/check-ui-ownership.mjs`. That same check governs component ownership across every
   surface — operator, public and broadcast — and treats any `ui/` directory as the design language
   rather than a consumer of it.
-- The two toolbar controls are where the value is. Set the language to German or Russian and the
-  viewport to 188px — the zoom floor the token generator writes its responsive rules against — and
+- Set the **Language** toolbar to German or Russian and the **Viewport** to
+  188px — the zoom floor the token generator writes its responsive rules against — and
   most layout failures show up there before anywhere else.
+- **TV background** chooses story default, neutral, green chroma, bright football field or dark
+  basketball court. The images are bundled under `.storybook/assets` with provenance recorded there.
+  These are preview backdrops: the selected discipline, match fixture and layout mode stay the same.
+  Lower-third transparent regions reveal the background; opaque kiosk panels keep their own fill.
+  `TV/TvDashboard` includes named chroma, football and basketball examples. Return to **Story default**
+  to use each named example's backdrop. Language and viewport remain independent controls.
 
 Screen stories are grouped under `Admin/Screens`. Their shared `screen-story-fixtures.ts` holds
 stable UUIDv7 identities, timestamps and typed projections. Each route story owns its API methods,
@@ -72,13 +78,17 @@ failure fixtures reject. Workflow stories use `play` to enter states through the
 The existing intl, toast and control-density decorators are reused.
 
 `scripts/check-ui-ownership.mjs` derives screen story coverage directly from the filesystem:
-every control component requires a sibling `*.stories.tsx`, excluding only the four explicit categories
-(routers, providers, fixtures, and deferred). Run `node --test scripts/check-ui-ownership.test.mjs`
-to exercise both directions.
+it recursively walks operator, public and TV React sources, nested library tiers and `control/i18n`.
+Each requires a sibling `*.stories.tsx`, excluding only the four explicit categories (routers,
+providers, fixtures, and deferred). Explicit exclusions are keyed by source path so a same-named
+component elsewhere remains covered. Astro is excluded from this React story rule.
+Run `node --test scripts/check-ui-ownership.test.mjs` to exercise both directions.
 
 Review every state in German at 1440, 767, 374 and 188px, then all eight languages at 188px.
 Read `docs/SCREEN-STORY-REVIEW.md` before interpreting a loading/error example: several existing
 screens intentionally expose their current incomplete UX rather than a fictional improved layout.
+The [0222 review](reviews/0222-owned-control-coverage.md) records selected/chrome differentiation,
+broadcast nesting and TV background evidence.
 
 ## CI
 

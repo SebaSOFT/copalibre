@@ -82,7 +82,7 @@ export function AuditLogCard({
               style={{
                 borderLeft: `4px solid ${railColor}`,
                 padding: 'var(--cl-space-2) var(--cl-space-3)',
-                background: 'var(--cl-surface-raised)',
+                background: 'var(--cl-surface-chrome)',
                 borderRadius: '0 var(--cl-radius-sm) var(--cl-radius-sm) 0',
               }}
             >

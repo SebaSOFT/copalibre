@@ -92,7 +92,7 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
     .form-control-sample { padding: var(--cl-space-2) var(--cl-space-3); border: 1px solid;
                             margin-block-start: var(--cl-space-1); }
     .density-demo { display: flex; flex-direction: column; }
-    .density-demo > div { background: var(--cl-surface-raised); padding: var(--cl-space-2); }
+    .density-demo > div { background: var(--cl-surface-chrome); padding: var(--cl-space-2); }
     .density-demo.marketing { gap: var(--cl-space-6); }
     .density-demo.control { gap: var(--cl-density-row-gap, var(--cl-space-2)); }
   </style>
