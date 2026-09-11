@@ -234,7 +234,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/DescriptorBuilderWizard.tsx', 12],
   ['control/components/pages/LiveConsolePage.tsx', 5],
   ['control/components/NativeAuthRoutes.tsx', 7],
-  ['control/components/pages/PlatformAdministrationPage.tsx', 1],
+  ['control/components/screens/PlatformAdministrationTemplate.tsx', 1],
   ['control/components/pages/PreferencesPage.tsx', 15],
   ['control/components/ProfileBuilderWizard.tsx', 6],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
