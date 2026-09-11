@@ -71,16 +71,16 @@ export function AuditLogPanel({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--cl-space-3)' }}>
         {items.map((item) => {
           const isCorrection = item.type === 'correction';
-          const railColor = isCorrection ? 'var(--cl-color-amber-400)' : 'var(--cl-border-muted)';
 
           return (
             <div
               key={item.id}
-              className={`cl-audit-log-panel__item ${
-                isCorrection ? 'cl-audit-log-panel__item--correction' : ''
+              className={`cl-audit-log-panel__item cl-accent-rail ${
+                isCorrection
+                  ? 'cl-audit-log-panel__item--correction cl-accent-rail--correction'
+                  : 'cl-accent-rail--neutral'
               }`}
               style={{
-                borderLeft: `4px solid ${railColor}`,
                 padding: 'var(--cl-space-2) var(--cl-space-3)',
                 background: 'var(--cl-surface-chrome)',
                 borderRadius: '0 var(--cl-radius-sm) var(--cl-radius-sm) 0',

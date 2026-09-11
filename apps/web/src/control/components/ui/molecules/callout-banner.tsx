@@ -26,7 +26,7 @@ export function CalloutBanner({
 }: CalloutBannerProps): React.JSX.Element {
   return (
     <div
-      className={`cl-callout-banner cl-chamfer cl-chamfer--control ${className}`.trim()}
+      className={`cl-callout-banner cl-chamfer cl-chamfer--control cl-accent-rail ${className}`.trim()}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -35,8 +35,14 @@ export function CalloutBanner({
         gap: 'var(--cl-space-4)',
         padding: 'var(--cl-space-4) var(--cl-space-5)',
         background: 'var(--cl-surface-panel)',
-        border: '1px solid var(--cl-border-muted)',
-        borderLeft: '4px solid var(--cl-state-live)',
+        // Discrete sides, not the `border` shorthand: an inline declaration
+        // always wins specificity over a class, and the shorthand sets every
+        // side including left, which would silently override the accent
+        // rail's own `border-left` — the class the `cl-accent-rail` name
+        // provides below, not this inline object.
+        borderTop: '1px solid var(--cl-border-muted)',
+        borderRight: '1px solid var(--cl-border-muted)',
+        borderBottom: '1px solid var(--cl-border-muted)',
       }}
     >
       <div

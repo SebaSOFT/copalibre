@@ -985,6 +985,21 @@ function components(): string {
     // in it brings no paragraph margin of its own.
     '.cl-card__content > .cl-inline-alert { margin: 0; }',
     '',
+    // The accent rail (openspec 0225 task 5.5, `.impeccable/config.json`'s
+    // `side-tab` suppression): a left border in the tone it means, paired
+    // with a written label elsewhere in the component so the state is never
+    // colour alone — DESIGN.md's Cards and Inline Alerts guidance,
+    // independently reinvented inline in `audit-log-panel.tsx`,
+    // `callout-banner.tsx` and the former `LiveMatchScorecard.tsx` (now
+    // `MatchCard.tsx`'s comparator trace) before this class existed.
+    // `--thin` exists because the comparator trace's rail was declared at
+    // 3px, not the 4px (`--cl-space-1`) the other two use — narrower by a
+    // deliberate original choice this move does not revisit.
+    '.cl-accent-rail { border-left: var(--cl-space-1) solid var(--cl-state-live); }',
+    '.cl-accent-rail--correction { border-left-color: var(--cl-color-amber-400); }',
+    '.cl-accent-rail--neutral { border-left-color: var(--cl-border-muted); }',
+    '.cl-accent-rail--thin { border-left-width: 3px; }',
+    '',
     "/* An unauthenticated screen's form: one column, the fields evenly spaced. */",
     '.cl-auth-form { display: grid; gap: var(--cl-space-4); }',
     '',
@@ -1156,7 +1171,7 @@ function components(): string {
     '.cl-scorecard__event-minute { color: var(--cl-state-live); font-weight: var(--cl-weight-bold); }',
     '.cl-scorecard__event-player { color: var(--cl-text-primary); }',
     '.cl-scorecard__var-tag { background: var(--cl-surface-base); color: var(--cl-color-amber-400); border: 1px solid var(--cl-color-amber-400); padding: 0 4px; border-radius: 2px; font-size: var(--cl-font-size-xs); font-weight: var(--cl-weight-bold); }',
-    '.cl-scorecard__comparator-trace { border-left: 3px solid var(--cl-state-live); background: var(--cl-surface-chrome); padding: var(--cl-space-2) var(--cl-space-3); margin-top: var(--cl-space-2); display: flex; align-items: center; gap: var(--cl-space-2); font-size: var(--cl-font-size-xs); font-family: var(--cl-font-mono); color: var(--cl-text-secondary); }',
+    '.cl-scorecard__comparator-trace { background: var(--cl-surface-chrome); padding: var(--cl-space-2) var(--cl-space-3); margin-top: var(--cl-space-2); display: flex; align-items: center; gap: var(--cl-space-2); font-size: var(--cl-font-size-xs); font-family: var(--cl-font-mono); color: var(--cl-text-secondary); }',
     '.cl-scorecard__comparator-step { color: var(--cl-state-live); font-weight: var(--cl-weight-bold); }',
     '.cl-scorecard__comparator-text { color: var(--cl-text-primary); }',
   ].join('\n');

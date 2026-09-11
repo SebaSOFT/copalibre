@@ -449,7 +449,7 @@ export function LiveMatchScorecard({
 
       {/* Standings Comparator Trace Callout */}
       {comparatorTrace && (
-        <div className="cl-scorecard__comparator-trace">
+        <div className="cl-scorecard__comparator-trace cl-accent-rail cl-accent-rail--thin">
           <span className="cl-scorecard__comparator-step">[Step {comparatorTrace.step}]</span>
           <span className="cl-scorecard__comparator-text">{comparatorTrace.text}</span>
         </div>

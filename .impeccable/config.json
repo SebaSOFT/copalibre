@@ -2,7 +2,7 @@
   "detector": {
     "ignoreRules": [],
     "ignoreFiles": [
-      "apps/web/src/control/components/PreferencesRoute.test.tsx"
+      "apps/web/src/control/components/pages/PreferencesPage.test.tsx"
     ],
     "ignoreValues": [
       {
@@ -27,13 +27,13 @@
         "rule": "side-tab",
         "value": "*",
         "files": [
-          "apps/web/src/components/ui/organisms/LiveMatchScorecard.tsx",
-          "apps/web/src/control/components/ui/molecules/CalloutBanner.tsx",
-          "apps/web/src/control/components/ui/organisms/AuditLogCard.tsx",
+          "apps/web/src/components/ui/organisms/MatchCard.tsx",
+          "apps/web/src/control/components/ui/molecules/callout-banner.tsx",
+          "apps/web/src/control/components/ui/organisms/audit-log-panel.tsx",
           "packages/design-tokens/src/generate/css.ts"
         ],
         "createdAt": "2026-09-10T21:46:48.470Z",
-        "reason": "0224 review: DESIGN.md Cards and Inline Alerts prescribe a left state rail paired with a written state label. The auth panel, live scorecard, callout and audit card implement that documented cue; retain it without applying the generic side-tab heuristic."
+        "reason": "0224 review: DESIGN.md Cards and Inline Alerts prescribe a left state rail paired with a written state label. The auth panel, live scorecard, callout and audit card implement that documented cue; retain it without applying the generic side-tab heuristic. Paths updated for openspec 0225: LiveMatchScorecard.tsx merged into MatchCard.tsx (task 4.3); CalloutBanner.tsx and AuditLogCard.tsx renamed to kebab-case and, for the latter, to AuditLogPanel (tasks 3.3/3.4)."
       }
     ]
   },

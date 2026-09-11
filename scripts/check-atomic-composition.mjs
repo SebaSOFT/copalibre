@@ -314,7 +314,7 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['control/components/ui/atoms/terminal-block.tsx', 7],
   ['control/components/ui/molecules/callout-banner.tsx', 2],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 2],
-  ['control/components/ui/organisms/audit-log-panel.tsx', 6],
+  ['control/components/ui/organisms/audit-log-panel.tsx', 5],
 ]);
 
 export function checkRawStyleValues(nodes) {
