@@ -6,7 +6,7 @@
  * stack on a phone, and one accessible name for the group so a reader is told
  * what the figures are measuring before hearing four of them in a row.
  */
-import { StatTile } from '../atoms/StatTile.js';
+import { StatTile } from '../atoms/stat-tile.js';
 
 export interface MetricStripEntry {
   readonly key: string;

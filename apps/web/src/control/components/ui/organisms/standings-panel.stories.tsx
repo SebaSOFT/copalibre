@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
-import { StandingsFigure, StandingsPanel, StandingsRank } from './StandingsPanel.js';
+import { StandingsFigure, StandingsPanel, StandingsRank } from './standings-panel.js';
 import type { DataTableColumn } from './data-table.js';
 import { messages } from '../../../i18n/messages.en.js';
 import {

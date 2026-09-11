@@ -24,7 +24,7 @@ import { Input } from '../ui/atoms/input.js';
 import { Select } from '../ui/atoms/select.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
-import { EditorialCard } from '../ui/molecules/EditorialCard.js';
+import { EditorialCard } from '../ui/molecules/editorial-card.js';
 import { Field } from '../ui/molecules/field.js';
 
 const LANGUAGES = ['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;

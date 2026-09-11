@@ -1,7 +1,7 @@
 import { useIntl } from 'react-intl';
 import type { QuickStats as Stats } from '../lib/dashboard.js';
 import { messages } from '../i18n/messages.en.js';
-import { MetricStrip } from './ui/molecules/MetricStrip.js';
+import { MetricStrip } from './ui/molecules/metric-strip.js';
 
 const TILES = [
   { key: 'activeTournaments', label: messages.dashboardActiveTournaments },

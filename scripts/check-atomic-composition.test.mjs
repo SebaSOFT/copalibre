@@ -366,11 +366,11 @@ test('R9 casing: a PascalCase file in the control library is a violation; kebab-
   assert.equal(violations[0].path, 'control/components/ui/atoms/BadName.tsx');
 });
 
-test('R13 reports both LanguageSelector.tsx and select.tsx owning <select> in the real tree today', () => {
+test('R13 reports both language-selector.tsx and select.tsx owning <select> in the real tree today', () => {
   const { nodes } = buildGraph(webSrc);
   const violations = checkSingleAtomOwnership(nodes);
   const paths = violations.filter((v) => v.message.includes('<select>')).map((v) => v.path);
-  assert.ok(paths.includes('control/components/ui/atoms/LanguageSelector.tsx'));
+  assert.ok(paths.includes('control/components/ui/atoms/language-selector.tsx'));
   assert.ok(paths.includes('control/components/ui/atoms/select.tsx'));
 });
 
@@ -381,7 +381,7 @@ test('R13: once only one atom in a surface owns an element, the violation disapp
     'export function Select() { return <select></select>; }',
   );
   // No second atom rendering <select> — matches the post-4.3a state once
-  // LanguageSelector.tsx is deleted.
+  // language-selector.tsx is deleted.
   const { nodes } = buildGraph(root);
   assert.deepEqual(checkSingleAtomOwnership(nodes), []);
 });
@@ -503,11 +503,11 @@ test('extractCatalogueIds recognizes a double-quoted value, not only single-quot
   assert.ok(ids.has('app.plain'));
 });
 
-test('R11 reports the real resting-glow findings in TiebreakerSequence.tsx and ChampionshipMatchCard.tsx', () => {
+test('R11 reports the real resting-glow findings in tiebreaker-sequence.tsx and ChampionshipMatchCard.tsx', () => {
   const { nodes } = buildGraph(webSrc);
   const violations = checkBannedOrnament(nodes);
   const paths = violations.map((v) => v.path);
-  assert.ok(paths.includes('control/components/ui/molecules/TiebreakerSequence.tsx'));
+  assert.ok(paths.includes('control/components/ui/molecules/tiebreaker-sequence.tsx'));
   assert.ok(paths.includes('components/ui/organisms/ChampionshipMatchCard.tsx'));
 });
 

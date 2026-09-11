@@ -35,8 +35,8 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
     reference: 'Operational tags',
     storyId: 'Admin/Atoms/Badge — OperationalTags',
     consumers: [
-      'control/components/ui/organisms/StandingsPanel.tsx',
-      'control/components/ui/molecules/EditorialCard.tsx',
+      'control/components/ui/organisms/standings-panel.tsx',
+      'control/components/ui/molecules/editorial-card.tsx',
     ],
   },
   {

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { EditorialCard } from './EditorialCard.js';
+import { EditorialCard } from './editorial-card.js';
 
 describe('the EditorialCard composition', () => {
   it('composes the card owner rather than framing itself', () => {

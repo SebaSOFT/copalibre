@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { TiebreakerSequence } from './TiebreakerSequence.js';
+import { TiebreakerSequence } from './tiebreaker-sequence.js';
 
 describe('the TiebreakerSequence molecule', () => {
   const rules = [

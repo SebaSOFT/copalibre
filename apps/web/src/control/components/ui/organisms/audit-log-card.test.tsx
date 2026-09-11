@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { AuditLogCard } from './AuditLogCard.js';
+import { AuditLogCard } from './audit-log-card.js';
 
 describe('the AuditLogCard organism', () => {
   const items = [

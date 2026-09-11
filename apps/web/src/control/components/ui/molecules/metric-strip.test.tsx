@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { MetricStrip } from './MetricStrip.js';
+import { MetricStrip } from './metric-strip.js';
 
 describe('the MetricStrip composition', () => {
   it('renders an explicit unavailable state rather than a placeholder number', () => {

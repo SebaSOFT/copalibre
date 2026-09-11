@@ -6,7 +6,7 @@ import { Input } from '../ui/atoms/input.js';
 import { Field } from '../ui/molecules/field.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
-import { AuditLogCard } from '../ui/organisms/AuditLogCard.js';
+import { AuditLogCard } from '../ui/organisms/audit-log-card.js';
 import { toAuditLogItem } from '../../lib/audit-log.js';
 
 /**

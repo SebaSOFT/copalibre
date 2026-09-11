@@ -218,13 +218,13 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/screens/StandingsTemplate.tsx', 5],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 4],
   ['control/components/TournamentSetupWizard.tsx', 18],
-  ['control/components/ui/atoms/LanguageSelector.tsx', 2],
-  ['control/components/ui/atoms/TerminalBlock.tsx', 8],
+  ['control/components/ui/atoms/language-selector.tsx', 2],
+  ['control/components/ui/atoms/terminal-block.tsx', 8],
   ['control/components/ui/atoms/select.tsx', 2],
-  ['control/components/ui/molecules/CalloutBanner.tsx', 5],
-  ['control/components/ui/molecules/TiebreakerSequence.tsx', 5],
-  ['control/components/ui/organisms/AuditLogCard.tsx', 10],
-  ['control/components/ui/organisms/StandingsPanel.tsx', 1],
+  ['control/components/ui/molecules/callout-banner.tsx', 5],
+  ['control/components/ui/molecules/tiebreaker-sequence.tsx', 5],
+  ['control/components/ui/organisms/audit-log-card.tsx', 10],
+  ['control/components/ui/organisms/standings-panel.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 2],
 ]);
 
@@ -278,11 +278,11 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['control/components/RosterRoleSelector.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 1],
   ['control/components/TournamentSetupWizard.tsx', 2],
-  ['control/components/ui/atoms/LanguageSelector.tsx', 1],
-  ['control/components/ui/atoms/TerminalBlock.tsx', 7],
-  ['control/components/ui/molecules/CalloutBanner.tsx', 2],
-  ['control/components/ui/molecules/TiebreakerSequence.tsx', 2],
-  ['control/components/ui/organisms/AuditLogCard.tsx', 6],
+  ['control/components/ui/atoms/language-selector.tsx', 1],
+  ['control/components/ui/atoms/terminal-block.tsx', 7],
+  ['control/components/ui/molecules/callout-banner.tsx', 2],
+  ['control/components/ui/molecules/tiebreaker-sequence.tsx', 2],
+  ['control/components/ui/organisms/audit-log-card.tsx', 6],
 ]);
 
 export function checkRawStyleValues(nodes) {
@@ -381,21 +381,28 @@ export function checkI18nPlacement(nodes) {
 
 /**
  * Debt recorded 2026-09-11: storied library components with no production
- * consumer and no reference-index row. Two of the nine orphans the survey
- * found (`LiveMatchScorecard`, `LanguageSelector`) already carry a
- * reference-index row with a stated reason and are exempted by the rule
- * itself rather than this register. The remaining seven are dispositioned by
- * design.md Decision 5: `table-toolbar`/`pagination`/`form-screen-template`
- * are adopted (tasks 4.1-4.2), `DisciplineCard` is deleted and
- * `ChampionshipMatchCard` merged (task 4.3), and `AstroPreview`/
- * `story-matrix` are recorded in the reference index with a reason (task
- * 4.5) — a dev-only preview seam and workbench-only infrastructure, neither
- * shipping to a production surface.
+ * consumer and no reference-index row. One of the nine orphans the survey
+ * found (`LiveMatchScorecard`) already carries a reference-index row with a
+ * stated reason and is exempted by the rule itself rather than this
+ * register. The remaining eight are dispositioned by design.md Decision 5:
+ * `table-toolbar`/`pagination`/`form-screen-template` are adopted (tasks
+ * 4.1-4.2), `DisciplineCard` is deleted and `ChampionshipMatchCard` merged
+ * (task 4.3), and `AstroPreview`/`story-matrix` are recorded in the
+ * reference index with a reason (task 4.5) — a dev-only preview seam and
+ * workbench-only infrastructure, neither shipping to a production surface.
+ *
+ * `language-selector.tsx` joined this register in task 3.3: its
+ * reference-index row's storyId names it `LanguageSelector` (a component
+ * name, matching Storybook's convention of titling by the exported
+ * identifier, not the file), and task 3.3 renamed the file to kebab-case —
+ * so the rule's exact-string match against the file's own basename no
+ * longer holds for this one file. Temporary: task 4.3a deletes the file.
  */
 export const KNOWN_ORPHANS = new Map([
   ['components/ui/AstroPreview.tsx', 1],
   ['components/ui/molecules/DisciplineCard.tsx', 1],
   ['components/ui/organisms/ChampionshipMatchCard.tsx', 1],
+  ['control/components/ui/atoms/language-selector.tsx', 1],
   ['control/components/ui/molecules/pagination.tsx', 1],
   ['control/components/ui/molecules/table-toolbar.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 1],
@@ -462,21 +469,10 @@ export function checkOrphans(nodes, edges, referenceIndex) {
 // ---------------------------------------------------------------------------
 
 /**
- * Debt recorded 2026-09-11: control-library files still in PascalCase,
- * pending the rename in task 3.3.
+ * Debt recorded 2026-09-11: control-library files still in PascalCase.
+ * Empty: task 3.3 renamed all ten to kebab-case.
  */
-export const KNOWN_CASING_VIOLATIONS = new Map([
-  ['control/components/ui/atoms/LanguageSelector.tsx', 1],
-  ['control/components/ui/atoms/StatTile.tsx', 1],
-  ['control/components/ui/atoms/TerminalBlock.tsx', 1],
-  ['control/components/ui/molecules/CalloutBanner.tsx', 1],
-  ['control/components/ui/molecules/EditorialCard.tsx', 1],
-  ['control/components/ui/molecules/MetricStrip.tsx', 1],
-  ['control/components/ui/molecules/StepHeading.tsx', 1],
-  ['control/components/ui/molecules/TiebreakerSequence.tsx', 1],
-  ['control/components/ui/organisms/AuditLogCard.tsx', 1],
-  ['control/components/ui/organisms/StandingsPanel.tsx', 1],
-]);
+export const KNOWN_CASING_VIOLATIONS = new Map();
 
 /** Debt recorded 2026-09-11: two components sharing a base name, pending task 3.4. */
 export const KNOWN_DUPLICATE_NAMES = new Map([
@@ -552,8 +548,8 @@ export function checkDuplicateNames(nodes) {
 /**
  * Debt recorded 2026-09-11: atom pairs within one surface both rendering a
  * raw `<select>`, `<button>` or `<input>` from scratch. `select` is the pair
- * design.md names explicitly (`LanguageSelector.tsx` and `select.tsx`,
- * resolved by task 4.3a deleting `LanguageSelector.tsx`). The `button` and
+ * design.md names explicitly (`language-selector.tsx` and `select.tsx`,
+ * resolved by task 4.3a deleting `language-selector.tsx`). The `button` and
  * `input` entries are genuine findings this rule surfaces beyond that named
  * case — an atom's own dismiss control, copy affordance or file-picker
  * trigger, each composing the raw element directly rather than the `Button`/
@@ -561,9 +557,9 @@ export function checkDuplicateNames(nodes) {
  * change disposes of them.
  */
 export const KNOWN_MULTI_ATOM_OWNERSHIP = new Map([
-  ['control/components/ui/atoms/LanguageSelector.tsx', 1],
+  ['control/components/ui/atoms/language-selector.tsx', 1],
   ['control/components/ui/atoms/select.tsx', 1],
-  ['control/components/ui/atoms/TerminalBlock.tsx', 1],
+  ['control/components/ui/atoms/terminal-block.tsx', 1],
   ['control/components/ui/atoms/alert.tsx', 1],
   ['control/components/ui/atoms/button.tsx', 1],
   ['control/components/ui/atoms/file-picker.tsx', 2], // owns both `button` and `input`
@@ -726,7 +722,7 @@ const BANNED_ORNAMENT_TOKENS = [
 ];
 
 /**
- * Debt recorded 2026-09-11: `TiebreakerSequence.tsx:86` uses `--cl-glow-cyan`
+ * Debt recorded 2026-09-11: `tiebreaker-sequence.tsx:86` uses `--cl-glow-cyan`
  * as a resting indicator (design.md's one genuine ornament defect the
  * critique found — task 5.4 replaces it with a token that carries the state
  * without the glow). `ChampionshipMatchCard.tsx:36` carries the identical
@@ -735,7 +731,7 @@ const BANNED_ORNAMENT_TOKENS = [
  * this component away entirely, which resolves it without a separate edit.
  */
 export const KNOWN_BANNED_ORNAMENT = new Map([
-  ['control/components/ui/molecules/TiebreakerSequence.tsx', 1],
+  ['control/components/ui/molecules/tiebreaker-sequence.tsx', 1],
   ['components/ui/organisms/ChampionshipMatchCard.tsx', 1],
 ]);
 

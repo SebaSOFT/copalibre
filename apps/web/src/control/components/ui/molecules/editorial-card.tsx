@@ -16,7 +16,7 @@
 import type { ReactNode } from 'react';
 import { Badge } from '../atoms/badge.js';
 import { Card, CardContent, CardHeader, CardTitle } from '../atoms/card.js';
-import { CalloutBanner } from './CalloutBanner.js';
+import { CalloutBanner } from './callout-banner.js';
 
 export interface EditorialCardProps {
   /** A short chrome label above the title — a category, a module, a section. */

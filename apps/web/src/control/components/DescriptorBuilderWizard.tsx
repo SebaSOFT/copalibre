@@ -7,7 +7,7 @@ import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
-import { TerminalBlock } from './ui/atoms/TerminalBlock.js';
+import { TerminalBlock } from './ui/atoms/terminal-block.js';
 import { Field } from './ui/molecules/field.js';
 import {
   ACTOR_REQUIREMENTS,

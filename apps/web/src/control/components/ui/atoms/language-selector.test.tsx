@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { jest } from '@jest/globals';
-import { LanguageSelector } from './LanguageSelector.js';
+import { LanguageSelector } from './language-selector.js';
 
 describe('the LanguageSelector atom', () => {
   it('renders the 文A translation glyph and active uppercase locale code', () => {

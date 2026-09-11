@@ -15,7 +15,7 @@
 import { useId, type ReactNode } from 'react';
 import { Badge } from '../atoms/badge.js';
 import { DataTable, type DataTableColumn } from './data-table.js';
-import { TiebreakerSequence, type TiebreakerRuleItem } from '../molecules/TiebreakerSequence.js';
+import { TiebreakerSequence, type TiebreakerRuleItem } from '../molecules/tiebreaker-sequence.js';
 
 export interface StandingsPanelProps<Row> {
   /** The panel's own heading. */

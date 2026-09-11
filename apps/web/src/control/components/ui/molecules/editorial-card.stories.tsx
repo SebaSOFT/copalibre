@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
-import { EditorialCard } from './EditorialCard.js';
+import { EditorialCard } from './editorial-card.js';
 import { messages } from '../../../i18n/messages.en.js';
 
 /**

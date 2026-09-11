@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { TiebreakerSequence } from './TiebreakerSequence.js';
+import { TiebreakerSequence } from './tiebreaker-sequence.js';
 
 const SAMPLE_RULES = [
   { step: 1, label: 'Total Points', triggered: false },

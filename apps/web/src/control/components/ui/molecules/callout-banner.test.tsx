@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { jest } from '@jest/globals';
-import { CalloutBanner } from './CalloutBanner.js';
+import { CalloutBanner } from './callout-banner.js';
 
 describe('the CalloutBanner molecule', () => {
   it('renders title, description and cyan vertical rail container', () => {

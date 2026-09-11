@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
-import { StatTile } from './StatTile.js';
+import { StatTile } from './stat-tile.js';
 import { StoryMatrix } from '../story-matrix.js';
 import { messages } from '../../../i18n/messages.en.js';
 

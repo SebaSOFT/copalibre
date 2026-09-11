@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
-import { StandingsFigure, StandingsPanel, StandingsRank } from './StandingsPanel.js';
+import { StandingsFigure, StandingsPanel, StandingsRank } from './standings-panel.js';
 import type { DataTableColumn } from './data-table.js';
 import {
   referenceStandingsTable,

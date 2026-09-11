@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { CalloutBanner } from './CalloutBanner.js';
+import { CalloutBanner } from './callout-banner.js';
 
 const meta = {
   title: 'Admin/Molecules/CalloutBanner',

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { StepHeading } from './StepHeading.js';
+import { StepHeading } from './step-heading.js';
 
 describe('the StepHeading composition', () => {
   it('keeps the number out of the heading name', () => {

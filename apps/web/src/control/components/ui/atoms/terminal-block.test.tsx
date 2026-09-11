@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { jest } from '@jest/globals';
-import { TerminalBlock } from './TerminalBlock.js';
+import { TerminalBlock } from './terminal-block.js';
 
 describe('the TerminalBlock atom', () => {
   it('renders title, macOS window dots, and command prompt', () => {

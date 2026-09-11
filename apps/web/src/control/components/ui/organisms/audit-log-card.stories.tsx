@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { AuditLogCard } from './AuditLogCard.js';
+import { AuditLogCard } from './audit-log-card.js';
 import { referenceAuditTrail } from '../../../../lib/reference-fixtures.js';
 
 const SAMPLE_ITEMS = [

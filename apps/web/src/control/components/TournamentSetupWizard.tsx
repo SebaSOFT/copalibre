@@ -9,7 +9,7 @@ import { Select } from './ui/atoms/select.js';
 import { Textarea } from './ui/atoms/textarea.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { Field } from './ui/molecules/field.js';
-import { StepHeading } from './ui/molecules/StepHeading.js';
+import { StepHeading } from './ui/molecules/step-heading.js';
 import {
   SERIES_RESOLUTION_CLASSES,
   WIZARD_STEPS,

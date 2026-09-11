@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
-import { MetricStrip } from './MetricStrip.js';
+import { MetricStrip } from './metric-strip.js';
 import { messages } from '../../../i18n/messages.en.js';
 
 /**

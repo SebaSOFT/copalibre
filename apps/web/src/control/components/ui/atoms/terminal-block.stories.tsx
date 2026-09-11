@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { TerminalBlock } from './TerminalBlock.js';
+import { TerminalBlock } from './terminal-block.js';
 
 const meta = {
   title: 'Admin/Atoms/TerminalBlock',

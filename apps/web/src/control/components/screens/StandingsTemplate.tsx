@@ -24,7 +24,7 @@ import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import type { DataTableColumn } from '../ui/organisms/data-table.js';
-import { StandingsFigure, StandingsPanel } from '../ui/organisms/StandingsPanel.js';
+import { StandingsFigure, StandingsPanel } from '../ui/organisms/standings-panel.js';
 
 /**
  * A5 — every declared table layout (group standings, top scorers, goalkeeper

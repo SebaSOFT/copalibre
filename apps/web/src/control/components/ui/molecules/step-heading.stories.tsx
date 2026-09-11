@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
-import { StepHeading } from './StepHeading.js';
+import { StepHeading } from './step-heading.js';
 import { storyText } from '../story-text.js';
 
 const meta = {

@@ -1,4 +1,4 @@
-import { TerminalBlock } from '../../../control/components/ui/atoms/TerminalBlock.js';
+import { TerminalBlock } from '../../../control/components/ui/atoms/terminal-block.js';
 
 export interface DisciplineCardProps {
   /** The full display name of the sport or discipline, e.g. "Fútbol 11v11" */
