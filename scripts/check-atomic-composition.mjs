@@ -186,6 +186,11 @@ const LAYOUT_PROPERTIES = new Set([
 
 const LAYOUT_PRIMITIVE_ROOT = 'ui/atoms/layout/';
 
+/** True for a path under either surface's `ui/atoms/layout/` directory. */
+function isLayoutPrimitive(path) {
+  return path.includes(LAYOUT_PRIMITIVE_ROOT);
+}
+
 /**
  * Debt recorded 2026-09-11, the day this gate first ran: every file with an
  * inline `style={{…}}` object carrying at least one layout property, counted
@@ -226,7 +231,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
 export function checkInlineLayout(nodes) {
   const violations = [];
   for (const node of nodes.values()) {
-    if (node.path.startsWith(LAYOUT_PRIMITIVE_ROOT)) continue;
+    if (isLayoutPrimitive(node.path)) continue;
     for (const style of node.inlineStyles) {
       const hasLayoutProp = style.properties.some((p) => LAYOUT_PROPERTIES.has(p));
       if (!hasLayoutProp) continue;
@@ -395,6 +400,13 @@ export const KNOWN_ORPHANS = new Map([
   ['control/components/ui/molecules/table-toolbar.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 1],
   ['control/components/ui/templates/form-screen-template.tsx', 1],
+  // The four layout primitives (task 2.1) ship before their consumers adopt
+  // them — that is tasks 5.1/5.2's inline-layout paydown. Temporary orphans
+  // by the migration plan's own ordering, not an oversight.
+  ['control/components/ui/atoms/layout/stack.tsx', 1],
+  ['control/components/ui/atoms/layout/inline.tsx', 1],
+  ['control/components/ui/atoms/layout/grid.tsx', 1],
+  ['control/components/ui/atoms/layout/box.tsx', 1],
 ]);
 
 /** The last `/`-segment of a storyId's title, before the ` — scenario` suffix. */

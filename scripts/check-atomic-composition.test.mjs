@@ -213,6 +213,18 @@ test('R3 reports an inline style with a layout property, and not one confined to
   assert.equal(violations[0].path, 'ui/organisms/Widget.tsx');
 });
 
+test('R3 exempts a layout primitive nested under a surface prefix, not only one at the graph root', () => {
+  const root = fixture();
+  mkdirSync(join(root, 'control/components/ui/atoms/layout'), { recursive: true });
+  writeFileSync(
+    join(root, 'control/components/ui/atoms/layout/stack.tsx'),
+    "export function Stack() { return <div style={{ display: 'flex', gap: 8 }} />; }",
+  );
+
+  const { nodes } = buildGraph(root);
+  assert.deepEqual(checkInlineLayout(nodes), []);
+});
+
 test('R4 reports a raw length or colour value, but not one already wrapped in var()', () => {
   const root = fixture();
   writeFileSync(
