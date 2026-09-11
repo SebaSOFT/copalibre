@@ -111,4 +111,10 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
     consumers: ['control/components/ControlShell.tsx'],
     note: 'Repointed here from the deleted LanguageSelector atom (openspec 0225 task 4.3a), which duplicated this control and had no consumer of its own; LanguageSwitcher carries its language-glyph icon now and is the one the operator shell actually renders.',
   },
+  {
+    reference: 'Astro preview seam',
+    storyId: 'Public/Astro preview — ResultLegend',
+    consumers: [],
+    note: 'The development preview seam itself (openspec 0225 task 4.5, design.md Decision 5): it frames a production Astro component through the production renderer for review, answers 404 in a build, and ships to no production surface by design — a permanent exemption, not debt pending adoption.',
+  },
 ];

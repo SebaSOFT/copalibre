@@ -340,6 +340,21 @@ test('R7 exempts an orphan whose storyId is recorded in the reference index with
   assert.deepEqual(checkOrphans(nodes, edges, referenceIndex), []);
 });
 
+test('R7 matches a story title to a file basename regardless of casing or separators (openspec 0225 task 4.5)', () => {
+  const root = fixture();
+  writeFileSync(
+    join(root, 'ui/atoms/astro-preview.tsx'),
+    'export function AstroPreview() { return <div />; }',
+  );
+  // The title reads as a human phrase ("Astro preview"); the file is
+  // kebab-case ("astro-preview.tsx") — never the same string, though both
+  // name the same component.
+  const referenceIndex = [{ storyId: 'Public/Astro preview — ResultLegend', consumers: [] }];
+
+  const { nodes, edges } = buildGraph(root);
+  assert.deepEqual(checkOrphans(nodes, edges, referenceIndex), []);
+});
+
 test('loadReferenceIndex reads storyId and consumers from the real reference-index.ts', () => {
   const entries = loadReferenceIndex(join(webSrc, 'control/components/ui/reference-index.ts'));
   assert.ok(entries.length > 0);

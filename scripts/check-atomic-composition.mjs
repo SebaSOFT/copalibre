@@ -380,9 +380,19 @@ export function checkI18nPlacement(nodes) {
  * stated reason and is exempted by the rule itself rather than this
  * register (task 4.4 repoints that row at the `MatchCard` variant that now
  * carries it). `table-toolbar`/`pagination`/`form-screen-template` are
- * adopted (tasks 4.1-4.2); `AstroPreview`/`story-matrix` are recorded in the
- * reference index with a reason (task 4.5) — a dev-only preview seam and
- * workbench-only infrastructure, neither shipping to a production surface.
+ * adopted (tasks 4.1-4.2).
+ *
+ * `AstroPreview.tsx`'s entry is gone: task 4.5 recorded it in the reference
+ * index instead (`Astro preview seam`, `Public/Astro preview —
+ * ResultLegend`) — a genuine standing exemption, not debt pending a future
+ * adoption task, so it belongs in the permanent mechanism rather than this
+ * ratcheted one. `story-matrix.tsx` stays here rather than moving the same
+ * way: it is workbench infrastructure imported *by* other components'
+ * stories (a `Matrix` scenario composes it), not a component with a
+ * dedicated story of its own — the reference-index schema requires a real
+ * `storyId` naming one, which nothing declares for it, so this register is
+ * the only mechanism that can record its exemption. Both are equally
+ * permanent; only one can be expressed the newer way.
  *
  * `DisciplineCard.tsx`'s entry is gone: task 4.3 deleted the file outright,
  * along with its public-to-operator `TerminalBlock` import. `ChampionshipMatchCard.tsx`'s
@@ -422,7 +432,6 @@ export function checkI18nPlacement(nodes) {
  * copy with different text in every locale. Left as recorded debt.
  */
 export const KNOWN_ORPHANS = new Map([
-  ['components/ui/AstroPreview.tsx', 1],
   ['control/components/ui/molecules/pagination.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 1],
   ['control/components/ui/layouts/form-screen-layout.tsx', 1],
@@ -445,6 +454,18 @@ export const KNOWN_ORPHANS = new Map([
   ['components/ui/organisms/Modal.astro', 1],
 ]);
 
+/**
+ * Case- and separator-insensitive: a story title names a component the way
+ * Storybook titles do ("Astro preview", a human phrase) while a file
+ * basename names it the way the filesystem does ("AstroPreview" or, since
+ * task 3.3, "astro-preview" in kebab-case) — never the same string, even
+ * when they mean the same component. `checkOrphans` normalizes both sides
+ * before comparing rather than requiring the two conventions to coincide.
+ */
+function normalizeComponentName(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 /** The last `/`-segment of a storyId's title, before the ` — scenario` suffix. */
 function referenceIndexComponentNames(referenceIndex) {
   const names = new Set();
@@ -452,7 +473,7 @@ function referenceIndexComponentNames(referenceIndex) {
     if (entry.consumers.length > 0) continue; // has a real consumer; not what exempts an orphan
     const title = entry.storyId.split(' — ')[0] ?? entry.storyId;
     const segment = title.split('/').pop();
-    if (segment) names.add(segment);
+    if (segment) names.add(normalizeComponentName(segment));
   }
   return names;
 }
@@ -471,7 +492,7 @@ export function checkOrphans(nodes, edges, referenceIndex) {
       .split('/')
       .pop()
       .replace(/\.(tsx|astro|ts)$/, '');
-    if (exemptNames.has(baseName)) continue;
+    if (exemptNames.has(normalizeComponentName(baseName))) continue;
 
     violations.push({
       path: node.path,

@@ -66,9 +66,11 @@ describe('the 0223 reference index', () => {
     }
   });
 
-  it('records the unconsumed predecessors this change did not adopt', () => {
-    // A regression here means one of them gained a consumer — good news that
-    // should update the index rather than be discovered by a reviewer.
+  it('records every reference with no production consumer, predecessor or standing exemption alike', () => {
+    // A regression on the predecessor entries means one of them gained a
+    // consumer — good news that should update the index rather than be
+    // discovered by a reviewer. A standing exemption (the preview seam) is
+    // never expected to leave this list at all.
     //
     // 'Locale control' left this list in openspec 0225 task 4.3a: it now
     // points at LanguageSwitcher's own story, and LanguageSwitcher is a real,
@@ -76,11 +78,13 @@ describe('the 0223 reference index', () => {
     // want of one. 'Live match scorecard' stays — merging LiveMatchScorecard's
     // implementation into MatchCard.tsx (task 4.3) resolved its file-level
     // orphan status, not this: the live page still renders LiveMatchHero, so
-    // this specific presentation still ships nowhere.
+    // this specific presentation still ships nowhere. 'Astro preview seam'
+    // joined in task 4.5: the development preview seam itself, permanently
+    // unconsumed by design (it answers 404 in a build).
     expect(
       REFERENCE_INDEX.filter((entry) => entry.consumers.length === 0).map(
         (entry) => entry.reference,
       ),
-    ).toEqual(['Live match scorecard']);
+    ).toEqual(['Live match scorecard', 'Astro preview seam']);
   });
 });
