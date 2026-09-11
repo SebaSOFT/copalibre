@@ -2,11 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { MatchCard } from '../../../components/ui/organisms/MatchCard.js';
 import type { MatchCardData } from '../../../lib/matches-view.js';
 import { matchCardLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
-import { Button } from '../ui/atoms/button.js';
-import { messages } from '../../i18n/messages.en.js';
+import { MatchesViewTemplate } from '../screens/MatchesViewTemplate.js';
 
 type StateFilter = 'all' | 'live' | 'upcoming' | 'final';
 
@@ -23,6 +21,9 @@ type StateFilter = 'all' | 'live' | 'upcoming' | 'final';
  * `control-path-parser.ts`'s documented design and the public matches view's
  * own query-string scoping, so a caller narrows scope with a plain link
  * rather than a dedicated route per stage.
+ *
+ * Fetches (openspec 0225 task 6.2): the state filter lives here rather than
+ * in `MatchesViewTemplate`, since selecting one drives a refetch.
  */
 export function MatchesViewPage({
   organizationAlias,
@@ -76,37 +77,12 @@ export function MatchesViewPage({
   }, [api, organizationAlias, tournamentAlias, scope, state]);
 
   return (
-    <section className="cl-list-screen">
-      <div className="cl-list-screen__header">
-        <h1 className="cl-list-screen__title">
-          {intl.formatMessage(messages.matchesViewControlTitle)}
-        </h1>
-        <div role="group" aria-label={intl.formatMessage(messages.matchesViewControlTitle)}>
-          {(['all', 'live', 'upcoming', 'final'] as const).map((option) => (
-            <Button
-              aria-pressed={state === option}
-              key={option}
-              onClick={() => setState(option)}
-              type="button"
-              variant="secondary"
-            >
-              {labels.filters[option]}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {status === 'error' && <p>{intl.formatMessage(messages.matchesViewControlLoadFailed)}</p>}
-      {status === 'ready' && matches.length === 0 && (
-        <p className="cl-list-screen__empty">{labels.empty}</p>
-      )}
-      {matches.length > 0 && (
-        <div className="cl-matches-view__grid">
-          {matches.map((match) => (
-            <MatchCard key={match.matchId} match={match} labels={labels} />
-          ))}
-        </div>
-      )}
-    </section>
+    <MatchesViewTemplate
+      labels={labels}
+      matches={matches}
+      onSelectState={setState}
+      state={state}
+      status={status}
+    />
   );
 }
