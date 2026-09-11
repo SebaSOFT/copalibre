@@ -60,24 +60,24 @@ export function LiveConsoleRoute({
           {intl.formatMessage(messages.navLiveConsole)}
         </h1>
         <p style={{ margin: 0, color: 'var(--cl-text-muted)' }}>
-          Consola de operaciones en vivo para torneos y partidos en juego.
+          {intl.formatMessage(messages.liveConsoleSubtitle)}
         </p>
       </header>
 
       {loading ? (
-        <p>Cargando operaciones en vivo…</p>
+        <p>{intl.formatMessage(messages.liveConsoleLoading)}</p>
       ) : tournaments.length === 0 ? (
         <Card>
           <div style={{ padding: 'var(--cl-space-6)', textAlign: 'center' }}>
             <p style={{ margin: '0 0 var(--cl-space-4)', color: 'var(--cl-text-muted)' }}>
-              No hay torneos activos en esta organización.
+              {intl.formatMessage(messages.liveConsoleNoActiveTournaments)}
             </p>
             <a
               className="cl-btn cl-btn--primary cl-focusable"
               href={`/control/${organizationAlias}/tournaments/new`}
               onClick={controlLinkClick(`/control/${organizationAlias}/tournaments/new`)}
             >
-              Crear torneo
+              {intl.formatMessage(messages.liveConsoleCreateTournament)}
             </a>
           </div>
         </Card>

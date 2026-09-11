@@ -54,13 +54,12 @@ const BRAND_NAMES = new Set(['CopaLibre', 'COPALIBRE', 'COPALIBRE CMD']);
  * below the recorded number fails until it is lowered. Delete an entry at zero.
  */
 const KNOWN_HARDCODED = new Map([
-  // No intl is threaded into this TV component at all, so wiring it is a
-  // surface change rather than an attribute swap — TV surfaces are 0201/0202's.
-  ['TvDashboard.tsx', 3],
   // The three owned primitives that carried hardcoded labels are gone: 0214
   // made each one a required prop, so the copy comes from the caller's
   // catalogue and follows the interface language like everything else.
   // `pagination.tsx`, `modal.tsx` and `navigation-drawer.tsx` were here.
+  // `TvDashboard.tsx` joined them in 0225 task 2.6: `dashboardLabels` now
+  // carries every interface string, threaded from both Astro page callers.
   // No intl in scope; the form predates the shell's own provider wiring.
   ['AcceptInvitationForm.tsx', 1],
 ]);

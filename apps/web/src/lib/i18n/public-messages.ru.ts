@@ -167,4 +167,17 @@ export const messages: Record<string, string> = {
   'publicWeb.header.navHelp': 'Справка',
   'publicWeb.header.navApiReference': 'Справочник API',
   'publicWeb.header.controlPanel': 'Панель управления',
+
+  // TvDashboard.tsx's own chrome (openspec 0225 task 2.6).
+  'publicWeb.tvDashboard.noMatchesScheduled': 'Матчи пока не запланированы',
+  'publicWeb.tvDashboard.standingsUnavailable': 'Таблица недоступна',
+  'publicWeb.tvDashboard.clubColumn': 'Клуб',
+  'publicWeb.tvDashboard.playedColumn': 'И',
+  'publicWeb.tvDashboard.noTopPerformers': 'Нет отмеченных лучших игроков',
+  'publicWeb.tvDashboard.focalPanelLabel': 'Основная панель трансляции',
+  'publicWeb.tvDashboard.statsAndTablesLabel': 'Статистика и таблицы турнира',
+  'publicWeb.tvDashboard.sidebarSectionsLabel': 'Боковые разделы',
+  'publicWeb.tvDashboard.standingsTab': 'Турнирная таблица',
+  'publicWeb.tvDashboard.performersTab': 'Лучшие игроки',
+  'publicWeb.tvDashboard.statisticsTab': 'Статистика',
 };

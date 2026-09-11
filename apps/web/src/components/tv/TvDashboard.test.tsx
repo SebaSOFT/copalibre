@@ -2,9 +2,10 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { TvDashboard } from './TvDashboard.js';
 import type { LiveDashboard } from '../../lib/live-state.js';
 import type { StandingsRowView } from '../../lib/overview.js';
-import { publicIntl, tvStatisticsLabels } from '../../lib/i18n/public-intl.js';
+import { publicIntl, tvDashboardLabels, tvStatisticsLabels } from '../../lib/i18n/public-intl.js';
 
 const tvLabels = tvStatisticsLabels(publicIntl('en'));
+const dashboardLabels = tvDashboardLabels(publicIntl('en'));
 
 describe('TvDashboard', () => {
   const sampleInitial: LiveDashboard = {
@@ -55,6 +56,7 @@ describe('TvDashboard', () => {
   it('renders scorebug and content without a token, without crashing or reloading', () => {
     render(
       <TvDashboard
+        dashboardLabels={dashboardLabels}
         labels={tvLabels}
         language="en"
         initial={sampleInitial}
@@ -82,6 +84,7 @@ describe('TvDashboard', () => {
 
     render(
       <TvDashboard
+        dashboardLabels={dashboardLabels}
         labels={tvLabels}
         language="en"
         initial={sampleInitial}
@@ -100,6 +103,7 @@ describe('TvDashboard', () => {
   it('renders champion spotlight when all tournament matches are final', () => {
     render(
       <TvDashboard
+        dashboardLabels={dashboardLabels}
         labels={tvLabels}
         language="en"
         initial={sampleInitial}
@@ -143,6 +147,7 @@ describe('TvDashboard', () => {
 
     render(
       <TvDashboard
+        dashboardLabels={dashboardLabels}
         labels={tvLabels}
         language="en"
         initial={liveDashboard}
@@ -161,9 +166,10 @@ describe('TvDashboard', () => {
     expect(screen.getAllByText('EN VIVO').length).toBeGreaterThan(0);
   });
 
-  it('allows user to toggle through rotating rail tabs (Posiciones, Destacados, Estadísticas)', () => {
+  it('allows user to toggle through rotating rail tabs (Standings, Top performers, Statistics)', () => {
     render(
       <TvDashboard
+        dashboardLabels={dashboardLabels}
         labels={tvLabels}
         language="en"
         initial={sampleInitial}
@@ -176,16 +182,16 @@ describe('TvDashboard', () => {
       />,
     );
 
-    // Initial tab: Standings (Posiciones)
+    // Initial tab: Standings
     expect(screen.getByText('Pts')).toBeDefined();
 
-    // Switch to Destacados (Performers)
-    const performersTab = screen.getByRole('button', { name: 'Destacados' });
+    // Switch to Top performers
+    const performersTab = screen.getByRole('button', { name: 'Top performers' });
     fireEvent.click(performersTab);
     expect(performersTab.classList.contains('tv-rail-tab--active')).toBe(true);
 
-    // Switch to Estadísticas (Facts)
-    const factsTab = screen.getByRole('button', { name: 'Estadísticas' });
+    // Switch to Statistics
+    const factsTab = screen.getByRole('button', { name: 'Statistics' });
     fireEvent.click(factsTab);
     expect(factsTab.classList.contains('tv-rail-tab--active')).toBe(true);
     expect(screen.getByText('Matches played')).toBeDefined();
@@ -220,7 +226,15 @@ describe('overlay presentations (openspec 0201)', () => {
   const matchProps = { ...baseProps, initial: liveMatch };
 
   it('renders only a compact score bug in the lower third, not the kiosk furniture', () => {
-    render(<TvDashboard labels={tvLabels} language="en" {...matchProps} presentation="lower" />);
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        {...matchProps}
+        presentation="lower"
+      />,
+    );
 
     expect(screen.getByTestId('tv-lower-third')).toBeTruthy();
     // A lower third sits over footage: the rail, the scorebug header and the
@@ -230,7 +244,15 @@ describe('overlay presentations (openspec 0201)', () => {
   });
 
   it('shows both sides and the score in the bug', () => {
-    render(<TvDashboard labels={tvLabels} language="en" {...matchProps} presentation="lower" />);
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        {...matchProps}
+        presentation="lower"
+      />,
+    );
 
     const bug = screen.getByTestId('tv-lower-third');
     expect(bug.textContent).toContain('TAL');
@@ -240,14 +262,29 @@ describe('overlay presentations (openspec 0201)', () => {
   });
 
   it('renders the full kiosk composition for the full-frame presentation', () => {
-    render(<TvDashboard labels={tvLabels} language="en" {...matchProps} presentation="full" />);
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        {...matchProps}
+        presentation="full"
+      />,
+    );
 
     expect(screen.queryByTestId('tv-lower-third')).toBeNull();
     expect(document.querySelector('.tv-scorebug')).not.toBeNull();
   });
 
   it('defaults to the kiosk presentation when none is supplied', () => {
-    render(<TvDashboard labels={tvLabels} language="en" {...matchProps} />);
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        {...matchProps}
+      />,
+    );
 
     expect(screen.queryByTestId('tv-lower-third')).toBeNull();
     expect(document.querySelector('.tv-scorebug')).not.toBeNull();

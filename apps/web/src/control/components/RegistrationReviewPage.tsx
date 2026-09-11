@@ -32,7 +32,7 @@ import type { PlayerRole } from '@copalibre/domain';
 import {
   RosterRoleSelector,
   type RosterMemberItem,
-  ROSTER_ROLE_LABELS,
+  rosterRoleLabel,
   ROSTER_ROLE_ACCENTS,
 } from './RosterRoleSelector.js';
 import type { TeamMemberResponse } from '../lib/api-client.js';
@@ -287,7 +287,7 @@ export function RegistrationReviewPage({
                           className={`cl-badge ${ROSTER_ROLE_ACCENTS[member.role as PlayerRole] ?? 'cl-state--muted'}`}
                           data-testid={`role-badge-${member.personId}`}
                         >
-                          {ROSTER_ROLE_LABELS[member.role as PlayerRole] ?? member.role}
+                          {rosterRoleLabel(member.role as PlayerRole, intl)}
                         </span>
                       </li>
                     ))}

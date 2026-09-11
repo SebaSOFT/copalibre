@@ -1,6 +1,10 @@
 ---
 import TvLayout from '../../../../../../../../layouts/TvLayout.astro';
-import { publicIntl, tvStatisticsLabels } from '../../../../../../../../lib/i18n/public-intl.ts';
+import {
+  publicIntl,
+  tvDashboardLabels,
+  tvStatisticsLabels,
+} from '../../../../../../../../lib/i18n/public-intl.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import { TvDashboard } from '../../../../../../../../components/tv/TvDashboard.tsx';
 import { tvStreamPath } from '@copalibre/routing';
@@ -126,6 +130,7 @@ const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam :
 >
   <TvDashboard
     labels={tvStatisticsLabels(publicIntl(language))}
+    dashboardLabels={tvDashboardLabels(publicIntl(language))}
     language={language}
     client:load
     presentation={presentation}

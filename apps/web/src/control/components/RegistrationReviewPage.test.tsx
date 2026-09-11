@@ -221,7 +221,7 @@ describe('RegistrationReviewPage — nationality and profile', () => {
 
     expect(screen.getByText('Matías Suárez')).toBeDefined();
     expect(screen.getByText('Javier Gandolfi')).toBeDefined();
-    expect(screen.getByTestId('role-badge-p-1').textContent).toBe('Jugador');
+    expect(screen.getByTestId('role-badge-p-1').textContent).toBe('Player');
     expect(screen.getByTestId('role-badge-p-2').textContent).toBe('Coach');
   });
 

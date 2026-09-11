@@ -140,6 +140,23 @@ export function tvStatisticsLabels(intl: IntlShape) {
   };
 }
 
+/** `TvDashboard.tsx`'s own chrome — separate from `tvStatisticsLabels`'s derived-stat labels. */
+export function tvDashboardLabels(intl: IntlShape) {
+  return {
+    noMatchesScheduled: intl.formatMessage(messages.tvDashboardNoMatchesScheduled),
+    standingsUnavailable: intl.formatMessage(messages.tvDashboardStandingsUnavailable),
+    clubColumn: intl.formatMessage(messages.tvDashboardClubColumn),
+    playedColumn: intl.formatMessage(messages.tvDashboardPlayedColumn),
+    noTopPerformers: intl.formatMessage(messages.tvDashboardNoTopPerformers),
+    focalPanelLabel: intl.formatMessage(messages.tvDashboardFocalPanelLabel),
+    statsAndTablesLabel: intl.formatMessage(messages.tvDashboardStatsAndTablesLabel),
+    sidebarSectionsLabel: intl.formatMessage(messages.tvDashboardSidebarSectionsLabel),
+    standingsTab: intl.formatMessage(messages.tvDashboardStandingsTab),
+    performersTab: intl.formatMessage(messages.tvDashboardPerformersTab),
+    statisticsTab: intl.formatMessage(messages.tvDashboardStatisticsTab),
+  };
+}
+
 /** Resolves every non-`played` result-reason label once. */
 export function resultReasonLabels(intl: IntlShape): ResultReasonLabels {
   return {

@@ -613,19 +613,12 @@ export function checkSingleAtomOwnership(nodes) {
  * recorded rather than silently exempted.
  */
 export const KNOWN_LITERAL_TEXT = new Map([
-  ['components/tv/TvDashboard.tsx', 4],
   ['components/ui/AstroPreview.tsx', 1],
   ['components/ui/organisms/PlayerProfileView.astro', 3],
   ['components/ui/organisms/StandingsPreview.astro', 9],
   ['control/components/AcceptInvitationForm.tsx', 2],
-  ['control/components/AnalyticsRoute.tsx', 1],
-  ['control/components/ControlApp.tsx', 7],
   ['control/components/ControlShell.tsx', 1],
-  ['control/components/LiveConsoleRoute.tsx', 1],
-  ['control/components/NativeAuthRoutes.tsx', 1],
-  ['control/components/PreferencesRoute.tsx', 1],
   ['control/components/RolesPermissionsPage.tsx', 1],
-  ['control/components/RosterRoleSelector.tsx', 1],
   [
     'pages/[...locale]/[organization]/tournaments/[tournament]/stages/[stage]/matches/[match].astro',
     11,
@@ -653,7 +646,11 @@ export function checkLiteralTextNodes(nodes) {
 }
 
 const MESSAGE_ID_IN_DEFINE = /id:\s*'([^']+)'/g;
-const MESSAGE_ID_IN_RECORD = /^\s*'([a-zA-Z][\w.]*)':\s*'/gm;
+// A locale value is double-quoted instead of single-quoted precisely when
+// it contains an apostrophe (e.g. French/Italian "l'organisation") — both
+// are valid, equally common in these catalogues, and the key itself is
+// always single-quoted either way.
+const MESSAGE_ID_IN_RECORD = /^\s*'([a-zA-Z][\w.]*)':\s*['"]/gm;
 
 /** Extracts every message id a catalogue file defines, in either its `defineMessages` or plain-Record shape. */
 export function extractCatalogueIds(path) {
@@ -672,17 +669,18 @@ const CATALOGUE_FAMILIES = [
 const CATALOGUE_LOCALES = ['de', 'en', 'es', 'fr', 'it', 'pt', 'ru', 'zh'];
 
 /**
- * Debt recorded 2026-09-11: message ids present in the English (source)
- * catalogue and absent from a locale sibling, counted per locale file. Two
- * families predate this change entirely (`messages.fr.ts` missing 78 of 923,
- * `messages.it.ts` missing 44, `public-messages.fr.ts` missing 2 of 140) —
- * this rule did not create the gap, it is the first thing to count it.
+ * Message ids present in the English (source) catalogue and absent from a
+ * locale sibling, counted per locale file. Empty: the three entries this
+ * register carried when the rule first ran (`messages.fr.ts` "missing" 78,
+ * `messages.it.ts` 44, `public-messages.fr.ts` 2) were a false positive in
+ * `extractCatalogueIds` itself, not a real gap — MESSAGE_ID_IN_RECORD only
+ * recognized a single-quoted value, and French/Italian legitimately
+ * double-quote a translation containing an apostrophe ("l'organisation").
+ * Every id in every family resolves in all eight catalogues once the
+ * extractor accepts either quote style; task 2.6 found and fixed this
+ * while adding new ids to these same files.
  */
-export const KNOWN_CATALOGUE_GAPS = new Map([
-  ['control/i18n/messages.fr.ts', 78],
-  ['control/i18n/messages.it.ts', 44],
-  ['lib/i18n/public-messages.fr.ts', 2],
-]);
+export const KNOWN_CATALOGUE_GAPS = new Map();
 
 export function checkCatalogueResolution(webSrcDir) {
   const violations = [];

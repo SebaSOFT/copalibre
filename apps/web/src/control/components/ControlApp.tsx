@@ -91,8 +91,18 @@ export function ControlApp(): React.JSX.Element | null {
     window.location.assign('/control/login');
   }, [isUnauthorizedPlatformRoute]);
 
-  if (route === undefined) return <NotFound path={path} />;
-  if (route.screen === 'callback') return <CompletingLogin />;
+  if (route === undefined)
+    return (
+      <ControlIntl locale={activeControlLanguage()}>
+        <NotFound path={path} />
+      </ControlIntl>
+    );
+  if (route.screen === 'callback')
+    return (
+      <ControlIntl locale={activeControlLanguage()}>
+        <CompletingLogin />
+      </ControlIntl>
+    );
   if (route.screen === 'login')
     return (
       <ControlIntl locale={activeControlLanguage()}>
@@ -125,7 +135,11 @@ export function ControlApp(): React.JSX.Element | null {
 
   switch (route.screen) {
     case 'root':
-      return <RootLandingRoute />;
+      return (
+        <ControlIntl locale={activeControlLanguage()}>
+          <RootLandingRoute />
+        </ControlIntl>
+      );
     case 'platformAdministration':
       return <PlatformAdministrationControlRoute />;
     case 'dashboard':
@@ -330,8 +344,12 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
 function NotFound({ path }: { readonly path: string }): React.JSX.Element {
   return (
     <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-      <h1>Pantalla no encontrada</h1>
-      <p>No hay una pantalla de control para {path}.</p>
+      <h1>
+        <FormattedMessage {...messages.notFoundTitle} />
+      </h1>
+      <p>
+        <FormattedMessage {...messages.notFoundBody} values={{ path }} />
+      </p>
     </main>
   );
 }
@@ -342,6 +360,7 @@ type LandingState =
   | { readonly kind: 'error'; readonly message: string };
 
 function RootLandingRoute(): React.JSX.Element {
+  const intl = useIntl();
   const [state, setState] = useState<LandingState>({ kind: 'pending' });
 
   useEffect(() => {
@@ -367,17 +386,25 @@ function RootLandingRoute(): React.JSX.Element {
       .catch((cause: unknown) => {
         setState({
           kind: 'error',
-          message: cause instanceof Error ? cause.message : 'No se pudo cargar la organización',
+          message:
+            cause instanceof Error
+              ? cause.message
+              : intl.formatMessage(messages.landingErrorGeneric),
         });
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intl is stable within one ControlIntl mount
   }, []);
 
   if (state.kind === 'error') {
     return (
       <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-        <h1>Error al cargar organizaciones</h1>
+        <h1>
+          <FormattedMessage {...messages.landingErrorTitle} />
+        </h1>
         <p>{state.message}</p>
-        <a href="/control/login">Volver a iniciar sesión</a>
+        <a href="/control/login">
+          <FormattedMessage {...messages.landingBackToLogin} />
+        </a>
       </main>
     );
   }
@@ -388,7 +415,9 @@ function RootLandingRoute(): React.JSX.Element {
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-      <p>Cargando panel de control…</p>
+      <p>
+        <FormattedMessage {...messages.landingLoading} />
+      </p>
     </main>
   );
 }
@@ -406,6 +435,7 @@ function RootLandingRoute(): React.JSX.Element {
  * used to strand the operator on the "not found" screen.
  */
 function CompletingLogin(): React.JSX.Element {
+  const intl = useIntl();
   const [state, setState] = useState<LandingState>({ kind: 'pending' });
 
   useEffect(() => {
@@ -429,19 +459,27 @@ function CompletingLogin(): React.JSX.Element {
       .catch((cause: unknown) => {
         setState({
           kind: 'error',
-          message: cause instanceof Error ? cause.message : 'No se pudo completar el acceso',
+          message:
+            cause instanceof Error
+              ? cause.message
+              : intl.formatMessage(messages.callbackErrorTitle),
         });
       });
     // A fresh mount only ever happens once per real OIDC redirect landing
     // here — nothing this effect depends on should re-trigger it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intl is stable within one ControlIntl mount
   }, []);
 
   if (state.kind === 'error') {
     return (
       <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-        <h1>No se pudo completar el acceso</h1>
+        <h1>
+          <FormattedMessage {...messages.callbackErrorTitle} />
+        </h1>
         <p>{state.message}</p>
-        <a href="/control/">Volver al inicio</a>
+        <a href="/control/">
+          <FormattedMessage {...messages.callbackBackHome} />
+        </a>
       </main>
     );
   }
@@ -452,7 +490,9 @@ function CompletingLogin(): React.JSX.Element {
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-      <p>Completando el acceso…</p>
+      <p>
+        <FormattedMessage {...messages.callbackLoading} />
+      </p>
     </main>
   );
 }

@@ -1743,6 +1743,44 @@ export const messages = defineMessages({
     id: 'control.landing.pickerTitle',
     defaultMessage: 'Choose an organization',
   },
+  landingLoading: {
+    id: 'control.landing.loading',
+    defaultMessage: 'Loading control panel…',
+  },
+  landingErrorTitle: {
+    id: 'control.landing.errorTitle',
+    defaultMessage: 'Error loading organizations',
+  },
+  landingErrorGeneric: {
+    id: 'control.landing.errorGeneric',
+    defaultMessage: 'Could not load the organization',
+  },
+  landingBackToLogin: {
+    id: 'control.landing.backToLogin',
+    defaultMessage: 'Back to sign-in',
+  },
+
+  // Not-found screen (ControlApp.tsx's NotFound) — rendered for any path
+  // parseControlPath does not recognize.
+  notFoundTitle: { id: 'control.notFound.title', defaultMessage: 'Screen not found' },
+  notFoundBody: {
+    id: 'control.notFound.body',
+    defaultMessage: 'There is no control screen for {path}.',
+  },
+
+  // OIDC callback screen (ControlApp.tsx's CompletingLogin).
+  callbackLoading: {
+    id: 'control.callback.loading',
+    defaultMessage: 'Completing sign-in…',
+  },
+  callbackErrorTitle: {
+    id: 'control.callback.errorTitle',
+    defaultMessage: 'Could not complete sign-in',
+  },
+  callbackBackHome: {
+    id: 'control.callback.backHome',
+    defaultMessage: 'Back to home',
+  },
 
   // Load match data — bulk/structured entry for a match played with no live console.
   loadMatchDataTitle: { id: 'control.loadMatchData.title', defaultMessage: 'Load match data' },
@@ -3013,5 +3051,81 @@ export const messages = defineMessages({
   dashboardResumeEditing: {
     id: 'control.dashboard.resumeEditing',
     defaultMessage: 'Resume editing',
+  },
+
+  // Live console route (openspec 0225 task 2.6).
+  liveConsoleSubtitle: {
+    id: 'control.liveConsole.subtitle',
+    defaultMessage: 'Live operations console for tournaments and matches in play.',
+  },
+  liveConsoleLoading: {
+    id: 'control.liveConsole.loading',
+    defaultMessage: 'Loading live operations…',
+  },
+  liveConsoleNoActiveTournaments: {
+    id: 'control.liveConsole.noActiveTournaments',
+    defaultMessage: 'No active tournaments in this organization.',
+  },
+  liveConsoleCreateTournament: {
+    id: 'control.liveConsole.createTournament',
+    defaultMessage: 'Create tournament',
+  },
+
+  // Preferences route (openspec 0225 task 2.6) — the personal-access-token
+  // list's own loading state. Uses the shared catalogue rather than this
+  // file's local `defineMessages` block: that block's ids (`preferences.*`)
+  // have no locale translations recorded anywhere, only a `defaultMessage`,
+  // so a new id there would not resolve in the other seven catalogues.
+  preferencesTokensLoading: {
+    id: 'control.preferences.tokensLoading',
+    defaultMessage: 'Loading…',
+  },
+
+  // Analytics route (openspec 0225 task 2.6).
+  analyticsSubtitle: {
+    id: 'control.analytics.subtitle',
+    defaultMessage: 'Performance and operational-volume metrics for the organization.',
+  },
+  analyticsLoading: { id: 'control.analytics.loading', defaultMessage: 'Loading analytics…' },
+  analyticsTotalTournaments: {
+    id: 'control.analytics.totalTournaments',
+    defaultMessage: 'Total tournaments',
+  },
+  analyticsTournamentsBreakdown: {
+    id: 'control.analytics.tournamentsBreakdown',
+    defaultMessage: '{live} live · {upcoming} upcoming · {finished} finished',
+  },
+  analyticsFinishedTournaments: {
+    id: 'control.analytics.finishedTournaments',
+    defaultMessage: 'Finished tournaments',
+  },
+  analyticsFinishedDetail: {
+    id: 'control.analytics.finishedDetail',
+    defaultMessage: 'Archived and completed results',
+  },
+  analyticsStorageUsed: {
+    id: 'control.analytics.storageUsed',
+    defaultMessage: 'Storage used',
+  },
+  analyticsMediaFilesCount: {
+    id: 'control.analytics.mediaFilesCount',
+    defaultMessage: '{count} media files',
+  },
+  analyticsNoData: { id: 'control.analytics.noData', defaultMessage: 'No data' },
+
+  // Roster role selector (openspec 0225 task 2.6). `rosterRole*` replace
+  // ROSTER_ROLE_LABELS, previously a plain Spanish-only lookup object
+  // consumed here and by RegistrationReviewPage.tsx.
+  rosterRolePlayer: { id: 'control.roster.rolePlayer', defaultMessage: 'Player' },
+  rosterRoleSubstitute: { id: 'control.roster.roleSubstitute', defaultMessage: 'Substitute' },
+  rosterRoleCoach: { id: 'control.roster.roleCoach', defaultMessage: 'Coach' },
+  rosterRoleStaff: { id: 'control.roster.roleStaff', defaultMessage: 'Staff' },
+  rosterNoMembersYet: {
+    id: 'control.roster.noMembersYet',
+    defaultMessage: 'No members on this team yet.',
+  },
+  rosterRoleFieldLabel: {
+    id: 'control.roster.roleFieldLabel',
+    defaultMessage: 'Role for {name}',
   },
 });

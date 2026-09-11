@@ -432,7 +432,9 @@ export function PreferencesRoute({
 
         <div style={{ marginTop: '2rem' }}>
           {loading ? (
-            <p>Cargando...</p>
+            <p>
+              <FormattedMessage {...controlMessages.preferencesTokensLoading} />
+            </p>
           ) : tokens.length === 0 ? (
             <p>
               <FormattedMessage {...messages.noTokens} />

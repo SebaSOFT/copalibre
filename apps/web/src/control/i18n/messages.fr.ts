@@ -616,6 +616,15 @@ export const messages: Record<string, string> = {
   'control.landing.emptyBody':
     "Ce compte n'a pas encore de rôle dans une organisation. Une invitation d'un administrateur est nécessaire.",
   'control.landing.pickerTitle': 'Choisir une organisation',
+  'control.landing.loading': 'Chargement du panneau de contrôle…',
+  'control.landing.errorTitle': 'Erreur lors du chargement des organisations',
+  'control.landing.errorGeneric': "Impossible de charger l'organisation",
+  'control.landing.backToLogin': 'Retour à la connexion',
+  'control.notFound.title': 'Écran introuvable',
+  'control.notFound.body': "Il n'y a pas d'écran de contrôle pour {path}.",
+  'control.callback.loading': 'Finalisation de la connexion…',
+  'control.callback.errorTitle': 'Impossible de finaliser la connexion',
+  'control.callback.backHome': "Retour à l'accueil",
 
   'control.loadMatchData.title': 'Charger les données du match',
   'control.loadMatchData.breadcrumb': '{tournamentAlias} · Match {matchId}',
@@ -1060,4 +1069,27 @@ export const messages: Record<string, string> = {
   'control.descriptor.documentCopied': 'Copié',
   'control.descriptor.documentCopyFailed':
     'Échec de la copie — sélectionnez le texte pour le copier',
+  'control.liveConsole.subtitle':
+    'Console des opérations en direct pour les tournois et matchs en cours.',
+  'control.liveConsole.loading': 'Chargement des opérations en direct…',
+  'control.liveConsole.noActiveTournaments': 'Aucun tournoi actif dans cette organisation.',
+  'control.liveConsole.createTournament': 'Créer un tournoi',
+  'control.preferences.tokensLoading': 'Chargement…',
+  'control.analytics.subtitle':
+    "Indicateurs de performance et de volume opérationnel de l'organisation.",
+  'control.analytics.loading': 'Chargement des analyses…',
+  'control.analytics.totalTournaments': 'Total des tournois',
+  'control.analytics.tournamentsBreakdown':
+    '{live} en direct · {upcoming} à venir · {finished} terminés',
+  'control.analytics.finishedTournaments': 'Tournois terminés',
+  'control.analytics.finishedDetail': 'Résultats archivés et complétés',
+  'control.analytics.storageUsed': 'Stockage utilisé',
+  'control.analytics.mediaFilesCount': '{count} fichiers multimédias',
+  'control.analytics.noData': 'Aucune donnée',
+  'control.roster.rolePlayer': 'Joueur',
+  'control.roster.roleSubstitute': 'Remplaçant',
+  'control.roster.roleCoach': 'Entraîneur',
+  'control.roster.roleStaff': 'Encadrement',
+  'control.roster.noMembersYet': "Aucun membre dans cette équipe pour l'instant.",
+  'control.roster.roleFieldLabel': 'Rôle de {name}',
 };

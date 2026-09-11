@@ -476,12 +476,31 @@ test('R10 catalogue resolution: a descriptor id resolving in the source catalogu
   assert.ok(!frIds.has('app.greeting'));
 });
 
-test('R10 catalogue resolution reports every missing id in the real French and Italian control catalogues', () => {
+test('R10 catalogue resolution finds no real gap in the French and Italian control catalogues', () => {
+  // Both families reported false gaps (fr 78, it 44) until task 2.6 fixed
+  // MESSAGE_ID_IN_RECORD to accept a double-quoted value — French/Italian
+  // legitimately double-quote a translation containing an apostrophe.
   const violations = checkCatalogueResolution(webSrc);
   const frMissing = violations.filter((v) => v.path === 'control/i18n/messages.fr.ts');
   const itMissing = violations.filter((v) => v.path === 'control/i18n/messages.it.ts');
-  assert.equal(frMissing.length, 78);
-  assert.equal(itMissing.length, 44);
+  assert.deepEqual(frMissing, []);
+  assert.deepEqual(itMissing, []);
+});
+
+test('extractCatalogueIds recognizes a double-quoted value, not only single-quoted', () => {
+  const root = mkdtempSync(join(tmpdir(), 'atomic-composition-'));
+  writeFileSync(
+    join(root, 'catalogue.ts'),
+    [
+      'export const messages: Record<string, string> = {',
+      "  'app.apostrophe': \"l'organisation\",",
+      "  'app.plain': 'no apostrophe here',",
+      '};',
+    ].join('\n'),
+  );
+  const ids = extractCatalogueIds(join(root, 'catalogue.ts'));
+  assert.ok(ids.has('app.apostrophe'));
+  assert.ok(ids.has('app.plain'));
 });
 
 test('R11 reports the real resting-glow findings in TiebreakerSequence.tsx and ChampionshipMatchCard.tsx', () => {

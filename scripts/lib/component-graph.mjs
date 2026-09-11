@@ -209,6 +209,16 @@ function scanInlineStyles(source) {
 // markup is never read as a single "text node"; `{`/`}` are excluded so an
 // interpolated expression's braces end the match rather than being
 // swallowed into the literal.
+//
+// A literal Prettier wraps onto its own line between the tags (rather than
+// keeping `>literal<` on one line) is a real gap this leaves — found by
+// inspection in TvDashboard.tsx ("Standings table unavailable"), not by
+// this scanner. Widening to multiple lines was tried and reverted: with a
+// global regex, one rejected multi-line match still consumes the span it
+// matched, so a real single-line violation *nested inside* that span is
+// silently skipped rather than still being found — worse than the gap it
+// closes. Left as a known limitation rather than a fix that trades a rare
+// miss for a systematic one.
 const TEXT_NODE = /<\/?([A-Za-z][\w.-]*)(?:\s[^<>]*)?\/?>([^<>{}\n]+)</g;
 
 /**

@@ -21,6 +21,7 @@ import {
   publicIntl,
   tickerChromeLabels,
   tickerLabels,
+  tvDashboardLabels,
   tvStatisticsLabels,
 } from '../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
@@ -227,6 +228,7 @@ const tickerItems =
     topPerformers={topPerformers}
     performerProjection={performerProjection}
     labels={tvStatisticsLabels(intl)}
+    dashboardLabels={tvDashboardLabels(intl)}
     language={language}
   />
 </TvLayout>

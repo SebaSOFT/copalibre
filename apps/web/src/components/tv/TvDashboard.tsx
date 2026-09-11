@@ -55,8 +55,31 @@ export interface TvDashboardProps {
    */
   readonly performerProjection?: TableProjectionResponse;
   readonly labels: TvStatisticsLabels;
+  /**
+   * The dashboard's own chrome text (openspec 0225 task 2.6) — separate
+   * from `labels`, which is `tv-statistics.ts`'s derived-stat vocabulary.
+   * No client-side react-intl is threaded into this component: every
+   * string it renders arrives pre-formatted, the same as `labels` already
+   * does, since this crosses into a `client:load` island whose props Astro
+   * serializes as JSON.
+   */
+  readonly dashboardLabels: TvDashboardLabels;
   readonly language: SupportedLanguage;
   readonly pollIntervalMs?: number;
+}
+
+export interface TvDashboardLabels {
+  readonly noMatchesScheduled: string;
+  readonly standingsUnavailable: string;
+  readonly clubColumn: string;
+  readonly playedColumn: string;
+  readonly noTopPerformers: string;
+  readonly focalPanelLabel: string;
+  readonly statsAndTablesLabel: string;
+  readonly sidebarSectionsLabel: string;
+  readonly standingsTab: string;
+  readonly performersTab: string;
+  readonly statisticsTab: string;
 }
 
 const TV_RESULT_STATE_LABELS: ResultStateLabels = {
@@ -85,6 +108,7 @@ export function TvDashboard({
   topPerformers: initialTopPerformers,
   performerProjection,
   labels,
+  dashboardLabels,
   language,
   pollIntervalMs = 15_000,
 }: TvDashboardProps): React.JSX.Element {
@@ -313,7 +337,7 @@ export function TvDashboard({
       {/* 2. Main Stage (Dominant Focal Panel + Secondary Rotating Rail) */}
       <main className="tv-main-stage">
         {/* DOMINANT FOCAL PANEL */}
-        <section aria-label="Panel Principal de Transmisión" className="tv-focal-panel cl-chamfer">
+        <section aria-label={dashboardLabels.focalPanelLabel} className="tv-focal-panel cl-chamfer">
           <div className="tv-focal-panel__header">
             <span className="tv-focal-panel__label">
               {allFinal && champion ? 'Recapitulativo de Campeonato' : 'Foco del Encuentro'}
@@ -389,44 +413,59 @@ export function TvDashboard({
           ) : (
             <div className="tv-champion">
               <h2 className="tv-champion__name">{tournamentName}</h2>
-              <p className="tv-champion__record">Sin encuentros programados actualmente</p>
+              <p className="tv-champion__record">{dashboardLabels.noMatchesScheduled}</p>
             </div>
           )}
         </section>
 
         {/* SECONDARY ROTATING RAIL */}
         {!isOverlay && (
-          <aside aria-label="Estadísticas y Tablas del Torneo" className="tv-rail-panel cl-chamfer">
+          <aside
+            aria-label={dashboardLabels.statsAndTablesLabel}
+            className="tv-rail-panel cl-chamfer"
+          >
             {/* Navigation Tabs */}
-            <nav aria-label="Secciones del panel lateral" className="tv-rail-nav">
+            <nav aria-label={dashboardLabels.sidebarSectionsLabel} className="tv-rail-nav">
               <button
                 className={`tv-rail-tab cl-chamfer ${activeTab === 'standings' ? 'tv-rail-tab--active' : ''}`}
                 onClick={() => setActiveTab('standings')}
                 type="button"
               >
-                Posiciones
+                {dashboardLabels.standingsTab}
               </button>
               <button
                 className={`tv-rail-tab cl-chamfer ${activeTab === 'performers' ? 'tv-rail-tab--active' : ''}`}
                 onClick={() => setActiveTab('performers')}
                 type="button"
               >
-                Destacados
+                {dashboardLabels.performersTab}
               </button>
               <button
                 className={`tv-rail-tab cl-chamfer ${activeTab === 'facts' ? 'tv-rail-tab--active' : ''}`}
                 onClick={() => setActiveTab('facts')}
                 type="button"
               >
-                Estadísticas
+                {dashboardLabels.statisticsTab}
               </button>
             </nav>
 
             {/* Tab Content */}
             <div className="tv-rail-content" data-testid="tv-rail-content">
-              {activeTab === 'standings' && <TvStandingsView clubs={clubs} standings={standings} />}
+              {activeTab === 'standings' && (
+                <TvStandingsView
+                  clubs={clubs}
+                  dashboardLabels={dashboardLabels}
+                  pointsShortLabel={labels.pointsShort}
+                  standings={standings}
+                />
+              )}
 
-              {activeTab === 'performers' && <TvPerformersView performers={performers} />}
+              {activeTab === 'performers' && (
+                <TvPerformersView
+                  noTopPerformersLabel={dashboardLabels.noTopPerformers}
+                  performers={performers}
+                />
+              )}
 
               {activeTab === 'facts' && <TvFactsView facts={facts} />}
             </div>
@@ -471,14 +510,18 @@ function TvTeamSide({
 function TvStandingsView({
   standings,
   clubs,
+  dashboardLabels,
+  pointsShortLabel,
 }: {
   readonly standings?: readonly StandingsRowView[];
   readonly clubs?: readonly TvClubItem[];
+  readonly dashboardLabels: TvDashboardLabels;
+  readonly pointsShortLabel: string;
 }): React.JSX.Element {
   if (!standings || standings.length === 0) {
     return (
       <div style={{ padding: '2vmin', color: 'var(--tv-text-secondary)', textAlign: 'center' }}>
-        Tabla de posiciones no disponible
+        {dashboardLabels.standingsUnavailable}
       </div>
     );
   }
@@ -488,9 +531,9 @@ function TvStandingsView({
       <thead>
         <tr>
           <th>#</th>
-          <th>Club</th>
-          <th>PJ</th>
-          <th>Pts</th>
+          <th>{dashboardLabels.clubColumn}</th>
+          <th>{dashboardLabels.playedColumn}</th>
+          <th>{pointsShortLabel}</th>
         </tr>
       </thead>
       <tbody>
@@ -527,13 +570,15 @@ function TvStandingsView({
 
 function TvPerformersView({
   performers,
+  noTopPerformersLabel,
 }: {
   readonly performers: readonly TopPerformer[];
+  readonly noTopPerformersLabel: string;
 }): React.JSX.Element {
   if (performers.length === 0) {
     return (
       <div style={{ padding: '2vmin', color: 'var(--tv-text-secondary)', textAlign: 'center' }}>
-        Sin figuras destacadas registradas
+        {noTopPerformersLabel}
       </div>
     );
   }

@@ -157,13 +157,9 @@ describe('ControlApp', () => {
       'Posiciones — apertura-2026',
       'Posiciones',
     ],
-    ['/control/login', 'Iniciar sesión — CopaLibre', 'Ingresá para operar'],
-    ['/control/forgot-password', 'Recuperar contraseña — CopaLibre', 'Recuperar contraseña'],
-    [
-      '/control/reset-password',
-      'Restablecer contraseña — CopaLibre',
-      'Enlace de recuperación inválido',
-    ],
+    ['/control/login', 'Iniciar sesión — CopaLibre', 'Sign in to operate'],
+    ['/control/forgot-password', 'Recuperar contraseña — CopaLibre', 'Recover password'],
+    ['/control/reset-password', 'Restablecer contraseña — CopaLibre', 'Invalid recovery link'],
     [
       '/control/liga-mendocina/preferences',
       'Preferencias personales — CopaLibre',

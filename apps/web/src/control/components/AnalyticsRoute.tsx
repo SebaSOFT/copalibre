@@ -70,12 +70,12 @@ export function AnalyticsRoute({
           {intl.formatMessage(messages.navAnalytics)}
         </h1>
         <p style={{ margin: 0, color: 'var(--cl-text-muted)' }}>
-          Métricas de rendimiento y volumen operativo de la organización.
+          {intl.formatMessage(messages.analyticsSubtitle)}
         </p>
       </header>
 
       {loading ? (
-        <p>Cargando analíticas…</p>
+        <p>{intl.formatMessage(messages.analyticsLoading)}</p>
       ) : (
         <div style={{ display: 'grid', gap: 'var(--cl-space-6)' }}>
           <div
@@ -88,7 +88,7 @@ export function AnalyticsRoute({
             <Card>
               <div style={{ padding: 'var(--cl-space-4)' }}>
                 <span style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--cl-text-muted)' }}>
-                  Total de torneos
+                  {intl.formatMessage(messages.analyticsTotalTournaments)}
                 </span>
                 <div
                   style={{
@@ -100,7 +100,11 @@ export function AnalyticsRoute({
                   {tournaments.length}
                 </div>
                 <span style={{ fontSize: 'var(--cl-font-size-xs)', color: 'var(--cl-text-muted)' }}>
-                  {liveCount} en vivo · {upcomingCount} próximos · {finishedCount} finalizados
+                  {intl.formatMessage(messages.analyticsTournamentsBreakdown, {
+                    live: liveCount,
+                    upcoming: upcomingCount,
+                    finished: finishedCount,
+                  })}
                 </span>
               </div>
             </Card>
@@ -108,7 +112,7 @@ export function AnalyticsRoute({
             <Card>
               <div style={{ padding: 'var(--cl-space-4)' }}>
                 <span style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--cl-text-muted)' }}>
-                  Torneos finalizados
+                  {intl.formatMessage(messages.analyticsFinishedTournaments)}
                 </span>
                 <div
                   style={{
@@ -120,7 +124,7 @@ export function AnalyticsRoute({
                   {finishedCount}
                 </div>
                 <span style={{ fontSize: 'var(--cl-font-size-xs)', color: 'var(--cl-text-muted)' }}>
-                  Resultados archivados y completados
+                  {intl.formatMessage(messages.analyticsFinishedDetail)}
                 </span>
               </div>
             </Card>
@@ -128,7 +132,7 @@ export function AnalyticsRoute({
             <Card>
               <div style={{ padding: 'var(--cl-space-4)' }}>
                 <span style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--cl-text-muted)' }}>
-                  Almacenamiento utilizado
+                  {intl.formatMessage(messages.analyticsStorageUsed)}
                 </span>
                 <div
                   style={{
@@ -140,7 +144,11 @@ export function AnalyticsRoute({
                   {storage ? formatStorageBytes(storage.totalBytes) : '—'}
                 </div>
                 <span style={{ fontSize: 'var(--cl-font-size-xs)', color: 'var(--cl-text-muted)' }}>
-                  {storage ? `${storage.objectCount} archivos multimedia` : 'Sin datos'}
+                  {storage
+                    ? intl.formatMessage(messages.analyticsMediaFilesCount, {
+                        count: storage.objectCount,
+                      })
+                    : intl.formatMessage(messages.analyticsNoData)}
                 </span>
               </div>
             </Card>
