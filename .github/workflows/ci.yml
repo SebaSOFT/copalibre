@@ -240,6 +240,15 @@ jobs:
       - run: node scripts/check-descriptor-guide-coverage.mjs
       - run: node --test scripts/check-ui-ownership.test.mjs
       - run: node scripts/check-ui-ownership.mjs
+      # Atomic-composition tier contract (openspec 0225): tier membership,
+      # import direction, styling/data/i18n placement, orphan resolution and
+      # naming, over the resolved component graph. Known findings are
+      # recorded in the script's own path-keyed registers, so this only
+      # fails on a violation nobody has seen yet or on debt paid down
+      # without lowering its recorded count.
+      - run: node --test scripts/lib/component-graph.test.mjs
+      - run: node --test scripts/check-atomic-composition.test.mjs
+      - run: node scripts/check-atomic-composition.mjs
       # Role manual capability lists (openspec 0165): generated from
       # role-capabilities.ts, gated against it in both directions —
       # an undocumented grant and an over-promised claim both fail.
