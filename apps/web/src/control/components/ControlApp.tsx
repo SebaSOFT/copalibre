@@ -29,7 +29,7 @@ import {
 } from './ControlRoutes.js';
 
 import { LoginRoute, ForgotPasswordRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
-import { DashboardRoute } from './DashboardRoute.js';
+import { DashboardPage } from './pages/DashboardPage.js';
 import {
   controlLinkClick,
   loginRedirectUrl,
@@ -143,7 +143,7 @@ export function ControlApp(): React.JSX.Element | null {
     case 'platformAdministration':
       return <PlatformAdministrationControlRoute />;
     case 'dashboard':
-      return <DashboardRoute organizationAlias={route.organizationAlias} />;
+      return <DashboardPage organizationAlias={route.organizationAlias} />;
     case 'tournaments':
       return <TournamentsControlRoute organizationAlias={route.organizationAlias} />;
     case 'liveConsole':

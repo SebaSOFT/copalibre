@@ -29,7 +29,7 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
   {
     reference: 'Standings panel',
     storyId: 'Admin/Organisms/StandingsPanel — Playground',
-    consumers: ['control/components/StandingsPage.tsx'],
+    consumers: ['control/components/screens/StandingsTemplate.tsx'],
   },
   {
     reference: 'Operational tags',
@@ -81,7 +81,7 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
   {
     reference: 'Editorial release composition',
     storyId: 'Admin/Molecules/EditorialCard — Playground',
-    consumers: ['control/components/PlatformAdministrationRoute.tsx'],
+    consumers: ['control/components/pages/PlatformAdministrationPage.tsx'],
     note: 'The application has no release listing, so the composition is reached through the existing module-update information surface. No release-management subsystem was added.',
   },
   {
@@ -92,7 +92,7 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
   {
     reference: 'Audited results ledger',
     storyId: 'Admin/Organisms/AuditLogCard — ReferenceCorrection',
-    consumers: ['control/components/AuditTrailPage.tsx'],
+    consumers: ['control/components/screens/AuditTrailTemplate.tsx'],
   },
   {
     reference: 'Live match scorecard',

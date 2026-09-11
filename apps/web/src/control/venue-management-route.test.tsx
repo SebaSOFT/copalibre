@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { VenueManagementRoute } from './components/VenueManagementRoute.js';
+import { VenueManagementPage } from './components/pages/VenueManagementPage.js';
 import {
   ControlApiError,
   type ControlApiClient,
@@ -29,9 +29,9 @@ const oneOfficial: readonly OfficialResponse[] = [
   },
 ];
 
-describe('VenueManagementRoute', () => {
+describe('VenueManagementPage', () => {
   it('builds its own client when none is injected', async () => {
-    render(withIntl(<VenueManagementRoute organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage organizationAlias="liga-mendocina" />));
 
     // No assertions on the (real, unmocked) network outcome — this only
     // proves the component constructs a working default client rather than
@@ -45,7 +45,7 @@ describe('VenueManagementRoute', () => {
       listVenues: () => Promise.resolve(oneVenue),
       listOfficials: () => Promise.resolve(oneOfficial),
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
     await screen.findByText('Ana Gómez — Referee');
@@ -67,7 +67,7 @@ describe('VenueManagementRoute', () => {
       },
     );
     const client = stubClient({ listVenues: () => Promise.resolve(venues), createVenue });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no venues yet.');
     fireEvent.change(screen.getByLabelText('New venue name'), { target: { value: 'Cancha 2' } });
@@ -96,7 +96,7 @@ describe('VenueManagementRoute', () => {
       }),
     );
     const client = stubClient({ listVenues: () => Promise.resolve([]), createVenue });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no venues yet.');
     fireEvent.change(screen.getByLabelText('New venue name'), {
@@ -124,7 +124,7 @@ describe('VenueManagementRoute', () => {
       }),
     );
     const client = stubClient({ listOfficials: () => Promise.resolve([]), createOfficial });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no officials yet.');
     fireEvent.change(screen.getByLabelText('New official name'), {
@@ -152,7 +152,7 @@ describe('VenueManagementRoute', () => {
       details: { surface: 'clay' },
     }));
     const client = stubClient({ listVenues: () => Promise.resolve(oneVenue), updateVenue });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
     fireEvent.click(screen.getByText('Edit'));
@@ -181,7 +181,7 @@ describe('VenueManagementRoute', () => {
       listVenues: () => Promise.resolve(oneVenue),
       updateVenue: () => Promise.reject(new ControlApiError(409, 'La cancha ya existe')),
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
     fireEvent.click(screen.getByText('Edit'));
@@ -198,7 +198,7 @@ describe('VenueManagementRoute', () => {
       listOfficials: () => Promise.resolve([]),
       createOfficial: () => Promise.reject(new ControlApiError(409, 'El árbitro ya existe')),
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no officials yet.');
     fireEvent.change(screen.getByLabelText('New official name'), { target: { value: 'Beto' } });
@@ -221,7 +221,7 @@ describe('VenueManagementRoute', () => {
       }),
     );
     const client = stubClient({ listVenues: () => Promise.resolve([]), createVenue });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no venues yet.');
     fireEvent.change(screen.getByLabelText('New venue name'), { target: { value: 'Cancha 3' } });
@@ -243,7 +243,7 @@ describe('VenueManagementRoute', () => {
       listVenues: () => Promise.resolve([]),
       createVenue: () => Promise.reject(new Error('network down')),
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no venues yet.');
     fireEvent.change(screen.getByLabelText('New venue name'), { target: { value: 'Cancha 5' } });
@@ -266,7 +266,7 @@ describe('VenueManagementRoute', () => {
       listOfficials: () => Promise.resolve(oneOfficial),
       updateOfficial,
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Ana Gómez — Referee');
     fireEvent.click(screen.getByText('Edit'));
@@ -288,7 +288,7 @@ describe('VenueManagementRoute', () => {
       listVenues: () => Promise.resolve([]),
       createVenue: () => Promise.reject(new ControlApiError(409, 'Alias inválido')),
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no venues yet.');
     fireEvent.change(screen.getByLabelText('New venue name'), { target: { value: 'X' } });
@@ -302,7 +302,7 @@ describe('VenueManagementRoute', () => {
 
   it('reports a load failure', async () => {
     const client = stubClient({ listVenues: () => Promise.reject(new Error('down')) });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Could not load venues and officials.');
   });
@@ -316,7 +316,7 @@ describe('VenueManagementRoute', () => {
       concurrentCapacity: 1,
     }));
     const client = stubClient({ listVenues: () => Promise.resolve([]), createVenue });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no venues yet.');
     fireEvent.change(screen.getByLabelText('New venue name'), { target: { value: 'Cancha X' } });
@@ -334,7 +334,7 @@ describe('VenueManagementRoute', () => {
       roles: [],
     }));
     const client = stubClient({ listOfficials: () => Promise.resolve([]), createOfficial });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no officials yet.');
     fireEvent.change(screen.getByLabelText('New official name'), { target: { value: 'X' } });
@@ -354,7 +354,7 @@ describe('VenueManagementRoute', () => {
       }),
     );
     const client = stubClient({ listOfficials: () => Promise.resolve([]), createOfficial });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no officials yet.');
     fireEvent.change(screen.getByLabelText('New official name'), { target: { value: 'Beto' } });
@@ -391,7 +391,7 @@ describe('VenueManagementRoute', () => {
       details: { surface: 'grass', region: 'sa-east-1' },
     }));
     const client = stubClient({ listVenues: () => Promise.resolve(withDetails), updateVenue });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
     fireEvent.click(screen.getByText('Edit'));
@@ -424,7 +424,7 @@ describe('VenueManagementRoute', () => {
       listOfficials: () => Promise.resolve(oneOfficial),
       updateOfficial: () => Promise.reject(new Error('network down')),
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Ana Gómez — Referee');
     fireEvent.click(screen.getByText('Edit'));
@@ -441,7 +441,7 @@ describe('VenueManagementRoute', () => {
       listVenues: () => Promise.resolve(oneVenue),
       updateVenue: () => Promise.reject(new Error('network down')),
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
     fireEvent.click(screen.getByText('Edit'));
@@ -458,7 +458,7 @@ describe('VenueManagementRoute', () => {
       listOfficials: () => Promise.resolve([]),
       createOfficial: () => Promise.reject(new Error('network down')),
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no officials yet.');
     fireEvent.change(screen.getByLabelText('New official name'), { target: { value: 'Beto' } });
@@ -475,7 +475,7 @@ describe('VenueManagementRoute', () => {
       listOfficials: () => Promise.resolve(oneOfficial),
       updateOfficial: () => Promise.reject(new ControlApiError(409, 'El árbitro ya existe')),
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Ana Gómez — Referee');
     fireEvent.click(screen.getByText('Edit'));
@@ -526,7 +526,7 @@ describe('VenueManagementRoute', () => {
       listSchedules: () => Promise.resolve(schedules),
       createSchedule,
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no schedules yet.');
     fireEvent.change(screen.getByLabelText('Schedule name'), {
@@ -569,7 +569,7 @@ describe('VenueManagementRoute', () => {
       listSchedules: () => Promise.resolve([existingSchedule]),
       updateSchedule,
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     const scheduleRegion = await screen.findByRole('region', { name: 'Schedules' });
     fireEvent.click(within(scheduleRegion).getByText('Edit'));
@@ -607,7 +607,7 @@ describe('VenueManagementRoute', () => {
       listSchedules: () => Promise.resolve([existingSchedule]),
       deleteSchedule,
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     const scheduleRegion = await screen.findByRole('region', { name: 'Schedules' });
     await act(async () => {
@@ -635,7 +635,7 @@ describe('VenueManagementRoute', () => {
       createSchedule: () => Promise.reject(new Error('creation failed')),
       deleteSchedule: () => Promise.reject(new Error('delete failed')),
     });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     const scheduleRegion = await screen.findByRole('region', { name: 'Schedules' });
     await act(async () => {
@@ -646,7 +646,7 @@ describe('VenueManagementRoute', () => {
 
   it('ignores create clicks when the client has no create methods', async () => {
     const client = stubClient({ listVenues: () => Promise.resolve([]) });
-    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no venues yet.');
     expect(screen.queryByLabelText('New venue name')).toBeNull();

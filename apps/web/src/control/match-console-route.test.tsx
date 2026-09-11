@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
-import { MatchConsoleRoute } from './components/MatchConsoleRoute.js';
+import { MatchConsolePage } from './components/pages/MatchConsolePage.js';
 import {
   ControlApiError,
   type MatchConsoleApiClient,
@@ -163,7 +163,7 @@ const FIRST_SEGMENT: MatchConsoleResponse['segments'][number] = {
   durationSeconds: 2700,
 };
 
-describe('MatchConsoleRoute clock commands', () => {
+describe('MatchConsolePage clock commands', () => {
   /**
    * The console reconciles against whatever the server projection says after a
    * drain, so a stub that never moves would undo every optimistic patch. This
@@ -211,7 +211,7 @@ describe('MatchConsoleRoute clock commands', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client(overrides)}
             matchId="match-1"
             organizationAlias="liga"
@@ -248,7 +248,7 @@ describe('MatchConsoleRoute clock commands', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client(overrides)}
             matchId="match-1"
             organizationAlias="liga"
@@ -285,7 +285,7 @@ describe('MatchConsoleRoute clock commands', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               fetchMatchConsole: async () => scheduled,
               sendMatchCommand: async (_organization, _tournament, matchId, command, segmentId) => {
@@ -321,7 +321,7 @@ describe('MatchConsoleRoute clock commands', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               sendMatchCommand: async () => {
                 throw new TypeError('Failed to fetch');
@@ -348,7 +348,7 @@ describe('MatchConsoleRoute clock commands', () => {
   });
 });
 
-describe('MatchConsoleRoute event ledger', () => {
+describe('MatchConsolePage event ledger', () => {
   const manyEvents = {
     ...projection,
     events: ['one', 'two', 'three', 'four', 'five'].map((name, index) => ({
@@ -365,7 +365,7 @@ describe('MatchConsoleRoute event ledger', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({ fetchMatchConsole: async () => manyEvents })}
             matchId="match-1"
             organizationAlias="liga"
@@ -402,12 +402,12 @@ function syncIndicator(): HTMLElement {
   return screen.getByRole('status', { name: /^Sync status: / });
 }
 
-describe('MatchConsoleRoute', () => {
+describe('MatchConsolePage', () => {
   it('names both entrants in the score header, never their raw identifiers', async () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client()}
             matchId="match-1"
             organizationAlias="liga"
@@ -432,7 +432,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({ fetchMatchConsole: async () => unnamed })}
             matchId="match-1"
             organizationAlias="liga"
@@ -452,7 +452,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               recordMatchEvent: async (_organization, _tournament, _match, request) => {
                 requests.push(request);
@@ -505,7 +505,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               recordMatchEvent: async (_organization, _tournament, _match, request) => {
                 requests.push(request);
@@ -588,7 +588,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               fetchMatchConsole: async () => foulProjection,
               recordMatchEvent: async (_organization, _tournament, _match, request) => {
@@ -628,7 +628,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               recordMatchEvent: async (_organization, _tournament, _match, request) => {
                 requests.push(request);
@@ -669,7 +669,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({ fetchMatchConsole: async () => timedProjection })}
             matchId="match-1"
             organizationAlias="liga"
@@ -691,7 +691,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client()}
             matchId="match-1"
             organizationAlias="liga"
@@ -736,7 +736,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               fetchMatchConsole: async () => projectionWithSecondaryField,
               recordMatchEvent: async (_organization, _tournament, _match, request) => {
@@ -788,7 +788,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               fetchMatchConsole: async () => projectionWithSecondaryField,
               recordMatchEvent: async (_organization, _tournament, _match, request) => {
@@ -831,7 +831,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         <IntlProvider defaultLocale="en" locale="es">
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({ fetchMatchConsole: async () => bilingualProjection })}
             matchId="match-1"
             organizationAlias="liga"
@@ -849,7 +849,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client()}
             matchId="match-1"
             organizationAlias="liga"
@@ -872,7 +872,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               recordMatchEvent: async (_organization, _tournament, _match, request) => {
                 requests.push(request);
@@ -932,7 +932,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               finalizeMatch: async (
                 _organization,
@@ -979,7 +979,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               finalizeMatch: async (
                 _organization,
@@ -1044,7 +1044,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               fetchMatchConsole: async () => withTimer,
               adjustMatchClock: async () => {
@@ -1082,7 +1082,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               recordMatchEvent: async () => {
                 // A real refusal (a `ControlApiError`, matching what the API
@@ -1112,7 +1112,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({ fetchMatchConsole: async () => Promise.reject(new Error('offline')) })}
             matchId="match-1"
             organizationAlias="liga"
@@ -1137,7 +1137,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({ fetchMatchConsole: async () => unavailable })}
             matchId="match-1"
             organizationAlias="liga"
@@ -1171,7 +1171,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               fetchMatchConsole: async () => personProjection,
               recordMatchEvent: async (_o, _t, _m, request) => {
@@ -1202,7 +1202,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client()}
             matchId="match-1"
             organizationAlias="liga"
@@ -1244,7 +1244,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({ fetchMatchConsole: async () => unavailablePerson })}
             matchId="match-1"
             organizationAlias="liga"
@@ -1268,7 +1268,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       render(
         withIntl(
-          <MatchConsoleRoute
+          <MatchConsolePage
             client={client({
               fetchMatchConsole: async () => completed,
               recordMatchEvent: async (_organization, _tournament, _match, request) => {
@@ -1309,7 +1309,7 @@ describe('MatchConsoleRoute', () => {
       await act(async () => {
         render(
           withIntl(
-            <MatchConsoleRoute
+            <MatchConsolePage
               client={client({
                 matchConsoleStream: () => ({ url: 'https://events.test/control/liga' }),
               })}
@@ -1363,7 +1363,7 @@ describe('MatchConsoleRoute', () => {
       await act(async () => {
         render(
           withIntl(
-            <MatchConsoleRoute
+            <MatchConsolePage
               client={client({
                 fetchMatchConsole: async () => {
                   loads += 1;
@@ -1388,7 +1388,7 @@ describe('MatchConsoleRoute', () => {
   it('links to the load-match-data screen only for a scheduled match with no prior activity', async () => {
     render(
       withIntl(
-        <MatchConsoleRoute
+        <MatchConsolePage
           client={client()}
           matchId="match-1"
           organizationAlias="liga"
@@ -1410,7 +1410,7 @@ describe('MatchConsoleRoute', () => {
     };
     render(
       withIntl(
-        <MatchConsoleRoute
+        <MatchConsolePage
           client={client({ fetchMatchConsole: async () => scheduledNoActivity })}
           matchId="match-1"
           organizationAlias="liga"
@@ -1432,7 +1432,7 @@ describe('MatchConsoleRoute', () => {
     };
     render(
       withIntl(
-        <MatchConsoleRoute
+        <MatchConsolePage
           client={client({ fetchMatchConsole: async () => withRosterCapability })}
           matchId="match-1"
           organizationAlias="liga"
@@ -1462,7 +1462,7 @@ describe('MatchConsoleRoute', () => {
     };
     render(
       withIntl(
-        <MatchConsoleRoute
+        <MatchConsolePage
           client={client({ fetchMatchConsole: async () => noRosterYet })}
           matchId="match-1"
           organizationAlias="liga"
@@ -1484,7 +1484,7 @@ describe('MatchConsoleRoute', () => {
       await act(async () => {
         render(
           withIntl(
-            <MatchConsoleRoute
+            <MatchConsolePage
               client={client({
                 adjustMatchClock: async () => {
                   throw new TypeError('Failed to fetch');
@@ -1528,7 +1528,7 @@ describe('MatchConsoleRoute', () => {
       await act(async () => {
         render(
           withIntl(
-            <MatchConsoleRoute
+            <MatchConsolePage
               client={client({ adjustMatchClock })}
               matchId="match-1"
               organizationAlias="liga"
@@ -1554,7 +1554,7 @@ describe('MatchConsoleRoute', () => {
       await act(async () => {
         render(
           withIntl(
-            <MatchConsoleRoute
+            <MatchConsolePage
               client={client()}
               matchId="match-1"
               organizationAlias="liga"
@@ -1596,7 +1596,7 @@ describe('MatchConsoleRoute', () => {
       await act(async () => {
         render(
           withIntl(
-            <MatchConsoleRoute
+            <MatchConsolePage
               client={client()}
               matchId="match-1"
               organizationAlias="liga"

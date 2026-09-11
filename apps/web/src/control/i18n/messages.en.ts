@@ -329,7 +329,7 @@ export const messages = defineMessages({
       '{count, plural, =0 {This change requires regenerating the competitive structure.} one {This change requires regenerating # fixture.} other {This change requires regenerating # fixtures.}}',
   },
 
-  // SeedingBuilderPage.tsx
+  // SeedingBuilderTemplate.tsx
   seedingSectionLabel: {
     id: 'control.seeding.sectionLabel',
     defaultMessage: 'Seeding and bracket',
@@ -358,7 +358,7 @@ export const messages = defineMessages({
     defaultMessage: 'Generated bracket',
   },
 
-  // Reports/disputes (lib/reports.ts, ReportReviewRoute.tsx)
+  // Reports/disputes (lib/reports.ts, ReportReviewPage.tsx)
   reportKindReport: { id: 'control.report.kind.report', defaultMessage: 'Proposed result' },
   reportKindDispute: { id: 'control.report.kind.dispute', defaultMessage: 'Dispute' },
   reportGenericSummary: {
@@ -385,7 +385,7 @@ export const messages = defineMessages({
   },
   reportDismiss: { id: 'control.report.dismiss', defaultMessage: 'Dismiss' },
 
-  // TournamentAuthoringPage.tsx
+  // TournamentAuthoringTemplate.tsx
   authoringLoadingDisciplines: {
     id: 'control.authoring.loadingDisciplines',
     defaultMessage: 'Loading disciplines...',
@@ -411,7 +411,7 @@ export const messages = defineMessages({
     defaultMessage: 'Could not create the tournament.',
   },
 
-  // MatchConsoleRoute.tsx
+  // MatchConsolePage.tsx
   matchConsoleLoading: {
     id: 'control.matchConsole.loading',
     defaultMessage: 'Loading match control...',
@@ -681,7 +681,7 @@ export const messages = defineMessages({
     defaultMessage: 'This entrant has no registered players yet.',
   },
 
-  // RegistrationReviewRoute.tsx
+  // RegistrationReviewPage.tsx
   registrationLoading: {
     id: 'control.registration.loading',
     defaultMessage: 'Loading registrations...',
@@ -735,7 +735,7 @@ export const messages = defineMessages({
     defaultMessage: 'Not recorded',
   },
 
-  // lib/review.ts, RegistrationReviewPage.tsx
+  // lib/review.ts, RegistrationReviewTemplate.tsx
   reviewLockExplanation: {
     id: 'control.review.lockExplanation',
     defaultMessage:
@@ -900,7 +900,7 @@ export const messages = defineMessages({
     defaultMessage: 'Search country…',
   },
 
-  // PersonProfileRoute.tsx
+  // PersonProfilePage.tsx
   personProfileTitle: { id: 'control.personProfile.title', defaultMessage: 'Person profile' },
   personProfileLoading: {
     id: 'control.personProfile.loading',
@@ -942,7 +942,7 @@ export const messages = defineMessages({
     defaultMessage: 'No emblem',
   },
 
-  // RolesPermissionsRoute.tsx, RolesPermissionsPage.tsx
+  // RolesPermissionsPage.tsx, RolesPermissionsTemplate.tsx
   rolesLoadFailed: {
     id: 'control.roles.loadFailed',
     defaultMessage: 'Could not load the users.',
@@ -1034,7 +1034,7 @@ export const messages = defineMessages({
     defaultMessage: 'Send invitation',
   },
 
-  // AuditTrailRoute.tsx
+  // AuditTrailPage.tsx
   auditTrailTitle: { id: 'control.auditTrail.title', defaultMessage: 'Audit trail' },
   auditTrailDescription: {
     id: 'control.auditTrail.description',
@@ -1393,7 +1393,7 @@ export const messages = defineMessages({
       'This cannot be changed once a result exists; use the audited correction workflow instead.',
   },
 
-  // Standings (components/StandingsPage.tsx)
+  // Standings (components/StandingsTemplate.tsx)
   standingsSectionLabel: { id: 'control.standings.sectionLabel', defaultMessage: 'Standings' },
   standingsTitle: { id: 'control.standings.title', defaultMessage: 'Standings' },
   standingsProjectionVersion: {
@@ -1552,7 +1552,7 @@ export const messages = defineMessages({
   zoneGroupRename: { id: 'control.zoneGroup.rename', defaultMessage: 'Rename' },
   zoneGroupDelete: { id: 'control.zoneGroup.delete', defaultMessage: 'Delete' },
 
-  // TournamentSettingsPage.tsx, TournamentSettingsRoute.tsx (openspec 0168)
+  // TournamentSettingsTemplate.tsx, TournamentSettingsPage.tsx (openspec 0168)
   settingsTitle: { id: 'control.settings.title', defaultMessage: 'Tournament settings' },
   settingsLoading: { id: 'control.settings.loading', defaultMessage: 'Loading settings…' },
   settingsLoadFailed: {
@@ -1611,7 +1611,7 @@ export const messages = defineMessages({
     defaultMessage: 'Tournament emblem removed.',
   },
 
-  // TournamentRulesetPage.tsx, TournamentRulesetRoute.tsx (openspec 0169)
+  // TournamentRulesetTemplate.tsx, TournamentRulesetPage.tsx (openspec 0169)
   rulesetOverridesTitle: { id: 'control.rulesetOverrides.title', defaultMessage: 'Ruleset' },
   rulesetOverridesLink: { id: 'control.rulesetOverrides.link', defaultMessage: 'Ruleset' },
   rulesetOverridesFields: {
@@ -1635,7 +1635,7 @@ export const messages = defineMessages({
     defaultMessage: 'Value (JSON)',
   },
 
-  // SeedingBuilderRoute.tsx — stage rename/format-change/delete (openspec 0168)
+  // SeedingBuilderPage.tsx — stage rename/format-change/delete (openspec 0168)
   stageSettingsTitle: { id: 'control.stageSettings.title', defaultMessage: 'Stage settings' },
   stageRenameLabel: { id: 'control.stageSettings.renameLabel', defaultMessage: 'New stage name' },
   stageRenameSubmit: { id: 'control.stageSettings.renameSubmit', defaultMessage: 'Rename' },
@@ -1650,7 +1650,7 @@ export const messages = defineMessages({
     defaultMessage: 'This stage already has fixtures, so its format and removal are locked.',
   },
 
-  // SeedingBuilderRoute.tsx — stage-configuration override editing (openspec 0169)
+  // SeedingBuilderPage.tsx — stage-configuration override editing (openspec 0169)
   stageConfigurationTitle: {
     id: 'control.stageConfiguration.title',
     defaultMessage: 'Stage configuration',
@@ -2945,7 +2945,7 @@ export const messages = defineMessages({
     defaultMessage: 'Author and install',
   },
 
-  // Matches view (openspec 0172) — MatchesViewRoute.tsx, shared MatchCard.tsx
+  // Matches view (openspec 0172) — MatchesViewPage.tsx, shared MatchCard.tsx
   matchesViewControlTitle: { id: 'control.matchesView.title', defaultMessage: 'Matches' },
   matchesViewControlLoadFailed: {
     id: 'control.matchesView.loadFailed',
@@ -3115,7 +3115,7 @@ export const messages = defineMessages({
 
   // Roster role selector (openspec 0225 task 2.6). `rosterRole*` replace
   // ROSTER_ROLE_LABELS, previously a plain Spanish-only lookup object
-  // consumed here and by RegistrationReviewPage.tsx.
+  // consumed here and by RegistrationReviewTemplate.tsx.
   rosterRolePlayer: { id: 'control.roster.rolePlayer', defaultMessage: 'Player' },
   rosterRoleSubstitute: { id: 'control.roster.roleSubstitute', defaultMessage: 'Substitute' },
   rosterRoleCoach: { id: 'control.roster.roleCoach', defaultMessage: 'Coach' },

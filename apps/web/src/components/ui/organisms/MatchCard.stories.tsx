@@ -39,7 +39,7 @@ const meta = {
   /*
    * Rendered in the grid it actually ships inside.
    *
-   * `matches.astro` and `MatchesViewRoute` both place this card in
+   * `matches.astro` and `MatchesViewPage` both place this card in
    * `.cl-matches-view__grid`, so a bare story showed it 1408px wide at desktop
    * — four times its real width, and nothing like the 343px it occupies beside
    * its siblings. A card reviewed at a width it never has is a card reviewed

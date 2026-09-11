@@ -21,7 +21,7 @@ const ALLOWED_BUTTON_FILES = new Set([
   'control/components/JerseyGrid.tsx',
   'control/components/CountrySelect.tsx',
   'control/components/ToastProvider.tsx',
-  'control/components/StandingsPage.tsx',
+  'control/components/screens/StandingsTemplate.tsx',
 ]);
 
 const ALLOWED_INPUT_FILES = new Set(['control/components/JerseyGrid.tsx']);
@@ -60,27 +60,27 @@ export const KNOWN_RAW_ELEMENTS = new Map([
     13,
   ],
   // Operator surface — converted screens eliminated; only remaining items:
-  ['control/components/SeedingBuilderRoute.tsx', 5],
+  ['control/components/pages/SeedingBuilderPage.tsx', 5],
   // Includes one raw <form> task 2.4 governs (see the form-structure block below).
-  ['control/components/TournamentRulesetPage.tsx', 4],
+  ['control/components/screens/TournamentRulesetTemplate.tsx', 4],
   // Form-structure elements (task 2.4): `<form>`, `<label>`, `<fieldset>`,
   // `<legend>` and table parts outside the table owners, now governed by
   // `Form`, `Field`/`Label`, `FieldSet` and `DataTable` (tasks 2.2-2.3).
   // Recorded as debt, not fixed here — adoption is a later task.
   ['control/components/AcceptInvitationForm.tsx', 1],
   ['control/components/DescriptorBuilderWizard.tsx', 5],
-  ['control/components/LoadMatchDataRoute.tsx', 3],
+  ['control/components/pages/LoadMatchDataPage.tsx', 3],
   ['control/components/NativeAuthRoutes.tsx', 3],
-  ['control/components/PlatformAdministrationRoute.tsx', 4],
-  ['control/components/PreferencesRoute.tsx', 1],
-  ['control/components/RegistrationReviewPage.tsx', 4],
-  ['control/components/RolesPermissionsPage.tsx', 3],
+  ['control/components/pages/PlatformAdministrationPage.tsx', 4],
+  ['control/components/pages/PreferencesPage.tsx', 1],
+  ['control/components/screens/RegistrationReviewTemplate.tsx', 4],
+  ['control/components/screens/RolesPermissionsTemplate.tsx', 3],
   ['control/components/RosterSelectionStep.tsx', 3],
-  ['control/components/ScheduleBuilderRoute.tsx', 3],
-  ['control/components/TournamentSettingsPage.tsx', 2],
+  ['control/components/pages/ScheduleBuilderPage.tsx', 3],
+  ['control/components/screens/TournamentSettingsTemplate.tsx', 2],
   ['control/components/TournamentSetupWizard.tsx', 7],
-  ['control/components/VenueManagementRoute.tsx', 11],
-  ['control/components/ZoneGroupRoute.tsx', 4],
+  ['control/components/pages/VenueManagementPage.tsx', 11],
+  ['control/components/pages/ZoneGroupPage.tsx', 4],
 ]);
 
 /**
@@ -165,13 +165,13 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   ['control/components/ActivityLog.tsx', 1],
   ['control/components/BracketCanvas.tsx', 2],
   ['control/components/DeviceHeartbeat.tsx', 1],
-  ['control/components/LiveConsoleRoute.tsx', 3],
-  ['control/components/LoadMatchDataRoute.tsx', 1],
-  ['control/components/RegistrationReviewPage.tsx', 3],
+  ['control/components/pages/LiveConsolePage.tsx', 3],
+  ['control/components/pages/LoadMatchDataPage.tsx', 1],
+  ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 2],
-  ['control/components/SeedingBuilderPage.tsx', 2],
-  ['control/components/SeedingBuilderRoute.tsx', 2],
-  ['control/components/StandingsPage.tsx', 2],
+  ['control/components/screens/SeedingBuilderTemplate.tsx', 2],
+  ['control/components/pages/SeedingBuilderPage.tsx', 2],
+  ['control/components/screens/StandingsTemplate.tsx', 2],
   ['control/components/TournamentCard.tsx', 1],
   // Public and broadcast surfaces.
   //

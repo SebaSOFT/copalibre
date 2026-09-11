@@ -138,7 +138,7 @@ test('resolveSpecifier resolves a .js specifier against a sibling .tsx source', 
 test('tierOf reads the nearest ui/<tier> ancestor; a non-library file is a screen', () => {
   assert.equal(tierOf('control/components/ui/atoms/button.tsx'), 'atoms');
   assert.equal(tierOf('components/ui/organisms/MatchCard.tsx'), 'organisms');
-  assert.equal(tierOf('control/components/MatchConsoleRoute.tsx'), 'screen');
+  assert.equal(tierOf('control/components/pages/MatchConsolePage.tsx'), 'screen');
 });
 
 test('surfaceOf classifies control, tv and public paths', () => {

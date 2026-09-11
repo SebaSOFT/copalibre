@@ -6,7 +6,7 @@
  * this molecule receives everything via props, it fetches nothing.
  *
  * CSS classes stay `cl-form-field*` across the rename — several screens
- * (`StandingsPage.tsx`, `ImageCropModal.tsx`) already compose that class
+ * (`StandingsTemplate.tsx`, `ImageCropModal.tsx`) already compose that class
  * name directly for a paragraph this molecule does not own, and renaming it
  * would turn those into ownership violations for no behavioral reason.
  */

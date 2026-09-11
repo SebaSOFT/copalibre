@@ -9,7 +9,7 @@ import {
 } from './lib/api-client.js';
 import type { CanvasMatch } from './lib/bracket-canvas.js';
 import { SeedingControlRoute, StandingsControlRoute } from './components/ControlRoutes.js';
-import { SeedingBuilderPage } from './components/SeedingBuilderPage.js';
+import { SeedingBuilderTemplate } from './components/screens/SeedingBuilderTemplate.js';
 import { withIntl } from './i18n/test-support.js';
 
 const groupPhaseLayout: TableLayoutSummaryResponse = {
@@ -81,7 +81,7 @@ function openRow(entrantId: string): HTMLDetailsElement {
   return row;
 }
 
-describe('SeedingBuilderPage', () => {
+describe('SeedingBuilderTemplate', () => {
   const seeds = [
     { seed: 1, entrantId: 'tll', locked: false },
     { seed: 2, entrantId: 'ind', locked: false },
@@ -90,7 +90,7 @@ describe('SeedingBuilderPage', () => {
   it('locks a seed and keeps it through a randomize', () => {
     render(
       withIntl(
-        <SeedingBuilderPage
+        <SeedingBuilderTemplate
           hasRecordedResults={false}
           matches={matches}
           organizationAlias="liga-mendocina"
@@ -111,7 +111,7 @@ describe('SeedingBuilderPage', () => {
   it('undoes and redoes a change', () => {
     render(
       withIntl(
-        <SeedingBuilderPage
+        <SeedingBuilderTemplate
           hasRecordedResults={false}
           matches={matches}
           organizationAlias="liga-mendocina"
@@ -134,7 +134,7 @@ describe('SeedingBuilderPage', () => {
   it('blocks every seeding action once a result exists, and explains why', () => {
     render(
       withIntl(
-        <SeedingBuilderPage
+        <SeedingBuilderTemplate
           hasRecordedResults
           matches={matches}
           organizationAlias="liga-mendocina"
@@ -159,7 +159,7 @@ describe('SeedingBuilderPage', () => {
     const onPublish = jest.fn();
     render(
       withIntl(
-        <SeedingBuilderPage
+        <SeedingBuilderTemplate
           hasRecordedResults={false}
           matches={matches}
           onPublish={onPublish as unknown as (next: readonly (typeof seeds)[number][]) => void}
@@ -183,7 +183,7 @@ describe('SeedingBuilderPage', () => {
   it('names an unresolved slot and shows the format badge', () => {
     render(
       withIntl(
-        <SeedingBuilderPage
+        <SeedingBuilderTemplate
           hasRecordedResults={false}
           matches={matches}
           organizationAlias="liga-mendocina"
@@ -202,7 +202,7 @@ describe('SeedingBuilderPage', () => {
   it('zooms the canvas through the declared stops', () => {
     render(
       withIntl(
-        <SeedingBuilderPage
+        <SeedingBuilderTemplate
           hasRecordedResults={false}
           matches={matches}
           organizationAlias="liga-mendocina"
@@ -222,7 +222,7 @@ describe('SeedingBuilderPage', () => {
   it('says a stage has no structure rather than drawing an empty frame', () => {
     render(
       withIntl(
-        <SeedingBuilderPage
+        <SeedingBuilderTemplate
           hasRecordedResults={false}
           matches={[]}
           organizationAlias="liga-mendocina"
