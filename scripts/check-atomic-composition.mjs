@@ -817,20 +817,19 @@ const BANNED_ORNAMENT_TOKENS = [
 ];
 
 /**
- * Debt recorded 2026-09-11: `tiebreaker-sequence.tsx:86` uses `--cl-glow-cyan`
+ * Debt recorded 2026-09-11: `tiebreaker-sequence.tsx:86` used `--cl-glow-cyan`
  * as a resting indicator (design.md's one genuine ornament defect the
- * critique found — task 5.4 replaces it with a token that carries the state
- * without the glow). The former `ChampionshipMatchCard.tsx:36` carried the
+ * critique found) and the former `ChampionshipMatchCard.tsx:36` carried the
  * identical pattern (`isLive ? 'var(--cl-glow-cyan)' : 'none'`) — a second
- * instance this rule finds that the manual critique did not name. Task 4.3
- * merged that component's implementation into `MatchCard.tsx` rather than
- * deleting it, so the ornament moved with the code; still task 5.4's fix,
- * not this merge's.
+ * instance this rule found that the manual critique did not name, carried
+ * into `MatchCard.tsx` by task 4.3's merge. Both are gone: task 5.4 replaced
+ * the tiebreaker's glow with a doubled border width (the triggered state
+ * already reads from background, text colour and a "Triggered" badge; the
+ * border was a fourth cue, not the only one) and removed the championship
+ * card's glow outright, since its own state was already fully carried by the
+ * status pill's background, colour and text.
  */
-export const KNOWN_BANNED_ORNAMENT = new Map([
-  ['control/components/ui/molecules/tiebreaker-sequence.tsx', 1],
-  ['components/ui/organisms/MatchCard.tsx', 1],
-]);
+export const KNOWN_BANNED_ORNAMENT = new Map();
 
 export function checkBannedOrnament(nodes) {
   const violations = [];

@@ -266,10 +266,7 @@ export function ChampionshipMatchCard({
   const isLive = status.toUpperCase() === 'LIVE';
 
   return (
-    <div
-      className={`cl-championship-card cl-chamfer ${className}`.trim()}
-      style={{ boxShadow: isLive ? 'var(--cl-glow-cyan)' : 'none' }}
-    >
+    <div className={`cl-championship-card cl-chamfer ${className}`.trim()}>
       {/* Header with Trophy Icon and Status */}
       <div className="cl-championship-card__header">
         <div className="cl-championship-card__title-group">

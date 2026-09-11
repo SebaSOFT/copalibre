@@ -1104,10 +1104,11 @@ function components(): string {
     '',
     // The grand-final spotlight (openspec 0225 task 4.3/5.2) — a MatchCard
     // variant, not MatchCardData's shape: a seed and a per-participant winner
-    // flag have no place there. `box-shadow` stays inline in the component,
-    // set only under `isLive`: it reaches the banned `--cl-glow-cyan` resting
-    // ornament task 5.4 replaces, and belongs there rather than baked into
-    // this stylesheet ahead of that fix.
+    // flag have no place there. No `box-shadow` here: an `isLive`-only resting
+    // glow (`--cl-glow-cyan`) used to mark the live state at the card level
+    // (task 5.4 removed it, DESIGN.md's anti-glow rule) — redundant ornament
+    // even before the ban, since the status pill's own background, colour and
+    // "LIVE"/"FINAL" text already carry that fact on their own.
     '.cl-championship-card { background: var(--cl-surface-panel); border: 2px solid var(--cl-state-live); padding: var(--cl-space-4); position: relative; overflow: hidden; }',
     '.cl-championship-card__header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--cl-border-muted); padding-bottom: var(--cl-space-2); margin-bottom: var(--cl-space-3); }',
     '.cl-championship-card__title-group { display: flex; align-items: center; gap: var(--cl-space-2); }',
