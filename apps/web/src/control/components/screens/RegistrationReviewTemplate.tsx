@@ -8,6 +8,7 @@ import { FilePicker } from '../ui/atoms/file-picker.js';
 import { Input } from '../ui/atoms/input.js';
 import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
+import { TableToolbar } from '../ui/molecules/table-toolbar.js';
 import { CountrySelect } from '../CountrySelect.js';
 import {
   personPhotoUrl,
@@ -152,45 +153,48 @@ export function RegistrationReviewTemplate({
   const titleNode = <FormattedMessage {...messages.reviewTitle} />;
 
   const toolbarNode = (
-    <div className="cl-table-toolbar">
-      <div className="cl-table-toolbar__filters">
-        <Select
-          aria-label={intl.formatMessage(messages.reviewStatusFieldLabel)}
-          onValueChange={(value) =>
-            setState((current) => setFilter(current, value as StatusFilter, rows))
-          }
-          options={FILTERS.map((filter) => ({
-            value: filter.value,
-            label: intl.formatMessage(filter.label),
-          }))}
-          value={state.filter}
-        />
-      </div>
-      <div className="cl-table-toolbar__actions">
-        <Button onClick={() => setAddOpen(true)} type="button">
-          <FormattedMessage {...messages.reviewAddParticipant} />
-        </Button>
-        <Button
-          disabled={state.selected.length === 0}
-          onClick={() => void onBulkReview?.({ entrantIds: state.selected, decision: 'accepted' })}
-          type="button"
-          variant="secondary"
-        >
-          <FormattedMessage {...messages.reviewApprove} />
-        </Button>
-        <Button
-          disabled={state.selected.length === 0}
-          onClick={() => void onBulkReview?.({ entrantIds: state.selected, decision: 'refused' })}
-          type="button"
-          variant="destructive-outline"
-        >
-          <FormattedMessage {...messages.reviewRefuse} />
-        </Button>
-        <Button type="button">
-          <FormattedMessage {...messages.reviewExport} />
-        </Button>
-      </div>
-    </div>
+    <TableToolbar
+      actions={
+        <>
+          <Button onClick={() => setAddOpen(true)} type="button">
+            <FormattedMessage {...messages.reviewAddParticipant} />
+          </Button>
+          <Button
+            disabled={state.selected.length === 0}
+            onClick={() =>
+              void onBulkReview?.({ entrantIds: state.selected, decision: 'accepted' })
+            }
+            type="button"
+            variant="secondary"
+          >
+            <FormattedMessage {...messages.reviewApprove} />
+          </Button>
+          <Button
+            disabled={state.selected.length === 0}
+            onClick={() => void onBulkReview?.({ entrantIds: state.selected, decision: 'refused' })}
+            type="button"
+            variant="destructive-outline"
+          >
+            <FormattedMessage {...messages.reviewRefuse} />
+          </Button>
+          <Button type="button">
+            <FormattedMessage {...messages.reviewExport} />
+          </Button>
+        </>
+      }
+    >
+      <Select
+        aria-label={intl.formatMessage(messages.reviewStatusFieldLabel)}
+        onValueChange={(value) =>
+          setState((current) => setFilter(current, value as StatusFilter, rows))
+        }
+        options={FILTERS.map((filter) => ({
+          value: filter.value,
+          label: intl.formatMessage(filter.label),
+        }))}
+        value={state.filter}
+      />
+    </TableToolbar>
   );
 
   const listingNode = (

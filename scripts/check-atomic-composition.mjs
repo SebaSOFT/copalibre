@@ -391,6 +391,18 @@ export function checkI18nPlacement(nodes) {
  * reference index with a reason (task 4.5) — a dev-only preview seam and
  * workbench-only infrastructure, neither shipping to a production surface.
  *
+ * `table-toolbar.tsx`'s entry is gone: task 4.1 gave it a real consumer
+ * (`RegistrationReviewTemplate.tsx`'s filter/actions row). `StandingsTemplate.tsx`
+ * was not adopted the same way — its `cl-table-toolbar__filters` usage
+ * borrows one BEM child class for an unrelated `role="tablist"` group inside
+ * a `cl-platform-form-grid` layout, not the toolbar's title/filters/actions
+ * composition, and this scanner already treats a BEM child class as the
+ * component's own structure rather than a bypass of it (see
+ * `check-ui-ownership.mjs`'s `OWNED_CLASS_RULES` comment). Forcing the real
+ * `TableToolbar` there would drop the tablist's `role` (an accessibility
+ * regression) or nest an extra flex wrapper inside the grid (a visual
+ * change) — either violates this change's own non-goal.
+ *
  * `language-selector.tsx` joined this register in task 3.3: its
  * reference-index row's storyId names it `LanguageSelector` (a component
  * name, matching Storybook's convention of titling by the exported
@@ -404,7 +416,6 @@ export const KNOWN_ORPHANS = new Map([
   ['components/ui/organisms/ChampionshipMatchCard.tsx', 1],
   ['control/components/ui/atoms/language-selector.tsx', 1],
   ['control/components/ui/molecules/pagination.tsx', 1],
-  ['control/components/ui/molecules/table-toolbar.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 1],
   ['control/components/ui/layouts/form-screen-layout.tsx', 1],
   // The four layout primitives (task 2.1) ship before their consumers adopt
