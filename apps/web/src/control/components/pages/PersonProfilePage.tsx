@@ -1,23 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage } from 'react-intl';
 import {
   createControlApiClient,
-  personPhotoUrl,
   type ControlApiClient,
   type PersonResponse,
 } from '../../lib/api-client.js';
-import { controlLinkClick } from '../../lib/control-navigation.js';
-import { countryFlag, countryName } from '../../lib/country.js';
-import { isSupportedLanguage } from '@copalibre/domain';
 import { controlTokenStore } from '../../session/token-store.js';
-import { FramedImage } from '../FramedImage.js';
-import { PersonPhotoPlaceholder } from '../placeholders.js';
-import { Card } from '../ui/atoms/card.js';
-import { FieldValue } from '../ui/molecules/field-value.js';
 import { messages } from '../../i18n/messages.en.js';
-
-import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { PersonProfileTemplate } from '../screens/PersonProfileTemplate.js';
 
 type LoadStatus = 'loading' | 'ready' | 'failed';
 
@@ -27,6 +18,9 @@ type LoadStatus = 'loading' | 'ready' | 'failed';
  * affordances here — nationality and photo are set from the registration review
  * screen's expanded row (design.md's non-goal rules out a separate "edit person"
  * screen).
+ *
+ * Fetches (openspec 0225 task 6.2): the person load lives here;
+ * `PersonProfileTemplate` composes the screen from the resulting data.
  */
 export function PersonProfilePage({
   organizationAlias,
@@ -37,8 +31,6 @@ export function PersonProfilePage({
   readonly personId: string;
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
-  const intl = useIntl();
-  const language = isSupportedLanguage(intl.locale) ? intl.locale : 'en';
   const api = useMemo(
     () =>
       client ??
@@ -69,8 +61,6 @@ export function PersonProfilePage({
     };
   }, [api, organizationAlias, personId]);
 
-  const backHref = `/control/${organizationAlias}`;
-
   if (status === 'loading') {
     return (
       <Alert tone="info">
@@ -86,59 +76,11 @@ export function PersonProfilePage({
     );
   }
 
-  const titleNode = (
-    <>
-      {person.nationality !== undefined && (
-        <span aria-hidden="true">{countryFlag(person.nationality)} </span>
-      )}
-      {person.displayName}
-    </>
+  return (
+    <PersonProfileTemplate
+      organizationAlias={organizationAlias}
+      person={person}
+      personId={personId}
+    />
   );
-
-  const breadcrumbNode = (
-    <a className="cl-focusable" href={backHref} onClick={controlLinkClick(backHref)}>
-      {intl.formatMessage(messages.personProfileBack)}
-    </a>
-  );
-
-  const cardNode = (
-    <Card className="cl-chamfer cl-chamfer--control">
-      <FramedImage
-        key={person.photoObjectId ?? 'none'}
-        alt={intl.formatMessage(messages.personProfilePhotoAlt, {
-          displayName: person.displayName,
-        })}
-        placeholder={
-          <PersonPhotoPlaceholder
-            title={intl.formatMessage(messages.personProfilePhotoPlaceholderAlt)}
-          />
-        }
-        size={96}
-        src={
-          person.photoObjectId !== undefined
-            ? personPhotoUrl(organizationAlias, personId)
-            : undefined
-        }
-      />
-
-      <FieldValue
-        label={intl.formatMessage(messages.personProfileNationalityLabel)}
-        value={
-          person.nationality === undefined
-            ? intl.formatMessage(messages.reviewNationalityNone)
-            : countryName(person.nationality, language)
-        }
-      />
-      <FieldValue
-        label={intl.formatMessage(messages.personProfileNaturalKeyLabel)}
-        value={
-          person.naturalKey === undefined
-            ? intl.formatMessage(messages.personProfileNaturalKeyUnavailable)
-            : `${person.naturalKey.kind}: ${person.naturalKey.value}`
-        }
-      />
-    </Card>
-  );
-
-  return <ListScreenLayout breadcrumb={breadcrumbNode} listing={cardNode} title={titleNode} />;
 }
