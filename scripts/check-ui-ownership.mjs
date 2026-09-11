@@ -27,23 +27,60 @@ const ALLOWED_BUTTON_FILES = new Set([
 const ALLOWED_INPUT_FILES = new Set(['control/components/JerseyGrid.tsx']);
 
 export const KNOWN_RAW_ELEMENTS = new Map([
-  // Public surface. `<table>` and `<dialog>` have no server-renderable owner —
-  // there is no `DataTable.astro` or `Modal.astro` — so these wait on 0214
-  // before they can be lowered. `StandingsPreview.astro`'s `<button>` does not:
-  // `ui/atoms/Button.astro` exists and it could compose it today.
+  // Public surface. `<table>` and `<dialog>` had no server-renderable owner
+  // when this entry was first recorded; `DataTable.astro` and `Modal.astro`
+  // exist now (openspec 0225 task 2.3), so these are payable, pending the
+  // adoption that migrates each raw usage onto them. `StandingsPreview.astro`'s
+  // `<button>` was payable already: `ui/atoms/Button.astro` exists and could
+  // compose it independently of the table/dialog work.
+  //
+  // Pre-existing bug found while adding task 2.4's table-part rules, left
+  // unfixed here as out of this task's scope: `scanControlComponents`
+  // below skips any `ui/` directory unconditionally, which is right for the
+  // atom tier (an atom legitimately owns the raw element it wraps) but
+  // wrong for these two — organisms, which Decision 1 gives no dispensation
+  // to use a raw governed element at all. Both entries are therefore
+  // already unreachable, the same defect class task 1.5 fixed for
+  // KNOWN_HANDWRITTEN_CLASSES, just not yet fixed here: their real current
+  // counts (11 and 20, including task 2.4's table parts) are never
+  // actually checked, so the counts below are left at their last enforced
+  // values rather than inflated to numbers the gate will never look at.
+  // Narrowing the directory skip to the atom tier is the real fix, and
+  // would expose violations across every organism/molecule/template file,
+  // not only these two — out of scope for a single task.
   ['components/ui/organisms/PlayerProfileView.astro', 1],
   ['components/ui/organisms/StandingsPreview.astro', 4],
   // React on the broadcast surface. The owned atoms are React and importable,
-  // so these are payable now.
-  ['components/tv/TvDashboard.tsx', 4],
-  ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 1],
+  // so these are payable now. Counts include task 2.4's form-structure and
+  // table-part elements alongside the original table/dialog/button entries.
+  ['components/tv/TvDashboard.tsx', 16],
+  ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 11],
   [
     'pages/[...locale]/[organization]/tournaments/[tournament]/stages/[stage]/matches/[match].astro',
-    1,
+    13,
   ],
   // Operator surface — converted screens eliminated; only remaining items:
   ['control/components/SeedingBuilderRoute.tsx', 5],
-  ['control/components/TournamentRulesetPage.tsx', 3],
+  // Includes one raw <form> task 2.4 governs (see the form-structure block below).
+  ['control/components/TournamentRulesetPage.tsx', 4],
+  // Form-structure elements (task 2.4): `<form>`, `<label>`, `<fieldset>`,
+  // `<legend>` and table parts outside the table owners, now governed by
+  // `Form`, `Field`/`Label`, `FieldSet` and `DataTable` (tasks 2.2-2.3).
+  // Recorded as debt, not fixed here — adoption is a later task.
+  ['control/components/AcceptInvitationForm.tsx', 1],
+  ['control/components/DescriptorBuilderWizard.tsx', 5],
+  ['control/components/LoadMatchDataRoute.tsx', 3],
+  ['control/components/NativeAuthRoutes.tsx', 3],
+  ['control/components/PlatformAdministrationRoute.tsx', 4],
+  ['control/components/PreferencesRoute.tsx', 1],
+  ['control/components/RegistrationReviewPage.tsx', 4],
+  ['control/components/RolesPermissionsPage.tsx', 3],
+  ['control/components/RosterSelectionStep.tsx', 3],
+  ['control/components/ScheduleBuilderRoute.tsx', 3],
+  ['control/components/TournamentSettingsPage.tsx', 2],
+  ['control/components/TournamentSetupWizard.tsx', 7],
+  ['control/components/VenueManagementRoute.tsx', 11],
+  ['control/components/ZoneGroupRoute.tsx', 4],
 ]);
 
 /**
@@ -70,6 +107,21 @@ const RAW_ELEMENT_RULES = [
   { tag: 'button', replacement: '`Button` atom', allowed: ALLOWED_BUTTON_FILES },
   { tag: 'input', replacement: '`Input` atom', allowed: ALLOWED_INPUT_FILES },
   { tag: 'select', replacement: '`Select` atom' },
+  // Form-structure elements (openspec 0225 task 2.4), governed now that
+  // Form, Field/Label and FieldSet own them (task 2.2).
+  { tag: 'form', replacement: '`Form` atom' },
+  { tag: 'label', replacement: '`Label` atom (via the `Field` molecule)' },
+  { tag: 'fieldset', replacement: '`FieldSet` molecule' },
+  { tag: 'legend', replacement: '`FieldSet` molecule' },
+  // Table parts outside the table owners (task 2.4) — a `<table>` itself is
+  // already governed above; this catches a raw `<thead>`/`<tbody>`/`<tr>`/
+  // `<th>`/`<td>` composed without one, which the tag-level check alone
+  // could not see.
+  { tag: 'thead', replacement: '`DataTable` organism' },
+  { tag: 'tbody', replacement: '`DataTable` organism' },
+  { tag: 'tr', replacement: '`DataTable` organism' },
+  { tag: 'th', replacement: '`DataTable` organism' },
+  { tag: 'td', replacement: '`DataTable` organism' },
 ];
 
 /** The governed element tags, for `check-atomic-composition.mjs`'s R13 to reuse rather than re-list. */

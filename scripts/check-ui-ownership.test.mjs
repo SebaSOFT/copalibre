@@ -170,7 +170,7 @@ test('raw <table> triggers violation', () => {
     export function BadTable() {
       return (
         <table>
-          <tbody><tr><td>Data</td></tr></tbody>
+          {rows}
         </table>
       );
     }
@@ -179,6 +179,40 @@ test('raw <table> triggers violation', () => {
   assert.equal(violations.length, 1);
   assert.match(violations[0].message, /Raw <table> detected/);
   assert.equal(violations[0].line, 4);
+});
+
+test('raw table parts outside the table owner each trigger their own violation (openspec 0225 task 2.4)', () => {
+  const code = `
+    export function BadTable() {
+      return (
+        <table>
+          <thead><tr><th>H</th></tr></thead>
+          <tbody><tr><td>Data</td></tr></tbody>
+        </table>
+      );
+    }
+  `;
+  const violations = checkFileOwnership('BadTableParts.tsx', code);
+  const tags = violations.map((v) => v.message.match(/Raw <(\w+)>/)?.[1]).sort();
+  assert.deepEqual(tags, ['table', 'tbody', 'td', 'th', 'thead', 'tr', 'tr']);
+});
+
+test('raw form-structure elements each trigger their own violation (openspec 0225 task 2.4)', () => {
+  const code = `
+    export function BadForm() {
+      return (
+        <form>
+          <fieldset>
+            <legend>Group</legend>
+            <label htmlFor="x">Name</label>
+          </fieldset>
+        </form>
+      );
+    }
+  `;
+  const violations = checkFileOwnership('BadForm.tsx', code);
+  const tags = violations.map((v) => v.message.match(/Raw <(\w+)>/)?.[1]).sort();
+  assert.deepEqual(tags, ['fieldset', 'form', 'label', 'legend']);
 });
 
 test('raw <textarea> triggers violation', () => {
@@ -313,14 +347,14 @@ test('a URL is not mistaken for a line comment when blanking comments', () => {
 
 test('the raw-element debt register admits its recorded count and nothing beyond it', () => {
   const input = ['<input', '  type="text"', '/>'].join('\n');
-  const threeInputs = [input, input, input].join('\n');
-  // control/components/TournamentRulesetPage.tsx is recorded at 3.
+  const fourInputs = [input, input, input, input].join('\n');
+  // control/components/TournamentRulesetPage.tsx is recorded at 4.
   assert.equal(
-    checkFileOwnership('control/components/TournamentRulesetPage.tsx', threeInputs).length,
+    checkFileOwnership('control/components/TournamentRulesetPage.tsx', fourInputs).length,
     0,
   );
   assert.equal(
-    checkFileOwnership('control/components/TournamentRulesetPage.tsx', `${threeInputs}\n${input}`)
+    checkFileOwnership('control/components/TournamentRulesetPage.tsx', `${fourInputs}\n${input}`)
       .length,
     1,
   );
@@ -334,7 +368,7 @@ test('the debt register ratchets: improving below the recorded count asks for it
     'const nothing = 1;',
   );
   assert.equal(violations.length, 1);
-  assert.match(violations[0].message, /fewer than the 3 recorded/);
+  assert.match(violations[0].message, /fewer than the 4 recorded/);
 });
 
 test('a hand-written owned class is a violation, the way a raw element is', () => {
