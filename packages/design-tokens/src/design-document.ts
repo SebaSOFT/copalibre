@@ -39,7 +39,8 @@ export function documentedTokens(): Mapping {
 
 function frontmatter(document: string): string {
   const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(document);
-  if (!match || match[1] === undefined) throw new Error('DESIGN.md: missing or unclosed frontmatter');
+  if (!match || match[1] === undefined)
+    throw new Error('DESIGN.md: missing or unclosed frontmatter');
   return match[1];
 }
 
