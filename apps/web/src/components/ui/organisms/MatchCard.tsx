@@ -222,3 +222,528 @@ function TracePanel({
     </details>
   );
 }
+
+// ---------------------------------------------------------------------------
+// ChampionshipMatchCard — a match renderer variant (openspec 0225 task 4.3):
+// the grand-final spotlight presentation, merged in from its own file rather
+// than sharing MatchCardProps' data shape, which has no place for a seed or
+// a per-participant winner flag. Its inline styles and Spanish literal
+// defaults are pre-existing debt (KNOWN_INLINE_LAYOUT/KNOWN_RAW_STYLE_VALUES
+// in check-atomic-composition.mjs), carried over rather than paid down here
+// — that is task 5.2's job, not this file merge's.
+// ---------------------------------------------------------------------------
+
+export interface ChampionshipParticipant {
+  readonly name: string;
+  readonly seed?: number | string;
+  readonly score?: number | string;
+  readonly winner?: boolean;
+}
+
+export interface ChampionshipMatchCardProps {
+  /** Card header title, e.g. "GRAND FINAL", "GRAN FINAL", "CHAMPIONSHIP" */
+  readonly title?: string;
+  /** Home finalist */
+  readonly homeParticipant: ChampionshipParticipant;
+  /** Away finalist */
+  readonly awayParticipant: ChampionshipParticipant;
+  /** Match status (e.g. "FINAL", "LIVE", "SCHEDULED") */
+  readonly status?: string;
+  /** Scheduled time or date */
+  readonly scheduledTime?: string;
+  /** Additional CSS class */
+  readonly className?: string;
+}
+
+export function ChampionshipMatchCard({
+  title = 'GRAND FINAL',
+  homeParticipant,
+  awayParticipant,
+  status = 'FINAL',
+  scheduledTime,
+  className = '',
+}: ChampionshipMatchCardProps): React.JSX.Element {
+  const isLive = status.toUpperCase() === 'LIVE';
+
+  return (
+    <div
+      className={`cl-championship-card cl-chamfer ${className}`.trim()}
+      style={{
+        background: 'var(--cl-surface-panel)',
+        border: '2px solid var(--cl-state-live)',
+        boxShadow: isLive ? 'var(--cl-glow-cyan)' : 'none',
+        padding: 'var(--cl-space-4)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header with Trophy Icon and Status */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid var(--cl-border-muted)',
+          paddingBottom: 'var(--cl-space-2)',
+          marginBottom: 'var(--cl-space-3)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}>
+          {/* Trophy Icon */}
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--cl-state-live)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+            <path d="M4 22h16" />
+            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+          </svg>
+
+          <span
+            style={{
+              fontFamily: 'var(--cl-font-display)',
+              fontSize: 'var(--cl-font-size-sm)',
+              fontWeight: 'var(--cl-weight-bold)',
+              textTransform: 'uppercase',
+              letterSpacing: 'var(--cl-tracking-wider)',
+              color: 'var(--cl-state-live)',
+            }}
+          >
+            {title}
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--cl-space-2)',
+            fontFamily: 'var(--cl-font-mono)',
+            fontSize: 'var(--cl-font-size-xs)',
+          }}
+        >
+          {scheduledTime && <span style={{ color: 'var(--cl-text-muted)' }}>{scheduledTime}</span>}
+          <span
+            style={{
+              background: isLive ? 'var(--cl-state-live)' : 'var(--cl-surface-base)',
+              color: isLive ? 'var(--cl-surface-base)' : 'var(--cl-text-primary)',
+              padding: '1px 6px',
+              borderRadius: 'var(--cl-radius-sm)',
+              fontWeight: 'var(--cl-weight-bold)',
+              border: isLive ? 'none' : '1px solid var(--cl-border-muted)',
+            }}
+          >
+            {status}
+          </span>
+        </div>
+      </div>
+
+      {/* Participants Rows */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--cl-space-2)' }}>
+        {/* Home Participant */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: 'var(--cl-space-2) var(--cl-space-3)',
+            background: homeParticipant.winner
+              ? 'var(--cl-surface-chrome)'
+              : 'var(--cl-surface-base)',
+            borderLeft: homeParticipant.winner
+              ? '3px solid var(--cl-state-live)'
+              : '3px solid transparent',
+            borderRadius: '0 var(--cl-radius-sm) var(--cl-radius-sm) 0',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}>
+            {homeParticipant.seed !== undefined && (
+              <span
+                style={{
+                  fontFamily: 'var(--cl-font-mono)',
+                  fontSize: 'var(--cl-font-size-xs)',
+                  color: 'var(--cl-text-muted)',
+                }}
+              >
+                [{homeParticipant.seed}]
+              </span>
+            )}
+            <span
+              style={{
+                fontFamily: 'var(--cl-font-display)',
+                fontWeight: homeParticipant.winner
+                  ? 'var(--cl-weight-bold)'
+                  : 'var(--cl-weight-semibold)',
+                fontSize: 'var(--cl-font-size-base)',
+                textTransform: 'uppercase',
+                color: homeParticipant.winner
+                  ? 'var(--cl-text-primary)'
+                  : 'var(--cl-text-secondary)',
+              }}
+            >
+              {homeParticipant.name}
+            </span>
+          </div>
+
+          {homeParticipant.score !== undefined && (
+            <span
+              style={{
+                fontFamily: 'var(--cl-font-mono)',
+                fontSize: 'var(--cl-font-size-lg)',
+                fontWeight: 'var(--cl-weight-bold)',
+                fontVariantNumeric: 'tabular-nums',
+                color: homeParticipant.winner ? 'var(--cl-state-live)' : 'var(--cl-text-primary)',
+              }}
+            >
+              {homeParticipant.score}
+            </span>
+          )}
+        </div>
+
+        {/* Away Participant */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: 'var(--cl-space-2) var(--cl-space-3)',
+            background: awayParticipant.winner
+              ? 'var(--cl-surface-chrome)'
+              : 'var(--cl-surface-base)',
+            borderLeft: awayParticipant.winner
+              ? '3px solid var(--cl-state-live)'
+              : '3px solid transparent',
+            borderRadius: '0 var(--cl-radius-sm) var(--cl-radius-sm) 0',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}>
+            {awayParticipant.seed !== undefined && (
+              <span
+                style={{
+                  fontFamily: 'var(--cl-font-mono)',
+                  fontSize: 'var(--cl-font-size-xs)',
+                  color: 'var(--cl-text-muted)',
+                }}
+              >
+                [{awayParticipant.seed}]
+              </span>
+            )}
+            <span
+              style={{
+                fontFamily: 'var(--cl-font-display)',
+                fontWeight: awayParticipant.winner
+                  ? 'var(--cl-weight-bold)'
+                  : 'var(--cl-weight-semibold)',
+                fontSize: 'var(--cl-font-size-base)',
+                textTransform: 'uppercase',
+                color: awayParticipant.winner
+                  ? 'var(--cl-text-primary)'
+                  : 'var(--cl-text-secondary)',
+              }}
+            >
+              {awayParticipant.name}
+            </span>
+          </div>
+
+          {awayParticipant.score !== undefined && (
+            <span
+              style={{
+                fontFamily: 'var(--cl-font-mono)',
+                fontSize: 'var(--cl-font-size-lg)',
+                fontWeight: 'var(--cl-weight-bold)',
+                fontVariantNumeric: 'tabular-nums',
+                color: awayParticipant.winner ? 'var(--cl-state-live)' : 'var(--cl-text-primary)',
+              }}
+            >
+              {awayParticipant.score}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// LiveMatchScorecard — a match renderer variant (openspec 0225 task 4.3):
+// the tactical live-broadcast presentation, merged in for the same reason
+// as ChampionshipMatchCard above — its data shape (per-team colour, goal
+// events, a comparator trace) has no correspondence in MatchCardData.
+// ---------------------------------------------------------------------------
+
+export interface LiveMatchGoalEvent {
+  readonly minute: string | number;
+  readonly player: string;
+  readonly team: 'home' | 'away';
+  readonly varConfirmed?: boolean;
+}
+
+export interface LiveMatchParticipant {
+  readonly name: string;
+  readonly score: number | string;
+  readonly color?: string;
+  readonly seed?: number | string;
+}
+
+export interface ComparatorTrace {
+  readonly step: number;
+  readonly text: string;
+}
+
+export interface LiveMatchScorecardProps {
+  readonly location?: string;
+  readonly operationsLabel?: string;
+  readonly clock?: string;
+  readonly homeTeam: LiveMatchParticipant;
+  readonly awayTeam: LiveMatchParticipant;
+  readonly events?: readonly LiveMatchGoalEvent[];
+  readonly comparatorTrace?: ComparatorTrace;
+  readonly className?: string;
+}
+
+export function LiveMatchScorecard({
+  location = 'CANCHA 1',
+  operationsLabel = 'OPERACIONES EN VIVO',
+  clock = '78:48',
+  homeTeam,
+  awayTeam,
+  events = [],
+  comparatorTrace,
+  className = '',
+}: LiveMatchScorecardProps): React.JSX.Element {
+  return (
+    <article
+      className={`cl-scorecard cl-chamfer ${className}`.trim()}
+      style={{
+        background: 'var(--cl-surface-panel)',
+        border: '1px solid var(--cl-border-muted)',
+        padding: 'var(--cl-space-4)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Tactical live status header */}
+      <div
+        className="cl-scorecard__header"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid var(--cl-border-muted)',
+          paddingBottom: 'var(--cl-space-2)',
+          marginBottom: 'var(--cl-space-4)',
+          fontFamily: 'var(--cl-font-display)',
+          fontSize: 'var(--cl-font-size-xs)',
+          textTransform: 'uppercase',
+          letterSpacing: 'var(--cl-tracking-wider)',
+          fontWeight: 'var(--cl-weight-bold)',
+          flexWrap: 'wrap',
+          gap: 'var(--cl-space-2)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}>
+          <span style={{ color: 'var(--cl-state-live)', fontSize: '0.9em' }}>●</span>
+          <span style={{ color: 'var(--cl-text-primary)' }}>{location}</span>
+          <span style={{ color: 'var(--cl-text-muted)' }}>•</span>
+          <span style={{ color: 'var(--cl-text-secondary)' }}>{operationsLabel}</span>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--cl-space-2)',
+            fontFamily: 'var(--cl-font-mono)',
+          }}
+        >
+          <span style={{ color: 'var(--cl-state-live)', fontSize: '0.9em' }}>●</span>
+          <span style={{ color: 'var(--cl-state-live)', fontWeight: 'var(--cl-weight-bold)' }}>
+            {clock}
+          </span>
+        </div>
+      </div>
+
+      {/* Teams and Central Monospace Score Box */}
+      <div
+        className="cl-scorecard__matchup"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr auto 1fr',
+          alignItems: 'center',
+          gap: 'var(--cl-space-4)',
+          marginBottom: 'var(--cl-space-4)',
+        }}
+      >
+        {/* Home Team */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--cl-space-2)',
+            justifyContent: 'flex-end',
+            textAlign: 'right',
+          }}
+        >
+          <span
+            style={{
+              fontFamily: 'var(--cl-font-display)',
+              fontSize: 'var(--cl-font-size-lg)',
+              fontWeight: 'var(--cl-weight-bold)',
+              textTransform: 'uppercase',
+              color: 'var(--cl-text-primary)',
+            }}
+          >
+            {homeTeam.name}
+          </span>
+          <span
+            style={{
+              color: homeTeam.color ?? 'var(--cl-color-cyan-400)',
+              fontSize: 'var(--cl-font-size-sm)',
+            }}
+            aria-hidden="true"
+          >
+            ■
+          </span>
+        </div>
+
+        {/* Central Monospace Score Box */}
+        <div
+          className="cl-scorecard__score-box"
+          style={{
+            background: 'var(--cl-surface-base)',
+            border: '1px solid var(--cl-border-muted)',
+            padding: 'var(--cl-space-2) var(--cl-space-4)',
+            borderRadius: 'var(--cl-radius-sm)',
+            fontFamily: 'var(--cl-font-mono)',
+            fontSize: 'var(--cl-font-size-xl)',
+            fontWeight: 'var(--cl-weight-bold)',
+            color: 'var(--cl-text-primary)',
+            fontVariantNumeric: 'tabular-nums',
+            letterSpacing: 'var(--cl-tracking-wide)',
+            textAlign: 'center',
+            minWidth: '90px',
+          }}
+        >
+          [ {homeTeam.score} : {awayTeam.score} ]
+        </div>
+
+        {/* Away Team */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--cl-space-2)',
+            justifyContent: 'flex-start',
+            textAlign: 'left',
+          }}
+        >
+          <span
+            style={{
+              color: awayTeam.color ?? 'var(--cl-accent-team)',
+              fontSize: 'var(--cl-font-size-sm)',
+            }}
+            aria-hidden="true"
+          >
+            ■
+          </span>
+          <span
+            style={{
+              fontFamily: 'var(--cl-font-display)',
+              fontSize: 'var(--cl-font-size-lg)',
+              fontWeight: 'var(--cl-weight-bold)',
+              textTransform: 'uppercase',
+              color: 'var(--cl-text-primary)',
+            }}
+          >
+            {awayTeam.name}
+          </span>
+        </div>
+      </div>
+
+      {/* Goal Events with VAR Status */}
+      {events.length > 0 && (
+        <div
+          className="cl-scorecard__events"
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 'var(--cl-space-2)',
+            padding: 'var(--cl-space-2) 0',
+            borderTop: '1px solid var(--cl-border-muted)',
+            marginBottom: comparatorTrace ? 'var(--cl-space-3)' : 0,
+          }}
+        >
+          {events.map((evt, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 'var(--cl-space-2)',
+                background: 'var(--cl-surface-chrome)',
+                padding: 'var(--cl-space-1) var(--cl-space-2)',
+                borderRadius: 'var(--cl-radius-sm)',
+                fontSize: 'var(--cl-font-size-xs)',
+                fontFamily: 'var(--cl-font-mono)',
+              }}
+            >
+              <span style={{ color: 'var(--cl-state-live)', fontWeight: 'var(--cl-weight-bold)' }}>
+                {evt.minute}&apos;
+              </span>
+              <span style={{ color: 'var(--cl-text-primary)' }}>{evt.player}</span>
+              {evt.varConfirmed && (
+                <span
+                  style={{
+                    background: 'var(--cl-surface-base)',
+                    color: 'var(--cl-color-amber-400)',
+                    border: '1px solid var(--cl-color-amber-400)',
+                    padding: '0 4px',
+                    borderRadius: '2px',
+                    fontSize: 'var(--cl-font-size-xs)',
+                    fontWeight: 'var(--cl-weight-bold)',
+                  }}
+                >
+                  VAR CONFIRMED
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Standings Comparator Trace Callout */}
+      {comparatorTrace && (
+        <div
+          className="cl-scorecard__comparator-trace"
+          style={{
+            borderLeft: '3px solid var(--cl-state-live)',
+            background: 'var(--cl-surface-chrome)',
+            padding: 'var(--cl-space-2) var(--cl-space-3)',
+            marginTop: 'var(--cl-space-2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--cl-space-2)',
+            fontSize: 'var(--cl-font-size-xs)',
+            fontFamily: 'var(--cl-font-mono)',
+            color: 'var(--cl-text-secondary)',
+          }}
+        >
+          <span style={{ color: 'var(--cl-state-live)', fontWeight: 'var(--cl-weight-bold)' }}>
+            [Step {comparatorTrace.step}]
+          </span>
+          <span style={{ color: 'var(--cl-text-primary)' }}>{comparatorTrace.text}</span>
+        </div>
+      )}
+    </article>
+  );
+}

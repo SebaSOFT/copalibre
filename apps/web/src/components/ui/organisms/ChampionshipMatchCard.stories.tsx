@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { ChampionshipMatchCard } from './ChampionshipMatchCard.js';
+import { ChampionshipMatchCard } from './MatchCard.js';
 
 const meta = {
   title: 'Public/ChampionshipMatchCard',

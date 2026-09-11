@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { ChampionshipMatchCard } from './ChampionshipMatchCard.js';
+import { ChampionshipMatchCard } from './MatchCard.js';
 
 describe('the ChampionshipMatchCard component', () => {
   const props = {

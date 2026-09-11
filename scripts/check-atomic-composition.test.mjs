@@ -503,12 +503,12 @@ test('extractCatalogueIds recognizes a double-quoted value, not only single-quot
   assert.ok(ids.has('app.plain'));
 });
 
-test('R11 reports the real resting-glow findings in tiebreaker-sequence.tsx and ChampionshipMatchCard.tsx', () => {
+test('R11 reports the real resting-glow findings in tiebreaker-sequence.tsx and MatchCard.tsx', () => {
   const { nodes } = buildGraph(webSrc);
   const violations = checkBannedOrnament(nodes);
   const paths = violations.map((v) => v.path);
   assert.ok(paths.includes('control/components/ui/molecules/tiebreaker-sequence.tsx'));
-  assert.ok(paths.includes('components/ui/organisms/ChampionshipMatchCard.tsx'));
+  assert.ok(paths.includes('components/ui/organisms/MatchCard.tsx'));
 });
 
 test('R11: a resting glow token is a violation; a var()-only shadow value is not', () => {

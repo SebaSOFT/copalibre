@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { LiveMatchScorecard } from './LiveMatchScorecard.js';
+import { LiveMatchScorecard } from './MatchCard.js';
 import { referenceLiveDashboard } from '../../../lib/reference-fixtures.js';
 
 const meta = {

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { LiveMatchScorecard } from './LiveMatchScorecard.js';
+import { LiveMatchScorecard } from './MatchCard.js';
 
 describe('the LiveMatchScorecard component', () => {
   const props = {

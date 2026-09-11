@@ -201,9 +201,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['components/tv/TvDashboard.tsx', 3],
   ['components/ui/AstroPreview.tsx', 1],
   ['components/ui/atoms/EntrantName.tsx', 1],
-  ['components/ui/molecules/DisciplineCard.tsx', 9],
-  ['components/ui/organisms/ChampionshipMatchCard.tsx', 10],
-  ['components/ui/organisms/LiveMatchScorecard.tsx', 12],
+  ['components/ui/organisms/MatchCard.tsx', 22],
   ['control/components/pages/AnalyticsPage.tsx', 11],
   ['control/components/BracketCanvas.tsx', 2],
   ['control/components/ControlApp.tsx', 8],
@@ -266,9 +264,7 @@ function withoutVarCalls(text) {
 export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['components/tv/TvDashboard.tsx', 1],
   ['components/ui/AstroPreview.tsx', 1],
-  ['components/ui/molecules/DisciplineCard.tsx', 5],
-  ['components/ui/organisms/ChampionshipMatchCard.tsx', 5],
-  ['components/ui/organisms/LiveMatchScorecard.tsx', 8],
+  ['components/ui/organisms/MatchCard.tsx', 13],
   ['control/components/pages/AnalyticsPage.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
   ['control/components/DescriptorBuilderWizard.tsx', 1],
@@ -384,12 +380,19 @@ export function checkI18nPlacement(nodes) {
  * consumer and no reference-index row. One of the nine orphans the survey
  * found (`LiveMatchScorecard`) already carries a reference-index row with a
  * stated reason and is exempted by the rule itself rather than this
- * register. The remaining eight are dispositioned by design.md Decision 5:
- * `table-toolbar`/`pagination`/`form-screen-template` are adopted (tasks
- * 4.1-4.2), `DisciplineCard` is deleted and `ChampionshipMatchCard` merged
- * (task 4.3), and `AstroPreview`/`story-matrix` are recorded in the
+ * register (task 4.4 repoints that row at the `MatchCard` variant that now
+ * carries it). `table-toolbar`/`pagination`/`form-screen-template` are
+ * adopted (tasks 4.1-4.2); `AstroPreview`/`story-matrix` are recorded in the
  * reference index with a reason (task 4.5) — a dev-only preview seam and
  * workbench-only infrastructure, neither shipping to a production surface.
+ *
+ * `DisciplineCard.tsx`'s entry is gone: task 4.3 deleted the file outright,
+ * along with its public-to-operator `TerminalBlock` import. `ChampionshipMatchCard.tsx`'s
+ * entry is gone the same way task 4.1's `table-toolbar.tsx` entry did — task
+ * 4.3 merged its implementation into `MatchCard.tsx` (a file with real
+ * production consumers), so R7 no longer sees it as a separate,
+ * unconsumed file at all; its stories and tests are untouched, only
+ * repointed to import from `./MatchCard.js`.
  *
  * `table-toolbar.tsx`'s entry is gone: task 4.1 gave it a real consumer
  * (`RegistrationReviewTemplate.tsx`'s filter/actions row). `StandingsTemplate.tsx`
@@ -423,8 +426,6 @@ export function checkI18nPlacement(nodes) {
  */
 export const KNOWN_ORPHANS = new Map([
   ['components/ui/AstroPreview.tsx', 1],
-  ['components/ui/molecules/DisciplineCard.tsx', 1],
-  ['components/ui/organisms/ChampionshipMatchCard.tsx', 1],
   ['control/components/ui/atoms/language-selector.tsx', 1],
   ['control/components/ui/molecules/pagination.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 1],
@@ -755,14 +756,16 @@ const BANNED_ORNAMENT_TOKENS = [
  * Debt recorded 2026-09-11: `tiebreaker-sequence.tsx:86` uses `--cl-glow-cyan`
  * as a resting indicator (design.md's one genuine ornament defect the
  * critique found — task 5.4 replaces it with a token that carries the state
- * without the glow). `ChampionshipMatchCard.tsx:36` carries the identical
- * pattern (`isLive ? 'var(--cl-glow-cyan)' : 'none'`) — a second instance
- * this rule finds that the manual critique did not name; task 4.3 merges
- * this component away entirely, which resolves it without a separate edit.
+ * without the glow). The former `ChampionshipMatchCard.tsx:36` carried the
+ * identical pattern (`isLive ? 'var(--cl-glow-cyan)' : 'none'`) — a second
+ * instance this rule finds that the manual critique did not name. Task 4.3
+ * merged that component's implementation into `MatchCard.tsx` rather than
+ * deleting it, so the ornament moved with the code; still task 5.4's fix,
+ * not this merge's.
  */
 export const KNOWN_BANNED_ORNAMENT = new Map([
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 1],
-  ['components/ui/organisms/ChampionshipMatchCard.tsx', 1],
+  ['components/ui/organisms/MatchCard.tsx', 1],
 ]);
 
 export function checkBannedOrnament(nodes) {
