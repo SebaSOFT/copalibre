@@ -16,6 +16,7 @@ import {
   checkOrphans,
   checkCasing,
   checkDuplicateNames,
+  checkSingleAtomOwnership,
   loadReferenceIndex,
 } from './check-atomic-composition.mjs';
 import { buildGraph } from './lib/component-graph.mjs';
@@ -319,6 +320,50 @@ test('R9 casing: a PascalCase file in the control library is a violation; kebab-
   const violations = checkCasing(nodes);
   assert.equal(violations.length, 1);
   assert.equal(violations[0].path, 'control/components/ui/atoms/BadName.tsx');
+});
+
+test('R13 reports both LanguageSelector.tsx and select.tsx owning <select> in the real tree today', () => {
+  const { nodes } = buildGraph(webSrc);
+  const violations = checkSingleAtomOwnership(nodes);
+  const paths = violations.filter((v) => v.message.includes('<select>')).map((v) => v.path);
+  assert.ok(paths.includes('control/components/ui/atoms/LanguageSelector.tsx'));
+  assert.ok(paths.includes('control/components/ui/atoms/select.tsx'));
+});
+
+test('R13: once only one atom in a surface owns an element, the violation disappears', () => {
+  const root = fixture();
+  writeFileSync(
+    join(root, 'ui/atoms/select.tsx'),
+    'export function Select() { return <select></select>; }',
+  );
+  // No second atom rendering <select> — matches the post-4.3a state once
+  // LanguageSelector.tsx is deleted.
+  const { nodes } = buildGraph(root);
+  assert.deepEqual(checkSingleAtomOwnership(nodes), []);
+});
+
+test('R13: two atoms in the same surface both rendering a raw governed element is a violation for each', () => {
+  const root = fixture();
+  writeFileSync(join(root, 'ui/atoms/A.tsx'), 'export function A() { return <button>a</button>; }');
+  writeFileSync(join(root, 'ui/atoms/B.tsx'), 'export function B() { return <button>b</button>; }');
+
+  const { nodes } = buildGraph(root);
+  const violations = checkSingleAtomOwnership(nodes);
+  assert.equal(violations.length, 2);
+  assert.deepEqual(violations.map((v) => v.path).sort(), ['ui/atoms/A.tsx', 'ui/atoms/B.tsx']);
+});
+
+test('R13: two atoms owning the same element in different surfaces do not violate each other', () => {
+  const root = fixture();
+  mkdirSync(join(root, 'control/components/ui/atoms'), { recursive: true });
+  writeFileSync(join(root, 'ui/atoms/A.tsx'), 'export function A() { return <button>a</button>; }');
+  writeFileSync(
+    join(root, 'control/components/ui/atoms/B.tsx'),
+    'export function B() { return <button>b</button>; }',
+  );
+
+  const { nodes } = buildGraph(root);
+  assert.deepEqual(checkSingleAtomOwnership(nodes), []);
 });
 
 test('R9 duplicates: two components with the same base name are both reported; route pages are exempt', () => {

@@ -72,6 +72,9 @@ const RAW_ELEMENT_RULES = [
   { tag: 'select', replacement: '`Select` atom' },
 ];
 
+/** The governed element tags, for `check-atomic-composition.mjs`'s R13 to reuse rather than re-list. */
+export const GOVERNED_ELEMENTS = RAW_ELEMENT_RULES.map((rule) => rule.tag);
+
 /**
  * Classes an owned component already applies.
  *

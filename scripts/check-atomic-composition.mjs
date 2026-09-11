@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { buildGraph } from './lib/component-graph.mjs';
 import { ratchet, unreachableRegisterEntries } from './lib/rule-register.mjs';
+import { GOVERNED_ELEMENTS } from './check-ui-ownership.mjs';
 
 /**
  * Enforces the atomic-composition tier contract (openspec 0225) over the
@@ -515,6 +516,63 @@ export function checkDuplicateNames(nodes) {
 }
 
 // ---------------------------------------------------------------------------
+// R13 — at most one atom per surface renders a given governed element from
+// scratch. Independent of R1/R2's directory-based exemption for the atom
+// tier: that exemption legitimizes an atom using the raw element it owns; it
+// does not say only one atom may.
+// ---------------------------------------------------------------------------
+
+/**
+ * Debt recorded 2026-09-11: atom pairs within one surface both rendering a
+ * raw `<select>`, `<button>` or `<input>` from scratch. `select` is the pair
+ * design.md names explicitly (`LanguageSelector.tsx` and `select.tsx`,
+ * resolved by task 4.3a deleting `LanguageSelector.tsx`). The `button` and
+ * `input` entries are genuine findings this rule surfaces beyond that named
+ * case — an atom's own dismiss control, copy affordance or file-picker
+ * trigger, each composing the raw element directly rather than the `Button`/
+ * `Input` atom — recorded rather than resolved here, since no task in this
+ * change disposes of them.
+ */
+export const KNOWN_MULTI_ATOM_OWNERSHIP = new Map([
+  ['control/components/ui/atoms/LanguageSelector.tsx', 1],
+  ['control/components/ui/atoms/select.tsx', 1],
+  ['control/components/ui/atoms/TerminalBlock.tsx', 1],
+  ['control/components/ui/atoms/alert.tsx', 1],
+  ['control/components/ui/atoms/button.tsx', 1],
+  ['control/components/ui/atoms/file-picker.tsx', 2], // owns both `button` and `input`
+  ['control/components/ui/atoms/input.tsx', 1],
+]);
+
+export function checkSingleAtomOwnership(nodes) {
+  const bySurfaceElement = new Map();
+  for (const node of nodes.values()) {
+    if (node.tier !== 'atoms') continue;
+    const governedTags = new Set(
+      node.nativeElements.map((e) => e.tag).filter((tag) => GOVERNED_ELEMENTS.includes(tag)),
+    );
+    for (const tag of governedTags) {
+      const key = `${node.surface}::${tag}`;
+      if (!bySurfaceElement.has(key)) bySurfaceElement.set(key, []);
+      bySurfaceElement.get(key).push(node.path);
+    }
+  }
+
+  const violations = [];
+  for (const [key, paths] of bySurfaceElement) {
+    if (paths.length < 2) continue;
+    const [, tag] = key.split('::');
+    for (const path of paths) {
+      violations.push({
+        path,
+        line: 1,
+        message: `${path}: renders a raw <${tag}> from scratch, and so does ${paths.filter((p) => p !== path).join(', ')}, within the same surface. At most one atom may own a governed element.`,
+      });
+    }
+  }
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -582,6 +640,12 @@ export function checkAtomicComposition(webSrcDir) {
       'KNOWN_DUPLICATE_NAMES',
       'duplicate-name violation(s)',
     ),
+    ratchet(
+      checkSingleAtomOwnership(nodes),
+      KNOWN_MULTI_ATOM_OWNERSHIP,
+      'KNOWN_MULTI_ATOM_OWNERSHIP',
+      'multi-atom-ownership violation(s)',
+    ),
   ].flat();
 
   return results.sort((a, b) => (a.path === b.path ? a.line - b.line : a.path < b.path ? -1 : 1));
@@ -616,6 +680,7 @@ const ALL_REGISTERS = [
   ['KNOWN_ORPHANS', KNOWN_ORPHANS],
   ['KNOWN_CASING_VIOLATIONS', KNOWN_CASING_VIOLATIONS],
   ['KNOWN_DUPLICATE_NAMES', KNOWN_DUPLICATE_NAMES],
+  ['KNOWN_MULTI_ATOM_OWNERSHIP', KNOWN_MULTI_ATOM_OWNERSHIP],
 ];
 
 /** R12 — every register entry in this script names a path that exists. */
