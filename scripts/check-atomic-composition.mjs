@@ -3,7 +3,11 @@ import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { buildGraph } from './lib/component-graph.mjs';
 import { ratchet, unreachableRegisterEntries } from './lib/rule-register.mjs';
-import { GOVERNED_ELEMENTS } from './check-ui-ownership.mjs';
+import {
+  GOVERNED_ELEMENTS,
+  KNOWN_RAW_ELEMENTS,
+  KNOWN_HANDWRITTEN_CLASSES,
+} from './check-ui-ownership.mjs';
 import { isExempt } from './check-ui-text-catalogue-coverage.mjs';
 
 /**
@@ -845,8 +849,16 @@ export function loadReferenceIndex(path) {
   return entries;
 }
 
-/** Every register this script ratchets, named for R12's report. */
+/**
+ * Every register this script ratchets, named for R12's report — plus
+ * `check-ui-ownership.mjs`'s two registers (design.md Decision 4: "every
+ * register entry in *either* script names a path that exists"). One R12
+ * check covers both scripts rather than each carrying its own, so a path
+ * that moves is caught wherever it was recorded.
+ */
 const ALL_REGISTERS = [
+  ['KNOWN_RAW_ELEMENTS (check-ui-ownership.mjs)', KNOWN_RAW_ELEMENTS],
+  ['KNOWN_HANDWRITTEN_CLASSES (check-ui-ownership.mjs)', KNOWN_HANDWRITTEN_CLASSES],
   ['KNOWN_UNDECLARED_TIER', KNOWN_UNDECLARED_TIER],
   ['KNOWN_UPWARD_IMPORTS', KNOWN_UPWARD_IMPORTS],
   ['KNOWN_INLINE_LAYOUT', KNOWN_INLINE_LAYOUT],

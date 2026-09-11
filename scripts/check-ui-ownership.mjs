@@ -26,7 +26,7 @@ const ALLOWED_BUTTON_FILES = new Set([
 
 const ALLOWED_INPUT_FILES = new Set(['control/components/JerseyGrid.tsx']);
 
-const KNOWN_RAW_ELEMENTS = new Map([
+export const KNOWN_RAW_ELEMENTS = new Map([
   // Public surface. `<table>` and `<dialog>` have no server-renderable owner —
   // there is no `DataTable.astro` or `Modal.astro` — so these wait on 0214
   // before they can be lowered. `StandingsPreview.astro`'s `<button>` does not:
@@ -108,7 +108,7 @@ const OWNED_CLASS_RULES = [
  * `<button>`, which cannot be a link. It is recorded here so the gap stays
  * counted until the library has something for it.
  */
-const KNOWN_HANDWRITTEN_CLASSES = new Map([
+export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // Operator surface — an owned atom exists for every one of these.
   ['control/components/ActivityLog.tsx', 1],
   ['control/components/BracketCanvas.tsx', 2],
@@ -121,17 +121,21 @@ const KNOWN_HANDWRITTEN_CLASSES = new Map([
   ['control/components/SeedingBuilderRoute.tsx', 2],
   ['control/components/StandingsPage.tsx', 2],
   ['control/components/TournamentCard.tsx', 1],
-  // Public and broadcast surfaces. Most of these wait on 0214: there is no
-  // `Card` and no general-purpose `Badge` either surface can compose —
-  // `ui/atoms/StateBadge.astro` covers a result state and nothing else, so a
-  // stage name, a jersey number or a rank has nowhere to go today.
-  ['components/LiveMatchHero.tsx', 2],
-  ['components/MatchCard.tsx', 4],
-  ['components/MatchCardGrid.astro', 2],
-  ['components/MatchNode.astro', 2],
-  ['components/ResultLegend.astro', 1],
-  ['components/ScoreTicker.astro', 1],
-  ['components/TournamentHero.astro', 2],
+  // Public and broadcast surfaces.
+  //
+  // `LiveMatchHero.tsx`, `MatchCard.tsx`, `MatchCardGrid.astro`,
+  // `MatchNode.astro`, `ResultLegend.astro`, `ScoreTicker.astro` and
+  // `TournamentHero.astro` were recorded here at `components/<name>`, before
+  // an earlier tier move relocated all seven under `components/ui/`
+  // (organisms and molecules). `scanControlComponents` below skips any `ui`
+  // directory unconditionally — "a file inside a `ui/` directory defines the
+  // design language" — so their hand-written classes stopped being scanned
+  // the day they moved, and these seven entries became unreachable: no path
+  // repointed to their new location would ever be reached either, since the
+  // scanner excludes the whole `ui/` subtree regardless of which file lives
+  // there. Repointing was therefore not the fix (openspec 0225 task 1.5);
+  // deleting them was, since the violation these entries recorded no longer
+  // exists for the scanner to find.
   ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 1],
   ['pages/[...locale]/[organization]/tournaments/[tournament]/players/[personId].astro', 1],
   [
