@@ -343,9 +343,12 @@ test('R7 exempts an orphan whose storyId is recorded in the reference index with
 test('loadReferenceIndex reads storyId and consumers from the real reference-index.ts', () => {
   const entries = loadReferenceIndex(join(webSrc, 'control/components/ui/reference-index.ts'));
   assert.ok(entries.length > 0);
-  const locale = entries.find((e) => e.storyId.includes('LanguageSelector'));
+  const scorecard = entries.find((e) => e.storyId.includes('LiveMatchScorecard'));
+  assert.ok(scorecard);
+  assert.deepEqual(scorecard.consumers, []);
+  const locale = entries.find((e) => e.storyId.includes('LanguageSwitcher'));
   assert.ok(locale);
-  assert.deepEqual(locale.consumers, []);
+  assert.deepEqual(locale.consumers, ['control/components/ControlShell.tsx']);
 });
 
 test('R9 casing: a PascalCase file in the control library is a violation; kebab-case is not', () => {
@@ -366,12 +369,11 @@ test('R9 casing: a PascalCase file in the control library is a violation; kebab-
   assert.equal(violations[0].path, 'control/components/ui/atoms/BadName.tsx');
 });
 
-test('R13 reports both language-selector.tsx and select.tsx owning <select> in the real tree today', () => {
+test('R13 reports no <select> violation now that language-selector.tsx is deleted (openspec 0225 task 4.3a)', () => {
   const { nodes } = buildGraph(webSrc);
   const violations = checkSingleAtomOwnership(nodes);
   const paths = violations.filter((v) => v.message.includes('<select>')).map((v) => v.path);
-  assert.ok(paths.includes('control/components/ui/atoms/language-selector.tsx'));
-  assert.ok(paths.includes('control/components/ui/atoms/select.tsx'));
+  assert.deepEqual(paths, []);
 });
 
 test('R13: once only one atom in a surface owns an element, the violation disappears', () => {

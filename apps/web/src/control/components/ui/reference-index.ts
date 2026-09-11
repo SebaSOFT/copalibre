@@ -107,8 +107,8 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
   },
   {
     reference: 'Locale control',
-    storyId: 'Admin/Atoms/LanguageSelector — EverySupportedLanguage',
-    consumers: [],
-    note: 'Predecessor component with no consumer: `control/i18n/LanguageSwitcher.tsx` is the locale control the operator shell actually renders, and this atom duplicates it. Recorded as a finding; resolving the duplication is its own change.',
+    storyId: 'Admin/i18n/LanguageSwitcher — EverySupportedLanguage',
+    consumers: ['control/components/ControlShell.tsx'],
+    note: 'Repointed here from the deleted LanguageSelector atom (openspec 0225 task 4.3a), which duplicated this control and had no consumer of its own; LanguageSwitcher carries its language-glyph icon now and is the one the operator shell actually renders.',
   },
 ];

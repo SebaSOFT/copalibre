@@ -36,6 +36,22 @@ export function LanguageSwitcher({
   return (
     <Select
       aria-label={intl.formatMessage(messages.shellLanguage)}
+      icon={
+        // Carried over from the deleted LanguageSelector atom (openspec 0225
+        // task 4.3a) — a language glyph, not a state cue, so it takes a
+        // neutral text token instead of the `--cl-state-live` it misused.
+        <span
+          aria-hidden="true"
+          style={{
+            color: 'var(--cl-text-secondary)',
+            fontWeight: 'var(--cl-weight-bold)',
+            fontSize: 'var(--cl-font-size-sm)',
+            userSelect: 'none',
+          }}
+        >
+          文A
+        </span>
+      }
       onValueChange={(val) => onChange(val as SupportedLanguage)}
       options={SUPPORTED_LANGUAGES.map((language) => ({
         value: language,

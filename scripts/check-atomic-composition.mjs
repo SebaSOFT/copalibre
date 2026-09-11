@@ -216,7 +216,6 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/screens/StandingsTemplate.tsx', 5],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 4],
   ['control/components/TournamentSetupWizard.tsx', 18],
-  ['control/components/ui/atoms/language-selector.tsx', 2],
   ['control/components/ui/atoms/terminal-block.tsx', 8],
   ['control/components/ui/atoms/select.tsx', 2],
   ['control/components/ui/molecules/callout-banner.tsx', 5],
@@ -274,7 +273,6 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['control/components/RosterRoleSelector.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 1],
   ['control/components/TournamentSetupWizard.tsx', 2],
-  ['control/components/ui/atoms/language-selector.tsx', 1],
   ['control/components/ui/atoms/terminal-block.tsx', 7],
   ['control/components/ui/molecules/callout-banner.tsx', 2],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 2],
@@ -406,12 +404,11 @@ export function checkI18nPlacement(nodes) {
  * regression) or nest an extra flex wrapper inside the grid (a visual
  * change) — either violates this change's own non-goal.
  *
- * `language-selector.tsx` joined this register in task 3.3: its
- * reference-index row's storyId names it `LanguageSelector` (a component
- * name, matching Storybook's convention of titling by the exported
- * identifier, not the file), and task 3.3 renamed the file to kebab-case —
- * so the rule's exact-string match against the file's own basename no
- * longer holds for this one file. Temporary: task 4.3a deletes the file.
+ * `language-selector.tsx`'s entry is gone: task 4.3a deleted the file
+ * outright, carrying only its language glyph forward onto `LanguageSwitcher`
+ * (via the icon slot task 2.0 adds to `Select`) — nothing else survived, since
+ * the raw `<select>`, the inline-styled chrome and the glyph's non-semantic
+ * `--cl-state-live` use were exactly the drift this change removes elsewhere.
  *
  * `pagination.tsx` was not adopted in task 4.2, despite design.md naming
  * it: the two screens whose `ListScreenLayout.pagination` slot is filled
@@ -426,7 +423,6 @@ export function checkI18nPlacement(nodes) {
  */
 export const KNOWN_ORPHANS = new Map([
   ['components/ui/AstroPreview.tsx', 1],
-  ['control/components/ui/atoms/language-selector.tsx', 1],
   ['control/components/ui/molecules/pagination.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 1],
   ['control/components/ui/layouts/form-screen-layout.tsx', 1],
@@ -578,18 +574,18 @@ export function checkDuplicateNames(nodes) {
 
 /**
  * Debt recorded 2026-09-11: atom pairs within one surface both rendering a
- * raw `<select>`, `<button>` or `<input>` from scratch. `select` is the pair
- * design.md names explicitly (`language-selector.tsx` and `select.tsx`,
- * resolved by task 4.3a deleting `language-selector.tsx`). The `button` and
- * `input` entries are genuine findings this rule surfaces beyond that named
- * case — an atom's own dismiss control, copy affordance or file-picker
- * trigger, each composing the raw element directly rather than the `Button`/
- * `Input` atom — recorded rather than resolved here, since no task in this
- * change disposes of them.
+ * raw `<select>`, `<button>` or `<input>` from scratch. `select` was the pair
+ * design.md names explicitly (`language-selector.tsx` and `select.tsx`) —
+ * resolved by task 4.3a deleting `language-selector.tsx` outright, which
+ * leaves `select.tsx` the surface's only raw-`<select>` owner and pays down
+ * its entry too, since one owner is no longer a multi-atom-ownership finding.
+ * The `button` and `input` entries are genuine findings this rule surfaces
+ * beyond that named case — an atom's own dismiss control, copy affordance or
+ * file-picker trigger, each composing the raw element directly rather than
+ * the `Button`/`Input` atom — recorded rather than resolved here, since no
+ * task in this change disposes of them.
  */
 export const KNOWN_MULTI_ATOM_OWNERSHIP = new Map([
-  ['control/components/ui/atoms/language-selector.tsx', 1],
-  ['control/components/ui/atoms/select.tsx', 1],
   ['control/components/ui/atoms/terminal-block.tsx', 1],
   ['control/components/ui/atoms/alert.tsx', 1],
   ['control/components/ui/atoms/button.tsx', 1],
