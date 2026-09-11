@@ -1,0 +1,82 @@
+---
+/**
+ * Extracted from the match report page (openspec 0225 task 7.2), unchanged
+ * in markup and styling.
+ */
+import type { MatchReportModel } from '../../../lib/match-report.ts';
+
+export interface Props {
+  readonly model: MatchReportModel;
+}
+
+const { model } = Astro.props;
+---
+
+<section class="cl-section-card" aria-labelledby="officials-heading">
+  <h2 id="officials-heading" class="cl-section-title">Officials</h2>
+  {
+    !model.schedulePublished && model.status === 'upcoming' ? (
+      <p class="cl-text-muted">Schedule has not yet been published.</p>
+    ) : model.officials.length === 0 ? (
+      <p class="cl-text-muted">No officials assigned.</p>
+    ) : (
+      <ul class="cl-officials-list">
+        {model.officials.map((official) => (
+          <li>
+            <span class="cl-official-name">{official.name}</span> —{' '}
+            <span class="cl-official-roles">{official.roles.join(', ')}</span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</section>
+
+<style>
+  .cl-section-card {
+    background: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
+    border-radius: var(--cl-radius-lg);
+    padding: var(--cl-space-5);
+  }
+
+  .cl-section-title {
+    margin: 0 0 1rem 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--cl-border-muted);
+    padding-bottom: 0.5rem;
+  }
+
+  .cl-text-muted {
+    color: var(--cl-text-muted);
+    font-size: 0.875rem;
+  }
+
+  .cl-officials-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .cl-officials-list li {
+    background: var(--cl-surface-chrome);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--cl-border-muted);
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .cl-official-name {
+    font-weight: 600;
+  }
+
+  .cl-official-roles {
+    color: var(--cl-text-muted);
+  }
+</style>

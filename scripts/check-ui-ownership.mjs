@@ -59,10 +59,10 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // the control theme, not this surface's `--tv-*` tokens) could fill that
   // role here.
   ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 11],
-  [
-    'pages/[...locale]/[organization]/tournaments/[tournament]/stages/[stage]/matches/[match].astro',
-    13,
-  ],
+  // `[match].astro`'s entry is gone (openspec 0225 task 7.2): its raw table
+  // moved into `components/ui/organisms/MatchRosters.astro`, a `ui/`
+  // directory the scan below skips entirely, the same way `DataTable.astro`
+  // and `StandingsTable.astro` already are.
   // Operator surface — converted screens eliminated; only remaining items:
   ['control/components/pages/SeedingBuilderPage.tsx', 5],
   ['control/components/screens/TournamentRulesetTemplate.tsx', 3],
@@ -203,10 +203,6 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // exists for the scanner to find.
   ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 1],
   ['pages/[...locale]/[organization]/tournaments/[tournament]/players/[personId].astro', 1],
-  [
-    'pages/[...locale]/[organization]/tournaments/[tournament]/stages/[stage]/matches/[match].astro',
-    2,
-  ],
   ['pages/index.astro', 1],
 ]);
 

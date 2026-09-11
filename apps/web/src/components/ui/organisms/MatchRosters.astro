@@ -1,0 +1,145 @@
+---
+/**
+ * Extracted from the match report page (openspec 0225 task 7.2), unchanged
+ * in markup and styling.
+ *
+ * Does not compose `DataTable` (this surface's declared table owner, task
+ * 2.3): its `render` callback returns a plain value per cell, with no way
+ * to produce the player-profile link the name column needs — `DataTable`
+ * was built with no consumer needing richer-than-text cells yet (its own
+ * docstring records the same reasoning for `renderRowDetail`), and this is
+ * the first one. Recorded here rather than adopted at the cost of losing
+ * working navigation, or extending `DataTable` speculatively for a shape
+ * only this table currently needs.
+ */
+import type { MatchReportModel } from '../../../lib/match-report.ts';
+
+export interface Props {
+  readonly model: MatchReportModel;
+  readonly locale?: string;
+  readonly organization: string;
+  readonly tournament: string;
+}
+
+const { model, locale, organization, tournament } = Astro.props;
+---
+
+<section class="cl-section-card" aria-labelledby="rosters-heading">
+  <h2 id="rosters-heading" class="cl-section-title">Rosters</h2>
+  {
+    model.home.roster.length === 0 && model.away.roster.length === 0 ? (
+      <p class="cl-text-muted">Rosters are not yet available.</p>
+    ) : (
+      <div class="cl-rosters-grid">
+        {[model.home, model.away].map((side) => (
+          <div class="cl-roster-box">
+            <h3 class="cl-roster-team">{side.name}</h3>
+            {side.roster.length === 0 ? (
+              <p class="cl-text-muted">Roster not yet available.</p>
+            ) : (
+              <table class="cl-table">
+                <thead>
+                  <tr>
+                    <th scope="col" style="width: 44px;">
+                      No.
+                    </th>
+                    <th scope="col">Player</th>
+                    <th scope="col">Roles</th>
+                    <th scope="col" style="width: 80px;">
+                      On field
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {side.roster.map((member) => (
+                    <tr>
+                      <td class="cl-num-cell">{member.number ?? '—'}</td>
+                      <td class="cl-name-cell">
+                        <a
+                          href={`${locale ? `/${locale}` : ''}/${encodeURIComponent(organization)}/tournaments/${encodeURIComponent(tournament)}/players/${encodeURIComponent(member.personId)}`}
+                          class="cl-player-link"
+                        >
+                          {member.name}
+                        </a>
+                      </td>
+                      <td>{member.roles?.join(', ') ?? '—'}</td>
+                      <td>
+                        <span
+                          class={`cl-indicator ${member.onField ? 'cl-indicator--active' : ''}`}
+                        >
+                          {member.onField ? 'Yes' : 'No'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        ))}
+      </div>
+    )
+  }
+</section>
+
+<style>
+  .cl-section-card {
+    background: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
+    border-radius: var(--cl-radius-lg);
+    padding: var(--cl-space-5);
+  }
+
+  .cl-section-title {
+    margin: 0 0 1rem 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--cl-border-muted);
+    padding-bottom: 0.5rem;
+  }
+
+  .cl-text-muted {
+    color: var(--cl-text-muted);
+    font-size: 0.875rem;
+  }
+
+  .cl-rosters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+    gap: 1.5rem;
+  }
+
+  .cl-roster-team {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--cl-primary);
+  }
+
+  .cl-num-cell {
+    font-family: var(--cl-font-mono);
+    font-weight: 600;
+  }
+
+  .cl-player-link {
+    color: var(--cl-text-primary);
+    text-decoration: none;
+  }
+
+  .cl-player-link:hover {
+    color: var(--cl-primary);
+    text-decoration: underline;
+  }
+
+  .cl-indicator {
+    font-size: 0.75rem;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--cl-text-primary) 10%, transparent);
+  }
+
+  .cl-indicator--active {
+    background: color-mix(in srgb, var(--cl-state-positive) 20%, transparent);
+    color: var(--cl-state-positive);
+  }
+</style>

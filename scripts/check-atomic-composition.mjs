@@ -713,15 +713,19 @@ export function checkSingleAtomOwnership(nodes) {
 export const KNOWN_LITERAL_TEXT = new Map([
   ['components/ui/AstroPreview.tsx', 1],
   ['components/ui/organisms/MatchCard.tsx', 1],
+  // These four carry the match report page's literals (task 7.2 split them
+  // out of `[match].astro`, whose entry is now gone): English text task 2.6
+  // did not name, recorded rather than silently exempted, same as the rest
+  // of this register.
+  ['components/ui/organisms/MatchHero.astro', 1],
+  ['components/ui/organisms/MatchOfficials.astro', 3],
+  ['components/ui/organisms/MatchRosters.astro', 5],
+  ['components/ui/organisms/MatchTimeline.astro', 2],
   ['components/ui/organisms/PlayerProfileView.astro', 3],
   ['components/ui/organisms/StandingsTable.astro', 9],
   ['control/components/AcceptInvitationForm.tsx', 2],
   ['control/components/ControlShell.tsx', 1],
   ['control/components/screens/RolesPermissionsTemplate.tsx', 1],
-  [
-    'pages/[...locale]/[organization]/tournaments/[tournament]/stages/[stage]/matches/[match].astro',
-    11,
-  ],
   ['pages/control/[...path].astro', 1],
   ['pages/control/app.astro', 1],
   ['pages/help/api-reference.astro', 1],
