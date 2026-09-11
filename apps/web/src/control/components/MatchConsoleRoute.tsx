@@ -37,9 +37,12 @@ import {
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
+import { Label } from './ui/atoms/label.js';
+import { RadioGroup, RadioGroupItem } from './ui/atoms/radio.js';
 import { Select } from './ui/atoms/select.js';
 import { Textarea } from './ui/atoms/textarea.js';
 import { Field } from './ui/molecules/field.js';
+import { FieldSet } from './ui/molecules/field-set.js';
 import { ClockRing } from './ui/organisms/clock-ring.js';
 import { EntrantName } from '../../components/ui/atoms/EntrantName.js';
 import { JerseyGrid } from './JerseyGrid.js';
@@ -56,6 +59,13 @@ const RECONCILIATION_TIMEOUT_MS = 8_000;
  * spending the screen the recording controls need during play.
  */
 const LEDGER_PEEK_COUNT = 3;
+
+/**
+ * Radix's `RadioGroup` treats an empty string value as "nothing selected,"
+ * so the "no winner" option needs a real, non-empty sentinel — mapped back
+ * to `''` (the actual unset state `finalizeWinner` carries) on change.
+ */
+const FINALIZE_NO_WINNER_VALUE = '__no-winner__';
 
 const SEGMENT_STATE_AFTER: Readonly<Record<SegmentClockCommand, ConsoleSegment['state']>> = {
   start: 'active',
@@ -100,6 +110,14 @@ export function MatchConsoleRoute({
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [finalizeIdempotencyKey, setFinalizeIdempotencyKey] = useState<string>();
+  // Explicit, and separate from selectedSide: selectedSide is JerseyGrid's
+  // event-attribution field, reset by every jersey tap for a completely
+  // different purpose (who performed the next logged event). Reusing it as
+  // the match winner meant the winner silently became whichever entrant a
+  // scorer or card recipient last belonged to. This defaults to unset and
+  // changes only when the operator picks a winner in the finalize
+  // confirmation itself.
+  const [finalizeWinner, setFinalizeWinner] = useState('');
   const [rosterStepOpen, setRosterStepOpen] = useState(false);
   const [selectedSegmentId, setSelectedSegmentId] = useState('');
   const [elapsedSeconds, setElapsedSeconds] = useState('0');
@@ -496,7 +514,7 @@ export function MatchConsoleRoute({
     setFinalizing(true);
     const request = {
       sides: current.entrants.map(({ entrantId }) => ({ entrantId, statistics: {} })),
-      ...(selectedSide ? { winnerEntrantId: selectedSide } : {}),
+      ...(finalizeWinner ? { winnerEntrantId: finalizeWinner } : {}),
     };
     // Write-ahead here too (design.md: "a queued finalize... is refused and
     // surfaced for the operator to resolve explicitly", not excluded from
@@ -516,6 +534,7 @@ export function MatchConsoleRoute({
       await reload();
       setConfirmingFinalize(false);
       setFinalizeIdempotencyKey(undefined);
+      setFinalizeWinner('');
     } catch (error) {
       if (error instanceof ControlApiError) {
         await markRefused(idempotencyKey, error.message);
@@ -961,7 +980,7 @@ export function MatchConsoleRoute({
               disabled={!canFinalize || projection.status !== 'in-progress'}
               onClick={() => setConfirmingFinalize(true)}
               type="button"
-              variant="destructive"
+              variant="primary"
             >
               <FormattedMessage {...messages.matchConsoleFinalizeMatch} />
             </Button>
@@ -973,11 +992,50 @@ export function MatchConsoleRoute({
               <span>
                 <FormattedMessage {...messages.matchConsoleFinalizeCorrections} />
               </span>
+              <FieldSet legend={intl.formatMessage(messages.matchConsoleFinalizeWinnerLegend)}>
+                <RadioGroup
+                  name="finalize-winner"
+                  onValueChange={(value) =>
+                    setFinalizeWinner(value === FINALIZE_NO_WINNER_VALUE ? '' : value)
+                  }
+                  value={finalizeWinner || FINALIZE_NO_WINNER_VALUE}
+                >
+                  {projection.liveScores.map((side) => {
+                    const entrant = entrantById.get(side.entrantId);
+                    const fieldId = `finalize-winner-${side.entrantId}`;
+                    return (
+                      <Label
+                        className="cl-toggle cl-focusable"
+                        htmlFor={fieldId}
+                        key={side.entrantId}
+                      >
+                        <RadioGroupItem id={fieldId} value={side.entrantId} />
+                        <EntrantName
+                          {...(entrant?.abbreviation === undefined
+                            ? {}
+                            : { abbreviation: entrant.abbreviation })}
+                          fullName={
+                            entrant?.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)
+                          }
+                        />
+                        <strong>{side.score}</strong>
+                      </Label>
+                    );
+                  })}
+                  <Label className="cl-toggle cl-focusable" htmlFor="finalize-winner-none">
+                    <RadioGroupItem id="finalize-winner-none" value={FINALIZE_NO_WINNER_VALUE} />
+                    <span>
+                      <FormattedMessage {...messages.matchConsoleFinalizeNoWinner} />
+                    </span>
+                  </Label>
+                </RadioGroup>
+              </FieldSet>
               <div className="cl-role-user">
                 <Button
                   onClick={() => {
                     setConfirmingFinalize(false);
                     setFinalizeIdempotencyKey(undefined);
+                    setFinalizeWinner('');
                   }}
                   type="button"
                   variant="secondary"
@@ -988,7 +1046,7 @@ export function MatchConsoleRoute({
                   disabled={finalizing}
                   onClick={() => void finalize()}
                   type="button"
-                  variant="destructive"
+                  variant="primary"
                 >
                   <FormattedMessage {...messages.matchConsoleConfirmFinalization} />
                 </Button>

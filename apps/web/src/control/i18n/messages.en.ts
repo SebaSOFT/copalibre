@@ -574,6 +574,14 @@ export const messages = defineMessages({
     id: 'control.matchConsole.confirmFinalization',
     defaultMessage: 'Confirm finalization',
   },
+  matchConsoleFinalizeWinnerLegend: {
+    id: 'control.matchConsole.finalizeWinnerLegend',
+    defaultMessage: 'Winner',
+  },
+  matchConsoleFinalizeNoWinner: {
+    id: 'control.matchConsole.finalizeNoWinner',
+    defaultMessage: 'No winner recorded',
+  },
   matchConsoleLedgerAndStatus: {
     id: 'control.matchConsole.ledgerAndStatus',
     defaultMessage: 'Ledger and status',

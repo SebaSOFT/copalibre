@@ -195,6 +195,8 @@ export const messages: Record<string, string> = {
     'Le correzioni successive preserveranno motivo e cronologia.',
   'control.matchConsole.cancel': 'Annulla',
   'control.matchConsole.confirmFinalization': 'Conferma finalizzazione',
+  'control.matchConsole.finalizeWinnerLegend': 'Vincitore',
+  'control.matchConsole.finalizeNoWinner': 'Nessun vincitore registrato',
   'control.matchConsole.ledgerAndStatus': 'Registro e stato',
   'control.matchConsole.activeTimers': 'Timer attivi',
   'control.matchConsole.noActiveTimers': 'Nessun timer attivo.',

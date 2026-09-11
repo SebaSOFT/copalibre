@@ -197,6 +197,8 @@ export const messages: Record<string, string> = {
   'control.matchConsole.finalizeCorrections': 'Spätere Korrekturen bewahren Grund und Verlauf.',
   'control.matchConsole.cancel': 'Abbrechen',
   'control.matchConsole.confirmFinalization': 'Abschluss bestätigen',
+  'control.matchConsole.finalizeWinnerLegend': 'Sieger',
+  'control.matchConsole.finalizeNoWinner': 'Kein Sieger erfasst',
   'control.matchConsole.ledgerAndStatus': 'Journal und Status',
   'control.matchConsole.activeTimers': 'Aktive Timer',
   'control.matchConsole.noActiveTimers': 'Keine aktiven Timer.',

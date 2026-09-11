@@ -189,6 +189,8 @@ export const messages: Record<string, string> = {
   'control.matchConsole.finalizeCorrections': '后续更正将保留原因和历史记录。',
   'control.matchConsole.cancel': '取消',
   'control.matchConsole.confirmFinalization': '确认结束比赛',
+  'control.matchConsole.finalizeWinnerLegend': '获胜者',
+  'control.matchConsole.finalizeNoWinner': '未记录获胜者',
   'control.matchConsole.ledgerAndStatus': '记录与状态',
   'control.matchConsole.activeTimers': '活动计时器',
   'control.matchConsole.noActiveTimers': '没有活动计时器。',

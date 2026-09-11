@@ -18,7 +18,12 @@ export function Form({
   ...rest
 }: FormProps): React.JSX.Element {
   return (
-    <form className={`cl-form ${className}`.trim()} noValidate={noValidate} onSubmit={onSubmit} {...rest}>
+    <form
+      className={`cl-form ${className}`.trim()}
+      noValidate={noValidate}
+      onSubmit={onSubmit}
+      {...rest}
+    >
       {children}
     </form>
   );

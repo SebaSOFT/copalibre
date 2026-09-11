@@ -196,6 +196,8 @@ export const messages: Record<string, string> = {
   'control.matchConsole.finalizeCorrections': 'Последующие исправления сохранят причину и историю.',
   'control.matchConsole.cancel': 'Отмена',
   'control.matchConsole.confirmFinalization': 'Подтвердить завершение',
+  'control.matchConsole.finalizeWinnerLegend': 'Победитель',
+  'control.matchConsole.finalizeNoWinner': 'Победитель не зафиксирован',
   'control.matchConsole.ledgerAndStatus': 'Журнал и статус',
   'control.matchConsole.activeTimers': 'Активные таймеры',
   'control.matchConsole.noActiveTimers': 'Нет активных таймеров.',

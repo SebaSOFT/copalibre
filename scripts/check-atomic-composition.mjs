@@ -407,11 +407,10 @@ export const KNOWN_ORPHANS = new Map([
   ['control/components/ui/atoms/layout/inline.tsx', 1],
   ['control/components/ui/atoms/layout/grid.tsx', 1],
   ['control/components/ui/atoms/layout/box.tsx', 1],
-  // Form and FieldSet (task 2.2) ship before their consumers adopt them too
-  // — task 4.2 adopts FieldSet-shaped grouping and Form for the raw <form>
-  // elements the ownership register still records.
+  // Form (task 2.2) still awaits a consumer — task 4.2 adopts it for the raw
+  // <form> elements the ownership register still records. FieldSet's own
+  // entry is gone: task 2.5's finalize-winner control gave it one.
   ['control/components/ui/atoms/form.tsx', 1],
-  ['control/components/ui/molecules/field-set.tsx', 1],
   // DataTable.astro and Modal.astro (task 2.3) ship before their consumers
   // adopt them, same as the primitives above. Adopting them is what lets
   // KNOWN_RAW_ELEMENTS' StandingsPreview.astro/PlayerProfileView.astro
