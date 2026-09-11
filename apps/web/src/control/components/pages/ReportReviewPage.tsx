@@ -1,13 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
-import { FormattedMessage, useIntl } from 'react-intl';
 import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
-import { KIND_LABEL, summaryOf, type ReportRow } from '../../lib/reports.js';
+import { type ReportRow } from '../../lib/reports.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { messages } from '../../i18n/messages.en.js';
-import { Badge } from '../ui/atoms/badge.js';
-import { Button } from '../ui/atoms/button.js';
-import { Card } from '../ui/atoms/card.js';
+import { ReportReviewTemplate } from '../screens/ReportReviewTemplate.js';
 
 type LoadStatus = 'loading' | 'ready' | 'failed';
 
@@ -19,6 +14,10 @@ type LoadStatus = 'loading' | 'ready' | 'failed';
  * dismiss here never touches a match result — an operator who wants to act
  * on a submission does so through the existing correction workflow
  * separately, citing this report's id.
+ *
+ * Fetches and mutates (openspec 0225 task 6.2): the pending-reports load and
+ * the dismiss mutation live here; `ReportReviewTemplate` composes the screen
+ * from the resulting data.
  */
 export function ReportReviewPage({
   organizationAlias,
@@ -29,7 +28,6 @@ export function ReportReviewPage({
   readonly tournamentAlias: string;
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
-  const intl = useIntl();
   const api = useMemo(
     () =>
       client ??
@@ -59,68 +57,16 @@ export function ReportReviewPage({
     };
   }, [api, organizationAlias, tournamentAlias]);
 
-  const dismiss = (reportId: string, reviewNote: string) =>
-    api
+  function dismiss(reportId: string, reviewNote: string): void {
+    void api
       .reviewReport?.(organizationAlias, tournamentAlias, reportId, {
         status: 'dismissed',
         ...(reviewNote === '' ? {} : { reviewNote }),
       })
       .then(() => setRows((current) => current.filter((row) => row.reportId !== reportId)));
+  }
 
-  return (
-    <Card
-      aria-label={intl.formatMessage(messages.reportSectionLabel)}
-      className="cl-chamfer cl-chamfer--control"
-    >
-      <h1>
-        <FormattedMessage {...messages.reportTitle} />
-      </h1>
-      {status === 'loading' && rows.length === 0 && (
-        <Alert tone="info">
-          <FormattedMessage {...messages.reportLoading} />
-        </Alert>
-      )}
-      {status === 'failed' && rows.length === 0 && (
-        <Alert tone="destructive">
-          <FormattedMessage {...messages.reportLoadFailed} />
-        </Alert>
-      )}
-      {status === 'ready' && rows.length === 0 && (
-        <p>
-          <FormattedMessage {...messages.reportEmpty} />
-        </p>
-      )}
-      <ul>
-        {rows.map((row) => (
-          <li key={row.reportId}>
-            <Card>
-              <Badge label={intl.formatMessage(KIND_LABEL[row.kind])} />
-              <p>{summaryOf(row) ?? intl.formatMessage(messages.reportGenericSummary)}</p>
-              <p>
-                <time dateTime={row.submittedAt}>{row.submittedAt}</time>
-              </p>
-              {row.evidence.length > 0 && (
-                <ul aria-label={intl.formatMessage(messages.reportAttachedEvidence)}>
-                  {row.evidence.map((file) => (
-                    <li key={file.evidenceId}>
-                      {file.filename} — {file.validationStatus}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Button
-                onClick={() => void dismiss(row.reportId, '')}
-                type="button"
-                variant="secondary"
-              >
-                <FormattedMessage {...messages.reportDismiss} />
-              </Button>
-            </Card>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  );
+  return <ReportReviewTemplate onDismiss={dismiss} rows={rows} status={status} />;
 }
 
 function toRow(response: {
