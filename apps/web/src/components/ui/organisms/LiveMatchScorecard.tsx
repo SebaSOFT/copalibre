@@ -226,7 +226,7 @@ export function LiveMatchScorecard({
                     border: '1px solid var(--cl-color-amber-400)',
                     padding: '0 4px',
                     borderRadius: '2px',
-                    fontSize: '0.65rem',
+                    fontSize: 'var(--cl-font-size-xs)',
                     fontWeight: 'var(--cl-weight-bold)',
                   }}
                 >

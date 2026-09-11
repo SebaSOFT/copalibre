@@ -90,7 +90,7 @@ const { winners, intl, prominent = false } = Astro.props;
       color-mix(in srgb, var(--cl-color-ink-950) 40%, transparent)
     );
     border: 1px solid color-mix(in srgb, var(--cl-state-upcoming) 30%, transparent);
-    border-radius: 12px;
+    border-radius: var(--cl-radius-lg);
     padding: 1.25rem 1.5rem;
     margin: 1rem 0;
   }
@@ -138,7 +138,7 @@ const { winners, intl, prominent = false } = Astro.props;
     align-items: center;
     gap: 0.65rem;
     padding: 0.5rem;
-    border-radius: 6px;
+    border-radius: var(--cl-radius-md);
     background-color: color-mix(in srgb, var(--cl-text-primary) 3%, transparent);
     min-width: 0;
   }

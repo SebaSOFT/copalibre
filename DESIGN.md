@@ -24,38 +24,38 @@ typography:
   display:
     fontFamily: "'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif"
     fontSize: "2.25rem"
-    fontWeight: 700
-    lineHeight: 1.1
+    fontWeight: "700"
+    lineHeight: "1.1"
     letterSpacing: "0.04em"
   headline:
     fontFamily: "'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif"
     fontSize: "1.5rem"
-    fontWeight: 600
-    lineHeight: 1.2
+    fontWeight: "600"
+    lineHeight: "1.2"
     letterSpacing: "0.04em"
   title:
     fontFamily: "'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif"
     fontSize: "1.25rem"
-    fontWeight: 600
-    lineHeight: 1.3
+    fontWeight: "600"
+    lineHeight: "1.3"
     letterSpacing: "0.04em"
   body:
     fontFamily: "'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif"
     fontSize: "1rem"
-    fontWeight: 400
-    lineHeight: 1.5
+    fontWeight: "400"
+    lineHeight: "1.5"
     letterSpacing: "0"
   label:
     fontFamily: "'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace"
     fontSize: "0.75rem"
-    fontWeight: 500
-    lineHeight: 1.4
+    fontWeight: "500"
+    lineHeight: "1.4"
     letterSpacing: "0.05em"
   figure:
     fontFamily: "'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace"
     fontSize: "1.25rem"
-    fontWeight: 500
-    lineHeight: 1.2
+    fontWeight: "500"
+    lineHeight: "1.2"
     letterSpacing: "0"
     fontFeature: "tabular-nums"
 rounded:

@@ -63,6 +63,22 @@ yarn workspace @copalibre/design-tokens build:tokens
 
 A design-tokens unit test compares the file on disk against `generateCss()` and names this command when they differ, so a stale artifact fails a test instead of quietly rendering last week's stylesheet.
 
+**Design tokens drift and verified documentation.** `DESIGN.md`'s verified token frontmatter is checked against the token source in `tokens.test.ts`. Refresh verified frontmatter in the same PR when token primitives change:
+
+```bash
+yarn workspace @copalibre/design-tokens refresh:design
+```
+
+Full descriptive documentation and `.impeccable/design.json` sidecar refresh (`/impeccable document`) follows integration and lands on the next feature branch. The normative-source note under `DESIGN.md`'s H1 is preserved by the refresh mechanism.
+
+**Mechanical design checks.** Run Impeccable detector checks locally:
+
+```bash
+npx impeccable detect
+```
+
+Suppression justifications are recorded in `.impeccable/config.json`.
+
 ### The component workbench
 
 `yarn workspace @copalibre/web storybook` starts Storybook on port 6006 with every owned library
