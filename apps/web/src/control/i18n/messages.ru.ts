@@ -1086,4 +1086,7 @@ export const messages: Record<string, string> = {
   'control.roster.roleStaff': 'Персонал',
   'control.roster.noMembersYet': 'В этой команде пока нет участников.',
   'control.roster.roleFieldLabel': 'Роль {name}',
+  'control.auditLogPanel.eventCount':
+    '{count, plural, one {# событие} few {# события} many {# событий} other {# события}}',
+  'control.auditLogPanel.latency': 'Задержка {latencyMs}мс',
 };

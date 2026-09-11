@@ -1040,4 +1040,6 @@ export const messages: Record<string, string> = {
   'control.roster.roleStaff': '工作人员',
   'control.roster.noMembersYet': '该队伍暂无成员。',
   'control.roster.roleFieldLabel': '{name} 的角色',
+  'control.auditLogPanel.eventCount': '{count, plural, other {# 个事件}}',
+  'control.auditLogPanel.latency': '延迟 {latencyMs}毫秒',
 };

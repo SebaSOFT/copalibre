@@ -9,10 +9,7 @@ const SAMPLE_ITEMS = [
     timestamp: '2026-09-08 22:15:04',
     actor: 'arbitro_principal',
     action: 'Dispute Resolution Overruled Match Goal',
-    diff: {
-      previous: '1 - 1',
-      current: '2 - 1',
-    },
+    diff: [{ field: 'score', previous: '1 - 1', current: '2 - 1' }],
     latencyMs: 14,
   },
   {
@@ -78,7 +75,7 @@ export const ReferenceCorrection: Story = {
       action: entry.action,
       ...(entry.previous === undefined
         ? {}
-        : { diff: { previous: entry.previous, current: entry.resulting } }),
+        : { diff: [{ field: 'score', previous: entry.previous, current: entry.resulting }] }),
     })),
   },
 };

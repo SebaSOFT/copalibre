@@ -51,13 +51,17 @@ export function toAuditLogItem(record: AuditRecordResponse): AuditLogItem {
     timestamp: record.occurredAt,
     actor: record.actor,
     action: record.action,
-    // A "correction" that changed nothing is not a diff worth drawing.
+    // A "correction" that changed nothing is not a diff worth drawing. One
+    // row per field, named for itself — a reschedule that moved a start time
+    // and a venue is two rows, "startTime" and "venue", never one row
+    // labelled for a field that did not change.
     ...(isCorrection && keys.length > 0
       ? {
-          diff: {
-            previous: summarizeState(previous, keys),
-            current: summarizeState(resulting, keys),
-          },
+          diff: keys.map((field) => ({
+            field,
+            previous: render(previous[field]),
+            current: render(resulting[field]),
+          })),
         }
       : {}),
   };

@@ -1090,6 +1090,16 @@ export const messages = defineMessages({
     defaultMessage: '{start}–{end} of {total}',
   },
 
+  // audit-log-panel.tsx (openspec 0225 task 5.6)
+  auditLogPanelEventCount: {
+    id: 'control.auditLogPanel.eventCount',
+    defaultMessage: '{count, plural, one {# event} other {# events}}',
+  },
+  auditLogPanelLatency: {
+    id: 'control.auditLogPanel.latency',
+    defaultMessage: '{latencyMs}ms latency',
+  },
+
   // Wizard steps (lib/wizard.ts WIZARD_STEPS)
   wizardStepName: { id: 'control.wizard.step.name', defaultMessage: 'Name' },
   wizardStepDiscipline: { id: 'control.wizard.step.discipline', defaultMessage: 'Discipline' },

@@ -1,7 +1,14 @@
-export interface AuditDiff {
+import { useIntl } from 'react-intl';
+import { messages } from '../../../i18n/messages.en.js';
+
+export interface AuditDiffField {
+  /** The record's own field name — never a fixed label, since a correction may change any field. */
+  readonly field: string;
   readonly previous: string;
   readonly current: string;
 }
+
+export type AuditDiff = readonly AuditDiffField[];
 
 export interface AuditLogItem {
   readonly id: string;
@@ -14,16 +21,17 @@ export interface AuditLogItem {
 }
 
 export interface AuditLogPanelProps {
-  readonly title?: string;
+  readonly title: string;
   readonly items: readonly AuditLogItem[];
   readonly className?: string;
 }
 
 export function AuditLogPanel({
-  title = 'Audit Log',
+  title,
   items,
   className = '',
 }: AuditLogPanelProps): React.JSX.Element {
+  const intl = useIntl();
   return (
     <div
       className={`cl-audit-log-panel cl-chamfer cl-chamfer--control ${className}`.trim()}
@@ -64,7 +72,7 @@ export function AuditLogPanel({
             color: 'var(--cl-text-muted)',
           }}
         >
-          {items.length} {items.length === 1 ? 'event' : 'events'}
+          {intl.formatMessage(messages.auditLogPanelEventCount, { count: items.length })}
         </span>
       </div>
 
@@ -119,14 +127,16 @@ export function AuditLogPanel({
                         fontSize: 'var(--cl-font-size-xs)',
                       }}
                     >
-                      {item.latencyMs}ms latency
+                      {intl.formatMessage(messages.auditLogPanelLatency, {
+                        latencyMs: item.latencyMs,
+                      })}
                     </span>
                   )}
                   <span>{item.timestamp}</span>
                 </div>
               </div>
 
-              {item.diff && (
+              {item.diff && item.diff.length > 0 && (
                 <div
                   className="cl-audit-log-panel__diff"
                   style={{
@@ -139,12 +149,16 @@ export function AuditLogPanel({
                     border: '1px solid var(--cl-border-muted)',
                   }}
                 >
-                  <div style={{ color: 'var(--cl-state-destructive)' }}>
-                    - Score: {item.diff.previous}
-                  </div>
-                  <div style={{ color: 'var(--cl-state-positive)' }}>
-                    + Score: {item.diff.current}
-                  </div>
+                  {item.diff.map((row) => (
+                    <div key={row.field}>
+                      <div style={{ color: 'var(--cl-state-destructive)' }}>
+                        - {row.field}: {row.previous}
+                      </div>
+                      <div style={{ color: 'var(--cl-state-positive)' }}>
+                        + {row.field}: {row.current}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

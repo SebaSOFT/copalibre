@@ -41,7 +41,23 @@ describe('audit records as ledger entries', () => {
       resultingState: { homeScore: 2 },
     });
     expect(item.type).toBe('correction');
-    expect(item.diff).toEqual({ previous: 'homeScore: 1', current: 'homeScore: 2' });
+    expect(item.diff).toEqual([{ field: 'homeScore', previous: '1', current: '2' }]);
+  });
+
+  it('names each changed field as itself, one row per field — a reschedule is two rows, not one mislabelled row', () => {
+    const item = toAuditLogItem({
+      ...base,
+      previousState: { startTime: '2026-09-05T18:00:00.000Z', venue: 'Court 1' },
+      resultingState: { startTime: '2026-09-05T19:00:00.000Z', venue: 'Court 2' },
+    });
+    expect(item.diff).toEqual([
+      {
+        field: 'startTime',
+        previous: '2026-09-05T18:00:00.000Z',
+        current: '2026-09-05T19:00:00.000Z',
+      },
+      { field: 'venue', previous: 'Court 1', current: 'Court 2' },
+    ]);
   });
 
   it('reads a record with no previous state as an ordinary entry', () => {
