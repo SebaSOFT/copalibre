@@ -24,6 +24,13 @@ export interface SelectProps {
   readonly 'aria-describedby'?: string;
   readonly title?: string;
   readonly className?: string;
+  /**
+   * A leading glyph rendered inside the trigger, before the value —
+   * presentational only, no i18n and no business logic, exactly what an
+   * atom may hold (openspec 0225 design.md Decision 3). Omitting it leaves
+   * the trigger exactly as it renders today.
+   */
+  readonly icon?: React.ReactNode;
 }
 
 export function Select({
@@ -36,6 +43,7 @@ export function Select({
   className = '',
   id,
   name,
+  icon,
   'aria-label': ariaLabel,
   'aria-describedby': ariaDescribedBy,
   ...rest
@@ -120,6 +128,7 @@ export function Select({
           className={`cl-select cl-select--${state} ${className}`}
           {...rest}
         >
+          {icon}
           <RadixSelect.Value />
           <RadixSelect.Icon className="cl-select__icon">▾</RadixSelect.Icon>
         </RadixSelect.Trigger>

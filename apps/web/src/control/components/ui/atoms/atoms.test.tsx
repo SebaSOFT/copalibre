@@ -89,6 +89,42 @@ describe('form-control atoms', () => {
     expect(within(trigger).getByText('Admin')).toBeDefined();
   });
 
+  it('renders an optional leading icon inside the trigger, before the value', () => {
+    const { container } = render(
+      <Select
+        aria-label="Language"
+        icon={<span data-testid="select-icon">*</span>}
+        onValueChange={() => {}}
+        options={[{ value: 'en', label: 'English' }]}
+        value="en"
+      />,
+    );
+    const trigger = container.querySelector('button.cl-select');
+    expect(trigger).not.toBeNull();
+    const icon = screen.getByTestId('select-icon');
+    expect(trigger?.contains(icon)).toBe(true);
+    // "before the value": the icon node precedes the value's text node in
+    // document order within the trigger.
+    const position = icon.compareDocumentPosition(
+      within(trigger as HTMLElement).getByText('English'),
+    );
+    expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('omitting the icon prop renders the trigger exactly as before — no extra node, no layout change', () => {
+    const { container } = render(
+      <Select
+        aria-label="Role"
+        onValueChange={() => {}}
+        options={[{ value: 'admin', label: 'Admin' }]}
+        value="admin"
+      />,
+    );
+    const trigger = container.querySelector('button.cl-select');
+    // Only RadixSelect.Value's text and the chevron icon — nothing else.
+    expect(trigger?.textContent).toBe('Admin▾');
+  });
+
   it('renders the error and disabled state classes for Select', () => {
     const { rerender } = render(
       <Select aria-label="Role" invalid onValueChange={() => {}} options={[]} value="" />,
