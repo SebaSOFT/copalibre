@@ -4,6 +4,7 @@ import type { MatchCardData } from '../../../lib/matches-view.js';
 import type { matchCardLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
 import { Button } from '../ui/atoms/button.js';
 import { messages } from '../../i18n/messages.en.js';
+import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
 type StateFilter = 'all' | 'live' | 'upcoming' | 'final';
 
@@ -27,27 +28,24 @@ export function MatchesViewTemplate({
 }): React.JSX.Element {
   const intl = useIntl();
 
-  return (
-    <section className="cl-list-screen">
-      <div className="cl-list-screen__header">
-        <h1 className="cl-list-screen__title">
-          {intl.formatMessage(messages.matchesViewControlTitle)}
-        </h1>
-        <div role="group" aria-label={intl.formatMessage(messages.matchesViewControlTitle)}>
-          {(['all', 'live', 'upcoming', 'final'] as const).map((option) => (
-            <Button
-              aria-pressed={state === option}
-              key={option}
-              onClick={() => onSelectState(option)}
-              type="button"
-              variant="secondary"
-            >
-              {labels.filters[option]}
-            </Button>
-          ))}
-        </div>
-      </div>
+  const toolbarNode = (
+    <div role="group" aria-label={intl.formatMessage(messages.matchesViewControlTitle)}>
+      {(['all', 'live', 'upcoming', 'final'] as const).map((option) => (
+        <Button
+          aria-pressed={state === option}
+          key={option}
+          onClick={() => onSelectState(option)}
+          type="button"
+          variant="secondary"
+        >
+          {labels.filters[option]}
+        </Button>
+      ))}
+    </div>
+  );
 
+  const listingNode = (
+    <>
       {status === 'error' && <p>{intl.formatMessage(messages.matchesViewControlLoadFailed)}</p>}
       {status === 'ready' && matches.length === 0 && (
         <p className="cl-list-screen__empty">{labels.empty}</p>
@@ -59,6 +57,14 @@ export function MatchesViewTemplate({
           ))}
         </div>
       )}
-    </section>
+    </>
+  );
+
+  return (
+    <ListScreenLayout
+      listing={listingNode}
+      title={intl.formatMessage(messages.matchesViewControlTitle)}
+      toolbar={toolbarNode}
+    />
   );
 }

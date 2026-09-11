@@ -5,6 +5,7 @@ import { Badge } from '../ui/atoms/badge.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
 import { Alert } from '../ui/atoms/alert.js';
+import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
 type LoadStatus = 'loading' | 'ready' | 'failed';
 
@@ -24,14 +25,11 @@ export function ReportReviewTemplate({
 }): React.JSX.Element {
   const intl = useIntl();
 
-  return (
+  const listingNode = (
     <Card
       aria-label={intl.formatMessage(messages.reportSectionLabel)}
       className="cl-chamfer cl-chamfer--control"
     >
-      <h1>
-        <FormattedMessage {...messages.reportTitle} />
-      </h1>
       {status === 'loading' && rows.length === 0 && (
         <Alert tone="info">
           <FormattedMessage {...messages.reportLoading} />
@@ -73,5 +71,12 @@ export function ReportReviewTemplate({
         ))}
       </ul>
     </Card>
+  );
+
+  return (
+    <ListScreenLayout
+      listing={listingNode}
+      title={<FormattedMessage {...messages.reportTitle} />}
+    />
   );
 }

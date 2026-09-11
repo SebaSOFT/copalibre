@@ -25,6 +25,7 @@ import {
   type PatCreatedResponse,
   type PatResponse,
 } from '../pages/PreferencesPage.js';
+import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
 const messages = defineMessages({
   title: {
@@ -65,7 +66,6 @@ const messages = defineMessages({
   },
 });
 
-const preferencesPagePadding = 'clamp(var(--cl-space-3), 4vw, var(--cl-space-8))';
 const preferencesSectionPadding = 'clamp(var(--cl-space-3), 4vw, var(--cl-space-6))';
 
 /**
@@ -142,19 +142,8 @@ export function PreferencesTemplate({
     setRebuildConfirming(false);
   }
 
-  return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: '800px',
-        margin: '0 auto',
-        padding: preferencesPagePadding,
-      }}
-    >
-      <h1>
-        <FormattedMessage {...messages.title} />
-      </h1>
-
+  const listingNode = (
+    <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto' }}>
       <Card
         className="cl-chamfer cl-chamfer--control"
         style={{
@@ -498,4 +487,6 @@ export function PreferencesTemplate({
       )}
     </div>
   );
+
+  return <ListScreenLayout listing={listingNode} title={intl.formatMessage(messages.title)} />;
 }

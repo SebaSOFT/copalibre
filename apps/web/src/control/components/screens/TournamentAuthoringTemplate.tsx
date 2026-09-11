@@ -21,6 +21,14 @@ type AuthoringStatus =
   | { readonly kind: 'created'; readonly alias: string }
   | { readonly kind: 'createFailed'; readonly message?: string };
 
+/**
+ * No `ListScreenLayout`/`FormScreenLayout`/`AuthScreenLayout`/
+ * `MatchConsoleLayout` here (openspec 0225 task 6.3): a multi-step wizard's
+ * shape — step navigation, one step's fields visible at a time — matches
+ * none of the four, and `TournamentSetupWizard` is itself the established
+ * layout for that shape across the app (`ProfileBuilderWizard`,
+ * `DescriptorBuilderWizard` compose the same way).
+ */
 export function TournamentAuthoringTemplate({
   organizationAlias,
   client,

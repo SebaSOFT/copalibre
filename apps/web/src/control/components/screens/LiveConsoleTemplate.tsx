@@ -6,6 +6,7 @@ import { Card } from '../ui/atoms/card.js';
 import { Inline } from '../ui/atoms/layout/inline.js';
 import { Stack } from '../ui/atoms/layout/stack.js';
 import { messages } from '../../i18n/messages.en.js';
+import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
 /**
  * Composes the screen from the data `LiveConsolePage` supplies (openspec
@@ -23,16 +24,11 @@ export function LiveConsoleTemplate({
 }): React.JSX.Element {
   const intl = useIntl();
 
-  return (
+  const listingNode = (
     <Stack className="cl-live-console" gap="6">
-      <header>
-        <h1 style={{ margin: '0 0 var(--cl-space-2)', fontSize: 'var(--cl-font-size-2xl)' }}>
-          {intl.formatMessage(messages.navLiveConsole)}
-        </h1>
-        <p style={{ margin: 0, color: 'var(--cl-text-muted)' }}>
-          {intl.formatMessage(messages.liveConsoleSubtitle)}
-        </p>
-      </header>
+      <p style={{ margin: 0, color: 'var(--cl-text-muted)' }}>
+        {intl.formatMessage(messages.liveConsoleSubtitle)}
+      </p>
 
       {loading ? (
         <p>{intl.formatMessage(messages.liveConsoleLoading)}</p>
@@ -111,5 +107,9 @@ export function LiveConsoleTemplate({
         </Stack>
       )}
     </Stack>
+  );
+
+  return (
+    <ListScreenLayout listing={listingNode} title={intl.formatMessage(messages.navLiveConsole)} />
   );
 }

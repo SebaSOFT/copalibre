@@ -8,6 +8,7 @@ import { Box } from '../ui/atoms/layout/box.js';
 import { Stack } from '../ui/atoms/layout/stack.js';
 import { formatStorageBytes } from '../pages/PreferencesPage.js';
 import { messages } from '../../i18n/messages.en.js';
+import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
 /**
  * Composes the screen from the data `AnalyticsPage` supplies (openspec 0225
@@ -29,16 +30,11 @@ export function AnalyticsTemplate({
   const finishedCount = tournaments.filter((t) => t.status === 'finished').length;
   const upcomingCount = tournaments.filter((t) => t.status === 'published').length;
 
-  return (
+  const listingNode = (
     <Stack className="cl-analytics" gap="6">
-      <header>
-        <h1 style={{ margin: '0 0 var(--cl-space-2)', fontSize: 'var(--cl-font-size-2xl)' }}>
-          {intl.formatMessage(messages.navAnalytics)}
-        </h1>
-        <p style={{ margin: 0, color: 'var(--cl-text-muted)' }}>
-          {intl.formatMessage(messages.analyticsSubtitle)}
-        </p>
-      </header>
+      <p style={{ margin: 0, color: 'var(--cl-text-muted)' }}>
+        {intl.formatMessage(messages.analyticsSubtitle)}
+      </p>
 
       {loading ? (
         <p>{intl.formatMessage(messages.analyticsLoading)}</p>
@@ -122,5 +118,9 @@ export function AnalyticsTemplate({
         </Stack>
       )}
     </Stack>
+  );
+
+  return (
+    <ListScreenLayout listing={listingNode} title={intl.formatMessage(messages.navAnalytics)} />
   );
 }
