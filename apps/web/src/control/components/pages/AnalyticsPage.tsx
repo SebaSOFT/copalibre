@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useIntl } from 'react-intl';
 import {
   createControlApiClient,
   type ControlApiClient,
@@ -7,12 +6,13 @@ import {
   type TournamentResponse,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { Card } from '../ui/atoms/card.js';
-import { Box } from '../ui/atoms/layout/box.js';
-import { Stack } from '../ui/atoms/layout/stack.js';
-import { formatStorageBytes } from '../pages/PreferencesPage.js';
-import { messages } from '../../i18n/messages.en.js';
+import { AnalyticsTemplate } from '../screens/AnalyticsTemplate.js';
 
+/**
+ * Fetches (openspec 0225 task 6.2): the tournament and storage-usage loads
+ * live here; `AnalyticsTemplate` composes the screen from the resulting
+ * data.
+ */
 export function AnalyticsPage({
   organizationAlias,
   client,
@@ -20,7 +20,6 @@ export function AnalyticsPage({
   readonly organizationAlias: string;
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
-  const intl = useIntl();
   const api = useMemo(
     () =>
       client ??
@@ -61,102 +60,5 @@ export function AnalyticsPage({
     };
   }, [api, organizationAlias]);
 
-  const liveCount = tournaments.filter((t) => t.status === 'started').length;
-  const finishedCount = tournaments.filter((t) => t.status === 'finished').length;
-  const upcomingCount = tournaments.filter((t) => t.status === 'published').length;
-
-  return (
-    <Stack className="cl-analytics" gap="6">
-      <header>
-        <h1 style={{ margin: '0 0 var(--cl-space-2)', fontSize: 'var(--cl-font-size-2xl)' }}>
-          {intl.formatMessage(messages.navAnalytics)}
-        </h1>
-        <p style={{ margin: 0, color: 'var(--cl-text-muted)' }}>
-          {intl.formatMessage(messages.analyticsSubtitle)}
-        </p>
-      </header>
-
-      {loading ? (
-        <p>{intl.formatMessage(messages.analyticsLoading)}</p>
-      ) : (
-        <Stack gap="6">
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
-              gap: 'var(--cl-space-4)',
-            }}
-          >
-            <Card>
-              <Box padding="4">
-                <span style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--cl-text-muted)' }}>
-                  {intl.formatMessage(messages.analyticsTotalTournaments)}
-                </span>
-                <div
-                  style={{
-                    fontSize: 'var(--cl-font-size-3xl, 2rem)',
-                    fontWeight: 700,
-                    margin: 'var(--cl-space-2) 0',
-                  }}
-                >
-                  {tournaments.length}
-                </div>
-                <span style={{ fontSize: 'var(--cl-font-size-xs)', color: 'var(--cl-text-muted)' }}>
-                  {intl.formatMessage(messages.analyticsTournamentsBreakdown, {
-                    live: liveCount,
-                    upcoming: upcomingCount,
-                    finished: finishedCount,
-                  })}
-                </span>
-              </Box>
-            </Card>
-
-            <Card>
-              <Box padding="4">
-                <span style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--cl-text-muted)' }}>
-                  {intl.formatMessage(messages.analyticsFinishedTournaments)}
-                </span>
-                <div
-                  style={{
-                    fontSize: 'var(--cl-font-size-3xl, 2rem)',
-                    fontWeight: 700,
-                    margin: 'var(--cl-space-2) 0',
-                  }}
-                >
-                  {finishedCount}
-                </div>
-                <span style={{ fontSize: 'var(--cl-font-size-xs)', color: 'var(--cl-text-muted)' }}>
-                  {intl.formatMessage(messages.analyticsFinishedDetail)}
-                </span>
-              </Box>
-            </Card>
-
-            <Card>
-              <Box padding="4">
-                <span style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--cl-text-muted)' }}>
-                  {intl.formatMessage(messages.analyticsStorageUsed)}
-                </span>
-                <div
-                  style={{
-                    fontSize: 'var(--cl-font-size-3xl, 2rem)',
-                    fontWeight: 700,
-                    margin: 'var(--cl-space-2) 0',
-                  }}
-                >
-                  {storage ? formatStorageBytes(storage.totalBytes) : '—'}
-                </div>
-                <span style={{ fontSize: 'var(--cl-font-size-xs)', color: 'var(--cl-text-muted)' }}>
-                  {storage
-                    ? intl.formatMessage(messages.analyticsMediaFilesCount, {
-                        count: storage.objectCount,
-                      })
-                    : intl.formatMessage(messages.analyticsNoData)}
-                </span>
-              </Box>
-            </Card>
-          </div>
-        </Stack>
-      )}
-    </Stack>
-  );
+  return <AnalyticsTemplate loading={loading} storage={storage} tournaments={tournaments} />;
 }
