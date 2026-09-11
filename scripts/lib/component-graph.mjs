@@ -176,7 +176,11 @@ function isRendered(source, localName) {
 const NATIVE_ELEMENT = /<([a-z][a-z0-9-]*)(?=[\s/>])/g;
 const INLINE_STYLE_OBJECT = /style=\{\{([\s\S]*?)\}\}/g;
 const STATE_SIGNAL = /\buse(?:State|Reducer)\s*\(/g;
-const I18N_SIGNAL = /\b(?:useIntl|FormattedMessage|react-intl)\b/g;
+// A call, not a mention: `import type { IntlShape } from 'react-intl'` is a
+// type annotation a component receiving pre-formatted strings may still
+// carry; `intl.formatMessage(…)`, `useIntl()` and `<FormattedMessage …>` are
+// the component doing its own formatting, which is what R6 governs.
+const I18N_SIGNAL = /\buseIntl\s*\(|<FormattedMessage\b|\.formatMessage\s*\(/g;
 const DATA_SIGNAL = /\b(?:fetch|RealtimeClient|EventSource)\s*[(<]/g;
 
 function scanNativeElements(source) {

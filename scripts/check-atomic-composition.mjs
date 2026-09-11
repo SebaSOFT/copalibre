@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { buildGraph } from './lib/component-graph.mjs';
 import { ratchet, unreachableRegisterEntries } from './lib/rule-register.mjs';
 
@@ -118,6 +119,402 @@ export function checkImportDirection(nodes, edges) {
 }
 
 // ---------------------------------------------------------------------------
+// R3 — no inline style carries a layout property outside ui/atoms/layout/,
+// the directory the layout primitives (task 2.1) land in.
+// ---------------------------------------------------------------------------
+
+const LAYOUT_PROPERTIES = new Set([
+  'display',
+  'flex',
+  'flexDirection',
+  'flexWrap',
+  'flexGrow',
+  'flexShrink',
+  'flexBasis',
+  'justifyContent',
+  'alignItems',
+  'alignContent',
+  'alignSelf',
+  'placeItems',
+  'placeContent',
+  'gap',
+  'rowGap',
+  'columnGap',
+  'gridTemplateColumns',
+  'gridTemplateRows',
+  'gridTemplateAreas',
+  'gridColumn',
+  'gridRow',
+  'gridArea',
+  'gridAutoFlow',
+  'margin',
+  'marginTop',
+  'marginRight',
+  'marginBottom',
+  'marginLeft',
+  'marginBlock',
+  'marginInline',
+  'padding',
+  'paddingTop',
+  'paddingRight',
+  'paddingBottom',
+  'paddingLeft',
+  'paddingBlock',
+  'paddingInline',
+  'width',
+  'height',
+  'minWidth',
+  'minHeight',
+  'maxWidth',
+  'maxHeight',
+  'position',
+  'top',
+  'right',
+  'bottom',
+  'left',
+  'inset',
+  'float',
+  'clear',
+  'order',
+]);
+
+const LAYOUT_PRIMITIVE_ROOT = 'ui/atoms/layout/';
+
+/**
+ * Debt recorded 2026-09-11, the day this gate first ran: every file with an
+ * inline `style={{…}}` object carrying at least one layout property, counted
+ * per file. Paid down by task 5.1/5.2 as inline layout is replaced by the
+ * `Stack`/`Inline`/`Grid`/`Box` primitives task 2.1 adds.
+ */
+export const KNOWN_INLINE_LAYOUT = new Map([
+  ['components/tv/TvDashboard.tsx', 3],
+  ['components/ui/AstroPreview.tsx', 1],
+  ['components/ui/atoms/EntrantName.tsx', 1],
+  ['components/ui/molecules/DisciplineCard.tsx', 9],
+  ['components/ui/organisms/ChampionshipMatchCard.tsx', 10],
+  ['components/ui/organisms/LiveMatchScorecard.tsx', 12],
+  ['control/components/AnalyticsRoute.tsx', 11],
+  ['control/components/BracketCanvas.tsx', 2],
+  ['control/components/ControlApp.tsx', 8],
+  ['control/components/DescriptorBuilderWizard.tsx', 20],
+  ['control/components/LiveConsoleRoute.tsx', 10],
+  ['control/components/NativeAuthRoutes.tsx', 7],
+  ['control/components/PlatformAdministrationRoute.tsx', 1],
+  ['control/components/PreferencesRoute.tsx', 17],
+  ['control/components/ProfileBuilderWizard.tsx', 6],
+  ['control/components/RegistrationReviewPage.tsx', 3],
+  ['control/components/RosterRoleSelector.tsx', 4],
+  ['control/components/StandingsPage.tsx', 5],
+  ['control/components/TournamentSettingsPage.tsx', 4],
+  ['control/components/TournamentSetupWizard.tsx', 18],
+  ['control/components/ui/atoms/LanguageSelector.tsx', 2],
+  ['control/components/ui/atoms/TerminalBlock.tsx', 8],
+  ['control/components/ui/atoms/select.tsx', 2],
+  ['control/components/ui/molecules/CalloutBanner.tsx', 5],
+  ['control/components/ui/molecules/TiebreakerSequence.tsx', 5],
+  ['control/components/ui/organisms/AuditLogCard.tsx', 10],
+  ['control/components/ui/organisms/StandingsPanel.tsx', 1],
+  ['control/components/ui/story-matrix.tsx', 2],
+]);
+
+export function checkInlineLayout(nodes) {
+  const violations = [];
+  for (const node of nodes.values()) {
+    if (node.path.startsWith(LAYOUT_PRIMITIVE_ROOT)) continue;
+    for (const style of node.inlineStyles) {
+      const hasLayoutProp = style.properties.some((p) => LAYOUT_PROPERTIES.has(p));
+      if (!hasLayoutProp) continue;
+      violations.push({
+        path: node.path,
+        line: style.line,
+        message: `${node.path}:${style.line}: inline style carries a layout property. Layout belongs to a Stack/Inline/Grid/Box primitive, not an inline object.`,
+      });
+    }
+  }
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
+// R4 — no style value is a raw length or colour outside var().
+// ---------------------------------------------------------------------------
+
+const RAW_VALUE = /\b\d+(?:\.\d+)?(?:px|rem|em|vh|vw|%)\b|#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/;
+
+/** Strips `var(...)` calls (repeatedly, so nested fallbacks are also removed). */
+function withoutVarCalls(text) {
+  let previous;
+  let result = text;
+  do {
+    previous = result;
+    result = result.replace(/var\([^()]*\)/g, '');
+  } while (result !== previous);
+  return result;
+}
+
+/** Debt recorded 2026-09-11: inline style objects with a raw value outside `var()`, per file. */
+export const KNOWN_RAW_STYLE_VALUES = new Map([
+  ['components/tv/TvDashboard.tsx', 1],
+  ['components/ui/AstroPreview.tsx', 1],
+  ['components/ui/molecules/DisciplineCard.tsx', 5],
+  ['components/ui/organisms/ChampionshipMatchCard.tsx', 5],
+  ['components/ui/organisms/LiveMatchScorecard.tsx', 8],
+  ['control/components/AnalyticsRoute.tsx', 1],
+  ['control/components/ControlApp.tsx', 8],
+  ['control/components/DescriptorBuilderWizard.tsx', 1],
+  ['control/components/NativeAuthRoutes.tsx', 7],
+  ['control/components/PreferencesRoute.tsx', 16],
+  ['control/components/ProfileBuilderWizard.tsx', 1],
+  ['control/components/RosterRoleSelector.tsx', 1],
+  ['control/components/StandingsPage.tsx', 1],
+  ['control/components/TournamentSetupWizard.tsx', 2],
+  ['control/components/ui/atoms/LanguageSelector.tsx', 1],
+  ['control/components/ui/atoms/TerminalBlock.tsx', 7],
+  ['control/components/ui/molecules/CalloutBanner.tsx', 2],
+  ['control/components/ui/molecules/TiebreakerSequence.tsx', 2],
+  ['control/components/ui/organisms/AuditLogCard.tsx', 6],
+]);
+
+export function checkRawStyleValues(nodes) {
+  const violations = [];
+  for (const node of nodes.values()) {
+    for (const style of node.inlineStyles) {
+      if (!RAW_VALUE.test(withoutVarCalls(style.raw))) continue;
+      violations.push({
+        path: node.path,
+        line: style.line,
+        message: `${node.path}:${style.line}: inline style value is a raw length or colour, not a var() reference.`,
+      });
+    }
+  }
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
+// R5 — no API client, fetch, or realtime subscription below the page tier.
+// ---------------------------------------------------------------------------
+
+/**
+ * Debt recorded 2026-09-11: library-tier files (atoms/molecules/organisms/
+ * templates) with a data-access signal — a `fetch`/`RealtimeClient`/
+ * `EventSource` call, or an import resolving into `lib/public-api-client.ts`
+ * or `control/lib/api-client.ts`. Paid down by moving these organisms and
+ * the one molecule below the page tier once their consumers supply data as
+ * props instead.
+ */
+export const KNOWN_DATA_BELOW_PAGE = new Map([
+  ['components/ui/organisms/LiveMatchHero.tsx', 1],
+  ['components/ui/organisms/StandingsPreview.astro', 2],
+  ['components/ui/molecules/TournamentHero.astro', 1],
+  ['components/ui/organisms/PlayerProfileView.astro', 1],
+]);
+
+export function checkDataAccess(nodes) {
+  const violations = [];
+  for (const node of nodes.values()) {
+    if (!DECLARED_UI_TIERS.has(node.tier)) continue;
+    if (node.dataSignals > 0) {
+      violations.push({
+        path: node.path,
+        line: 1,
+        message: `${node.path} (tier: ${node.tier}) contains a fetch/RealtimeClient/EventSource call. Data access belongs to the page tier only.`,
+      });
+    }
+    for (const imp of node.imports) {
+      if (imp.resolved && /(?:^|\/)(?:public-api-client|api-client)\.ts$/.test(imp.resolved)) {
+        violations.push({
+          path: node.path,
+          line: imp.line,
+          message: `${node.path}:${imp.line}: imports an API client (${imp.resolved}). Data access belongs to the page tier only.`,
+        });
+      }
+    }
+  }
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
+// R6 — no react-intl formatting call in an atom or molecule.
+// ---------------------------------------------------------------------------
+
+/**
+ * Debt recorded 2026-09-11: the five public molecules design.md names as
+ * calling `react-intl` to format their own labels. Paid down by task 5.3,
+ * which moves the formatting to each molecule's consumer.
+ */
+export const KNOWN_I18N_BELOW_ORGANISM = new Map([
+  ['components/ui/molecules/BroadcastStatusPanel.astro', 1],
+  ['components/ui/molecules/ResultLegend.astro', 1],
+  ['components/ui/molecules/RulesetBriefing.astro', 1],
+  ['components/ui/molecules/SeriesStateBar.astro', 1],
+  ['components/ui/molecules/TournamentHero.astro', 1],
+]);
+
+export function checkI18nPlacement(nodes) {
+  const violations = [];
+  for (const node of nodes.values()) {
+    if (node.tier !== 'atoms' && node.tier !== 'molecules') continue;
+    if (node.i18nSignals === 0) continue;
+    violations.push({
+      path: node.path,
+      line: 1,
+      message: `${node.path} (tier: ${node.tier}) formats its own message via react-intl. i18n sits at organism and above; an atom or molecule takes rendered strings as props.`,
+    });
+  }
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
+// R7 — every library component has ≥1 production consumer or a
+// reference-index reason.
+// ---------------------------------------------------------------------------
+
+/**
+ * Debt recorded 2026-09-11: storied library components with no production
+ * consumer and no reference-index row. Two of the nine orphans the survey
+ * found (`LiveMatchScorecard`, `LanguageSelector`) already carry a
+ * reference-index row with a stated reason and are exempted by the rule
+ * itself rather than this register. The remaining seven are dispositioned by
+ * design.md Decision 5: `table-toolbar`/`pagination`/`form-screen-template`
+ * are adopted (tasks 4.1-4.2), `DisciplineCard` is deleted and
+ * `ChampionshipMatchCard` merged (task 4.3), and `AstroPreview`/
+ * `story-matrix` are recorded in the reference index with a reason (task
+ * 4.5) — a dev-only preview seam and workbench-only infrastructure, neither
+ * shipping to a production surface.
+ */
+export const KNOWN_ORPHANS = new Map([
+  ['components/ui/AstroPreview.tsx', 1],
+  ['components/ui/molecules/DisciplineCard.tsx', 1],
+  ['components/ui/organisms/ChampionshipMatchCard.tsx', 1],
+  ['control/components/ui/molecules/pagination.tsx', 1],
+  ['control/components/ui/molecules/table-toolbar.tsx', 1],
+  ['control/components/ui/story-matrix.tsx', 1],
+  ['control/components/ui/templates/form-screen-template.tsx', 1],
+]);
+
+/** The last `/`-segment of a storyId's title, before the ` — scenario` suffix. */
+function referenceIndexComponentNames(referenceIndex) {
+  const names = new Set();
+  for (const entry of referenceIndex) {
+    if (entry.consumers.length > 0) continue; // has a real consumer; not what exempts an orphan
+    const title = entry.storyId.split(' — ')[0] ?? entry.storyId;
+    const segment = title.split('/').pop();
+    if (segment) names.add(segment);
+  }
+  return names;
+}
+
+export function checkOrphans(nodes, edges, referenceIndex) {
+  const consumedTargets = new Set(edges.filter((e) => e.rendered).map((e) => e.to));
+  const exemptNames = referenceIndexComponentNames(referenceIndex);
+  const violations = [];
+
+  for (const node of nodes.values()) {
+    if (!node.isComponent) continue;
+    if (!node.path.split('/').includes('ui')) continue; // library-adjacent files only
+    if (consumedTargets.has(node.path)) continue;
+
+    const baseName = node.path
+      .split('/')
+      .pop()
+      .replace(/\.(tsx|astro|ts)$/, '');
+    if (exemptNames.has(baseName)) continue;
+
+    violations.push({
+      path: node.path,
+      line: 1,
+      message: `${node.path} has no production consumer and no reference-index row explaining why. Adopt it, delete it, merge it, or record it in reference-index.ts with a reason.`,
+    });
+  }
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
+// R9 — naming: casing matches the tier directory's rule; no two components
+// share a base name.
+// ---------------------------------------------------------------------------
+
+/**
+ * Debt recorded 2026-09-11: control-library files still in PascalCase,
+ * pending the rename in task 3.3.
+ */
+export const KNOWN_CASING_VIOLATIONS = new Map([
+  ['control/components/ui/atoms/LanguageSelector.tsx', 1],
+  ['control/components/ui/atoms/StatTile.tsx', 1],
+  ['control/components/ui/atoms/TerminalBlock.tsx', 1],
+  ['control/components/ui/molecules/CalloutBanner.tsx', 1],
+  ['control/components/ui/molecules/EditorialCard.tsx', 1],
+  ['control/components/ui/molecules/MetricStrip.tsx', 1],
+  ['control/components/ui/molecules/StepHeading.tsx', 1],
+  ['control/components/ui/molecules/TiebreakerSequence.tsx', 1],
+  ['control/components/ui/organisms/AuditLogCard.tsx', 1],
+  ['control/components/ui/organisms/StandingsPanel.tsx', 1],
+]);
+
+/** Debt recorded 2026-09-11: two components sharing a base name, pending task 3.4. */
+export const KNOWN_DUPLICATE_NAMES = new Map([
+  ['components/ui/organisms/TournamentCard.astro', 1],
+  ['control/components/TournamentCard.tsx', 1],
+  ['components/ui/AstroPreview.tsx', 1],
+  ['preview/AstroPreview.astro', 1],
+]);
+
+const KEBAB_CASE = /^[a-z][a-z0-9-]*\.(tsx|ts)$/;
+const PASCAL_CASE = /^[A-Z][A-Za-z0-9]*\.astro$/;
+
+export function checkCasing(nodes) {
+  const violations = [];
+  for (const node of nodes.values()) {
+    const segments = node.path.split('/');
+    if (!segments.includes('ui')) continue;
+    const fileName = segments[segments.length - 1];
+    const isControl = node.path.startsWith('control/');
+
+    if (isControl && !KEBAB_CASE.test(fileName)) {
+      violations.push({
+        path: node.path,
+        line: 1,
+        message: `${node.path}: control library files are kebab-case; ${fileName} is not.`,
+      });
+    } else if (!isControl && node.path.endsWith('.astro') && !PASCAL_CASE.test(fileName)) {
+      violations.push({
+        path: node.path,
+        line: 1,
+        message: `${node.path}: public library .astro files are PascalCase; ${fileName} is not.`,
+      });
+    }
+  }
+  return violations;
+}
+
+/** Route files under `pages/` legitimately repeat a name across route trees (Astro file routing). */
+export function checkDuplicateNames(nodes) {
+  const byBaseName = new Map();
+  for (const node of nodes.values()) {
+    if (!node.isComponent) continue;
+    if (node.path.startsWith('pages/')) continue;
+    const baseName = node.path
+      .split('/')
+      .pop()
+      .replace(/\.(tsx|astro)$/, '');
+    if (!byBaseName.has(baseName)) byBaseName.set(baseName, []);
+    byBaseName.get(baseName).push(node.path);
+  }
+
+  const violations = [];
+  for (const [baseName, paths] of byBaseName) {
+    if (paths.length < 2) continue;
+    for (const path of paths) {
+      violations.push({
+        path,
+        line: 1,
+        message: `${path}: base name "${baseName}" is shared with ${paths.filter((p) => p !== path).join(', ')}. No two components may share a base name.`,
+      });
+    }
+  }
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -127,45 +524,108 @@ export function checkImportDirection(nodes, edges) {
  */
 export function checkAtomicComposition(webSrcDir) {
   const { nodes, edges } = buildGraph(webSrcDir);
+  const referenceIndexPath = join(webSrcDir, 'control/components/ui/reference-index.ts');
+  const referenceIndex = loadReferenceIndex(referenceIndexPath);
 
-  const r1 = ratchet(
-    checkTierMembership(nodes),
-    KNOWN_UNDECLARED_TIER,
-    'KNOWN_UNDECLARED_TIER',
-    'undeclared-tier file(s)',
-  );
-  const r2 = ratchet(
-    checkImportDirection(nodes, edges),
-    KNOWN_UPWARD_IMPORTS,
-    'KNOWN_UPWARD_IMPORTS',
-    'upward import(s)',
-  );
+  const results = [
+    ratchet(
+      checkTierMembership(nodes),
+      KNOWN_UNDECLARED_TIER,
+      'KNOWN_UNDECLARED_TIER',
+      'undeclared-tier file(s)',
+    ),
+    ratchet(
+      checkImportDirection(nodes, edges),
+      KNOWN_UPWARD_IMPORTS,
+      'KNOWN_UPWARD_IMPORTS',
+      'upward import(s)',
+    ),
+    ratchet(
+      checkInlineLayout(nodes),
+      KNOWN_INLINE_LAYOUT,
+      'KNOWN_INLINE_LAYOUT',
+      'inline-layout style object(s)',
+    ),
+    ratchet(
+      checkRawStyleValues(nodes),
+      KNOWN_RAW_STYLE_VALUES,
+      'KNOWN_RAW_STYLE_VALUES',
+      'raw style value(s)',
+    ),
+    ratchet(
+      checkDataAccess(nodes),
+      KNOWN_DATA_BELOW_PAGE,
+      'KNOWN_DATA_BELOW_PAGE',
+      'data-access signal(s)',
+    ),
+    ratchet(
+      checkI18nPlacement(nodes),
+      KNOWN_I18N_BELOW_ORGANISM,
+      'KNOWN_I18N_BELOW_ORGANISM',
+      'i18n-below-organism signal(s)',
+    ),
+    ratchet(
+      checkOrphans(nodes, edges, referenceIndex),
+      KNOWN_ORPHANS,
+      'KNOWN_ORPHANS',
+      'orphan(s)',
+    ),
+    ratchet(
+      checkCasing(nodes),
+      KNOWN_CASING_VIOLATIONS,
+      'KNOWN_CASING_VIOLATIONS',
+      'casing violation(s)',
+    ),
+    ratchet(
+      checkDuplicateNames(nodes),
+      KNOWN_DUPLICATE_NAMES,
+      'KNOWN_DUPLICATE_NAMES',
+      'duplicate-name violation(s)',
+    ),
+  ].flat();
 
-  return [...r1, ...r2].sort((a, b) =>
-    a.path === b.path ? a.line - b.line : a.path < b.path ? -1 : 1,
-  );
+  return results.sort((a, b) => (a.path === b.path ? a.line - b.line : a.path < b.path ? -1 : 1));
 }
+
+/**
+ * Loads `reference-index.ts`'s `REFERENCE_INDEX` export without a TypeScript
+ * build step — a text scan for the two fields R7 needs (`storyId`,
+ * `consumers`), in the fixed order the file's own entries use, rather than a
+ * full parse of a file that is TS syntax, not JSON.
+ */
+export function loadReferenceIndex(path) {
+  const source = readFileSync(path, 'utf8');
+  const entries = [];
+  const pattern = /storyId:\s*'([^']*)'[\s\S]*?consumers:\s*(\[[\s\S]*?\])/g;
+  for (const match of source.matchAll(pattern)) {
+    const [, storyId, consumersLiteral] = match;
+    const consumers = [...consumersLiteral.matchAll(/'([^']*)'/g)].map((m) => m[1]);
+    entries.push({ storyId, consumers });
+  }
+  return entries;
+}
+
+/** Every register this script ratchets, named for R12's report. */
+const ALL_REGISTERS = [
+  ['KNOWN_UNDECLARED_TIER', KNOWN_UNDECLARED_TIER],
+  ['KNOWN_UPWARD_IMPORTS', KNOWN_UPWARD_IMPORTS],
+  ['KNOWN_INLINE_LAYOUT', KNOWN_INLINE_LAYOUT],
+  ['KNOWN_RAW_STYLE_VALUES', KNOWN_RAW_STYLE_VALUES],
+  ['KNOWN_DATA_BELOW_PAGE', KNOWN_DATA_BELOW_PAGE],
+  ['KNOWN_I18N_BELOW_ORGANISM', KNOWN_I18N_BELOW_ORGANISM],
+  ['KNOWN_ORPHANS', KNOWN_ORPHANS],
+  ['KNOWN_CASING_VIOLATIONS', KNOWN_CASING_VIOLATIONS],
+  ['KNOWN_DUPLICATE_NAMES', KNOWN_DUPLICATE_NAMES],
+];
 
 /** R12 — every register entry in this script names a path that exists. */
 export function checkRegisterEntriesExist(webSrcDir) {
-  const exists = (relPath) => {
-    try {
-      const { nodes } = buildGraph(webSrcDir);
-      return nodes.has(relPath);
-    } catch {
-      return false;
-    }
-  };
-  return [
-    ...unreachableRegisterEntries(KNOWN_UNDECLARED_TIER, exists).map((p) => ({
-      register: 'KNOWN_UNDECLARED_TIER',
-      path: p,
-    })),
-    ...unreachableRegisterEntries(KNOWN_UPWARD_IMPORTS, exists).map((p) => ({
-      register: 'KNOWN_UPWARD_IMPORTS',
-      path: p,
-    })),
-  ];
+  const { nodes } = buildGraph(webSrcDir);
+  const exists = (relPath) => nodes.has(relPath);
+
+  return ALL_REGISTERS.flatMap(([registerName, register]) =>
+    unreachableRegisterEntries(register, exists).map((path) => ({ register: registerName, path })),
+  );
 }
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
