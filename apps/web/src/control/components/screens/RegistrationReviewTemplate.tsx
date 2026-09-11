@@ -7,6 +7,7 @@ import { Checkbox } from '../ui/atoms/checkbox.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
 import { Input } from '../ui/atoms/input.js';
 import { Select } from '../ui/atoms/select.js';
+import { Form } from '../ui/atoms/form.js';
 import { Field } from '../ui/molecules/field.js';
 import { TableToolbar } from '../ui/molecules/table-toolbar.js';
 import { CountrySelect } from '../CountrySelect.js';
@@ -592,7 +593,7 @@ function AddParticipantDialog({
       open={open}
       title={intl.formatMessage(messages.reviewAddParticipantTitle)}
     >
-      <form
+      <Form
         id="add-participant-form"
         onSubmit={(event) => {
           event.preventDefault();
@@ -652,7 +653,7 @@ function AddParticipantDialog({
           />
         </Field>
         {error !== undefined && <Alert tone="destructive">{error}</Alert>}
-      </form>
+      </Form>
     </Modal>
   );
 }
@@ -691,7 +692,7 @@ function EditIdentityDialog({
       open
       title={intl.formatMessage(messages.reviewEditIdentityTitle)}
     >
-      <form
+      <Form
         id="edit-identity-form"
         onSubmit={(event) => {
           event.preventDefault();
@@ -729,7 +730,7 @@ function EditIdentityDialog({
           />
         </Field>
         {error !== undefined && <Alert tone="destructive">{error}</Alert>}
-      </form>
+      </Form>
     </Modal>
   );
 }
@@ -767,7 +768,7 @@ function LinkIdentityDialog({
       open
       title={intl.formatMessage(messages.reviewLinkIdentityTitle, { displayName })}
     >
-      <form
+      <Form
         id="link-identity-form"
         onSubmit={(event) => {
           event.preventDefault();
@@ -794,7 +795,7 @@ function LinkIdentityDialog({
           />
         </Field>
         {error !== undefined && <Alert tone="destructive">{error}</Alert>}
-      </form>
+      </Form>
     </Modal>
   );
 }
@@ -849,7 +850,7 @@ function EditTeamMembersDialog({
       open
       title={intl.formatMessage(messages.reviewEditMembersTitle)}
     >
-      <form
+      <Form
         id="edit-team-members-form"
         onSubmit={(event) => {
           event.preventDefault();
@@ -871,7 +872,7 @@ function EditTeamMembersDialog({
         </p>
         <RosterRoleSelector disabled={busy} members={members} onChange={setMembers} />
         {error !== undefined && <Alert tone="destructive">{error}</Alert>}
-      </form>
+      </Form>
     </Modal>
   );
 }

@@ -3,6 +3,7 @@ import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
+import { Form } from '../ui/atoms/form.js';
 import { Field } from '../ui/molecules/field.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import type { MutationFieldPreview, RulesetOverridesRequest } from '../../lib/api-client.js';
@@ -82,7 +83,7 @@ export function TournamentRulesetTemplate({
         </span>
       }
       listing={
-        <form
+        <Form
           className="cl-platform-form-grid"
           onSubmit={(event) => {
             event.preventDefault();
@@ -219,7 +220,7 @@ export function TournamentRulesetTemplate({
               <FormattedMessage {...messages.settingsSaved} />
             </Alert>
           )}
-        </form>
+        </Form>
       }
       title={<FormattedMessage {...messages.rulesetOverridesTitle} />}
     />

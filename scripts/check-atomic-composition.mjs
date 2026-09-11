@@ -409,6 +409,17 @@ export function checkI18nPlacement(nodes) {
  * identifier, not the file), and task 3.3 renamed the file to kebab-case —
  * so the rule's exact-string match against the file's own basename no
  * longer holds for this one file. Temporary: task 4.3a deletes the file.
+ *
+ * `pagination.tsx` was not adopted in task 4.2, despite design.md naming
+ * it: the two screens whose `ListScreenLayout.pagination` slot is filled
+ * today don't share its shape. `RegistrationReviewTemplate.tsx` renders a
+ * bare `{page} / {pageCount}` status with no forward/back controls at all
+ * — adopting the molecule would mean building page-navigation that does
+ * not exist yet, a feature addition, not a refactor. `AuditTrailTemplate.tsx`
+ * already has forward/back buttons, but shows a translated "{start}–{end}
+ * of {total}" status — `Pagination`'s middle slot is fixed as `{page} /
+ * {pageCount}`, so adopting it verbatim would replace shipped, catalogued
+ * copy with different text in every locale. Left as recorded debt.
  */
 export const KNOWN_ORPHANS = new Map([
   ['components/ui/AstroPreview.tsx', 1],
@@ -425,10 +436,10 @@ export const KNOWN_ORPHANS = new Map([
   ['control/components/ui/atoms/layout/inline.tsx', 1],
   ['control/components/ui/atoms/layout/grid.tsx', 1],
   ['control/components/ui/atoms/layout/box.tsx', 1],
-  // Form (task 2.2) still awaits a consumer — task 4.2 adopts it for the raw
-  // <form> elements the ownership register still records. FieldSet's own
-  // entry is gone: task 2.5's finalize-winner control gave it one.
-  ['control/components/ui/atoms/form.tsx', 1],
+  // Form's own entry is gone: task 4.2 gave it eleven real consumers across
+  // the five files named in check-ui-ownership.mjs's KNOWN_RAW_ELEMENTS
+  // comment. FieldSet's own entry is gone the same way — task 2.5's
+  // finalize-winner control gave it one.
   // DataTable.astro and Modal.astro (task 2.3) ship before their consumers
   // adopt them, same as the primitives above. Adopting them is what lets
   // KNOWN_RAW_ELEMENTS' StandingsTable.astro/PlayerProfileView.astro

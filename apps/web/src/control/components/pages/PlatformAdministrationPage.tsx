@@ -24,6 +24,7 @@ import { Input } from '../ui/atoms/input.js';
 import { Select } from '../ui/atoms/select.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
+import { Form } from '../ui/atoms/form.js';
 import { EditorialCard } from '../ui/molecules/editorial-card.js';
 import { Field } from '../ui/molecules/field.js';
 
@@ -474,7 +475,7 @@ export function PlatformAdministrationPage({
             </CardHeader>
             <CardContent>
               {!bootstrapAlias ? (
-                <form
+                <Form
                   className="cl-platform-form-grid"
                   onSubmit={(event) => void submitOrganization(event)}
                 >
@@ -539,9 +540,9 @@ export function PlatformAdministrationPage({
                   <Button disabled={busy === 'organization'} type="submit">
                     <FormattedMessage {...messages.platformCreateOrganization} />
                   </Button>
-                </form>
+                </Form>
               ) : (
-                <form
+                <Form
                   className="cl-platform-form-grid"
                   onSubmit={(event) => void submitInvitation(event)}
                 >
@@ -572,7 +573,7 @@ export function PlatformAdministrationPage({
                   <Button disabled={busy === 'invitation'} type="submit">
                     <FormattedMessage {...messages.platformInviteAdministrator} />
                   </Button>
-                </form>
+                </Form>
               )}
             </CardContent>
           </Card>
@@ -643,7 +644,7 @@ export function PlatformAdministrationPage({
                   ))}
                 </ul>
               )}
-              <form
+              <Form
                 className="cl-platform-form-grid"
                 onSubmit={(event) => void submitSuperAdmin(event)}
               >
@@ -661,7 +662,7 @@ export function PlatformAdministrationPage({
                 <Button disabled={busy === 'super-admin'} type="submit">
                   <FormattedMessage {...messages.platformCreateSuperAdmin} />
                 </Button>
-              </form>
+              </Form>
             </CardContent>
           </Card>
 
@@ -752,7 +753,7 @@ export function PlatformAdministrationPage({
                   ))}
                 </div>
               )}
-              <form
+              <Form
                 className="cl-platform-form-grid"
                 onSubmit={(event) => void submitModule(event)}
               >
@@ -792,7 +793,7 @@ export function PlatformAdministrationPage({
                 <Button disabled={busy === 'install'} type="submit">
                   <FormattedMessage {...messages.platformInstallModule} />
                 </Button>
-              </form>
+              </Form>
 
               {loadingModules ? (
                 <p>

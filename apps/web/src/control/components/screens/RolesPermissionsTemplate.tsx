@@ -13,6 +13,7 @@ import { Button } from '../ui/atoms/button.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
 import { Input } from '../ui/atoms/input.js';
 import { Select } from '../ui/atoms/select.js';
+import { Form } from '../ui/atoms/form.js';
 import { Field } from '../ui/molecules/field.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
@@ -406,7 +407,7 @@ export function InviteDialog({
       open={open}
       title={intl.formatMessage(messages.rolesAddRecipient)}
     >
-      <form
+      <Form
         id="invite-dialog-form"
         onSubmit={(event) => {
           event.preventDefault();
@@ -483,7 +484,7 @@ export function InviteDialog({
             <FormattedMessage {...messages.rolesInviteDialogActiveOnAccept} />
           </span>
         </label>
-      </form>
+      </Form>
     </Modal>
   );
 }

@@ -6,6 +6,7 @@ import { Button } from '../ui/atoms/button.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
 import { Input } from '../ui/atoms/input.js';
+import { Form } from '../ui/atoms/form.js';
 import { Field } from '../ui/molecules/field.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { FramedImage } from '../FramedImage.js';
@@ -98,7 +99,7 @@ export function TournamentSettingsTemplate({
       breadcrumb={breadcrumbNode}
       listing={
         <>
-          <form
+          <Form
             className="cl-platform-form-grid"
             onSubmit={(event) => {
               event.preventDefault();
@@ -284,7 +285,7 @@ export function TournamentSettingsTemplate({
                 <FormattedMessage {...messages.settingsSaved} />
               </Alert>
             )}
-          </form>
+          </Form>
           {emblemCropSrc !== undefined && (
             <ImageCropModal
               imageSrc={emblemCropSrc}

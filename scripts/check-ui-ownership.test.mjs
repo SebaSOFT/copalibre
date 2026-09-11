@@ -348,17 +348,17 @@ test('a URL is not mistaken for a line comment when blanking comments', () => {
 
 test('the raw-element debt register admits its recorded count and nothing beyond it', () => {
   const input = ['<input', '  type="text"', '/>'].join('\n');
-  const fourInputs = [input, input, input, input].join('\n');
-  // control/components/screens/TournamentRulesetTemplate.tsx is recorded at 4.
+  const threeInputs = [input, input, input].join('\n');
+  // control/components/screens/TournamentRulesetTemplate.tsx is recorded at 3.
   assert.equal(
-    checkFileOwnership('control/components/screens/TournamentRulesetTemplate.tsx', fourInputs)
+    checkFileOwnership('control/components/screens/TournamentRulesetTemplate.tsx', threeInputs)
       .length,
     0,
   );
   assert.equal(
     checkFileOwnership(
       'control/components/screens/TournamentRulesetTemplate.tsx',
-      `${fourInputs}\n${input}`,
+      `${threeInputs}\n${input}`,
     ).length,
     1,
   );
@@ -372,7 +372,7 @@ test('the debt register ratchets: improving below the recorded count asks for it
     'const nothing = 1;',
   );
   assert.equal(violations.length, 1);
-  assert.match(violations[0].message, /fewer than the 4 recorded/);
+  assert.match(violations[0].message, /fewer than the 3 recorded/);
 });
 
 test('a hand-written owned class is a violation, the way a raw element is', () => {

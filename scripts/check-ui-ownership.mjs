@@ -61,23 +61,32 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   ],
   // Operator surface — converted screens eliminated; only remaining items:
   ['control/components/pages/SeedingBuilderPage.tsx', 5],
-  // Includes one raw <form> task 2.4 governs (see the form-structure block below).
-  ['control/components/screens/TournamentRulesetTemplate.tsx', 4],
+  ['control/components/screens/TournamentRulesetTemplate.tsx', 3],
   // Form-structure elements (task 2.4): `<form>`, `<label>`, `<fieldset>`,
   // `<legend>` and table parts outside the table owners, now governed by
   // `Form`, `Field`/`Label`, `FieldSet` and `DataTable` (tasks 2.2-2.3).
   // Recorded as debt, not fixed here — adoption is a later task.
+  //
+  // Task 4.2 adopted `Form` for every raw `<form>` that was a safe,
+  // no-visual-change swap: bare `<form id=… onSubmit=…>` inside a modal
+  // (`RegistrationReviewTemplate.tsx`, `RolesPermissionsTemplate.tsx`) and
+  // `<form className="cl-platform-form-grid" …>` (`PlatformAdministrationPage.tsx`,
+  // `TournamentRulesetTemplate.tsx`, `TournamentSettingsTemplate.tsx` — that
+  // class's own `gap` already equals `Form`'s, so the two compose without a
+  // visual change). `AcceptInvitationForm.tsx`, `NativeAuthRoutes.tsx` and
+  // `PreferencesPage.tsx` were not: each `<form>` there carries its own
+  // inline layout style, and reconciling that with `Form`'s `cl-form` grid
+  // is task 5.1's inline-style paydown, not this task's naming/composition
+  // concern — left as recorded debt rather than done here.
   ['control/components/AcceptInvitationForm.tsx', 1],
   ['control/components/DescriptorBuilderWizard.tsx', 5],
   ['control/components/pages/LoadMatchDataPage.tsx', 3],
   ['control/components/NativeAuthRoutes.tsx', 3],
-  ['control/components/pages/PlatformAdministrationPage.tsx', 4],
   ['control/components/pages/PreferencesPage.tsx', 1],
-  ['control/components/screens/RegistrationReviewTemplate.tsx', 4],
-  ['control/components/screens/RolesPermissionsTemplate.tsx', 3],
+  ['control/components/screens/RolesPermissionsTemplate.tsx', 2],
   ['control/components/RosterSelectionStep.tsx', 3],
   ['control/components/pages/ScheduleBuilderPage.tsx', 3],
-  ['control/components/screens/TournamentSettingsTemplate.tsx', 2],
+  ['control/components/screens/TournamentSettingsTemplate.tsx', 1],
   ['control/components/TournamentSetupWizard.tsx', 7],
   ['control/components/pages/VenueManagementPage.tsx', 11],
   ['control/components/pages/ZoneGroupPage.tsx', 4],

@@ -5,6 +5,8 @@ export interface FormProps {
   readonly onSubmit?: (event: FormEvent<HTMLFormElement>) => void;
   readonly noValidate?: boolean;
   readonly className?: string;
+  /** So a submit button living outside the form (a modal's footer) can target it via HTML's `form` attribute. */
+  readonly id?: string;
   readonly 'aria-label'?: string;
   readonly 'aria-labelledby'?: string;
 }
