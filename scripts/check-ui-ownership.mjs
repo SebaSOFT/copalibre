@@ -85,7 +85,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   ['control/components/pages/PreferencesPage.tsx', 1],
   ['control/components/screens/RolesPermissionsTemplate.tsx', 2],
   ['control/components/RosterSelectionStep.tsx', 3],
-  ['control/components/pages/ScheduleBuilderPage.tsx', 3],
+  ['control/components/screens/ScheduleBuilderTemplate.tsx', 3],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 1],
   ['control/components/screens/VenueManagementTemplate.tsx', 11],
   ['control/components/screens/ZoneGroupTemplate.tsx', 4],
