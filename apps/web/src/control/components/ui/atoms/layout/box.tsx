@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, HTMLAttributes } from 'react';
 import { spaceVar, type SpacingStep } from './spacing.js';
 
-export interface BoxProps {
+export interface BoxProps extends Omit<HTMLAttributes<HTMLDivElement>, 'style' | 'className'> {
   readonly children: ReactNode;
   /** Padding on all sides, a token-scale step. */
   readonly padding?: SpacingStep;
@@ -15,11 +15,12 @@ export interface BoxProps {
  * forbade but had no primitive to check against), the caller wraps it in a
  * `Box` instead.
  */
-export function Box({ children, padding, className = '' }: BoxProps): React.JSX.Element {
+export function Box({ children, padding, className = '', ...rest }: BoxProps): React.JSX.Element {
   return (
     <div
       className={`cl-box ${className}`.trim()}
       style={padding ? { padding: spaceVar(padding) } : undefined}
+      {...rest}
     >
       {children}
     </div>

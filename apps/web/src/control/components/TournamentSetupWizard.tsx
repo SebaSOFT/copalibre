@@ -8,6 +8,7 @@ import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
 import { Textarea } from './ui/atoms/textarea.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
+import { Stack } from './ui/atoms/layout/stack.js';
 import { Field } from './ui/molecules/field.js';
 import { StepHeading } from './ui/molecules/step-heading.js';
 import {
@@ -665,7 +666,7 @@ export function TournamentSetupWizard({
         )}
 
         {state.step === 'rules' && (
-          <div style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
+          <Stack gap="4">
             <label
               className="cl-toggle cl-focusable"
               htmlFor="wizard-enable-custom-rule"
@@ -808,7 +809,7 @@ export function TournamentSetupWizard({
                 </Button>
               </>
             )}
-          </div>
+          </Stack>
         )}
 
         {problems.length > 0 && (

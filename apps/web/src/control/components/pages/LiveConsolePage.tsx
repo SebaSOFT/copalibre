@@ -9,6 +9,8 @@ import { controlTokenStore } from '../../session/token-store.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Badge } from '../ui/atoms/badge.js';
 import { Card } from '../ui/atoms/card.js';
+import { Inline } from '../ui/atoms/layout/inline.js';
+import { Stack } from '../ui/atoms/layout/stack.js';
 import { messages } from '../../i18n/messages.en.js';
 
 export function LiveConsolePage({
@@ -54,7 +56,7 @@ export function LiveConsolePage({
   }, [api, organizationAlias]);
 
   return (
-    <div className="cl-live-console" style={{ display: 'grid', gap: 'var(--cl-space-6)' }}>
+    <Stack className="cl-live-console" gap="6">
       <header>
         <h1 style={{ margin: '0 0 var(--cl-space-2)', fontSize: 'var(--cl-font-size-2xl)' }}>
           {intl.formatMessage(messages.navLiveConsole)}
@@ -82,26 +84,11 @@ export function LiveConsolePage({
           </div>
         </Card>
       ) : (
-        <div style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
+        <Stack gap="4">
           {tournaments.map((tournament) => (
             <Card key={tournament.tournamentId}>
-              <div
-                style={{
-                  padding: 'var(--cl-space-4)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 'var(--cl-space-3)',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: 'var(--cl-space-2)',
-                  }}
-                >
+              <Stack gap="3" padding="4">
+                <Inline align="center" gap="2" justify="between" wrap>
                   <div>
                     <h2 style={{ margin: 0, fontSize: 'var(--cl-font-size-lg)' }}>
                       {tournament.name}
@@ -128,9 +115,9 @@ export function LiveConsolePage({
                           : 'PRÓXIMO'
                     }
                   />
-                </div>
+                </Inline>
 
-                <div style={{ display: 'flex', gap: 'var(--cl-space-3)', flexWrap: 'wrap' }}>
+                <Inline gap="3" wrap>
                   <a
                     className="cl-btn cl-btn--secondary cl-focusable"
                     href={`/control/${organizationAlias}/tournaments/${tournament.alias}/matches-view`}
@@ -149,12 +136,12 @@ export function LiveConsolePage({
                   >
                     Reportes de partido
                   </a>
-                </div>
-              </div>
+                </Inline>
+              </Stack>
             </Card>
           ))}
-        </div>
+        </Stack>
       )}
-    </div>
+    </Stack>
   );
 }

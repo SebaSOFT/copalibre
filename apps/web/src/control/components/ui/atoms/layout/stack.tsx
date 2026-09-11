@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, HTMLAttributes } from 'react';
 import { spaceVar, type SpacingStep } from './spacing.js';
 
 export type StackAlign = 'start' | 'center' | 'end' | 'stretch';
@@ -10,7 +10,7 @@ const ALIGN_ITEMS: Record<StackAlign, string> = {
   stretch: 'stretch',
 };
 
-export interface StackProps {
+export interface StackProps extends Omit<HTMLAttributes<HTMLDivElement>, 'style' | 'className'> {
   readonly children: ReactNode;
   /** Vertical gap between children, a token-scale step. */
   readonly gap?: SpacingStep;
@@ -28,6 +28,7 @@ export function Stack({
   align,
   padding,
   className = '',
+  ...rest
 }: StackProps): React.JSX.Element {
   return (
     <div
@@ -39,6 +40,7 @@ export function Stack({
         ...(align ? { alignItems: ALIGN_ITEMS[align] } : {}),
         ...(padding ? { padding: spaceVar(padding) } : {}),
       }}
+      {...rest}
     >
       {children}
     </div>

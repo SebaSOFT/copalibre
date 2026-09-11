@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, HTMLAttributes } from 'react';
 import { spaceVar, type SpacingStep } from './spacing.js';
 
 /** The declared column counts — a small controlled set, not an arbitrary integer. */
 export const GRID_COLUMNS = [1, 2, 3, 4, 6, 12] as const;
 export type GridColumnCount = (typeof GRID_COLUMNS)[number];
 
-export interface GridProps {
+export interface GridProps extends Omit<HTMLAttributes<HTMLDivElement>, 'style' | 'className'> {
   readonly children: ReactNode;
   /** How many equal-width columns the grid divides into. */
   readonly columns?: GridColumnCount;
@@ -23,6 +23,7 @@ export function Grid({
   gap = '0',
   padding,
   className = '',
+  ...rest
 }: GridProps): React.JSX.Element {
   return (
     <div
@@ -33,6 +34,7 @@ export function Grid({
         gap: spaceVar(gap),
         ...(padding ? { padding: spaceVar(padding) } : {}),
       }}
+      {...rest}
     >
       {children}
     </div>

@@ -18,6 +18,8 @@ import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
 import { Input } from '../ui/atoms/input.js';
+import { Inline } from '../ui/atoms/layout/inline.js';
+import { Stack } from '../ui/atoms/layout/stack.js';
 import { Field } from '../ui/molecules/field.js';
 import { messages as controlMessages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
@@ -499,7 +501,7 @@ export function PreferencesPage({
           ) : orgLoadError ? (
             <Alert tone="destructive">{orgLoadError}</Alert>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <Stack gap="4">
               <FramedImage
                 key={organization?.emblemObjectId ?? 'none'}
                 alt={intl.formatMessage(controlMessages.orgIdentityEmblemAlt)}
@@ -530,9 +532,7 @@ export function PreferencesPage({
                 />
               )}
 
-              <div
-                style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}
-              >
+              <Inline align="end" gap="4" wrap>
                 <Field id="org-name" label={intl.formatMessage(controlMessages.orgIdentityName)}>
                   <Input
                     id="org-name"
@@ -544,8 +544,8 @@ export function PreferencesPage({
                 <Button onClick={() => void saveOrganizationName()} type="button">
                   <FormattedMessage {...controlMessages.orgIdentitySave} />
                 </Button>
-              </div>
-            </div>
+              </Inline>
+            </Stack>
           )}
         </Card>
       )}

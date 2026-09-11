@@ -39,6 +39,17 @@ describe('Stack', () => {
     const { container: withAlign } = render(<Stack align="center">a</Stack>);
     expect((withAlign.firstElementChild as HTMLElement).style.alignItems).toBe('center');
   });
+
+  it('forwards an arbitrary DOM attribute (openspec 0225 task 5.1) so a caller can still associate a hint or a test id', () => {
+    const { container } = render(
+      <Stack aria-describedby="hint" data-testid="wrapper">
+        a
+      </Stack>,
+    );
+    const el = container.firstElementChild as HTMLElement;
+    expect(el.getAttribute('aria-describedby')).toBe('hint');
+    expect(el.getAttribute('data-testid')).toBe('wrapper');
+  });
 });
 
 describe('Inline', () => {

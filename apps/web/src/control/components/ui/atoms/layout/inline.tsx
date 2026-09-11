@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, HTMLAttributes } from 'react';
 import { spaceVar, type SpacingStep } from './spacing.js';
 
 export type InlineAlign = 'start' | 'center' | 'end' | 'stretch' | 'baseline';
@@ -21,7 +21,7 @@ const JUSTIFY_CONTENT: Record<InlineJustify, string> = {
   evenly: 'space-evenly',
 };
 
-export interface InlineProps {
+export interface InlineProps extends Omit<HTMLAttributes<HTMLDivElement>, 'style' | 'className'> {
   readonly children: ReactNode;
   /** Horizontal gap between children, a token-scale step. */
   readonly gap?: SpacingStep;
@@ -45,6 +45,7 @@ export function Inline({
   wrap = false,
   padding,
   className = '',
+  ...rest
 }: InlineProps): React.JSX.Element {
   return (
     <div
@@ -58,6 +59,7 @@ export function Inline({
         ...(justify ? { justifyContent: JUSTIFY_CONTENT[justify] } : {}),
         ...(padding ? { padding: spaceVar(padding) } : {}),
       }}
+      {...rest}
     >
       {children}
     </div>

@@ -202,20 +202,20 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['components/ui/AstroPreview.tsx', 1],
   ['components/ui/atoms/EntrantName.tsx', 1],
   ['components/ui/organisms/MatchCard.tsx', 22],
-  ['control/components/pages/AnalyticsPage.tsx', 11],
+  ['control/components/pages/AnalyticsPage.tsx', 6],
   ['control/components/BracketCanvas.tsx', 2],
   ['control/components/ControlApp.tsx', 8],
-  ['control/components/DescriptorBuilderWizard.tsx', 20],
-  ['control/components/pages/LiveConsolePage.tsx', 10],
+  ['control/components/DescriptorBuilderWizard.tsx', 12],
+  ['control/components/pages/LiveConsolePage.tsx', 5],
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/pages/PlatformAdministrationPage.tsx', 1],
-  ['control/components/pages/PreferencesPage.tsx', 17],
+  ['control/components/pages/PreferencesPage.tsx', 15],
   ['control/components/ProfileBuilderWizard.tsx', 6],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 4],
   ['control/components/screens/StandingsTemplate.tsx', 5],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 4],
-  ['control/components/TournamentSetupWizard.tsx', 18],
+  ['control/components/TournamentSetupWizard.tsx', 17],
   ['control/components/ui/atoms/terminal-block.tsx', 8],
   ['control/components/ui/atoms/select.tsx', 2],
   ['control/components/ui/molecules/callout-banner.tsx', 5],
@@ -268,7 +268,7 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['control/components/ControlApp.tsx', 8],
   ['control/components/DescriptorBuilderWizard.tsx', 1],
   ['control/components/NativeAuthRoutes.tsx', 7],
-  ['control/components/pages/PreferencesPage.tsx', 16],
+  ['control/components/pages/PreferencesPage.tsx', 14],
   ['control/components/ProfileBuilderWizard.tsx', 1],
   ['control/components/RosterRoleSelector.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 1],
@@ -435,13 +435,13 @@ export const KNOWN_ORPHANS = new Map([
   ['control/components/ui/molecules/pagination.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 1],
   ['control/components/ui/layouts/form-screen-layout.tsx', 1],
-  // The four layout primitives (task 2.1) ship before their consumers adopt
-  // them — that is tasks 5.1/5.2's inline-layout paydown. Temporary orphans
-  // by the migration plan's own ordering, not an oversight.
-  ['control/components/ui/atoms/layout/stack.tsx', 1],
-  ['control/components/ui/atoms/layout/inline.tsx', 1],
+  // The layout primitives (task 2.1) shipped before their consumers adopted
+  // them — that is task 5.1's inline-layout paydown. `stack.tsx`/`box.tsx`
+  // (AnalyticsPage.tsx) and `inline.tsx` (LiveConsolePage.tsx) gained their
+  // first real consumer there and are gone from this register; `grid.tsx`
+  // remains a temporary orphan by the migration plan's own ordering, not an
+  // oversight.
   ['control/components/ui/atoms/layout/grid.tsx', 1],
-  ['control/components/ui/atoms/layout/box.tsx', 1],
   // Form's own entry is gone: task 4.2 gave it eleven real consumers across
   // the five files named in check-ui-ownership.mjs's KNOWN_RAW_ELEMENTS
   // comment. FieldSet's own entry is gone the same way — task 2.5's

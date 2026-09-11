@@ -8,6 +8,8 @@ import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { TerminalBlock } from './ui/atoms/terminal-block.js';
+import { Inline } from './ui/atoms/layout/inline.js';
+import { Stack } from './ui/atoms/layout/stack.js';
 import { Field } from './ui/molecules/field.js';
 import {
   ACTOR_REQUIREMENTS,
@@ -191,10 +193,7 @@ export function DescriptorBuilderWizard({
               id="descriptor-participant-types"
               label={intl.formatMessage(messages.descriptorFieldParticipantTypes)}
             >
-              <div
-                aria-describedby="descriptor-participant-types-hint"
-                style={{ display: 'flex', gap: 'var(--cl-space-3)' }}
-              >
+              <Inline aria-describedby="descriptor-participant-types-hint" gap="3">
                 {(['individual', 'team'] as const).map((type) => (
                   <label
                     key={type}
@@ -216,7 +215,7 @@ export function DescriptorBuilderWizard({
                     <span>{type}</span>
                   </label>
                 ))}
-              </div>
+              </Inline>
               <DecisionHint
                 id="descriptor-participant-types-hint"
                 text={intl.formatMessage(messages.descriptorDecisionParticipantTypes)}
@@ -286,7 +285,7 @@ export function DescriptorBuilderWizard({
         )}
 
         {state.step === 'statistics' && (
-          <div style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
+          <Stack gap="4">
             <div>
               <h3>
                 <FormattedMessage {...messages.descriptorStatisticsHeading} />
@@ -323,7 +322,7 @@ export function DescriptorBuilderWizard({
                 statistics={state.statistics}
               />
             </div>
-          </div>
+          </Stack>
         )}
 
         {state.step === 'formats' && (
@@ -332,10 +331,7 @@ export function DescriptorBuilderWizard({
               id="descriptor-formats"
               label={intl.formatMessage(messages.descriptorFieldAvailableFormats)}
             >
-              <div
-                aria-describedby="descriptor-formats-hint"
-                style={{ display: 'grid', gap: 'var(--cl-space-2)' }}
-              >
+              <Stack aria-describedby="descriptor-formats-hint" gap="2">
                 {TOURNAMENT_FORMATS.map((format) => (
                   <label
                     key={format}
@@ -357,7 +353,7 @@ export function DescriptorBuilderWizard({
                     <span>{format}</span>
                   </label>
                 ))}
-              </div>
+              </Stack>
               <DecisionHint
                 id="descriptor-formats-hint"
                 text={intl.formatMessage(messages.descriptorDecisionFormats)}
@@ -714,7 +710,7 @@ function SegmentTypeList({
     defaultDurationSeconds: string;
   }>({ name: '', label: '', timed: false, defaultDurationSeconds: '' });
   return (
-    <div style={{ display: 'grid', gap: 'var(--cl-space-3)' }}>
+    <Stack gap="3">
       {segments.length > 0 && (
         <ul>
           {segments.map((segment, index) => (
@@ -773,7 +769,7 @@ function SegmentTypeList({
           <FormattedMessage {...messages.descriptorAdd} />
         </Button>
       </div>
-    </div>
+    </Stack>
   );
 }
 
@@ -793,7 +789,7 @@ function StatisticList({
     aggregation: StatisticDraft['aggregation'];
   }>({ code: '', label: '', aggregation: 'sum' });
   return (
-    <div style={{ display: 'grid', gap: 'var(--cl-space-3)' }}>
+    <Stack gap="3">
       {statistics.length > 0 && (
         <ul>
           {statistics.map((statistic, index) => (
@@ -847,7 +843,7 @@ function StatisticList({
           <FormattedMessage {...messages.descriptorAdd} />
         </Button>
       </div>
-    </div>
+    </Stack>
   );
 }
 
@@ -883,7 +879,7 @@ function EventDefinitionList({
     awardsDelta: '1',
   });
   return (
-    <div style={{ display: 'grid', gap: 'var(--cl-space-3)' }}>
+    <Stack gap="3">
       {events.length > 0 && (
         <ul>
           {events.map((event, index) => (
@@ -961,7 +957,7 @@ function EventDefinitionList({
           />
         )}
         {segmentTypes.length > 0 && (
-          <div style={{ display: 'flex', gap: 'var(--cl-space-2)', flexWrap: 'wrap' }}>
+          <Inline gap="2" wrap>
             {segmentTypes.map((segment) => (
               <label
                 key={segment.name}
@@ -984,7 +980,7 @@ function EventDefinitionList({
                 <span>{segment.name}</span>
               </label>
             ))}
-          </div>
+          </Inline>
         )}
         <Button
           disabled={draft.code.trim() === '' || draft.label.trim() === ''}
@@ -1016,7 +1012,7 @@ function EventDefinitionList({
           <FormattedMessage {...messages.descriptorAdd} />
         </Button>
       </div>
-    </div>
+    </Stack>
   );
 }
 
@@ -1040,7 +1036,7 @@ function ScoringInputList({
     source: 'event-derived',
   });
   return (
-    <div style={{ display: 'grid', gap: 'var(--cl-space-3)' }}>
+    <Stack gap="3">
       {inputs.length > 0 && (
         <ul>
           {inputs.map((input, index) => (
@@ -1090,6 +1086,6 @@ function ScoringInputList({
           <FormattedMessage {...messages.descriptorAdd} />
         </Button>
       </div>
-    </div>
+    </Stack>
   );
 }

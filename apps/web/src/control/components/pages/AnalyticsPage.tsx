@@ -8,6 +8,8 @@ import {
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { Card } from '../ui/atoms/card.js';
+import { Box } from '../ui/atoms/layout/box.js';
+import { Stack } from '../ui/atoms/layout/stack.js';
 import { formatStorageBytes } from '../pages/PreferencesPage.js';
 import { messages } from '../../i18n/messages.en.js';
 
@@ -64,7 +66,7 @@ export function AnalyticsPage({
   const upcomingCount = tournaments.filter((t) => t.status === 'published').length;
 
   return (
-    <div className="cl-analytics" style={{ display: 'grid', gap: 'var(--cl-space-6)' }}>
+    <Stack className="cl-analytics" gap="6">
       <header>
         <h1 style={{ margin: '0 0 var(--cl-space-2)', fontSize: 'var(--cl-font-size-2xl)' }}>
           {intl.formatMessage(messages.navAnalytics)}
@@ -77,7 +79,7 @@ export function AnalyticsPage({
       {loading ? (
         <p>{intl.formatMessage(messages.analyticsLoading)}</p>
       ) : (
-        <div style={{ display: 'grid', gap: 'var(--cl-space-6)' }}>
+        <Stack gap="6">
           <div
             style={{
               display: 'grid',
@@ -86,7 +88,7 @@ export function AnalyticsPage({
             }}
           >
             <Card>
-              <div style={{ padding: 'var(--cl-space-4)' }}>
+              <Box padding="4">
                 <span style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--cl-text-muted)' }}>
                   {intl.formatMessage(messages.analyticsTotalTournaments)}
                 </span>
@@ -106,11 +108,11 @@ export function AnalyticsPage({
                     finished: finishedCount,
                   })}
                 </span>
-              </div>
+              </Box>
             </Card>
 
             <Card>
-              <div style={{ padding: 'var(--cl-space-4)' }}>
+              <Box padding="4">
                 <span style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--cl-text-muted)' }}>
                   {intl.formatMessage(messages.analyticsFinishedTournaments)}
                 </span>
@@ -126,11 +128,11 @@ export function AnalyticsPage({
                 <span style={{ fontSize: 'var(--cl-font-size-xs)', color: 'var(--cl-text-muted)' }}>
                   {intl.formatMessage(messages.analyticsFinishedDetail)}
                 </span>
-              </div>
+              </Box>
             </Card>
 
             <Card>
-              <div style={{ padding: 'var(--cl-space-4)' }}>
+              <Box padding="4">
                 <span style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--cl-text-muted)' }}>
                   {intl.formatMessage(messages.analyticsStorageUsed)}
                 </span>
@@ -150,11 +152,11 @@ export function AnalyticsPage({
                       })
                     : intl.formatMessage(messages.analyticsNoData)}
                 </span>
-              </div>
+              </Box>
             </Card>
           </div>
-        </div>
+        </Stack>
       )}
-    </div>
+    </Stack>
   );
 }
