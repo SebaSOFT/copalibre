@@ -100,7 +100,7 @@ describe('public tables and filter pills (openspec 0199)', () => {
     ),
     'utf8',
   );
-  const standings = read('ui/organisms/StandingsPreview.astro');
+  const standings = read('ui/organisms/StandingsTable.astro');
 
   it('renders the state filter as a bounded pill group, not bare anchors', () => {
     expect(matchesPage).toContain('class="cl-pill-group"');

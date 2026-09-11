@@ -224,7 +224,7 @@ export const messages = defineMessages({
   lifecycleDraft: { id: 'control.lifecycle.draft', defaultMessage: 'DRAFT' },
   lifecycleFinished: { id: 'control.lifecycle.finished', defaultMessage: 'FINISHED' },
 
-  // Dashboard (QuickStats.tsx, TournamentCard.tsx, ActivityLog.tsx, Dashboard.tsx)
+  // Dashboard (QuickStats.tsx, TournamentSummaryCard.tsx, ActivityLog.tsx, Dashboard.tsx)
   dashboardSummary: { id: 'control.dashboard.summary', defaultMessage: 'Summary' },
   // 0223 — a measurement that does not exist says so, rather than reading as zero.
   // 0223 — the authored module document, shown as the file it becomes.

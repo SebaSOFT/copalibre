@@ -30,7 +30,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // Public surface. `<table>` and `<dialog>` had no server-renderable owner
   // when this entry was first recorded; `DataTable.astro` and `Modal.astro`
   // exist now (openspec 0225 task 2.3), so these are payable, pending the
-  // adoption that migrates each raw usage onto them. `StandingsPreview.astro`'s
+  // adoption that migrates each raw usage onto them. `StandingsTable.astro`'s
   // `<button>` was payable already: `ui/atoms/Button.astro` exists and could
   // compose it independently of the table/dialog work.
   //
@@ -49,7 +49,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // would expose violations across every organism/molecule/template file,
   // not only these two — out of scope for a single task.
   ['components/ui/organisms/PlayerProfileView.astro', 1],
-  ['components/ui/organisms/StandingsPreview.astro', 4],
+  ['components/ui/organisms/StandingsTable.astro', 4],
   // React on the broadcast surface. The owned atoms are React and importable,
   // so these are payable now. Counts include task 2.4's form-structure and
   // table-part elements alongside the original table/dialog/button entries.
@@ -155,7 +155,7 @@ const OWNED_CLASS_RULES = [
  * of these files fails, as does one in a file not listed, and improving below
  * the recorded number fails until it is lowered. Delete an entry at zero.
  *
- * `TournamentCard.tsx`'s single `cl-btn` is a genuine library gap rather than
+ * `TournamentSummaryCard.tsx`'s single `cl-btn` is a genuine library gap rather than
  * an oversight: it styles an `<a>` as a button, and the `Button` atom renders a
  * `<button>`, which cannot be a link. It is recorded here so the gap stays
  * counted until the library has something for it.
@@ -172,7 +172,7 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   ['control/components/screens/SeedingBuilderTemplate.tsx', 2],
   ['control/components/pages/SeedingBuilderPage.tsx', 2],
   ['control/components/screens/StandingsTemplate.tsx', 2],
-  ['control/components/TournamentCard.tsx', 1],
+  ['control/components/TournamentSummaryCard.tsx', 1],
   // Public and broadcast surfaces.
   //
   // `LiveMatchHero.tsx`, `MatchCard.tsx`, `MatchCardGrid.astro`,

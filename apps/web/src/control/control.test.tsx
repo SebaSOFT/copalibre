@@ -21,7 +21,7 @@ import {
 } from './lib/dashboard.js';
 import { Dashboard } from './components/Dashboard.js';
 import { DeviceHeartbeat } from './components/DeviceHeartbeat.js';
-import { TournamentCard as Card } from './components/TournamentCard.js';
+import { TournamentSummaryCard as Card } from './components/TournamentSummaryCard.js';
 import { QuickStats } from './components/QuickStats.js';
 import { ActivityLog } from './components/ActivityLog.js';
 import { Badge } from './components/ui/atoms/badge.js';

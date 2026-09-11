@@ -91,7 +91,7 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
   },
   {
     reference: 'Audited results ledger',
-    storyId: 'Admin/Organisms/AuditLogCard — ReferenceCorrection',
+    storyId: 'Admin/Organisms/AuditLogPanel — ReferenceCorrection',
     consumers: ['control/components/screens/AuditTrailTemplate.tsx'],
   },
   {

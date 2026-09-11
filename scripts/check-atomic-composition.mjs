@@ -223,7 +223,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/ui/atoms/select.tsx', 2],
   ['control/components/ui/molecules/callout-banner.tsx', 5],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 5],
-  ['control/components/ui/organisms/audit-log-card.tsx', 10],
+  ['control/components/ui/organisms/audit-log-panel.tsx', 10],
   ['control/components/ui/organisms/standings-panel.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 2],
 ]);
@@ -282,7 +282,7 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['control/components/ui/atoms/terminal-block.tsx', 7],
   ['control/components/ui/molecules/callout-banner.tsx', 2],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 2],
-  ['control/components/ui/organisms/audit-log-card.tsx', 6],
+  ['control/components/ui/organisms/audit-log-panel.tsx', 6],
 ]);
 
 export function checkRawStyleValues(nodes) {
@@ -314,7 +314,7 @@ export function checkRawStyleValues(nodes) {
  */
 export const KNOWN_DATA_BELOW_PAGE = new Map([
   ['components/ui/organisms/LiveMatchHero.tsx', 1],
-  ['components/ui/organisms/StandingsPreview.astro', 2],
+  ['components/ui/organisms/StandingsTable.astro', 2],
   ['components/ui/molecules/TournamentHero.astro', 1],
   ['components/ui/organisms/PlayerProfileView.astro', 1],
 ]);
@@ -420,7 +420,7 @@ export const KNOWN_ORPHANS = new Map([
   ['control/components/ui/atoms/form.tsx', 1],
   // DataTable.astro and Modal.astro (task 2.3) ship before their consumers
   // adopt them, same as the primitives above. Adopting them is what lets
-  // KNOWN_RAW_ELEMENTS' StandingsPreview.astro/PlayerProfileView.astro
+  // KNOWN_RAW_ELEMENTS' StandingsTable.astro/PlayerProfileView.astro
   // entries in check-ui-ownership.mjs finally be paid down.
   ['components/ui/organisms/DataTable.astro', 1],
   ['components/ui/organisms/Modal.astro', 1],
@@ -474,10 +474,18 @@ export function checkOrphans(nodes, edges, referenceIndex) {
  */
 export const KNOWN_CASING_VIOLATIONS = new Map();
 
-/** Debt recorded 2026-09-11: two components sharing a base name, pending task 3.4. */
+/**
+ * Debt recorded 2026-09-11: two components sharing a base name. Task 3.4
+ * resolved the `TournamentCard` pair by renaming the control screen
+ * component to `TournamentSummaryCard`, leaving
+ * `components/ui/organisms/TournamentCard.astro` the sole owner of that
+ * name. The `AstroPreview` pair remains: the dev-only preview seam
+ * (`components/ui/AstroPreview.tsx`) and the Astro page that mounts it
+ * (`preview/AstroPreview.astro`) are two different components by design,
+ * not a naming accident — a page and the component it renders sharing a
+ * name is not this rule's concern.
+ */
 export const KNOWN_DUPLICATE_NAMES = new Map([
-  ['components/ui/organisms/TournamentCard.astro', 1],
-  ['control/components/TournamentCard.tsx', 1],
   ['components/ui/AstroPreview.tsx', 1],
   ['preview/AstroPreview.astro', 1],
 ]);
@@ -611,7 +619,7 @@ export function checkSingleAtomOwnership(nodes) {
 export const KNOWN_LITERAL_TEXT = new Map([
   ['components/ui/AstroPreview.tsx', 1],
   ['components/ui/organisms/PlayerProfileView.astro', 3],
-  ['components/ui/organisms/StandingsPreview.astro', 9],
+  ['components/ui/organisms/StandingsTable.astro', 9],
   ['control/components/AcceptInvitationForm.tsx', 2],
   ['control/components/ControlShell.tsx', 1],
   ['control/components/screens/RolesPermissionsTemplate.tsx', 1],

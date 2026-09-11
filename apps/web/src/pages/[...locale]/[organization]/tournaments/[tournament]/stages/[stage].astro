@@ -2,7 +2,7 @@
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import BracketView from '../../../../../../components/ui/organisms/BracketView.astro';
 import ResultLegend from '../../../../../../components/ui/molecules/ResultLegend.astro';
-import StandingsPreview from '../../../../../../components/ui/organisms/StandingsPreview.astro';
+import StandingsTable from '../../../../../../components/ui/organisms/StandingsTable.astro';
 import { MatchCard } from '../../../../../../components/ui/organisms/MatchCard.tsx';
 import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
 import { selectStageLayout, matchReportUrl } from '../../../../../../lib/bracket.ts';
@@ -140,7 +140,7 @@ const structuredData = {
   }
   {
     standingsProjection && (
-      <StandingsPreview
+      <StandingsTable
         activeClubId={activeClubId}
         canonicalPath={stagePath}
         clubs={model.clubs}

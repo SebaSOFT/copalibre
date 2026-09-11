@@ -27,7 +27,7 @@ const TONE: Readonly<
 /** The exports the dashboard already produces; named so a caller cannot invent one. */
 export type TournamentExportKind = 'participants/team' | 'results' | 'standings';
 
-export interface TournamentCardProps {
+export interface TournamentSummaryCardProps {
   readonly card: CardModel;
   readonly organizationAlias: string;
   readonly onExport: (alias: string, kind: TournamentExportKind) => void;
@@ -48,13 +48,13 @@ export interface TournamentCardProps {
  * four ragged rows per tournament. Here they are ranked: one primary action,
  * the four exports behind one menu, and the destructive one held apart.
  */
-export function TournamentCard({
+export function TournamentSummaryCard({
   card,
   organizationAlias,
   onExport,
   onExportConfiguration,
   onArchive,
-}: TournamentCardProps): React.JSX.Element {
+}: TournamentSummaryCardProps): React.JSX.Element {
   const intl = useIntl();
   const presentation = LIFECYCLE_PRESENTATION[card.lifecycle];
   const base = `/control/${organizationAlias}/tournaments/${card.alias}`;

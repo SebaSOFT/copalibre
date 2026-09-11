@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { TournamentCard } from './TournamentCard.js';
+import { TournamentSummaryCard } from './TournamentSummaryCard.js';
 import { ORG, TOURNAMENT, TITLE, ids } from './screen-story-fixtures.js';
 
 const meta = {
-  title: 'Admin/Screens/TournamentCard',
-  component: TournamentCard,
+  title: 'Admin/Screens/TournamentSummaryCard',
+  component: TournamentSummaryCard,
   args: {
     card: {
       tournamentId: ids.tournament,
@@ -20,7 +20,7 @@ const meta = {
     onExportConfiguration: () => undefined,
     onArchive: () => undefined,
   },
-} satisfies Meta<typeof TournamentCard>;
+} satisfies Meta<typeof TournamentSummaryCard>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};

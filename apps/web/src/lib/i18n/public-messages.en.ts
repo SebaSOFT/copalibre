@@ -64,7 +64,7 @@ export const messages = defineMessages({
   // RulesetBriefing.astro
   rulesetHeading: { id: 'publicWeb.ruleset.heading', defaultMessage: 'Rules' },
 
-  // StandingsPreview.astro
+  // StandingsTable.astro
   standingsHeading: { id: 'publicWeb.standings.heading', defaultMessage: 'Standings' },
   standingsTableLayouts: {
     id: 'publicWeb.standings.tableLayouts',

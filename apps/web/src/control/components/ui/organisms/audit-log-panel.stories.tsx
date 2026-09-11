@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { AuditLogCard } from './audit-log-card.js';
+import { AuditLogPanel } from './audit-log-panel.js';
 import { referenceAuditTrail } from '../../../../lib/reference-fixtures.js';
 
 const SAMPLE_ITEMS = [
@@ -34,9 +34,9 @@ const SAMPLE_ITEMS = [
 ];
 
 const meta = {
-  title: 'Admin/Organisms/AuditLogCard',
-  component: AuditLogCard,
-} satisfies Meta<typeof AuditLogCard>;
+  title: 'Admin/Organisms/AuditLogPanel',
+  component: AuditLogPanel,
+} satisfies Meta<typeof AuditLogPanel>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

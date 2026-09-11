@@ -4,7 +4,7 @@ import TournamentHero from '../../../../components/ui/molecules/TournamentHero.a
 import ChampionPodium from '../../../../components/ui/organisms/ChampionPodium.astro';
 import MatchCardGrid from '../../../../components/ui/organisms/MatchCardGrid.astro';
 import ScoreTicker from '../../../../components/ui/organisms/ScoreTicker.astro';
-import StandingsPreview from '../../../../components/ui/organisms/StandingsPreview.astro';
+import StandingsTable from '../../../../components/ui/organisms/StandingsTable.astro';
 import BroadcastStatusPanel from '../../../../components/ui/molecules/BroadcastStatusPanel.astro';
 import RulesetBriefing from '../../../../components/ui/molecules/RulesetBriefing.astro';
 import { buildOverview, displayName } from '../../../../lib/overview.ts';
@@ -159,7 +159,7 @@ const structuredData = {
       {intl.formatMessage(messages.matchesViewSeeAll)}
     </a>
   </p>
-  <StandingsPreview
+  <StandingsTable
     layouts={declaredLayouts}
     layout={activeLayout}
     projection={activeProjection}

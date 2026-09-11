@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
-import { AuditLogCard } from './audit-log-card.js';
+import { AuditLogPanel } from './audit-log-panel.js';
 
-describe('the AuditLogCard organism', () => {
+describe('the AuditLogPanel organism', () => {
   const items = [
     {
       id: 'item-1',
@@ -25,7 +25,7 @@ describe('the AuditLogCard organism', () => {
   ];
 
   it('renders title, events list, and actor metadata', () => {
-    render(<AuditLogCard title="Audit Stream" items={items} />);
+    render(<AuditLogPanel title="Audit Stream" items={items} />);
 
     expect(screen.getByText('Audit Stream')).not.toBeNull();
     expect(screen.getByText('referee_1')).not.toBeNull();
@@ -34,7 +34,7 @@ describe('the AuditLogCard organism', () => {
   });
 
   it('renders score diff and latency badge on correction items', () => {
-    render(<AuditLogCard items={items} />);
+    render(<AuditLogPanel items={items} />);
 
     expect(screen.getByText('- Score: 0 - 1')).not.toBeNull();
     expect(screen.getByText('+ Score: 1 - 1')).not.toBeNull();

@@ -11,7 +11,7 @@
  * no previous state is not a correction and is not presented as one.
  */
 import type { AuditRecordResponse } from './api-client.js';
-import type { AuditLogItem } from '../components/ui/organisms/audit-log-card.js';
+import type { AuditLogItem } from '../components/ui/organisms/audit-log-panel.js';
 
 /** A scalar rendering that keeps a `0` and a `false` visible. */
 function render(value: unknown): string {

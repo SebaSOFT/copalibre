@@ -13,20 +13,20 @@ export interface AuditLogItem {
   readonly latencyMs?: number;
 }
 
-export interface AuditLogCardProps {
+export interface AuditLogPanelProps {
   readonly title?: string;
   readonly items: readonly AuditLogItem[];
   readonly className?: string;
 }
 
-export function AuditLogCard({
+export function AuditLogPanel({
   title = 'Audit Log',
   items,
   className = '',
-}: AuditLogCardProps): React.JSX.Element {
+}: AuditLogPanelProps): React.JSX.Element {
   return (
     <div
-      className={`cl-audit-log-card cl-chamfer cl-chamfer--control ${className}`.trim()}
+      className={`cl-audit-log-panel cl-chamfer cl-chamfer--control ${className}`.trim()}
       style={{
         background: 'var(--cl-surface-panel)',
         border: '1px solid var(--cl-border-muted)',
@@ -34,7 +34,7 @@ export function AuditLogCard({
       }}
     >
       <div
-        className="cl-audit-log-card__header"
+        className="cl-audit-log-panel__header"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -76,8 +76,8 @@ export function AuditLogCard({
           return (
             <div
               key={item.id}
-              className={`cl-audit-log-card__item ${
-                isCorrection ? 'cl-audit-log-card__item--correction' : ''
+              className={`cl-audit-log-panel__item ${
+                isCorrection ? 'cl-audit-log-panel__item--correction' : ''
               }`}
               style={{
                 borderLeft: `4px solid ${railColor}`,
@@ -128,7 +128,7 @@ export function AuditLogCard({
 
               {item.diff && (
                 <div
-                  className="cl-audit-log-card__diff"
+                  className="cl-audit-log-panel__diff"
                   style={{
                     fontFamily: 'var(--cl-font-mono)',
                     fontSize: 'var(--cl-font-size-xs)',

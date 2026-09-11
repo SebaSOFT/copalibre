@@ -3,7 +3,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { ActivityLog } from './ActivityLog.js';
 import { DeviceHeartbeat } from './DeviceHeartbeat.js';
 import { QuickStats } from './QuickStats.js';
-import { TournamentCard } from './TournamentCard.js';
+import { TournamentSummaryCard } from './TournamentSummaryCard.js';
 import { type DashboardModel } from '../lib/dashboard.js';
 import {
   createControlApiClient,
@@ -126,7 +126,7 @@ function DashboardContent({
         )}
         <div className="cl-entity-card-grid">
           {visibleTournaments.map((card) => (
-            <TournamentCard
+            <TournamentSummaryCard
               card={card}
               key={card.tournamentId}
               onArchive={archive}
