@@ -1454,6 +1454,14 @@ function dialog(): string {
     `  border: 1px solid var(--cl-${DIALOG_TOKENS.border});`,
     `  box-shadow: ${DIALOG_TOKENS.elevation};`,
     '}',
+    '',
+    // A native <dialog>'s own backdrop pseudo-element — Modal.astro (openspec
+    // 0225 task 2.3) renders `<dialog>` directly rather than a Radix overlay
+    // div, so `.cl-dialog-backdrop` (an element's background) has nothing to
+    // apply to there. Same token, so the two panels read as one system.
+    '.cl-modal__content::backdrop {',
+    `  background: var(--cl-${DIALOG_TOKENS.backdrop});`,
+    '}',
   ].join('\n');
 }
 

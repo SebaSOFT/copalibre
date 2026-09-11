@@ -412,6 +412,12 @@ export const KNOWN_ORPHANS = new Map([
   // elements the ownership register still records.
   ['control/components/ui/atoms/form.tsx', 1],
   ['control/components/ui/molecules/field-set.tsx', 1],
+  // DataTable.astro and Modal.astro (task 2.3) ship before their consumers
+  // adopt them, same as the primitives above. Adopting them is what lets
+  // KNOWN_RAW_ELEMENTS' StandingsPreview.astro/PlayerProfileView.astro
+  // entries in check-ui-ownership.mjs finally be paid down.
+  ['components/ui/organisms/DataTable.astro', 1],
+  ['components/ui/organisms/Modal.astro', 1],
 ]);
 
 /** The last `/`-segment of a storyId's title, before the ` — scenario` suffix. */
