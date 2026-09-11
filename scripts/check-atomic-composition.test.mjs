@@ -17,6 +17,10 @@ import {
   checkCasing,
   checkDuplicateNames,
   checkSingleAtomOwnership,
+  checkLiteralTextNodes,
+  checkCatalogueResolution,
+  extractCatalogueIds,
+  checkBannedOrnament,
   loadReferenceIndex,
 } from './check-atomic-composition.mjs';
 import { buildGraph } from './lib/component-graph.mjs';
@@ -364,6 +368,105 @@ test('R13: two atoms owning the same element in different surfaces do not violat
 
   const { nodes } = buildGraph(root);
   assert.deepEqual(checkSingleAtomOwnership(nodes), []);
+});
+
+test('R10 reports a literal text node with its file, line and text', () => {
+  const root = fixture();
+  writeFileSync(
+    join(root, 'ui/atoms/Chip.tsx'),
+    'export function Chip() { return <div>Hardcoded label</div>; }',
+  );
+
+  const { nodes } = buildGraph(root);
+  const violations = checkLiteralTextNodes(nodes);
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].path, 'ui/atoms/Chip.tsx');
+  assert.equal(typeof violations[0].line, 'number');
+  assert.match(violations[0].message, /Hardcoded label/);
+});
+
+test('R10 does not treat a number, a single token, or a TS generic as a literal text node', () => {
+  const root = fixture();
+  writeFileSync(
+    join(root, 'ui/atoms/Chip.tsx'),
+    'export function Chip() { return <div>{"42"}<span>slug-id</span></div>; }',
+  );
+  writeFileSync(
+    join(root, 'ui/atoms/Async.tsx'),
+    'export async function run(): Promise<void> { return; }',
+  );
+
+  const { nodes } = buildGraph(root);
+  assert.deepEqual(checkLiteralTextNodes(nodes), []);
+});
+
+test('R10 does not scan plain .ts files at all (no JSX, only a TS generics false-positive source)', () => {
+  const root = fixture();
+  mkdirSync(join(root, 'lib'), { recursive: true });
+  writeFileSync(
+    join(root, 'lib/client.ts'),
+    'export function get(): Promise<string> { return Promise.resolve("x"); }',
+  );
+  const { nodes } = buildGraph(root);
+  const node = nodes.get('lib/client.ts');
+  assert.deepEqual(node.textNodes, []);
+});
+
+test('R10 catalogue resolution: a descriptor id resolving in the source catalogue and absent from another fails', () => {
+  const root = fixture();
+  mkdirSync(join(root, 'control/i18n'), { recursive: true });
+  writeFileSync(
+    join(root, 'control/i18n/messages.en.ts'),
+    "export const messages = { greeting: { id: 'app.greeting', defaultMessage: 'Hello' } };",
+  );
+  writeFileSync(
+    join(root, 'control/i18n/messages.es.ts'),
+    "export const messages = {\n  'app.greeting': 'Hola',\n};",
+  );
+  writeFileSync(join(root, 'control/i18n/messages.fr.ts'), 'export const messages = {};');
+
+  // checkCatalogueResolution reads the fixed CATALOGUE_FAMILIES list, which
+  // names real project paths, so exercise the exported piece it is built
+  // from directly: the id sets it diffs.
+  const enIds = extractCatalogueIds(join(root, 'control/i18n/messages.en.ts'));
+  const esIds = extractCatalogueIds(join(root, 'control/i18n/messages.es.ts'));
+  const frIds = extractCatalogueIds(join(root, 'control/i18n/messages.fr.ts'));
+  assert.deepEqual([...enIds], ['app.greeting']);
+  assert.ok(esIds.has('app.greeting'));
+  assert.ok(!frIds.has('app.greeting'));
+});
+
+test('R10 catalogue resolution reports every missing id in the real French and Italian control catalogues', () => {
+  const violations = checkCatalogueResolution(webSrc);
+  const frMissing = violations.filter((v) => v.path === 'control/i18n/messages.fr.ts');
+  const itMissing = violations.filter((v) => v.path === 'control/i18n/messages.it.ts');
+  assert.equal(frMissing.length, 78);
+  assert.equal(itMissing.length, 44);
+});
+
+test('R11 reports the real resting-glow findings in TiebreakerSequence.tsx and ChampionshipMatchCard.tsx', () => {
+  const { nodes } = buildGraph(webSrc);
+  const violations = checkBannedOrnament(nodes);
+  const paths = violations.map((v) => v.path);
+  assert.ok(paths.includes('control/components/ui/molecules/TiebreakerSequence.tsx'));
+  assert.ok(paths.includes('components/ui/organisms/ChampionshipMatchCard.tsx'));
+});
+
+test('R11: a resting glow token is a violation; a var()-only shadow value is not', () => {
+  const root = fixture();
+  writeFileSync(
+    join(root, 'ui/atoms/Bad.tsx'),
+    "export function Bad() { return <div style={{ boxShadow: 'var(--cl-glow-cyan)' }} />; }",
+  );
+  writeFileSync(
+    join(root, 'ui/atoms/Good.tsx'),
+    "export function Good() { return <div style={{ boxShadow: 'var(--cl-shadow-panel)' }} />; }",
+  );
+
+  const { nodes } = buildGraph(root);
+  const violations = checkBannedOrnament(nodes);
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].path, 'ui/atoms/Bad.tsx');
 });
 
 test('R9 duplicates: two components with the same base name are both reported; route pages are exempt', () => {

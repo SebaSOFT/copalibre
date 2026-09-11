@@ -201,6 +201,70 @@ function scanInlineStyles(source) {
   return found;
 }
 
+// A real opening/closing/self-closing tag immediately followed by text and
+// the next `<`. Requiring the *tag* — not a bare `>` — is what tells a JSX
+// element apart from a TypeScript generic's closing angle bracket:
+// `Promise<void>` has a `>` but no tag before it, so `<\/?([A-Za-z][\w.-]*)…>`
+// never matches inside it. One line only, so an unrelated multi-line run of
+// markup is never read as a single "text node"; `{`/`}` are excluded so an
+// interpolated expression's braces end the match rather than being
+// swallowed into the literal.
+const TEXT_NODE = /<\/?([A-Za-z][\w.-]*)(?:\s[^<>]*)?\/?>([^<>{}\n]+)</g;
+
+/**
+ * Common built-in and single-letter generic names, which the tag-name
+ * requirement above cannot exclude on its own: `Array<Item>` and
+ * `<Modal>Item</Modal>` share the same shape, and only the *name* tells them
+ * apart. Not exhaustive — a project-defined generic alias would still slip
+ * through — but it removes the overwhelming majority of the false positives
+ * TypeScript's own generics produce in a `.tsx` file that also contains JSX.
+ */
+const GENERIC_TYPE_NAMES = new Set([
+  'Promise',
+  'Partial',
+  'Required',
+  'Readonly',
+  'ReadonlyArray',
+  'Array',
+  'Record',
+  'Map',
+  'Set',
+  'Pick',
+  'Omit',
+  'Exclude',
+  'Extract',
+  'NonNullable',
+  'Awaited',
+  'ReturnType',
+  'Parameters',
+]);
+
+function isGenericTypeTag(tagName) {
+  if (GENERIC_TYPE_NAMES.has(tagName)) return true;
+  return /^[A-Z]$/.test(tagName) || /^[A-Z]\d$/.test(tagName); // T, K, V, U, N, E, T1, …
+}
+
+/** The template portion of an Astro file — after the frontmatter's closing `---` fence. */
+function astroTemplateOnly(source) {
+  const fenceEnd = source.indexOf('\n---', source.indexOf('---') + 3);
+  return fenceEnd === -1 ? source : source.slice(fenceEnd + 4);
+}
+
+function scanTextNodes(source, relPath) {
+  if (!relPath.endsWith('.tsx') && !relPath.endsWith('.astro')) return [];
+  const scanned = relPath.endsWith('.astro') ? astroTemplateOnly(source) : source;
+  const offset = source.length - scanned.length;
+
+  const found = [];
+  for (const match of scanned.matchAll(TEXT_NODE)) {
+    const [, tagName, text] = match;
+    if (isGenericTypeTag(tagName)) continue;
+    if (!text.trim()) continue;
+    found.push({ line: lineOf(source, match.index + offset), text });
+  }
+  return found;
+}
+
 function countSignals(source, pattern) {
   return [...source.matchAll(pattern)].length;
 }
@@ -289,6 +353,7 @@ function buildNode(absPath, webSrcDir) {
     rendered,
     nativeElements: scanNativeElements(source),
     inlineStyles: scanInlineStyles(source),
+    textNodes: scanTextNodes(source, relPath),
     stateSignals: countSignals(source, STATE_SIGNAL),
     i18nSignals: countSignals(source, I18N_SIGNAL),
     dataSignals: countSignals(source, DATA_SIGNAL),

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { buildGraph } from './lib/component-graph.mjs';
 import { ratchet, unreachableRegisterEntries } from './lib/rule-register.mjs';
 import { GOVERNED_ELEMENTS } from './check-ui-ownership.mjs';
+import { isExempt } from './check-ui-text-catalogue-coverage.mjs';
 
 /**
  * Enforces the atomic-composition tier contract (openspec 0225) over the
@@ -573,6 +574,163 @@ export function checkSingleAtomOwnership(nodes) {
 }
 
 // ---------------------------------------------------------------------------
+// R10 — no rendered text node is a literal; every descriptor resolves in
+// all eight catalogues in the source language.
+// ---------------------------------------------------------------------------
+
+/**
+ * Debt recorded 2026-09-11: literal (non-catalogue) text nodes, per file.
+ * Paid down by task 2.6 (the eleven Spanish literals it names) and task
+ * 2.7's sibling gate for anything this rule finds beyond that list — several
+ * entries here (`TvDashboard.tsx`, `AstroPreview.tsx`, the public organisms
+ * and Astro pages) are English or Spanish literals task 2.6 does not name,
+ * recorded rather than silently exempted.
+ */
+export const KNOWN_LITERAL_TEXT = new Map([
+  ['components/tv/TvDashboard.tsx', 4],
+  ['components/ui/AstroPreview.tsx', 1],
+  ['components/ui/organisms/PlayerProfileView.astro', 3],
+  ['components/ui/organisms/StandingsPreview.astro', 9],
+  ['control/components/AcceptInvitationForm.tsx', 2],
+  ['control/components/AnalyticsRoute.tsx', 1],
+  ['control/components/ControlApp.tsx', 7],
+  ['control/components/ControlShell.tsx', 1],
+  ['control/components/LiveConsoleRoute.tsx', 1],
+  ['control/components/NativeAuthRoutes.tsx', 1],
+  ['control/components/PreferencesRoute.tsx', 1],
+  ['control/components/RolesPermissionsPage.tsx', 1],
+  ['control/components/RosterRoleSelector.tsx', 1],
+  [
+    'pages/[...locale]/[organization]/tournaments/[tournament]/stages/[stage]/matches/[match].astro',
+    11,
+  ],
+  ['pages/control/[...path].astro', 1],
+  ['pages/control/app.astro', 1],
+  ['pages/help/api-reference.astro', 1],
+  ['pages/index.astro', 3],
+  ['pages/invitations/accept.astro', 1],
+]);
+
+export function checkLiteralTextNodes(nodes) {
+  const violations = [];
+  for (const node of nodes.values()) {
+    for (const textNode of node.textNodes) {
+      if (isExempt(textNode.text)) continue;
+      violations.push({
+        path: node.path,
+        line: textNode.line,
+        message: `${node.path}:${textNode.line}: rendered text "${textNode.text.trim().slice(0, 60)}" is a literal, not a catalogue descriptor.`,
+      });
+    }
+  }
+  return violations;
+}
+
+const MESSAGE_ID_IN_DEFINE = /id:\s*'([^']+)'/g;
+const MESSAGE_ID_IN_RECORD = /^\s*'([a-zA-Z][\w.]*)':\s*'/gm;
+
+/** Extracts every message id a catalogue file defines, in either its `defineMessages` or plain-Record shape. */
+export function extractCatalogueIds(path) {
+  const source = readFileSync(path, 'utf8');
+  const ids = new Set();
+  for (const match of source.matchAll(MESSAGE_ID_IN_DEFINE)) ids.add(match[1]);
+  for (const match of source.matchAll(MESSAGE_ID_IN_RECORD)) ids.add(match[1]);
+  return ids;
+}
+
+/** A catalogue family: a source (English) file and its locale siblings, all in one directory. */
+const CATALOGUE_FAMILIES = [
+  { dir: 'control/i18n', prefix: 'messages.' },
+  { dir: 'lib/i18n', prefix: 'public-messages.' },
+];
+const CATALOGUE_LOCALES = ['de', 'en', 'es', 'fr', 'it', 'pt', 'ru', 'zh'];
+
+/**
+ * Debt recorded 2026-09-11: message ids present in the English (source)
+ * catalogue and absent from a locale sibling, counted per locale file. Two
+ * families predate this change entirely (`messages.fr.ts` missing 78 of 923,
+ * `messages.it.ts` missing 44, `public-messages.fr.ts` missing 2 of 140) —
+ * this rule did not create the gap, it is the first thing to count it.
+ */
+export const KNOWN_CATALOGUE_GAPS = new Map([
+  ['control/i18n/messages.fr.ts', 78],
+  ['control/i18n/messages.it.ts', 44],
+  ['lib/i18n/public-messages.fr.ts', 2],
+]);
+
+export function checkCatalogueResolution(webSrcDir) {
+  const violations = [];
+  for (const family of CATALOGUE_FAMILIES) {
+    const sourcePath = join(webSrcDir, family.dir, `${family.prefix}en.ts`);
+    const sourceIds = extractCatalogueIds(sourcePath);
+
+    for (const locale of CATALOGUE_LOCALES) {
+      if (locale === 'en') continue;
+      const localeRelPath = `${family.dir}/${family.prefix}${locale}.ts`;
+      const localePath = join(webSrcDir, localeRelPath);
+      const localeIds = extractCatalogueIds(localePath);
+
+      for (const id of sourceIds) {
+        if (localeIds.has(id)) continue;
+        violations.push({
+          path: localeRelPath,
+          line: 1,
+          message: `${localeRelPath}: missing message id "${id}", present in ${family.prefix}en.ts. Every descriptor must resolve in all eight catalogues.`,
+        });
+      }
+    }
+  }
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
+// R11 — no banned ornament (resting glow, resting shadow, second accent) and
+// no recurring treatment declared inline rather than as a named class.
+// ---------------------------------------------------------------------------
+
+/**
+ * Tokens DESIGN.md's anti-glow/anti-shadow rules ban as a *resting* state
+ * cue — a glow or shadow with no corresponding interaction (hover, focus,
+ * an active/live state already named elsewhere). Detected as a raw property
+ * naming them inline, which is the only way an inline style can apply one at
+ * all (a class-based ban is `0224`'s detector's job on generated CSS; this
+ * rule is about the inline escape hatch instead).
+ */
+const BANNED_ORNAMENT_TOKENS = [
+  /--cl-glow-\w+/,
+  /box-shadow['"]?\s*:\s*['"]?[^,}]*\d+px[^,}]*\d+px/, // a hand-written multi-value shadow, not a token
+];
+
+/**
+ * Debt recorded 2026-09-11: `TiebreakerSequence.tsx:86` uses `--cl-glow-cyan`
+ * as a resting indicator (design.md's one genuine ornament defect the
+ * critique found — task 5.4 replaces it with a token that carries the state
+ * without the glow). `ChampionshipMatchCard.tsx:36` carries the identical
+ * pattern (`isLive ? 'var(--cl-glow-cyan)' : 'none'`) — a second instance
+ * this rule finds that the manual critique did not name; task 4.3 merges
+ * this component away entirely, which resolves it without a separate edit.
+ */
+export const KNOWN_BANNED_ORNAMENT = new Map([
+  ['control/components/ui/molecules/TiebreakerSequence.tsx', 1],
+  ['components/ui/organisms/ChampionshipMatchCard.tsx', 1],
+]);
+
+export function checkBannedOrnament(nodes) {
+  const violations = [];
+  for (const node of nodes.values()) {
+    for (const style of node.inlineStyles) {
+      if (!BANNED_ORNAMENT_TOKENS.some((pattern) => pattern.test(style.raw))) continue;
+      violations.push({
+        path: node.path,
+        line: style.line,
+        message: `${node.path}:${style.line}: inline style declares a banned resting ornament (glow/shadow). Use the token that carries the state without it.`,
+      });
+    }
+  }
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -646,6 +804,24 @@ export function checkAtomicComposition(webSrcDir) {
       'KNOWN_MULTI_ATOM_OWNERSHIP',
       'multi-atom-ownership violation(s)',
     ),
+    ratchet(
+      checkLiteralTextNodes(nodes),
+      KNOWN_LITERAL_TEXT,
+      'KNOWN_LITERAL_TEXT',
+      'literal text node(s)',
+    ),
+    ratchet(
+      checkCatalogueResolution(webSrcDir),
+      KNOWN_CATALOGUE_GAPS,
+      'KNOWN_CATALOGUE_GAPS',
+      'missing message id(s)',
+    ),
+    ratchet(
+      checkBannedOrnament(nodes),
+      KNOWN_BANNED_ORNAMENT,
+      'KNOWN_BANNED_ORNAMENT',
+      'banned-ornament violation(s)',
+    ),
   ].flat();
 
   return results.sort((a, b) => (a.path === b.path ? a.line - b.line : a.path < b.path ? -1 : 1));
@@ -681,6 +857,9 @@ const ALL_REGISTERS = [
   ['KNOWN_CASING_VIOLATIONS', KNOWN_CASING_VIOLATIONS],
   ['KNOWN_DUPLICATE_NAMES', KNOWN_DUPLICATE_NAMES],
   ['KNOWN_MULTI_ATOM_OWNERSHIP', KNOWN_MULTI_ATOM_OWNERSHIP],
+  ['KNOWN_LITERAL_TEXT', KNOWN_LITERAL_TEXT],
+  ['KNOWN_CATALOGUE_GAPS', KNOWN_CATALOGUE_GAPS],
+  ['KNOWN_BANNED_ORNAMENT', KNOWN_BANNED_ORNAMENT],
 ];
 
 /** R12 — every register entry in this script names a path that exists. */

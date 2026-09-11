@@ -88,7 +88,8 @@ function lineOf(content, offset) {
   return line;
 }
 
-function isExempt(value) {
+/** Exported for `check-atomic-composition.mjs`'s R10, which extends this exemption logic to JSX/Astro text nodes. */
+export function isExempt(value) {
   const trimmed = value.trim();
   if (BRAND_NAMES.has(trimmed)) return true;
   return EXEMPT_VALUE.some((pattern) => pattern.test(trimmed));
