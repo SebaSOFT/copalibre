@@ -196,12 +196,35 @@ function isLayoutPrimitive(path) {
  * inline `style={{…}}` object carrying at least one layout property, counted
  * per file. Paid down by task 5.1/5.2 as inline layout is replaced by the
  * `Stack`/`Inline`/`Grid`/`Box` primitives task 2.1 adds.
+ *
+ * Task 5.2 surveyed the three remaining public/broadcast entries above
+ * `MatchCard.tsx` and found none of their occurrences primitive-convertible,
+ * for reasons specific to each: `TvDashboard.tsx`'s three are `vmin`-scaled
+ * padding for broadcast-continuous sizing, which the fixed token scale
+ * `Box`'s `padding` resolves to cannot express without changing how the
+ * overlay actually scales; `AstroPreview.tsx`'s one styles an `<iframe>`, an
+ * element a `<div>` primitive cannot become; `EntrantName.tsx`'s one forces
+ * `display: block` on a `<span>` together with `minWidth: 0`, a combination
+ * no primitive's prop set covers.
+ *
+ * `MatchCard.tsx`'s count fell from 22 to 1 the other way: not through a
+ * primitive, but by giving its merged `ChampionshipMatchCard`/
+ * `LiveMatchScorecard` variants (task 4.3) the named CSS classes
+ * `MatchCard`'s own `cl-match-card*` family already has — `cl-scorecard__*`
+ * existed as classNames with no rule behind them; `cl-championship-card*` is
+ * new. Two properties stay deliberately inline: `box-shadow` on
+ * `.cl-championship-card`, set only under `isLive` (it reaches the banned
+ * `--cl-glow-cyan` resting ornament task 5.4 replaces, so it is left where
+ * that task will find it rather than baked into the stylesheet first), and
+ * `.cl-scorecard__events`' `margin-bottom`, which depends on whether
+ * `comparatorTrace` was passed — genuinely per-render data, not a design
+ * constant a class can state.
  */
 export const KNOWN_INLINE_LAYOUT = new Map([
   ['components/tv/TvDashboard.tsx', 3],
   ['components/ui/AstroPreview.tsx', 1],
   ['components/ui/atoms/EntrantName.tsx', 1],
-  ['components/ui/organisms/MatchCard.tsx', 22],
+  ['components/ui/organisms/MatchCard.tsx', 1],
   ['control/components/pages/AnalyticsPage.tsx', 6],
   ['control/components/BracketCanvas.tsx', 2],
   ['control/components/ControlApp.tsx', 8],
@@ -259,11 +282,26 @@ function withoutVarCalls(text) {
   return result;
 }
 
-/** Debt recorded 2026-09-11: inline style objects with a raw value outside `var()`, per file. */
+/**
+ * Debt recorded 2026-09-11: inline style objects with a raw value outside
+ * `var()`, per file. `TvDashboard.tsx`'s `vmin` value is deliberate
+ * broadcast-continuous scaling, no token expresses it; `AstroPreview.tsx`
+ * styles a raw `<iframe>` — neither is this rule's concern to convert.
+ *
+ * `MatchCard.tsx`'s entry is gone: its 13 raw values (task 5.2) were bespoke
+ * pixel choices — `1px 6px` padding, hairline border widths — that don't
+ * correspond to any step the token scale declares. Rather than invent a new
+ * step or round to the nearest existing one and change the rendered size,
+ * they moved into the `cl-championship-card*`/`cl-scorecard*` CSS classes
+ * this task's `KNOWN_INLINE_LAYOUT` comment describes: this rule scans
+ * inline style objects, the same as R3, so a value a stylesheet states
+ * outright is not this rule's concern either way — the design system's own
+ * stylesheet is where a bespoke, precisely-tuned value belongs, same as the
+ * many raw hairline widths already in `packages/design-tokens/src/generate/css.ts`.
+ */
 export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['components/tv/TvDashboard.tsx', 1],
   ['components/ui/AstroPreview.tsx', 1],
-  ['components/ui/organisms/MatchCard.tsx', 13],
   ['control/components/pages/AnalyticsPage.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
   ['control/components/DescriptorBuilderWizard.tsx', 1],
@@ -655,9 +693,18 @@ export function checkSingleAtomOwnership(nodes) {
  * entries here (`TvDashboard.tsx`, `AstroPreview.tsx`, the public organisms
  * and Astro pages) are English or Spanish literals task 2.6 does not name,
  * recorded rather than silently exempted.
+ *
+ * `MatchCard.tsx`'s one entry (task 5.2) is `LiveMatchScorecard`'s "VAR
+ * CONFIRMED" tag — pre-existing, not introduced: this scanner only matches a
+ * single-line text node (component-graph.mjs's own documented limitation),
+ * and the literal sat on its own line, inside a multi-line `<span style=…>`,
+ * until task 5.2's CSS-class extraction collapsed it onto one. No i18n
+ * exists anywhere in this component's merged variants to route it through;
+ * adding one is out of this styling task's scope.
  */
 export const KNOWN_LITERAL_TEXT = new Map([
   ['components/ui/AstroPreview.tsx', 1],
+  ['components/ui/organisms/MatchCard.tsx', 1],
   ['components/ui/organisms/PlayerProfileView.astro', 3],
   ['components/ui/organisms/StandingsTable.astro', 9],
   ['control/components/AcceptInvitationForm.tsx', 2],

@@ -1101,6 +1101,63 @@ function components(): string {
     // live page — two grids for one kind of card, disagreeing about what a card
     // is. A match card has a size; a row with one of them is a row with a gap.
     '.cl-matches-view__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--cl-space-4); }',
+    '',
+    // The grand-final spotlight (openspec 0225 task 4.3/5.2) — a MatchCard
+    // variant, not MatchCardData's shape: a seed and a per-participant winner
+    // flag have no place there. `box-shadow` stays inline in the component,
+    // set only under `isLive`: it reaches the banned `--cl-glow-cyan` resting
+    // ornament task 5.4 replaces, and belongs there rather than baked into
+    // this stylesheet ahead of that fix.
+    '.cl-championship-card { background: var(--cl-surface-panel); border: 2px solid var(--cl-state-live); padding: var(--cl-space-4); position: relative; overflow: hidden; }',
+    '.cl-championship-card__header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--cl-border-muted); padding-bottom: var(--cl-space-2); margin-bottom: var(--cl-space-3); }',
+    '.cl-championship-card__title-group { display: flex; align-items: center; gap: var(--cl-space-2); }',
+    '.cl-championship-card__title { font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); font-weight: var(--cl-weight-bold); text-transform: uppercase; letter-spacing: var(--cl-tracking-wider); color: var(--cl-state-live); }',
+    '.cl-championship-card__meta { display: flex; align-items: center; gap: var(--cl-space-2); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
+    '.cl-championship-card__time { color: var(--cl-text-muted); }',
+    '.cl-championship-card__status { padding: 1px 6px; border-radius: var(--cl-radius-sm); font-weight: var(--cl-weight-bold); background: var(--cl-surface-base); color: var(--cl-text-primary); border: 1px solid var(--cl-border-muted); }',
+    '.cl-championship-card__status--live { background: var(--cl-state-live); color: var(--cl-surface-base); border: none; }',
+    '.cl-championship-card__participants { display: flex; flex-direction: column; gap: var(--cl-space-2); }',
+    '.cl-championship-card__participant { display: flex; align-items: center; justify-content: space-between; padding: var(--cl-space-2) var(--cl-space-3); border-radius: 0 var(--cl-radius-sm) var(--cl-radius-sm) 0; background: var(--cl-surface-base); border-left: 3px solid transparent; }',
+    '.cl-championship-card__participant--winner { background: var(--cl-surface-chrome); border-left: 3px solid var(--cl-state-live); }',
+    '.cl-championship-card__participant-info { display: flex; align-items: center; gap: var(--cl-space-2); }',
+    '.cl-championship-card__seed { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); color: var(--cl-text-muted); }',
+    '.cl-championship-card__name { font-family: var(--cl-font-display); font-size: var(--cl-font-size-base); text-transform: uppercase; font-weight: var(--cl-weight-semibold); color: var(--cl-text-secondary); }',
+    '.cl-championship-card__name--winner { font-weight: var(--cl-weight-bold); color: var(--cl-text-primary); }',
+    '.cl-championship-card__score { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); font-weight: var(--cl-weight-bold); font-variant-numeric: tabular-nums; color: var(--cl-text-primary); }',
+    '.cl-championship-card__score--winner { color: var(--cl-state-live); }',
+    '',
+    // The tactical live scorebug (openspec 0225 task 4.3/5.2) — the fourth
+    // match renderer, merged the same way. `.cl-scorecard__header`,
+    // `__matchup`, `__score-box`, `__events` and `__comparator-trace` already
+    // existed as classNames on the component with no rule here; every
+    // property they need is added now rather than left to inline styles.
+    // A team's own colour (`homeTeam.color`/`awayTeam.color`) stays inline:
+    // it is caller-supplied data, not a design-time choice this stylesheet
+    // can fix a value for.
+    '.cl-scorecard { background: var(--cl-surface-panel); border: 1px solid var(--cl-border-muted); padding: var(--cl-space-4); position: relative; overflow: hidden; }',
+    '.cl-scorecard__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cl-space-2); border-bottom: 1px solid var(--cl-border-muted); padding-bottom: var(--cl-space-2); margin-bottom: var(--cl-space-4); font-family: var(--cl-font-display); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wider); font-weight: var(--cl-weight-bold); }',
+    '.cl-scorecard__location-group, .cl-scorecard__clock-group { display: flex; align-items: center; gap: var(--cl-space-2); }',
+    '.cl-scorecard__clock-group { font-family: var(--cl-font-mono); }',
+    '.cl-scorecard__dot { color: var(--cl-state-live); font-size: 0.9em; }',
+    '.cl-scorecard__location { color: var(--cl-text-primary); }',
+    '.cl-scorecard__separator { color: var(--cl-text-muted); }',
+    '.cl-scorecard__operations { color: var(--cl-text-secondary); }',
+    '.cl-scorecard__clock { color: var(--cl-state-live); font-weight: var(--cl-weight-bold); }',
+    '.cl-scorecard__matchup { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--cl-space-4); margin-bottom: var(--cl-space-4); }',
+    '.cl-scorecard__team { display: flex; align-items: center; gap: var(--cl-space-2); }',
+    '.cl-scorecard__team--home { justify-content: flex-end; text-align: right; }',
+    '.cl-scorecard__team--away { justify-content: flex-start; text-align: left; }',
+    '.cl-scorecard__team-name { font-family: var(--cl-font-display); font-size: var(--cl-font-size-lg); font-weight: var(--cl-weight-bold); text-transform: uppercase; color: var(--cl-text-primary); }',
+    '.cl-scorecard__team-swatch { font-size: var(--cl-font-size-sm); }',
+    '.cl-scorecard__score-box { background: var(--cl-surface-base); border: 1px solid var(--cl-border-muted); padding: var(--cl-space-2) var(--cl-space-4); border-radius: var(--cl-radius-sm); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xl); font-weight: var(--cl-weight-bold); color: var(--cl-text-primary); font-variant-numeric: tabular-nums; letter-spacing: var(--cl-tracking-wide); text-align: center; min-width: 90px; }',
+    '.cl-scorecard__events { display: flex; flex-wrap: wrap; gap: var(--cl-space-2); padding: var(--cl-space-2) 0; border-top: 1px solid var(--cl-border-muted); }',
+    '.cl-scorecard__event { display: inline-flex; align-items: center; gap: var(--cl-space-2); background: var(--cl-surface-chrome); padding: var(--cl-space-1) var(--cl-space-2); border-radius: var(--cl-radius-sm); font-size: var(--cl-font-size-xs); font-family: var(--cl-font-mono); }',
+    '.cl-scorecard__event-minute { color: var(--cl-state-live); font-weight: var(--cl-weight-bold); }',
+    '.cl-scorecard__event-player { color: var(--cl-text-primary); }',
+    '.cl-scorecard__var-tag { background: var(--cl-surface-base); color: var(--cl-color-amber-400); border: 1px solid var(--cl-color-amber-400); padding: 0 4px; border-radius: 2px; font-size: var(--cl-font-size-xs); font-weight: var(--cl-weight-bold); }',
+    '.cl-scorecard__comparator-trace { border-left: 3px solid var(--cl-state-live); background: var(--cl-surface-chrome); padding: var(--cl-space-2) var(--cl-space-3); margin-top: var(--cl-space-2); display: flex; align-items: center; gap: var(--cl-space-2); font-size: var(--cl-font-size-xs); font-family: var(--cl-font-mono); color: var(--cl-text-secondary); }',
+    '.cl-scorecard__comparator-step { color: var(--cl-state-live); font-weight: var(--cl-weight-bold); }',
+    '.cl-scorecard__comparator-text { color: var(--cl-text-primary); }',
   ].join('\n');
 }
 
