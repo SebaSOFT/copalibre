@@ -142,7 +142,7 @@ const KNOWN_HANDWRITTEN_CLASSES = new Map([
  * Blanks comments out rather than removing them, so every remaining character
  * keeps its original offset and reported line numbers stay true.
  */
-function withoutComments(content) {
+export function withoutComments(content) {
   return (
     content
       .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, ' '))
@@ -167,12 +167,12 @@ function withoutComments(content) {
  * button an owned component renders, and reporting it would tell an author to
  * stop styling the design system from the one place that is supposed to.
  */
-function withoutStyleBlocks(content) {
+export function withoutStyleBlocks(content) {
   return content.replace(/<style[\s\S]*?<\/style>/gi, (block) => block.replace(/[^\n]/g, ' '));
 }
 
 /** 1-indexed line number for a character offset. */
-function lineOf(content, offset) {
+export function lineOf(content, offset) {
   let line = 1;
   for (let i = 0; i < offset; i++) if (content[i] === '\n') line++;
   return line;
