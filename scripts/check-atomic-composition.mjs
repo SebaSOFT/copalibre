@@ -232,7 +232,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/BracketCanvas.tsx', 2],
   ['control/components/ControlApp.tsx', 8],
   ['control/components/DescriptorBuilderWizard.tsx', 12],
-  ['control/components/pages/LiveConsolePage.tsx', 5],
+  ['control/components/screens/LiveConsoleTemplate.tsx', 5],
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/screens/PlatformAdministrationTemplate.tsx', 1],
   ['control/components/pages/PreferencesPage.tsx', 15],

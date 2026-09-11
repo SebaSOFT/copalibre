@@ -174,7 +174,7 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   ['control/components/ActivityLog.tsx', 1],
   ['control/components/BracketCanvas.tsx', 2],
   ['control/components/DeviceHeartbeat.tsx', 1],
-  ['control/components/pages/LiveConsolePage.tsx', 3],
+  ['control/components/screens/LiveConsoleTemplate.tsx', 3],
   ['control/components/screens/LoadMatchDataTemplate.tsx', 1],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 2],
