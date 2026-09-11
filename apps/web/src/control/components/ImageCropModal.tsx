@@ -8,13 +8,13 @@ import { messages } from '../i18n/messages.en.js';
 import { Modal } from './ui/organisms/modal.js';
 import { Button } from './ui/atoms/button.js';
 import { Input } from './ui/atoms/input.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 
 /**
  * Fixed 4:5 crop for every profile image (organization/club emblem, person
  * photo) — pan/zoom/rotate, confirm renders the crop to a 410×512 PNG via
  * `cropToPng`, cancel leaves the caller's prior upload state untouched.
- * Uses owned `Modal` organism, `FormField`, and `Button` atoms.
+ * Uses owned `Modal` organism, `Field`, and `Button` atoms.
  */
 export interface ImageCropModalProps {
   readonly imageSrc: string;
@@ -89,7 +89,7 @@ export function ImageCropModal({
       </div>
 
       <div style={controlsStyle}>
-        <FormField id="crop-zoom" label={intl.formatMessage(messages.imageCropModalZoom)}>
+        <Field id="crop-zoom" label={intl.formatMessage(messages.imageCropModalZoom)}>
           <Input
             id="crop-zoom"
             max={3}
@@ -99,8 +99,8 @@ export function ImageCropModal({
             type="range"
             value={zoom}
           />
-        </FormField>
-        <FormField id="crop-rotation" label={intl.formatMessage(messages.imageCropModalRotation)}>
+        </Field>
+        <Field id="crop-rotation" label={intl.formatMessage(messages.imageCropModalRotation)}>
           <Input
             id="crop-rotation"
             max={360}
@@ -110,7 +110,7 @@ export function ImageCropModal({
             type="range"
             value={rotation}
           />
-        </FormField>
+        </Field>
       </div>
 
       {error && (

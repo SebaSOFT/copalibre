@@ -7,7 +7,7 @@ import { Checkbox } from './ui/atoms/checkbox.js';
 import { FilePicker } from './ui/atoms/file-picker.js';
 import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { CountrySelect } from './CountrySelect.js';
 import {
   personPhotoUrl,
@@ -609,7 +609,7 @@ function AddParticipantDialog({
             .finally(() => setBusy(false));
         }}
       >
-        <FormField
+        <Field
           id="add-participant-kind"
           label={intl.formatMessage(messages.reviewParticipantKindLabel)}
         >
@@ -623,8 +623,8 @@ function AddParticipantDialog({
             ]}
             value={kind}
           />
-        </FormField>
-        <FormField
+        </Field>
+        <Field
           id="add-participant-name"
           label={intl.formatMessage(messages.reviewParticipantNameLabel)}
         >
@@ -635,8 +635,8 @@ function AddParticipantDialog({
             required
             value={name}
           />
-        </FormField>
-        <FormField
+        </Field>
+        <Field
           id="add-participant-alias"
           label={intl.formatMessage(messages.reviewParticipantAliasLabel)}
         >
@@ -646,7 +646,7 @@ function AddParticipantDialog({
             onChange={(event) => setAlias(event.target.value)}
             value={alias}
           />
-        </FormField>
+        </Field>
         {error !== undefined && <Alert tone="destructive">{error}</Alert>}
       </form>
     </Modal>
@@ -701,7 +701,7 @@ function EditIdentityDialog({
             .finally(() => setBusy(false));
         }}
       >
-        <FormField
+        <Field
           id="edit-identity-name"
           label={intl.formatMessage(messages.reviewParticipantNameLabel)}
         >
@@ -712,8 +712,8 @@ function EditIdentityDialog({
             required
             value={name}
           />
-        </FormField>
-        <FormField
+        </Field>
+        <Field
           id="edit-identity-alias"
           label={intl.formatMessage(messages.reviewParticipantAliasLabel)}
         >
@@ -723,7 +723,7 @@ function EditIdentityDialog({
             onChange={(event) => setAlias(event.target.value)}
             value={alias}
           />
-        </FormField>
+        </Field>
         {error !== undefined && <Alert tone="destructive">{error}</Alert>}
       </form>
     </Modal>
@@ -776,7 +776,7 @@ function LinkIdentityDialog({
             .finally(() => setBusy(false));
         }}
       >
-        <FormField
+        <Field
           id="link-identity-email"
           label={intl.formatMessage(messages.reviewLinkIdentityEmailLabel)}
         >
@@ -788,7 +788,7 @@ function LinkIdentityDialog({
             type="email"
             value={email}
           />
-        </FormField>
+        </Field>
         {error !== undefined && <Alert tone="destructive">{error}</Alert>}
       </form>
     </Modal>

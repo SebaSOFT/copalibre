@@ -12,7 +12,7 @@ import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
@@ -220,7 +220,7 @@ export function PromotionPlanRoute({
         </header>
         <div className="cl-card__content">
           <div className="cl-platform-form-grid">
-            <FormField
+            <Field
               id="promotion-next-stage"
               label={intl.formatMessage(messages.promotionNextStageNumber)}
             >
@@ -232,8 +232,8 @@ export function PromotionPlanRoute({
                 type="number"
                 value={nextStageNumber}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="promotion-per-group-advance"
               label={intl.formatMessage(messages.promotionPerGroupAdvance)}
             >
@@ -245,7 +245,7 @@ export function PromotionPlanRoute({
                 type="number"
                 value={perGroupAdvance}
               />
-            </FormField>
+            </Field>
           </div>
 
           <div>

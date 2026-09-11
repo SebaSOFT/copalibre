@@ -407,6 +407,11 @@ export const KNOWN_ORPHANS = new Map([
   ['control/components/ui/atoms/layout/inline.tsx', 1],
   ['control/components/ui/atoms/layout/grid.tsx', 1],
   ['control/components/ui/atoms/layout/box.tsx', 1],
+  // Form and FieldSet (task 2.2) ship before their consumers adopt them too
+  // — task 4.2 adopts FieldSet-shaped grouping and Form for the raw <form>
+  // elements the ownership register still records.
+  ['control/components/ui/atoms/form.tsx', 1],
+  ['control/components/ui/molecules/field-set.tsx', 1],
 ]);
 
 /** The last `/`-segment of a storyId's title, before the ` — scenario` suffix. */

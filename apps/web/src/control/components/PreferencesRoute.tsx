@@ -18,7 +18,7 @@ import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
 import { FilePicker } from './ui/atoms/file-picker.js';
 import { Input } from './ui/atoms/input.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { messages as controlMessages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
@@ -377,7 +377,7 @@ export function PreferencesRoute({
             flexWrap: 'wrap',
           }}
         >
-          <FormField id="pat-label" label={intl.formatMessage(messages.patLabel)}>
+          <Field id="pat-label" label={intl.formatMessage(messages.patLabel)}>
             <Input
               id="pat-label"
               onChange={(e) => setLabel(e.target.value)}
@@ -385,8 +385,8 @@ export function PreferencesRoute({
               type="text"
               value={label}
             />
-          </FormField>
-          <FormField id="pat-expires" label={intl.formatMessage(messages.patExpiresIn)}>
+          </Field>
+          <Field id="pat-expires" label={intl.formatMessage(messages.patExpiresIn)}>
             <Input
               id="pat-expires"
               max={365}
@@ -397,7 +397,7 @@ export function PreferencesRoute({
               type="number"
               value={expiresInDays}
             />
-          </FormField>
+          </Field>
           <Button disabled={!label.trim()} type="submit">
             <FormattedMessage {...messages.createPat} />
           </Button>
@@ -531,17 +531,14 @@ export function PreferencesRoute({
               <div
                 style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}
               >
-                <FormField
-                  id="org-name"
-                  label={intl.formatMessage(controlMessages.orgIdentityName)}
-                >
+                <Field id="org-name" label={intl.formatMessage(controlMessages.orgIdentityName)}>
                   <Input
                     id="org-name"
                     onChange={(event) => setOrgName(event.target.value)}
                     type="text"
                     value={orgName}
                   />
-                </FormField>
+                </Field>
                 <Button onClick={() => void saveOrganizationName()} type="button">
                   <FormattedMessage {...controlMessages.orgIdentitySave} />
                 </Button>
@@ -584,7 +581,7 @@ export function PreferencesRoute({
               flexWrap: 'wrap',
             }}
           >
-            <FormField
+            <Field
               id="rebuild-tournament"
               label={intl.formatMessage(controlMessages.statisticsRebuildTournamentLabel)}
             >
@@ -597,7 +594,7 @@ export function PreferencesRoute({
                 type="text"
                 value={rebuildTournamentAlias}
               />
-            </FormField>
+            </Field>
             {!rebuildConfirming ? (
               <Button
                 disabled={!api.rebuildStatistics}

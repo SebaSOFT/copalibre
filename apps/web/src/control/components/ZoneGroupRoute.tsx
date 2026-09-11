@@ -16,7 +16,7 @@ import { Card } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
 import { RadioGroup, RadioGroupItem } from './ui/atoms/radio.js';
 import { Select } from './ui/atoms/select.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
@@ -485,10 +485,7 @@ export function ZoneGroupRoute({
 
           {zoneMode === 'draw' ? (
             <div className="cl-platform-form-grid">
-              <FormField
-                id="zone-draw-count"
-                label={intl.formatMessage(messages.zoneGroupZoneCount)}
-              >
+              <Field id="zone-draw-count" label={intl.formatMessage(messages.zoneGroupZoneCount)}>
                 <Input
                   aria-label={intl.formatMessage(messages.zoneGroupZoneCount)}
                   id="zone-draw-count"
@@ -497,8 +494,8 @@ export function ZoneGroupRoute({
                   type="number"
                   value={zoneCount}
                 />
-              </FormField>
-              <FormField id="zone-draw-seed" label={intl.formatMessage(messages.zoneGroupSeed)}>
+              </Field>
+              <Field id="zone-draw-seed" label={intl.formatMessage(messages.zoneGroupSeed)}>
                 <Input
                   aria-label={intl.formatMessage(messages.zoneGroupSeed)}
                   id="zone-draw-seed"
@@ -506,7 +503,7 @@ export function ZoneGroupRoute({
                   type="number"
                   value={zoneSeed}
                 />
-              </FormField>
+              </Field>
               <Button onClick={() => void previewZoneDraw()} type="button" variant="secondary">
                 <FormattedMessage {...messages.zoneGroupPreviewDraw} />
               </Button>
@@ -555,7 +552,7 @@ export function ZoneGroupRoute({
 
       {zones.length > 0 && (
         <>
-          <FormField id="zone-select" label={intl.formatMessage(messages.zoneGroupSelectZone)}>
+          <Field id="zone-select" label={intl.formatMessage(messages.zoneGroupSelectZone)}>
             <Select
               aria-label={intl.formatMessage(messages.zoneGroupSelectZone)}
               id="zone-select"
@@ -566,7 +563,7 @@ export function ZoneGroupRoute({
               }))}
               value={selectedZoneNumber !== undefined ? String(selectedZoneNumber) : ''}
             />
-          </FormField>
+          </Field>
 
           <Card
             aria-label={intl.formatMessage(messages.zoneGroupGroupsHeading)}
@@ -670,7 +667,7 @@ export function ZoneGroupRoute({
 
               {groupMode === 'draw' ? (
                 <div className="cl-platform-form-grid">
-                  <FormField
+                  <Field
                     id="group-draw-count"
                     label={intl.formatMessage(messages.zoneGroupGroupCount)}
                   >
@@ -682,11 +679,8 @@ export function ZoneGroupRoute({
                       type="number"
                       value={groupCount}
                     />
-                  </FormField>
-                  <FormField
-                    id="group-draw-seed"
-                    label={intl.formatMessage(messages.zoneGroupSeed)}
-                  >
+                  </Field>
+                  <Field id="group-draw-seed" label={intl.formatMessage(messages.zoneGroupSeed)}>
                     <Input
                       aria-label={intl.formatMessage(messages.zoneGroupSeed)}
                       id="group-draw-seed"
@@ -694,7 +688,7 @@ export function ZoneGroupRoute({
                       type="number"
                       value={groupSeed}
                     />
-                  </FormField>
+                  </Field>
                   <Button onClick={() => void previewGroupDraw()} type="button" variant="secondary">
                     <FormattedMessage {...messages.zoneGroupPreviewDraw} />
                   </Button>

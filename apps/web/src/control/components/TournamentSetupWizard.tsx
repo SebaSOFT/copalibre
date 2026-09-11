@@ -8,7 +8,7 @@ import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
 import { Textarea } from './ui/atoms/textarea.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { StepHeading } from './ui/molecules/StepHeading.js';
 import {
   SERIES_RESOLUTION_CLASSES,
@@ -298,28 +298,25 @@ export function TournamentSetupWizard({
         )}
         {state.step === 'name' && (
           <div className="cl-platform-form-grid">
-            <FormField id="wizard-name" label={intl.formatMessage(messages.wizardFieldName)}>
+            <Field id="wizard-name" label={intl.formatMessage(messages.wizardFieldName)}>
               <Input
                 id="wizard-name"
                 onChange={(event) => patch({ name: event.target.value })}
                 value={state.name ?? ''}
               />
-            </FormField>
-            <FormField id="wizard-alias" label={intl.formatMessage(messages.wizardFieldAlias)}>
+            </Field>
+            <Field id="wizard-alias" label={intl.formatMessage(messages.wizardFieldAlias)}>
               <Input
                 id="wizard-alias"
                 onChange={(event) => patch({ alias: event.target.value })}
                 value={state.alias ?? ''}
               />
-            </FormField>
+            </Field>
           </div>
         )}
 
         {state.step === 'discipline' && (
-          <FormField
-            id="wizard-discipline"
-            label={intl.formatMessage(messages.wizardFieldDiscipline)}
-          >
+          <Field id="wizard-discipline" label={intl.formatMessage(messages.wizardFieldDiscipline)}>
             <Select
               aria-describedby="wizard-discipline-hint"
               aria-label={intl.formatMessage(messages.wizardFieldDiscipline)}
@@ -348,12 +345,12 @@ export function TournamentSetupWizard({
               id="wizard-discipline-hint"
               text={intl.formatMessage(messages.wizardDecisionDiscipline)}
             />
-          </FormField>
+          </Field>
         )}
 
         {state.step === 'format' && (
           <div className="cl-platform-form-grid">
-            <FormField id="wizard-format" label={intl.formatMessage(messages.wizardFieldFormat)}>
+            <Field id="wizard-format" label={intl.formatMessage(messages.wizardFieldFormat)}>
               <Select
                 aria-describedby="wizard-format-hint"
                 aria-label={intl.formatMessage(messages.wizardFieldFormat)}
@@ -378,13 +375,10 @@ export function TournamentSetupWizard({
                 id="wizard-format-hint"
                 text={decisionHintText('format', messages.wizardDecisionFormat)}
               />
-            </FormField>
+            </Field>
 
             {profiles.length > 0 && (
-              <FormField
-                id="wizard-profile"
-                label={intl.formatMessage(messages.wizardFieldProfile)}
-              >
+              <Field id="wizard-profile" label={intl.formatMessage(messages.wizardFieldProfile)}>
                 <Select
                   aria-label={intl.formatMessage(messages.wizardFieldProfile)}
                   id="wizard-profile"
@@ -406,7 +400,7 @@ export function TournamentSetupWizard({
                   ]}
                   value={state.profileId ?? ''}
                 />
-              </FormField>
+              </Field>
             )}
 
             <div style={{ display: 'grid', gap: 'var(--cl-space-4)', gridColumn: '1 / -1' }}>
@@ -444,7 +438,7 @@ export function TournamentSetupWizard({
 
               {state.seriesEnabled && (
                 <div className="cl-platform-form-grid">
-                  <FormField
+                  <Field
                     id="wizard-series-span"
                     label={intl.formatMessage(messages.wizardFieldSeriesSpan)}
                   >
@@ -468,9 +462,9 @@ export function TournamentSetupWizard({
                       id="wizard-series-span-hint"
                       text={decisionHintText('series.span', messages.wizardDecisionSeriesSpan)}
                     />
-                  </FormField>
+                  </Field>
 
-                  <FormField
+                  <Field
                     id="wizard-series-class"
                     label={intl.formatMessage(messages.wizardFieldSeriesResolutionClass)}
                   >
@@ -498,7 +492,7 @@ export function TournamentSetupWizard({
                         messages.wizardDecisionSeriesResolutionClass,
                       )}
                     />
-                  </FormField>
+                  </Field>
 
                   <label
                     className="cl-toggle cl-focusable"
@@ -530,7 +524,7 @@ export function TournamentSetupWizard({
                   />
 
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <FormField
+                    <Field
                       id="wizard-series-accounting"
                       label={intl.formatMessage(messages.wizardFieldSeriesStandingsAccounting)}
                     >
@@ -560,7 +554,7 @@ export function TournamentSetupWizard({
                           messages.wizardDecisionSeriesStandingsAccounting,
                         )}
                       />
-                    </FormField>
+                    </Field>
                   </div>
                 </div>
               )}
@@ -570,7 +564,7 @@ export function TournamentSetupWizard({
 
         {state.step === 'window' && (
           <div className="cl-platform-form-grid">
-            <FormField id="wizard-region" label={intl.formatMessage(messages.wizardFieldRegion)}>
+            <Field id="wizard-region" label={intl.formatMessage(messages.wizardFieldRegion)}>
               <Input
                 aria-describedby="wizard-region-hint"
                 id="wizard-region"
@@ -581,11 +575,8 @@ export function TournamentSetupWizard({
                 id="wizard-region-hint"
                 text={decisionHintText('registration.region', messages.wizardDecisionRegion)}
               />
-            </FormField>
-            <FormField
-              id="wizard-capacity"
-              label={intl.formatMessage(messages.wizardFieldCapacity)}
-            >
+            </Field>
+            <Field id="wizard-capacity" label={intl.formatMessage(messages.wizardFieldCapacity)}>
               <Input
                 aria-describedby="wizard-capacity-hint"
                 id="wizard-capacity"
@@ -602,7 +593,7 @@ export function TournamentSetupWizard({
                 id="wizard-capacity-hint"
                 text={decisionHintText('registration.capacity', messages.wizardDecisionCapacity)}
               />
-            </FormField>
+            </Field>
             <label
               className="cl-toggle cl-focusable"
               htmlFor="wizard-public-registration"
@@ -650,7 +641,7 @@ export function TournamentSetupWizard({
               )}
             />
             {state.requiresCheckIn && (
-              <FormField
+              <Field
                 id="wizard-check-in-closes-at"
                 label={intl.formatMessage(messages.wizardFieldCheckInClosesAt)}
               >
@@ -668,7 +659,7 @@ export function TournamentSetupWizard({
                     messages.wizardDecisionCheckInClosesAt,
                   )}
                 />
-              </FormField>
+              </Field>
             )}
           </div>
         )}
@@ -722,7 +713,7 @@ export function TournamentSetupWizard({
                   </ol>
                 )}
                 <div className="cl-platform-form-grid">
-                  <FormField
+                  <Field
                     id="wizard-rule-condition"
                     label={intl.formatMessage(messages.wizardRuleCondition)}
                   >
@@ -747,8 +738,8 @@ export function TournamentSetupWizard({
                       id="wizard-rule-condition-hint"
                       text={selectedCondition?.description}
                     />
-                  </FormField>
-                  <FormField
+                  </Field>
+                  <Field
                     id="wizard-rule-action"
                     label={intl.formatMessage(messages.wizardRuleAction)}
                   >
@@ -770,7 +761,7 @@ export function TournamentSetupWizard({
                       value={state.customRuleActionType ?? ''}
                     />
                     <DecisionHint id="wizard-rule-action-hint" text={selectedAction?.description} />
-                  </FormField>
+                  </Field>
                 </div>
                 {selectedCondition === undefined && (
                   <Alert tone="info">
@@ -901,7 +892,7 @@ function ElementAuthoringFields({
           const choices = parameter.valueSchema['enum'];
           const label = `${parameter.description}${parameter.required ? ' *' : ''}`;
           return (
-            <FormField id={key} key={key} label={label}>
+            <Field id={key} key={key} label={label}>
               {Array.isArray(choices) ? (
                 <Select
                   aria-label={label}
@@ -925,11 +916,11 @@ function ElementAuthoringFields({
                   value={values[key] ?? ''}
                 />
               )}
-            </FormField>
+            </Field>
           );
         })}
         {entry.authoring?.optionsSchema && (
-          <FormField id={`options-${entry.type}`} label={optionsLabel}>
+          <Field id={`options-${entry.type}`} label={optionsLabel}>
             <Textarea
               aria-label={`${entry.type} options`}
               id={`options-${entry.type}`}
@@ -939,7 +930,7 @@ function ElementAuthoringFields({
               rows={4}
               value={options[elementOptionsKey(kind, entry.type)] ?? '{}'}
             />
-          </FormField>
+          </Field>
         )}
       </div>
     </fieldset>

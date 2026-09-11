@@ -19,6 +19,7 @@ import {
 import { Button } from './button.js';
 import { RadioGroup, RadioGroupItem } from './radio.js';
 import { FilePicker } from './file-picker.js';
+import { Form } from './form.js';
 
 describe('form-control atoms', () => {
   it('renders the default and error state classes for Input', () => {
@@ -292,6 +293,31 @@ describe('form-control atoms', () => {
     // change event
     fireEvent.change(select, { target: { value: 'viewer' } });
     expect(onValueChange).toHaveBeenCalledWith('viewer');
+  });
+});
+
+describe('Form', () => {
+  it('renders a <form> element and calls onSubmit', () => {
+    const onSubmit = jest.fn((event: React.FormEvent) => event.preventDefault());
+    const { container } = render(
+      <Form onSubmit={onSubmit}>
+        <button type="submit">Go</button>
+      </Form>,
+    );
+    const form = container.querySelector('form');
+    expect(form).not.toBeNull();
+    expect(form?.className).toContain('cl-form');
+    fireEvent.submit(form as HTMLFormElement);
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes noValidate through to the native element', () => {
+    const { container } = render(
+      <Form noValidate>
+        <span>x</span>
+      </Form>,
+    );
+    expect(container.querySelector('form')?.noValidate).toBe(true);
   });
 });
 

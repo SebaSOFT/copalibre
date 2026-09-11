@@ -15,7 +15,7 @@ import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
 import { FilePicker } from './ui/atoms/file-picker.js';
 import { Input } from './ui/atoms/input.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
@@ -209,7 +209,7 @@ export function ClubManagementRoute({
 
         {api.createClub && (
           <div className="cl-platform-form-grid">
-            <FormField
+            <Field
               id="new-club-name"
               label={intl.formatMessage(messages.clubManagementNewClubName)}
             >
@@ -219,8 +219,8 @@ export function ClubManagementRoute({
                 onChange={(event) => setNewName(event.target.value)}
                 value={newName}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="new-club-alias"
               label={intl.formatMessage(messages.clubManagementNewClubAlias)}
             >
@@ -230,8 +230,8 @@ export function ClubManagementRoute({
                 onChange={(event) => setNewAlias(event.target.value)}
                 value={newAlias}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="new-club-abbreviation"
               label={intl.formatMessage(messages.clubManagementNewClubAbbreviation)}
             >
@@ -241,7 +241,7 @@ export function ClubManagementRoute({
                 onChange={(event) => setNewAbbreviation(event.target.value)}
                 value={newAbbreviation}
               />
-            </FormField>
+            </Field>
             <Button onClick={() => void createClub()} type="button">
               <FormattedMessage {...messages.clubManagementAddClub} />
             </Button>
@@ -294,29 +294,23 @@ export function ClubManagementRoute({
             )}
 
             <div className="cl-platform-form-grid">
-              <FormField
-                id="edit-club-name"
-                label={intl.formatMessage(messages.clubManagementName)}
-              >
+              <Field id="edit-club-name" label={intl.formatMessage(messages.clubManagementName)}>
                 <Input
                   aria-label={intl.formatMessage(messages.clubManagementName)}
                   id="edit-club-name"
                   onChange={(event) => setEditName(event.target.value)}
                   value={editName}
                 />
-              </FormField>
-              <FormField
-                id="edit-club-alias"
-                label={intl.formatMessage(messages.clubManagementAlias)}
-              >
+              </Field>
+              <Field id="edit-club-alias" label={intl.formatMessage(messages.clubManagementAlias)}>
                 <Input
                   aria-label={intl.formatMessage(messages.clubManagementAlias)}
                   id="edit-club-alias"
                   onChange={(event) => setEditAlias(event.target.value)}
                   value={editAlias}
                 />
-              </FormField>
-              <FormField
+              </Field>
+              <Field
                 id="edit-club-abbreviation"
                 label={intl.formatMessage(messages.clubManagementAbbreviation)}
               >
@@ -326,7 +320,7 @@ export function ClubManagementRoute({
                   onChange={(event) => setEditAbbreviation(event.target.value)}
                   value={editAbbreviation}
                 />
-              </FormField>
+              </Field>
               <Button onClick={() => void saveClub()} type="button">
                 <FormattedMessage {...messages.clubManagementSaveChanges} />
               </Button>

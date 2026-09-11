@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
 import { AuthScreenTemplate } from './auth-screen-template.js';
-import { FormField } from '../molecules/form-field.js';
+import { Field } from '../molecules/field.js';
 import { Input } from '../atoms/input.js';
 import { Button } from '../atoms/button.js';
 import { storyText } from '../story-text.js';
@@ -28,12 +28,12 @@ export const SignIn: Story = {
     return (
       <AuthScreenTemplate tagline={intl.formatMessage(storyText.platformTitle)}>
         <form style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
-          <FormField id="auth-email" label={intl.formatMessage(storyText.settingsTitle)}>
+          <Field id="auth-email" label={intl.formatMessage(storyText.settingsTitle)}>
             <Input id="auth-email" type="email" />
-          </FormField>
-          <FormField id="auth-password" label={intl.formatMessage(storyText.rolesTitle)}>
+          </Field>
+          <Field id="auth-password" label={intl.formatMessage(storyText.rolesTitle)}>
             <Input id="auth-password" type="password" />
-          </FormField>
+          </Field>
           <Button type="submit" variant="primary">
             {intl.formatMessage(storyText.save)}
           </Button>
@@ -50,13 +50,13 @@ export const WithError: Story = {
     return (
       <AuthScreenTemplate tagline={intl.formatMessage(storyText.platformTitle)}>
         <form style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
-          <FormField
+          <Field
             errorText={intl.formatMessage(storyText.empty)}
             id="auth-email-error"
             label={intl.formatMessage(storyText.settingsTitle)}
           >
             <Input aria-describedby="auth-email-error-error" id="auth-email-error" invalid />
-          </FormField>
+          </Field>
           <Button type="submit" variant="primary">
             {intl.formatMessage(storyText.save)}
           </Button>

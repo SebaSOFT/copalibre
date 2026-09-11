@@ -25,7 +25,7 @@ import { Select } from './ui/atoms/select.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 import { EditorialCard } from './ui/molecules/EditorialCard.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 
 const LANGUAGES = ['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;
 
@@ -478,7 +478,7 @@ export function PlatformAdministrationRoute({
                   className="cl-platform-form-grid"
                   onSubmit={(event) => void submitOrganization(event)}
                 >
-                  <FormField
+                  <Field
                     id="platform-org-alias"
                     label={intl.formatMessage(messages.platformOrganizationAlias)}
                   >
@@ -490,8 +490,8 @@ export function PlatformAdministrationRoute({
                       required
                       value={organization.alias}
                     />
-                  </FormField>
-                  <FormField
+                  </Field>
+                  <Field
                     id="platform-org-name"
                     label={intl.formatMessage(messages.platformOrganizationName)}
                   >
@@ -503,8 +503,8 @@ export function PlatformAdministrationRoute({
                       required
                       value={organization.name}
                     />
-                  </FormField>
-                  <FormField
+                  </Field>
+                  <Field
                     id="platform-org-language"
                     label={intl.formatMessage(messages.platformPrimaryLanguage)}
                   >
@@ -522,8 +522,8 @@ export function PlatformAdministrationRoute({
                       }))}
                       value={organization.primaryLanguage ?? 'es'}
                     />
-                  </FormField>
-                  <FormField
+                  </Field>
+                  <Field
                     id="platform-org-timezone"
                     label={intl.formatMessage(messages.platformTimezone)}
                   >
@@ -535,7 +535,7 @@ export function PlatformAdministrationRoute({
                       required
                       value={organization.timezone}
                     />
-                  </FormField>
+                  </Field>
                   <Button disabled={busy === 'organization'} type="submit">
                     <FormattedMessage {...messages.platformCreateOrganization} />
                   </Button>
@@ -551,7 +551,7 @@ export function PlatformAdministrationRoute({
                       values={{ alias: bootstrapAlias }}
                     />
                   </p>
-                  <FormField
+                  <Field
                     id="platform-admin-email"
                     label={intl.formatMessage(messages.platformFirstAdminEmail)}
                   >
@@ -562,13 +562,13 @@ export function PlatformAdministrationRoute({
                       type="email"
                       value={adminEmail}
                     />
-                  </FormField>
-                  <FormField
+                  </Field>
+                  <Field
                     id="platform-admin-role"
                     label={intl.formatMessage(messages.platformFirstAdminRole)}
                   >
                     <Input id="platform-admin-role" readOnly value="admin" />
-                  </FormField>
+                  </Field>
                   <Button disabled={busy === 'invitation'} type="submit">
                     <FormattedMessage {...messages.platformInviteAdministrator} />
                   </Button>
@@ -588,7 +588,7 @@ export function PlatformAdministrationRoute({
             </CardHeader>
             <CardContent>
               <div className="cl-platform-form-grid">
-                <FormField
+                <Field
                   id="platform-manage-org-alias"
                   label={intl.formatMessage(messages.platformManageOrganizationAlias)}
                 >
@@ -597,7 +597,7 @@ export function PlatformAdministrationRoute({
                     onChange={(event) => setManageOrgAlias(event.target.value)}
                     value={manageOrgAlias}
                   />
-                </FormField>
+                </Field>
                 <Button
                   disabled={!manageOrgAlias.trim()}
                   onClick={() => setManagingOrgAlias(manageOrgAlias.trim())}
@@ -647,7 +647,7 @@ export function PlatformAdministrationRoute({
                 className="cl-platform-form-grid"
                 onSubmit={(event) => void submitSuperAdmin(event)}
               >
-                <FormField
+                <Field
                   id="platform-super-admin-principal"
                   label={intl.formatMessage(messages.platformSuperAdminPrincipalId)}
                 >
@@ -657,7 +657,7 @@ export function PlatformAdministrationRoute({
                     required
                     value={newSuperAdminPrincipalId}
                   />
-                </FormField>
+                </Field>
                 <Button disabled={busy === 'super-admin'} type="submit">
                   <FormattedMessage {...messages.platformCreateSuperAdmin} />
                 </Button>
@@ -756,7 +756,7 @@ export function PlatformAdministrationRoute({
                 className="cl-platform-form-grid"
                 onSubmit={(event) => void submitModule(event)}
               >
-                <FormField
+                <Field
                   id="platform-module-alias"
                   label={intl.formatMessage(messages.platformModuleAlias)}
                 >
@@ -766,8 +766,8 @@ export function PlatformAdministrationRoute({
                     required
                     value={alias}
                   />
-                </FormField>
-                <FormField
+                </Field>
+                <Field
                   id="platform-module-range"
                   label={intl.formatMessage(messages.platformVersionRange)}
                 >
@@ -777,8 +777,8 @@ export function PlatformAdministrationRoute({
                     placeholder="^1.0.0"
                     value={range}
                   />
-                </FormField>
-                <FormField
+                </Field>
+                <Field
                   id="platform-module-source"
                   label={intl.formatMessage(messages.platformAlternateSource)}
                 >
@@ -788,7 +788,7 @@ export function PlatformAdministrationRoute({
                     placeholder="file:///…"
                     value={source}
                   />
-                </FormField>
+                </Field>
                 <Button disabled={busy === 'install'} type="submit">
                   <FormattedMessage {...messages.platformInstallModule} />
                 </Button>

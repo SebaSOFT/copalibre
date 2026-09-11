@@ -39,7 +39,7 @@ import { Card } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
 import { Textarea } from './ui/atoms/textarea.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { ClockRing } from './ui/organisms/clock-ring.js';
 import { EntrantName } from '../../components/ui/atoms/EntrantName.js';
 import { JerseyGrid } from './JerseyGrid.js';
@@ -698,7 +698,7 @@ export function MatchConsoleRoute({
           </h2>
         </header>
         <div className="cl-platform-form-grid">
-          <FormField id="console-segment" label={intl.formatMessage(messages.matchConsoleSegment)}>
+          <Field id="console-segment" label={intl.formatMessage(messages.matchConsoleSegment)}>
             <Select
               aria-label={intl.formatMessage(messages.matchConsoleActiveSegment)}
               disabled={!canControlClock}
@@ -710,8 +710,8 @@ export function MatchConsoleRoute({
               }))}
               value={selectedSegmentId}
             />
-          </FormField>
-          <FormField
+          </Field>
+          <Field
             id="console-elapsed-seconds"
             label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
           >
@@ -724,7 +724,7 @@ export function MatchConsoleRoute({
               type="number"
               value={elapsedSeconds}
             />
-          </FormField>
+          </Field>
           <Button
             disabled={!canControlClock || selectedSegmentId === ''}
             onClick={() =>
@@ -865,7 +865,7 @@ export function MatchConsoleRoute({
             )
           )}
           <div className="cl-platform-form-grid">
-            <FormField id="console-staff" label={intl.formatMessage(messages.matchConsoleStaff)}>
+            <Field id="console-staff" label={intl.formatMessage(messages.matchConsoleStaff)}>
               <Select
                 aria-label={intl.formatMessage(messages.matchConsoleEventStaff)}
                 disabled={!canRecord || projection.eligibleStaffIds.length === 0}
@@ -886,7 +886,7 @@ export function MatchConsoleRoute({
                 ]}
                 value={selectedStaffId}
               />
-            </FormField>
+            </Field>
           </div>
           <div className="cl-role-user">
             {permittedEvents.map((definition) => (
@@ -934,7 +934,7 @@ export function MatchConsoleRoute({
               </div>
             </Card>
           )}
-          <FormField
+          <Field
             id="console-description"
             label={intl.formatMessage(messages.matchConsoleDescription)}
           >
@@ -945,7 +945,7 @@ export function MatchConsoleRoute({
               onChange={(event) => setDescription(event.target.value)}
               value={description}
             />
-          </FormField>
+          </Field>
         </div>
       </Card>
 
@@ -1109,7 +1109,7 @@ export function MatchConsoleRoute({
               </li>
             ))}
           </ol>
-          <FormField id="console-log-note" label={intl.formatMessage(messages.matchConsoleLogNote)}>
+          <Field id="console-log-note" label={intl.formatMessage(messages.matchConsoleLogNote)}>
             <Textarea
               aria-label={intl.formatMessage(messages.matchConsoleLogNote)}
               id="console-log-note"
@@ -1117,7 +1117,7 @@ export function MatchConsoleRoute({
               placeholder=""
               value={logNote}
             />
-          </FormField>
+          </Field>
         </div>
       </Card>
     </>

@@ -3,7 +3,7 @@ import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { Button } from './ui/atoms/button.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import type { MutationFieldPreview, RulesetOverridesRequest } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
@@ -106,7 +106,7 @@ export function TournamentRulesetPage({
           <ul aria-label={intl.formatMessage(messages.rulesetOverridesFields)}>
             {drafts.map((draft, index) => (
               <li key={draft.field}>
-                <FormField id={`ruleset-field-${index}`} label={draft.field}>
+                <Field id={`ruleset-field-${index}`} label={draft.field}>
                   <input
                     className="cl-input cl-input--default cl-focusable"
                     id={`ruleset-field-${index}`}
@@ -120,7 +120,7 @@ export function TournamentRulesetPage({
                     }}
                     value={draft.value}
                   />
-                </FormField>
+                </Field>
                 <Button
                   onClick={() =>
                     setDrafts((current) =>
@@ -136,7 +136,7 @@ export function TournamentRulesetPage({
             ))}
           </ul>
 
-          <FormField
+          <Field
             id="ruleset-new-field-name"
             label={intl.formatMessage(messages.rulesetOverridesNewFieldLabel)}
           >
@@ -147,8 +147,8 @@ export function TournamentRulesetPage({
               placeholder="scoring.pointsPerWin"
               value={newField}
             />
-          </FormField>
-          <FormField
+          </Field>
+          <Field
             id="ruleset-new-field-value"
             label={intl.formatMessage(messages.rulesetOverridesNewFieldValueLabel)}
           >
@@ -159,7 +159,7 @@ export function TournamentRulesetPage({
               placeholder="4"
               value={newValue}
             />
-          </FormField>
+          </Field>
           <Button
             disabled={newField.trim() === ''}
             onClick={() => {

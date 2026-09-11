@@ -23,7 +23,7 @@ import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
 import { Checkbox } from './ui/atoms/checkbox.js';
 import { Select } from './ui/atoms/select.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
@@ -461,7 +461,7 @@ export function ScheduleBuilderRoute({
                     }
                     return (
                       <div key={row.matchId} className="cl-platform-form-grid">
-                        <FormField
+                        <Field
                           id={`slot-${row.matchId}`}
                           label={intl.formatMessage(messages.scheduleBuilderStartTime)}
                         >
@@ -488,7 +488,7 @@ export function ScheduleBuilderRoute({
                             ]}
                             value={draft.slotId}
                           />
-                        </FormField>
+                        </Field>
 
                         {contingencyNode(row)}
 

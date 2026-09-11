@@ -13,7 +13,7 @@ import { Button } from './ui/atoms/button.js';
 import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 import { Modal } from './ui/organisms/modal.js';
@@ -416,7 +416,7 @@ export function InviteDialog({
           });
         }}
       >
-        <FormField id="invite-email" label={intl.formatMessage(messages.rolesInviteDialogEmail)}>
+        <Field id="invite-email" label={intl.formatMessage(messages.rolesInviteDialogEmail)}>
           <Input
             aria-label={intl.formatMessage(messages.rolesInviteDialogEmail)}
             id="invite-email"
@@ -425,8 +425,8 @@ export function InviteDialog({
             type="email"
             value={email}
           />
-        </FormField>
-        <FormField id="invite-role" label={intl.formatMessage(messages.rolesInviteDialogRole)}>
+        </Field>
+        <Field id="invite-role" label={intl.formatMessage(messages.rolesInviteDialogRole)}>
           <Select
             aria-label={intl.formatMessage(messages.rolesInviteDialogRoleAriaLabel)}
             id="invite-role"
@@ -437,9 +437,9 @@ export function InviteDialog({
             }))}
             value={role}
           />
-        </FormField>
+        </Field>
         {role === 'club-admin' && (
-          <FormField id="invite-club" label={intl.formatMessage(messages.rolesInviteDialogClub)}>
+          <Field id="invite-club" label={intl.formatMessage(messages.rolesInviteDialogClub)}>
             <Select
               aria-label={intl.formatMessage(messages.rolesInviteDialogClubAriaLabel)}
               id="invite-club"
@@ -454,10 +454,10 @@ export function InviteDialog({
               required
               value={clubId}
             />
-          </FormField>
+          </Field>
         )}
         {role === 'tournament-admin' && (
-          <FormField
+          <Field
             id="invite-tournament"
             label={intl.formatMessage(messages.rolesInviteDialogTournament)}
           >
@@ -475,7 +475,7 @@ export function InviteDialog({
               required
               value={tournamentId}
             />
-          </FormField>
+          </Field>
         )}
         <label className="cl-toggle cl-focusable">
           <Checkbox checked={active} onCheckedChange={(checked) => setActive(checked)} />

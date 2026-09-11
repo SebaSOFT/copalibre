@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
-import { FormField } from './form-field.js';
+import { Field } from './field.js';
 import { Input } from '../atoms/input.js';
 import { Select } from '../atoms/select.js';
 import { Textarea } from '../atoms/textarea.js';
@@ -8,8 +8,8 @@ import { StoryMatrix } from '../story-matrix.js';
 import { storyText } from '../story-text.js';
 
 const meta = {
-  title: 'Admin/Molecules/FormField',
-  component: FormField,
+  title: 'Admin/Molecules/Field',
+  component: Field,
   args: { id: 'story-field', label: '', children: null },
   argTypes: {
     id: { control: 'text' },
@@ -17,7 +17,7 @@ const meta = {
     helpText: { control: 'text' },
     errorText: { control: 'text' },
   },
-} satisfies Meta<typeof FormField>;
+} satisfies Meta<typeof Field>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -27,14 +27,14 @@ export const Playground: Story = {
   render: function Render(args) {
     return (
       <div style={{ maxWidth: '360px' }}>
-        <FormField {...args}>
+        <Field {...args}>
           <Input
             aria-describedby={args.errorText ? `${args.id}-error` : undefined}
             aria-invalid={args.errorText ? true : undefined}
             id={args.id}
             invalid={Boolean(args.errorText)}
           />
-        </FormField>
+        </Field>
       </div>
     );
   },
@@ -58,33 +58,33 @@ export const Matrix: Story = {
           {
             label: 'bare',
             children: (
-              <FormField id="f-bare" label={label}>
+              <Field id="f-bare" label={label}>
                 <Input id="f-bare" />
-              </FormField>
+              </Field>
             ),
           },
           {
             label: 'with help',
             children: (
-              <FormField helpText={help} id="f-help" label={label}>
+              <Field helpText={help} id="f-help" label={label}>
                 <Input id="f-help" />
-              </FormField>
+              </Field>
             ),
           },
           {
             label: 'with error',
             children: (
-              <FormField errorText={error} id="f-error" label={label}>
+              <Field errorText={error} id="f-error" label={label}>
                 <Input aria-describedby="f-error-error" id="f-error" invalid />
-              </FormField>
+              </Field>
             ),
           },
           {
             label: 'error wins over help',
             children: (
-              <FormField errorText={error} helpText={help} id="f-both" label={label}>
+              <Field errorText={error} helpText={help} id="f-both" label={label}>
                 <Input aria-describedby="f-both-error" id="f-both" invalid />
-              </FormField>
+              </Field>
             ),
           },
         ]}
@@ -107,33 +107,87 @@ export const EveryControlAtom: Story = {
           {
             label: 'Input',
             children: (
-              <FormField id="f-input" label={label}>
+              <Field id="f-input" label={label}>
                 <Input id="f-input" />
-              </FormField>
+              </Field>
             ),
           },
           {
             label: 'Select',
             children: (
-              <FormField id="f-select" label={label}>
+              <Field id="f-select" label={label}>
                 <Select
                   onValueChange={noop}
                   options={[{ value: 'a', label: intl.formatMessage(storyText.tournaments) }]}
                   value="a"
                 />
-              </FormField>
+              </Field>
             ),
           },
           {
             label: 'Textarea',
             children: (
-              <FormField id="f-textarea" label={label}>
+              <Field id="f-textarea" label={label}>
                 <Textarea id="f-textarea" rows={3} />
-              </FormField>
+              </Field>
             ),
           },
         ]}
       />
+    );
+  },
+};
+
+/** The required indicator is purely visual; the caller's own control still carries the real `required` attribute. */
+export const Required: Story = {
+  args: { id: '', label: '' },
+  render: function Render() {
+    const intl = useIntl();
+    const label = intl.formatMessage(storyText.settingsTitle);
+    return (
+      <StoryMatrix
+        minColumn="260px"
+        cells={[
+          {
+            label: 'optional',
+            children: (
+              <Field id="f-optional" label={label}>
+                <Input id="f-optional" />
+              </Field>
+            ),
+          },
+          {
+            label: 'required',
+            children: (
+              <Field id="f-required" label={label} required>
+                <Input id="f-required" required />
+              </Field>
+            ),
+          },
+        ]}
+      />
+    );
+  },
+};
+
+/**
+ * A long label and a long error at the narrowest declared width. Select the
+ * "Zoom floor — 188px" viewport and switch languages to confirm neither
+ * wraps into the control below it or the field beside it.
+ */
+export const NarrowFloor: Story = {
+  args: { id: '', label: '' },
+  render: function Render() {
+    const intl = useIntl();
+    return (
+      <Field
+        errorText={intl.formatMessage(storyText.empty)}
+        id="f-narrow"
+        label={intl.formatMessage(storyText.settingsTitle)}
+        required
+      >
+        <Input aria-describedby="f-narrow-error" id="f-narrow" invalid />
+      </Field>
     );
   },
 };

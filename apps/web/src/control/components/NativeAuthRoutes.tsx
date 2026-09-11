@@ -6,7 +6,7 @@ import { controlApiErrorFromResponse } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
 import { Input } from './ui/atoms/input.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { useToast } from './ToastProvider.js';
 import { AuthScreenTemplate } from './ui/templates/auth-screen-template.js';
 
@@ -75,7 +75,7 @@ export function LoginRoute(): React.JSX.Element {
         onSubmit={handleLogin}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
       >
-        <FormField id="login-email" label={intl.formatMessage(messages.emailLabel)}>
+        <Field id="login-email" label={intl.formatMessage(messages.emailLabel)}>
           <Input
             id="login-email"
             onChange={(e) => setEmail(e.target.value)}
@@ -83,8 +83,8 @@ export function LoginRoute(): React.JSX.Element {
             type="email"
             value={email}
           />
-        </FormField>
-        <FormField id="login-password" label={intl.formatMessage(messages.passwordLabel)}>
+        </Field>
+        <Field id="login-password" label={intl.formatMessage(messages.passwordLabel)}>
           <Input
             id="login-password"
             onChange={(e) => setPassword(e.target.value)}
@@ -92,7 +92,7 @@ export function LoginRoute(): React.JSX.Element {
             type="password"
             value={password}
           />
-        </FormField>
+        </Field>
         <Button disabled={loading} type="submit">
           <FormattedMessage {...messages.loginSubmit} />
         </Button>
@@ -155,7 +155,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
       >
-        <FormField id="forgot-email" label={intl.formatMessage(messages.emailLabel)}>
+        <Field id="forgot-email" label={intl.formatMessage(messages.emailLabel)}>
           <Input
             id="forgot-email"
             onChange={(e) => setEmail(e.target.value)}
@@ -163,7 +163,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
             type="email"
             value={email}
           />
-        </FormField>
+        </Field>
         <Button disabled={loading} type="submit">
           <FormattedMessage {...messages.forgotSubmit} />
         </Button>
@@ -244,7 +244,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
       >
-        <FormField
+        <Field
           id="reset-password"
           label={`${intl.formatMessage(messages.passwordLabel)} (min 8 char)`}
         >
@@ -257,7 +257,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
             type="password"
             value={password}
           />
-        </FormField>
+        </Field>
         {!success && (
           <Button disabled={loading} type="submit">
             <FormattedMessage {...messages.resetSubmit} />

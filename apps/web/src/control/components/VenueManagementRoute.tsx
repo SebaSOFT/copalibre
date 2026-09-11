@@ -14,7 +14,7 @@ import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
 import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
@@ -378,7 +378,7 @@ export function VenueManagementRoute({
 
           {api.createVenue && (
             <div className="cl-platform-form-grid">
-              <FormField
+              <Field
                 id="new-venue-name"
                 label={intl.formatMessage(messages.resourceManagementNewVenueName)}
               >
@@ -388,8 +388,8 @@ export function VenueManagementRoute({
                   onChange={(event) => setNewVenueName(event.target.value)}
                   value={newVenueName}
                 />
-              </FormField>
-              <FormField
+              </Field>
+              <Field
                 id="new-venue-alias"
                 label={intl.formatMessage(messages.resourceManagementNewVenueAlias)}
               >
@@ -399,8 +399,8 @@ export function VenueManagementRoute({
                   onChange={(event) => setNewVenueAlias(event.target.value)}
                   value={newVenueAlias}
                 />
-              </FormField>
-              <FormField
+              </Field>
+              <Field
                 id="new-venue-capacity"
                 label={intl.formatMessage(messages.resourceManagementNewVenueCapacity)}
               >
@@ -412,7 +412,7 @@ export function VenueManagementRoute({
                   type="number"
                   value={newVenueCapacity}
                 />
-              </FormField>
+              </Field>
               <Button onClick={() => void createVenue()} type="button">
                 <FormattedMessage {...messages.resourceManagementAddVenue} />
               </Button>
@@ -433,7 +433,7 @@ export function VenueManagementRoute({
           </header>
           <div className="cl-card__content">
             <div className="cl-platform-form-grid">
-              <FormField
+              <Field
                 id="edit-venue-name"
                 label={intl.formatMessage(messages.resourceManagementVenueName)}
               >
@@ -443,8 +443,8 @@ export function VenueManagementRoute({
                   onChange={(event) => setEditVenueName(event.target.value)}
                   value={editVenueName}
                 />
-              </FormField>
-              <FormField
+              </Field>
+              <Field
                 id="edit-venue-capacity"
                 label={intl.formatMessage(messages.resourceManagementVenueCapacity)}
               >
@@ -456,8 +456,8 @@ export function VenueManagementRoute({
                   type="number"
                   value={editVenueCapacity}
                 />
-              </FormField>
-              <FormField
+              </Field>
+              <Field
                 id="edit-venue-address"
                 label={intl.formatMessage(messages.resourceManagementVenueAddress)}
               >
@@ -467,7 +467,7 @@ export function VenueManagementRoute({
                   onChange={(event) => setEditVenueAddress(event.target.value)}
                   value={editVenueAddress}
                 />
-              </FormField>
+              </Field>
 
               <fieldset className="cl-role-user">
                 <legend className="cl-label">
@@ -574,7 +574,7 @@ export function VenueManagementRoute({
 
           {api.createSchedule && (
             <div className="cl-platform-form-grid">
-              <FormField
+              <Field
                 id="new-schedule-name"
                 label={intl.formatMessage(messages.resourceManagementNewScheduleName)}
               >
@@ -584,8 +584,8 @@ export function VenueManagementRoute({
                   onChange={(event) => setNewScheduleName(event.target.value)}
                   value={newScheduleName}
                 />
-              </FormField>
-              <FormField
+              </Field>
+              <Field
                 id="new-schedule-starts-at"
                 label={intl.formatMessage(messages.resourceManagementNewScheduleStartsAt)}
               >
@@ -596,8 +596,8 @@ export function VenueManagementRoute({
                   type="datetime-local"
                   value={newScheduleStartsAt}
                 />
-              </FormField>
-              <FormField
+              </Field>
+              <Field
                 id="new-schedule-ends-at"
                 label={intl.formatMessage(messages.resourceManagementNewScheduleEndsAt)}
               >
@@ -608,8 +608,8 @@ export function VenueManagementRoute({
                   type="datetime-local"
                   value={newScheduleEndsAt}
                 />
-              </FormField>
-              <FormField
+              </Field>
+              <Field
                 id="new-schedule-slot-minutes"
                 label={intl.formatMessage(messages.resourceManagementNewScheduleSlotMinutes)}
               >
@@ -621,8 +621,8 @@ export function VenueManagementRoute({
                   type="number"
                   value={newScheduleSlotMinutes}
                 />
-              </FormField>
-              <FormField
+              </Field>
+              <Field
                 id="new-schedule-turnaround-minutes"
                 label={intl.formatMessage(messages.resourceManagementNewScheduleTurnaroundMinutes)}
               >
@@ -636,7 +636,7 @@ export function VenueManagementRoute({
                   type="number"
                   value={newScheduleTurnaroundMinutes}
                 />
-              </FormField>
+              </Field>
               <fieldset className="cl-role-user">
                 <legend className="cl-label">
                   <FormattedMessage {...messages.resourceManagementNewScheduleVenues} />
@@ -672,7 +672,7 @@ export function VenueManagementRoute({
           </header>
           <div className="cl-card__content">
             <div className="cl-platform-form-grid">
-              <FormField
+              <Field
                 id="edit-schedule-name"
                 label={intl.formatMessage(messages.resourceManagementNewScheduleName)}
               >
@@ -682,7 +682,7 @@ export function VenueManagementRoute({
                   onChange={(event) => setEditScheduleName(event.target.value)}
                   value={editScheduleName}
                 />
-              </FormField>
+              </Field>
               <Button onClick={() => void saveSchedule()} type="button">
                 <FormattedMessage {...messages.resourceManagementSaveScheduleChanges} />
               </Button>
@@ -723,7 +723,7 @@ export function VenueManagementRoute({
 
           {api.createOfficial && (
             <div className="cl-platform-form-grid">
-              <FormField
+              <Field
                 id="new-official-name"
                 label={intl.formatMessage(messages.resourceManagementNewOfficialName)}
               >
@@ -733,7 +733,7 @@ export function VenueManagementRoute({
                   onChange={(event) => setNewOfficialName(event.target.value)}
                   value={newOfficialName}
                 />
-              </FormField>
+              </Field>
               <fieldset className="cl-role-user">
                 <legend className="cl-label">
                   <FormattedMessage {...messages.resourceManagementOfficialRoles} />
@@ -771,7 +771,7 @@ export function VenueManagementRoute({
           </header>
           <div className="cl-card__content">
             <div className="cl-platform-form-grid">
-              <FormField
+              <Field
                 id="edit-official-name"
                 label={intl.formatMessage(messages.resourceManagementOfficialName)}
               >
@@ -781,7 +781,7 @@ export function VenueManagementRoute({
                   onChange={(event) => setEditOfficialName(event.target.value)}
                   value={editOfficialName}
                 />
-              </FormField>
+              </Field>
               <fieldset className="cl-role-user">
                 <legend className="cl-label">
                   <FormattedMessage {...messages.resourceManagementOfficialRoles} />

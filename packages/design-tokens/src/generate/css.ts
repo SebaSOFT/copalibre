@@ -601,7 +601,14 @@ function components(): string {
     '.cl-form-field { display: grid; gap: var(--cl-space-1); min-width: 0; }',
     '.cl-form-field__error { margin: 0; color: var(--cl-state-destructive); font-size: var(--cl-font-size-xs); }',
     '.cl-form-field__help { margin: 0; color: var(--cl-text-muted); font-size: var(--cl-font-size-xs); }',
+    '.cl-form-field__required { color: var(--cl-state-destructive); }',
     '.cl-decision-hint { margin: 0; color: var(--cl-text-muted); font-size: var(--cl-font-size-xs); }',
+    '',
+    // `Form` and `FieldSet` (openspec 0225 task 2.2): the owners `<form>` and
+    // `<fieldset>`/`<legend>` compose instead of a screen rendering them raw.
+    '.cl-form { display: grid; gap: var(--cl-space-4); }',
+    '.cl-fieldset { display: grid; gap: var(--cl-space-3); border: 1px solid var(--cl-border-muted); border-radius: var(--cl-radius-md); padding: var(--cl-space-4); margin: 0; min-width: 0; }',
+    '.cl-fieldset__legend { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); color: var(--cl-text-secondary); padding: 0 var(--cl-space-2); }',
     '',
     '.cl-data-entity-card__header { display: flex; align-items: center; justify-content: space-between; }',
     '.cl-data-entity-card__metadata { display: grid; gap: var(--cl-space-2); }',

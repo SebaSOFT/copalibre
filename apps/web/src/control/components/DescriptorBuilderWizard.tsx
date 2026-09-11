@@ -8,7 +8,7 @@ import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { TerminalBlock } from './ui/atoms/TerminalBlock.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import {
   ACTOR_REQUIREMENTS,
   AGGREGATION_MODES,
@@ -102,10 +102,7 @@ export function DescriptorBuilderWizard({
       <Card className="cl-chamfer cl-chamfer--control">
         {state.step === 'name' && (
           <div className="cl-platform-form-grid">
-            <FormField
-              id="descriptor-alias"
-              label={intl.formatMessage(messages.descriptorFieldAlias)}
-            >
+            <Field id="descriptor-alias" label={intl.formatMessage(messages.descriptorFieldAlias)}>
               <Input
                 aria-describedby="descriptor-alias-hint"
                 id="descriptor-alias"
@@ -116,8 +113,8 @@ export function DescriptorBuilderWizard({
                 id="descriptor-alias-hint"
                 text={intl.formatMessage(messages.descriptorDecisionAlias)}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="descriptor-version"
               label={intl.formatMessage(messages.descriptorFieldVersion)}
             >
@@ -126,7 +123,7 @@ export function DescriptorBuilderWizard({
                 onChange={(event) => patch({ version: event.target.value })}
                 value={state.version}
               />
-            </FormField>
+            </Field>
             <LocalizedField
               draft={state.name}
               id="descriptor-name"
@@ -145,7 +142,7 @@ export function DescriptorBuilderWizard({
 
         {state.step === 'authorship' && (
           <div className="cl-platform-form-grid">
-            <FormField
+            <Field
               id="descriptor-author"
               label={intl.formatMessage(messages.descriptorFieldAuthor)}
             >
@@ -159,8 +156,8 @@ export function DescriptorBuilderWizard({
                 id="descriptor-author-hint"
                 text={intl.formatMessage(messages.descriptorDecisionAuthor)}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="descriptor-licence"
               label={intl.formatMessage(messages.descriptorFieldLicence)}
             >
@@ -174,8 +171,8 @@ export function DescriptorBuilderWizard({
                 id="descriptor-licence-hint"
                 text={intl.formatMessage(messages.descriptorDecisionLicence)}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="descriptor-source-url"
               label={intl.formatMessage(messages.descriptorFieldSourceUrl)}
             >
@@ -184,13 +181,13 @@ export function DescriptorBuilderWizard({
                 onChange={(event) => patch({ sourceUrl: event.target.value })}
                 value={state.sourceUrl}
               />
-            </FormField>
+            </Field>
           </div>
         )}
 
         {state.step === 'participants' && (
           <div className="cl-platform-form-grid">
-            <FormField
+            <Field
               id="descriptor-participant-types"
               label={intl.formatMessage(messages.descriptorFieldParticipantTypes)}
             >
@@ -224,8 +221,8 @@ export function DescriptorBuilderWizard({
                 id="descriptor-participant-types-hint"
                 text={intl.formatMessage(messages.descriptorDecisionParticipantTypes)}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="descriptor-min-players"
               label={intl.formatMessage(messages.descriptorFieldMinPlayers)}
             >
@@ -236,8 +233,8 @@ export function DescriptorBuilderWizard({
                 type="number"
                 value={state.minPlayers}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="descriptor-max-players"
               label={intl.formatMessage(messages.descriptorFieldMaxPlayers)}
             >
@@ -253,7 +250,7 @@ export function DescriptorBuilderWizard({
                 id="descriptor-max-players-hint"
                 text={intl.formatMessage(messages.descriptorDecisionRosterConstraints)}
               />
-            </FormField>
+            </Field>
             <label
               className="cl-toggle cl-focusable"
               style={{ display: 'flex', gap: 'var(--cl-space-2)' }}
@@ -331,7 +328,7 @@ export function DescriptorBuilderWizard({
 
         {state.step === 'formats' && (
           <div className="cl-platform-form-grid">
-            <FormField
+            <Field
               id="descriptor-formats"
               label={intl.formatMessage(messages.descriptorFieldAvailableFormats)}
             >
@@ -365,7 +362,7 @@ export function DescriptorBuilderWizard({
                 id="descriptor-formats-hint"
                 text={intl.formatMessage(messages.descriptorDecisionFormats)}
               />
-            </FormField>
+            </Field>
             <div style={{ gridColumn: '1 / -1' }}>
               <h3>
                 <FormattedMessage {...messages.descriptorScoringInputsHeading} />
@@ -387,7 +384,7 @@ export function DescriptorBuilderWizard({
 
         {state.step === 'winCondition' && (
           <div className="cl-platform-form-grid">
-            <FormField
+            <Field
               id="descriptor-win-condition-mode"
               label={intl.formatMessage(messages.descriptorFieldWinConditionMode)}
             >
@@ -416,11 +413,11 @@ export function DescriptorBuilderWizard({
                 id="descriptor-win-condition-mode-hint"
                 text={intl.formatMessage(messages.descriptorDecisionWinConditionMode)}
               />
-            </FormField>
+            </Field>
 
             {state.winConditionMode === 'segmented' && (
               <>
-                <FormField
+                <Field
                   id="descriptor-segment-margin"
                   label={intl.formatMessage(messages.descriptorFieldSegmentMargin)}
                 >
@@ -436,8 +433,8 @@ export function DescriptorBuilderWizard({
                     type="number"
                     value={state.segmentMargin ?? ''}
                   />
-                </FormField>
-                <FormField
+                </Field>
+                <Field
                   id="descriptor-segment-name"
                   label={intl.formatMessage(messages.descriptorFieldSegmentName)}
                 >
@@ -454,8 +451,8 @@ export function DescriptorBuilderWizard({
                     ]}
                     value={state.segmentName}
                   />
-                </FormField>
-                <FormField
+                </Field>
+                <Field
                   id="descriptor-segment-target"
                   label={intl.formatMessage(messages.descriptorFieldSegmentTarget)}
                 >
@@ -471,8 +468,8 @@ export function DescriptorBuilderWizard({
                     type="number"
                     value={state.segmentTarget ?? ''}
                   />
-                </FormField>
-                <FormField
+                </Field>
+                <Field
                   id="descriptor-tiebreak-at"
                   label={intl.formatMessage(messages.descriptorFieldTiebreakAt)}
                 >
@@ -488,8 +485,8 @@ export function DescriptorBuilderWizard({
                     type="number"
                     value={state.tiebreakAt ?? ''}
                   />
-                </FormField>
-                <FormField
+                </Field>
+                <Field
                   id="descriptor-tiebreak-target"
                   label={intl.formatMessage(messages.descriptorFieldTiebreakTarget)}
                 >
@@ -505,8 +502,8 @@ export function DescriptorBuilderWizard({
                     type="number"
                     value={state.tiebreakTarget ?? ''}
                   />
-                </FormField>
-                <FormField
+                </Field>
+                <Field
                   id="descriptor-tiebreak-margin"
                   label={intl.formatMessage(messages.descriptorFieldTiebreakMargin)}
                 >
@@ -522,11 +519,11 @@ export function DescriptorBuilderWizard({
                     type="number"
                     value={state.tiebreakMargin ?? ''}
                   />
-                </FormField>
+                </Field>
               </>
             )}
 
-            <FormField
+            <Field
               id="descriptor-win-match-unit"
               label={intl.formatMessage(
                 state.winConditionMode === 'simple'
@@ -544,8 +541,8 @@ export function DescriptorBuilderWizard({
                 id="descriptor-win-match-unit-hint"
                 text={intl.formatMessage(messages.descriptorDecisionWinMatchUnit)}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="descriptor-win-match-target"
               label={intl.formatMessage(messages.descriptorFieldWinMatchTarget)}
             >
@@ -566,7 +563,7 @@ export function DescriptorBuilderWizard({
                 id="descriptor-win-match-target-hint"
                 text={intl.formatMessage(messages.descriptorDecisionWinMatchTarget)}
               />
-            </FormField>
+            </Field>
           </div>
         )}
 
@@ -671,7 +668,7 @@ function LocalizedField({
   readonly required?: boolean;
 }): React.JSX.Element {
   return (
-    <FormField id={id} label={`${label}${required ? ' *' : ''}`}>
+    <Field id={id} label={`${label}${required ? ' *' : ''}`}>
       <Input
         id={id}
         onChange={(event) => onChange({ ...draft, en: event.target.value })}
@@ -696,7 +693,7 @@ function LocalizedField({
       <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
         <FormattedMessage {...messages.descriptorTranslationHelp} />
       </p>
-    </FormField>
+    </Field>
   );
 }
 

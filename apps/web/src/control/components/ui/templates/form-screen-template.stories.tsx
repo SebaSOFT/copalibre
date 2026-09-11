@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
 import { FormScreenTemplate } from './form-screen-template.js';
-import { FormField } from '../molecules/form-field.js';
+import { Field } from '../molecules/field.js';
 import { Input } from '../atoms/input.js';
 import { Textarea } from '../atoms/textarea.js';
 import { Button } from '../atoms/button.js';
@@ -38,16 +38,16 @@ export const Populated: Story = {
             heading: intl.formatMessage(storyText.rolesTitle),
             fields: (
               <>
-                <FormField id="fs-name" label={intl.formatMessage(storyText.settingsTitle)}>
+                <Field id="fs-name" label={intl.formatMessage(storyText.settingsTitle)}>
                   <Input id="fs-name" />
-                </FormField>
-                <FormField
+                </Field>
+                <Field
                   helpText={intl.formatMessage(storyText.saved)}
                   id="fs-alias"
                   label={intl.formatMessage(storyText.tournaments)}
                 >
                   <Input id="fs-alias" />
-                </FormField>
+                </Field>
               </>
             ),
           },
@@ -55,13 +55,13 @@ export const Populated: Story = {
             key: 'detail',
             heading: intl.formatMessage(storyText.venuesAndOfficials),
             fields: (
-              <FormField
+              <Field
                 errorText={intl.formatMessage(storyText.empty)}
                 id="fs-notes"
                 label={intl.formatMessage(storyText.reportTitle)}
               >
                 <Textarea aria-describedby="fs-notes-error" id="fs-notes" invalid rows={4} />
-              </FormField>
+              </Field>
             ),
           },
         ]}
@@ -82,9 +82,9 @@ export const SingleSection: Story = {
           {
             key: 'only',
             fields: (
-              <FormField id="fs-only" label={intl.formatMessage(storyText.settingsTitle)}>
+              <Field id="fs-only" label={intl.formatMessage(storyText.settingsTitle)}>
                 <Input id="fs-only" />
-              </FormField>
+              </Field>
             ),
           },
         ]}

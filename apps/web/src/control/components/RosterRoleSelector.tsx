@@ -1,6 +1,6 @@
 import type { PlayerRole } from '@copalibre/domain';
 import { Select } from './ui/atoms/select.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 
 export interface RosterMemberItem {
   readonly personId: string;
@@ -77,7 +77,7 @@ export function RosterRoleSelector({
           </div>
 
           <div style={{ minWidth: 'min(100%, 160px)' }}>
-            <FormField
+            <Field
               id={`role-select-${member.personId}`}
               label={`Rol de ${member.displayName || member.personId}`}
             >
@@ -93,7 +93,7 @@ export function RosterRoleSelector({
                 }))}
                 value={member.role}
               />
-            </FormField>
+            </Field>
           </div>
         </div>
       ))}

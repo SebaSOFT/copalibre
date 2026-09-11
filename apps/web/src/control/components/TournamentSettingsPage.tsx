@@ -6,7 +6,7 @@ import { Button } from './ui/atoms/button.js';
 import { Checkbox } from './ui/atoms/checkbox.js';
 import { FilePicker } from './ui/atoms/file-picker.js';
 import { Input } from './ui/atoms/input.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { FramedImage } from './FramedImage.js';
 import { ClubEmblemPlaceholder } from './placeholders.js';
@@ -194,24 +194,21 @@ export function TournamentSettingsPage({
               {emblemNotice && <Alert tone="info">{emblemNotice}</Alert>}
             </div>
 
-            <FormField id="settings-name" label={intl.formatMessage(messages.settingsNameLabel)}>
+            <Field id="settings-name" label={intl.formatMessage(messages.settingsNameLabel)}>
               <Input
                 id="settings-name"
                 onChange={(event) => setName(event.target.value)}
                 value={name}
               />
-            </FormField>
-            <FormField
-              id="settings-region"
-              label={intl.formatMessage(messages.settingsRegionLabel)}
-            >
+            </Field>
+            <Field id="settings-region" label={intl.formatMessage(messages.settingsRegionLabel)}>
               <Input
                 id="settings-region"
                 onChange={(event) => setRegion(event.target.value)}
                 value={region}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="settings-capacity"
               label={intl.formatMessage(messages.settingsCapacityLabel)}
             >
@@ -221,8 +218,8 @@ export function TournamentSettingsPage({
                 type="number"
                 value={capacity}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="settings-check-in-closes-at"
               label={intl.formatMessage(messages.settingsCheckInClosesAtLabel)}
             >
@@ -232,7 +229,7 @@ export function TournamentSettingsPage({
                 type="datetime-local"
                 value={checkInClosesAt}
               />
-            </FormField>
+            </Field>
             {/* Not a registration field and not mutation-classified: featured is
                 a record flag about the public page, like the name above it. */}
             <label

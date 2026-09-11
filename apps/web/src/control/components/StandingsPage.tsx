@@ -21,7 +21,7 @@ import {
 import { messages } from '../i18n/messages.en.js';
 import { Button } from './ui/atoms/button.js';
 import { Select } from './ui/atoms/select.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import type { DataTableColumn } from './ui/organisms/data-table.js';
 import { StandingsFigure, StandingsPanel } from './ui/organisms/StandingsPanel.js';
@@ -215,7 +215,7 @@ export function StandingsPage({
       )}
 
       {groupSelector && (
-        <FormField id="standings-group" label={intl.formatMessage(messages.standingsGroupSelector)}>
+        <Field id="standings-group" label={intl.formatMessage(messages.standingsGroupSelector)}>
           <Select
             aria-label={intl.formatMessage(messages.standingsGroupSelector)}
             id="standings-group"
@@ -226,7 +226,7 @@ export function StandingsPage({
             }))}
             value={groupSelector.selectedGroupId ?? ''}
           />
-        </FormField>
+        </Field>
       )}
     </div>
   );

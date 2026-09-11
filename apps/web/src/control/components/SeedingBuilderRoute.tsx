@@ -11,7 +11,7 @@ import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { SeedingBuilderPage } from './SeedingBuilderPage.js';
 import { Button } from './ui/atoms/button.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { useToast } from './ToastProvider.js';
 import { messages } from '../i18n/messages.en.js';
 
@@ -46,14 +46,14 @@ function StageSettingsSection({
         </h2>
       </header>
       <div className="cl-card__content">
-        <FormField id="stage-rename" label={intl.formatMessage(messages.stageRenameLabel)}>
+        <Field id="stage-rename" label={intl.formatMessage(messages.stageRenameLabel)}>
           <input
             className="cl-input cl-input--default cl-focusable"
             id="stage-rename"
             onChange={(event) => setName(event.target.value)}
             value={name}
           />
-        </FormField>
+        </Field>
         <Button
           disabled={name.trim() === ''}
           onClick={() => void onRename(name).then(() => setName(''))}
@@ -63,7 +63,7 @@ function StageSettingsSection({
           <FormattedMessage {...messages.stageRenameSubmit} />
         </Button>
 
-        <FormField id="stage-format" label={intl.formatMessage(messages.stageFormatLabel)}>
+        <Field id="stage-format" label={intl.formatMessage(messages.stageFormatLabel)}>
           <input
             className="cl-input cl-input--default cl-focusable"
             disabled={seeded}
@@ -71,7 +71,7 @@ function StageSettingsSection({
             onChange={(event) => setFormat(event.target.value)}
             value={format}
           />
-        </FormField>
+        </Field>
         <Button
           disabled={seeded || format.trim() === ''}
           onClick={() => void onChangeFormat(format)}
@@ -132,7 +132,7 @@ function StageConfigurationSection({
         <ul aria-label={intl.formatMessage(messages.stageConfigurationTitle)}>
           {drafts.map((draft, index) => (
             <li key={draft.field}>
-              <FormField id={`stage-configuration-${index}`} label={draft.field}>
+              <Field id={`stage-configuration-${index}`} label={draft.field}>
                 <input
                   className="cl-input cl-input--default cl-focusable"
                   disabled={seeded}
@@ -147,12 +147,12 @@ function StageConfigurationSection({
                   }}
                   value={draft.value}
                 />
-              </FormField>
+              </Field>
             </li>
           ))}
         </ul>
 
-        <FormField
+        <Field
           id="stage-configuration-new-field"
           label={intl.formatMessage(messages.stageConfigurationFieldLabel)}
         >
@@ -163,8 +163,8 @@ function StageConfigurationSection({
             onChange={(event) => setNewField(event.target.value)}
             value={newField}
           />
-        </FormField>
-        <FormField
+        </Field>
+        <Field
           id="stage-configuration-new-value"
           label={intl.formatMessage(messages.stageConfigurationValueLabel)}
         >
@@ -175,7 +175,7 @@ function StageConfigurationSection({
             onChange={(event) => setNewValue(event.target.value)}
             value={newValue}
           />
-        </FormField>
+        </Field>
         <Button
           disabled={seeded || newField.trim() === ''}
           onClick={() => {

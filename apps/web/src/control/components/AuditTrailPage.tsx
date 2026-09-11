@@ -3,7 +3,7 @@ import type { AuditRecordResponse } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 import { Button } from './ui/atoms/button.js';
 import { Input } from './ui/atoms/input.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 import { AuditLogCard } from './ui/organisms/AuditLogCard.js';
@@ -87,7 +87,7 @@ export function AuditTrailPage({
         <FormattedMessage {...messages.auditTrailBreadcrumb} values={{ organizationAlias }} />
       }
       toolbar={
-        <FormField
+        <Field
           id="audit-trail-actor-filter"
           label={intl.formatMessage(messages.auditTrailActorFilterLabel)}
         >
@@ -101,7 +101,7 @@ export function AuditTrailPage({
               <FormattedMessage {...messages.auditTrailActorFilterClear} />
             </Button>
           )}
-        </FormField>
+        </Field>
       }
       listing={
         loading ? (

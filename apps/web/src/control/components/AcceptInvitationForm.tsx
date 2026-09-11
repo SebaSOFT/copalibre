@@ -3,7 +3,7 @@ import { Alert } from './ui/atoms/alert.js';
 import { Button } from './ui/atoms/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 
 /**
  * Invitation acceptance: the one unauthenticated screen that built its own
@@ -106,7 +106,7 @@ export function AcceptInvitationForm({
           </Alert>
         ) : (
           <form className="cl-auth-form" onSubmit={handleSubmit}>
-            <FormField id="name" label="Nombre completo (opcional)">
+            <Field id="name" label="Nombre completo (opcional)">
               <Input
                 disabled={loading || !token}
                 id="name"
@@ -115,9 +115,9 @@ export function AcceptInvitationForm({
                 type="text"
                 value={name}
               />
-            </FormField>
+            </Field>
 
-            <FormField id="password" label="Contraseña (mínimo 8 caracteres)">
+            <Field id="password" label="Contraseña (mínimo 8 caracteres)">
               <Input
                 disabled={loading || !token}
                 id="password"
@@ -127,9 +127,9 @@ export function AcceptInvitationForm({
                 type="password"
                 value={password}
               />
-            </FormField>
+            </Field>
 
-            <FormField id="confirmPassword" label="Confirmar contraseña">
+            <Field id="confirmPassword" label="Confirmar contraseña">
               <Input
                 disabled={loading || !token}
                 id="confirmPassword"
@@ -139,7 +139,7 @@ export function AcceptInvitationForm({
                 type="password"
                 value={confirmPassword}
               />
-            </FormField>
+            </Field>
 
             <Button disabled={loading || !token} type="submit">
               {loading ? 'Configurando cuenta…' : 'Aceptar y comenzar'}
