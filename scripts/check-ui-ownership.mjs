@@ -80,7 +80,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // concern — left as recorded debt rather than done here.
   ['control/components/AcceptInvitationForm.tsx', 1],
   ['control/components/DescriptorBuilderWizard.tsx', 5],
-  ['control/components/pages/LoadMatchDataPage.tsx', 3],
+  ['control/components/screens/LoadMatchDataTemplate.tsx', 3],
   ['control/components/NativeAuthRoutes.tsx', 3],
   ['control/components/pages/PreferencesPage.tsx', 1],
   ['control/components/screens/RolesPermissionsTemplate.tsx', 2],
@@ -175,7 +175,7 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   ['control/components/BracketCanvas.tsx', 2],
   ['control/components/DeviceHeartbeat.tsx', 1],
   ['control/components/pages/LiveConsolePage.tsx', 3],
-  ['control/components/pages/LoadMatchDataPage.tsx', 1],
+  ['control/components/screens/LoadMatchDataTemplate.tsx', 1],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 2],
   ['control/components/screens/SeedingBuilderTemplate.tsx', 2],
