@@ -96,7 +96,7 @@ describe('MatchConsoleRoute', () => {
     await clearAll();
   });
 
-  it('renders within MatchConsoleTemplate layout with header, primary workspace, and event detail rail', async () => {
+  it('renders within MatchConsoleLayout layout with header, primary workspace, and event detail rail', async () => {
     const { container } = render(
       withIntl(
         <MatchConsoleRoute

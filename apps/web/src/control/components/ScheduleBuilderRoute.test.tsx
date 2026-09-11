@@ -149,7 +149,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('ScheduleBuilderRoute', () => {
-  it('renders within ListScreenTemplate structure and displays fixtures and calendar view', async () => {
+  it('renders within ListScreenLayout structure and displays fixtures and calendar view', async () => {
     const { container } = render(
       withIntl(
         <ScheduleBuilderRoute

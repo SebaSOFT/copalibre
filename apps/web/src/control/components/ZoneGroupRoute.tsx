@@ -20,7 +20,7 @@ import { Field } from './ui/molecules/field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 
 type AssignMode = 'draw' | 'manual';
 
@@ -755,5 +755,5 @@ export function ZoneGroupRoute({
     </div>
   );
 
-  return <ListScreenTemplate breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+  return <ListScreenLayout breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
 }

@@ -7,7 +7,7 @@ import { Checkbox } from './ui/atoms/checkbox.js';
 import { FilePicker } from './ui/atoms/file-picker.js';
 import { Input } from './ui/atoms/input.js';
 import { Field } from './ui/molecules/field.js';
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 import { FramedImage } from './FramedImage.js';
 import { ClubEmblemPlaceholder } from './placeholders.js';
 import { ImageCropModal } from './ImageCropModal.js';
@@ -94,7 +94,7 @@ export function TournamentSettingsPage({
   );
 
   return (
-    <ListScreenTemplate
+    <ListScreenLayout
       breadcrumb={breadcrumbNode}
       listing={
         <>

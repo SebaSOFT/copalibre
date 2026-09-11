@@ -7,7 +7,7 @@
  */
 import type { ReactNode } from 'react';
 
-export interface ListScreenTemplateProps {
+export interface ListScreenLayoutProps {
   readonly title: ReactNode;
   readonly breadcrumb?: ReactNode;
   readonly toolbar?: ReactNode;
@@ -16,13 +16,13 @@ export interface ListScreenTemplateProps {
   readonly pagination?: ReactNode;
 }
 
-export function ListScreenTemplate({
+export function ListScreenLayout({
   title,
   breadcrumb,
   toolbar,
   listing,
   pagination,
-}: ListScreenTemplateProps): React.JSX.Element {
+}: ListScreenLayoutProps): React.JSX.Element {
   return (
     <section className="cl-list-screen">
       <header className="cl-list-screen__header">

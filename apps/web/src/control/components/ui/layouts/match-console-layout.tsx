@@ -5,7 +5,7 @@
  */
 import type { ReactNode } from 'react';
 
-export interface MatchConsoleTemplateProps {
+export interface MatchConsoleLayoutProps {
   readonly breadcrumb?: ReactNode;
   readonly title: ReactNode;
   readonly status: ReactNode;
@@ -19,7 +19,7 @@ export interface MatchConsoleTemplateProps {
   readonly railLabel?: string;
 }
 
-export function MatchConsoleTemplate({
+export function MatchConsoleLayout({
   breadcrumb,
   title,
   status,
@@ -31,7 +31,7 @@ export function MatchConsoleTemplate({
   sectionLabel,
   primaryLabel,
   railLabel,
-}: MatchConsoleTemplateProps): React.JSX.Element {
+}: MatchConsoleLayoutProps): React.JSX.Element {
   return (
     <section aria-label={sectionLabel} className="cl-match-console-screen">
       <header className="cl-match-console-screen__header">

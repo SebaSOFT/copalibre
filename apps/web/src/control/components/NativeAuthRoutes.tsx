@@ -8,7 +8,7 @@ import { Button } from './ui/atoms/button.js';
 import { Input } from './ui/atoms/input.js';
 import { Field } from './ui/molecules/field.js';
 import { useToast } from './ToastProvider.js';
-import { AuthScreenTemplate } from './ui/templates/auth-screen-template.js';
+import { AuthScreenLayout } from './ui/layouts/auth-screen-layout.js';
 
 // openspec 0225 task 2.6: every defaultMessage here was Spanish, and
 // `auth.*` has no locale catalogue anywhere else in the repo — so every
@@ -79,7 +79,7 @@ export function LoginRoute(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenTemplate tagline={intl.formatMessage(messages.tagline)}>
+    <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
       <p className="context">
         <FormattedMessage {...messages.loginContext} />
       </p>
@@ -132,7 +132,7 @@ export function LoginRoute(): React.JSX.Element {
       <Button onClick={() => beginOidcLogin()} type="button" variant="secondary">
         <FormattedMessage {...messages.oidcButton} />
       </Button>
-    </AuthScreenTemplate>
+    </AuthScreenLayout>
   );
 }
 
@@ -162,7 +162,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenTemplate tagline={intl.formatMessage(messages.tagline)}>
+    <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
       <h1>
         <FormattedMessage {...messages.forgotTitle} />
       </h1>
@@ -195,7 +195,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
           <FormattedMessage {...messages.forgotBack} />
         </a>
       </div>
-    </AuthScreenTemplate>
+    </AuthScreenLayout>
   );
 }
 
@@ -234,7 +234,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
 
   if (!token) {
     return (
-      <AuthScreenTemplate tagline={intl.formatMessage(messages.tagline)}>
+      <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
         <p>{intl.formatMessage(messages.invalidResetLink)}</p>
         <a
           className="cl-link cl-focusable"
@@ -246,12 +246,12 @@ export function ResetPasswordRoute(): React.JSX.Element {
         >
           <FormattedMessage {...messages.forgotBack} />
         </a>
-      </AuthScreenTemplate>
+      </AuthScreenLayout>
     );
   }
 
   return (
-    <AuthScreenTemplate tagline={intl.formatMessage(messages.tagline)}>
+    <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
       <h1>
         <FormattedMessage {...messages.resetTitle} />
       </h1>
@@ -293,6 +293,6 @@ export function ResetPasswordRoute(): React.JSX.Element {
           </a>
         </div>
       )}
-    </AuthScreenTemplate>
+    </AuthScreenLayout>
   );
 }

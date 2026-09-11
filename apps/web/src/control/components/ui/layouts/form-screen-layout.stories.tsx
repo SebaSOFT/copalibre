@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
-import { FormScreenTemplate } from './form-screen-template.js';
+import { FormScreenLayout } from './form-screen-layout.js';
 import { Field } from '../molecules/field.js';
 import { Input } from '../atoms/input.js';
 import { Textarea } from '../atoms/textarea.js';
@@ -8,10 +8,10 @@ import { Button } from '../atoms/button.js';
 import { storyText } from '../story-text.js';
 
 const meta = {
-  title: 'Admin/Templates/FormScreenTemplate',
-  component: FormScreenTemplate,
+  title: 'Admin/Layouts/FormScreenLayout',
+  component: FormScreenLayout,
   args: { title: '', sections: [], footer: null },
-} satisfies Meta<typeof FormScreenTemplate>;
+} satisfies Meta<typeof FormScreenLayout>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -21,7 +21,7 @@ export const Populated: Story = {
   render: function Render() {
     const intl = useIntl();
     return (
-      <FormScreenTemplate
+      <FormScreenLayout
         breadcrumb={intl.formatMessage(storyText.platformTitle)}
         footer={
           <>
@@ -76,7 +76,7 @@ export const SingleSection: Story = {
   render: function Render() {
     const intl = useIntl();
     return (
-      <FormScreenTemplate
+      <FormScreenLayout
         footer={<Button variant="primary">{intl.formatMessage(storyText.save)}</Button>}
         sections={[
           {

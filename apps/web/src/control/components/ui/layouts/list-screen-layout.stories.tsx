@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
-import { ListScreenTemplate } from './list-screen-template.js';
+import { ListScreenLayout } from './list-screen-layout.js';
 import { DataTable } from '../organisms/data-table.js';
 import { TableToolbar } from '../molecules/table-toolbar.js';
 import { Pagination } from '../molecules/pagination.js';
@@ -21,10 +21,10 @@ const ROWS: readonly Row[] = [
 ];
 
 const meta = {
-  title: 'Admin/Templates/ListScreenTemplate',
-  component: ListScreenTemplate,
+  title: 'Admin/Layouts/ListScreenLayout',
+  component: ListScreenLayout,
   args: { title: '', listing: null },
-} satisfies Meta<typeof ListScreenTemplate>;
+} satisfies Meta<typeof ListScreenLayout>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -34,7 +34,7 @@ export const Populated: Story = {
   render: function Render() {
     const intl = useIntl();
     return (
-      <ListScreenTemplate
+      <ListScreenLayout
         breadcrumb={intl.formatMessage(storyText.platformTitle)}
         listing={
           <DataTable
@@ -83,7 +83,7 @@ export const Minimal: Story = {
   render: function Render() {
     const intl = useIntl();
     return (
-      <ListScreenTemplate
+      <ListScreenLayout
         listing={
           <DataTable<Row>
             ariaLabel={intl.formatMessage(storyText.rolesTitle)}

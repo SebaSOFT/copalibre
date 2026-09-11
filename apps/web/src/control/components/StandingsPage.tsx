@@ -22,7 +22,7 @@ import { messages } from '../i18n/messages.en.js';
 import { Button } from './ui/atoms/button.js';
 import { Select } from './ui/atoms/select.js';
 import { Field } from './ui/molecules/field.js';
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 import type { DataTableColumn } from './ui/organisms/data-table.js';
 import { StandingsFigure, StandingsPanel } from './ui/organisms/StandingsPanel.js';
 
@@ -312,7 +312,7 @@ export function StandingsPage({
   );
 
   return (
-    <ListScreenTemplate
+    <ListScreenLayout
       breadcrumb={breadcrumbNode}
       listing={listingNode}
       title={titleNode}

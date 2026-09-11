@@ -22,7 +22,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('ClubManagementRoute', () => {
-  it('renders within ListScreenTemplate structure and displays club list', async () => {
+  it('renders within ListScreenLayout structure and displays club list', async () => {
     const { container } = render(
       withIntl(<ClubManagementRoute client={stubClient()} organizationAlias="liga-mendocina" />),
     );

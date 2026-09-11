@@ -1,5 +1,5 @@
 import { AcceptInvitationForm } from './AcceptInvitationForm.js';
-import { AuthScreenTemplate } from './ui/templates/auth-screen-template.js';
+import { AuthScreenLayout } from './ui/layouts/auth-screen-layout.js';
 
 /**
  * The `/invitations/accept` screen: the auth template supplies the brand
@@ -14,8 +14,8 @@ export function AcceptInvitationScreen({
   readonly initialToken?: string;
 }): React.JSX.Element {
   return (
-    <AuthScreenTemplate tagline="Control de torneos">
+    <AuthScreenLayout tagline="Control de torneos">
       <AcceptInvitationForm initialToken={initialToken} />
-    </AuthScreenTemplate>
+    </AuthScreenLayout>
   );
 }

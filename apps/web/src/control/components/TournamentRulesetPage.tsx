@@ -4,7 +4,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { Button } from './ui/atoms/button.js';
 import { Field } from './ui/molecules/field.js';
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 import type { MutationFieldPreview, RulesetOverridesRequest } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 
@@ -75,7 +75,7 @@ export function TournamentRulesetPage({
   const settingsHref = `/control/${organizationAlias}/tournaments/${tournamentAlias}/settings`;
 
   return (
-    <ListScreenTemplate
+    <ListScreenLayout
       breadcrumb={
         <span>
           {organizationAlias} &gt; {tournamentAlias}

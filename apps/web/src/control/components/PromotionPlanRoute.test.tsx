@@ -29,7 +29,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('PromotionPlanRoute', () => {
-  it('renders within ListScreenTemplate structure and displays promotion plan and preview', async () => {
+  it('renders within ListScreenLayout structure and displays promotion plan and preview', async () => {
     const { container } = render(
       withIntl(
         <PromotionPlanRoute

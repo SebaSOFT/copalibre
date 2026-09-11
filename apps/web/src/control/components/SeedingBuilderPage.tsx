@@ -8,7 +8,7 @@ import { canRedo, canUndo, initHistory, push, redo, undo } from '../lib/history.
 import { isDirty, randomizeUnlocked, toggleLock, type SeedAssignment } from '../lib/seeding.js';
 import { mutationFeedback } from '../lib/mutation-feedback.js';
 import { messages } from '../i18n/messages.en.js';
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 
 /**
  * A6 — seed assignment beside the bracket it produces.
@@ -153,7 +153,7 @@ export function SeedingBuilderPage({
   );
 
   return (
-    <ListScreenTemplate
+    <ListScreenLayout
       breadcrumb={breadcrumbNode}
       listing={listingNode}
       title={titleNode}

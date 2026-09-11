@@ -12,16 +12,13 @@
  */
 import type { ReactNode } from 'react';
 
-export interface AuthScreenTemplateProps {
+export interface AuthScreenLayoutProps {
   /** Beneath the wordmark: what this installation is, not what the screen does. */
   readonly tagline: string;
   readonly children: ReactNode;
 }
 
-export function AuthScreenTemplate({
-  tagline,
-  children,
-}: AuthScreenTemplateProps): React.JSX.Element {
+export function AuthScreenLayout({ tagline, children }: AuthScreenLayoutProps): React.JSX.Element {
   return (
     <main className="cl-auth-screen">
       <header className="cl-auth-screen__header">

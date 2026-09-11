@@ -22,7 +22,7 @@ import { Button } from './ui/atoms/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 import { EditorialCard } from './ui/molecules/EditorialCard.js';
 import { Field } from './ui/molecules/field.js';
@@ -459,7 +459,7 @@ export function PlatformAdministrationRoute({
   ];
 
   return (
-    <ListScreenTemplate
+    <ListScreenLayout
       breadcrumb={<FormattedMessage {...messages.platformSectionLabel} />}
       listing={
         <div className="cl-screen-sections">

@@ -43,7 +43,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('VenueManagementRoute', () => {
-  it('renders within ListScreenTemplate structure and displays venues and officials', async () => {
+  it('renders within ListScreenLayout structure and displays venues and officials', async () => {
     const { container } = render(
       withIntl(<VenueManagementRoute client={stubClient()} organizationAlias="liga-mendocina" />),
     );

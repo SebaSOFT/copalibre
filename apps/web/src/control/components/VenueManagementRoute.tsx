@@ -17,7 +17,7 @@ import { Input } from './ui/atoms/input.js';
 import { Field } from './ui/molecules/field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 
 const OFFICIAL_ROLES: readonly OfficialRole[] = [
   'referee',
@@ -809,5 +809,5 @@ export function VenueManagementRoute({
     </div>
   );
 
-  return <ListScreenTemplate breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+  return <ListScreenLayout breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
 }

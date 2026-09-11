@@ -26,7 +26,7 @@ import { Select } from './ui/atoms/select.js';
 import { Field } from './ui/molecules/field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 
 interface DraftAssignment {
   readonly slotId: string;
@@ -592,7 +592,7 @@ export function ScheduleBuilderRoute({
   );
 
   return (
-    <ListScreenTemplate
+    <ListScreenLayout
       breadcrumb={breadcrumbNode}
       listing={listingNode}
       title={titleNode}

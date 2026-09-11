@@ -12,7 +12,7 @@ import {
 } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlTokenStore } from '../session/token-store.js';
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 import { ControlShell } from './ControlShell.js';
 
 interface DeviceEntry {
@@ -143,9 +143,6 @@ function DashboardContent({
   );
 
   return (
-    <ListScreenTemplate
-      listing={sections}
-      title={<FormattedMessage {...messages.navDashboard} />}
-    />
+    <ListScreenLayout listing={sections} title={<FormattedMessage {...messages.navDashboard} />} />
   );
 }

@@ -1,18 +1,18 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
-import { AuthScreenTemplate } from './auth-screen-template.js';
+import { AuthScreenLayout } from './auth-screen-layout.js';
 import { Field } from '../molecules/field.js';
 import { Input } from '../atoms/input.js';
 import { Button } from '../atoms/button.js';
 import { storyText } from '../story-text.js';
 
 const meta = {
-  title: 'Admin/Templates/AuthScreenTemplate',
-  component: AuthScreenTemplate,
+  title: 'Admin/Layouts/AuthScreenLayout',
+  component: AuthScreenLayout,
   args: { tagline: '', children: null },
   argTypes: { tagline: { control: 'text' } },
   parameters: { layout: 'fullscreen' },
-} satisfies Meta<typeof AuthScreenTemplate>;
+} satisfies Meta<typeof AuthScreenLayout>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -26,7 +26,7 @@ export const SignIn: Story = {
   render: function Render() {
     const intl = useIntl();
     return (
-      <AuthScreenTemplate tagline={intl.formatMessage(storyText.platformTitle)}>
+      <AuthScreenLayout tagline={intl.formatMessage(storyText.platformTitle)}>
         <form style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
           <Field id="auth-email" label={intl.formatMessage(storyText.settingsTitle)}>
             <Input id="auth-email" type="email" />
@@ -38,7 +38,7 @@ export const SignIn: Story = {
             {intl.formatMessage(storyText.save)}
           </Button>
         </form>
-      </AuthScreenTemplate>
+      </AuthScreenLayout>
     );
   },
 };
@@ -48,7 +48,7 @@ export const WithError: Story = {
   render: function Render() {
     const intl = useIntl();
     return (
-      <AuthScreenTemplate tagline={intl.formatMessage(storyText.platformTitle)}>
+      <AuthScreenLayout tagline={intl.formatMessage(storyText.platformTitle)}>
         <form style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
           <Field
             errorText={intl.formatMessage(storyText.empty)}
@@ -61,7 +61,7 @@ export const WithError: Story = {
             {intl.formatMessage(storyText.save)}
           </Button>
         </form>
-      </AuthScreenTemplate>
+      </AuthScreenLayout>
     );
   },
 };

@@ -14,7 +14,7 @@ import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
 import { Field } from './ui/molecules/field.js';
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 import { Modal } from './ui/organisms/modal.js';
 import { EntityIdentityCell } from './ui/molecules/entity-identity-cell.js';
@@ -168,7 +168,7 @@ export function RolesPermissionsPage({
 
   return (
     <>
-      <ListScreenTemplate
+      <ListScreenLayout
         breadcrumb={intl.formatMessage(messages.rolesBreadcrumb, { organizationAlias })}
         listing={
           loading ? (

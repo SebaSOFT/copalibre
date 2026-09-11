@@ -11,7 +11,7 @@ export interface FormScreenSection {
   readonly fields: ReactNode;
 }
 
-export interface FormScreenTemplateProps {
+export interface FormScreenLayoutProps {
   readonly title: ReactNode;
   readonly breadcrumb?: ReactNode;
   readonly sections: readonly FormScreenSection[];
@@ -19,13 +19,13 @@ export interface FormScreenTemplateProps {
   readonly onSubmit?: (event: React.FormEvent) => void;
 }
 
-export function FormScreenTemplate({
+export function FormScreenLayout({
   title,
   breadcrumb,
   sections,
   footer,
   onSubmit,
-}: FormScreenTemplateProps): React.JSX.Element {
+}: FormScreenLayoutProps): React.JSX.Element {
   return (
     <form className="cl-form-screen" onSubmit={onSubmit}>
       <header className="cl-form-screen__header">

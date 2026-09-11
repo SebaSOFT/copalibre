@@ -19,7 +19,7 @@ import { Field } from './ui/molecules/field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 
 /**
  * Club identity management — the first club-related component in the
@@ -346,5 +346,5 @@ export function ClubManagementRoute({
     </div>
   );
 
-  return <ListScreenTemplate listing={listingNode} title={titleNode} />;
+  return <ListScreenLayout listing={listingNode} title={titleNode} />;
 }

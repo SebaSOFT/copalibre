@@ -80,7 +80,7 @@ describe('PersonProfileRoute', () => {
     await waitFor(() => screen.getByText('Could not load this profile.'));
   });
 
-  it('renders within ListScreenTemplate structure', async () => {
+  it('renders within ListScreenLayout structure', async () => {
     const { container } = render(
       withIntl(
         <PersonProfileRoute

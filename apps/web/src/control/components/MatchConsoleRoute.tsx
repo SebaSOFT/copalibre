@@ -47,7 +47,7 @@ import { ClockRing } from './ui/organisms/clock-ring.js';
 import { EntrantName } from '../../components/ui/atoms/EntrantName.js';
 import { JerseyGrid } from './JerseyGrid.js';
 import { RosterSelectionStep } from './RosterSelectionStep.js';
-import { MatchConsoleTemplate } from './ui/templates/match-console-template.js';
+import { MatchConsoleLayout } from './ui/layouts/match-console-layout.js';
 import { messages } from '../i18n/messages.en.js';
 
 const RECONCILIATION_TIMEOUT_MS = 8_000;
@@ -1182,7 +1182,7 @@ export function MatchConsoleRoute({
   );
 
   return (
-    <MatchConsoleTemplate
+    <MatchConsoleLayout
       alerts={alertsNode}
       breadcrumb={breadcrumbNode}
       primary={primaryNode}

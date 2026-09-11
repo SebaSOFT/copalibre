@@ -2,22 +2,18 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen } from '@testing-library/react';
-import { ListScreenTemplate } from './list-screen-template.js';
-import { FormScreenTemplate } from './form-screen-template.js';
-import { MatchConsoleTemplate } from './match-console-template.js';
-import { AuthScreenTemplate } from './auth-screen-template.js';
+import { ListScreenLayout } from './list-screen-layout.js';
+import { FormScreenLayout } from './form-screen-layout.js';
+import { MatchConsoleLayout } from './match-console-layout.js';
+import { AuthScreenLayout } from './auth-screen-layout.js';
 
-describe('ListScreenTemplate', () => {
+describe('ListScreenLayout', () => {
   it('renders the same layout structure for two different content sets', () => {
     const { container: a } = render(
-      <ListScreenTemplate
-        listing={<p>Listado A</p>}
-        title="Roles"
-        toolbar={<div>Toolbar A</div>}
-      />,
+      <ListScreenLayout listing={<p>Listado A</p>} title="Roles" toolbar={<div>Toolbar A</div>} />,
     );
     const { container: b } = render(
-      <ListScreenTemplate
+      <ListScreenLayout
         listing={<p>Listado B</p>}
         pagination={<div>Paginación B</div>}
         title="Módulos"
@@ -34,16 +30,16 @@ describe('ListScreenTemplate', () => {
   });
 
   it('renders supplied content, not example placeholder content', () => {
-    render(<ListScreenTemplate listing={<p>Listado</p>} title="Roles" />);
+    render(<ListScreenLayout listing={<p>Listado</p>} title="Roles" />);
     expect(screen.getByText('Roles')).toBeDefined();
     expect(screen.getByText('Listado')).toBeDefined();
   });
 });
 
-describe('FormScreenTemplate', () => {
+describe('FormScreenLayout', () => {
   it('renders one section per entry, in order, with a sticky footer', () => {
     render(
-      <FormScreenTemplate
+      <FormScreenLayout
         breadcrumb="Instalación"
         footer={<button type="submit">Guardar</button>}
         sections={[
@@ -61,7 +57,7 @@ describe('FormScreenTemplate', () => {
 
   it('renders with no breadcrumb and a headingless section', () => {
     const { container } = render(
-      <FormScreenTemplate
+      <FormScreenLayout
         footer={<button type="submit">Guardar</button>}
         sections={[{ key: 'a', fields: <p>Campo A</p> }]}
         title="Nueva organización"
@@ -72,10 +68,10 @@ describe('FormScreenTemplate', () => {
   });
 });
 
-describe('MatchConsoleTemplate', () => {
+describe('MatchConsoleLayout', () => {
   it('renders header, workspace, primary and rail regions with template layout classes', () => {
     const { container } = render(
-      <MatchConsoleTemplate
+      <MatchConsoleLayout
         alerts={<div className="alert">Alerta</div>}
         breadcrumb="Torneo Apertura > Partido 1"
         primary={<div className="controls">Controles</div>}
@@ -98,17 +94,17 @@ describe('MatchConsoleTemplate', () => {
   });
 });
 
-describe('AuthScreenTemplate', () => {
+describe('AuthScreenLayout', () => {
   it('gives every unauthenticated screen the same brand header and one centred panel', () => {
     const { container: login } = render(
-      <AuthScreenTemplate tagline="Control de torneos">
+      <AuthScreenLayout tagline="Control de torneos">
         <p>Ingresá para operar</p>
-      </AuthScreenTemplate>,
+      </AuthScreenLayout>,
     );
     const { container: invitation } = render(
-      <AuthScreenTemplate tagline="Control de torneos">
+      <AuthScreenLayout tagline="Control de torneos">
         <p>Aceptar invitación</p>
-      </AuthScreenTemplate>,
+      </AuthScreenLayout>,
     );
 
     for (const container of [login, invitation]) {
@@ -134,9 +130,9 @@ describe('AuthScreenTemplate', () => {
 
   it("renders its brand mark as decorative, never as the screen's only heading", () => {
     const { container } = render(
-      <AuthScreenTemplate tagline="Control de torneos">
+      <AuthScreenLayout tagline="Control de torneos">
         <h1>Aceptar invitación</h1>
-      </AuthScreenTemplate>,
+      </AuthScreenLayout>,
     );
     expect(container.querySelector('.cl-auth-screen__mark')?.getAttribute('alt')).toBe('');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Aceptar invitación');

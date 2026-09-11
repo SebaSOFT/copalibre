@@ -45,7 +45,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('ZoneGroupRoute', () => {
-  it('renders within ListScreenTemplate structure and displays zones and groups', async () => {
+  it('renders within ListScreenLayout structure and displays zones and groups', async () => {
     const { container } = render(
       withIntl(
         <ZoneGroupRoute

@@ -28,7 +28,7 @@ import { isExempt } from './check-ui-text-catalogue-coverage.mjs';
 // by living directly inside one of the four library-tier subdirectories.
 // ---------------------------------------------------------------------------
 
-const DECLARED_UI_TIERS = new Set(['atoms', 'molecules', 'organisms', 'templates']);
+const DECLARED_UI_TIERS = new Set(['atoms', 'molecules', 'organisms', 'layouts']);
 
 /**
  * Components directly inside a `ui/` directory, not in a declared tier
@@ -86,10 +86,10 @@ export function checkTierMembership(nodes) {
  * Ascending rank — a file may import its own rank or lower, never higher.
  * `screen` covers every file outside a `ui/` library directory: today's
  * `*Page.tsx` (screen template role) and `*Route.tsx` (page-controller role)
- * sit in the same flat directory pending the tier renames in tasks 3.1-3.2,
- * so they share one rank until that split exists on disk to check against.
+ * sit in the same flat directory pending the tier rename in task 3.2, so
+ * they share one rank until that split exists on disk to check against.
  */
-const TIER_RANK = { atoms: 0, molecules: 1, organisms: 2, templates: 3, screen: 4 };
+const TIER_RANK = { atoms: 0, molecules: 1, organisms: 2, layouts: 3, screen: 4 };
 
 /**
  * Upward imports recorded as of this change, keyed by the importing file —
@@ -399,7 +399,7 @@ export const KNOWN_ORPHANS = new Map([
   ['control/components/ui/molecules/pagination.tsx', 1],
   ['control/components/ui/molecules/table-toolbar.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 1],
-  ['control/components/ui/templates/form-screen-template.tsx', 1],
+  ['control/components/ui/layouts/form-screen-layout.tsx', 1],
   // The four layout primitives (task 2.1) ship before their consumers adopt
   // them — that is tasks 5.1/5.2's inline-layout paydown. Temporary orphans
   // by the migration plan's own ordering, not an oversight.

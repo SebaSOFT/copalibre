@@ -17,7 +17,7 @@ import { Card } from './ui/atoms/card.js';
 import { FieldValue } from './ui/molecules/field-value.js';
 import { messages } from '../i18n/messages.en.js';
 
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 
 type LoadStatus = 'loading' | 'ready' | 'failed';
 
@@ -140,5 +140,5 @@ export function PersonProfileRoute({
     </Card>
   );
 
-  return <ListScreenTemplate breadcrumb={breadcrumbNode} listing={cardNode} title={titleNode} />;
+  return <ListScreenLayout breadcrumb={breadcrumbNode} listing={cardNode} title={titleNode} />;
 }

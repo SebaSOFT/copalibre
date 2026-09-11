@@ -27,7 +27,7 @@ import { ImageCropModal } from './ImageCropModal.js';
 import { PersonPhotoPlaceholder } from './placeholders.js';
 import { FieldValue } from './ui/molecules/field-value.js';
 import { Modal } from './ui/organisms/modal.js';
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 import type { PlayerRole } from '@copalibre/domain';
 import {
   RosterRoleSelector,
@@ -436,7 +436,7 @@ export function RegistrationReviewPage({
 
   return (
     <>
-      <ListScreenTemplate
+      <ListScreenLayout
         breadcrumb={breadcrumbNode}
         listing={listingNode}
         pagination={paginationNode}

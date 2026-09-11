@@ -4,7 +4,7 @@ import { messages } from '../i18n/messages.en.js';
 import { Button } from './ui/atoms/button.js';
 import { Input } from './ui/atoms/input.js';
 import { Field } from './ui/molecules/field.js';
-import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { ListScreenLayout } from './ui/layouts/list-screen-layout.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 import { AuditLogCard } from './ui/organisms/AuditLogCard.js';
 import { toAuditLogItem } from '../lib/audit-log.js';
@@ -81,7 +81,7 @@ export function AuditTrailPage({
   const end = Math.min(offset + limit, total);
 
   return (
-    <ListScreenTemplate
+    <ListScreenLayout
       title={<FormattedMessage {...messages.auditTrailTitle} />}
       breadcrumb={
         <FormattedMessage {...messages.auditTrailBreadcrumb} values={{ organizationAlias }} />
