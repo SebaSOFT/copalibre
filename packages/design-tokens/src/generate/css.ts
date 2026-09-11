@@ -596,6 +596,12 @@ function components(): string {
     // option. `max-height` is the space Radix measured to the viewport edge.
     '.cl-select__content { padding: var(--cl-space-1); min-width: var(--radix-select-trigger-width); max-height: var(--radix-select-content-available-height); overflow-y: auto; }',
     '.cl-select__item { padding: var(--cl-space-2) var(--cl-space-3); cursor: pointer; }',
+    // The visible Radix trigger and a fully transparent native `<select>`
+    // stacked on top of it (openspec 0225 task 5.7): the native element is
+    // the one a form, autofill, or assistive technology actually addresses.
+    '.cl-select-wrapper { position: relative; display: inline-block; width: 100%; }',
+    '.cl-select-native { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }',
+    '.cl-select-native.cl-select--disabled { cursor: not-allowed; }',
     '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); }',
     '',
     '.cl-form-field { display: grid; gap: var(--cl-space-1); min-width: 0; }',
@@ -1074,6 +1080,14 @@ function components(): string {
     `    0 0 0 ${FOCUS_RING.outerWidth} var(--cl-focus-ring);`,
     '}',
     '',
+    // The atom's own base styling (openspec 0225 task 5.7): `display: block`
+    // so a caller's flex/grid item sizes it normally rather than by its
+    // inline default, and `min-width: 0` so the resize-observer truncation
+    // this atom does internally can actually shrink below its content's own
+    // width — an atom owns all of its own styling, so this is a class, not
+    // the inline style object task 5.1's primitives exist to replace.
+    '.cl-entrant-name { display: block; min-width: 0; }',
+    '',
     "/* The matches-view card (openspec 0172) — shared by MatchCard.tsx on both public-web and control-web, so it lives here rather than in either surface's own page-scoped styles. */",
     '.cl-match-card { display: grid; gap: var(--cl-space-3); min-width: 0; }',
     // The state badge and the clock sit on one line until they cannot: at the
@@ -1354,6 +1368,30 @@ function compositions(): string {
     '.cl-card--inverse { background: var(--cl-surface-chrome); }',
     ':where(.cl-band, .cl-band--base) .cl-card--inverse { background: var(--cl-surface-chrome); }',
     '.cl-card--inverse .cl-card__title { color: var(--cl-text-primary); }',
+    '',
+    // The terminal/file code block (openspec 0225 task 5.7): every property
+    // below was inline on the component before this task, an atom's own
+    // styling declared once per instance rather than once here.
+    '.cl-terminal-block { background: var(--cl-surface-base); border: 1px solid var(--cl-border-muted); font-family: var(--cl-font-mono); }',
+    '.cl-terminal-block__header { display: flex; align-items: center; justify-content: space-between; padding: var(--cl-space-2) var(--cl-space-3); border-bottom: 1px solid var(--cl-border-muted); background: var(--cl-surface-chrome); gap: var(--cl-space-2); }',
+    '.cl-terminal-block__dots { display: flex; align-items: center; gap: 6px; }',
+    '.cl-terminal-block__dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }',
+    '.cl-terminal-block__dot--red { background: var(--cl-state-destructive); }',
+    '.cl-terminal-block__dot--yellow { background: var(--cl-state-upcoming); }',
+    '.cl-terminal-block__dot--green { background: var(--cl-state-positive); }',
+    '.cl-terminal-block__title { font-size: var(--cl-font-size-xs); color: var(--cl-text-secondary); letter-spacing: var(--cl-tracking-wide); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+    '.cl-terminal-block__copy { background: transparent; border: 1px solid var(--cl-border-muted); border-radius: var(--cl-radius-sm); color: var(--cl-text-secondary); font-size: var(--cl-font-size-xs); padding: 2px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }',
+    '.cl-terminal-block__copy--copied { color: var(--cl-state-live); }',
+    '.cl-terminal-block__copy--failed { color: var(--cl-state-destructive); }',
+    '.cl-terminal-block__body { padding: var(--cl-space-3) var(--cl-space-4); overflow-x: auto; font-size: var(--cl-font-size-sm); line-height: 1.6; }',
+    '.cl-terminal-block__command { display: flex; gap: var(--cl-space-2); align-items: baseline; }',
+    '.cl-terminal-block__prompt { color: var(--cl-state-live); user-select: none; font-weight: var(--cl-weight-bold); }',
+    '.cl-terminal-block__command code { color: var(--cl-text-primary); }',
+    // A file listing keeps its columns: which column a YAML key sits in is the
+    // one thing wrapping destroys, so long lines scroll inside this region
+    // instead of re-flowing. The `--file` variant rule below narrows this to
+    // `pre` for that case; the terminal variant (this base rule) wraps.
+    '.cl-terminal-block__body pre { font-family: inherit; color: var(--cl-text-primary); white-space: pre-wrap; }',
     '',
     /*
      * The file variant of the code block: a filename header and a copy action,

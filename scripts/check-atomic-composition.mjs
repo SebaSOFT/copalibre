@@ -197,15 +197,13 @@ function isLayoutPrimitive(path) {
  * per file. Paid down by task 5.1/5.2 as inline layout is replaced by the
  * `Stack`/`Inline`/`Grid`/`Box` primitives task 2.1 adds.
  *
- * Task 5.2 surveyed the three remaining public/broadcast entries above
- * `MatchCard.tsx` and found none of their occurrences primitive-convertible,
- * for reasons specific to each: `TvDashboard.tsx`'s three are `vmin`-scaled
+ * Task 5.2 surveyed the two remaining public/broadcast entries above
+ * `MatchCard.tsx` and found neither occurrence primitive-convertible, for
+ * reasons specific to each: `TvDashboard.tsx`'s three are `vmin`-scaled
  * padding for broadcast-continuous sizing, which the fixed token scale
  * `Box`'s `padding` resolves to cannot express without changing how the
  * overlay actually scales; `AstroPreview.tsx`'s one styles an `<iframe>`, an
- * element a `<div>` primitive cannot become; `EntrantName.tsx`'s one forces
- * `display: block` on a `<span>` together with `minWidth: 0`, a combination
- * no primitive's prop set covers.
+ * element a `<div>` primitive cannot become.
  *
  * `MatchCard.tsx`'s count fell from 22 to 1 the other way: not through a
  * primitive, but by giving its merged `ChampionshipMatchCard`/
@@ -219,11 +217,16 @@ function isLayoutPrimitive(path) {
  * `.cl-scorecard__events`' `margin-bottom`, which depends on whether
  * `comparatorTrace` was passed — genuinely per-render data, not a design
  * constant a class can state.
+ *
+ * Task 5.7 paid down the three atom-tier entries this register carried
+ * (`EntrantName.tsx`, `terminal-block.tsx`, `select.tsx`) to zero: each was a
+ * static, per-instance-identical style, so each moved into a named CSS class
+ * in `packages/design-tokens/src/generate/css.ts` instead — an atom owns its
+ * own styling once, not once per render.
  */
 export const KNOWN_INLINE_LAYOUT = new Map([
   ['components/tv/TvDashboard.tsx', 3],
   ['components/ui/AstroPreview.tsx', 1],
-  ['components/ui/atoms/EntrantName.tsx', 1],
   ['components/ui/organisms/MatchCard.tsx', 1],
   ['control/components/pages/AnalyticsPage.tsx', 6],
   ['control/components/BracketCanvas.tsx', 2],
@@ -239,8 +242,6 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/screens/StandingsTemplate.tsx', 5],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 4],
   ['control/components/TournamentSetupWizard.tsx', 17],
-  ['control/components/ui/atoms/terminal-block.tsx', 8],
-  ['control/components/ui/atoms/select.tsx', 2],
   ['control/components/ui/molecules/callout-banner.tsx', 5],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 5],
   ['control/components/ui/organisms/audit-log-panel.tsx', 10],
@@ -298,6 +299,10 @@ function withoutVarCalls(text) {
  * outright is not this rule's concern either way — the design system's own
  * stylesheet is where a bespoke, precisely-tuned value belongs, same as the
  * many raw hairline widths already in `packages/design-tokens/src/generate/css.ts`.
+ *
+ * `terminal-block.tsx`'s entry is gone the same way (task 5.7): its raw
+ * pixel/hex values moved into the `.cl-terminal-block*` CSS classes alongside
+ * its `KNOWN_INLINE_LAYOUT` paydown above.
  */
 export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['components/tv/TvDashboard.tsx', 1],
@@ -311,7 +316,6 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['control/components/RosterRoleSelector.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 1],
   ['control/components/TournamentSetupWizard.tsx', 2],
-  ['control/components/ui/atoms/terminal-block.tsx', 7],
   ['control/components/ui/molecules/callout-banner.tsx', 2],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 2],
   ['control/components/ui/organisms/audit-log-panel.tsx', 5],

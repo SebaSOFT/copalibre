@@ -28,10 +28,9 @@ export function EntrantName({
 
   return (
     <span
-      className={className}
+      className={`cl-entrant-name ${className ?? ''}`.trim()}
       data-testid="entrant-name"
       ref={ref}
-      style={{ display: 'block', minWidth: 0 }}
     >
       {compact && abbreviation !== undefined ? (
         <abbr title={fullName}>{abbreviation}</abbr>

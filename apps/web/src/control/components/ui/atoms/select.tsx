@@ -114,7 +114,7 @@ export function Select({
   }, [options, value, onValueChange]);
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+    <div className="cl-select-wrapper">
       <RadixSelect.Root
         disabled={disabled}
         required={required}
@@ -158,20 +158,12 @@ export function Select({
         aria-invalid={invalid || undefined}
         aria-label={ariaLabel}
         aria-required={required || undefined}
-        className={`cl-select cl-select--${state} cl-focusable`}
+        className={`cl-select cl-select--${state} cl-select-native cl-focusable`}
         disabled={disabled}
         id={id}
         name={name ?? id}
         onChange={(event) => onValueChange(event.target.value)}
         required={required}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          opacity: 0,
-          cursor: disabled ? 'not-allowed' : 'pointer',
-        }}
         value={value}
       >
         {options.map((option) => (

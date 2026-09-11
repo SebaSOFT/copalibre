@@ -77,99 +77,38 @@ export function TerminalBlock({
       data-language={language}
       data-variant={variant}
       className={`cl-terminal-block${isFile ? ' cl-terminal-block--file' : ''} cl-chamfer cl-chamfer--control ${className}`.trim()}
-      style={{
-        background: 'var(--cl-surface-base)',
-        border: '1px solid var(--cl-border-muted)',
-        fontFamily: 'var(--cl-font-mono)',
-      }}
     >
-      <div
-        className="cl-terminal-block__header"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: 'var(--cl-space-2) var(--cl-space-3)',
-          borderBottom: '1px solid var(--cl-border-muted)',
-          background: 'var(--cl-surface-chrome)',
-          gap: 'var(--cl-space-2)',
-        }}
-      >
+      <div className="cl-terminal-block__header">
         {!isFile && (
-          <div
-            className="cl-terminal-block__dots"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-            aria-hidden="true"
-          >
+          <div className="cl-terminal-block__dots" aria-hidden="true">
             <span
+              className="cl-terminal-block__dot cl-terminal-block__dot--red"
               data-testid="dot-red"
-              style={{
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                background: 'var(--cl-state-destructive)',
-                display: 'inline-block',
-              }}
             />
             <span
+              className="cl-terminal-block__dot cl-terminal-block__dot--yellow"
               data-testid="dot-yellow"
-              style={{
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                background: 'var(--cl-state-upcoming)',
-                display: 'inline-block',
-              }}
             />
             <span
+              className="cl-terminal-block__dot cl-terminal-block__dot--green"
               data-testid="dot-green"
-              style={{
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                background: 'var(--cl-state-positive)',
-                display: 'inline-block',
-              }}
             />
           </div>
         )}
 
-        <span
-          className="cl-terminal-block__title"
-          style={{
-            fontSize: 'var(--cl-font-size-xs)',
-            color: 'var(--cl-text-secondary)',
-            letterSpacing: 'var(--cl-tracking-wide)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {title}
-        </span>
+        <span className="cl-terminal-block__title">{title}</span>
 
         <button
           type="button"
           onClick={() => void handleCopy()}
           aria-label={copyLabel}
-          className="cl-terminal-block__copy cl-focusable"
-          style={{
-            background: 'transparent',
-            border: '1px solid var(--cl-border-muted)',
-            borderRadius: 'var(--cl-radius-sm)',
-            color:
-              outcome === 'copied'
-                ? 'var(--cl-state-live)'
-                : outcome === 'failed'
-                  ? 'var(--cl-state-destructive)'
-                  : 'var(--cl-text-secondary)',
-            fontSize: 'var(--cl-font-size-xs)',
-            padding: '2px 8px',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-          }}
+          className={`cl-terminal-block__copy cl-focusable ${
+            outcome === 'copied'
+              ? 'cl-terminal-block__copy--copied'
+              : outcome === 'failed'
+                ? 'cl-terminal-block__copy--failed'
+                : ''
+          }`.trim()}
         >
           {outcome === 'idle' ? (
             <>
@@ -204,42 +143,24 @@ export function TerminalBlock({
         aria-label={codeRegionLabel}
         className="cl-terminal-block__body"
         role={codeRegionLabel === undefined ? undefined : 'region'}
-        style={{
-          padding: 'var(--cl-space-3) var(--cl-space-4)',
-          overflowX: 'auto',
-          fontSize: 'var(--cl-font-size-sm)',
-          lineHeight: '1.6',
-        }}
         tabIndex={codeRegionLabel === undefined ? undefined : 0}
       >
         {command && (
-          <div style={{ display: 'flex', gap: 'var(--cl-space-2)', alignItems: 'baseline' }}>
+          <div className="cl-terminal-block__command">
             {!isFile && (
-              <span
-                style={{
-                  color: 'var(--cl-state-live)',
-                  userSelect: 'none',
-                  fontWeight: 'var(--cl-weight-bold)',
-                }}
-                aria-hidden="true"
-              >
+              <span className="cl-terminal-block__prompt" aria-hidden="true">
                 $
               </span>
             )}
-            <code style={{ color: 'var(--cl-text-primary)' }}>{command}</code>
+            <code>{command}</code>
           </div>
         )}
         {code && (
-          <pre
-            style={{
-              fontFamily: 'inherit',
-              color: 'var(--cl-text-primary)',
-              // A file listing keeps its columns: which column a YAML key sits
-              // in is the one thing wrapping destroys, so long lines scroll
-              // inside this region instead of re-flowing.
-              whiteSpace: isFile ? 'pre' : 'pre-wrap',
-            }}
-          >
+          // A file listing keeps its columns: which column a YAML key sits in
+          // is the one thing wrapping destroys, so long lines scroll inside
+          // this region instead of re-flowing — handled by the
+          // `.cl-terminal-block--file` modifier's `white-space: pre`.
+          <pre>
             <code>{code}</code>
           </pre>
         )}
