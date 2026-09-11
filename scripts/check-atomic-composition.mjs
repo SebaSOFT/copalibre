@@ -199,11 +199,13 @@ function isLayoutPrimitive(path) {
  *
  * Task 5.2 surveyed the two remaining public/broadcast entries above
  * `MatchCard.tsx` and found neither occurrence primitive-convertible, for
- * reasons specific to each: `TvDashboard.tsx`'s three are `vmin`-scaled
- * padding for broadcast-continuous sizing, which the fixed token scale
- * `Box`'s `padding` resolves to cannot express without changing how the
- * overlay actually scales; `AstroPreview.tsx`'s one styles an `<iframe>`, an
- * element a `<div>` primitive cannot become.
+ * reasons specific to each: `TvDashboard.tsx`'s three (task 7.1 split two of
+ * them out into `TvPerformersView.tsx` and `TvStandingsTable.tsx` alongside
+ * the components carrying them) are `vmin`-scaled padding for
+ * broadcast-continuous sizing, which the fixed token scale `Box`'s
+ * `padding` resolves to cannot express without changing how the overlay
+ * actually scales; `AstroPreview.tsx`'s one styles an `<iframe>`, an element
+ * a `<div>` primitive cannot become.
  *
  * `MatchCard.tsx`'s count fell from 22 to 1 the other way: not through a
  * primitive, but by giving its merged `ChampionshipMatchCard`/
@@ -225,7 +227,9 @@ function isLayoutPrimitive(path) {
  * own styling once, not once per render.
  */
 export const KNOWN_INLINE_LAYOUT = new Map([
-  ['components/tv/TvDashboard.tsx', 3],
+  ['components/tv/TvDashboard.tsx', 1],
+  ['components/tv/TvPerformersView.tsx', 1],
+  ['components/tv/ui/organisms/TvStandingsTable.tsx', 1],
   ['components/ui/AstroPreview.tsx', 1],
   ['components/ui/organisms/MatchCard.tsx', 1],
   ['control/components/screens/AnalyticsTemplate.tsx', 5],

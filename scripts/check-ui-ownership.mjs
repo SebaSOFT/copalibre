@@ -50,10 +50,14 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // not only these two — out of scope for a single task.
   ['components/ui/organisms/PlayerProfileView.astro', 1],
   ['components/ui/organisms/StandingsTable.astro', 4],
-  // React on the broadcast surface. The owned atoms are React and importable,
-  // so these are payable now. Counts include task 2.4's form-structure and
-  // table-part elements alongside the original table/dialog/button entries.
-  ['components/tv/TvDashboard.tsx', 16],
+  // `TvDashboard.tsx`'s entry is gone (openspec 0225 task 7.1): its four
+  // private sub-components and its table/button ownership moved into their
+  // own files, `TvStandingsTable.tsx` and `TvRailTab.tsx` under a `ui/`
+  // directory the same way `StandingsTable.astro`/`Button.astro` are, since
+  // neither the Astro standings owner (server-rendered, can't run inside
+  // this `client:load` island) nor the admin `DataTable`/`Button` (carry
+  // the control theme, not this surface's `--tv-*` tokens) could fill that
+  // role here.
   ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 11],
   [
     'pages/[...locale]/[organization]/tournaments/[tournament]/stages/[stage]/matches/[match].astro',

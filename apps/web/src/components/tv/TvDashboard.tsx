@@ -15,11 +15,14 @@ import {
   type ChampionInfo,
   type TvStatisticsLabels,
 } from '../../lib/tv-statistics.js';
+import { TvTeamSide } from './TvTeamSide.js';
+import { TvPerformersView } from './TvPerformersView.js';
+import { TvFactsView } from './TvFactsView.js';
+import { TvStandingsTable } from './ui/organisms/TvStandingsTable.js';
+import { TvRailTab } from './ui/atoms/TvRailTab.js';
+import type { TvClubItem, TvDashboardLabels } from './tv-types.js';
 
-export interface TvClubItem {
-  readonly name: string;
-  readonly emblemObjectId?: string;
-}
+export type { TvClubItem, TvDashboardLabels } from './tv-types.js';
 
 /**
  * `lower` is a compact score bug meant to sit over a camera feed; `full` is a
@@ -66,20 +69,6 @@ export interface TvDashboardProps {
   readonly dashboardLabels: TvDashboardLabels;
   readonly language: SupportedLanguage;
   readonly pollIntervalMs?: number;
-}
-
-export interface TvDashboardLabels {
-  readonly noMatchesScheduled: string;
-  readonly standingsUnavailable: string;
-  readonly clubColumn: string;
-  readonly playedColumn: string;
-  readonly noTopPerformers: string;
-  readonly focalPanelLabel: string;
-  readonly statsAndTablesLabel: string;
-  readonly sidebarSectionsLabel: string;
-  readonly standingsTab: string;
-  readonly performersTab: string;
-  readonly statisticsTab: string;
 }
 
 const TV_RESULT_STATE_LABELS: ResultStateLabels = {
@@ -430,33 +419,27 @@ export function TvDashboard({
           >
             {/* Navigation Tabs */}
             <nav aria-label={dashboardLabels.sidebarSectionsLabel} className="tv-rail-nav">
-              <button
-                className={`tv-rail-tab cl-chamfer ${activeTab === 'standings' ? 'tv-rail-tab--active' : ''}`}
+              <TvRailTab
+                active={activeTab === 'standings'}
+                label={dashboardLabels.standingsTab}
                 onClick={() => setActiveTab('standings')}
-                type="button"
-              >
-                {dashboardLabels.standingsTab}
-              </button>
-              <button
-                className={`tv-rail-tab cl-chamfer ${activeTab === 'performers' ? 'tv-rail-tab--active' : ''}`}
+              />
+              <TvRailTab
+                active={activeTab === 'performers'}
+                label={dashboardLabels.performersTab}
                 onClick={() => setActiveTab('performers')}
-                type="button"
-              >
-                {dashboardLabels.performersTab}
-              </button>
-              <button
-                className={`tv-rail-tab cl-chamfer ${activeTab === 'facts' ? 'tv-rail-tab--active' : ''}`}
+              />
+              <TvRailTab
+                active={activeTab === 'facts'}
+                label={dashboardLabels.statisticsTab}
                 onClick={() => setActiveTab('facts')}
-                type="button"
-              >
-                {dashboardLabels.statisticsTab}
-              </button>
+              />
             </nav>
 
             {/* Tab Content */}
             <div className="tv-rail-content" data-testid="tv-rail-content">
               {activeTab === 'standings' && (
-                <TvStandingsView
+                <TvStandingsTable
                   clubs={clubs}
                   dashboardLabels={dashboardLabels}
                   pointsShortLabel={labels.pointsShort}
@@ -476,159 +459,6 @@ export function TvDashboard({
           </aside>
         )}
       </main>
-    </div>
-  );
-}
-
-function TvTeamSide({
-  name,
-  abbreviation,
-  clubs,
-}: {
-  readonly name: string;
-  readonly abbreviation?: string;
-  readonly clubs?: readonly TvClubItem[];
-}): React.JSX.Element {
-  const club = clubs?.find((c) => c.name.toLowerCase() === name.toLowerCase());
-
-  return (
-    <div className="tv-team-side">
-      <div className="tv-team-side__emblem-wrap">
-        {club?.emblemObjectId ? (
-          <img
-            alt={name}
-            className="tv-team-side__emblem"
-            src={`/api/objects/${club.emblemObjectId}`}
-          />
-        ) : (
-          <div className="tv-team-side__monogram">
-            {abbreviation ?? name.substring(0, 2).toUpperCase()}
-          </div>
-        )}
-      </div>
-      <span className="tv-team-side__name">{name}</span>
-    </div>
-  );
-}
-
-function TvStandingsView({
-  standings,
-  clubs,
-  dashboardLabels,
-  pointsShortLabel,
-}: {
-  readonly standings?: readonly StandingsRowView[];
-  readonly clubs?: readonly TvClubItem[];
-  readonly dashboardLabels: TvDashboardLabels;
-  readonly pointsShortLabel: string;
-}): React.JSX.Element {
-  if (!standings || standings.length === 0) {
-    return (
-      <div style={{ padding: '2vmin', color: 'var(--tv-text-secondary)', textAlign: 'center' }}>
-        {dashboardLabels.standingsUnavailable}
-      </div>
-    );
-  }
-
-  return (
-    <table className="tv-standings-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>{dashboardLabels.clubColumn}</th>
-          <th>{dashboardLabels.playedColumn}</th>
-          <th>{pointsShortLabel}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {standings.slice(0, 8).map((row) => {
-          const club = clubs?.find((c) => c.name.toLowerCase() === row.name.toLowerCase());
-          return (
-            <tr key={row.name}>
-              <td>{row.position}</td>
-              <td>
-                <div className="tv-table-club-cell">
-                  {club?.emblemObjectId ? (
-                    <img
-                      alt=""
-                      className="tv-table-club-emblem"
-                      src={`/api/objects/${club.emblemObjectId}`}
-                    />
-                  ) : (
-                    <span className="tv-table-club-monogram">
-                      {row.abbreviation ?? row.name.substring(0, 2).toUpperCase()}
-                    </span>
-                  )}
-                  <span>{row.name}</span>
-                </div>
-              </td>
-              <td>{row.played}</td>
-              <td>{row.points}</td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
-}
-
-function TvPerformersView({
-  performers,
-  noTopPerformersLabel,
-}: {
-  readonly performers: readonly TopPerformer[];
-  readonly noTopPerformersLabel: string;
-}): React.JSX.Element {
-  if (performers.length === 0) {
-    return (
-      <div style={{ padding: '2vmin', color: 'var(--tv-text-secondary)', textAlign: 'center' }}>
-        {noTopPerformersLabel}
-      </div>
-    );
-  }
-
-  return (
-    <div className="tv-performers-list">
-      {performers.map((p) => (
-        <article className="tv-performer-card cl-chamfer" key={`${p.rank}-${p.name}`}>
-          <div className="tv-performer-card__left">
-            <span className="tv-performer-card__rank">#{p.rank}</span>
-            {p.clubEmblemObjectId ? (
-              <img
-                alt=""
-                className="tv-table-club-emblem"
-                src={`/api/objects/${p.clubEmblemObjectId}`}
-              />
-            ) : null}
-            <div className="tv-performer-card__info">
-              <span className="tv-performer-card__name">{p.name}</span>
-              {p.clubName && <span className="tv-performer-card__club">{p.clubName}</span>}
-            </div>
-          </div>
-          <span className="tv-performer-card__score">
-            {p.statValue}{' '}
-            <small
-              style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--tv-text-secondary)' }}
-            >
-              {p.statLabel}
-            </small>
-          </span>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-function TvFactsView({ facts }: { readonly facts: readonly TournamentFact[] }): React.JSX.Element {
-  return (
-    <div className="tv-facts-grid">
-      {facts.map((fact) => (
-        <div className="tv-fact-tile cl-chamfer" key={fact.label}>
-          <span className="tv-fact-tile__label">{fact.label}</span>
-          <span className="tv-fact-tile__value">{fact.value}</span>
-          {fact.detail && <span className="tv-fact-tile__detail">{fact.detail}</span>}
-        </div>
-      ))}
     </div>
   );
 }
