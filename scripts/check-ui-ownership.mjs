@@ -74,7 +74,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // `TournamentRulesetTemplate.tsx`, `TournamentSettingsTemplate.tsx` — that
   // class's own `gap` already equals `Form`'s, so the two compose without a
   // visual change). `AcceptInvitationForm.tsx`, `NativeAuthRoutes.tsx` and
-  // `PreferencesPage.tsx` were not: each `<form>` there carries its own
+  // `PreferencesTemplate.tsx` were not: each `<form>` there carries its own
   // inline layout style, and reconciling that with `Form`'s `cl-form` grid
   // is task 5.1's inline-style paydown, not this task's naming/composition
   // concern — left as recorded debt rather than done here.
@@ -82,7 +82,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   ['control/components/DescriptorBuilderWizard.tsx', 5],
   ['control/components/screens/LoadMatchDataTemplate.tsx', 3],
   ['control/components/NativeAuthRoutes.tsx', 3],
-  ['control/components/pages/PreferencesPage.tsx', 1],
+  ['control/components/screens/PreferencesTemplate.tsx', 1],
   ['control/components/screens/RolesPermissionsTemplate.tsx', 2],
   ['control/components/RosterSelectionStep.tsx', 3],
   ['control/components/screens/ScheduleBuilderTemplate.tsx', 3],

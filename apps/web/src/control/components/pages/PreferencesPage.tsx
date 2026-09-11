@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
-import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
+import { useIntl } from 'react-intl';
 import {
   createControlApiClient,
-  organizationEmblemUrl,
   type ControlApiClient,
   type OrganizationResponse,
   type OrganizationStorageUsageResponse,
@@ -11,18 +9,9 @@ import {
   type UnreferencedObjectResponse,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { FramedImage } from '../FramedImage.js';
-import { ImageCropModal } from '../ImageCropModal.js';
-import { ClubEmblemPlaceholder } from '../placeholders.js';
-import { Button } from '../ui/atoms/button.js';
-import { Card } from '../ui/atoms/card.js';
-import { FilePicker } from '../ui/atoms/file-picker.js';
-import { Input } from '../ui/atoms/input.js';
-import { Inline } from '../ui/atoms/layout/inline.js';
-import { Stack } from '../ui/atoms/layout/stack.js';
-import { Field } from '../ui/molecules/field.js';
 import { messages as controlMessages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
+import { PreferencesTemplate } from '../screens/PreferencesTemplate.js';
 
 export function formatStorageBytes(bytes: number): string {
   const ONE_MB = 1024 * 1024;
@@ -34,45 +23,6 @@ export function formatStorageBytes(bytes: number): string {
   const mb = bytes / ONE_MB;
   return `${Number(mb.toFixed(2))} MB`;
 }
-
-const messages = defineMessages({
-  title: {
-    id: 'preferences.title',
-    defaultMessage: 'Personal Preferences',
-  },
-  patTitle: {
-    id: 'preferences.patTitle',
-    defaultMessage: 'Personal Access Tokens',
-  },
-  patDescription: {
-    id: 'preferences.patDescription',
-    defaultMessage: 'Generate tokens to access the API directly. Tokens are only shown once.',
-  },
-  createPat: {
-    id: 'preferences.createPat',
-    defaultMessage: 'Generate Token',
-  },
-  patLabel: {
-    id: 'preferences.patLabel',
-    defaultMessage: 'Token Label',
-  },
-  patExpiresIn: {
-    id: 'preferences.patExpiresIn',
-    defaultMessage: 'Expires in (days)',
-  },
-  patCreated: {
-    id: 'preferences.patCreated',
-    defaultMessage: 'Token created. Copy it now:',
-  },
-  revokePat: {
-    id: 'preferences.revokePat',
-    defaultMessage: 'Revoke',
-  },
-  noTokens: {
-    id: 'preferences.noTokens',
-    defaultMessage: 'No active personal access tokens.',
-  },
-});
 
 export interface PatResponse {
   readonly tokenId: string;
@@ -88,9 +38,13 @@ export interface PatCreatedResponse extends PatResponse {
   readonly token: string;
 }
 
-const preferencesPagePadding = 'clamp(var(--cl-space-3), 4vw, var(--cl-space-8))';
-const preferencesSectionPadding = 'clamp(var(--cl-space-3), 4vw, var(--cl-space-6))';
-
+/**
+ * Fetches and mutates (openspec 0225 task 6.2): every call into the API
+ * client — including the raw `fetch` calls the personal-access-token
+ * section makes directly, since that endpoint predates `ControlApiClient`
+ * — lives here; `PreferencesTemplate` composes the four sections from the
+ * resulting data and the callbacks below.
+ */
 export function PreferencesPage({
   organizationAlias,
   client,
@@ -101,9 +55,6 @@ export function PreferencesPage({
   const [tokens, setTokens] = useState<readonly PatResponse[]>([]);
   const [newToken, setNewToken] = useState<PatCreatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const [label, setLabel] = useState('');
-  const [expiresInDays, setExpiresInDays] = useState(30);
 
   useEffect(() => {
     let mounted = true;
@@ -127,9 +78,8 @@ export function PreferencesPage({
     };
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!label.trim()) return;
+  async function createPat(label: string, expiresInDays: number): Promise<boolean> {
+    if (!label.trim()) return false;
 
     const token = controlTokenStore.read();
     const res = await fetch('/api/auth/pat', {
@@ -144,21 +94,22 @@ export function PreferencesPage({
     if (res.ok) {
       const data = (await res.json()) as PatCreatedResponse;
       setNewToken(data);
-      setTokens([...tokens, data]);
-      setLabel('');
+      setTokens((current) => [...current, data]);
+      return true;
     }
-  };
+    return false;
+  }
 
-  const handleRevoke = async (tokenId: string) => {
+  async function revokePat(tokenId: string): Promise<void> {
     const token = controlTokenStore.read();
     const res = await fetch(`/api/auth/pat/${tokenId}`, {
       method: 'DELETE',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (res.ok) {
-      setTokens(tokens.filter((t) => t.tokenId !== tokenId));
+      setTokens((current) => current.filter((t) => t.tokenId !== tokenId));
     }
-  };
+  }
 
   const intl = useIntl();
   const { push, pushError } = useToast();
@@ -176,7 +127,6 @@ export function PreferencesPage({
   const [orgLoading, setOrgLoading] = useState(true);
   const [orgLoadError, setOrgLoadError] = useState<string | undefined>(undefined);
   const [orgName, setOrgName] = useState('');
-  const [emblemCropSrc, setEmblemCropSrc] = useState<string | undefined>(undefined);
 
   const reloadOrganization = useCallback(async (): Promise<void> => {
     if (organizationAlias === undefined) return;
@@ -320,382 +270,47 @@ export function PreferencesPage({
     }
   }
 
-  const [rebuildTournamentAlias, setRebuildTournamentAlias] = useState('');
-  const [rebuildConfirming, setRebuildConfirming] = useState(false);
   const [rebuildResult, setRebuildResult] = useState<StatisticsRebuildResponse | undefined>(
     undefined,
   );
 
-  async function runStatisticsRebuild(): Promise<void> {
+  async function runStatisticsRebuild(tournamentAlias: string): Promise<void> {
     if (!api.rebuildStatistics || organizationAlias === undefined) return;
     try {
       const result = await api.rebuildStatistics(
         organizationAlias,
-        rebuildTournamentAlias.trim() === '' ? undefined : rebuildTournamentAlias.trim(),
+        tournamentAlias.trim() === '' ? undefined : tournamentAlias.trim(),
       );
       setRebuildResult(result);
     } catch (error) {
       setRebuildResult(undefined);
       pushError(error);
-    } finally {
-      setRebuildConfirming(false);
     }
   }
 
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: '800px',
-        margin: '0 auto',
-        padding: preferencesPagePadding,
-      }}
-    >
-      <h1>
-        <FormattedMessage {...messages.title} />
-      </h1>
-
-      <Card
-        className="cl-chamfer cl-chamfer--control"
-        style={{
-          marginTop: '2rem',
-          padding: preferencesSectionPadding,
-        }}
-      >
-        <h2>
-          <FormattedMessage {...messages.patTitle} />
-        </h2>
-        <p>
-          <FormattedMessage {...messages.patDescription} />
-        </p>
-
-        <form
-          onSubmit={handleCreate}
-          style={{
-            display: 'flex',
-            gap: '1rem',
-            marginTop: '1rem',
-            alignItems: 'flex-end',
-            flexWrap: 'wrap',
-          }}
-        >
-          <Field id="pat-label" label={intl.formatMessage(messages.patLabel)}>
-            <Input
-              id="pat-label"
-              onChange={(e) => setLabel(e.target.value)}
-              required
-              type="text"
-              value={label}
-            />
-          </Field>
-          <Field id="pat-expires" label={intl.formatMessage(messages.patExpiresIn)}>
-            <Input
-              id="pat-expires"
-              max={365}
-              min={1}
-              onChange={(e) => setExpiresInDays(parseInt(e.target.value))}
-              required
-              style={{ width: '80px' }}
-              type="number"
-              value={expiresInDays}
-            />
-          </Field>
-          <Button disabled={!label.trim()} type="submit">
-            <FormattedMessage {...messages.createPat} />
-          </Button>
-        </form>
-
-        {newToken && (
-          <div
-            style={{
-              marginTop: '1.5rem',
-              padding: '1rem',
-              border: '1px solid var(--cl-state-live)',
-              background: 'var(--cl-surface-base)',
-            }}
-          >
-            <strong>
-              <FormattedMessage {...messages.patCreated} />
-            </strong>
-            <code
-              style={{
-                display: 'block',
-                padding: '1rem',
-                backgroundColor: 'var(--c-surface-sunken)',
-                borderRadius: '0.25rem',
-                marginTop: '0.5rem',
-                wordBreak: 'break-all',
-              }}
-            >
-              {newToken.token}
-            </code>
-          </div>
-        )}
-
-        <div style={{ marginTop: '2rem' }}>
-          {loading ? (
-            <p>
-              <FormattedMessage {...controlMessages.preferencesTokensLoading} />
-            </p>
-          ) : tokens.length === 0 ? (
-            <p>
-              <FormattedMessage {...messages.noTokens} />
-            </p>
-          ) : (
-            <ul style={{ listStyle: 'none', padding: 0 }}>
-              {tokens
-                .filter((t) => !t.revoked)
-                .map((token) => (
-                  <li
-                    key={token.tokenId}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '1rem',
-                      borderBottom: '1px solid var(--cl-border-muted)',
-                    }}
-                  >
-                    <div>
-                      <strong>{token.label}</strong>
-                      <div
-                        style={{
-                          fontSize: 'var(--cl-font-size-sm)',
-                          color: 'var(--cl-text-secondary)',
-                          marginTop: '0.25rem',
-                        }}
-                      >
-                        Expira: {new Date(token.expiresAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => void handleRevoke(token.tokenId)}
-                      type="button"
-                      variant="destructive-outline"
-                    >
-                      <FormattedMessage {...messages.revokePat} />
-                    </Button>
-                  </li>
-                ))}
-            </ul>
-          )}
-        </div>
-      </Card>
-
-      {organizationAlias !== undefined && (
-        <Card
-          aria-label={intl.formatMessage(controlMessages.orgIdentityHeading)}
-          className="cl-chamfer cl-chamfer--control"
-          style={{
-            marginTop: '2rem',
-            padding: preferencesSectionPadding,
-          }}
-        >
-          <h2>
-            <FormattedMessage {...controlMessages.orgIdentityHeading} />
-          </h2>
-
-          {orgLoading ? (
-            <p>
-              <FormattedMessage {...controlMessages.orgIdentityLoading} />
-            </p>
-          ) : orgLoadError ? (
-            <Alert tone="destructive">{orgLoadError}</Alert>
-          ) : (
-            <Stack gap="4">
-              <FramedImage
-                key={organization?.emblemObjectId ?? 'none'}
-                alt={intl.formatMessage(controlMessages.orgIdentityEmblemAlt)}
-                placeholder={
-                  <ClubEmblemPlaceholder
-                    size={64}
-                    title={intl.formatMessage(controlMessages.orgIdentityEmblemPlaceholderAlt)}
-                  />
-                }
-                size={64}
-                src={
-                  organization?.emblemObjectId !== undefined
-                    ? organizationEmblemUrl(organizationAlias)
-                    : undefined
-                }
-              />
-
-              {api.uploadOrganizationEmblem && (
-                <FilePicker
-                  accept="image/*"
-                  aria-label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
-                  id="org-emblem-upload"
-                  label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
-                  onChange={(files) => {
-                    const file = files?.[0];
-                    if (file) setEmblemCropSrc(URL.createObjectURL(file));
-                  }}
-                />
-              )}
-
-              <Inline align="end" gap="4" wrap>
-                <Field id="org-name" label={intl.formatMessage(controlMessages.orgIdentityName)}>
-                  <Input
-                    id="org-name"
-                    onChange={(event) => setOrgName(event.target.value)}
-                    type="text"
-                    value={orgName}
-                  />
-                </Field>
-                <Button onClick={() => void saveOrganizationName()} type="button">
-                  <FormattedMessage {...controlMessages.orgIdentitySave} />
-                </Button>
-              </Inline>
-            </Stack>
-          )}
-        </Card>
-      )}
-
-      {organizationAlias !== undefined && (
-        <Card
-          aria-label={intl.formatMessage(controlMessages.statisticsRebuildHeading)}
-          className="cl-chamfer cl-chamfer--control"
-          style={{
-            marginTop: '2rem',
-            padding: preferencesSectionPadding,
-          }}
-        >
-          <h2>
-            <FormattedMessage {...controlMessages.statisticsRebuildHeading} />
-          </h2>
-          <p>
-            <FormattedMessage {...controlMessages.statisticsRebuildDescription} />
-          </p>
-
-          {rebuildResult && (
-            <Alert tone="info">
-              {intl.formatMessage(controlMessages.statisticsRebuildResult, {
-                matches: rebuildResult.matches,
-              })}
-            </Alert>
-          )}
-
-          <div
-            style={{
-              display: 'flex',
-              gap: '1rem',
-              alignItems: 'flex-end',
-              marginTop: '1rem',
-              flexWrap: 'wrap',
-            }}
-          >
-            <Field
-              id="rebuild-tournament"
-              label={intl.formatMessage(controlMessages.statisticsRebuildTournamentLabel)}
-            >
-              <Input
-                id="rebuild-tournament"
-                onChange={(event) => setRebuildTournamentAlias(event.target.value)}
-                placeholder={intl.formatMessage(
-                  controlMessages.statisticsRebuildTournamentPlaceholder,
-                )}
-                type="text"
-                value={rebuildTournamentAlias}
-              />
-            </Field>
-            {!rebuildConfirming ? (
-              <Button
-                disabled={!api.rebuildStatistics}
-                onClick={() => setRebuildConfirming(true)}
-                type="button"
-              >
-                <FormattedMessage {...controlMessages.statisticsRebuildTrigger} />
-              </Button>
-            ) : (
-              <>
-                <Button onClick={() => void runStatisticsRebuild()} type="button">
-                  <FormattedMessage {...controlMessages.statisticsRebuildConfirm} />
-                </Button>
-                <Button
-                  onClick={() => setRebuildConfirming(false)}
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage {...controlMessages.statisticsRebuildCancel} />
-                </Button>
-              </>
-            )}
-          </div>
-          {rebuildConfirming && (
-            <Alert tone="destructive">
-              <FormattedMessage {...controlMessages.statisticsRebuildConfirmPrompt} />
-            </Alert>
-          )}
-        </Card>
-      )}
-
-      {organizationAlias !== undefined && (
-        <Card
-          aria-label={intl.formatMessage(controlMessages.storageUsageHeading)}
-          className="cl-chamfer cl-chamfer--control"
-          style={{
-            marginTop: '2rem',
-            padding: preferencesSectionPadding,
-          }}
-        >
-          <h2>
-            <FormattedMessage {...controlMessages.storageUsageHeading} />
-          </h2>
-          <p>
-            <FormattedMessage {...controlMessages.storageUsageDescription} />
-          </p>
-
-          {storageLoading ? (
-            <p>
-              <FormattedMessage {...controlMessages.storageUsageLoading} />
-            </p>
-          ) : storageError ? (
-            <Alert tone="destructive">{storageError}</Alert>
-          ) : storageUsage !== undefined ? (
-            <p style={{ marginTop: '1rem', fontWeight: 600 }}>
-              <FormattedMessage
-                {...controlMessages.storageUsageSummary}
-                values={{
-                  formattedBytes: formatStorageBytes(storageUsage.totalBytes),
-                  objectCount: storageUsage.objectCount,
-                }}
-              />
-            </p>
-          ) : null}
-
-          {unreferencedObjects.length > 0 && (
-            <ul aria-label={intl.formatMessage(controlMessages.storageUsageUnreferencedHeading)}>
-              {unreferencedObjects.map((object) => (
-                <li key={object.objectId} className="cl-role-user">
-                  <span>{formatStorageBytes(object.sizeBytes)}</span>
-                  <span className="cl-label">{object.contentType}</span>
-                  <Button
-                    onClick={() => void deleteUnreferencedObject(object.objectId)}
-                    type="button"
-                    variant="destructive-outline"
-                  >
-                    <FormattedMessage {...controlMessages.storageUsageDeleteObject} />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      )}
-
-      {emblemCropSrc !== undefined && (
-        <ImageCropModal
-          imageSrc={emblemCropSrc}
-          onCancel={() => {
-            URL.revokeObjectURL(emblemCropSrc);
-            setEmblemCropSrc(undefined);
-          }}
-          onConfirm={(output) => {
-            URL.revokeObjectURL(emblemCropSrc);
-            setEmblemCropSrc(undefined);
-            void uploadOrganizationEmblem(output);
-          }}
-        />
-      )}
-    </div>
+    <PreferencesTemplate
+      api={api}
+      loading={loading}
+      newToken={newToken}
+      onChangeOrgName={setOrgName}
+      onCreatePat={createPat}
+      onDeleteUnreferencedObject={deleteUnreferencedObject}
+      onRevokePat={revokePat}
+      onRunStatisticsRebuild={runStatisticsRebuild}
+      onSaveOrganizationName={saveOrganizationName}
+      onUploadOrganizationEmblem={uploadOrganizationEmblem}
+      organization={organization}
+      organizationAlias={organizationAlias}
+      orgLoadError={orgLoadError}
+      orgLoading={orgLoading}
+      orgName={orgName}
+      rebuildResult={rebuildResult}
+      storageError={storageError}
+      storageLoading={storageLoading}
+      storageUsage={storageUsage}
+      tokens={tokens}
+      unreferencedObjects={unreferencedObjects}
+    />
   );
 }
