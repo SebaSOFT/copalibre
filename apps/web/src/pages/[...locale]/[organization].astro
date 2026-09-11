@@ -1,7 +1,8 @@
 ---
 import PublicLayout from '../../layouts/PublicLayout.astro';
-import TournamentCard from '../../components/ui/organisms/TournamentCard.astro';
-import EmblemImage from '../../components/ui/atoms/EmblemImage.astro';
+import OrganizationHeader from '../../components/ui/organisms/OrganizationHeader.astro';
+import TournamentSection from '../../components/ui/organisms/TournamentSection.astro';
+import OrganizationClubs from '../../components/ui/organisms/OrganizationClubs.astro';
 import {
   fetchOrganizationTournaments,
   organizationEmblemUrl,
@@ -37,7 +38,13 @@ const canonicalPath = `${localePrefix}/${encodeURIComponent(organization!)}`;
 const liveTournaments = listData?.tournaments.filter((t) => t.status === 'live') ?? [];
 const upcomingTournaments = listData?.tournaments.filter((t) => t.status === 'upcoming') ?? [];
 const finishedTournaments = listData?.tournaments.filter((t) => t.status === 'finished') ?? [];
-const orgClubs = listData?.clubs ?? [];
+const orgClubs = (listData?.clubs ?? []).map((club) => ({
+  ...club,
+  emblemSrc: club.emblemObjectId ? clubEmblemUrl(organization!, club.clubId) : undefined,
+}));
+const organizationEmblemSrc = listData?.organizationEmblemObjectId
+  ? organizationEmblemUrl(listData.organizationAlias)
+  : undefined;
 // Live first, featured second: live is urgent, featured is curated (0207).
 const featured = listData ? featuredTournaments(listData.tournaments) : [];
 
@@ -75,22 +82,12 @@ const structuredData = listData
   {
     listData && (
       <div class="cl-org-container">
-        <header class="cl-org-header">
-          <EmblemImage
-            alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: listData.organizationName })}
-            placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-            size={64}
-            src={
-              listData.organizationEmblemObjectId
-                ? organizationEmblemUrl(listData.organizationAlias)
-                : undefined
-            }
-          />
-          <div>
-            <div class="cl-org-badge">{listData.organizationAlias}</div>
-            <h1 class="cl-org-title">{listData.organizationName}</h1>
-          </div>
-        </header>
+        <OrganizationHeader
+          organizationAlias={listData.organizationAlias}
+          organizationName={listData.organizationName}
+          emblemSrc={organizationEmblemSrc}
+          intl={intl}
+        />
 
         {listData.tournaments.length === 0 && (
           <div class="cl-empty-state">
@@ -99,127 +96,57 @@ const structuredData = listData
         )}
 
         {liveTournaments.length > 0 && (
-          <section class="cl-listing-section cl-section-live" aria-labelledby="heading-live">
-            <div class="cl-section-header">
-              <span class="cl-live-dot" aria-hidden="true" />
-              <h2 id="heading-live" class="cl-section-title">
-                {intl.formatMessage(messages.tournamentsLiveHeading)}
-              </h2>
-              <span class="cl-section-count">({liveTournaments.length})</span>
-            </div>
-            <div class="cl-tournaments-grid cl-grid-live">
-              {liveTournaments.map((t) => (
-                <TournamentCard
-                  tournament={t}
-                  organizationAlias={organization!}
-                  localePrefix={localePrefix}
-                  intl={intl}
-                />
-              ))}
-            </div>
-          </section>
+          <TournamentSection
+            headingId="heading-live"
+            heading={intl.formatMessage(messages.tournamentsLiveHeading)}
+            tournaments={liveTournaments}
+            organizationAlias={organization!}
+            localePrefix={localePrefix}
+            intl={intl}
+            showLiveDot={true}
+            sectionClass="cl-section-live"
+            gridClass="cl-grid-live"
+          />
         )}
 
         {featured.length > 0 && (
-          <section
-            class="cl-listing-section cl-section-featured"
-            aria-labelledby="heading-featured"
-          >
-            <div class="cl-section-header">
-              <h2 id="heading-featured" class="cl-section-title">
-                {intl.formatMessage(messages.orgPageFeaturedHeading)}
-              </h2>
-            </div>
-            <div class="cl-tournaments-grid cl-grid-featured">
-              {featured.map((t) => (
-                <TournamentCard
-                  tournament={t}
-                  organizationAlias={organization!}
-                  localePrefix={localePrefix}
-                  intl={intl}
-                  featured={true}
-                />
-              ))}
-            </div>
-          </section>
+          <TournamentSection
+            headingId="heading-featured"
+            heading={intl.formatMessage(messages.orgPageFeaturedHeading)}
+            tournaments={featured}
+            organizationAlias={organization!}
+            localePrefix={localePrefix}
+            intl={intl}
+            showCount={false}
+            featured={true}
+            sectionClass="cl-section-featured"
+            gridClass="cl-grid-featured"
+          />
         )}
 
         {upcomingTournaments.length > 0 && (
-          <section class="cl-listing-section" aria-labelledby="heading-upcoming">
-            <div class="cl-section-header">
-              <h2 id="heading-upcoming" class="cl-section-title">
-                {intl.formatMessage(messages.tournamentsUpcomingHeading)}
-              </h2>
-              <span class="cl-section-count">({upcomingTournaments.length})</span>
-            </div>
-            <div class="cl-tournaments-grid">
-              {upcomingTournaments.map((t) => (
-                <TournamentCard
-                  tournament={t}
-                  organizationAlias={organization!}
-                  localePrefix={localePrefix}
-                  intl={intl}
-                />
-              ))}
-            </div>
-          </section>
+          <TournamentSection
+            headingId="heading-upcoming"
+            heading={intl.formatMessage(messages.tournamentsUpcomingHeading)}
+            tournaments={upcomingTournaments}
+            organizationAlias={organization!}
+            localePrefix={localePrefix}
+            intl={intl}
+          />
         )}
 
         {finishedTournaments.length > 0 && (
-          <section class="cl-listing-section" aria-labelledby="heading-finished">
-            <div class="cl-section-header">
-              <h2 id="heading-finished" class="cl-section-title">
-                {intl.formatMessage(messages.tournamentsFinishedHeading)}
-              </h2>
-              <span class="cl-section-count">({finishedTournaments.length})</span>
-            </div>
-            <div class="cl-tournaments-grid">
-              {finishedTournaments.map((t) => (
-                <TournamentCard
-                  tournament={t}
-                  organizationAlias={organization!}
-                  localePrefix={localePrefix}
-                  intl={intl}
-                />
-              ))}
-            </div>
-          </section>
+          <TournamentSection
+            headingId="heading-finished"
+            heading={intl.formatMessage(messages.tournamentsFinishedHeading)}
+            tournaments={finishedTournaments}
+            organizationAlias={organization!}
+            localePrefix={localePrefix}
+            intl={intl}
+          />
         )}
 
-        <section class="cl-listing-section" aria-labelledby="heading-clubs">
-          <div class="cl-section-header">
-            <h2 id="heading-clubs" class="cl-section-title">
-              {intl.formatMessage(messages.orgPageClubsHeading)}
-            </h2>
-            <span class="cl-section-count">({orgClubs.length})</span>
-          </div>
-          {orgClubs.length === 0 ? (
-            <div class="cl-empty-state">
-              <p>{intl.formatMessage(messages.orgPageNoClubs)}</p>
-            </div>
-          ) : (
-            <div class="cl-club-grid">
-              {orgClubs.map((club) => (
-                <div class="cl-club-card">
-                  <EmblemImage
-                    alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
-                    placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-                    size={48}
-                    src={
-                      club.emblemObjectId ? clubEmblemUrl(organization!, club.clubId) : undefined
-                    }
-                  />
-                  <div class="cl-club-info">
-                    <span class="cl-club-name" title={club.name}>
-                      {club.name}
-                    </span>
-                    {club.alias && <span class="cl-club-abbr">{club.alias}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        <OrganizationClubs clubs={orgClubs} intl={intl} />
       </div>
     )
   }
@@ -235,103 +162,6 @@ const structuredData = listData
     gap: 2.5rem;
   }
 
-  .cl-org-header {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    border-bottom: 1px solid var(--cl-border-muted);
-    padding-bottom: 1.5rem;
-    min-width: 0;
-  }
-
-  .cl-org-badge {
-    font-size: var(--cl-font-size-xs);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--cl-primary);
-    margin-bottom: 0.25rem;
-  }
-
-  .cl-org-title {
-    font-size: var(--cl-font-size-3xl);
-    font-weight: 800;
-    margin: 0;
-    line-height: 1.2;
-    color: var(--cl-text-primary);
-    overflow-wrap: anywhere;
-  }
-
-  .cl-listing-section {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-
-  .cl-section-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .cl-section-title {
-    font-size: var(--cl-font-size-xl);
-    font-weight: 700;
-    margin: 0;
-    color: var(--cl-text-primary);
-  }
-
-  .cl-section-count {
-    font-size: var(--cl-font-size-sm);
-    color: var(--cl-text-muted);
-    font-weight: 600;
-  }
-
-  .cl-live-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: var(--cl-state-live);
-    box-shadow: 0 0 10px var(--cl-state-live);
-    animation: cl-pulse-live 1.5s infinite;
-  }
-
-  @keyframes cl-pulse-live {
-    0%,
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.4;
-      transform: scale(1.3);
-    }
-  }
-
-  .cl-tournaments-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  @media (min-width: 640px) {
-    .cl-tournaments-grid {
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    }
-  }
-
-  .cl-grid-live,
-  .cl-grid-featured {
-    grid-template-columns: 1fr;
-  }
-
-  @media (min-width: 768px) {
-    .cl-grid-live,
-    .cl-grid-featured {
-      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    }
-  }
-
   .cl-empty-state {
     padding: 3rem 1rem;
     text-align: center;
@@ -341,56 +171,10 @@ const structuredData = listData
     color: var(--cl-text-muted);
   }
 
-  .cl-club-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-    gap: 1rem;
-  }
-
-  .cl-club-card {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem;
-    background-color: var(--cl-surface-panel);
-    border: 1px solid var(--cl-border-muted);
-    border-radius: 12px;
-  }
-
-  .cl-club-info {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
-  .cl-club-name {
-    font-size: var(--cl-font-size-sm);
-    font-weight: 600;
-    color: var(--cl-text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .cl-club-abbr {
-    font-size: var(--cl-font-size-sm);
-    color: var(--cl-text-muted);
-  }
-
   /* BREAKPOINTS.sm: retain readable padding at the 375px review width. */
   @media (max-width: 375px) {
     .cl-org-container {
       padding: 1rem 0.75rem 2rem;
-    }
-
-    .cl-org-header {
-      align-items: flex-start;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .cl-live-dot {
-      animation: none;
     }
   }
 </style>
