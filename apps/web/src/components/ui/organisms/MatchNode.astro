@@ -5,7 +5,11 @@ import StateBadge from '../atoms/StateBadge.astro';
 import SeriesStateBar from '../molecules/SeriesStateBar.astro';
 import { matchReportUrl, toNode, type BracketMatch } from '../../../lib/bracket.ts';
 import { toSeriesInput } from '../../../lib/series.ts';
-import { resultReasonLabels, resultStateLabels } from '../../../lib/i18n/public-intl.ts';
+import {
+  resultReasonLabels,
+  resultStateLabels,
+  seriesStateBarLabels,
+} from '../../../lib/i18n/public-intl.ts';
 
 interface Props {
   readonly match: BracketMatch;
@@ -67,14 +71,13 @@ const legScores =
     {
       series !== undefined && seriesInput !== undefined && (
         <SeriesStateBar
-          aggregateScores={
-            series.resolutionClass === 'aggregate' ? series.aggregateScores : undefined
-          }
-          awayName={node.slots[1]?.fullName ?? node.slots[1]?.label}
-          homeName={node.slots[0]?.fullName ?? node.slots[0]?.label}
-          intl={intl}
-          series={seriesInput}
-          winner={series.winner}
+          {...seriesStateBarLabels(intl, seriesInput, {
+            aggregateScores:
+              series.resolutionClass === 'aggregate' ? series.aggregateScores : undefined,
+            awayName: node.slots[1]?.fullName ?? node.slots[1]?.label,
+            homeName: node.slots[0]?.fullName ?? node.slots[0]?.label,
+            winner: series.winner,
+          })}
         />
       )
     }

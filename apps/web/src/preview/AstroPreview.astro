@@ -23,7 +23,13 @@ import BracketView from '../components/ui/organisms/BracketView.astro';
 import PublicHeader from '../components/ui/organisms/PublicHeader.astro';
 import ResultLegend from '../components/ui/molecules/ResultLegend.astro';
 import ScoreTicker from '../components/ui/organisms/ScoreTicker.astro';
-import { publicIntl, tickerChromeLabels, tickerLabels } from '../lib/i18n/public-intl.ts';
+import {
+  publicIntl,
+  resultStateLabels,
+  tickerChromeLabels,
+  tickerLabels,
+} from '../lib/i18n/public-intl.ts';
+import { messages } from '../lib/i18n/public-messages.en.ts';
 import { referenceBracket, referenceGroupMatches } from '../lib/reference-fixtures.ts';
 import { buildTickerItems } from '../lib/ticker-items.ts';
 
@@ -81,7 +87,14 @@ const tickerLabel = intl.formatMessage({ id: 'ticker.label', defaultMessage: 'Li
     </style>
   </head>
   <body class="cl-band--base" data-preview={component} data-locale={locale}>
-    {component === 'result-legend' && <ResultLegend intl={intl} />}
+    {
+      component === 'result-legend' && (
+        <ResultLegend
+          heading={intl.formatMessage(messages.legendHeading)}
+          labels={resultStateLabels(intl)}
+        />
+      )
+    }
     {
       component === 'score-ticker' && (
         <ScoreTicker

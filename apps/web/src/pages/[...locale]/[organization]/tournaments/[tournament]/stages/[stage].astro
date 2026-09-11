@@ -16,7 +16,11 @@ import {
   mapBracketResponse,
   mapMatchesViewResponse,
 } from '../../../../../../lib/public-api-client.ts';
-import { publicIntl, matchCardLabels } from '../../../../../../lib/i18n/public-intl.ts';
+import {
+  publicIntl,
+  matchCardLabels,
+  resultStateLabels,
+} from '../../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
@@ -117,7 +121,10 @@ const structuredData = {
           stageNumber={stageNumber}
           tournamentAlias={tournament!}
         />
-        <ResultLegend intl={intl} />
+        <ResultLegend
+          heading={intl.formatMessage(messages.legendHeading)}
+          labels={resultStateLabels(intl)}
+        />
       </>
     ) : (
       <div class="cl-matches-view__grid">

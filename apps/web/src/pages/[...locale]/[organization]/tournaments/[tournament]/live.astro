@@ -138,7 +138,10 @@ const structuredData = {
     </tbody>
   </table>
 
-  <ResultLegend intl={intl} />
+  <ResultLegend
+    heading={intl.formatMessage(messages.legendHeading)}
+    labels={resultStateLabels(intl)}
+  />
 
   {/* The island only patches what is already on the page. */}
   <LiveMatchHero

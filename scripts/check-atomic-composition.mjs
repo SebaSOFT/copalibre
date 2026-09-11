@@ -382,15 +382,15 @@ export function checkDataAccess(nodes) {
 /**
  * Debt recorded 2026-09-11: the five public molecules design.md names as
  * calling `react-intl` to format their own labels. Paid down by task 5.3,
- * which moves the formatting to each molecule's consumer.
+ * which moved the formatting to each molecule's consumer:
+ * `ResultLegend`/`TournamentHero`/`BroadcastStatusPanel`/`RulesetBriefing`
+ * now take pre-formatted strings as props, and `SeriesStateBar` takes a
+ * `seriesStateBarLabels(intl, series, …)`-resolved props object — the
+ * server-rendered equivalent of `matchCardLabels`'s pattern, but with real
+ * resolved values rather than `{placeholder}` templates, since nothing here
+ * crosses a `client:load` serialization boundary.
  */
-export const KNOWN_I18N_BELOW_ORGANISM = new Map([
-  ['components/ui/molecules/BroadcastStatusPanel.astro', 1],
-  ['components/ui/molecules/ResultLegend.astro', 1],
-  ['components/ui/molecules/RulesetBriefing.astro', 1],
-  ['components/ui/molecules/SeriesStateBar.astro', 1],
-  ['components/ui/molecules/TournamentHero.astro', 1],
-]);
+export const KNOWN_I18N_BELOW_ORGANISM = new Map();
 
 export function checkI18nPlacement(nodes) {
   const violations = [];

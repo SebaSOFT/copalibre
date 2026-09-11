@@ -14,7 +14,12 @@ import {
   fetchPublicTableProjection,
   mapOverviewResponse,
 } from '../../../../lib/public-api-client.ts';
-import { publicIntl, tickerChromeLabels, tickerLabels } from '../../../../lib/i18n/public-intl.ts';
+import {
+  publicIntl,
+  tickerChromeLabels,
+  tickerLabels,
+  tournamentHeroLabels,
+} from '../../../../lib/i18n/public-intl.ts';
 import { buildTickerItems } from '../../../../lib/ticker-items.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
@@ -143,13 +148,16 @@ const structuredData = {
     resumeLabel={tickerChrome.resume}
     staleLabel={tickerChrome.stale}
   />
-  <TournamentHero model={model} intl={intl} />
+  <TournamentHero labels={tournamentHeroLabels(intl, model)} model={model} />
   {
     model.status === 'finished' && model.winners && model.winners.length > 0 && (
       <ChampionPodium winners={model.winners} intl={intl} prominent={true} />
     )
   }
-  <BroadcastStatusPanel model={model} intl={intl} />
+  <BroadcastStatusPanel
+    model={model}
+    statusText={intl.formatMessage(messages.broadcastStatusNote)}
+  />
   <MatchCardGrid model={model} intl={intl} localePrefix={locale ? `/${locale}` : ''} />
   <p>
     <a
@@ -171,5 +179,5 @@ const structuredData = {
     organizationAlias={organization}
     tournamentAlias={tournament}
   />
-  <RulesetBriefing model={model} intl={intl} />
+  <RulesetBriefing heading={intl.formatMessage(messages.rulesetHeading)} model={model} />
 </PublicLayout>

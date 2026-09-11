@@ -1,19 +1,18 @@
 ---
-import type { IntlShape } from 'react-intl';
 import { resultLegend } from '../../../lib/result-state.ts';
-import { resultStateLabels } from '../../../lib/i18n/public-intl.ts';
-import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import type { ResultStateLabels } from '../../../lib/result-state.ts';
 
 interface Props {
-  readonly intl: IntlShape;
+  readonly labels: ResultStateLabels;
+  readonly heading: string;
 }
-const { intl } = Astro.props;
-const legend = resultLegend(resultStateLabels(intl));
+const { labels, heading } = Astro.props;
+const legend = resultLegend(labels);
 ---
 
 {/* Shown once per page: the colours mean nothing on their own. */}
 <section aria-labelledby="legend-heading">
-  <h2 id="legend-heading">{intl.formatMessage(messages.legendHeading)}</h2>
+  <h2 id="legend-heading">{heading}</h2>
   <ul>
     {
       legend.map((state) => (

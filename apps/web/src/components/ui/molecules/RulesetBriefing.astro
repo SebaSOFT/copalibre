@@ -1,13 +1,11 @@
 ---
-import type { IntlShape } from 'react-intl';
 import type { OverviewModel } from '../../../lib/overview.ts';
-import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 interface Props {
   readonly model: OverviewModel;
-  readonly intl: IntlShape;
+  readonly heading: string;
 }
-const { model, intl } = Astro.props;
+const { model, heading } = Astro.props;
 
 function formatRuleLabel(rawKey: string): string {
   const clean = rawKey.replace(/^rules?\./i, '');
@@ -49,7 +47,7 @@ function formatRuleValue(value: string): string {
 ---
 
 <section aria-labelledby="ruleset-heading" class="cl-ruleset-section">
-  <h2 id="ruleset-heading">{intl.formatMessage(messages.rulesetHeading)}</h2>
+  <h2 id="ruleset-heading">{heading}</h2>
   <dl class="cl-ruleset-grid">
     {
       model.ruleset.map((entry) => (

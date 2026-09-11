@@ -10,6 +10,8 @@ import { messages as zhMessages } from './public-messages.zh.js';
 import { messages } from './public-messages.en.js';
 import type { ResultReason } from '@copalibre/domain';
 import type { ResultState, ResultStateLabels } from '../result-state.js';
+import { seriesScore, seriesSegments, type SegmentState, type SeriesInput } from '../series.js';
+import { displayName, type OverviewModel } from '../overview.js';
 
 /** Labels for every non-`played` `ResultReason` — `played` never renders one. */
 export type ResultReasonLabels = Readonly<Record<Exclude<ResultReason, 'played'>, string>>;
@@ -248,5 +250,120 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
       home: '{home}',
       away: '{away}',
     }),
+  };
+}
+
+export interface SeriesStateBarSegment {
+  readonly state: SegmentState;
+  readonly mark: string;
+  readonly label: string;
+}
+
+export interface SeriesStateBarProps {
+  readonly homeScore: number;
+  readonly awayScore: number;
+  readonly segmentsAriaLabel: string;
+  readonly segments: readonly SeriesStateBarSegment[];
+  readonly winner?: 'home' | 'away';
+  readonly outcomeText: string;
+  readonly aggregateText?: string;
+}
+
+/*
+  Every state carries a word and a mark, never a color. "This match may never happen" is not
+  something a spectator can guess from a shade, and the mark keeps it legible where the words
+  will not fit — the two together mean a monochrome screen loses nothing.
+*/
+const SERIES_SEGMENT_MARKS: Record<SegmentState, string> = {
+  'won-home': '▲',
+  'won-away': '▼',
+  current: '●',
+  upcoming: '·',
+  'not-required': '×',
+};
+
+/**
+ * `SeriesStateBar.astro`'s own chrome, resolved once here — a server-rendered
+ * molecule, unlike `matchCardLabels`, so every value is the actual resolved
+ * text rather than a `{placeholder}` template: no `client:load` boundary
+ * strips the formatting machinery out from under it.
+ */
+export function seriesStateBarLabels(
+  intl: IntlShape,
+  series: SeriesInput,
+  options: {
+    /** The two sides, so the bar can name who advanced rather than say "home". */
+    readonly homeName?: string;
+    readonly awayName?: string;
+    readonly winner?: 'home' | 'away';
+    /** Present on an `aggregate` tie: the summed score, home first. */
+    readonly aggregateScores?: readonly number[];
+  },
+): SeriesStateBarProps {
+  const score = seriesScore(series);
+  const labelByState: Record<SegmentState, (typeof messages)['seriesGameWonHome']> = {
+    'won-home': messages.seriesGameWonHome,
+    'won-away': messages.seriesGameWonAway,
+    current: messages.seriesGameCurrent,
+    upcoming: messages.seriesGameUpcoming,
+    'not-required': messages.seriesGameNotRequired,
+  };
+  const segments = seriesSegments(series).map((state, index) => ({
+    state,
+    mark: SERIES_SEGMENT_MARKS[state],
+    label: intl.formatMessage(labelByState[state], { number: index + 1 }),
+  }));
+  const winnerName =
+    options.winner === 'home'
+      ? options.homeName
+      : options.winner === 'away'
+        ? options.awayName
+        : undefined;
+  const outcomeText =
+    options.winner === undefined
+      ? intl.formatMessage(messages.seriesPending, { home: score.home, away: score.away })
+      : intl.formatMessage(messages.seriesDecided, {
+          winner: winnerName ?? (options.winner === 'home' ? '1' : '2'),
+        });
+  const aggregateText =
+    options.aggregateScores === undefined
+      ? undefined
+      : intl.formatMessage(messages.seriesAggregate, {
+          home: options.aggregateScores[0] ?? 0,
+          away: options.aggregateScores[1] ?? 0,
+        });
+
+  return {
+    homeScore: score.home,
+    awayScore: score.away,
+    segmentsAriaLabel: intl.formatMessage(messages.seriesAriaLabel, {
+      bestOf: series.bestOf,
+      home: score.home,
+      away: score.away,
+    }),
+    segments,
+    winner: options.winner,
+    outcomeText,
+    aggregateText,
+  };
+}
+
+export interface TournamentHeroLabels {
+  readonly emblemAlt: string;
+  readonly emblemPlaceholderAlt: string;
+  readonly liveCountText: string;
+}
+
+/** `TournamentHero.astro`'s own chrome, resolved once from the same `model` the component already receives. */
+export function tournamentHeroLabels(intl: IntlShape, model: OverviewModel): TournamentHeroLabels {
+  return {
+    emblemAlt: intl.formatMessage(messages.heroTournamentEmblemAlt, {
+      name: displayName(model),
+    }),
+    emblemPlaceholderAlt: intl.formatMessage(messages.heroTournamentEmblemPlaceholderAlt),
+    liveCountText:
+      model.liveCount > 0
+        ? intl.formatMessage(messages.heroLiveCount, { count: model.liveCount })
+        : intl.formatMessage(messages.heroNoLiveMatches),
   };
 }
