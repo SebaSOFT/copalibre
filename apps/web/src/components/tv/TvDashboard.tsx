@@ -129,13 +129,17 @@ export function TvDashboard({
     const updateClock = () => {
       const now = new Date();
       setCurrentTime(
-        now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        now.toLocaleTimeString(language, {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }),
       );
     };
     updateClock();
     const timer = setInterval(updateClock, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [language]);
 
   // 2. Motion Preference Listener
   useEffect(() => {

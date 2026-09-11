@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TvDashboard } from './TvDashboard.js';
 import type { LiveDashboard } from '../../lib/live-state.js';
@@ -288,5 +289,30 @@ describe('overlay presentations (openspec 0201)', () => {
 
     expect(screen.queryByTestId('tv-lower-third')).toBeNull();
     expect(document.querySelector('.tv-scorebug')).not.toBeNull();
+  });
+});
+
+describe('scorebug clock (openspec 0225 task 2.7)', () => {
+  it('formats the clock for the selected locale, not a fixed presentation', () => {
+    const spy = jest.spyOn(Date.prototype, 'toLocaleTimeString');
+
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="de"
+        initial={{ matches: [], standingsVersion: 0, usingLastKnown: true }}
+        streamPath="/stream"
+      />,
+    );
+
+    // A fixed 12-hour presentation calls `toLocaleTimeString` with no locale
+    // (or a hardcoded one); the broadcast overlay's own language must drive it.
+    expect(spy).toHaveBeenCalledWith(
+      'de',
+      expect.objectContaining({ hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    );
+
+    spy.mockRestore();
   });
 });
