@@ -146,3 +146,13 @@ without recording an audit entry SHALL fail the build.
 #### Scenario: An undeclared action fails the build
 - **WHEN** code records an audit action that the vocabulary does not declare
 - **THEN** the build fails, so the trail's vocabulary cannot grow by accident
+
+### Requirement: Dropped idle connections do not crash the process
+The shared database pool SHALL handle a dropped idle connection without an unhandled error crashing the
+owning process.
+
+#### Scenario: Postgres terminates an idle connection
+- **WHEN** the database server terminates an idle pooled connection (e.g. an administrator command, or a
+  network interruption)
+- **THEN** the owning application process SHALL log the error and continue operating, rather than
+  crashing on an unhandled `'error'` event

@@ -48,7 +48,13 @@ export interface Person {
   readonly photoObjectId?: string;
 }
 
-export type PlayerRole = 'player' | 'substitute' | 'coach' | 'staff';
+export const PLAYER_ROLES = ['player', 'substitute', 'coach', 'staff'] as const;
+
+export type PlayerRole = (typeof PLAYER_ROLES)[number];
+
+export function isPlayerRole(value: unknown): value is PlayerRole {
+  return typeof value === 'string' && (PLAYER_ROLES as readonly string[]).includes(value);
+}
 
 /**
  * One person's membership in one team.

@@ -63,7 +63,10 @@ function projection() {
     ],
     rosterRoles: [],
     eligibleStaffIds: [],
-    entrantIds: ['entrant-a', 'entrant-b'],
+    entrants: [
+      { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
+      { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },
+    ],
     capabilities: ['match.record-event', 'match.control-clock', 'match.finalize'],
     projectionVersion: 1,
   };
@@ -161,6 +164,15 @@ async function selectEnglish(page: Page): Promise<void> {
   await page.getByRole('combobox').first().selectOption('en');
 }
 
+/**
+ * The queued count and last-synced time are on-demand detail behind the
+ * console's one connectivity icon (0205), so every assertion on them has to
+ * ask for them the way an operator would — a focus or a hover.
+ */
+async function openSyncDetail(page: Page): Promise<void> {
+  await page.getByRole('status', { name: /^Sync status: / }).focus();
+}
+
 test('queues a recorded event while offline, then drains it once back online', async ({ page }) => {
   await mockMatchConsole(page);
   await seedLoginTransaction(
@@ -174,12 +186,14 @@ test('queues a recorded event while offline, then drains it once back online', a
   await setOffline(page, true);
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
 
+  await openSyncDetail(page);
   await expect(page.getByText('1 queued action')).toBeVisible();
   await expect(page.getByText('Not yet synced')).toBeVisible();
 
   await setOffline(page, false);
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
 
+  await openSyncDetail(page);
   await expect(page.getByText('No queued actions')).toBeVisible();
   await expect(page.getByText(/^Last synced /)).toBeVisible();
   await expect(page.getByText('goal', { exact: false })).toBeVisible();
@@ -197,6 +211,7 @@ test('a queued action survives a refresh while offline, and drains once back onl
 
   await setOffline(page, true);
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
+  await openSyncDetail(page);
   await expect(page.getByText('1 queued action')).toBeVisible();
 
   // Reload while still offline. Fetching the console's own authoritative
@@ -233,6 +248,7 @@ test('a queued action survives a refresh while offline, and drains once back onl
   await page.goto(loginCallbackUrl());
   await selectEnglish(page);
   await expect(page.getByRole('button', { name: 'Apply clock' })).toBeVisible();
+  await openSyncDetail(page);
   await expect(page.getByText('No queued actions')).toBeVisible();
 });
 
@@ -252,6 +268,7 @@ test('a refused item does not block the rest of the queue from draining', async 
   await setOffline(page, true);
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
   await page.getByRole('button', { name: 'Refuse me', exact: true }).click();
+  await openSyncDetail(page);
   await expect(page.getByText('2 queued actions')).toBeVisible();
 
   await setOffline(page, false);
@@ -270,6 +287,7 @@ test('a refused item does not block the rest of the queue from draining', async 
   // refused, not "stuck at 2." The refused item's own entry, separately
   // listed below with the server's reason, is what proves the drain
   // actually reached — and did not silently drop — the second item.
+  await openSyncDetail(page);
   await expect(page.getByText('No queued actions')).toBeVisible();
   await expect(
     page.getByText('Refused (record-event): This event was refused for the e2e scenario'),

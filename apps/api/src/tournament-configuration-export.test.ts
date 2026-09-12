@@ -47,6 +47,7 @@ describe('tournament configuration export', () => {
         disciplineRef: { descriptorId: descriptor.descriptorId, version: descriptor.version },
         rulesetId: '01890000-0000-7000-8000-000000000104',
         status: 'draft',
+        featured: false,
       },
       descriptor,
       ruleset: {

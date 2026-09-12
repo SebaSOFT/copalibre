@@ -72,7 +72,9 @@ function projection() {
         actorRequirement: 'person',
         payloadSchema: { type: 'object', properties: { assistedBy: { type: 'string' } } },
         display: {},
-        secondaryActorFields: ['assistedBy'],
+        secondaryActorFields: [
+          { field: 'assistedBy', label: { en: 'Assisted by', es: 'Asistido por' } },
+        ],
       },
     ],
     eligiblePersonIds: ['person-scorer', 'person-assist'],
@@ -88,7 +90,10 @@ function projection() {
     ],
     rosterRoles: [],
     eligibleStaffIds: [],
-    entrantIds: ['entrant-a', 'entrant-b'],
+    entrants: [
+      { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
+      { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },
+    ],
     capabilities: ['match.record-event', 'match.control-clock', 'match.finalize'],
     projectionVersion: 1,
   };
@@ -186,7 +191,7 @@ test('records a secondary target actor selection, shows the timecode, and update
   await page.goto(loginCallbackUrl());
 
   await page.getByRole('button', { name: 'Scorer', exact: true }).click();
-  await page.getByRole('button', { name: 'assistedBy', exact: true }).click();
+  await page.getByRole('button', { name: 'Asistido por', exact: true }).click();
   await page.getByRole('button', { name: 'Assist', exact: true }).click();
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
 

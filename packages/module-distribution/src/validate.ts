@@ -11,7 +11,12 @@ import {
   type TournamentProfileDocument,
 } from '@copalibre/domain';
 import { loadDefaultModuleCatalogue } from '@copalibre/module-catalogue';
-import { splitTemplate, validateExpression, type RuleScript } from '@copalibre/rules';
+import {
+  splitTemplate,
+  validateExpression,
+  type RuleScript,
+  type RulesRegistry,
+} from '@copalibre/rules';
 import { validateModuleAssets } from './assets.js';
 import { ModuleValidationError, type ModuleValidationFailure } from './errors.js';
 import { validateModuleManifest, type ModuleManifest } from './manifest.js';
@@ -102,6 +107,66 @@ export async function validateModulePackage(
   }
 
   const registry = buildValidationRegistry();
+  failures.push(...validateDisciplineOrProfileSemantics(manifest, artifact, registry));
+
+  const assetFailures = await validateModuleAssets(directory, manifest.assets);
+  for (const failure of assetFailures) {
+    failures.push({ stage: 'asset', field: failure.path, message: failure.message });
+  }
+  const declaredPaths = new Set(manifest.assets.map((asset) => asset.path));
+  for (const file of raw.assetFiles) {
+    if (!declaredPaths.has(file)) {
+      failures.push({
+        stage: 'asset',
+        field: file,
+        message: 'present under assets/ but not declared in the manifest',
+      });
+    }
+  }
+
+  if (!semver.validRange(manifest.requiresCopalibre)) {
+    failures.push({
+      stage: 'core-version',
+      field: 'requiresCopalibre',
+      message: `"${manifest.requiresCopalibre}" is not a valid semver range`,
+    });
+  } else if (
+    !semver.satisfies(options.runningCopalibreVersion, manifest.requiresCopalibre, {
+      includePrerelease: true,
+    })
+  ) {
+    failures.push({
+      stage: 'core-version',
+      message: `requires CopaLibre ${manifest.requiresCopalibre}, but this installation runs ${options.runningCopalibreVersion}`,
+    });
+  }
+
+  const catalogue = await loadDefaultModuleCatalogue();
+  if (catalogue.reservedAliases.includes(manifest.alias)) {
+    failures.push({
+      stage: 'reserved-alias',
+      field: 'alias',
+      message: `"${manifest.alias}" is reserved by the first-party catalogue`,
+    });
+  }
+
+  if (failures.length > 0) return { ok: false, failures };
+  return { ok: true, value: { manifest, artifact } };
+}
+
+/**
+ * The semantic checks specific to a discipline descriptor or a tournament
+ * profile — everything `validateModulePackage` used to run inline once it
+ * knew `manifest.kind`, extracted verbatim (openspec 0229) so this block's
+ * own branches count toward its own complexity, not the entry point's.
+ */
+function validateDisciplineOrProfileSemantics(
+  manifest: ModuleManifest,
+  artifact: DisciplineDescriptorDocument | TournamentProfileDocument,
+  registry: RulesRegistry,
+): readonly ModuleValidationFailure[] {
+  const failures: ModuleValidationFailure[] = [];
+
   if (manifest.kind === 'discipline') {
     // Not yet installed, so no descriptorId exists — a placeholder is fine,
     // since neither check below reads it for anything but error context.
@@ -192,49 +257,7 @@ export async function validateModulePackage(
     // import time, not this structural, discipline-independent check.
   }
 
-  const assetFailures = await validateModuleAssets(directory, manifest.assets);
-  for (const failure of assetFailures) {
-    failures.push({ stage: 'asset', field: failure.path, message: failure.message });
-  }
-  const declaredPaths = new Set(manifest.assets.map((asset) => asset.path));
-  for (const file of raw.assetFiles) {
-    if (!declaredPaths.has(file)) {
-      failures.push({
-        stage: 'asset',
-        field: file,
-        message: 'present under assets/ but not declared in the manifest',
-      });
-    }
-  }
-
-  if (!semver.validRange(manifest.requiresCopalibre)) {
-    failures.push({
-      stage: 'core-version',
-      field: 'requiresCopalibre',
-      message: `"${manifest.requiresCopalibre}" is not a valid semver range`,
-    });
-  } else if (
-    !semver.satisfies(options.runningCopalibreVersion, manifest.requiresCopalibre, {
-      includePrerelease: true,
-    })
-  ) {
-    failures.push({
-      stage: 'core-version',
-      message: `requires CopaLibre ${manifest.requiresCopalibre}, but this installation runs ${options.runningCopalibreVersion}`,
-    });
-  }
-
-  const catalogue = await loadDefaultModuleCatalogue();
-  if (catalogue.reservedAliases.includes(manifest.alias)) {
-    failures.push({
-      stage: 'reserved-alias',
-      field: 'alias',
-      message: `"${manifest.alias}" is reserved by the first-party catalogue`,
-    });
-  }
-
-  if (failures.length > 0) return { ok: false, failures };
-  return { ok: true, value: { manifest, artifact } };
+  return failures;
 }
 
 /** Throws instead of returning a Result, for a caller that wants exceptions (e.g. a CI script's top level). */

@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { DisciplineDescriptor, RecordedOutcome } from '@copalibre/domain';
 import { traceForEntrant, traceLines, type TiebreakPipeline } from '@copalibre/rules';
 import { computeStandings } from '@copalibre/tournament-engine';
-import { StandingsPage } from './components/StandingsPage.js';
+import { StandingsTemplate } from './components/screens/StandingsTemplate.js';
 import type { TableLayoutSummaryResponse, TableProjectionResponseData } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
@@ -152,7 +152,7 @@ describe('tiebreak trace contract', () => {
 
     render(
       withIntl(
-        <StandingsPage
+        <StandingsTemplate
           activeLayoutCode={layout.code}
           layouts={[layout]}
           onExpand={(actorId) =>

@@ -1,18 +1,20 @@
 {
   "name": "@copalibre/design-tokens",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc --build",
+    "refresh:design": "tsc --build && node dist/bin/refresh-design-document.js",
     "build:tokens": "tsc --build && node dist/bin/build.js",
     "build:css": "tsc --build && node dist/bin/build.js",
     "build:tailwind": "tsc --build && node dist/bin/build.js",
     "scan:forbidden": "tsc --build && node dist/bin/build.js && node dist/bin/scan.js",
     "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
-    "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage"
+    "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage",
+    "check:integrity": "tsc --build && node dist/bin/build.js && node dist/bin/check-integrity.js"
   },
   "type": "module",
   "devDependencies": {

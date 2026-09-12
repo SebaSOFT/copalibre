@@ -137,3 +137,45 @@ text label), matching the same constraint the bracket view already holds to.
 #### Scenario: A live badge carries a text label
 - **WHEN** a match card shows its live/upcoming/final state
 - **THEN** the indicator pairs a color with an icon or text label, not color alone
+
+### Requirement: Stage layout matches its format
+A stage's public presentation SHALL use a layout appropriate to its actual tournament format:
+elimination formats render as a bracket tree; non-elimination formats (round-robin and similar) render
+as a compact by-round match grid.
+
+#### Scenario: A finished round-robin stage
+- **WHEN** a visitor views a stage whose format is round-robin (or round-robin-single-leg)
+- **THEN** the page SHALL render the compact by-round match grid, never an elimination-bracket tree with
+  empty connector space
+
+#### Scenario: A finished single-elimination stage
+- **WHEN** a visitor views a stage whose format is single-elimination
+- **THEN** the page SHALL render the bracket tree, populated with real entrant names and scores for every
+  materialized round
+
+### Requirement: Finalized match scheduling banner suppression
+A finalized match view SHALL NOT display placeholder banners indicating that a schedule or official assignment is pending.
+
+#### Scenario: Viewing a finalized match
+- **WHEN** a spectator navigates to a match detail view for a match with status FINAL
+- **THEN** the view SHALL NOT render "Schedule not yet available" or "Schedule has not yet been published" notices
+
+### Requirement: Rank badge micro-typography and spacing
+Rank badges rendered within standings or match summary cards SHALL maintain visual separation from team names and score figures.
+
+#### Scenario: Displaying rank badges in standings
+- **WHEN** a standings row or card displays a rank indicator badge adjacent to team text or scores
+- **THEN** the badge SHALL be separated by at least 6px of spacing and not visually crowd adjacent digits
+
+### Requirement: The state filter renders as discrete, bounded controls
+The matches view's state filter (`All`/`Live`/`Upcoming`/`Final`) SHALL render each option as a
+discrete, visually bounded control with spacing between options and a visible active state, never as
+concatenated inline text.
+
+#### Scenario: Filter options are visually separated
+- **WHEN** the matches view's state filter is rendered
+- **THEN** each option is a separately bounded control with visible spacing from its neighbors
+
+#### Scenario: The active filter is visually distinguishable
+- **WHEN** a visitor selects a state filter option
+- **THEN** that option shows a visible active state distinct from the unselected options

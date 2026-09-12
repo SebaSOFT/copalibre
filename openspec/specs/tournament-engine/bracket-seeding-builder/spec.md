@@ -4,7 +4,9 @@
 Gives tournament operators a visual tool to assign and lock seeds and to inspect the bracket
 structure the fixture-generation engine produced, without letting the UI silently diverge from that
 engine's actual output.
+
 ## Requirements
+
 ### Requirement: Seed lock and constrained randomize
 Operators SHALL be able to lock individual seed assignments, and a "Randomize Unlocked" action
 SHALL only reassign unlocked seeds, leaving every locked seed unchanged.
@@ -55,3 +57,24 @@ exist and the change is classified `blocked_after_results`.
 - **WHEN** an operator publishes a seed order identical to the one already persisted for the stage
 - **THEN** the publish succeeds without error and the persisted seed order and fixtures are unchanged
 
+### Requirement: Single-elimination round progression
+A single-elimination stage's rounds beyond the first SHALL be materializable into real, playable
+fixtures through a supported API path once the prior round is fully resolved, without requiring direct
+persistence-layer access.
+
+#### Scenario: Advancing to round 2 after round 1 finishes
+- **WHEN** every match in a single-elimination stage's round 1 has been finalized with a result
+- **THEN** an authorized operator (or an automatic progression trigger) SHALL be able to materialize
+  round 2's real fixtures, populated with the actual advancing entrants, through the tournament engine's
+  supported API surface
+
+#### Scenario: Public bracket rendering of a materialized round
+- **WHEN** a later round's fixtures have been materialized with real entrants
+- **THEN** the public bracket view SHALL render the real entrant names and, once played, the real score
+  for that round — never a placeholder token such as `NaN`
+
+#### Scenario: Public bracket rendering of a genuinely virtual round
+- **WHEN** a later round's fixtures have not yet been materialized because the prior round is still in
+  progress
+- **THEN** the public bracket view SHALL render an explicit, clearly-labeled "not yet determined" state
+  for that round, never `NaN` or any other malformed placeholder

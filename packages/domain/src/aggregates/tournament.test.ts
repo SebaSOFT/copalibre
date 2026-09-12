@@ -2,6 +2,7 @@ import {
   canTransitionTournament,
   hasStarted,
   transitionTournament,
+  deriveTournamentStatus,
   type TournamentStatus,
 } from './tournament.js';
 
@@ -74,5 +75,40 @@ describe('hasStarted', () => {
 
   it.each(['draft', 'published'] as const)('is false while %s', (status) => {
     expect(hasStarted({ status } as never)).toBe(false);
+  });
+});
+
+describe('deriveTournamentStatus', () => {
+  it('classifies finished or archived status as finished regardless of matches', () => {
+    expect(deriveTournamentStatus('finished', [])).toBe('finished');
+    expect(deriveTournamentStatus('archived', [])).toBe('finished');
+    expect(deriveTournamentStatus('finished', [{ status: 'in-progress' }])).toBe('finished');
+  });
+
+  it('classifies a tournament as finished when all matches are finalized (task 3.1)', () => {
+    expect(
+      deriveTournamentStatus('started', [{ status: 'finalized' }, { status: 'finalized' }]),
+    ).toBe('finished');
+    expect(deriveTournamentStatus('published', [{ status: 'finalized' }])).toBe('finished');
+    expect(deriveTournamentStatus('started', [{ state: 'final' }, { state: 'final' }])).toBe(
+      'finished',
+    );
+  });
+
+  it('classifies a tournament as live when matches are in-progress or some finalized with remaining matches', () => {
+    expect(
+      deriveTournamentStatus('published', [{ status: 'in-progress' }, { status: 'scheduled' }]),
+    ).toBe('live');
+    expect(
+      deriveTournamentStatus('published', [{ status: 'finalized' }, { status: 'scheduled' }]),
+    ).toBe('live');
+    expect(deriveTournamentStatus('started', [{ status: 'scheduled' }])).toBe('live');
+  });
+
+  it('classifies as upcoming when published with no matches or only scheduled matches', () => {
+    expect(deriveTournamentStatus('published', [])).toBe('upcoming');
+    expect(
+      deriveTournamentStatus('published', [{ status: 'scheduled' }, { status: 'scheduled' }]),
+    ).toBe('upcoming');
   });
 });

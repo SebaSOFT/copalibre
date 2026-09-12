@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { jest } from '@jest/globals';
-import { RolesPermissionsPage } from './components/RolesPermissionsPage.js';
-import { RolesPermissionsRoute } from './components/RolesPermissionsRoute.js';
+import { RolesPermissionsTemplate } from './components/screens/RolesPermissionsTemplate.js';
+import { RolesPermissionsPage } from './components/pages/RolesPermissionsPage.js';
 import type { ControlApiClient, OrganizationRoleResponse } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
@@ -20,7 +20,7 @@ describe('roles and permissions control', () => {
     const changes: unknown[] = [];
     render(
       withIntl(
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           loading={false}
           onChange={async (assignmentId, role, status) =>
             void changes.push({ assignmentId, role, status })
@@ -52,7 +52,7 @@ describe('roles and permissions control', () => {
     const invitations: unknown[] = [];
     render(
       withIntl(
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           loading={false}
           onChange={async () => undefined}
           onDelete={async () => undefined}
@@ -82,7 +82,7 @@ describe('roles and permissions control', () => {
     const invitations: unknown[] = [];
     render(
       withIntl(
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           clubs={[
             { clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno' },
             { clubId: 'club-2', organizationId: 'org-1', name: 'Club Dos' },
@@ -132,7 +132,7 @@ describe('roles and permissions control', () => {
     const invitations: unknown[] = [];
     render(
       withIntl(
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           loading={false}
           onChange={async () => undefined}
           onDelete={async () => undefined}
@@ -183,7 +183,7 @@ describe('roles and permissions control', () => {
   it('disables submit for a scoped role until a club or tournament is chosen', async () => {
     render(
       withIntl(
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           clubs={[{ clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno' }]}
           loading={false}
           onChange={async () => undefined}
@@ -217,7 +217,7 @@ describe('roles and permissions control', () => {
       listOrganizationRoles: async () => rows,
       changeOrganizationRole,
     });
-    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
     await act(async () => {
@@ -250,7 +250,7 @@ describe('roles and permissions control', () => {
       listActiveTournaments,
       inviteOrganizationUser,
     });
-    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
     await waitFor(() => expect(listClubs).toHaveBeenCalledWith('liga-mendocina'));
@@ -284,7 +284,7 @@ describe('roles and permissions control', () => {
         throw new Error('Sin permisos');
       },
     });
-    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Sin permisos'));
   });
 
@@ -294,7 +294,7 @@ describe('roles and permissions control', () => {
       listOrganizationRoles: async () => rows,
       deleteOrganizationRole,
     });
-    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
     await act(async () => {
@@ -314,7 +314,7 @@ describe('roles and permissions control', () => {
       listOrganizationRoles: async () => rows,
       inviteOrganizationUser,
     });
-    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
     fireEvent.click(screen.getByText('Add recipient'));
@@ -345,7 +345,7 @@ describe('roles and permissions control', () => {
       inviteOrganizationUser,
       listPendingInvitations: async () => [],
     });
-    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
     fireEvent.click(screen.getByText('Add recipient'));
@@ -367,7 +367,7 @@ describe('roles and permissions control', () => {
   it('offers club-admin as an assignable role', () => {
     render(
       withIntl(
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           loading={false}
           onChange={async () => undefined}
           onDelete={async () => undefined}
@@ -385,7 +385,7 @@ describe('roles and permissions control', () => {
   it('filters the role picker to the caller-supplied grantable roles', () => {
     render(
       withIntl(
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           grantableRoles={['admin', 'club-admin', 'referee']}
           loading={false}
           onChange={async () => undefined}
@@ -405,7 +405,7 @@ describe('roles and permissions control', () => {
     const adminRow = { ...rows[0], role: 'admin' as const, email: 'admin@example.test' };
     render(
       withIntl(
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           loading={false}
           onChange={async () => undefined}
           onDelete={async () => undefined}
@@ -440,7 +440,7 @@ describe('roles and permissions control', () => {
       listOrganizationRoles: async () => rows,
       listGrantableRoles,
     });
-    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
     await waitFor(() => expect(listGrantableRoles).toHaveBeenCalledWith('liga-mendocina'));
@@ -461,7 +461,7 @@ describe('roles and permissions control', () => {
         throw new Error('forbidden');
       },
     });
-    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
     const select = screen.getByLabelText('Role of referee@example.test') as HTMLSelectElement;
@@ -472,7 +472,7 @@ describe('roles and permissions control', () => {
     const rescinded: string[] = [];
     render(
       withIntl(
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           loading={false}
           onChange={async () => undefined}
           onDelete={async () => undefined}
@@ -503,7 +503,7 @@ describe('roles and permissions control', () => {
   it('disables rescind when no handler is supplied, and does nothing on click', () => {
     render(
       withIntl(
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           loading={false}
           onChange={async () => undefined}
           onDelete={async () => undefined}
@@ -533,7 +533,7 @@ describe('roles and permissions control', () => {
   it('shows an empty message when there are no pending invitations', () => {
     render(
       withIntl(
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           loading={false}
           onChange={async () => undefined}
           onDelete={async () => undefined}
@@ -550,7 +550,7 @@ describe('roles and permissions control', () => {
   it('hides the pending-invitations section entirely until it has loaded', () => {
     render(
       withIntl(
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           loading={false}
           onChange={async () => undefined}
           onDelete={async () => undefined}
@@ -581,7 +581,7 @@ describe('roles and permissions control', () => {
       ],
       rescindInvitation,
     });
-    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('nuevo@example.test');
     await act(async () => {
@@ -602,7 +602,7 @@ describe('roles and permissions control', () => {
     };
     render(
       withIntl(
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           loading={false}
           onChange={async () => undefined}
           onDelete={async () => undefined}

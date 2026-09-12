@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from './fixtures.js';
+import type { Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -258,7 +259,7 @@ test('A5: renders the discipline’s own GF/GC/Dif columns, switches to a fracti
 test.describe('B2: public tournament page', () => {
   let apiServer: Server;
 
-  test.beforeAll(async () => {
+  test.beforeAll(async ({ workerPort }) => {
     const overview = {
       organizationAlias: ORGANIZATION,
       organizationName: 'Liga Mendocina',
@@ -476,7 +477,7 @@ test.describe('B2: public tournament page', () => {
       res.statusCode = 404;
       res.end(JSON.stringify({ message: 'not found' }));
     });
-    await new Promise<void>((resolve) => apiServer.listen(3001, '127.0.0.1', resolve));
+    await new Promise<void>((resolve) => apiServer.listen(workerPort, '127.0.0.1', resolve));
   });
 
   test.afterAll(async () => {
@@ -527,8 +528,18 @@ test.describe('B2: public tournament page', () => {
     await expect(
       page.locator('astro-island').filter({ has: entrantName }).first(),
     ).not.toHaveAttribute('ssr', '', { timeout: 15_000 });
+    // `flex: none` on top of the existing forced width (openspec 0225 task
+    // 8.1): this span is now a real `flex: 1 1 auto` item of
+    // `.cl-match-card__side` (its ownership-scanner selector fix widened
+    // what it matches — the entrant name previously fell outside it
+    // entirely, past the `<astro-island>` a `client:load` wrapper inserts),
+    // so `flex-grow: 1` re-expands a bare inline `width` back to fill the
+    // row before this test's manual resize can take effect. Overriding
+    // `flex` here keeps testing EntrantName's own ResizeObserver logic in
+    // isolation, the unit this test is actually about, without fighting the
+    // real flex layout it now correctly participates in.
     await entrantName.evaluate((element) => {
-      element.setAttribute('style', 'display: block; min-width: 0; width: 1px');
+      element.setAttribute('style', 'display: block; min-width: 0; width: 1px; flex: none');
     });
 
     await expect(entrantName.getByTitle('Talleres')).toHaveText('TAL');
@@ -566,6 +577,26 @@ test.describe('B2: public tournament page', () => {
     await page.goBack();
     await page.locator('a:has(article[data-match="2"])').click();
     await page.waitForURL(`**/stages/1/matches/2`);
+  });
+
+  test('a resolved bracket renders real scores and never NaN or corrupted placeholders (task 5.1)', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);
+
+    // Real score is visible
+    await expect(page.locator('article[data-match="1"]').getByText('Talleres')).toBeVisible();
+    await expect(page.locator('article[data-match="1"]').getByText('2')).toBeVisible();
+    await expect(page.locator('article[data-match="1"]').getByText('Independiente')).toBeVisible();
+    await expect(page.locator('article[data-match="1"]').getByText('1')).toBeVisible();
+
+    // Unresolved slot shows clean text "Ganador del 1", never "Ganador del NaN"
+    await expect(page.locator('article[data-match="2"]').getByText('Ganador del 1')).toBeVisible();
+    await expect(page.locator('article[data-match="2"]').getByText('Ganador del 3')).toBeVisible();
+
+    // Entire stage body must never contain "NaN"
+    await expect(page.locator('body')).not.toContainText('NaN');
+    await expect(page.locator('body')).not.toContainText('NaN0');
   });
 
   test('filters the leaderboard to one club by URL, keeps whole-table ranks, and clears', async ({
@@ -611,6 +642,27 @@ test.describe('B2: public tournament page', () => {
 
     // Matches / ticker is unaffected throughout.
     await expect(page.getByRole('heading', { name: 'Matches' })).toBeVisible();
+  });
+
+  test('0199: standings render a visible header row and never overflow the page at 375px', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const table = page.locator('table.cl-table').first();
+    await expect(table).toBeVisible();
+
+    // The defect this replaces: plain text columns with no header treatment.
+    const header = table.locator('thead th').first();
+    await expect(header).toBeVisible();
+    await expect(header).toHaveCSS('text-transform', 'uppercase');
+
+    // A wide table scrolls inside its own box; the document never scrolls sideways.
+    const pageOverflows = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    );
+    expect(pageOverflows).toBe(false);
   });
 
   test('opens player career popup on leaderboard player click and allows standalone navigation', async ({
@@ -692,10 +744,20 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('heading', { name: 'Upcoming' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Finished & Archive' })).toBeVisible();
 
-    // Featured block names the live tournament — it also appears in
-    // its normal "Live & Active" section below, so both the heading and the
-    // now-doubled tournament link are the evidence.
+    // No tournament in this seed carries the organizer's featured flag, so the
+    // block falls back to naming the live one exactly as it did before 0207 —
+    // the regression that proves an organization which never touches the toggle
+    // sees no change at all.
     await expect(page.getByRole('heading', { name: 'Featured' })).toBeVisible();
+
+    // Live is urgent and comes first; featured is curated and follows it (0207).
+    const sectionHeadings = await page
+      .locator('h2.cl-section-title')
+      .allTextContents()
+      .then((all) => all.map((heading) => heading.trim()));
+    expect(sectionHeadings.indexOf('Live & Active')).toBeLessThan(
+      sectionHeadings.indexOf('Featured'),
+    );
 
     // Check Live tournament
     await expect(page.getByRole('link', { name: 'Torneo Relámpago 2026' }).first()).toBeVisible();

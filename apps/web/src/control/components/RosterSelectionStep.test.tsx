@@ -4,6 +4,7 @@ import { RosterSelectionStep } from './RosterSelectionStep.js';
 import { withIntl } from '../i18n/test-support.js';
 import {
   ControlApiError,
+  type ConsoleEntrant,
   type ConsoleRoster,
   type ConsoleRosterRole,
   type MatchConsoleApiClient,
@@ -43,6 +44,9 @@ function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApi
     resolveMatchTimer: async () => {
       throw new Error('not used in this test');
     },
+    sendMatchCommand: async () => {
+      throw new Error('not used in this test');
+    },
     recordMatchEvent: async () => {
       throw new Error('not used in this test');
     },
@@ -60,7 +64,7 @@ function renderStep(
   overrides: {
     readonly existingRosters?: readonly ConsoleRoster[];
     readonly rosterRoles?: readonly ConsoleRosterRole[];
-    readonly entrantIds?: readonly string[];
+    readonly entrants?: readonly ConsoleEntrant[];
     readonly api?: MatchConsoleApiClient;
     readonly onSaved?: () => void;
   } = {},
@@ -71,7 +75,7 @@ function renderStep(
     withIntl(
       <RosterSelectionStep
         api={api}
-        entrantIds={overrides.entrantIds ?? ['entrant-a']}
+        entrants={overrides.entrants ?? [{ entrantId: 'entrant-a', name: 'Club Atlético' }]}
         existingRosters={overrides.existingRosters ?? []}
         matchId="match-1"
         onSaved={onSaved}
@@ -99,25 +103,26 @@ describe('RosterSelectionStep', () => {
       existingRosters: [
         {
           entrantId: 'entrant-a',
-          teamName: 'Norte',
           members: [
             { personId: 'p1', number: 9, name: 'Scorer', roles: ['captain'], onField: true },
           ],
         },
       ],
     });
-    await screen.findByText('Norte');
+    await screen.findByText('Club Atlético');
     const scorerRow = within(screen.getByText('Scorer').closest('li') as HTMLElement);
     const numberInput = scorerRow.getByPlaceholderText('No.') as HTMLInputElement;
     expect(numberInput.value).toBe('9');
     expect(scorerRow.getByRole('checkbox', { name: 'Scorer' })).toHaveProperty('checked', true);
   });
 
-  it('falls back to the entrant id when no team name is known yet', async () => {
+  it('labels an entrant with no resolvable name rather than showing its id', async () => {
     const entrantId = 'entrant-with-no-roster-1234';
-    renderStep({ entrantIds: [entrantId] });
+    renderStep({ entrants: [{ entrantId }] });
     await screen.findByText('Scorer');
-    expect(screen.getByText(entrantId.slice(-8))).toBeDefined();
+    expect(screen.getByText('Unnamed entrant')).toBeDefined();
+    expect(screen.queryByText(entrantId)).toBeNull();
+    expect(screen.queryByText(entrantId.slice(-8))).toBeNull();
   });
 
   it('renders no roles row when the discipline declares none', async () => {
@@ -212,7 +217,12 @@ describe('RosterSelectionStep', () => {
   });
 
   it('renders one independent editor per entrant', async () => {
-    renderStep({ entrantIds: ['entrant-a', 'entrant-b'] });
+    renderStep({
+      entrants: [
+        { entrantId: 'entrant-a', name: 'Club Atlético' },
+        { entrantId: 'entrant-b', name: 'Deportivo Cuyo' },
+      ],
+    });
     await screen.findAllByText('Scorer');
     expect(screen.getAllByText('Scorer')).toHaveLength(2);
     expect(screen.getAllByRole('button', { name: 'Save roster' })).toHaveLength(2);

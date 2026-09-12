@@ -21,6 +21,12 @@ describe('NativeAuthRoutes', () => {
     globalThis.fetch = jest.fn() as any;
   });
 
+  // `locale="en"`, not `"es"`: openspec 0225 task 2.6 restated every
+  // `auth.*` defaultMessage in the source language. There is still no
+  // real per-locale catalogue for this namespace (a separate concern), so
+  // every locale — Spanish included — now falls back to English rather
+  // than to the Spanish these tests used to see by coincidence.
+
   it('renders LoginRoute and handles success', async () => {
     (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
       ok: true,
@@ -28,14 +34,18 @@ describe('NativeAuthRoutes', () => {
     } as any);
 
     render(
-      <ControlIntl locale="es">
+      <ControlIntl locale="en">
         <LoginRoute />
       </ControlIntl>,
     );
 
+    const forgotLink = screen.getByRole('link', { name: /Forgot your password\?/i });
+    expect(forgotLink.className).toContain('cl-link');
+    expect(forgotLink.className).toContain('cl-focusable');
+
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'test@example.com' } });
-    fireEvent.change(screen.getByLabelText(/Contraseña/i), { target: { value: 'password' } });
-    fireEvent.click(screen.getByRole('button', { name: /Ingresar/i }));
+    fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'password' } });
+    fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
   });
@@ -44,16 +54,16 @@ describe('NativeAuthRoutes', () => {
     (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({ ok: true } as any);
 
     render(
-      <ControlIntl locale="es">
+      <ControlIntl locale="en">
         <ForgotPasswordRoute />
       </ControlIntl>,
     );
 
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'test@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: /Enviar enlace/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Send link/i }));
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
-    expect(await screen.findByText('Si el correo existe, se ha enviado un enlace.')).toBeTruthy();
+    expect(await screen.findByText('If the email exists, a link has been sent.')).toBeTruthy();
   });
 
   it('renders ResetPasswordRoute and handles success', async () => {
@@ -63,15 +73,15 @@ describe('NativeAuthRoutes', () => {
     (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({ ok: true } as any);
 
     render(
-      <ControlIntl locale="es">
+      <ControlIntl locale="en">
         <ResetPasswordRoute />
       </ControlIntl>,
     );
 
-    fireEvent.change(screen.getByLabelText(/Contraseña/i), { target: { value: 'newpassword' } });
-    fireEvent.click(screen.getByRole('button', { name: /Restablecer/i }));
+    fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'newpassword' } });
+    fireEvent.click(screen.getByRole('button', { name: /Reset password/i }));
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
-    expect(await screen.findByText('Contraseña actualizada. Ya puedes ingresar.')).toBeTruthy();
+    expect(await screen.findByText('Password updated. You can now sign in.')).toBeTruthy();
   });
 });

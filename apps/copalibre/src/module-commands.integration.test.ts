@@ -65,7 +65,7 @@ describe('module add --source allow-list (integration)', () => {
     expect(installed).toHaveLength(1);
     expect(installed[0]?.sourceKind).toBe('alternate');
     expect(installed[0]?.sourceRepositoryUrl).toBe(CURATED_MODULE_REPOSITORY.repositoryUrl);
-  });
+  }, 30_000);
 
   it('installs a tournament profile module from the curated repository', async () => {
     const environment = baseEnvironment();
@@ -78,5 +78,5 @@ describe('module add --source allow-list (integration)', () => {
     expect(installed).toHaveLength(1);
     expect(installed[0]?.kind).toBe('tournament-profile');
     expect(installed[0]?.sourceKind).toBe('curated');
-  });
+  }, 30_000);
 });

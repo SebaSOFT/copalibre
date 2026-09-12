@@ -1,6 +1,6 @@
 ---
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
-import PlayerProfileView from '../../../../../../components/PlayerProfileView.astro';
+import PlayerProfileView from '../../../../../../components/ui/organisms/PlayerProfileView.astro';
 import {
   fetchOverview,
   fetchPlayerProfile,
@@ -61,11 +61,12 @@ const canonicalPath = `${localePrefix}${model.canonicalPath}/players/${personId}
     gap: 16px;
   }
   .cl-player-profile-page__back a {
-    color: var(--cl-color-primary, #2563eb);
+    color: var(--cl-primary);
     text-decoration: none;
     font-weight: 500;
   }
   .cl-player-profile-page__back a:hover {
+    color: var(--cl-primary-hover);
     text-decoration: underline;
   }
 </style>

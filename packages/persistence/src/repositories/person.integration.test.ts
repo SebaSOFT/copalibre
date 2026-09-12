@@ -636,7 +636,16 @@ describe('people and their memberships (integration)', () => {
         projectionVersion: 1,
         figures: [
           {
-            collectorCode: 'career-goals',
+            collectorCode: 'goals-for',
+            actorGranularity: 'person',
+            actorId: person.personId,
+            competitionGranularity: 'match',
+            competitionId: match1.matchId,
+            value: 3,
+            samples: 1,
+          },
+          {
+            collectorCode: 'custom-unclaimed',
             actorGranularity: 'person',
             actorId: person.personId,
             competitionGranularity: 'organization',
@@ -652,7 +661,16 @@ describe('people and their memberships (integration)', () => {
         projectionVersion: 1,
         figures: [
           {
-            collectorCode: 'career-goals',
+            collectorCode: 'goals-for',
+            actorGranularity: 'person',
+            actorId: person.personId,
+            competitionGranularity: 'match',
+            competitionId: match2.matchId,
+            value: 2,
+            samples: 1,
+          },
+          {
+            collectorCode: 'custom-unclaimed',
             actorGranularity: 'person',
             actorId: person.personId,
             competitionGranularity: 'organization',
@@ -665,7 +683,16 @@ describe('people and their memberships (integration)', () => {
     });
 
     const totals = await people.careerTotals(organizationId, person.personId);
-    expect(totals).toHaveLength(1);
-    expect(totals[0]?.totals).toEqual([{ collectorCode: 'career-goals', value: 5, samples: 2 }]);
+    expect(totals).toHaveLength(2);
+
+    const footballTotals = totals.find((t) => t.descriptorId === descriptor.descriptorId);
+    expect(footballTotals).toBeDefined();
+    expect(footballTotals?.totals).toEqual([{ collectorCode: 'goals-for', value: 5, samples: 2 }]);
+
+    const unclaimedTotals = totals.find((t) => t.descriptorId === 'default');
+    expect(unclaimedTotals).toBeDefined();
+    expect(unclaimedTotals?.totals).toEqual([
+      { collectorCode: 'custom-unclaimed', value: 5, samples: 2 },
+    ]);
   });
 });

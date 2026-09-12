@@ -3,24 +3,25 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { jest } from '@jest/globals';
-import { FormField } from './form-field.js';
+import { Field } from './field.js';
+import { FieldSet } from './field-set.js';
 import { DataEntityCard } from './data-entity-card.js';
 import { TableToolbar } from './table-toolbar.js';
 import { Pagination } from './pagination.js';
 import { EntityIdentityCell } from './entity-identity-cell.js';
 import { Input } from '../atoms/input.js';
 
-describe('FormField', () => {
+describe('Field', () => {
   it('renders identically whether it wraps an error or not, aside from the message', () => {
     const { container: withoutError } = render(
-      <FormField id="a" label="Correo">
+      <Field id="a" label="Correo">
         <Input id="a" onChange={() => {}} value="" />
-      </FormField>,
+      </Field>,
     );
     const { container: withError } = render(
-      <FormField errorText="Requerido" id="b" label="Correo">
+      <Field errorText="Requerido" id="b" label="Correo">
         <Input id="b" onChange={() => {}} value="" />
-      </FormField>,
+      </Field>,
     );
     // Same structural shape: a label, the control, then an optional message slot.
     expect(withoutError.querySelectorAll('.cl-form-field > *').length).toBe(2);
@@ -29,9 +30,9 @@ describe('FormField', () => {
 
   it('shows the error message with role=alert, not the help text', () => {
     render(
-      <FormField errorText="Requerido" helpText="Ayuda" id="c" label="Correo">
+      <Field errorText="Requerido" helpText="Ayuda" id="c" label="Correo">
         <Input id="c" onChange={() => {}} value="" />
-      </FormField>,
+      </Field>,
     );
     expect(screen.getByRole('alert').textContent).toBe('Requerido');
     expect(screen.queryByText('Ayuda')).toBeNull();
@@ -39,9 +40,9 @@ describe('FormField', () => {
 
   it('shows the help text when there is no error', () => {
     render(
-      <FormField helpText="Ayuda" id="d" label="Correo">
+      <Field helpText="Ayuda" id="d" label="Correo">
         <Input id="d" onChange={() => {}} value="" />
-      </FormField>,
+      </Field>,
     );
     expect(screen.getByText('Ayuda').className).toContain('cl-form-field__help');
     expect(screen.queryByRole('alert')).toBeNull();
@@ -49,11 +50,45 @@ describe('FormField', () => {
 
   it('renders no message slot when there is neither an error nor help text', () => {
     const { container } = render(
-      <FormField id="e" label="Correo">
+      <Field id="e" label="Correo">
         <Input id="e" onChange={() => {}} value="" />
-      </FormField>,
+      </Field>,
     );
     expect(container.querySelectorAll('.cl-form-field > *').length).toBe(2);
+  });
+
+  it('shows a required indicator, purely visual, when required is set', () => {
+    const { container: optional } = render(
+      <Field id="f" label="Correo">
+        <Input id="f" onChange={() => {}} value="" />
+      </Field>,
+    );
+    expect(optional.querySelector('.cl-form-field__required')).toBeNull();
+
+    const { container: required } = render(
+      <Field id="g" label="Correo" required>
+        <Input id="g" onChange={() => {}} value="" />
+      </Field>,
+    );
+    const indicator = required.querySelector('.cl-form-field__required');
+    expect(indicator).not.toBeNull();
+    expect(indicator?.getAttribute('aria-hidden')).toBe('true');
+  });
+});
+
+describe('FieldSet', () => {
+  it('renders a fieldset/legend pair, grouping its fields', () => {
+    render(
+      <FieldSet legend="Contacto">
+        <Field id="h" label="Correo">
+          <Input id="h" onChange={() => {}} value="" />
+        </Field>
+      </FieldSet>,
+    );
+    const fieldset = screen.getByRole('group', { name: 'Contacto' });
+    expect(fieldset.tagName).toBe('FIELDSET');
+    expect(screen.getByText('Contacto').tagName).toBe('LEGEND');
+    expect(screen.getByLabelText('Correo')).toBeDefined();
   });
 });
 
@@ -91,6 +126,52 @@ describe('DataEntityCard', () => {
     render(<DataEntityCard actions={<button type="button">Ver</button>} title="Con acciones" />);
     expect(screen.getByRole('button', { name: 'Ver' })).toBeDefined();
   });
+
+  it('renders a plain title by default and a linked one when given a href', () => {
+    const { container: plain } = render(<DataEntityCard title="Liga Mendocina" />);
+    expect(plain.querySelector('.cl-card__title a')).toBeNull();
+    expect(plain.querySelector('.cl-card__title')?.textContent).toBe('Liga Mendocina');
+
+    render(
+      <DataEntityCard title="Apertura 2026" titleHref="/control/liga/tournaments/a/matches-view" />,
+    );
+    expect(screen.getByRole('link', { name: 'Apertura 2026' }).getAttribute('href')).toBe(
+      '/control/liga/tournaments/a/matches-view',
+    );
+  });
+
+  it('navigates a linked title through the handler it is given', () => {
+    const onTitleNavigate = jest.fn();
+    render(
+      <DataEntityCard onTitleNavigate={onTitleNavigate} title="Apertura" titleHref="/somewhere" />,
+    );
+
+    fireEvent.click(screen.getByRole('link', { name: 'Apertura' }));
+
+    expect(onTitleNavigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('carries the lifecycle accent on the card itself, from a closed set', () => {
+    const { container } = render(<DataEntityCard accent="live" title="Apertura" />);
+
+    expect(container.querySelector('.cl-card')?.className).toContain('cl-state--live');
+  });
+
+  it('renders a numeric metadata value as a figure and a prose one plainly', () => {
+    const { container } = render(
+      <DataEntityCard
+        metadata={[
+          { label: 'Partidos hoy', numeric: true, value: '4' },
+          { label: 'Alias', value: 'apertura-2026' },
+        ]}
+        title="Apertura"
+      />,
+    );
+
+    const figures = container.querySelectorAll('.cl-data-entity-card__metadata-figure');
+    expect(figures).toHaveLength(1);
+    expect(figures[0]?.textContent).toBe('4');
+  });
 });
 
 describe('TableToolbar and Pagination', () => {
@@ -113,7 +194,16 @@ describe('TableToolbar and Pagination', () => {
   });
 
   it('disables previous on the first page and next on the last', () => {
-    render(<Pagination onPageChange={() => {}} page={1} pageCount={3} />);
+    render(
+      <Pagination
+        navigationLabel="Pagination"
+        nextLabel="Next"
+        previousLabel="Previous"
+        onPageChange={() => {}}
+        page={1}
+        pageCount={3}
+      />,
+    );
     expect((screen.getByRole('button', { name: 'Previous' }) as HTMLButtonElement).disabled).toBe(
       true,
     );
@@ -124,7 +214,16 @@ describe('TableToolbar and Pagination', () => {
 
   it('disables next on the last page and calls onPageChange with the target page', () => {
     const onPageChange = jest.fn();
-    render(<Pagination onPageChange={onPageChange} page={3} pageCount={3} />);
+    render(
+      <Pagination
+        navigationLabel="Pagination"
+        nextLabel="Next"
+        previousLabel="Previous"
+        onPageChange={onPageChange}
+        page={3}
+        pageCount={3}
+      />,
+    );
     expect((screen.getByRole('button', { name: 'Next' }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
     expect(onPageChange).toHaveBeenCalledWith(2);
@@ -133,6 +232,7 @@ describe('TableToolbar and Pagination', () => {
   it('accepts custom previous/next labels', () => {
     render(
       <Pagination
+        navigationLabel="Paginación"
         nextLabel="Siguiente"
         onPageChange={() => {}}
         page={2}

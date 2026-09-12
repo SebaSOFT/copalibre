@@ -1,0 +1,233 @@
+---
+/**
+ * The public header.
+ *
+ * One navigation landmark, expanded by default. That ordering is deliberate:
+ * the markup a browser with no JavaScript receives already has every link in
+ * it, and the script's first act is to *close* the menu and reveal the control
+ * that reopens it. Building it the other way round — hidden markup that script
+ * has to reveal — leaves a public results page with no navigation at all
+ * behind a proxy that strips scripts, which is the one place these pages have
+ * to keep working.
+ *
+ * The operator surface's modal drawer is untouched. A dense task surface wants
+ * the page held still behind its menu; a public page wants the page to move.
+ */
+import type { IntlShape } from 'react-intl';
+import Logo from '../atoms/Logo.astro';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import { getLocaleHomePath, getLocalePrefix } from '../../../lib/locale.ts';
+
+export interface LocaleOption {
+  readonly locale: string;
+  readonly href: string;
+}
+
+interface Props {
+  readonly intl: IntlShape;
+  /**
+   * The same path under each language the page actually publishes. Built by the
+   * layout from the alternates it already computes, so the control never offers
+   * a locale the page does not exist in.
+   */
+  readonly localeOptions?: readonly LocaleOption[];
+}
+const { intl, localeOptions = [] } = Astro.props;
+
+const locale = intl.locale;
+const prefix = getLocalePrefix(locale);
+const homeUrl = getLocaleHomePath(locale);
+
+/*
+  Destinations the application actually serves. Nothing here is borrowed from
+  the reference project's marketing navigation: a header link to a page that
+  does not exist is a dead link shipped on every page at once.
+*/
+const links = [
+  { href: homeUrl, label: intl.formatMessage(messages.headerNavHome) },
+  { href: `${prefix}/help/`, label: intl.formatMessage(messages.headerNavHelp) },
+  {
+    href: `${prefix}/help/api-reference/`,
+    label: intl.formatMessage(messages.headerNavApiReference),
+  },
+];
+
+const controlLabel = intl.formatMessage(messages.headerControlPanel);
+const navLabel = intl.formatMessage(messages.layoutNavAriaLabel);
+const openLabel = intl.formatMessage(messages.headerOpenMenu);
+const closeLabel = intl.formatMessage(messages.headerCloseMenu);
+
+/** Endonyms, so a reader looking for their own language finds it written in it. */
+const languageName = (code: string): string => {
+  try {
+    return new Intl.DisplayNames([code], { type: 'language' }).of(code) ?? code.toUpperCase();
+  } catch {
+    return code.toUpperCase();
+  }
+};
+---
+
+<header class="cl-public-header">
+  <div class="cl-public-header__row">
+    <Logo href={homeUrl} />
+
+    <nav aria-label={navLabel} class="cl-public-header__nav" id="cl-public-nav">
+      <ul class="cl-public-header__links">
+        {
+          links.map((link) => (
+            <li>
+              <a class="cl-public-header__link cl-focusable" href={link.href}>
+                {link.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      {
+        /*
+        No repeated action here. The reference puts one in its drawer because
+        its drawer covers the row; this one displaces the page instead, so the
+        row — and the action in it — stays on screen the whole time. A second
+        link with the same text and destination, visible simultaneously, would
+        be a duplicate rather than a convenience.
+      */
+      }
+    </nav>
+
+    <div class="cl-public-header__actions">
+      {
+        localeOptions.length > 1 && (
+          <details class="cl-public-header__locale">
+            <summary aria-label={intl.formatMessage(messages.headerLanguage)} class="cl-focusable">
+              {locale.toUpperCase()}
+            </summary>
+            <ul class="cl-public-header__locale-list">
+              {localeOptions.map((option) => (
+                <li>
+                  <a
+                    aria-current={option.locale === locale ? 'true' : undefined}
+                    class="cl-public-header__link cl-focusable"
+                    href={option.href}
+                    hreflang={option.locale}
+                    lang={option.locale}
+                  >
+                    {languageName(option.locale)}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )
+      }
+
+      <a
+        class="cl-public-header__cta cl-btn cl-btn--primary cl-chamfer cl-chamfer--control cl-focusable"
+        href="/control/"
+      >
+        {controlLabel}
+      </a>
+
+      {
+        /*
+        Hidden until the script that gives it meaning has run — see the note at
+        the top of this file. `hidden` rather than a class, so a browser that
+        never runs the script leaves it out of the tab order too.
+      */
+      }
+      <button
+        aria-controls="cl-public-nav"
+        aria-expanded="true"
+        aria-label={closeLabel}
+        class="cl-public-header__toggle cl-focusable"
+        data-close-label={closeLabel}
+        data-open-label={openLabel}
+        data-public-nav-toggle
+        hidden
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="cl-public-header__toggle-closed"
+          fill="none"
+          height="18"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="18"
+        >
+          <path d="M4 7h16M4 12h16M4 17h16"></path>
+        </svg>
+        <svg
+          aria-hidden="true"
+          class="cl-public-header__toggle-open"
+          fill="none"
+          height="18"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="18"
+        >
+          <path d="M6 6l12 12M18 6L6 18"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  /*
+    Enhancement only. Everything below starts from a page whose navigation is
+    already there and already reachable; this closes it, reveals the control
+    that reopens it, and keeps the two in step.
+  */
+  const MEDIUM = '(min-width: 768px)';
+
+  function enhanceHeader(toggle: HTMLButtonElement) {
+    const nav = document.getElementById(toggle.getAttribute('aria-controls') ?? '');
+    if (!nav) return;
+
+    const wide = window.matchMedia(MEDIUM);
+
+    const setExpanded = (expanded: boolean) => {
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      const label = expanded ? toggle.dataset.closeLabel : toggle.dataset.openLabel;
+      if (label) toggle.setAttribute('aria-label', label);
+      nav.hidden = !expanded;
+    };
+
+    /*
+      Above the breakpoint the links live in the row and there is nothing to
+      disclose, so the menu is open and the control is gone. Re-applied on every
+      change rather than once, or a phone rotated to landscape keeps a closed
+      menu it can no longer open.
+    */
+    const apply = () => {
+      toggle.hidden = wide.matches;
+      setExpanded(wide.matches ? true : toggle.getAttribute('aria-expanded') === 'true');
+      if (wide.matches) nav.hidden = false;
+    };
+
+    toggle.addEventListener('click', () => {
+      setExpanded(toggle.getAttribute('aria-expanded') !== 'true');
+    });
+
+    // Escape closes it and puts the focus back on the control that opened it,
+    // rather than leaving the reader at the top of a page they did not move to.
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || wide.matches) return;
+      if (toggle.getAttribute('aria-expanded') !== 'true') return;
+      setExpanded(false);
+      toggle.focus();
+    });
+
+    wide.addEventListener('change', apply);
+    setExpanded(false);
+    apply();
+  }
+
+  for (const toggle of document.querySelectorAll<HTMLButtonElement>('[data-public-nav-toggle]')) {
+    enhanceHeader(toggle);
+  }
+</script>

@@ -24,6 +24,13 @@ await build({
   platform: 'node',
   format: 'cjs',
   target: 'node24',
+  external: ['sharp'],
+  define: {
+    'import.meta.url': 'import_meta_url',
+  },
+  banner: {
+    js: 'const import_meta_url = typeof document === "undefined" ? new (require("url").URL)("file:" + __filename).href : (document.currentScript && document.currentScript.src || new URL("main.js", document.baseURI).href);',
+  },
 });
 
 process.stdout.write(`Bundled to ${outfile}\n`);

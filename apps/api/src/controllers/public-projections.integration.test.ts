@@ -124,6 +124,7 @@ describe('public projections routes', () => {
     expect(data.organizationAlias).toBe('liga-orbital');
     expect(data.disciplineImages).toEqual([{ key: 'modules/football/1.0.0/football-01.jpg' }]);
     expect(Array.isArray(data.matches)).toBe(true);
+    expect(data.status).toBeDefined();
   });
 
   it('returns an upcoming stage-scoped match report and 404s for unknown stage or match numbers', async () => {
@@ -446,6 +447,124 @@ describe('public projections routes', () => {
     });
   });
 
+  it('serves match report headline score honoring declared scoringInput when wins is first key in statistics', async () => {
+    const competition = new CompetitionRepository(scratch.db as Kysely<Database>);
+    const now = new Date();
+
+    const { stage, match } = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      const homeTeamId = newId();
+      const awayTeamId = newId();
+      const homeEntrantId = newId();
+      const awayEntrantId = newId();
+      await uow.tx
+        .insertInto('teams')
+        .values([
+          {
+            team_id: homeTeamId,
+            organization_id: organizationId,
+            alias: 'spurs',
+            club_id: null,
+            name: 'Spurs',
+            discipline_id: null,
+            abbreviation: 'SAS',
+            created_at: now,
+          },
+          {
+            team_id: awayTeamId,
+            organization_id: organizationId,
+            alias: 'heat',
+            club_id: null,
+            name: 'Heat',
+            discipline_id: null,
+            abbreviation: 'MIA',
+            created_at: now,
+          },
+        ])
+        .execute();
+      await uow.tx
+        .insertInto('entrants')
+        .values([
+          {
+            entrant_id: homeEntrantId,
+            tournament_id: publishedTournament.tournamentId,
+            entrant_kind: 'team',
+            person_id: null,
+            team_id: homeTeamId,
+            abbreviation: 'SAS',
+            seed: null,
+            status: 'accepted',
+            created_at: now,
+          },
+          {
+            entrant_id: awayEntrantId,
+            tournament_id: publishedTournament.tournamentId,
+            entrant_kind: 'team',
+            person_id: null,
+            team_id: awayTeamId,
+            abbreviation: 'MIA',
+            seed: null,
+            status: 'accepted',
+            created_at: now,
+          },
+        ])
+        .execute();
+
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: publishedTournament.tournamentId,
+        number: 3,
+        name: 'Conference Finals',
+        format: 'single-elimination',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const fixtures = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [{ round: 1, homeEntrantId, awayEntrantId }],
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const fixture = fixtures[0];
+      if (!fixture) throw new Error('Expected at least one fixture');
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture.fixtureId,
+        number: 1,
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+
+      // Deliberately place 'wins' as the first key, followed by 'points'
+      await competition.recordResult(uow, {
+        matchId: match.matchId,
+        result: {
+          sides: [
+            { entrantId: homeEntrantId, statistics: { wins: 1, points: 95 } },
+            { entrantId: awayEntrantId, statistics: { wins: 0, points: 82 } },
+          ],
+          winnerEntrantId: homeEntrantId,
+          recordedAt: '2026-01-01T01:00:00.000Z',
+        },
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      return { stage, match };
+    });
+
+    const response = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/${stage.number}/matches/${match.number}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.payload as string);
+    // Score must be 95-82, NEVER 1-0 from the 'wins' key!
+    expect(body.homeScore).toBe(95);
+    expect(body.awayScore).toBe(82);
+  });
+
   it("serves a person's public profile with computed age and no private fields", async () => {
     const people = new PersonRepository(scratch.db as Kysely<Database>);
     const enrollment = new EnrollmentRepository(scratch.db as Kysely<Database>);
@@ -581,6 +700,118 @@ describe('public projections routes', () => {
               value: 12,
             }),
           ]),
+        }),
+      ]),
+    );
+  });
+
+  it('shows non-empty career statistics on profile when match-level figures are recorded in a finalized match', async () => {
+    const persons = new PersonRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const enrollment = new EnrollmentRepository(scratch.db);
+    const statistics = new StatisticRepository(scratch.db);
+
+    const { person } = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      const { person } = await persons.register(uow, {
+        organizationId,
+        naturalKey: { kind: 'dni', value: '99.887.766' },
+        displayName: 'Alexis Sánchez',
+        birthDate: '1988-12-19',
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await persons.setNationality(uow, {
+        personId: person.personId,
+        organizationId,
+        nationality: 'CL',
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+
+      const team = await enrollment.createTeam(uow, {
+        name: 'Arsenal FC',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+
+      await persons.enlist(uow, {
+        personId: person.personId,
+        teamId: team.teamId,
+        role: 'player',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+
+      const entrant = await enrollment.registerEntrant(uow, {
+        organizationId,
+        tournamentId: publishedTournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: team.teamId },
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: publishedTournament.tournamentId,
+        number: 20,
+        name: 'Finals',
+        format: 'single-elimination',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [{ round: 1, homeEntrantId: entrant.entrantId }],
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      if (!fixture) throw new Error('Fixture creation failed');
+
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture.fixtureId,
+        number: 1,
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+
+      await statistics.projectMatch(uow, {
+        organizationId,
+        matchId: match.matchId,
+        projectionVersion: 1,
+        figures: [
+          {
+            collectorCode: 'career-goals',
+            actorGranularity: 'person',
+            actorId: person.personId,
+            competitionGranularity: 'match',
+            competitionId: match.matchId,
+            value: 5,
+            samples: 1,
+          },
+        ],
+      });
+
+      return { person };
+    });
+
+    const response = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/${person.personId}/public/profile`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.payload as string);
+    expect(body.careerStatistics.length).toBeGreaterThan(0);
+    expect(body.careerStatistics[0].statistics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'career-goals',
+          value: 5,
         }),
       ]),
     );

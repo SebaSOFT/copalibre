@@ -28,6 +28,30 @@ den öffentlichen Bildschirm des Turniers übertragen.
   nicht von diesem Bildschirm aus überschrieben — jede spätere Korrektur läuft über den
   protokollierten Korrektur-/Ersetzungsablauf, nicht durch erneutes Laden hier.
 
+## Die Uhr steuern
+
+Jeder Abschnitt hat seine eigene Uhr, gesteuert über drei Schaltflächen unter dem ausgewählten
+Abschnitt:
+
+- **Starten** setzt die Uhr dieses Abschnitts in Gang und stoppt die, die gerade lief — es läuft
+  immer nur eine.
+- **Pausieren** hält sie an, wo sie steht. Ein pausiertes Spiel läuft weiterhin: die Pause stoppt
+  eine Uhr, nicht den Wettbewerb.
+- **Abschnitt beenden** schließt diesen Abschnitt ab. Danach nimmt er weder Starten noch Pausieren
+  an, und das Spiel endet damit nicht — das Ergebnis einzutragen ist eine eigene Handlung.
+
+Sie halten den Moment fest, in dem tatsächlich gepfiffen wurde. Das Feld für die verstrichenen
+Sekunden daneben bleibt, was es immer war: der Weg, einen falsch erfassten Wert im Nachhinein zu
+korrigieren. Beide Wege landen in derselben Prüfspur, mit wer, wann, und was die Uhr davor und
+danach anzeigte.
+
+## Das Ereignisprotokoll lesen
+
+Das Protokoll startet eingeklappt und zeigt die drei jüngsten Ereignisse, damit die
+Erfassungssteuerung während der Arbeit auf einen Bildschirm passt. Was gerade erfasst wurde, ist
+immer darunter: Einklappen nimmt alte Historie aus dem Blick, nie die letzte Bestätigung.
+**Vollständigen Verlauf anzeigen** öffnet das ganze Spiel.
+
 ## Was nach dem Eintragen des Ergebnisses nicht möglich ist
 
 Sobald das Spiel beendet ist, erlaubt dieser Bildschirm nicht mehr, weiter Ereignisse hinzuzufügen,
@@ -41,8 +65,9 @@ erfassen, die Uhr anpassen, einen Kader auswählen oder ein Spiel abschließen s
 dauerhafte lokale Warteschlange — _bevor_ überhaupt versucht wird, es zu senden — sodass ein
 Verbindungsabbruch nie etwas verloren gehen lässt, das bereits erledigt wurde.
 
-- **Der Synchronisierungsstatus** ist immer oben am Bildschirm sichtbar: ob eine Verbindung besteht,
-  wie viele Aktionen noch auf das Senden warten, und wann die letzte tatsächlich durchgegangen ist.
+- **Ein Verbindungspunkt** ist immer oben am Bildschirm sichtbar: gefüllt, wenn eine Verbindung
+  besteht, hohl, wenn nicht. Mit der Maus darauf zeigen oder ihn fokussieren zeigt, wie viele
+  Aktionen noch auf das Senden warten und wann die letzte tatsächlich durchgegangen ist.
 - **Eine wartende Aktion bleibt wartend**, nicht verloren, bei einer instabilen Verbindung, einem
   Funkloch oder selbst beim Schließen und erneuten Öffnen dieses Bildschirms — erneutes Öffnen
   nimmt das Senden alles noch Wartenden wieder auf.

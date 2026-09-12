@@ -1,0 +1,65 @@
+---
+/**
+ * The public-web counterpart to Control-web's `Button` atom (`control/components/ui/atoms/button.tsx`).
+ *
+ * Public-web is server-rendered Astro that must keep working with JavaScript
+ * disabled, so it cannot import the React atom — but it renders the same
+ * `.cl-btn` token classes from `@copalibre/design-tokens`, which every public
+ * page already loads through `PublicLayout`. One design language, two stacks.
+ *
+ * `href` decides the element: a navigation renders an anchor, an action renders
+ * a native button. A link styled as a button is still a link.
+ */
+export type PublicButtonVariant = 'primary' | 'secondary' | 'destructive' | 'destructive-outline';
+
+interface Props {
+  readonly variant?: PublicButtonVariant;
+  readonly href?: string;
+  readonly type?: 'button' | 'submit' | 'reset';
+  readonly title?: string;
+  readonly class?: string;
+}
+
+const { variant = 'primary', href, type = 'button', title, class: extraClass = '' } = Astro.props;
+
+const classes = [
+  'cl-btn',
+  `cl-btn--${variant}`,
+  // Public CTAs carry the display-type treatment; operator screens keep body type.
+  'cl-btn--persuade',
+  'cl-chamfer',
+  'cl-chamfer--control',
+  'cl-focusable',
+  'cl-btn-public',
+  extraClass,
+]
+  .filter(Boolean)
+  .join(' ');
+---
+
+{
+  href ? (
+    <a class={classes} href={href} title={title}>
+      <slot />
+    </a>
+  ) : (
+    <button class={classes} type={type} title={title}>
+      <slot />
+    </button>
+  )
+}
+
+<style>
+  /*
+   * Only what the shared token classes cannot know: an anchor needs the
+   * inline-flex box and the underline reset a <button> gets for free.
+   */
+  .cl-btn-public {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cl-space-2);
+    text-decoration: none;
+    cursor: pointer;
+  }
+</style>

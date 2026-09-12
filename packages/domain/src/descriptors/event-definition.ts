@@ -127,6 +127,21 @@ export interface EventDefinition {
    * payload field already is).
    */
   readonly personPayloadFields?: readonly string[];
+  /**
+   * Display names for the payload fields a console prompts for, keyed by field
+   * name — an assist provider, a substitution's outgoing player.
+   *
+   * Keyed by the field rather than attached to a declaration, because three
+   * different declarations can put the same field in front of an operator:
+   * `personPayloadFields`, a `statistic` effect's `awardTo`, and a `tag`
+   * effect's `target`. A label hung on one of those would leave the field
+   * named differently depending on which route the console read it from.
+   *
+   * Not JSON Schema's `title` on the property itself: `title` is specified as
+   * a string, and these must carry every supported language, which would
+   * trade this schema's standard-ness for adjacency.
+   */
+  readonly payloadFieldLabels?: Readonly<Record<string, string | LocalizedLabel>>;
   /** Optional data-driven branch a console resolves before recording a final fact. */
   readonly workflow?: EventWorkflow;
   /** Presentation metadata for consoles/public surfaces — never behavior. */

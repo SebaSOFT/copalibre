@@ -1,0 +1,127 @@
+---
+/**
+ * Extracted from the match report page (openspec 0225 task 7.2): the
+ * badge/scoreboard/venue header, unchanged in markup and styling.
+ */
+import { Badge } from '../atoms/Badge.tsx';
+import type { MatchReportModel } from '../../../lib/match-report.ts';
+
+export interface Props {
+  readonly model: MatchReportModel;
+}
+
+const { model } = Astro.props;
+---
+
+<header class="cl-match-hero">
+  <div class="cl-match-hero__meta">
+    <Badge className="cl-badge--stage">
+      Stage {model.stageNumber} · Round {model.round} · Match {model.matchNumber}
+    </Badge>
+    <Badge className={`cl-badge--${model.status.toLowerCase()}`}>
+      {model.status}
+    </Badge>
+  </div>
+
+  <h1 class="cl-scoreboard">
+    <div class="cl-scoreboard__side cl-scoreboard__side--home">
+      <span class="cl-team-name">{model.home.abbreviation ?? model.home.name}</span>
+      <span class="cl-team-score">{model.home.score ?? '—'}</span>
+    </div>
+    <div class="cl-scoreboard__divider">–</div>
+    <div class="cl-scoreboard__side cl-scoreboard__side--away">
+      <span class="cl-team-score">{model.away.score ?? '—'}</span>
+      <span class="cl-team-name">{model.away.abbreviation ?? model.away.name}</span>
+    </div>
+  </h1>
+
+  {
+    model.scheduledAt ? (
+      <p class="cl-match-venue">
+        <time datetime={model.scheduledAt}>{model.scheduledAt}</time>
+        {model.venueName ? ` · ${model.venueName}` : ''}
+      </p>
+    ) : model.status === 'upcoming' ? (
+      <p class="cl-match-venue cl-text-muted">Schedule not yet available.</p>
+    ) : null
+  }
+</header>
+
+<style>
+  .cl-match-hero {
+    background: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
+    border-radius: var(--cl-radius-lg);
+    padding: var(--cl-space-6);
+    text-align: center;
+    margin-bottom: var(--cl-space-6);
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--cl-color-ink-950) 30%, transparent);
+  }
+
+  .cl-match-hero__meta {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .cl-scoreboard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin: 1rem 0;
+  }
+
+  .cl-scoreboard__side {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    /* No `min-width: 0` here (openspec 0225 task 7.4): that would let this
+       side shrink and squeeze its own content instead of wrapping to its own
+       line, which is what `.cl-scoreboard`'s `flex-wrap` is there to do at
+       the 188px floor. */
+    min-width: max-content;
+  }
+
+  .cl-scoreboard__side--home {
+    justify-content: flex-end;
+  }
+
+  .cl-scoreboard__side--away {
+    justify-content: flex-start;
+  }
+
+  .cl-team-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-family: var(--cl-font-display);
+  }
+
+  .cl-team-score {
+    font-size: 2.5rem;
+    font-weight: 800;
+    font-family: var(--cl-font-display);
+    color: var(--cl-primary);
+    min-width: 2ch;
+    text-align: center;
+  }
+
+  .cl-scoreboard__divider {
+    font-size: 1.5rem;
+    color: var(--cl-text-muted);
+  }
+
+  .cl-match-venue {
+    margin: 0.5rem 0 0 0;
+    color: var(--cl-text-muted);
+    font-size: 0.875rem;
+  }
+
+  .cl-text-muted {
+    color: var(--cl-text-muted);
+    font-size: 0.875rem;
+  }
+</style>

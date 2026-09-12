@@ -160,6 +160,10 @@ export function toTournament(row: TournamentRow): Tournament {
     status: row.status as Tournament['status'],
     ...(row.started_at === null ? {} : { startedAt: toIsoString(row.started_at) }),
     ...(row.archived_at === null ? {} : { archivedAt: toIsoString(row.archived_at) }),
+    ...(row.emblem_object_id === null || row.emblem_object_id === undefined
+      ? {}
+      : { emblemObjectId: row.emblem_object_id }),
+    featured: row.featured ?? false,
   };
 }
 

@@ -29,7 +29,7 @@ export function standingsPipeline(
   descriptor: DisciplineDescriptor,
   overrides: Readonly<Record<string, unknown>> = {},
 ): TiebreakPipeline {
-  const declared = declaredTiebreaks(overrides);
+  const declared = declaredTiebreaks(overrides, descriptor);
   if (declared.length > 0) {
     return {
       id: 'stage-configured',
@@ -63,22 +63,41 @@ export function standingsPipeline(
 }
 
 /**
- * Reads `standings.tiebreak` off the stage overrides.
+ * Reads `tiebreakers` or `standings.tiebreak` off the stage overrides or discipline defaults.
  *
  * Defensive about shape because overrides are operator-authored JSON: a
  * malformed entry is skipped rather than thrown, so one bad comparator does not
  * take the standings screen down for a tournament that is being played.
  */
 export function declaredTiebreaks(
-  overrides: Readonly<Record<string, unknown>>,
+  overrides: Readonly<Record<string, unknown>> = {},
+  descriptor?: DisciplineDescriptor,
 ): readonly DeclaredTiebreak[] {
   const standings = overrides['standings'];
-  if (typeof standings !== 'object' || standings === null) return [];
+  const standingsObj =
+    typeof standings === 'object' && standings !== null
+      ? (standings as Record<string, unknown>)
+      : undefined;
 
-  const tiebreak = (standings as { readonly tiebreak?: unknown }).tiebreak;
-  if (!Array.isArray(tiebreak)) return [];
+  const rawTiebreak =
+    overrides['tiebreakers'] ??
+    standingsObj?.['tiebreakers'] ??
+    standingsObj?.['tiebreak'] ??
+    overrides['standings.tiebreakers'] ??
+    overrides['standings.tiebreak'] ??
+    descriptor?.defaults?.['tiebreakers'] ??
+    (typeof descriptor?.defaults?.['standings'] === 'object' &&
+    descriptor?.defaults?.['standings'] !== null
+      ? ((descriptor.defaults['standings'] as Record<string, unknown>)['tiebreakers'] ??
+        (descriptor.defaults['standings'] as Record<string, unknown>)['tiebreak'])
+      : undefined);
 
-  return tiebreak.flatMap((entry) => {
+  if (!Array.isArray(rawTiebreak)) return [];
+
+  return rawTiebreak.flatMap((entry) => {
+    if (typeof entry === 'string' && entry.trim().length > 0) {
+      return [{ statisticCode: entry.trim() }];
+    }
     if (typeof entry !== 'object' || entry === null) return [];
     const code = (entry as { readonly statisticCode?: unknown }).statisticCode;
     if (typeof code !== 'string' || code.length === 0) return [];

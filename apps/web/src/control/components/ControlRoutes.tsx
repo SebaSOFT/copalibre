@@ -1,25 +1,88 @@
 import type { ControlApiClient, MatchConsoleApiClient } from '../lib/api-client.js';
 import { ControlShell } from './ControlShell.js';
-import { PersonProfileRoute } from './PersonProfileRoute.js';
-import { RegistrationReviewRoute } from './RegistrationReviewRoute.js';
-import { ReportReviewRoute } from './ReportReviewRoute.js';
-import { MatchesViewRoute } from './MatchesViewRoute.js';
-import { SeedingBuilderRoute } from './SeedingBuilderRoute.js';
-import { StandingsRoute } from './StandingsRoute.js';
-import { TournamentAuthoringPage } from './TournamentAuthoringPage.js';
-import { TournamentSettingsRoute } from './TournamentSettingsRoute.js';
-import { TournamentRulesetRoute } from './TournamentRulesetRoute.js';
-import { RolesPermissionsRoute } from './RolesPermissionsRoute.js';
-import { AuditTrailRoute } from './AuditTrailRoute.js';
-import { MatchConsoleRoute } from './MatchConsoleRoute.js';
-import { LoadMatchDataRoute } from './LoadMatchDataRoute.js';
-import { ZoneGroupRoute } from './ZoneGroupRoute.js';
-import { PromotionPlanRoute } from './PromotionPlanRoute.js';
-import { PreferencesRoute } from './PreferencesRoute.js';
-import { ClubManagementRoute } from './ClubManagementRoute.js';
-import { VenueManagementRoute } from './VenueManagementRoute.js';
-import { ScheduleBuilderRoute } from './ScheduleBuilderRoute.js';
-import { PlatformAdministrationRoute } from './PlatformAdministrationRoute.js';
+import { PersonProfilePage } from './pages/PersonProfilePage.js';
+import { RegistrationReviewPage } from './pages/RegistrationReviewPage.js';
+import { ReportReviewPage } from './pages/ReportReviewPage.js';
+import { MatchesViewPage } from './pages/MatchesViewPage.js';
+import { SeedingBuilderPage } from './pages/SeedingBuilderPage.js';
+import { StandingsPage } from './pages/StandingsPage.js';
+import { TournamentAuthoringTemplate } from './screens/TournamentAuthoringTemplate.js';
+import { TournamentSettingsPage } from './pages/TournamentSettingsPage.js';
+import { TournamentRulesetPage } from './pages/TournamentRulesetPage.js';
+import { RolesPermissionsPage } from './pages/RolesPermissionsPage.js';
+import { AuditTrailPage } from './pages/AuditTrailPage.js';
+import { MatchConsolePage } from './pages/MatchConsolePage.js';
+import { LoadMatchDataPage } from './pages/LoadMatchDataPage.js';
+import { ZoneGroupPage } from './pages/ZoneGroupPage.js';
+import { PromotionPlanPage } from './pages/PromotionPlanPage.js';
+import { PreferencesPage } from './pages/PreferencesPage.js';
+import { ClubManagementPage } from './pages/ClubManagementPage.js';
+import { VenueManagementPage } from './pages/VenueManagementPage.js';
+import { ScheduleBuilderPage } from './pages/ScheduleBuilderPage.js';
+import { PlatformAdministrationPage } from './pages/PlatformAdministrationPage.js';
+import { LiveConsolePage } from './pages/LiveConsolePage.js';
+import { AnalyticsPage } from './pages/AnalyticsPage.js';
+import { DashboardPage } from './pages/DashboardPage.js';
+
+export function TournamentsControlRoute({
+  organizationAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return <DashboardPage client={client} organizationAlias={organizationAlias} />;
+}
+
+export function OrganizationControlRoute({
+  organizationAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell
+      active="organization"
+      helpPath="organization"
+      organizationAlias={organizationAlias}
+    >
+      <PreferencesPage client={client} organizationAlias={organizationAlias} />
+    </ControlShell>
+  );
+}
+
+export function LiveConsoleControlRoute({
+  organizationAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell
+      active="live-console"
+      helpPath="live-console"
+      organizationAlias={organizationAlias}
+    >
+      <LiveConsolePage client={client} organizationAlias={organizationAlias} />
+    </ControlShell>
+  );
+}
+
+export function AnalyticsControlRoute({
+  organizationAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell active="analytics" helpPath="analytics" organizationAlias={organizationAlias}>
+      <AnalyticsPage client={client} organizationAlias={organizationAlias} />
+    </ControlShell>
+  );
+}
 
 export function PlatformAdministrationControlRoute({
   client,
@@ -28,7 +91,7 @@ export function PlatformAdministrationControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell active="platform" helpPath="platform-administration">
-      <PlatformAdministrationRoute client={client} />
+      <PlatformAdministrationPage client={client} />
     </ControlShell>
   );
 }
@@ -42,7 +105,7 @@ export function PreferencesControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell active="preferences" helpPath="preferences" organizationAlias={organizationAlias}>
-      <PreferencesRoute client={client} organizationAlias={organizationAlias} />
+      <PreferencesPage client={client} organizationAlias={organizationAlias} />
     </ControlShell>
   );
 }
@@ -56,7 +119,7 @@ export function ClubManagementControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell active="clubs" helpPath="clubs" organizationAlias={organizationAlias}>
-      <ClubManagementRoute client={client} organizationAlias={organizationAlias} />
+      <ClubManagementPage client={client} organizationAlias={organizationAlias} />
     </ControlShell>
   );
 }
@@ -70,7 +133,7 @@ export function VenueManagementControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell active="resources" helpPath="resources" organizationAlias={organizationAlias}>
-      <VenueManagementRoute client={client} organizationAlias={organizationAlias} />
+      <VenueManagementPage client={client} organizationAlias={organizationAlias} />
     </ControlShell>
   );
 }
@@ -88,7 +151,7 @@ export function ScheduleControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="schedule" organizationAlias={organizationAlias}>
-      <ScheduleBuilderRoute
+      <ScheduleBuilderPage
         client={client}
         organizationAlias={organizationAlias}
         stageNumber={stageNumber}
@@ -105,7 +168,7 @@ export function TournamentAuthoringControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="tournament-authoring" organizationAlias={organizationAlias}>
-      <TournamentAuthoringPage organizationAlias={organizationAlias} />
+      <TournamentAuthoringTemplate organizationAlias={organizationAlias} />
     </ControlShell>
   );
 }
@@ -121,7 +184,7 @@ export function RegistrationReviewControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="registration-review" organizationAlias={organizationAlias}>
-      <RegistrationReviewRoute
+      <RegistrationReviewPage
         organizationAlias={organizationAlias}
         tournamentAlias={tournamentAlias}
         now={now}
@@ -141,7 +204,7 @@ export function TournamentSettingsControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="tournament-authoring" organizationAlias={organizationAlias}>
-      <TournamentSettingsRoute
+      <TournamentSettingsPage
         client={client}
         organizationAlias={organizationAlias}
         tournamentAlias={tournamentAlias}
@@ -161,7 +224,7 @@ export function TournamentRulesetControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="tournament-authoring" organizationAlias={organizationAlias}>
-      <TournamentRulesetRoute
+      <TournamentRulesetPage
         client={client}
         organizationAlias={organizationAlias}
         tournamentAlias={tournamentAlias}
@@ -181,7 +244,7 @@ export function PersonProfileControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="person-profile" organizationAlias={organizationAlias}>
-      <PersonProfileRoute
+      <PersonProfilePage
         client={client}
         organizationAlias={organizationAlias}
         personId={personId}
@@ -201,7 +264,7 @@ export function ReportReviewControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="report-review" organizationAlias={organizationAlias}>
-      <ReportReviewRoute
+      <ReportReviewPage
         client={client}
         organizationAlias={organizationAlias}
         tournamentAlias={tournamentAlias}
@@ -221,7 +284,7 @@ export function MatchesViewControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="matches-view" organizationAlias={organizationAlias}>
-      <MatchesViewRoute
+      <MatchesViewPage
         client={client}
         organizationAlias={organizationAlias}
         tournamentAlias={tournamentAlias}
@@ -244,7 +307,7 @@ export function StandingsControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="standings" organizationAlias={organizationAlias}>
-      <StandingsRoute
+      <StandingsPage
         client={client}
         organizationAlias={organizationAlias}
         stageNumber={stageNumber}
@@ -267,7 +330,7 @@ export function SeedingControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="seeding" organizationAlias={organizationAlias}>
-      <SeedingBuilderRoute
+      <SeedingBuilderPage
         client={client}
         organizationAlias={organizationAlias}
         stageNumber={stageNumber}
@@ -286,7 +349,7 @@ export function RolesPermissionsControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell active="roles" helpPath="roles-permissions" organizationAlias={organizationAlias}>
-      <RolesPermissionsRoute client={client} organizationAlias={organizationAlias} />
+      <RolesPermissionsPage client={client} organizationAlias={organizationAlias} />
     </ControlShell>
   );
 }
@@ -304,7 +367,7 @@ export function AuditTrailControlRoute({
       helpPath="roles-permissions"
       organizationAlias={organizationAlias}
     >
-      <AuditTrailRoute client={client} organizationAlias={organizationAlias} />
+      <AuditTrailPage client={client} organizationAlias={organizationAlias} />
     </ControlShell>
   );
 }
@@ -322,7 +385,7 @@ export function MatchConsoleControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="match-console" organizationAlias={organizationAlias}>
-      <MatchConsoleRoute
+      <MatchConsolePage
         client={client}
         matchId={matchId}
         organizationAlias={organizationAlias}
@@ -345,7 +408,7 @@ export function LoadMatchDataControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="load-match-data" organizationAlias={organizationAlias}>
-      <LoadMatchDataRoute
+      <LoadMatchDataPage
         client={client}
         matchId={matchId}
         organizationAlias={organizationAlias}
@@ -368,7 +431,7 @@ export function ZoneGroupControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="zone-groups" organizationAlias={organizationAlias}>
-      <ZoneGroupRoute
+      <ZoneGroupPage
         client={client}
         organizationAlias={organizationAlias}
         stageNumber={stageNumber}
@@ -393,7 +456,7 @@ export function PromotionPlanControlRoute({
 }): React.JSX.Element {
   return (
     <ControlShell helpPath="promotion-plan" organizationAlias={organizationAlias}>
-      <PromotionPlanRoute
+      <PromotionPlanPage
         client={client}
         organizationAlias={organizationAlias}
         stageNumber={stageNumber}

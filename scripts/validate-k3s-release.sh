@@ -20,7 +20,39 @@ IMAGE_TAG=validate-$(date +%s)
 # a prior step has legitimately moved the release forward.
 CURRENT_TAG="${IMAGE_TAG}"
 
+# Everything this run knows about why it failed, printed before the cluster
+# that holds it is deleted. Three consecutive nightly failures reported only
+# "context deadline exceeded" because the teardown below ran first and took
+# the evidence with it.
+dump_diagnostics() {
+  echo "==> Diagnostics: cluster state at failure"
+  kubectl get pods -o wide 2>&1 || true
+  echo "==> Diagnostics: recent events"
+  kubectl get events --sort-by=.lastTimestamp 2>&1 | tail -40 || true
+
+  local not_ready
+  not_ready=$(kubectl get pods \
+    -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.containerStatuses[*].ready}{"\n"}{end}' \
+    2>/dev/null | awk '$2 != "true" { print $1 }' || true)
+  if [ -z "${not_ready}" ]; then
+    echo "==> Diagnostics: every pod reports ready; the failure is not a pod-readiness one"
+    return
+  fi
+  local pod
+  for pod in ${not_ready}; do
+    echo "==> Diagnostics: describe ${pod}"
+    kubectl describe "pod/${pod}" 2>&1 | tail -40 || true
+    echo "==> Diagnostics: logs ${pod}"
+    kubectl logs "${pod}" --all-containers --tail=60 2>&1 || true
+    kubectl logs "${pod}" --all-containers --tail=30 --previous 2>/dev/null || true
+  done
+}
+
 cleanup() {
+  local status=$?
+  if [ "${status}" -ne 0 ]; then
+    dump_diagnostics || true
+  fi
   echo "==> Tearing down cluster ${CLUSTER_NAME}"
   k3d cluster delete "${CLUSTER_NAME}" >/dev/null 2>&1 || true
 }
@@ -341,11 +373,38 @@ test_unhealthy_pod_not_routed() {
   kubectl scale deployment "${RELEASE_NAME}-api" --replicas=1
 }
 
+# 4.3 — the web role's proxied routes reach the SSR renderer. The web pod's
+# own probe deliberately targets a path Caddy answers itself, so nothing else
+# in this script would notice an upstream that no longer resolves — which is
+# precisely the defect that broke three nightly runs.
+test_ssr_routes_are_served() {
+  log "ssr-routes: requesting a proxied route through the web Service"
+  local pod=copalibre-validate-ssr-probe
+  kubectl run "${pod}" --image=curlimages/curl:latest --restart=Never \
+    --command -- sh -c "sleep 300"
+  kubectl wait --for=condition=ready --timeout=60s "pod/${pod}"
+
+  local status
+  status=$(kubectl exec "${pod}" -- sh -c \
+    "curl -s -o /dev/null -w '%{http_code}' --max-time 20 http://${RELEASE_NAME}-web:4321/" || true)
+  kubectl delete pod "${pod}" --grace-period=0 --force >/dev/null 2>&1 || true
+
+  # 5xx covers both halves of this: a 502/503/504 means the upstream does not
+  # resolve or is not listening, and a 500 means the renderer answered but
+  # could not render — which is what an unreachable API from inside the pod
+  # would produce while its own /health kept passing.
+  if [ -z "${status}" ] || [ "${status}" = "000" ] || [ "${status}" -ge 500 ] 2>/dev/null; then
+    fail "GET / through the web Service returned '${status}': the SSR route is not being served"
+  fi
+  log "OK: a proxied route returned ${status} through the web Service"
+}
+
 main() {
   build_images
   create_cluster
   deploy_postgres
   install_and_assert_migration_gate
+  test_ssr_routes_are_served
   test_rolling_update
   test_single_logical_scheduler
   test_failed_migration_blocks_rollout

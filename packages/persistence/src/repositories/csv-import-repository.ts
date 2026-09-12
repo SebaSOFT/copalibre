@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { CsvImportPreview, CsvImportTarget } from '@copalibre/domain';
+import type { CsvImportPreview, CsvImportTarget } from '@copalibre/domain/import-export';
 import type { Kysely, Selectable } from 'kysely';
 import { newId } from '../ids.js';
 import type { Database } from '../schema.js';

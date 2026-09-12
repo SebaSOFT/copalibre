@@ -27,6 +27,30 @@ vivo a la pantalla pública del torneo.
   sobrescribe desde esta pantalla — cualquier corrección posterior pasa por el flujo auditado de
   corrección/supersesión, no por volver a cargar acá.
 
+## Manejar el reloj
+
+Cada segmento tiene su propio reloj, y lo manejás con tres botones debajo del segmento que
+seleccionaste:
+
+- **Iniciar** arranca el reloj de ese segmento y detiene el que estuviera corriendo — solo corre uno
+  a la vez.
+- **Pausar** lo detiene donde está. Un partido en pausa sigue en curso: la pausa detiene un reloj, no
+  la competencia.
+- **Terminar período** cierra ese segmento. Después no acepta más Iniciar ni Pausar, y no termina el
+  partido — cargar el resultado es una acción aparte.
+
+Estos registran el momento en que realmente tocaste el silbato. El campo de segundos transcurridos
+que está al lado sigue siendo lo que siempre fue: la forma de corregir un valor mal registrado,
+después del hecho. Ambos caminos quedan en la misma auditoría, con quién lo hizo, cuándo, y qué
+marcaba el reloj antes y después.
+
+## Leer el registro de eventos
+
+El registro arranca contraído, mostrando los tres eventos más recientes, para que los controles de
+registro entren en una sola pantalla mientras trabajás. Lo que acabás de registrar siempre está
+entre ellos: contraer saca de la vista el historial viejo, nunca tu última confirmación. **Ver
+historial completo** abre el partido entero.
+
 ## Qué NO se puede hacer después de cargar el resultado
 
 Una vez finalizado el partido, esta pantalla no permite seguir agregando eventos como si el partido
@@ -40,8 +64,9 @@ evento, ajustar el reloj, seleccionar una convocatoria o finalizar un partido es
 cola local durable, _antes_ de intentar enviarlo — así una señal cortada nunca hace perder algo que
 ya hiciste.
 
-- **El estado de sincronización** siempre está visible en la parte superior de la pantalla: si estás
-  en línea, cuántas acciones siguen esperando para enviarse, y cuándo se sincronizó la última.
+- **Un punto de conexión** siempre está visible en la parte superior de la pantalla: relleno si
+  estás en línea, hueco si no. Pasá el mouse o enfocalo para ver cuántas acciones siguen esperando
+  para enviarse y cuándo se sincronizó la última.
 - **Una acción en cola queda en cola**, no se pierde, con una conexión intermitente, una zona sin
   señal, o incluso al cerrar y volver a abrir esta pantalla — reabrirla retoma el envío de lo que
   todavía esté esperando.

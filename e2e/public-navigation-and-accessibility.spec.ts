@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -62,7 +62,7 @@ const overview = {
 
 let apiServer: Server;
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
@@ -105,7 +105,7 @@ test.beforeAll(async () => {
     res.end(JSON.stringify({ message: 'not found' }));
   });
 
-  await new Promise<void>((resolve) => apiServer.listen(3001, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => apiServer.listen(workerPort, '127.0.0.1', resolve));
 });
 
 test.afterAll(async () => {
@@ -115,9 +115,9 @@ test.afterAll(async () => {
 test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () => {
   test('8.1: from a /es/ tournament page, brand link navigates to /es/ root', async ({ page }) => {
     await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
-    await expect(page.locator('a.cl-brand')).toHaveAttribute('href', '/es/');
+    await expect(page.locator('a.cl-logo')).toHaveAttribute('href', '/es/');
 
-    await page.locator('a.cl-brand').click();
+    await page.locator('a.cl-logo').click();
     await page.waitForURL('**/es/**');
     expect(page.url()).toMatch(/\/es\/?$/);
   });
@@ -126,11 +126,35 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
-    await expect(page.locator('a.cl-brand')).toHaveAttribute('href', '/');
+    await expect(page.locator('a.cl-logo')).toHaveAttribute('href', '/');
 
-    await page.locator('a.cl-brand').click();
+    await page.locator('a.cl-logo').click();
     await page.waitForURL((url) => url.pathname === '/' || url.pathname === '');
     expect(new URL(page.url()).pathname).toBe('/');
+  });
+
+  test('0198: the shell header renders the brand lockup, not a default-styled link', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const lockup = page.locator('a.cl-logo');
+    await expect(lockup).toBeVisible();
+    // Mark and wordmark are one unit.
+    await expect(lockup.locator('img')).toBeVisible();
+    await expect(lockup.locator('.cl-logo__wordmark')).toHaveText('CopaLibre');
+
+    // The defect this replaces: browser-default underlined link text.
+    await expect(lockup).toHaveCSS('text-decoration-line', 'none');
+  });
+
+  test('0198: public CTAs render the shared chamfered button treatment', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION}`);
+
+    const cta = page.locator('a.cl-btn').first();
+    await expect(cta).toBeVisible();
+    await expect(cta).toHaveClass(/cl-chamfer--control/);
+    await expect(cta).toHaveCSS('text-decoration-line', 'none');
   });
 
   test('8.2: 404 page resolves requested Spanish locale and renders Spanish copy with link', async ({
@@ -141,7 +165,7 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
 
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
     await expect(page.getByText('No existe ninguna organización en esta dirección.')).toBeVisible();
-    const brandLink = page.locator('a.cl-brand');
+    const brandLink = page.locator('a.cl-logo');
     await expect(brandLink).toHaveAttribute('href', '/es/');
   });
 
@@ -153,7 +177,7 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
 
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.getByText('No organization exists at this address.')).toBeVisible();
-    const brandLink = page.locator('a.cl-brand');
+    const brandLink = page.locator('a.cl-logo');
     await expect(brandLink).toHaveAttribute('href', '/');
   });
 
@@ -220,10 +244,13 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
 
-    // Verify close control exposes accessible name "Close"
-    const closeButton = dialog.getByRole('button', { name: 'Close' });
+    // The close control has an accessible name, in the interface language.
+    // It was the literal "Close" for every viewer until 0214 made it a required
+    // prop sourced from the caller's catalogue, so this asserts the name exists
+    // and is translated rather than asserting one hardcoded English word.
+    const closeButton = dialog.getByRole('button', { name: /cerrar|close/i });
     await expect(closeButton).toBeVisible();
-    await expect(closeButton).toHaveAttribute('aria-label', 'Close');
+    await expect(closeButton).toHaveAttribute('aria-label', /cerrar|close/i);
 
     // Click close button and confirm modal dismisses
     await closeButton.click();

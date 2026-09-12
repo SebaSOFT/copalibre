@@ -6,7 +6,12 @@ import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
-import { createControlApiClient } from '../lib/api-client.js';
+import {
+  createControlApiClient,
+  organizationEmblemUrl,
+  type MyOrganizationResponse,
+  type ControlApiClient,
+} from '../lib/api-client.js';
 import { accessTokenHasScope, controlTokenStore } from '../session/token-store.js';
 import {
   writeStoredLanguagePreference,
@@ -14,13 +19,17 @@ import {
 } from '../../lib/language-preference.js';
 import { ToastProvider } from './ToastProvider.js';
 import { Button } from './ui/atoms/button.js';
+import { FramedImage } from './FramedImage.js';
+import { NavigationDrawer } from './ui/organisms/navigation-drawer.js';
 
 export function ControlShell({
   organizationAlias,
   active = 'tournaments',
   helpPath,
   children,
+  client,
 }: {
+  readonly client?: ControlApiClient;
   readonly organizationAlias?: string;
   /** A `SIDENAV` item's stable `id`, e.g. `'roles'` — never its display label. */
   readonly active?: string;
@@ -34,6 +43,7 @@ export function ControlShell({
     <ControlIntl locale={locale}>
       <ToastProvider>
         <ControlShellChrome
+          client={client}
           active={active}
           helpPath={helpPath}
           locale={locale}
@@ -51,6 +61,7 @@ export function ControlShell({
 }
 
 function ControlShellChrome({
+  client,
   organizationAlias,
   active,
   helpPath,
@@ -58,6 +69,7 @@ function ControlShellChrome({
   onLocaleChange,
   children,
 }: {
+  readonly client?: ControlApiClient;
   readonly organizationAlias?: string;
   readonly active: string;
   readonly helpPath: string;
@@ -68,17 +80,22 @@ function ControlShellChrome({
   const intl = useIntl();
   const isSuperAdmin = accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
   const [role, setRole] = useState<OrganizationRole | undefined>(undefined);
+  const [currentOrg, setCurrentOrg] = useState<MyOrganizationResponse | undefined>(undefined);
   useEffect(() => {
     if (!organizationAlias) return;
     let cancelled = false;
-    createControlApiClient({
-      fetch: globalThis.fetch.bind(globalThis),
-      accessToken: () => controlTokenStore.read(),
-    })
+    (
+      client ??
+      createControlApiClient({
+        fetch: globalThis.fetch.bind(globalThis),
+        accessToken: () => controlTokenStore.read(),
+      })
+    )
       .listMyOrganizations()
       .then((organizations) => {
         if (cancelled) return;
         const mine = organizations.find((one) => one.organizationAlias === organizationAlias);
+        setCurrentOrg(mine);
         setRole(mine?.role);
       })
       .catch(() => {
@@ -88,75 +105,142 @@ function ControlShellChrome({
     return () => {
       cancelled = true;
     };
-  }, [organizationAlias]);
+  }, [client, organizationAlias]);
   // Same locale-prefix routing Starlight's own pages already use for every
   // locale but the default: the root/English pages are unprefixed.
   const helpLocalePrefix = locale === 'en' ? '' : `/${locale}`;
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const logout = (): void => {
     controlTokenStore.clear();
     // A real navigation: /control/ (login) is a separate page from this
     // shell, same boundary as the unauthenticated-visit guard.
     window.location.assign('/control/');
   };
+
+  const orgEmblem =
+    organizationAlias && currentOrg?.emblemObjectId !== undefined
+      ? organizationEmblemUrl(organizationAlias)
+      : undefined;
+
+  const brandMarkNode = (
+    <div style={brandMarkRowStyle}>
+      {orgEmblem ? (
+        <FramedImage
+          alt={currentOrg?.organizationName ?? 'Organization emblem'}
+          placeholder={<img src="/copalibre-logo.svg" alt="" width="24" height="24" />}
+          size={24}
+          src={orgEmblem}
+        />
+      ) : (
+        <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
+      )}
+      <strong>COPALIBRE CMD</strong>
+    </div>
+  );
+
+  const navContent = (onNavigate?: () => void) => (
+    <>
+      <div style={brandStyle}>
+        {brandMarkNode}
+        <span style={metaStyle}>BROADCAST OPS</span>
+      </div>
+      <a
+        className="cl-focusable"
+        href={`${helpLocalePrefix}/help/control/${helpPath}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={helpLinkStyle}
+        onClick={onNavigate}
+      >
+        <FormattedMessage {...messages.shellWhatIsThisScreen} />
+      </a>
+      <ul className="cl-control__nav-list">
+        {organizationAlias &&
+          visibleSidenav(role).map((item) => (
+            <li key={item.id}>
+              <a
+                className="cl-focusable"
+                href={`/control/${organizationAlias}${item.path}`}
+                onClick={(e) => {
+                  onNavigate?.();
+                  controlLinkClick(`/control/${organizationAlias}${item.path}`)(e);
+                }}
+                style={{
+                  ...navLinkStyle,
+                  ...(item.id === active ? navLinkActiveStyle : {}),
+                }}
+              >
+                {intl.formatMessage(item.label)}
+              </a>
+            </li>
+          ))}
+        {isSuperAdmin && (
+          <li>
+            <a
+              className="cl-focusable"
+              href="/control/platform"
+              onClick={(e) => {
+                onNavigate?.();
+                controlLinkClick('/control/platform')(e);
+              }}
+              style={{
+                ...navLinkStyle,
+                ...(active === 'platform' ? navLinkActiveStyle : {}),
+              }}
+            >
+              {intl.formatMessage(messages.navPlatformAdministration)}
+            </a>
+          </li>
+        )}
+      </ul>
+      <LanguageSwitcher onChange={onLocaleChange} value={locale} />
+      <Button onClick={logout} style={logoutButtonStyle} type="button" variant="secondary">
+        <FormattedMessage {...messages.shellLogout} />
+      </Button>
+    </>
+  );
+
   return (
     // data-density scopes the denser Control-web spacing composition,
     // design.md Decision 4) to every screen under this shell — never the
     // public/marketing Astro surfaces, which never render this component.
     <div className="cl-control" data-density="control">
-      <nav aria-label={intl.formatMessage(messages.shellSections)} className="cl-control__nav">
-        <div style={brandStyle}>
-          <div style={brandMarkRowStyle}>
-            <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
-            <strong>COPALIBRE CMD</strong>
-          </div>
-          <span style={metaStyle}>BROADCAST OPS</span>
-        </div>
-        <a
-          className="cl-focusable"
-          href={`${helpLocalePrefix}/help/control/${helpPath}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={helpLinkStyle}
+      <header className="cl-control__mobile-header">
+        {brandMarkNode}
+        <Button
+          aria-expanded={drawerOpen}
+          aria-label={intl.formatMessage(messages.shellOpenNavigation)}
+          className="cl-control__hamburger-btn"
+          onClick={() => setDrawerOpen(true)}
+          type="button"
+          variant="secondary"
         >
-          <FormattedMessage {...messages.shellWhatIsThisScreen} />
-        </a>
-        <ul className="cl-control__nav-list">
-          {organizationAlias &&
-            visibleSidenav(role).map((item) => (
-              <li key={item.id}>
-                <a
-                  className="cl-focusable"
-                  href={`/control/${organizationAlias}${item.path}`}
-                  onClick={controlLinkClick(`/control/${organizationAlias}${item.path}`)}
-                  style={{
-                    ...navLinkStyle,
-                    ...(item.id === active ? navLinkActiveStyle : {}),
-                  }}
-                >
-                  {intl.formatMessage(item.label)}
-                </a>
-              </li>
-            ))}
-          {isSuperAdmin && (
-            <li>
-              <a
-                className="cl-focusable"
-                href="/control/platform"
-                onClick={controlLinkClick('/control/platform')}
-                style={{
-                  ...navLinkStyle,
-                  ...(active === 'platform' ? navLinkActiveStyle : {}),
-                }}
-              >
-                {intl.formatMessage(messages.navPlatformAdministration)}
-              </a>
-            </li>
-          )}
-        </ul>
-        <LanguageSwitcher onChange={onLocaleChange} value={locale} />
-        <Button onClick={logout} style={logoutButtonStyle} type="button" variant="secondary">
-          <FormattedMessage {...messages.shellLogout} />
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
         </Button>
+      </header>
+
+      <NavigationDrawer
+        closeLabel={intl.formatMessage(messages.shellDrawerClose)}
+        onOpenChange={setDrawerOpen}
+        open={drawerOpen}
+        title="COPALIBRE CMD"
+      >
+        {navContent(() => setDrawerOpen(false))}
+      </NavigationDrawer>
+
+      <nav aria-label={intl.formatMessage(messages.shellSections)} className="cl-control__nav">
+        {navContent()}
       </nav>
       <main className="cl-control__main">
         <div className="cl-control-screen">{children}</div>

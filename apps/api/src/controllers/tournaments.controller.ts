@@ -33,6 +33,7 @@ import {
   CompetitionRepository,
   InvariantViolationError,
   OrganizationRepository,
+  PublicOverviewReadModel,
   TournamentProfileRepository,
   TournamentRepository,
   recordAuditRefusal,
@@ -493,7 +494,12 @@ export class TournamentsController {
     });
 
     const ruleset = await tournaments.findLatestRuleset(tournament.tournamentId);
-    return this.settingsResponseOf(tournament.name, ruleset?.overrides ?? {});
+    return this.settingsResponseOf(
+      tournament.name,
+      ruleset?.overrides ?? {},
+      tournament.featured,
+      tournament.emblemObjectId,
+    );
   }
 
   @Post(':tournamentAlias/settings/preview')
@@ -669,6 +675,10 @@ export class TournamentsController {
     }
 
     const finalName = body.name ?? tournament.name;
+    // A record field, applied directly like the name beside it — never routed
+    // through the descriptor's field policies, which classify ruleset overrides
+    // and have no opinion about a portal presentation flag.
+    const finalFeatured = body.featured ?? tournament.featured;
     try {
       return await withTransaction(this.db, async (uow) => {
         if (body.name !== undefined) {
@@ -676,6 +686,15 @@ export class TournamentsController {
             tournamentId: tournament.tournamentId,
             organizationId: tournament.organizationId,
             name: body.name,
+            actor,
+            authorizationContext,
+          });
+        }
+        if (body.featured !== undefined && body.featured !== tournament.featured) {
+          await tournaments.setFeatured(uow, {
+            tournamentId: tournament.tournamentId,
+            organizationId: tournament.organizationId,
+            featured: body.featured,
             actor,
             authorizationContext,
           });
@@ -699,7 +718,12 @@ export class TournamentsController {
             authorizationContext,
           });
         }
-        return this.settingsResponseOf(finalName, nextOverrides);
+        return this.settingsResponseOf(
+          finalName,
+          nextOverrides,
+          finalFeatured,
+          tournament.emblemObjectId,
+        );
       });
     } catch (error) {
       if (error instanceof InvariantViolationError) {
@@ -725,9 +749,12 @@ export class TournamentsController {
   private settingsResponseOf(
     name: string,
     overrides: Readonly<Record<string, unknown>>,
+    featured: boolean,
+    emblemObjectId?: string,
   ): TournamentSettingsResponse {
     return {
       name,
+      featured,
       ...(typeof overrides['registration.region'] === 'string'
         ? { region: overrides['registration.region'] }
         : {}),
@@ -737,6 +764,7 @@ export class TournamentsController {
       ...(typeof overrides['registration.checkInClosesAt'] === 'string'
         ? { checkInClosesAt: overrides['registration.checkInClosesAt'] }
         : {}),
+      ...(emblemObjectId !== undefined ? { emblemObjectId } : {}),
     };
   }
 
@@ -1223,7 +1251,26 @@ export class TournamentsController {
       resource: { organizationId: organization.organizationId },
     });
 
-    return new TournamentRepository(this.db).listActiveByOrganization(organization.organizationId);
+    const tournaments = await new TournamentRepository(this.db).listActiveByOrganization(
+      organization.organizationId,
+    );
+    const overviewReadModel = new PublicOverviewReadModel(this.db);
+
+    return Promise.all(
+      tournaments.map(async (t) => {
+        if (t.status === 'finished' || t.status === 'archived' || t.status === 'draft') {
+          return t;
+        }
+        const matches = await overviewReadModel.matchesForTournament(t.tournamentId);
+        if (matches.length > 0 && matches.every((m) => m.status === 'finalized')) {
+          return { ...t, status: 'finished' as const };
+        }
+        if (matches.some((m) => m.status === 'in-progress' || m.status === 'finalized')) {
+          return { ...t, status: 'started' as const };
+        }
+        return t;
+      }),
+    );
   }
 }
 

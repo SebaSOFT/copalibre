@@ -42,8 +42,63 @@ export const SEMANTIC_COLORS = {
   },
   'surface-base': { primitive: 'ink-950', purpose: 'Broadcast base', nonColourCue: 'n/a' },
   'surface-panel': { primitive: 'ink-900', purpose: 'Panel', nonColourCue: 'n/a' },
-  'surface-raised': { primitive: 'ink-850', purpose: 'Raised or selected', nonColourCue: 'Border' },
+  'surface-content': {
+    primitive: 'ink-900',
+    purpose: 'Content surface alternating against its band',
+    nonColourCue: 'Border',
+  },
+  'surface-raised': {
+    primitive: 'cyan-950',
+    purpose: 'Selected or active container',
+    nonColourCue: 'Border plus label or state mark',
+  },
+  /**
+   * Chrome: a panel header, a footer, a chip, a tag, an icon well. It lifts to
+   * this level wherever it sits, so a header reads as a header at any depth —
+   * unlike content, which alternates against the band beneath it.
+   *
+   * Neutral chrome keeps the reference project's ink-850. Selection uses a
+   * separate cyan-tinted fill, inspired by the reference's emphasized comparator
+   * chip, together with its required border and label/state mark.
+   */
+  'surface-chrome': {
+    primitive: 'ink-850',
+    purpose: 'Chrome above its band',
+    nonColourCue: 'Border',
+  },
+  /** Table rows over a well, alternating. Opaque, so contrast is checkable. */
+  'surface-row': { primitive: 'ink-930', purpose: 'Table row', nonColourCue: 'n/a' },
+  'surface-row-alt': { primitive: 'ink-940', purpose: 'Alternate table row', nonColourCue: 'n/a' },
+  /** A raised surface under the pointer: one step lighter, never a new hue. */
+  'surface-hover': { primitive: 'ink-700', purpose: 'Hovered surface', nonColourCue: 'n/a' },
   'border-muted': { primitive: 'ink-700', purpose: 'Structure', nonColourCue: 'n/a' },
+  /** Structure that has to carry emphasis on its own: a toast edge, a bracket connector. */
+  'border-strong': { primitive: 'text-400', purpose: 'Emphasised structure', nonColourCue: 'n/a' },
+  /**
+   * A border under the pointer moves toward the accent rather than merely
+   * brightening, so hovering a control and then activating it read as one
+   * progression into `state-live`.
+   */
+  'border-hover': { primitive: 'cyan-700', purpose: 'Hovered structure', nonColourCue: 'n/a' },
+  /**
+   * The brand accent as an *action* role, so a link or a primary control names
+   * what it is instead of reaching for the cyan primitive.
+   *
+   * Calibrated against the reference project (0220). Its primary control fills
+   * with `--cl-state-live` — the same `cyan-400` this role was seeded from — so
+   * the base needed no change, and reading that from source rather than sampling
+   * a screenshot is what settled it: a flat-region sample of the same button
+   * read `#4CC8FC`, which is display variance, not intent.
+   *
+   * The hover did need a value. The reference lightens the fill rather than
+   * relying on a filter, so `primary-hover` now names `cyan-300`.
+   */
+  primary: { primitive: 'cyan-400', purpose: 'Primary action', nonColourCue: 'Action label' },
+  'primary-hover': {
+    primitive: 'cyan-300',
+    purpose: 'Primary action, hovered',
+    nonColourCue: 'Action label',
+  },
   'text-primary': { primitive: 'text-50', purpose: 'Body text', nonColourCue: 'n/a' },
   'text-secondary': { primitive: 'text-200', purpose: 'Secondary text', nonColourCue: 'n/a' },
   'text-muted': {

@@ -45,6 +45,13 @@ module.exports = {
     'src/control/**/*.tsx',
     '!src/**/*.test.ts',
     '!src/**/*.test.tsx',
+    // Stories are a development surface, not shipped code: they exist to be
+    // looked at in the workbench, and the components they exercise are covered
+    // by the unit tests beside them. Counting them measures how much of the
+    // review tool a test suite drives, which is not a number worth a threshold.
+    '!src/**/*.stories.tsx',
+    '!src/control/components/ui/story-matrix.tsx',
+    '!src/control/components/ui/story-text.ts',
   ],
   coverageThreshold: {
     global: { lines: 90, branches: 85, functions: 90, statements: 90 },

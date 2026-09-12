@@ -41,10 +41,18 @@ spec:
             - name: http
               containerPort: {{ $role.port }}
           env:
+            # A role's key names its Deployment and Service; the product role
+            # is what the image dispatches on. They are the same for every role
+            # whose Service name can be its product role — web-ssr is the one
+            # that cannot, since `web` is already taken by the static server.
             - name: PRODUCT_ROLE
-              value: {{ $name }}
+              value: {{ $role.productRole | default $name }}
             - name: PORT
               value: '{{ $role.port }}'
+            {{- if hasKey $role "apiInternalUrl" }}
+            - name: COPALIBRE_API_INTERNAL_URL
+              value: {{ $role.apiInternalUrl | default (printf "http://%s-api:%v" (include "copalibre.fullname" $) (index $.Values.roles "api").port) | quote }}
+            {{- end }}
           envFrom:
             - configMapRef:
                 name: {{ include "copalibre.fullname" $ }}-env

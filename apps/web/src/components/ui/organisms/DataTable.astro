@@ -1,0 +1,66 @@
+---
+/**
+ * A server-renderable table owner (openspec 0225 task 2.3): the public and
+ * broadcast surfaces' `<table>` had "no server-renderable owner" recorded
+ * against it in `check-ui-ownership.mjs`'s `KNOWN_RAW_ELEMENTS` register —
+ * this is that owner.
+ *
+ * Mirrors `control/components/ui/organisms/data-table.tsx`'s class scheme
+ * and prop shape — `cl-data-table`/`cl-data-table__table`/
+ * `cl-data-table__caption`/`cl-data-table__empty` are already declared and
+ * styled; a second, differently-named table owner would fork the visual
+ * system this design explicitly keeps as one vocabulary per shape. The
+ * React organism's `renderRowDetail` is not carried here: nothing on the
+ * public or broadcast surface needs an expandable detail row today, and
+ * adding the option ahead of a consumer would be a primitive built for a
+ * screen that does not exist yet. `rowKey` is not carried either: it exists
+ * in the React organism for reconciliation across re-renders, which an
+ * Astro component — fully re-rendered server-side on every request — never
+ * does. Not generic over the row type (Astro's compiler errors on a
+ * generic type parameter in a component's frontmatter): `unknown`, narrowed
+ * by the caller inside `render`.
+ */
+export interface DataTableColumn {
+  readonly key: string;
+  readonly header: unknown;
+  readonly render: (row: unknown) => unknown;
+}
+
+export interface Props {
+  readonly columns: readonly DataTableColumn[];
+  readonly rows: readonly unknown[];
+  readonly caption?: string;
+  readonly emptyMessage?: string;
+  readonly ariaLabel?: string;
+}
+
+const { columns, rows, caption, emptyMessage, ariaLabel } = Astro.props;
+---
+
+<div
+  aria-label={ariaLabel}
+  class="cl-data-table cl-card cl-chamfer cl-chamfer--control"
+  role="region"
+  tabindex="0"
+>
+  <table class="cl-data-table__table">
+    {caption ? <caption class="cl-data-table__caption">{caption}</caption> : null}
+    <thead>
+      <tr>
+        {columns.map((column) => <th scope="col">{column.header}</th>)}
+      </tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((row) => (
+          <tr>
+            {columns.map((column) => (
+              <td>{column.render(row)}</td>
+            ))}
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+  {rows.length === 0 && emptyMessage ? <p class="cl-data-table__empty">{emptyMessage}</p> : null}
+</div>

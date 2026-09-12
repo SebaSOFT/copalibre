@@ -1,0 +1,56 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [
+      "apps/web/src/control/components/pages/PreferencesPage.test.tsx"
+    ],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "packages/design-tokens/src/integrity.test.ts"
+        ],
+        "createdAt": "2026-09-09T13:05:04.412Z",
+        "reason": "Negative test fixtures for the layout-transition rule itself: integrity.test.ts asserts findUnsafeMotion rejects 'transition: width' and 'transition: height'. The strings are the subject under test, never shipped CSS."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          "packages/design-tokens/src/design-document.test.ts"
+        ],
+        "createdAt": "2026-09-10T21:46:48.378Z",
+        "reason": "Agent: parser fixtures exercise quoted font-family serialization and malformed frontmatter; these strings are test inputs, never rendered typography. Rule id corrected from 'design-system-font' to 'design-system-font-size' (openspec 0225 task 8.3, found by /impeccable critique) — the entry never matched anything under the old id, since it named a rule the detector does not emit; verified inert either way, as this file currently produces zero findings under any rule."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          "apps/web/src/styles/tv-broadcast.css"
+        ],
+        "createdAt": "2026-09-12T05-41-08Z",
+        "reason": "openspec 0225 task 8.3, found by /impeccable critique: every clamp() value in this stylesheet is deliberately viewport-scaled typography for the /tv/ broadcast kiosk and overlay surface, read at distance on a large screen rather than at arm's length like the rest of the app — a fixed rem scale is the wrong tool for that surface, not an oversight. Recorded as a decision rather than left as 21 recurring, unreviewable findings."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "apps/web/src/components/ui/organisms/MatchCard.tsx",
+          "apps/web/src/control/components/ui/molecules/callout-banner.tsx",
+          "apps/web/src/control/components/ui/organisms/audit-log-panel.tsx",
+          "packages/design-tokens/src/generate/css.ts"
+        ],
+        "createdAt": "2026-09-10T21:46:48.470Z",
+        "reason": "0224 review: DESIGN.md Cards and Inline Alerts prescribe a left state rail paired with a written state label. The auth panel, live scorecard, callout and audit card implement that documented cue; retain it without applying the generic side-tab heuristic. Paths updated for openspec 0225: LiveMatchScorecard.tsx merged into MatchCard.tsx (task 4.3); CalloutBanner.tsx and AuditLogCard.tsx renamed to kebab-case and, for the latter, to AuditLogPanel (tasks 3.3/3.4)."
+      }
+    ]
+  },
+  "hook": {
+    "enabled": true,
+    "limits": {
+      "maxFindings": 5,
+      "maxChars": 8000
+    }
+  }
+}

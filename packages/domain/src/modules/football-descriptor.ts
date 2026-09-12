@@ -69,6 +69,9 @@ export function footballDescriptor(
             side: 'every-other-side',
           },
         ],
+        // `goalkeeperId` is snapshotted automatically and never prompted for,
+        // so it needs no label; `assistedBy` is a chip the operator taps.
+        payloadFieldLabels: { assistedBy: { en: 'Assisted by', es: 'Asistido por' } },
       },
       {
         code: 'own-goal',
@@ -101,6 +104,10 @@ export function footballDescriptor(
           required: ['playerOutId', 'playerInId'],
         },
         personPayloadFields: ['playerOutId', 'playerInId'],
+        payloadFieldLabels: {
+          playerOutId: { en: 'Player out', es: 'Sale' },
+          playerInId: { en: 'Player in', es: 'Entra' },
+        },
       },
       {
         code: 'yellow-card',

@@ -1,0 +1,67 @@
+---
+import type { SegmentState } from '../../../lib/series.ts';
+
+export interface SeriesStateBarSegment {
+  readonly state: SegmentState;
+  readonly mark: string;
+  readonly label: string;
+}
+
+interface Props {
+  readonly homeScore: number;
+  readonly awayScore: number;
+  readonly segmentsAriaLabel: string;
+  readonly segments: readonly SeriesStateBarSegment[];
+  /** Which side the series settled on; absent while it is still undecided — picks the outcome's class only, the text itself already resolved. */
+  readonly winner?: 'home' | 'away';
+  readonly outcomeText: string;
+  /** Present on an `aggregate` tie: the pre-resolved summed-score sentence. */
+  readonly aggregateText?: string;
+}
+const { homeScore, awayScore, segmentsAriaLabel, segments, winner, outcomeText, aggregateText } =
+  Astro.props;
+---
+
+<div class="cl-series">
+  <ol class="cl-series__segments" aria-label={segmentsAriaLabel}>
+    {
+      segments.map((segment) => (
+        <li
+          aria-label={segment.label}
+          class={`cl-series__segment cl-series__segment--${segment.state} cl-chamfer`}
+          data-state={segment.state}
+          title={segment.label}
+        >
+          {/* The mark carries the state where the words will not fit, so nothing here
+              depends on a colour; the label carries the same fact in words. */}
+          {segment.mark}
+        </li>
+      ))
+    }
+  </ol>
+
+  <p class="cl-series__score">{homeScore} — {awayScore}</p>
+
+  {
+    /*
+      A cross standing at two games to one is not a cross nobody has started, and a bracket
+      that showed neither a winner nor a reason would read as missing data. The score is what
+      makes "pending" legible rather than alarming.
+    */
+  }
+  {
+    winner === undefined ? (
+      <p class="cl-series__pending">{outcomeText}</p>
+    ) : (
+      <p class="cl-series__decided">{outcomeText}</p>
+    )
+  }
+
+  {
+    /*
+      A two-legged tie has no notion of games won, so the aggregate is the whole answer and is
+      shown alongside the individual legs rather than instead of them.
+    */
+  }
+  {aggregateText !== undefined && <p class="cl-series__aggregate">{aggregateText}</p>}
+</div>

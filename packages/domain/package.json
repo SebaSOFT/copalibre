@@ -1,10 +1,20 @@
 {
   "name": "@copalibre/domain",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./import-export": {
+      "types": "./dist/import-export/index.d.ts",
+      "default": "./dist/import-export/index.js"
+    }
+  },
   "sideEffects": false,
   "scripts": {
     "build": "tsc --build",

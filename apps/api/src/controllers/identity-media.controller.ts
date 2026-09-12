@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Inject, Param, Patch, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { BadRequestException, NotFoundException } from '../http/error-contract.js';
 import {
@@ -12,11 +23,13 @@ import type { FastifyReply } from 'fastify';
 import type { Kysely } from 'kysely';
 import sharp from 'sharp';
 import type { ObjectStorageAdapter } from '@copalibre/object-storage';
+import type { Tournament } from '@copalibre/domain';
 import {
   EnrollmentRepository,
   ObjectMetadataRepository,
   OrganizationRepository,
   PersonRepository,
+  TournamentRepository,
   newId,
   withTransaction,
   type Database,
@@ -33,6 +46,7 @@ import { SharedThrottle } from '../auth/shared-throttle.decorator.js';
 import { DATABASE } from '../database.token.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 import {
+  DeleteEmblemResponse,
   PersonNationalityResponse,
   PersonResponse,
   SetPersonNationalityRequest,
@@ -357,6 +371,158 @@ export class OrganizationMediaController {
   }
 }
 
+@ApiTags('tournaments')
+@Controller('organizations/:organizationAlias/tournaments/:tournamentAlias')
+export class TournamentMediaController {
+  constructor(
+    @Inject(DATABASE) private readonly db: Kysely<Database>,
+    @Inject(OBJECT_STORAGE) private readonly storage: ObjectStorageAdapter,
+  ) {}
+
+  @Post('emblem')
+  @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
+  @SharedThrottle()
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-tournament-lifecycle')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Upload a tournament's emblem (must be exactly 410×512px, ±1%)" })
+  @ApiCreatedResponse({ type: UploadImageResponse })
+  async uploadEmblem(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Body() body: UploadImageRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<UploadImageResponse> {
+    const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
+    const tournament = await resolveTournament(
+      this.db,
+      organizationId,
+      organizationAlias,
+      tournamentAlias,
+    );
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}" in this organization`, {
+        errorCode: 'identity-media-not-found',
+      });
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId },
+    });
+
+    const bytes = await decodeImage(body);
+    const reference = await this.storage.put(
+      `${organizationId}/tournaments/${tournament.tournamentId}/${newId()}-${body.filename}`,
+      bytes,
+      body.contentType,
+    );
+    const actor = actorOf(request);
+
+    const objectId = await withTransaction(this.db, async (uow) => {
+      const objectMetadata = await new ObjectMetadataRepository(this.db).save(uow, {
+        organizationId,
+        profile: this.storage.profile,
+        storageKey: reference.key,
+        contentType: body.contentType,
+        sizeBytes: bytes.length,
+        uploadedBy: actor,
+      });
+      await new TournamentRepository(this.db).updateEmblem(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        emblemObjectId: objectMetadata.objectId,
+        actor,
+        authorizationContext: 'copalibre.control',
+      });
+      return objectMetadata.objectId;
+    });
+
+    return { objectId };
+  }
+
+  @Get('emblem')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: "Stream a tournament's emblem, once it has passed validation" })
+  @ApiOkResponse({ description: 'Image bytes', schema: { type: 'string', format: 'binary' } })
+  async serveEmblem(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<Buffer | undefined> {
+    const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
+    const organizationId = organization?.organizationId;
+    const tournament = organizationId
+      ? await resolveTournament(this.db, organizationId, organizationAlias, tournamentAlias)
+      : undefined;
+    if (!tournament?.emblemObjectId) {
+      throw new NotFoundException('No emblem for this tournament', {
+        errorCode: 'identity-media-not-found',
+      });
+    }
+    return streamStoredObject(this.db, this.storage, tournament.emblemObjectId, reply);
+  }
+
+  @Delete('emblem')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-tournament-lifecycle')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Delete a tournament's emblem" })
+  @ApiOkResponse({ type: DeleteEmblemResponse, description: 'Tournament emblem removed' })
+  async deleteEmblem(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<DeleteEmblemResponse> {
+    const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
+    const tournament = await resolveTournament(
+      this.db,
+      organizationId,
+      organizationAlias,
+      tournamentAlias,
+    );
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}" in this organization`, {
+        errorCode: 'identity-media-not-found',
+      });
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId },
+    });
+
+    if (!tournament.emblemObjectId) {
+      throw new NotFoundException('No emblem for this tournament', {
+        errorCode: 'identity-media-not-found',
+      });
+    }
+
+    const previousObjectId = tournament.emblemObjectId;
+    const actor = actorOf(request);
+
+    await withTransaction(this.db, async (uow) => {
+      await new TournamentRepository(this.db).updateEmblem(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        emblemObjectId: null,
+        actor,
+        authorizationContext: 'copalibre.control',
+      });
+      const metadata = await new ObjectMetadataRepository(this.db).findById(previousObjectId);
+      if (metadata) {
+        await new ObjectMetadataRepository(this.db).delete(uow, previousObjectId, {
+          organizationId,
+          actor,
+          authorizationContext: 'copalibre.control',
+        });
+      }
+    });
+
+    return { ok: true };
+  }
+}
+
 async function resolveAdminOrganization(
   db: Kysely<Database>,
   organizationAlias: string,
@@ -374,6 +540,20 @@ async function resolveAdminOrganization(
     resource: { organizationId: organization.organizationId },
   });
   return organization.organizationId;
+}
+
+async function resolveTournament(
+  db: Kysely<Database>,
+  organizationId: string,
+  organizationAlias: string,
+  tournamentAlias: string,
+): Promise<Tournament | undefined> {
+  const repo = new TournamentRepository(db);
+  const byScoped = await repo.findByScopedAlias(organizationAlias, tournamentAlias);
+  if (byScoped && byScoped.organizationId === organizationId) return byScoped;
+  const byId = await repo.findById(tournamentAlias);
+  if (byId && byId.organizationId === organizationId) return byId;
+  return undefined;
 }
 
 function actorOf(request: RequestWithSubject): string {

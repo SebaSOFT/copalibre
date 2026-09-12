@@ -12,6 +12,7 @@ import {
   MatchAssignmentRepository,
   OrganizationRepository,
   OutboxReader,
+  PersonRepository,
   TournamentRepository,
   newId,
   withTransaction,
@@ -30,6 +31,7 @@ const subjects: Record<string, AuthenticatedSubject> = {
   referee: { subjectId: 'referee', scopes: ['copalibre.control'] },
   unassigned: { subjectId: 'unassigned', scopes: ['copalibre.control'] },
   inactive: { subjectId: 'inactive', scopes: ['copalibre.control'] },
+  admin: { subjectId: 'admin', scopes: ['copalibre.control'] },
 };
 
 function scriptParameter(
@@ -305,6 +307,45 @@ describe('live match console (integration)', () => {
     });
   });
 
+  it('names both entrants of the fixture, independent of whether a roster exists', async () => {
+    // Identity comes from the entrants themselves, not from a roster: the
+    // console has to name its two sides long before anyone is named to one.
+    const consoleRead = await request('GET', `${base()}/console`, 'referee');
+    expect(consoleRead.json().entrants).toMatchObject([
+      { entrantId: entrantIds[0], name: 'Norte' },
+      { entrantId: entrantIds[1], name: 'Sur' },
+    ]);
+  });
+
+  it('labels the goal’s assist field, which reaches the console through a statistic effect', async () => {
+    // The route the reported defect came through: `assistedBy` is not in
+    // `personPayloadFields` — it arrives via the assists statistic's
+    // `awardTo.payloadField`, and must be labelled just the same.
+    const consoleRead = await request('GET', `${base()}/console`, 'referee');
+    const goal = consoleRead
+      .json()
+      .eventDefinitions.find((definition: { code: string }) => definition.code === 'goal');
+
+    expect(goal.secondaryActorFields).toContainEqual({
+      field: 'assistedBy',
+      label: { en: 'Assisted by', es: 'Asistido por' },
+    });
+    // Auto-snapshotted, never prompted for, so it is not a chip at all.
+    expect(goal.secondaryActorFields.map((entry: { field: string }) => entry.field)).not.toContain(
+      'goalkeeperId',
+    );
+
+    // The other declaration route, for contrast: the substitution's fields come
+    // from `personPayloadFields` and are labelled through the same map.
+    const substitution = consoleRead
+      .json()
+      .eventDefinitions.find((definition: { code: string }) => definition.code === 'substitution');
+    expect(substitution.secondaryActorFields).toEqual([
+      { field: 'playerOutId', label: { en: 'Player out', es: 'Sale' } },
+      { field: 'playerInId', label: { en: 'Player in', es: 'Entra' } },
+    ]);
+  });
+
   it('admits only assigned active referees', async () => {
     expect((await request('GET', `${base()}/console`, 'unassigned')).statusCode).toBe(403);
     expect((await request('GET', `${base()}/console`, 'inactive')).statusCode).toBe(403);
@@ -509,6 +550,83 @@ describe('live match console (integration)', () => {
     expect(conflict.statusCode).toBe(409);
     // Leave the match running again for the tests that follow.
     await request('POST', `${base()}/commands/resume`, 'referee');
+  });
+
+  it('restarts a paused segment’s clock on resume', async () => {
+    const paused = await request('POST', `${base()}/commands/pause`, 'referee');
+    expect(paused.statusCode).toBe(201);
+    expect(paused.json().clockRunning).toBe(false);
+
+    const resumed = await request('POST', `${base()}/commands/resume`, 'referee');
+    expect(resumed.statusCode).toBe(201);
+    expect(resumed.json().clockRunning).toBe(true);
+  });
+
+  it('audits a pause and its resume with the segment states they moved between', async () => {
+    const before = (await new AuditReader(scratch.db).historyFor('segment', segmentId)).length;
+
+    const paused = await request('POST', `${base()}/commands/pause`, 'referee', { segmentId });
+    expect(paused.statusCode).toBe(201);
+    expect(paused.json().clockRunning).toBe(false);
+
+    const resumed = await request('POST', `${base()}/commands/resume`, 'referee', { segmentId });
+    expect(resumed.statusCode).toBe(201);
+    expect(resumed.json().clockRunning).toBe(true);
+
+    // One audit record per command, each naming the state the segment reached —
+    // the same `segment.*` shape a manual adjustment already writes, so both
+    // paths read as one trail rather than two.
+    const history = await new AuditReader(scratch.db).historyFor('segment', segmentId);
+    expect(history.length).toBe(before + 2);
+    expect(history.slice(-2).map((entry) => entry.action)).toEqual([
+      'segment.pending',
+      'segment.active',
+    ]);
+    for (const entry of history.slice(-2)) {
+      expect(entry.actor).toBeTruthy();
+      expect(entry.occurredAt).toBeTruthy();
+      expect(entry.previousState).toBeDefined();
+      expect(entry.resultingState).toBeDefined();
+    }
+    expect(history.slice(-2)[0]?.previousState).toMatchObject({ state: 'active' });
+    expect(history.slice(-2)[0]?.resultingState).toMatchObject({ state: 'pending' });
+    expect(history.slice(-2)[1]?.resultingState).toMatchObject({ state: 'active' });
+  });
+
+  it('ends a segment, and refuses every further clock command for it', async () => {
+    const ended = await request('POST', `${base()}/commands/end`, 'referee', { segmentId });
+    expect(ended.statusCode).toBe(201);
+    expect(ended.json().clockRunning).toBe(false);
+    // Ending a half does not end the match.
+    expect(ended.json().status).toBe('in-progress');
+    expect(
+      (await new AuditReader(scratch.db).historyFor('segment', segmentId)).some(
+        (entry) => entry.action === 'segment.completed',
+      ),
+    ).toBe(true);
+
+    for (const command of ['start', 'pause', 'resume', 'end']) {
+      const refused = await request('POST', `${base()}/commands/${command}`, 'referee', {
+        segmentId,
+      });
+      expect(refused.statusCode).toBe(400);
+    }
+
+    // Leave the segment running again for the tests that follow.
+    await request('POST', `${base()}/clock`, 'referee', {
+      segmentId,
+      elapsedSeconds: 90,
+      activate: true,
+    });
+  });
+
+  it('refuses a clock command from an official without the clock-control capability', async () => {
+    for (const command of ['start', 'pause', 'resume', 'end']) {
+      const refused = await request('POST', `${base()}/commands/${command}`, 'unassigned', {
+        segmentId,
+      });
+      expect(refused.statusCode).toBe(403);
+    }
   });
 
   it('commits every declared-effect kind once and isolates an A2 script failure', async () => {
@@ -1064,5 +1182,278 @@ describe('live match console — real catalogue foul/throw-in vocabulary', () =>
       .execute();
     expect(totals).toHaveLength(1);
     expect(totals[0]?.value).toBe(1);
+  });
+});
+
+describe('org-admin match authority without prior match assignment (openspec 0193 task 4.2)', () => {
+  let app: INestApplication;
+  let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
+  let organizationId = '';
+  let matchId = '';
+  let segmentId = '';
+  let personId = '';
+  const entrantIds: string[] = [];
+  const base = () => `/organizations/liga-admin/tournaments/apertura/matches/${matchId}`;
+
+  beforeAll(async () => {
+    scratch = await createMigratedDatabase('match-console-org-admin');
+    @Module({
+      controllers: [MatchControlController],
+      providers: [
+        { provide: DATABASE, useValue: scratch.db },
+        {
+          provide: TokenVerifier,
+          useValue: {
+            verify: async (token: string): Promise<AuthenticatedSubject> => {
+              const subject = subjects[token];
+              if (!subject) throw new Error('unknown token');
+              return { ...subject, organizationId };
+            },
+          },
+        },
+        { provide: APP_GUARD, useClass: JwtAuthGuard },
+        { provide: APP_GUARD, useClass: OrganizationAccessGuard },
+        Reflector,
+      ],
+    })
+    class IntegrationModule {}
+    const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
+    app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(createApiValidationPipe());
+    await app.init();
+    await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
+
+    const organization = await withTransaction(scratch.db, (uow) =>
+      new OrganizationRepository(scratch.db).create(uow, {
+        alias: 'liga-admin',
+        name: 'Liga Admin',
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+    organizationId = organization.organizationId;
+
+    const principalId = newId();
+    await scratch.db
+      .insertInto('identity_principals')
+      .values({
+        principal_id: principalId,
+        email: 'admin@test',
+        oidc_subject_id: 'admin',
+        name: 'Admin User',
+        picture: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .execute();
+    await scratch.db
+      .insertInto('organization_role_assignments')
+      .values({
+        assignment_id: newId(),
+        organization_id: organizationId,
+        principal_id: principalId,
+        email: 'admin@test',
+        role: 'admin',
+        status: 'active',
+        created_at: new Date(),
+        updated_at: new Date(),
+        deleted_at: null,
+      })
+      .execute();
+
+    const tournaments = new TournamentRepository(scratch.db);
+    const enrollment = new EnrollmentRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const people = new PersonRepository(scratch.db);
+    const descriptor = footballDescriptor();
+
+    await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'apertura',
+        name: 'Apertura',
+        descriptor,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Regular',
+        format: 'round-robin',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const registeredPerson = await people.register(uow, {
+        organizationId,
+        displayName: 'Player One',
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      personId = registeredPerson.person.personId;
+
+      const entrants = await Promise.all(
+        ['Alpha', 'Beta'].map(async (name) => {
+          const team = await enrollment.createTeam(uow, {
+            organizationId,
+            name,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+          return enrollment.registerEntrant(uow, {
+            organizationId,
+            tournamentId: tournament.tournamentId,
+            entrantRef: { kind: 'team', teamId: team.teamId },
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+        }),
+      );
+      entrantIds.push(...entrants.map((e) => e.entrantId));
+
+      const firstEntrant = entrants[0];
+      if (!firstEntrant || firstEntrant.entrantRef.kind !== 'team') {
+        throw new Error('Expected first entrant to be a team');
+      }
+
+      await people.enlist(uow, {
+        personId,
+        teamId: firstEntrant.entrantRef.teamId,
+        role: 'player',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [
+          {
+            round: 1,
+            homeEntrantId: entrants[0]?.entrantId,
+            awayEntrantId: entrants[1]?.entrantId,
+          },
+        ],
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture?.fixtureId ?? '',
+        number: 1,
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      matchId = match.matchId;
+
+      const segment = await competition.createSegment(uow, {
+        matchId,
+        type: 'half',
+        number: 1,
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      segmentId = segment.segmentId;
+      await competition.setSegmentState(uow, {
+        segmentId,
+        state: 'active',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await competition.applyCommand(uow, {
+        matchId,
+        command: 'start',
+        status: 'in-progress',
+        grantedBy: 'seed',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+    });
+  });
+
+  afterAll(async () => {
+    await app?.close();
+    await scratch?.drop();
+  });
+
+  function request(
+    method: 'GET' | 'POST' | 'PUT',
+    url: string,
+    token?: string,
+    payload?: unknown,
+    idempotencyKey?: string,
+  ) {
+    return (app as NestFastifyApplication).inject({
+      method,
+      url,
+      headers: token
+        ? {
+            authorization: `Bearer ${token}`,
+            ...(method === 'POST' || method === 'PUT'
+              ? { 'idempotency-key': idempotencyKey ?? crypto.randomUUID() }
+              : {}),
+          }
+        : {},
+      payload: payload as never,
+    });
+  }
+
+  it('allows an org-admin with no match assignment to access console and operate match', async () => {
+    // 1. Console projection grants full capabilities
+    const consoleRead = await request('GET', `${base()}/console`, 'admin');
+    expect(consoleRead.statusCode).toBe(200);
+    expect(consoleRead.json().capabilities).toEqual(
+      expect.arrayContaining([
+        'match.record-event',
+        'match.select-roster',
+        'match.finalize',
+        'match.control-clock',
+        'match.resolve-timer',
+      ]),
+    );
+
+    // 2. Select roster
+    const rosterRes = await request('PUT', `${base()}/rosters/${entrantIds[0]}`, 'admin', {
+      members: [{ personId, onField: true }],
+    });
+    expect(rosterRes.statusCode).toBe(200);
+
+    // 3. Record event
+    const eventRes = await request('POST', `${base()}/events`, 'admin', {
+      definitionCode: 'goal',
+      segmentId,
+      occurredAt: Date.now(),
+      side: entrantIds[0],
+      personId,
+    });
+    expect(eventRes.statusCode).toBe(201);
+
+    // 4. Finalize match
+    const finalizeRes = await request('POST', `${base()}/commands/finalize`, 'admin', {
+      sides: entrantIds.map((entrantId) => ({ entrantId, statistics: {} })),
+    });
+    expect(finalizeRes.statusCode).toBe(201);
+
+    // 5. Verify audit log reflects role:admin authority
+    const finalizeAudit = await scratch.db
+      .selectFrom('audit_log')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .where('action', '=', 'match.finalize')
+      .execute();
+    expect(finalizeAudit).toHaveLength(1);
+    expect(finalizeAudit[0]?.authorization_context).toBe(
+      `capability:match.finalize via role:admin:${organizationId}`,
+    );
   });
 });

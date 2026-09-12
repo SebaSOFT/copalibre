@@ -17,11 +17,18 @@ import type {
 import type { ResultReason } from '@copalibre/domain';
 import type { OverviewInput, MatchState } from './overview.js';
 import type { LiveDashboard } from './live-state.js';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type { BracketMatch, SlotSource } from './bracket.js';
 import type { MatchCardData } from './matches-view.js';
 import type { PublicSeriesState } from './series.js';
 
-function getApiBaseUrl(): string {
+export const requestApiStorage = new AsyncLocalStorage<{ apiBaseUrl?: string }>();
+
+export function getApiBaseUrl(): string {
+  const store = requestApiStorage.getStore();
+  if (store?.apiBaseUrl) {
+    return store.apiBaseUrl;
+  }
   // We avoid process.env in Astro client code, but this file is strictly server-only
   // because it runs inside the Astro SSR environment during page rendering.
   return process.env.COPALIBRE_API_INTERNAL_URL || 'http://127.0.0.1:3001';
@@ -158,6 +165,9 @@ export function mapOverviewResponse(response: PublicOverviewResponse): OverviewI
     organizationName: response.organizationName,
     tournamentName: response.tournamentName,
     seasonName: response.seasonName,
+    status: response.status,
+    winners: response.winners,
+    ...(response.emblemObjectId === undefined ? {} : { emblemObjectId: response.emblemObjectId }),
     ruleset: Object.entries(response.ruleset).map(([label, value]) => ({ label, value })),
     matches: response.matches.map((m: PublicOverviewMatchResponse) => ({
       matchNumber: m.matchNumber,
@@ -214,9 +224,11 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
 }
 
 export function mapBracketResponse(response: PublicBracketResponse): {
+  format?: string;
   matches: readonly BracketMatch[];
 } {
   return {
+    format: response.format,
     matches: response.matches.map((m) => ({
       matchNumber: m.position,
       roundNumber: m.round,
@@ -225,10 +237,16 @@ export function mapBracketResponse(response: PublicBracketResponse): {
       scores: m.slots.map((s) => s.score),
       resultReasons: m.slots.map((s) => s.resultReason as ResultReason | undefined),
       slots: m.slots.map((s): SlotSource => {
-        if (s.kind === 'winner-of')
-          return { kind: 'winner-of', matchNumber: s.matchId ? parseInt(s.matchId) : 0 };
-        if (s.kind === 'loser-of')
-          return { kind: 'loser-of', matchNumber: s.matchId ? parseInt(s.matchId) : 0 };
+        if (s.kind === 'winner-of') {
+          const digits = s.matchId?.match(/\d+/g)?.join('');
+          const parsed = digits ? parseInt(digits, 10) : 0;
+          return { kind: 'winner-of', matchNumber: Number.isNaN(parsed) ? 0 : parsed };
+        }
+        if (s.kind === 'loser-of') {
+          const digits = s.matchId?.match(/\d+/g)?.join('');
+          const parsed = digits ? parseInt(digits, 10) : 0;
+          return { kind: 'loser-of', matchNumber: Number.isNaN(parsed) ? 0 : parsed };
+        }
         return { kind: 'entrant', name: s.name ?? 'TBD', abbreviation: s.abbreviation };
       }),
       ...(m.series === undefined ? {} : { series: m.series as PublicSeriesState }),
@@ -284,6 +302,10 @@ export function organizationEmblemUrl(organizationAlias: string): string {
 
 export function clubEmblemUrl(organizationAlias: string, clubId: string): string {
   return `/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`;
+}
+
+export function tournamentEmblemUrl(organizationAlias: string, tournamentAlias: string): string {
+  return `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`;
 }
 
 export function personPhotoUrl(organizationAlias: string, personId: string): string {

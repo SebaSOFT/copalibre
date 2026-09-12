@@ -1,5 +1,6 @@
 import type { ResultReason } from '@copalibre/domain';
-import { presentState, type ResultState, type ResultStateLabels } from './result-state.js';
+import { decide, presentState, type ResultState, type ResultStateLabels } from './result-state.js';
+import type { BracketOutcome } from '../components/ui/molecules/OutcomeLegend.js';
 import type { PublicSeriesState } from './series.js';
 
 /**
@@ -14,9 +15,29 @@ import type { PublicSeriesState } from './series.js';
 
 export type SlotSource =
   | { readonly kind: 'entrant'; readonly name: string; readonly abbreviation?: string }
-  | { readonly kind: 'winner-of'; readonly matchNumber: number }
-  | { readonly kind: 'loser-of'; readonly matchNumber: number }
+  | { readonly kind: 'winner-of'; readonly matchNumber?: number; readonly matchId?: string }
+  | { readonly kind: 'loser-of'; readonly matchNumber?: number; readonly matchId?: string }
   | { readonly kind: 'seed'; readonly seed: number };
+
+export type StageLayout = 'bracket' | 'grid';
+
+/**
+ * Selects whether a stage layout renders as a bracket knockout tree or
+ * a compact by-round match grid. Only elimination formats use the bracket tree.
+ */
+export function selectStageLayout(format?: string): StageLayout {
+  if (!format) return 'bracket';
+  const eliminationFormats = [
+    'single-elimination',
+    'double-elimination',
+    'gauntlet',
+    'bracket-groups',
+    'custom-bracket',
+    'ffa-bracket',
+    'ffa-bracket-groups',
+  ];
+  return eliminationFormats.includes(format) ? 'bracket' : 'grid';
+}
 
 export interface BracketMatch {
   readonly matchNumber: number;
@@ -124,10 +145,34 @@ export function describeSlot(slot: SlotSource): string {
   switch (slot.kind) {
     case 'entrant':
       return slot.name;
-    case 'winner-of':
-      return `Ganador del ${slot.matchNumber}`;
-    case 'loser-of':
-      return `Perdedor del ${slot.matchNumber}`;
+    case 'winner-of': {
+      if (
+        typeof slot.matchNumber === 'number' &&
+        !Number.isNaN(slot.matchNumber) &&
+        slot.matchNumber > 0
+      ) {
+        return `Ganador del ${slot.matchNumber}`;
+      }
+      if (slot.matchId && slot.matchId !== '—') {
+        const clean = slot.matchId.replace(/^SE-|^WB-|^LB-/, '');
+        return `Ganador de ${clean}`;
+      }
+      return 'Por definir';
+    }
+    case 'loser-of': {
+      if (
+        typeof slot.matchNumber === 'number' &&
+        !Number.isNaN(slot.matchNumber) &&
+        slot.matchNumber > 0
+      ) {
+        return `Perdedor del ${slot.matchNumber}`;
+      }
+      if (slot.matchId && slot.matchId !== '—') {
+        const clean = slot.matchId.replace(/^SE-|^WB-|^LB-/, '');
+        return `Perdedor de ${clean}`;
+      }
+      return 'Por definir';
+    }
     case 'seed':
       return `Sembrado ${slot.seed}`;
   }
@@ -154,4 +199,73 @@ export function matchReportUrl(input: {
   return `${localePrefix}/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
     tournamentAlias,
   )}/stages/${stageNumber}/matches/${matchNumber}`;
+}
+
+/**
+ * The stage's last cross, where the structure has exactly one.
+ *
+ * Emphasis only — the championship treatment is a bigger card, never a claim
+ * about who advances. So the rule is deliberately conservative: the highest
+ * round number in the stage must be held by a single match. A stage whose last
+ * round is shared by two branches (a losers' final alongside a grand final, a
+ * bracket still being generated) gets no championship node rather than one
+ * chosen by guessing which of them matters more.
+ */
+export function championshipMatch(matches: readonly BracketMatch[]): BracketMatch | undefined {
+  if (matches.length === 0) return undefined;
+  const last = Math.max(...matches.map((match) => match.roundNumber));
+  const final = matches.filter((match) => match.roundNumber === last);
+  return final.length === 1 ? final[0] : undefined;
+}
+
+/**
+ * How each side of a cross reads in the bracket's key.
+ *
+ * Parallel to `match.slots`, and deliberately full of `undefined`: an entry is
+ * a claim, and this makes no claim it cannot source.
+ *
+ * - A slot that names no entrant yet is `pending`, whatever its score column says.
+ * - A cross a series settled reads from the winner the series *recorded*.
+ * - A finalized two-sided cross reads from `decide()`, the one owner of
+ *   winner-and-loser for a decided match, so this file does not become a second
+ *   place that turns two numbers into an outcome.
+ * - Everything else — a live cross, a draw, an FFA cross with more than two
+ *   sides — yields `undefined`, and the node renders with no outcome mark at
+ *   all rather than one the projection never produced.
+ */
+export function nodeOutcomes(match: BracketMatch): readonly (BracketOutcome | undefined)[] {
+  const pendingOnly = match.slots.map((slot) =>
+    slot.kind === 'entrant' ? undefined : ('pending' as const),
+  );
+
+  const seriesWinner = match.series?.winner;
+  if (seriesWinner !== undefined && match.slots.length === 2) {
+    const winnerIndex = seriesWinner === 'home' ? 0 : 1;
+    return match.slots.map((slot, index) =>
+      slot.kind !== 'entrant'
+        ? ('pending' as const)
+        : index === winnerIndex
+          ? ('advancing' as const)
+          : ('eliminated' as const),
+    );
+  }
+
+  if (match.state !== 'final' || match.slots.length !== 2) return pendingOnly;
+
+  const decided = decide(match.scores?.[0], match.scores?.[1]);
+  if (decided === undefined || decided.home === 'final') return pendingOnly;
+
+  return match.slots.map((slot, index) => {
+    if (slot.kind !== 'entrant') return 'pending' as const;
+    const state = index === 0 ? decided.home : decided.away;
+    return state === 'winner' ? ('advancing' as const) : ('eliminated' as const);
+  });
+}
+
+/** The outcomes a rendered stage actually contains, for building its key. */
+export function stageOutcomes(matches: readonly BracketMatch[]): readonly BracketOutcome[] {
+  const present = new Set(matches.flatMap((match) => nodeOutcomes(match)));
+  return (['advancing', 'eliminated', 'pending'] as const).filter((outcome) =>
+    present.has(outcome),
+  );
 }

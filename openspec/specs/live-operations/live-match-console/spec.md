@@ -45,15 +45,36 @@ the discipline's event definition declares that behavior.
 - **THEN** the console presents a goal/missed choice before opening the confirmation form, prefilled with event type, active period, and event time
 
 ### Requirement: Clock and timer operations are authorized auditable commands
-Manual clock adjustment, segment selection, and timer resolution SHALL be explicit server-validated
-commands. Each SHALL require its independently granted match capability, record actor, timestamp,
-prior state, and resulting state, and accept only timer-resolution behavior declared for the active
-discipline.
+Manual clock adjustment, explicit segment Start/Pause/End, segment selection, and timer resolution
+SHALL be explicit server-validated commands. Each SHALL require its independently granted match
+capability, record actor, timestamp, prior state, and resulting state, and accept only timer-resolution
+behavior declared for the active discipline. Start, Pause, and End SHALL be authorized by the same
+`match.control-clock` capability as manual elapsed-time adjustment.
 
 #### Scenario: Referee adjusts the active period
 - **WHEN** an official with the clock-control capability changes the active segment or elapsed time
 - **THEN** the system records the prior and resulting clock state and returns an authoritative
   projection
+
+#### Scenario: Referee starts a segment's clock
+- **WHEN** an official with the clock-control capability issues a Start command for the active segment
+- **THEN** the system records the prior (not-running) and resulting (running) clock state, and the
+  console reflects the clock advancing
+
+#### Scenario: Referee pauses a running segment's clock
+- **WHEN** an official with the clock-control capability issues a Pause command while the segment's
+  clock is running
+- **THEN** the system records the prior (running) and resulting (paused) clock state at the paused
+  elapsed time
+
+#### Scenario: Referee ends a segment's clock
+- **WHEN** an official with the clock-control capability issues an End command for the active segment
+- **THEN** the system records the resulting (ended) clock state and the segment is no longer eligible
+  for further Start/Pause commands
+
+#### Scenario: Start/Pause/End require the same capability as manual adjustment
+- **WHEN** an official without the clock-control capability issues a Start, Pause, or End command
+- **THEN** the system rejects the command without changing the clock state
 
 #### Scenario: Invalid timer resolution is rejected
 - **WHEN** an official attempts to resolve a timer without its required capability or through a path
@@ -74,6 +95,20 @@ of an immutable ledger and cannot be undone. The client SHALL supply an idempote
 server SHALL persist atomically with the finalization result. A retry with the same key and request
 SHALL return the recorded outcome; reuse of that key with a different request SHALL be rejected.
 
+The finalized outcome SHALL be either derived from the recorded events or chosen through a control
+whose only purpose is to choose it. A value the operator set for another purpose SHALL NOT be
+transmitted as the outcome. In particular, the console's event-attribution selection — which side a
+subsequent event is recorded against, changed by every jersey tap — SHALL NOT determine the winner.
+
+Where an explicit winner control is offered it SHALL default to unset, and finalizing with it unset
+SHALL either derive the outcome from the recorded events or refuse, rather than submitting whichever
+side was last touched.
+
+The confirmation step SHALL show the outcome being frozen — the score, and the winner where one is
+recorded — because a confirmation that names only the consequence cannot be checked against what is
+about to be committed. The confirmation's affordance SHALL carry the tone the system uses for an
+irreversible commit rather than the tone it reserves for a failure or a loss.
+
 #### Scenario: Finalize requires explicit confirmation
 - **WHEN** an official initiates match finalization
 - **THEN** the system shows a destructive-confirmation dialog naming the immutable-ledger consequence before any commit occurs
@@ -85,6 +120,16 @@ SHALL return the recorded outcome; reuse of that key with a different request SH
 #### Scenario: Idempotency key cannot represent different finalizations
 - **WHEN** a client reuses a finalize idempotency key with different result data
 - **THEN** the system rejects the request without changing the finalized result
+
+#### Scenario: An attribution selection never becomes the winner
+- **WHEN** an official taps a jersey to attribute an event to one side and then finalizes the match
+- **THEN** the finalize request carries no winner derived from that tap, and the recorded outcome is
+  the one the events support or the one an explicit winner control was set to
+
+#### Scenario: The confirmation shows what is being frozen
+- **WHEN** the confirmation step for finalization is shown
+- **THEN** it presents the score and the winner about to be committed, so the official confirms a
+  visible outcome rather than an unnamed one
 
 ### Requirement: Displayed state reconciles with an authoritative projection
 Any optimistically displayed score, statistic, timer, or match-state update SHALL reconcile with the
@@ -123,15 +168,6 @@ entrant in one match, never as a team-membership list.
 #### Scenario: Referee without finalize capability cannot finalize
 - **WHEN** a referee has event-entry authorization for a match but not finalize authorization
 - **THEN** the finalize action is unavailable or rejected for that user
-
-### Requirement: Operational telemetry is truthful
-The console SHALL display stream latency, packet loss, spectator count, and stream uptime only when
-a measured source provides the value and source metadata. A metric without a measured source SHALL be
-shown as unavailable and SHALL NOT be replaced with an estimated or placeholder value.
-
-#### Scenario: Telemetry source is unavailable
-- **WHEN** no telemetry source provides packet-loss data for a match
-- **THEN** the packet-loss tile is labelled unavailable rather than displaying a fabricated value
 
 ### Requirement: Match console renders tactile dual jersey number grids
 
@@ -333,17 +369,85 @@ against will never be played.
 ### Requirement: Sync status is always visible while the console is open
 
 The console SHALL display, at all times while open — not only when a problem occurs — whether it is
-currently online or offline, how many actions are queued and not yet confirmed by the server, and when
-the queue was last successfully drained.
+currently online or offline, as a single glanceable icon. The number of actions queued and not yet
+confirmed by the server, and when the queue was last successfully drained, SHALL be available on demand
+(hover or focus on the icon) rather than permanently occupying the console's visible layout.
 
 #### Scenario: Going offline shows an offline indicator
 - **WHEN** the console loses connectivity
-- **THEN** an offline indicator becomes visible without requiring any operator action
+- **THEN** the icon visibly switches to its offline state without requiring any operator action
 
 #### Scenario: A queued action is reflected in the visible count
-- **WHEN** an action is durably queued because it could not be sent
-- **THEN** the visible queued-action count increases to include it
+- **WHEN** an action is durably queued because it could not be sent, and an operator focuses or hovers
+  the connectivity icon
+- **THEN** the on-demand detail shown includes the current queued-action count
 
 #### Scenario: A successful drain updates the last-synced time
-- **WHEN** the queue is successfully drained after a reconnection
-- **THEN** the visible last-synced time updates to reflect it
+- **WHEN** the queue is successfully drained after a reconnection, and an operator focuses or hovers
+  the connectivity icon
+- **THEN** the on-demand detail shown includes the updated last-synced time
+
+### Requirement: Team and participant references always resolve to a display name
+Every team or participant reference rendered anywhere in the match console — the score header, event
+recording controls, and roster selection — SHALL resolve to that entrant's display name or short code.
+A raw identifier SHALL NOT be rendered as a substitute when a name is unavailable; the console SHALL
+instead show a clearly labeled placeholder (e.g. "Unnamed entrant") rather than an internal id.
+
+#### Scenario: The score header shows team names, not ids
+- **WHEN** the console renders its score header for a match with two named entrants
+- **THEN** both entrants' names (or short codes) are shown, with no raw identifier visible
+
+#### Scenario: An entrant with no resolvable name shows a labeled placeholder, not an id
+- **WHEN** the console renders a reference to an entrant whose name cannot be resolved
+- **THEN** it shows a clearly labeled placeholder rather than the entrant's raw identifier
+
+### Requirement: The event ledger is collapsible without hiding the most recent events
+The console's event ledger SHALL support a collapsed state showing at least the most recently recorded
+2-3 events, and an expanded state showing full match history. Collapsing the ledger SHALL NOT hide an
+event from the operator who just recorded it.
+
+#### Scenario: A collapsed ledger still shows the latest events
+- **WHEN** the event ledger is collapsed
+- **THEN** the most recent 2-3 recorded events remain visible in a peek strip
+
+#### Scenario: Expanding the ledger reveals full history
+- **WHEN** an operator expands a collapsed ledger
+- **THEN** the full recorded event history for the match becomes visible
+
+### Requirement: Person-payload-field prompts render a localized label
+
+A person-payload-field prompt in the event-recording controls (a secondary actor field such as an
+assist provider or a substitution's outgoing player) SHALL render a localized label resolved for the
+console's active language, whichever way the active discipline declared that field — as a
+`personPayloadFields` entry, as a statistic effect's payload-field target, or as a tag effect's
+payload-field target. The label SHALL be declared by the discipline descriptor alongside the event
+definition, so a discipline can name its own fields without a frontend release.
+
+The underlying JSON Schema field key SHALL NOT be rendered as a substitute for a label a discipline
+declared. Where a discipline declares no label for a prompted field, the console SHALL render the
+field's key rather than a label derived from it — a generated label is indistinguishable from a
+translated one, and no language would have approved it.
+
+#### Scenario: A secondary field renders its localized label
+
+- **WHEN** the console renders a secondary-field chip for an event definition whose discipline
+  declares a label for that field
+- **THEN** the chip shows that label, resolved for the console's active language, not the field's
+  underlying key
+
+#### Scenario: A field declared through an effect is labelled like any other
+
+- **WHEN** the prompted field reaches the console through a statistic or tag effect's payload-field
+  target rather than through the definition's person-payload-field list
+- **THEN** it renders its declared label exactly as a person-payload-field entry does
+
+#### Scenario: The same event definition renders correctly in every supported language
+
+- **WHEN** the console's active language changes
+- **THEN** every person-payload-field chip's label updates to that language's resolved value, with no
+  language showing the raw field key
+
+#### Scenario: An undeclared label shows the key rather than an invented one
+
+- **WHEN** the active discipline declares a prompted secondary field but no label for it
+- **THEN** the chip shows the field's key, and no label is derived from that key

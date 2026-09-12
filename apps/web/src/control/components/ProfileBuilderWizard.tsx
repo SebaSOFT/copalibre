@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
+import { Select } from './ui/atoms/select.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { TRANSLATABLE_LANGUAGES } from '../lib/descriptor-authoring.js';
 import {
   PROFILE_STEPS,
@@ -68,7 +70,7 @@ export function ProfileBuilderWizard({
           aria-label={intl.formatMessage(messages.profileWizardSteps)}
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, minmax(6rem, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))',
             gap: 'var(--cl-space-3)',
             listStyle: 'none',
             padding: 0,
@@ -90,7 +92,7 @@ export function ProfileBuilderWizard({
       <Card className="cl-chamfer cl-chamfer--control">
         {state.step === 'name' && (
           <div className="cl-platform-form-grid">
-            <FormField id="profile-alias" label={intl.formatMessage(messages.profileFieldAlias)}>
+            <Field id="profile-alias" label={intl.formatMessage(messages.profileFieldAlias)}>
               <Input
                 aria-describedby="profile-alias-hint"
                 id="profile-alias"
@@ -101,17 +103,14 @@ export function ProfileBuilderWizard({
                 id="profile-alias-hint"
                 text={intl.formatMessage(messages.profileDecisionAlias)}
               />
-            </FormField>
-            <FormField
-              id="profile-version"
-              label={intl.formatMessage(messages.profileFieldVersion)}
-            >
+            </Field>
+            <Field id="profile-version" label={intl.formatMessage(messages.profileFieldVersion)}>
               <Input
                 id="profile-version"
                 onChange={(event) => patch({ version: event.target.value })}
                 value={state.version}
               />
-            </FormField>
+            </Field>
             <LocalizedField
               draft={state.name}
               id="profile-name"
@@ -130,7 +129,7 @@ export function ProfileBuilderWizard({
 
         {state.step === 'authorship' && (
           <div className="cl-platform-form-grid">
-            <FormField id="profile-author" label={intl.formatMessage(messages.profileFieldAuthor)}>
+            <Field id="profile-author" label={intl.formatMessage(messages.profileFieldAuthor)}>
               <Input
                 aria-describedby="profile-author-hint"
                 id="profile-author"
@@ -141,18 +140,15 @@ export function ProfileBuilderWizard({
                 id="profile-author-hint"
                 text={intl.formatMessage(messages.profileDecisionAuthor)}
               />
-            </FormField>
-            <FormField
-              id="profile-licence"
-              label={intl.formatMessage(messages.profileFieldLicence)}
-            >
+            </Field>
+            <Field id="profile-licence" label={intl.formatMessage(messages.profileFieldLicence)}>
               <Input
                 id="profile-licence"
                 onChange={(event) => patch({ licence: event.target.value })}
                 value={state.licence}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="profile-source-url"
               label={intl.formatMessage(messages.profileFieldSourceUrl)}
             >
@@ -161,39 +157,38 @@ export function ProfileBuilderWizard({
                 onChange={(event) => patch({ sourceUrl: event.target.value })}
                 value={state.sourceUrl}
               />
-            </FormField>
+            </Field>
           </div>
         )}
 
         {state.step === 'stages' && (
           <div className="cl-platform-form-grid">
-            <FormField
+            <Field
               id="profile-discipline"
               label={intl.formatMessage(messages.profileFieldDiscipline)}
             >
-              <select
+              <Select
                 aria-describedby="profile-discipline-hint"
-                className="cl-select cl-select--default cl-focusable"
                 id="profile-discipline"
-                onChange={(event) => patch({ disciplineAlias: event.target.value, stages: [] })}
+                onValueChange={(val) => patch({ disciplineAlias: val, stages: [] })}
+                options={[
+                  { value: '', label: '' },
+                  ...disciplines
+                    .filter((discipline): discipline is DisciplineOption & { alias: string } =>
+                      Boolean(discipline.alias),
+                    )
+                    .map((discipline) => ({
+                      value: discipline.alias,
+                      label: discipline.alias,
+                    })),
+                ]}
                 value={state.disciplineAlias}
-              >
-                <option value="" />
-                {disciplines
-                  .filter((discipline): discipline is DisciplineOption & { alias: string } =>
-                    Boolean(discipline.alias),
-                  )
-                  .map((discipline) => (
-                    <option key={discipline.alias} value={discipline.alias}>
-                      {discipline.alias}
-                    </option>
-                  ))}
-              </select>
+              />
               <DecisionHint
                 id="profile-discipline-hint"
                 text={intl.formatMessage(messages.profileDecisionDiscipline)}
               />
-            </FormField>
+            </Field>
             <div style={{ gridColumn: '1 / -1' }}>
               <StageList
                 allowedFormats={allowedFormats}
@@ -209,7 +204,7 @@ export function ProfileBuilderWizard({
 
         {state.step === 'points' && (
           <div className="cl-platform-form-grid">
-            <FormField
+            <Field
               id="profile-points-win"
               label={intl.formatMessage(messages.profileFieldPointsWin)}
             >
@@ -220,8 +215,8 @@ export function ProfileBuilderWizard({
                 type="number"
                 value={state.pointsWin}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="profile-points-draw"
               label={intl.formatMessage(messages.profileFieldPointsDraw)}
             >
@@ -232,8 +227,8 @@ export function ProfileBuilderWizard({
                 type="number"
                 value={state.pointsDraw}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="profile-points-loss"
               label={intl.formatMessage(messages.profileFieldPointsLoss)}
             >
@@ -244,31 +239,36 @@ export function ProfileBuilderWizard({
                 type="number"
                 value={state.pointsLoss}
               />
-            </FormField>
+            </Field>
           </div>
         )}
 
         {problems.length > 0 && (
-          <ul className="cl-inline-alert" style={{ marginTop: 'var(--cl-space-4)' }}>
-            {problems.map((problem) => (
-              <li key={problem.id}>{intl.formatMessage(problem)}</li>
-            ))}
-          </ul>
+          <Alert block className="cl-inline-alert--spaced" tone="destructive">
+            <ul>
+              {problems.map((problem) => (
+                <li key={problem.id}>{intl.formatMessage(problem)}</li>
+              ))}
+            </ul>
+          </Alert>
         )}
 
         {failures.length > 0 && (
-          <ul
-            className="cl-inline-alert"
-            data-testid="profile-server-failures"
-            style={{ marginTop: 'var(--cl-space-4)' }}
+          <Alert
+            block
+            className="cl-inline-alert--spaced"
+            testId="profile-server-failures"
+            tone="destructive"
           >
-            {failures.map((failure, index) => (
-              <li key={`${failure.stage}-${failure.field ?? index}`}>
-                [{failure.stage}
-                {failure.field ? `:${failure.field}` : ''}] {failure.message}
-              </li>
-            ))}
-          </ul>
+            <ul>
+              {failures.map((failure, index) => (
+                <li key={`${failure.stage}-${failure.field ?? index}`}>
+                  [{failure.stage}
+                  {failure.field ? `:${failure.field}` : ''}] {failure.message}
+                </li>
+              ))}
+            </ul>
+          </Alert>
         )}
 
         <footer
@@ -323,7 +323,7 @@ function LocalizedField({
   readonly required?: boolean;
 }): React.JSX.Element {
   return (
-    <FormField id={id} label={`${label}${required ? ' *' : ''}`}>
+    <Field id={id} label={`${label}${required ? ' *' : ''}`}>
       <Input
         id={id}
         onChange={(event) => onChange({ ...draft, en: event.target.value })}
@@ -345,7 +345,7 @@ function LocalizedField({
           />
         ))}
       </div>
-    </FormField>
+    </Field>
   );
 }
 
@@ -393,19 +393,18 @@ function StageList({
           placeholder={intl.formatMessage(messages.profileFieldStageName)}
           value={draft.name}
         />
-        <select
+        <Select
           aria-label={intl.formatMessage(messages.profileFieldStageFormat)}
-          className="cl-select cl-select--default cl-focusable"
-          onChange={(event) => setDraft({ ...draft, format: event.target.value })}
+          onValueChange={(val) => setDraft({ ...draft, format: val })}
+          options={[
+            { value: '', label: '' },
+            ...allowedFormats.map((format) => ({
+              value: format,
+              label: format,
+            })),
+          ]}
           value={draft.format}
-        >
-          <option value="" />
-          {allowedFormats.map((format) => (
-            <option key={format} value={format}>
-              {format}
-            </option>
-          ))}
-        </select>
+        />
         <Button
           disabled={draft.name.trim() === '' || draft.format.trim() === ''}
           onClick={() => {

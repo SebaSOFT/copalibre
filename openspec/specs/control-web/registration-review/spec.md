@@ -230,3 +230,10 @@ person) has never submitted a participant report. Removal SHALL be audited with 
 #### Scenario: A person who has submitted a report cannot be removed
 - **WHEN** an admin attempts to remove a person who has submitted a participant report
 - **THEN** the request is refused, naming the report as the reason, and no record is deleted
+
+### Requirement: Team member role selection UI
+The roster editing interface SHALL provide a role selector allowing operators to assign player, substitute, coach, or staff roles to team members.
+
+#### Scenario: Assigning a coach role to a team member
+- **WHEN** an operator selects "Coach" from the role dropdown for an enrolled person in a club roster
+- **THEN** the selection SHALL be saved and visually badged as Coach in the roster view

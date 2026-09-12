@@ -1,5 +1,9 @@
 ---
 import PublicLayout from '../../../../../../../../layouts/PublicLayout.astro';
+import MatchHero from '../../../../../../../../components/ui/organisms/MatchHero.astro';
+import MatchOfficials from '../../../../../../../../components/ui/organisms/MatchOfficials.astro';
+import MatchRosters from '../../../../../../../../components/ui/organisms/MatchRosters.astro';
+import MatchTimeline from '../../../../../../../../components/ui/organisms/MatchTimeline.astro';
 import { buildMatchReport } from '../../../../../../../../lib/match-report.ts';
 import { fetchMatchReport } from '../../../../../../../../lib/public-api-client.ts';
 import { publicIntl } from '../../../../../../../../lib/i18n/public-intl.ts';
@@ -43,107 +47,33 @@ const structuredData = {
   disciplineImages={response.disciplineImages}
   structuredData={structuredData}
 >
-  <article>
-    <header>
-      <p>Stage {model.stageNumber} · Round {model.round} · Match {model.matchNumber}</p>
-      <h1>
-        {model.home.abbreviation ?? model.home.name}
-        {model.home.score ?? '—'} – {model.away.score ?? '—'}
-        {model.away.abbreviation ?? model.away.name}
-      </h1>
-      <p>{model.status}</p>
-      {
-        model.scheduledAt ? (
-          <p>
-            <time datetime={model.scheduledAt}>{model.scheduledAt}</time>
-            {model.venueName ? ` · ${model.venueName}` : ''}
-          </p>
-        ) : (
-          <p>Schedule not yet available.</p>
-        )
-      }
-    </header>
+  <article class="cl-match-page">
+    <MatchHero model={model} />
 
-    <section aria-labelledby="officials-heading">
-      <h2 id="officials-heading">Officials</h2>
-      {
-        !model.schedulePublished ? (
-          <p>Schedule has not yet been published.</p>
-        ) : model.officials.length === 0 ? (
-          <p>No officials assigned.</p>
-        ) : (
-          <ul>
-            {model.officials.map((official) => (
-              <li>
-                {official.name} — {official.roles.join(', ')}
-              </li>
-            ))}
-          </ul>
-        )
-      }
-    </section>
-
-    <section aria-labelledby="rosters-heading">
-      <h2 id="rosters-heading">Rosters</h2>
-      {
-        model.home.roster.length === 0 && model.away.roster.length === 0 ? (
-          <p>Rosters are not yet available.</p>
-        ) : (
-          <div>
-            {[model.home, model.away].map((side) => (
-              <section>
-                <h3>{side.name}</h3>
-                {side.roster.length === 0 ? (
-                  <p>Roster not yet available.</p>
-                ) : (
-                  <table>
-                    <thead>
-                      <tr>
-                        <th scope="col">No.</th>
-                        <th scope="col">Player</th>
-                        <th scope="col">Roles</th>
-                        <th scope="col">On field</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {side.roster.map((member) => (
-                        <tr>
-                          <td>{member.number ?? '—'}</td>
-                          <td>{member.name}</td>
-                          <td>{member.roles?.join(', ') ?? '—'}</td>
-                          <td>{member.onField ? 'Yes' : 'No'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </section>
-            ))}
-          </div>
-        )
-      }
-    </section>
-
-    <section aria-labelledby="timeline-heading">
-      <h2 id="timeline-heading">Event timeline</h2>
-      {
-        model.timeline.length === 0 ? (
-          <p>Events are not yet available.</p>
-        ) : (
-          <ol>
-            {model.timeline.map((group) => (
-              <li data-workflow-group={group.kind === 'workflow' ? 'true' : undefined}>
-                {group.events.map((event) => (
-                  <p>
-                    <time datetime={event.occurredAt}>{event.occurredAt}</time> — {event.label}
-                    {event.actor ? ` · ${event.actor}` : ''}
-                  </p>
-                ))}
-              </li>
-            ))}
-          </ol>
-        )
-      }
-    </section>
+    <div class="cl-match-details">
+      <MatchOfficials model={model} />
+      <MatchRosters
+        model={model}
+        locale={locale}
+        organization={organization!}
+        tournament={tournament!}
+      />
+      <MatchTimeline model={model} />
+    </div>
   </article>
 </PublicLayout>
+
+<style>
+  .cl-match-page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: var(--cl-space-6) var(--cl-space-4);
+    overflow-x: hidden;
+  }
+
+  .cl-match-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-6);
+  }
+</style>

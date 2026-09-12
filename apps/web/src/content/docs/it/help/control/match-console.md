@@ -29,6 +29,29 @@ trasmesso dal vivo sulla schermata pubblica del torneo.
   viene sovrascritto da questa schermata — qualsiasi correzione successiva passa attraverso il
   flusso tracciato di correzione/sostituzione, non ricaricandolo qui.
 
+## Gestire l'orologio
+
+Ogni segmento ha il proprio orologio, guidato da tre pulsanti sotto il segmento selezionato:
+
+- **Avvia** fa partire l'orologio di quel segmento e ferma quello che stava andando — ne va uno
+  soltanto per volta.
+- **Pausa** lo ferma dov'è. Una partita in pausa è ancora in corso: la pausa ferma un orologio, non
+  la competizione.
+- **Termina periodo** chiude quel segmento. Dopo non accetta più né Avvia né Pausa, e non termina la
+  partita — caricare il risultato è un'azione a sé.
+
+Registrano il momento in cui hai davvero fischiato. Il campo dei secondi trascorsi accanto resta
+quello che è sempre stato: il modo di correggere a posteriori un valore registrato male. Entrambe le
+strade finiscono nello stesso registro di audit, con chi, quando, e cosa segnava l'orologio prima e
+dopo.
+
+## Leggere il registro eventi
+
+Il registro parte compresso, mostrando i tre eventi più recenti, così i comandi di registrazione
+stanno in una sola schermata mentre lavori. Quello che hai appena registrato è sempre tra questi:
+comprimere toglie dalla vista la cronologia vecchia, mai la tua ultima conferma. **Mostra cronologia
+completa** apre l'intera partita.
+
 ## Cosa non puoi fare dopo aver caricato il risultato
 
 Una volta terminata la partita, questa schermata non permette più di aggiungere eventi come se la
@@ -42,8 +65,9 @@ evento, regolare il cronometro, selezionare una formazione o finalizzare una par
 in una coda locale durevole — _prima ancora_ di tentare l'invio — così un segnale interrotto non fa
 mai perdere qualcosa che hai già fatto.
 
-- **Lo stato di sincronizzazione** è sempre visibile in alto nella schermata: se sei online, quante
-  azioni sono ancora in attesa di invio, e quando l'ultima è effettivamente andata a buon fine.
+- **Un punto di connessione** è sempre visibile in alto nella schermata: pieno quando sei online,
+  vuoto quando non lo sei. Passaci sopra il mouse o dagli il focus per vedere quante azioni sono
+  ancora in attesa di invio e quando l'ultima è effettivamente andata a buon fine.
 - **Un'azione in coda resta in coda**, senza andare persa, con una connessione instabile, una zona
   senza segnale, o anche chiudendo e riaprendo questa schermata — riaprirla riprende l'invio di
   tutto ciò che è ancora in attesa.

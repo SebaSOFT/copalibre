@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { useIntl } from 'react-intl';
 import {
+  type ConsoleEntrant,
   type ConsoleRoster,
   type ConsoleRosterRole,
   type MatchConsoleApiClient,
@@ -10,6 +12,7 @@ import { currentEpochMilliseconds, newIdempotencyKey } from '../lib/match-consol
 import { drainQueue, enqueue } from '../lib/offline-queue.js';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
+import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
 import { messages } from '../i18n/messages.en.js';
 
@@ -27,7 +30,7 @@ interface MemberSelection {
  * re-openable during the match.
  */
 export function RosterSelectionStep({
-  entrantIds,
+  entrants,
   rosterRoles,
   existingRosters,
   organizationAlias,
@@ -36,7 +39,7 @@ export function RosterSelectionStep({
   api,
   onSaved,
 }: {
-  readonly entrantIds: readonly string[];
+  readonly entrants: readonly ConsoleEntrant[];
   readonly rosterRoles: readonly ConsoleRosterRole[];
   readonly existingRosters: readonly ConsoleRoster[];
   readonly organizationAlias: string;
@@ -51,12 +54,12 @@ export function RosterSelectionStep({
       aria-label={intl.formatMessage(messages.matchConsoleRosterStepLabel)}
       style={stepStyle}
     >
-      {entrantIds.map((entrantId) => (
+      {entrants.map((entrant) => (
         <EntrantRosterEditor
           api={api}
-          entrantId={entrantId}
-          existingRoster={existingRosters.find((roster) => roster.entrantId === entrantId)}
-          key={entrantId}
+          entrant={entrant}
+          existingRoster={existingRosters.find((roster) => roster.entrantId === entrant.entrantId)}
+          key={entrant.entrantId}
           matchId={matchId}
           onSaved={onSaved}
           organizationAlias={organizationAlias}
@@ -69,7 +72,7 @@ export function RosterSelectionStep({
 }
 
 function EntrantRosterEditor({
-  entrantId,
+  entrant,
   rosterRoles,
   existingRoster,
   organizationAlias,
@@ -78,7 +81,7 @@ function EntrantRosterEditor({
   api,
   onSaved,
 }: {
-  readonly entrantId: string;
+  readonly entrant: ConsoleEntrant;
   readonly rosterRoles: readonly ConsoleRosterRole[];
   readonly existingRoster: ConsoleRoster | undefined;
   readonly organizationAlias: string;
@@ -88,6 +91,7 @@ function EntrantRosterEditor({
   readonly onSaved: () => void;
 }): React.JSX.Element {
   const intl = useIntl();
+  const { entrantId } = entrant;
   const [candidates, setCandidates] = useState<readonly RosterCandidate[]>();
   const [selections, setSelections] = useState<Record<string, MemberSelection>>({});
   const [status, setStatus] = useState<{ readonly saving: boolean; readonly error?: string }>({
@@ -178,9 +182,7 @@ function EntrantRosterEditor({
     return (
       <Card className="cl-chamfer cl-chamfer--control" style={editorStyle}>
         {status.error ? (
-          <p className="cl-inline-alert" role="alert">
-            {status.error}
-          </p>
+          <Alert tone="destructive">{status.error}</Alert>
         ) : (
           <p>{intl.formatMessage(messages.matchConsoleRosterLoading)}</p>
         )}
@@ -190,12 +192,10 @@ function EntrantRosterEditor({
 
   return (
     <Card className="cl-chamfer cl-chamfer--control" style={editorStyle}>
-      <h3 style={headerStyle}>{existingRoster?.teamName ?? entrantId.slice(-8)}</h3>
-      {status.error && (
-        <p className="cl-inline-alert" role="alert">
-          {status.error}
-        </p>
-      )}
+      <h3 style={headerStyle}>
+        {entrant.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
+      </h3>
+      {status.error && <Alert tone="destructive">{status.error}</Alert>}
       <ul style={listStyle}>
         {candidates.map((candidate) => {
           const selection = selections[candidate.personId];
@@ -203,13 +203,10 @@ function EntrantRosterEditor({
           return (
             <li key={candidate.personId} style={rowStyle}>
               <label style={checkboxLabelStyle}>
-                <input
+                <Checkbox
+                  aria-label={candidate.name}
                   checked={selection.included}
-                  className="cl-checkbox cl-focusable"
-                  onChange={(event) =>
-                    update(candidate.personId, { included: event.target.checked })
-                  }
-                  type="checkbox"
+                  onCheckedChange={(checked) => update(candidate.personId, { included: checked })}
                 />
                 {candidate.name}
               </label>
@@ -224,14 +221,11 @@ function EntrantRosterEditor({
                 value={selection.number}
               />
               <label style={checkboxLabelStyle}>
-                <input
+                <Checkbox
+                  aria-label={intl.formatMessage(messages.matchConsoleOnField)}
                   checked={selection.onField}
-                  className="cl-checkbox cl-focusable"
                   disabled={!selection.included}
-                  onChange={(event) =>
-                    update(candidate.personId, { onField: event.target.checked })
-                  }
-                  type="checkbox"
+                  onCheckedChange={(checked) => update(candidate.personId, { onField: checked })}
                 />
                 {intl.formatMessage(messages.matchConsoleOnField)}
               </label>
@@ -239,18 +233,17 @@ function EntrantRosterEditor({
                 <span style={roleRowStyle}>
                   {rosterRoles.map((role) => (
                     <label key={role.code} style={checkboxLabelStyle}>
-                      <input
+                      <Checkbox
+                        aria-label={role.badge ?? role.code}
                         checked={selection.roles.includes(role.code)}
-                        className="cl-checkbox cl-focusable"
                         disabled={!selection.included}
-                        onChange={(event) =>
+                        onCheckedChange={(checked) =>
                           update(candidate.personId, {
-                            roles: event.target.checked
+                            roles: checked
                               ? [...selection.roles, role.code]
                               : selection.roles.filter((code) => code !== role.code),
                           })
                         }
-                        type="checkbox"
                       />
                       {role.badge ?? role.code}
                     </label>

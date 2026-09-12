@@ -53,7 +53,9 @@ function projection() {
         actorRequirement: 'person',
         payloadSchema: { type: 'object', properties: { assistedBy: { type: 'string' } } },
         display: {},
-        secondaryActorFields: ['assistedBy'],
+        secondaryActorFields: [
+          { field: 'assistedBy', label: { en: 'Assisted by', es: 'Asistido por' } },
+        ],
       },
       {
         code: 'own-goal',
@@ -86,13 +88,17 @@ function projection() {
           properties: { playerOutId: { type: 'string' }, playerInId: { type: 'string' } },
         },
         display: {},
-        secondaryActorFields: ['playerOutId', 'playerInId'],
+        secondaryActorFields: [
+          { field: 'playerOutId', label: { en: 'Player out', es: 'Sale' } },
+          { field: 'playerInId', label: { en: 'Player in', es: 'Entra' } },
+        ],
       },
     ],
     eligiblePersonIds: ['person-a1', 'person-a2', 'person-a-bench', 'person-b1'],
     rosters: [
       {
         entrantId: 'entrant-a',
+        teamName: 'Club Atlético Norte',
         members: [
           {
             personId: 'person-a1',
@@ -107,6 +113,7 @@ function projection() {
       },
       {
         entrantId: 'entrant-b',
+        teamName: 'Deportivo Cuyo',
         members: [{ personId: 'person-b1', number: 4, name: 'Defender', onField: true }],
       },
     ],
@@ -115,7 +122,10 @@ function projection() {
       { code: 'captain', label: 'Captain', badge: 'C' },
     ],
     eligibleStaffIds: [],
-    entrantIds: ['entrant-a', 'entrant-b'],
+    entrants: [
+      { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
+      { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },
+    ],
     capabilities: ['match.record-event', 'match.control-clock', 'match.finalize'],
     projectionVersion: 1,
   };
@@ -199,7 +209,7 @@ test.beforeEach(async ({ page }) => {
 
 test('scores a goal and credits an assist via the jersey grid', async ({ page }) => {
   await page.getByRole('button', { name: 'Scorer', exact: true }).click();
-  await page.getByRole('button', { name: 'assistedBy', exact: true }).click();
+  await page.getByRole('button', { name: 'Asistido por', exact: true }).click();
   await page.getByRole('button', { name: 'Playmaker', exact: true }).click();
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
 
@@ -228,9 +238,9 @@ test('sanctions an opposing player selected from the opponent grid', async ({ pa
 test('records a substitution by tapping the outgoing and incoming jerseys', async ({ page }) => {
   // Primary tap sets the side the substitution belongs to.
   await page.getByRole('button', { name: 'Playmaker', exact: true }).click();
-  await page.getByRole('button', { name: 'playerOutId', exact: true }).click();
+  await page.getByRole('button', { name: 'Sale', exact: true }).click();
   await page.getByRole('button', { name: 'Playmaker', exact: true }).click();
-  await page.getByRole('button', { name: 'playerInId', exact: true }).click();
+  await page.getByRole('button', { name: 'Entra', exact: true }).click();
   await page.getByRole('button', { name: 'Bench Sub', exact: true }).click();
   await page.getByRole('button', { name: 'Cambio', exact: true }).click();
 
@@ -255,4 +265,21 @@ test('logs an own goal through the same generic event palette, no dedicated work
       definitionCode: 'own-goal',
       personId: 'person-b1',
     });
+});
+
+test('labels each jersey panel with its team name, never an identifier', async ({ page }) => {
+  await expect(page.getByRole('heading', { name: 'Club Atlético Norte' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Deportivo Cuyo' })).toBeVisible();
+  await expect(page.getByText('entrant-a', { exact: false })).toHaveCount(0);
+});
+
+test('names every secondary-actor chip by its discipline label, never the payload key', async ({
+  page,
+}) => {
+  // The console runs in Spanish here, so these are the descriptor's own `es`
+  // values — the defect this replaces rendered `assistedBy` in every language.
+  await expect(page.getByRole('button', { name: 'Asistido por', exact: true })).toBeVisible();
+  for (const key of ['assistedBy', 'playerOutId', 'playerInId']) {
+    await expect(page.getByRole('button', { name: key, exact: true })).toHaveCount(0);
+  }
 });

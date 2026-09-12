@@ -171,6 +171,77 @@ describe('audit trail surface (integration)', () => {
     expect(body.offset).toBe(0);
   });
 
+  it('returns real events in chronological newest-first order for populated organizations (openspec 0196 task 4.1)', async () => {
+    const t0 = new Date(Date.now() - 10000);
+    const t1 = new Date(Date.now() - 5000);
+    const t2 = new Date();
+
+    await scratch.db
+      .insertInto('audit_log')
+      .values([
+        {
+          audit_id: newId(),
+          organization_id: organizationId,
+          entity_type: 'club',
+          entity_id: newId(),
+          action: 'club.created',
+          actor: 'user:seed',
+          authorization_context: 'copalibre.control',
+          previous_state: null,
+          resulting_state: JSON.stringify({ name: 'Club Alpha' }),
+          reason: null,
+          occurred_at: t0,
+        },
+        {
+          audit_id: newId(),
+          organization_id: organizationId,
+          entity_type: 'entrant',
+          entity_id: newId(),
+          action: 'entrant.registered',
+          actor: 'user:seed',
+          authorization_context: 'copalibre.control',
+          previous_state: null,
+          resulting_state: JSON.stringify({ entrantId: 'e-1' }),
+          reason: 'Inscripción online',
+          occurred_at: t1,
+        },
+        {
+          audit_id: newId(),
+          organization_id: organizationId,
+          entity_type: 'match',
+          entity_id: newId(),
+          action: 'match.finalized',
+          actor: 'user:seed',
+          authorization_context: 'copalibre.control',
+          previous_state: null,
+          resulting_state: JSON.stringify({ winner: 'e-1' }),
+          reason: null,
+          occurred_at: t2,
+        },
+      ])
+      .execute();
+
+    const response = await request(
+      'admin',
+      `/organizations/${organizationAlias}/audit-trail?limit=10`,
+    );
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.records.length).toBeGreaterThanOrEqual(3);
+
+    // Assert chronological newest first: each record occurredAt >= next record occurredAt
+    for (let i = 0; i < body.records.length - 1; i++) {
+      const current = new Date(body.records[i].occurredAt).getTime();
+      const next = new Date(body.records[i + 1].occurredAt).getTime();
+      expect(current).toBeGreaterThanOrEqual(next);
+    }
+
+    const actions = body.records.map((r: { action: string }) => r.action);
+    expect(actions).toContain('match.finalized');
+    expect(actions).toContain('entrant.registered');
+    expect(actions).toContain('club.created');
+  });
+
   it('refuses a role without the audit capability, and records the refusal itself (task 4.3, 7.2)', async () => {
     const before = await scratch.db
       .selectFrom('audit_log')

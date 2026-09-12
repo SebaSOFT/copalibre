@@ -16,6 +16,17 @@ export const messages = defineMessages({
   // Layout chrome (layouts/PublicLayout.astro)
   layoutSkipToContent: { id: 'publicWeb.layout.skipToContent', defaultMessage: 'Skip to content' },
   layoutNavAriaLabel: { id: 'publicWeb.layout.navAriaLabel', defaultMessage: 'Main' },
+  // 0223 — the public header's own controls and destinations.
+  headerOpenMenu: { id: 'publicWeb.header.openMenu', defaultMessage: 'Open the menu' },
+  headerCloseMenu: { id: 'publicWeb.header.closeMenu', defaultMessage: 'Close the menu' },
+  headerLanguage: { id: 'publicWeb.header.language', defaultMessage: 'Language' },
+  headerNavHome: { id: 'publicWeb.header.navHome', defaultMessage: 'Home' },
+  headerNavHelp: { id: 'publicWeb.header.navHelp', defaultMessage: 'Help' },
+  headerNavApiReference: {
+    id: 'publicWeb.header.navApiReference',
+    defaultMessage: 'API reference',
+  },
+  headerControlPanel: { id: 'publicWeb.header.controlPanel', defaultMessage: 'Control panel' },
   layoutFooter: {
     id: 'publicWeb.layout.footer',
     defaultMessage: 'Published with CopaLibre — AGPL-3.0',
@@ -53,8 +64,28 @@ export const messages = defineMessages({
   // RulesetBriefing.astro
   rulesetHeading: { id: 'publicWeb.ruleset.heading', defaultMessage: 'Rules' },
 
-  // StandingsPreview.astro
+  // StandingsTable.astro
   standingsHeading: { id: 'publicWeb.standings.heading', defaultMessage: 'Standings' },
+  standingsTableLayouts: {
+    id: 'publicWeb.standings.tableLayouts',
+    defaultMessage: 'Table layouts',
+  },
+  standingsFilterByClub: {
+    id: 'publicWeb.standings.filterByClub',
+    defaultMessage: 'Filter by club',
+  },
+  standingsCloseDialog: {
+    id: 'publicWeb.standings.closeDialog',
+    defaultMessage: 'Close dialog',
+  },
+  homePageTitle: {
+    id: 'publicWeb.home.pageTitle',
+    defaultMessage: 'CopaLibre — Tournament Operations',
+  },
+  homeOrganizationsLabel: {
+    id: 'publicWeb.home.organizationsLabel',
+    defaultMessage: 'Organizations',
+  },
   standingsEmpty: {
     id: 'publicWeb.standings.empty',
     defaultMessage: 'Standings appear once the first match is played.',
@@ -82,6 +113,14 @@ export const messages = defineMessages({
   // TournamentHero.astro
   heroLiveCount: { id: 'publicWeb.hero.liveCount', defaultMessage: '{count} LIVE' },
   heroNoLiveMatches: { id: 'publicWeb.hero.noLiveMatches', defaultMessage: 'NO LIVE MATCHES' },
+  heroTournamentEmblemAlt: {
+    id: 'publicWeb.hero.tournamentEmblemAlt',
+    defaultMessage: '{name} emblem',
+  },
+  heroTournamentEmblemPlaceholderAlt: {
+    id: 'publicWeb.hero.tournamentEmblemPlaceholderAlt',
+    defaultMessage: 'No tournament emblem uploaded',
+  },
 
   // BracketView.astro
   bracketRoundAriaLabel: {
@@ -89,6 +128,33 @@ export const messages = defineMessages({
     defaultMessage: '{branch} — round {round}',
   },
   bracketRoundHeading: { id: 'publicWeb.bracket.roundHeading', defaultMessage: 'Round {round}' },
+  // 0223 — the bracket stage's own chrome, its key, and its textual view.
+  bracketStageAriaLabel: { id: 'publicWeb.bracket.stageAriaLabel', defaultMessage: 'Bracket' },
+  bracketScrollAriaLabel: {
+    id: 'publicWeb.bracket.scrollAriaLabel',
+    defaultMessage: 'Bracket graph, scrolls sideways',
+  },
+  bracketLegendLabel: { id: 'publicWeb.bracket.legendLabel', defaultMessage: 'Bracket key' },
+  bracketOutcomeAdvancing: {
+    id: 'publicWeb.bracket.outcomeAdvancing',
+    defaultMessage: 'Advancing',
+  },
+  bracketOutcomeEliminated: {
+    id: 'publicWeb.bracket.outcomeEliminated',
+    defaultMessage: 'Eliminated',
+  },
+  bracketOutcomePending: {
+    id: 'publicWeb.bracket.outcomePending',
+    defaultMessage: 'Not yet decided',
+  },
+  bracketOutlineHeading: {
+    id: 'publicWeb.bracket.outlineHeading',
+    defaultMessage: 'Rounds and branches',
+  },
+  bracketChampionshipTitle: {
+    id: 'publicWeb.bracket.championshipTitle',
+    defaultMessage: 'Final',
+  },
 
   // BroadcastStatusPanel.astro
   broadcastStatusNote: {
@@ -97,9 +163,9 @@ export const messages = defineMessages({
       'Results update automatically when connected. Otherwise, this page already has everything.',
   },
 
-  // ScoreTicker.astro
-  tickerHeading: { id: 'publicWeb.ticker.heading', defaultMessage: 'Matches' },
-  tickerEmpty: { id: 'publicWeb.ticker.empty', defaultMessage: 'No matches scheduled yet.' },
+  // MatchCardGrid.astro
+  matchGridHeading: { id: 'publicWeb.matchGrid.heading', defaultMessage: 'Matches' },
+  matchGridEmpty: { id: 'publicWeb.matchGrid.empty', defaultMessage: 'No matches scheduled yet.' },
 
   // matches.astro / MatchCard.tsx
   matchesViewPageTitle: { id: 'publicWeb.matchesView.pageTitle', defaultMessage: 'Matches' },
@@ -313,5 +379,107 @@ export const messages = defineMessages({
   notFoundHomeLink: {
     id: 'publicWeb.notFound.homeLink',
     defaultMessage: 'Return to home',
+  },
+
+  // ScoreTicker.astro / tv-statistics.ts
+  tickerLabel: { id: 'publicWeb.ticker.label', defaultMessage: 'Tournament ticker' },
+  tickerLeader: { id: 'publicWeb.ticker.leader', defaultMessage: 'Leader' },
+  tickerVersus: { id: 'publicWeb.ticker.versus', defaultMessage: 'VS' },
+  // 0223 — the ticker's own controls and conditions.
+  tickerPause: { id: 'publicWeb.ticker.pause', defaultMessage: 'Pause the ticker' },
+  tickerResume: { id: 'publicWeb.ticker.resume', defaultMessage: 'Resume the ticker' },
+  tickerStale: {
+    id: 'publicWeb.ticker.stale',
+    defaultMessage: 'Last known scores — the live connection was lost',
+  },
+  tickerEmpty: {
+    id: 'publicWeb.ticker.empty',
+    defaultMessage: 'No fixtures to report yet',
+  },
+  tvStatsHomeSide: { id: 'publicWeb.tvStats.homeSide', defaultMessage: 'Home' },
+  tvStatsAwaySide: { id: 'publicWeb.tvStats.awaySide', defaultMessage: 'Away' },
+  tvStatsPoints: { id: 'publicWeb.tvStats.points', defaultMessage: 'Points' },
+  tvStatsPointsShort: { id: 'publicWeb.tvStats.pointsShort', defaultMessage: 'Pts' },
+  tvStatsUnnamedActor: {
+    id: 'publicWeb.tvStats.unnamedActor',
+    defaultMessage: 'Competitor {reference}',
+  },
+  tvStatsScheduledMatches: {
+    id: 'publicWeb.tvStats.scheduledMatches',
+    defaultMessage: 'Scheduled matches',
+  },
+  tvStatsStatus: { id: 'publicWeb.tvStats.status', defaultMessage: 'Status' },
+  tvStatsInProgress: { id: 'publicWeb.tvStats.inProgress', defaultMessage: 'In progress' },
+  tvStatsMatchesPlayed: { id: 'publicWeb.tvStats.matchesPlayed', defaultMessage: 'Matches played' },
+  tvStatsTotalScored: { id: 'publicWeb.tvStats.totalScored', defaultMessage: 'Total scored' },
+  tvStatsAveragePerMatch: {
+    id: 'publicWeb.tvStats.averagePerMatch',
+    defaultMessage: 'Average per match',
+  },
+  tvStatsHighestResult: { id: 'publicWeb.tvStats.highestResult', defaultMessage: 'Highest result' },
+  tvStatsChampionTitle: {
+    id: 'publicWeb.tvStats.championTitle',
+    defaultMessage: 'Tournament champion',
+  },
+  tvStatsTableLeaderTitle: {
+    id: 'publicWeb.tvStats.tableLeaderTitle',
+    defaultMessage: 'Table leader',
+  },
+  tvStatsStandingsRecord: {
+    id: 'publicWeb.tvStats.standingsRecord',
+    defaultMessage: '1st · {points} pts · {played} played',
+  },
+  tvStatsGrandFinalRecord: {
+    id: 'publicWeb.tvStats.grandFinalRecord',
+    defaultMessage: 'Grand final winner ({winner} – {loser})',
+  },
+
+  // TvDashboard.tsx's own chrome (openspec 0225 task 2.6) — separate from
+  // tv-statistics.ts's derived-stat labels above. No intl was threaded into
+  // this component at all before; these cross into its client:load island
+  // as plain string props, the same as every `tvStats*` label already does.
+  tvDashboardNoMatchesScheduled: {
+    id: 'publicWeb.tvDashboard.noMatchesScheduled',
+    defaultMessage: 'No matches currently scheduled',
+  },
+  tvDashboardStandingsUnavailable: {
+    id: 'publicWeb.tvDashboard.standingsUnavailable',
+    defaultMessage: 'Standings table unavailable',
+  },
+  tvDashboardClubColumn: {
+    id: 'publicWeb.tvDashboard.clubColumn',
+    defaultMessage: 'Club',
+  },
+  tvDashboardPlayedColumn: {
+    id: 'publicWeb.tvDashboard.playedColumn',
+    defaultMessage: 'MP',
+  },
+  tvDashboardNoTopPerformers: {
+    id: 'publicWeb.tvDashboard.noTopPerformers',
+    defaultMessage: 'No standout performers recorded',
+  },
+  tvDashboardFocalPanelLabel: {
+    id: 'publicWeb.tvDashboard.focalPanelLabel',
+    defaultMessage: 'Main broadcast panel',
+  },
+  tvDashboardStatsAndTablesLabel: {
+    id: 'publicWeb.tvDashboard.statsAndTablesLabel',
+    defaultMessage: 'Tournament statistics and tables',
+  },
+  tvDashboardSidebarSectionsLabel: {
+    id: 'publicWeb.tvDashboard.sidebarSectionsLabel',
+    defaultMessage: 'Sidebar sections',
+  },
+  tvDashboardStandingsTab: {
+    id: 'publicWeb.tvDashboard.standingsTab',
+    defaultMessage: 'Standings',
+  },
+  tvDashboardPerformersTab: {
+    id: 'publicWeb.tvDashboard.performersTab',
+    defaultMessage: 'Top performers',
+  },
+  tvDashboardStatisticsTab: {
+    id: 'publicWeb.tvDashboard.statisticsTab',
+    defaultMessage: 'Statistics',
   },
 });

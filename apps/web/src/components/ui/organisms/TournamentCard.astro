@@ -1,0 +1,337 @@
+---
+import type { IntlShape } from 'react-intl';
+import type { PublicTournamentListingItemResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import ChampionPodium from './ChampionPodium.astro';
+import Button from '../atoms/Button.astro';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
+
+interface Props {
+  readonly tournament: PublicTournamentListingItemResponse;
+  readonly organizationAlias: string;
+  readonly localePrefix?: string;
+  readonly intl: IntlShape;
+  readonly featured?: boolean;
+}
+
+const { tournament, organizationAlias, localePrefix = '', intl, featured = false } = Astro.props;
+
+const tournamentUrl = `${localePrefix}/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournament.alias)}`;
+const liveUrl = `${tournamentUrl}/live`;
+const isLive = tournament.status === 'live';
+const isFinished = tournament.status === 'finished';
+const isUpcoming = tournament.status === 'upcoming';
+const winners = tournament.winners ?? [];
+---
+
+<article
+  class:list={[
+    'cl-tournament-card',
+    {
+      'cl-card-live': isLive,
+      'cl-card-featured': featured,
+      'cl-card-finished': isFinished,
+      'cl-card-upcoming': isUpcoming,
+    },
+  ]}
+  data-tournament-alias={tournament.alias}
+>
+  <header class="cl-card-header">
+    <div class="cl-card-meta">
+      {
+        tournament.discipline.name && (
+          <span class="cl-discipline-badge">{tournament.discipline.name}</span>
+        )
+      }
+      <span
+        class:list={[
+          'cl-status-badge',
+          {
+            'cl-badge-live': isLive,
+            'cl-badge-upcoming': isUpcoming,
+            'cl-badge-finished': isFinished,
+          },
+        ]}
+      >
+        {isLive && <span class="cl-live-pulse" aria-hidden="true" />}
+        {isLive && intl.formatMessage(messages.resultStateLive)}
+        {isUpcoming && intl.formatMessage(messages.resultStateUpcoming)}
+        {isFinished && intl.formatMessage(messages.resultStateFinal)}
+      </span>
+    </div>
+
+    <h3 class="cl-tournament-name">
+      <a href={tournamentUrl} class="cl-tournament-link" title={tournament.name}
+        >{tournament.name}</a
+      >
+    </h3>
+  </header>
+
+  {isFinished && winners.length > 0 && <ChampionPodium winners={winners} intl={intl} />}
+
+  <footer class="cl-card-footer">
+    <div class="cl-card-actions">
+      <Button href={tournamentUrl} variant="primary">
+        {intl.formatMessage(messages.tournamentsViewDetails)}
+      </Button>
+      {
+        isLive && (
+          <Button href={liveUrl} variant="secondary">
+            {intl.formatMessage(messages.livePageTitle)} &rarr;
+          </Button>
+        )
+      }
+    </div>
+  </footer>
+</article>
+
+<style>
+  .cl-tournament-card {
+    background-color: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
+    border-radius: var(--cl-radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .cl-tournament-card:hover {
+    border-color: var(--cl-border-hover);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--cl-color-ink-950) 30%, transparent);
+  }
+
+  .cl-card-live {
+    border-color: color-mix(in srgb, var(--cl-state-live) 40%, transparent);
+  }
+
+  .cl-card-featured {
+    background: linear-gradient(135deg, var(--cl-surface-chrome) 0%, var(--cl-surface-base) 100%);
+    border-color: color-mix(in srgb, var(--cl-primary) 60%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--cl-primary) 15%, transparent);
+  }
+
+  .cl-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .cl-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .cl-discipline-badge {
+    font-size: var(--cl-font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background-color: color-mix(in srgb, var(--cl-text-primary) 10%, transparent);
+    color: var(--cl-text-muted);
+  }
+
+  .cl-status-badge {
+    font-size: var(--cl-font-size-xs);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .cl-badge-live {
+    background-color: color-mix(in srgb, var(--cl-state-live) 20%, transparent);
+    color: var(--cl-state-live);
+    border: 1px solid color-mix(in srgb, var(--cl-state-live) 40%, transparent);
+  }
+
+  .cl-live-pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--cl-state-live);
+    box-shadow: 0 0 8px var(--cl-state-live);
+    animation: cl-pulse 1.5s infinite;
+  }
+
+  @keyframes cl-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.4;
+      transform: scale(1.3);
+    }
+  }
+
+  .cl-badge-upcoming {
+    background-color: color-mix(in srgb, var(--cl-primary) 20%, transparent);
+    color: var(--cl-primary);
+  }
+
+  .cl-badge-finished {
+    background-color: color-mix(in srgb, var(--cl-text-muted) 20%, transparent);
+    color: var(--cl-text-secondary);
+  }
+
+  .cl-tournament-name {
+    margin: 0;
+    font-size: var(--cl-font-size-lg);
+    font-weight: 700;
+    line-height: 1.3;
+    min-width: 0;
+  }
+
+  .cl-tournament-link {
+    display: block;
+    overflow: hidden;
+    color: var(--cl-text-primary);
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cl-tournament-link:hover {
+    color: var(--cl-primary-hover);
+    text-decoration: underline;
+  }
+
+  .cl-podium-container {
+    background-color: color-mix(in srgb, var(--cl-color-ink-950) 25%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cl-text-primary) 7%, transparent);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cl-zone-title {
+    font-size: var(--cl-font-size-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cl-state-upcoming);
+    margin-bottom: 0.35rem;
+  }
+
+  .cl-podium-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  @media (min-width: 480px) {
+    .cl-podium-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .cl-podium-spot {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem;
+    border-radius: var(--cl-radius-md);
+    background-color: color-mix(in srgb, var(--cl-text-primary) 3%, transparent);
+    min-width: 0;
+  }
+
+  .cl-medal-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--cl-font-size-xs);
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .cl-gold-medal {
+    background: linear-gradient(135deg, var(--cl-state-upcoming), var(--cl-color-amber-800));
+    color: var(--cl-color-ink-950);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--cl-state-upcoming) 40%, transparent);
+  }
+
+  .cl-silver-medal {
+    background: linear-gradient(135deg, var(--cl-text-secondary), var(--cl-text-muted));
+    color: var(--cl-surface-base);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--cl-text-secondary) 30%, transparent);
+  }
+
+  .cl-entrant-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .cl-podium-label {
+    font-size: var(--cl-font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cl-text-muted);
+  }
+
+  .cl-entrant-name {
+    font-size: var(--cl-font-size-sm);
+    font-weight: 600;
+    color: var(--cl-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cl-entrant-abbr {
+    color: var(--cl-text-muted);
+    font-weight: normal;
+    margin-left: 0.25rem;
+  }
+
+  .cl-card-footer {
+    margin-top: auto;
+  }
+
+  .cl-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  /* BREAKPOINTS.sm: compact card padding at the 375px review width. */
+  @media (max-width: 375px) {
+    .cl-tournament-card {
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    /* `:global` reaches the Button component's own elements from the parent. */
+    .cl-card-actions,
+    .cl-card-actions :global(.cl-btn) {
+      width: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cl-live-pulse {
+      animation: none;
+    }
+  }
+</style>

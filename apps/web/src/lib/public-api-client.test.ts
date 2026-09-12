@@ -14,6 +14,7 @@ import {
   mapMatchesViewResponse,
   organizationEmblemUrl,
   clubEmblemUrl,
+  tournamentEmblemUrl,
 } from './public-api-client.js';
 
 describe('public-api-client', () => {
@@ -405,6 +406,12 @@ describe('public-api-client', () => {
         '/organizations/liga-mendocina/clubs/club-1/emblem',
       );
     });
+
+    it('builds a same-origin tournament emblem URL', () => {
+      expect(tournamentEmblemUrl('liga-mendocina', 'apertura-2026')).toBe(
+        '/organizations/liga-mendocina/tournaments/apertura-2026/emblem',
+      );
+    });
   });
 
   describe('mapOverviewResponse', () => {
@@ -415,6 +422,7 @@ describe('public-api-client', () => {
         organizationName: 'Org',
         tournamentName: 'T',
         seasonName: 'S',
+        emblemObjectId: 'emblem-123',
         ruleset: { pointsForWin: 3 },
         matches: [
           {
@@ -442,6 +450,7 @@ describe('public-api-client', () => {
         response as unknown as Parameters<typeof mapOverviewResponse>[0],
       );
       expect(result.organizationAlias).toBe('org');
+      expect(result.emblemObjectId).toBe('emblem-123');
       expect(result.ruleset).toEqual([{ label: 'pointsForWin', value: 3 }]);
       expect(result.matches[0].home.name).toBe('H');
       expect(result.standings[0].points).toBe(3);

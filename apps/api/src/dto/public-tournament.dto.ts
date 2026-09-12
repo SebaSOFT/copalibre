@@ -124,6 +124,18 @@ export class PublicOverviewResponse {
 
   @ApiProperty({ type: 'object', additionalProperties: { type: 'string' } })
   ruleset!: Record<string, string>;
+
+  @ApiPropertyOptional({ enum: ['upcoming', 'live', 'finished'] })
+  status?: 'upcoming' | 'live' | 'finished';
+
+  @ApiPropertyOptional({ type: () => [PublicTournamentWinnerZoneResponse] })
+  winners?: PublicTournamentWinnerZoneResponse[];
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Object storage ID of the tournament emblem, when one has been uploaded.',
+  })
+  emblemObjectId?: string;
 }
 
 export class PublicLiveMatchSideResponse {
@@ -446,6 +458,9 @@ export class PublicBracketMatchResponse {
 }
 
 export class PublicBracketResponse {
+  @ApiPropertyOptional({ description: 'The competition format of the stage' })
+  format?: string;
+
   @ApiProperty({ type: [PublicBracketMatchResponse] })
   matches!: PublicBracketMatchResponse[];
 }
@@ -613,6 +628,19 @@ export class PublicTournamentListingItemResponse {
 
   @ApiPropertyOptional({ type: [PublicTournamentWinnerZoneResponse] })
   winners?: PublicTournamentWinnerZoneResponse[];
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'object_metadata.object_id of the tournament emblem',
+  })
+  emblemObjectId?: string;
+
+  @ApiProperty({
+    description:
+      'Whether the organizer flagged this tournament as featured. Independent of `status`: live is ' +
+      'urgent, featured is curated, and a tournament can be either, both, or neither.',
+  })
+  featured!: boolean;
 }
 
 export class PublicOrganizationTournamentListResponse {

@@ -12,7 +12,10 @@ showing tournament identity, schedule/format facts, a standings preview, and rul
 the B1 reference layout. This page SHALL be rendered per request from the current backend state for
 the requested organization/tournament alias pair, rather than pre-rendered ahead of time from a fixed
 set of aliases — any published tournament reachable through the public-read API SHALL be reachable
-through this page without a site rebuild.
+through this page without a site rebuild. All rendered surfaces on this page (and child match/stage pages)
+SHALL adhere strictly to the "Broadcast Command Precision" token design system: match lists, tickers,
+and standings SHALL use `.cl-card`, `.cl-match-card`, and `.cl-data-table` classes rather than unstyled
+HTML lists, and the accessible skip link SHALL be visually hidden until focused.
 
 #### Scenario: Visiting a published tournament's overview
 - **WHEN** an anonymous visitor requests `/{organization}/tournaments/{tournament}` for a published tournament
@@ -31,6 +34,14 @@ through this page without a site rebuild.
 - **WHEN** an anonymous visitor requests `/{organization}/tournaments/{tournament}` for an alias pair
   that does not exist
 - **THEN** the public site returns a not-found response
+
+#### Scenario: Match and ticker surfaces render with design token classes and no raw bullets
+- **WHEN** an anonymous visitor visits the tournament overview or match pages
+- **THEN** matches render as styled cards without browser bullet points, and tables render with tabular figures and border styling.
+
+#### Scenario: Accessible skip link is visually hidden until focused
+- **WHEN** a sighted visitor views any public page
+- **THEN** the skip-to-content link is visually hidden off-screen until keyboard focus navigates to it.
 
 ### Requirement: Public pages function without JavaScript
 Core public content (tournament identity, schedule, standings, rules) SHALL be present in the
@@ -311,10 +322,12 @@ presentation.
 ### Requirement: Organization-scoped tournament listing page
 
 The public site SHALL serve an organization page at `/{organization}`, showing the organization's name
-and emblem, a featured block for its current or most recent tournament, every published tournament for
-that organization — name, discipline, status, and season/dates — and a grid of the organization's clubs.
-The page SHALL be reachable without already knowing a specific tournament's alias, and SHALL be rendered
-per request from current backend state, matching the existing overview page's "reachable without a site
+and emblem, a **Live** section listing every currently-live tournament, a **Featured** section for
+organizer-flagged tournaments (or, when none are flagged, the existing live-or-most-recent fallback),
+every published tournament for that organization — name, discipline, status, and season/dates — and a
+grid of the organization's clubs. The Live section SHALL render before the Featured section. The page
+SHALL be reachable without already knowing a specific tournament's alias, and SHALL be rendered per
+request from current backend state, matching the existing overview page's "reachable without a site
 rebuild" guarantee. Every emblem shown on this page, and every placeholder shown in its place, SHALL
 render inside the platform's standard 4:5 framed-image presentation.
 
@@ -338,17 +351,27 @@ The previously served path `/{organization}/tournaments` SHALL NOT be served.
 - **WHEN** an anonymous visitor requests `/{organization}/tournaments`
 - **THEN** the public site returns a not-found response
 
+#### Scenario: The Live section lists every currently-live tournament
+- **WHEN** an organization has more than one tournament with status `live`
+- **THEN** the Live section lists all of them, and it renders before the Featured section
+
+#### Scenario: The Featured section prefers organizer-flagged tournaments
+- **WHEN** an organization has at least one tournament with `featured: true`
+- **THEN** the Featured section shows the flagged tournament(s), most-recently-flagged first when more
+  than one, rather than the automatic live-or-most-recent computation
+
 #### Scenario: The featured block names the live tournament
-- **WHEN** an organization has a tournament whose status is `live`
-- **THEN** the featured block names that tournament
+- **WHEN** an organization has no tournament flagged `featured` and has a tournament whose status is
+  `live`
+- **THEN** the Featured section names that tournament
 
 #### Scenario: The featured block falls back to the most recent tournament
-- **WHEN** an organization has no live tournament
-- **THEN** the featured block names its most recent tournament by date
+- **WHEN** an organization has no tournament flagged `featured` and no live tournament
+- **THEN** the Featured section names its most recent tournament by date
 
 #### Scenario: An organization with no tournaments shows no featured block
 - **WHEN** an organization has no published tournaments
-- **THEN** no featured block is rendered, and the listing is empty rather than an error
+- **THEN** no Live or Featured section is rendered, and the listing is empty rather than an error
 
 #### Scenario: The club grid shows the organization's clubs
 - **WHEN** an organization has registered clubs
@@ -541,3 +564,165 @@ The public product showcase page for CopaLibre on `sebasoft.app` SHALL accuratel
 #### Scenario: Visual telemetry displays Buchholz and recursive H2H traces
 - **WHEN** viewing the architectural telemetry section
 - **THEN** the JSON decision trace demonstrates Strength of Schedule (Buchholz / Median-Buchholz) and recursive Head-to-Head comparator steps with cryptographic SHA-256 audit proofs
+
+### Requirement: Organization home tournament status sections
+The organization home page SHALL present tournaments grouped by their real status (Live, Upcoming,
+Final), using the same status determination as the tournament's own overview page, and SHALL include a
+Final section for finished tournaments rather than omitting one.
+
+#### Scenario: A finished tournament on organization home
+- **WHEN** a tournament has completed all its stages with a recorded result
+- **THEN** organization home SHALL list it under a Final section and SHALL NOT badge it "LIVE"
+
+### Requirement: Champion presentation for a finished tournament
+A finished tournament SHALL receive a visually distinct champion presentation, not an ordinary
+standings-table row.
+
+#### Scenario: Viewing a finished tournament's overview
+- **WHEN** a visitor views the overview page of a tournament that has crowned a champion
+- **THEN** the champion (club emblem and name) SHALL be presented with distinct visual emphasis, not
+  merely as rank 1 of the standings table
+
+### Requirement: Tournament overview inline match list styling
+The tournament overview page's inline match list SHALL use the same styled match-card component as the
+dedicated matches page, not an unstyled list.
+
+#### Scenario: Viewing the tournament overview's match section
+- **WHEN** a visitor views a tournament overview page's inline list of matches
+- **THEN** each match SHALL render using the `.cl-match-card` treatment, consistent with the dedicated
+  matches page
+
+### Requirement: Public-web shell renders a styled brand lockup
+Every public-web page sharing the site shell SHALL render the CopaLibre mark and wordmark as one
+styled `Logo` unit. The wordmark SHALL NOT render as a bare, default-styled link relying on browser
+link-blue as its only visual treatment.
+
+#### Scenario: The shell header renders a lockup, not a bare link
+- **WHEN** any public page using the shared shell is rendered
+- **THEN** the mark and wordmark appear as one styled unit, with no default browser link-blue text
+  visible
+
+### Requirement: Public-web CTAs implement the accepted CTA treatments
+Every primary and secondary call-to-action on a public-web page SHALL be rendered by an owned
+public-web Button component built on the same `.cl-btn` token classes, with the same variant treatments
+(`state-live` primary with dark text, raised neutral secondary with a muted border) and the same
+chamfered control geometry that `control-web/admin-interface-components` requires of the Control-web
+Button atom. A public-web CTA SHALL NOT carry hand-written, non-token color values.
+
+#### Scenario: Primary and secondary public CTAs are visually distinct
+- **WHEN** a public tournament card renders a primary action alongside a secondary one
+- **THEN** their fill colors are visually distinct, each resolved from a design token rather than a
+  hand-written hex value, and each meets the documented contrast contract
+
+### Requirement: Public tabular data renders through a shared Table component
+Every tabular data view on a public-web page — tournament standings, per-match rosters, and the match
+event timeline — SHALL render through a shared Table component providing a visible header row, muted
+row borders, `tabular-nums` alignment on numeric columns, and a horizontal-scroll affordance rather
+than page overflow when the table is wider than the viewport.
+
+#### Scenario: Standings render with a visible header and aligned figures
+- **WHEN** a visitor opens a tournament's standings
+- **THEN** the table shows a visible header row and every numeric column (GP, W, L, PTS, etc.) aligns
+  using tabular figures
+
+#### Scenario: A wide table scrolls within itself at 375px
+- **WHEN** a public table wider than 375px is viewed at that width
+- **THEN** the table scrolls horizontally within its own container and the surrounding page does not
+  overflow horizontally
+
+#### Scenario: Match rosters and event timeline use the same table treatment
+- **WHEN** a visitor opens a match report page
+- **THEN** the roster tables and the event timeline render through the same Table component as
+  standings, not as unstyled text columns
+
+### Requirement: Public pages render a discipline-appropriate backdrop
+A public-web page's backdrop presentation SHALL be consistent with its tournament's declared
+discipline. A page SHALL NOT render another discipline's hardcoded iconography, and a discipline with
+no dedicated backdrop treatment SHALL render a neutral fallback rather than a mismatched one.
+
+#### Scenario: A basketball tournament never shows football iconography
+- **WHEN** a public page is rendered for a tournament whose discipline is basketball
+- **THEN** no football-specific backdrop asset (pitch markings, goal, ball) is rendered
+
+#### Scenario: A discipline with no imagery renders a deliberate neutral ground
+- **WHEN** a public page is rendered for a tournament whose discipline ships no background imagery
+- **THEN** the page renders an explicit token-drawn neutral ground rather than no backdrop at all, and
+  never another discipline's imagery
+
+### Requirement: Public tournament pages present a tournament ticker
+A public tournament page SHALL present a ticker carrying that tournament's live and most recently
+finished matches, its leaders, and its next scheduled matches. Statistic-bearing items SHALL read from
+the tournament's declared discipline rather than a hardcoded metric, and an item kind with no data for
+that tournament SHALL be omitted rather than rendered empty.
+
+#### Scenario: A live tournament's ticker carries current results
+- **WHEN** a visitor opens a tournament page while a match is live
+- **THEN** the ticker includes that match with its current score
+
+#### Scenario: Every format yields a leader item
+- **WHEN** the ticker renders for a tournament whose format has no group phase
+- **THEN** a leader item still appears, naming the stage's top-ranked entrant
+
+#### Scenario: A discipline declaring no player ranking shows no top-performer items
+- **WHEN** the ticker renders for a tournament whose discipline declares no player-ranking layout
+- **THEN** no top-performer item appears, and the remaining item kinds render normally
+
+#### Scenario: Reduced motion stops the scroll without hiding content
+- **WHEN** a visitor whose system requests reduced motion opens the page
+- **THEN** the ticker does not scroll continuously, and every item still becomes readable
+
+### Requirement: Every surface is held to the component library
+The ownership rule SHALL apply to every surface the application renders — the operator panel, the
+public site, and the broadcast overlays — rather than to one of them. A file on any surface SHALL NOT
+use a raw element the owned library replaces, and SHALL NOT hand-write a class an owned component
+applies, on the same terms and with the same recorded, one-directional backlog the operator surface is
+held to. The check SHALL read every file format these surfaces are written in, not only the format one
+surface happens to use.
+
+#### Scenario: A public page bypasses an owned component
+- **WHEN** a public page or layout writes a class an owned component applies, or uses a raw element the
+  library replaces
+- **THEN** the ownership check reports it, exactly as it does for an operator screen
+
+#### Scenario: A broadcast overlay is held to the same rule
+- **WHEN** a broadcast surface uses a raw governed element
+- **THEN** the ownership check reports it, because a surface's audience does not change what owns its
+  markup
+
+#### Scenario: A pattern with no server-renderable component is a library gap, not debt
+- **WHEN** a surface writes an owned component's class because no component exists that surface can
+  compose
+- **THEN** it is recorded as a missing library member rather than entered in the backlog, because a
+  recorded count that nobody is able to lower defeats the ratchet
+
+#### Scenario: A surface's own file format is not an exemption
+- **WHEN** a surface is written in a format the check did not previously read
+- **THEN** its violations are reported, because being unreadable by the tool was never a decision that
+  the rule did not apply
+
+### Requirement: Public document chrome and presentation are token-backed
+Public Astro document chrome, navigation, cards, badges, and image presentation SHALL resolve their
+colour, typography, spacing, border, and motion values from declared CopaLibre tokens. This requirement
+governs what a public style may reference, not where the component that declares it lives; the owned
+public UI tier is established by `0220-operational-surface-parity`.
+
+#### Scenario: A public page declares presentation styling
+- **WHEN** a public page or layout declares a card, badge, or image treatment
+- **THEN** every colour, border, radius, and transition value resolves to a declared token, and any raw
+  colour is rejected unless it is a registered image-derived overlay exception
+
+### Requirement: Reusable public presentation is owned by a public UI tier
+Reusable public Astro cards, badges, image frames, headers, and navigation patterns SHALL live in an
+owned public UI tier that pages and layouts compose, rather than being redefined per page.
+Document-specific styling MAY remain local when it does not define reusable component behavior.
+Components moved into that tier SHALL continue to resolve every value through declared CopaLibre tokens.
+
+#### Scenario: A public pattern is used by more than one route
+- **WHEN** a card, badge, or image treatment appears on more than one public route
+- **THEN** those routes compose the owned public component rather than redeclaring its colour and layout
+  rules
+
+#### Scenario: A component is relocated into the public tier
+- **WHEN** an existing public component moves into the owned tier
+- **THEN** its rendered output is unchanged and it introduces no undeclared token or unapproved raw
+  colour

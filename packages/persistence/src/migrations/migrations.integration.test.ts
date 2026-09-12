@@ -197,6 +197,35 @@ describe('migrations (integration)', () => {
         expect.objectContaining({ name: 'rescinded_at' }),
       ]),
     );
+    expect(afterUpTables.find((table) => table.name === 'tournaments')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'featured' })]),
+    );
+
+    const tournamentFeaturedDown = await migrateDownOneStep(scratch.db);
+    expect(tournamentFeaturedDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0034-tournament-emblem');
+    const afterTournamentFeaturedDownTables = await scratch.db.introspection.getTables();
+    const tournamentsAfterFeaturedDown = afterTournamentFeaturedDownTables.find(
+      (table) => table.name === 'tournaments',
+    );
+    expect(tournamentsAfterFeaturedDown?.columns).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'featured' })]),
+    );
+    // The column beneath it survives the step down — a reversible migration
+    // takes back only its own column.
+    expect(tournamentsAfterFeaturedDown?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'emblem_object_id' })]),
+    );
+
+    const tournamentEmblemDown = await migrateDownOneStep(scratch.db);
+    expect(tournamentEmblemDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0033-organization-invite-rescission',
+    );
+    const afterTournamentEmblemDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterTournamentEmblemDownTables.find((table) => table.name === 'tournaments')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'emblem_object_id' })]));
 
     const inviteRescissionDown = await migrateDownOneStep(scratch.db);
     expect(inviteRescissionDown.error).toBeUndefined();

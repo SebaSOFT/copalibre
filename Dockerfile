@@ -36,7 +36,10 @@ ENV NODE_ENV=production \
     COPALIBRE_DATA_DIR=/var/lib/copalibre
 WORKDIR /app
 
-RUN mkdir --parents /var/lib/copalibre \
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir --parents /var/lib/copalibre \
     && chown --recursive node:node /var/lib/copalibre
 
 COPY --from=build --chown=node:node /app/package.json ./

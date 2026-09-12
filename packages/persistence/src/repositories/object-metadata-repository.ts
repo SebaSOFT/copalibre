@@ -210,7 +210,7 @@ export class ObjectMetadataRepository {
     tx: UnitOfWork['tx'],
     objectId: string,
   ): Promise<{ readonly entityType: string; readonly entityId: string } | undefined> {
-    const [organization, club, person] = await Promise.all([
+    const [organization, club, person, tournament] = await Promise.all([
       tx
         .selectFrom('organizations')
         .select('organization_id')
@@ -226,10 +226,16 @@ export class ObjectMetadataRepository {
         .select('person_id')
         .where('photo_object_id', '=', objectId)
         .executeTakeFirst(),
+      tx
+        .selectFrom('tournaments')
+        .select('tournament_id')
+        .where('emblem_object_id', '=', objectId)
+        .executeTakeFirst(),
     ]);
     if (organization) return { entityType: 'organization', entityId: organization.organization_id };
     if (club) return { entityType: 'club', entityId: club.club_id };
     if (person) return { entityType: 'person', entityId: person.person_id };
+    if (tournament) return { entityType: 'tournament', entityId: tournament.tournament_id };
     return undefined;
   }
 

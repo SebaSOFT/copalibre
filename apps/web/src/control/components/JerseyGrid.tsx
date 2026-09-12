@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { isSupportedLanguage, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
-import { EntrantName } from '../../components/EntrantName.js';
+import { EntrantName } from '../../components/ui/atoms/EntrantName.js';
 import {
   clubEmblemUrl,
   type ConsoleRoster,
   type ConsoleRosterMember,
   type ConsoleRosterRole,
+  type ConsoleSecondaryActorField,
 } from '../lib/api-client.js';
 import { countryFlag } from '../lib/country.js';
 import { memberByNumber } from '../lib/match-console.js';
@@ -19,7 +20,7 @@ const NUMPAD_BUFFER_TIMEOUT_MS = 600;
 
 /**
  * A tactile, high-contrast alternative to the plain `<select>` dropdowns
- * `MatchConsoleRoute` used for attributing an event: two team panels of
+ * `MatchConsolePage` used for attributing an event: two team panels of
  * jersey buttons, on-field and bench visually separated, with role badges
  * read from the bound discipline's own `rosterRoles` declaration — never a
  * hardcoded "GK"/"C".
@@ -54,7 +55,7 @@ export function JerseyGrid({
   readonly disabled: boolean;
   readonly primarySide: string;
   readonly primaryPersonId: string;
-  readonly secondaryFields: readonly string[];
+  readonly secondaryFields: readonly ConsoleSecondaryActorField[];
   readonly secondarySelections: Readonly<Record<string, string>>;
   /** `undefined` means a jersey tap sets the primary actor. */
   readonly activeField: string | undefined;
@@ -125,7 +126,10 @@ export function JerseyGrid({
           >
             {intl.formatMessage(messages.matchConsolePerson)}
           </button>
-          {secondaryFields.map((field) => (
+          {/* The discipline names its own fields; an undeclared one shows its
+              key rather than a label invented from it, which would read as a
+              translation nobody wrote. */}
+          {secondaryFields.map(({ field, label }) => (
             <button
               aria-pressed={activeField === field}
               key={field}
@@ -133,7 +137,7 @@ export function JerseyGrid({
               style={chipStyle(activeField === field)}
               type="button"
             >
-              {field}
+              {label === undefined ? field : resolveLabel(label, language)}
             </button>
           ))}
         </div>
@@ -209,7 +213,7 @@ function TeamPanel({
         <h3 style={teamHeaderStyle}>
           <EntrantName
             abbreviation={roster.teamAbbreviation}
-            fullName={roster.teamName ?? roster.entrantId.slice(-8)}
+            fullName={roster.teamName ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)}
           />
         </h3>
       </div>
@@ -339,7 +343,7 @@ function chipStyle(active: boolean): React.CSSProperties {
 }
 const panelsStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 12rem), 1fr))',
   gap: 'var(--cl-space-4)',
 };
 const teamPanelStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-2)' };
@@ -355,7 +359,7 @@ const sectionLabelStyle: React.CSSProperties = {
 };
 const jerseyGridStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 84px), 1fr))',
   gap: 'var(--cl-space-2)',
 };
 const jerseyNumberStyle: React.CSSProperties = {

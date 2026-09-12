@@ -88,6 +88,7 @@ export interface PrincipalOrganizationMembership {
   readonly organizationAlias: string;
   readonly organizationName: string;
   readonly role: OrganizationRole;
+  readonly emblemObjectId?: string;
 }
 
 /**
@@ -141,6 +142,7 @@ export class OrganizationAccessRepository {
         'organizations.organization_id as organization_id',
         'organizations.alias as organization_alias',
         'organizations.name as organization_name',
+        'organizations.emblem_object_id as emblem_object_id',
         'organization_role_assignments.role as role',
       ])
       .where('organization_role_assignments.principal_id', '=', principalId)
@@ -153,6 +155,7 @@ export class OrganizationAccessRepository {
       organizationAlias: row.organization_alias,
       organizationName: row.organization_name,
       role: row.role as OrganizationRole,
+      ...(row.emblem_object_id ? { emblemObjectId: row.emblem_object_id } : {}),
     }));
   }
 

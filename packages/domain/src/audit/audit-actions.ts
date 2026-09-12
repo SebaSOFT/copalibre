@@ -49,6 +49,7 @@ export const AUDIT_ACTIONS = [
   'person.removed',
   'player.enlisted',
   'player.dismissed',
+  'player.role-updated',
   'participant.identity-linked',
   'participant.identity-unlinked',
   /** A login identity is created for the first time, by self-service signup or first OIDC login. */
@@ -80,6 +81,8 @@ export const AUDIT_ACTIONS = [
   'tournament.published',
   'tournament.archived',
   'tournament.renamed',
+  'tournament.emblem_updated',
+  'tournament.featured_updated',
   'ruleset.versioned',
   'ruleset.compiled',
   'stage-configuration.created',
@@ -120,6 +123,7 @@ export const AUDIT_ACTIONS = [
   'match.start',
   'match.pause',
   'match.resume',
+  'match.end',
   'match.finalize',
 
   // Segments and events

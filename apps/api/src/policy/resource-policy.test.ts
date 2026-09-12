@@ -449,4 +449,51 @@ describe('enforceMatchCommand', () => {
       ForbiddenException,
     );
   });
+
+  it('allows an organization admin without pre-existing assignments', () => {
+    const orgAdmin: AuthenticatedSubject = {
+      subjectId: 'user:admin-1',
+      organizationId: 'org-1',
+      scopes: ['copalibre.control'],
+      grantorContext: {
+        isSuperAdmin: false,
+        organizationAdminOf: 'org-1',
+      },
+    };
+    const decision = enforceMatchCommand({
+      plane: 'admin-control',
+      subject: orgAdmin,
+      resource: { organizationId: 'org-1' },
+      assignments: [],
+      capability: 'match.finalize',
+      match,
+    });
+    expect(decision).toEqual({
+      capability: 'match.finalize',
+      grantedBy: 'role:admin:org-1',
+    });
+  });
+
+  it('allows a super-admin without pre-existing assignments', () => {
+    const superAdmin: AuthenticatedSubject = {
+      subjectId: 'user:super-1',
+      organizationId: 'org-1',
+      scopes: ['copalibre.control'],
+      grantorContext: {
+        isSuperAdmin: true,
+      },
+    };
+    const decision = enforceMatchCommand({
+      plane: 'admin-control',
+      subject: superAdmin,
+      resource: { organizationId: 'org-1' },
+      assignments: [],
+      capability: 'match.record-event',
+      match,
+    });
+    expect(decision).toEqual({
+      capability: 'match.record-event',
+      grantedBy: 'role:admin:org-1',
+    });
+  });
 });

@@ -23,7 +23,16 @@ import { messages as zhMessages } from './messages.zh.js';
  */
 const ORGANIZATION_PRIMARY_LANGUAGE_PLACEHOLDER = 'es';
 
-const CATALOGS: Partial<Record<SupportedLanguage, Record<string, string>>> = {
+/**
+ * Every non-English catalog, keyed by language. English needs no entry:
+ * `defaultMessage` in `messages.en.ts` is already the source text.
+ *
+ * Exported so the component workbench's language selector renders stories
+ * under the same catalogs the application loads (0213 design.md Decision 4).
+ * A second map maintained for the workbench would drift from this one the
+ * first time a language is added.
+ */
+export const CATALOGS: Partial<Record<SupportedLanguage, Record<string, string>>> = {
   es: esMessages,
   fr: frMessages,
   pt: ptMessages,

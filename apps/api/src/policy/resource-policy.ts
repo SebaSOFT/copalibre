@@ -249,6 +249,17 @@ export function enforceMatchCommand(
     throw new ForbiddenException('match commands require a verified subject');
   }
 
+  const isOrgAdmin =
+    request.subject?.grantorContext?.organizationAdminOf === request.match.organizationId ||
+    request.subject?.grantorContext?.isSuperAdmin === true;
+
+  if (isOrgAdmin) {
+    return {
+      capability: request.capability,
+      grantedBy: `role:admin:${request.match.organizationId}`,
+    };
+  }
+
   const authorized = authorizeMatchCommand(request.assignments, {
     subjectId,
     capability: request.capability,
