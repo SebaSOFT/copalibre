@@ -13,7 +13,7 @@ The release SHALL ship one Docker image capable of running as any documented pro
 rebuilding the image. The `web` role SHALL serve server-rendered public pages for the subset of public
 routes that require per-request backend data; it SHALL NOT replace the existing static delivery of
 every other public, control-panel-shell, help, and TV route, which continues to be served as static
-files by a separate process in front of it. In addition, the release container image (`ghcr.io/sebasoft/copalibre:1.0.6`)
+files by a separate process in front of it. In addition, the release container image (`ghcr.io/sebasoft/copalibre:1.1.0`)
 SHALL include `git` in its runtime filesystem layers to support dynamic discipline module cloning and updates via `POST /admin/modules`.
 
 #### Scenario: Same image runs two different roles
