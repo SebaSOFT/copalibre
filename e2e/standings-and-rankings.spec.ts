@@ -528,8 +528,18 @@ test.describe('B2: public tournament page', () => {
     await expect(
       page.locator('astro-island').filter({ has: entrantName }).first(),
     ).not.toHaveAttribute('ssr', '', { timeout: 15_000 });
+    // `flex: none` on top of the existing forced width (openspec 0225 task
+    // 8.1): this span is now a real `flex: 1 1 auto` item of
+    // `.cl-match-card__side` (its ownership-scanner selector fix widened
+    // what it matches — the entrant name previously fell outside it
+    // entirely, past the `<astro-island>` a `client:load` wrapper inserts),
+    // so `flex-grow: 1` re-expands a bare inline `width` back to fill the
+    // row before this test's manual resize can take effect. Overriding
+    // `flex` here keeps testing EntrantName's own ResizeObserver logic in
+    // isolation, the unit this test is actually about, without fighting the
+    // real flex layout it now correctly participates in.
     await entrantName.evaluate((element) => {
-      element.setAttribute('style', 'display: block; min-width: 0; width: 1px');
+      element.setAttribute('style', 'display: block; min-width: 0; width: 1px; flex: none');
     });
 
     await expect(entrantName.getByTitle('Talleres')).toHaveText('TAL');
