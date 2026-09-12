@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { parseControlPath } from '@copalibre/routing';
+import { parseControlPath, type ControlRoute } from '@copalibre/routing';
 import {
   AnalyticsControlRoute,
   AuditTrailControlRoute,
@@ -133,140 +133,146 @@ export function ControlApp(): React.JSX.Element | null {
   if (controlTokenStore.read() === undefined) return null;
   if (isUnauthorizedPlatformRoute) return null;
 
-  switch (route.screen) {
-    case 'root':
-      return (
-        <ControlIntl locale={activeControlLanguage()}>
-          <RootLandingRoute />
-        </ControlIntl>
-      );
-    case 'platformAdministration':
-      return <PlatformAdministrationControlRoute />;
-    case 'dashboard':
-      return <DashboardPage organizationAlias={route.organizationAlias} />;
-    case 'tournaments':
-      return <TournamentsControlRoute organizationAlias={route.organizationAlias} />;
-    case 'liveConsole':
-      return <LiveConsoleControlRoute organizationAlias={route.organizationAlias} />;
-    case 'organization':
-      return <OrganizationControlRoute organizationAlias={route.organizationAlias} />;
-    case 'analytics':
-      return <AnalyticsControlRoute organizationAlias={route.organizationAlias} />;
-    case 'roles':
-      return <RolesPermissionsControlRoute organizationAlias={route.organizationAlias} />;
-    case 'auditTrail':
-      return <AuditTrailControlRoute organizationAlias={route.organizationAlias} />;
-    case 'preferences':
-      return <PreferencesControlRoute organizationAlias={route.organizationAlias} />;
-    case 'newTournament':
-      return <TournamentAuthoringControlRoute organizationAlias={route.organizationAlias} />;
-    case 'clubs':
-      return <ClubManagementControlRoute organizationAlias={route.organizationAlias} />;
-    case 'resources':
-      return <VenueManagementControlRoute organizationAlias={route.organizationAlias} />;
-    case 'personProfile':
-      return (
-        <PersonProfileControlRoute
-          organizationAlias={route.organizationAlias}
-          personId={route.personId}
-        />
-      );
-    case 'registrations':
-      return (
-        <RegistrationReviewControlRoute
-          // Sample-data literal from the replaced .astro file, preserved
-          // verbatim — making it real remains separate work.
-          now="2026-08-01T19:00:00.000Z"
-          organizationAlias={route.organizationAlias}
-          tournamentAlias={route.tournamentAlias}
-        />
-      );
-    case 'tournamentSettings':
-      return (
-        <TournamentSettingsControlRoute
-          organizationAlias={route.organizationAlias}
-          tournamentAlias={route.tournamentAlias}
-        />
-      );
-    case 'tournamentRuleset':
-      return (
-        <TournamentRulesetControlRoute
-          organizationAlias={route.organizationAlias}
-          tournamentAlias={route.tournamentAlias}
-        />
-      );
-    case 'reports':
-      return (
-        <ReportReviewControlRoute
-          organizationAlias={route.organizationAlias}
-          tournamentAlias={route.tournamentAlias}
-        />
-      );
-    case 'matchesView':
-      return (
-        <MatchesViewControlRoute
-          organizationAlias={route.organizationAlias}
-          tournamentAlias={route.tournamentAlias}
-        />
-      );
-    case 'matchConsole':
-      return (
-        <MatchConsoleControlRoute
-          matchId={route.matchId}
-          organizationAlias={route.organizationAlias}
-          tournamentAlias={route.tournamentAlias}
-        />
-      );
-    case 'loadMatchData':
-      return (
-        <LoadMatchDataControlRoute
-          matchId={route.matchId}
-          organizationAlias={route.organizationAlias}
-          tournamentAlias={route.tournamentAlias}
-        />
-      );
-    case 'seeding':
-      return (
-        <SeedingControlRoute
-          organizationAlias={route.organizationAlias}
-          stageNumber={route.stageNumber}
-          tournamentAlias={route.tournamentAlias}
-        />
-      );
-    case 'standings':
-      return (
-        <StandingsControlRoute
-          organizationAlias={route.organizationAlias}
-          stageNumber={route.stageNumber}
-          tournamentAlias={route.tournamentAlias}
-        />
-      );
-    case 'zoneGroups':
-      return (
-        <ZoneGroupControlRoute
-          organizationAlias={route.organizationAlias}
-          stageNumber={route.stageNumber}
-          tournamentAlias={route.tournamentAlias}
-        />
-      );
-    case 'promotionPlan':
-      return (
-        <PromotionPlanControlRoute
-          organizationAlias={route.organizationAlias}
-          stageNumber={route.stageNumber}
-          tournamentAlias={route.tournamentAlias}
-          zoneNumber={route.zoneNumber}
-        />
-      );
-    case 'schedule':
-      return (
-        <ScheduleControlRoute
-          organizationAlias={route.organizationAlias}
-          stageNumber={route.stageNumber}
-          tournamentAlias={route.tournamentAlias}
-        />
-      );
-  }
+  return renderForScreen(route);
+}
+
+/**
+ * `callback`/`login`/`forgot-password`/`reset-password` are handled by the
+ * early returns above and never reach here — excluded from the key set so
+ * the object literal below stays honest about what it actually renders,
+ * rather than carrying four unreachable stub entries.
+ */
+type RenderableScreen = Exclude<
+  ControlRoute['screen'],
+  'callback' | 'login' | 'forgot-password' | 'reset-password'
+>;
+
+/**
+ * One entry per renderable `ControlRoute['screen']`, typed so TypeScript's
+ * own exhaustiveness check — not a `switch` — catches a screen added
+ * without a render case. A missing key here is a compile error.
+ */
+type ScreenComponents = {
+  [K in RenderableScreen]: (route: Extract<ControlRoute, { screen: K }>) => React.JSX.Element;
+};
+
+const ROUTE_COMPONENT_BY_SCREEN: ScreenComponents = {
+  root: () => (
+    <ControlIntl locale={activeControlLanguage()}>
+      <RootLandingRoute />
+    </ControlIntl>
+  ),
+  platformAdministration: () => <PlatformAdministrationControlRoute />,
+  dashboard: (route) => <DashboardPage organizationAlias={route.organizationAlias} />,
+  tournaments: (route) => <TournamentsControlRoute organizationAlias={route.organizationAlias} />,
+  liveConsole: (route) => <LiveConsoleControlRoute organizationAlias={route.organizationAlias} />,
+  organization: (route) => <OrganizationControlRoute organizationAlias={route.organizationAlias} />,
+  analytics: (route) => <AnalyticsControlRoute organizationAlias={route.organizationAlias} />,
+  roles: (route) => <RolesPermissionsControlRoute organizationAlias={route.organizationAlias} />,
+  auditTrail: (route) => <AuditTrailControlRoute organizationAlias={route.organizationAlias} />,
+  preferences: (route) => <PreferencesControlRoute organizationAlias={route.organizationAlias} />,
+  newTournament: (route) => (
+    <TournamentAuthoringControlRoute organizationAlias={route.organizationAlias} />
+  ),
+  clubs: (route) => <ClubManagementControlRoute organizationAlias={route.organizationAlias} />,
+  resources: (route) => <VenueManagementControlRoute organizationAlias={route.organizationAlias} />,
+  personProfile: (route) => (
+    <PersonProfileControlRoute
+      organizationAlias={route.organizationAlias}
+      personId={route.personId}
+    />
+  ),
+  registrations: (route) => (
+    <RegistrationReviewControlRoute
+      // Sample-data literal from the replaced .astro file, preserved
+      // verbatim — making it real remains separate work.
+      now="2026-08-01T19:00:00.000Z"
+      organizationAlias={route.organizationAlias}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
+  tournamentSettings: (route) => (
+    <TournamentSettingsControlRoute
+      organizationAlias={route.organizationAlias}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
+  tournamentRuleset: (route) => (
+    <TournamentRulesetControlRoute
+      organizationAlias={route.organizationAlias}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
+  reports: (route) => (
+    <ReportReviewControlRoute
+      organizationAlias={route.organizationAlias}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
+  matchesView: (route) => (
+    <MatchesViewControlRoute
+      organizationAlias={route.organizationAlias}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
+  matchConsole: (route) => (
+    <MatchConsoleControlRoute
+      matchId={route.matchId}
+      organizationAlias={route.organizationAlias}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
+  loadMatchData: (route) => (
+    <LoadMatchDataControlRoute
+      matchId={route.matchId}
+      organizationAlias={route.organizationAlias}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
+  seeding: (route) => (
+    <SeedingControlRoute
+      organizationAlias={route.organizationAlias}
+      stageNumber={route.stageNumber}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
+  standings: (route) => (
+    <StandingsControlRoute
+      organizationAlias={route.organizationAlias}
+      stageNumber={route.stageNumber}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
+  zoneGroups: (route) => (
+    <ZoneGroupControlRoute
+      organizationAlias={route.organizationAlias}
+      stageNumber={route.stageNumber}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
+  promotionPlan: (route) => (
+    <PromotionPlanControlRoute
+      organizationAlias={route.organizationAlias}
+      stageNumber={route.stageNumber}
+      tournamentAlias={route.tournamentAlias}
+      zoneNumber={route.zoneNumber}
+    />
+  ),
+  schedule: (route) => (
+    <ScheduleControlRoute
+      organizationAlias={route.organizationAlias}
+      stageNumber={route.stageNumber}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
+};
+
+function renderForScreen(route: ControlRoute): React.JSX.Element {
+  // Safe: `callback`/`login`/`forgot-password`/`reset-password` already
+  // returned above, before this function is ever called.
+  const key = route.screen as RenderableScreen;
+  const render = ROUTE_COMPONENT_BY_SCREEN[key] as (route: ControlRoute) => React.JSX.Element;
+  return render(route);
 }
 
 /**
@@ -283,72 +289,52 @@ export function ControlApp(): React.JSX.Element | null {
  * comment in `../lib/api-client.ts` recording the same finding). A real
  * per-locale catalogue for document titles is separate work.
  */
+/**
+ * One entry per `ControlRoute['screen']`, typed so TypeScript's own exhaustiveness
+ * check — not a `switch`'s `default` fallback — catches a screen added without a
+ * title. A missing key here is a compile error.
+ */
+type TitleByScreen = {
+  [K in ControlRoute['screen']]: (route: Extract<ControlRoute, { screen: K }>) => string;
+};
+
+const TITLE_BY_SCREEN: TitleByScreen = {
+  root: () => 'Control panel — CopaLibre',
+  callback: () => 'Completing sign-in — CopaLibre',
+  dashboard: (route) => `Dashboard — ${route.organizationAlias}`,
+  tournaments: (route) => `Tournaments — ${route.organizationAlias}`,
+  liveConsole: (route) => `Live console — ${route.organizationAlias}`,
+  organization: (route) => `Organization — ${route.organizationAlias}`,
+  analytics: (route) => `Analytics — ${route.organizationAlias}`,
+  roles: (route) => `Roles and permissions - ${route.organizationAlias}`,
+  auditTrail: (route) => `Audit trail — ${route.organizationAlias}`,
+  newTournament: (route) => `Create tournament — ${route.organizationAlias}`,
+  clubs: (route) => `Clubs — ${route.organizationAlias}`,
+  resources: (route) => `Venues and officials — ${route.organizationAlias}`,
+  personProfile: (route) => `Person profile — ${route.organizationAlias}`,
+  registrations: (route) => `Registrations — ${route.tournamentAlias}`,
+  tournamentSettings: (route) => `Tournament settings — ${route.tournamentAlias}`,
+  tournamentRuleset: (route) => `Tournament ruleset — ${route.tournamentAlias}`,
+  reports: (route) => `Reports and disputes — ${route.tournamentAlias}`,
+  matchesView: (route) => `Matches — ${route.tournamentAlias}`,
+  matchConsole: (route) => `Operate match — ${route.tournamentAlias}`,
+  loadMatchData: (route) => `Load match data — ${route.tournamentAlias}`,
+  seeding: (route) => `Seeding — ${route.tournamentAlias}`,
+  standings: (route) => `Standings — ${route.tournamentAlias}`,
+  zoneGroups: (route) => `Zones and groups — ${route.tournamentAlias}`,
+  promotionPlan: (route) => `Promotion plan — ${route.tournamentAlias}`,
+  schedule: (route) => `Schedule — ${route.tournamentAlias}`,
+  login: () => 'Sign in — CopaLibre',
+  'forgot-password': () => 'Recover password — CopaLibre',
+  'reset-password': () => 'Reset password — CopaLibre',
+  platformAdministration: () => 'Platform administration — CopaLibre',
+  preferences: () => 'Personal preferences — CopaLibre',
+};
+
 function titleFor(route: ReturnType<typeof parseControlPath>): string {
   if (route === undefined) return 'Not found — CopaLibre';
-  switch (route.screen) {
-    case 'root':
-      return 'Control panel — CopaLibre';
-    case 'callback':
-      return 'Completing sign-in — CopaLibre';
-    case 'dashboard':
-      return `Dashboard — ${route.organizationAlias}`;
-    case 'tournaments':
-      return `Tournaments — ${route.organizationAlias}`;
-    case 'liveConsole':
-      return `Live console — ${route.organizationAlias}`;
-    case 'organization':
-      return `Organization — ${route.organizationAlias}`;
-    case 'analytics':
-      return `Analytics — ${route.organizationAlias}`;
-    case 'roles':
-      return `Roles and permissions - ${route.organizationAlias}`;
-    case 'auditTrail':
-      return `Audit trail — ${route.organizationAlias}`;
-    case 'newTournament':
-      return `Create tournament — ${route.organizationAlias}`;
-    case 'clubs':
-      return `Clubs — ${route.organizationAlias}`;
-    case 'resources':
-      return `Venues and officials — ${route.organizationAlias}`;
-    case 'personProfile':
-      return `Person profile — ${route.organizationAlias}`;
-    case 'registrations':
-      return `Registrations — ${route.tournamentAlias}`;
-    case 'tournamentSettings':
-      return `Tournament settings — ${route.tournamentAlias}`;
-    case 'tournamentRuleset':
-      return `Tournament ruleset — ${route.tournamentAlias}`;
-    case 'reports':
-      return `Reports and disputes — ${route.tournamentAlias}`;
-    case 'matchesView':
-      return `Matches — ${route.tournamentAlias}`;
-    case 'matchConsole':
-      return `Operate match — ${route.tournamentAlias}`;
-    case 'loadMatchData':
-      return `Load match data — ${route.tournamentAlias}`;
-    case 'seeding':
-      return `Seeding — ${route.tournamentAlias}`;
-    case 'standings':
-      return `Standings — ${route.tournamentAlias}`;
-    case 'zoneGroups':
-      return `Zones and groups — ${route.tournamentAlias}`;
-    case 'promotionPlan':
-      return `Promotion plan — ${route.tournamentAlias}`;
-    case 'schedule':
-      return `Schedule — ${route.tournamentAlias}`;
-    case 'login':
-      return 'Sign in — CopaLibre';
-    case 'forgot-password':
-      return 'Recover password — CopaLibre';
-    case 'reset-password':
-      return 'Reset password — CopaLibre';
-    case 'platformAdministration':
-      return 'Platform administration — CopaLibre';
-    case 'preferences':
-      return 'Personal preferences — CopaLibre';
-    default:
-      return 'Control — CopaLibre';
-  }
+  const title = TITLE_BY_SCREEN[route.screen] as (route: ControlRoute) => string;
+  return title(route);
 }
 
 function NotFound({ path }: { readonly path: string }): React.JSX.Element {

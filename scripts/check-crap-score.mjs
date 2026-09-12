@@ -24,20 +24,19 @@ export const THRESHOLD = 30;
 export const KNOWN_CRAP = new Map([
   // Recorded by openspec 0227's first repository-wide run (tasks.md 1.7). A
   // score may only fall from here, or the entry be deleted once it does.
-  ['@copalibre/web/src/lib/i18n/public-intl.ts#seriesStateBarLabels', 90.0],
+  // seriesStateBarLabels resolved by openspec 0228 (added tests; score 9.01).
+  // titleFor resolved by openspec 0228 (lookup-table refactor; score 2.00).
+  // ControlApp resolved by openspec 0228 (lookup-table refactor; score 12.00).
+  // TournamentSetupWizard resolved by openspec 0228 (extracted NameStep,
+  // DisciplineStep, FormatStep, WindowStep, RulesStep; score 10.00).
+  // MatchConsoleTemplate resolved by openspec 0228 (extracted AlertsSection,
+  // SyncStatusSection, BreadcrumbSection, StatusSection; score 20.06).
   ['@copalibre/routing/src/control-path-parser.ts#parseControlPath', 71.18],
   ['@copalibre/tournament-engine/src/standings/index.ts#computeAccounting', 66.84],
-  ['@copalibre/web/src/control/components/ControlApp.tsx#titleFor', 45.95],
-  ['@copalibre/web/src/control/components/ControlApp.tsx#ControlApp', 40.82],
   ['@copalibre/tournament-engine/src/fixtures/custom-bracket.ts#validateCustomBracket', 38.34],
   ['@copalibre/tournament-engine/src/fixtures/swiss.ts#generateNextSwissRoundFixtures', 36.97],
   ['@copalibre/tournament-engine/src/statistics/fold.ts#foldStatistics', 36.03],
-  ['@copalibre/web/src/control/components/TournamentSetupWizard.tsx#TournamentSetupWizard', 32.82],
   ['@copalibre/tournament-engine/src/advancement/index.ts#resolveSlot', 32.21],
-  [
-    '@copalibre/web/src/control/components/screens/MatchConsoleTemplate.tsx#MatchConsoleTemplate',
-    32.17,
-  ],
   ['@copalibre/module-distribution/src/validate.ts#validateModulePackage', 31.01],
   ['@copalibre/tournament-engine/src/fixtures/double-elimination.ts#buildDoubleElimination', 30.92],
   ['@copalibre/api/src/auth/organization-access.guard.ts#canActivate', 30.76],

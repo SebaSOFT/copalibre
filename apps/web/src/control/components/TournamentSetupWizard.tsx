@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from './ui/atoms/alert.js';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
 import { Checkbox } from './ui/atoms/checkbox.js';
@@ -297,519 +297,40 @@ export function TournamentSetupWizard({
             title={intl.formatMessage(activeStep.label)}
           />
         )}
-        {state.step === 'name' && (
-          <div className="cl-platform-form-grid">
-            <Field id="wizard-name" label={intl.formatMessage(messages.wizardFieldName)}>
-              <Input
-                id="wizard-name"
-                onChange={(event) => patch({ name: event.target.value })}
-                value={state.name ?? ''}
-              />
-            </Field>
-            <Field id="wizard-alias" label={intl.formatMessage(messages.wizardFieldAlias)}>
-              <Input
-                id="wizard-alias"
-                onChange={(event) => patch({ alias: event.target.value })}
-                value={state.alias ?? ''}
-              />
-            </Field>
-          </div>
-        )}
+        {state.step === 'name' && <NameStep intl={intl} patch={patch} state={state} />}
 
         {state.step === 'discipline' && (
-          <Field id="wizard-discipline" label={intl.formatMessage(messages.wizardFieldDiscipline)}>
-            <Select
-              aria-describedby="wizard-discipline-hint"
-              aria-label={intl.formatMessage(messages.wizardFieldDiscipline)}
-              id="wizard-discipline"
-              onValueChange={(val) => {
-                const discipline = disciplines.find((one) => one.descriptorId === val);
-                patch({
-                  descriptorId: discipline?.descriptorId,
-                  descriptorVersion: discipline?.version,
-                  format: discipline?.supportedFormats[0],
-                  profileId: undefined,
-                  profileVersion: undefined,
-                });
-              }}
-              options={disciplines.map((discipline) => ({
-                value: discipline.descriptorId,
-                label: `${localizedText(discipline.name, intl.locale)}${
-                  discipline.description === undefined
-                    ? ''
-                    : ` — ${localizedText(discipline.description, intl.locale)}`
-                } · ${discipline.version}`,
-              }))}
-              value={state.descriptorId ?? ''}
-            />
-            <DecisionHint
-              id="wizard-discipline-hint"
-              text={intl.formatMessage(messages.wizardDecisionDiscipline)}
-            />
-          </Field>
+          <DisciplineStep disciplines={disciplines} intl={intl} patch={patch} state={state} />
         )}
 
         {state.step === 'format' && (
-          <div className="cl-platform-form-grid">
-            <Field id="wizard-format" label={intl.formatMessage(messages.wizardFieldFormat)}>
-              <Select
-                aria-describedby="wizard-format-hint"
-                aria-label={intl.formatMessage(messages.wizardFieldFormat)}
-                id="wizard-format"
-                onValueChange={(val) =>
-                  patch({
-                    format: val,
-                    profileId: undefined,
-                    profileVersion: undefined,
-                  })
-                }
-                options={formats.map((format) => {
-                  const description = formatOptionDescription(format);
-                  return {
-                    value: format,
-                    label: `${format}${description === undefined ? '' : ` — ${description}`}`,
-                  };
-                })}
-                value={state.format ?? ''}
-              />
-              <DecisionHint
-                id="wizard-format-hint"
-                text={decisionHintText('format', messages.wizardDecisionFormat)}
-              />
-            </Field>
-
-            {profiles.length > 0 && (
-              <Field id="wizard-profile" label={intl.formatMessage(messages.wizardFieldProfile)}>
-                <Select
-                  aria-label={intl.formatMessage(messages.wizardFieldProfile)}
-                  id="wizard-profile"
-                  onValueChange={(val) => {
-                    const selectedProfile = profiles.find((p) => p.profileId === val);
-                    patch({
-                      profileId: selectedProfile?.profileId,
-                      profileVersion: selectedProfile?.version,
-                    });
-                  }}
-                  options={[
-                    { value: '', label: intl.formatMessage(messages.wizardProfileNone) },
-                    ...profiles.map((profile) => ({
-                      value: profile.profileId,
-                      label: `${localizedText(profile.name, intl.locale)} (${profile.stages
-                        .map((s) => s.name)
-                        .join(' → ')}) · ${profile.version}`,
-                    })),
-                  ]}
-                  value={state.profileId ?? ''}
-                />
-              </Field>
-            )}
-
-            <div style={{ display: 'grid', gap: 'var(--cl-space-4)', gridColumn: '1 / -1' }}>
-              <label
-                className="cl-toggle cl-focusable"
-                htmlFor="wizard-enable-series"
-                style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
-              >
-                <Checkbox
-                  aria-describedby="tournament-series-hint"
-                  aria-label={intl.formatMessage(messages.wizardEnableSeries)}
-                  checked={state.seriesEnabled}
-                  id="wizard-enable-series"
-                  onCheckedChange={(checked) =>
-                    patch({
-                      seriesEnabled: checked,
-                      // Defaults appear only once the operator opts in, so an
-                      // untouched wizard submits no series at all.
-                      ...(checked && state.seriesSpan === undefined
-                        ? { seriesSpan: 3, seriesResolutionClass: 'best-of' as const }
-                        : {}),
-                    })
-                  }
-                />
-                <span>
-                  <FormattedMessage {...messages.wizardEnableSeries} />
-                </span>
-              </label>
-
-              {!state.seriesEnabled && (
-                <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
-                  <FormattedMessage {...messages.wizardSeriesHelp} />
-                </p>
-              )}
-
-              {state.seriesEnabled && (
-                <div className="cl-platform-form-grid">
-                  <Field
-                    id="wizard-series-span"
-                    label={intl.formatMessage(messages.wizardFieldSeriesSpan)}
-                  >
-                    <Input
-                      aria-describedby="wizard-series-span-hint"
-                      id="wizard-series-span"
-                      inputMode="numeric"
-                      min={2}
-                      onChange={(event) =>
-                        patch({
-                          seriesSpan:
-                            event.target.value === ''
-                              ? undefined
-                              : Number.parseInt(event.target.value, 10),
-                        })
-                      }
-                      type="number"
-                      value={state.seriesSpan ?? ''}
-                    />
-                    <DecisionHint
-                      id="wizard-series-span-hint"
-                      text={decisionHintText('series.span', messages.wizardDecisionSeriesSpan)}
-                    />
-                  </Field>
-
-                  <Field
-                    id="wizard-series-class"
-                    label={intl.formatMessage(messages.wizardFieldSeriesResolutionClass)}
-                  >
-                    <Select
-                      aria-describedby="wizard-series-class-hint"
-                      aria-label={intl.formatMessage(messages.wizardFieldSeriesResolutionClass)}
-                      id="wizard-series-class"
-                      onValueChange={(val) =>
-                        patch({
-                          seriesResolutionClass: val as WizardState['seriesResolutionClass'],
-                        })
-                      }
-                      options={SERIES_RESOLUTION_CLASSES.map((resolutionClass) => ({
-                        value: resolutionClass,
-                        label: `${intl.formatMessage(
-                          SERIES_CLASS_LABELS[resolutionClass],
-                        )} — ${intl.formatMessage(SERIES_CLASS_DESCRIPTIONS[resolutionClass])}`,
-                      }))}
-                      value={state.seriesResolutionClass ?? ''}
-                    />
-                    <DecisionHint
-                      id="wizard-series-class-hint"
-                      text={decisionHintText(
-                        'series.resolutionClass',
-                        messages.wizardDecisionSeriesResolutionClass,
-                      )}
-                    />
-                  </Field>
-
-                  <label
-                    className="cl-toggle cl-focusable"
-                    htmlFor="wizard-series-neutral-ground"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--cl-space-2)',
-                      gridColumn: '1 / -1',
-                    }}
-                  >
-                    <Checkbox
-                      aria-describedby="wizard-series-neutral-ground-hint"
-                      aria-label={intl.formatMessage(messages.wizardFieldSeriesNeutralGround)}
-                      checked={state.seriesNeutralGround}
-                      id="wizard-series-neutral-ground"
-                      onCheckedChange={(checked) => patch({ seriesNeutralGround: checked })}
-                    />
-                    <span>
-                      <FormattedMessage {...messages.wizardFieldSeriesNeutralGround} />
-                    </span>
-                  </label>
-                  <DecisionHint
-                    id="wizard-series-neutral-ground-hint"
-                    text={decisionHintText(
-                      'series.neutralGround',
-                      messages.wizardDecisionSeriesNeutralGround,
-                    )}
-                  />
-
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <Field
-                      id="wizard-series-accounting"
-                      label={intl.formatMessage(messages.wizardFieldSeriesStandingsAccounting)}
-                    >
-                      <Select
-                        aria-describedby="wizard-series-accounting-hint"
-                        aria-label={intl.formatMessage(
-                          messages.wizardFieldSeriesStandingsAccounting,
-                        )}
-                        id="wizard-series-accounting"
-                        onValueChange={(val) =>
-                          patch({
-                            seriesStandingsAccounting: val as SeriesAccountingGrain,
-                          })
-                        }
-                        options={(['match', 'series'] as const).map((grain) => ({
-                          value: grain,
-                          label: `${intl.formatMessage(
-                            SERIES_ACCOUNTING_LABELS[grain],
-                          )} — ${intl.formatMessage(SERIES_ACCOUNTING_DESCRIPTIONS[grain])}`,
-                        }))}
-                        value={state.seriesStandingsAccounting}
-                      />
-                      <DecisionHint
-                        id="wizard-series-accounting-hint"
-                        text={decisionHintText(
-                          'series.standingsAccounting',
-                          messages.wizardDecisionSeriesStandingsAccounting,
-                        )}
-                      />
-                    </Field>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <FormatStep
+            decisionHintText={decisionHintText}
+            formatOptionDescription={formatOptionDescription}
+            formats={formats}
+            intl={intl}
+            patch={patch}
+            profiles={profiles}
+            state={state}
+          />
         )}
 
         {state.step === 'window' && (
-          <div className="cl-platform-form-grid">
-            <Field id="wizard-region" label={intl.formatMessage(messages.wizardFieldRegion)}>
-              <Input
-                aria-describedby="wizard-region-hint"
-                id="wizard-region"
-                onChange={(event) => patch({ region: event.target.value })}
-                value={state.region ?? ''}
-              />
-              <DecisionHint
-                id="wizard-region-hint"
-                text={decisionHintText('registration.region', messages.wizardDecisionRegion)}
-              />
-            </Field>
-            <Field id="wizard-capacity" label={intl.formatMessage(messages.wizardFieldCapacity)}>
-              <Input
-                aria-describedby="wizard-capacity-hint"
-                id="wizard-capacity"
-                min={2}
-                onChange={(event) =>
-                  patch({
-                    capacity: event.target.value === '' ? undefined : Number(event.target.value),
-                  })
-                }
-                type="number"
-                value={state.capacity ?? ''}
-              />
-              <DecisionHint
-                id="wizard-capacity-hint"
-                text={decisionHintText('registration.capacity', messages.wizardDecisionCapacity)}
-              />
-            </Field>
-            <label
-              className="cl-toggle cl-focusable"
-              htmlFor="wizard-public-registration"
-              style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
-            >
-              <Checkbox
-                aria-describedby="wizard-public-registration-hint"
-                aria-label={intl.formatMessage(messages.wizardPublicRegistration)}
-                checked={state.publicRegistration}
-                id="wizard-public-registration"
-                onCheckedChange={(checked) => patch({ publicRegistration: checked })}
-              />
-              <span>
-                <FormattedMessage {...messages.wizardPublicRegistration} />
-              </span>
-            </label>
-            <DecisionHint
-              id="wizard-public-registration-hint"
-              text={decisionHintText(
-                'registration.publicOpen',
-                messages.wizardDecisionPublicRegistration,
-              )}
-            />
-            <label
-              className="cl-toggle cl-focusable"
-              htmlFor="wizard-requires-check-in"
-              style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
-            >
-              <Checkbox
-                aria-describedby="wizard-requires-check-in-hint"
-                aria-label={intl.formatMessage(messages.wizardRequiresCheckIn)}
-                checked={state.requiresCheckIn}
-                id="wizard-requires-check-in"
-                onCheckedChange={(checked) => patch({ requiresCheckIn: checked })}
-              />
-              <span>
-                <FormattedMessage {...messages.wizardRequiresCheckIn} />
-              </span>
-            </label>
-            <DecisionHint
-              id="wizard-requires-check-in-hint"
-              text={decisionHintText(
-                'registration.requiresCheckIn',
-                messages.wizardDecisionRequiresCheckIn,
-              )}
-            />
-            {state.requiresCheckIn && (
-              <Field
-                id="wizard-check-in-closes-at"
-                label={intl.formatMessage(messages.wizardFieldCheckInClosesAt)}
-              >
-                <Input
-                  aria-describedby="wizard-check-in-closes-at-hint"
-                  id="wizard-check-in-closes-at"
-                  onChange={(event) => patch({ checkInClosesAt: event.target.value })}
-                  type="datetime-local"
-                  value={state.checkInClosesAt ?? ''}
-                />
-                <DecisionHint
-                  id="wizard-check-in-closes-at-hint"
-                  text={decisionHintText(
-                    'registration.checkInClosesAt',
-                    messages.wizardDecisionCheckInClosesAt,
-                  )}
-                />
-              </Field>
-            )}
-          </div>
+          <WindowStep decisionHintText={decisionHintText} intl={intl} patch={patch} state={state} />
         )}
 
         {state.step === 'rules' && (
-          <Stack gap="4">
-            <label
-              className="cl-toggle cl-focusable"
-              htmlFor="wizard-enable-custom-rule"
-              style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
-            >
-              <Checkbox
-                aria-label={intl.formatMessage(messages.wizardEnableCustomRule)}
-                checked={state.customRuleEnabled}
-                id="wizard-enable-custom-rule"
-                onCheckedChange={(checked) => patch({ customRuleEnabled: checked })}
-              />
-              <span>
-                <FormattedMessage {...messages.wizardEnableCustomRule} />
-              </span>
-            </label>
-            {state.customRuleEnabled && (
-              <>
-                <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
-                  <FormattedMessage {...messages.wizardRuleHookHelp} />
-                </p>
-                {state.customRules.length > 0 && (
-                  <ol style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
-                    {state.customRules.map((rule, index) => (
-                      <li
-                        key={`${rule.actionType}-${index}`}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 'var(--cl-space-3)',
-                        }}
-                      >
-                        <span>
-                          {index + 1}. {rule.conditionType ?? 'always'} → {rule.actionType}
-                        </span>
-                        <Button
-                          onClick={() => setState((current) => removeCustomRule(current, index))}
-                          type="button"
-                          variant="secondary"
-                        >
-                          <FormattedMessage {...messages.wizardRuleRemove} />
-                        </Button>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-                <div className="cl-platform-form-grid">
-                  <Field
-                    id="wizard-rule-condition"
-                    label={intl.formatMessage(messages.wizardRuleCondition)}
-                  >
-                    <Select
-                      aria-describedby="wizard-rule-condition-hint"
-                      aria-label={intl.formatMessage(messages.wizardRuleCondition)}
-                      id="wizard-rule-condition"
-                      onValueChange={(val) => patch({ customRuleConditionType: val || undefined })}
-                      options={[
-                        {
-                          value: '',
-                          label: intl.formatMessage(messages.wizardRuleConditionAlways),
-                        },
-                        ...conditions.map((entry) => ({
-                          value: entry.type,
-                          label: `${entry.type} — ${entry.description}`,
-                        })),
-                      ]}
-                      value={state.customRuleConditionType ?? ''}
-                    />
-                    <DecisionHint
-                      id="wizard-rule-condition-hint"
-                      text={selectedCondition?.description}
-                    />
-                  </Field>
-                  <Field
-                    id="wizard-rule-action"
-                    label={intl.formatMessage(messages.wizardRuleAction)}
-                  >
-                    <Select
-                      aria-describedby="wizard-rule-action-hint"
-                      aria-label={intl.formatMessage(messages.wizardRuleAction)}
-                      id="wizard-rule-action"
-                      onValueChange={(val) => patch({ customRuleActionType: val || undefined })}
-                      options={[
-                        {
-                          value: '',
-                          label: intl.formatMessage(messages.wizardRuleChooseAction),
-                        },
-                        ...actions.map((entry) => ({
-                          value: entry.type,
-                          label: `${entry.type} — ${entry.description}`,
-                        })),
-                      ]}
-                      value={state.customRuleActionType ?? ''}
-                    />
-                    <DecisionHint id="wizard-rule-action-hint" text={selectedAction?.description} />
-                  </Field>
-                </div>
-                {selectedCondition === undefined && (
-                  <Alert tone="info">
-                    <FormattedMessage {...messages.wizardRuleConditionlessExplanation} />
-                  </Alert>
-                )}
-                {selectedCondition && (
-                  <ElementAuthoringFields
-                    entry={selectedCondition}
-                    kind="condition"
-                    onOptionsChange={(key, value) =>
-                      patch({ customRuleOptions: { ...state.customRuleOptions, [key]: value } })
-                    }
-                    onValueChange={(key, value) =>
-                      patch({ customRuleValues: { ...state.customRuleValues, [key]: value } })
-                    }
-                    options={state.customRuleOptions}
-                    optionsLabel={intl.formatMessage(messages.wizardRuleOptions)}
-                    values={state.customRuleValues}
-                  />
-                )}
-                {selectedAction && (
-                  <ElementAuthoringFields
-                    entry={selectedAction}
-                    kind="action"
-                    onOptionsChange={(key, value) =>
-                      patch({ customRuleOptions: { ...state.customRuleOptions, [key]: value } })
-                    }
-                    onValueChange={(key, value) =>
-                      patch({ customRuleValues: { ...state.customRuleValues, [key]: value } })
-                    }
-                    options={state.customRuleOptions}
-                    optionsLabel={intl.formatMessage(messages.wizardRuleOptions)}
-                    values={state.customRuleValues}
-                  />
-                )}
-                <Button
-                  disabled={!canAddCustomRule(state, vocabulary)}
-                  onClick={() => setState((current) => addCustomRule(current, vocabulary))}
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage {...messages.wizardRuleAddAnother} />
-                </Button>
-              </>
-            )}
-          </Stack>
+          <RulesStep
+            actions={actions}
+            conditions={conditions}
+            intl={intl}
+            patch={patch}
+            selectedAction={selectedAction}
+            selectedCondition={selectedCondition}
+            setState={setState}
+            state={state}
+            vocabulary={vocabulary}
+          />
         )}
 
         {problems.length > 0 && (
@@ -857,6 +378,599 @@ export function TournamentSetupWizard({
         </footer>
       </Card>
     </section>
+  );
+}
+
+/**
+ * One component per wizard step, extracted from `TournamentSetupWizard`'s
+ * render body (openspec 0228): each step's own conditionals now count toward
+ * its own function, not the wizard shell's, and the shell keeps only the
+ * `state.step === '<name>' &&` gate that chooses among them.
+ */
+function NameStep({
+  intl,
+  patch,
+  state,
+}: {
+  readonly intl: IntlShape;
+  readonly patch: (next: Partial<WizardState>) => void;
+  readonly state: WizardState;
+}): React.JSX.Element {
+  return (
+    <div className="cl-platform-form-grid">
+      <Field id="wizard-name" label={intl.formatMessage(messages.wizardFieldName)}>
+        <Input
+          id="wizard-name"
+          onChange={(event) => patch({ name: event.target.value })}
+          value={state.name ?? ''}
+        />
+      </Field>
+      <Field id="wizard-alias" label={intl.formatMessage(messages.wizardFieldAlias)}>
+        <Input
+          id="wizard-alias"
+          onChange={(event) => patch({ alias: event.target.value })}
+          value={state.alias ?? ''}
+        />
+      </Field>
+    </div>
+  );
+}
+
+function DisciplineStep({
+  disciplines,
+  intl,
+  patch,
+  state,
+}: {
+  readonly disciplines: readonly DisciplineOption[];
+  readonly intl: IntlShape;
+  readonly patch: (next: Partial<WizardState>) => void;
+  readonly state: WizardState;
+}): React.JSX.Element {
+  return (
+    <Field id="wizard-discipline" label={intl.formatMessage(messages.wizardFieldDiscipline)}>
+      <Select
+        aria-describedby="wizard-discipline-hint"
+        aria-label={intl.formatMessage(messages.wizardFieldDiscipline)}
+        id="wizard-discipline"
+        onValueChange={(val) => {
+          const discipline = disciplines.find((one) => one.descriptorId === val);
+          patch({
+            descriptorId: discipline?.descriptorId,
+            descriptorVersion: discipline?.version,
+            format: discipline?.supportedFormats[0],
+            profileId: undefined,
+            profileVersion: undefined,
+          });
+        }}
+        options={disciplines.map((discipline) => ({
+          value: discipline.descriptorId,
+          label: `${localizedText(discipline.name, intl.locale)}${
+            discipline.description === undefined
+              ? ''
+              : ` — ${localizedText(discipline.description, intl.locale)}`
+          } · ${discipline.version}`,
+        }))}
+        value={state.descriptorId ?? ''}
+      />
+      <DecisionHint
+        id="wizard-discipline-hint"
+        text={intl.formatMessage(messages.wizardDecisionDiscipline)}
+      />
+    </Field>
+  );
+}
+
+function FormatStep({
+  decisionHintText,
+  formatOptionDescription,
+  formats,
+  intl,
+  patch,
+  profiles,
+  state,
+}: {
+  readonly decisionHintText: (
+    dotPath: string,
+    catalogue: (typeof messages)['wizardDecisionFormat'],
+  ) => string;
+  readonly formatOptionDescription: (format: string) => string | undefined;
+  readonly formats: readonly string[];
+  readonly intl: IntlShape;
+  readonly patch: (next: Partial<WizardState>) => void;
+  readonly profiles: readonly TournamentProfileOption[];
+  readonly state: WizardState;
+}): React.JSX.Element {
+  return (
+    <div className="cl-platform-form-grid">
+      <Field id="wizard-format" label={intl.formatMessage(messages.wizardFieldFormat)}>
+        <Select
+          aria-describedby="wizard-format-hint"
+          aria-label={intl.formatMessage(messages.wizardFieldFormat)}
+          id="wizard-format"
+          onValueChange={(val) =>
+            patch({
+              format: val,
+              profileId: undefined,
+              profileVersion: undefined,
+            })
+          }
+          options={formats.map((format) => {
+            const description = formatOptionDescription(format);
+            return {
+              value: format,
+              label: `${format}${description === undefined ? '' : ` — ${description}`}`,
+            };
+          })}
+          value={state.format ?? ''}
+        />
+        <DecisionHint
+          id="wizard-format-hint"
+          text={decisionHintText('format', messages.wizardDecisionFormat)}
+        />
+      </Field>
+
+      {profiles.length > 0 && (
+        <Field id="wizard-profile" label={intl.formatMessage(messages.wizardFieldProfile)}>
+          <Select
+            aria-label={intl.formatMessage(messages.wizardFieldProfile)}
+            id="wizard-profile"
+            onValueChange={(val) => {
+              const selectedProfile = profiles.find((p) => p.profileId === val);
+              patch({
+                profileId: selectedProfile?.profileId,
+                profileVersion: selectedProfile?.version,
+              });
+            }}
+            options={[
+              { value: '', label: intl.formatMessage(messages.wizardProfileNone) },
+              ...profiles.map((profile) => ({
+                value: profile.profileId,
+                label: `${localizedText(profile.name, intl.locale)} (${profile.stages
+                  .map((s) => s.name)
+                  .join(' → ')}) · ${profile.version}`,
+              })),
+            ]}
+            value={state.profileId ?? ''}
+          />
+        </Field>
+      )}
+
+      <div style={{ display: 'grid', gap: 'var(--cl-space-4)', gridColumn: '1 / -1' }}>
+        <label
+          className="cl-toggle cl-focusable"
+          htmlFor="wizard-enable-series"
+          style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
+        >
+          <Checkbox
+            aria-describedby="tournament-series-hint"
+            aria-label={intl.formatMessage(messages.wizardEnableSeries)}
+            checked={state.seriesEnabled}
+            id="wizard-enable-series"
+            onCheckedChange={(checked) =>
+              patch({
+                seriesEnabled: checked,
+                // Defaults appear only once the operator opts in, so an
+                // untouched wizard submits no series at all.
+                ...(checked && state.seriesSpan === undefined
+                  ? { seriesSpan: 3, seriesResolutionClass: 'best-of' as const }
+                  : {}),
+              })
+            }
+          />
+          <span>
+            <FormattedMessage {...messages.wizardEnableSeries} />
+          </span>
+        </label>
+
+        {!state.seriesEnabled && (
+          <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
+            <FormattedMessage {...messages.wizardSeriesHelp} />
+          </p>
+        )}
+
+        {state.seriesEnabled && (
+          <div className="cl-platform-form-grid">
+            <Field
+              id="wizard-series-span"
+              label={intl.formatMessage(messages.wizardFieldSeriesSpan)}
+            >
+              <Input
+                aria-describedby="wizard-series-span-hint"
+                id="wizard-series-span"
+                inputMode="numeric"
+                min={2}
+                onChange={(event) =>
+                  patch({
+                    seriesSpan:
+                      event.target.value === ''
+                        ? undefined
+                        : Number.parseInt(event.target.value, 10),
+                  })
+                }
+                type="number"
+                value={state.seriesSpan ?? ''}
+              />
+              <DecisionHint
+                id="wizard-series-span-hint"
+                text={decisionHintText('series.span', messages.wizardDecisionSeriesSpan)}
+              />
+            </Field>
+
+            <Field
+              id="wizard-series-class"
+              label={intl.formatMessage(messages.wizardFieldSeriesResolutionClass)}
+            >
+              <Select
+                aria-describedby="wizard-series-class-hint"
+                aria-label={intl.formatMessage(messages.wizardFieldSeriesResolutionClass)}
+                id="wizard-series-class"
+                onValueChange={(val) =>
+                  patch({
+                    seriesResolutionClass: val as WizardState['seriesResolutionClass'],
+                  })
+                }
+                options={SERIES_RESOLUTION_CLASSES.map((resolutionClass) => ({
+                  value: resolutionClass,
+                  label: `${intl.formatMessage(
+                    SERIES_CLASS_LABELS[resolutionClass],
+                  )} — ${intl.formatMessage(SERIES_CLASS_DESCRIPTIONS[resolutionClass])}`,
+                }))}
+                value={state.seriesResolutionClass ?? ''}
+              />
+              <DecisionHint
+                id="wizard-series-class-hint"
+                text={decisionHintText(
+                  'series.resolutionClass',
+                  messages.wizardDecisionSeriesResolutionClass,
+                )}
+              />
+            </Field>
+
+            <label
+              className="cl-toggle cl-focusable"
+              htmlFor="wizard-series-neutral-ground"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--cl-space-2)',
+                gridColumn: '1 / -1',
+              }}
+            >
+              <Checkbox
+                aria-describedby="wizard-series-neutral-ground-hint"
+                aria-label={intl.formatMessage(messages.wizardFieldSeriesNeutralGround)}
+                checked={state.seriesNeutralGround}
+                id="wizard-series-neutral-ground"
+                onCheckedChange={(checked) => patch({ seriesNeutralGround: checked })}
+              />
+              <span>
+                <FormattedMessage {...messages.wizardFieldSeriesNeutralGround} />
+              </span>
+            </label>
+            <DecisionHint
+              id="wizard-series-neutral-ground-hint"
+              text={decisionHintText(
+                'series.neutralGround',
+                messages.wizardDecisionSeriesNeutralGround,
+              )}
+            />
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <Field
+                id="wizard-series-accounting"
+                label={intl.formatMessage(messages.wizardFieldSeriesStandingsAccounting)}
+              >
+                <Select
+                  aria-describedby="wizard-series-accounting-hint"
+                  aria-label={intl.formatMessage(messages.wizardFieldSeriesStandingsAccounting)}
+                  id="wizard-series-accounting"
+                  onValueChange={(val) =>
+                    patch({
+                      seriesStandingsAccounting: val as SeriesAccountingGrain,
+                    })
+                  }
+                  options={(['match', 'series'] as const).map((grain) => ({
+                    value: grain,
+                    label: `${intl.formatMessage(
+                      SERIES_ACCOUNTING_LABELS[grain],
+                    )} — ${intl.formatMessage(SERIES_ACCOUNTING_DESCRIPTIONS[grain])}`,
+                  }))}
+                  value={state.seriesStandingsAccounting}
+                />
+                <DecisionHint
+                  id="wizard-series-accounting-hint"
+                  text={decisionHintText(
+                    'series.standingsAccounting',
+                    messages.wizardDecisionSeriesStandingsAccounting,
+                  )}
+                />
+              </Field>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function WindowStep({
+  decisionHintText,
+  intl,
+  patch,
+  state,
+}: {
+  readonly decisionHintText: (
+    dotPath: string,
+    catalogue: (typeof messages)['wizardDecisionFormat'],
+  ) => string;
+  readonly intl: IntlShape;
+  readonly patch: (next: Partial<WizardState>) => void;
+  readonly state: WizardState;
+}): React.JSX.Element {
+  return (
+    <div className="cl-platform-form-grid">
+      <Field id="wizard-region" label={intl.formatMessage(messages.wizardFieldRegion)}>
+        <Input
+          aria-describedby="wizard-region-hint"
+          id="wizard-region"
+          onChange={(event) => patch({ region: event.target.value })}
+          value={state.region ?? ''}
+        />
+        <DecisionHint
+          id="wizard-region-hint"
+          text={decisionHintText('registration.region', messages.wizardDecisionRegion)}
+        />
+      </Field>
+      <Field id="wizard-capacity" label={intl.formatMessage(messages.wizardFieldCapacity)}>
+        <Input
+          aria-describedby="wizard-capacity-hint"
+          id="wizard-capacity"
+          min={2}
+          onChange={(event) =>
+            patch({
+              capacity: event.target.value === '' ? undefined : Number(event.target.value),
+            })
+          }
+          type="number"
+          value={state.capacity ?? ''}
+        />
+        <DecisionHint
+          id="wizard-capacity-hint"
+          text={decisionHintText('registration.capacity', messages.wizardDecisionCapacity)}
+        />
+      </Field>
+      <label
+        className="cl-toggle cl-focusable"
+        htmlFor="wizard-public-registration"
+        style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
+      >
+        <Checkbox
+          aria-describedby="wizard-public-registration-hint"
+          aria-label={intl.formatMessage(messages.wizardPublicRegistration)}
+          checked={state.publicRegistration}
+          id="wizard-public-registration"
+          onCheckedChange={(checked) => patch({ publicRegistration: checked })}
+        />
+        <span>
+          <FormattedMessage {...messages.wizardPublicRegistration} />
+        </span>
+      </label>
+      <DecisionHint
+        id="wizard-public-registration-hint"
+        text={decisionHintText(
+          'registration.publicOpen',
+          messages.wizardDecisionPublicRegistration,
+        )}
+      />
+      <label
+        className="cl-toggle cl-focusable"
+        htmlFor="wizard-requires-check-in"
+        style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
+      >
+        <Checkbox
+          aria-describedby="wizard-requires-check-in-hint"
+          aria-label={intl.formatMessage(messages.wizardRequiresCheckIn)}
+          checked={state.requiresCheckIn}
+          id="wizard-requires-check-in"
+          onCheckedChange={(checked) => patch({ requiresCheckIn: checked })}
+        />
+        <span>
+          <FormattedMessage {...messages.wizardRequiresCheckIn} />
+        </span>
+      </label>
+      <DecisionHint
+        id="wizard-requires-check-in-hint"
+        text={decisionHintText(
+          'registration.requiresCheckIn',
+          messages.wizardDecisionRequiresCheckIn,
+        )}
+      />
+      {state.requiresCheckIn && (
+        <Field
+          id="wizard-check-in-closes-at"
+          label={intl.formatMessage(messages.wizardFieldCheckInClosesAt)}
+        >
+          <Input
+            aria-describedby="wizard-check-in-closes-at-hint"
+            id="wizard-check-in-closes-at"
+            onChange={(event) => patch({ checkInClosesAt: event.target.value })}
+            type="datetime-local"
+            value={state.checkInClosesAt ?? ''}
+          />
+          <DecisionHint
+            id="wizard-check-in-closes-at-hint"
+            text={decisionHintText(
+              'registration.checkInClosesAt',
+              messages.wizardDecisionCheckInClosesAt,
+            )}
+          />
+        </Field>
+      )}
+    </div>
+  );
+}
+
+function RulesStep({
+  actions,
+  conditions,
+  intl,
+  patch,
+  selectedAction,
+  selectedCondition,
+  setState,
+  state,
+  vocabulary,
+}: {
+  readonly actions: readonly HookVocabularyEntry[];
+  readonly conditions: readonly HookVocabularyEntry[];
+  readonly intl: IntlShape;
+  readonly patch: (next: Partial<WizardState>) => void;
+  readonly selectedAction: HookVocabularyEntry | undefined;
+  readonly selectedCondition: HookVocabularyEntry | undefined;
+  readonly setState: React.Dispatch<React.SetStateAction<WizardState>>;
+  readonly state: WizardState;
+  readonly vocabulary: HookScriptVocabulary;
+}): React.JSX.Element {
+  return (
+    <Stack gap="4">
+      <label
+        className="cl-toggle cl-focusable"
+        htmlFor="wizard-enable-custom-rule"
+        style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
+      >
+        <Checkbox
+          aria-label={intl.formatMessage(messages.wizardEnableCustomRule)}
+          checked={state.customRuleEnabled}
+          id="wizard-enable-custom-rule"
+          onCheckedChange={(checked) => patch({ customRuleEnabled: checked })}
+        />
+        <span>
+          <FormattedMessage {...messages.wizardEnableCustomRule} />
+        </span>
+      </label>
+      {state.customRuleEnabled && (
+        <>
+          <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
+            <FormattedMessage {...messages.wizardRuleHookHelp} />
+          </p>
+          {state.customRules.length > 0 && (
+            <ol style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
+              {state.customRules.map((rule, index) => (
+                <li
+                  key={`${rule.actionType}-${index}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 'var(--cl-space-3)',
+                  }}
+                >
+                  <span>
+                    {index + 1}. {rule.conditionType ?? 'always'} → {rule.actionType}
+                  </span>
+                  <Button
+                    onClick={() => setState((current) => removeCustomRule(current, index))}
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FormattedMessage {...messages.wizardRuleRemove} />
+                  </Button>
+                </li>
+              ))}
+            </ol>
+          )}
+          <div className="cl-platform-form-grid">
+            <Field
+              id="wizard-rule-condition"
+              label={intl.formatMessage(messages.wizardRuleCondition)}
+            >
+              <Select
+                aria-describedby="wizard-rule-condition-hint"
+                aria-label={intl.formatMessage(messages.wizardRuleCondition)}
+                id="wizard-rule-condition"
+                onValueChange={(val) => patch({ customRuleConditionType: val || undefined })}
+                options={[
+                  {
+                    value: '',
+                    label: intl.formatMessage(messages.wizardRuleConditionAlways),
+                  },
+                  ...conditions.map((entry) => ({
+                    value: entry.type,
+                    label: `${entry.type} — ${entry.description}`,
+                  })),
+                ]}
+                value={state.customRuleConditionType ?? ''}
+              />
+              <DecisionHint id="wizard-rule-condition-hint" text={selectedCondition?.description} />
+            </Field>
+            <Field id="wizard-rule-action" label={intl.formatMessage(messages.wizardRuleAction)}>
+              <Select
+                aria-describedby="wizard-rule-action-hint"
+                aria-label={intl.formatMessage(messages.wizardRuleAction)}
+                id="wizard-rule-action"
+                onValueChange={(val) => patch({ customRuleActionType: val || undefined })}
+                options={[
+                  {
+                    value: '',
+                    label: intl.formatMessage(messages.wizardRuleChooseAction),
+                  },
+                  ...actions.map((entry) => ({
+                    value: entry.type,
+                    label: `${entry.type} — ${entry.description}`,
+                  })),
+                ]}
+                value={state.customRuleActionType ?? ''}
+              />
+              <DecisionHint id="wizard-rule-action-hint" text={selectedAction?.description} />
+            </Field>
+          </div>
+          {selectedCondition === undefined && (
+            <Alert tone="info">
+              <FormattedMessage {...messages.wizardRuleConditionlessExplanation} />
+            </Alert>
+          )}
+          {selectedCondition && (
+            <ElementAuthoringFields
+              entry={selectedCondition}
+              kind="condition"
+              onOptionsChange={(key, value) =>
+                patch({ customRuleOptions: { ...state.customRuleOptions, [key]: value } })
+              }
+              onValueChange={(key, value) =>
+                patch({ customRuleValues: { ...state.customRuleValues, [key]: value } })
+              }
+              options={state.customRuleOptions}
+              optionsLabel={intl.formatMessage(messages.wizardRuleOptions)}
+              values={state.customRuleValues}
+            />
+          )}
+          {selectedAction && (
+            <ElementAuthoringFields
+              entry={selectedAction}
+              kind="action"
+              onOptionsChange={(key, value) =>
+                patch({ customRuleOptions: { ...state.customRuleOptions, [key]: value } })
+              }
+              onValueChange={(key, value) =>
+                patch({ customRuleValues: { ...state.customRuleValues, [key]: value } })
+              }
+              options={state.customRuleOptions}
+              optionsLabel={intl.formatMessage(messages.wizardRuleOptions)}
+              values={state.customRuleValues}
+            />
+          )}
+          <Button
+            disabled={!canAddCustomRule(state, vocabulary)}
+            onClick={() => setState((current) => addCustomRule(current, vocabulary))}
+            type="button"
+            variant="secondary"
+          >
+            <FormattedMessage {...messages.wizardRuleAddAnother} />
+          </Button>
+        </>
+      )}
+    </Stack>
   );
 }
 

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
 import type {
   ConsoleEventDefinition,
+  ConsoleSegment,
   MatchConsoleApiClient,
   MatchConsoleResponse,
   SegmentClockCommand,
@@ -152,7 +153,6 @@ export function MatchConsoleTemplate({
     'all',
   );
   const [logNote, setLogNote] = useState('');
-  const [syncDetailShown, setSyncDetailShown] = useState(false);
   const [ledgerExpanded, setLedgerExpanded] = useState(false);
 
   // A default segment/side/person/staff selection, filled in whenever it is
@@ -286,89 +286,29 @@ export function MatchConsoleTemplate({
   }
 
   const breadcrumbNode = (
-    <>
-      {intl.formatMessage(messages.matchConsoleBreadcrumb, {
-        tournamentAlias,
-        matchId: matchId.slice(-8),
-      })}
-      {projection.status === 'scheduled' &&
-        projection.segments.length === 0 &&
-        projection.events.length === 0 && (
-          <>
-            {' · '}
-            <a
-              className="cl-focusable"
-              href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`}
-              onClick={controlLinkClick(
-                `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`,
-              )}
-            >
-              <FormattedMessage {...messages.matchConsoleLoadMatchData} />
-            </a>
-          </>
-        )}
-    </>
+    <BreadcrumbSection
+      intl={intl}
+      matchId={matchId}
+      organizationAlias={organizationAlias}
+      projection={projection}
+      tournamentAlias={tournamentAlias}
+    />
   );
 
   const titleNode = <FormattedMessage {...messages.matchConsoleTitle} />;
 
   const statusNode = (
-    <>
-      <strong>
-        {projection.status === 'in-progress'
-          ? intl.formatMessage(messages.matchConsoleLive)
-          : projection.status.toUpperCase()}
-      </strong>
-      <ClockRing
-        durationSeconds={activeSegment?.durationSeconds}
-        elapsedSeconds={activeSegment?.elapsedSeconds ?? 0}
-      />
-    </>
+    <StatusSection activeSegment={activeSegment} intl={intl} matchStatus={projection.status} />
   );
 
   const alertsNode = (
-    <>
-      {status.kind === 'error' && <Alert tone="destructive">{status.message}</Alert>}
-      {stale && (
-        <Alert tone="info">
-          <FormattedMessage {...messages.matchConsoleAwaitingProjection} />
-        </Alert>
-      )}
-      {pendingMutations.some((mutation) => mutation.status === 'refused') && (
-        <ul>
-          {pendingMutations
-            .filter((mutation) => mutation.status === 'refused')
-            .map((mutation) => (
-              <li key={mutation.id}>
-                <Alert block tone="destructive">
-                  <span>
-                    {intl.formatMessage(messages.matchConsoleRefusedAction, {
-                      kind: mutation.action.kind,
-                      reason: mutation.refusalReason ?? '',
-                    })}
-                  </span>
-                  {/* What was actually recorded, kept in front of the operator. A refusal
-                    caused by a series decision means this match will never be played, and
-                    these contents are the only basis for deciding whether the result
-                    belongs elsewhere — as a correction to an earlier game, most often. */}
-                  <span className="cl-card__description">
-                    {intl.formatMessage(messages.matchConsoleRefusedContents, {
-                      contents: describeQueuedAction(mutation.action),
-                    })}
-                  </span>
-                  <Button
-                    onClick={() => onDismissMutation(mutation.id)}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage {...messages.matchConsoleDismiss} />
-                  </Button>
-                </Alert>
-              </li>
-            ))}
-        </ul>
-      )}
-    </>
+    <AlertsSection
+      intl={intl}
+      onDismissMutation={onDismissMutation}
+      pendingMutations={pendingMutations}
+      stale={stale}
+      status={status}
+    />
   );
 
   // One glanceable icon, because "can I reach the server" is the only
@@ -379,45 +319,13 @@ export function MatchConsoleTemplate({
   // `role="status"` names itself from `aria-label` rather than its content, so
   // the same sentence serves twice: as the icon's accessible name, and as the
   // live-region text a screen reader announces the moment the state flips.
-  const syncStateLabel = intl.formatMessage(messages.matchConsoleSyncState, {
-    state: online
-      ? intl.formatMessage(messages.matchConsoleOnline)
-      : intl.formatMessage(messages.matchConsoleOffline),
-  });
   const syncStatusNode = (
-    <div
-      className="cl-sync-indicator"
-      onBlur={() => setSyncDetailShown(false)}
-      onFocus={() => setSyncDetailShown(true)}
-      onMouseEnter={() => setSyncDetailShown(true)}
-      onMouseLeave={() => setSyncDetailShown(false)}
-    >
-      <span
-        aria-label={syncStateLabel}
-        className={`cl-sync-indicator__icon cl-sync-indicator__icon--${online ? 'online' : 'offline'} cl-focusable`}
-        role="status"
-        tabIndex={0}
-      >
-        <span aria-hidden="true" className="cl-sync-indicator__dot" />
-        <span className="cl-visually-hidden">{syncStateLabel}</span>
-      </span>
-      {syncDetailShown && (
-        <div className="cl-sync-indicator__detail">
-          <span>
-            {intl.formatMessage(messages.matchConsoleQueuedCount, {
-              count: pendingMutations.filter((mutation) => mutation.status === 'pending').length,
-            })}
-          </span>
-          <span>
-            {lastSyncedAt === undefined
-              ? intl.formatMessage(messages.matchConsoleNeverSynced)
-              : intl.formatMessage(messages.matchConsoleLastSynced, {
-                  time: new Date(lastSyncedAt).toLocaleTimeString(intl.locale),
-                })}
-          </span>
-        </div>
-      )}
-    </div>
+    <SyncStatusSection
+      intl={intl}
+      lastSyncedAt={lastSyncedAt}
+      online={online}
+      pendingMutations={pendingMutations}
+    />
   );
 
   const scoreboardNode = (
@@ -864,5 +772,196 @@ export function MatchConsoleTemplate({
       syncStatus={syncStatusNode}
       title={titleNode}
     />
+  );
+}
+
+/**
+ * One component per section `MatchConsoleTemplate` composes into
+ * `MatchConsoleLayout`'s slots (openspec 0228): each section's own
+ * conditionals now count toward its own function, not the template's, and
+ * the template keeps only the composition itself. No behavior change — each
+ * component's body is the section's prior inline JSX, unmodified.
+ */
+function AlertsSection({
+  intl,
+  onDismissMutation,
+  pendingMutations,
+  stale,
+  status,
+}: {
+  readonly intl: IntlShape;
+  readonly onDismissMutation: (mutationId: string) => void;
+  readonly pendingMutations: readonly QueuedMutation[];
+  readonly stale: boolean;
+  readonly status: ConsoleStatus;
+}): React.JSX.Element {
+  return (
+    <>
+      {status.kind === 'error' && <Alert tone="destructive">{status.message}</Alert>}
+      {stale && (
+        <Alert tone="info">
+          <FormattedMessage {...messages.matchConsoleAwaitingProjection} />
+        </Alert>
+      )}
+      {pendingMutations.some((mutation) => mutation.status === 'refused') && (
+        <ul>
+          {pendingMutations
+            .filter((mutation) => mutation.status === 'refused')
+            .map((mutation) => (
+              <li key={mutation.id}>
+                <Alert block tone="destructive">
+                  <span>
+                    {intl.formatMessage(messages.matchConsoleRefusedAction, {
+                      kind: mutation.action.kind,
+                      reason: mutation.refusalReason ?? '',
+                    })}
+                  </span>
+                  {/* What was actually recorded, kept in front of the operator. A refusal
+                    caused by a series decision means this match will never be played, and
+                    these contents are the only basis for deciding whether the result
+                    belongs elsewhere — as a correction to an earlier game, most often. */}
+                  <span className="cl-card__description">
+                    {intl.formatMessage(messages.matchConsoleRefusedContents, {
+                      contents: describeQueuedAction(mutation.action),
+                    })}
+                  </span>
+                  <Button
+                    onClick={() => onDismissMutation(mutation.id)}
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FormattedMessage {...messages.matchConsoleDismiss} />
+                  </Button>
+                </Alert>
+              </li>
+            ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
+/**
+ * The one glanceable connectivity icon this screen's operator needs mid-match
+ * — see its prior inline comment, preserved verbatim below. `syncDetailShown`
+ * moved in from the template: nothing outside this section ever read it.
+ */
+function SyncStatusSection({
+  intl,
+  lastSyncedAt,
+  online,
+  pendingMutations,
+}: {
+  readonly intl: IntlShape;
+  readonly lastSyncedAt: number | undefined;
+  readonly online: boolean;
+  readonly pendingMutations: readonly QueuedMutation[];
+}): React.JSX.Element {
+  const [syncDetailShown, setSyncDetailShown] = useState(false);
+  // `role="status"` names itself from `aria-label` rather than its content, so
+  // the same sentence serves twice: as the icon's accessible name, and as the
+  // live-region text a screen reader announces the moment the state flips.
+  const syncStateLabel = intl.formatMessage(messages.matchConsoleSyncState, {
+    state: online
+      ? intl.formatMessage(messages.matchConsoleOnline)
+      : intl.formatMessage(messages.matchConsoleOffline),
+  });
+  return (
+    <div
+      className="cl-sync-indicator"
+      onBlur={() => setSyncDetailShown(false)}
+      onFocus={() => setSyncDetailShown(true)}
+      onMouseEnter={() => setSyncDetailShown(true)}
+      onMouseLeave={() => setSyncDetailShown(false)}
+    >
+      <span
+        aria-label={syncStateLabel}
+        className={`cl-sync-indicator__icon cl-sync-indicator__icon--${online ? 'online' : 'offline'} cl-focusable`}
+        role="status"
+        tabIndex={0}
+      >
+        <span aria-hidden="true" className="cl-sync-indicator__dot" />
+        <span className="cl-visually-hidden">{syncStateLabel}</span>
+      </span>
+      {syncDetailShown && (
+        <div className="cl-sync-indicator__detail">
+          <span>
+            {intl.formatMessage(messages.matchConsoleQueuedCount, {
+              count: pendingMutations.filter((mutation) => mutation.status === 'pending').length,
+            })}
+          </span>
+          <span>
+            {lastSyncedAt === undefined
+              ? intl.formatMessage(messages.matchConsoleNeverSynced)
+              : intl.formatMessage(messages.matchConsoleLastSynced, {
+                  time: new Date(lastSyncedAt).toLocaleTimeString(intl.locale),
+                })}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BreadcrumbSection({
+  intl,
+  matchId,
+  organizationAlias,
+  projection,
+  tournamentAlias,
+}: {
+  readonly intl: IntlShape;
+  readonly matchId: string;
+  readonly organizationAlias: string;
+  readonly projection: MatchConsoleResponse;
+  readonly tournamentAlias: string;
+}): React.JSX.Element {
+  return (
+    <>
+      {intl.formatMessage(messages.matchConsoleBreadcrumb, {
+        tournamentAlias,
+        matchId: matchId.slice(-8),
+      })}
+      {projection.status === 'scheduled' &&
+        projection.segments.length === 0 &&
+        projection.events.length === 0 && (
+          <>
+            {' · '}
+            <a
+              className="cl-focusable"
+              href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`}
+              onClick={controlLinkClick(
+                `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`,
+              )}
+            >
+              <FormattedMessage {...messages.matchConsoleLoadMatchData} />
+            </a>
+          </>
+        )}
+    </>
+  );
+}
+
+function StatusSection({
+  activeSegment,
+  intl,
+  matchStatus,
+}: {
+  readonly activeSegment: ConsoleSegment | undefined;
+  readonly intl: IntlShape;
+  readonly matchStatus: MatchConsoleResponse['status'];
+}): React.JSX.Element {
+  return (
+    <>
+      <strong>
+        {matchStatus === 'in-progress'
+          ? intl.formatMessage(messages.matchConsoleLive)
+          : matchStatus.toUpperCase()}
+      </strong>
+      <ClockRing
+        durationSeconds={activeSegment?.durationSeconds}
+        elapsedSeconds={activeSegment?.elapsedSeconds ?? 0}
+      />
+    </>
   );
 }

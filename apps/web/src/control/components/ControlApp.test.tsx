@@ -276,6 +276,18 @@ describe('ControlApp session guard and callback', () => {
     expect(screen.queryByText('Rol')).toBeNull();
   });
 
+  // The auth-redirect guard effect skips public routes entirely — an
+  // anonymous visitor reaching /login must see it, not get redirected back
+  // to itself.
+  it('renders a public route with no session, without redirecting', () => {
+    controlTokenStore.clear();
+    at('/control/login');
+
+    render(<ControlApp />);
+
+    expect(screen.getByText('Sign in to operate', { exact: false })).toBeDefined();
+  });
+
   it('renders normally when a valid session exists', async () => {
     controlTokenStore.write('test-access-token', Date.now() + 60_000);
     at('/control/liga-mendocina');
