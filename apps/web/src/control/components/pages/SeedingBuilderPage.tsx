@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import {
   createControlApiClient,
   type ControlApiClient,
@@ -14,6 +14,25 @@ import { Button } from '../ui/atoms/button.js';
 import { Field } from '../ui/molecules/field.js';
 import { useToast } from '../ToastProvider.js';
 import { messages } from '../../i18n/messages.en.js';
+
+// openspec 0225 task 8.3 (found by /impeccable critique): every one of these
+// was a hardcoded Spanish literal, with no message id at all. Local rather
+// than in `messages.en.ts` — see `LiveConsoleTemplate.tsx`'s identical note
+// on why a local `defineMessages` block, not the shared catalogue, is the
+// right home for an id with no locale translation yet.
+const pageMessages = defineMessages({
+  zonesAndGroupsLink: {
+    id: 'control.seedingBuilder.zonesAndGroupsLink',
+    defaultMessage: 'Zones and groups',
+  },
+  loading: { id: 'control.seedingBuilder.loading', defaultMessage: 'Loading seeding…' },
+  loadFailed: {
+    id: 'control.seedingBuilder.loadFailed',
+    defaultMessage: 'Could not load the seeding.',
+  },
+  stageDeleted: { id: 'control.seedingBuilder.stageDeleted', defaultMessage: 'Stage deleted.' },
+  stageRenamed: { id: 'control.seedingBuilder.stageRenamed', defaultMessage: 'Stage renamed.' },
+});
 
 /**
  * Rename/format-change/delete for the stage this builder is on (task 2.3).
@@ -235,6 +254,7 @@ export function SeedingBuilderPage({
   readonly stageNumber: number;
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
+  const intl = useIntl();
   const { push, pushError } = useToast();
   const api = useMemo(
     () =>
@@ -246,7 +266,7 @@ export function SeedingBuilderPage({
     [client],
   );
   const [seeding, setSeeding] = useState<SeedingResponse | undefined>(undefined);
-  const [status, setStatus] = useState('Cargando sembrado...');
+  const [status, setStatus] = useState(() => intl.formatMessage(pageMessages.loading));
   const [stageOverrides, setStageOverrides] = useState<Readonly<Record<string, unknown>>>({});
 
   useEffect(() => {
@@ -303,11 +323,12 @@ export function SeedingBuilderPage({
         setStatus('');
       })
       .catch(() => {
-        if (live) setStatus('No se pudo cargar el sembrado.');
+        if (live) setStatus(intl.formatMessage(pageMessages.loadFailed));
       });
     return () => {
       live = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intl is stable within one ControlIntl mount
   }, [api, organizationAlias, tournamentAlias, stageNumber]);
 
   if (seeding === undefined) return <Alert tone="info">{status}</Alert>;
@@ -326,7 +347,7 @@ export function SeedingBuilderPage({
           `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones`,
         )}
       >
-        Zonas y grupos
+        {intl.formatMessage(pageMessages.zonesAndGroupsLink)}
       </a>
       <StageSettingsSection
         currentFormat={seeding.format}
@@ -343,7 +364,10 @@ export function SeedingBuilderPage({
           api
             .deleteStage?.(organizationAlias, tournamentAlias, stageNumber)
             .then(() => {
-              push({ severity: 'success', message: 'Fase eliminada.' });
+              push({
+                severity: 'success',
+                message: intl.formatMessage(pageMessages.stageDeleted),
+              });
             })
             .catch((error: unknown) => {
               pushError(error);
@@ -353,7 +377,10 @@ export function SeedingBuilderPage({
           api
             .updateStage?.(organizationAlias, tournamentAlias, stageNumber, { name })
             .then(() => {
-              push({ severity: 'success', message: 'Fase renombrada.' });
+              push({
+                severity: 'success',
+                message: intl.formatMessage(pageMessages.stageRenamed),
+              });
             })
             .catch((error: unknown) => {
               pushError(error);
@@ -370,7 +397,10 @@ export function SeedingBuilderPage({
             .then((updated) => {
               if (!updated) return;
               setStageOverrides(updated.overrides);
-              push({ severity: 'success', message: 'Configuración de la fase guardada.' });
+              push({
+                severity: 'success',
+                message: intl.formatMessage(messages.stageConfigurationSaved),
+              });
             })
             .catch((error: unknown) => {
               pushError(error);

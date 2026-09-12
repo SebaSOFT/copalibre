@@ -1,4 +1,4 @@
-import { useIntl } from 'react-intl';
+import { defineMessages, useIntl } from 'react-intl';
 import { type TournamentResponse } from '../../lib/api-client.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Badge } from '../ui/atoms/badge.js';
@@ -7,6 +7,19 @@ import { Inline } from '../ui/atoms/layout/inline.js';
 import { Stack } from '../ui/atoms/layout/stack.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+
+// openspec 0225 task 8.3 (found by /impeccable critique): these two link
+// labels were hardcoded Spanish literals with no message id at all. Local
+// rather than in `messages.en.ts` — the same `auth.*`/`invitation.*`
+// namespace gap task 2.6 and this task's own AcceptInvitationForm fix
+// already restated in English: no locale catalogue has these ids, so every
+// locale falls back to `defaultMessage`, and `check-atomic-composition.mjs`'s
+// catalogue-completeness rule only walks the shared `messages.en.ts` file,
+// not a component's own local descriptors.
+const localMessages = defineMessages({
+  viewMatches: { id: 'control.liveConsole.viewMatches', defaultMessage: 'View matches' },
+  matchReports: { id: 'control.liveConsole.matchReports', defaultMessage: 'Match reports' },
+});
 
 /**
  * Composes the screen from the data `LiveConsolePage` supplies (openspec
@@ -71,13 +84,13 @@ export function LiveConsoleTemplate({
                           ? 'cl-state--positive'
                           : 'cl-state--upcoming'
                     }
-                    label={
+                    label={intl.formatMessage(
                       tournament.status === 'started'
-                        ? 'EN VIVO'
+                        ? messages.lifecycleLive
                         : tournament.status === 'finished'
-                          ? 'FINALIZADO'
-                          : 'PRÓXIMO'
-                    }
+                          ? messages.lifecycleFinished
+                          : messages.lifecycleUpcoming,
+                    )}
                   />
                 </Inline>
 
@@ -89,7 +102,7 @@ export function LiveConsoleTemplate({
                       `/control/${organizationAlias}/tournaments/${tournament.alias}/matches-view`,
                     )}
                   >
-                    Ver partidos
+                    {intl.formatMessage(localMessages.viewMatches)}
                   </a>
                   <a
                     className="cl-btn cl-btn--secondary cl-focusable"
@@ -98,7 +111,7 @@ export function LiveConsoleTemplate({
                       `/control/${organizationAlias}/tournaments/${tournament.alias}/reports`,
                     )}
                   >
-                    Reportes de partido
+                    {intl.formatMessage(localMessages.matchReports)}
                   </a>
                 </Inline>
               </Stack>

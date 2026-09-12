@@ -1,5 +1,6 @@
 import { useIntl } from 'react-intl';
 import { messages } from '../../../i18n/messages.en.js';
+import { auditFieldLabel } from '../../../lib/audit-log.js';
 
 export interface AuditDiffField {
   /** The record's own field name — never a fixed label, since a correction may change any field. */
@@ -152,16 +153,19 @@ export function AuditLogPanel({
                     border: '1px solid var(--cl-border-muted)',
                   }}
                 >
-                  {item.diff.map((row) => (
-                    <div key={row.field}>
-                      <div style={{ color: 'var(--cl-state-destructive)' }}>
-                        - {row.field}: {row.previous}
+                  {item.diff.map((row) => {
+                    const label = auditFieldLabel(row.field, intl);
+                    return (
+                      <div key={row.field}>
+                        <div style={{ color: 'var(--cl-state-destructive)' }}>
+                          - {label}: {row.previous}
+                        </div>
+                        <div style={{ color: 'var(--cl-state-positive)' }}>
+                          + {label}: {row.current}
+                        </div>
                       </div>
-                      <div style={{ color: 'var(--cl-state-positive)' }}>
-                        + {row.field}: {row.current}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

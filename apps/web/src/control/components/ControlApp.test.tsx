@@ -113,66 +113,66 @@ describe('ControlApp', () => {
   });
 
   it.each([
-    ['/control/liga-mendocina', 'Panel — liga-mendocina', 'Torneos'],
-    ['/control/liga-mendocina/roles', 'Roles y permisos - liga-mendocina', 'Rol'],
-    ['/control/liga-mendocina/tournaments/new', 'Crear torneo — liga-mendocina', 'torneo'],
+    ['/control/liga-mendocina', 'Dashboard — liga-mendocina', 'Torneos'],
+    ['/control/liga-mendocina/roles', 'Roles and permissions - liga-mendocina', 'Rol'],
+    ['/control/liga-mendocina/tournaments/new', 'Create tournament — liga-mendocina', 'torneo'],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/registrations',
-      'Inscripciones — apertura-2026',
+      'Registrations — apertura-2026',
       'Inscripciones',
     ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/reports',
-      'Reportes y disputas — apertura-2026',
+      'Reports and disputes — apertura-2026',
       'reporte',
     ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/matches-view',
-      'Partidos — apertura-2026',
+      'Matches — apertura-2026',
       'Partidos',
     ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/settings',
-      'Configuración del torneo — apertura-2026',
+      'Tournament settings — apertura-2026',
       'Configuración del torneo',
     ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/ruleset',
-      'Reglamento del torneo — apertura-2026',
+      'Tournament ruleset — apertura-2026',
       'scoring.pointsPerWin',
     ],
-    ['/control/liga-mendocina/clubs', 'Clubes — liga-mendocina', 'club'],
+    ['/control/liga-mendocina/clubs', 'Clubs — liga-mendocina', 'club'],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/stages/1/zones',
-      'Zonas y grupos — apertura-2026',
+      'Zones and groups — apertura-2026',
       'Zona',
     ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding',
-      'Sembrado — apertura-2026',
+      'Seeding — apertura-2026',
       'Sembrado',
     ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/stages/1/standings',
-      'Posiciones — apertura-2026',
+      'Standings — apertura-2026',
       'Posiciones',
     ],
-    ['/control/login', 'Iniciar sesión — CopaLibre', 'Sign in to operate'],
-    ['/control/forgot-password', 'Recuperar contraseña — CopaLibre', 'Recover password'],
-    ['/control/reset-password', 'Restablecer contraseña — CopaLibre', 'Invalid recovery link'],
+    ['/control/login', 'Sign in — CopaLibre', 'Sign in to operate'],
+    ['/control/forgot-password', 'Recover password — CopaLibre', 'Recover password'],
+    ['/control/reset-password', 'Reset password — CopaLibre', 'Invalid recovery link'],
     [
       '/control/liga-mendocina/preferences',
-      'Preferencias personales — CopaLibre',
+      'Personal preferences — CopaLibre',
       'Personal Preferences',
     ],
-    ['/control/liga-mendocina/tournaments', 'Torneos — liga-mendocina', 'Torneo'],
-    ['/control/liga-mendocina/live', 'Consola en vivo — liga-mendocina', 'Consola'],
+    ['/control/liga-mendocina/tournaments', 'Tournaments — liga-mendocina', 'Torneo'],
+    ['/control/liga-mendocina/live', 'Live console — liga-mendocina', 'Consola'],
     [
       '/control/liga-mendocina/organization',
-      'Organización — liga-mendocina',
+      'Organization — liga-mendocina',
       'Personal Preferences',
     ],
-    ['/control/liga-mendocina/analytics', 'Analíticas — liga-mendocina', 'Analítica'],
+    ['/control/liga-mendocina/analytics', 'Analytics — liga-mendocina', 'Analítica'],
   ])('renders the right screen and title for %s', async (path, title, content) => {
     at(path);
     render(<ControlApp />);
@@ -196,7 +196,7 @@ describe('ControlApp', () => {
     at('/control/platform');
     render(<ControlApp />);
 
-    await waitFor(() => expect(document.title).toBe('Administración de plataforma — CopaLibre'));
+    await waitFor(() => expect(document.title).toBe('Platform administration — CopaLibre'));
     expect(screen.getByRole('heading', { name: 'Administración de plataforma' })).toBeDefined();
   });
 
@@ -210,32 +210,32 @@ describe('ControlApp', () => {
   it('re-renders the matching screen after client-side navigation, without a page reload', async () => {
     at('/control/liga-mendocina');
     render(<ControlApp />);
-    await waitFor(() => expect(document.title).toBe('Panel — liga-mendocina'));
+    await waitFor(() => expect(document.title).toBe('Dashboard — liga-mendocina'));
 
     act(() => {
       navigateControl('/control/liga-mendocina/roles');
     });
 
-    await waitFor(() => expect(document.title).toBe('Roles y permisos - liga-mendocina'));
+    await waitFor(() => expect(document.title).toBe('Roles and permissions - liga-mendocina'));
     expect(window.location.pathname).toBe('/control/liga-mendocina/roles');
   });
 
   it('re-renders after browser back/forward (popstate)', async () => {
     at('/control/liga-mendocina');
     render(<ControlApp />);
-    await waitFor(() => expect(document.title).toBe('Panel — liga-mendocina'));
+    await waitFor(() => expect(document.title).toBe('Dashboard — liga-mendocina'));
 
     act(() => {
       navigateControl('/control/liga-mendocina/roles');
     });
-    await waitFor(() => expect(document.title).toBe('Roles y permisos - liga-mendocina'));
+    await waitFor(() => expect(document.title).toBe('Roles and permissions - liga-mendocina'));
 
     act(() => {
       window.history.pushState({}, '', '/control/liga-mendocina');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
 
-    await waitFor(() => expect(document.title).toBe('Panel — liga-mendocina'));
+    await waitFor(() => expect(document.title).toBe('Dashboard — liga-mendocina'));
   });
 });
 
@@ -282,7 +282,7 @@ describe('ControlApp session guard and callback', () => {
 
     render(<ControlApp />);
 
-    await waitFor(() => expect(document.title).toBe('Panel — liga-mendocina'));
+    await waitFor(() => expect(document.title).toBe('Dashboard — liga-mendocina'));
     // The nav entry specifically: the dashboard's tournament section now carries
     // a heading of the same word, so an unscoped text query matches both.
     expect(screen.queryAllByRole('link', { name: 'Torneos' })).not.toHaveLength(0);

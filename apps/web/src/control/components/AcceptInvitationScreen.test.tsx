@@ -15,14 +15,14 @@ describe('AcceptInvitationScreen', () => {
     expect(container.querySelector('.cl-auth-screen')).not.toBeNull();
     expect(container.querySelector('.cl-auth-screen__panel')).not.toBeNull();
     expect(container.querySelector('.cl-card')).not.toBeNull();
-    expect(screen.getByRole('heading', { name: 'Aceptar invitación' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Accept invitation' })).toBeDefined();
   });
 
   it('hands its token to the form rather than making the form find one', () => {
     render(<AcceptInvitationScreen initialToken="invitation-token" />);
 
-    expect(screen.queryByText('No se encontró el token de invitación en el enlace.')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Aceptar y comenzar' })).toBeDefined();
+    expect(screen.queryByText('The invitation token was not found in the link.')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Accept and start' })).toBeDefined();
   });
 
   it('renders with no props at all, letting the form read the URL itself', () => {
@@ -31,6 +31,15 @@ describe('AcceptInvitationScreen', () => {
     // the missing-token state rather than rendering a form that cannot submit.
     render(<AcceptInvitationScreen />);
 
-    expect(screen.getByText('No se encontró el token de invitación en el enlace.')).toBeDefined();
+    expect(screen.getByText('The invitation token was not found in the link.')).toBeDefined();
+  });
+
+  it('provides its own IntlProvider, since accept.astro mounts it outside ControlShell/Dashboard.tsx', () => {
+    // openspec 0225 task 8.3: this screen used to call useIntl() (via the
+    // form it composes) with no ancestor IntlProvider at all, since it is a
+    // third real route-mount point neither of ControlIntl's two documented
+    // mount points reaches. This test exists so removing the self-wrap
+    // fails loudly instead of only in production.
+    expect(() => render(<AcceptInvitationScreen initialToken="invitation-token" />)).not.toThrow();
   });
 });

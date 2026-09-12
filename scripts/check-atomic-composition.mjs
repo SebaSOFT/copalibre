@@ -728,7 +728,9 @@ export const KNOWN_LITERAL_TEXT = new Map([
   // were never counted here — R10 finds literal text nodes in a template,
   // not string literals in frontmatter.
   ['components/ui/organisms/StandingsTable.astro', 9],
-  ['control/components/AcceptInvitationForm.tsx', 2],
+  // `AcceptInvitationForm.tsx`'s entry is gone (openspec 0225 task 8.3,
+  // found by /impeccable critique): every literal moved through
+  // `useIntl`/`FormattedMessage`, the same fix applied across this task.
   ['control/components/ControlShell.tsx', 1],
   ['control/components/screens/RolesPermissionsTemplate.tsx', 1],
   ['pages/control/[...path].astro', 1],

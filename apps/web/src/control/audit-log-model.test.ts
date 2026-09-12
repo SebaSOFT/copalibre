@@ -1,6 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
+import { createIntl, createIntlCache } from 'react-intl';
 import type { AuditRecordResponse } from './lib/api-client.js';
-import { changedKeys, summarizeState, toAuditLogItem } from './lib/audit-log.js';
+import { auditFieldLabel, changedKeys, summarizeState, toAuditLogItem } from './lib/audit-log.js';
+
+const intl = createIntl({ locale: 'en' }, createIntlCache());
 
 const base: AuditRecordResponse = {
   auditId: '01936f4a-9001-7000-8000-000000000001',
@@ -81,5 +84,20 @@ describe('audit records as ledger entries', () => {
     expect(item.action).toBe('SCORE_CORRECTION');
     expect(item.timestamp).toBe('2026-09-05T16:45:32.000Z');
     expect(item.id).toBe(base.auditId);
+  });
+});
+
+describe('auditFieldLabel', () => {
+  it('resolves a recognized field through the message catalogue', () => {
+    expect(auditFieldLabel('score', intl)).toBe('Score');
+    expect(auditFieldLabel('venueId', intl)).toBe('Venue');
+  });
+
+  it('humanizes an unrecognized camelCase field rather than showing the raw key', () => {
+    expect(auditFieldLabel('venueCapacity', intl)).toBe('Venue Capacity');
+  });
+
+  it('capitalizes an unrecognized single-word field', () => {
+    expect(auditFieldLabel('capacity', intl)).toBe('Capacity');
   });
 });

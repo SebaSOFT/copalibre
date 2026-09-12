@@ -89,3 +89,38 @@ export const ReferenceCorrection: Story = {
 export const NothingRecorded: Story = {
   args: { title: 'Match operations audit trail', items: [] },
 };
+
+/**
+ * A non-score correction (openspec 0225 task 8.3, found by
+ * `/impeccable critique`): every other story here only ever diffs `score`,
+ * so `audit-log-panel.tsx`'s field-label resolution had never actually
+ * rendered a schedule/venue change — the case the panel's own field-naming
+ * bug (hardcoded "Score" for every diff, now fixed) would have hidden.
+ */
+export const ScheduleCorrection: Story = {
+  args: {
+    title: 'Match operations audit trail',
+    items: [
+      {
+        id: 'evt-4',
+        type: 'correction' as const,
+        timestamp: '2026-09-11 09:30:00',
+        actor: 'tournament_director',
+        action: 'Match Rescheduled',
+        diff: [
+          {
+            field: 'startsAt',
+            previous: '2026-09-12T18:00:00.000Z',
+            current: '2026-09-13T20:00:00.000Z',
+          },
+          {
+            field: 'venueId',
+            previous: '01936f4a-9001-7000-8000-000000000001',
+            current: '01936f4a-9002-7000-8000-000000000002',
+          },
+        ],
+        latencyMs: 9,
+      },
+    ],
+  },
+};

@@ -270,72 +270,82 @@ export function ControlApp(): React.JSX.Element | null {
 }
 
 /**
- * Exact titles from the eight `.astro` files this replaces — already
- * hardcoded Spanish there, unrelated to this change, not translated here.
+ * Restated in English (openspec 0225 task 8.3, found by `/impeccable
+ * critique`) — exact titles from the eight `.astro` files this replaced were
+ * hardcoded Spanish, the same `auth.*`/`invitation.*` namespace gap task 2.6
+ * and this task's own AcceptInvitationForm fix already restated in English
+ * elsewhere. Not routed through `react-intl` here: `document.title` is set
+ * from `useEffect` in `ControlApp` itself, which creates `ControlIntl` for
+ * its children rather than rendering inside one, and `createIntl`/
+ * `createIntlCache` — the only formatting API outside a component tree —
+ * pulled in a Node-only `Buffer` reference that crashed every client:only
+ * control route at hydration the last time this file reached for it (see the
+ * comment in `../lib/api-client.ts` recording the same finding). A real
+ * per-locale catalogue for document titles is separate work.
  */
 function titleFor(route: ReturnType<typeof parseControlPath>): string {
-  if (route === undefined) return 'No encontrado — CopaLibre';
+  if (route === undefined) return 'Not found — CopaLibre';
   switch (route.screen) {
     case 'root':
-      return 'Panel de control — CopaLibre';
+      return 'Control panel — CopaLibre';
     case 'callback':
-      return 'Completando acceso — CopaLibre';
+      return 'Completing sign-in — CopaLibre';
     case 'dashboard':
-      return `Panel — ${route.organizationAlias}`;
+      return `Dashboard — ${route.organizationAlias}`;
     case 'tournaments':
-      return `Torneos — ${route.organizationAlias}`;
+      return `Tournaments — ${route.organizationAlias}`;
     case 'liveConsole':
-      return `Consola en vivo — ${route.organizationAlias}`;
+      return `Live console — ${route.organizationAlias}`;
     case 'organization':
-      return `Organización — ${route.organizationAlias}`;
+      return `Organization — ${route.organizationAlias}`;
     case 'analytics':
-      return `Analíticas — ${route.organizationAlias}`;
+      return `Analytics — ${route.organizationAlias}`;
     case 'roles':
-      return `Roles y permisos - ${route.organizationAlias}`;
+      return `Roles and permissions - ${route.organizationAlias}`;
     case 'auditTrail':
-      return `Registro de auditoría — ${route.organizationAlias}`;
+      return `Audit trail — ${route.organizationAlias}`;
     case 'newTournament':
-      return `Crear torneo — ${route.organizationAlias}`;
+      return `Create tournament — ${route.organizationAlias}`;
     case 'clubs':
-      return `Clubes — ${route.organizationAlias}`;
+      return `Clubs — ${route.organizationAlias}`;
     case 'resources':
-      return `Canchas y árbitros — ${route.organizationAlias}`;
+      return `Venues and officials — ${route.organizationAlias}`;
     case 'personProfile':
-      return `Perfil de la persona — ${route.organizationAlias}`;
+      return `Person profile — ${route.organizationAlias}`;
     case 'registrations':
-      return `Inscripciones — ${route.tournamentAlias}`;
+      return `Registrations — ${route.tournamentAlias}`;
     case 'tournamentSettings':
-      return `Configuración del torneo — ${route.tournamentAlias}`;
+      return `Tournament settings — ${route.tournamentAlias}`;
     case 'tournamentRuleset':
-      return `Reglamento del torneo — ${route.tournamentAlias}`;
+      return `Tournament ruleset — ${route.tournamentAlias}`;
     case 'reports':
-      return `Reportes y disputas — ${route.tournamentAlias}`;
+      return `Reports and disputes — ${route.tournamentAlias}`;
     case 'matchesView':
-      return `Partidos — ${route.tournamentAlias}`;
+      return `Matches — ${route.tournamentAlias}`;
     case 'matchConsole':
-      return `Operar partido — ${route.tournamentAlias}`;
+      return `Operate match — ${route.tournamentAlias}`;
     case 'loadMatchData':
-      return `Cargar datos del partido — ${route.tournamentAlias}`;
+      return `Load match data — ${route.tournamentAlias}`;
     case 'seeding':
-      return `Sembrado — ${route.tournamentAlias}`;
+      return `Seeding — ${route.tournamentAlias}`;
     case 'standings':
-      return `Posiciones — ${route.tournamentAlias}`;
+      return `Standings — ${route.tournamentAlias}`;
     case 'zoneGroups':
-      return `Zonas y grupos — ${route.tournamentAlias}`;
+      return `Zones and groups — ${route.tournamentAlias}`;
     case 'promotionPlan':
-      return `Plan de promoción — ${route.tournamentAlias}`;
+      return `Promotion plan — ${route.tournamentAlias}`;
     case 'schedule':
-      return `Horario — ${route.tournamentAlias}`;
+      return `Schedule — ${route.tournamentAlias}`;
     case 'login':
-      return 'Iniciar sesión — CopaLibre';
+      return 'Sign in — CopaLibre';
     case 'forgot-password':
-      return 'Recuperar contraseña — CopaLibre';
+      return 'Recover password — CopaLibre';
     case 'reset-password':
-      return 'Restablecer contraseña — CopaLibre';
+      return 'Reset password — CopaLibre';
     case 'platformAdministration':
-      return 'Administración de plataforma — CopaLibre';
+      return 'Platform administration — CopaLibre';
     case 'preferences':
-      return 'Preferencias personales — CopaLibre';
+      return 'Personal preferences — CopaLibre';
     default:
       return 'Control — CopaLibre';
   }

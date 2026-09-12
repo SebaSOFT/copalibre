@@ -34,8 +34,8 @@ describe('the AuditLogPanel organism', () => {
   it('renders score diff and latency badge on correction items', () => {
     render(withIntl(<AuditLogPanel title="Audit Stream" items={items} />));
 
-    expect(screen.getByText('- score: 0 - 1')).not.toBeNull();
-    expect(screen.getByText('+ score: 1 - 1')).not.toBeNull();
+    expect(screen.getByText('- Score: 0 - 1')).not.toBeNull();
+    expect(screen.getByText('+ Score: 1 - 1')).not.toBeNull();
     expect(screen.getByText('18ms latency')).not.toBeNull();
   });
 
@@ -61,10 +61,10 @@ describe('the AuditLogPanel organism', () => {
       ),
     );
 
-    expect(screen.getByText('- startTime: 18:00')).not.toBeNull();
-    expect(screen.getByText('+ startTime: 19:00')).not.toBeNull();
-    expect(screen.getByText('- venue: Court 1')).not.toBeNull();
-    expect(screen.getByText('+ venue: Court 2')).not.toBeNull();
+    expect(screen.getByText('- Start Time: 18:00')).not.toBeNull();
+    expect(screen.getByText('+ Start Time: 19:00')).not.toBeNull();
+    expect(screen.getByText('- Venue: Court 1')).not.toBeNull();
+    expect(screen.getByText('+ Venue: Court 2')).not.toBeNull();
     expect(screen.queryByText(/Score/)).toBeNull();
   });
 });

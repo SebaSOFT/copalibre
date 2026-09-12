@@ -10,8 +10,42 @@
  * absent from the other is a difference and appears as such, and a record with
  * no previous state is not a correction and is not presented as one.
  */
+import { defineMessages, type IntlShape } from 'react-intl';
 import type { AuditRecordResponse } from './api-client.js';
 import type { AuditLogItem } from '../components/ui/organisms/audit-log-panel.js';
+
+// Common audit-diff field names, translated (openspec 0225 task 8.3, found
+// by /impeccable critique): a correction's changed keys come from whatever
+// entity the record touched, so this covers the frequent ones and
+// `auditFieldLabel` below humanizes anything else from its own raw camelCase
+// key rather than leaving it untranslated AND unreadable. Local rather than
+// in `messages.en.ts` — see `LiveConsoleTemplate.tsx`'s identical note on
+// why a local `defineMessages` block, not the shared catalogue, is the
+// right home for an id with no locale translation yet.
+const fieldMessages = defineMessages({
+  score: { id: 'control.auditField.score', defaultMessage: 'Score' },
+  startsAt: { id: 'control.auditField.startsAt', defaultMessage: 'Start time' },
+  venueId: { id: 'control.auditField.venueId', defaultMessage: 'Venue' },
+  name: { id: 'control.auditField.name', defaultMessage: 'Name' },
+  status: { id: 'control.auditField.status', defaultMessage: 'Status' },
+  winnerEntrantId: { id: 'control.auditField.winnerEntrantId', defaultMessage: 'Winner' },
+  reason: { id: 'control.auditField.reason', defaultMessage: 'Reason' },
+});
+
+/**
+ * A changed field's display label (openspec 0225 task 8.3, found by
+ * `/impeccable critique`): a correction's field is any key the touched
+ * entity declares, so this cannot be an exhaustive catalogue. A recognized
+ * field resolves through the message catalogue; anything else is humanized
+ * from its own camelCase name (`venueCapacity` → "Venue Capacity") rather
+ * than shown as a raw API key, and stays unlocalized since no catalogue
+ * entry exists for a field this function has never seen.
+ */
+export function auditFieldLabel(field: string, intl: IntlShape): string {
+  const known = (fieldMessages as Record<string, (typeof fieldMessages)['score']>)[field];
+  if (known) return intl.formatMessage(known);
+  return field.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (char) => char.toUpperCase());
+}
 
 /** A scalar rendering that keeps a `0` and a `false` visible. */
 function render(value: unknown): string {

@@ -495,7 +495,10 @@ describe('control routes', () => {
       />,
     );
 
-    expect(await screen.findByText('No se pudo cargar el sembrado.')).toBeTruthy();
+    // English, not translated: this id has no Spanish catalogue entry yet
+    // (openspec 0225 task 8.3), the same `auth.*`/`invitation.*` namespace
+    // gap other screens already restate in English.
+    expect(await screen.findByText('Could not load the seeding.')).toBeTruthy();
   });
 
   it('pre-fills from a resolved promotion plan when the stage has no seeds yet', async () => {

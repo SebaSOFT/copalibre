@@ -26,7 +26,17 @@ export function TiebreakerSequence({
   return (
     <div
       className={`cl-tiebreaker-sequence ${className}`.trim()}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--cl-space-2)' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--cl-space-2)',
+        // Without it this grid item's automatic minimum width defaults to
+        // its content's min-content size (openspec 0225 task 8.3) — the
+        // shared implicit grid column `StandingsPanel` places every section
+        // into then locks to that width, wider than the 188px floor allows,
+        // even though the wrapped `<ol>` below could render far narrower.
+        minWidth: 0,
+      }}
     >
       {title && (
         <div
@@ -51,6 +61,7 @@ export function TiebreakerSequence({
           gap: 'var(--cl-space-2)',
           listStyle: 'none',
           padding: 0,
+          minWidth: 0,
         }}
       >
         {rules.map((rule, index) => {
@@ -63,7 +74,9 @@ export function TiebreakerSequence({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
+                flexWrap: 'wrap',
                 gap: 'var(--cl-space-2)',
+                minWidth: 0,
               }}
             >
               <div
@@ -73,7 +86,9 @@ export function TiebreakerSequence({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
+                  flexWrap: 'wrap',
                   gap: 'var(--cl-space-2)',
+                  minWidth: 0,
                   padding: 'var(--cl-space-1) var(--cl-space-3)',
                   background: isTriggered ? 'var(--cl-surface-base)' : 'var(--cl-surface-panel)',
                   // A resting glow (`--cl-glow-cyan`) used to mark this state — an
@@ -92,7 +107,7 @@ export function TiebreakerSequence({
                 }}
               >
                 <span style={{ fontWeight: 'var(--cl-weight-bold)' }}>{rule.step}.</span>
-                <span>{rule.label}</span>
+                <span style={{ overflowWrap: 'anywhere' }}>{rule.label}</span>
                 {isTriggered && (
                   <span
                     style={{

@@ -677,8 +677,22 @@ function components(): string {
     '',
     '.cl-clock-ring { display: flex; align-items: center; gap: var(--cl-space-2); }',
     '',
-    '.cl-data-table { padding: 0; overflow-x: auto; scrollbar-gutter: stable; }',
-    '.cl-data-table__table { width: 100%; border-collapse: collapse; }',
+    // `min-width: 0` (openspec 0225 task 8.3): `StandingsPanel` renders this
+    // as a direct grid item with no explicit column width. A grid/flex
+    // item's automatic minimum size is meant to fall back to 0 once it
+    // establishes its own scroll container (`overflow-x: auto` above
+    // already does), but relying on that alone left the panel itself
+    // rendered wider than its own container at the 188px floor — explicit
+    // beats implicit here.
+    '.cl-data-table { padding: 0; overflow-x: auto; scrollbar-gutter: stable; min-width: 0; }',
+    // `min-width`, not `width` (openspec 0225 task 8.3, same defect class as
+    // task 7.3's public `.cl-table` fix): `width: 100%` forced the table to
+    // always exactly match `.cl-data-table`'s width, so a table whose columns
+    // needed more room than a narrow viewport shrank every cell to fit
+    // instead of growing past the container and letting the ancestor's own
+    // `overflow-x: auto` scroll it — the admin standings panel clipped
+    // columns with no scrollbar to reach them.
+    '.cl-data-table__table { min-width: 100%; width: max-content; border-collapse: collapse; }',
     '.cl-data-table__table th { text-align: left; padding: var(--cl-space-3) var(--cl-space-4); border-bottom: 1px solid var(--cl-border-muted); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
     '.cl-data-table__table td { padding: var(--cl-space-3) var(--cl-space-4); }',
     '.cl-data-table__empty { padding: var(--cl-space-4); color: var(--cl-text-muted); }',
@@ -1335,7 +1349,7 @@ function compositions(): string {
     '',
     '.cl-standings-panel__title { margin: 0; font-size: var(--cl-font-size-md); }',
     '',
-    '.cl-standings-panel__footer { display: grid; gap: var(--cl-space-2); padding: var(--cl-space-3) var(--cl-space-4); }',
+    '.cl-standings-panel__footer { display: grid; min-width: 0; gap: var(--cl-space-2); padding: var(--cl-space-3) var(--cl-space-4); }',
     '',
     // Rank and figures are read down a column, so they align down a column.
     '.cl-standings-panel__rank { font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; text-align: right; }',
