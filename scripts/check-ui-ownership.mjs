@@ -432,8 +432,14 @@ export function isScreenExcluded(filename) {
  * exclusions and diagnostics use paths relative to `webSrcDir`, never basenames.
  *
  * Note on Astro pages:
- * Astro pages under `pages/` are not walked: Storybook currently has no Astro
- * renderer. OpenSpec 0220 addresses the public and broadcast tier extraction seam.
+ * A page is exempt by tier, not by renderer — the page tier carries its own
+ * presentation and is what the composition check (`check-atomic-composition.mjs`)
+ * holds accountable, not this story-coverage rule. `.astro` files at a library
+ * tier are not exempt: this function's own scan only ever sees `pages/` files
+ * because it walks `.tsx` there directly and defers to `checkStoryCoverage` the
+ * moment it enters a `ui/` directory (openspec 0220, extended by 0225 task 7.5),
+ * and `checkStoryCoverage` requires every `.astro` library member a preview-seam
+ * entry in place of a story it cannot have.
  *
  * @param {string} webSrcDir
  * @returns {readonly { component: string, message: string }[]}
@@ -472,8 +478,45 @@ export function checkScreenStoryCoverage(webSrcDir) {
 const EXPORTS_COMPONENT = /export\s+(?:function|const)\s+[A-Z]\w*/;
 
 /**
- * Every owned library component has a story, so the workbench cannot silently
- * fall behind the library it exists to show (OpenSpec 0213).
+ * A filename's preview id differs from its mechanical kebab-case rendering
+ * only where the preview seam named the composition after what it demonstrates
+ * rather than after the file — `BracketView.astro` previews as a populated
+ * bracket stage, not as "a bracket view" in the abstract.
+ */
+const PREVIEW_ID_ALIASES = new Map([['BracketView.astro', 'bracket-stage']]);
+
+/** `MatchCardGrid.astro` -> `match-card-grid`. The preview seam's own naming convention. */
+function astroPreviewId(filename) {
+  if (PREVIEW_ID_ALIASES.has(filename)) return PREVIEW_ID_ALIASES.get(filename);
+  return filename
+    .replace(/\.astro$/, '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase();
+}
+
+/**
+ * The preview seam's own catalogue (`src/preview/AstroPreview.astro`), read as
+ * text rather than executed — this script has no Astro runtime, and the ids
+ * are a plain string literal set the seam itself enforces are exhaustive.
+ *
+ * @param {string} webSrcDir - Absolute path to `apps/web/src`
+ * @returns {ReadonlySet<string>}
+ */
+function readPreviewableIds(webSrcDir) {
+  const previewPath = join(webSrcDir, 'preview/AstroPreview.astro');
+  if (!existsSync(previewPath)) return new Set();
+  const source = readFileSync(previewPath, 'utf8');
+  const match = /PREVIEWABLE\s*=\s*new Set\(\[([\s\S]*?)]\)/.exec(source);
+  if (!match) return new Set();
+  const ids = [...match[1].matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]);
+  return new Set(ids);
+}
+
+/**
+ * Every owned library component has a story or, for a server-rendered
+ * component Storybook cannot render, a preview-seam entry — so the workbench
+ * cannot silently fall behind the library it exists to show (OpenSpec 0213,
+ * extended by 0225 task 7.5 to reach `.astro` members on equal footing).
  *
  * Derived from the directory rather than from a maintained list: `0213` was
  * written when the library had 23 members and `0211` added a 24th before it
@@ -485,6 +528,7 @@ const EXPORTS_COMPONENT = /export\s+(?:function|const)\s+[A-Z]\w*/;
  */
 export function checkStoryCoverage(uiPath, rootDir = uiPath) {
   const missing = [];
+  const previewableIds = readPreviewableIds(rootDir);
 
   function scan(directory) {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -493,7 +537,22 @@ export function checkStoryCoverage(uiPath, rootDir = uiPath) {
         scan(path);
         continue;
       }
-      if (!entry.name.endsWith('.tsx') || isTestOrStoryOrSupport(entry.name)) continue;
+      if (isTestOrStoryOrSupport(entry.name)) continue;
+
+      if (entry.name.endsWith('.astro')) {
+        const previewId = astroPreviewId(entry.name);
+        if (previewableIds.has(previewId)) continue;
+        const component = relative(rootDir, path);
+        missing.push({
+          component,
+          message:
+            `${component} has no preview entry ('${previewId}') in src/preview/AstroPreview.astro. ` +
+            'Every owned library component needs a story or a preview entry.',
+        });
+        continue;
+      }
+
+      if (!entry.name.endsWith('.tsx')) continue;
       if (!EXPORTS_COMPONENT.test(readFileSync(path, 'utf8'))) continue;
 
       const story = entry.name.replace(/\.tsx$/, '.stories.tsx');
