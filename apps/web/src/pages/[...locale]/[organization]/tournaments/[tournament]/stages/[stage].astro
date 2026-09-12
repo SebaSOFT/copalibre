@@ -2,7 +2,7 @@
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import BracketView from '../../../../../../components/ui/organisms/BracketView.astro';
 import ResultLegend from '../../../../../../components/ui/molecules/ResultLegend.astro';
-import StandingsPreview from '../../../../../../components/ui/organisms/StandingsPreview.astro';
+import StandingsTable from '../../../../../../components/ui/organisms/StandingsTable.astro';
 import { MatchCard } from '../../../../../../components/ui/organisms/MatchCard.tsx';
 import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
 import { selectStageLayout, matchReportUrl } from '../../../../../../lib/bracket.ts';
@@ -16,7 +16,11 @@ import {
   mapBracketResponse,
   mapMatchesViewResponse,
 } from '../../../../../../lib/public-api-client.ts';
-import { publicIntl, matchCardLabels } from '../../../../../../lib/i18n/public-intl.ts';
+import {
+  publicIntl,
+  matchCardLabels,
+  resultStateLabels,
+} from '../../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
@@ -117,7 +121,10 @@ const structuredData = {
           stageNumber={stageNumber}
           tournamentAlias={tournament!}
         />
-        <ResultLegend intl={intl} />
+        <ResultLegend
+          heading={intl.formatMessage(messages.legendHeading)}
+          labels={resultStateLabels(intl)}
+        />
       </>
     ) : (
       <div class="cl-matches-view__grid">
@@ -140,7 +147,7 @@ const structuredData = {
   }
   {
     standingsProjection && (
-      <StandingsPreview
+      <StandingsTable
         activeClubId={activeClubId}
         canonicalPath={stagePath}
         clubs={model.clubs}

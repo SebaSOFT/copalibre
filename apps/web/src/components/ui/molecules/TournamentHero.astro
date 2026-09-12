@@ -1,15 +1,16 @@
 ---
-import type { IntlShape } from 'react-intl';
 import { displayName, type OverviewModel } from '../../../lib/overview.ts';
-import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { tournamentEmblemUrl } from '../../../lib/public-api-client.ts';
+import type { TournamentHeroLabels } from '../../../lib/i18n/public-intl.ts';
+import { Badge } from '../atoms/Badge.tsx';
+import { Card } from '../atoms/Card.tsx';
 import EmblemImage from '../atoms/EmblemImage.astro';
 
 interface Props {
   readonly model: OverviewModel;
-  readonly intl: IntlShape;
+  readonly labels: TournamentHeroLabels;
 }
-const { model, intl } = Astro.props;
+const { model, labels } = Astro.props;
 const tournamentName = displayName(model);
 const emblemSrc =
   model.emblemObjectId && model.organizationAlias && model.tournamentAlias
@@ -17,13 +18,13 @@ const emblemSrc =
     : undefined;
 ---
 
-<section class="cl-card cl-card--live cl-chamfer">
+<Card as="section" className="cl-card--live">
   <div class="cl-tournament-hero__header">
     {
       emblemSrc && (
         <EmblemImage
-          alt={intl.formatMessage(messages.heroTournamentEmblemAlt, { name: tournamentName })}
-          placeholderAlt={intl.formatMessage(messages.heroTournamentEmblemPlaceholderAlt)}
+          alt={labels.emblemAlt}
+          placeholderAlt={labels.emblemPlaceholderAlt}
           size={56}
           src={emblemSrc}
         />
@@ -35,14 +36,8 @@ const emblemSrc =
     </div>
   </div>
   {/* The count is the label: "live" as a colour alone is not a state. */}
-  <p class="cl-badge">
-    {
-      model.liveCount > 0
-        ? intl.formatMessage(messages.heroLiveCount, { count: model.liveCount })
-        : intl.formatMessage(messages.heroNoLiveMatches)
-    }
-  </p>
-</section>
+  <Badge as="p">{labels.liveCountText}</Badge>
+</Card>
 
 <style>
   .cl-tournament-hero__header {

@@ -1,13 +1,11 @@
 ---
-import type { IntlShape } from 'react-intl';
 import type { OverviewModel } from '../../../lib/overview.ts';
-import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 interface Props {
   readonly model: OverviewModel;
-  readonly intl: IntlShape;
+  readonly heading: string;
 }
-const { model, intl } = Astro.props;
+const { model, heading } = Astro.props;
 
 function formatRuleLabel(rawKey: string): string {
   const clean = rawKey.replace(/^rules?\./i, '');
@@ -49,7 +47,7 @@ function formatRuleValue(value: string): string {
 ---
 
 <section aria-labelledby="ruleset-heading" class="cl-ruleset-section">
-  <h2 id="ruleset-heading">{intl.formatMessage(messages.rulesetHeading)}</h2>
+  <h2 id="ruleset-heading">{heading}</h2>
   <dl class="cl-ruleset-grid">
     {
       model.ruleset.map((entry) => (
@@ -65,7 +63,10 @@ function formatRuleValue(value: string): string {
 <style>
   .cl-ruleset-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    /* `min(200px, 100%)`, not a bare `200px` floor (openspec 0225 task 7.4):
+       a bare floor wider than the 188px zoom viewport forces the grid itself
+       past the container, since no track may shrink below its minimum. */
+    grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
     gap: var(--cl-space-3);
     margin: var(--cl-space-3) 0 0 0;
   }

@@ -6,26 +6,41 @@ import { controlApiErrorFromResponse } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
 import { Input } from './ui/atoms/input.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 import { useToast } from './ToastProvider.js';
-import { AuthScreenTemplate } from './ui/templates/auth-screen-template.js';
+import { AuthScreenLayout } from './ui/layouts/auth-screen-layout.js';
 
+// openspec 0225 task 2.6: every defaultMessage here was Spanish, and
+// `auth.*` has no locale catalogue anywhere else in the repo — so every
+// locale without its own override (all eight, currently) fell back to
+// Spanish rather than the source language. Restated in English; a real
+// per-locale catalogue for this namespace is separate work.
 const messages = defineMessages({
-  loginTitle: { id: 'auth.loginTitle', defaultMessage: 'Ingresá para operar' },
-  loginContext: { id: 'auth.loginContext', defaultMessage: 'Consola de organización' },
+  loginTitle: { id: 'auth.loginTitle', defaultMessage: 'Sign in to operate' },
+  loginContext: { id: 'auth.loginContext', defaultMessage: 'Organization console' },
   emailLabel: { id: 'auth.emailLabel', defaultMessage: 'Email' },
-  passwordLabel: { id: 'auth.passwordLabel', defaultMessage: 'Contraseña' },
-  loginSubmit: { id: 'auth.loginSubmit', defaultMessage: 'Ingresar' },
-  oidcButton: { id: 'auth.oidcButton', defaultMessage: 'Continuar con proveedor de identidad' },
+  passwordLabel: { id: 'auth.passwordLabel', defaultMessage: 'Password' },
+  loginSubmit: { id: 'auth.loginSubmit', defaultMessage: 'Sign in' },
+  oidcButton: { id: 'auth.oidcButton', defaultMessage: 'Continue with identity provider' },
   forgotPasswordLink: {
     id: 'auth.forgotPasswordLink',
-    defaultMessage: '¿Olvidaste tu contraseña?',
+    defaultMessage: 'Forgot your password?',
   },
-  forgotTitle: { id: 'auth.forgotTitle', defaultMessage: 'Recuperar contraseña' },
-  forgotSubmit: { id: 'auth.forgotSubmit', defaultMessage: 'Enviar enlace' },
-  forgotBack: { id: 'auth.forgotBack', defaultMessage: 'Volver al ingreso' },
-  resetTitle: { id: 'auth.resetTitle', defaultMessage: 'Crear nueva contraseña' },
-  resetSubmit: { id: 'auth.resetSubmit', defaultMessage: 'Restablecer' },
+  forgotTitle: { id: 'auth.forgotTitle', defaultMessage: 'Recover password' },
+  forgotSubmit: { id: 'auth.forgotSubmit', defaultMessage: 'Send link' },
+  forgotBack: { id: 'auth.forgotBack', defaultMessage: 'Back to sign-in' },
+  resetTitle: { id: 'auth.resetTitle', defaultMessage: 'Create new password' },
+  resetSubmit: { id: 'auth.resetSubmit', defaultMessage: 'Reset password' },
+  invalidResetLink: { id: 'auth.invalidResetLink', defaultMessage: 'Invalid recovery link.' },
+  tagline: { id: 'auth.tagline', defaultMessage: 'Tournament operations' },
+  passwordUpdated: {
+    id: 'auth.passwordUpdated',
+    defaultMessage: 'Password updated. You can now sign in.',
+  },
+  forgotLinkSent: {
+    id: 'auth.forgotLinkSent',
+    defaultMessage: 'If the email exists, a link has been sent.',
+  },
 });
 
 export function LoginRoute(): React.JSX.Element {
@@ -64,7 +79,7 @@ export function LoginRoute(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenTemplate tagline="Control de torneos">
+    <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
       <p className="context">
         <FormattedMessage {...messages.loginContext} />
       </p>
@@ -75,7 +90,7 @@ export function LoginRoute(): React.JSX.Element {
         onSubmit={handleLogin}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
       >
-        <FormField id="login-email" label={intl.formatMessage(messages.emailLabel)}>
+        <Field id="login-email" label={intl.formatMessage(messages.emailLabel)}>
           <Input
             id="login-email"
             onChange={(e) => setEmail(e.target.value)}
@@ -83,8 +98,8 @@ export function LoginRoute(): React.JSX.Element {
             type="email"
             value={email}
           />
-        </FormField>
-        <FormField id="login-password" label={intl.formatMessage(messages.passwordLabel)}>
+        </Field>
+        <Field id="login-password" label={intl.formatMessage(messages.passwordLabel)}>
           <Input
             id="login-password"
             onChange={(e) => setPassword(e.target.value)}
@@ -92,7 +107,7 @@ export function LoginRoute(): React.JSX.Element {
             type="password"
             value={password}
           />
-        </FormField>
+        </Field>
         <Button disabled={loading} type="submit">
           <FormattedMessage {...messages.loginSubmit} />
         </Button>
@@ -117,7 +132,7 @@ export function LoginRoute(): React.JSX.Element {
       <Button onClick={() => beginOidcLogin()} type="button" variant="secondary">
         <FormattedMessage {...messages.oidcButton} />
       </Button>
-    </AuthScreenTemplate>
+    </AuthScreenLayout>
   );
 }
 
@@ -138,7 +153,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
         body: JSON.stringify({ email }),
       });
       if (!res.ok) throw await controlApiErrorFromResponse(res);
-      push({ severity: 'success', message: 'Si el correo existe, se ha enviado un enlace.' });
+      push({ severity: 'success', message: intl.formatMessage(messages.forgotLinkSent) });
     } catch (error) {
       pushError(error);
     } finally {
@@ -147,7 +162,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenTemplate tagline="Control de torneos">
+    <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
       <h1>
         <FormattedMessage {...messages.forgotTitle} />
       </h1>
@@ -155,7 +170,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
       >
-        <FormField id="forgot-email" label={intl.formatMessage(messages.emailLabel)}>
+        <Field id="forgot-email" label={intl.formatMessage(messages.emailLabel)}>
           <Input
             id="forgot-email"
             onChange={(e) => setEmail(e.target.value)}
@@ -163,7 +178,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
             type="email"
             value={email}
           />
-        </FormField>
+        </Field>
         <Button disabled={loading} type="submit">
           <FormattedMessage {...messages.forgotSubmit} />
         </Button>
@@ -180,7 +195,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
           <FormattedMessage {...messages.forgotBack} />
         </a>
       </div>
-    </AuthScreenTemplate>
+    </AuthScreenLayout>
   );
 }
 
@@ -209,7 +224,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
       if (!res.ok) throw await controlApiErrorFromResponse(res);
 
       setSuccess(true);
-      push({ severity: 'success', message: 'Contraseña actualizada. Ya puedes ingresar.' });
+      push({ severity: 'success', message: intl.formatMessage(messages.passwordUpdated) });
     } catch (error) {
       pushError(error);
     } finally {
@@ -219,8 +234,8 @@ export function ResetPasswordRoute(): React.JSX.Element {
 
   if (!token) {
     return (
-      <AuthScreenTemplate tagline="Control de torneos">
-        <p>Enlace de recuperación inválido.</p>
+      <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
+        <p>{intl.formatMessage(messages.invalidResetLink)}</p>
         <a
           className="cl-link cl-focusable"
           href="/control/login"
@@ -231,12 +246,12 @@ export function ResetPasswordRoute(): React.JSX.Element {
         >
           <FormattedMessage {...messages.forgotBack} />
         </a>
-      </AuthScreenTemplate>
+      </AuthScreenLayout>
     );
   }
 
   return (
-    <AuthScreenTemplate tagline="Control de torneos">
+    <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
       <h1>
         <FormattedMessage {...messages.resetTitle} />
       </h1>
@@ -244,7 +259,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
       >
-        <FormField
+        <Field
           id="reset-password"
           label={`${intl.formatMessage(messages.passwordLabel)} (min 8 char)`}
         >
@@ -257,7 +272,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
             type="password"
             value={password}
           />
-        </FormField>
+        </Field>
         {!success && (
           <Button disabled={loading} type="submit">
             <FormattedMessage {...messages.resetSubmit} />
@@ -278,6 +293,6 @@ export function ResetPasswordRoute(): React.JSX.Element {
           </a>
         </div>
       )}
-    </AuthScreenTemplate>
+    </AuthScreenLayout>
   );
 }

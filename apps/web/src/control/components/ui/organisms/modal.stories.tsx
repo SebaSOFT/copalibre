@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
 import { Modal } from './modal.js';
 import { Button } from '../atoms/button.js';
-import { FormField } from '../molecules/form-field.js';
+import { Field } from '../molecules/field.js';
 import { Input } from '../atoms/input.js';
 import { storyText } from '../story-text.js';
 
@@ -66,9 +66,9 @@ export const WithDescriptionAndFooter: Story = {
         open={open}
         title={intl.formatMessage(storyText.settingsTitle)}
       >
-        <FormField id="modal-field" label={intl.formatMessage(storyText.rolesTitle)}>
+        <Field id="modal-field" label={intl.formatMessage(storyText.rolesTitle)}>
           <Input id="modal-field" />
-        </FormField>
+        </Field>
       </Modal>
     );
   },

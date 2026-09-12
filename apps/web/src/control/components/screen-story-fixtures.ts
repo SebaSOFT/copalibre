@@ -4,7 +4,7 @@ import type {
   MatchConsoleResponse,
   RegistrationResponse,
 } from '../lib/api-client.js';
-import type { ReviewRegistrationRow } from './RegistrationReviewPage.js';
+import type { ReviewRegistrationRow } from './screens/RegistrationReviewTemplate.js';
 import { createIntl } from 'react-intl';
 import { isSupportedLanguage } from '@copalibre/domain';
 import { CATALOGS } from '../i18n/ControlIntl.js';

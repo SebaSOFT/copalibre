@@ -64,7 +64,7 @@ export const messages = defineMessages({
   // RulesetBriefing.astro
   rulesetHeading: { id: 'publicWeb.ruleset.heading', defaultMessage: 'Rules' },
 
-  // StandingsPreview.astro
+  // StandingsTable.astro
   standingsHeading: { id: 'publicWeb.standings.heading', defaultMessage: 'Standings' },
   standingsTableLayouts: {
     id: 'publicWeb.standings.tableLayouts',
@@ -432,5 +432,54 @@ export const messages = defineMessages({
   tvStatsGrandFinalRecord: {
     id: 'publicWeb.tvStats.grandFinalRecord',
     defaultMessage: 'Grand final winner ({winner} – {loser})',
+  },
+
+  // TvDashboard.tsx's own chrome (openspec 0225 task 2.6) — separate from
+  // tv-statistics.ts's derived-stat labels above. No intl was threaded into
+  // this component at all before; these cross into its client:load island
+  // as plain string props, the same as every `tvStats*` label already does.
+  tvDashboardNoMatchesScheduled: {
+    id: 'publicWeb.tvDashboard.noMatchesScheduled',
+    defaultMessage: 'No matches currently scheduled',
+  },
+  tvDashboardStandingsUnavailable: {
+    id: 'publicWeb.tvDashboard.standingsUnavailable',
+    defaultMessage: 'Standings table unavailable',
+  },
+  tvDashboardClubColumn: {
+    id: 'publicWeb.tvDashboard.clubColumn',
+    defaultMessage: 'Club',
+  },
+  tvDashboardPlayedColumn: {
+    id: 'publicWeb.tvDashboard.playedColumn',
+    defaultMessage: 'MP',
+  },
+  tvDashboardNoTopPerformers: {
+    id: 'publicWeb.tvDashboard.noTopPerformers',
+    defaultMessage: 'No standout performers recorded',
+  },
+  tvDashboardFocalPanelLabel: {
+    id: 'publicWeb.tvDashboard.focalPanelLabel',
+    defaultMessage: 'Main broadcast panel',
+  },
+  tvDashboardStatsAndTablesLabel: {
+    id: 'publicWeb.tvDashboard.statsAndTablesLabel',
+    defaultMessage: 'Tournament statistics and tables',
+  },
+  tvDashboardSidebarSectionsLabel: {
+    id: 'publicWeb.tvDashboard.sidebarSectionsLabel',
+    defaultMessage: 'Sidebar sections',
+  },
+  tvDashboardStandingsTab: {
+    id: 'publicWeb.tvDashboard.standingsTab',
+    defaultMessage: 'Standings',
+  },
+  tvDashboardPerformersTab: {
+    id: 'publicWeb.tvDashboard.performersTab',
+    defaultMessage: 'Top performers',
+  },
+  tvDashboardStatisticsTab: {
+    id: 'publicWeb.tvDashboard.statisticsTab',
+    defaultMessage: 'Statistics',
   },
 });

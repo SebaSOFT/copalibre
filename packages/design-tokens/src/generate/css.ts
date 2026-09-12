@@ -596,12 +596,25 @@ function components(): string {
     // option. `max-height` is the space Radix measured to the viewport edge.
     '.cl-select__content { padding: var(--cl-space-1); min-width: var(--radix-select-trigger-width); max-height: var(--radix-select-content-available-height); overflow-y: auto; }',
     '.cl-select__item { padding: var(--cl-space-2) var(--cl-space-3); cursor: pointer; }',
+    // The visible Radix trigger and a fully transparent native `<select>`
+    // stacked on top of it (openspec 0225 task 5.7): the native element is
+    // the one a form, autofill, or assistive technology actually addresses.
+    '.cl-select-wrapper { position: relative; display: inline-block; width: 100%; }',
+    '.cl-select-native { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }',
+    '.cl-select-native.cl-select--disabled { cursor: not-allowed; }',
     '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); }',
     '',
     '.cl-form-field { display: grid; gap: var(--cl-space-1); min-width: 0; }',
     '.cl-form-field__error { margin: 0; color: var(--cl-state-destructive); font-size: var(--cl-font-size-xs); }',
     '.cl-form-field__help { margin: 0; color: var(--cl-text-muted); font-size: var(--cl-font-size-xs); }',
+    '.cl-form-field__required { color: var(--cl-state-destructive); }',
     '.cl-decision-hint { margin: 0; color: var(--cl-text-muted); font-size: var(--cl-font-size-xs); }',
+    '',
+    // `Form` and `FieldSet` (openspec 0225 task 2.2): the owners `<form>` and
+    // `<fieldset>`/`<legend>` compose instead of a screen rendering them raw.
+    '.cl-form { display: grid; gap: var(--cl-space-4); }',
+    '.cl-fieldset { display: grid; gap: var(--cl-space-3); border: 1px solid var(--cl-border-muted); border-radius: var(--cl-radius-md); padding: var(--cl-space-4); margin: 0; min-width: 0; }',
+    '.cl-fieldset__legend { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); color: var(--cl-text-secondary); padding: 0 var(--cl-space-2); }',
     '',
     '.cl-data-entity-card__header { display: flex; align-items: center; justify-content: space-between; }',
     '.cl-data-entity-card__metadata { display: grid; gap: var(--cl-space-2); }',
@@ -664,8 +677,22 @@ function components(): string {
     '',
     '.cl-clock-ring { display: flex; align-items: center; gap: var(--cl-space-2); }',
     '',
-    '.cl-data-table { padding: 0; overflow-x: auto; scrollbar-gutter: stable; }',
-    '.cl-data-table__table { width: 100%; border-collapse: collapse; }',
+    // `min-width: 0` (openspec 0225 task 8.3): `StandingsPanel` renders this
+    // as a direct grid item with no explicit column width. A grid/flex
+    // item's automatic minimum size is meant to fall back to 0 once it
+    // establishes its own scroll container (`overflow-x: auto` above
+    // already does), but relying on that alone left the panel itself
+    // rendered wider than its own container at the 188px floor — explicit
+    // beats implicit here.
+    '.cl-data-table { padding: 0; overflow-x: auto; scrollbar-gutter: stable; min-width: 0; }',
+    // `min-width`, not `width` (openspec 0225 task 8.3, same defect class as
+    // task 7.3's public `.cl-table` fix): `width: 100%` forced the table to
+    // always exactly match `.cl-data-table`'s width, so a table whose columns
+    // needed more room than a narrow viewport shrank every cell to fit
+    // instead of growing past the container and letting the ancestor's own
+    // `overflow-x: auto` scroll it — the admin standings panel clipped
+    // columns with no scrollbar to reach them.
+    '.cl-data-table__table { min-width: 100%; width: max-content; border-collapse: collapse; }',
     '.cl-data-table__table th { text-align: left; padding: var(--cl-space-3) var(--cl-space-4); border-bottom: 1px solid var(--cl-border-muted); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
     '.cl-data-table__table td { padding: var(--cl-space-3) var(--cl-space-4); }',
     '.cl-data-table__empty { padding: var(--cl-space-4); color: var(--cl-text-muted); }',
@@ -819,6 +846,13 @@ function components(): string {
     '  }',
     '}',
     '',
+    // Promoted from `MatchHero.astro`'s own scoped styles (openspec 0225
+    // task 8.1): a state variant belongs to the shared badge, not to one
+    // organism's private copy of it, so every future `<Badge>` — not only
+    // the match hero's — can reach a live or final treatment.
+    '.cl-badge--live { background: color-mix(in srgb, var(--cl-primary) 15%, transparent); color: var(--cl-primary); border: 1px solid color-mix(in srgb, var(--cl-primary) 40%, transparent); }',
+    '.cl-badge--final { background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent); color: var(--cl-state-positive); }',
+    '',
     '.cl-btn {',
     // A link wearing the button treatment is a button, underline included —
     // until now every call site removed it inline, and the one that forgot
@@ -875,7 +909,14 @@ function components(): string {
      * width as scores change is a column nobody can scan down.
      */
     '.cl-table {',
-    '  width: 100%;',
+    // `min-width`, not `width` (openspec 0225 task 7.3): `width: 100%` forced
+    // the table to always exactly match its container, so a table whose
+    // columns need more room than a narrow viewport shrank every cell to fit
+    // instead of growing past the container and letting `.cl-table-scroll`'s
+    // `overflow-x: auto` scroll it — the standings panel clipped columns
+    // right off the visible edge with no scrollbar to reach them.
+    '  min-width: 100%;',
+    '  width: max-content;',
     '  border-collapse: collapse;',
     '  font-variant-numeric: tabular-nums;',
     '}',
@@ -978,6 +1019,21 @@ function components(): string {
     // in it brings no paragraph margin of its own.
     '.cl-card__content > .cl-inline-alert { margin: 0; }',
     '',
+    // The accent rail (openspec 0225 task 5.5, `.impeccable/config.json`'s
+    // `side-tab` suppression): a left border in the tone it means, paired
+    // with a written label elsewhere in the component so the state is never
+    // colour alone — DESIGN.md's Cards and Inline Alerts guidance,
+    // independently reinvented inline in `audit-log-panel.tsx`,
+    // `callout-banner.tsx` and the former `LiveMatchScorecard.tsx` (now
+    // `MatchCard.tsx`'s comparator trace) before this class existed.
+    // `--thin` exists because the comparator trace's rail was declared at
+    // 3px, not the 4px (`--cl-space-1`) the other two use — narrower by a
+    // deliberate original choice this move does not revisit.
+    '.cl-accent-rail { border-left: var(--cl-space-1) solid var(--cl-state-live); }',
+    '.cl-accent-rail--correction { border-left-color: var(--cl-color-amber-400); }',
+    '.cl-accent-rail--neutral { border-left-color: var(--cl-border-muted); }',
+    '.cl-accent-rail--thin { border-left-width: 3px; }',
+    '',
     "/* An unauthenticated screen's form: one column, the fields evenly spaced. */",
     '.cl-auth-form { display: grid; gap: var(--cl-space-4); }',
     '',
@@ -1052,6 +1108,14 @@ function components(): string {
     `    0 0 0 ${FOCUS_RING.outerWidth} var(--cl-focus-ring);`,
     '}',
     '',
+    // The atom's own base styling (openspec 0225 task 5.7): `display: block`
+    // so a caller's flex/grid item sizes it normally rather than by its
+    // inline default, and `min-width: 0` so the resize-observer truncation
+    // this atom does internally can actually shrink below its content's own
+    // width — an atom owns all of its own styling, so this is a class, not
+    // the inline style object task 5.1's primitives exist to replace.
+    '.cl-entrant-name { display: block; min-width: 0; }',
+    '',
     "/* The matches-view card (openspec 0172) — shared by MatchCard.tsx on both public-web and control-web, so it lives here rather than in either surface's own page-scoped styles. */",
     '.cl-match-card { display: grid; gap: var(--cl-space-3); min-width: 0; }',
     // The state badge and the clock sit on one line until they cannot: at the
@@ -1059,7 +1123,11 @@ function components(): string {
     // for `LIVE` — plus a running clock exceeds the card, so the pair wraps
     // rather than widening the card past the viewport.
     '.cl-match-card__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cl-space-3); min-width: 0; }',
-    '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); color: var(--cl-state-live); font-variant-numeric: tabular-nums; }',
+    // `overflow-wrap: anywhere` (openspec 0225 task 7.4): an ISO datetime has
+    // no space to wrap at, so at the 188px reference width the clock alone —
+    // not the header row it sits in, which already wraps — held its full
+    // unbroken width and pushed the card past the viewport.
+    '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); color: var(--cl-state-live); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }',
     // A grid of match cards, promoted out of `MatchCardGrid.astro`'s scoped
     // style so the React surfaces can compose it too. While it lived there,
     // `LiveMatchHero` had no grid to reach and stacked one full-width card per
@@ -1073,7 +1141,13 @@ function components(): string {
     '.cl-match-card__sides { display: grid; gap: var(--cl-space-2); margin: 0; padding: 0; list-style: none; }',
     '.cl-match-card__side { display: flex; align-items: center; gap: var(--cl-space-2); min-width: 0; }',
     '.cl-match-card__side .cl-badge--rank { font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; flex: 0 0 auto; }',
-    ".cl-match-card__side > span[data-testid='entrant-name'] { flex: 1 1 auto; font-family: var(--cl-font-display); font-weight: var(--cl-weight-medium); font-size: var(--cl-font-size-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
+    // A descendant selector, not a direct-child one (openspec 0225 task 7.4):
+    // `EntrantName` hydrates via `client:load`, and Astro wraps a hydrated
+    // island in an intervening `<astro-island>` element. `display: contents`
+    // keeps that wrapper out of the flex layout, but a DOM combinator still
+    // sees it — `>` never matched past it, so the name rendered at its full,
+    // unconstrained width and pushed the 188px reference width sideways.
+    ".cl-match-card__side span[data-testid='entrant-name'] { flex: 1 1 auto; font-family: var(--cl-font-display); font-weight: var(--cl-weight-medium); font-size: var(--cl-font-size-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
     '.cl-match-card__side .cl-stat-tile__value { flex: 0 0 auto; font-size: var(--cl-font-size-2xl); background: none; padding: 0; }',
     '.cl-match-card__scope, .cl-match-card__venue, .cl-match-card__event { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
     '.cl-match-card__event { color: var(--cl-text-secondary); }',
@@ -1094,6 +1168,74 @@ function components(): string {
     // live page — two grids for one kind of card, disagreeing about what a card
     // is. A match card has a size; a row with one of them is a row with a gap.
     '.cl-matches-view__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--cl-space-4); }',
+    '',
+    // The grand-final spotlight (openspec 0225 task 4.3/5.2) — a MatchCard
+    // variant, not MatchCardData's shape: a seed and a per-participant winner
+    // flag have no place there. No `box-shadow` here: an `isLive`-only resting
+    // glow (`--cl-glow-cyan`) used to mark the live state at the card level
+    // (task 5.4 removed it, DESIGN.md's anti-glow rule) — redundant ornament
+    // even before the ban, since the status pill's own background, colour and
+    // "LIVE"/"FINAL" text already carry that fact on their own.
+    '.cl-championship-card { background: var(--cl-surface-panel); border: 2px solid var(--cl-state-live); padding: var(--cl-space-4); position: relative; overflow: hidden; }',
+    '.cl-championship-card__header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--cl-border-muted); padding-bottom: var(--cl-space-2); margin-bottom: var(--cl-space-3); }',
+    '.cl-championship-card__title-group { display: flex; align-items: center; gap: var(--cl-space-2); }',
+    '.cl-championship-card__title { font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); font-weight: var(--cl-weight-bold); text-transform: uppercase; letter-spacing: var(--cl-tracking-wider); color: var(--cl-state-live); }',
+    '.cl-championship-card__meta { display: flex; align-items: center; gap: var(--cl-space-2); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
+    '.cl-championship-card__time { color: var(--cl-text-muted); }',
+    '.cl-championship-card__status { padding: 1px 6px; border-radius: var(--cl-radius-sm); font-weight: var(--cl-weight-bold); background: var(--cl-surface-base); color: var(--cl-text-primary); border: 1px solid var(--cl-border-muted); }',
+    '.cl-championship-card__status--live { background: var(--cl-state-live); color: var(--cl-surface-base); border: none; }',
+    '.cl-championship-card__participants { display: flex; flex-direction: column; gap: var(--cl-space-2); }',
+    '.cl-championship-card__participant { display: flex; align-items: center; justify-content: space-between; padding: var(--cl-space-2) var(--cl-space-3); border-radius: 0 var(--cl-radius-sm) var(--cl-radius-sm) 0; background: var(--cl-surface-base); border-left: 3px solid transparent; }',
+    '.cl-championship-card__participant--winner { background: var(--cl-surface-chrome); border-left: 3px solid var(--cl-state-live); }',
+    '.cl-championship-card__participant-info { display: flex; align-items: center; gap: var(--cl-space-2); }',
+    '.cl-championship-card__seed { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); color: var(--cl-text-muted); }',
+    '.cl-championship-card__name { font-family: var(--cl-font-display); font-size: var(--cl-font-size-base); text-transform: uppercase; font-weight: var(--cl-weight-semibold); color: var(--cl-text-secondary); }',
+    '.cl-championship-card__name--winner { font-weight: var(--cl-weight-bold); color: var(--cl-text-primary); }',
+    '.cl-championship-card__score { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); font-weight: var(--cl-weight-bold); font-variant-numeric: tabular-nums; color: var(--cl-text-primary); }',
+    '.cl-championship-card__score--winner { color: var(--cl-state-live); }',
+    '',
+    // The tactical live scorebug (openspec 0225 task 4.3/5.2) — the fourth
+    // match renderer, merged the same way. `.cl-scorecard__header`,
+    // `__matchup`, `__score-box`, `__events` and `__comparator-trace` already
+    // existed as classNames on the component with no rule here; every
+    // property they need is added now rather than left to inline styles.
+    // A team's own colour (`homeTeam.color`/`awayTeam.color`) stays inline:
+    // it is caller-supplied data, not a design-time choice this stylesheet
+    // can fix a value for.
+    '.cl-scorecard { background: var(--cl-surface-panel); border: 1px solid var(--cl-border-muted); padding: var(--cl-space-4); position: relative; overflow: hidden; }',
+    '.cl-scorecard__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cl-space-2); border-bottom: 1px solid var(--cl-border-muted); padding-bottom: var(--cl-space-2); margin-bottom: var(--cl-space-4); font-family: var(--cl-font-display); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wider); font-weight: var(--cl-weight-bold); }',
+    '.cl-scorecard__location-group, .cl-scorecard__clock-group { display: flex; align-items: center; gap: var(--cl-space-2); }',
+    '.cl-scorecard__clock-group { font-family: var(--cl-font-mono); }',
+    '.cl-scorecard__dot { color: var(--cl-state-live); font-size: 0.9em; }',
+    '.cl-scorecard__location { color: var(--cl-text-primary); }',
+    '.cl-scorecard__separator { color: var(--cl-text-muted); }',
+    '.cl-scorecard__operations { color: var(--cl-text-secondary); }',
+    '.cl-scorecard__clock { color: var(--cl-state-live); font-weight: var(--cl-weight-bold); }',
+    '.cl-scorecard__matchup { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--cl-space-4); margin-bottom: var(--cl-space-4); }',
+    // `min-width: 0` (openspec 0225 task 7.3): a grid item's automatic
+    // minimum is its content size by default, which at a narrow width kept
+    // this column from shrinking below one team name's longest word —
+    // widening the whole matchup grid past the viewport instead, with the
+    // ambient page `overflow-x: hidden` clipping the excess rather than
+    // reflowing it. `overflow-wrap` on the name lets that word itself break.
+    '.cl-scorecard__team { display: flex; align-items: center; gap: var(--cl-space-2); min-width: 0; }',
+    '.cl-scorecard__team--home { justify-content: flex-end; text-align: right; }',
+    '.cl-scorecard__team--away { justify-content: flex-start; text-align: left; }',
+    '.cl-scorecard__team-name { font-family: var(--cl-font-display); font-size: var(--cl-font-size-lg); font-weight: var(--cl-weight-bold); text-transform: uppercase; color: var(--cl-text-primary); overflow-wrap: anywhere; }',
+    '.cl-scorecard__team-swatch { font-size: var(--cl-font-size-sm); }',
+    // `white-space: nowrap` (openspec 0225 task 7.3): without it, a narrow
+    // `.cl-scorecard__matchup` grid can compress this `auto` track down to
+    // its per-word minimum, wrapping "[ 3 : 1 ]" across three lines instead
+    // of shrinking the team-name columns beside it, which already wrap.
+    '.cl-scorecard__score-box { background: var(--cl-surface-base); border: 1px solid var(--cl-border-muted); padding: var(--cl-space-2) var(--cl-space-4); border-radius: var(--cl-radius-sm); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xl); font-weight: var(--cl-weight-bold); color: var(--cl-text-primary); font-variant-numeric: tabular-nums; letter-spacing: var(--cl-tracking-wide); text-align: center; min-width: 90px; white-space: nowrap; }',
+    '.cl-scorecard__events { display: flex; flex-wrap: wrap; gap: var(--cl-space-2); padding: var(--cl-space-2) 0; border-top: 1px solid var(--cl-border-muted); }',
+    '.cl-scorecard__event { display: inline-flex; align-items: center; gap: var(--cl-space-2); background: var(--cl-surface-chrome); padding: var(--cl-space-1) var(--cl-space-2); border-radius: var(--cl-radius-sm); font-size: var(--cl-font-size-xs); font-family: var(--cl-font-mono); }',
+    '.cl-scorecard__event-minute { color: var(--cl-state-live); font-weight: var(--cl-weight-bold); }',
+    '.cl-scorecard__event-player { color: var(--cl-text-primary); }',
+    '.cl-scorecard__var-tag { background: var(--cl-surface-base); color: var(--cl-color-amber-400); border: 1px solid var(--cl-color-amber-400); padding: 0 4px; border-radius: 2px; font-size: var(--cl-font-size-xs); font-weight: var(--cl-weight-bold); }',
+    '.cl-scorecard__comparator-trace { background: var(--cl-surface-chrome); padding: var(--cl-space-2) var(--cl-space-3); margin-top: var(--cl-space-2); display: flex; align-items: center; gap: var(--cl-space-2); font-size: var(--cl-font-size-xs); font-family: var(--cl-font-mono); color: var(--cl-text-secondary); }',
+    '.cl-scorecard__comparator-step { color: var(--cl-state-live); font-weight: var(--cl-weight-bold); }',
+    '.cl-scorecard__comparator-text { color: var(--cl-text-primary); }',
   ].join('\n');
 }
 
@@ -1207,7 +1349,7 @@ function compositions(): string {
     '',
     '.cl-standings-panel__title { margin: 0; font-size: var(--cl-font-size-md); }',
     '',
-    '.cl-standings-panel__footer { display: grid; gap: var(--cl-space-2); padding: var(--cl-space-3) var(--cl-space-4); }',
+    '.cl-standings-panel__footer { display: grid; min-width: 0; gap: var(--cl-space-2); padding: var(--cl-space-3) var(--cl-space-4); }',
     '',
     // Rank and figures are read down a column, so they align down a column.
     '.cl-standings-panel__rank { font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; text-align: right; }',
@@ -1274,6 +1416,30 @@ function compositions(): string {
     '.cl-card--inverse { background: var(--cl-surface-chrome); }',
     ':where(.cl-band, .cl-band--base) .cl-card--inverse { background: var(--cl-surface-chrome); }',
     '.cl-card--inverse .cl-card__title { color: var(--cl-text-primary); }',
+    '',
+    // The terminal/file code block (openspec 0225 task 5.7): every property
+    // below was inline on the component before this task, an atom's own
+    // styling declared once per instance rather than once here.
+    '.cl-terminal-block { background: var(--cl-surface-base); border: 1px solid var(--cl-border-muted); font-family: var(--cl-font-mono); }',
+    '.cl-terminal-block__header { display: flex; align-items: center; justify-content: space-between; padding: var(--cl-space-2) var(--cl-space-3); border-bottom: 1px solid var(--cl-border-muted); background: var(--cl-surface-chrome); gap: var(--cl-space-2); }',
+    '.cl-terminal-block__dots { display: flex; align-items: center; gap: 6px; }',
+    '.cl-terminal-block__dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }',
+    '.cl-terminal-block__dot--red { background: var(--cl-state-destructive); }',
+    '.cl-terminal-block__dot--yellow { background: var(--cl-state-upcoming); }',
+    '.cl-terminal-block__dot--green { background: var(--cl-state-positive); }',
+    '.cl-terminal-block__title { font-size: var(--cl-font-size-xs); color: var(--cl-text-secondary); letter-spacing: var(--cl-tracking-wide); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+    '.cl-terminal-block__copy { background: transparent; border: 1px solid var(--cl-border-muted); border-radius: var(--cl-radius-sm); color: var(--cl-text-secondary); font-size: var(--cl-font-size-xs); padding: 2px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }',
+    '.cl-terminal-block__copy--copied { color: var(--cl-state-live); }',
+    '.cl-terminal-block__copy--failed { color: var(--cl-state-destructive); }',
+    '.cl-terminal-block__body { padding: var(--cl-space-3) var(--cl-space-4); overflow-x: auto; font-size: var(--cl-font-size-sm); line-height: 1.6; }',
+    '.cl-terminal-block__command { display: flex; gap: var(--cl-space-2); align-items: baseline; }',
+    '.cl-terminal-block__prompt { color: var(--cl-state-live); user-select: none; font-weight: var(--cl-weight-bold); }',
+    '.cl-terminal-block__command code { color: var(--cl-text-primary); }',
+    // A file listing keeps its columns: which column a YAML key sits in is the
+    // one thing wrapping destroys, so long lines scroll inside this region
+    // instead of re-flowing. The `--file` variant rule below narrows this to
+    // `pre` for that case; the terminal variant (this base rule) wraps.
+    '.cl-terminal-block__body pre { font-family: inherit; color: var(--cl-text-primary); white-space: pre-wrap; }',
     '',
     /*
      * The file variant of the code block: a filename header and a copy action,
@@ -1446,6 +1612,14 @@ function dialog(): string {
     `  background: var(--cl-${DIALOG_TOKENS.surface});`,
     `  border: 1px solid var(--cl-${DIALOG_TOKENS.border});`,
     `  box-shadow: ${DIALOG_TOKENS.elevation};`,
+    '}',
+    '',
+    // A native <dialog>'s own backdrop pseudo-element — Modal.astro (openspec
+    // 0225 task 2.3) renders `<dialog>` directly rather than a Radix overlay
+    // div, so `.cl-dialog-backdrop` (an element's background) has nothing to
+    // apply to there. Same token, so the two panels read as one system.
+    '.cl-modal__content::backdrop {',
+    `  background: var(--cl-${DIALOG_TOKENS.backdrop});`,
     '}',
   ].join('\n');
 }

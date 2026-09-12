@@ -240,6 +240,15 @@ jobs:
       - run: node scripts/check-descriptor-guide-coverage.mjs
       - run: node --test scripts/check-ui-ownership.test.mjs
       - run: node scripts/check-ui-ownership.mjs
+      # Atomic-composition tier contract (openspec 0225): tier membership,
+      # import direction, styling/data/i18n placement, orphan resolution and
+      # naming, over the resolved component graph. Known findings are
+      # recorded in the script's own path-keyed registers, so this only
+      # fails on a violation nobody has seen yet or on debt paid down
+      # without lowering its recorded count.
+      - run: node --test scripts/lib/component-graph.test.mjs
+      - run: node --test scripts/check-atomic-composition.test.mjs
+      - run: node scripts/check-atomic-composition.mjs
       # Role manual capability lists (openspec 0165): generated from
       # role-capabilities.ts, gated against it in both directions —
       # an undocumented grant and an over-promised claim both fail.
@@ -542,6 +551,11 @@ jobs:
             --run-id="${{ github.run_id }}" \
             --commit="${{ github.sha }}" \
             --config="production"
+      # e2e/operational-surface-parity.spec.ts reads the generated stylesheet
+      # directly off disk, which `yarn install` never produces on its own —
+      # only web-build-producer's own checkout runs this step, and that
+      # output isn't part of the web-build-dist artifact downloaded above.
+      - run: yarn workspace @copalibre/design-tokens build:tokens
       - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
@@ -725,10 +739,10 @@ jobs:
           docker run -d --name minio --network host \
             -e MINIO_ROOT_USER=copalibre_dev_only \
             -e MINIO_ROOT_PASSWORD=copalibre_dev_only \
-            minio/minio:RELEASE.2025-09-07T16-13-09Z server /data --console-address :9001
+            quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z server /data --console-address :9001
       - name: Wait for MinIO and create its bucket
         run: |
-          docker run --rm --network host --entrypoint /bin/sh minio/mc:RELEASE.2025-08-13T08-35-41Z -c '
+          docker run --rm --network host --entrypoint /bin/sh quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z -c '
             for i in $(seq 1 30); do
               mc alias set local http://localhost:9000 copalibre_dev_only copalibre_dev_only && break
               sleep 2

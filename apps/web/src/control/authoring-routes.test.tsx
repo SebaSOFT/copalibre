@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { TournamentAuthoringPage } from './components/TournamentAuthoringPage.js';
-import { RegistrationReviewRoute } from './components/RegistrationReviewRoute.js';
+import { TournamentAuthoringTemplate } from './components/screens/TournamentAuthoringTemplate.js';
+import { RegistrationReviewPage } from './components/pages/RegistrationReviewPage.js';
 import { ControlApiError, type ControlApiClient } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
@@ -77,7 +77,7 @@ describe('the tournament authoring route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <TournamentAuthoringPage
+          <TournamentAuthoringTemplate
             organizationAlias="liga-mendocina"
             client={client({
               createTournament: async (_organizationAlias, request) => {
@@ -107,7 +107,7 @@ describe('the tournament authoring route container', () => {
   it('surfaces backend custom-script refusal verbatim', async () => {
     render(
       withIntl(
-        <TournamentAuthoringPage
+        <TournamentAuthoringTemplate
           organizationAlias="liga-mendocina"
           client={client({
             createTournament: async () => {
@@ -151,7 +151,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -206,7 +206,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -237,7 +237,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -278,7 +278,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -329,7 +329,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -349,7 +349,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -378,7 +378,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -429,7 +429,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -478,7 +478,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -518,7 +518,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -546,7 +546,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -578,7 +578,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({ createPerson: onAdd })}
@@ -600,7 +600,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -639,7 +639,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -688,7 +688,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -738,7 +738,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({
@@ -783,7 +783,7 @@ describe('the registration review route container', () => {
     await act(async () => {
       render(
         withIntl(
-          <RegistrationReviewRoute
+          <RegistrationReviewPage
             organizationAlias="liga-mendocina"
             tournamentAlias="apertura-2026"
             client={client({

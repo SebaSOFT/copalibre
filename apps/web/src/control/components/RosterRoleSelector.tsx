@@ -1,6 +1,9 @@
+import type { IntlShape } from 'react-intl';
+import { useIntl } from 'react-intl';
 import type { PlayerRole } from '@copalibre/domain';
 import { Select } from './ui/atoms/select.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
+import { messages } from '../i18n/messages.en.js';
 
 export interface RosterMemberItem {
   readonly personId: string;
@@ -10,12 +13,23 @@ export interface RosterMemberItem {
   readonly photoObjectId?: string;
 }
 
-export const ROSTER_ROLE_LABELS: Readonly<Record<PlayerRole, string>> = {
-  player: 'Jugador',
-  substitute: 'Suplente',
-  coach: 'Coach',
-  staff: 'Staff',
-};
+/**
+ * A function rather than the static lookup object it replaces
+ * (`ROSTER_ROLE_LABELS`, hardcoded Spanish): the label depends on the
+ * active locale, which only the caller's own `useIntl()` knows.
+ */
+export function rosterRoleLabel(role: PlayerRole, intl: IntlShape): string {
+  switch (role) {
+    case 'player':
+      return intl.formatMessage(messages.rosterRolePlayer);
+    case 'substitute':
+      return intl.formatMessage(messages.rosterRoleSubstitute);
+    case 'coach':
+      return intl.formatMessage(messages.rosterRoleCoach);
+    case 'staff':
+      return intl.formatMessage(messages.rosterRoleStaff);
+  }
+}
 
 export const ROSTER_ROLE_ACCENTS: Readonly<Record<PlayerRole, string>> = {
   coach: 'cl-state--live',
@@ -41,13 +55,14 @@ export function RosterRoleSelector({
   onChange,
   disabled = false,
 }: RosterRoleSelectorProps): React.JSX.Element {
+  const intl = useIntl();
   const handleRoleChange = (personId: string, newRole: PlayerRole) => {
     const updated = members.map((m) => (m.personId === personId ? { ...m, role: newRole } : m));
     onChange(updated);
   };
 
   if (members.length === 0) {
-    return <p className="cl-decision-hint">No hay miembros en este equipo todavía.</p>;
+    return <p className="cl-decision-hint">{intl.formatMessage(messages.rosterNoMembersYet)}</p>;
   }
 
   return (
@@ -72,28 +87,32 @@ export function RosterRoleSelector({
               className={`cl-badge ${ROSTER_ROLE_ACCENTS[member.role] ?? 'cl-state--muted'}`}
               data-testid={`role-badge-${member.personId}`}
             >
-              {ROSTER_ROLE_LABELS[member.role] ?? member.role}
+              {rosterRoleLabel(member.role, intl)}
             </span>
           </div>
 
           <div style={{ minWidth: 'min(100%, 160px)' }}>
-            <FormField
+            <Field
               id={`role-select-${member.personId}`}
-              label={`Rol de ${member.displayName || member.personId}`}
+              label={intl.formatMessage(messages.rosterRoleFieldLabel, {
+                name: member.displayName || member.personId,
+              })}
             >
               <Select
-                aria-label={`Rol de ${member.displayName || member.personId}`}
+                aria-label={intl.formatMessage(messages.rosterRoleFieldLabel, {
+                  name: member.displayName || member.personId,
+                })}
                 data-testid={`role-select-${member.personId}`}
                 disabled={disabled}
                 id={`role-select-${member.personId}`}
                 onValueChange={(val) => handleRoleChange(member.personId, val as PlayerRole)}
                 options={ROSTER_ROLES.map((role) => ({
                   value: role,
-                  label: ROSTER_ROLE_LABELS[role],
+                  label: rosterRoleLabel(role, intl),
                 }))}
                 value={member.role}
               />
-            </FormField>
+            </Field>
           </div>
         </div>
       ))}

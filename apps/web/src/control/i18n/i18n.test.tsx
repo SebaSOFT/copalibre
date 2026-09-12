@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
-import { StandingsPage } from '../components/StandingsPage.js';
-import { SeedingBuilderPage } from '../components/SeedingBuilderPage.js';
-import { RolesPermissionsPage } from '../components/RolesPermissionsPage.js';
+import { StandingsTemplate } from '../components/screens/StandingsTemplate.js';
+import { SeedingBuilderTemplate } from '../components/screens/SeedingBuilderTemplate.js';
+import { RolesPermissionsTemplate } from '../components/screens/RolesPermissionsTemplate.js';
 import { ToastProvider } from '../components/ToastProvider.js';
 import { activeControlLanguage } from './ControlIntl.js';
 import { messages } from './messages.en.js';
@@ -94,11 +94,11 @@ describe('activeControlLanguage resolution', () => {
 });
 
 describe('Spanish catalog reproduces pre-extraction wording', () => {
-  it('StandingsPage', () => {
+  it('StandingsTemplate', () => {
     render(
       withLanguage(
         'es',
-        <StandingsPage
+        <StandingsTemplate
           activeLayoutCode={EMPTY_LAYOUT.code}
           layouts={[EMPTY_LAYOUT]}
           organizationAlias="liga-mendocina"
@@ -113,11 +113,11 @@ describe('Spanish catalog reproduces pre-extraction wording', () => {
     expect(screen.getByText('Todavía no hay resultados en esta fase.')).toBeTruthy();
   });
 
-  it('SeedingBuilderPage', () => {
+  it('SeedingBuilderTemplate', () => {
     render(
       withLanguage(
         'es',
-        <SeedingBuilderPage
+        <SeedingBuilderTemplate
           hasRecordedResults={false}
           matches={[]}
           organizationAlias="liga-mendocina"
@@ -134,11 +134,11 @@ describe('Spanish catalog reproduces pre-extraction wording', () => {
     expect(screen.getByText('Esta fase no tiene participantes.')).toBeTruthy();
   });
 
-  it('RolesPermissionsPage', () => {
+  it('RolesPermissionsTemplate', () => {
     render(
       withLanguage(
         'es',
-        <RolesPermissionsPage
+        <RolesPermissionsTemplate
           loading={false}
           onChange={async () => undefined}
           onDelete={async () => undefined}
@@ -166,12 +166,12 @@ describe('Non-English catalogs render real translated text, not an English fallb
   };
 
   it.each(Object.entries(expectedTitleAndEmptyState))(
-    '%s renders StandingsPage with real translated text',
+    '%s renders StandingsTemplate with real translated text',
     (lang, [title, emptyState]) => {
       render(
         withLanguage(
           lang,
-          <StandingsPage
+          <StandingsTemplate
             activeLayoutCode={EMPTY_LAYOUT.code}
             layouts={[EMPTY_LAYOUT]}
             organizationAlias="liga-mendocina"

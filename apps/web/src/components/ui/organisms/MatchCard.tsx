@@ -1,3 +1,5 @@
+import { Badge } from '../atoms/Badge.js';
+import { Card } from '../atoms/Card.js';
 import { EntrantName } from '../atoms/EntrantName.js';
 import { presentState } from '../../../lib/result-state.js';
 import { seriesScore, seriesSegments, seriesPending, toSeriesInput } from '../../../lib/series.js';
@@ -29,12 +31,12 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
     (match.awayTrace !== undefined && match.awayTrace.length > 0);
 
   const body = (
-    <article className="cl-card cl-chamfer cl-match-card" data-match={match.matchId}>
+    <Card as="article" className="cl-match-card" data-match={match.matchId}>
       <div className="cl-match-card__header">
-        <span className="cl-badge">
+        <Badge>
           <span aria-hidden="true">{badge.icon}</span>
           <span>{badge.label}</span>
-        </span>
+        </Badge>
         {match.clockSeconds !== undefined && (
           <span
             className="cl-match-card__clock"
@@ -49,24 +51,24 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
         <li className="cl-match-card__side">
           <EntrantName fullName={match.homeName ?? 'TBD'} abbreviation={match.homeAbbreviation} />
           {match.homePosition !== undefined && (
-            <span
-              className="cl-badge cl-badge--rank"
+            <Badge
+              className="cl-badge--rank"
               title={applyTemplate(labels.position, { position: match.homePosition })}
             >
               #{match.homePosition}
-            </span>
+            </Badge>
           )}
           <span className="cl-stat-tile__value">{match.homeScore ?? '—'}</span>
         </li>
         <li className="cl-match-card__side">
           <EntrantName fullName={match.awayName ?? 'TBD'} abbreviation={match.awayAbbreviation} />
           {match.awayPosition !== undefined && (
-            <span
-              className="cl-badge cl-badge--rank"
+            <Badge
+              className="cl-badge--rank"
               title={applyTemplate(labels.position, { position: match.awayPosition })}
             >
               #{match.awayPosition}
-            </span>
+            </Badge>
           )}
           <span className="cl-stat-tile__value">{match.awayScore ?? '—'}</span>
         </li>
@@ -117,7 +119,7 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
       {hasFullTrace && (
         <TracePanel homeTrace={match.homeTrace} awayTrace={match.awayTrace} labels={labels} />
       )}
-    </article>
+    </Card>
   );
 
   return reportUrl === undefined ? body : <a href={reportUrl}>{body}</a>;
@@ -220,5 +222,240 @@ function TracePanel({
         </ol>
       )}
     </details>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ChampionshipMatchCard — a match renderer variant (openspec 0225 task 4.3):
+// the grand-final spotlight presentation, merged in from its own file rather
+// than sharing MatchCardProps' data shape, which has no place for a seed or
+// a per-participant winner flag. Its inline styles and Spanish literal
+// defaults are pre-existing debt (KNOWN_INLINE_LAYOUT/KNOWN_RAW_STYLE_VALUES
+// in check-atomic-composition.mjs), carried over rather than paid down here
+// — that is task 5.2's job, not this file merge's.
+// ---------------------------------------------------------------------------
+
+export interface ChampionshipParticipant {
+  readonly name: string;
+  readonly seed?: number | string;
+  readonly score?: number | string;
+  readonly winner?: boolean;
+}
+
+export interface ChampionshipMatchCardProps {
+  /** Card header title, e.g. "GRAND FINAL", "GRAN FINAL", "CHAMPIONSHIP" */
+  readonly title?: string;
+  /** Home finalist */
+  readonly homeParticipant: ChampionshipParticipant;
+  /** Away finalist */
+  readonly awayParticipant: ChampionshipParticipant;
+  /** Match status (e.g. "FINAL", "LIVE", "SCHEDULED") */
+  readonly status?: string;
+  /** Scheduled time or date */
+  readonly scheduledTime?: string;
+  /** Additional CSS class */
+  readonly className?: string;
+}
+
+export function ChampionshipMatchCard({
+  title = 'GRAND FINAL',
+  homeParticipant,
+  awayParticipant,
+  status = 'FINAL',
+  scheduledTime,
+  className = '',
+}: ChampionshipMatchCardProps): React.JSX.Element {
+  const isLive = status.toUpperCase() === 'LIVE';
+
+  return (
+    <div className={`cl-championship-card cl-chamfer ${className}`.trim()}>
+      {/* Header with Trophy Icon and Status */}
+      <div className="cl-championship-card__header">
+        <div className="cl-championship-card__title-group">
+          {/* Trophy Icon */}
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--cl-state-live)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+            <path d="M4 22h16" />
+            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+          </svg>
+
+          <span className="cl-championship-card__title">{title}</span>
+        </div>
+
+        <div className="cl-championship-card__meta">
+          {scheduledTime && <span className="cl-championship-card__time">{scheduledTime}</span>}
+          <span
+            className={`cl-championship-card__status ${isLive ? 'cl-championship-card__status--live' : ''}`.trim()}
+          >
+            {status}
+          </span>
+        </div>
+      </div>
+
+      {/* Participants Rows */}
+      <div className="cl-championship-card__participants">
+        {[homeParticipant, awayParticipant].map((participant, index) => (
+          <div
+            className={`cl-championship-card__participant ${participant.winner ? 'cl-championship-card__participant--winner' : ''}`.trim()}
+            key={index === 0 ? 'home' : 'away'}
+          >
+            <div className="cl-championship-card__participant-info">
+              {participant.seed !== undefined && (
+                <span className="cl-championship-card__seed">[{participant.seed}]</span>
+              )}
+              <span
+                className={`cl-championship-card__name ${participant.winner ? 'cl-championship-card__name--winner' : ''}`.trim()}
+              >
+                {participant.name}
+              </span>
+            </div>
+
+            {participant.score !== undefined && (
+              <span
+                className={`cl-championship-card__score ${participant.winner ? 'cl-championship-card__score--winner' : ''}`.trim()}
+              >
+                {participant.score}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// LiveMatchScorecard — a match renderer variant (openspec 0225 task 4.3):
+// the tactical live-broadcast presentation, merged in for the same reason
+// as ChampionshipMatchCard above — its data shape (per-team colour, goal
+// events, a comparator trace) has no correspondence in MatchCardData.
+// ---------------------------------------------------------------------------
+
+export interface LiveMatchGoalEvent {
+  readonly minute: string | number;
+  readonly player: string;
+  readonly team: 'home' | 'away';
+  readonly varConfirmed?: boolean;
+}
+
+export interface LiveMatchParticipant {
+  readonly name: string;
+  readonly score: number | string;
+  readonly color?: string;
+  readonly seed?: number | string;
+}
+
+export interface ComparatorTrace {
+  readonly step: number;
+  readonly text: string;
+}
+
+export interface LiveMatchScorecardProps {
+  readonly location?: string;
+  readonly operationsLabel?: string;
+  readonly clock?: string;
+  readonly homeTeam: LiveMatchParticipant;
+  readonly awayTeam: LiveMatchParticipant;
+  readonly events?: readonly LiveMatchGoalEvent[];
+  readonly comparatorTrace?: ComparatorTrace;
+  readonly className?: string;
+}
+
+export function LiveMatchScorecard({
+  location = 'CANCHA 1',
+  operationsLabel = 'OPERACIONES EN VIVO',
+  clock = '78:48',
+  homeTeam,
+  awayTeam,
+  events = [],
+  comparatorTrace,
+  className = '',
+}: LiveMatchScorecardProps): React.JSX.Element {
+  return (
+    <article className={`cl-scorecard cl-chamfer ${className}`.trim()}>
+      {/* Tactical live status header */}
+      <div className="cl-scorecard__header">
+        <div className="cl-scorecard__location-group">
+          <span className="cl-scorecard__dot">●</span>
+          <span className="cl-scorecard__location">{location}</span>
+          <span className="cl-scorecard__separator">•</span>
+          <span className="cl-scorecard__operations">{operationsLabel}</span>
+        </div>
+
+        <div className="cl-scorecard__clock-group">
+          <span className="cl-scorecard__dot">●</span>
+          <span className="cl-scorecard__clock">{clock}</span>
+        </div>
+      </div>
+
+      {/* Teams and Central Monospace Score Box */}
+      <div className="cl-scorecard__matchup">
+        {/* Home Team */}
+        <div className="cl-scorecard__team cl-scorecard__team--home">
+          <span className="cl-scorecard__team-name">{homeTeam.name}</span>
+          <span
+            aria-hidden="true"
+            className="cl-scorecard__team-swatch"
+            style={{ color: homeTeam.color ?? 'var(--cl-color-cyan-400)' }}
+          >
+            ■
+          </span>
+        </div>
+
+        {/* Central Monospace Score Box */}
+        <div className="cl-scorecard__score-box">
+          [ {homeTeam.score} : {awayTeam.score} ]
+        </div>
+
+        {/* Away Team */}
+        <div className="cl-scorecard__team cl-scorecard__team--away">
+          <span
+            aria-hidden="true"
+            className="cl-scorecard__team-swatch"
+            style={{ color: awayTeam.color ?? 'var(--cl-accent-team)' }}
+          >
+            ■
+          </span>
+          <span className="cl-scorecard__team-name">{awayTeam.name}</span>
+        </div>
+      </div>
+
+      {/* Goal Events with VAR Status */}
+      {events.length > 0 && (
+        <div
+          className="cl-scorecard__events"
+          style={{ marginBottom: comparatorTrace ? 'var(--cl-space-3)' : 0 }}
+        >
+          {events.map((evt, idx) => (
+            <div className="cl-scorecard__event" key={idx}>
+              <span className="cl-scorecard__event-minute">{evt.minute}&apos;</span>
+              <span className="cl-scorecard__event-player">{evt.player}</span>
+              {evt.varConfirmed && <span className="cl-scorecard__var-tag">VAR CONFIRMED</span>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Standings Comparator Trace Callout */}
+      {comparatorTrace && (
+        <div className="cl-scorecard__comparator-trace cl-accent-rail cl-accent-rail--thin">
+          <span className="cl-scorecard__comparator-step">[Step {comparatorTrace.step}]</span>
+          <span className="cl-scorecard__comparator-text">{comparatorTrace.text}</span>
+        </div>
+      )}
+    </article>
   );
 }

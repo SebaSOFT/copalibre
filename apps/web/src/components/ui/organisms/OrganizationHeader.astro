@@ -1,0 +1,68 @@
+---
+/**
+ * Extracted from the organization page (openspec 0225 task 7.2), unchanged
+ * in markup and styling.
+ */
+import type { IntlShape } from 'react-intl';
+import EmblemImage from '../atoms/EmblemImage.astro';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
+
+export interface Props {
+  readonly organizationAlias: string;
+  readonly organizationName: string;
+  /** Pre-built by the page (`organizationEmblemUrl`) — data access stays at the page tier. */
+  readonly emblemSrc?: string;
+  readonly intl: IntlShape;
+}
+
+const { organizationAlias, organizationName, emblemSrc, intl } = Astro.props;
+---
+
+<header class="cl-org-header">
+  <EmblemImage
+    alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: organizationName })}
+    placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+    size={64}
+    src={emblemSrc}
+  />
+  <div>
+    <div class="cl-org-badge">{organizationAlias}</div>
+    <h1 class="cl-org-title">{organizationName}</h1>
+  </div>
+</header>
+
+<style>
+  .cl-org-header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    border-bottom: 1px solid var(--cl-border-muted);
+    padding-bottom: 1.5rem;
+    min-width: 0;
+  }
+
+  .cl-org-badge {
+    font-size: var(--cl-font-size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--cl-primary);
+    margin-bottom: 0.25rem;
+  }
+
+  .cl-org-title {
+    font-size: var(--cl-font-size-3xl);
+    font-weight: 800;
+    margin: 0;
+    line-height: 1.2;
+    color: var(--cl-text-primary);
+    overflow-wrap: anywhere;
+  }
+
+  /* BREAKPOINTS.sm: retain readable padding at the 375px review width. */
+  @media (max-width: 375px) {
+    .cl-org-header {
+      align-items: flex-start;
+    }
+  }
+</style>

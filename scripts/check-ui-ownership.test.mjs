@@ -170,7 +170,7 @@ test('raw <table> triggers violation', () => {
     export function BadTable() {
       return (
         <table>
-          <tbody><tr><td>Data</td></tr></tbody>
+          {rows}
         </table>
       );
     }
@@ -179,6 +179,40 @@ test('raw <table> triggers violation', () => {
   assert.equal(violations.length, 1);
   assert.match(violations[0].message, /Raw <table> detected/);
   assert.equal(violations[0].line, 4);
+});
+
+test('raw table parts outside the table owner each trigger their own violation (openspec 0225 task 2.4)', () => {
+  const code = `
+    export function BadTable() {
+      return (
+        <table>
+          <thead><tr><th>H</th></tr></thead>
+          <tbody><tr><td>Data</td></tr></tbody>
+        </table>
+      );
+    }
+  `;
+  const violations = checkFileOwnership('BadTableParts.tsx', code);
+  const tags = violations.map((v) => v.message.match(/Raw <(\w+)>/)?.[1]).sort();
+  assert.deepEqual(tags, ['table', 'tbody', 'td', 'th', 'thead', 'tr', 'tr']);
+});
+
+test('raw form-structure elements each trigger their own violation (openspec 0225 task 2.4)', () => {
+  const code = `
+    export function BadForm() {
+      return (
+        <form>
+          <fieldset>
+            <legend>Group</legend>
+            <label htmlFor="x">Name</label>
+          </fieldset>
+        </form>
+      );
+    }
+  `;
+  const violations = checkFileOwnership('BadForm.tsx', code);
+  const tags = violations.map((v) => v.message.match(/Raw <(\w+)>/)?.[1]).sort();
+  assert.deepEqual(tags, ['fieldset', 'form', 'label', 'legend']);
 });
 
 test('raw <textarea> triggers violation', () => {
@@ -218,11 +252,12 @@ test('raw <button> in allowed exception files passes', () => {
   assert.equal(checkFileOwnership('control/components/JerseyGrid.tsx', code).length, 0);
   assert.equal(checkFileOwnership('control/components/CountrySelect.tsx', code).length, 0);
   assert.equal(checkFileOwnership('control/components/ToastProvider.tsx', code).length, 0);
-  // StandingsPage.tsx carries 2 owned classes in the registers, so the fixture
+  // StandingsTemplate.tsx carries 2 owned classes in the registers, so the fixture
   // has to satisfy that while this test exercises the button exception.
   const withRecordedClasses = `${code}\n<div className="cl-card" /><span className="cl-badge" />`;
   assert.equal(
-    checkFileOwnership('control/components/StandingsPage.tsx', withRecordedClasses).length,
+    checkFileOwnership('control/components/screens/StandingsTemplate.tsx', withRecordedClasses)
+      .length,
     0,
   );
 });
@@ -314,14 +349,17 @@ test('a URL is not mistaken for a line comment when blanking comments', () => {
 test('the raw-element debt register admits its recorded count and nothing beyond it', () => {
   const input = ['<input', '  type="text"', '/>'].join('\n');
   const threeInputs = [input, input, input].join('\n');
-  // control/components/TournamentRulesetPage.tsx is recorded at 3.
+  // control/components/screens/TournamentRulesetTemplate.tsx is recorded at 3.
   assert.equal(
-    checkFileOwnership('control/components/TournamentRulesetPage.tsx', threeInputs).length,
+    checkFileOwnership('control/components/screens/TournamentRulesetTemplate.tsx', threeInputs)
+      .length,
     0,
   );
   assert.equal(
-    checkFileOwnership('control/components/TournamentRulesetPage.tsx', `${threeInputs}\n${input}`)
-      .length,
+    checkFileOwnership(
+      'control/components/screens/TournamentRulesetTemplate.tsx',
+      `${threeInputs}\n${input}`,
+    ).length,
     1,
   );
   // An unlisted file gets no allowance at all.
@@ -330,7 +368,7 @@ test('the raw-element debt register admits its recorded count and nothing beyond
 
 test('the debt register ratchets: improving below the recorded count asks for it to be lowered', () => {
   const violations = checkFileOwnership(
-    'control/components/TournamentRulesetPage.tsx',
+    'control/components/screens/TournamentRulesetTemplate.tsx',
     'const nothing = 1;',
   );
   assert.equal(violations.length, 1);
@@ -384,12 +422,12 @@ test('the owned-class register ratchets down, naming its own register', () => {
 });
 
 test('the two registers ratchet independently on the same file', () => {
-  // control/components/SeedingBuilderRoute.tsx is recorded at 5 raw governed
+  // control/components/pages/SeedingBuilderPage.tsx is recorded at 5 raw governed
   // elements and 2 owned classes. Meeting one register while missing the other
   // reports only the one missed.
   const input = ['<input', '  type="text"', '/>'].join('\n');
   const violations = checkFileOwnership(
-    'control/components/SeedingBuilderRoute.tsx',
+    'control/components/pages/SeedingBuilderPage.tsx',
     [...Array(5).fill(input), '<div className="cl-card" />'].join('\n'),
   );
   assert.equal(violations.length, 1);

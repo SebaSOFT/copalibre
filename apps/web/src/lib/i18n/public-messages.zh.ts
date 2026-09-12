@@ -166,4 +166,17 @@ export const messages: Record<string, string> = {
   'publicWeb.header.navHelp': '帮助',
   'publicWeb.header.navApiReference': 'API 参考',
   'publicWeb.header.controlPanel': '控制面板',
+
+  // TvDashboard.tsx's own chrome (openspec 0225 task 2.6).
+  'publicWeb.tvDashboard.noMatchesScheduled': '目前没有安排比赛',
+  'publicWeb.tvDashboard.standingsUnavailable': '积分榜不可用',
+  'publicWeb.tvDashboard.clubColumn': '俱乐部',
+  'publicWeb.tvDashboard.playedColumn': '场次',
+  'publicWeb.tvDashboard.noTopPerformers': '暂无最佳球员记录',
+  'publicWeb.tvDashboard.focalPanelLabel': '主转播面板',
+  'publicWeb.tvDashboard.statsAndTablesLabel': '赛事统计与数据表',
+  'publicWeb.tvDashboard.sidebarSectionsLabel': '侧边栏区域',
+  'publicWeb.tvDashboard.standingsTab': '积分榜',
+  'publicWeb.tvDashboard.performersTab': '最佳球员',
+  'publicWeb.tvDashboard.statisticsTab': '统计数据',
 };

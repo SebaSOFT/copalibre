@@ -29,14 +29,14 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
   {
     reference: 'Standings panel',
     storyId: 'Admin/Organisms/StandingsPanel — Playground',
-    consumers: ['control/components/StandingsPage.tsx'],
+    consumers: ['control/components/screens/StandingsTemplate.tsx'],
   },
   {
     reference: 'Operational tags',
     storyId: 'Admin/Atoms/Badge — OperationalTags',
     consumers: [
-      'control/components/ui/organisms/StandingsPanel.tsx',
-      'control/components/ui/molecules/EditorialCard.tsx',
+      'control/components/ui/organisms/standings-panel.tsx',
+      'control/components/ui/molecules/editorial-card.tsx',
     ],
   },
   {
@@ -81,7 +81,7 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
   {
     reference: 'Editorial release composition',
     storyId: 'Admin/Molecules/EditorialCard — Playground',
-    consumers: ['control/components/PlatformAdministrationRoute.tsx'],
+    consumers: ['control/components/pages/PlatformAdministrationPage.tsx'],
     note: 'The application has no release listing, so the composition is reached through the existing module-update information surface. No release-management subsystem was added.',
   },
   {
@@ -91,8 +91,8 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
   },
   {
     reference: 'Audited results ledger',
-    storyId: 'Admin/Organisms/AuditLogCard — ReferenceCorrection',
-    consumers: ['control/components/AuditTrailPage.tsx'],
+    storyId: 'Admin/Organisms/AuditLogPanel — ReferenceCorrection',
+    consumers: ['control/components/screens/AuditTrailTemplate.tsx'],
   },
   {
     reference: 'Live match scorecard',
@@ -107,8 +107,14 @@ export const REFERENCE_INDEX: readonly ReferenceIndexEntry[] = [
   },
   {
     reference: 'Locale control',
-    storyId: 'Admin/Atoms/LanguageSelector — EverySupportedLanguage',
+    storyId: 'Admin/i18n/LanguageSwitcher — EverySupportedLanguage',
+    consumers: ['control/components/ControlShell.tsx'],
+    note: 'Repointed here from the deleted LanguageSelector atom (openspec 0225 task 4.3a), which duplicated this control and had no consumer of its own; LanguageSwitcher carries its language-glyph icon now and is the one the operator shell actually renders.',
+  },
+  {
+    reference: 'Astro preview seam',
+    storyId: 'Public/Astro preview — ResultLegend',
     consumers: [],
-    note: 'Predecessor component with no consumer: `control/i18n/LanguageSwitcher.tsx` is the locale control the operator shell actually renders, and this atom duplicates it. Recorded as a finding; resolving the duplication is its own change.',
+    note: 'The development preview seam itself (openspec 0225 task 4.5, design.md Decision 5): it frames a production Astro component through the production renderer for review, answers 404 in a build, and ships to no production surface by design — a permanent exemption, not debt pending adoption.',
   },
 ];

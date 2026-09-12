@@ -1,27 +1,48 @@
 ---
-import type { IntlShape } from 'react-intl';
+import { Badge } from '../atoms/Badge.tsx';
 import { resultLegend } from '../../../lib/result-state.ts';
-import { resultStateLabels } from '../../../lib/i18n/public-intl.ts';
-import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import type { ResultStateLabels } from '../../../lib/result-state.ts';
 
 interface Props {
-  readonly intl: IntlShape;
+  readonly labels: ResultStateLabels;
+  readonly heading: string;
 }
-const { intl } = Astro.props;
-const legend = resultLegend(resultStateLabels(intl));
+const { labels, heading } = Astro.props;
+const legend = resultLegend(labels);
 ---
 
 {/* Shown once per page: the colours mean nothing on their own. */}
 <section aria-labelledby="legend-heading">
-  <h2 id="legend-heading">{intl.formatMessage(messages.legendHeading)}</h2>
-  <ul>
+  <h2 id="legend-heading">{heading}</h2>
+  <ul class="cl-result-legend">
     {
       legend.map((state) => (
-        <li class={`cl-badge ${state.className}`}>
-          <span aria-hidden="true">{state.icon}</span>
-          <span>{state.label}</span>
+        <li>
+          <Badge className={state.className}>
+            <span aria-hidden="true">{state.icon}</span>
+            <span class="cl-result-legend__label">{state.label}</span>
+          </Badge>
         </li>
       ))
     }
   </ul>
 </section>
+
+<style>
+  .cl-result-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cl-space-2);
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  /* A single-word state label (Russian "ЗАПЛАНИРОВАНО") has no space to wrap
+     at (openspec 0225 task 7.4); each badge is already free to move to its
+     own line, but the label itself still needs a fallback in-word break so
+     one long translation cannot hold the badge wider than the 188px floor. */
+  .cl-result-legend__label {
+    overflow-wrap: anywhere;
+  }
+</style>

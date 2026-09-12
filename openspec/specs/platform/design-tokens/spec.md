@@ -409,3 +409,103 @@ neither atom picks a colour, spacing, or shadow value outside the contract.
 - **WHEN** the file-selection contract's error state is inspected
 - **THEN** its border and focus-ring values resolve to the same destructive semantic token used by the
   other form-control error states
+
+### Requirement: Design documentation is verified against the token source
+
+Documentation committed to the repository that restates token values SHALL be verified against the
+token source automatically, and the verification SHALL fail on any divergence in either direction —
+a value that differs, a token present in the source and absent from the documentation, or a token
+present in the documentation and absent from the source.
+
+The visual-identity doctrine permits raw primitive values to appear in token definitions and in
+documentation. That permission is what makes documentation capable of drifting: a value corrected in
+the source propagates to the generated CSS and Tailwind output through the single-source-of-truth
+requirement, while a hand-maintained document keeps asserting the old one. A document restating an
+implementation fact is a claim, and a claim SHALL carry automated evidence rather than assertion.
+
+Verification SHALL cover the colour, typography, radius and spacing token sets. It SHALL run in the
+same suite as the token package's existing checks, so a divergence fails a pull request rather than
+being discovered by whoever next reads the document.
+
+A count of commits to the visual source directories since the document was last edited SHALL NOT be
+treated as evidence of divergence or of agreement; only a value comparison decides.
+
+#### Scenario: A token value changes and the documentation is not regenerated
+
+- **WHEN** a colour, typography, radius or spacing value changes in the token source and the committed design documentation still carries the previous value
+- **THEN** the token package's test suite fails, naming the token and both values
+
+#### Scenario: A token is added to the source only
+
+- **WHEN** a new token is added to the source and the committed design documentation does not carry it
+- **THEN** the verification fails, naming the missing token
+
+#### Scenario: A token is removed from the source but left in the documentation
+
+- **WHEN** a token is removed from the source and the committed design documentation still lists it
+- **THEN** the verification fails, naming the token that no longer exists
+
+#### Scenario: Regenerated documentation passes
+
+- **WHEN** the design documentation is regenerated from the current token source with no manual edit to its token values
+- **THEN** the verification passes with no exception recorded
+
+### Requirement: Design documentation names its normative source
+
+Committed design documentation that overlaps a specification SHALL name that specification as
+normative for the overlapping subject, and SHALL name the token source it was derived from.
+
+The documentation exists to be read by contributors and by code-generating agents, which makes an
+unmarked overlap actively harmful: two documents describing the same palette, motif or breakpoint set
+with equal apparent authority leave a reader no way to tell which one binds when they disagree.
+
+#### Scenario: A reader resolves a disagreement
+
+- **WHEN** committed design documentation and a specification describe the same visual subject and disagree
+- **THEN** the documentation itself identifies the specification as normative, so the specification decides
+
+### Requirement: Mechanical design checks run during editing
+
+The project SHALL run its mechanical design checks while interface code is being edited, rather than
+only at review, and SHALL record their configuration in a tracked file so the whole team runs the
+same checks.
+
+A suppression of any such check SHALL carry a written reason. A suppression identified only by rule
+id SHALL NOT be accepted, because a suppression without a recorded reason cannot be reviewed, cannot
+be re-evaluated when the code it excused has changed, and silently becomes permanent.
+
+A suppression that applies to one developer's machine rather than to the project SHALL be recorded
+separately from the tracked project configuration, so a personal exclusion never reaches the team's
+checks.
+
+#### Scenario: A suppression arrives without a reason
+
+- **WHEN** a design-check suppression is added to the tracked project configuration with no written reason
+- **THEN** it is rejected in review as an incomplete entry
+
+#### Scenario: A suppression is reviewable in the change that introduces it
+
+- **WHEN** a pull request adds or widens a design-check suppression
+- **THEN** the suppression and its reason appear in that pull request's diff
+
+### Requirement: Verified documentation changes with its source
+
+Verified design token documentation SHALL be refreshed in the same pull request as token-source
+changes so every proposed merge can pass the drift check. Full descriptive documentation and sidecar
+regeneration SHALL follow integration; resulting documentation edits SHALL be carried on the next
+change branch, without a direct push to the protected integration branch.
+
+#### Scenario: A token-changing PR passes verification
+
+- **WHEN** a change modifies a verified token
+- **THEN** that PR includes matching verified documentation and passes the drift check before merge
+
+#### Scenario: Sidecar refresh follows integration
+
+- **WHEN** a token or component change merges
+- **THEN** a full descriptive refresh uses integrated source, and its resulting edits are reviewed on the next change branch
+
+#### Scenario: Concurrent changes update documentation
+
+- **WHEN** concurrent changes modify the same verified token
+- **THEN** conflicts are resolved against the integrated source and verification runs again before merge

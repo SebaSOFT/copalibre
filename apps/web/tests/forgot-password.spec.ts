@@ -29,7 +29,7 @@ test('user can request password reset link', async ({ page }) => {
   await expect(page.getByLabel('Email')).toBeVisible({ timeout: 15_000 });
 
   await page.getByLabel('Email').fill('test@example.com');
-  await page.getByRole('button', { name: 'Enviar enlace' }).click();
+  await page.getByRole('button', { name: 'Send link' }).click();
 
-  await expect(page.getByText('Si el correo existe, se ha enviado un enlace.')).toBeVisible();
+  await expect(page.getByText('If the email exists, a link has been sent.')).toBeVisible();
 });

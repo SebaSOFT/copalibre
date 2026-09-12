@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import { Alert } from './ui/atoms/alert.js';
 import { Button } from './ui/atoms/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { Field } from './ui/molecules/field.js';
 
 /**
  * Invitation acceptance: the one unauthenticated screen that built its own
@@ -11,7 +12,59 @@ import { FormField } from './ui/molecules/form-field.js';
  * corners no other Control-web surface uses and a self-set `margin` the
  * component tier is not allowed to own. It now composes the same atoms its
  * sibling auth screens already use, inside the shared auth template.
+ *
+ * Every string here was hardcoded Spanish (found by `/impeccable critique`,
+ * openspec 0225 task 8.3) — the exact `auth.*` namespace gap task 2.6
+ * already restated in English elsewhere in this file's sibling screens.
+ * `invitation.*` has no locale catalogue anywhere either, so every locale
+ * currently falls back to the English `defaultMessage`; a real per-locale
+ * catalogue for this namespace is separate work.
  */
+const messages = defineMessages({
+  missingToken: {
+    id: 'invitation.missingToken',
+    defaultMessage: 'The invitation token was not found in the link.',
+  },
+  passwordTooShort: {
+    id: 'invitation.passwordTooShort',
+    defaultMessage: 'The password must be at least 8 characters.',
+  },
+  passwordMismatch: {
+    id: 'invitation.passwordMismatch',
+    defaultMessage: 'Passwords do not match.',
+  },
+  acceptFailed: {
+    id: 'invitation.acceptFailed',
+    defaultMessage: 'Failed to accept the invitation ({status}).',
+  },
+  unexpectedError: {
+    id: 'invitation.unexpectedError',
+    defaultMessage: 'Unexpected error accepting the invitation.',
+  },
+  title: { id: 'invitation.title', defaultMessage: 'Accept invitation' },
+  subtitle: {
+    id: 'invitation.subtitle',
+    defaultMessage: 'Set up your CopaLibre administrator account',
+  },
+  successHeading: { id: 'invitation.successHeading', defaultMessage: 'Account set up!' },
+  successBody: {
+    id: 'invitation.successBody',
+    defaultMessage: 'Redirecting to the control console…',
+  },
+  nameLabel: { id: 'invitation.nameLabel', defaultMessage: 'Full name (optional)' },
+  namePlaceholder: { id: 'invitation.namePlaceholder', defaultMessage: 'E.g. Ana Pérez' },
+  passwordLabel: {
+    id: 'invitation.passwordLabel',
+    defaultMessage: 'Password (minimum 8 characters)',
+  },
+  confirmPasswordLabel: {
+    id: 'invitation.confirmPasswordLabel',
+    defaultMessage: 'Confirm password',
+  },
+  submitLoading: { id: 'invitation.submitLoading', defaultMessage: 'Setting up account…' },
+  submit: { id: 'invitation.submit', defaultMessage: 'Accept and start' },
+});
+
 export function AcceptInvitationForm({
   initialToken,
   navigate = (url: string) => {
@@ -23,6 +76,7 @@ export function AcceptInvitationForm({
   readonly initialToken?: string;
   readonly navigate?: (url: string) => void;
 }): React.JSX.Element {
+  const intl = useIntl();
   const [token] = useState<string | null>(() => {
     if (initialToken) return initialToken;
     if (typeof window === 'undefined') return null;
@@ -36,7 +90,7 @@ export function AcceptInvitationForm({
     if (initialToken) return null;
     if (typeof window === 'undefined') return null;
     const t = new URLSearchParams(window.location.search).get('token');
-    return t ? null : 'No se encontró el token de invitación en el enlace.';
+    return t ? null : intl.formatMessage(messages.missingToken);
   });
   const [success, setSuccess] = useState(false);
 
@@ -45,12 +99,12 @@ export function AcceptInvitationForm({
     if (!token) return;
 
     if (password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres.');
+      setError(intl.formatMessage(messages.passwordTooShort));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden.');
+      setError(intl.formatMessage(messages.passwordMismatch));
       return;
     }
 
@@ -72,7 +126,10 @@ export function AcceptInvitationForm({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Error al aceptar invitación (${response.status})`);
+        throw new Error(
+          errorData.message ||
+            intl.formatMessage(messages.acceptFailed, { status: response.status }),
+        );
       }
 
       const data = await response.json();
@@ -84,7 +141,7 @@ export function AcceptInvitationForm({
         navigate('/control/app');
       }, 1200);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error inesperado al aceptar la invitación');
+      setError(err instanceof Error ? err.message : intl.formatMessage(messages.unexpectedError));
     } finally {
       setLoading(false);
     }
@@ -93,31 +150,35 @@ export function AcceptInvitationForm({
   return (
     <Card aria-labelledby="accept-invitation-title">
       <CardHeader>
-        <CardTitle id="accept-invitation-title">Aceptar invitación</CardTitle>
-        <CardDescription>Configurá tu cuenta de administrador de CopaLibre</CardDescription>
+        <CardTitle id="accept-invitation-title">
+          <FormattedMessage {...messages.title} />
+        </CardTitle>
+        <CardDescription>
+          <FormattedMessage {...messages.subtitle} />
+        </CardDescription>
       </CardHeader>
 
       <CardContent>
         {error && <Alert tone="destructive">{error}</Alert>}
 
         {success ? (
-          <Alert heading="¡Cuenta configurada con éxito!" tone="success">
-            Redirigiendo a la consola de control…
+          <Alert heading={intl.formatMessage(messages.successHeading)} tone="success">
+            <FormattedMessage {...messages.successBody} />
           </Alert>
         ) : (
           <form className="cl-auth-form" onSubmit={handleSubmit}>
-            <FormField id="name" label="Nombre completo (opcional)">
+            <Field id="name" label={intl.formatMessage(messages.nameLabel)}>
               <Input
                 disabled={loading || !token}
                 id="name"
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ej. Ana Pérez"
+                placeholder={intl.formatMessage(messages.namePlaceholder)}
                 type="text"
                 value={name}
               />
-            </FormField>
+            </Field>
 
-            <FormField id="password" label="Contraseña (mínimo 8 caracteres)">
+            <Field id="password" label={intl.formatMessage(messages.passwordLabel)}>
               <Input
                 disabled={loading || !token}
                 id="password"
@@ -127,9 +188,9 @@ export function AcceptInvitationForm({
                 type="password"
                 value={password}
               />
-            </FormField>
+            </Field>
 
-            <FormField id="confirmPassword" label="Confirmar contraseña">
+            <Field id="confirmPassword" label={intl.formatMessage(messages.confirmPasswordLabel)}>
               <Input
                 disabled={loading || !token}
                 id="confirmPassword"
@@ -139,10 +200,14 @@ export function AcceptInvitationForm({
                 type="password"
                 value={confirmPassword}
               />
-            </FormField>
+            </Field>
 
             <Button disabled={loading || !token} type="submit">
-              {loading ? 'Configurando cuenta…' : 'Aceptar y comenzar'}
+              {loading ? (
+                <FormattedMessage {...messages.submitLoading} />
+              ) : (
+                <FormattedMessage {...messages.submit} />
+              )}
             </Button>
           </form>
         )}

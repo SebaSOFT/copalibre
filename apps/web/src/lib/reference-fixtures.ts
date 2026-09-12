@@ -17,8 +17,26 @@
  */
 import type { BracketMatch } from './bracket.js';
 import type { LiveDashboard } from './live-state.js';
-import type { OverviewMatch, StandingsRowView } from './overview.js';
+import type { MatchReportModel, MatchReportTimelineGroup } from './match-report.js';
+import {
+  buildOverview,
+  type OverviewMatch,
+  type OverviewModel,
+  type StandingsRowView,
+} from './overview.js';
 import type { PublicSeriesState } from './series.js';
+import type {
+  PublicMatchOfficialResponse,
+  PublicMatchRosterMemberResponse,
+  PublicOverviewClubResponse,
+  PublicPersonProfileResponse,
+  PublicTournamentListingItemResponse,
+  PublicTournamentWinnerZoneResponse,
+} from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type {
+  TableLayoutSummaryResponse,
+  TableProjectionResponse,
+} from '@copalibre/api/src/dto/table-projections.dto.js';
 
 /** Best-of-five projection; the production series helper supplies segment states. */
 export function referenceSeries(): PublicSeriesState {
@@ -542,5 +560,299 @@ export function referenceStandingsTable(): ReferenceStandingsTable {
         },
       };
     }),
+  };
+}
+
+/** Two zones, one with a runner-up and one settled by a walkover with none. */
+export function referenceWinnerZones(): PublicTournamentWinnerZoneResponse[] {
+  const [meridian, ironclad, obsidian] = REFERENCE_ENTRANTS;
+  return [
+    {
+      zoneId: '01936f4a-2001-7000-8000-000000000001',
+      zoneName: 'Group A',
+      champion: {
+        entrantId: meridian.id,
+        name: meridian.name,
+        abbreviation: meridian.abbreviation,
+      },
+      runnerUp: {
+        entrantId: ironclad.id,
+        name: ironclad.name,
+        abbreviation: ironclad.abbreviation,
+      },
+    },
+    {
+      zoneId: '01936f4a-2002-7000-8000-000000000002',
+      zoneName: 'Group B',
+      champion: {
+        entrantId: obsidian.id,
+        name: obsidian.name,
+        abbreviation: obsidian.abbreviation,
+      },
+    },
+  ];
+}
+
+/** One tournament in each status, so a listing surface cannot special-case a single state. */
+export function referenceTournamentListing(): PublicTournamentListingItemResponse[] {
+  return [
+    {
+      tournamentId: '01936f4a-3001-7000-8000-000000000001',
+      alias: 'reference-cup',
+      name: 'Reference Cup',
+      status: 'live',
+      discipline: { descriptorId: 'football', version: '1', name: 'Football' },
+      dates: { startedAt: '2026-09-01T18:00:00.000Z' },
+      featured: true,
+    },
+    {
+      tournamentId: '01936f4a-3002-7000-8000-000000000002',
+      alias: 'reference-open',
+      name: 'Reference Open',
+      status: 'upcoming',
+      discipline: { descriptorId: 'football', version: '1', name: 'Football' },
+      featured: false,
+    },
+    {
+      tournamentId: '01936f4a-3003-7000-8000-000000000003',
+      alias: 'reference-league',
+      name: 'Reference League',
+      status: 'finished',
+      discipline: { descriptorId: 'football', version: '1', name: 'Football' },
+      dates: { startedAt: '2026-08-01T18:00:00.000Z', archivedAt: '2026-08-20T18:00:00.000Z' },
+      winners: referenceWinnerZones(),
+      featured: false,
+    },
+  ];
+}
+
+/** The public overview model every organization/tournament-listing organism composes against. */
+export function referenceOverview(): OverviewModel {
+  return buildOverview({
+    organizationAlias: 'reference-league',
+    tournamentAlias: 'reference-cup',
+    organizationName: 'Reference League',
+    tournamentName: 'Reference Cup',
+    seasonName: '2026',
+    status: 'live',
+    winners: referenceWinnerZones(),
+    matches: referenceGroupMatches(),
+    standings: referenceStandings(),
+    standingsGrain: 'match',
+    clubs: referenceClubs(),
+    ruleset: [
+      { label: 'Format', value: 'Round Robin' },
+      { label: 'Legs', value: 'Single' },
+    ],
+    // No `emblemObjectId`: the preview seam has no backend to serve an
+    // object-storage asset from, so any URL built from one 404s and the
+    // component would show a broken image rather than the placeholder its
+    // own empty-emblem path already renders honestly.
+  });
+}
+
+/** Two clubs, one with an emblem and one without. */
+export function referenceClubs(): PublicOverviewClubResponse[] {
+  return [
+    {
+      clubId: '01936f4a-5001-7000-8000-000000000001',
+      name: 'Meridian Athletic',
+      alias: 'meridian-athletic',
+    },
+    {
+      clubId: '01936f4a-5002-7000-8000-000000000002',
+      name: 'Ironclad Union',
+      alias: 'ironclad-union',
+      emblemObjectId: '01936f4a-5000-7000-8000-000000000000',
+    },
+  ];
+}
+
+const REFERENCE_ROSTER_HOME: PublicMatchRosterMemberResponse[] = [
+  {
+    personId: '01936f4a-6001-7000-8000-000000000001',
+    number: 1,
+    name: 'Jordan Ashworth',
+    roles: ['goalkeeper'],
+    onField: true,
+  },
+  {
+    personId: '01936f4a-6002-7000-8000-000000000002',
+    number: 7,
+    name: 'Priya Natarajan-Whitfield',
+    roles: ['forward', 'captain'],
+    onField: true,
+  },
+  {
+    personId: '01936f4a-6003-7000-8000-000000000003',
+    number: 12,
+    name: 'Kwame Osei',
+    onField: false,
+  },
+];
+
+const REFERENCE_ROSTER_AWAY: PublicMatchRosterMemberResponse[] = [
+  {
+    personId: '01936f4a-6004-7000-8000-000000000004',
+    number: 1,
+    name: 'Elif Yildirim',
+    roles: ['goalkeeper'],
+    onField: true,
+  },
+  {
+    personId: '01936f4a-6005-7000-8000-000000000005',
+    number: 9,
+    name: 'Mateus Albuquerque',
+    roles: ['forward'],
+    onField: true,
+  },
+];
+
+const REFERENCE_OFFICIALS: PublicMatchOfficialResponse[] = [
+  { name: 'Sam Delacroix-Whitmore', roles: ['referee'] },
+  { name: 'Noor Al-Rashid', roles: ['assistant-referee', 'var'] },
+];
+
+/** The full match-report model: rosters, officials and a mixed single/workflow timeline. */
+export function referenceMatchReportModel(): MatchReportModel {
+  const [home, away] = REFERENCE_ENTRANTS;
+  const timeline: MatchReportTimelineGroup[] = [
+    {
+      kind: 'single',
+      events: [
+        {
+          eventId: '01936f4a-7001-7000-8000-000000000001',
+          label: 'Kickoff',
+          occurredAt: '2026-09-01T18:00:00.000Z',
+        },
+      ],
+    },
+    {
+      kind: 'workflow',
+      events: [
+        {
+          eventId: '01936f4a-7002-7000-8000-000000000002',
+          label: 'Goal recorded',
+          occurredAt: '2026-09-01T18:22:00.000Z',
+          actor: 'table_ref_1',
+        },
+        {
+          eventId: '01936f4a-7003-7000-8000-000000000003',
+          label: 'Correction confirmed',
+          occurredAt: '2026-09-01T18:24:00.000Z',
+          actor: 'tournament_director',
+        },
+      ],
+    },
+  ];
+  return {
+    organizationName: 'Reference League',
+    tournamentName: 'Reference Cup',
+    stageNumber: 2,
+    matchNumber: 7,
+    round: 1,
+    status: 'live',
+    home: {
+      name: home.name,
+      abbreviation: home.abbreviation,
+      score: 3,
+      roster: REFERENCE_ROSTER_HOME,
+    },
+    away: {
+      name: away.name,
+      abbreviation: away.abbreviation,
+      score: 1,
+      roster: REFERENCE_ROSTER_AWAY,
+    },
+    scheduledAt: '2026-09-01T18:00:00.000Z',
+    venueName: 'Meridian Central Stadium',
+    schedulePublished: true,
+    officials: REFERENCE_OFFICIALS,
+    timeline,
+  };
+}
+
+/** One player profile with both competition history and career statistics populated. */
+export function referencePlayerProfile(): PublicPersonProfileResponse {
+  return {
+    personId: '01936f4a-8001-7000-8000-000000000001',
+    displayName: 'Priya Natarajan-Whitfield',
+    alias: 'priya-nw',
+    nationality: 'IN',
+    age: 27,
+    competitionHistory: [
+      {
+        tournamentId: '01936f4a-3001-7000-8000-000000000001',
+        tournamentName: 'Reference Cup',
+        tournamentAlias: 'reference-cup',
+        teamId: '01936f4a-9001-7000-8000-000000000001',
+        teamName: 'Meridian Seven',
+        role: 'player',
+        entrantId: REFERENCE_ENTRANTS[0].id,
+        entrantName: REFERENCE_ENTRANTS[0].name,
+        entrantAbbreviation: REFERENCE_ENTRANTS[0].abbreviation,
+        disciplineDescriptorId: 'football',
+        disciplineDescriptorVersion: '1',
+        disciplineName: 'Football',
+      },
+    ],
+    careerStatistics: [
+      {
+        disciplineDescriptorId: 'football',
+        disciplineName: 'Football',
+        statistics: [
+          { code: 'goals', label: 'Goals', value: 14, samples: 22 },
+          { code: 'assists', label: 'Assists', value: 6, samples: 22 },
+        ],
+      },
+    ],
+  };
+}
+
+/** The declared table layouts and a `team-ranking` projection over the tied standings. */
+export function referenceTableLayouts(): TableLayoutSummaryResponse[] {
+  return [
+    { code: 'group-table', target: 'group-phase', label: 'Group Table', entityGranularity: 'team' },
+    {
+      code: 'top-scorers',
+      target: 'player-ranking',
+      label: 'Top Scorers',
+      entityGranularity: 'player',
+    },
+  ];
+}
+
+export function referenceTableProjection(): TableProjectionResponse {
+  const table = referenceStandingsTable();
+  const cell = (value: number) => ({ raw: value, formatted: String(value) });
+  return {
+    layoutCode: 'group-table',
+    target: 'group-phase',
+    label: 'Group Table',
+    columns: [
+      { code: 'played', header: 'PJ', format: 'number' },
+      { code: 'wins', header: 'W', format: 'number' },
+      { code: 'draws', header: 'D', format: 'number' },
+      { code: 'losses', header: 'L', format: 'number' },
+      { code: 'goals-for', header: 'GF', format: 'number' },
+      { code: 'goals-against', header: 'GA', format: 'number' },
+      { code: 'score-difference', header: 'GD', format: 'number' },
+      { code: 'points', header: 'Pts', format: 'number' },
+    ],
+    defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+    rows: table.rows.map((row) => ({
+      actorId: row.entrantId,
+      entrantId: row.entrantId,
+      entrantName: row.name,
+      entrantAbbreviation: row.abbreviation,
+      rank: row.rank,
+      sharedRank: row.sharedRank,
+      cells: Object.fromEntries(
+        Object.entries(row.statistics)
+          .filter(([code]) => code !== 'head-to-head')
+          .map(([code, value]) => [code, cell(value)]),
+      ),
+    })),
+    projectionVersion: 12,
   };
 }

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TvDashboard, type TvPresentation } from './TvDashboard.js';
-import { publicIntl, tvStatisticsLabels } from '../../lib/i18n/public-intl.js';
+import { publicIntl, tvDashboardLabels, tvStatisticsLabels } from '../../lib/i18n/public-intl.js';
 import type { LiveDashboard } from '../../lib/live-state.js';
 import type { StandingsRowView } from '../../lib/overview.js';
 import type { TopPerformer } from '../../lib/tv-statistics.js';
@@ -68,6 +68,7 @@ function render(presentation: TvPresentation) {
     const language = (context.globals.locale ?? 'en') as SupportedLanguage;
     return (
       <TvDashboard
+        dashboardLabels={tvDashboardLabels(publicIntl(language))}
         initial={DASHBOARD}
         labels={tvStatisticsLabels(publicIntl(language))}
         language={language}
@@ -89,6 +90,7 @@ const meta = {
     initial: DASHBOARD,
     streamPath: '/stories/no-stream',
     labels: tvStatisticsLabels(publicIntl('en')),
+    dashboardLabels: tvDashboardLabels(publicIntl('en')),
     language: 'en' as SupportedLanguage,
   },
   parameters: { layout: 'fullscreen' },
@@ -130,6 +132,7 @@ export const NothingLive: Story = {
     const language = (context.globals.locale ?? 'en') as SupportedLanguage;
     return (
       <TvDashboard
+        dashboardLabels={tvDashboardLabels(publicIntl(language))}
         initial={{ matches: [], standingsVersion: 0, usingLastKnown: false }}
         labels={tvStatisticsLabels(publicIntl(language))}
         language={language}

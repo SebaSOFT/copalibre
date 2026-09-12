@@ -20,7 +20,7 @@ const NUMPAD_BUFFER_TIMEOUT_MS = 600;
 
 /**
  * A tactile, high-contrast alternative to the plain `<select>` dropdowns
- * `MatchConsoleRoute` used for attributing an event: two team panels of
+ * `MatchConsolePage` used for attributing an event: two team panels of
  * jersey buttons, on-field and bench visually separated, with role badges
  * read from the bound discipline's own `rosterRoles` declaration — never a
  * hardcoded "GK"/"C".

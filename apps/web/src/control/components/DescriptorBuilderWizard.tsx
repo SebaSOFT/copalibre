@@ -7,8 +7,10 @@ import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
-import { TerminalBlock } from './ui/atoms/TerminalBlock.js';
-import { FormField } from './ui/molecules/form-field.js';
+import { TerminalBlock } from './ui/atoms/terminal-block.js';
+import { Inline } from './ui/atoms/layout/inline.js';
+import { Stack } from './ui/atoms/layout/stack.js';
+import { Field } from './ui/molecules/field.js';
 import {
   ACTOR_REQUIREMENTS,
   AGGREGATION_MODES,
@@ -102,10 +104,7 @@ export function DescriptorBuilderWizard({
       <Card className="cl-chamfer cl-chamfer--control">
         {state.step === 'name' && (
           <div className="cl-platform-form-grid">
-            <FormField
-              id="descriptor-alias"
-              label={intl.formatMessage(messages.descriptorFieldAlias)}
-            >
+            <Field id="descriptor-alias" label={intl.formatMessage(messages.descriptorFieldAlias)}>
               <Input
                 aria-describedby="descriptor-alias-hint"
                 id="descriptor-alias"
@@ -116,8 +115,8 @@ export function DescriptorBuilderWizard({
                 id="descriptor-alias-hint"
                 text={intl.formatMessage(messages.descriptorDecisionAlias)}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="descriptor-version"
               label={intl.formatMessage(messages.descriptorFieldVersion)}
             >
@@ -126,7 +125,7 @@ export function DescriptorBuilderWizard({
                 onChange={(event) => patch({ version: event.target.value })}
                 value={state.version}
               />
-            </FormField>
+            </Field>
             <LocalizedField
               draft={state.name}
               id="descriptor-name"
@@ -145,7 +144,7 @@ export function DescriptorBuilderWizard({
 
         {state.step === 'authorship' && (
           <div className="cl-platform-form-grid">
-            <FormField
+            <Field
               id="descriptor-author"
               label={intl.formatMessage(messages.descriptorFieldAuthor)}
             >
@@ -159,8 +158,8 @@ export function DescriptorBuilderWizard({
                 id="descriptor-author-hint"
                 text={intl.formatMessage(messages.descriptorDecisionAuthor)}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="descriptor-licence"
               label={intl.formatMessage(messages.descriptorFieldLicence)}
             >
@@ -174,8 +173,8 @@ export function DescriptorBuilderWizard({
                 id="descriptor-licence-hint"
                 text={intl.formatMessage(messages.descriptorDecisionLicence)}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="descriptor-source-url"
               label={intl.formatMessage(messages.descriptorFieldSourceUrl)}
             >
@@ -184,20 +183,17 @@ export function DescriptorBuilderWizard({
                 onChange={(event) => patch({ sourceUrl: event.target.value })}
                 value={state.sourceUrl}
               />
-            </FormField>
+            </Field>
           </div>
         )}
 
         {state.step === 'participants' && (
           <div className="cl-platform-form-grid">
-            <FormField
+            <Field
               id="descriptor-participant-types"
               label={intl.formatMessage(messages.descriptorFieldParticipantTypes)}
             >
-              <div
-                aria-describedby="descriptor-participant-types-hint"
-                style={{ display: 'flex', gap: 'var(--cl-space-3)' }}
-              >
+              <Inline aria-describedby="descriptor-participant-types-hint" gap="3">
                 {(['individual', 'team'] as const).map((type) => (
                   <label
                     key={type}
@@ -219,13 +215,13 @@ export function DescriptorBuilderWizard({
                     <span>{type}</span>
                   </label>
                 ))}
-              </div>
+              </Inline>
               <DecisionHint
                 id="descriptor-participant-types-hint"
                 text={intl.formatMessage(messages.descriptorDecisionParticipantTypes)}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="descriptor-min-players"
               label={intl.formatMessage(messages.descriptorFieldMinPlayers)}
             >
@@ -236,8 +232,8 @@ export function DescriptorBuilderWizard({
                 type="number"
                 value={state.minPlayers}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="descriptor-max-players"
               label={intl.formatMessage(messages.descriptorFieldMaxPlayers)}
             >
@@ -253,7 +249,7 @@ export function DescriptorBuilderWizard({
                 id="descriptor-max-players-hint"
                 text={intl.formatMessage(messages.descriptorDecisionRosterConstraints)}
               />
-            </FormField>
+            </Field>
             <label
               className="cl-toggle cl-focusable"
               style={{ display: 'flex', gap: 'var(--cl-space-2)' }}
@@ -289,7 +285,7 @@ export function DescriptorBuilderWizard({
         )}
 
         {state.step === 'statistics' && (
-          <div style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
+          <Stack gap="4">
             <div>
               <h3>
                 <FormattedMessage {...messages.descriptorStatisticsHeading} />
@@ -326,19 +322,16 @@ export function DescriptorBuilderWizard({
                 statistics={state.statistics}
               />
             </div>
-          </div>
+          </Stack>
         )}
 
         {state.step === 'formats' && (
           <div className="cl-platform-form-grid">
-            <FormField
+            <Field
               id="descriptor-formats"
               label={intl.formatMessage(messages.descriptorFieldAvailableFormats)}
             >
-              <div
-                aria-describedby="descriptor-formats-hint"
-                style={{ display: 'grid', gap: 'var(--cl-space-2)' }}
-              >
+              <Stack aria-describedby="descriptor-formats-hint" gap="2">
                 {TOURNAMENT_FORMATS.map((format) => (
                   <label
                     key={format}
@@ -360,12 +353,12 @@ export function DescriptorBuilderWizard({
                     <span>{format}</span>
                   </label>
                 ))}
-              </div>
+              </Stack>
               <DecisionHint
                 id="descriptor-formats-hint"
                 text={intl.formatMessage(messages.descriptorDecisionFormats)}
               />
-            </FormField>
+            </Field>
             <div style={{ gridColumn: '1 / -1' }}>
               <h3>
                 <FormattedMessage {...messages.descriptorScoringInputsHeading} />
@@ -387,7 +380,7 @@ export function DescriptorBuilderWizard({
 
         {state.step === 'winCondition' && (
           <div className="cl-platform-form-grid">
-            <FormField
+            <Field
               id="descriptor-win-condition-mode"
               label={intl.formatMessage(messages.descriptorFieldWinConditionMode)}
             >
@@ -416,11 +409,11 @@ export function DescriptorBuilderWizard({
                 id="descriptor-win-condition-mode-hint"
                 text={intl.formatMessage(messages.descriptorDecisionWinConditionMode)}
               />
-            </FormField>
+            </Field>
 
             {state.winConditionMode === 'segmented' && (
               <>
-                <FormField
+                <Field
                   id="descriptor-segment-margin"
                   label={intl.formatMessage(messages.descriptorFieldSegmentMargin)}
                 >
@@ -436,8 +429,8 @@ export function DescriptorBuilderWizard({
                     type="number"
                     value={state.segmentMargin ?? ''}
                   />
-                </FormField>
-                <FormField
+                </Field>
+                <Field
                   id="descriptor-segment-name"
                   label={intl.formatMessage(messages.descriptorFieldSegmentName)}
                 >
@@ -454,8 +447,8 @@ export function DescriptorBuilderWizard({
                     ]}
                     value={state.segmentName}
                   />
-                </FormField>
-                <FormField
+                </Field>
+                <Field
                   id="descriptor-segment-target"
                   label={intl.formatMessage(messages.descriptorFieldSegmentTarget)}
                 >
@@ -471,8 +464,8 @@ export function DescriptorBuilderWizard({
                     type="number"
                     value={state.segmentTarget ?? ''}
                   />
-                </FormField>
-                <FormField
+                </Field>
+                <Field
                   id="descriptor-tiebreak-at"
                   label={intl.formatMessage(messages.descriptorFieldTiebreakAt)}
                 >
@@ -488,8 +481,8 @@ export function DescriptorBuilderWizard({
                     type="number"
                     value={state.tiebreakAt ?? ''}
                   />
-                </FormField>
-                <FormField
+                </Field>
+                <Field
                   id="descriptor-tiebreak-target"
                   label={intl.formatMessage(messages.descriptorFieldTiebreakTarget)}
                 >
@@ -505,8 +498,8 @@ export function DescriptorBuilderWizard({
                     type="number"
                     value={state.tiebreakTarget ?? ''}
                   />
-                </FormField>
-                <FormField
+                </Field>
+                <Field
                   id="descriptor-tiebreak-margin"
                   label={intl.formatMessage(messages.descriptorFieldTiebreakMargin)}
                 >
@@ -522,11 +515,11 @@ export function DescriptorBuilderWizard({
                     type="number"
                     value={state.tiebreakMargin ?? ''}
                   />
-                </FormField>
+                </Field>
               </>
             )}
 
-            <FormField
+            <Field
               id="descriptor-win-match-unit"
               label={intl.formatMessage(
                 state.winConditionMode === 'simple'
@@ -544,8 +537,8 @@ export function DescriptorBuilderWizard({
                 id="descriptor-win-match-unit-hint"
                 text={intl.formatMessage(messages.descriptorDecisionWinMatchUnit)}
               />
-            </FormField>
-            <FormField
+            </Field>
+            <Field
               id="descriptor-win-match-target"
               label={intl.formatMessage(messages.descriptorFieldWinMatchTarget)}
             >
@@ -566,7 +559,7 @@ export function DescriptorBuilderWizard({
                 id="descriptor-win-match-target-hint"
                 text={intl.formatMessage(messages.descriptorDecisionWinMatchTarget)}
               />
-            </FormField>
+            </Field>
           </div>
         )}
 
@@ -671,7 +664,7 @@ function LocalizedField({
   readonly required?: boolean;
 }): React.JSX.Element {
   return (
-    <FormField id={id} label={`${label}${required ? ' *' : ''}`}>
+    <Field id={id} label={`${label}${required ? ' *' : ''}`}>
       <Input
         id={id}
         onChange={(event) => onChange({ ...draft, en: event.target.value })}
@@ -696,7 +689,7 @@ function LocalizedField({
       <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
         <FormattedMessage {...messages.descriptorTranslationHelp} />
       </p>
-    </FormField>
+    </Field>
   );
 }
 
@@ -717,7 +710,7 @@ function SegmentTypeList({
     defaultDurationSeconds: string;
   }>({ name: '', label: '', timed: false, defaultDurationSeconds: '' });
   return (
-    <div style={{ display: 'grid', gap: 'var(--cl-space-3)' }}>
+    <Stack gap="3">
       {segments.length > 0 && (
         <ul>
           {segments.map((segment, index) => (
@@ -776,7 +769,7 @@ function SegmentTypeList({
           <FormattedMessage {...messages.descriptorAdd} />
         </Button>
       </div>
-    </div>
+    </Stack>
   );
 }
 
@@ -796,7 +789,7 @@ function StatisticList({
     aggregation: StatisticDraft['aggregation'];
   }>({ code: '', label: '', aggregation: 'sum' });
   return (
-    <div style={{ display: 'grid', gap: 'var(--cl-space-3)' }}>
+    <Stack gap="3">
       {statistics.length > 0 && (
         <ul>
           {statistics.map((statistic, index) => (
@@ -850,7 +843,7 @@ function StatisticList({
           <FormattedMessage {...messages.descriptorAdd} />
         </Button>
       </div>
-    </div>
+    </Stack>
   );
 }
 
@@ -886,7 +879,7 @@ function EventDefinitionList({
     awardsDelta: '1',
   });
   return (
-    <div style={{ display: 'grid', gap: 'var(--cl-space-3)' }}>
+    <Stack gap="3">
       {events.length > 0 && (
         <ul>
           {events.map((event, index) => (
@@ -964,7 +957,7 @@ function EventDefinitionList({
           />
         )}
         {segmentTypes.length > 0 && (
-          <div style={{ display: 'flex', gap: 'var(--cl-space-2)', flexWrap: 'wrap' }}>
+          <Inline gap="2" wrap>
             {segmentTypes.map((segment) => (
               <label
                 key={segment.name}
@@ -987,7 +980,7 @@ function EventDefinitionList({
                 <span>{segment.name}</span>
               </label>
             ))}
-          </div>
+          </Inline>
         )}
         <Button
           disabled={draft.code.trim() === '' || draft.label.trim() === ''}
@@ -1019,7 +1012,7 @@ function EventDefinitionList({
           <FormattedMessage {...messages.descriptorAdd} />
         </Button>
       </div>
-    </div>
+    </Stack>
   );
 }
 
@@ -1043,7 +1036,7 @@ function ScoringInputList({
     source: 'event-derived',
   });
   return (
-    <div style={{ display: 'grid', gap: 'var(--cl-space-3)' }}>
+    <Stack gap="3">
       {inputs.length > 0 && (
         <ul>
           {inputs.map((input, index) => (
@@ -1093,6 +1086,6 @@ function ScoringInputList({
           <FormattedMessage {...messages.descriptorAdd} />
         </Button>
       </div>
-    </div>
+    </Stack>
   );
 }

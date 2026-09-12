@@ -1,0 +1,98 @@
+---
+/**
+ * Extracted from the match report page (openspec 0225 task 7.2), unchanged
+ * in markup and styling.
+ */
+import type { MatchReportModel } from '../../../lib/match-report.ts';
+
+export interface Props {
+  readonly model: MatchReportModel;
+}
+
+const { model } = Astro.props;
+---
+
+<section class="cl-section-card" aria-labelledby="timeline-heading">
+  <h2 id="timeline-heading" class="cl-section-title">Event timeline</h2>
+  {
+    model.timeline.length === 0 ? (
+      <p class="cl-text-muted">Events are not yet available.</p>
+    ) : (
+      <ol class="cl-timeline-list">
+        {model.timeline.map((group) => (
+          <li
+            class="cl-timeline-item"
+            data-workflow-group={group.kind === 'workflow' ? 'true' : undefined}
+          >
+            {group.events.map((event) => (
+              <div class="cl-timeline-entry">
+                <time datetime={event.occurredAt} class="cl-timeline-time">
+                  {event.occurredAt}
+                </time>
+                <span class="cl-timeline-label">{event.label}</span>
+                {event.actor ? <span class="cl-timeline-actor">· {event.actor}</span> : null}
+              </div>
+            ))}
+          </li>
+        ))}
+      </ol>
+    )
+  }
+</section>
+
+<style>
+  .cl-section-card {
+    background: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
+    border-radius: var(--cl-radius-lg);
+    padding: var(--cl-space-5);
+  }
+
+  .cl-section-title {
+    margin: 0 0 1rem 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--cl-border-muted);
+    padding-bottom: 0.5rem;
+  }
+
+  .cl-text-muted {
+    color: var(--cl-text-muted);
+    font-size: 0.875rem;
+  }
+
+  .cl-timeline-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cl-timeline-entry {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .cl-timeline-time {
+    font-family: var(--cl-font-mono);
+    color: var(--cl-primary);
+    font-size: 0.8125rem;
+    /* An ISO timestamp has no space to wrap at (openspec 0225 task 7.4); at
+       the 188px floor it needs an in-word break rather than pushing the row
+       past the viewport. */
+    overflow-wrap: anywhere;
+  }
+
+  .cl-timeline-label {
+    font-weight: 500;
+  }
+
+  .cl-timeline-actor {
+    color: var(--cl-text-muted);
+  }
+</style>

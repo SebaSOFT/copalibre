@@ -1,6 +1,6 @@
 /**
  * Pure derivation logic for the live match console, extracted from
- * `MatchConsoleRoute.tsx` so it is unit-testable in isolation rather
+ * `MatchConsolePage.tsx` so it is unit-testable in isolation rather
  * than only reachable through a full component render.
  */
 

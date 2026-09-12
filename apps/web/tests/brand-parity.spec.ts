@@ -25,7 +25,7 @@ test.describe('Brand Design System Parity (0217)', () => {
     await mockLoginApi(page);
     await page.goto('/control/login');
 
-    const submitBtn = page.getByRole('button', { name: 'Ingresar' });
+    const submitBtn = page.getByRole('button', { name: 'Sign in' });
     await expect(submitBtn).toBeVisible({ timeout: 15_000 });
 
     const styles = await submitBtn.evaluate((el) => {
@@ -47,7 +47,7 @@ test.describe('Brand Design System Parity (0217)', () => {
       await mockLoginApi(page);
       await page.goto('/control/login');
 
-      await expect(page.getByRole('button', { name: 'Ingresar' })).toBeVisible({
+      await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible({
         timeout: 15_000,
       });
 
@@ -64,7 +64,7 @@ test.describe('Brand Design System Parity (0217)', () => {
   }) => {
     await mockLoginApi(page);
     await page.goto('/control/login');
-    await expect(page.getByRole('button', { name: 'Ingresar' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
 
     const result = await page.evaluate(() => {
       const container = document.createElement('div');

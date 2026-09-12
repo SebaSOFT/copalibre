@@ -93,14 +93,8 @@ describe('public tables and filter pills (openspec 0199)', () => {
     join(here, '../pages/[...locale]/[organization]/tournaments/[tournament].astro'),
     'utf8',
   );
-  const matchReport = readFileSync(
-    join(
-      here,
-      '../pages/[...locale]/[organization]/tournaments/[tournament]/stages/[stage]/matches/[match].astro',
-    ),
-    'utf8',
-  );
-  const standings = read('ui/organisms/StandingsPreview.astro');
+  const matchReport = read('ui/organisms/MatchRosters.astro');
+  const standings = read('ui/organisms/StandingsTable.astro');
 
   it('renders the state filter as a bounded pill group, not bare anchors', () => {
     expect(matchesPage).toContain('class="cl-pill-group"');

@@ -167,4 +167,17 @@ export const messages: Record<string, string> = {
   'publicWeb.header.navHelp': 'Guida',
   'publicWeb.header.navApiReference': 'Riferimento API',
   'publicWeb.header.controlPanel': 'Pannello di controllo',
+
+  // TvDashboard.tsx's own chrome (openspec 0225 task 2.6).
+  'publicWeb.tvDashboard.noMatchesScheduled': 'Nessuna partita programmata al momento',
+  'publicWeb.tvDashboard.standingsUnavailable': 'Classifica non disponibile',
+  'publicWeb.tvDashboard.clubColumn': 'Club',
+  'publicWeb.tvDashboard.playedColumn': 'PG',
+  'publicWeb.tvDashboard.noTopPerformers': 'Nessun protagonista registrato',
+  'publicWeb.tvDashboard.focalPanelLabel': 'Pannello principale della trasmissione',
+  'publicWeb.tvDashboard.statsAndTablesLabel': 'Statistiche e tabelle del torneo',
+  'publicWeb.tvDashboard.sidebarSectionsLabel': 'Sezioni laterali',
+  'publicWeb.tvDashboard.standingsTab': 'Classifica',
+  'publicWeb.tvDashboard.performersTab': 'Migliori giocatori',
+  'publicWeb.tvDashboard.statisticsTab': 'Statistiche',
 };

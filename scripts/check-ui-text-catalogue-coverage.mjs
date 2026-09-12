@@ -53,16 +53,17 @@ const BRAND_NAMES = new Set(['CopaLibre', 'COPALIBRE', 'COPALIBRE CMD']);
  * in any of these files fails, as does one in a file not listed, and improving
  * below the recorded number fails until it is lowered. Delete an entry at zero.
  */
-const KNOWN_HARDCODED = new Map([
-  // No intl is threaded into this TV component at all, so wiring it is a
-  // surface change rather than an attribute swap — TV surfaces are 0201/0202's.
-  ['TvDashboard.tsx', 3],
+/** Exported only so the register's ratchet behavior can be pinned in tests without depending on a real entry, which churns to empty as debt is paid off. */
+export const KNOWN_HARDCODED = new Map([
   // The three owned primitives that carried hardcoded labels are gone: 0214
   // made each one a required prop, so the copy comes from the caller's
   // catalogue and follows the interface language like everything else.
   // `pagination.tsx`, `modal.tsx` and `navigation-drawer.tsx` were here.
-  // No intl in scope; the form predates the shell's own provider wiring.
-  ['AcceptInvitationForm.tsx', 1],
+  // `TvDashboard.tsx` joined them in 0225 task 2.6: `dashboardLabels` now
+  // carries every interface string, threaded from both Astro page callers.
+  // `AcceptInvitationForm.tsx` joined them in 0225 task 8.4: it now uses
+  // `defineMessages`/`useIntl`, wrapped in `ControlIntl` at its real mount
+  // point (`AcceptInvitationScreen.tsx`).
 ]);
 
 /** Blanks comments while preserving offsets, so reported line numbers stay true. */
@@ -88,7 +89,8 @@ function lineOf(content, offset) {
   return line;
 }
 
-function isExempt(value) {
+/** Exported for `check-atomic-composition.mjs`'s R10, which extends this exemption logic to JSX/Astro text nodes. */
+export function isExempt(value) {
   const trimmed = value.trim();
   if (BRAND_NAMES.has(trimmed)) return true;
   return EXEMPT_VALUE.some((pattern) => pattern.test(trimmed));

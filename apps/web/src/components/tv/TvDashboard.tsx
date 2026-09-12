@@ -15,11 +15,14 @@ import {
   type ChampionInfo,
   type TvStatisticsLabels,
 } from '../../lib/tv-statistics.js';
+import { TvTeamSide } from './TvTeamSide.js';
+import { TvPerformersView } from './TvPerformersView.js';
+import { TvFactsView } from './TvFactsView.js';
+import { TvStandingsTable } from './ui/organisms/TvStandingsTable.js';
+import { TvRailTab } from './ui/atoms/TvRailTab.js';
+import type { TvClubItem, TvDashboardLabels } from './tv-types.js';
 
-export interface TvClubItem {
-  readonly name: string;
-  readonly emblemObjectId?: string;
-}
+export type { TvClubItem, TvDashboardLabels } from './tv-types.js';
 
 /**
  * `lower` is a compact score bug meant to sit over a camera feed; `full` is a
@@ -55,6 +58,15 @@ export interface TvDashboardProps {
    */
   readonly performerProjection?: TableProjectionResponse;
   readonly labels: TvStatisticsLabels;
+  /**
+   * The dashboard's own chrome text (openspec 0225 task 2.6) — separate
+   * from `labels`, which is `tv-statistics.ts`'s derived-stat vocabulary.
+   * No client-side react-intl is threaded into this component: every
+   * string it renders arrives pre-formatted, the same as `labels` already
+   * does, since this crosses into a `client:load` island whose props Astro
+   * serializes as JSON.
+   */
+  readonly dashboardLabels: TvDashboardLabels;
   readonly language: SupportedLanguage;
   readonly pollIntervalMs?: number;
 }
@@ -85,6 +97,7 @@ export function TvDashboard({
   topPerformers: initialTopPerformers,
   performerProjection,
   labels,
+  dashboardLabels,
   language,
   pollIntervalMs = 15_000,
 }: TvDashboardProps): React.JSX.Element {
@@ -105,13 +118,17 @@ export function TvDashboard({
     const updateClock = () => {
       const now = new Date();
       setCurrentTime(
-        now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        now.toLocaleTimeString(language, {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }),
       );
     };
     updateClock();
     const timer = setInterval(updateClock, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [language]);
 
   // 2. Motion Preference Listener
   useEffect(() => {
@@ -313,7 +330,7 @@ export function TvDashboard({
       {/* 2. Main Stage (Dominant Focal Panel + Secondary Rotating Rail) */}
       <main className="tv-main-stage">
         {/* DOMINANT FOCAL PANEL */}
-        <section aria-label="Panel Principal de Transmisión" className="tv-focal-panel cl-chamfer">
+        <section aria-label={dashboardLabels.focalPanelLabel} className="tv-focal-panel cl-chamfer">
           <div className="tv-focal-panel__header">
             <span className="tv-focal-panel__label">
               {allFinal && champion ? 'Recapitulativo de Campeonato' : 'Foco del Encuentro'}
@@ -389,197 +406,59 @@ export function TvDashboard({
           ) : (
             <div className="tv-champion">
               <h2 className="tv-champion__name">{tournamentName}</h2>
-              <p className="tv-champion__record">Sin encuentros programados actualmente</p>
+              <p className="tv-champion__record">{dashboardLabels.noMatchesScheduled}</p>
             </div>
           )}
         </section>
 
         {/* SECONDARY ROTATING RAIL */}
         {!isOverlay && (
-          <aside aria-label="Estadísticas y Tablas del Torneo" className="tv-rail-panel cl-chamfer">
+          <aside
+            aria-label={dashboardLabels.statsAndTablesLabel}
+            className="tv-rail-panel cl-chamfer"
+          >
             {/* Navigation Tabs */}
-            <nav aria-label="Secciones del panel lateral" className="tv-rail-nav">
-              <button
-                className={`tv-rail-tab cl-chamfer ${activeTab === 'standings' ? 'tv-rail-tab--active' : ''}`}
+            <nav aria-label={dashboardLabels.sidebarSectionsLabel} className="tv-rail-nav">
+              <TvRailTab
+                active={activeTab === 'standings'}
+                label={dashboardLabels.standingsTab}
                 onClick={() => setActiveTab('standings')}
-                type="button"
-              >
-                Posiciones
-              </button>
-              <button
-                className={`tv-rail-tab cl-chamfer ${activeTab === 'performers' ? 'tv-rail-tab--active' : ''}`}
+              />
+              <TvRailTab
+                active={activeTab === 'performers'}
+                label={dashboardLabels.performersTab}
                 onClick={() => setActiveTab('performers')}
-                type="button"
-              >
-                Destacados
-              </button>
-              <button
-                className={`tv-rail-tab cl-chamfer ${activeTab === 'facts' ? 'tv-rail-tab--active' : ''}`}
+              />
+              <TvRailTab
+                active={activeTab === 'facts'}
+                label={dashboardLabels.statisticsTab}
                 onClick={() => setActiveTab('facts')}
-                type="button"
-              >
-                Estadísticas
-              </button>
+              />
             </nav>
 
             {/* Tab Content */}
             <div className="tv-rail-content" data-testid="tv-rail-content">
-              {activeTab === 'standings' && <TvStandingsView clubs={clubs} standings={standings} />}
+              {activeTab === 'standings' && (
+                <TvStandingsTable
+                  clubs={clubs}
+                  dashboardLabels={dashboardLabels}
+                  pointsShortLabel={labels.pointsShort}
+                  standings={standings}
+                />
+              )}
 
-              {activeTab === 'performers' && <TvPerformersView performers={performers} />}
+              {activeTab === 'performers' && (
+                <TvPerformersView
+                  noTopPerformersLabel={dashboardLabels.noTopPerformers}
+                  performers={performers}
+                />
+              )}
 
               {activeTab === 'facts' && <TvFactsView facts={facts} />}
             </div>
           </aside>
         )}
       </main>
-    </div>
-  );
-}
-
-function TvTeamSide({
-  name,
-  abbreviation,
-  clubs,
-}: {
-  readonly name: string;
-  readonly abbreviation?: string;
-  readonly clubs?: readonly TvClubItem[];
-}): React.JSX.Element {
-  const club = clubs?.find((c) => c.name.toLowerCase() === name.toLowerCase());
-
-  return (
-    <div className="tv-team-side">
-      <div className="tv-team-side__emblem-wrap">
-        {club?.emblemObjectId ? (
-          <img
-            alt={name}
-            className="tv-team-side__emblem"
-            src={`/api/objects/${club.emblemObjectId}`}
-          />
-        ) : (
-          <div className="tv-team-side__monogram">
-            {abbreviation ?? name.substring(0, 2).toUpperCase()}
-          </div>
-        )}
-      </div>
-      <span className="tv-team-side__name">{name}</span>
-    </div>
-  );
-}
-
-function TvStandingsView({
-  standings,
-  clubs,
-}: {
-  readonly standings?: readonly StandingsRowView[];
-  readonly clubs?: readonly TvClubItem[];
-}): React.JSX.Element {
-  if (!standings || standings.length === 0) {
-    return (
-      <div style={{ padding: '2vmin', color: 'var(--tv-text-secondary)', textAlign: 'center' }}>
-        Tabla de posiciones no disponible
-      </div>
-    );
-  }
-
-  return (
-    <table className="tv-standings-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Club</th>
-          <th>PJ</th>
-          <th>Pts</th>
-        </tr>
-      </thead>
-      <tbody>
-        {standings.slice(0, 8).map((row) => {
-          const club = clubs?.find((c) => c.name.toLowerCase() === row.name.toLowerCase());
-          return (
-            <tr key={row.name}>
-              <td>{row.position}</td>
-              <td>
-                <div className="tv-table-club-cell">
-                  {club?.emblemObjectId ? (
-                    <img
-                      alt=""
-                      className="tv-table-club-emblem"
-                      src={`/api/objects/${club.emblemObjectId}`}
-                    />
-                  ) : (
-                    <span className="tv-table-club-monogram">
-                      {row.abbreviation ?? row.name.substring(0, 2).toUpperCase()}
-                    </span>
-                  )}
-                  <span>{row.name}</span>
-                </div>
-              </td>
-              <td>{row.played}</td>
-              <td>{row.points}</td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
-}
-
-function TvPerformersView({
-  performers,
-}: {
-  readonly performers: readonly TopPerformer[];
-}): React.JSX.Element {
-  if (performers.length === 0) {
-    return (
-      <div style={{ padding: '2vmin', color: 'var(--tv-text-secondary)', textAlign: 'center' }}>
-        Sin figuras destacadas registradas
-      </div>
-    );
-  }
-
-  return (
-    <div className="tv-performers-list">
-      {performers.map((p) => (
-        <article className="tv-performer-card cl-chamfer" key={`${p.rank}-${p.name}`}>
-          <div className="tv-performer-card__left">
-            <span className="tv-performer-card__rank">#{p.rank}</span>
-            {p.clubEmblemObjectId ? (
-              <img
-                alt=""
-                className="tv-table-club-emblem"
-                src={`/api/objects/${p.clubEmblemObjectId}`}
-              />
-            ) : null}
-            <div className="tv-performer-card__info">
-              <span className="tv-performer-card__name">{p.name}</span>
-              {p.clubName && <span className="tv-performer-card__club">{p.clubName}</span>}
-            </div>
-          </div>
-          <span className="tv-performer-card__score">
-            {p.statValue}{' '}
-            <small
-              style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--tv-text-secondary)' }}
-            >
-              {p.statLabel}
-            </small>
-          </span>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-function TvFactsView({ facts }: { readonly facts: readonly TournamentFact[] }): React.JSX.Element {
-  return (
-    <div className="tv-facts-grid">
-      {facts.map((fact) => (
-        <div className="tv-fact-tile cl-chamfer" key={fact.label}>
-          <span className="tv-fact-tile__label">{fact.label}</span>
-          <span className="tv-fact-tile__value">{fact.value}</span>
-          {fact.detail && <span className="tv-fact-tile__detail">{fact.detail}</span>}
-        </div>
-      ))}
     </div>
   );
 }

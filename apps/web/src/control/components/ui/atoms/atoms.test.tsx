@@ -19,6 +19,7 @@ import {
 import { Button } from './button.js';
 import { RadioGroup, RadioGroupItem } from './radio.js';
 import { FilePicker } from './file-picker.js';
+import { Form } from './form.js';
 
 describe('form-control atoms', () => {
   it('renders the default and error state classes for Input', () => {
@@ -87,6 +88,42 @@ describe('form-control atoms', () => {
     const trigger = screen.getByRole('combobox', { name: 'Role' });
     expect(trigger.className).toContain('cl-select--default');
     expect(within(trigger).getByText('Admin')).toBeDefined();
+  });
+
+  it('renders an optional leading icon inside the trigger, before the value', () => {
+    const { container } = render(
+      <Select
+        aria-label="Language"
+        icon={<span data-testid="select-icon">*</span>}
+        onValueChange={() => {}}
+        options={[{ value: 'en', label: 'English' }]}
+        value="en"
+      />,
+    );
+    const trigger = container.querySelector('button.cl-select');
+    expect(trigger).not.toBeNull();
+    const icon = screen.getByTestId('select-icon');
+    expect(trigger?.contains(icon)).toBe(true);
+    // "before the value": the icon node precedes the value's text node in
+    // document order within the trigger.
+    const position = icon.compareDocumentPosition(
+      within(trigger as HTMLElement).getByText('English'),
+    );
+    expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('omitting the icon prop renders the trigger exactly as before — no extra node, no layout change', () => {
+    const { container } = render(
+      <Select
+        aria-label="Role"
+        onValueChange={() => {}}
+        options={[{ value: 'admin', label: 'Admin' }]}
+        value="admin"
+      />,
+    );
+    const trigger = container.querySelector('button.cl-select');
+    // Only RadixSelect.Value's text and the chevron icon — nothing else.
+    expect(trigger?.textContent).toBe('Admin▾');
   });
 
   it('renders the error and disabled state classes for Select', () => {
@@ -256,6 +293,31 @@ describe('form-control atoms', () => {
     // change event
     fireEvent.change(select, { target: { value: 'viewer' } });
     expect(onValueChange).toHaveBeenCalledWith('viewer');
+  });
+});
+
+describe('Form', () => {
+  it('renders a <form> element and calls onSubmit', () => {
+    const onSubmit = jest.fn((event: React.FormEvent) => event.preventDefault());
+    const { container } = render(
+      <Form onSubmit={onSubmit}>
+        <button type="submit">Go</button>
+      </Form>,
+    );
+    const form = container.querySelector('form');
+    expect(form).not.toBeNull();
+    expect(form?.className).toContain('cl-form');
+    fireEvent.submit(form as HTMLFormElement);
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes noValidate through to the native element', () => {
+    const { container } = render(
+      <Form noValidate>
+        <span>x</span>
+      </Form>,
+    );
+    expect(container.querySelector('form')?.noValidate).toBe(true);
   });
 });
 

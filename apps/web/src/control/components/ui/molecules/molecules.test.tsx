@@ -3,24 +3,25 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { jest } from '@jest/globals';
-import { FormField } from './form-field.js';
+import { Field } from './field.js';
+import { FieldSet } from './field-set.js';
 import { DataEntityCard } from './data-entity-card.js';
 import { TableToolbar } from './table-toolbar.js';
 import { Pagination } from './pagination.js';
 import { EntityIdentityCell } from './entity-identity-cell.js';
 import { Input } from '../atoms/input.js';
 
-describe('FormField', () => {
+describe('Field', () => {
   it('renders identically whether it wraps an error or not, aside from the message', () => {
     const { container: withoutError } = render(
-      <FormField id="a" label="Correo">
+      <Field id="a" label="Correo">
         <Input id="a" onChange={() => {}} value="" />
-      </FormField>,
+      </Field>,
     );
     const { container: withError } = render(
-      <FormField errorText="Requerido" id="b" label="Correo">
+      <Field errorText="Requerido" id="b" label="Correo">
         <Input id="b" onChange={() => {}} value="" />
-      </FormField>,
+      </Field>,
     );
     // Same structural shape: a label, the control, then an optional message slot.
     expect(withoutError.querySelectorAll('.cl-form-field > *').length).toBe(2);
@@ -29,9 +30,9 @@ describe('FormField', () => {
 
   it('shows the error message with role=alert, not the help text', () => {
     render(
-      <FormField errorText="Requerido" helpText="Ayuda" id="c" label="Correo">
+      <Field errorText="Requerido" helpText="Ayuda" id="c" label="Correo">
         <Input id="c" onChange={() => {}} value="" />
-      </FormField>,
+      </Field>,
     );
     expect(screen.getByRole('alert').textContent).toBe('Requerido');
     expect(screen.queryByText('Ayuda')).toBeNull();
@@ -39,9 +40,9 @@ describe('FormField', () => {
 
   it('shows the help text when there is no error', () => {
     render(
-      <FormField helpText="Ayuda" id="d" label="Correo">
+      <Field helpText="Ayuda" id="d" label="Correo">
         <Input id="d" onChange={() => {}} value="" />
-      </FormField>,
+      </Field>,
     );
     expect(screen.getByText('Ayuda').className).toContain('cl-form-field__help');
     expect(screen.queryByRole('alert')).toBeNull();
@@ -49,11 +50,45 @@ describe('FormField', () => {
 
   it('renders no message slot when there is neither an error nor help text', () => {
     const { container } = render(
-      <FormField id="e" label="Correo">
+      <Field id="e" label="Correo">
         <Input id="e" onChange={() => {}} value="" />
-      </FormField>,
+      </Field>,
     );
     expect(container.querySelectorAll('.cl-form-field > *').length).toBe(2);
+  });
+
+  it('shows a required indicator, purely visual, when required is set', () => {
+    const { container: optional } = render(
+      <Field id="f" label="Correo">
+        <Input id="f" onChange={() => {}} value="" />
+      </Field>,
+    );
+    expect(optional.querySelector('.cl-form-field__required')).toBeNull();
+
+    const { container: required } = render(
+      <Field id="g" label="Correo" required>
+        <Input id="g" onChange={() => {}} value="" />
+      </Field>,
+    );
+    const indicator = required.querySelector('.cl-form-field__required');
+    expect(indicator).not.toBeNull();
+    expect(indicator?.getAttribute('aria-hidden')).toBe('true');
+  });
+});
+
+describe('FieldSet', () => {
+  it('renders a fieldset/legend pair, grouping its fields', () => {
+    render(
+      <FieldSet legend="Contacto">
+        <Field id="h" label="Correo">
+          <Input id="h" onChange={() => {}} value="" />
+        </Field>
+      </FieldSet>,
+    );
+    const fieldset = screen.getByRole('group', { name: 'Contacto' });
+    expect(fieldset.tagName).toBe('FIELDSET');
+    expect(screen.getByText('Contacto').tagName).toBe('LEGEND');
+    expect(screen.getByLabelText('Correo')).toBeDefined();
   });
 });
 

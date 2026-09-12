@@ -1,6 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
+import { createIntl, createIntlCache } from 'react-intl';
 import type { AuditRecordResponse } from './lib/api-client.js';
-import { changedKeys, summarizeState, toAuditLogItem } from './lib/audit-log.js';
+import { auditFieldLabel, changedKeys, summarizeState, toAuditLogItem } from './lib/audit-log.js';
+
+const intl = createIntl({ locale: 'en' }, createIntlCache());
 
 const base: AuditRecordResponse = {
   auditId: '01936f4a-9001-7000-8000-000000000001',
@@ -41,7 +44,23 @@ describe('audit records as ledger entries', () => {
       resultingState: { homeScore: 2 },
     });
     expect(item.type).toBe('correction');
-    expect(item.diff).toEqual({ previous: 'homeScore: 1', current: 'homeScore: 2' });
+    expect(item.diff).toEqual([{ field: 'homeScore', previous: '1', current: '2' }]);
+  });
+
+  it('names each changed field as itself, one row per field — a reschedule is two rows, not one mislabelled row', () => {
+    const item = toAuditLogItem({
+      ...base,
+      previousState: { startTime: '2026-09-05T18:00:00.000Z', venue: 'Court 1' },
+      resultingState: { startTime: '2026-09-05T19:00:00.000Z', venue: 'Court 2' },
+    });
+    expect(item.diff).toEqual([
+      {
+        field: 'startTime',
+        previous: '2026-09-05T18:00:00.000Z',
+        current: '2026-09-05T19:00:00.000Z',
+      },
+      { field: 'venue', previous: 'Court 1', current: 'Court 2' },
+    ]);
   });
 
   it('reads a record with no previous state as an ordinary entry', () => {
@@ -65,5 +84,20 @@ describe('audit records as ledger entries', () => {
     expect(item.action).toBe('SCORE_CORRECTION');
     expect(item.timestamp).toBe('2026-09-05T16:45:32.000Z');
     expect(item.id).toBe(base.auditId);
+  });
+});
+
+describe('auditFieldLabel', () => {
+  it('resolves a recognized field through the message catalogue', () => {
+    expect(auditFieldLabel('score', intl)).toBe('Score');
+    expect(auditFieldLabel('venueId', intl)).toBe('Venue');
+  });
+
+  it('humanizes an unrecognized camelCase field rather than showing the raw key', () => {
+    expect(auditFieldLabel('venueCapacity', intl)).toBe('Venue Capacity');
+  });
+
+  it('capitalizes an unrecognized single-word field', () => {
+    expect(auditFieldLabel('capacity', intl)).toBe('Capacity');
   });
 });

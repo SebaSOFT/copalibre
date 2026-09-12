@@ -99,10 +99,10 @@ export const LEGACY_FOCUSED_UNIT_RERUNS = [
   {
     workspace: '@copalibre/web',
     pattern:
-      'authoring\\.test|authoring-ui\\.test|StandingsPage\\.test|overview\\.test|public-api-client\\.test',
+      'authoring\\.test|authoring-ui\\.test|StandingsTemplate\\.test|overview\\.test|public-api-client\\.test',
   },
   { workspace: '@copalibre/web', pattern: 'control-help-links|help-coverage' },
-  { workspace: '@copalibre/web', pattern: 'MatchCard|MatchesViewRoute' },
+  { workspace: '@copalibre/web', pattern: 'MatchCard|MatchesViewPage' },
   { workspace: '@copalibre/web', pattern: 'tv-branding|device-heartbeat' },
   { workspace: '@copalibre/domain', pattern: 'i18n' },
   { workspace: '@copalibre/web', pattern: 'language-preference' },

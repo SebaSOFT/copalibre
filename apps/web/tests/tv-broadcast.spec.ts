@@ -76,9 +76,9 @@ test('rotating rail allows navigation through standings, performers, and facts',
   await page.goto('/tv/liga-mendocina/tournaments/apertura-2026');
 
   // Verify rail tabs are present
-  const performersBtn = page.getByRole('button', { name: 'Destacados' });
-  const factsBtn = page.getByRole('button', { name: 'Estadísticas' });
-  const standingsBtn = page.getByRole('button', { name: 'Posiciones' });
+  const performersBtn = page.getByRole('button', { name: 'Top performers' });
+  const factsBtn = page.getByRole('button', { name: 'Statistics' });
+  const standingsBtn = page.getByRole('button', { name: 'Standings' });
 
   await expect(performersBtn).toBeVisible({ timeout: 10_000 });
   await performersBtn.click();
