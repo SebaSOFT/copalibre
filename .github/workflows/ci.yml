@@ -609,6 +609,11 @@ jobs:
             --run-id="${{ github.run_id }}" \
             --commit="${{ github.sha }}" \
             --config="production"
+      # tv-soak-test.mjs drives a real headless Chromium via Playwright — this
+      # job is a fresh runner from e2e-tests-shard's, so its browser install
+      # doesn't carry over. Only ever exercised on a release-candidate
+      # (main-targeting) PR, which is why this was never caught before.
+      - run: yarn playwright install --with-deps chromium
       - name: TV soak-test (accelerated proxy)
         run: |
           yarn workspace @copalibre/web run preview &
