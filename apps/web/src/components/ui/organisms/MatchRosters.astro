@@ -37,43 +37,45 @@ const { model, locale, organization, tournament } = Astro.props;
             {side.roster.length === 0 ? (
               <p class="cl-text-muted">Roster not yet available.</p>
             ) : (
-              <table class="cl-table">
-                <thead>
-                  <tr>
-                    <th scope="col" style="width: 44px;">
-                      No.
-                    </th>
-                    <th scope="col">Player</th>
-                    <th scope="col">Roles</th>
-                    <th scope="col" style="width: 80px;">
-                      On field
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {side.roster.map((member) => (
+              <div class="cl-table-scroll">
+                <table class="cl-table">
+                  <thead>
                     <tr>
-                      <td class="cl-num-cell">{member.number ?? '—'}</td>
-                      <td class="cl-name-cell">
-                        <a
-                          href={`${locale ? `/${locale}` : ''}/${encodeURIComponent(organization)}/tournaments/${encodeURIComponent(tournament)}/players/${encodeURIComponent(member.personId)}`}
-                          class="cl-player-link"
-                        >
-                          {member.name}
-                        </a>
-                      </td>
-                      <td>{member.roles?.join(', ') ?? '—'}</td>
-                      <td>
-                        <span
-                          class={`cl-indicator ${member.onField ? 'cl-indicator--active' : ''}`}
-                        >
-                          {member.onField ? 'Yes' : 'No'}
-                        </span>
-                      </td>
+                      <th scope="col" style="width: 44px;">
+                        No.
+                      </th>
+                      <th scope="col">Player</th>
+                      <th scope="col">Roles</th>
+                      <th scope="col" style="width: 80px;">
+                        On field
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {side.roster.map((member) => (
+                      <tr>
+                        <td class="cl-num-cell">{member.number ?? '—'}</td>
+                        <td class="cl-name-cell">
+                          <a
+                            href={`${locale ? `/${locale}` : ''}/${encodeURIComponent(organization)}/tournaments/${encodeURIComponent(tournament)}/players/${encodeURIComponent(member.personId)}`}
+                            class="cl-player-link"
+                          >
+                            {member.name}
+                          </a>
+                        </td>
+                        <td>{member.roles?.join(', ') ?? '—'}</td>
+                        <td>
+                          <span
+                            class={`cl-indicator ${member.onField ? 'cl-indicator--active' : ''}`}
+                          >
+                            {member.onField ? 'Yes' : 'No'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         ))}

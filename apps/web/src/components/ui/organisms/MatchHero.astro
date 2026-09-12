@@ -89,6 +89,7 @@ const { model } = Astro.props;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-wrap: wrap;
     gap: 1.5rem;
     margin: 1rem 0;
   }
@@ -98,6 +99,11 @@ const { model } = Astro.props;
     align-items: center;
     gap: 1rem;
     flex: 1;
+    /* No `min-width: 0` here (openspec 0225 task 7.4): that would let this
+       side shrink and squeeze its own content instead of wrapping to its own
+       line, which is what `.cl-scoreboard`'s `flex-wrap` is there to do at
+       the 188px floor. */
+    min-width: max-content;
   }
 
   .cl-scoreboard__side--home {

@@ -73,6 +73,7 @@ const { model } = Astro.props;
   .cl-timeline-entry {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.75rem;
     font-size: 0.875rem;
   }
@@ -81,6 +82,10 @@ const { model } = Astro.props;
     font-family: var(--cl-font-mono);
     color: var(--cl-primary);
     font-size: 0.8125rem;
+    /* An ISO timestamp has no space to wrap at (openspec 0225 task 7.4); at
+       the 188px floor it needs an in-word break rather than pushing the row
+       past the viewport. */
+    overflow-wrap: anywhere;
   }
 
   .cl-timeline-label {

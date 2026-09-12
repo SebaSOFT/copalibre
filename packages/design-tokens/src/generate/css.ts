@@ -1102,7 +1102,11 @@ function components(): string {
     // for `LIVE` — plus a running clock exceeds the card, so the pair wraps
     // rather than widening the card past the viewport.
     '.cl-match-card__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cl-space-3); min-width: 0; }',
-    '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); color: var(--cl-state-live); font-variant-numeric: tabular-nums; }',
+    // `overflow-wrap: anywhere` (openspec 0225 task 7.4): an ISO datetime has
+    // no space to wrap at, so at the 188px reference width the clock alone —
+    // not the header row it sits in, which already wraps — held its full
+    // unbroken width and pushed the card past the viewport.
+    '.cl-match-card__clock { font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); color: var(--cl-state-live); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }',
     // A grid of match cards, promoted out of `MatchCardGrid.astro`'s scoped
     // style so the React surfaces can compose it too. While it lived there,
     // `LiveMatchHero` had no grid to reach and stacked one full-width card per
@@ -1116,7 +1120,13 @@ function components(): string {
     '.cl-match-card__sides { display: grid; gap: var(--cl-space-2); margin: 0; padding: 0; list-style: none; }',
     '.cl-match-card__side { display: flex; align-items: center; gap: var(--cl-space-2); min-width: 0; }',
     '.cl-match-card__side .cl-badge--rank { font-family: var(--cl-font-mono); font-variant-numeric: tabular-nums; flex: 0 0 auto; }',
-    ".cl-match-card__side > span[data-testid='entrant-name'] { flex: 1 1 auto; font-family: var(--cl-font-display); font-weight: var(--cl-weight-medium); font-size: var(--cl-font-size-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
+    // A descendant selector, not a direct-child one (openspec 0225 task 7.4):
+    // `EntrantName` hydrates via `client:load`, and Astro wraps a hydrated
+    // island in an intervening `<astro-island>` element. `display: contents`
+    // keeps that wrapper out of the flex layout, but a DOM combinator still
+    // sees it — `>` never matched past it, so the name rendered at its full,
+    // unconstrained width and pushed the 188px reference width sideways.
+    ".cl-match-card__side span[data-testid='entrant-name'] { flex: 1 1 auto; font-family: var(--cl-font-display); font-weight: var(--cl-weight-medium); font-size: var(--cl-font-size-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
     '.cl-match-card__side .cl-stat-tile__value { flex: 0 0 auto; font-size: var(--cl-font-size-2xl); background: none; padding: 0; }',
     '.cl-match-card__scope, .cl-match-card__venue, .cl-match-card__event { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; letter-spacing: var(--cl-tracking-wide); }',
     '.cl-match-card__event { color: var(--cl-text-secondary); }',

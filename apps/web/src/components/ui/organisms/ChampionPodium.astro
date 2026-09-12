@@ -179,6 +179,9 @@ const { winners, intl, prominent = false } = Astro.props;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--cl-text-muted);
+    /* A longer translated label (German "Zweitplatzierter") can otherwise
+       push this flex column past a narrow viewport (openspec 0225 task 7.4). */
+    overflow-wrap: anywhere;
   }
 
   .cl-entrant-name {

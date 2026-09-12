@@ -68,8 +68,13 @@ const { model } = Astro.props;
     border-radius: 6px;
     border: 1px solid var(--cl-border-muted);
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
     font-size: 0.875rem;
+    /* Bounds the tile to the reference viewport instead of letting an
+       unhyphenatable role name (`assistant-referee`) push it past 188px
+       (openspec 0225 task 7.4). */
+    max-width: 100%;
   }
 
   .cl-official-name {
@@ -78,5 +83,6 @@ const { model } = Astro.props;
 
   .cl-official-roles {
     color: var(--cl-text-muted);
+    overflow-wrap: anywhere;
   }
 </style>

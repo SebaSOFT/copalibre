@@ -492,12 +492,12 @@ export const KNOWN_ORPHANS = new Map([
   // the five files named in check-ui-ownership.mjs's KNOWN_RAW_ELEMENTS
   // comment. FieldSet's own entry is gone the same way — task 2.5's
   // finalize-winner control gave it one.
-  // DataTable.astro and Modal.astro (task 2.3) ship before their consumers
-  // adopt them, same as the primitives above. Adopting them is what lets
-  // KNOWN_RAW_ELEMENTS' StandingsTable.astro/PlayerProfileView.astro
-  // entries in check-ui-ownership.mjs finally be paid down.
-  ['components/ui/organisms/DataTable.astro', 1],
-  ['components/ui/organisms/Modal.astro', 1],
+  // DataTable.astro's and Modal.astro's own entries are gone: openspec 0225
+  // task 7.4 gave both a preview-seam consumer (they render in isolation at
+  // `/__preview/data-table` and `/__preview/modal`), so they are no longer
+  // orphans. Their production adoption — paying down KNOWN_RAW_ELEMENTS'
+  // StandingsTable.astro/PlayerProfileView.astro entries in
+  // check-ui-ownership.mjs — remains separate, unstarted work.
 ]);
 
 /**

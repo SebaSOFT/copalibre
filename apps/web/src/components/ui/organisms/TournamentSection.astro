@@ -72,6 +72,7 @@ const {
   .cl-section-header {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.5rem;
   }
 
@@ -80,6 +81,11 @@ const {
     font-weight: 700;
     margin: 0;
     color: var(--cl-text-primary);
+    /* Lets the row wrap instead of forcing the header wider than a narrow
+       viewport (openspec 0225 task 7.4) — a flex child's minimum width
+       otherwise defaults to its unbroken text width. */
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .cl-section-count {

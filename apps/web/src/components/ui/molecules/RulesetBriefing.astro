@@ -63,7 +63,10 @@ function formatRuleValue(value: string): string {
 <style>
   .cl-ruleset-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    /* `min(200px, 100%)`, not a bare `200px` floor (openspec 0225 task 7.4):
+       a bare floor wider than the 188px zoom viewport forces the grid itself
+       past the container, since no track may shrink below its minimum. */
+    grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
     gap: var(--cl-space-3);
     margin: var(--cl-space-3) 0 0 0;
   }
