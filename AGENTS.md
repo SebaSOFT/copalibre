@@ -125,31 +125,72 @@ Screen coverage is derived dynamically from the filesystem: `scripts/check-ui-ow
 recursively walks `apps/web/src` across operator, public and TV React surfaces, including nested
 library tiers and `control/i18n`. Each React surface requires a sibling `*.stories.tsx`, excluding
 only the declared non-screen categories (routers, providers, fixtures, and deferred). Explicit
-router/provider/deferred exclusions use paths relative to `apps/web/src`; Astro files remain outside
-the React story gate. See `docs/SCREEN-STORY-REVIEW.md` for fixture boundaries and review findings,
+router/provider/deferred exclusions use paths relative to `apps/web/src`; a page stays exempt by
+tier, not by file type — an Astro **page** carries no story requirement because
+`check-atomic-composition.mjs` holds the page tier accountable for its own presentation instead, but
+an Astro **library** component (atom/molecule/organism/template) is not exempt: it needs a story or,
+since Storybook cannot render `.astro`, an entry in the preview seam below. See
+`docs/SCREEN-STORY-REVIEW.md` for fixture boundaries and review findings,
 `docs/reviews/0222-owned-control-coverage.md` for the current coverage and background review, and
 `docs/reviews/0223-operational-surface-compositions.md` for the composition parity pass — including
 what that pass deliberately leaves unreviewed.
 
-### Component ownership, on every surface
+The preview seam, `apps/web/src/preview/AstroPreview.astro` (dev-server only; 404s outside `DEV`),
+renders a real `.astro` library component through the real Astro renderer at `/__preview/<id>`,
+framed from Storybook by `components/ui/AstroPreview.tsx`. It exists because Storybook has no Astro
+renderer — re-creating a server-rendered component's markup in React would only prove an imitation
+agrees with itself. `PREVIEWABLE` is an allowlisted id set, not an arbitrary-markup endpoint; adding a
+component means adding its id and a render branch with reference-fixture props (`lib/reference-fixtures.ts`).
 
-`scripts/check-ui-ownership.mjs` (formerly `check-control-ui-ownership.mjs`) governs the operator
-panel, the public site and the broadcast overlays alike, reading `.tsx`, `.ts` and `.astro`. It
-enforces three things: no raw element the library replaces (`dialog`, `table`, `textarea`, `button`,
-`input`, `select`), no hand-writing a class an owned component applies (`cl-card`, `cl-badge`,
-`cl-btn`, `cl-data-table`), and a story for every owned library component.
+### The five tiers, and the two scripts that enforce them
 
-**Ownership is a directory, not a list.** A file inside a `ui/` directory _defines_ the design
-language; a file outside one _composes_ it. That holds identically for `control/components/ui` (the
-React library) and `components/ui` (the server-rendered public primitives — `Button.astro`,
-`StateBadge.astro`, `EmblemImage.astro`, `Logo.astro`, `PersonPhotoImage.astro`). A new primitive
-goes in a `ui/` directory; nothing else needs telling.
+Every UI surface belongs to one of five tiers — **Atom → Molecule → Organism → Template → Page** —
+and the tier decides what a file may compose and what it must not do itself:
 
-Existing violations live in two ratcheting registers, `KNOWN_RAW_ELEMENTS` and
-`KNOWN_HANDWRITTEN_CLASSES`. Both key on the **path** relative to `apps/web/src`, never the file
-name — `index.astro`, `[match].astro`, `[tournament].astro` and `emblem.ts` each exist more than
-once. A count may only go down: adding a violation to a listed file fails, so does adding one to an
-unlisted file, and _removing_ one fails until the recorded number is lowered. Delete an entry at zero.
+| Tier     | What it is                                                                         | Where it lives                                                                                                                                                                                                                                                                         |
+| -------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Atom     | The smallest owned primitive (a button, a badge, an image frame)                   | `control/components/ui/atoms/`, `components/ui/atoms/`                                                                                                                                                                                                                                 |
+| Molecule | A few atoms composed with no data access of its own                                | `control/components/ui/molecules/`, `components/ui/molecules/`                                                                                                                                                                                                                         |
+| Organism | A larger composition, still presentation-only                                      | `control/components/ui/organisms/`, `components/ui/organisms/`, `components/tv/ui/organisms/`                                                                                                                                                                                          |
+| Template | The screen's structural shape — layout only, no fetching                           | `control/components/ui/layouts/` (`ListScreenLayout`, `FormScreenLayout`, `AuthScreenLayout`, `MatchConsoleLayout`); a template's own JSX/props half of a screen also lives as `*Template.tsx` beside its `*Page.tsx` in `control/components/screens/` and `control/components/pages/` |
+| Page     | Owns the API client, every fetch/mutation, and composes a Template with the result | `control/components/pages/`, `apps/web/src/pages/` (Astro routes)                                                                                                                                                                                                                      |
+
+**Two scripts enforce this, each with its own registers — do not conflate them:**
+
+- **`scripts/check-ui-ownership.mjs`** asks _does this file compose the owned library instead of
+  reinventing it?_ It flags a raw element the library replaces (`dialog`, `table`, `textarea`,
+  `button`, `input`, `select`, plus form-structure and table-part tags), a hand-written class an
+  owned component already applies (`cl-card`, `cl-badge`, `cl-btn`, `cl-data-table`), and missing
+  story/preview coverage. Its debt lives in `KNOWN_RAW_ELEMENTS` and `KNOWN_HANDWRITTEN_CLASSES`.
+- **`scripts/check-atomic-composition.mjs`** asks _is this file honoring its own tier's contract?_
+  (rules R1–R13: a tier importing above itself, inline layout below the template tier, a raw CSS
+  value outside the token layer, data access below the page tier, literal text outside the message
+  catalogue, an orphaned library member, and more). Its debt lives in nine separate registers
+  (`KNOWN_UNDECLARED_TIER`, `KNOWN_INLINE_LAYOUT`, `KNOWN_RAW_STYLE_VALUES`,
+  `KNOWN_DATA_BELOW_PAGE`, `KNOWN_ORPHANS`, `KNOWN_DUPLICATE_NAMES`, `KNOWN_MULTI_ATOM_OWNERSHIP`,
+  `KNOWN_LITERAL_TEXT`, plus the currently-empty `KNOWN_UPWARD_IMPORTS`/`KNOWN_I18N_BELOW_ORGANISM`/
+  `KNOWN_CASING_VIOLATIONS`/`KNOWN_CATALOGUE_GAPS`/`KNOWN_BANNED_ORNAMENT`), one per rule, because a
+  file can carry unrelated debt against more than one rule at once.
+
+**Ownership is a directory only for the atom tier.** A file inside `ui/atoms` _defines_ the design
+language; nothing else gets that exemption merely for sharing a `ui/` parent. A molecule, organism,
+or template under `ui/` is governed exactly like a file outside it — the handful that genuinely
+_are_ a primitive's own definition (`DataTable.astro`/`data-table.tsx`, `Modal.astro`,
+`field-set.tsx`, the TV surface's `TvStandingsTable.tsx`) are named individually in
+`check-ui-ownership.mjs`'s owner-file sets, not exempted by directory. That holds identically for
+`control/components/ui` (the React library) and `components/ui`/`components/tv/ui` (the
+server-rendered public and broadcast primitives). A new primitive goes in a `ui/atoms` directory;
+nothing else needs telling.
+
+Every register keys on the **path** relative to `apps/web/src`, never the file name —
+`index.astro`, `[match].astro`, `[tournament].astro` and `emblem.ts` each exist more than once. A
+count may only go down: adding a violation to a listed file fails, so does adding one to an unlisted
+file, and _removing_ one fails until the recorded number is lowered. Delete an entry at zero. A file
+recorded as debt always carries a stated reason in a comment above its entry — a genuine library gap
+(no atom exists yet for the shape), a deferred adoption (the owned component can't yet express what
+the raw markup does, e.g. a per-row link `DataTable`'s `render` callback can't produce), or
+historical debt from before the rule existed. None of it is a blanket exemption: the same rule
+applies to every surface, and a file's entry names exactly what it owes.
 
 Yarn must use the conventional `node-modules` linker with the global cache. Do not enable PnP or Zero-Installs, and do not commit Yarn cache artifacts. Workspace scripts that execute a root development tool should follow the existing explicit `../../node_modules/.bin/<tool>` pattern when Yarn does not expose the hoisted binary.
 
