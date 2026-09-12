@@ -16,7 +16,7 @@ import { chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/prom
 import { tmpdir } from 'node:os';
 import { dirname, join, normalize, relative, sep } from 'node:path';
 import { pipeline } from 'node:stream/promises';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import * as yauzl from 'yauzl';
 import { x as extractTar } from 'tar';
 
@@ -229,6 +229,11 @@ async function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// A plain `file://${process.argv[1]}` comparison fails on Windows: a Windows
+// path uses `\` separators and no leading slash before the drive letter, so
+// it never matches `import.meta.url`'s properly encoded `file:///D:/...`
+// form — the entrypoint check would silently skip `main()` on every Windows
+// run, producing no binary and no error.
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   await main();
 }
