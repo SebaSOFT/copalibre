@@ -1,6 +1,12 @@
 import type { RecordedOutcome, SeriesDeclaration } from '@copalibre/domain';
 import { InvalidEntrantsError } from '../errors.js';
-import { isDuelMatch, type GeneratedMatch, type SeededEntrant, type SlotSource } from '../types.js';
+import {
+  isDuelMatch,
+  type DuelMatch,
+  type GeneratedMatch,
+  type SeededEntrant,
+  type SlotSource,
+} from '../types.js';
 
 export interface GenerateNextSwissRoundInput {
   readonly round: number;
@@ -151,7 +157,27 @@ export function generateNextSwissRoundFixtures(
 
   const duelMatches = previousMatches.filter(isDuelMatch);
 
-  // 1. History extraction: Rematches and prior byes
+  const { playedPairs, hadBye } = extractSwissHistory(duelMatches);
+  const { scores, buchholz } = calculateSwissScores(entrants, outcomes, duelMatches);
+  const { byeEntrant, activeEntrants } = allocateSwissBye(entrants, hadBye, scores);
+
+  return pairSwissRound({
+    round,
+    prefix,
+    series,
+    activeEntrants,
+    scores,
+    buchholz,
+    playedPairs,
+    byeEntrant,
+  });
+}
+
+/** Phase 1: rematches already played and who already had a bye. */
+function extractSwissHistory(duelMatches: readonly DuelMatch[]): {
+  readonly playedPairs: ReadonlySet<string>;
+  readonly hadBye: ReadonlySet<string>;
+} {
   const playedPairs = new Set<string>();
   const hadBye = new Set<string>();
 
@@ -163,7 +189,18 @@ export function generateNextSwissRoundFixtures(
     }
   }
 
-  // 2. Score calculation
+  return { playedPairs, hadBye };
+}
+
+/** Phase 2: each entrant's running score and Buchholz (opponents' scores) tiebreak. */
+function calculateSwissScores(
+  entrants: readonly SeededEntrant[],
+  outcomes: readonly RecordedOutcome[],
+  duelMatches: readonly DuelMatch[],
+): {
+  readonly scores: ReadonlyMap<string, number>;
+  readonly buchholz: ReadonlyMap<string, number>;
+} {
   const scores = new Map<string, number>();
   for (const e of entrants) {
     scores.set(e.entrantId, 0);
@@ -210,28 +247,55 @@ export function generateNextSwissRoundFixtures(
     buchholz.set(e.entrantId, sum);
   }
 
-  // 3. Bye allocation for odd number of entrants
-  let byeEntrant: SeededEntrant | undefined;
-  let activeEntrants = [...entrants];
+  return { scores, buchholz };
+}
 
-  if (entrants.length % 2 === 1) {
-    const eligibleForBye = entrants.filter((e) => !hadBye.has(e.entrantId));
-    const pool = eligibleForBye.length > 0 ? eligibleForBye : entrants;
-
-    const sortedPool = [...pool].sort((a, b) => {
-      const scoreDiff = (scores.get(a.entrantId) ?? 0) - (scores.get(b.entrantId) ?? 0);
-      if (scoreDiff !== 0) return scoreDiff;
-      return b.seed - a.seed; // lowest seed (highest number) first
-    });
-
-    const firstCandidate = sortedPool[0];
-    if (firstCandidate !== undefined) {
-      byeEntrant = firstCandidate;
-      activeEntrants = entrants.filter((e) => e.entrantId !== firstCandidate.entrantId);
-    }
+/** Phase 3: bye allocation for an odd number of entrants — lowest score, then lowest seed, among those who haven't had one yet. */
+function allocateSwissBye(
+  entrants: readonly SeededEntrant[],
+  hadBye: ReadonlySet<string>,
+  scores: ReadonlyMap<string, number>,
+): {
+  readonly byeEntrant: SeededEntrant | undefined;
+  readonly activeEntrants: readonly SeededEntrant[];
+} {
+  if (entrants.length % 2 !== 1) {
+    return { byeEntrant: undefined, activeEntrants: entrants };
   }
 
-  // 4. Dutch Swiss pairing algorithm
+  const eligibleForBye = entrants.filter((e) => !hadBye.has(e.entrantId));
+  const pool = eligibleForBye.length > 0 ? eligibleForBye : entrants;
+
+  const sortedPool = [...pool].sort((a, b) => {
+    const scoreDiff = (scores.get(a.entrantId) ?? 0) - (scores.get(b.entrantId) ?? 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    return b.seed - a.seed; // lowest seed (highest number) first
+  });
+
+  const firstCandidate = sortedPool[0];
+  if (firstCandidate === undefined) {
+    return { byeEntrant: undefined, activeEntrants: entrants };
+  }
+  return {
+    byeEntrant: firstCandidate,
+    activeEntrants: entrants.filter((e) => e.entrantId !== firstCandidate.entrantId),
+  };
+}
+
+/** Phase 4: Dutch Swiss pairing — sort by score/Buchholz/seed, solve for a rematch-free pairing, append fixtures. */
+function pairSwissRound(input: {
+  readonly round: number;
+  readonly prefix: string;
+  readonly series: SeriesDeclaration | undefined;
+  readonly activeEntrants: readonly SeededEntrant[];
+  readonly scores: ReadonlyMap<string, number>;
+  readonly buchholz: ReadonlyMap<string, number>;
+  readonly playedPairs: ReadonlySet<string>;
+  readonly byeEntrant: SeededEntrant | undefined;
+}): readonly GeneratedMatch[] {
+  const { round, prefix, series, activeEntrants, scores, buchholz, playedPairs, byeEntrant } =
+    input;
+
   const players: SwissPlayer[] = activeEntrants.map((entrant) => ({
     entrant,
     score: scores.get(entrant.entrantId) ?? 0,
