@@ -45,6 +45,15 @@ rtk proxy yarn <script>           # unfiltered, when filtered output looks wrong
 yarn workspace @copalibre/<workspace> test:coverage 2>&1 | grep -E "does not meet|Tests:"
 ```
 
+**Change-risk (CRAP) score** (`scripts/check-crap-score.mjs`, run via `yarn crap:check`) reads each
+workspace's `coverage-final.json` and fails on a function that is both complex and undertested —
+`complexity^2 * (1 - coverage)^3 + complexity` above 30. It only sees coverage output that already
+exists, so run the relevant `yarn workspace @copalibre/<workspace> test:coverage` first. Existing debt
+is grandfathered in the `KNOWN_CRAP` register inside the script (same ratchet pattern as
+`KNOWN_HARDCODED` in `scripts/check-ui-text-catalogue-coverage.mjs`): a recorded score may only fall,
+never rise, and a new function above threshold that isn't registered fails outright. CI runs it as the
+last step of each `unit-tests-group` matrix leg in `.github/workflows/ci.yml`.
+
 `@copalibre/web` sits a fraction of a point over its 85% branch threshold, so almost any new UI code trips it; budget tests for the branches a change adds rather than discovering it in CI.
 
 **Never run a build-producing suite alongside the e2e suite.** `apps/web/src/help-static.integration.test.ts` shells out to `verify:docs`, which runs `astro build` into `apps/web/dist` — the same directory Playwright's `webServer` builds and then serves. Running `yarn test:integration` (or anything else that builds `apps/web`) while `yarn test:e2e` is in flight races two builds into one output directory, and the result is an SSR manifest pointing at a chunk that no longer exists:
