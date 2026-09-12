@@ -2,6 +2,8 @@
 import { displayName, type OverviewModel } from '../../../lib/overview.ts';
 import { tournamentEmblemUrl } from '../../../lib/public-api-client.ts';
 import type { TournamentHeroLabels } from '../../../lib/i18n/public-intl.ts';
+import { Badge } from '../atoms/Badge.tsx';
+import { Card } from '../atoms/Card.tsx';
 import EmblemImage from '../atoms/EmblemImage.astro';
 
 interface Props {
@@ -16,7 +18,7 @@ const emblemSrc =
     : undefined;
 ---
 
-<section class="cl-card cl-card--live cl-chamfer">
+<Card as="section" className="cl-card--live">
   <div class="cl-tournament-hero__header">
     {
       emblemSrc && (
@@ -34,8 +36,8 @@ const emblemSrc =
     </div>
   </div>
   {/* The count is the label: "live" as a colour alone is not a state. */}
-  <p class="cl-badge">{labels.liveCountText}</p>
-</section>
+  <Badge as="p">{labels.liveCountText}</Badge>
+</Card>
 
 <style>
   .cl-tournament-hero__header {

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { RealtimeClient } from '@copalibre/realtime';
+import { Badge } from '../atoms/Badge.js';
+import { Card } from '../atoms/Card.js';
 import { EntrantName } from '../atoms/EntrantName.js';
 import { applyEvent, markConnected, type LiveDashboard } from '../../../lib/live-state.js';
 import { presentState, type ResultStateLabels } from '../../../lib/result-state.js';
@@ -56,11 +58,11 @@ export function LiveMatchHero({
         {dashboard.matches.map((match) => {
           const badge = presentState(match.state, resultStateLabels);
           return (
-            <article className="cl-card cl-chamfer" key={match.matchId}>
-              <span className="cl-badge">
+            <Card as="article" key={match.matchId}>
+              <Badge>
                 <span aria-hidden="true">{badge.icon}</span>
                 <span>{badge.label}</span>
-              </span>
+              </Badge>
               {/* Polite: a score arriving mid-sentence must not interrupt. */}
               <div aria-live="polite">
                 {/*
@@ -81,7 +83,7 @@ export function LiveMatchHero({
                   ))}
                 </ol>
               </div>
-            </article>
+            </Card>
           );
         })}
       </div>

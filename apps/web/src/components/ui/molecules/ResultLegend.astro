@@ -1,4 +1,5 @@
 ---
+import { Badge } from '../atoms/Badge.tsx';
 import { resultLegend } from '../../../lib/result-state.ts';
 import type { ResultStateLabels } from '../../../lib/result-state.ts';
 
@@ -16,9 +17,11 @@ const legend = resultLegend(labels);
   <ul class="cl-result-legend">
     {
       legend.map((state) => (
-        <li class={`cl-badge ${state.className}`}>
-          <span aria-hidden="true">{state.icon}</span>
-          <span class="cl-result-legend__label">{state.label}</span>
+        <li>
+          <Badge className={state.className}>
+            <span aria-hidden="true">{state.icon}</span>
+            <span class="cl-result-legend__label">{state.label}</span>
+          </Badge>
         </li>
       ))
     }

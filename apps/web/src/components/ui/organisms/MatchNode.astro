@@ -1,5 +1,7 @@
 ---
 import type { IntlShape } from 'react-intl';
+import { Badge } from '../atoms/Badge.tsx';
+import { Card } from '../atoms/Card.tsx';
 import { EntrantName } from '../atoms/EntrantName.tsx';
 import StateBadge from '../atoms/StateBadge.astro';
 import SeriesStateBar from '../molecules/SeriesStateBar.astro';
@@ -44,7 +46,7 @@ const legScores =
 ---
 
 <a href={reportUrl}>
-  <article class="cl-card cl-chamfer" data-match={node.matchNumber}>
+  <Card as="article" data-match={node.matchNumber}>
     <StateBadge state={node.state} intl={intl} />
     <ol>
       {
@@ -61,7 +63,7 @@ const legScores =
               // A walkover 0-10 must not read like an actual 10-goal win — the
               // reason a result looks the way it does is shown, not just the
               // number.
-              <span class="cl-badge">{reasonLabels[slot.resultReason]}</span>
+              <Badge>{reasonLabels[slot.resultReason]}</Badge>
             )}
             <span class="cl-stat-tile__value">{slot.score ?? '—'}</span>
           </li>
@@ -94,5 +96,5 @@ const legScores =
         </ol>
       )
     }
-  </article>
+  </Card>
 </a>

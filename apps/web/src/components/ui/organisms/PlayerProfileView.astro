@@ -1,9 +1,13 @@
 ---
 import type { IntlShape } from 'react-intl';
-import type { PublicPersonProfileResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type {
+  PublicPersonCompetitionHistoryResponse,
+  PublicPersonProfileResponse,
+} from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { personPhotoUrl } from '../../../lib/public-api-client.ts';
 import PersonPhotoImage from '../atoms/PersonPhotoImage.astro';
+import DataTable from './DataTable.astro';
 
 interface Props {
   readonly profile: PublicPersonProfileResponse;
@@ -12,6 +16,34 @@ interface Props {
 }
 
 const { profile, intl, organizationAlias } = Astro.props;
+
+// `DataTable`'s `render` returns a plain value per cell (its own docstring
+// records why), so the bold tournament name and the muted abbreviation
+// colour this table used to carry are dropped rather than preserved —
+// this history has no per-cell link the way `MatchRosters`/`StandingsTable`
+// do, so composing the owned table outweighs keeping either.
+const historyColumns = [
+  {
+    key: 'tournament',
+    header: 'Tournament',
+    render: (row: unknown) => (row as PublicPersonCompetitionHistoryResponse).tournamentName,
+  },
+  {
+    key: 'team',
+    header: 'Team',
+    render: (row: unknown) => {
+      const item = row as PublicPersonCompetitionHistoryResponse;
+      return item.entrantAbbreviation
+        ? `${item.teamName} (${item.entrantAbbreviation})`
+        : item.teamName;
+    },
+  },
+  {
+    key: 'role',
+    header: 'Role',
+    render: (row: unknown) => (row as PublicPersonCompetitionHistoryResponse).role,
+  },
+];
 ---
 
 <article class="cl-player-profile">
@@ -90,38 +122,11 @@ const { profile, intl, organizationAlias } = Astro.props;
     }
     {
       profile.competitionHistory.length > 0 && (
-        <div
-          aria-labelledby="player-history-heading"
-          class="cl-player-profile__history-table-container"
-          role="region"
-          tabindex="0"
-        >
-          <table class="cl-player-profile__history-table">
-            <thead>
-              <tr>
-                <th scope="col">Tournament</th>
-                <th scope="col">Team</th>
-                <th scope="col">Role</th>
-              </tr>
-            </thead>
-            <tbody>
-              {profile.competitionHistory.map((item) => (
-                <tr>
-                  <td>
-                    <strong>{item.tournamentName}</strong>
-                  </td>
-                  <td>
-                    {item.teamName}
-                    {item.entrantAbbreviation && (
-                      <span class="cl-player-profile__abbr"> ({item.entrantAbbreviation})</span>
-                    )}
-                  </td>
-                  <td class="cl-player-profile__role">{item.role}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          ariaLabel={intl.formatMessage(messages.playerProfileHistoryHeading)}
+          columns={historyColumns}
+          rows={profile.competitionHistory}
+        />
       )
     }
   </section>
@@ -203,36 +208,6 @@ const { profile, intl, organizationAlias } = Astro.props;
     color: var(--cl-text-primary);
     margin: 0;
   }
-  .cl-player-profile__history-table-container {
-    overflow-x: auto;
-    scrollbar-gutter: stable;
-    border-bottom: 2px solid var(--cl-border-muted);
-  }
-  .cl-player-profile__history-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-    font-size: var(--cl-font-size-sm);
-    min-width: 32rem;
-  }
-  .cl-player-profile__history-table th,
-  .cl-player-profile__history-table td {
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--cl-border-muted);
-    color: var(--cl-text-primary);
-  }
-  .cl-player-profile__history-table th {
-    background: var(--cl-surface-chrome);
-    font-weight: 600;
-    color: var(--cl-text-muted);
-  }
-  .cl-player-profile__abbr {
-    color: var(--cl-text-muted);
-  }
-  .cl-player-profile__role {
-    text-transform: capitalize;
-  }
-
   /* BREAKPOINTS.sm: a single stats column remains usable at 200% zoom. */
   @media (max-width: 375px) {
     .cl-player-profile__stat-list {

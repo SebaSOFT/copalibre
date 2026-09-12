@@ -11,6 +11,7 @@
  * names the command that fixes it.
  */
 import { useEffect, useState } from 'react';
+import { Card, CardDescription, CardTitle } from './atoms/Card.js';
 
 export interface AstroPreviewProps {
   /** An id the preview route allowlists. Anything else is a 404 by design. */
@@ -47,16 +48,16 @@ export function AstroPreview({
 
   if (result?.source === source && !result.available) {
     return (
-      <div className="cl-card cl-chamfer" role="status">
-        <p className="cl-card__title">Preview unavailable</p>
-        <p className="cl-card__description">
+      <Card role="status">
+        <CardTitle>Preview unavailable</CardTitle>
+        <CardDescription>
           This component is server-rendered, so the workbench frames the real renderer rather than
           imitating it. Start the dev server and reload:
-        </p>
+        </CardDescription>
         <pre className="cl-code" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
           yarn workspace @copalibre/web dev
         </pre>
-      </div>
+      </Card>
     );
   }
 

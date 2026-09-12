@@ -721,7 +721,12 @@ export const KNOWN_LITERAL_TEXT = new Map([
   ['components/ui/organisms/MatchOfficials.astro', 3],
   ['components/ui/organisms/MatchRosters.astro', 5],
   ['components/ui/organisms/MatchTimeline.astro', 2],
-  ['components/ui/organisms/PlayerProfileView.astro', 3],
+  // `PlayerProfileView.astro`'s entry is gone (openspec 0225 task 8.1): its
+  // three column headers moved into `DataTable`'s `columns` config as plain
+  // JS string literals when the file adopted the owned table, the same way
+  // this register's other `DataTable`/`AstroPreview.astro` column configs
+  // were never counted here — R10 finds literal text nodes in a template,
+  // not string literals in frontmatter.
   ['components/ui/organisms/StandingsTable.astro', 9],
   ['control/components/AcceptInvitationForm.tsx', 2],
   ['control/components/ControlShell.tsx', 1],

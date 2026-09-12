@@ -3,6 +3,7 @@
  * Extracted from the match report page (openspec 0225 task 7.2): the
  * badge/scoreboard/venue header, unchanged in markup and styling.
  */
+import { Badge } from '../atoms/Badge.tsx';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
 
 export interface Props {
@@ -14,12 +15,12 @@ const { model } = Astro.props;
 
 <header class="cl-match-hero">
   <div class="cl-match-hero__meta">
-    <span class="cl-badge cl-badge--stage">
+    <Badge className="cl-badge--stage">
       Stage {model.stageNumber} · Round {model.round} · Match {model.matchNumber}
-    </span>
-    <span class={`cl-badge cl-badge--${model.status.toLowerCase()}`}>
+    </Badge>
+    <Badge className={`cl-badge--${model.status.toLowerCase()}`}>
       {model.status}
-    </span>
+    </Badge>
   </div>
 
   <h1 class="cl-scoreboard">
@@ -62,27 +63,6 @@ const { model } = Astro.props;
     justify-content: center;
     gap: 0.75rem;
     margin-bottom: 1rem;
-  }
-
-  .cl-badge {
-    padding: 3px 10px;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    background: var(--cl-surface-chrome);
-    color: var(--cl-text-primary);
-  }
-
-  .cl-badge--live {
-    background: color-mix(in srgb, var(--cl-primary) 15%, transparent);
-    color: var(--cl-primary);
-    border: 1px solid color-mix(in srgb, var(--cl-primary) 40%, transparent);
-  }
-
-  .cl-badge--final {
-    background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent);
-    color: var(--cl-state-positive);
   }
 
   .cl-scoreboard {

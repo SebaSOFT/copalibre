@@ -1,5 +1,7 @@
 ---
 import type { IntlShape } from 'react-intl';
+import { Badge } from '../atoms/Badge.tsx';
+import { Card } from '../atoms/Card.tsx';
 import { EntrantName } from '../atoms/EntrantName.tsx';
 import type { OverviewModel } from '../../../lib/overview.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
@@ -28,16 +30,12 @@ const labels = resultStateLabels(intl);
     {
       model.matches.map((match) => {
         const cardContent = (
-          <article
-            class:list={[
-              'cl-card',
-              'cl-chamfer',
-              'cl-match-card',
-              `cl-card--${match.state === 'final' ? 'positive' : match.state === 'disputed' ? 'destructive' : match.state}`,
-            ]}
+          <Card
+            as="article"
+            className={`cl-match-card cl-card--${match.state === 'final' ? 'positive' : match.state === 'disputed' ? 'destructive' : match.state}`}
           >
             <div class="cl-match-card__header">
-              <span class="cl-badge">{labels[match.state]}</span>
+              <Badge>{labels[match.state]}</Badge>
               {match.startsAt && (
                 <time datetime={match.startsAt} class="cl-match-card__clock">
                   {match.startsAt}
@@ -62,7 +60,7 @@ const labels = resultStateLabels(intl);
                 <span class="cl-stat-tile__value">{match.away.score ?? '—'}</span>
               </li>
             </ol>
-          </article>
+          </Card>
         );
 
         return (

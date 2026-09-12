@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -11,10 +11,14 @@ import { fileURLToPath } from 'node:url';
  * (owned class names, story coverage) and 0215 (every surface, the select
  * control, path-keyed registers).
  *
- * "Owned" is expressed by directory, not by a list: a file inside a `ui/`
- * directory defines the design language and a file outside one composes it.
- * That holds identically for `control/components/ui` and `components/ui`, which
- * is why the public surface needed no new mechanism to be governed.
+ * "Owned" is expressed by directory for the atom tier only: a file inside
+ * `ui/atoms` defines the design language and a file outside one composes it.
+ * A molecule, organism or template under `ui/` gets no such exemption merely
+ * for living there (openspec 0225 task 8.1) — the handful that genuinely are
+ * a primitive's own definition (`DataTable`, `Modal`, `FieldSet`, the TV
+ * surface's table owner) are named individually below instead. That holds
+ * identically for `control/components/ui` and `components/ui`, which is why
+ * the public surface needed no new mechanism to be governed.
  */
 
 const ALLOWED_BUTTON_FILES = new Set([
@@ -26,43 +30,82 @@ const ALLOWED_BUTTON_FILES = new Set([
 
 const ALLOWED_INPUT_FILES = new Set(['control/components/JerseyGrid.tsx']);
 
+/**
+ * Files that ARE the owner a rule would otherwise tell them to use — the one
+ * class of exemption this scanner grants permanently rather than as debt
+ * (openspec 0225 task 8.1).
+ *
+ * Before this task, every file under a `ui/` directory was exempted from
+ * every rule outright, on the theory that "a file inside a `ui/` directory
+ * defines the design language." That was true for the primitive's own
+ * definition and false for everything else that happened to share its
+ * directory: an organism that merely lives beside `DataTable.astro` without
+ * being it gets no more license to hand-write a raw `<table>` than one
+ * outside `ui/` would. These sets name only the files that are the thing —
+ * `DataTable.astro`/`data-table.tsx` render the actual `<table>` a `DataTable`
+ * organism wraps, `Modal.astro` renders the actual `<dialog>`, `field-set.tsx`
+ * renders the actual `<fieldset>`/`<legend>` pair. Everything else that used
+ * to hide behind the blanket `ui/` skip is now either fixed or recorded as
+ * debt in `KNOWN_RAW_ELEMENTS`/`KNOWN_HANDWRITTEN_CLASSES` like any other
+ * violation, because it was never actually exempt — it was only unreached.
+ */
+const TABLE_OWNER_FILES = new Set([
+  'control/components/ui/organisms/data-table.tsx',
+  'components/ui/organisms/DataTable.astro',
+  'components/tv/ui/organisms/TvStandingsTable.tsx',
+]);
+
+const TABLE_CLASS_OWNER_FILES = new Set([
+  'control/components/ui/organisms/data-table.tsx',
+  'components/ui/organisms/DataTable.astro',
+]);
+
+const DIALOG_OWNER_FILES = new Set(['components/ui/organisms/Modal.astro']);
+
+const FIELDSET_OWNER_FILES = new Set(['control/components/ui/molecules/field-set.tsx']);
+
 export const KNOWN_RAW_ELEMENTS = new Map([
-  // Public surface. `<table>` and `<dialog>` had no server-renderable owner
-  // when this entry was first recorded; `DataTable.astro` and `Modal.astro`
-  // exist now (openspec 0225 task 2.3), so these are payable, pending the
-  // adoption that migrates each raw usage onto them. `StandingsTable.astro`'s
-  // `<button>` was payable already: `ui/atoms/Button.astro` exists and could
-  // compose it independently of the table/dialog work.
+  // `StandingsTable.astro`'s and `MatchRosters.astro`'s tables: `DataTable`'s
+  // `render` callback returns a plain value per cell, with no way to produce
+  // the player-profile link each of these needs — recorded here rather than
+  // adopted at the cost of losing working navigation (each file's own
+  // docstring carries the same reasoning). `StandingsTable.astro`'s count
+  // also carries its player-profile `<dialog>`/close `<button>`: a native
+  // dialog populated by a client script's `innerHTML`, not `Modal.astro`'s
+  // shape, and not adopted here for the same reason the icon-only buttons
+  // below are recorded rather than fixed.
   //
-  // Pre-existing bug found while adding task 2.4's table-part rules, left
-  // unfixed here as out of this task's scope: `scanControlComponents`
-  // below skips any `ui/` directory unconditionally, which is right for the
-  // atom tier (an atom legitimately owns the raw element it wraps) but
-  // wrong for these two — organisms, which Decision 1 gives no dispensation
-  // to use a raw governed element at all. Both entries are therefore
-  // already unreachable, the same defect class task 1.5 fixed for
-  // KNOWN_HANDWRITTEN_CLASSES, just not yet fixed here: their real current
-  // counts (11 and 20, including task 2.4's table parts) are never
-  // actually checked, so the counts below are left at their last enforced
-  // values rather than inflated to numbers the gate will never look at.
-  // Narrowing the directory skip to the atom tier is the real fix, and
-  // would expose violations across every organism/molecule/template file,
-  // not only these two — out of scope for a single task.
-  ['components/ui/organisms/PlayerProfileView.astro', 1],
-  ['components/ui/organisms/StandingsTable.astro', 4],
+  // Both entries were unreachable before openspec 0225 task 8.1 narrowed the
+  // `ui/` directory skip to the atom tier: everything under `ui/` was exempt
+  // outright, so these counts were never actually checked. Narrowing the
+  // skip is what surfaced the real counts below for the first time.
+  ['components/ui/organisms/StandingsTable.astro', 9],
+  ['components/ui/organisms/MatchRosters.astro', 13],
   // `TvDashboard.tsx`'s entry is gone (openspec 0225 task 7.1): its four
   // private sub-components and its table/button ownership moved into their
-  // own files, `TvStandingsTable.tsx` and `TvRailTab.tsx` under a `ui/`
-  // directory the same way `StandingsTable.astro`/`Button.astro` are, since
-  // neither the Astro standings owner (server-rendered, can't run inside
-  // this `client:load` island) nor the admin `DataTable`/`Button` (carry
-  // the control theme, not this surface's `--tv-*` tokens) could fill that
-  // role here.
+  // own files, `TvStandingsTable.tsx` and `TvRailTab.tsx`, both named in
+  // `TABLE_OWNER_FILES` above as the TV surface's genuine table owner.
   ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 11],
-  // `[match].astro`'s entry is gone (openspec 0225 task 7.2): its raw table
-  // moved into `components/ui/organisms/MatchRosters.astro`, a `ui/`
-  // directory the scan below skips entirely, the same way `DataTable.astro`
-  // and `StandingsTable.astro` already are.
+  // A close control with no name a screen reader can announce is unusable
+  // (Decision 5's own reasoning for building `Modal` on Radix Dialog in the
+  // first place), but the `Button` atom's filled, chamfered pill is a CTA
+  // treatment, not an icon-only "×" — composing it here would trade a
+  // one-line lint fix for a real visual regression. The public toggle
+  // buttons below are the same gap: `PublicHeader.astro`'s nav toggle and
+  // `ScoreTicker.astro`'s pause control are icon-only, not CTAs. Recorded
+  // until the library has an icon-button variant, the same way
+  // `TournamentSummaryCard.tsx`'s `cl-btn`-as-anchor is recorded below rather
+  // than forced through a `Button` that cannot render an `<a>`.
+  ['control/components/ui/organisms/modal.tsx', 1],
+  ['control/components/ui/organisms/navigation-drawer.tsx', 1],
+  ['components/ui/organisms/Modal.astro', 1],
+  ['components/ui/organisms/PublicHeader.astro', 1],
+  ['components/ui/organisms/ScoreTicker.astro', 1],
+  // `form-screen-layout.tsx`'s own `<form>` is the templates tier's full-page
+  // form shape, not a smaller composed form the `Form` atom already covers —
+  // recorded alongside the other un-adopted `<form>`s below rather than
+  // forced onto an atom built for a different shape.
+  ['control/components/ui/layouts/form-screen-layout.tsx', 1],
   // Operator surface — converted screens eliminated; only remaining items:
   ['control/components/pages/SeedingBuilderPage.tsx', 5],
   ['control/components/screens/TournamentRulesetTemplate.tsx', 3],
@@ -114,8 +157,8 @@ export const KNOWN_RAW_ELEMENTS = new Map([
  * built entirely from raw elements.
  */
 const RAW_ELEMENT_RULES = [
-  { tag: 'dialog', replacement: '`Modal` organism' },
-  { tag: 'table', replacement: '`DataTable` organism' },
+  { tag: 'dialog', replacement: '`Modal` organism', allowed: DIALOG_OWNER_FILES },
+  { tag: 'table', replacement: '`DataTable` organism', allowed: TABLE_OWNER_FILES },
   { tag: 'textarea', replacement: '`Textarea` atom' },
   { tag: 'button', replacement: '`Button` atom', allowed: ALLOWED_BUTTON_FILES },
   { tag: 'input', replacement: '`Input` atom', allowed: ALLOWED_INPUT_FILES },
@@ -124,17 +167,17 @@ const RAW_ELEMENT_RULES = [
   // Form, Field/Label and FieldSet own them (task 2.2).
   { tag: 'form', replacement: '`Form` atom' },
   { tag: 'label', replacement: '`Label` atom (via the `Field` molecule)' },
-  { tag: 'fieldset', replacement: '`FieldSet` molecule' },
-  { tag: 'legend', replacement: '`FieldSet` molecule' },
+  { tag: 'fieldset', replacement: '`FieldSet` molecule', allowed: FIELDSET_OWNER_FILES },
+  { tag: 'legend', replacement: '`FieldSet` molecule', allowed: FIELDSET_OWNER_FILES },
   // Table parts outside the table owners (task 2.4) — a `<table>` itself is
   // already governed above; this catches a raw `<thead>`/`<tbody>`/`<tr>`/
   // `<th>`/`<td>` composed without one, which the tag-level check alone
   // could not see.
-  { tag: 'thead', replacement: '`DataTable` organism' },
-  { tag: 'tbody', replacement: '`DataTable` organism' },
-  { tag: 'tr', replacement: '`DataTable` organism' },
-  { tag: 'th', replacement: '`DataTable` organism' },
-  { tag: 'td', replacement: '`DataTable` organism' },
+  { tag: 'thead', replacement: '`DataTable` organism', allowed: TABLE_OWNER_FILES },
+  { tag: 'tbody', replacement: '`DataTable` organism', allowed: TABLE_OWNER_FILES },
+  { tag: 'tr', replacement: '`DataTable` organism', allowed: TABLE_OWNER_FILES },
+  { tag: 'th', replacement: '`DataTable` organism', allowed: TABLE_OWNER_FILES },
+  { tag: 'td', replacement: '`DataTable` organism', allowed: TABLE_OWNER_FILES },
 ];
 
 /** The governed element tags, for `check-atomic-composition.mjs`'s R13 to reuse rather than re-list. */
@@ -153,10 +196,14 @@ export const GOVERNED_ELEMENTS = RAW_ELEMENT_RULES.map((rule) => rule.tag);
  * counting those inflates the problem by an order of magnitude.
  */
 const OWNED_CLASS_RULES = [
-  { className: 'cl-card', replacement: '`Card` atom' },
+  { className: 'cl-card', replacement: '`Card` atom', allowed: TABLE_CLASS_OWNER_FILES },
   { className: 'cl-badge', replacement: '`Badge` atom' },
   { className: 'cl-btn', replacement: '`Button` atom' },
-  { className: 'cl-data-table', replacement: '`DataTable` organism' },
+  {
+    className: 'cl-data-table',
+    replacement: '`DataTable` organism',
+    allowed: TABLE_CLASS_OWNER_FILES,
+  },
 ];
 
 /**
@@ -186,6 +233,10 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   ['control/components/pages/SeedingBuilderPage.tsx', 2],
   ['control/components/screens/StandingsTemplate.tsx', 2],
   ['control/components/TournamentSummaryCard.tsx', 1],
+  // Same gap as `TournamentSummaryCard.tsx` above: an `<a>` styled as a
+  // button, which the `Button` atom cannot render (openspec 0225 task 8.1,
+  // surfaced by narrowing the `ui/` directory skip to the atom tier).
+  ['control/components/ui/molecules/callout-banner.tsx', 1],
   // Public and broadcast surfaces.
   //
   // `LiveMatchHero.tsx`, `MatchCard.tsx`, `MatchCardGrid.astro`,
@@ -204,6 +255,10 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 1],
   ['pages/[...locale]/[organization]/tournaments/[tournament]/players/[personId].astro', 1],
   ['pages/index.astro', 1],
+  // The control-panel CTA: an `<a href="/control/">` styled as a button, the
+  // same "`Button` cannot render a link" gap as `TournamentSummaryCard.tsx`
+  // above (openspec 0225 task 8.1, surfaced the same way).
+  ['components/ui/organisms/PublicHeader.astro', 1],
 ]);
 
 /**
@@ -239,6 +294,22 @@ export function withoutStyleBlocks(content) {
   return content.replace(/<style[\s\S]*?<\/style>/gi, (block) => block.replace(/[^\n]/g, ' '));
 }
 
+/**
+ * Blanks `<script>` blocks, preserving offsets like `withoutStyleBlocks`.
+ *
+ * A vanilla client-side `<script>` sometimes builds markup with a JS template
+ * string (`` `<table>...</table>` `` assigned to `innerHTML`) for content a
+ * server-rendered Astro template cannot express — dynamically fetched data
+ * inserted after the page has already loaded. That string is not this file
+ * composing a raw element; it is JavaScript text that happens to look like
+ * one, and no `DataTable`/`Modal` organism could replace it, since neither
+ * renders outside Astro's own template syntax (openspec 0225 task 8.1,
+ * found while narrowing the `ui/` directory skip this replaces).
+ */
+export function withoutScriptBlocks(content) {
+  return content.replace(/<script[\s\S]*?<\/script>/gi, (block) => block.replace(/[^\n]/g, ' '));
+}
+
 /** 1-indexed line number for a character offset. */
 export function lineOf(content, offset) {
   let line = 1;
@@ -263,7 +334,7 @@ export function checkFileOwnership(filename, content) {
   // reader wants to see.
   const key = filename;
   const baseName = filename.split('/').pop() ?? filename;
-  const source = withoutStyleBlocks(withoutComments(content));
+  const source = withoutScriptBlocks(withoutStyleBlocks(withoutComments(content)));
 
   for (const rule of RAW_ELEMENT_RULES) {
     if (rule.allowed?.has(key)) continue;
@@ -297,6 +368,8 @@ export function checkFileOwnership(filename, content) {
   }
 
   for (const rule of OWNED_CLASS_RULES) {
+    if (rule.allowed?.has(key)) continue;
+
     // `(?![\w-])` so only the base class matches: `cl-card__header` and
     // `cl-card--muted` are a component's own structure and modifiers, not a
     // second element bypassing it.
@@ -605,8 +678,15 @@ export function scanControlComponents(dirPath, rootDir = dirPath) {
       const fullPath = join(current, entry);
 
       if (statSync(fullPath).isDirectory()) {
-        // The owned library is what everything else is measured against.
-        if (entry === 'ui') continue;
+        // Only the atom tier is exempt outright (openspec 0225 task 8.1): an
+        // atom legitimately owns the raw element or class it wraps by
+        // definition, so there is nothing left for this scan to check once a
+        // path descends into `ui/atoms`. Molecules, organisms and templates
+        // under `ui/` are governed the same as anything outside it — the
+        // handful of files among them that ARE a primitive's real owner are
+        // named individually in `TABLE_OWNER_FILES`/`DIALOG_OWNER_FILES`/
+        // `FIELDSET_OWNER_FILES` above, not exempted by directory.
+        if (entry === 'atoms' && current.endsWith(`${sep}ui`)) continue;
         scan(fullPath);
         continue;
       }

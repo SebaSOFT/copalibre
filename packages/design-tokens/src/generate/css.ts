@@ -832,6 +832,13 @@ function components(): string {
     '  }',
     '}',
     '',
+    // Promoted from `MatchHero.astro`'s own scoped styles (openspec 0225
+    // task 8.1): a state variant belongs to the shared badge, not to one
+    // organism's private copy of it, so every future `<Badge>` — not only
+    // the match hero's — can reach a live or final treatment.
+    '.cl-badge--live { background: color-mix(in srgb, var(--cl-primary) 15%, transparent); color: var(--cl-primary); border: 1px solid color-mix(in srgb, var(--cl-primary) 40%, transparent); }',
+    '.cl-badge--final { background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent); color: var(--cl-state-positive); }',
+    '',
     '.cl-btn {',
     // A link wearing the button treatment is a button, underline included —
     // until now every call site removed it inline, and the one that forgot

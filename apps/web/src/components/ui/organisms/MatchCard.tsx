@@ -1,3 +1,5 @@
+import { Badge } from '../atoms/Badge.js';
+import { Card } from '../atoms/Card.js';
 import { EntrantName } from '../atoms/EntrantName.js';
 import { presentState } from '../../../lib/result-state.js';
 import { seriesScore, seriesSegments, seriesPending, toSeriesInput } from '../../../lib/series.js';
@@ -29,12 +31,12 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
     (match.awayTrace !== undefined && match.awayTrace.length > 0);
 
   const body = (
-    <article className="cl-card cl-chamfer cl-match-card" data-match={match.matchId}>
+    <Card as="article" className="cl-match-card" data-match={match.matchId}>
       <div className="cl-match-card__header">
-        <span className="cl-badge">
+        <Badge>
           <span aria-hidden="true">{badge.icon}</span>
           <span>{badge.label}</span>
-        </span>
+        </Badge>
         {match.clockSeconds !== undefined && (
           <span
             className="cl-match-card__clock"
@@ -49,24 +51,24 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
         <li className="cl-match-card__side">
           <EntrantName fullName={match.homeName ?? 'TBD'} abbreviation={match.homeAbbreviation} />
           {match.homePosition !== undefined && (
-            <span
-              className="cl-badge cl-badge--rank"
+            <Badge
+              className="cl-badge--rank"
               title={applyTemplate(labels.position, { position: match.homePosition })}
             >
               #{match.homePosition}
-            </span>
+            </Badge>
           )}
           <span className="cl-stat-tile__value">{match.homeScore ?? '—'}</span>
         </li>
         <li className="cl-match-card__side">
           <EntrantName fullName={match.awayName ?? 'TBD'} abbreviation={match.awayAbbreviation} />
           {match.awayPosition !== undefined && (
-            <span
-              className="cl-badge cl-badge--rank"
+            <Badge
+              className="cl-badge--rank"
               title={applyTemplate(labels.position, { position: match.awayPosition })}
             >
               #{match.awayPosition}
-            </span>
+            </Badge>
           )}
           <span className="cl-stat-tile__value">{match.awayScore ?? '—'}</span>
         </li>
@@ -117,7 +119,7 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
       {hasFullTrace && (
         <TracePanel homeTrace={match.homeTrace} awayTrace={match.awayTrace} labels={labels} />
       )}
-    </article>
+    </Card>
   );
 
   return reportUrl === undefined ? body : <a href={reportUrl}>{body}</a>;
