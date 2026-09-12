@@ -259,13 +259,25 @@ const tournaments = referenceTournamentListing();
     }
     {
       component === 'emblem-image' && (
-        <EmblemImage alt="Reference League emblem" placeholderAlt="No emblem set" />
+        <EmblemImage
+          alt={intl.formatMessage({
+            id: 'preview.emblemImage.alt',
+            defaultMessage: 'Reference League emblem',
+          })}
+          placeholderAlt="No emblem set"
+        />
       )
     }
     {component === 'logo' && <Logo href="/" />}
     {
       component === 'person-photo-image' && (
-        <PersonPhotoImage alt="Priya Natarajan-Whitfield" placeholderAlt="No photo set" />
+        <PersonPhotoImage
+          alt={intl.formatMessage({
+            id: 'preview.personPhotoImage.alt',
+            defaultMessage: 'Priya Natarajan-Whitfield',
+          })}
+          placeholderAlt="No photo set"
+        />
       )
     }
     {component === 'state-badge' && <StateBadge intl={intl} state="final" />}
@@ -334,7 +346,10 @@ const tournaments = referenceTournamentListing();
           description="Preview of the modal organism, opened by default so it renders without a trigger script."
           id="preview-modal"
           open={true}
-          title="Reference modal"
+          title={intl.formatMessage({
+            id: 'preview.modal.title',
+            defaultMessage: 'Reference modal',
+          })}
         />
       )
     }

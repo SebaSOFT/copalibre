@@ -60,8 +60,9 @@ const KNOWN_HARDCODED = new Map([
   // `pagination.tsx`, `modal.tsx` and `navigation-drawer.tsx` were here.
   // `TvDashboard.tsx` joined them in 0225 task 2.6: `dashboardLabels` now
   // carries every interface string, threaded from both Astro page callers.
-  // No intl in scope; the form predates the shell's own provider wiring.
-  ['AcceptInvitationForm.tsx', 1],
+  // `AcceptInvitationForm.tsx` joined them in 0225 task 8.4: it now uses
+  // `defineMessages`/`useIntl`, wrapped in `ControlIntl` at its real mount
+  // point (`AcceptInvitationScreen.tsx`).
 ]);
 
 /** Blanks comments while preserving offsets, so reported line numbers stay true. */

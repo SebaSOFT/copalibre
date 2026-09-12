@@ -551,6 +551,11 @@ jobs:
             --run-id="${{ github.run_id }}" \
             --commit="${{ github.sha }}" \
             --config="production"
+      # e2e/operational-surface-parity.spec.ts reads the generated stylesheet
+      # directly off disk, which `yarn install` never produces on its own —
+      # only web-build-producer's own checkout runs this step, and that
+      # output isn't part of the web-build-dist artifact downloaded above.
+      - run: yarn workspace @copalibre/design-tokens build:tokens
       - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
