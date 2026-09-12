@@ -109,6 +109,7 @@ jobs:
           cache: yarn
       - run: yarn install --immutable
       - run: node --test scripts/dependency-security.test.mjs
+      - run: node --test apps/copalibre/scripts/build-binary.test.mjs
 
   lint:
     name: Lint (zero warnings)
