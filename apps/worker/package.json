@@ -22,7 +22,7 @@
     "@nestjs/platform-fastify": "^11.1.29",
     "clamscan": "^2.4.0",
     "kysely": "^0.29",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^9.1.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "sharp": "^0.35.3"

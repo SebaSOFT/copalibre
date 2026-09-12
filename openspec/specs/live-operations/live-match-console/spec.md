@@ -95,6 +95,20 @@ of an immutable ledger and cannot be undone. The client SHALL supply an idempote
 server SHALL persist atomically with the finalization result. A retry with the same key and request
 SHALL return the recorded outcome; reuse of that key with a different request SHALL be rejected.
 
+The finalized outcome SHALL be either derived from the recorded events or chosen through a control
+whose only purpose is to choose it. A value the operator set for another purpose SHALL NOT be
+transmitted as the outcome. In particular, the console's event-attribution selection — which side a
+subsequent event is recorded against, changed by every jersey tap — SHALL NOT determine the winner.
+
+Where an explicit winner control is offered it SHALL default to unset, and finalizing with it unset
+SHALL either derive the outcome from the recorded events or refuse, rather than submitting whichever
+side was last touched.
+
+The confirmation step SHALL show the outcome being frozen — the score, and the winner where one is
+recorded — because a confirmation that names only the consequence cannot be checked against what is
+about to be committed. The confirmation's affordance SHALL carry the tone the system uses for an
+irreversible commit rather than the tone it reserves for a failure or a loss.
+
 #### Scenario: Finalize requires explicit confirmation
 - **WHEN** an official initiates match finalization
 - **THEN** the system shows a destructive-confirmation dialog naming the immutable-ledger consequence before any commit occurs
@@ -106,6 +120,16 @@ SHALL return the recorded outcome; reuse of that key with a different request SH
 #### Scenario: Idempotency key cannot represent different finalizations
 - **WHEN** a client reuses a finalize idempotency key with different result data
 - **THEN** the system rejects the request without changing the finalized result
+
+#### Scenario: An attribution selection never becomes the winner
+- **WHEN** an official taps a jersey to attribute an event to one side and then finalizes the match
+- **THEN** the finalize request carries no winner derived from that tap, and the recorded outcome is
+  the one the events support or the one an explicit winner control was set to
+
+#### Scenario: The confirmation shows what is being frozen
+- **WHEN** the confirmation step for finalization is shown
+- **THEN** it presents the score and the winner about to be committed, so the official confirms a
+  visible outcome rather than an unnamed one
 
 ### Requirement: Displayed state reconciles with an authoritative projection
 Any optimistically displayed score, statistic, timer, or match-state update SHALL reconcile with the

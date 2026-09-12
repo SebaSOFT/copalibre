@@ -14,6 +14,9 @@ const patchedFloors = {
   qs: { 6: '6.16.0' },
   '@ai-sdk/provider-utils': { 4: '4.0.33' },
   svgo: { 4: '4.1.0' },
+  nodemailer: { 9: '9.1.1' },
+  astro: { 7: '7.2.8' },
+  hono: { 4: '4.13.5' },
 };
 
 function assertPatched(name, version, label) {
@@ -43,6 +46,7 @@ for (const [selector, name] of [
   ['qs', 'qs'],
   ['@ai-sdk/provider-utils@npm:4.0.5', '@ai-sdk/provider-utils'],
   ['svgo@npm:^4.0.1', 'svgo'],
+  ['hono@npm:^4.11.4', 'hono'],
 ]) {
   test(`${selector}: resolution stays patched and present in the lockfile`, () => {
     const version = manifest.resolutions[selector];
