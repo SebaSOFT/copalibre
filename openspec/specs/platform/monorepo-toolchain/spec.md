@@ -296,3 +296,40 @@ Optimization evidence SHALL report elapsed time and total job execution time sep
 #### Scenario: Cache state differs between measurements
 - **WHEN** one run restores caches and another starts without them
 - **THEN** the evidence identifies the differing cache states rather than attributing the entire timing difference to scheduling
+
+### Requirement: Change-risk (CRAP) score reporting
+
+The repository SHALL compute a change-risk (CRAP) score for every function in every workspace with
+Jest coverage enabled, combining that function's cyclomatic complexity with its line/branch coverage
+as `CRAP(m) = complexity(m)^2 * (1 - coverage(m))^3 + complexity(m)`. A function whose score exceeds
+30 and is not present in a ratcheting debt register SHALL fail the `unit-tests-group` CI job. A function
+already present in the debt register SHALL fail the job if its recorded score increases, so existing
+debt can only shrink or hold steady, never grow. A workspace with no coverage output yet SHALL be
+skipped with a warning rather than failed.
+
+#### Scenario: A new high-risk function fails CI
+- **WHEN** a pull request adds a function with cyclomatic complexity of 8 and 0% line coverage
+- **AND** that function is not present in the debt register
+- **THEN** the `unit-tests-group` job fails, reporting the function's name, file, complexity, coverage,
+  and computed CRAP score
+
+#### Scenario: A grandfathered function does not regress
+- **WHEN** a pull request modifies a function already present in the debt register
+- **AND** its recomputed CRAP score is lower than or equal to the register's recorded value
+- **THEN** the `unit-tests-group` job does not fail for that function
+
+#### Scenario: A grandfathered function gets worse
+- **WHEN** a pull request modifies a function already present in the debt register
+- **AND** its recomputed CRAP score is higher than the register's recorded value
+- **THEN** the `unit-tests-group` job fails, reporting the prior and new scores
+
+#### Scenario: Coverage-free workspace is skipped, not failed
+- **WHEN** the CRAP check runs against a workspace that has not yet produced an Istanbul
+  coverage-final.json
+- **THEN** the check reports a warning for that workspace and exits zero for it, without failing the
+  `unit-tests-group` job
+
+#### Scenario: Local pre-push check available
+- **WHEN** a developer runs `yarn crap:check` locally after `yarn workspace @copalibre/<workspace>
+  test:coverage`
+- **THEN** the same score computation, threshold, and debt-register enforcement run locally as in CI
