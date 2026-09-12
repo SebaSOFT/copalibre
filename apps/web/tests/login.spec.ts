@@ -28,11 +28,11 @@ test('user can log in successfully', async ({ page }) => {
   await page.goto('/control/login');
 
   await expect(page.getByLabel('Email')).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByLabel('Contraseña')).toBeVisible();
+  await expect(page.getByLabel('Password')).toBeVisible();
 
   await page.getByLabel('Email').fill('test@example.com');
-  await page.getByLabel('Contraseña').fill('password123');
-  await page.getByRole('button', { name: 'Ingresar' }).click();
+  await page.getByLabel('Password').fill('password123');
+  await page.getByRole('button', { name: 'Sign in' }).click();
 
   // The application will try to redirect or store the token.
   // Let's just assert that the API call was made and the UI reacts.
@@ -45,8 +45,12 @@ test('user sees error on invalid credentials', async ({ page }) => {
   await page.goto('/control/login');
 
   await page.getByLabel('Email').fill('test@example.com');
-  await page.getByLabel('Contraseña').fill('wrongpassword');
-  await page.getByRole('button', { name: 'Ingresar' }).click();
+  await page.getByLabel('Password').fill('wrongpassword');
+  await page.getByRole('button', { name: 'Sign in' }).click();
 
+  // `control.apiError.unauthorized` has a real Spanish translation, and the
+  // browser's default locale resolves to `es` here — unlike `auth.*`
+  // (login/forgot/reset), which has no locale catalogue at all and always
+  // renders its English `defaultMessage` regardless of locale.
   await expect(page.getByRole('alert')).toContainText('Tu sesión venció. Inicia sesión de nuevo.');
 });

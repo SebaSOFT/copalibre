@@ -33,7 +33,7 @@ test('blocked font delivery preserves readable labels and focus at the zoom floo
   await page.goto('/control/login');
   await page.evaluate(() => document.fonts.ready);
   await expect(page.getByLabel('Email', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Contraseña', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
   const input = page.getByLabel('Email', { exact: true });
   await input.focus();
   await expect(input).toBeFocused();
