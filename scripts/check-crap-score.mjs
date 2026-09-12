@@ -37,12 +37,23 @@ export const KNOWN_CRAP = new Map([
   // complexity 27 was already under threshold; score 27.04).
   // validateModulePackage resolved by openspec 0229 (extracted
   // validateDisciplineOrProfileSemantics; score 15.00).
-  ['@copalibre/tournament-engine/src/standings/index.ts#computeAccounting', 66.84],
-  ['@copalibre/tournament-engine/src/fixtures/custom-bracket.ts#validateCustomBracket', 38.34],
-  ['@copalibre/tournament-engine/src/fixtures/swiss.ts#generateNextSwissRoundFixtures', 36.97],
-  ['@copalibre/tournament-engine/src/statistics/fold.ts#foldStatistics', 36.03],
-  ['@copalibre/tournament-engine/src/advancement/index.ts#resolveSlot', 32.21],
-  ['@copalibre/tournament-engine/src/fixtures/double-elimination.ts#buildDoubleElimination', 30.92],
+  // computeAccounting resolved by openspec 0230 (extracted
+  // foldSeriesGrainAccounting/foldMatchGrainAccounting/
+  // foldStrengthOfScheduleStatistics/foldCumulativeStatistics; score 3.00).
+  // validateCustomBracket resolved by openspec 0230 (extracted
+  // validateBracketFields/assertTopologicalOrder; score 25.16).
+  // generateNextSwissRoundFixtures resolved by openspec 0230 (extracted its
+  // four comment-delineated phases: extractSwissHistory/calculateSwissScores/
+  // allocateSwissBye/pairSwissRound; score 2.00).
+  // foldStatistics resolved by openspec 0230 (extracted one handler per
+  // collector source kind: foldParticipationCollector/
+  // foldStatisticSourcedCollector/foldDerivedCollector/
+  // foldEventSourcedCollector; score 10.00).
+  // resolveSlot resolved by openspec 0230 (extracted resolveWinnerFromChildren;
+  // score 21.25).
+  // buildDoubleElimination resolved by openspec 0230 (extracted
+  // buildDuelOrSeriesMatches, deduplicating the span>1/span<=1 match-building
+  // shape repeated at all three call sites; score 15.10).
 ]);
 
 const BRANCH_KINDS = new Set([

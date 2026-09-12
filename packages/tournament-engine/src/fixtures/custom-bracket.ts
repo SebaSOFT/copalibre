@@ -21,17 +21,14 @@ const KNOWN_BRACKET_KINDS = new Set<BracketKind>([
 ]);
 
 /**
- * Validates the referential integrity, seed bounds, and DAG acyclicity of a custom bracket definition.
- * Throws InvalidCustomBracketError if malformed or CyclicFixtureGraphError if cyclic.
+ * Validates each match's own fields (unique id, positive integer round and
+ * position) independently of the graph they form — extracted verbatim
+ * (openspec 0230) from `validateCustomBracket`'s own field-check loop, kept
+ * separate from Kahn's-algorithm cycle detection, which stays untouched.
  */
-export function validateCustomBracket(
-  entrants: readonly SeededEntrant[],
+function validateBracketFields(
   definition: CustomBracketDefinition,
-): void {
-  if (!definition.matches || definition.matches.length === 0) {
-    throw new InvalidCustomBracketError('A custom bracket must declare at least one match');
-  }
-
+): Map<string, CustomBracketMatchDefinition> {
   const matchMap = new Map<string, CustomBracketMatchDefinition>();
   for (const match of definition.matches) {
     if (matchMap.has(match.id)) {
@@ -59,6 +56,22 @@ export function validateCustomBracket(
     }
     matchMap.set(match.id, match);
   }
+  return matchMap;
+}
+
+/**
+ * Validates the referential integrity, seed bounds, and DAG acyclicity of a custom bracket definition.
+ * Throws InvalidCustomBracketError if malformed or CyclicFixtureGraphError if cyclic.
+ */
+export function validateCustomBracket(
+  entrants: readonly SeededEntrant[],
+  definition: CustomBracketDefinition,
+): void {
+  if (!definition.matches || definition.matches.length === 0) {
+    throw new InvalidCustomBracketError('A custom bracket must declare at least one match');
+  }
+
+  const matchMap = validateBracketFields(definition);
 
   // Graph representation for Kahn's algorithm:
   // Edge U -> V means match V depends on match U (U must be played before V).
@@ -143,7 +156,19 @@ export function validateCustomBracket(
     });
   }
 
-  // Ensure topological ordering: for every match, any referenced parent must precede it
+  assertTopologicalOrder(definition, topoIndex);
+}
+
+/**
+ * Ensures topological ordering: for every match, any referenced parent must
+ * precede it. A post-check over the index Kahn's algorithm already
+ * produced, extracted verbatim (openspec 0230) — the topological sort itself
+ * stays untouched in `validateCustomBracket`.
+ */
+function assertTopologicalOrder(
+  definition: CustomBracketDefinition,
+  topoIndex: ReadonlyMap<string, number>,
+): void {
   for (const match of definition.matches) {
     const slots: readonly CustomBracketSlotSource[] = [match.slotA, match.slotB];
     const matchIdx = topoIndex.get(match.id);
