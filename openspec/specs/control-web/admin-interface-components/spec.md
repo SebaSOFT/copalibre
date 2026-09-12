@@ -115,50 +115,91 @@ distinct cases, but neither SHALL duplicate the other for the same event.
   it next to the field they need to correct
 
 ### Requirement: Templates compose organisms into a screen's layout
-The component library SHALL provide a templates tier: content-agnostic layout components that place
-organisms and molecules into a screen's structure (section order, inter-section spacing) without
-containing business logic or fetching data. This change ships `ListScreenTemplate` (header, toolbar,
-tabular/card listing area, pagination slot) and `FormScreenTemplate` (header, grouped form-field
-sections, sticky footer action bar); further templates are added as new screen shapes require them.
+The component library SHALL provide two distinct tiers where it previously named one, because the
+tier shipped as "templates" contains no organisms and holds no screen logic — it arranges slots.
+
+A **layout** SHALL be a content-agnostic component that places its slots into a screen's structure
+(section order, inter-section spacing) without containing business logic, formatting interface text,
+or fetching data. `ListScreenLayout` (header, toolbar, listing area, pagination slot),
+`FormScreenLayout` (header, grouped field sections, sticky footer action bar), `AuthScreenLayout` and
+`MatchConsoleLayout` are layouts, and further layouts are added as new screen shapes require them.
+
+A **template** SHALL compose organisms and molecules into one complete screen, hold that screen's
+rules and interaction state, and format its interface text. A template SHALL NOT fetch data or read
+application state; it receives both from its page. A template SHALL be named for its screen and
+SHALL carry the template suffix.
 
 #### Scenario: Two listing screens share layout via the same template
 - **WHEN** a role-assignment listing screen and an installed-module listing screen are both built on
-  `ListScreenTemplate`
+  `ListScreenLayout`, the renamed layout tier this requirement now names separately
 - **THEN** both share the same header/toolbar/listing/pagination arrangement and inter-section spacing,
   differing only in the organism content each supplies
 
 #### Scenario: A template receives no data of its own
-- **WHEN** `ListScreenTemplate` or `FormScreenTemplate` is inspected
-- **THEN** it performs no data fetching and reads no application state directly; every value it renders
-  arrives as a prop from the page/route component that uses it
+- **WHEN** `ListScreenLayout` or `FormScreenLayout` is inspected
+- **THEN** it performs no data fetching, formats no interface message, and reads no application state
+  directly; every value it renders arrives as a slot from the template that uses it
+
+#### Scenario: A template holds its screen's rules and none of its data access
+- **WHEN** a screen template is inspected
+- **THEN** it composes organisms, holds the screen's interaction state and validation, formats its
+  interface text, and contains no call to the API client and no realtime subscription
 
 ### Requirement: No data-fetching or application-state access below the organism tier
-Atoms, molecules, and templates SHALL NOT call the API client, subscribe to an SSE stream, or read
-application/session state directly; they SHALL receive all data and callbacks via props. Only a
-page/route component, or an organism's own strictly local UI state (e.g. a `Modal`'s open/closed state,
-a `DataTable`'s client-side sort), MAY hold state or perform data access.
+Atoms, molecules, organisms, layouts, and templates SHALL NOT call the API client, subscribe to a
+realtime stream, issue a network request, or read application/session state directly; they SHALL
+receive all data and callbacks via props. Only a page component MAY hold data state or perform data
+access. A component's own strictly local UI state — a modal's open/closed state, a table's
+client-side sort, a wizard's current step — is not application state and remains permitted at the
+tier that owns the interaction.
+
+A type-only import of an API response shape SHALL NOT be a violation; naming the data a component is
+given is the contract working rather than a bypass of it.
+
+This rule SHALL be enforced by the automated composition check rather than by review alone.
 
 #### Scenario: A molecule receives its data via props, not a fetch of its own
 - **WHEN** the `DataEntityCard` molecule is inspected
 - **THEN** it contains no call to the control application's API client and no direct read of session/
   application state — all displayed data arrives as props
 
+#### Scenario: A template typed by an API response passes the check
+- **WHEN** a screen template imports an API response type with a type-only import and renders values
+  passed to it as props
+- **THEN** the composition check reports no violation
+
 #### Scenario: A template contains no business logic
-- **WHEN** `FormScreenTemplate` is inspected
+- **WHEN** `FormScreenLayout` — the layout tier to which this change moves the content-agnostic half of
+  the former templates tier — is inspected
 - **THEN** it contains no validation logic, no API call, and no state beyond what is needed to lay out
   the sections it is given
 
+#### Scenario: A route that both fetches and composes is reported
+- **WHEN** one component both calls the API client and composes the screen's organisms
+- **THEN** the composition check fails, requiring the screen to be split into a page that fetches and
+  a template that composes
+
 ### Requirement: A component never sets its own external margin
-No atom, molecule, organism, or template SHALL apply its own external margin or absolute positioning to
-place itself relative to a sibling section; the spacing between sibling sections on a screen SHALL be
-applied by the template (or, for a screen with no matching template, by the page/route component's own
-layout container) — never hardcoded inside the reused component itself.
+No atom, molecule, organism, layout, or template SHALL apply its own external margin or absolute
+positioning to place itself relative to a sibling section. Spacing between sibling sections SHALL be
+applied by the layout component, or by a layout primitive the template composes — never hardcoded
+inside the reused component itself.
+
+The library SHALL provide layout primitives — a vertical stack, a horizontal row, a grid, and a
+padded box — that accept spacing and alignment as steps on the token scale. No component outside the
+layout-primitive directory SHALL declare an inline style carrying a layout property, because with a
+primitive available an inline arrangement is a bypass rather than the only option.
 
 #### Scenario: A component reused in two different spacing contexts renders identically
-- **WHEN** the same molecule is placed inside `ListScreenTemplate` and, separately, inside
-  `FormScreenTemplate`
+- **WHEN** the same molecule is placed inside `ListScreenLayout` and, separately, inside
+  `FormScreenLayout`
 - **THEN** the molecule's own rendered output contains no external margin value, and the spacing around
-  it differs only because each template applies its own inter-section spacing
+  it differs only because each layout applies its own inter-section spacing
+
+#### Scenario: An inline layout style is reported
+- **WHEN** a screen declares an inline style setting a display mode and a gap in place of composing a
+  layout primitive
+- **THEN** the composition check fails and names the primitive that replaces it
 
 ### Requirement: Distinct Control-web data-density visual mode, same token source
 The component library's atoms, molecules, organisms, and templates SHALL render in a denser, less
@@ -179,11 +220,11 @@ define or consume a color, font, or motion value absent from that shared token s
 - **THEN** the Control-web spacing step is smaller, per the documented data-density composition rule
 
 ### Requirement: New screens start from a template and compose from the owned library
-A Control-web screen added after this capability exists SHALL start from an existing template when its
-shape matches (list, form, detail) and SHALL compose its form controls, tabular data, cards, modals, and
-operation feedback from the component library's atoms, molecules, and organisms; it SHALL NOT define a
-new one-off inline style object (e.g. a `React.CSSProperties` literal) duplicating a pattern the library
-already provides.
+A Control-web screen added after this capability exists SHALL start from an existing layout when its
+shape matches (list, form, detail), SHALL be split into a page that supplies data and a template that
+composes it, and SHALL compose its form controls, tabular data, cards, modals, and operation feedback
+from the component library's atoms, molecules, and organisms. It SHALL NOT define a new one-off
+inline style object duplicating a pattern the library already provides.
 
 A component outside the owned library SHALL NOT hand-write a design-system class that an owned
 component already applies, because composing an owned component's markup by hand bypasses that
@@ -193,19 +234,21 @@ introduced MAY be recorded in an explicit, dated backlog list so the check still
 new; each entry SHALL name a file rather than exempting a pattern, and a recorded count SHALL only be
 allowed to decrease.
 
-The set of governed elements SHALL cover every element the owned library replaces. Where the library
-provides a control for an element, a raw use of that element SHALL be a violation, and an element for
-which the library provides no replacement SHALL NOT be governed. An element that has an owned
-replacement and is nonetheless ungoverned is a gap in the rule, not a permitted use.
+The set of governed elements SHALL cover every element the owned library replaces, including form
+structure — the form element, its labels, and its grouping elements — once the library owns them.
+Where the library provides a control for an element, a raw use of that element SHALL be a violation,
+and an element for which the library provides no replacement SHALL NOT be governed. An element that
+has an owned replacement and is nonetheless ungoverned is a gap in the rule, not a permitted use, and
+SHALL be closed by adding the owner rather than by exempting the surface.
 
 #### Scenario: A new form screen uses FormScreenTemplate and the form-field molecule
 - **WHEN** a new screen renders a labeled multi-field form with validation
-- **THEN** it composes `FormScreenTemplate` and the form-field molecule, rather than defining its own
+- **THEN** it composes `FormScreenLayout` and the `Field` owner, rather than defining its own
   section layout, spacing, label/input/error markup, and styles
 
 #### Scenario: A new listing screen uses ListScreenTemplate and the DataTable organism
 - **WHEN** a new screen renders a tabular list of records
-- **THEN** it composes `ListScreenTemplate` and the `DataTable` organism, rather than a hand-rolled
+- **THEN** it composes `ListScreenLayout` and the `DataTable` organism, rather than a hand-rolled
   layout and CSS grid table
 
 #### Scenario: The design system's own class names are owned too
@@ -216,7 +259,8 @@ replacement and is nonetheless ungoverned is a gap in the rule, not a permitted 
   bypasses that component exactly as a raw element does
 
 #### Scenario: Every element with an owned replacement is governed
-- **WHEN** the library provides a component that replaces a raw element — including a select control
+- **WHEN** the library provides a component that replaces a raw element — including a select control,
+  and including the form, label and grouping elements once their owners ship
 - **THEN** a raw use of that element is reported, and existing uses are recorded per file in the
   backlog rather than silently permitted
 
@@ -230,6 +274,11 @@ replacement and is nonetheless ungoverned is a gap in the rule, not a permitted 
   count
 - **THEN** the check reports that the recorded count must be lowered, so the reclaimed room cannot be
   refilled silently
+
+#### Scenario: A new screen composes rather than reimplements
+- **WHEN** a new listing screen is added
+- **THEN** it composes an existing layout, its page performs the data access, its template composes the
+  organisms, and it introduces no inline style object duplicating a library pattern
 
 ### Requirement: Template migration for remaining Control-web screens
 Every Control-web screen that shipped in 0141-admin-atomic-design-system SHALL use `ListScreenTemplate` or `FormScreenTemplate` when their shape matches. The 11 remaining screens identified in 0141-admin-atomic-design-system SHALL be migrated onto the atomic tier system and SHALL NOT hand-roll layouts, tables, cards, or alerts after this change is complete. `MatchConsoleRoute.tsx` SHALL introduce its own template and SHALL consume it rather than constructing category rows or extended-match headers directly. Migrated screens SHALL assert their template-derived DOM shape in their updated `*.test.tsx` suites.
