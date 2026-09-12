@@ -47,6 +47,8 @@ export function AuditLogPanel({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 'var(--cl-space-2)',
           marginBottom: 'var(--cl-space-3)',
           borderBottom: '1px solid var(--cl-border-muted)',
           paddingBottom: 'var(--cl-space-2)',
@@ -55,6 +57,7 @@ export function AuditLogPanel({
         <h3
           style={{
             margin: 0,
+            minWidth: 0,
             fontFamily: 'var(--cl-font-display)',
             fontSize: 'var(--cl-font-size-md)',
             fontWeight: 'var(--cl-weight-bold)',

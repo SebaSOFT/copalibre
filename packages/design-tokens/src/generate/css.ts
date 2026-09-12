@@ -888,7 +888,14 @@ function components(): string {
      * width as scores change is a column nobody can scan down.
      */
     '.cl-table {',
-    '  width: 100%;',
+    // `min-width`, not `width` (openspec 0225 task 7.3): `width: 100%` forced
+    // the table to always exactly match its container, so a table whose
+    // columns need more room than a narrow viewport shrank every cell to fit
+    // instead of growing past the container and letting `.cl-table-scroll`'s
+    // `overflow-x: auto` scroll it — the standings panel clipped columns
+    // right off the visible edge with no scrollbar to reach them.
+    '  min-width: 100%;',
+    '  width: max-content;',
     '  border-collapse: collapse;',
     '  font-variant-numeric: tabular-nums;',
     '}',
@@ -1174,12 +1181,22 @@ function components(): string {
     '.cl-scorecard__operations { color: var(--cl-text-secondary); }',
     '.cl-scorecard__clock { color: var(--cl-state-live); font-weight: var(--cl-weight-bold); }',
     '.cl-scorecard__matchup { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--cl-space-4); margin-bottom: var(--cl-space-4); }',
-    '.cl-scorecard__team { display: flex; align-items: center; gap: var(--cl-space-2); }',
+    // `min-width: 0` (openspec 0225 task 7.3): a grid item's automatic
+    // minimum is its content size by default, which at a narrow width kept
+    // this column from shrinking below one team name's longest word —
+    // widening the whole matchup grid past the viewport instead, with the
+    // ambient page `overflow-x: hidden` clipping the excess rather than
+    // reflowing it. `overflow-wrap` on the name lets that word itself break.
+    '.cl-scorecard__team { display: flex; align-items: center; gap: var(--cl-space-2); min-width: 0; }',
     '.cl-scorecard__team--home { justify-content: flex-end; text-align: right; }',
     '.cl-scorecard__team--away { justify-content: flex-start; text-align: left; }',
-    '.cl-scorecard__team-name { font-family: var(--cl-font-display); font-size: var(--cl-font-size-lg); font-weight: var(--cl-weight-bold); text-transform: uppercase; color: var(--cl-text-primary); }',
+    '.cl-scorecard__team-name { font-family: var(--cl-font-display); font-size: var(--cl-font-size-lg); font-weight: var(--cl-weight-bold); text-transform: uppercase; color: var(--cl-text-primary); overflow-wrap: anywhere; }',
     '.cl-scorecard__team-swatch { font-size: var(--cl-font-size-sm); }',
-    '.cl-scorecard__score-box { background: var(--cl-surface-base); border: 1px solid var(--cl-border-muted); padding: var(--cl-space-2) var(--cl-space-4); border-radius: var(--cl-radius-sm); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xl); font-weight: var(--cl-weight-bold); color: var(--cl-text-primary); font-variant-numeric: tabular-nums; letter-spacing: var(--cl-tracking-wide); text-align: center; min-width: 90px; }',
+    // `white-space: nowrap` (openspec 0225 task 7.3): without it, a narrow
+    // `.cl-scorecard__matchup` grid can compress this `auto` track down to
+    // its per-word minimum, wrapping "[ 3 : 1 ]" across three lines instead
+    // of shrinking the team-name columns beside it, which already wrap.
+    '.cl-scorecard__score-box { background: var(--cl-surface-base); border: 1px solid var(--cl-border-muted); padding: var(--cl-space-2) var(--cl-space-4); border-radius: var(--cl-radius-sm); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xl); font-weight: var(--cl-weight-bold); color: var(--cl-text-primary); font-variant-numeric: tabular-nums; letter-spacing: var(--cl-tracking-wide); text-align: center; min-width: 90px; white-space: nowrap; }',
     '.cl-scorecard__events { display: flex; flex-wrap: wrap; gap: var(--cl-space-2); padding: var(--cl-space-2) 0; border-top: 1px solid var(--cl-border-muted); }',
     '.cl-scorecard__event { display: inline-flex; align-items: center; gap: var(--cl-space-2); background: var(--cl-surface-chrome); padding: var(--cl-space-1) var(--cl-space-2); border-radius: var(--cl-radius-sm); font-size: var(--cl-font-size-xs); font-family: var(--cl-font-mono); }',
     '.cl-scorecard__event-minute { color: var(--cl-state-live); font-weight: var(--cl-weight-bold); }',
