@@ -129,9 +129,9 @@ get fast feedback without the cost of the full browser and deployment verificati
 - **THEN** the end-to-end and deploy-verification jobs run regardless of branch
 
 ### Requirement: Remediate known transitive dependency security advisories
-The toolchain SHALL enforce explicit package resolutions and lockfile pinning to remediate known high-, medium-, and low-severity security advisories across all production, development, and transitive dependencies whenever upstream fixes are available.
+The toolchain SHALL enforce explicit package resolutions, direct dependency constraints, and lockfile pinning to remediate known high-, medium-, and low-severity security advisories across all production, development, and transitive dependencies whenever upstream fixes are available.
 
-The repository SHALL remediate known unmitigated Dependabot alerts with available compatible patches and track GitHub closure separately until the fix reaches the default branch. Transitive packages requiring fixed versions SHALL be pinned in the root `package.json` resolutions map.
+The repository SHALL remediate known unmitigated Dependabot alerts with available compatible patches and track GitHub closure separately until the fix reaches the default branch. Transitive packages requiring fixed versions SHALL be pinned in the root `package.json` resolutions map. When no upstream patch is available, the repository SHALL remove the vulnerable package from the affected execution path or prevent its vulnerable behavior with a tested safe boundary.
 
 #### Scenario: Transitive fast-uri instances resolve to patched release
 - **WHEN** dependencies are installed via `yarn install --immutable`
@@ -152,6 +152,22 @@ The repository SHALL remediate known unmitigated Dependabot alerts with availabl
 #### Scenario: Transitive SVG optimizer resolves to patched release
 - **WHEN** dependencies are installed via `yarn install --immutable`
 - **THEN** v4 instances of `svgo` resolve to version `4.1.0` or greater, remediating GHSA-w27v-7q3p-w38r and GHSA-4vpr-x523-8j87
+
+#### Scenario: Direct mail delivery dependency resolves to patched release
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** the worker's Nodemailer instance resolves to version `9.1.1` or greater, remediating GHSA-8m3c-c648-2xjj, GHSA-2x7j-588g-ccc2, GHSA-wmmp-3585-3rmp, and GHSA-cc9r-2j5m-2m83
+
+#### Scenario: Public and help build dependency resolves to patched release
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** the web workspace's Astro instance resolves to version `7.2.8` or greater, remediating GHSA-376h-93r7-7g6f and GHSA-26w7-cxv4-gfx2
+
+#### Scenario: Transitive HTTP framework resolves to patched release
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** every locked Hono instance resolves to version `4.13.5` or greater, remediating GHSA-crvj-82cr-hjcx, GHSA-g6gw-c38x-mqfc, and GHSA-gqvv-2mrq-wpjv
+
+#### Scenario: Windows binary archive extraction rejects unsafe entries
+- **WHEN** the CLI binary build processes a ZIP archive containing a symbolic link or an entry whose destination is outside its extraction directory
+- **THEN** extraction fails before writing that entry and does not create or modify a path outside the intended directory
 
 #### Scenario: A vulnerable duplicate fails CI
 - **WHEN** any affected lockfile entry or resolution falls below its supported major line’s patched floor

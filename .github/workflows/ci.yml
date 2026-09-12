@@ -303,6 +303,10 @@ jobs:
           yarn workspace @copalibre/auth test:coverage --maxWorkers=2
           yarn workspace @copalibre/routing test:coverage --maxWorkers=2
           node --test scripts/tv-soak-test.test.mjs
+          # Change-risk (CRAP) score (openspec 0227): reads this leg's just-produced
+          # coverage-final.json files; a workspace this leg doesn't cover is skipped
+          # with a warning, not a failure.
+          yarn crap:check
       - name: Unit test execution (Group 2 - Services, Web & SQLite)
         if: matrix.group == 2
         run: |
@@ -318,6 +322,10 @@ jobs:
           yarn workspace @copalibre/design-tokens test:coverage --maxWorkers=2
           yarn workspace @copalibre/realtime test:coverage --maxWorkers=2
           yarn workspace @copalibre/web test:coverage --maxWorkers=2
+          # Change-risk (CRAP) score (openspec 0227): reads this leg's just-produced
+          # coverage-final.json files; a workspace this leg doesn't cover is skipped
+          # with a warning, not a failure.
+          yarn crap:check
       - uses: actions/upload-artifact@v7
         if: always() && matrix.group == 1
         with:
