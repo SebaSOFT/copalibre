@@ -6,6 +6,7 @@ capabilities:
   - control-web/control-web-shell
   - control-web/admin-interface-components
   - control-web/notification-system
+  - design-system/atomic-composition-contract
   - platform/design-tokens
   - platform/organization-directory
   - tournament-engine/competition-lifecycle
