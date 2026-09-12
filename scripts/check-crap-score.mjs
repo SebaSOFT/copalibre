@@ -31,15 +31,18 @@ export const KNOWN_CRAP = new Map([
   // DisciplineStep, FormatStep, WindowStep, RulesStep; score 10.00).
   // MatchConsoleTemplate resolved by openspec 0228 (extracted AlertsSection,
   // SyncStatusSection, BreadcrumbSection, StatusSection; score 20.06).
-  ['@copalibre/routing/src/control-path-parser.ts#parseControlPath', 71.18],
+  // parseControlPath resolved by openspec 0229 (declarative ORG_SCOPED_ROUTES
+  // / TOURNAMENT_SCOPED_ROUTES tables; score 10.08).
+  // canActivate resolved by openspec 0229 (tests only, no refactor needed:
+  // complexity 27 was already under threshold; score 27.04).
+  // validateModulePackage resolved by openspec 0229 (extracted
+  // validateDisciplineOrProfileSemantics; score 15.00).
   ['@copalibre/tournament-engine/src/standings/index.ts#computeAccounting', 66.84],
   ['@copalibre/tournament-engine/src/fixtures/custom-bracket.ts#validateCustomBracket', 38.34],
   ['@copalibre/tournament-engine/src/fixtures/swiss.ts#generateNextSwissRoundFixtures', 36.97],
   ['@copalibre/tournament-engine/src/statistics/fold.ts#foldStatistics', 36.03],
   ['@copalibre/tournament-engine/src/advancement/index.ts#resolveSlot', 32.21],
-  ['@copalibre/module-distribution/src/validate.ts#validateModulePackage', 31.01],
   ['@copalibre/tournament-engine/src/fixtures/double-elimination.ts#buildDoubleElimination', 30.92],
-  ['@copalibre/api/src/auth/organization-access.guard.ts#canActivate', 30.76],
 ]);
 
 const BRANCH_KINDS = new Set([

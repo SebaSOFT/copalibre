@@ -207,6 +207,10 @@ describe('parseControlPath', () => {
     ['/control/platform', { screen: 'platformAdministration' }],
     ['/control/liga-mendocina/roles', { screen: 'roles', organizationAlias: 'liga-mendocina' }],
     [
+      '/control/liga-mendocina/audit-trail',
+      { screen: 'auditTrail', organizationAlias: 'liga-mendocina' },
+    ],
+    [
       '/control/liga-mendocina/preferences',
       { screen: 'preferences', organizationAlias: 'liga-mendocina' },
     ],
