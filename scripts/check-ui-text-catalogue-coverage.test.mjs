@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkTextCatalogueCoverage, scanWebSources } from './check-ui-text-catalogue-coverage.mjs';
+import {
+  checkTextCatalogueCoverage,
+  scanWebSources,
+  KNOWN_HARDCODED,
+} from './check-ui-text-catalogue-coverage.mjs';
 
 test('a catalogue-sourced attribute is not a finding', () => {
   const code = `
@@ -75,18 +79,29 @@ test('text named only in a comment is not a finding', () => {
 });
 
 test('the debt register admits its recorded count and nothing beyond it', () => {
-  const one = '<nav aria-label="Sections" />';
-  // AcceptInvitationForm.tsx is recorded at 1.
-  assert.equal(checkTextCatalogueCoverage('AcceptInvitationForm.tsx', one).length, 0);
-  assert.equal(checkTextCatalogueCoverage('AcceptInvitationForm.tsx', `${one}\n${one}`).length, 1);
-  // A file not listed gets no allowance.
-  assert.equal(checkTextCatalogueCoverage('NotListed.tsx', one).length, 1);
+  const fixture = '__RegisterFixture.tsx';
+  KNOWN_HARDCODED.set(fixture, 1);
+  try {
+    const one = '<nav aria-label="Sections" />';
+    assert.equal(checkTextCatalogueCoverage(fixture, one).length, 0);
+    assert.equal(checkTextCatalogueCoverage(fixture, `${one}\n${one}`).length, 1);
+    // A file not listed gets no allowance.
+    assert.equal(checkTextCatalogueCoverage('NotListed.tsx', one).length, 1);
+  } finally {
+    KNOWN_HARDCODED.delete(fixture);
+  }
 });
 
 test('the debt register ratchets: improving below the recorded count asks for it to be lowered', () => {
-  const findings = checkTextCatalogueCoverage('AcceptInvitationForm.tsx', 'const nothing = 1;');
-  assert.equal(findings.length, 1);
-  assert.match(findings[0].message, /fewer than the 1 recorded/);
+  const fixture = '__RegisterFixture.tsx';
+  KNOWN_HARDCODED.set(fixture, 1);
+  try {
+    const findings = checkTextCatalogueCoverage(fixture, 'const nothing = 1;');
+    assert.equal(findings.length, 1);
+    assert.match(findings[0].message, /fewer than the 1 recorded/);
+  } finally {
+    KNOWN_HARDCODED.delete(fixture);
+  }
 });
 
 test('a story file is not scanned: its text is a demonstration, not interface copy', () => {
