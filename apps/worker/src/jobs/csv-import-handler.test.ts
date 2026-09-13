@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import type { ClaimedJob, CsvImportSession } from '@copalibre/persistence';
-import type { CsvImportPreview } from '@copalibre/domain';
+import type { CsvImportPreview } from '@copalibre/domain/import-export';
 
 const uow = { publishEvent: jest.fn<() => void>() };
 const imports = {
@@ -21,7 +21,7 @@ await jest.unstable_mockModule('@copalibre/persistence', () => ({
   EnrollmentRepository: jest.fn(() => enrollment),
   withTransaction,
 }));
-await jest.unstable_mockModule('@copalibre/domain', () => ({ validateCsvImport }));
+await jest.unstable_mockModule('@copalibre/domain/import-export', () => ({ validateCsvImport }));
 
 const { CSV_IMPORT_VALIDATION_EVENT, csvImportValidationHandler } =
   await import('./csv-import-handler.js');

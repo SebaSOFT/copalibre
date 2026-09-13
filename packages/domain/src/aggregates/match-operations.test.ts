@@ -30,6 +30,7 @@ describe('applyMatchCommand', () => {
     ['start', 'scheduled', 'in-progress', true],
     ['pause', 'in-progress', 'in-progress', false],
     ['resume', 'in-progress', 'in-progress', true],
+    ['end', 'in-progress', 'in-progress', false],
     ['finalize', 'in-progress', 'finalized', false],
   ] as const)('%s from %s leaves the match %s', (command, status, expected, clockRunning) => {
     const result = applyMatchCommand({ matchId: 'm-1', status }, command, { state: 'active' });
@@ -40,6 +41,42 @@ describe('applyMatchCommand', () => {
     expect(result.value.clockRunning).toBe(clockRunning);
   });
 
+  it.each([
+    ['start', 'active'],
+    ['resume', 'active'],
+    ['pause', 'pending'],
+    ['end', 'completed'],
+  ] as const)('%s leaves the targeted segment %s', (command, segmentState) => {
+    const status = command === 'start' ? 'scheduled' : 'in-progress';
+    const result = applyMatchCommand({ matchId: 'm-1', status }, command, {
+      state: command === 'pause' ? 'active' : 'pending',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.segmentState).toBe(segmentState);
+  });
+
+  it.each(['start', 'pause', 'resume', 'end'] as const)(
+    'refuses %s on a segment that has already ended',
+    (command: MatchCommand) => {
+      const status = command === 'start' ? 'scheduled' : 'in-progress';
+      const result = applyMatchCommand({ matchId: 'm-1', status }, command, { state: 'completed' });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.code).toBe('MATCH_OPERATION_INVALID');
+    },
+  );
+
+  it('refuses end when the command names no segment at all', () => {
+    const result = applyMatchCommand({ matchId: 'm-1', status: 'in-progress' }, 'end');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('no segment to end');
+  });
+
   it('keeps a paused match in progress, because pausing stops a clock and not a competition', () => {
     const paused = applyMatchCommand({ matchId: 'm-1', status: 'in-progress' }, 'pause', {
       state: 'active',
@@ -48,7 +85,7 @@ describe('applyMatchCommand', () => {
     expect(paused.ok && paused.value.status).toBe('in-progress');
   });
 
-  it.each(['start', 'pause', 'resume', 'finalize'] as const)(
+  it.each(['start', 'pause', 'resume', 'end', 'finalize'] as const)(
     'refuses %s once the match is finalized',
     (command: MatchCommand) => {
       const result = applyMatchCommand({ matchId: 'm-1', status: 'finalized' }, command, {

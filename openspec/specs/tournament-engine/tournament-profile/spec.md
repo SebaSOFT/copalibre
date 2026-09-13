@@ -1,72 +1,14 @@
-# tournament-profile Specification
+# tournament-profile Specification Delta
 
-## Purpose
-Makes tournament configuration a reusable, attributable, publishable artifact that declares what it
-needs from a discipline rather than pinning a discipline version.
+## ADDED Requirements
 
-## Requirements
+### Requirement: Tournament emblem asset management
+The tournament profile SHALL support uploading, storing, retrieving, and removing an official tournament emblem.
 
-### Requirement: Publishable tournament profile
-A `TournamentProfile` SHALL be a versioned artifact carrying attribution and a tournament
-configuration (stages, formats, scoring, tiebreak pipeline), instantiable by any number of
-tournaments. It SHALL be expressible as a JSON document with a published structural schema, so a
-profile authored outside the application is validated as data before it is treated as a profile.
+#### Scenario: Uploading a tournament emblem
+- **WHEN** an authorized organizer uploads an image file via POST /organizations/{orgId}/tournaments/{tournamentId}/emblem
+- **THEN** the system SHALL validate the file format, store the asset in object storage, and update the tournament record with the emblem reference
 
-#### Scenario: A profile is reused across tournaments
-- **WHEN** two tournaments instantiate the same profile version
-- **THEN** both receive identical configuration, and neither can mutate the profile itself
-
-#### Scenario: Attribution travels with the artifact
-- **WHEN** a profile or discipline is read
-- **THEN** its author, source URL and licence are available without consulting an external source
-
-#### Scenario: A profile authored as a document is validated before use
-- **WHEN** a profile arrives as JSON from a catalogue, an import or an API request
-- **THEN** it is validated against the profile schema, and a document failing it is rejected
-  identifying the offending member rather than partially applied
-
-### Requirement: Capability requirements instead of version pins
-A `TournamentProfile` SHALL declare the capability codes it consumes, each marked `required` or
-`optional`, and each satisfiable by any one of a declared set of codes.
-
-#### Scenario: One profile spans differently-named disciplines
-- **WHEN** a profile requires a primary scoring statistic satisfiable by `goals-for` or `frags`
-- **AND** it is compiled against a discipline declaring only `frags`
-- **THEN** the requirement is satisfied
-
-#### Scenario: A discipline release does not invalidate a profile
-- **WHEN** a discipline publishes a new version that still declares the required codes
-- **THEN** the profile remains usable with no new profile release
-
-### Requirement: Capability binding is resolved and recorded
-Compiling a profile against a discipline SHALL resolve each capability requirement to that
-discipline's concrete code, and the resolved binding SHALL be recorded on the compiled snapshot.
-
-#### Scenario: Tiebreak comparators read through the binding
-- **WHEN** a profile's tiebreak pipeline references a capability name
-- **THEN** evaluation uses the code the binding resolved it to, not the capability name
-
-#### Scenario: An unsatisfied optional capability degrades rather than fails
-- **WHEN** a profile marks a capability optional and the discipline does not declare it
-- **THEN** compilation succeeds and the affected comparator is skipped per its `missingValue` behaviour
-
-#### Scenario: An unsatisfied required capability is reported and overridable
-- **WHEN** a profile marks a capability required and the discipline does not declare it
-- **THEN** the compilation reports the unsatisfied requirement
-- **AND** an operator may explicitly override and proceed, with the gap recorded on the binding
-
-### Requirement: Profile instantiation is reachable from tournament creation
-Selecting a `TournamentProfile` during tournament creation SHALL instantiate it: compiling it against
-the chosen discipline (per this capability's existing capability-binding requirement) and pre-creating
-every stage it declares on the resulting tournament, recording the profile reference and resolved
-binding on the created tournament.
-
-#### Scenario: A created tournament records its instantiated profile
-- **WHEN** an organizer completes tournament creation with a `TournamentProfile` selected
-- **THEN** the created tournament's `profileRef` records the profile's identifier and version, and its
-  resolved capability binding is available without recompiling the profile
-
-#### Scenario: A tournament created without a profile has no profile reference
-- **WHEN** an organizer completes tournament creation without selecting a profile
-- **THEN** the created tournament's `profileRef` is absent, and it behaves exactly as a tournament does
-  today: one stage, format set directly
+#### Scenario: Deleting a tournament emblem
+- **WHEN** an authorized organizer sends DELETE /organizations/{orgId}/tournaments/{tournamentId}/emblem
+- **THEN** the system SHALL clear the emblem reference from the tournament record and remove the stored asset

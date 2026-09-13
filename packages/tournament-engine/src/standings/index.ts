@@ -253,209 +253,14 @@ export function computeAccounting(
   const isSeriesGrain = seriesDec?.standingsAccounting === 'series';
 
   if (isSeriesGrain && seriesDec) {
-    const fixtures = groupOutcomesByFixture(outcomes);
-
-    const foldSeriesCount = (entrantId: string): void => {
-      const acc = accumulators.get(entrantId);
-      if (!acc) return;
-      for (const stat of descriptor.statistics) {
-        if (stat.aggregation !== 'count') continue;
-        const statAcc = acc.stats[stat.code];
-        if (!statAcc) continue;
-        statAcc.count += 1;
-      }
-    };
-
-    for (const [, fixtureOutcomes] of fixtures) {
-      const first = fixtureOutcomes[0];
-      if (!first || first.sides.length < 2 || !first.sides[0] || !first.sides[1]) continue;
-      const sides: readonly [string, string] = [first.sides[0].entrantId, first.sides[1].entrantId];
-
-      // Fold every played match's non-count statistics: a goal scored in game
-      // two was scored whatever the standings row is counted in. A
-      // `count`-aggregated statistic folds once for the series as a whole,
-      // below, once it is known to have resolved.
-      for (const outcome of fixtureOutcomes) {
-        for (const side of outcome.sides) {
-          const acc = accumulators.get(side.entrantId);
-          if (!acc) continue;
-          for (const stat of descriptor.statistics) {
-            if (
-              stat.code === DERIVABLE_STATISTICS.wins ||
-              stat.code === DERIVABLE_STATISTICS.losses ||
-              stat.code === DERIVABLE_STATISTICS.draws ||
-              stat.code === DERIVABLE_STATISTICS.points ||
-              stat.aggregation === 'count'
-            ) {
-              continue;
-            }
-            const statAcc = acc.stats[stat.code];
-            if (!statAcc) continue;
-            const value = side.statistics[stat.code];
-            if (typeof value !== 'number') continue;
-            statAcc.sum += value;
-            statAcc.count += 1;
-            statAcc.max = Math.max(statAcc.max, value);
-            statAcc.min = Math.min(statAcc.min, value);
-          }
-        }
-      }
-
-      // Fold 1 series outcome
-      const seriesMatches = seriesMatchesOf(fixtureOutcomes);
-
-      const seriesResult = resolveSeries({
-        declaration: seriesDec,
-        sides,
-        matches: seriesMatches,
-        pointsRules: points,
-      });
-
-      if (seriesResult.status === 'decided' && seriesResult.winnerEntrantId) {
-        const winner = seriesResult.winnerEntrantId;
-        const loser = sides.find((s) => s !== winner);
-
-        const winAcc = accumulators.get(winner);
-        if (winAcc) {
-          addDerivedStat(winAcc, descriptor, DERIVABLE_STATISTICS.wins, 1);
-          addDerivedStat(winAcc, descriptor, DERIVABLE_STATISTICS.points, points.win);
-        }
-        if (loser) {
-          const loseAcc = accumulators.get(loser);
-          if (loseAcc) {
-            addDerivedStat(loseAcc, descriptor, DERIVABLE_STATISTICS.losses, 1);
-            addDerivedStat(loseAcc, descriptor, DERIVABLE_STATISTICS.points, points.loss);
-          }
-        }
-        foldSeriesCount(winner);
-        if (loser) foldSeriesCount(loser);
-      } else if (seriesResult.status === 'finished-unresolved') {
-        for (const sideId of sides) {
-          const drawAcc = accumulators.get(sideId);
-          if (drawAcc) {
-            addDerivedStat(drawAcc, descriptor, DERIVABLE_STATISTICS.draws, 1);
-            addDerivedStat(drawAcc, descriptor, DERIVABLE_STATISTICS.points, points.draw);
-          }
-          foldSeriesCount(sideId);
-        }
-      }
-    }
+    foldSeriesGrainAccounting(descriptor, accumulators, outcomes, seriesDec, points);
   } else {
-    for (const outcome of outcomes) {
-      if (outcome.sides.length < 2) continue;
-
-      for (const side of outcome.sides) {
-        const acc = accumulators.get(side.entrantId);
-        if (!acc) continue;
-        const values = {
-          ...derivedFor(descriptor, outcome, side.entrantId, points),
-          ...side.statistics,
-        };
-
-        for (const stat of descriptor.statistics) {
-          const statAcc = acc.stats[stat.code];
-          if (!statAcc) continue;
-
-          const value = values[stat.code];
-          if (typeof value !== 'number') {
-            if (stat.aggregation === 'count') statAcc.count += 1;
-            continue;
-          }
-          statAcc.sum += value;
-          statAcc.count += 1;
-          statAcc.max = Math.max(statAcc.max, value);
-          statAcc.min = Math.min(statAcc.min, value);
-        }
-      }
-    }
+    foldMatchGrainAccounting(descriptor, accumulators, outcomes, points);
   }
 
-  // Pass 2: Strength-of-Schedule (SoS) metric folding
   const declaredCodes = new Set(descriptor.statistics.map((s) => s.code));
-  const hasSosStats =
-    declaredCodes.has(DERIVABLE_STATISTICS.buchholz) ||
-    declaredCodes.has(DERIVABLE_STATISTICS.buchholzWins) ||
-    declaredCodes.has(DERIVABLE_STATISTICS.buchholzDraws) ||
-    declaredCodes.has(DERIVABLE_STATISTICS.buchholzLosses) ||
-    declaredCodes.has(DERIVABLE_STATISTICS.medianBuchholz) ||
-    declaredCodes.has(DERIVABLE_STATISTICS.sonnebornBerger);
-
-  if (hasSosStats) {
-    const opponentGraph = buildOpponentAdjacencyGraph(entrantIds, outcomes);
-    const baselinePoints = new Map<string, number>();
-
-    for (const entrantId of entrantIds) {
-      const acc = accumulators.get(entrantId);
-      const pointsStat = acc?.stats[DERIVABLE_STATISTICS.points];
-      const pts = pointsStat ? fold('sum', pointsStat) : 0;
-      baselinePoints.set(entrantId, pts);
-    }
-
-    for (const entrantId of entrantIds) {
-      const acc = accumulators.get(entrantId);
-      if (!acc) continue;
-      const opponentRecords = opponentGraph.get(entrantId) ?? [];
-      const opponentScores: OpponentScore[] = opponentRecords.map((rec) => ({
-        opponentId: rec.opponentId,
-        points: baselinePoints.get(rec.opponentId) ?? 0,
-        outcome: rec.outcome,
-      }));
-
-      if (declaredCodes.has(DERIVABLE_STATISTICS.buchholz)) {
-        const val = computeBuchholz(opponentScores);
-        setDerivedStat(acc, DERIVABLE_STATISTICS.buchholz, val);
-      }
-      if (declaredCodes.has(DERIVABLE_STATISTICS.buchholzWins)) {
-        const val = computeScopedBuchholz(opponentScores, 'win');
-        setDerivedStat(acc, DERIVABLE_STATISTICS.buchholzWins, val);
-      }
-      if (declaredCodes.has(DERIVABLE_STATISTICS.buchholzDraws)) {
-        const val = computeScopedBuchholz(opponentScores, 'draw');
-        setDerivedStat(acc, DERIVABLE_STATISTICS.buchholzDraws, val);
-      }
-      if (declaredCodes.has(DERIVABLE_STATISTICS.buchholzLosses)) {
-        const val = computeScopedBuchholz(opponentScores, 'loss');
-        setDerivedStat(acc, DERIVABLE_STATISTICS.buchholzLosses, val);
-      }
-      if (declaredCodes.has(DERIVABLE_STATISTICS.medianBuchholz)) {
-        const val = computeMedianBuchholz(opponentScores).score;
-        setDerivedStat(acc, DERIVABLE_STATISTICS.medianBuchholz, val);
-      }
-      if (declaredCodes.has(DERIVABLE_STATISTICS.sonnebornBerger)) {
-        const val = computeSonnebornBerger(opponentScores);
-        setDerivedStat(acc, DERIVABLE_STATISTICS.sonnebornBerger, val);
-      }
-    }
-  }
-
-  if (
-    declaredCodes.has(DERIVABLE_STATISTICS.cumulativeScore) ||
-    declaredCodes.has(DERIVABLE_STATISTICS.cumulativeOpponentPoints)
-  ) {
-    const { cumulativeScores, cumulativeOpponentPoints } = computeCumulativeScores(
-      entrantIds,
-      outcomes,
-      points,
-    );
-    for (const entrantId of entrantIds) {
-      const acc = accumulators.get(entrantId);
-      if (!acc) continue;
-      if (declaredCodes.has(DERIVABLE_STATISTICS.cumulativeScore)) {
-        setDerivedStat(
-          acc,
-          DERIVABLE_STATISTICS.cumulativeScore,
-          cumulativeScores.get(entrantId) ?? 0,
-        );
-      }
-      if (declaredCodes.has(DERIVABLE_STATISTICS.cumulativeOpponentPoints)) {
-        setDerivedStat(
-          acc,
-          DERIVABLE_STATISTICS.cumulativeOpponentPoints,
-          cumulativeOpponentPoints.get(entrantId) ?? 0,
-        );
-      }
-    }
-  }
+  foldStrengthOfScheduleStatistics(accumulators, entrantIds, outcomes, declaredCodes);
+  foldCumulativeStatistics(accumulators, entrantIds, outcomes, points, declaredCodes);
 
   return entrantIds.map((entrantId) => {
     const acc = accumulators.get(entrantId) ?? emptyAccumulator(descriptor);
@@ -468,6 +273,260 @@ export function computeAccounting(
 
     return { entrantId, statistics };
   });
+}
+
+/**
+ * `computeAccounting`'s series-grain fold, extracted verbatim (openspec
+ * 0230): one series outcome per fixture, folded once it resolves, rather
+ * than once per game. Mutates `accumulators` in place, matching the
+ * function it was extracted from.
+ */
+function foldSeriesGrainAccounting(
+  descriptor: DisciplineDescriptor,
+  accumulators: ReadonlyMap<string, EntrantAccumulator>,
+  outcomes: readonly RecordedOutcome[],
+  seriesDec: SeriesDeclaration,
+  points: PointsRules,
+): void {
+  const fixtures = groupOutcomesByFixture(outcomes);
+
+  const foldSeriesCount = (entrantId: string): void => {
+    const acc = accumulators.get(entrantId);
+    if (!acc) return;
+    for (const stat of descriptor.statistics) {
+      if (stat.aggregation !== 'count') continue;
+      const statAcc = acc.stats[stat.code];
+      if (!statAcc) continue;
+      statAcc.count += 1;
+    }
+  };
+
+  for (const [, fixtureOutcomes] of fixtures) {
+    const first = fixtureOutcomes[0];
+    if (!first || first.sides.length < 2 || !first.sides[0] || !first.sides[1]) continue;
+    const sides: readonly [string, string] = [first.sides[0].entrantId, first.sides[1].entrantId];
+
+    // Fold every played match's non-count statistics: a goal scored in game
+    // two was scored whatever the standings row is counted in. A
+    // `count`-aggregated statistic folds once for the series as a whole,
+    // below, once it is known to have resolved.
+    for (const outcome of fixtureOutcomes) {
+      for (const side of outcome.sides) {
+        const acc = accumulators.get(side.entrantId);
+        if (!acc) continue;
+        for (const stat of descriptor.statistics) {
+          if (
+            stat.code === DERIVABLE_STATISTICS.wins ||
+            stat.code === DERIVABLE_STATISTICS.losses ||
+            stat.code === DERIVABLE_STATISTICS.draws ||
+            stat.code === DERIVABLE_STATISTICS.points ||
+            stat.aggregation === 'count'
+          ) {
+            continue;
+          }
+          const statAcc = acc.stats[stat.code];
+          if (!statAcc) continue;
+          const value = side.statistics[stat.code];
+          if (typeof value !== 'number') continue;
+          statAcc.sum += value;
+          statAcc.count += 1;
+          statAcc.max = Math.max(statAcc.max, value);
+          statAcc.min = Math.min(statAcc.min, value);
+        }
+      }
+    }
+
+    // Fold 1 series outcome
+    const seriesMatches = seriesMatchesOf(fixtureOutcomes);
+
+    const seriesResult = resolveSeries({
+      declaration: seriesDec,
+      sides,
+      matches: seriesMatches,
+      pointsRules: points,
+    });
+
+    if (seriesResult.status === 'decided' && seriesResult.winnerEntrantId) {
+      const winner = seriesResult.winnerEntrantId;
+      const loser = sides.find((s) => s !== winner);
+
+      const winAcc = accumulators.get(winner);
+      if (winAcc) {
+        addDerivedStat(winAcc, descriptor, DERIVABLE_STATISTICS.wins, 1);
+        addDerivedStat(winAcc, descriptor, DERIVABLE_STATISTICS.points, points.win);
+      }
+      if (loser) {
+        const loseAcc = accumulators.get(loser);
+        if (loseAcc) {
+          addDerivedStat(loseAcc, descriptor, DERIVABLE_STATISTICS.losses, 1);
+          addDerivedStat(loseAcc, descriptor, DERIVABLE_STATISTICS.points, points.loss);
+        }
+      }
+      foldSeriesCount(winner);
+      if (loser) foldSeriesCount(loser);
+    } else if (seriesResult.status === 'finished-unresolved') {
+      for (const sideId of sides) {
+        const drawAcc = accumulators.get(sideId);
+        if (drawAcc) {
+          addDerivedStat(drawAcc, descriptor, DERIVABLE_STATISTICS.draws, 1);
+          addDerivedStat(drawAcc, descriptor, DERIVABLE_STATISTICS.points, points.draw);
+        }
+        foldSeriesCount(sideId);
+      }
+    }
+  }
+}
+
+/**
+ * `computeAccounting`'s match-grain fold, extracted verbatim (openspec
+ * 0230): every side of every outcome folds independently, the accounting
+ * engine's default when no series declaration opts a stage into series-grain
+ * standings.
+ */
+function foldMatchGrainAccounting(
+  descriptor: DisciplineDescriptor,
+  accumulators: ReadonlyMap<string, EntrantAccumulator>,
+  outcomes: readonly RecordedOutcome[],
+  points: PointsRules,
+): void {
+  for (const outcome of outcomes) {
+    if (outcome.sides.length < 2) continue;
+
+    for (const side of outcome.sides) {
+      const acc = accumulators.get(side.entrantId);
+      if (!acc) continue;
+      const values = {
+        ...derivedFor(descriptor, outcome, side.entrantId, points),
+        ...side.statistics,
+      };
+
+      for (const stat of descriptor.statistics) {
+        const statAcc = acc.stats[stat.code];
+        if (!statAcc) continue;
+
+        const value = values[stat.code];
+        if (typeof value !== 'number') {
+          if (stat.aggregation === 'count') statAcc.count += 1;
+          continue;
+        }
+        statAcc.sum += value;
+        statAcc.count += 1;
+        statAcc.max = Math.max(statAcc.max, value);
+        statAcc.min = Math.min(statAcc.min, value);
+      }
+    }
+  }
+}
+
+/**
+ * `computeAccounting`'s Strength-of-Schedule (SoS) pass, extracted verbatim
+ * (openspec 0230): Buchholz/median-Buchholz/Sonneborn-Berger, computed only
+ * for the statistic codes the discipline actually declares.
+ */
+function foldStrengthOfScheduleStatistics(
+  accumulators: ReadonlyMap<string, EntrantAccumulator>,
+  entrantIds: readonly string[],
+  outcomes: readonly RecordedOutcome[],
+  declaredCodes: ReadonlySet<string>,
+): void {
+  const hasSosStats =
+    declaredCodes.has(DERIVABLE_STATISTICS.buchholz) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.buchholzWins) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.buchholzDraws) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.buchholzLosses) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.medianBuchholz) ||
+    declaredCodes.has(DERIVABLE_STATISTICS.sonnebornBerger);
+  if (!hasSosStats) return;
+
+  const opponentGraph = buildOpponentAdjacencyGraph(entrantIds, outcomes);
+  const baselinePoints = new Map<string, number>();
+
+  for (const entrantId of entrantIds) {
+    const acc = accumulators.get(entrantId);
+    const pointsStat = acc?.stats[DERIVABLE_STATISTICS.points];
+    const pts = pointsStat ? fold('sum', pointsStat) : 0;
+    baselinePoints.set(entrantId, pts);
+  }
+
+  for (const entrantId of entrantIds) {
+    const acc = accumulators.get(entrantId);
+    if (!acc) continue;
+    const opponentRecords = opponentGraph.get(entrantId) ?? [];
+    const opponentScores: OpponentScore[] = opponentRecords.map((rec) => ({
+      opponentId: rec.opponentId,
+      points: baselinePoints.get(rec.opponentId) ?? 0,
+      outcome: rec.outcome,
+    }));
+
+    if (declaredCodes.has(DERIVABLE_STATISTICS.buchholz)) {
+      const val = computeBuchholz(opponentScores);
+      setDerivedStat(acc, DERIVABLE_STATISTICS.buchholz, val);
+    }
+    if (declaredCodes.has(DERIVABLE_STATISTICS.buchholzWins)) {
+      const val = computeScopedBuchholz(opponentScores, 'win');
+      setDerivedStat(acc, DERIVABLE_STATISTICS.buchholzWins, val);
+    }
+    if (declaredCodes.has(DERIVABLE_STATISTICS.buchholzDraws)) {
+      const val = computeScopedBuchholz(opponentScores, 'draw');
+      setDerivedStat(acc, DERIVABLE_STATISTICS.buchholzDraws, val);
+    }
+    if (declaredCodes.has(DERIVABLE_STATISTICS.buchholzLosses)) {
+      const val = computeScopedBuchholz(opponentScores, 'loss');
+      setDerivedStat(acc, DERIVABLE_STATISTICS.buchholzLosses, val);
+    }
+    if (declaredCodes.has(DERIVABLE_STATISTICS.medianBuchholz)) {
+      const val = computeMedianBuchholz(opponentScores).score;
+      setDerivedStat(acc, DERIVABLE_STATISTICS.medianBuchholz, val);
+    }
+    if (declaredCodes.has(DERIVABLE_STATISTICS.sonnebornBerger)) {
+      const val = computeSonnebornBerger(opponentScores);
+      setDerivedStat(acc, DERIVABLE_STATISTICS.sonnebornBerger, val);
+    }
+  }
+}
+
+/**
+ * `computeAccounting`'s cumulative-score pass, extracted verbatim (openspec
+ * 0230): cumulative own score and cumulative opponent points, computed only
+ * for the statistic codes the discipline actually declares.
+ */
+function foldCumulativeStatistics(
+  accumulators: ReadonlyMap<string, EntrantAccumulator>,
+  entrantIds: readonly string[],
+  outcomes: readonly RecordedOutcome[],
+  points: PointsRules,
+  declaredCodes: ReadonlySet<string>,
+): void {
+  if (
+    !declaredCodes.has(DERIVABLE_STATISTICS.cumulativeScore) &&
+    !declaredCodes.has(DERIVABLE_STATISTICS.cumulativeOpponentPoints)
+  ) {
+    return;
+  }
+
+  const { cumulativeScores, cumulativeOpponentPoints } = computeCumulativeScores(
+    entrantIds,
+    outcomes,
+    points,
+  );
+  for (const entrantId of entrantIds) {
+    const acc = accumulators.get(entrantId);
+    if (!acc) continue;
+    if (declaredCodes.has(DERIVABLE_STATISTICS.cumulativeScore)) {
+      setDerivedStat(
+        acc,
+        DERIVABLE_STATISTICS.cumulativeScore,
+        cumulativeScores.get(entrantId) ?? 0,
+      );
+    }
+    if (declaredCodes.has(DERIVABLE_STATISTICS.cumulativeOpponentPoints)) {
+      setDerivedStat(
+        acc,
+        DERIVABLE_STATISTICS.cumulativeOpponentPoints,
+        cumulativeOpponentPoints.get(entrantId) ?? 0,
+      );
+    }
+  }
 }
 
 function setDerivedStat(acc: EntrantAccumulator, statCode: string, val: number): void {

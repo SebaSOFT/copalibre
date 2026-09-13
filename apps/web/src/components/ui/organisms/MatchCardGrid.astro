@@ -1,0 +1,101 @@
+---
+import type { IntlShape } from 'react-intl';
+import { Badge } from '../atoms/Badge.tsx';
+import { Card } from '../atoms/Card.tsx';
+import { EntrantName } from '../atoms/EntrantName.tsx';
+import type { OverviewModel } from '../../../lib/overview.ts';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import { resultStateLabels } from '../../../lib/i18n/public-intl.ts';
+
+interface Props {
+  readonly model: OverviewModel;
+  readonly intl: IntlShape;
+  /** Optional non-default locale segment from the enclosing public route. */
+  readonly localePrefix?: string;
+}
+const { model, intl, localePrefix = '' } = Astro.props;
+const labels = resultStateLabels(intl);
+---
+
+{
+  /*
+  Rendered server-side and complete. A ticker that needs JavaScript to say the
+  score is a ticker that says nothing on a venue TV behind a hotel proxy.
+*/
+}
+<section aria-labelledby="match-grid-heading">
+  <h2 id="match-grid-heading">{intl.formatMessage(messages.matchGridHeading)}</h2>
+  {model.matches.length === 0 && <p>{intl.formatMessage(messages.matchGridEmpty)}</p>}
+  <ul class="cl-match-card-grid">
+    {
+      model.matches.map((match) => {
+        const cardContent = (
+          <Card
+            as="article"
+            className={`cl-match-card cl-card--${match.state === 'final' ? 'positive' : match.state === 'disputed' ? 'destructive' : match.state}`}
+          >
+            <div class="cl-match-card__header">
+              <Badge>{labels[match.state]}</Badge>
+              {match.startsAt && (
+                <time datetime={match.startsAt} class="cl-match-card__clock">
+                  {match.startsAt}
+                </time>
+              )}
+            </div>
+            <ol class="cl-match-card__sides">
+              <li class="cl-match-card__side">
+                <EntrantName
+                  abbreviation={match.home.abbreviation}
+                  client:load
+                  fullName={match.home.name}
+                />
+                <span class="cl-stat-tile__value">{match.home.score ?? '—'}</span>
+              </li>
+              <li class="cl-match-card__side">
+                <EntrantName
+                  abbreviation={match.away.abbreviation}
+                  client:load
+                  fullName={match.away.name}
+                />
+                <span class="cl-stat-tile__value">{match.away.score ?? '—'}</span>
+              </li>
+            </ol>
+          </Card>
+        );
+
+        return (
+          <li>
+            {match.matchNumber === undefined ? (
+              cardContent
+            ) : (
+              <a
+                class="cl-match-card-link"
+                href={`${localePrefix}${model.canonicalPath}/stages/${match.stageNumber}/matches/${match.matchNumber}`}
+              >
+                {cardContent}
+              </a>
+            )}
+          </li>
+        );
+      })
+    }
+  </ul>
+</section>
+
+<style>
+  /* Layout comes from the token layer now; only this grid's own offset from
+     what precedes it stays here, because that spacing is this page's. */
+  .cl-match-card-grid {
+    margin-block-start: var(--cl-space-3);
+  }
+
+  .cl-match-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .cl-match-card-link:hover .cl-match-card {
+    border-color: var(--cl-primary);
+  }
+</style>

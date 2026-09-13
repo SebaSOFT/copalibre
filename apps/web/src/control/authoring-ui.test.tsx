@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { RegistrationReviewPage } from './components/RegistrationReviewPage.js';
+import { RegistrationReviewTemplate } from './components/screens/RegistrationReviewTemplate.js';
 import { TournamentSetupWizard } from './components/TournamentSetupWizard.js';
 import { sampleDisciplines, sampleRegistrations } from './lib/sample.js';
 import { withIntl } from './i18n/test-support.js';
@@ -404,9 +404,10 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-describe('TournamentAuthoringPage component', () => {
+describe('TournamentAuthoringTemplate component', () => {
   it('renders loading, empty, and creation failure states gracefully', async () => {
-    const { TournamentAuthoringPage } = await import('./components/TournamentAuthoringPage.js');
+    const { TournamentAuthoringTemplate } =
+      await import('./components/screens/TournamentAuthoringTemplate.js');
     const mockClient = createControlApiClient({
       fetch: async (input) => {
         const url = String(input);
@@ -420,7 +421,9 @@ describe('TournamentAuthoringPage component', () => {
     });
 
     const { rerender } = render(
-      withIntl(<TournamentAuthoringPage organizationAlias="liga-mendocina" client={mockClient} />),
+      withIntl(
+        <TournamentAuthoringTemplate organizationAlias="liga-mendocina" client={mockClient} />,
+      ),
     );
 
     expect(await screen.findByText(/No disciplines are installed/i)).toBeDefined();
@@ -434,7 +437,7 @@ describe('TournamentAuthoringPage component', () => {
 
     rerender(
       withIntl(
-        <TournamentAuthoringPage organizationAlias="liga-mendocina" client={failedClient} />,
+        <TournamentAuthoringTemplate organizationAlias="liga-mendocina" client={failedClient} />,
       ),
     );
 
@@ -442,7 +445,8 @@ describe('TournamentAuthoringPage component', () => {
   });
 
   it('submits a new tournament through the authoring page', async () => {
-    const { TournamentAuthoringPage } = await import('./components/TournamentAuthoringPage.js');
+    const { TournamentAuthoringTemplate } =
+      await import('./components/screens/TournamentAuthoringTemplate.js');
     const calls: Array<{ url: string; body: unknown }> = [];
     const client = createControlApiClient({
       fetch: async (input, init) => {
@@ -470,7 +474,7 @@ describe('TournamentAuthoringPage component', () => {
     });
 
     render(
-      withIntl(<TournamentAuthoringPage organizationAlias="liga-mendocina" client={client} />),
+      withIntl(<TournamentAuthoringTemplate organizationAlias="liga-mendocina" client={client} />),
     );
 
     await screen.findByLabelText('Name');
@@ -493,7 +497,7 @@ describe('the registration review screen', () => {
   it('filters rows, selects visible rows and exposes row details', () => {
     render(
       withIntl(
-        <RegistrationReviewPage
+        <RegistrationReviewTemplate
           organizationAlias="liga-mendocina"
           tournamentName="apertura-2026"
           rows={sampleRegistrations()}
@@ -518,7 +522,7 @@ describe('the registration review screen', () => {
   it('shows the check-in team-membership lock when the server would reject the edit', () => {
     render(
       withIntl(
-        <RegistrationReviewPage
+        <RegistrationReviewTemplate
           organizationAlias="liga-mendocina"
           tournamentName="apertura-2026"
           rows={sampleRegistrations()}

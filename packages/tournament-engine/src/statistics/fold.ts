@@ -143,73 +143,19 @@ export function foldStatistics(input: FoldInput): readonly CollectedFigure[] {
 
   for (const collector of input.collectors) {
     if (collector.source.kind === 'participation') {
-      const roles = collector.source.roles;
-      for (const member of input.roster) {
-        if (roles && !roles.includes(member.role)) continue;
-        const actorId = actorIdAt(member, collector.granularity.actor);
-        if (actorId === undefined) continue;
-        if (input.filter && !input.filter(member, actorId, collector)) continue;
-        add(keyFor(collector, actorId, input.context), 1);
-      }
+      foldParticipationCollector(input, collector, add);
       continue;
     }
-
     if (collector.source.kind === 'statistic') {
-      const statisticCode = collector.source.statisticCode;
-      for (const event of input.events) {
-        for (const { delta, awardTo } of declaredDeltas(event, statisticCode, definitions)) {
-          for (const resolved of resolveTargets(input, event, awardTo)) {
-            const actorId = actorIdAt(resolved, collector.granularity.actor);
-            if (actorId === undefined) continue;
-            if (input.filter && !input.filter(event, actorId, collector)) continue;
-            add(keyFor(collector, actorId, input.context), delta);
-          }
-        }
-      }
+      foldStatisticSourcedCollector(input, collector, definitions, add);
       continue;
     }
-
     if (collector.source.kind === 'collector') {
-      const sourceCode = collector.source.code;
-      const source = input.collectors.find((one) => one.code === sourceCode);
-      if (source?.source.kind === 'collector') {
-        throw new StatisticFoldError(
-          `Collector "${collector.code}" feeds off "${sourceCode}", which is itself ` +
-            'collector-sourced; a collector may name only a directly-computed collector',
-          { code: collector.code, source: sourceCode },
-        );
-      }
-
-      // A snapshot, not a live view: `refold` sorts `collector`-sourced
-      // entries after everything else, so by the time this branch runs the
-      // source collector's figures are already settled — iterating the live
-      // map here would let a collector see partial output from a peer that
-      // happens to run later in `input.collectors`.
-      for (const figure of [...figures.values()]) {
-        if (figure.collectorCode !== sourceCode) continue;
-        if (input.filter && !input.filter(figure, figure.actorId, collector)) continue;
-        add(
-          keyFor(collector, figure.actorId, input.context),
-          measuredFromFigure(collector.measure, figure),
-        );
-      }
+      foldDerivedCollector(input, collector, figures, add);
       continue;
     }
-
     if (collector.source.kind !== 'event') continue;
-
-    const actorSource = collector.source.actorSource ?? 'primary';
-    for (const event of input.events) {
-      if (!watches(collector, event)) continue;
-
-      for (const resolved of resolveTargets(input, event, actorSource)) {
-        const actorId = actorIdAt(resolved, collector.granularity.actor);
-        if (actorId === undefined) continue;
-        if (input.filter && !input.filter(event, actorId, collector)) continue;
-
-        add(keyFor(collector, actorId, input.context), measured(collector.measure, event));
-      }
-    }
+    foldEventSourcedCollector(input, collector, add);
   }
 
   for (const adjustment of input.adjustments ?? []) {
@@ -228,6 +174,114 @@ export function foldStatistics(input: FoldInput): readonly CollectedFigure[] {
   }
 
   return [...figures.values()];
+}
+
+/** The accumulator `foldStatistics` folds every collector source kind into. */
+type AddFigure = (key: FigureKey, value: number, samples?: number) => void;
+
+/**
+ * `foldStatistics`'s `participation`-source handler, extracted verbatim
+ * (openspec 0230): one figure per roster member holding an admitted role.
+ */
+function foldParticipationCollector(
+  input: FoldInput,
+  collector: StatisticCollector,
+  add: AddFigure,
+): void {
+  if (collector.source.kind !== 'participation') return;
+  const roles = collector.source.roles;
+  for (const member of input.roster) {
+    if (roles && !roles.includes(member.role)) continue;
+    const actorId = actorIdAt(member, collector.granularity.actor);
+    if (actorId === undefined) continue;
+    if (input.filter && !input.filter(member, actorId, collector)) continue;
+    add(keyFor(collector, actorId, input.context), 1);
+  }
+}
+
+/**
+ * `foldStatistics`'s `statistic`-source handler, extracted verbatim
+ * (openspec 0230): every event declaring a delta against the named
+ * statistic, awarded to each of its resolved targets.
+ */
+function foldStatisticSourcedCollector(
+  input: FoldInput,
+  collector: StatisticCollector,
+  definitions: ReadonlyMap<string, EventDefinition>,
+  add: AddFigure,
+): void {
+  if (collector.source.kind !== 'statistic') return;
+  const statisticCode = collector.source.statisticCode;
+  for (const event of input.events) {
+    for (const { delta, awardTo } of declaredDeltas(event, statisticCode, definitions)) {
+      for (const resolved of resolveTargets(input, event, awardTo)) {
+        const actorId = actorIdAt(resolved, collector.granularity.actor);
+        if (actorId === undefined) continue;
+        if (input.filter && !input.filter(event, actorId, collector)) continue;
+        add(keyFor(collector, actorId, input.context), delta);
+      }
+    }
+  }
+}
+
+/**
+ * `foldStatistics`'s `collector`-source handler, extracted verbatim
+ * (openspec 0230): folds another collector's already-settled figures through
+ * this collector's own measure. `refold` sorts `collector`-sourced entries
+ * after everything else, so `figures` is a safe snapshot by the time this
+ * runs — iterating the live map would let a collector see partial output
+ * from a peer that happens to run later in `input.collectors`.
+ */
+function foldDerivedCollector(
+  input: FoldInput,
+  collector: StatisticCollector,
+  figures: ReadonlyMap<string, CollectedFigure>,
+  add: AddFigure,
+): void {
+  if (collector.source.kind !== 'collector') return;
+  const sourceCode = collector.source.code;
+  const source = input.collectors.find((one) => one.code === sourceCode);
+  if (source?.source.kind === 'collector') {
+    throw new StatisticFoldError(
+      `Collector "${collector.code}" feeds off "${sourceCode}", which is itself ` +
+        'collector-sourced; a collector may name only a directly-computed collector',
+      { code: collector.code, source: sourceCode },
+    );
+  }
+
+  for (const figure of [...figures.values()]) {
+    if (figure.collectorCode !== sourceCode) continue;
+    if (input.filter && !input.filter(figure, figure.actorId, collector)) continue;
+    add(
+      keyFor(collector, figure.actorId, input.context),
+      measuredFromFigure(collector.measure, figure),
+    );
+  }
+}
+
+/**
+ * `foldStatistics`'s `event`-source handler, extracted verbatim (openspec
+ * 0230): every event this collector watches, awarded to each of its
+ * resolved targets.
+ */
+function foldEventSourcedCollector(
+  input: FoldInput,
+  collector: StatisticCollector,
+  add: AddFigure,
+): void {
+  if (collector.source.kind !== 'event') return;
+  const actorSource = collector.source.actorSource ?? 'primary';
+  for (const event of input.events) {
+    if (!watches(collector, event)) continue;
+
+    for (const resolved of resolveTargets(input, event, actorSource)) {
+      const actorId = actorIdAt(resolved, collector.granularity.actor);
+      if (actorId === undefined) continue;
+      if (input.filter && !input.filter(event, actorId, collector)) continue;
+
+      add(keyFor(collector, actorId, input.context), measured(collector.measure, event));
+    }
+  }
 }
 
 /**

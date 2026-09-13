@@ -1,0 +1,129 @@
+---
+/**
+ * Extracted from the organization page (openspec 0225 task 7.2), unchanged
+ * in markup and styling.
+ */
+import type { IntlShape } from 'react-intl';
+import type { PublicOverviewClubResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import EmblemImage from '../atoms/EmblemImage.astro';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
+
+export interface ClubWithEmblemSrc extends PublicOverviewClubResponse {
+  /** Pre-built by the page (`clubEmblemUrl`) — data access stays at the page tier. */
+  readonly emblemSrc?: string;
+}
+
+export interface Props {
+  readonly clubs: readonly ClubWithEmblemSrc[];
+  readonly intl: IntlShape;
+}
+
+const { clubs, intl } = Astro.props;
+---
+
+<section class="cl-listing-section" aria-labelledby="heading-clubs">
+  <div class="cl-section-header">
+    <h2 id="heading-clubs" class="cl-section-title">
+      {intl.formatMessage(messages.orgPageClubsHeading)}
+    </h2>
+    <span class="cl-section-count">({clubs.length})</span>
+  </div>
+  {
+    clubs.length === 0 ? (
+      <div class="cl-empty-state">
+        <p>{intl.formatMessage(messages.orgPageNoClubs)}</p>
+      </div>
+    ) : (
+      <div class="cl-club-grid">
+        {clubs.map((club) => (
+          <div class="cl-club-card">
+            <EmblemImage
+              alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
+              placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+              size={48}
+              src={club.emblemSrc}
+            />
+            <div class="cl-club-info">
+              <span class="cl-club-name" title={club.name}>
+                {club.name}
+              </span>
+              {club.alias && <span class="cl-club-abbr">{club.alias}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+</section>
+
+<style>
+  .cl-listing-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .cl-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .cl-section-title {
+    font-size: var(--cl-font-size-xl);
+    font-weight: 700;
+    margin: 0;
+    color: var(--cl-text-primary);
+  }
+
+  .cl-section-count {
+    font-size: var(--cl-font-size-sm);
+    color: var(--cl-text-muted);
+    font-weight: 600;
+  }
+
+  .cl-empty-state {
+    padding: 3rem 1rem;
+    text-align: center;
+    background-color: var(--cl-surface-panel);
+    border-radius: 12px;
+    border: 1px dashed var(--cl-border-muted);
+    color: var(--cl-text-muted);
+  }
+
+  .cl-club-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+    gap: 1rem;
+  }
+
+  .cl-club-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background-color: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
+    border-radius: 12px;
+  }
+
+  .cl-club-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .cl-club-name {
+    font-size: var(--cl-font-size-sm);
+    font-weight: 600;
+    color: var(--cl-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cl-club-abbr {
+    font-size: var(--cl-font-size-sm);
+    color: var(--cl-text-muted);
+  }
+</style>

@@ -276,6 +276,96 @@ describe('OrganizationAccessGuard', () => {
     expect(request.subject?.principalId).toBeUndefined();
   });
 
+  it('rejects a route with no declared access requirement', async () => {
+    Reflect.deleteMetadata(ACCESS_REQUIREMENT_KEY, handler);
+    const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
+    await expect(
+      guard.canActivate(
+        contextFor({ headers: {}, subject: { subjectId: 'oidc-admin', scopes: [] } }),
+      ),
+    ).rejects.toThrow('Authenticated route has no access requirement');
+  });
+
+  it('rejects a route reached with no verified subject', async () => {
+    const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
+    await expect(guard.canActivate(contextFor({ headers: {} }))).rejects.toThrow(
+      'Authenticated route reached without a verified subject',
+    );
+  });
+
+  it('rejects an organization alias that does not resolve to a real organization', async () => {
+    jest.spyOn(OrganizationRepository.prototype, 'findByAlias').mockResolvedValue(undefined);
+    const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
+    await expect(
+      guard.canActivate(
+        contextFor({
+          headers: {},
+          params: { organizationAlias: 'no-such-org' },
+          subject: { subjectId: 'oidc-admin', scopes: [] },
+        }),
+      ),
+    ).rejects.toThrow('Requested organization does not exist');
+  });
+
+  it('rejects a subject already scoped to a different organization', async () => {
+    const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
+    await expect(
+      guard.canActivate(
+        contextFor({
+          headers: {},
+          params: { organizationAlias: 'org-b' },
+          subject: { subjectId: 'oidc-admin', organizationId: 'org-a', scopes: [] },
+        }),
+      ),
+    ).rejects.toThrow('Subject is not scoped to this organization');
+  });
+
+  it('rejects participant self-service with no participant identity link', async () => {
+    Reflect.defineMetadata(ACCESS_REQUIREMENT_KEY, { kind: 'participant-self-service' }, handler);
+    jest
+      .spyOn(IdentityPrincipalRepository.prototype, 'findParticipantByOidcSubject')
+      .mockResolvedValue(undefined);
+    const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
+    await expect(
+      guard.canActivate(
+        contextFor({
+          headers: {},
+          params: { organizationAlias: 'org-b' },
+          subject: { subjectId: 'oidc-player', organizationId: 'org-b', scopes: [] },
+        }),
+      ),
+    ).rejects.toThrow('Subject has no participant identity in this organization');
+  });
+
+  it('grants organization-bootstrap-or-admin to an existing active admin', async () => {
+    Reflect.defineMetadata(
+      ACCESS_REQUIREMENT_KEY,
+      { kind: 'organization-bootstrap-or-admin' },
+      handler,
+    );
+    jest.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
+      assignmentId: '01800000-0000-7000-8000-000000000002',
+      organizationId: 'org-b',
+      principalId: '01800000-0000-7000-8000-000000000001',
+      email: 'admin@example.test',
+      role: 'admin',
+      status: 'active',
+    });
+    const request: RequestWithSubject & { params: Record<string, string> } = {
+      headers: {},
+      params: { organizationAlias: 'org-b' },
+      subject: { subjectId: 'oidc-admin', organizationId: 'org-b', scopes: [] },
+    };
+    const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
+
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+    expect(request.subject?.grantorContext).toEqual({
+      isSuperAdmin: false,
+      organizationAdminOf: 'org-b',
+    });
+    expect(request.subject?.resourceScope).toEqual({});
+  });
+
   it('rejects an active member whose role is not accepted by the route', async () => {
     jest.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
       assignmentId: '01800000-0000-7000-8000-000000000002',

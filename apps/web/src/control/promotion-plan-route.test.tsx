@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ControlApiError } from './lib/api-client.js';
-import { PromotionPlanRoute } from './components/PromotionPlanRoute.js';
+import { PromotionPlanPage } from './components/pages/PromotionPlanPage.js';
 import type { ControlApiClient, PromotionPreviewResponse, ZoneResponse } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
@@ -15,7 +15,7 @@ const preview: PromotionPreviewResponse = {
   trace: [],
 };
 
-describe('PromotionPlanRoute', () => {
+describe('PromotionPlanPage', () => {
   it('renders the computed candidate order once the preview resolves', async () => {
     const client = stubClient({
       listZones: () => Promise.resolve([zone]),
@@ -23,7 +23,7 @@ describe('PromotionPlanRoute', () => {
     });
     render(
       withIntl(
-        <PromotionPlanRoute
+        <PromotionPlanPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -45,7 +45,7 @@ describe('PromotionPlanRoute', () => {
     });
     render(
       withIntl(
-        <PromotionPlanRoute
+        <PromotionPlanPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -67,7 +67,7 @@ describe('PromotionPlanRoute', () => {
     });
     render(
       withIntl(
-        <PromotionPlanRoute
+        <PromotionPlanPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -104,7 +104,7 @@ describe('PromotionPlanRoute', () => {
     });
     render(
       withIntl(
-        <PromotionPlanRoute
+        <PromotionPlanPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -148,7 +148,7 @@ describe('PromotionPlanRoute', () => {
     });
     render(
       withIntl(
-        <PromotionPlanRoute
+        <PromotionPlanPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -194,7 +194,7 @@ describe('PromotionPlanRoute', () => {
     });
     render(
       withIntl(
-        <PromotionPlanRoute
+        <PromotionPlanPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -231,7 +231,7 @@ describe('PromotionPlanRoute', () => {
     });
     render(
       withIntl(
-        <PromotionPlanRoute
+        <PromotionPlanPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -261,7 +261,7 @@ describe('PromotionPlanRoute', () => {
     });
     const { unmount } = render(
       withIntl(
-        <PromotionPlanRoute
+        <PromotionPlanPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -289,7 +289,7 @@ describe('PromotionPlanRoute', () => {
     });
     const { unmount } = render(
       withIntl(
-        <PromotionPlanRoute
+        <PromotionPlanPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -314,7 +314,7 @@ describe('PromotionPlanRoute', () => {
     });
     render(
       withIntl(
-        <PromotionPlanRoute
+        <PromotionPlanPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -341,7 +341,7 @@ describe('PromotionPlanRoute', () => {
     });
     render(
       withIntl(
-        <PromotionPlanRoute
+        <PromotionPlanPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -367,7 +367,7 @@ describe('PromotionPlanRoute', () => {
     });
     render(
       withIntl(
-        <PromotionPlanRoute
+        <PromotionPlanPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -384,7 +384,7 @@ describe('PromotionPlanRoute', () => {
     const client = stubClient({ listZones: () => Promise.resolve([zone]) });
     render(
       withIntl(
-        <PromotionPlanRoute
+        <PromotionPlanPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}

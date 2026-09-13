@@ -186,11 +186,18 @@ authentication contract). Every change is planned and tracked as an OpenSpec pro
 - [`docs/MCP.md`](docs/MCP.md) — `copalibre mcp`, its tool set, and how an AI agent connects
 - [`docs/MODULES.md`](docs/MODULES.md) — discipline and tournament-profile authoring
 - [`docs/AUTH.md`](docs/AUTH.md) — JWT/OIDC authentication contract
+- [`docs/security/dependency-remediation.md`](docs/security/dependency-remediation.md) — patched
+  dependency advisories and release closure tracking
 - [`docs/TESTING.md`](docs/TESTING.md) — testing conventions
+- [`docs/SCREEN-STORY-REVIEW.md`](docs/SCREEN-STORY-REVIEW.md) — operator Storybook coverage,
+  fixture boundaries, responsive review evidence, and deferred UX gaps
+- [`docs/reviews/0222-owned-control-coverage.md`](docs/reviews/0222-owned-control-coverage.md) — recursive
+  React story coverage, selected/chrome surfaces, and TV background review
 - [`docs/i18n-glossary.md`](docs/i18n-glossary.md) — domain-term glossary and content-accuracy
   review workflow for translated interface strings
 - [`docs/BROADCAST-TV.md`](docs/BROADCAST-TV.md) — the `/tv/` kiosk/overlay surface and
   device-token pairing
+- [`docs/reviews/`](docs/reviews/) — design system and operational surface review evidence
 - [`docs/deployment/reverse-proxy/`](docs/deployment/reverse-proxy/) — Caddy and NGINX examples
 - [`CHANGELOG.md`](CHANGELOG.md) — release history, generated from commit history
 - `/help/` and `/help/api-reference/` on a running instance — operator help and the interactive,

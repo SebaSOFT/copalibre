@@ -93,8 +93,9 @@ span all five Atomic Design tiers — atoms, molecules, organisms, templates und
 badge/button/card; any Control-web screen, present at the time this requirement changes or added at any
 later point, SHALL compose its form controls, tabular listings, cards, modals, and operation feedback
 from this owned layer rather than defining a new one-off inline style object for a pattern the layer
-already covers. New Control-web screens SHALL compose atoms/molecules/organisms/templates from the
-owned layer and reuse an existing template when their shape matches an existing template family.
+already covers. The organization dashboard (`Dashboard.tsx`) SHALL compose inside `ControlShell.tsx`
+(or inherit its `.cl-control__nav` navigation chrome), guaranteeing consistent typography, active states,
+and no unstyled browser default hyperlinks.
 
 #### Scenario: No Chakra dependency in production build
 - **WHEN** the control application's production dependency list is inspected
@@ -111,6 +112,10 @@ owned layer and reuse an existing template when their shape matches an existing 
 - **WHEN** a developer adds a new Control-web route
 - **THEN** the route composes from the owned atomic design layer and reuses an existing template when
   its shape matches an existing template family
+
+#### Scenario: Dashboard navigation renders styled chrome
+- **WHEN** an administrator views the organization dashboard
+- **THEN** the sidebar navigation displays styled uppercase labels with active state highlights and no raw blue unstyled browser links.
 
 ### Requirement: Third-party notice inventory stays current
 Every copied shadcn/ui component file or direct Radix dependency added to the control application
@@ -261,3 +266,35 @@ preference.
 - **WHEN** JavaScript is disabled and the control-panel shell's `<noscript>` fallback renders
 - **THEN** its text is in the platform's neutral default language, not hardcoded to any other specific
   language
+
+### Requirement: Primary sidebar navigation reachability
+Every section listed in the control panel's primary sidebar navigation SHALL resolve to a working page
+for an authorized user, both via the nav item itself and via its direct URL.
+
+#### Scenario: Opening every sidebar section
+- **WHEN** an authenticated org-admin clicks each of the primary sidebar sections (Dashboard, Clubs,
+  Tournaments, Live Console, Organization, Analytics, Roles, Venues & Officials)
+- **THEN** each SHALL render its real page content, never a not-found screen
+
+#### Scenario: Requesting a sidebar section's URL directly
+- **WHEN** an authenticated org-admin requests any primary sidebar section's URL directly (not via
+  client-side navigation)
+- **THEN** the same real page content SHALL render
+
+### Requirement: Post-authentication landing destination
+An authenticated user reaching the control panel root with no specific prior destination SHALL land on
+a real, navigable page.
+
+#### Scenario: Logging in with no prior destination
+- **WHEN** a user authenticates from the login page directly (not redirected there from a specific
+  protected URL)
+- **THEN** they SHALL land on their organization's dashboard (or an organization picker, if they belong
+  to more than one), never a not-found screen with no navigation
+
+### Requirement: Mobile sidebar navigation
+The primary sidebar navigation SHALL remain fully reachable at mobile viewport widths.
+
+#### Scenario: Navigating at a phone viewport width
+- **WHEN** the control panel is viewed at a mobile viewport width (≤430px)
+- **THEN** every primary sidebar section SHALL remain reachable through a collapse pattern (such as a
+  hamburger menu or drawer), and no section SHALL be clipped off-screen with no way to reach it

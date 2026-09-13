@@ -11,7 +11,8 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { MAX_CSV_IMPORT_BYTES } from '@copalibre/domain';
+import { isPlayerRole, type PlayerRole } from '@copalibre/domain';
+import { MAX_CSV_IMPORT_BYTES } from '@copalibre/domain/import-export';
 import {
   CsvImportRepository,
   EnrollmentRepository,
@@ -268,16 +269,32 @@ export class DataImportExportController {
             squad = new Set(current.map((player) => player.personId));
             squadCache.set(team.teamId, squad);
           }
+          const requestedRole = values.role?.trim();
+          const role: PlayerRole = isPlayerRole(requestedRole) ? requestedRole : 'player';
           if (!squad.has(replacement.person.personId)) {
             await people.enlist(uow, {
               personId: replacement.person.personId,
               teamId: team.teamId,
-              role: 'player',
+              role,
               organizationId,
               actor: actorOf(request),
               authorizationContext: authorizationContextOf(request),
             });
             squad.add(replacement.person.personId);
+          } else {
+            const currentMembers = await people.squadOf(team.teamId);
+            const currentMember = currentMembers.find(
+              (p) => p.personId === replacement.person.personId,
+            );
+            if (currentMember && currentMember.role !== role) {
+              await people.setPlayerRole(uow, {
+                playerId: currentMember.playerId,
+                role,
+                organizationId,
+                actor: actorOf(request),
+                authorizationContext: authorizationContextOf(request),
+              });
+            }
           }
           rowAliases.push(`${teamAlias}/${values.alias ?? ''}`);
         }

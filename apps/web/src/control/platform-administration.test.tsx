@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { jest } from '@jest/globals';
-import { PlatformAdministrationRoute } from './components/PlatformAdministrationRoute.js';
+import { PlatformAdministrationPage } from './components/pages/PlatformAdministrationPage.js';
 import { createControlApiClient } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
@@ -48,7 +48,7 @@ describe('platform administration console', () => {
         return json({ message: 'not found' }, 404);
       },
     });
-    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    render(withIntl(<PlatformAdministrationPage client={client} />));
     await screen.findByText('No modules are installed.');
 
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'liga-sur' } });
@@ -121,7 +121,7 @@ describe('platform administration console', () => {
         return json({}, 200);
       },
     });
-    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    render(withIntl(<PlatformAdministrationPage client={client} />));
     await screen.findByText('CopaLibre');
 
     fireEvent.change(screen.getByLabelText('Module alias'), { target: { value: 'football' } });
@@ -152,7 +152,7 @@ describe('platform administration console', () => {
         return json({ message: 'Alias already belongs to another organization' }, 409);
       }),
     });
-    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    render(withIntl(<PlatformAdministrationPage client={client} />));
     await screen.findByText('No modules are installed.');
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'liga-sur' } });
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Liga Sur' } });
@@ -179,7 +179,7 @@ describe('platform administration console', () => {
         );
       }),
     });
-    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    render(withIntl(<PlatformAdministrationPage client={client} />));
     await screen.findByText('CopaLibre');
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
 
@@ -218,7 +218,7 @@ describe('platform administration console', () => {
         return json({}, 200);
       }),
     });
-    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    render(withIntl(<PlatformAdministrationPage client={client} />));
     await screen.findByText('No installation super-admins yet.');
 
     fireEvent.change(screen.getByLabelText('Principal ID'), {
@@ -246,7 +246,7 @@ describe('platform administration console', () => {
         return json({}, 200);
       }),
     });
-    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    render(withIntl(<PlatformAdministrationPage client={client} />));
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Forbidden'));
   });
 
@@ -270,7 +270,7 @@ describe('platform administration console', () => {
         return json({}, 200);
       }),
     });
-    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    render(withIntl(<PlatformAdministrationPage client={client} />));
     await screen.findByText('No installation super-admins yet.');
 
     fireEvent.change(screen.getByLabelText('Organization alias'), {
@@ -296,7 +296,7 @@ describe('platform administration console', () => {
         return json({}, 200);
       }),
     });
-    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    render(withIntl(<PlatformAdministrationPage client={client} />));
     await screen.findByText('CopaLibre');
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
     expect(removeRequests).toEqual([]);
@@ -325,7 +325,7 @@ describe('platform administration console', () => {
         return json({}, 200);
       }),
     });
-    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    render(withIntl(<PlatformAdministrationPage client={client} />));
     await screen.findByText('CopaLibre');
 
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Verify' })));
@@ -370,7 +370,7 @@ describe('platform administration console', () => {
         return json({}, 200);
       }),
     });
-    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    render(withIntl(<PlatformAdministrationPage client={client} />));
     await screen.findByText('No modules are installed.');
 
     fireEvent.click(screen.getByRole('button', { name: 'Author a discipline' }));
@@ -432,7 +432,7 @@ describe('platform administration console', () => {
         return json({}, 200);
       }),
     });
-    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    render(withIntl(<PlatformAdministrationPage client={client} />));
     await screen.findByText('CopaLibre');
 
     fireEvent.click(screen.getByRole('button', { name: 'Contribute' }));
@@ -461,7 +461,7 @@ describe('platform administration console', () => {
         return json({}, 200);
       }),
     });
-    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    render(withIntl(<PlatformAdministrationPage client={client} />));
     await screen.findByText('No modules are installed.');
 
     fireEvent.click(screen.getByRole('button', { name: 'Author a tournament profile' }));

@@ -14,17 +14,19 @@ Reorganized into `atoms/`, `molecules/`, `organisms/`, `templates/`; a
 copied-source entry below names the file, not its subfolder, so it still
 matches wherever the file lives.
 
-| File           | Source                                 | Version | Licence |
-| -------------- | -------------------------------------- | ------- | ------- |
-| `button.tsx`   | shadcn/ui `button`                     | 2.3.0   | MIT     |
-| `card.tsx`     | shadcn/ui `card`                       | 2.3.0   | MIT     |
-| `badge.tsx`    | shadcn/ui `badge`                      | 2.3.0   | MIT     |
-| `input.tsx`    | shadcn/ui `input`                      | 2.3.0   | MIT     |
-| `textarea.tsx` | shadcn/ui `textarea`                   | 2.3.0   | MIT     |
-| `select.tsx`   | shadcn/ui `select` on Radix Select     | 2.3.0   | MIT     |
-| `checkbox.tsx` | shadcn/ui `checkbox` on Radix Checkbox | 2.3.0   | MIT     |
-| `label.tsx`    | shadcn/ui `label` on Radix Label       | 2.3.0   | MIT     |
-| `modal.tsx`    | shadcn/ui `dialog` on Radix Dialog     | 2.3.0   | MIT     |
+| File                | Source                                          | Version | Licence |
+| ------------------- | ----------------------------------------------- | ------- | ------- |
+| `button.tsx`        | shadcn/ui `button`                              | 2.3.0   | MIT     |
+| `card.tsx`          | shadcn/ui `card`                                | 2.3.0   | MIT     |
+| `badge.tsx`         | shadcn/ui `badge`                               | 2.3.0   | MIT     |
+| `input.tsx`         | shadcn/ui `input`                               | 2.3.0   | MIT     |
+| `textarea.tsx`      | shadcn/ui `textarea`                            | 2.3.0   | MIT     |
+| `select.tsx`        | shadcn/ui `select` on Radix Select              | 2.3.0   | MIT     |
+| `checkbox.tsx`      | shadcn/ui `checkbox` on Radix Checkbox          | 2.3.0   | MIT     |
+| `radio.tsx`         | shadcn/ui `radio-group` on Radix RadioGroup     | 2.3.0   | MIT     |
+| `label.tsx`         | shadcn/ui `label` on Radix Label                | 2.3.0   | MIT     |
+| `modal.tsx`         | shadcn/ui `dialog` on Radix Dialog              | 2.3.0   | MIT     |
+| `dropdown-menu.tsx` | shadcn/ui `dropdown-menu` on Radix DropdownMenu | 2.3.0   | MIT     |
 
 ### MIT License (shadcn/ui)
 

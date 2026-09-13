@@ -95,39 +95,10 @@ export function buildDoubleElimination(
       const position = index + 1;
       const baseId = `LB-R${lbRound}-M${position}`;
 
-      if (span > 1) {
-        for (let m = 1; m <= span; m += 1) {
-          const homeSlot = series?.neutralGround
-            ? undefined
-            : m % 2 === 1
-              ? ('A' as const)
-              : ('B' as const);
-          created.push({
-            id: `${baseId}-${m}`,
-            shape: 'duel',
-            bracket: 'losers',
-            round: lbRound,
-            position,
-            slotA,
-            slotB,
-            matchNumber: m,
-            homeSlot,
-            ...(series ? { series } : {}),
-          });
-        }
-        roundSurvivors.push({ kind: 'winner-of', matchId: baseId });
-      } else {
-        created.push({
-          id: baseId,
-          shape: 'duel',
-          bracket: 'losers',
-          round: lbRound,
-          position,
-          slotA,
-          slotB,
-        });
-        roundSurvivors.push({ kind: 'winner-of', matchId: baseId });
-      }
+      created.push(
+        ...buildDuelOrSeriesMatches(baseId, 'losers', lbRound, position, slotA, slotB, series),
+      );
+      roundSurvivors.push({ kind: 'winner-of', matchId: baseId });
     }
 
     losersMatches.push(...created);
@@ -149,75 +120,34 @@ export function buildDoubleElimination(
 
   // Grand final: winners champion vs losers champion.
   const grandFinalId = 'GF-R1-M1';
-  if (span > 1) {
-    for (let m = 1; m <= span; m += 1) {
-      const homeSlot = series?.neutralGround
-        ? undefined
-        : m % 2 === 1
-          ? ('A' as const)
-          : ('B' as const);
-      matches.push({
-        id: `${grandFinalId}-${m}`,
-        shape: 'duel',
-        bracket: 'grand-final',
-        round: 1,
-        position: 1,
-        slotA: { kind: 'winner-of', matchId: winnersFinalId },
-        slotB: { kind: 'winner-of', matchId: losersFinalId },
-        matchNumber: m,
-        homeSlot,
-        ...(series ? { series } : {}),
-      });
-    }
-  } else {
-    matches.push({
-      id: grandFinalId,
-      shape: 'duel',
-      bracket: 'grand-final',
-      round: 1,
-      position: 1,
-      slotA: { kind: 'winner-of', matchId: winnersFinalId },
-      slotB: { kind: 'winner-of', matchId: losersFinalId },
-    });
-  }
+  matches.push(
+    ...buildDuelOrSeriesMatches(
+      grandFinalId,
+      'grand-final',
+      1,
+      1,
+      { kind: 'winner-of', matchId: winnersFinalId },
+      { kind: 'winner-of', matchId: losersFinalId },
+      series,
+    ),
+  );
 
   // Bracket reset: generated, but played only if the losers champion takes the
   // first grand final — the winners champion has not yet lost a match, so a
   // single loss cannot eliminate them.
   const bracketResetId = 'GF-R2-M1';
-  if (span > 1) {
-    for (let m = 1; m <= span; m += 1) {
-      const homeSlot = series?.neutralGround
-        ? undefined
-        : m % 2 === 1
-          ? ('A' as const)
-          : ('B' as const);
-      matches.push({
-        id: `${bracketResetId}-${m}`,
-        shape: 'duel',
-        bracket: 'grand-final',
-        round: 2,
-        position: 1,
-        slotA: { kind: 'winner-of', matchId: grandFinalId },
-        slotB: { kind: 'loser-of', matchId: grandFinalId },
-        conditional: 'bracket-reset',
-        matchNumber: m,
-        homeSlot,
-        ...(series ? { series } : {}),
-      });
-    }
-  } else {
-    matches.push({
-      id: bracketResetId,
-      shape: 'duel',
-      bracket: 'grand-final',
-      round: 2,
-      position: 1,
-      slotA: { kind: 'winner-of', matchId: grandFinalId },
-      slotB: { kind: 'loser-of', matchId: grandFinalId },
-      conditional: 'bracket-reset',
-    });
-  }
+  matches.push(
+    ...buildDuelOrSeriesMatches(
+      bracketResetId,
+      'grand-final',
+      2,
+      1,
+      { kind: 'winner-of', matchId: grandFinalId },
+      { kind: 'loser-of', matchId: grandFinalId },
+      series,
+      { conditional: 'bracket-reset' },
+    ),
+  );
 
   void size;
   // Bye padding can leave losers-bracket matches with no possible participant on
@@ -229,6 +159,54 @@ export function buildDoubleElimination(
     grandFinalId,
     bracketResetId,
   };
+}
+
+/**
+ * Builds one match, or one per series game, for a fixed slot pair — the
+ * span>1/span<=1 duplication that previously appeared at all three call
+ * sites (losers-bracket round, grand final, bracket reset), extracted
+ * verbatim (openspec 0230). `extra` carries the one field that differs
+ * between them (`conditional: 'bracket-reset'`); every other field, and the
+ * conditional inclusion of `series` only in the multi-game shape, matches
+ * each site's original object exactly.
+ */
+function buildDuelOrSeriesMatches(
+  baseId: string,
+  bracket: DuelMatch['bracket'],
+  round: number,
+  position: number,
+  slotA: SlotSource,
+  slotB: SlotSource,
+  series: SeriesDeclaration | undefined,
+  extra?: Partial<DuelMatch>,
+): DuelMatch[] {
+  const span = series?.span ?? 1;
+  if (span <= 1) {
+    return [{ id: baseId, shape: 'duel', bracket, round, position, slotA, slotB, ...extra }];
+  }
+
+  const matches: DuelMatch[] = [];
+  for (let m = 1; m <= span; m += 1) {
+    const homeSlot = series?.neutralGround
+      ? undefined
+      : m % 2 === 1
+        ? ('A' as const)
+        : ('B' as const);
+    matches.push({
+      id: `${baseId}-${m}`,
+      shape: 'duel',
+      bracket,
+      round,
+      position,
+      slotA,
+      slotB,
+      matchNumber: m,
+      homeSlot,
+      ...(series ? { series } : {}),
+      ...extra,
+    });
+  }
+  return matches;
 }
 
 function pairUp(slots: readonly SlotSource[]): readonly [SlotSource, SlotSource][] {

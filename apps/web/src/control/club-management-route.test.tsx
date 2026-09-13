@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { ClubManagementRoute } from './components/ClubManagementRoute.js';
+import { ClubManagementPage } from './components/pages/ClubManagementPage.js';
 import { ControlApiError } from './lib/api-client.js';
 import type { ClubResponse, ControlApiClient } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
@@ -9,10 +9,10 @@ const oneClub: readonly ClubResponse[] = [
   { clubId: 'club-1', organizationId: 'org-1', name: 'Casa de Italia', abbreviation: 'C I' },
 ];
 
-describe('ClubManagementRoute', () => {
+describe('ClubManagementPage', () => {
   it('renders the club list with a placeholder for a club with no emblem', async () => {
     const client = stubClient({ listClubs: () => Promise.resolve(oneClub) });
-    render(withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
     expect(screen.getByTitle('No emblem uploaded')).toBeTruthy();
@@ -29,7 +29,7 @@ describe('ClubManagementRoute', () => {
       listClubs: () => Promise.resolve(clubs),
       createClub,
     });
-    render(withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('This organization has no clubs yet.');
     fireEvent.change(screen.getByLabelText('New club name'), {
@@ -55,7 +55,7 @@ describe('ClubManagementRoute', () => {
       listClubs: () => Promise.resolve(oneClub),
       updateClub,
     });
-    render(withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
     fireEvent.click(screen.getByText('Edit'));
@@ -82,7 +82,7 @@ describe('ClubManagementRoute', () => {
       listClubs: () => Promise.resolve(oneClub),
       uploadClubEmblem,
     });
-    render(withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
     fireEvent.click(screen.getByText('Edit'));
@@ -118,7 +118,7 @@ describe('ClubManagementRoute', () => {
       listClubs: () => Promise.resolve(oneClub),
       createClub: () => Promise.reject(new ControlApiError(409, 'El club ya existe')),
     });
-    render(withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
     fireEvent.change(screen.getByLabelText('New club name'), {
@@ -140,7 +140,7 @@ describe('ClubManagementRoute', () => {
         }),
     });
     const { unmount } = render(
-      withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />),
+      withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />),
     );
 
     unmount();
@@ -159,7 +159,7 @@ describe('ClubManagementRoute', () => {
         }),
     });
     const { unmount } = render(
-      withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />),
+      withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />),
     );
 
     unmount();
@@ -176,7 +176,7 @@ describe('ClubManagementRoute', () => {
       name: body.name,
     }));
     const client = stubClient({ listClubs: () => Promise.resolve(oneClub), createClub });
-    render(withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
     await act(async () => {
@@ -194,7 +194,7 @@ describe('ClubManagementRoute', () => {
       abbreviation: body.abbreviation,
     }));
     const client = stubClient({ listClubs: () => Promise.resolve(oneClub), createClub });
-    render(withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
     fireEvent.change(screen.getByLabelText('New club name'), { target: { value: 'Club Atenas' } });
@@ -220,7 +220,7 @@ describe('ClubManagementRoute', () => {
       listClubs: () => Promise.resolve(oneClub),
       updateClub: () => Promise.reject(new Error('network down')),
     });
-    render(withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
     fireEvent.click(screen.getByText('Edit'));
@@ -234,7 +234,7 @@ describe('ClubManagementRoute', () => {
 
   it('ignores a save-changes click when the client has no updateClub method', async () => {
     const client = stubClient({ listClubs: () => Promise.resolve(oneClub) });
-    render(withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
     fireEvent.click(screen.getByText('Edit'));
@@ -251,7 +251,7 @@ describe('ClubManagementRoute', () => {
       listClubs: () => Promise.resolve(oneClub),
       uploadClubEmblem: () => Promise.reject(new Error('network down')),
     });
-    render(withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
     fireEvent.click(screen.getByText('Edit'));
@@ -280,7 +280,7 @@ describe('ClubManagementRoute', () => {
       },
     ];
     const client = stubClient({ listClubs: () => Promise.resolve(withEmblem) });
-    render(withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
     expect(screen.getByAltText('Casa de Italia emblem')).toBeTruthy();
@@ -291,7 +291,7 @@ describe('ClubManagementRoute', () => {
 
   it('reports a club load it could not complete', async () => {
     const client = stubClient({ listClubs: () => Promise.reject(new Error('down')) });
-    render(withIntl(<ClubManagementRoute client={client} organizationAlias="liga-mendocina" />));
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await waitFor(() =>
       expect(screen.getByRole('alert').textContent).toContain('Could not load clubs.'),

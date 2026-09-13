@@ -37,6 +37,71 @@ export interface ResolvedMatch {
   readonly decidedByBye: boolean;
 }
 
+/**
+ * Resolves the winner (and whether it was decided by a bye) once both of a
+ * match's slots are already known — the inline series/single-match win logic
+ * `resolveSlot` used to compute between its recursive calls, extracted
+ * verbatim (openspec 0230). Takes no part in the recursion or its
+ * cycle-guard stack, both of which stay in `resolveSlot` itself.
+ */
+function resolveWinnerFromChildren(
+  slotA: ResolvedSlot,
+  slotB: ResolvedSlot,
+  firstMatch: DuelMatch,
+  sourceMatches: readonly DuelMatch[],
+  outcomeById: ReadonlyMap<string, RecordedOutcome>,
+): { readonly winnerEntrantId: string | undefined; readonly decidedByBye: boolean } {
+  if (slotA.state === 'entrant' && slotB.state === 'empty') {
+    return { winnerEntrantId: slotA.entrantId, decidedByBye: true };
+  }
+  if (slotB.state === 'entrant' && slotA.state === 'empty') {
+    return { winnerEntrantId: slotB.entrantId, decidedByBye: true };
+  }
+  if (slotA.state !== 'entrant' || slotB.state !== 'entrant') {
+    return { winnerEntrantId: undefined, decidedByBye: false };
+  }
+
+  if (!firstMatch.series && sourceMatches.length <= 1) {
+    const out = outcomeById.get(firstMatch.id);
+    return { winnerEntrantId: out?.winnerEntrantId, decidedByBye: false };
+  }
+
+  const seriesMatches = sourceMatches.map((m, idx) => {
+    const mNum = m.matchNumber ?? idx + 1;
+    const out = outcomeById.get(m.id);
+    if (!out) {
+      return { number: mNum, status: 'scheduled' as const };
+    }
+    return {
+      number: mNum,
+      status: 'finalized' as const,
+      result: {
+        winnerEntrantId: out.winnerEntrantId,
+        sides: out.sides.map((s) => ({
+          entrantId: s.entrantId,
+          statistics: s.statistics,
+        })),
+        recordedAt: '',
+      },
+    };
+  });
+
+  const seriesResolution = resolveSeries({
+    declaration: firstMatch.series ?? {
+      span: sourceMatches.length,
+      resolutionClass: 'best-of',
+    },
+    sides: [slotA.entrantId, slotB.entrantId],
+    matches: seriesMatches,
+  });
+
+  return {
+    winnerEntrantId:
+      seriesResolution.status === 'decided' ? seriesResolution.winnerEntrantId : undefined,
+    decidedByBye: false,
+  };
+}
+
 export function resolveAdvancement(
   graph: FixtureGraph,
   outcomes: readonly RecordedOutcome[],
@@ -86,55 +151,13 @@ export function resolveAdvancement(
     const slotA = resolveSlot(firstMatch.slotA, new Set(stack).add(slot.matchId));
     const slotB = resolveSlot(firstMatch.slotB, new Set(stack).add(slot.matchId));
 
-    // Bye handling
-    let winnerEntrantId: string | undefined;
-    let decidedByBye = false;
-
-    if (slotA.state === 'entrant' && slotB.state === 'empty') {
-      winnerEntrantId = slotA.entrantId;
-      decidedByBye = true;
-    } else if (slotB.state === 'entrant' && slotA.state === 'empty') {
-      winnerEntrantId = slotB.entrantId;
-      decidedByBye = true;
-    } else if (slotA.state === 'entrant' && slotB.state === 'entrant') {
-      if (firstMatch.series || sourceMatches.length > 1) {
-        const seriesMatches = sourceMatches.map((m, idx) => {
-          const mNum = m.matchNumber ?? idx + 1;
-          const out = outcomeById.get(m.id);
-          if (!out) {
-            return { number: mNum, status: 'scheduled' as const };
-          }
-          return {
-            number: mNum,
-            status: 'finalized' as const,
-            result: {
-              winnerEntrantId: out.winnerEntrantId,
-              sides: out.sides.map((s) => ({
-                entrantId: s.entrantId,
-                statistics: s.statistics,
-              })),
-              recordedAt: '',
-            },
-          };
-        });
-
-        const seriesResolution = resolveSeries({
-          declaration: firstMatch.series ?? {
-            span: sourceMatches.length,
-            resolutionClass: 'best-of',
-          },
-          sides: [slotA.entrantId, slotB.entrantId],
-          matches: seriesMatches,
-        });
-
-        if (seriesResolution.status === 'decided') {
-          winnerEntrantId = seriesResolution.winnerEntrantId;
-        }
-      } else {
-        const out = outcomeById.get(firstMatch.id);
-        winnerEntrantId = out?.winnerEntrantId;
-      }
-    }
+    const { winnerEntrantId, decidedByBye } = resolveWinnerFromChildren(
+      slotA,
+      slotB,
+      firstMatch,
+      sourceMatches,
+      outcomeById,
+    );
 
     if (slot.kind === 'winner-of') {
       if (winnerEntrantId) return { state: 'entrant', entrantId: winnerEntrantId };

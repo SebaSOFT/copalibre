@@ -41,6 +41,14 @@ export interface ButtonTokens {
   readonly text: SemanticColor;
   readonly border: SemanticColor | 'transparent';
   readonly minSize: string;
+  /**
+   * The hovered treatment, where the reference project states one rather than
+   * leaving it to a brightness filter. A variant without this keeps the filter.
+   */
+  readonly hover?: {
+    readonly background: SemanticColor;
+    readonly border?: SemanticColor;
+  };
 }
 
 export const BUTTON_VARIANTS: Record<ButtonVariant, ButtonTokens> = {
@@ -50,12 +58,18 @@ export const BUTTON_VARIANTS: Record<ButtonVariant, ButtonTokens> = {
     text: 'surface-base',
     border: 'transparent',
     minSize: TOUCH_TARGET,
+    // The reference lightens the fill on hover rather than filtering it.
+    hover: { background: 'primary-hover' },
   },
   secondary: {
-    background: 'surface-raised',
+    background: 'surface-chrome',
     text: 'text-primary',
     border: 'border-muted',
     minSize: TOUCH_TARGET,
+    // The reference moves both fill and outline, so the two states differ by
+    // more than brightness — which is what makes a secondary readable as
+    // interactive next to a filled primary.
+    hover: { background: 'surface-hover', border: 'border-strong' },
   },
   destructive: {
     background: 'state-destructive',
@@ -106,6 +120,7 @@ export interface FormControlTokenSet {
   readonly background: SemanticColor;
   readonly text: SemanticColor;
   readonly border: SemanticColor;
+  readonly focusRing?: SemanticColor;
 }
 
 /** input.tsx's states. */
@@ -116,18 +131,61 @@ export type SelectTokens = Record<FormControlState, FormControlTokenSet>;
 export type TextareaTokens = Record<FormControlState, FormControlTokenSet>;
 /** checkbox.tsx's states. */
 export type CheckboxTokens = Record<FormControlState, FormControlTokenSet>;
+/** radio.tsx's states. */
+export type RadioTokens = Record<FormControlState, FormControlTokenSet>;
+
+/** file-picker.tsx's states. */
+export type FilePickerState = FormControlState | 'drag-active' | 'selection-present';
+export type FilePickerTokens = Record<FilePickerState, FormControlTokenSet>;
 
 const FORM_CONTROL_STATES: Record<FormControlState, FormControlTokenSet> = {
-  default: { background: 'surface-raised', text: 'text-primary', border: 'border-muted' },
-  focus: { background: 'surface-raised', text: 'text-primary', border: 'focus-ring' },
-  error: { background: 'surface-raised', text: 'text-primary', border: 'state-destructive' },
-  disabled: { background: 'surface-panel', text: 'text-muted', border: 'border-muted' },
+  default: {
+    background: 'surface-chrome',
+    text: 'text-primary',
+    border: 'border-muted',
+    focusRing: 'focus-ring',
+  },
+  focus: {
+    background: 'surface-chrome',
+    text: 'text-primary',
+    border: 'focus-ring',
+    focusRing: 'focus-ring',
+  },
+  error: {
+    background: 'surface-chrome',
+    text: 'text-primary',
+    border: 'state-destructive',
+    focusRing: 'state-destructive',
+  },
+  disabled: {
+    background: 'surface-panel',
+    text: 'text-muted',
+    border: 'border-muted',
+    focusRing: 'border-muted',
+  },
 };
 
 export const INPUT_TOKENS: InputTokens = FORM_CONTROL_STATES;
 export const SELECT_TOKENS: SelectTokens = FORM_CONTROL_STATES;
 export const TEXTAREA_TOKENS: TextareaTokens = FORM_CONTROL_STATES;
 export const CHECKBOX_TOKENS: CheckboxTokens = FORM_CONTROL_STATES;
+export const RADIO_TOKENS: RadioTokens = FORM_CONTROL_STATES;
+
+export const FILE_PICKER_TOKENS: FilePickerTokens = {
+  ...FORM_CONTROL_STATES,
+  'drag-active': {
+    background: 'surface-hover',
+    text: 'text-primary',
+    border: 'primary',
+    focusRing: 'focus-ring',
+  },
+  'selection-present': {
+    background: 'surface-raised',
+    text: 'text-primary',
+    border: 'border-strong',
+    focusRing: 'focus-ring',
+  },
+};
 
 export interface DialogTokens {
   readonly backdrop: SemanticColor;
@@ -182,7 +240,7 @@ export const TOOLBAR_DENSITY_TOKENS: ToolbarDensityTokens = {
   height: TOUCH_TARGET,
   padding: '8px',
   gap: '8px',
-  background: 'surface-raised',
+  background: 'surface-chrome',
   border: 'border-muted',
 };
 

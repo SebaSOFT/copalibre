@@ -52,6 +52,14 @@ function generateJestWorkspaceMapper(consumingDir) {
     const relative = toPosixRelative(consumingDir, entryPoint);
     mapper[`^${escapeRegExp(name)}$`] = `<rootDir>/${relative}`;
 
+    // A package may also publish subpaths through its `exports` map — e.g.
+    // `@copalibre/domain/import-export`, which exists so that Node-only CSV
+    // code stays out of the barrel every browser file imports. Jest resolves
+    // through this mapper rather than through `exports`, so a subpath needs its
+    // own entry or it fails to resolve in tests while working everywhere else.
+    const packageSrc = toPosixRelative(consumingDir, path.join(packageDir, 'src'));
+    mapper[`^${escapeRegExp(name)}/(.*)$`] = `<rootDir>/${packageSrc}/$1/index.ts`;
+
     const dependencyPackageJson = readPackageJson(packageDir);
     for (const dependencyName of copalibreDependencyNames(dependencyPackageJson)) {
       if (!visited.has(dependencyName)) queue.push(dependencyName);

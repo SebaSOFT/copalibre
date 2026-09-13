@@ -13,9 +13,11 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ORGANIZATION_ROLES,
+  PLAYER_ROLES,
   SUPPORTED_LANGUAGES,
   type LocalizedLabel,
   type OrganizationRole,
+  type PlayerRole,
   type SupportedLanguage,
 } from '@copalibre/domain';
 
@@ -111,6 +113,12 @@ export class MyOrganizationResponse {
     description: "The caller's active role in this organization",
   })
   role!: OrganizationRole;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Object storage ID of the organization emblem',
+  })
+  emblemObjectId?: string;
 }
 
 export class UpdateOrganizationSettingsRequest {
@@ -270,6 +278,12 @@ export class TournamentResponse {
     description: 'Profile this tournament instantiated, when one was selected at creation.',
   })
   profileRef?: ProfileRefResponse;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Object storage ID of the tournament emblem, when one has been uploaded.',
+  })
+  emblemObjectId?: string;
 }
 
 /**
@@ -298,6 +312,19 @@ export class TournamentSettingsResponse {
     description: 'Optional instant when checked-in team memberships stop being editable.',
   })
   checkInClosesAt?: string;
+
+  @ApiPropertyOptional({
+    description: 'Object id of the tournament emblem image asset.',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  emblemObjectId?: string;
+
+  @ApiProperty({
+    description:
+      'Whether the organizer has flagged this tournament as featured on the organization’s public ' +
+      'page. Independent of whether it is live.',
+  })
+  featured!: boolean;
 }
 
 /** A partial edit — every field is optional, so only the fields the operator actually changed are sent. */
@@ -323,6 +350,16 @@ export class TournamentSettingsRequest {
     example: 16,
   })
   capacity?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiPropertyOptional({
+    description:
+      'Flags the tournament as featured on the organization’s public page. A record field like ' +
+      '`name`, not a ruleset override: it carries no competition meaning and is not ' +
+      'mutation-classified against the discipline descriptor.',
+  })
+  featured?: boolean;
 
   @IsOptional()
   @IsString()
@@ -1149,16 +1186,43 @@ export class RegistrationResponse {
   hasIdentityLink?: boolean;
 }
 
+export class TeamMembershipMemberInput {
+  @IsString()
+  @ApiProperty({ format: 'uuid', description: 'Person identifier' })
+  personId!: string;
+
+  @IsOptional()
+  @IsIn(PLAYER_ROLES)
+  @ApiPropertyOptional({
+    enum: PLAYER_ROLES,
+    default: 'player',
+    description: 'Member role within the team',
+  })
+  role?: PlayerRole;
+}
+
 export class EditTeamMembershipsRequest {
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @ApiProperty({
+  @ApiPropertyOptional({
     isArray: true,
     format: 'uuid',
-    description:
-      'The team’s full desired membership. Anyone currently a member but not named here is removed.',
+    description: 'The team’s full desired membership by person IDs (defaults each to "player").',
   })
-  personIds!: string[];
+  personIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TeamMembershipMemberInput)
+  @ApiPropertyOptional({
+    isArray: true,
+    type: TeamMembershipMemberInput,
+    description:
+      'The team’s full desired membership with optional roles (defaults to "player" when omitted).',
+  })
+  members?: TeamMembershipMemberInput[];
 }
 
 export class ParticipantTeamMembershipResponse {

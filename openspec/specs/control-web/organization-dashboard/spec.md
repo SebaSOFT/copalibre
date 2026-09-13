@@ -23,12 +23,19 @@ draft, with a distinct visual treatment per state.
 - **THEN** its card renders with the draft visual treatment (muted styling) and a resume-editing action, distinct from live and upcoming cards
 
 ### Requirement: Recent activity feed shows audited operational events
-The dashboard SHALL show a chronological feed of recent operational events (e.g. match started,
-registration approved, tournament updated) for the organization, sourced from the audit log.
+The dashboard SHALL display recent organization audit events when activity records exist, rather than rendering an empty placeholder state.
 
 #### Scenario: Audit event appears in the feed
 - **WHEN** an operator approves a registration
 - **THEN** a corresponding entry appears in the organization's recent-activity feed with an actor, timestamp, and event type
+
+#### Scenario: Displaying activity on an active organization
+- **WHEN** an authenticated organizer opens the dashboard of an organization with recorded matches, clubs, or registrations
+- **THEN** the "Actividad reciente" section SHALL display the latest audit events with human-readable descriptions and timestamps
+
+#### Scenario: Empty state for brand new organization
+- **WHEN** an organizer views a newly created organization with zero audit records
+- **THEN** the "Actividad reciente" section SHALL display the empty state message
 
 ### Requirement: Dashboard is scoped to the authenticated organizer's organization
 The dashboard SHALL only display tournaments and activity belonging to organizations the
@@ -91,3 +98,79 @@ enforcement implied.
   administration view
 - **THEN** the storage usage summary is not present, matching the same role gate as the rest of that
   view
+
+### Requirement: Tournament status presentation on the dashboard
+The organization dashboard SHALL classify and label each tournament's status as finished, upcoming, or
+live, consistent with the same vocabulary used on public-facing surfaces, and SHALL count only genuinely
+active tournaments in any "active tournaments" summary figure.
+
+#### Scenario: A finished tournament on the dashboard
+- **WHEN** a tournament has completed all its stages with a recorded result
+- **THEN** the dashboard SHALL label it as finished, never "PRÓXIMO" (upcoming), and SHALL NOT include it
+  in an "active tournaments" count
+
+### Requirement: Summary tiles lay out in a responsive grid
+The dashboard's summary tiles (active tournaments, pending registrations, matches today) SHALL lay out
+in a responsive grid using available horizontal width at desktop widths, and SHALL stack to a single
+column at mobile widths.
+
+#### Scenario: Summary tiles sit in a row at desktop width
+- **WHEN** the dashboard is rendered at a desktop viewport width
+- **THEN** the three summary tiles render side by side in a single row, not stacked
+
+#### Scenario: Summary tiles stack at mobile width
+- **WHEN** the dashboard is rendered at a mobile viewport width
+- **THEN** the summary tiles stack in a single column
+
+### Requirement: The tournament section is named and laid out in a grid
+The dashboard's tournament section SHALL carry a visible heading naming it, not an accessible label
+alone, and its cards SHALL lay out in a responsive grid that uses the available horizontal width rather
+than one card per row at every width.
+
+#### Scenario: The section names itself on screen
+- **WHEN** an organizer opens the dashboard
+- **THEN** a visible heading names the tournament section, in the same treatment as the recent-activity
+  and TV-device sections' own headings
+
+#### Scenario: Cards share a row when the width allows
+- **WHEN** the dashboard renders three tournaments at a desktop viewport width
+- **THEN** more than one card occupies the same row
+
+#### Scenario: Cards stack at mobile width
+- **WHEN** the dashboard renders at a mobile viewport width
+- **THEN** the cards stack in a single column
+
+### Requirement: A tournament card opens its tournament
+Each tournament card SHALL offer a link from its title to that tournament's matches view, so the
+dashboard — which is also the organization's tournament listing — is a way into a tournament and not
+only a summary of it.
+
+#### Scenario: The card title navigates to the tournament
+- **WHEN** an organizer activates a tournament card's title
+- **THEN** the control panel navigates to that tournament's matches view
+
+#### Scenario: The link survives a new tab
+- **WHEN** an organizer opens a tournament card's title in a new tab or window
+- **THEN** it opens that tournament's matches view, because the title is a real link with an `href`, not
+  a click handler on a non-link element
+
+### Requirement: A tournament card presents its own actions, ranked by weight
+Every action that operates on one tournament SHALL be presented inside that tournament's own card, and
+SHALL be ranked rather than presented as a row of equal-weight controls: one primary action, the
+tournament's export actions collected behind a single grouped control, and a destructive action
+separated from both.
+
+#### Scenario: Exports are one grouped control, not four buttons
+- **WHEN** a tournament card is rendered
+- **THEN** its participant, results, standings, and configuration exports are reachable through one
+  grouped control on the card, not as four separate controls competing with the card's other actions
+
+#### Scenario: A destructive action is distinguishable from the rest
+- **WHEN** a finished tournament's card offers to archive it
+- **THEN** that action is visually separated from the card's primary and export actions and carries the
+  destructive treatment
+
+#### Scenario: Actions belong to the card, not to the page around it
+- **WHEN** the dashboard lists two tournaments
+- **THEN** each tournament's actions render within that tournament's own card, so no action sits
+  between two cards where the tournament it applies to is ambiguous

@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { ZoneGroupRoute } from './components/ZoneGroupRoute.js';
+import { ZoneGroupPage } from './components/pages/ZoneGroupPage.js';
 import { ControlApiError } from './lib/api-client.js';
 import type {
   ControlApiClient,
@@ -43,7 +43,7 @@ function groupAssignRegion(): HTMLElement {
   return screen.getByRole('region', { name: 'Assign entrants to groups' });
 }
 
-describe('ZoneGroupRoute', () => {
+describe('ZoneGroupPage', () => {
   it('renders zones, groups, and (in manual mode) entrants for the default stage', async () => {
     const client = stubClient({
       listZones: () => Promise.resolve(oneZone),
@@ -52,7 +52,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -91,7 +91,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -139,7 +139,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -188,7 +188,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -235,7 +235,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -282,7 +282,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -318,7 +318,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -363,7 +363,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -443,7 +443,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -483,7 +483,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -512,7 +512,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -541,7 +541,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -591,7 +591,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -628,7 +628,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -653,7 +653,7 @@ describe('ZoneGroupRoute', () => {
     });
     const { unmount } = render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -682,7 +682,7 @@ describe('ZoneGroupRoute', () => {
     });
     const { unmount } = render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -707,7 +707,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -734,7 +734,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -757,7 +757,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -791,7 +791,7 @@ describe('ZoneGroupRoute', () => {
     });
     render(
       withIntl(
-        <ZoneGroupRoute
+        <ZoneGroupPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}

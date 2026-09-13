@@ -27,6 +27,10 @@ misma instalación se reimporta sin problemas, así que dar la vuelta a una list
   como JSON, desde el panel de la organización — el mismo documento que una instalación nueva podría
   reimportar para reproducir las reglas del torneo, no sus resultados.
 
+Las cuatro están también en el panel de la organización: la tarjeta de cada torneo tiene un menú
+**Exportar** con participantes, resultados, posiciones y configuración de ese torneo, así exportar los
+datos de un torneo no obliga a pasar por la pantalla a la que cada exportación pertenece.
+
 Cada exportación reemplaza un identificador interno de la base de datos por el alias público de la
 entidad, así un archivo exportado nunca filtra un identificador que nada fuera de la instalación
 debería ver.

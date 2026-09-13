@@ -19,6 +19,11 @@ export class UploadImageResponse {
   objectId!: string;
 }
 
+export class DeleteEmblemResponse {
+  @ApiProperty({ example: true })
+  ok!: boolean;
+}
+
 export class SetPersonNationalityRequest {
   @ApiPropertyOptional({
     description: 'ISO 3166-1 alpha-2 country code; omitted or null clears it.',

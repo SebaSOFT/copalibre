@@ -123,3 +123,18 @@ stands; deletion SHALL be refused, naming what still references it.
 #### Scenario: Storage usage reflects a deletion
 - **WHEN** an unreferenced object is deleted
 - **THEN** the organization's storage usage total decreases by that object's size
+
+### Requirement: A served discipline background belongs to its own module namespace
+Serving a discipline background image SHALL require both that an installed descriptor references the
+requested key and that the key sits under that descriptor's own `modules/<alias>/<version>/`
+namespace. This holds independently of install-time validation, so a descriptor row written outside
+the validated install paths cannot cause one discipline's imagery to be served for another's.
+
+#### Scenario: A mis-attributed key is refused
+- **WHEN** an installed descriptor references a background key naming a different module's
+  `modules/<alias>/<version>/` namespace, and that key is requested
+- **THEN** the request is refused as not found, and the stored bytes are not served
+
+#### Scenario: A correctly attributed key is still served
+- **WHEN** a descriptor references a background key under its own module namespace
+- **THEN** the image is served normally

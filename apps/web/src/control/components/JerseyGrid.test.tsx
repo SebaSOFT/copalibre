@@ -74,7 +74,7 @@ describe('JerseyGrid', () => {
   it('clicking a jersey while a secondary field is active selects that field instead', () => {
     const { onSelectPrimary, onSelectSecondary } = renderGrid({
       activeField: 'assistedBy',
-      secondaryFields: ['assistedBy'],
+      secondaryFields: [{ field: 'assistedBy' }],
     });
     fireEvent.click(screen.getByRole('button', { name: 'B One' }));
     expect(onSelectSecondary).toHaveBeenCalledWith('assistedBy', 'b1');
@@ -82,9 +82,26 @@ describe('JerseyGrid', () => {
   });
 
   it('switching the active-field chip notifies the parent', () => {
-    const { onChangeActiveField } = renderGrid({ secondaryFields: ['assistedBy'] });
+    const { onChangeActiveField } = renderGrid({ secondaryFields: [{ field: 'assistedBy' }] });
     fireEvent.click(screen.getByRole('button', { name: 'assistedBy' }));
     expect(onChangeActiveField).toHaveBeenCalledWith('assistedBy');
+  });
+
+  it('names a secondary field by its declared label, resolved for the active language', () => {
+    renderGrid({
+      secondaryFields: [{ field: 'assistedBy', label: { en: 'Assisted by', es: 'Asistido por' } }],
+    });
+
+    expect(screen.getByRole('button', { name: 'Assisted by' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'assistedBy' })).toBeNull();
+  });
+
+  it('falls back to the field key when the discipline declared no label for it', () => {
+    // Deliberately the raw key, not a label derived from it: an invented
+    // "Assisted By" would read as a translation nobody wrote.
+    renderGrid({ secondaryFields: [{ field: 'assistedBy' }] });
+
+    expect(screen.getByRole('button', { name: 'assistedBy' })).toBeDefined();
   });
 
   it("renders a member's nationality flag next to their jersey name", () => {
@@ -112,9 +129,10 @@ describe('JerseyGrid', () => {
     expect(screen.queryByText('entrant-a'.slice(-8))).toBeNull();
   });
 
-  it('falls back to the raw entrant id suffix when no team name is known', () => {
+  it('labels an entrant with no known team name rather than showing its id', () => {
     renderGrid({ rosters: [{ entrantId: 'entrant-abcdefgh', members: [] }] });
-    expect(screen.getByText('abcdefgh')).toBeDefined();
+    expect(screen.getByText('Unnamed entrant')).toBeDefined();
+    expect(screen.queryByText('abcdefgh')).toBeNull();
   });
 
   it('shows a placeholder emblem when the entrant has no club', () => {

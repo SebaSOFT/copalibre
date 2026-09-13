@@ -909,10 +909,11 @@ export class StagesController {
         errorCode: 'stage-not-found',
       });
 
-    if (stage.format !== 'swiss') {
-      throw new ConflictException('Only Swiss stages support dynamic round generation', {
-        errorCode: 'stage-not-swiss',
-      });
+    if (stage.format !== 'swiss' && stage.format !== 'single-elimination') {
+      throw new ConflictException(
+        'Only Swiss and single-elimination stages support dynamic round generation',
+        { errorCode: 'stage-not-swiss' },
+      );
     }
 
     const fixtures = await competition.listFixturesOfStage(stage.stageId);
@@ -924,10 +925,17 @@ export class StagesController {
 
     const matches = await competition.listMatchesForStage(stage.stageId);
     const currentRound = Math.max(...fixtures.map((f) => f.round));
-    const currentRoundFixtureIds = new Set(
-      fixtures.filter((f) => f.round === currentRound).map((f) => f.fixtureId),
-    );
+    const currentRoundFixtures = fixtures
+      .filter((f) => f.round === currentRound)
+      .sort((a, b) => a.fixtureId.localeCompare(b.fixtureId));
+    const currentRoundFixtureIds = new Set(currentRoundFixtures.map((f) => f.fixtureId));
     const currentRoundMatches = matches.filter((m) => currentRoundFixtureIds.has(m.fixtureId));
+
+    if (stage.format === 'single-elimination' && currentRoundFixtures.length <= 1) {
+      throw new ConflictException('The single-elimination stage is already fully completed', {
+        errorCode: 'stage-already-completed',
+      });
+    }
 
     const uncompleted = currentRoundMatches.filter(
       (m) => m.status !== 'finalized' && m.status !== 'forfeited',
@@ -948,62 +956,123 @@ export class StagesController {
       });
     }
 
-    const previousMatches: GeneratedMatch[] = fixtures.map((f, idx) => ({
-      id: `SWISS-R${f.round}-M${idx + 1}`,
-      shape: 'duel' as const,
-      bracket: 'winners' as const,
-      round: f.round,
-      position: idx + 1,
-      slotA: f.homeEntrantId
-        ? {
-            kind: 'entrant' as const,
-            entrantId: f.homeEntrantId,
-            seed: entrantIds.indexOf(f.homeEntrantId) + 1,
-          }
-        : { kind: 'bye' as const },
-      slotB: f.awayEntrantId
-        ? {
-            kind: 'entrant' as const,
-            entrantId: f.awayEntrantId,
-            seed: entrantIds.indexOf(f.awayEntrantId) + 1,
-          }
-        : { kind: 'bye' as const },
-    }));
-
     const outcomes = await readModel.outcomes(stage.stageId);
     const nextRoundNumber = currentRound + 1;
-    const seededEntrants = entrantIds.map((entrantId, index) => ({
-      entrantId,
-      seed: index + 1,
-    }));
-
     const declaration = await readStageSeries(this.db, {
       tournamentId: tournament.tournamentId,
       stageId: stage.stageId,
     });
     const seriesSpan = declaration === undefined ? {} : { matchCount: declaration.span };
 
-    const nextMatches = generateNextSwissRoundFixtures({
-      round: nextRoundNumber,
-      entrants: seededEntrants,
-      previousMatches,
-      outcomes,
-      options: declaration ? { series: declaration } : undefined,
-    });
+    let newFixtures: readonly {
+      readonly round: number;
+      readonly homeEntrantId?: string;
+      readonly awayEntrantId?: string;
+      readonly zoneId?: string;
+      readonly groupId?: string;
+    }[];
 
-    const newFixtures = nextMatches
-      .filter((m) => isDuelMatch(m) && (m.matchNumber === undefined || m.matchNumber === 1))
-      .map((m) => {
-        if (!isDuelMatch(m)) return undefined;
-        return {
+    if (stage.format === 'single-elimination') {
+      const winners: string[] = [];
+      for (const f of currentRoundFixtures) {
+        const fixtureMatches = currentRoundMatches.filter((m) => m.fixtureId === f.fixtureId);
+        const outcome = outcomes.find((o) => o.fixtureId === f.fixtureId);
+        let winnerEntrantId = outcome?.winnerEntrantId;
+        if (!winnerEntrantId) {
+          for (const m of fixtureMatches) {
+            const res = m.result as {
+              winnerEntrantId?: string;
+              winner?: 'A' | 'B';
+            } | null;
+            if (res?.winnerEntrantId) {
+              winnerEntrantId = res.winnerEntrantId;
+              break;
+            }
+            if (res?.winner === 'A') {
+              winnerEntrantId = f.homeEntrantId ?? undefined;
+              break;
+            }
+            if (res?.winner === 'B') {
+              winnerEntrantId = f.awayEntrantId ?? undefined;
+              break;
+            }
+          }
+        }
+        if (!winnerEntrantId) {
+          throw new ConflictException(`Fixture in round ${currentRound} has no determined winner`, {
+            errorCode: 'fixture-winner-undetermined',
+          });
+        }
+        winners.push(winnerEntrantId);
+      }
+
+      const paired: {
+        round: number;
+        homeEntrantId?: string;
+        awayEntrantId?: string;
+        zoneId?: string;
+        groupId?: string;
+      }[] = [];
+      for (let i = 0; i < winners.length; i += 2) {
+        paired.push({
           round: nextRoundNumber,
-          homeEntrantId: m.slotA.kind === 'entrant' ? m.slotA.entrantId : undefined,
-          awayEntrantId: m.slotB.kind === 'entrant' ? m.slotB.entrantId : undefined,
-          zoneId: fixtures[0]?.zoneId,
-          groupId: fixtures[0]?.groupId,
-        };
-      })
-      .filter((f): f is NonNullable<typeof f> => f !== undefined);
+          homeEntrantId: winners[i],
+          awayEntrantId: winners[i + 1],
+          zoneId: currentRoundFixtures[0]?.zoneId,
+          groupId: currentRoundFixtures[0]?.groupId,
+        });
+      }
+      newFixtures = paired;
+    } else {
+      const previousMatches: GeneratedMatch[] = fixtures.map((f, idx) => ({
+        id: `SWISS-R${f.round}-M${idx + 1}`,
+        shape: 'duel' as const,
+        bracket: 'winners' as const,
+        round: f.round,
+        position: idx + 1,
+        slotA: f.homeEntrantId
+          ? {
+              kind: 'entrant' as const,
+              entrantId: f.homeEntrantId,
+              seed: entrantIds.indexOf(f.homeEntrantId) + 1,
+            }
+          : { kind: 'bye' as const },
+        slotB: f.awayEntrantId
+          ? {
+              kind: 'entrant' as const,
+              entrantId: f.awayEntrantId,
+              seed: entrantIds.indexOf(f.awayEntrantId) + 1,
+            }
+          : { kind: 'bye' as const },
+      }));
+
+      const seededEntrants = entrantIds.map((entrantId, index) => ({
+        entrantId,
+        seed: index + 1,
+      }));
+
+      const nextMatches = generateNextSwissRoundFixtures({
+        round: nextRoundNumber,
+        entrants: seededEntrants,
+        previousMatches,
+        outcomes,
+        options: declaration ? { series: declaration } : undefined,
+      });
+
+      newFixtures = nextMatches
+        .filter((m) => isDuelMatch(m) && (m.matchNumber === undefined || m.matchNumber === 1))
+        .map((m) => {
+          if (!isDuelMatch(m)) return undefined;
+          return {
+            round: nextRoundNumber,
+            homeEntrantId: m.slotA.kind === 'entrant' ? m.slotA.entrantId : undefined,
+            awayEntrantId: m.slotB.kind === 'entrant' ? m.slotB.entrantId : undefined,
+            zoneId: fixtures[0]?.zoneId,
+            groupId: fixtures[0]?.groupId,
+          };
+        })
+        .filter((f): f is NonNullable<typeof f> => f !== undefined);
+    }
 
     await withTransaction(this.db, (uow) =>
       competition.createFixtures(uow, {

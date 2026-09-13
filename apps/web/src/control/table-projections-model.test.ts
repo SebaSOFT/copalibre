@@ -6,6 +6,7 @@ import type {
   TableRowResponseData,
 } from './lib/api-client.js';
 import {
+  comparatorChain,
   distributionBars,
   localizedText,
   nextSort,
@@ -188,5 +189,106 @@ describe('tiebreakIndicator', () => {
 
   it('shows nothing for a rank nothing else shares', () => {
     expect(tiebreakIndicator(row('a', 1, false, 6))).toEqual({ kind: 'none', icon: '' });
+  });
+});
+
+describe('comparatorChain', () => {
+  const columns = tableColumns(
+    [
+      { code: 'points', header: 'Points', shortHeader: 'Pts', format: 'number' },
+      { code: 'head-to-head', header: 'Head to head', shortHeader: 'H2H', format: 'number' },
+      { code: 'score-difference', header: 'Difference', shortHeader: 'Dif', format: 'number' },
+    ],
+    'en',
+  );
+
+  const projection = (
+    rows: readonly (readonly [number, number, number])[],
+  ): TableProjectionResponseData =>
+    ({
+      layoutCode: 'group-standings-default',
+      target: 'group-phase',
+      label: 'Standings',
+      columns: [],
+      projectionVersion: 1,
+      defaultSort: [
+        { columnCode: 'points', direction: 'desc' },
+        { columnCode: 'head-to-head', direction: 'desc' },
+        { columnCode: 'score-difference', direction: 'desc' },
+      ],
+      rows: rows.map(
+        ([points, head, difference], index) =>
+          ({
+            actorId: `entrant-${index}`,
+            rank: index + 1,
+            cells: {
+              points: { raw: points, formatted: String(points) },
+              'head-to-head': { raw: head, formatted: String(head) },
+              'score-difference': { raw: difference, formatted: String(difference) },
+            },
+          }) as unknown as TableRowResponseData,
+      ),
+    }) as unknown as TableProjectionResponseData;
+
+  it('names the chain in the order the layout declared it', () => {
+    const chain = comparatorChain(projection([[6, 3, 3]]), columns);
+    expect(chain.map((rule) => rule.columnCode)).toEqual([
+      'points',
+      'head-to-head',
+      'score-difference',
+    ]);
+    expect(chain.map((rule) => rule.step)).toEqual([1, 2, 3]);
+  });
+
+  it('labels each rule from the column it names', () => {
+    const chain = comparatorChain(projection([[6, 3, 3]]), columns);
+    expect(chain.map((rule) => rule.label)).toEqual(['Pts', 'H2H', 'Dif']);
+  });
+
+  it('marks the rule that separated two rows level on the one before it', () => {
+    const chain = comparatorChain(
+      projection([
+        [6, 3, 3],
+        [6, 0, 2],
+        [4, 0, -1],
+      ]),
+      columns,
+    );
+    expect(chain.find((rule) => rule.triggered)?.columnCode).toBe('head-to-head');
+  });
+
+  it('marks nothing where no two rows were ever level', () => {
+    const chain = comparatorChain(
+      projection([
+        [6, 0, 3],
+        [4, 0, 1],
+        [1, 0, -4],
+      ]),
+      columns,
+    );
+    expect(chain.some((rule) => rule.triggered)).toBe(false);
+  });
+
+  it('never credits a later rule that never got consulted', () => {
+    // Level on points, separated by the head-to-head; the difference also
+    // differs, but the chain had already ended by the time it was reached.
+    const chain = comparatorChain(
+      projection([
+        [6, 3, 9],
+        [6, 0, 1],
+      ]),
+      columns,
+    );
+    expect(chain.filter((rule) => rule.triggered)).toHaveLength(1);
+    expect(chain.find((rule) => rule.triggered)?.columnCode).toBe('head-to-head');
+  });
+
+  it('returns no chain where the layout declares no sort at all', () => {
+    const none = { ...projection([[6, 0, 3]]), defaultSort: [] };
+    expect(comparatorChain(none, columns)).toEqual([]);
+  });
+
+  it('returns no chain where there is no projection yet', () => {
+    expect(comparatorChain(undefined, columns)).toEqual([]);
   });
 });

@@ -1,0 +1,98 @@
+---
+import type { OverviewModel } from '../../../lib/overview.ts';
+
+interface Props {
+  readonly model: OverviewModel;
+  readonly heading: string;
+}
+const { model, heading } = Astro.props;
+
+function formatRuleLabel(rawKey: string): string {
+  const clean = rawKey.replace(/^rules?\./i, '');
+  const words = clean
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  return words.join(' ');
+}
+
+function formatRuleValue(value: string): string {
+  if (value === 'true') return 'Yes';
+  if (value === 'false') return 'No';
+  const formatMap: Record<string, string> = {
+    'single-elimination': 'Single Elimination',
+    'double-elimination': 'Double Elimination',
+    'round-robin': 'Round Robin',
+    'round-robin-single-leg': 'Round Robin (Single Leg)',
+    'round-robin-home-away': 'Round Robin (Home & Away)',
+    league: 'League',
+    swiss: 'Swiss',
+    gauntlet: 'Gauntlet',
+    'bracket-groups': 'Bracket Groups',
+    'custom-bracket': 'Custom Bracket',
+    'ffa-bracket': 'FFA Bracket',
+    'ffa-league': 'FFA League',
+  };
+  if (formatMap[value]) {
+    return formatMap[value];
+  }
+  if (/^[a-z]+([-_][a-z]+)+$/i.test(value)) {
+    return value
+      .split(/[-_]+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+  }
+  return value;
+}
+---
+
+<section aria-labelledby="ruleset-heading" class="cl-ruleset-section">
+  <h2 id="ruleset-heading">{heading}</h2>
+  <dl class="cl-ruleset-grid">
+    {
+      model.ruleset.map((entry) => (
+        <div class="cl-rule-item">
+          <dt class="cl-rule-label">{formatRuleLabel(entry.label)}</dt>
+          <dd class="cl-rule-value">{formatRuleValue(entry.value)}</dd>
+        </div>
+      ))
+    }
+  </dl>
+</section>
+
+<style>
+  .cl-ruleset-grid {
+    display: grid;
+    /* `min(200px, 100%)`, not a bare `200px` floor (openspec 0225 task 7.4):
+       a bare floor wider than the 188px zoom viewport forces the grid itself
+       past the container, since no track may shrink below its minimum. */
+    grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
+    gap: var(--cl-space-3);
+    margin: var(--cl-space-3) 0 0 0;
+  }
+
+  .cl-rule-item {
+    background: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
+    border-radius: var(--cl-radius-md);
+    padding: var(--cl-space-3);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .cl-rule-label {
+    font-size: var(--cl-font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cl-text-muted);
+  }
+
+  .cl-rule-value {
+    font-size: var(--cl-font-size-md);
+    font-weight: 700;
+    color: var(--cl-text-primary);
+    margin: 0;
+  }
+</style>

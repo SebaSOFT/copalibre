@@ -1,8 +1,8 @@
 /**
  * Original composition — a read-only label/value pair for a detail
  * screen (a person's profile, a registration's submitted data). Extracted
- * from duplicate inline definitions in `PersonProfileRoute.tsx` and
- * `RegistrationReviewPage.tsx`: single-use in each host screen does not make
+ * from duplicate inline definitions in `PersonProfilePage.tsx` and
+ * `RegistrationReviewTemplate.tsx`: single-use in each host screen does not make
  * it a "page" concern — it is the same reusable-shaped molecule wherever it
  * appears (design.md Decision 7's props-only rule applies here too).
  */

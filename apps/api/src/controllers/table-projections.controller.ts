@@ -10,7 +10,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { escapeCsvFormulaCell, stringifyCsv } from '@copalibre/domain';
+import { escapeCsvFormulaCell, stringifyCsv } from '@copalibre/domain/import-export';
 import { CompetitionRepository, type Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
@@ -21,6 +21,7 @@ import { TableLayoutListResponse, TableProjectionResponse } from '../dto/table-p
 import {
   listEffectiveTableLayouts,
   readTableProjection,
+  type SegmentedTableProjectionResult,
   type TableProjectionResult,
 } from '../table-projections/read.js';
 import { DATABASE } from '../database.token.js';
@@ -274,6 +275,30 @@ export function tableResponse(result: TableProjectionResult): TableProjectionRes
     projectionVersion: result.projectionVersion,
     ...(result.grain === undefined ? {} : { grain: result.grain }),
     ...(result.countColumnCode === undefined ? {} : { countColumnCode: result.countColumnCode }),
+  };
+}
+
+/**
+ * `tableResponse` plus the per-group blocks, for the stage-scoped public read.
+ * Kept beside it rather than folded into it: a tournament-scoped table has no
+ * groups to report, and every existing caller wants the merged rows alone.
+ */
+export function segmentedTableResponse(
+  result: SegmentedTableProjectionResult,
+): TableProjectionResponse {
+  return {
+    ...tableResponse(result),
+    segments: result.segments.map((segment) => ({
+      ...(segment.groupId === undefined ? {} : { groupId: segment.groupId }),
+      ...(segment.groupName === undefined ? {} : { groupName: segment.groupName }),
+      rows: segment.rows.map((row) => ({
+        actorId: row.actorId,
+        ...(row.entrantId === undefined ? {} : { entrantId: row.entrantId }),
+        rank: row.rank,
+        sharedRank: row.sharedRank,
+        cells: row.cells,
+      })),
+    })),
   };
 }
 

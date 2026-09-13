@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { jest } from '@jest/globals';
-import { ReportReviewRoute } from './components/ReportReviewRoute.js';
+import { ReportReviewPage } from './components/pages/ReportReviewPage.js';
 import type { ControlApiClient, ParticipantReportResponse } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
@@ -77,7 +77,7 @@ describe('the pending reports and disputes queue', () => {
   it('says so when there is nothing pending', async () => {
     render(
       withIntl(
-        <ReportReviewRoute
+        <ReportReviewPage
           client={client({ listPendingReports: async () => [] })}
           organizationAlias="liga-mendocina"
           tournamentAlias="apertura-2026"
@@ -91,7 +91,7 @@ describe('the pending reports and disputes queue', () => {
   it('lists a pending report with its evidence and kind label', async () => {
     render(
       withIntl(
-        <ReportReviewRoute
+        <ReportReviewPage
           client={client({ listPendingReports: async () => [pendingReport] })}
           organizationAlias="liga-mendocina"
           tournamentAlias="apertura-2026"
@@ -107,7 +107,7 @@ describe('the pending reports and disputes queue', () => {
   it('shows the loading failure when the queue cannot be fetched', async () => {
     render(
       withIntl(
-        <ReportReviewRoute
+        <ReportReviewPage
           client={client({
             listPendingReports: async () => {
               throw new Error('offline');
@@ -126,7 +126,7 @@ describe('the pending reports and disputes queue', () => {
     const reviewReport = jest.fn(async () => ({ ...pendingReport, status: 'dismissed' }));
     render(
       withIntl(
-        <ReportReviewRoute
+        <ReportReviewPage
           client={client({ listPendingReports: async () => [pendingReport], reviewReport })}
           organizationAlias="liga-mendocina"
           tournamentAlias="apertura-2026"
@@ -155,7 +155,7 @@ describe('the pending reports and disputes queue', () => {
     try {
       render(
         withIntl(
-          <ReportReviewRoute organizationAlias="liga-mendocina" tournamentAlias="apertura-2026" />,
+          <ReportReviewPage organizationAlias="liga-mendocina" tournamentAlias="apertura-2026" />,
         ),
       );
       await screen.findByText('There are no pending reports or disputes.');

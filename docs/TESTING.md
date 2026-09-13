@@ -48,7 +48,58 @@ First used by phase `0004-persistence-postgres-outbox-audit`.
 - Selector convention: prefer `getByRole`/`getByLabel`; use `data-testid` for elements with
   no accessible name (mirrors the pattern proven in sebasoft-app).
 
+## Visual review (Storybook)
+
+- Start: `yarn workspace @copalibre/web storybook` (port 6006). Local only — no static build, nothing
+  hosted, not run in CI.
+- Every owned library component has a `Playground` (all props adjustable) and a `Matrix` (variants
+  side by side); the public and TV components and the generated token style guide are there too,
+  grouped by surface.
+- **This is not an automated gate.** There are no screenshot baselines and no visual diffing: a person
+  looks. The one automated rule is that an owned library component without a sibling `*.stories.tsx`
+  fails `scripts/check-ui-ownership.mjs`. That same check governs component ownership across every
+  surface — operator, public and broadcast — and treats any `ui/` directory as the design language
+  rather than a consumer of it.
+- Set the **Language** toolbar to German or Russian and the **Viewport** to
+  188px — the zoom floor the token generator writes its responsive rules against — and
+  most layout failures show up there before anywhere else.
+- **TV background** chooses story default, neutral, green chroma, bright football field or dark
+  basketball court. The images are bundled under `.storybook/assets` with provenance recorded there.
+  These are preview backdrops: the selected discipline, match fixture and layout mode stay the same.
+  Lower-third transparent regions reveal the background; opaque kiosk panels keep their own fill.
+  `TV/TvDashboard` includes named chroma, football and basketball examples. Return to **Story default**
+  to use each named example's backdrop. Language and viewport remain independent controls.
+
+Screen stories are grouped under `Admin/Screens`. Their shared `screen-story-fixtures.ts` holds
+stable UUIDv7 identities, timestamps and typed projections. Each route story owns its API methods,
+using `storyClient` to throw on undeclared reads instead of silently returning empty data.
+Explicitly absent optional methods model unavailable capabilities. Loading promises remain pending;
+failure fixtures reject. Workflow stories use `play` to enter states through the real controls.
+The existing intl, toast and control-density decorators are reused.
+
+`scripts/check-ui-ownership.mjs` derives screen story coverage directly from the filesystem:
+it recursively walks operator, public and TV React sources, nested library tiers and `control/i18n`.
+Each requires a sibling `*.stories.tsx`, excluding only the four explicit categories (routers,
+providers, fixtures, and deferred). Explicit exclusions are keyed by source path so a same-named
+component elsewhere remains covered. Astro is excluded from this React story rule.
+Run `node --test scripts/check-ui-ownership.test.mjs` to exercise both directions.
+
+Review every state in German at 1440, 767, 374 and 188px, then all eight languages at 188px.
+Read `docs/SCREEN-STORY-REVIEW.md` before interpreting a loading/error example: several existing
+screens intentionally expose their current incomplete UX rather than a fictional improved layout.
+The [0222 review](reviews/0222-owned-control-coverage.md) records selected/chrome differentiation,
+broadcast nesting and TV background evidence.
+
 ## CI
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, and the dependency license scan
 on every pull request. Later phases append integration/e2e/build jobs per their tasks.md.
+
+## Bounded Local Execution & CI Resource Allocation
+
+Established by change `0221-conditional-ci-resource-optimization`:
+
+- **Jest worker caps**: Cap Jest concurrency (`--maxWorkers=2`) when running suites locally or across parallel jobs to prevent memory pressure and thread contention.
+- **Dynamic worker fixture ports**: E2E mock servers allocate unique ports dynamically based on worker index (`3001 + workerIndex`), managed via `e2e/fixtures.ts`. This eliminates port 3001 `EADDRINUSE` collisions and enables concurrent worker scaling locally (`yarn test:e2e --workers=4`) and across parallel CI shards.
+- **Decoupled web build and inspection**: Web production builds output once per configuration. `verify:build` and `verify:docs` can inspect this verified output (`WEB_EXISTING_BUILD=1`), and Playwright E2E can serve it directly (`PLAYWRIGHT_EXISTING_BUILD=1`) without redundant rebuilds. Standalone local invocations continue to build before preview when these flags are omitted. Run build and browser execution in exclusive phases on a single checkout to avoid directory collisions.
+- **Partitioned groups**: Unit tests are partitioned into two balanced workspace groups (max 2 concurrent). Integration tests run in two isolated groups: Group 1 requires only PostgreSQL, while Group 2 initializes PostgreSQL, MinIO, and ClamAV. Stable aggregate checks (`Unit tests`, `Integration tests`, `E2E tests`, `Public web build`, `Help docs build`) preserve gate authority and distinguish intentional scope skips from failures.

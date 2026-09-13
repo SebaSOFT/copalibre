@@ -8,10 +8,15 @@ on:
   pull_request:
     paths:
       - 'deploy/helm/**'
+      # The chart sets the upstream this file's placeholder reads, so a change
+      # to either side has to be checked against the other.
+      - 'deploy/web/Caddyfile'
       - 'docker-compose.yml'
       - 'docker-compose.module-dev.yml'
       - 'scripts/check-helm-compose-parity.mjs'
+      - 'scripts/check-helm-compose-parity.test.mjs'
       - 'scripts/check-helm-enterprise-templates.test.mjs'
+      - 'scripts/check-helm-web-ssr.test.mjs'
       - 'scripts/check-copalibre-cli-compose-parity.mjs'
       - 'scripts/check-copalibre-kubernetes-init.test.mjs'
       - 'apps/copalibre/scripts/build-assets.mjs'
@@ -61,7 +66,12 @@ jobs:
             --set ingress.hosts.events=events.copalibre.example.com \
             --set externalSecrets.enabled=true
       - run: node scripts/check-helm-compose-parity.mjs
+      - run: node --test scripts/check-helm-compose-parity.test.mjs
       - run: node --test scripts/check-helm-enterprise-templates.test.mjs
+      # The chart must deploy what the web image's Caddyfile proxies to: a
+      # renderer present in Compose and absent from the chart is what made
+      # every dynamic public route 502 on Kubernetes.
+      - run: node --test scripts/check-helm-web-ssr.test.mjs
       # apps/copalibre embeds docker-compose.yml/docker-compose.module-dev.yml
       # as CLI assets — built here so the parity check below has something
       # real to compare against, not a stale or absent dist/assets.

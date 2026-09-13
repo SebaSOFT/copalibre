@@ -348,4 +348,150 @@ describe('readStandings (integration)', () => {
     expect(groupA.rows.map((row) => row.entrantId)).toEqual(result.entrantIds.slice(0, 2));
     expect(groupB.rows.map((row) => row.entrantId)).toEqual(result.entrantIds.slice(2, 4));
   });
+
+  it('resolves tiebreak ranking from community discipline defaults without overrides', async () => {
+    const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+    const communityDesc: DisciplineDescriptor = {
+      descriptorId: newId(),
+      version: '1.0.0',
+      name: 'Baloncesto Comunitario',
+      attribution: { author: 'Community', licence: 'MIT' },
+      participantTypes: ['team'],
+      rosterConstraints: { minPlayers: 5, maxPlayers: 12 },
+      segmentTypes: [],
+      eventDefinitions: [],
+      statistics: [
+        { code: 'points', label: 'Puntos', aggregation: 'sum' },
+        { code: 'points-for', label: 'Puntos a favor', aggregation: 'sum' },
+        { code: 'played', label: 'Partidos', aggregation: 'count' },
+      ],
+      scoringInputs: [{ code: 'points', label: 'Puntos', source: 'event-derived' }],
+      availableFormats: ['round-robin'],
+      notificationRuleCapabilities: [],
+      winCondition: {},
+      defaults: {
+        tiebreakers: ['points', 'points-for'],
+      },
+      fieldPolicies: {
+        tiebreakers: { permission: { kind: 'replaced' }, mutationClass: 'requires_rebuild' },
+      },
+    } as unknown as DisciplineDescriptor;
+
+    const tournamentAlias = 'community-tiebreak-test';
+    const setup = await withTransaction(scratch.db, async (uow) => {
+      const organization = await new OrganizationRepository(scratch.db).create(uow, {
+        alias: 'org-comm',
+        name: 'Community Org',
+        ...AUDIT,
+      });
+      const orgId = organization.organizationId;
+      await new TournamentRepository(scratch.db).saveDescriptor(uow, communityDesc, {
+        ...AUDIT,
+        organizationId: orgId,
+      });
+      const tournament = await new TournamentRepository(scratch.db).create(uow, {
+        alias: tournamentAlias,
+        name: 'Community Tournament',
+        descriptor: communityDesc,
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      const teamA = await new EnrollmentRepository(scratch.db).createTeam(uow, {
+        name: 'Team HighPointsFor',
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      const teamB = await new EnrollmentRepository(scratch.db).createTeam(uow, {
+        name: 'Team LowPointsFor',
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      const entrantA = await new EnrollmentRepository(scratch.db).registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: teamA.teamId },
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      const entrantB = await new EnrollmentRepository(scratch.db).registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: teamB.teamId },
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      const competition = new CompetitionRepository(scratch.db);
+      const season = await competition.currentSeason(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      const stage = await competition.createStage(uow, {
+        seasonId: season.seasonId,
+        name: 'Regular Season',
+        number: 1,
+        format: 'round-robin',
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      const fixture = (
+        await competition.createFixtures(uow, {
+          stageId: stage.stageId,
+          fixtures: [
+            {
+              round: 1,
+              homeEntrantId: entrantA.entrantId,
+              awayEntrantId: entrantB.entrantId,
+            },
+          ],
+          organizationId: orgId,
+          ...AUDIT,
+        })
+      )[0];
+      if (!fixture) throw new Error('Fixture missing');
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture.fixtureId,
+        number: 1,
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      // Both tied on points (2 each), but entrantA has 95 points-for, entrantB has 80 points-for
+      await competition.recordResult(uow, {
+        matchId: match.matchId,
+        result: {
+          sides: [
+            {
+              entrantId: entrantA.entrantId,
+              statistics: { points: 2, 'points-for': 95, played: 1 },
+            },
+            {
+              entrantId: entrantB.entrantId,
+              statistics: { points: 2, 'points-for': 80, played: 1 },
+            },
+          ],
+          winnerEntrantId: entrantA.entrantId,
+          recordedAt: new Date().toISOString(),
+        },
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      return { tournament, entrantA, entrantB, stage };
+    });
+
+    const tournamentRef = {
+      tournamentId: setup.tournament.tournamentId,
+      disciplineRef: {
+        descriptorId: setup.tournament.disciplineRef.descriptorId,
+        version: String(setup.tournament.disciplineRef.version),
+      },
+    };
+
+    const standings = await readStandings(scratch.db, tournamentRef, 1);
+    expect(standings.rows).toHaveLength(2);
+    expect(standings.rows[0]?.entrantId).toBe(setup.entrantA.entrantId);
+    expect(standings.rows[0]?.rank).toBe(1);
+    expect(standings.rows[0]?.sharedRank).toBe(false);
+
+    expect(standings.rows[1]?.entrantId).toBe(setup.entrantB.entrantId);
+    expect(standings.rows[1]?.rank).toBe(2);
+    expect(standings.rows[1]?.sharedRank).toBe(false);
+  });
 });

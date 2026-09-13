@@ -423,6 +423,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/emblem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream a tournament's emblem, once it has passed validation */
+        get: operations["TournamentMediaController_serveEmblem"];
+        put?: never;
+        /** Upload a tournament's emblem (must be exactly 410×512px, ±1%) */
+        post: operations["TournamentMediaController_uploadEmblem"];
+        /** Delete a tournament's emblem */
+        delete: operations["TournamentMediaController_deleteEmblem"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations": {
         parameters: {
             query?: never;
@@ -739,8 +758,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Start, pause, resume or finalize
-         * @description Pausing stops the clock, not the competition: a paused match is still in progress. Finalizing needs its own capability — recording events never implies declaring a result.
+         * Start, pause, resume, end a segment, or finalize
+         * @description Pausing stops the clock, not the competition: a paused match is still in progress, and ending a segment closes that half rather than the match. Start/pause/resume/end name the segment they act on and share the clock-control capability with manual adjustment; finalizing needs its own — recording events never implies declaring a result.
          */
         post: operations["MatchControlController_command"];
         delete?: never;
@@ -1874,6 +1893,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/jwks.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** JSON Web Key Set for local token verification */
+        get: operations["NativeAuthController_jwks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/accept-invitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept invitation and set password for administrator */
+        post: operations["NativeAuthController_acceptInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/forgot-password": {
         parameters: {
             query?: never;
@@ -1902,6 +1955,23 @@ export interface paths {
         put?: never;
         /** Reset password using a verification token */
         post: operations["NativeAuthController_resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/.well-known/jwks.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** JSON Web Key Set for local token verification */
+        get: operations["WellKnownController_jwks"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2749,6 +2819,11 @@ export interface components {
             rulesetId?: string;
             /** @description Profile this tournament instantiated, when one was selected at creation. */
             profileRef?: components["schemas"]["ProfileRefResponse"];
+            /**
+             * Format: uuid
+             * @description Object storage ID of the tournament emblem, when one has been uploaded.
+             */
+            emblemObjectId?: string;
         };
         TournamentConfigurationDescriptorRefResponse: {
             /** Format: uuid */
@@ -3008,6 +3083,13 @@ export interface components {
              * @description Optional instant when checked-in team memberships stop being editable.
              */
             checkInClosesAt?: string;
+            /**
+             * @description Object id of the tournament emblem image asset.
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            emblemObjectId?: string;
+            /** @description Whether the organizer has flagged this tournament as featured on the organization’s public page. Independent of whether it is live. */
+            featured: boolean;
         };
         TournamentSettingsRequest: {
             /** @example Copa Verano (corregida) */
@@ -3022,6 +3104,8 @@ export interface components {
              * @example 16
              */
             capacity?: number;
+            /** @description Flags the tournament as featured on the organization’s public page. A record field like `name`, not a ruleset override: it carries no competition meaning and is not mutation-classified against the discipline descriptor. */
+            featured?: boolean;
             /**
              * Format: date-time
              * @description Optional instant when checked-in team memberships stop being editable.
@@ -3109,6 +3193,23 @@ export interface components {
             };
             /** @description Declared stages in the profile. */
             stages: components["schemas"]["ProfileStageSummaryResponse"][];
+        };
+        UploadImageRequest: {
+            filename: string;
+            contentType: string;
+            /** @description Base64-encoded file content */
+            contentBase64: string;
+        };
+        UploadImageResponse: {
+            /**
+             * Format: uuid
+             * @description object_metadata.object_id of the stored image
+             */
+            objectId: string;
+        };
+        DeleteEmblemResponse: {
+            /** @example true */
+            ok: boolean;
         };
         TeamMemberResponse: {
             /** Format: uuid */
@@ -3221,9 +3322,24 @@ export interface components {
             name: string;
             alias?: string;
         };
+        TeamMembershipMemberInput: {
+            /**
+             * Format: uuid
+             * @description Person identifier
+             */
+            personId: string;
+            /**
+             * @description Member role within the team
+             * @default player
+             * @enum {string}
+             */
+            role: "player" | "substitute" | "coach" | "staff";
+        };
         EditTeamMembershipsRequest: {
-            /** @description The team’s full desired membership. Anyone currently a member but not named here is removed. */
-            personIds: unknown[][];
+            /** @description The team’s full desired membership by person IDs (defaults each to "player"). */
+            personIds?: unknown[][];
+            /** @description The team’s full desired membership with optional roles (defaults to "player" when omitted). */
+            members?: components["schemas"]["TeamMembershipMemberInput"][];
         };
         SetEntrantAbbreviationRequest: {
             /**
@@ -3485,6 +3601,14 @@ export interface components {
             /** @description Short tactile-console badge text, e.g. 'GK', 'C'. Falls back to `code` when absent */
             badge?: string;
         };
+        ConsoleEntrantResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            /** @description Display name — the team name, or the person’s name for an individual entrant */
+            name?: string;
+            /** @description Tournament-scoped abbreviation, when one is persisted */
+            abbreviation?: string;
+        };
         MatchConsoleResponse: {
             /** Format: uuid */
             matchId: string;
@@ -3506,14 +3630,19 @@ export interface components {
             rosterRoles: components["schemas"]["ConsoleRosterRoleResponse"][];
             /** @description Coaches and staff attached to an entrant contesting this match */
             eligibleStaffIds: string[];
-            /** @description Entrants contesting this match */
-            entrantIds: string[];
+            /** @description Entrants contesting this match, with the identity the console renders */
+            entrants: components["schemas"]["ConsoleEntrantResponse"][];
             /** @description Capabilities granted to this subject for this match */
             capabilities: string[];
             /** @description Monotonic server-issued projection version */
             projectionVersion: number;
         };
-        FinalizeRequest: {
+        MatchCommandRequest: {
+            /**
+             * Format: uuid
+             * @description The segment a start/pause/resume/end command acts on. Absent falls back to whichever segment is currently running — which is no segment at all once one has been paused
+             */
+            segmentId?: string;
             /** @description One entry per side: entrant id, its declared statistics, placement for a heat, and why the result is what it is when not an ordinarily played one */
             sides: Record<string, never>[];
             /**
@@ -3645,7 +3774,7 @@ export interface components {
             segments: components["schemas"]["BulkSegmentInput"][];
             /** @description The match’s full event history, in the order it actually happened */
             events: components["schemas"]["BulkEventInput"][];
-            /** @description One entry per side, matching FinalizeRequest’s existing shape */
+            /** @description One entry per side, matching MatchCommandRequest’s existing shape */
             result: Record<string, never>[];
         };
         BulkLoadMatchDataResponse: {
@@ -3847,6 +3976,16 @@ export interface components {
             /** @description One cell per declared column, keyed by column code */
             cells: components["schemas"]["TableCellResponse"];
         };
+        TableProjectionSegmentResponse: {
+            /**
+             * Format: uuid
+             * @description Absent when the segment covers a stage that has no groups
+             */
+            groupId?: string;
+            /** @description The group’s own name, e.g. "Group A" */
+            groupName?: string;
+            rows: components["schemas"]["TableRowResponse"][];
+        };
         TableProjectionResponse: {
             layoutCode: string;
             /** @enum {string} */
@@ -3858,6 +3997,8 @@ export interface components {
             rows: components["schemas"]["TableRowResponse"][];
             /** @description Freshest `statistic-totals` projection version among this scope’s matches; 0 when none has been folded yet */
             projectionVersion: number;
+            /** @description Stage-scoped reads only: the same figures split into one ranked block per group, or a single block when the stage has no groups */
+            segments?: components["schemas"]["TableProjectionSegmentResponse"][];
             /**
              * @description Whether a team-granularity, stage-scoped column counts one result per series or one per played match. Absent for a tournament-scoped or non-team layout, or a stage declaring no series at all.
              * @enum {string}
@@ -4385,6 +4526,13 @@ export interface components {
             discipline: components["schemas"]["PublicTournamentDisciplineSummaryResponse"];
             dates?: components["schemas"]["PublicTournamentDatesResponse"];
             winners?: components["schemas"]["PublicTournamentWinnerZoneResponse"][];
+            /**
+             * Format: uuid
+             * @description object_metadata.object_id of the tournament emblem
+             */
+            emblemObjectId?: string;
+            /** @description Whether the organizer flagged this tournament as featured. Independent of `status`: live is urgent, featured is curated, and a tournament can be either, both, or neither. */
+            featured: boolean;
         };
         PublicOverviewClubResponse: {
             /** Format: uuid */
@@ -4455,6 +4603,14 @@ export interface components {
             ruleset: {
                 [key: string]: string;
             };
+            /** @enum {string} */
+            status?: "upcoming" | "live" | "finished";
+            winners?: components["schemas"]["PublicTournamentWinnerZoneResponse"][];
+            /**
+             * Format: uuid
+             * @description Object storage ID of the tournament emblem, when one has been uploaded.
+             */
+            emblemObjectId?: string;
         };
         PublicMatchOfficialResponse: {
             name: string;
@@ -4572,6 +4728,8 @@ export interface components {
             series?: components["schemas"]["PublicSeriesStateResponse"];
         };
         PublicBracketResponse: {
+            /** @description The competition format of the stage */
+            format?: string;
             matches: components["schemas"]["PublicBracketMatchResponse"][];
         };
         PublicMatchesViewMatchResponse: {
@@ -4665,6 +4823,25 @@ export interface components {
             accessToken: string;
             /** @description Token expiration in seconds */
             expiresIn: number;
+        };
+        JwksKey: {
+            kty: string;
+            kid: string;
+            use: string;
+            alg: string;
+            n: string;
+            e: string;
+        };
+        JwksResponse: {
+            keys: components["schemas"]["JwksKey"][];
+        };
+        NativeAcceptInvitationRequest: {
+            /** @description The invitation token from setupUrl */
+            token: string;
+            /** @description New password for the administrator (min 8 characters) */
+            password: string;
+            /** @description Display name for the administrator */
+            name?: string;
         };
         ForgotPasswordRequest: {
             /** Format: email */
@@ -4882,19 +5059,6 @@ export interface components {
              */
             photoObjectId?: string;
             naturalKey?: components["schemas"]["NaturalKeyResponse"];
-        };
-        UploadImageRequest: {
-            filename: string;
-            contentType: string;
-            /** @description Base64-encoded file content */
-            contentBase64: string;
-        };
-        UploadImageResponse: {
-            /**
-             * Format: uuid
-             * @description object_metadata.object_id of the stored image
-             */
-            objectId: string;
         };
         SetPersonNationalityRequest: {
             /**
@@ -6388,6 +6552,78 @@ export interface operations {
             };
         };
     };
+    TournamentMediaController_serveEmblem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    TournamentMediaController_uploadEmblem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadImageRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadImageResponse"];
+                };
+            };
+        };
+    };
+    TournamentMediaController_deleteEmblem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tournament emblem removed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteEmblemResponse"];
+                };
+            };
+        };
+    };
     RegistrationsController_list: {
         parameters: {
             query?: never;
@@ -7009,7 +7245,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["FinalizeRequest"];
+                "application/json": components["schemas"]["MatchCommandRequest"];
             };
         };
         responses: {
@@ -9366,6 +9602,48 @@ export interface operations {
             };
         };
     };
+    NativeAuthController_jwks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JwksResponse"];
+                };
+            };
+        };
+    };
+    NativeAuthController_acceptInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NativeAcceptInvitationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+        };
+    };
     NativeAuthController_forgotPassword: {
         parameters: {
             query?: never;
@@ -9408,6 +9686,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthSuccessResponse"];
+                };
+            };
+        };
+    };
+    WellKnownController_jwks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JwksResponse"];
                 };
             };
         };

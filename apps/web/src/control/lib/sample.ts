@@ -1,4 +1,4 @@
-import type { ReviewRegistrationRow } from '../components/RegistrationReviewPage.js';
+import type { ReviewRegistrationRow } from '../components/screens/RegistrationReviewTemplate.js';
 import type { DisciplineOption } from './wizard.js';
 
 export function sampleDisciplines(): readonly DisciplineOption[] {

@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures.js';
 
 /**
  * The public matches view (openspec 0172): a flat, filterable card grid of a
@@ -59,7 +59,7 @@ const liveMatch = {
 
 let apiServer: Server;
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     const [path, query] = (req.url ?? '').split('?');
@@ -81,7 +81,7 @@ test.beforeAll(async () => {
     res.statusCode = 404;
     res.end(JSON.stringify({ message: 'not found' }));
   });
-  await new Promise<void>((resolve) => apiServer.listen(3001, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => apiServer.listen(workerPort, '127.0.0.1', resolve));
 });
 
 test.afterAll(async () => {
@@ -117,4 +117,34 @@ test('the Live filter link narrows the server-rendered list with scripting off',
 
   await expect(page.getByText('Talleres', { exact: true })).toBeVisible();
   await expect(page.getByText('Club Andes', { exact: true })).toHaveCount(0);
+});
+
+test('0199: the state filter renders as discrete pills with a visible active state', async ({
+  page,
+  context,
+}) => {
+  // Scripting off: the treatment is server-rendered, like the filter itself.
+  await context.route('**/*.js', (route) => route.abort());
+  await page.goto(matchesPath);
+
+  const group = page.locator('nav.cl-pill-group');
+  await expect(group).toBeVisible();
+
+  const pills = group.locator('a.cl-pill');
+  await expect(pills).toHaveCount(4);
+
+  // The defect this replaces: four anchors rendering as one run-on string.
+  // Discrete controls have real gaps between their boxes.
+  const first = await pills.nth(0).boundingBox();
+  const second = await pills.nth(1).boundingBox();
+  if (first === null || second === null) {
+    throw new Error('a rendered filter pill should have a layout box');
+  }
+  expect(second.x).toBeGreaterThan(first.x + first.width);
+
+  // Each pill is its own bounded control, not inline text.
+  expect(first.height).toBeGreaterThanOrEqual(40);
+
+  await page.getByRole('link', { name: 'Live' }).click();
+  await expect(page.locator('a.cl-pill[aria-current]')).toHaveText('Live');
 });

@@ -1,0 +1,52 @@
+---
+import { displayName, type OverviewModel } from '../../../lib/overview.ts';
+import { tournamentEmblemUrl } from '../../../lib/public-api-client.ts';
+import type { TournamentHeroLabels } from '../../../lib/i18n/public-intl.ts';
+import { Badge } from '../atoms/Badge.tsx';
+import { Card } from '../atoms/Card.tsx';
+import EmblemImage from '../atoms/EmblemImage.astro';
+
+interface Props {
+  readonly model: OverviewModel;
+  readonly labels: TournamentHeroLabels;
+}
+const { model, labels } = Astro.props;
+const tournamentName = displayName(model);
+const emblemSrc =
+  model.emblemObjectId && model.organizationAlias && model.tournamentAlias
+    ? tournamentEmblemUrl(model.organizationAlias, model.tournamentAlias)
+    : undefined;
+---
+
+<Card as="section" className="cl-card--live">
+  <div class="cl-tournament-hero__header">
+    {
+      emblemSrc && (
+        <EmblemImage
+          alt={labels.emblemAlt}
+          placeholderAlt={labels.emblemPlaceholderAlt}
+          size={56}
+          src={emblemSrc}
+        />
+      )
+    }
+    <div class="cl-tournament-hero__titles">
+      <p>{model.organizationName}</p>
+      <h1>{tournamentName}</h1>
+    </div>
+  </div>
+  {/* The count is the label: "live" as a colour alone is not a state. */}
+  <Badge as="p">{labels.liveCountText}</Badge>
+</Card>
+
+<style>
+  .cl-tournament-hero__header {
+    display: flex;
+    align-items: center;
+    gap: var(--cl-space-3);
+  }
+  .cl-tournament-hero__titles {
+    display: flex;
+    flex-direction: column;
+  }
+</style>

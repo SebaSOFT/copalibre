@@ -9,6 +9,7 @@ import {
   toOfficial,
   toOrganizationInvitation,
   toOrganizationRoleAssignment,
+  toInstallationRoleAssignment,
   toResourceAssignment,
   toSchedule,
   toScheduleSlot,
@@ -153,6 +154,8 @@ describe('snake_case row → camelCase domain mapping', () => {
       profile_version: null,
       created_at: CREATED,
       archived_at: null,
+      emblem_object_id: null,
+      featured: false,
     };
     expect(toTournament(row)).toEqual({
       tournamentId: 't-1',
@@ -162,6 +165,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       disciplineRef: { descriptorId: 'd-1', version: '3.0.0' },
       rulesetId: undefined,
       status: 'draft',
+      featured: false,
     });
   });
 
@@ -407,11 +411,14 @@ describe('mapping edge cases', () => {
       profile_version: null,
       created_at: CREATED,
       archived_at: null,
+      emblem_object_id: null,
+      featured: false,
     };
     expect(toTournament(row).rulesetId).toBe('rs-1');
     expect(toTournament({ ...row, archived_at: CREATED }).archivedAt).toBe(
       '2026-07-29T12:00:00.000Z',
     );
+    expect(toTournament({ ...row, emblem_object_id: 'obj-99' }).emblemObjectId).toBe('obj-99');
   });
 
   it('maps a stage that already has a configuration attached', () => {
@@ -602,5 +609,29 @@ describe('scheduling rows', () => {
       matchId: 'm-2',
       slotId: 'slot-2',
     });
+  });
+
+  it('maps an installation role assignment with and without deleted_at', () => {
+    const active = toInstallationRoleAssignment({
+      assignment_id: 'assign-1',
+      principal_id: 'p-1',
+      role: 'superadmin',
+      status: 'active',
+      deleted_at: null,
+      created_at: CREATED,
+      updated_at: CREATED,
+    });
+    expect(active.deletedAt).toBeUndefined();
+
+    const deleted = toInstallationRoleAssignment({
+      assignment_id: 'assign-2',
+      principal_id: 'p-2',
+      role: 'superadmin',
+      status: 'revoked',
+      deleted_at: CREATED,
+      created_at: CREATED,
+      updated_at: CREATED,
+    });
+    expect(deleted.deletedAt).toBeDefined();
   });
 });

@@ -3,7 +3,7 @@
  * label + a truncated secondary id) for one row of any listing keyed by
  * email/principal (roles, invitations, an installation's super-admins).
  * Extracted from an inline `RoleUserCell` definition in
- * `RolesPermissionsPage.tsx`: single-use in that screen does not make it a
+ * `RolesPermissionsTemplate.tsx`: single-use in that screen does not make it a
  * "page" concern — it is a table-row-cell molecule regardless of consumer
  * count (design.md Decision 7). Deliberately typed on generic email/id
  * strings rather than `OrganizationRoleResponse`, unlike this same screen's

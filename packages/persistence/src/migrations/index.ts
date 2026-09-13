@@ -41,6 +41,8 @@ import { sharedRateLimitCounters } from './0030-shared-rate-limit-counters.js';
 import { schedules } from './0031-schedules.js';
 import { roleScopeColumns } from './0032-role-scope-columns.js';
 import { organizationInviteRescission } from './0033-organization-invite-rescission.js';
+import { tournamentEmblem } from './0034-tournament-emblem.js';
+import { tournamentFeatured } from './0035-tournament-featured.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -82,6 +84,8 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0031-schedules': schedules,
   '0032-role-scope-columns': roleScopeColumns,
   '0033-organization-invite-rescission': organizationInviteRescission,
+  '0034-tournament-emblem': tournamentEmblem,
+  '0035-tournament-featured': tournamentFeatured,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

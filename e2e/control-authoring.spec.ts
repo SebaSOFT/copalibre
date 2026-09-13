@@ -240,7 +240,9 @@ test('downloads tournament configuration JSON from the dashboard', async ({ page
 
   await expect(page.getByText('Apertura 2026')).toBeVisible();
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Exportar configuración JSON' }).click();
+  // The exports moved into the tournament card's own menu (openspec 0211).
+  await page.getByRole('button', { name: 'Exportar' }).first().click();
+  await page.getByRole('menuitem', { name: 'Exportar configuración JSON' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('apertura-2026-configuration.json');
   await expect

@@ -16,6 +16,20 @@ export default defineConfig({
   // continues to handle documentation navigation after a click.
   prefetch: false,
   integrations: [
+    {
+      name: 'copalibre-local-preview',
+      hooks: {
+        'astro:config:setup': ({ command, injectRoute }) => {
+          if (command === 'dev') {
+            injectRoute({
+              pattern: '/__preview/[component]',
+              entrypoint: './src/preview/AstroPreview.astro',
+              prerender: false,
+            });
+          }
+        },
+      },
+    },
     react(),
     starlight({
       title: 'CopaLibre Help',
@@ -199,4 +213,16 @@ export default defineConfig({
       },
     }),
   ],
+  vite: {
+    server: {
+      proxy: {
+        '/auth': 'http://localhost:3001',
+        '/organizations': 'http://localhost:3001',
+        '/admin': 'http://localhost:3001',
+        '/installation': 'http://localhost:3001',
+        '/objects': 'http://localhost:3001',
+        '/api': 'http://localhost:3001',
+      },
+    },
+  },
 });

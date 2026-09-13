@@ -11,6 +11,8 @@ import { buildTestApp } from './test-support/integration-harness.js';
 
 const REFERENCED_KEY = 'modules/football/1.1.0/football-01.jpg';
 const UNREFERENCED_KEY = 'modules/football/1.1.0/private.jpg';
+/** Referenced by the football descriptor, but belonging to another module's namespace. */
+const MISATTRIBUTED_KEY = 'modules/basketball/1.0.0/basketball-01.jpg';
 const IMAGE_BYTES = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
 const AUDIT = {
   organizationId: SYSTEM_ORGANIZATION,
@@ -31,7 +33,10 @@ describe('public discipline background images (integration)', () => {
     const descriptor = {
       ...footballDescriptor(),
       version: '1.1.0',
-      images: [{ key: REFERENCED_KEY }],
+      // The second key is deliberately mis-attributed: it names another
+      // module's namespace. Every install path rejects this, so it stands in
+      // for a row written outside them.
+      images: [{ key: REFERENCED_KEY }, { key: MISATTRIBUTED_KEY }],
     };
     await withTransaction(harness.scratch.db, (uow) =>
       new TournamentRepository(harness.scratch.db).saveDescriptor(uow, descriptor, AUDIT),
@@ -41,6 +46,7 @@ describe('public discipline background images (integration)', () => {
       body: Buffer.from('private'),
       contentType: 'text/plain',
     });
+    storage.objects.set(MISATTRIBUTED_KEY, { body: IMAGE_BYTES, contentType: 'image/jpeg' });
   });
 
   afterAll(async () => {
@@ -84,6 +90,18 @@ describe('public discipline background images (integration)', () => {
       url: `/objects/discipline-background-image?key=${encodeURIComponent(REFERENCED_KEY)}`,
     });
     expect(deleted.statusCode).toBe(404);
+  });
+
+  it('refuses a key that names a module namespace other than its own descriptor’s', async () => {
+    const response = await harness.request({
+      method: 'GET',
+      url: `/objects/discipline-background-image?key=${encodeURIComponent(MISATTRIBUTED_KEY)}`,
+    });
+
+    // Serving it would put one discipline's imagery behind another's tournament —
+    // the football-pitch-behind-basketball defect this guard exists for.
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({ errorCode: 'discipline-background-image-not-found' });
   });
 });
 

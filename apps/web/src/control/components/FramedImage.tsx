@@ -24,7 +24,8 @@ export function FramedImage({
   size = 64,
   onError,
 }: FramedImageProps): JSX.Element {
-  const [failed, setFailed] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const failed = src !== undefined && failedSrc === src;
   const style: CSSProperties = { width: size };
 
   if (src === undefined || failed) {
@@ -41,7 +42,7 @@ export function FramedImage({
         alt={alt}
         src={src}
         onError={() => {
-          setFailed(true);
+          setFailedSrc(src);
           onError?.();
         }}
       />

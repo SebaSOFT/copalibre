@@ -211,3 +211,28 @@ fluent in that locale has confirmed the specific change.
 - **THEN** it includes that locale's entries in every installed discipline or tournament-profile
   document's localized `name` (and `description`, once that field exists) alongside the interface
   message catalogues
+
+### Requirement: Rendered interface text is sourced from the message-catalogue system
+
+Every piece of user-facing interface text rendered by a public-web, Control-web, or TV component or
+template SHALL be sourced from the platform's message-catalogue system (`intl.formatMessage`,
+`resolveLabel`, or an equivalent catalogue lookup), never hardcoded as a literal in component or
+template source. A repository-wide scan SHALL exist to detect a literal that bypasses the catalogue
+system and report it, distinct from `0136`'s translation-accuracy review, which assumes a catalogue key
+already exists and reviews only whether its translated value is correct.
+
+#### Scenario: A hardcoded literal is flagged
+- **WHEN** the catalogue-coverage scan runs against a component that renders a user-facing string
+  literal instead of a catalogue lookup
+- **THEN** that literal is included in the scan's report, identified by file, line, and surrounding
+  component
+
+#### Scenario: A catalogue-sourced string is not flagged
+- **WHEN** the scan runs against a component that renders text via `intl.formatMessage` or
+  `resolveLabel`
+- **THEN** that string does not appear in the report
+
+#### Scenario: A deliberately exempt string is recorded, not silently dropped
+- **WHEN** a flagged literal is triaged as deliberately catalogue-exempt (e.g. a brand name or a code)
+- **THEN** that disposition is recorded in the report rather than the literal simply disappearing from
+  future runs with no record of why

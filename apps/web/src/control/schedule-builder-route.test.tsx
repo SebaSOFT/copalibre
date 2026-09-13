@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { ScheduleBuilderRoute } from './components/ScheduleBuilderRoute.js';
+import { ScheduleBuilderPage } from './components/pages/ScheduleBuilderPage.js';
 import { ControlApiError } from './lib/api-client.js';
 import type {
   ControlApiClient,
@@ -78,11 +78,11 @@ const oneSchedule: readonly ScheduleDetailResponse[] = [
   },
 ];
 
-describe('ScheduleBuilderRoute', () => {
+describe('ScheduleBuilderPage', () => {
   it('builds its own client when none is injected', async () => {
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           organizationAlias="liga-mendocina"
           stageNumber={1}
           tournamentAlias="apertura"
@@ -100,7 +100,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -120,7 +120,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -152,7 +152,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -185,7 +185,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -233,7 +233,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -277,7 +277,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -309,7 +309,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -342,7 +342,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -369,7 +369,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -398,7 +398,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -429,7 +429,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -465,7 +465,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -485,7 +485,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -501,7 +501,7 @@ describe('ScheduleBuilderRoute', () => {
     const client = stubClient({ getStageFixtures: undefined });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}
@@ -520,7 +520,7 @@ describe('ScheduleBuilderRoute', () => {
     });
     render(
       withIntl(
-        <ScheduleBuilderRoute
+        <ScheduleBuilderPage
           client={client}
           organizationAlias="liga-mendocina"
           stageNumber={1}

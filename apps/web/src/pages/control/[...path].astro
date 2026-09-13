@@ -25,6 +25,15 @@ export const prerender = false;
     <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
     <meta name="robots" content="noindex, nofollow" />
     <title>CopaLibre</title>
+    <script is:inline>
+      if (typeof window !== 'undefined' && typeof window.Buffer === 'undefined') {
+        window.Buffer = {
+          isBuffer: () => false,
+          from: (data) => (typeof data === 'string' ? new TextEncoder().encode(data) : data),
+        };
+        window.global = window;
+      }
+    </script>
   </head>
   <body>
     <ControlApp client:only="react" />

@@ -4,16 +4,28 @@
  */
 import type { HTMLAttributes } from 'react';
 
+export interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  /**
+   * `inverse` lifts the card off its band instead of sinking into it — the
+   * reference's own reversal, for a card that *is* the section rather than one
+   * of several entries in it. It overrides the alternation rather than adding a
+   * depth to it, so a page cannot end up with three shades of the same idea.
+   */
+  readonly variant?: 'default' | 'inverse';
+}
+
 export function Card({
   className = '',
   role,
+  variant = 'default',
   ...rest
-}: HTMLAttributes<HTMLDivElement>): React.JSX.Element {
+}: CardProps): React.JSX.Element {
   const computedRole =
     role ?? (rest['aria-label'] || rest['aria-labelledby'] ? 'region' : undefined);
+  const inverse = variant === 'inverse' ? ' cl-card--inverse' : '';
   const classes = className.includes('cl-chamfer')
-    ? `cl-card ${className}`
-    : `cl-card cl-chamfer cl-chamfer--control ${className}`;
+    ? `cl-card${inverse} ${className}`
+    : `cl-card${inverse} cl-chamfer cl-chamfer--control ${className}`;
   return <div className={classes.trim()} role={computedRole} {...rest} />;
 }
 
@@ -42,7 +54,7 @@ export function CardContent({
   className = '',
   ...rest
 }: HTMLAttributes<HTMLDivElement>): React.JSX.Element {
-  return <div className={`cl-card__content ${className}`} {...rest} />;
+  return <div className={`cl-card__content cl-card__body ${className}`} {...rest} />;
 }
 
 export function CardFooter({
@@ -50,4 +62,11 @@ export function CardFooter({
   ...rest
 }: HTMLAttributes<HTMLDivElement>): React.JSX.Element {
   return <div className={`cl-card__footer ${className}`} {...rest} />;
+}
+
+export function CardSection({
+  className = '',
+  ...rest
+}: HTMLAttributes<HTMLElement>): React.JSX.Element {
+  return <section className={`cl-band ${className}`} {...rest} />;
 }

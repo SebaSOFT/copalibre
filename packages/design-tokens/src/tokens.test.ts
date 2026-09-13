@@ -7,10 +7,13 @@ import {
   SPACING,
   TOUCH_TARGET,
 } from './primitives.js';
+import { CONTRAST_GATES, contrastRatio } from './contrast.js';
 import { PROTECTED_TOKENS, SEMANTIC_COLORS, isProtected, resolveSemantic } from './semantic.js';
 import {
   BUTTON_VARIANTS,
   CHECKBOX_TOKENS,
+  RADIO_TOKENS,
+  FILE_PICKER_TOKENS,
   DIALOG_TOKENS,
   FORM_SECTION_TOKENS,
   INPUT_TOKENS,
@@ -23,9 +26,20 @@ import {
   assertBadge,
 } from './components.js';
 import { FORBIDDEN, formatHits, scanForForbidden } from './forbidden.js';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { generateCss } from './generate/css.js';
 import { generateTailwindModule, generateTailwindTheme } from './generate/tailwind.js';
 import { generateStyleGuide } from './generate/style-guide.js';
+import { designTokenDifferences, readDesignTokens } from './design-document.js';
+
+describe('committed design documentation', () => {
+  it('matches the token source in both directions from any working directory', () => {
+    const document = readFileSync(new URL('../../../DESIGN.md', import.meta.url), 'utf8');
+    expect(designTokenDifferences(readDesignTokens(document))).toEqual([]);
+  });
+});
 
 describe('the token source', () => {
   it('resolves a semantic token to its primitive', () => {
@@ -172,17 +186,178 @@ describe('the CSS output', () => {
     expect(css).toContain('--cl-state-live: var(--cl-color-cyan-400);');
   });
 
+  it('names a screen’s section stack once, not once per screen', () => {
+    // `cl-dashboard-sections` and `cl-platform-sections` were byte-identical.
+    // Asserting the old names are gone is what makes a missed call site fail
+    // here rather than render unstyled in a browser.
+    expect(css).toContain('.cl-screen-sections {');
+    expect(css).not.toContain('cl-dashboard-sections');
+    expect(css).not.toContain('cl-platform-sections');
+  });
+
+  it('lays entity cards out with auto-fit, since an organization has however many it has', () => {
+    expect(css).toContain(
+      '.cl-entity-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));',
+    );
+  });
+
+  it('styles the menu surface from the dialog surface rather than defining a second one', () => {
+    expect(css).toContain('.cl-dropdown-menu__content {');
+    expect(css).toContain(".cl-dropdown-menu__item[data-variant='destructive']");
+  });
+
   it('collapses motion under prefers-reduced-motion', () => {
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
     expect(css).toContain(`--cl-motion-base: ${MOTION.instant};`);
   });
 
-  it('falls back from corner-shape to clip-path to a square corner', () => {
-    // Square rather than rounded: a wrong-radius corner reads as a bug, a
-    // square one reads as a plainer surface.
-    expect(css).toContain('@supports (corner-shape: bevel)');
-    expect(css).toContain('@supports (clip-path: polygon(0 0))');
-    expect(css.indexOf('.cl-chamfer {')).toBeLessThan(css.indexOf('@supports (clip-path'));
+  it('uses corner-shape and border-radius for chamfer styling without clip-path', () => {
+    expect(css).toContain('corner-shape: bevel;');
+    expect(css).toContain('border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size);');
+    expect(css).not.toMatch(/\.cl-chamfer\s*\{[^}]*clip-path/);
+    expect(css).not.toMatch(/\.cl-image-frame\s*\{[^}]*clip-path/);
+  });
+
+  it('meets AA for text and essential indicators on every surface level', () => {
+    // Every level a container can resolve to, including the two row steps this
+    // change adds. A level whose body text fails here is a level nobody can
+    // read on, which is the failure adding surfaces quietly introduces.
+    const levels = [
+      'surface-base',
+      'surface-panel',
+      'surface-content',
+      'surface-chrome',
+      'surface-raised',
+      'surface-row',
+      'surface-row-alt',
+    ] as const;
+
+    for (const level of levels) {
+      const background = COLOR_PRIMITIVES[SEMANTIC_COLORS[level].primitive];
+      expect(
+        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['text-primary'].primitive], background),
+      ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+      expect(
+        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['text-secondary'].primitive], background),
+      ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+      // Muted panel separators are decorative. Essential indicators must use
+      // the strong role; a 1.2:1 separator is not a WCAG non-text AA pass.
+      expect(
+        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['border-strong'].primitive], background),
+      ).toBeGreaterThanOrEqual(CONTRAST_GATES.nonTextIndicator);
+      expect(
+        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['focus-ring'].primitive], background),
+      ).toBeGreaterThanOrEqual(CONTRAST_GATES.nonTextIndicator);
+    }
+  });
+
+  it('separates actual selection fills from neutral chrome without tinting ordinary controls', () => {
+    const selected = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-raised'].primitive];
+    const chrome = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-chrome'].primitive];
+    expect(selected).not.toBe(chrome);
+    expect(chrome).toBe(COLOR_PRIMITIVES['ink-850']);
+    expect(FILE_PICKER_TOKENS['selection-present'].background).toBe('surface-raised');
+    expect(FILE_PICKER_TOKENS['selection-present'].border).toBe('border-strong');
+    expect(INPUT_TOKENS.default.background).toBe('surface-chrome');
+    expect(BUTTON_VARIANTS.secondary.background).toBe('surface-chrome');
+  });
+
+  it('keeps the calibrated action legible against its own fill', () => {
+    const primary = COLOR_PRIMITIVES[SEMANTIC_COLORS.primary.primitive];
+    const hover = COLOR_PRIMITIVES[SEMANTIC_COLORS['primary-hover'].primitive];
+    const onAction = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-base'].primitive];
+    expect(contrastRatio(onAction, primary)).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+    expect(contrastRatio(onAction, hover)).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+  });
+
+  it('offers the chamfer as a family, not a single cut', () => {
+    // A composition that wants one corner cut should not have to take the pair.
+    expect(css).toContain('border-radius: 0 var(--cl-chamfer-size) 0 0;');
+    expect(css).toContain('corner-shape: round bevel round round;');
+    expect(css).toContain('border-radius: 0 0 0 var(--cl-chamfer-size);');
+    expect(css).toContain('corner-shape: round round round bevel;');
+    expect(css).toContain('corner-shape: round bevel round bevel;');
+  });
+
+  it('bevels for a browser that has only the per-corner longhands', () => {
+    // Without this tier such a browser falls back to square while supporting
+    // the geometry perfectly well.
+    expect(css).toContain('@supports (corner-top-right-shape: bevel) or (corner-shape: bevel) {');
+    expect(css).toContain('corner-top-right-shape: bevel;');
+    expect(css).toContain('corner-bottom-left-shape: bevel;');
+  });
+
+  it('cuts a badge on its left pair, never with clip-path', () => {
+    // A deliberate divergence from the reference project, which paints badges
+    // square: the inherited diagonal pair reads as a skewed box at this size.
+    expect(css).toContain('border-radius: var(--cl-radius-chamfer) 0 0 var(--cl-radius-chamfer);');
+    expect(css).toContain('corner-shape: bevel round round bevel;');
+    expect(css).not.toMatch(/\.cl-badge\s*\{[^}]*clip-path/);
+  });
+
+  it('assigns a surface level from what a container is, not how deep it sits', () => {
+    // Content alternates against its band; the same card is lighter on a dark
+    // band and darker on a light one.
+    expect(css).toContain(
+      ':where(.cl-band) :where(.cl-card, .cl-well) { background: var(--cl-surface-base); }',
+    );
+    expect(css).toContain(
+      ':where(.cl-band--base) :where(.cl-card, .cl-well) { background: var(--cl-surface-panel); }',
+    );
+    // Chrome does not alternate: a header reads as a header at any depth.
+    expect(css).toContain(
+      ':where(.cl-chrome, .cl-card__header, .cl-card__footer) { background: var(--cl-surface-chrome); }',
+    );
+    // Every boundary carries the border the contract requires of a panel.
+    expect(css).toContain(
+      ':where(.cl-card, .cl-well, .cl-chrome, .cl-card__header, .cl-card__footer) { border: 1px solid var(--cl-border-muted); }',
+    );
+    // Broadcast surface is constrained to a single alternation step.
+    expect(css).toContain(
+      ':where([data-surface="broadcast"], .cl-broadcast, .tv-root-container) :where(.cl-card, .cl-well) { --cl-content-level: panel; background: var(--cl-surface-content); }',
+    );
+  });
+
+  it("lets the level rules win over a card's own styling", () => {
+    // `.cl-card` outweighs a `:where()` rule, so a background declared there
+    // would pin every card to one shade and silently defeat alternation.
+    const cardBlock = css.slice(
+      css.indexOf('.cl-card {'),
+      css.indexOf('}', css.indexOf('.cl-card {')),
+    );
+    expect(cardBlock).not.toContain('background:');
+    expect(css.indexOf('.cl-card {')).toBeLessThan(
+      css.indexOf(':where(.cl-card, .cl-well) { background'),
+    );
+  });
+
+  it('declares table rows as opaque roles rather than translucent fills', () => {
+    // Contrast has to be checkable from the token, not from a composite
+    // against whatever happens to sit behind the row.
+    expect(css).toContain('.cl-row { background: var(--cl-surface-row); }');
+    expect(css).toContain('.cl-row--alt { background: var(--cl-surface-row-alt); }');
+    expect(css).not.toMatch(/\.cl-row[^{]*\{[^}]*color-mix/);
+  });
+
+  it('states each button hover in the contract instead of filtering brightness', () => {
+    expect(css).toContain('.cl-btn--primary:hover:not(:disabled) {');
+    expect(css).toContain('background: var(--cl-primary-hover);');
+    // The secondary moves both fill and outline, so the two states differ by
+    // more than brightness.
+    expect(css).toContain('.cl-btn--secondary:hover:not(:disabled) {');
+    expect(css).toContain('background: var(--cl-surface-hover);');
+    expect(css).toContain('border-color: var(--cl-border-strong);');
+  });
+
+  it('declares the ambient cyan glow token and tactical grid utility', () => {
+    expect(css).toContain(
+      '--cl-glow-cyan: 0 0 20px color-mix(in srgb, var(--cl-primary) 40%, transparent);',
+    );
+    expect(css).toContain('.cl-tactical-grid {');
+    expect(css).toContain(
+      'linear-gradient(to right, color-mix(in srgb, var(--cl-primary) 6%, transparent) 1px, transparent 1px)',
+    );
+    expect(css).toContain('background-size: var(--cl-space-6) var(--cl-space-8);');
   });
 
   it('meets the touch target on every button', () => {
@@ -207,11 +382,52 @@ describe('the CSS output', () => {
   });
 
   it('emits a rule per form-control atom/state', () => {
-    for (const atom of ['input', 'select', 'textarea', 'checkbox']) {
+    for (const atom of ['input', 'select', 'textarea', 'checkbox', 'radio']) {
       for (const state of ['default', 'focus', 'error', 'disabled']) {
         expect(css).toContain(`.cl-${atom}--${state} {`);
       }
     }
+    for (const state of [
+      'default',
+      'focus',
+      'error',
+      'disabled',
+      'drag-active',
+      'selection-present',
+    ]) {
+      expect(css).toContain(`.cl-file-picker--${state} {`);
+    }
+  });
+
+  it('defines component token contracts for radio and file-selection controls', () => {
+    const radioStates = ['default', 'focus', 'error', 'disabled'] as const;
+    for (const state of radioStates) {
+      const tokens = RADIO_TOKENS[state];
+      expect(tokens.background in SEMANTIC_COLORS).toBe(true);
+      expect(tokens.text in SEMANTIC_COLORS).toBe(true);
+      expect(tokens.border in SEMANTIC_COLORS).toBe(true);
+      expect(tokens.focusRing && tokens.focusRing in SEMANTIC_COLORS).toBe(true);
+    }
+
+    const fileStates = [
+      'default',
+      'focus',
+      'error',
+      'disabled',
+      'drag-active',
+      'selection-present',
+    ] as const;
+    for (const state of fileStates) {
+      const tokens = FILE_PICKER_TOKENS[state];
+      expect(tokens.background in SEMANTIC_COLORS).toBe(true);
+      expect(tokens.text in SEMANTIC_COLORS).toBe(true);
+      expect(tokens.border in SEMANTIC_COLORS).toBe(true);
+      expect(tokens.focusRing && tokens.focusRing in SEMANTIC_COLORS).toBe(true);
+    }
+
+    expect(FILE_PICKER_TOKENS.error.border).toBe('state-destructive');
+    expect(FILE_PICKER_TOKENS.error.focusRing).toBe('state-destructive');
+    expect(FILE_PICKER_TOKENS['drag-active'].border).toBe('primary');
   });
 
   it('emits the dialog backdrop and surface rules', () => {
@@ -223,6 +439,19 @@ describe('the CSS output', () => {
     expect(css).toContain('.cl-match-console-screen {');
     expect(css).toContain('.cl-match-console-screen__header {');
     expect(css).toContain('.cl-match-console-screen__scoreboard {');
+  });
+
+  it('lays summary tiles out in one column below md and as peers above it', () => {
+    expect(css).toContain('.cl-metric-strip { display: grid; grid-template-columns: 1fr;');
+    expect(css).toContain(`@media (min-width: ${BREAKPOINTS.md}) {`);
+    expect(css).toContain(
+      '  .cl-metric-strip { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }',
+    );
+  });
+
+  it('keeps exactly one rule laying out a row of tiles', () => {
+    // `.cl-stat-grid` was the dashboard's own copy of this; 0223 folded it in.
+    expect(css).not.toContain('.cl-stat-grid');
   });
 
   it('scopes the Control-web density spacing under [data-density="control"]', () => {
@@ -321,7 +550,111 @@ describe('the style guide', () => {
     }
   });
 
+  it('renders radio, file-picker and surface alternation samples', () => {
+    expect(html).toContain('<strong>radio</strong>');
+    expect(html).toContain('<strong>file-picker</strong>');
+    expect(html).toContain('Niveles de superficie y alternancia');
+  });
+
   it('escapes what it interpolates', () => {
     expect(generateStyleGuide('"><script>x</script>')).not.toContain('<script>x</script>');
+  });
+});
+
+describe('button CTA treatments (openspec 0198)', () => {
+  const css = generateCss();
+
+  it('renders hover, active and disabled states distinctly from the default', () => {
+    expect(css).toContain('.cl-btn:hover:not(:disabled)');
+    expect(css).toContain('.cl-btn:active:not(:disabled)');
+    expect(css).toContain('.cl-btn:disabled');
+  });
+
+  it('keeps primary on state-live and secondary on the raised neutral pairing', () => {
+    expect(css).toMatch(/\.cl-btn--primary \{[^}]*var\(--cl-state-live\)/);
+    expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-surface-chrome\)/);
+    expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-border-muted\)/);
+  });
+
+  it('offers the public display-type treatment as its own modifier', () => {
+    expect(css).toMatch(/\.cl-btn--persuade \{[^}]*var\(--cl-font-display\)/);
+    expect(css).toMatch(/\.cl-btn--persuade \{[^}]*text-transform: uppercase/);
+  });
+
+  it('standardizes buttons with display font, uppercase, tracked wide, chamfers and ambient cyan glow', () => {
+    expect(css).toContain('font-family: var(--cl-font-display);');
+    expect(css).toContain('font-weight: var(--cl-weight-bold);');
+    expect(css).toContain('text-transform: uppercase;');
+    expect(css).toContain('letter-spacing: var(--cl-tracking-wider);');
+    expect(css).toContain(
+      'border-radius: 0 var(--cl-radius-chamfer-control) 0 var(--cl-radius-chamfer-control);',
+    );
+    expect(css).toContain('.cl-btn--primary:hover:not(:disabled)');
+    expect(css).toContain('box-shadow: var(--cl-glow-cyan);');
+  });
+
+  it('declares the chamfer geometry buttons opt into', () => {
+    expect(css).toContain('.cl-chamfer--control');
+  });
+});
+
+describe('public table and pill treatments (openspec 0199)', () => {
+  const css = generateCss();
+
+  it('gives every table a header treatment and tabular figures', () => {
+    expect(css).toMatch(/\.cl-table \{[^}]*font-variant-numeric: tabular-nums/);
+    expect(css).toMatch(/\.cl-table thead th \{[^}]*var\(--cl-surface-chrome\)/);
+    expect(css).toMatch(/\.cl-table thead th \{[^}]*text-transform: uppercase/);
+  });
+
+  it('separates rows with a muted border and right-aligns numeric columns', () => {
+    expect(css).toMatch(/\.cl-table th,\n\.cl-table td \{[^}]*var\(--cl-border-muted\)/);
+    expect(css).toContain('.cl-table__num { text-align: right; }');
+  });
+
+  it('scrolls a wide table inside its own container', () => {
+    expect(css).toMatch(/\.cl-table-scroll \{[^}]*overflow-x: auto/);
+  });
+
+  it('renders pills as bounded, gapped controls meeting the touch target', () => {
+    expect(css).toMatch(/\.cl-pill-group \{[^}]*gap: var\(--cl-space-2\)/);
+    expect(css).toMatch(/\.cl-pill \{[^}]*min-height: var\(--cl-touch-target\)/);
+    expect(css).toMatch(/\.cl-pill \{[^}]*border: 1px solid var\(--cl-border-muted\)/);
+  });
+
+  it('marks the active pill by fill and border, not color alone', () => {
+    expect(css).toMatch(
+      /\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*var\(--cl-state-live\)/,
+    );
+    expect(css).toMatch(/\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*border-color/);
+  });
+});
+
+/**
+ * The generated stylesheet is `.gitignore`d, so it is only ever as fresh as the
+ * last `build:tokens`. Every page in `apps/web` imports it directly, which means
+ * a stale copy does not fail anything — it just serves last week's rules, and a
+ * change to this file appears to have no effect. That is how an overflow fix in
+ * 0211 read as inert against a browser that was rendering the previous build.
+ *
+ * `apps/web`'s own build now regenerates it, so a stale file should be
+ * impossible. This is the check that says so out loud if it happens anyway.
+ */
+describe('the generated stylesheet', () => {
+  const generatedPath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    '..',
+    'generated',
+    'copalibre.css',
+  );
+
+  it('matches what the source generates, or has not been built yet', () => {
+    if (!existsSync(generatedPath)) return; // Nothing on disk can be serving stale rules.
+
+    expect(readFileSync(generatedPath, 'utf8')).toBe(
+      // If this fails: run `yarn workspace @copalibre/design-tokens build:tokens`.
+      // Something is serving CSS that no longer matches `generate/css.ts`.
+      generateCss(),
+    );
   });
 });

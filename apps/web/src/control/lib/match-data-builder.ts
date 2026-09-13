@@ -31,7 +31,7 @@ export interface SegmentDraft {
  * The one place a manual submission and a CSV import both converge on the
  * exact same `BulkLoadMatchDataRequest` shape (design.md: "an import is a
  * way to fill the form, not a way to bypass it"). No statistics UI —
- * mirrors `MatchConsoleRoute.finalize()`'s own submission, which already
+ * mirrors `MatchConsolePage.finalize()`'s own submission, which already
  * sends `statistics: {}` per side and lets the server derive the rest from
  * the recorded events.
  */

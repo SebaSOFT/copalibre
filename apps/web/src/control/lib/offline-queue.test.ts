@@ -55,6 +55,9 @@ function stubClient(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsol
     resolveMatchTimer: async () => {
       throw new Error('not used in this test');
     },
+    sendMatchCommand: async () => {
+      throw new Error('not used in this test');
+    },
     recordMatchEvent: async () => {
       throw new Error('not used in this test');
     },
@@ -132,6 +135,40 @@ describe('drainQueue sequential semantics', () => {
     expect(outcomes.every((outcome) => outcome.kind === 'sent')).toBe(true);
     expect(calls).toEqual(['first', 'first']);
     expect(await listPending('match-1')).toHaveLength(0);
+  });
+
+  it('replays a queued clock command through the console command endpoint', async () => {
+    const calls: unknown[] = [];
+    const client = stubClient({
+      sendMatchCommand: async (_organization, _tournament, matchId, command, segmentId, key) => {
+        calls.push({ matchId, command, segmentId, key });
+        return {} as never;
+      },
+    });
+    await enqueue(
+      {
+        kind: 'clock-command',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        command: 'pause',
+        segmentId: 'segment-1',
+      },
+      'clock-command-key',
+      1_000,
+    );
+
+    const outcomes = await drainQueue(client, 'match-1');
+
+    expect(outcomes).toEqual([{ kind: 'sent', id: 'clock-command-key' }]);
+    expect(calls).toEqual([
+      {
+        matchId: 'match-1',
+        command: 'pause',
+        segmentId: 'segment-1',
+        key: 'clock-command-key',
+      },
+    ]);
   });
 
   it("a refusal doesn't block later items — the drain continues past it", async () => {
@@ -255,6 +292,50 @@ describe('describeQueuedAction (0159 task 3.6)', () => {
         },
       }),
     ).toBe('Event goal for person-7');
+  });
+
+  it('describes every other queued kind structurally, ids and all', () => {
+    expect(
+      describeQueuedAction({
+        kind: 'roster-select',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        entrantId: 'entrant-a',
+        request: { members: [{ personId: 'person-1', onField: true }] },
+      }),
+    ).toBe('Roster for entrant-a: 1 named');
+    expect(
+      describeQueuedAction({
+        kind: 'clock-adjust',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        request: { segmentId: 'segment-1', elapsedSeconds: 754 },
+      }),
+    ).toBe('Clock set to 754s');
+    expect(
+      describeQueuedAction({
+        kind: 'timer-resolve',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        timerId: 'timer-1',
+      }),
+    ).toBe('Timer timer-1 resolved');
+  });
+
+  it('names the clock command and the segment it acted on', () => {
+    expect(
+      describeQueuedAction({
+        kind: 'clock-command',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        command: 'end',
+        segmentId: 'segment-2',
+      }),
+    ).toBe('Clock end on segment segment-2');
   });
 
   it('assumes no scoring key, reporting whatever statistics the discipline recorded', () => {

@@ -705,6 +705,96 @@ export class TournamentRepository {
   }
 
   /**
+   * Sets or clears the organizer's featured flag — a presentation choice about
+   * the organization's public page, carrying no competition meaning, audited
+   * like every other tournament-record change.
+   */
+  async setFeatured(
+    uow: UnitOfWork,
+    input: {
+      readonly tournamentId: string;
+      readonly organizationId: string;
+      readonly featured: boolean;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<Tournament> {
+    const current = await this.findById(input.tournamentId);
+    if (!current || current.organizationId !== input.organizationId) {
+      throw new NotFoundError(`Tournament ${input.tournamentId} does not exist`, {
+        tournamentId: input.tournamentId,
+      });
+    }
+
+    const row = await uow.tx
+      .updateTable('tournaments')
+      .set({ featured: input.featured })
+      .where('tournament_id', '=', input.tournamentId)
+      .where('organization_id', '=', input.organizationId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const updated = toTournament(row);
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'tournament',
+      entityId: input.tournamentId,
+      action: 'tournament.featured_updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { featured: current.featured },
+      resultingState: { featured: updated.featured },
+    });
+
+    return updated;
+  }
+
+  /**
+   * Sets or clears a tournament's official emblem reference.
+   */
+  async updateEmblem(
+    uow: UnitOfWork,
+    input: {
+      readonly tournamentId: string;
+      readonly organizationId: string;
+      readonly emblemObjectId: string | null;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<Tournament> {
+    const current = await this.findById(input.tournamentId);
+    if (!current || current.organizationId !== input.organizationId) {
+      throw new NotFoundError(`Tournament ${input.tournamentId} does not exist`, {
+        tournamentId: input.tournamentId,
+      });
+    }
+
+    const row = await uow.tx
+      .updateTable('tournaments')
+      .set({ emblem_object_id: input.emblemObjectId })
+      .where('tournament_id', '=', input.tournamentId)
+      .where('organization_id', '=', input.organizationId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const updated = toTournament(row);
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'tournament',
+      entityId: input.tournamentId,
+      action: 'tournament.emblem_updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { emblemObjectId: current.emblemObjectId },
+      resultingState: { emblemObjectId: updated.emblemObjectId },
+    });
+
+    return updated;
+  }
+
+  /**
    * Every non-archived tournament in an organization — the shared
    * "active only" filter every listing method is meant to go through. No
    * other listing method exists in this repository yet, so this is the

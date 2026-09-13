@@ -5,6 +5,7 @@ capabilities:
   - live-operations/broadcast-tv-surfaces
   - live-operations/public-live-surfaces
   - public-web/public-web-shell
+  - design-system/operational-surface-parity
 roles:
   - broadcaster
   - admin

@@ -128,6 +128,18 @@ export interface ControlApiClient {
     entrantId: string,
     request: SetEntrantAbbreviationRequest,
   ) => Promise<RegistrationResponse>;
+  readonly editTeamMemberships?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    entrantId: string,
+    body: {
+      readonly personIds?: readonly string[];
+      readonly members?: readonly {
+        readonly personId: string;
+        readonly role?: 'player' | 'substitute' | 'coach' | 'staff';
+      }[];
+    },
+  ) => Promise<RegistrationResponse>;
   readonly fetchStandings: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -469,6 +481,15 @@ export interface ControlApiClient {
     organizationAlias: string,
     request: UploadImageRequest,
   ) => Promise<{ readonly objectId: string }>;
+  readonly uploadTournamentEmblem?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    request: UploadImageRequest,
+  ) => Promise<{ readonly objectId: string }>;
+  readonly deleteTournamentEmblem?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<{ readonly success: boolean }>;
   /** An organization's aggregate storage usage. */
   readonly getStorageUsage?: (
     organizationAlias: string,
@@ -568,6 +589,10 @@ export interface ControlApiClient {
     stageId: string,
     request: ScheduleRequest,
   ) => Promise<ScheduleResponse>;
+  /** Authenticated control stream configuration for organization events and audit feed. */
+  readonly controlStream?: (organizationAlias: string) => MatchConsoleStream;
+  /** Authenticated stream configuration; events never carry console details. */
+  readonly matchConsoleStream?: (organizationAlias: string) => MatchConsoleStream;
 }
 
 export type InstalledModuleResponse = components['schemas']['InstalledModuleResponse'];
@@ -889,6 +914,18 @@ export interface MatchConsoleApiClient {
     timerId: string,
     idempotencyKey: string,
   ) => Promise<MatchConsoleResponse>;
+  /**
+   * Start, pause, resume or end one segment's clock. The whistle, not a later
+   * correction — `adjustMatchClock` remains the path for fixing a wrong value.
+   */
+  readonly sendMatchCommand: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    command: SegmentClockCommand,
+    segmentId: string,
+    idempotencyKey: string,
+  ) => Promise<MatchStateResponse>;
   readonly recordMatchEvent: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -913,6 +950,8 @@ export interface MatchConsoleApiClient {
     matchId: string,
     request: BulkLoadMatchDataRequest,
   ) => Promise<BulkLoadMatchDataResponse>;
+  /** Authenticated control stream configuration for organization events and audit feed. */
+  readonly controlStream?: (organizationAlias: string) => MatchConsoleStream;
   /** Authenticated stream configuration; events never carry console details. */
   readonly matchConsoleStream?: (organizationAlias: string) => MatchConsoleStream;
 }
@@ -1037,6 +1076,9 @@ export interface TournamentSettingsResponse {
   readonly region?: string;
   readonly capacity?: number;
   readonly checkInClosesAt?: string;
+  readonly emblemObjectId?: string;
+  /** Organizer-set: shown in the public organization page's featured block. */
+  readonly featured: boolean;
 }
 
 export type TournamentSettingsRequest = Partial<TournamentSettingsResponse>;
@@ -1251,6 +1293,7 @@ export interface TournamentResponse {
   readonly rulesetId?: string;
   readonly organizationId?: string;
   readonly status?: 'draft' | 'published' | 'started' | 'finished' | 'archived';
+  readonly emblemObjectId?: string;
 }
 
 export type TournamentConfigurationExportResponse =
@@ -1435,10 +1478,12 @@ export interface MyOrganizationResponse {
   readonly organizationAlias: string;
   readonly organizationName: string;
   readonly role: OrganizationRole;
+  readonly emblemObjectId?: string;
 }
 
 export interface AuditRecordResponse {
   readonly auditId: string;
+  readonly organizationId?: string;
   readonly entityType: string;
   readonly entityId: string;
   readonly action: string;
@@ -1535,7 +1580,14 @@ export interface ConsoleEventDefinition {
    * types, since a free-text field like `reason` is a string too but names
    * nobody.
    */
-  readonly secondaryActorFields: readonly string[];
+  readonly secondaryActorFields: readonly ConsoleSecondaryActorField[];
+}
+
+/** One secondary-actor prompt: the payload field, and what to call it on screen. */
+export interface ConsoleSecondaryActorField {
+  readonly field: string;
+  /** Declared by the discipline. Absent means the console shows the field key itself. */
+  readonly label?: string | LocalizedLabel;
 }
 
 export interface ConsoleLiveScore {
@@ -1560,6 +1612,20 @@ export interface ConsoleRosterMember {
   readonly roles?: readonly string[];
   /** Resolved by folding recorded substitution events over the roster's starting state. */
   readonly onField: boolean;
+}
+
+/**
+ * One side of the match, with the identity every console surface renders.
+ * Present for both entrants of the fixture regardless of whether a roster has
+ * been selected — a roster is only the players named for this match, never the
+ * source of the entrant's own name.
+ */
+export interface ConsoleEntrant {
+  readonly entrantId: string;
+  /** The team's name, or the person's name for an individual entrant. */
+  readonly name?: string;
+  /** The resolved tournament-scoped abbreviation, when one is persisted. */
+  readonly abbreviation?: string;
 }
 
 export interface ConsoleRoster {
@@ -1601,10 +1667,13 @@ export interface MatchConsoleResponse {
   readonly rosters: readonly ConsoleRoster[];
   readonly rosterRoles: readonly ConsoleRosterRole[];
   readonly eligibleStaffIds: readonly string[];
-  readonly entrantIds: readonly string[];
+  readonly entrants: readonly ConsoleEntrant[];
   readonly capabilities: readonly MatchCapability[];
   readonly projectionVersion: number;
 }
+
+/** The clock commands an official issues in the moment, as they happen. */
+export type SegmentClockCommand = 'start' | 'pause' | 'resume' | 'end';
 
 export interface ClockAdjustmentRequest {
   readonly segmentId: string;
@@ -1944,6 +2013,19 @@ export function createControlApiClient(input: {
         )}/entrants/${encodeURIComponent(entrantId)}/abbreviation`,
         {
           method: 'PATCH',
+          body,
+          token: input.accessToken?.(),
+        },
+      ),
+
+    editTeamMemberships: (organizationAlias, tournamentAlias, entrantId, body) =>
+      requestJson<RegistrationResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/registrations/${encodeURIComponent(entrantId)}/team-memberships`,
+        {
+          method: 'POST',
           body,
           token: input.accessToken?.(),
         },
@@ -2445,6 +2527,20 @@ export function createControlApiClient(input: {
         { method: 'POST', token: input.accessToken?.(), idempotencyKey },
       ),
 
+    sendMatchCommand: (
+      organizationAlias,
+      tournamentAlias,
+      matchId,
+      command,
+      segmentId,
+      idempotencyKey,
+    ) =>
+      requestJson<MatchStateResponse>(
+        input.fetch,
+        `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/commands/${command}`,
+        { method: 'POST', body: { segmentId }, token: input.accessToken?.(), idempotencyKey },
+      ),
+
     recordMatchEvent: (organizationAlias, tournamentAlias, matchId, body, idempotencyKey) =>
       requestJson<RecordedMatchEventResponse>(
         input.fetch,
@@ -2465,6 +2561,11 @@ export function createControlApiClient(input: {
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/bulk-load`,
         { method: 'POST', body, token: input.accessToken?.() },
       ),
+
+    controlStream: (organizationAlias) => ({
+      url: `${baseUrl}/events/control/${encodeURIComponent(organizationAlias)}`,
+      accessToken: input.accessToken,
+    }),
 
     matchConsoleStream: (organizationAlias) => ({
       url: `${baseUrl}/events/control/${encodeURIComponent(organizationAlias)}`,
@@ -2511,6 +2612,20 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/emblem`,
         { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    uploadTournamentEmblem: (organizationAlias, tournamentAlias, body) =>
+      requestJson(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    deleteTournamentEmblem: (organizationAlias, tournamentAlias) =>
+      requestJson(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`,
+        { method: 'DELETE', token: input.accessToken?.() },
       ),
 
     getStorageUsage: (organizationAlias) =>
@@ -2684,6 +2799,14 @@ export function clubEmblemUrl(organizationAlias: string, clubId: string, baseUrl
 
 export function organizationEmblemUrl(organizationAlias: string, baseUrl = ''): string {
   return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/emblem`;
+}
+
+export function tournamentEmblemUrl(
+  organizationAlias: string,
+  tournamentAlias: string,
+  baseUrl = '',
+): string {
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`;
 }
 
 async function requestText(

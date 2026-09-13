@@ -13,9 +13,11 @@ import {
   OrganizationAccessRepository,
   OrganizationRepository,
   PersonRepository,
+  TournamentRepository,
   withTransaction,
   type Database,
 } from '@copalibre/persistence';
+import { winConditionScript, type DisciplineDescriptor } from '@copalibre/domain';
 import { createHash } from 'node:crypto';
 import { createMigratedDatabase } from '../../../../packages/persistence/src/test-support/scratch-database.js';
 import type { Kysely } from 'kysely';
@@ -30,6 +32,7 @@ import {
   ClubMediaController,
   OrganizationMediaController,
   PersonMediaController,
+  TournamentMediaController,
 } from './identity-media.controller.js';
 
 /**
@@ -105,6 +108,28 @@ class FakeObjectStorage implements ObjectStorageAdapter {
   }
 }
 
+function descriptor(): DisciplineDescriptor {
+  const descriptorId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  return {
+    descriptorId,
+    alias: 'orbital-field',
+    version: '1.0.0',
+    name: 'Orbital Field',
+    attribution: { author: 'CopaLibre tests', licence: 'AGPL-3.0-only' },
+    participantTypes: ['individual'],
+    rosterConstraints: { minPlayers: 1, maxPlayers: 1 },
+    segmentTypes: [{ name: 'half', label: 'Half', timed: true }],
+    eventDefinitions: [],
+    statistics: [],
+    scoringInputs: [],
+    availableFormats: ['single-elimination'],
+    winCondition: winConditionScript('higher-score-wins', { unit: 'score' }),
+    notificationRuleCapabilities: [],
+    defaults: { scoring: { pointsPerWin: 3 }, tiebreakers: ['points'] },
+    fieldPolicies: {},
+  };
+}
+
 describe('person photo / club emblem upload and public serve (integration)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
@@ -112,6 +137,8 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   let organizationAlias: string;
   let personId: string;
   let clubId: string;
+  let tournamentAlias: string;
+  let tournamentId: string;
 
   beforeAll(async () => {
     scratch = await createMigratedDatabase('identity-media-http');
@@ -184,8 +211,30 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     );
     clubId = club.clubId;
 
+    tournamentAlias = 'torneo-emblem';
+    const tournament = await withTransaction(db, async (uow) => {
+      const d = descriptor();
+      await new TournamentRepository(db).saveDescriptor(uow, d, {
+        organizationId: organization.organizationId,
+        ...AUDIT,
+      });
+      return new TournamentRepository(db).create(uow, {
+        organizationId: organization.organizationId,
+        alias: tournamentAlias,
+        name: 'Torneo Emblem',
+        descriptor: d,
+        ...AUDIT,
+      });
+    });
+    tournamentId = tournament.tournamentId;
+
     @Module({
-      controllers: [PersonMediaController, ClubMediaController, OrganizationMediaController],
+      controllers: [
+        PersonMediaController,
+        ClubMediaController,
+        OrganizationMediaController,
+        TournamentMediaController,
+      ],
       imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1_000 }])],
       providers: [
         { provide: DATABASE, useValue: db },
@@ -557,5 +606,102 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     // same window is not locked out by someone else's volume.
     const otherPrincipal = await uploadAs('organizer-2');
     expect(otherPrincipal.statusCode).toBe(201);
+  });
+
+  describe('tournament emblem lifecycle', () => {
+    it('404s when no emblem has been uploaded', async () => {
+      const response = await inject({
+        method: 'GET',
+        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+      });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('refuses non-conforming dimensions with 400', async () => {
+      const nonConforming = await conformingPng(100, 100);
+      const response = await inject({
+        method: 'POST',
+        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+        headers: { authorization: 'Bearer organizer' },
+        payload: {
+          filename: 'emblem-bad.png',
+          contentType: 'image/png',
+          contentBase64: nonConforming.toString('base64'),
+        },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json()).toMatchObject({
+        errorCode: 'identity-media-bad-request',
+      });
+    });
+
+    it('uploads valid image, streams once passed, and updates tournament record', async () => {
+      const bytes = await conformingPng();
+      const upload = await inject({
+        method: 'POST',
+        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+        headers: { authorization: 'Bearer organizer' },
+        payload: {
+          filename: 'tournament-emblem.png',
+          contentType: 'image/png',
+          contentBase64: bytes.toString('base64'),
+        },
+      });
+      expect(upload.statusCode).toBe(201);
+      const { objectId } = upload.json() as { objectId: string };
+      expect(objectId).toBeDefined();
+
+      // Tournament record now has emblemObjectId
+      const tournament = await new TournamentRepository(db).findById(tournamentId);
+      expect(tournament?.emblemObjectId).toBe(objectId);
+
+      // Pending state returns 202
+      const pending = await inject({
+        method: 'GET',
+        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+      });
+      expect(pending.statusCode).toBe(202);
+
+      // Mark passed and verify GET streams bytes
+      await new ObjectMetadataRepository(db).markPassed(objectId);
+
+      const passed = await inject({
+        method: 'GET',
+        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+      });
+      expect(passed.statusCode).toBe(200);
+      expect(passed.headers['content-type']).toBe('image/png');
+      expect(Buffer.from(passed.rawPayload).equals(bytes)).toBe(true);
+    });
+
+    it('deletes tournament emblem, clearing reference and stored object metadata', async () => {
+      const deleteRes = await inject({
+        method: 'DELETE',
+        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+        headers: { authorization: 'Bearer organizer' },
+      });
+      expect(deleteRes.statusCode).toBe(200);
+      expect(deleteRes.json()).toEqual({ ok: true });
+
+      // Tournament record no longer has emblemObjectId
+      const tournament = await new TournamentRepository(db).findById(tournamentId);
+      expect(tournament?.emblemObjectId).toBeUndefined();
+
+      // Subsequent GET 404s
+      const after = await inject({
+        method: 'GET',
+        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+      });
+      expect(after.statusCode).toBe(404);
+    });
+
+    it('404s when attempting to delete an emblem from a tournament that has none', async () => {
+      const deleteAgain = await inject({
+        method: 'DELETE',
+        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+        headers: { authorization: 'Bearer organizer' },
+      });
+      expect(deleteAgain.statusCode).toBe(404);
+    });
   });
 });

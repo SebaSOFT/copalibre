@@ -1,0 +1,594 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-10T00:00:00.000Z",
+  "title": "Design System: CopaLibre",
+  "extensions": {
+    "colorMeta": {
+      "cyan-400": {
+        "role": "primary",
+        "displayName": "Signal Cyan",
+        "canonical": "#00D4FF",
+        "tonalRamp": [
+          "#00212B",
+          "#003847",
+          "#005063",
+          "#006B82",
+          "#0090AE",
+          "#00B5DA",
+          "#00D4FF",
+          "#8FEBFF"
+        ]
+      },
+      "cyan-300": {
+        "role": "primary",
+        "displayName": "Signal Cyan Bright",
+        "canonical": "#33DFFF",
+        "tonalRamp": [
+          "#032B36",
+          "#064352",
+          "#0A5C70",
+          "#0E778F",
+          "#1394B1",
+          "#19B4D5",
+          "#33DFFF",
+          "#B0F2FF"
+        ]
+      },
+      "cyan-700": {
+        "role": "primary",
+        "displayName": "Signal Cyan Deep",
+        "canonical": "#006B82",
+        "tonalRamp": [
+          "#00171C",
+          "#00272F",
+          "#003943",
+          "#004C5B",
+          "#006B82",
+          "#0090AE",
+          "#00B8DE",
+          "#7FE4FF"
+        ]
+      },
+      "cyan-950": {
+        "role": "primary",
+        "displayName": "Signal Cyan Well",
+        "canonical": "#0E3E53",
+        "tonalRamp": [
+          "#061A23",
+          "#0A2A38",
+          "#0E3E53",
+          "#12526E",
+          "#17698C",
+          "#1D82AB",
+          "#4FAFD6",
+          "#B2E2F5"
+        ]
+      },
+      "amber-400": {
+        "role": "secondary",
+        "displayName": "Attention Amber",
+        "canonical": "#FF9C1E",
+        "tonalRamp": [
+          "#2B1800",
+          "#452700",
+          "#613800",
+          "#7A4300",
+          "#A85E00",
+          "#D67900",
+          "#FF9C1E",
+          "#FFD5A1"
+        ]
+      },
+      "amber-800": {
+        "role": "secondary",
+        "displayName": "Attention Amber Deep",
+        "canonical": "#7A4300",
+        "tonalRamp": [
+          "#1F1100",
+          "#331C00",
+          "#4A2900",
+          "#613700",
+          "#7A4300",
+          "#A85E00",
+          "#D67900",
+          "#FFC584"
+        ]
+      },
+      "green-500": {
+        "role": "tertiary",
+        "displayName": "Confirm Green",
+        "canonical": "#22C55E",
+        "tonalRamp": [
+          "#052913",
+          "#08401F",
+          "#0C582B",
+          "#107138",
+          "#168F47",
+          "#1CAC55",
+          "#22C55E",
+          "#A7EFC0"
+        ]
+      },
+      "red-500": {
+        "role": "tertiary",
+        "displayName": "Dispute Red",
+        "canonical": "#EF4444",
+        "tonalRamp": [
+          "#2E0B0B",
+          "#4A1212",
+          "#661A1A",
+          "#872323",
+          "#AE2E2E",
+          "#D13A3A",
+          "#EF4444",
+          "#F9B4B4"
+        ]
+      },
+      "team-accent": {
+        "role": "tertiary",
+        "displayName": "Team Accent (reserved slot)",
+        "canonical": "#FF2E88",
+        "tonalRamp": [
+          "#2E0619",
+          "#4A0A28",
+          "#680E38",
+          "#8B1249",
+          "#B3175E",
+          "#DB1D74",
+          "#FF2E88",
+          "#FFAFD0"
+        ]
+      },
+      "ink-950": {
+        "role": "neutral",
+        "displayName": "Deep Ink",
+        "canonical": "#0A0E1A",
+        "tonalRamp": [
+          "#050710",
+          "#0A0E1A",
+          "#121828",
+          "#1A2236",
+          "#243049",
+          "#3B4A68",
+          "#7A88A5",
+          "#E7ECF5"
+        ]
+      },
+      "ink-940": {
+        "role": "neutral",
+        "displayName": "Row Ink Alt",
+        "canonical": "#0C101D",
+        "tonalRamp": [
+          "#060811",
+          "#0C101D",
+          "#141A2B",
+          "#1D2539",
+          "#28324C",
+          "#3E4D6C",
+          "#7D8BA8",
+          "#E8EDF6"
+        ]
+      },
+      "ink-930": {
+        "role": "neutral",
+        "displayName": "Row Ink",
+        "canonical": "#0D1220",
+        "tonalRamp": [
+          "#070913",
+          "#0D1220",
+          "#151C2E",
+          "#1F273C",
+          "#2A3450",
+          "#404F6F",
+          "#7F8DAA",
+          "#E9EEF6"
+        ]
+      },
+      "ink-900": {
+        "role": "neutral",
+        "displayName": "Panel Ink",
+        "canonical": "#121828",
+        "tonalRamp": [
+          "#080B14",
+          "#0D1220",
+          "#121828",
+          "#1A2236",
+          "#243049",
+          "#3B4A68",
+          "#7A88A5",
+          "#E7ECF5"
+        ]
+      },
+      "ink-850": {
+        "role": "neutral",
+        "displayName": "Chrome Ink",
+        "canonical": "#1A2236",
+        "tonalRamp": [
+          "#0A0E1A",
+          "#121828",
+          "#1A2236",
+          "#243049",
+          "#31405C",
+          "#455779",
+          "#8492AE",
+          "#EAEEF6"
+        ]
+      },
+      "ink-700": {
+        "role": "neutral",
+        "displayName": "Structure Ink",
+        "canonical": "#243049",
+        "tonalRamp": [
+          "#0C101D",
+          "#131A2A",
+          "#1B2439",
+          "#243049",
+          "#31405F",
+          "#445679",
+          "#8291AE",
+          "#E9EDF6"
+        ]
+      },
+      "text-50": {
+        "role": "neutral",
+        "displayName": "Paper White",
+        "canonical": "#F2F6FB",
+        "tonalRamp": [
+          "#191E27",
+          "#2C333F",
+          "#434B59",
+          "#5D6677",
+          "#7C8698",
+          "#A3ADBD",
+          "#CBD4E1",
+          "#F2F6FB"
+        ]
+      },
+      "text-200": {
+        "role": "neutral",
+        "displayName": "Cool Grey",
+        "canonical": "#B8C4D8",
+        "tonalRamp": [
+          "#151A22",
+          "#252D3A",
+          "#394356",
+          "#4F5C74",
+          "#6B7A94",
+          "#8D9BB4",
+          "#B8C4D8",
+          "#E6EBF3"
+        ]
+      },
+      "text-400": {
+        "role": "neutral",
+        "displayName": "Muted Steel",
+        "canonical": "#8C9AB5",
+        "tonalRamp": [
+          "#12161D",
+          "#202733",
+          "#31394A",
+          "#455063",
+          "#5D6A80",
+          "#75849D",
+          "#8C9AB5",
+          "#D3DAE7"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display — Barlow Condensed",
+        "purpose": "Page and screen titles, card and modal titles, buttons, badges, table headers. Always uppercase, always tracked."
+      },
+      "headline": {
+        "displayName": "Headline — Barlow Condensed",
+        "purpose": "Section headings and toolbar titles."
+      },
+      "title": {
+        "displayName": "Title — Barlow Condensed",
+        "purpose": "Entrant names on a match card, activity-feed headings, sub-sections."
+      },
+      "body": {
+        "displayName": "Body — Barlow",
+        "purpose": "Prose, form values, alert bodies, descriptions. The only non-condensed, non-mono role."
+      },
+      "label": {
+        "displayName": "Label — JetBrains Mono",
+        "purpose": "Field labels, table metadata, action codes, timestamps, scope/venue lines, trace summaries. Uppercase at 0.75rem."
+      },
+      "figure": {
+        "displayName": "Figure — JetBrains Mono",
+        "purpose": "Every number that can change while someone is watching: scores, clocks, ranks, stat tiles, numeric columns. Always tabular-nums."
+      }
+    },
+    "shadows": [
+      {
+        "name": "dialog-elevation",
+        "value": "0 24px 48px -12px rgba(0, 0, 0, 0.55)",
+        "purpose": "The only structural shadow in the system. Modals and dialogs, applied once from DIALOG_TOKENS so no screen re-derives its own scrim."
+      },
+      {
+        "name": "glow-cyan",
+        "value": "0 0 20px color-mix(in srgb, var(--cl-primary) 40%, transparent)",
+        "purpose": "Primary button on hover and active only. Affordance confirming a press, never a state indicator."
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 2px var(--cl-surface-base), 0 0 0 4px var(--cl-focus-ring)",
+        "purpose": "Two layers — inner ring in the surface colour, outer in cyan — so the indicator survives dark panels, accent fills, dialogs and image-backed overlays alike. Never clipped to a chamfer."
+      },
+      {
+        "name": "drawer-scrim",
+        "value": "color-mix(in srgb, var(--cl-color-ink-950) 65%, transparent) with backdrop-filter: blur(4px)",
+        "purpose": "The mobile navigation drawer's overlay below the md breakpoint."
+      }
+    ],
+    "motion": [
+      {
+        "name": "motion-instant",
+        "value": "0s",
+        "purpose": "What every duration collapses to under prefers-reduced-motion. Zero rather than 'shorter': state must survive in text, icon, border and layout, so an animation that merely hurries is one a motion-sensitive viewer still has to endure."
+      },
+      {
+        "name": "motion-fast",
+        "value": "120ms",
+        "purpose": "Control state changes — button fill, border colour, file-picker zone."
+      },
+      {
+        "name": "motion-base",
+        "value": "200ms",
+        "purpose": "Default transition, and the drawer slide-in duration."
+      },
+      {
+        "name": "motion-slow",
+        "value": "320ms",
+        "purpose": "Larger surface transitions."
+      },
+      {
+        "name": "motion-easing",
+        "value": "cubic-bezier(0.2, 0, 0, 1)",
+        "purpose": "Standard easing for every state transition."
+      },
+      {
+        "name": "drawer-easing",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The mobile drawer's slide-in — a sharper decelerating curve than the standard easing."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "375px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1440px" }
+    ],
+    "tracking": [
+      { "name": "normal", "value": "0" },
+      { "name": "wide", "value": "0.04em" },
+      { "name": "wider", "value": "0.05em" },
+      { "name": "widest", "value": "0.06em" }
+    ],
+    "controlDensity": [
+      { "name": "section-gap", "value": "24px" },
+      { "name": "field-gap", "value": "12px" },
+      { "name": "row-gap", "value": "8px" },
+      { "name": "inline-gap", "value": "4px" }
+    ],
+    "protectedTokens": [
+      "state-live",
+      "state-upcoming",
+      "state-positive",
+      "state-destructive",
+      "focus-ring"
+    ],
+    "touchTarget": "44px"
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one filled control on a screen. Signal Cyan on Deep Ink text, control chamfer, cyan glow on press.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">START MATCH</button>",
+      "css": ".ds-btn { min-height: 44px; min-width: 44px; font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid transparent; padding: 8px 16px; cursor: pointer; corner-shape: bevel; border-radius: 0 8px 0 8px; transition: background 120ms cubic-bezier(0.2,0,0,1), box-shadow 120ms cubic-bezier(0.2,0,0,1), filter 120ms cubic-bezier(0.2,0,0,1); } .ds-btn-primary { background: #00D4FF; color: #0A0E1A; } .ds-btn-primary:hover { background: #33DFFF; box-shadow: 0 0 20px rgba(0, 212, 255, 0.4); } .ds-btn-primary:active { background: #33DFFF; box-shadow: 0 0 20px rgba(0, 212, 255, 0.4); filter: brightness(0.92); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px #0A0E1A, 0 0 0 4px #00D4FF; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "The default control. Chrome Ink fill with a structure border; hover moves both fill and outline so it reads as interactive next to a filled primary.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\">CANCEL</button>",
+      "css": ".ds-btn { min-height: 44px; min-width: 44px; font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 16px; cursor: pointer; corner-shape: bevel; border-radius: 0 8px 0 8px; transition: background 120ms cubic-bezier(0.2,0,0,1), border-color 120ms cubic-bezier(0.2,0,0,1); } .ds-btn-secondary { background: #1A2236; color: #F2F6FB; border: 1px solid #243049; } .ds-btn-secondary:hover { background: #243049; border-color: #8C9AB5; } .ds-btn-secondary:active { filter: brightness(0.92); } .ds-btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 2px #0A0E1A, 0 0 0 4px #00D4FF; } .ds-btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }"
+    },
+    {
+      "name": "Destructive Outline Button",
+      "kind": "button",
+      "refersTo": "button-destructive-outline",
+      "description": "A consequential action that has not been confirmed yet: red text and border, no fill until the filled destructive variant is used for the confirmation itself.",
+      "html": "<button class=\"ds-btn ds-btn-destructive-outline\">DELETE ENTRANT</button>",
+      "css": ".ds-btn { min-height: 44px; min-width: 44px; font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 16px; cursor: pointer; corner-shape: bevel; border-radius: 0 8px 0 8px; transition: filter 120ms cubic-bezier(0.2,0,0,1); } .ds-btn-destructive-outline { background: transparent; color: #EF4444; border: 1px solid #EF4444; } .ds-btn-destructive-outline:hover { filter: brightness(1.12); } .ds-btn-destructive-outline:active { filter: brightness(0.92); } .ds-btn-destructive-outline:focus-visible { outline: none; box-shadow: 0 0 0 2px #0A0E1A, 0 0 0 4px #00D4FF; }"
+    },
+    {
+      "name": "State Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Colour and label together — the token contract throws at build time on a missing label. Cuts both left corners at 14px so it reads as a tag, not a pill.",
+      "html": "<span class=\"ds-badge ds-badge-live\"><svg width=\"8\" height=\"8\" viewBox=\"0 0 8 8\" aria-hidden=\"true\"><circle cx=\"4\" cy=\"4\" r=\"4\" fill=\"currentColor\"/></svg>LIVE</span> <span class=\"ds-badge ds-badge-upcoming\">19:30</span> <span class=\"ds-badge ds-badge-disputed\">DISPUTED</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 4px; font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-weight: 600; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 8px; background: #1A2236; color: #F2F6FB; border: 1px solid #243049; corner-shape: bevel round round bevel; border-radius: 14px 0 0 14px; margin-right: 8px; } .ds-badge-live { color: #00D4FF; border-color: #00D4FF; } .ds-badge-upcoming { color: #FF9C1E; border-color: #FF9C1E; font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; } .ds-badge-disputed { color: #EF4444; border-color: #EF4444; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Chrome Ink fill, control chamfer, mono uppercase label above. Focus shifts the border to cyan and draws the two-layer ring outside the box.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-label\" for=\"ds-entrant\">Entrant name</label><input class=\"ds-input\" id=\"ds-entrant\" type=\"text\" value=\"Club Atlético\" /><p class=\"ds-help\">Shown on the broadcast overlay.</p></div>",
+      "css": ".ds-field { display: grid; gap: 4px; min-width: 0; max-width: 320px; } .ds-label { font-family: 'JetBrains Mono', ui-monospace, monospace; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; color: #B8C4D8; } .ds-input { min-height: 44px; width: 100%; font-family: 'Barlow', system-ui, sans-serif; font-size: 1rem; background: #1A2236; color: #F2F6FB; border: 1px solid #243049; padding: 8px 12px; corner-shape: bevel; border-radius: 0 8px 0 8px; color-scheme: dark; } .ds-input:hover { border-color: #006B82; } .ds-input:focus { outline: none; border-color: #00D4FF; box-shadow: 0 0 0 2px #0A0E1A, 0 0 0 4px #00D4FF; } .ds-help { margin: 0; color: #8C9AB5; font-family: 'Barlow', system-ui, sans-serif; font-size: 0.75rem; }"
+    },
+    {
+      "name": "Text Input — Error",
+      "kind": "input",
+      "refersTo": "input-error",
+      "description": "Border and ring both become Dispute Red, and the message says what is wrong in words — colour is never the only cue.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-label-err\" for=\"ds-seed\">Seed</label><input class=\"ds-input-err\" id=\"ds-seed\" type=\"text\" value=\"0\" aria-invalid=\"true\" /><p class=\"ds-error\">Seed must be 1 or greater.</p></div>",
+      "css": ".ds-field { display: grid; gap: 4px; min-width: 0; max-width: 320px; } .ds-label-err { font-family: 'JetBrains Mono', ui-monospace, monospace; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; color: #B8C4D8; } .ds-input-err { min-height: 44px; width: 100%; font-family: 'Barlow', system-ui, sans-serif; font-size: 1rem; background: #1A2236; color: #F2F6FB; border: 1px solid #EF4444; padding: 8px 12px; corner-shape: bevel; border-radius: 0 8px 0 8px; color-scheme: dark; } .ds-input-err:focus { outline: none; box-shadow: 0 0 0 2px #0A0E1A, 0 0 0 4px #EF4444; } .ds-error { margin: 0; color: #EF4444; font-family: 'Barlow', system-ui, sans-serif; font-size: 0.75rem; }"
+    },
+    {
+      "name": "Filter Pills",
+      "kind": "nav",
+      "refersTo": "pill",
+      "description": "The list-screen filter row. Chrome Ink at rest; the active pill fills Signal Cyan and is marked with aria-current, so selection survives without colour.",
+      "html": "<ul class=\"ds-pill-group\"><li><a class=\"ds-pill ds-pill-active\" href=\"#\" aria-current=\"page\">ALL</a></li><li><a class=\"ds-pill\" href=\"#\">LIVE</a></li><li><a class=\"ds-pill\" href=\"#\">SCHEDULED</a></li><li><a class=\"ds-pill\" href=\"#\">FINAL</a></li></ul>",
+      "css": ".ds-pill-group { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; } .ds-pill { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 4px 12px; border: 1px solid #243049; background: #1A2236; color: #F2F6FB; font-family: 'Barlow', system-ui, sans-serif; font-size: 0.875rem; font-weight: 600; text-decoration: none; cursor: pointer; } .ds-pill:hover { background: #243049; } .ds-pill-active { background: #00D4FF; border-color: #00D4FF; color: #0A0E1A; } .ds-pill:focus-visible { outline: none; box-shadow: 0 0 0 2px #0A0E1A, 0 0 0 4px #00D4FF; }"
+    },
+    {
+      "name": "Entity Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Square corners, one hairline border, and a 4px state rail on the left paired with the card's own label. Header and footer lift to Chrome Ink at any depth.",
+      "html": "<article class=\"ds-card ds-card-live\"><header class=\"ds-card-header\"><h3 class=\"ds-card-title\">Quarterfinal 3</h3><p class=\"ds-card-desc\">Court 2 · Best of 5</p></header><div class=\"ds-card-content\"><div class=\"ds-card-row\"><span class=\"ds-card-key\">Entrants</span><span class=\"ds-card-fig\">2</span></div><div class=\"ds-card-row\"><span class=\"ds-card-key\">Games played</span><span class=\"ds-card-fig\">3</span></div></div><footer class=\"ds-card-footer\"><button class=\"ds-card-btn\">OPEN CONSOLE</button></footer></article>",
+      "css": ".ds-card { max-width: 320px; background: #121828; color: #F2F6FB; border: 1px solid #243049; border-left: 4px solid #243049; padding: 16px; font-family: 'Barlow', system-ui, sans-serif; } .ds-card-live { border-left-color: #00D4FF; } .ds-card-header { display: grid; gap: 4px; margin-block-end: 12px; } .ds-card-title { margin: 0; font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-size: 1.5rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; } .ds-card-desc { margin: 0; color: #8C9AB5; font-size: 0.875rem; } .ds-card-content { display: grid; gap: 12px; } .ds-card-row { display: flex; justify-content: space-between; gap: 8px; } .ds-card-key { color: #8C9AB5; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; } .ds-card-fig { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; } .ds-card-footer { display: flex; gap: 8px; margin-block-start: 16px; } .ds-card-btn { min-height: 44px; padding: 8px 16px; background: #1A2236; color: #F2F6FB; border: 1px solid #243049; font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; corner-shape: bevel; border-radius: 0 8px 0 8px; } .ds-card-btn:hover { background: #243049; border-color: #8C9AB5; }"
+    },
+    {
+      "name": "Data Table",
+      "kind": "custom",
+      "refersTo": "table-header",
+      "description": "The operator's primary reading surface: mono uppercase headers on Chrome Ink, opaque alternating row inks, tabular figures right-aligned under their heading.",
+      "html": "<div class=\"ds-table-scroll\"><table class=\"ds-table\"><thead><tr><th>Rank</th><th>Entrant</th><th class=\"ds-num\">Played</th><th class=\"ds-num\">Points</th></tr></thead><tbody><tr class=\"ds-row\"><td class=\"ds-num-cell\">1</td><td>Club Atlético</td><td class=\"ds-num-cell\">6</td><td class=\"ds-num-cell\">15</td></tr><tr class=\"ds-row-alt\"><td class=\"ds-num-cell\">2</td><td>Deportivo Sur</td><td class=\"ds-num-cell\">6</td><td class=\"ds-num-cell\">13</td></tr><tr class=\"ds-row\"><td class=\"ds-num-cell\">3</td><td>Unión Norte</td><td class=\"ds-num-cell\">6</td><td class=\"ds-num-cell\">10</td></tr></tbody></table></div>",
+      "css": ".ds-table-scroll { overflow-x: auto; max-width: 100%; border: 1px solid #243049; } .ds-table { width: 100%; border-collapse: collapse; font-family: 'Barlow', system-ui, sans-serif; font-variant-numeric: tabular-nums; color: #F2F6FB; } .ds-table th, .ds-table td { padding: 8px 12px; text-align: left; border-block-end: 1px solid #243049; } .ds-table thead th { background: #1A2236; color: #8C9AB5; font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; } .ds-num { text-align: right; } .ds-num-cell { text-align: right; font-family: 'JetBrains Mono', ui-monospace, monospace; } .ds-row { background: #0D1220; } .ds-row-alt { background: #0C101D; } .ds-table tbody tr:last-child td { border-block-end: none; }"
+    },
+    {
+      "name": "Match Card",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "The system's signature component, shared verbatim by the public and control surfaces: state badge, mono clock, display-face entrant names, mono scores, and a rule-trace disclosure.",
+      "html": "<article class=\"ds-match\"><header class=\"ds-match-head\"><span class=\"ds-match-badge\">LIVE</span><span class=\"ds-match-clock\">62:14</span></header><ul class=\"ds-match-sides\"><li class=\"ds-match-side\"><span class=\"ds-match-rank\">1</span><span class=\"ds-match-name\">Club Atlético</span><span class=\"ds-match-score\">2</span></li><li class=\"ds-match-side\"><span class=\"ds-match-rank\">4</span><span class=\"ds-match-name\">Deportivo Sur</span><span class=\"ds-match-score\">1</span></li></ul><p class=\"ds-match-meta\">Court 2 · Quarterfinal</p><p class=\"ds-match-factor\">Advances on head-to-head.</p></article>",
+      "css": ".ds-match { display: grid; gap: 12px; max-width: 340px; background: #121828; border: 1px solid #243049; padding: 16px; color: #F2F6FB; font-family: 'Barlow', system-ui, sans-serif; } .ds-match-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; } .ds-match-badge { display: inline-flex; align-items: center; font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-weight: 600; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 8px; color: #00D4FF; border: 1px solid #00D4FF; corner-shape: bevel round round bevel; border-radius: 14px 0 0 14px; } .ds-match-clock { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.25rem; color: #00D4FF; font-variant-numeric: tabular-nums; } .ds-match-sides { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; } .ds-match-side { display: flex; align-items: center; gap: 8px; min-width: 0; } .ds-match-rank { flex: 0 0 auto; font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 0.875rem; color: #8C9AB5; padding: 4px 8px; background: #1A2236; corner-shape: bevel round round bevel; border-radius: 14px 0 0 14px; } .ds-match-name { flex: 1 1 auto; font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-weight: 500; font-size: 1.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-match-score { flex: 0 0 auto; font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 700; font-size: 1.875rem; font-variant-numeric: tabular-nums; } .ds-match-meta { margin: 0; color: #8C9AB5; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; } .ds-match-factor { margin: 0; padding: 8px 12px; background: #1A2236; border-left: 2px solid #00D4FF; color: #B8C4D8; font-size: 0.875rem; }"
+    },
+    {
+      "name": "Inline Alert",
+      "kind": "custom",
+      "refersTo": "chrome",
+      "description": "A 4px state rail over Chrome Ink. The rail carries the colour, the text carries the meaning — never one without the other.",
+      "html": "<div class=\"ds-alert ds-alert-destructive\"><div><p class=\"ds-alert-title\">Result rejected</p><p class=\"ds-alert-body\">The reported score does not satisfy this ruleset's win condition.</p></div><button class=\"ds-alert-dismiss\" aria-label=\"Dismiss\">×</button></div>",
+      "css": ".ds-alert { display: flex; gap: 8px; padding: 12px; max-width: 420px; background: #1A2236; border-left: 4px solid #FF9C1E; color: #F2F6FB; font-family: 'Barlow', system-ui, sans-serif; } .ds-alert-destructive { border-left-color: #EF4444; } .ds-alert-title { margin: 0; font-weight: 700; } .ds-alert-body { margin: 0; color: #B8C4D8; font-size: 0.875rem; } .ds-alert-dismiss { margin-inline-start: auto; align-self: start; background: none; border: 0; color: inherit; cursor: pointer; padding: 0 4px; font-size: 1.25rem; line-height: 1; } .ds-alert-dismiss:focus-visible { outline: none; box-shadow: 0 0 0 2px #1A2236, 0 0 0 4px #00D4FF; }"
+    },
+    {
+      "name": "Stat Tile",
+      "kind": "custom",
+      "refersTo": "stat-tile",
+      "description": "Summary figures on Chrome Ink. Three across above the md breakpoint, one below. Values render in the display face with tabular figures.",
+      "html": "<div class=\"ds-stat-grid\"><div class=\"ds-stat\"><span class=\"ds-stat-label\">Matches live</span><span class=\"ds-stat-value\">4</span></div><div class=\"ds-stat\"><span class=\"ds-stat-label\">Awaiting result</span><span class=\"ds-stat-value\">12</span></div><div class=\"ds-stat\"><span class=\"ds-stat-label\">Disputed</span><span class=\"ds-stat-value\">1</span></div></div>",
+      "css": ".ds-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } .ds-stat { display: grid; gap: 4px; background: #1A2236; border: 1px solid #243049; padding: 16px; } .ds-stat-label { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #8C9AB5; } .ds-stat-value { font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-weight: 700; font-size: 2.25rem; line-height: 1.1; font-variant-numeric: tabular-nums; color: #F2F6FB; } @media (max-width: 767px) { .ds-stat-grid { grid-template-columns: 1fr; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Broadcast Command Precision",
+    "overview": "CopaLibre looks like the gallery behind a live broadcast, not the broadcast itself. Deep ink surfaces recede so that one signal colour — cyan — can mean exactly one thing: this is live, this is the action, this is where you look. Everything else on screen is instrumentation: condensed uppercase labels, monospaced tabular figures that do not shift width as a score changes, hairline borders that make structure countable rather than decorative. The system is built for an operator working a bracket under time pressure, and for a venue screen read from twelve metres away, with the same tokens serving both.\n\nDensity is deliberate and unapologetic. The spacing scale steps in 4px rather than 8px because operator tables are tight and a scale nobody can honour is a scale that gets bypassed. Surfaces alternate through opaque named levels — base, panel, chrome, row — rather than through translucency, so any row's contrast is checkable from its own token instead of from whatever happens to sit behind it. The one piece of ornament in the whole system is the chamfer: a diagonal pair of bevelled corners, top-right and bottom-left, cut through corner-shape and never through a polygon mask.\n\nThe identity is defined as much by refusal as by choice. It is not SebaSOFT's cyberpunk-wireframe world: no Cyberpunk Yellow, no #C5003C, no TRON grids, no scanlines, no ornamental glow standing in for state. That refusal is scanned in CI against generated output rather than left to brand review. Nor is it a generic SaaS card grid — there are no soft shadows, no rounded-everything cards, no pastel status chips. Colour is never the only cue for anything: every state token carries a required non-colour companion, and the token contract throws at build time when a badge arrives without a label.",
+    "keyCharacteristics": [
+      "Flat, near-black ink surfaces layered by opaque tonal steps, never by translucency or shadow",
+      "One accent — Signal Cyan — reserved for live, active, primary action, and focus",
+      "Condensed uppercase display face for identity; monospace for every figure and label",
+      "Asymmetric chamfer (top-right / bottom-left) as the sole shape signature",
+      "4px spacing scale, 44px minimum interactive target, tabular figures everywhere numbers appear",
+      "Every state carries a text label, icon, border or position alongside its colour",
+      "A reserved team-accent slot that organizers may fill and may never use to override a state"
+    ],
+    "rules": [
+      {
+        "name": "The One Signal Rule",
+        "body": "Cyan means live, active, primary, or focused — nothing else. A second accent introduced for decoration destroys the only cue an operator scans for across a dense screen.",
+        "section": "colors"
+      },
+      {
+        "name": "The Never-Colour-Alone Rule",
+        "body": "Every state token declares a required non-colour companion: state-live carries a LIVE label, state-upcoming a scheduled time, state-positive a result marker, state-destructive an explicit verb or dispute icon. The badge contract throws at build time on a missing label rather than shipping two shades of the same rectangle to a colour-blind viewer.",
+        "section": "colors"
+      },
+      {
+        "name": "The Protected-State Rule",
+        "body": "state-live, state-upcoming, state-positive, state-destructive and focus-ring can never be overridden by an organizer's team accent. A team whose colour happens to be red does not get to make \"disputed\" mean \"us\".",
+        "section": "colors"
+      },
+      {
+        "name": "The Opaque-Surface Rule",
+        "body": "Surface levels are opaque values, never translucent overlays. A composite against an unknown backdrop is a contrast figure nobody can verify.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Figures Rule",
+        "body": "Any number that can change while someone is looking at it — a score, a clock, a rank, a stat tile — renders in the mono face with font-variant-numeric: tabular-nums. A score that shifts width as it changes is a score nobody can read.",
+        "section": "typography"
+      },
+      {
+        "name": "The Bare Heading Rule",
+        "body": "Every h1–h6 resolves to the display family without a component asking for it. A heading rendered in the body face is the identity silently not being applied.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tracked Uppercase Rule",
+        "body": "Uppercase text carries tracking from the named scale — wide (0.04em) for metadata and headings, wider (0.05em) for buttons and emphasised labels, widest (0.06em) for the display face set large. Uppercase at normal tracking is a bug, not a choice.",
+        "section": "typography"
+      },
+      {
+        "name": "The Alternating Band Rule",
+        "body": "A card over a panel band takes the base fill; the same card over a base band takes the panel fill. Nesting inverts again. A container never sits on its own colour, so structure is readable without a single border being required to carry it.",
+        "section": "layout"
+      },
+      {
+        "name": "The Chrome-Lifts Rule",
+        "body": "Chrome — a panel header, a footer, a chip, an icon well — resolves to ink-850 wherever it sits, at any depth. A header reads as a header regardless of what it is nested in.",
+        "section": "layout"
+      },
+      {
+        "name": "The No-Sideways-Page Rule",
+        "body": "Wide content scrolls inside its own box (.cl-table-scroll, overflow-x: auto). The page body never scrolls horizontally; every layout child carries min-width: 0.",
+        "section": "layout"
+      },
+      {
+        "name": "The 44px Rule",
+        "body": "Every interactive target — button, pill, nav link, form control, pagination step — is at least 44px in its constrained axis.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat-Unless-Suspended Rule",
+        "body": "Surfaces are flat. Shadow appears only where an element is suspended above the page (a dialog) or is confirming a press (the primary button). A resting card with a shadow is drift.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Two-Layer Focus Rule",
+        "body": "The focus indicator is always two rings, never one, and never clipped to a chamfer — clip-path is prohibited for corner geometry precisely so that outside-the-box indicators survive.",
+        "section": "elevation"
+      },
+      {
+        "name": "The No-Mask Rule",
+        "body": "Chamfer geometry is corner-shape and border-radius only. A polygon mask clips the focus ring and the glow, which is exactly what the accessibility gate cannot allow.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Diagonal-Pair Rule",
+        "body": "The default cut is top-right and bottom-left. Any other combination is a declared variant, not an ad hoc choice at the call site.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do name a state, never a colour. Components consume state-live, not cyan-400, so retheming \"live\" is one line in semantic.ts rather than a search across three rendering technologies.",
+      "Do pair every state colour with its declared non-colour cue — a LIVE label, a scheduled time, a result marker, an explicit verb.",
+      "Do render every changeable number in the mono face with tabular-nums.",
+      "Do cut the chamfer with corner-shape and border-radius, and let unsupported browsers get square corners and a working component.",
+      "Do keep interactive targets at 44px in the constrained axis, and let long labels wrap with overflow-wrap: anywhere rather than overflow — interface copy must survive all eight languages.",
+      "Do let containers alternate against their band, and let chrome lift to ink-850 at any depth.",
+      "Do collapse motion to 0s under prefers-reduced-motion, not merely shorten it: state must survive in text, icon, border and layout without the animation.",
+      "Do scroll wide content inside its own box."
+    ],
+    "donts": [
+      "Don't introduce a second accent colour. Cyan is the only voice, and its scarcity is what makes it scannable.",
+      "Don't use clip-path for corner geometry. It clips the focus ring and the glow.",
+      "Don't let an organizer's team accent reach state-live, state-upcoming, state-positive, state-destructive or focus-ring, or appear in core chrome — navigation, primary buttons, system badges.",
+      "Don't ship a badge, chip or status mark whose only signal is its colour.",
+      "Don't add a resting shadow. Shadow means suspended (a dialog) or pressed (the primary button).",
+      "Don't use translucent surface fills where a row's contrast has to be verifiable; resolve them to opaque tokens.",
+      "Don't reach for text-muted for body copy — it is a label colour.",
+      "Don't reintroduce SebaSOFT's identity: #f3e600, #c5003c, CP2077 or DATA_BLOB vocabulary, TRON references, scanlines, or a grid glow used as a state indicator. CI scans generated output for all of them.",
+      "Don't introduce a spacing, radius, font-size, tracking or breakpoint value outside the named scales. A hardcoded literal at a call site is how a scale becomes an accident."
+    ]
+  }
+}

@@ -28,6 +28,29 @@ se fait ici est diffusé en direct sur l'écran public du tournoi.
   pas écrasé depuis cet écran — toute correction ultérieure passe par le flux audité de
   correction/supersession, pas en le rechargeant ici.
 
+## Gérer l'horloge
+
+Chaque segment a sa propre horloge, pilotée par trois boutons sous le segment sélectionné :
+
+- **Démarrer** lance l'horloge de ce segment et arrête celle qui tournait — une seule tourne à la
+  fois.
+- **Pause** l'arrête où elle en est. Un match en pause reste en cours : la pause arrête une horloge,
+  pas la compétition.
+- **Terminer la période** clôt ce segment. Il n'accepte ensuite ni Démarrer ni Pause, et il ne
+  termine pas le match — enregistrer le résultat est une action distincte.
+
+Ils enregistrent le moment où vous avez réellement sifflé. Le champ de secondes écoulées à côté
+reste ce qu'il a toujours été : le moyen de corriger après coup une valeur mal saisie. Les deux
+chemins aboutissent au même journal d'audit, avec qui, quand, et ce qu'indiquait l'horloge avant et
+après.
+
+## Lire le journal des événements
+
+Le journal démarre replié, montrant les trois événements les plus récents, pour que les commandes de
+saisie tiennent sur un seul écran pendant que vous travaillez. Ce que vous venez d'enregistrer en
+fait toujours partie : replier retire de la vue l'historique ancien, jamais votre dernière
+confirmation. **Voir l'historique complet** ouvre l'intégralité du match.
+
 ## Ce que vous ne pouvez pas faire après avoir enregistré le résultat
 
 Une fois le match terminé, cet écran ne permet plus d'ajouter des événements comme si le match se
@@ -41,8 +64,9 @@ ajuster le chronomètre, sélectionner une feuille de match ou finaliser un matc
 une file d'attente locale durable — _avant_ même d'être envoyé — pour qu'une coupure ne fasse jamais
 perdre quelque chose que vous avez déjà fait.
 
-- **L'état de synchronisation** est toujours visible en haut de l'écran : si vous êtes en ligne,
-  combien d'actions attendent encore d'être envoyées, et quand la dernière a réellement abouti.
+- **Un point de connexion** est toujours visible en haut de l'écran : plein lorsque vous êtes en
+  ligne, creux sinon. Survolez-le ou donnez-lui le focus pour voir combien d'actions attendent
+  encore d'être envoyées et quand la dernière a réellement abouti.
 - **Une action en file d'attente le reste**, sans être perdue, malgré une connexion instable, une
   zone blanche, ou même en fermant et rouvrant cet écran — le rouvrir reprend l'envoi de tout ce qui
   attend encore.

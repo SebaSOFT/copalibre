@@ -82,3 +82,21 @@ The system MUST support changing the primary email address securely.
 - **WHEN** a user clicks the verification link for the new email
 - **THEN** the system updates the email in the database and immediately invalidates all active
   sessions (forcing a logout).
+
+### Requirement: Native login token issuance
+The native login endpoint (`POST /auth/login`) SHALL issue tokens signed with asymmetric RSA (`RS256`) using the installation's private key, verified against the local or configured JWKS. When a user authenticates within the scope of an organization, the issued JWT SHALL include the RFC 9068 registered `org` claim containing the organization's unique ID.
+
+#### Scenario: Asymmetric JWT verification of native login token
+- **WHEN** a client presents a bearer token obtained from `POST /auth/login` to any authenticated API route
+- **THEN** `JwtAuthGuard` and `TokenVerifier` validate the token against the JWKS without `disallowed-algorithm` or 401 Unauthorized errors.
+
+#### Scenario: Organization-scoped guard resolution for local users
+- **WHEN** a local principal with an active organization assignment accesses an organization-scoped endpoint (`/organizations/:alias/*`)
+- **THEN** `OrganizationAccessGuard` successfully matches the token's `org` claim and resolves the user's role assignment without 403 Forbidden errors.
+
+### Requirement: Local identity principal creation
+When a principal is created via native registration or local bootstrap (`copalibre create-admin`), the persistence layer SHALL ensure that `oidc_subject_id` is initialized to the principal's `principal_id` so subsequent subject lookups resolve reliably across all authentication guards.
+
+#### Scenario: Role assignment check for native principal
+- **WHEN** an authenticated route checks permissions for a native principal
+- **THEN** `IdentityPrincipalRepository.findByOidcSubject` returns the matching principal record and its associated permissions.

@@ -3,6 +3,7 @@ import {
   publicIntl,
   resultReasonLabels,
   resultStateLabels,
+  seriesStateBarLabels,
 } from './public-intl.js';
 import { messages } from './public-messages.en.js';
 import { messages as esMessages } from './public-messages.es.js';
@@ -140,5 +141,89 @@ describe('publicIntl formats real translated text, not an English fallback', () 
     expect(labels.seriesAriaLabel).toBe('Serie al mejor de {bestOf}: {home} a {away}');
     expect(labels.filters.live).toBe('En vivo');
     expect(labels.state.final).toBe('FINAL');
+  });
+});
+
+describe('seriesStateBarLabels', () => {
+  const intl = publicIntl('en');
+
+  it('renders every segment state in one series', () => {
+    // pos1 played (home), pos2 played (away), pos3 in-progress, pos4 upcoming, pos5 not-required.
+    const labels = seriesStateBarLabels(
+      intl,
+      { bestOf: 5, results: ['home', 'away'], inProgress: true, notRequired: [5] },
+      {},
+    );
+    expect(labels.segments.map((segment) => segment.state)).toEqual([
+      'won-home',
+      'won-away',
+      'current',
+      'upcoming',
+      'not-required',
+    ]);
+    expect(labels.segments.map((segment) => segment.mark)).toEqual(['▲', '▼', '●', '·', '×']);
+    expect(labels.homeScore).toBe(1);
+    expect(labels.awayScore).toBe(1);
+  });
+
+  it('reports a pending outcome when no winner is decided yet', () => {
+    const labels = seriesStateBarLabels(intl, { bestOf: 3, results: ['home'] }, {});
+    expect(labels.winner).toBeUndefined();
+    expect(labels.outcomeText).toBe('Series undecided at 1–0');
+    expect(labels.aggregateText).toBeUndefined();
+  });
+
+  it('names the home winner by name when one is provided', () => {
+    const labels = seriesStateBarLabels(
+      intl,
+      { bestOf: 3, results: ['home', 'home'] },
+      { winner: 'home', homeName: 'Nova' },
+    );
+    expect(labels.outcomeText).toBe('Nova won the series');
+  });
+
+  it('falls back to "1" for an unnamed home winner', () => {
+    const labels = seriesStateBarLabels(
+      intl,
+      { bestOf: 3, results: ['home', 'home'] },
+      { winner: 'home' },
+    );
+    expect(labels.outcomeText).toBe('1 won the series');
+  });
+
+  it('names the away winner by name when one is provided', () => {
+    const labels = seriesStateBarLabels(
+      intl,
+      { bestOf: 3, results: ['away', 'away'] },
+      { winner: 'away', awayName: 'Zenith' },
+    );
+    expect(labels.outcomeText).toBe('Zenith won the series');
+  });
+
+  it('falls back to "2" for an unnamed away winner', () => {
+    const labels = seriesStateBarLabels(
+      intl,
+      { bestOf: 3, results: ['away', 'away'] },
+      { winner: 'away' },
+    );
+    expect(labels.outcomeText).toBe('2 won the series');
+  });
+
+  it('reports an aggregate score when both sides are given', () => {
+    const labels = seriesStateBarLabels(
+      intl,
+      { bestOf: 1, results: ['home'] },
+      { winner: 'home', aggregateScores: [4, 2] },
+    );
+    expect(labels.aggregateText).toBe('On aggregate 4–2');
+  });
+
+  it('defaults a missing aggregate side to zero', () => {
+    const labels = seriesStateBarLabels(
+      intl,
+      { bestOf: 1, results: ['home'] },
+      { winner: 'home', aggregateScores: [4] },
+    );
+    expect(labels.aggregateText).toBe('On aggregate 4–0');
   });
 });

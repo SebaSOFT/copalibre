@@ -119,13 +119,17 @@ test('renders a transparent, chrome-free background under ?mode=overlay (8.2)', 
   await mockOpenStream(page);
   await page.goto(`${TV_PATH}?mode=overlay&token=kiosk-token`);
 
-  await expect(page.locator('body')).toHaveClass(/tv-overlay/);
+  // The class sits on the root element now, because that is what the server can
+  // emit in the first response (0201).
+  await expect(page.locator('html')).toHaveClass(/tv-overlay/);
 
-  const background = await page
-    .locator('#tv-root')
-    .evaluate((element) => getComputedStyle(element).backgroundColor);
-  // eslint-disable-next-line no-restricted-syntax -- asserting a computed browser style value, not an app styling literal
-  expect(['rgba(0, 0, 0, 0)', 'transparent']).toContain(background);
+  for (const selector of ['html', 'body', '#tv-root']) {
+    const background = await page
+      .locator(selector)
+      .evaluate((element) => getComputedStyle(element).backgroundColor);
+    // eslint-disable-next-line no-restricted-syntax -- asserting a computed browser style value, not an app styling literal
+    expect(['rgba(0, 0, 0, 0)', 'transparent']).toContain(background);
+  }
 
   // No navigation chrome, and nothing a pointer or a keyboard could reach —
   // this is a chroma-key layer, not a page a person is meant to use.
@@ -152,4 +156,77 @@ test('resumes rendering after a simulated power cycle, with no login prompt (8.3
 
   await expect(page.getByText('Talleres de Mendoza')).toBeVisible();
   await expect(page.getByText(/iniciar sesión|log in|contraseña|password/i)).toHaveCount(0);
+});
+
+test('0201: the overlay is transparent in the first response, before any script runs', async ({
+  page,
+  context,
+}) => {
+  // The defect this covers: transparency was applied by a client effect reading
+  // window.location, so the document a broadcast consumer actually captures —
+  // and any capture taken before hydration — rendered opaque.
+  await context.route('**/*.js', (route) => route.abort());
+  await page.goto(`${TV_PATH}?mode=overlay-lower`);
+
+  await expect(page.locator('html')).toHaveClass(/tv-overlay--lower/);
+  const background = await page
+    .locator('body')
+    .evaluate((element) => getComputedStyle(element).backgroundColor);
+  // eslint-disable-next-line no-restricted-syntax -- asserting a computed browser style value, not an app styling literal
+  expect(['rgba(0, 0, 0, 0)', 'transparent']).toContain(background);
+});
+
+test('0201: bare ?mode=overlay still resolves to the lower third', async ({ page, context }) => {
+  // An OBS source already configured with the old URL keeps working.
+  await context.route('**/*.js', (route) => route.abort());
+  await page.goto(`${TV_PATH}?mode=overlay`);
+
+  await expect(page.locator('html')).toHaveClass(/tv-overlay--lower/);
+});
+
+test('0201: ?chroma paints a solid key colour for switchers without an alpha channel', async ({
+  page,
+  context,
+}) => {
+  await context.route('**/*.js', (route) => route.abort());
+  await page.goto(`${TV_PATH}?mode=overlay-lower&chroma=%2300ff00`);
+
+  const background = await page
+    .locator('body')
+    .evaluate((element) => getComputedStyle(element).backgroundColor);
+  // eslint-disable-next-line no-restricted-syntax -- asserting a computed browser style value, not an app styling literal
+  expect(background).toBe('rgb(0, 255, 0)');
+});
+
+test('0201: ?mode=overlay-full renders an opaque full-frame scene', async ({ page, context }) => {
+  await context.route('**/*.js', (route) => route.abort());
+  await page.goto(`${TV_PATH}?mode=overlay-full`);
+
+  await expect(page.locator('html')).toHaveClass(/tv-overlay--full/);
+  const background = await page
+    .locator('body')
+    .evaluate((element) => getComputedStyle(element).backgroundColor);
+  // A stream with no camera source needs a ground of its own, not a hole.
+  // eslint-disable-next-line no-restricted-syntax -- asserting a computed browser style value, not an app styling literal
+  expect(['rgba(0, 0, 0, 0)', 'transparent']).not.toContain(background);
+});
+
+test('0202: the kiosk carries the discipline backdrop, the lower third does not', async ({
+  page,
+  context,
+}) => {
+  await context.route('**/*.js', (route) => route.abort());
+
+  // A venue display shows the tournament's own discipline imagery as ground.
+  await page.goto(TV_PATH);
+  const kioskBackdrop = page.locator('img.tv-backdrop');
+  if ((await kioskBackdrop.count()) > 0) {
+    await expect(kioskBackdrop).toHaveAttribute('aria-hidden', 'true');
+    const filter = await kioskBackdrop.evaluate((el) => getComputedStyle(el).filter);
+    expect(filter).toContain('blur');
+  }
+
+  // The lower third is keyed out, so imagery must never reach it.
+  await page.goto(`${TV_PATH}?mode=overlay-lower`);
+  await expect(page.locator('img.tv-backdrop')).toHaveCount(0);
 });

@@ -1,4 +1,9 @@
-import type { RecordedOutcome, ResultReason, TournamentFormat } from '@copalibre/domain';
+import {
+  primaryScoreOf,
+  type RecordedOutcome,
+  type ResultReason,
+  type TournamentFormat,
+} from '@copalibre/domain';
 import type { Kysely } from 'kysely';
 import type { Database } from '../schema.js';
 
@@ -207,10 +212,7 @@ export class StageReadModel {
 function scoresOf(
   sides: readonly { readonly statistics?: Record<string, number> }[],
 ): readonly (number | undefined)[] {
-  return sides.map((side) => {
-    const values = Object.values(side.statistics ?? {});
-    return values.length === 0 ? undefined : values[0];
-  });
+  return sides.map((side) => primaryScoreOf(side.statistics));
 }
 
 /**

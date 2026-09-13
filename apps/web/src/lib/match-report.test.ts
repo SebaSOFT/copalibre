@@ -74,4 +74,21 @@ describe('buildMatchReport', () => {
     expect(model.away.roster).toEqual([]);
     expect(model.timeline).toEqual([]);
   });
+
+  it('preserves final status so the page can suppress scheduling placeholder banners', () => {
+    const model = buildMatchReport({ ...report(), status: 'final', scheduledAt: undefined });
+
+    // A final match must carry status 'final' — the page template uses this to
+    // gate "Schedule not yet available" and "Schedule has not yet been published"
+    // banners, which must be absent for completed matches.
+    expect(model.status).toBe('final');
+    expect(model.scheduledAt).toBeUndefined();
+  });
+
+  it('preserves live status so the page can suppress scheduling placeholder banners', () => {
+    const model = buildMatchReport({ ...report(), status: 'live', scheduledAt: undefined });
+
+    expect(model.status).toBe('live');
+    expect(model.scheduledAt).toBeUndefined();
+  });
 });

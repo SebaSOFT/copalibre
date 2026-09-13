@@ -1,0 +1,98 @@
+---
+/**
+ * A server-renderable modal owner (openspec 0225 task 2.3): the public and
+ * broadcast surfaces' `<dialog>` had "no server-renderable owner" recorded
+ * against it in `check-ui-ownership.mjs`'s `KNOWN_RAW_ELEMENTS` register —
+ * this is that owner.
+ *
+ * A native `<dialog>` rather than a Radix `Dialog.Root` (control's `Modal`
+ * organism composes Radix — see `control/components/ui/organisms/modal.tsx`
+ * — because these surfaces render no client JS framework): the browser's
+ * own dialog element supplies focus trap, `Escape` handling and top-layer
+ * stacking once `showModal()` runs it, with no library to ship for it.
+ * Reuses `.cl-dialog-surface`/`.cl-modal__*` — the same classes the React
+ * `Modal` applies — so the two read as one system; the corresponding
+ * `.cl-modal__content::backdrop` rule gives this element's own backdrop
+ * pseudo-element the same token `.cl-dialog-backdrop` applies to a Radix
+ * overlay div, since a native `<dialog>` has no separate overlay element to
+ * apply that class to.
+ *
+ * Renders complete server-side markup with no client JS required to see its
+ * content — the enclosed `<script>` only progressively enhances a trigger
+ * element into opening it as a true modal (`showModal()`) and its close
+ * control into dismissing it; without that script, an `open` instance is
+ * still fully present and readable in the document, just not dismissible.
+ */
+export interface Props {
+  readonly id: string;
+  readonly title: string;
+  readonly description?: string;
+  /** Required: a close control with no accessible name is unusable. */
+  readonly closeLabel: string;
+  /** Server-rendered initial state. A trigger element (`data-modal-trigger={id}`) opens it as a true modal once the enhancement script runs. */
+  readonly open?: boolean;
+  readonly className?: string;
+}
+
+const { id, title, description, closeLabel, open = false, className = '' } = Astro.props;
+const titleId = `${id}-title`;
+const descriptionId = `${id}-description`;
+---
+
+<dialog
+  aria-describedby={description ? descriptionId : undefined}
+  aria-labelledby={titleId}
+  class={`cl-dialog-surface cl-chamfer cl-modal__content ${className}`.trim()}
+  id={id}
+  open={open || undefined}
+>
+  <header class="cl-modal__header">
+    <h2 class="cl-modal__title" id={titleId}>{title}</h2>
+    {
+      description ? (
+        <p class="cl-modal__description" id={descriptionId}>
+          {description}
+        </p>
+      ) : null
+    }
+    <button
+      aria-label={closeLabel}
+      class="cl-focusable cl-modal__close"
+      data-modal-close={id}
+      type="button"
+    >
+      ×
+    </button>
+  </header>
+  <div class="cl-modal__body">
+    <slot />
+  </div>
+  <footer class="cl-modal__footer">
+    <slot name="footer" />
+  </footer>
+</dialog>
+
+<script>
+  function initModal(dialog: HTMLDialogElement): void {
+    const id = dialog.id;
+    dialog
+      .querySelector<HTMLButtonElement>(`[data-modal-close="${id}"]`)
+      ?.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+    document
+      .querySelectorAll<HTMLElement>(`[data-modal-trigger="${id}"]`)
+      .forEach((trigger) => trigger.addEventListener('click', () => dialog.showModal()));
+  }
+
+  function initAllModals(): void {
+    document.querySelectorAll<HTMLDialogElement>('dialog.cl-modal__content').forEach(initModal);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAllModals);
+  } else {
+    initAllModals();
+  }
+</script>

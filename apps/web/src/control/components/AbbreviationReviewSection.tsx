@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { isAbbreviation, MAX_ABBREVIATION_LENGTH } from '@copalibre/domain';
 import { Button } from './ui/atoms/button.js';
@@ -81,11 +82,7 @@ export function AbbreviationReviewSection({
             <Button onClick={() => submit(row.entrantId)} type="button" variant="secondary">
               <FormattedMessage {...messages.abbreviationReviewSet} />
             </Button>
-            {errors[row.entrantId] && (
-              <p className="cl-inline-alert" style={errorStyle}>
-                {errors[row.entrantId]}
-              </p>
-            )}
+            {errors[row.entrantId] && <Alert tone="destructive">{errors[row.entrantId]}</Alert>}
           </div>
         ))
       )}
@@ -106,4 +103,3 @@ const rowStyle: React.CSSProperties = {
   gap: 'var(--cl-space-3)',
   flexWrap: 'wrap',
 };
-const errorStyle: React.CSSProperties = { flexBasis: '100%', margin: 0 };

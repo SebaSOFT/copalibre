@@ -1636,6 +1636,140 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/emblem": {
+      "post": {
+        "operationId": "TournamentMediaController_uploadEmblem",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadImageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadImageResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a tournament's emblem (must be exactly 410×512px, ±1%)",
+        "tags": [
+          "tournaments"
+        ]
+      },
+      "get": {
+        "operationId": "TournamentMediaController_serveEmblem",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image bytes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Stream a tournament's emblem, once it has passed validation",
+        "tags": [
+          "tournaments"
+        ]
+      },
+      "delete": {
+        "operationId": "TournamentMediaController_deleteEmblem",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tournament emblem removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteEmblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a tournament's emblem",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations": {
       "get": {
         "description": "Scoped to the named tournament; another tournament’s entrants are never included.",
@@ -2813,7 +2947,7 @@
     },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/commands/{command}": {
       "post": {
-        "description": "Pausing stops the clock, not the competition: a paused match is still in progress. Finalizing needs its own capability — recording events never implies declaring a result.",
+        "description": "Pausing stops the clock, not the competition: a paused match is still in progress, and ending a segment closes that half rather than the match. Start/pause/resume/end name the segment they act on and share the clock-control capability with manual adjustment; finalizing needs its own — recording events never implies declaring a result.",
         "operationId": "MatchControlController_command",
         "parameters": [
           {
@@ -2862,7 +2996,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FinalizeRequest"
+                "$ref": "#/components/schemas/MatchCommandRequest"
               }
             }
           }
@@ -2904,7 +3038,7 @@
             "bearer": []
           }
         ],
-        "summary": "Start, pause, resume or finalize",
+        "summary": "Start, pause, resume, end a segment, or finalize",
         "tags": [
           "match-control"
         ]
@@ -7289,6 +7423,60 @@
         ]
       }
     },
+    "/auth/jwks.json": {
+      "get": {
+        "operationId": "NativeAuthController_jwks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JwksResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "JSON Web Key Set for local token verification",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/accept-invitation": {
+      "post": {
+        "operationId": "NativeAuthController_acceptInvitation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NativeAcceptInvitationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Accept invitation and set password for administrator",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/auth/forgot-password": {
       "post": {
         "operationId": "NativeAuthController_forgotPassword",
@@ -7348,6 +7536,28 @@
           }
         },
         "summary": "Reset password using a verification token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/.well-known/jwks.json": {
+      "get": {
+        "operationId": "WellKnownController_jwks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JwksResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "JSON Web Key Set for local token verification",
         "tags": [
           "auth"
         ]
@@ -11052,6 +11262,11 @@
                 "$ref": "#/components/schemas/ProfileRefResponse"
               }
             ]
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Object storage ID of the tournament emblem, when one has been uploaded."
           }
         },
         "required": [
@@ -11667,10 +11882,20 @@
             "type": "string",
             "format": "date-time",
             "description": "Optional instant when checked-in team memberships stop being editable."
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "description": "Object id of the tournament emblem image asset.",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "featured": {
+            "type": "boolean",
+            "description": "Whether the organizer has flagged this tournament as featured on the organization’s public page. Independent of whether it is live."
           }
         },
         "required": [
-          "name"
+          "name",
+          "featured"
         ]
       },
       "TournamentSettingsRequest": {
@@ -11689,6 +11914,10 @@
             "type": "number",
             "description": "Maximum number of participants/entrants for the tournament.",
             "example": 16
+          },
+          "featured": {
+            "type": "boolean",
+            "description": "Flags the tournament as featured on the organization’s public page. A record field like `name`, not a ruleset override: it carries no competition meaning and is not mutation-classified against the discipline descriptor."
           },
           "checkInClosesAt": {
             "type": "string",
@@ -11940,6 +12169,51 @@
           "version",
           "name",
           "stages"
+        ]
+      },
+      "UploadImageRequest": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "contentBase64": {
+            "type": "string",
+            "description": "Base64-encoded file content"
+          }
+        },
+        "required": [
+          "filename",
+          "contentType",
+          "contentBase64"
+        ]
+      },
+      "UploadImageResponse": {
+        "type": "object",
+        "properties": {
+          "objectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "object_metadata.object_id of the stored image"
+          }
+        },
+        "required": [
+          "objectId"
+        ]
+      },
+      "DeleteEmblemResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "ok"
         ]
       },
       "TeamMemberResponse": {
@@ -12223,21 +12497,49 @@
           "name"
         ]
       },
+      "TeamMembershipMemberInput": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Person identifier"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "player",
+              "substitute",
+              "coach",
+              "staff"
+            ],
+            "default": "player",
+            "description": "Member role within the team"
+          }
+        },
+        "required": [
+          "personId"
+        ]
+      },
       "EditTeamMembershipsRequest": {
         "type": "object",
         "properties": {
           "personIds": {
-            "description": "The team’s full desired membership. Anyone currently a member but not named here is removed.",
+            "description": "The team’s full desired membership by person IDs (defaults each to \"player\").",
             "type": "array",
             "items": {
               "type": "array",
               "format": "uuid"
             }
+          },
+          "members": {
+            "description": "The team’s full desired membership with optional roles (defaults to \"player\" when omitted).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamMembershipMemberInput"
+            }
           }
-        },
-        "required": [
-          "personIds"
-        ]
+        }
       },
       "SetEntrantAbbreviationRequest": {
         "type": "object",
@@ -12918,6 +13220,26 @@
           "label"
         ]
       },
+      "ConsoleEntrantResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name — the team name, or the person’s name for an individual entrant"
+          },
+          "abbreviation": {
+            "type": "string",
+            "description": "Tournament-scoped abbreviation, when one is persisted"
+          }
+        },
+        "required": [
+          "entrantId"
+        ]
+      },
       "MatchConsoleResponse": {
         "type": "object",
         "properties": {
@@ -12996,11 +13318,11 @@
               "type": "string"
             }
           },
-          "entrantIds": {
-            "description": "Entrants contesting this match",
+          "entrants": {
+            "description": "Entrants contesting this match, with the identity the console renders",
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/ConsoleEntrantResponse"
             }
           },
           "capabilities": {
@@ -13028,14 +13350,19 @@
           "rosters",
           "rosterRoles",
           "eligibleStaffIds",
-          "entrantIds",
+          "entrants",
           "capabilities",
           "projectionVersion"
         ]
       },
-      "FinalizeRequest": {
+      "MatchCommandRequest": {
         "type": "object",
         "properties": {
+          "segmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The segment a start/pause/resume/end command acts on. Absent falls back to whichever segment is currently running — which is no segment at all once one has been paused"
+          },
           "sides": {
             "description": "One entry per side: entrant id, its declared statistics, placement for a heat, and why the result is what it is when not an ordinarily played one",
             "type": "array",
@@ -13348,7 +13675,7 @@
             }
           },
           "result": {
-            "description": "One entry per side, matching FinalizeRequest’s existing shape",
+            "description": "One entry per side, matching MatchCommandRequest’s existing shape",
             "type": "array",
             "items": {
               "type": "object"
@@ -13913,6 +14240,29 @@
           "cells"
         ]
       },
+      "TableProjectionSegmentResponse": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Absent when the segment covers a stage that has no groups"
+          },
+          "groupName": {
+            "type": "string",
+            "description": "The group’s own name, e.g. \"Group A\""
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableRowResponse"
+            }
+          }
+        },
+        "required": [
+          "rows"
+        ]
+      },
       "TableProjectionResponse": {
         "type": "object",
         "properties": {
@@ -13954,6 +14304,13 @@
           "projectionVersion": {
             "type": "number",
             "description": "Freshest `statistic-totals` projection version among this scope’s matches; 0 when none has been folded yet"
+          },
+          "segments": {
+            "description": "Stage-scoped reads only: the same figures split into one ranked block per group, or a single block when the stage has no groups",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableProjectionSegmentResponse"
+            }
           },
           "grain": {
             "type": "string",
@@ -15279,6 +15636,15 @@
             "items": {
               "$ref": "#/components/schemas/PublicTournamentWinnerZoneResponse"
             }
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "object_metadata.object_id of the tournament emblem"
+          },
+          "featured": {
+            "type": "boolean",
+            "description": "Whether the organizer flagged this tournament as featured. Independent of `status`: live is urgent, featured is curated, and a tournament can be either, both, or neither."
           }
         },
         "required": [
@@ -15286,7 +15652,8 @@
           "alias",
           "name",
           "status",
-          "discipline"
+          "discipline",
+          "featured"
         ]
       },
       "PublicOverviewClubResponse": {
@@ -15507,6 +15874,25 @@
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "live",
+              "finished"
+            ]
+          },
+          "winners": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicTournamentWinnerZoneResponse"
+            }
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Object storage ID of the tournament emblem, when one has been uploaded."
           }
         },
         "required": [
@@ -15926,6 +16312,10 @@
       "PublicBracketResponse": {
         "type": "object",
         "properties": {
+          "format": {
+            "type": "string",
+            "description": "The competition format of the stage"
+          },
           "matches": {
             "type": "array",
             "items": {
@@ -16227,6 +16617,72 @@
         "required": [
           "accessToken",
           "expiresIn"
+        ]
+      },
+      "JwksKey": {
+        "type": "object",
+        "properties": {
+          "kty": {
+            "type": "string"
+          },
+          "kid": {
+            "type": "string"
+          },
+          "use": {
+            "type": "string"
+          },
+          "alg": {
+            "type": "string"
+          },
+          "n": {
+            "type": "string"
+          },
+          "e": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kty",
+          "kid",
+          "use",
+          "alg",
+          "n",
+          "e"
+        ]
+      },
+      "JwksResponse": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JwksKey"
+            }
+          }
+        },
+        "required": [
+          "keys"
+        ]
+      },
+      "NativeAcceptInvitationRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The invitation token from setupUrl"
+          },
+          "password": {
+            "type": "string",
+            "description": "New password for the administrator (min 8 characters)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name for the administrator"
+          }
+        },
+        "required": [
+          "token",
+          "password"
         ]
       },
       "ForgotPasswordRequest": {
@@ -16772,39 +17228,6 @@
         "required": [
           "personId",
           "displayName"
-        ]
-      },
-      "UploadImageRequest": {
-        "type": "object",
-        "properties": {
-          "filename": {
-            "type": "string"
-          },
-          "contentType": {
-            "type": "string"
-          },
-          "contentBase64": {
-            "type": "string",
-            "description": "Base64-encoded file content"
-          }
-        },
-        "required": [
-          "filename",
-          "contentType",
-          "contentBase64"
-        ]
-      },
-      "UploadImageResponse": {
-        "type": "object",
-        "properties": {
-          "objectId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "object_metadata.object_id of the stored image"
-          }
-        },
-        "required": [
-          "objectId"
         ]
       },
       "SetPersonNationalityRequest": {

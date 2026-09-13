@@ -19,3 +19,12 @@ packages/contracts/src/generated/
 # `helm lint`/`helm template` are this directory's own formatting/validity
 # gate instead.
 deploy/helm/copalibre/templates/
+
+# Impeccable's generated design artifacts. `/impeccable document` writes DESIGN.md
+# and the sidecar, and `impeccable hooks` owns config.json — those generators are
+# the only writers, so their output must stay canonical. Prettier reflows the
+# frontmatter's quote style and collapses the config's arrays, which would make
+# every regeneration look like drift and would break the DESIGN.md-vs-token-source
+# comparison that compares values exactly (openspec change 0224).
+DESIGN.md
+.impeccable/

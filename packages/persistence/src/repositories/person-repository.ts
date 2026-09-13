@@ -481,6 +481,44 @@ export class PersonRepository {
     return player;
   }
 
+  /** Updates the role of an existing team member. */
+  async setPlayerRole(
+    uow: UnitOfWork,
+    input: {
+      readonly playerId: string;
+      readonly role: PlayerRole;
+      readonly organizationId: string;
+    } & AuditContext,
+  ): Promise<Player> {
+    const previous = await uow.tx
+      .selectFrom('players')
+      .selectAll()
+      .where('player_id', '=', input.playerId)
+      .executeTakeFirst();
+
+    const row = await uow.tx
+      .updateTable('players')
+      .set({ role: input.role })
+      .where('player_id', '=', input.playerId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const player = toPlayer(row);
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'player',
+      entityId: input.playerId,
+      action: 'player.role-updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: previous ? { role: previous.role } : undefined,
+      resultingState: { role: player.role },
+    });
+
+    return player;
+  }
+
   /**
    * Removes a membership.
    *
@@ -692,7 +730,6 @@ export class PersonRepository {
       .where('organization_id', '=', organizationId)
       .where('actor_id', '=', personId)
       .where('actor_granularity', '=', 'person')
-      .where('competition_granularity', '=', 'organization')
       .groupBy('collector_code')
       .execute();
 
@@ -717,13 +754,13 @@ export class PersonRepository {
     for (const descRow of descriptorRows) {
       const descriptor =
         typeof descRow.document === 'string' ? JSON.parse(descRow.document) : descRow.document;
-      const orgCollectors: Array<{ code: string }> = (descriptor.collectors ?? []).filter(
-        (c: { granularity?: { actor: string; competition: string } }) =>
-          c.granularity?.actor === 'person' && c.granularity?.competition === 'organization',
+      const personCollectors: Array<{ code: string }> = (descriptor.collectors ?? []).filter(
+        (c: { granularity?: { actor: string; competition?: string } }) =>
+          c.granularity?.actor === 'person',
       );
-      if (orgCollectors.length > 0) {
+      if (personCollectors.length > 0) {
         const disciplineTotals: PersonCareerStatisticTotal[] = [];
-        for (const c of orgCollectors) {
+        for (const c of personCollectors) {
           const stats = valueByCollector.get(c.code);
           if (stats) {
             disciplineTotals.push({

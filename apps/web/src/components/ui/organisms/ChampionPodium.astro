@@ -1,0 +1,201 @@
+---
+import type { IntlShape } from 'react-intl';
+import type { PublicTournamentWinnerZoneResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
+
+interface Props {
+  readonly winners: readonly PublicTournamentWinnerZoneResponse[];
+  readonly intl: IntlShape;
+  readonly prominent?: boolean;
+}
+
+const { winners, intl, prominent = false } = Astro.props;
+---
+
+{
+  winners.length > 0 && (
+    <section
+      class:list={['cl-podium-container', { 'cl-podium-prominent': prominent }]}
+      aria-label={intl.formatMessage(messages.tournamentsFinishedHeading)}
+    >
+      {winners.map((zone) => (
+        <div class="cl-zone-podium">
+          {zone.zoneName && <div class="cl-zone-title">{zone.zoneName}</div>}
+          <div class="cl-podium-grid">
+            {/* Champion */}
+            <div class="cl-podium-spot cl-champion-spot" data-entrant-id={zone.champion.entrantId}>
+              <div class="cl-medal-badge cl-gold-medal" aria-hidden="true">
+                1
+              </div>
+              <div class="cl-entrant-info">
+                <span class="cl-podium-label">
+                  {intl.formatMessage(messages.tournamentsChampion)}
+                </span>
+                <span class="cl-entrant-name" title={zone.champion.name}>
+                  {zone.champion.name}
+                  {zone.champion.abbreviation && (
+                    <span class="cl-entrant-abbr" title={zone.champion.name}>
+                      {' '}
+                      ({zone.champion.abbreviation})
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Runner-Up */}
+            {zone.runnerUp && (
+              <div class="cl-podium-spot cl-runner-spot" data-entrant-id={zone.runnerUp.entrantId}>
+                <div class="cl-medal-badge cl-silver-medal" aria-hidden="true">
+                  2
+                </div>
+                <div class="cl-entrant-info">
+                  <span class="cl-podium-label">
+                    {intl.formatMessage(messages.tournamentsRunnerUp)}
+                  </span>
+                  <span class="cl-entrant-name" title={zone.runnerUp.name}>
+                    {zone.runnerUp.name}
+                    {zone.runnerUp.abbreviation && (
+                      <span class="cl-entrant-abbr" title={zone.runnerUp.name}>
+                        {' '}
+                        ({zone.runnerUp.abbreviation})
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </section>
+  )
+}
+
+<style>
+  .cl-podium-container {
+    background-color: color-mix(in srgb, var(--cl-color-ink-950) 25%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cl-text-primary) 7%, transparent);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cl-podium-prominent {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cl-state-upcoming) 8%, transparent),
+      color-mix(in srgb, var(--cl-color-ink-950) 40%, transparent)
+    );
+    border: 1px solid color-mix(in srgb, var(--cl-state-upcoming) 30%, transparent);
+    border-radius: var(--cl-radius-lg);
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0;
+  }
+
+  .cl-podium-prominent .cl-champion-spot {
+    background-color: color-mix(in srgb, var(--cl-state-upcoming) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cl-state-upcoming) 25%, transparent);
+    padding: 0.75rem 1rem;
+  }
+
+  .cl-podium-prominent .cl-entrant-name {
+    font-size: var(--cl-font-size-md);
+    font-weight: 700;
+  }
+
+  .cl-podium-prominent .cl-medal-badge {
+    width: 32px;
+    height: 32px;
+    font-size: var(--cl-font-size-sm);
+  }
+
+  .cl-zone-title {
+    font-size: var(--cl-font-size-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cl-state-upcoming);
+    margin-bottom: 0.35rem;
+  }
+
+  .cl-podium-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  @media (min-width: 480px) {
+    .cl-podium-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .cl-podium-spot {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem;
+    border-radius: var(--cl-radius-md);
+    background-color: color-mix(in srgb, var(--cl-text-primary) 3%, transparent);
+    min-width: 0;
+  }
+
+  .cl-medal-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--cl-font-size-xs);
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .cl-gold-medal {
+    background: linear-gradient(135deg, var(--cl-state-upcoming), var(--cl-color-amber-800));
+    color: var(--cl-color-ink-950);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--cl-state-upcoming) 40%, transparent);
+  }
+
+  .cl-silver-medal {
+    background: linear-gradient(135deg, var(--cl-text-secondary), var(--cl-text-muted));
+    color: var(--cl-surface-base);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--cl-text-secondary) 30%, transparent);
+  }
+
+  .cl-entrant-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .cl-podium-label {
+    font-size: var(--cl-font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cl-text-muted);
+    /* A longer translated label (German "Zweitplatzierter") can otherwise
+       push this flex column past a narrow viewport (openspec 0225 task 7.4). */
+    overflow-wrap: anywhere;
+  }
+
+  .cl-entrant-name {
+    font-size: var(--cl-font-size-sm);
+    font-weight: 600;
+    color: var(--cl-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cl-entrant-abbr {
+    color: var(--cl-text-muted);
+    font-weight: normal;
+    margin-left: 0.25rem;
+  }
+</style>

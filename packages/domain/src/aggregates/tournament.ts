@@ -29,6 +29,14 @@ export interface Tournament {
   readonly archivedAt?: string;
   /** Profile this tournament instantiated, pinned at start. */
   readonly profileRef?: { readonly profileId: string; readonly version: string };
+  /** FK into `object_metadata.object_id`; absent until an emblem is uploaded. */
+  readonly emblemObjectId?: string;
+  /**
+   * The organizer's own "this one matters" flag for the public organization
+   * page, deliberately independent of `status`: live is urgent, featured is
+   * curated, and a tournament can be either, both, or neither.
+   */
+  readonly featured: boolean;
 }
 
 /** A started tournament's modules are frozen; see canChangeModuleVersion. */
@@ -81,4 +89,40 @@ export function transitionTournament(
     );
   }
   return ok(to);
+}
+
+export type PublicTournamentStatus = 'upcoming' | 'live' | 'finished';
+
+/**
+ * Derives a tournament's public-facing status from its lifecycle state
+ * and recorded match statuses. A tournament where every match is finalized
+ * is classified as 'finished', consistent across organization home and tournament overview.
+ */
+export function deriveTournamentStatus(
+  status: TournamentStatus | string,
+  matches: readonly { readonly status?: string; readonly state?: string }[] = [],
+): PublicTournamentStatus {
+  if (status === 'finished' || status === 'archived') {
+    return 'finished';
+  }
+  if (
+    matches.length > 0 &&
+    matches.every((m) => m.status === 'finalized' || m.status === 'finished' || m.state === 'final')
+  ) {
+    return 'finished';
+  }
+  if (
+    status === 'started' ||
+    matches.some(
+      (m) =>
+        m.status === 'in-progress' ||
+        m.status === 'live' ||
+        m.state === 'live' ||
+        m.status === 'finalized' ||
+        m.state === 'final',
+    )
+  ) {
+    return 'live';
+  }
+  return 'upcoming';
 }

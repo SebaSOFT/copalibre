@@ -6,6 +6,7 @@ import { SeedingController } from '../controllers/seeding.controller.js';
 import { StandingsController } from '../controllers/standings.controller.js';
 import { TableProjectionsController } from '../controllers/table-projections.controller.js';
 import { ZonesGroupsController } from '../controllers/zones-groups.controller.js';
+import { TournamentMediaController } from '../controllers/identity-media.controller.js';
 import { CoreModule } from './core.module.js';
 
 @Module({
@@ -13,6 +14,7 @@ import { CoreModule } from './core.module.js';
   controllers: [
     TournamentsController,
     TournamentProfilesController,
+    TournamentMediaController,
     StagesController,
     SeedingController,
     StandingsController,

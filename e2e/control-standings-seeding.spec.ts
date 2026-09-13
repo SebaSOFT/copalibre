@@ -338,7 +338,12 @@ test('a published seed order survives a page reload', async ({ page }) => {
   const shuffled = await seedList.getByRole('listitem').allTextContents();
 
   await page.getByRole('button', { name: 'Publicar sembrado' }).click();
-  await expect(page.getByRole('status')).toContainText('Reseeding regenerates the fixture graph');
+  // Several polite live regions now, not one: 0214's Alert atom gives every
+  // informational alert the `role="status"` it previously lacked, so this
+  // screen's stage-locked explanations announce alongside the publish result.
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Reseeding regenerates the fixture graph' }),
+  ).toBeVisible();
 
   // The session is in-memory only and a reload discards it, same as a
   // real browser refresh — log back in to return to this screen so the

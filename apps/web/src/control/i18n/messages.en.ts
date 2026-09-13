@@ -17,6 +17,10 @@ export const messages = defineMessages({
     id: 'control.shell.whatIsThisScreen',
     defaultMessage: 'What is this screen?',
   },
+  shellOpenNavigation: {
+    id: 'control.shell.openNavigation',
+    defaultMessage: 'Open navigation menu',
+  },
   shellLanguage: { id: 'control.shell.language', defaultMessage: 'Language' },
   shellLogout: { id: 'control.shell.logout', defaultMessage: 'Log out' },
 
@@ -142,6 +146,28 @@ export const messages = defineMessages({
     id: 'control.platform.modules.updatesAvailable',
     defaultMessage: 'Available module updates',
   },
+  // 0223 — the editorial presentation of an update that is already listed here.
+  platformUpdateEyebrow: {
+    id: 'control.platform.modules.updateEyebrow',
+    defaultMessage: 'Module update',
+  },
+  platformUpdateHeadline: {
+    id: 'control.platform.modules.updateHeadline',
+    defaultMessage: '{alias} {currentVersion} → {latestVersion}',
+  },
+  platformUpdateKind: {
+    id: 'control.platform.modules.updateKind',
+    defaultMessage: 'Upgrade type: {upgrade}',
+  },
+  platformUpdateCalloutTitle: {
+    id: 'control.platform.modules.updateCalloutTitle',
+    defaultMessage: 'Install this version',
+  },
+  platformUpdateCalloutDescription: {
+    id: 'control.platform.modules.updateCalloutDescription',
+    defaultMessage:
+      'Enter the alias below and install it. Modules are installed through the seed application; nothing is applied from this list.',
+  },
   platformModuleAlias: { id: 'control.platform.modules.alias', defaultMessage: 'Module alias' },
   platformVersionRange: {
     id: 'control.platform.modules.range',
@@ -198,8 +224,28 @@ export const messages = defineMessages({
   lifecycleDraft: { id: 'control.lifecycle.draft', defaultMessage: 'DRAFT' },
   lifecycleFinished: { id: 'control.lifecycle.finished', defaultMessage: 'FINISHED' },
 
-  // Dashboard (QuickStats.tsx, TournamentCard.tsx, ActivityLog.tsx, Dashboard.tsx)
+  // Dashboard (QuickStats.tsx, TournamentSummaryCard.tsx, ActivityLog.tsx, Dashboard.tsx)
   dashboardSummary: { id: 'control.dashboard.summary', defaultMessage: 'Summary' },
+  // 0223 — a measurement that does not exist says so, rather than reading as zero.
+  // 0223 — the authored module document, shown as the file it becomes.
+  descriptorDocumentRegion: {
+    id: 'control.descriptor.documentRegion',
+    defaultMessage: 'Authored module document',
+  },
+  descriptorDocumentCopy: {
+    id: 'control.descriptor.documentCopy',
+    defaultMessage: 'Copy the module document',
+  },
+  descriptorDocumentCopied: { id: 'control.descriptor.documentCopied', defaultMessage: 'Copied' },
+  descriptorDocumentCopyFailed: {
+    id: 'control.descriptor.documentCopyFailed',
+    defaultMessage: 'Copy failed — select the text to copy it',
+  },
+  metricUnavailable: { id: 'control.metric.unavailable', defaultMessage: 'Not available' },
+  metricDemonstration: {
+    id: 'control.metric.demonstration',
+    defaultMessage: 'Demonstration figure',
+  },
   dashboardActiveTournaments: {
     id: 'control.dashboard.activeTournaments',
     defaultMessage: 'Active tournaments',
@@ -283,7 +329,7 @@ export const messages = defineMessages({
       '{count, plural, =0 {This change requires regenerating the competitive structure.} one {This change requires regenerating # fixture.} other {This change requires regenerating # fixtures.}}',
   },
 
-  // SeedingBuilderPage.tsx
+  // SeedingBuilderTemplate.tsx
   seedingSectionLabel: {
     id: 'control.seeding.sectionLabel',
     defaultMessage: 'Seeding and bracket',
@@ -312,7 +358,7 @@ export const messages = defineMessages({
     defaultMessage: 'Generated bracket',
   },
 
-  // Reports/disputes (lib/reports.ts, ReportReviewRoute.tsx)
+  // Reports/disputes (lib/reports.ts, ReportReviewPage.tsx)
   reportKindReport: { id: 'control.report.kind.report', defaultMessage: 'Proposed result' },
   reportKindDispute: { id: 'control.report.kind.dispute', defaultMessage: 'Dispute' },
   reportGenericSummary: {
@@ -339,7 +385,7 @@ export const messages = defineMessages({
   },
   reportDismiss: { id: 'control.report.dismiss', defaultMessage: 'Dismiss' },
 
-  // TournamentAuthoringPage.tsx
+  // TournamentAuthoringTemplate.tsx
   authoringLoadingDisciplines: {
     id: 'control.authoring.loadingDisciplines',
     defaultMessage: 'Loading disciplines...',
@@ -365,7 +411,7 @@ export const messages = defineMessages({
     defaultMessage: 'Could not create the tournament.',
   },
 
-  // MatchConsoleRoute.tsx
+  // MatchConsolePage.tsx
   matchConsoleLoading: {
     id: 'control.matchConsole.loading',
     defaultMessage: 'Loading match control...',
@@ -400,9 +446,9 @@ export const messages = defineMessages({
     defaultMessage: 'Awaiting authoritative projection...',
   },
   // Sync status — always visible, not only surfaced on failure.
-  matchConsoleSyncStatus: {
-    id: 'control.matchConsole.syncStatus',
-    defaultMessage: 'Sync status',
+  matchConsoleSyncState: {
+    id: 'control.matchConsole.syncState',
+    defaultMessage: 'Sync status: {state}',
   },
   matchConsoleOnline: { id: 'control.matchConsole.online', defaultMessage: 'Online' },
   matchConsoleOffline: { id: 'control.matchConsole.offline', defaultMessage: 'Offline' },
@@ -418,6 +464,25 @@ export const messages = defineMessages({
   matchConsoleNeverSynced: {
     id: 'control.matchConsole.neverSynced',
     defaultMessage: 'Not yet synced',
+  },
+  matchConsoleClockCommands: {
+    id: 'control.matchConsole.clockCommands',
+    defaultMessage: 'Clock commands',
+  },
+  matchConsoleStartClock: { id: 'control.matchConsole.startClock', defaultMessage: 'Start' },
+  matchConsolePauseClock: { id: 'control.matchConsole.pauseClock', defaultMessage: 'Pause' },
+  matchConsoleEndSegment: { id: 'control.matchConsole.endSegment', defaultMessage: 'End period' },
+  matchConsoleExpandLedger: {
+    id: 'control.matchConsole.expandLedger',
+    defaultMessage: 'Show full history',
+  },
+  matchConsoleCollapseLedger: {
+    id: 'control.matchConsole.collapseLedger',
+    defaultMessage: 'Show less',
+  },
+  matchConsoleUnnamedEntrant: {
+    id: 'control.matchConsole.unnamedEntrant',
+    defaultMessage: 'Unnamed entrant',
   },
   matchConsoleRefusedAction: {
     id: 'control.matchConsole.refusedAction',
@@ -509,6 +574,14 @@ export const messages = defineMessages({
     id: 'control.matchConsole.confirmFinalization',
     defaultMessage: 'Confirm finalization',
   },
+  matchConsoleFinalizeWinnerLegend: {
+    id: 'control.matchConsole.finalizeWinnerLegend',
+    defaultMessage: 'Winner',
+  },
+  matchConsoleFinalizeNoWinner: {
+    id: 'control.matchConsole.finalizeNoWinner',
+    defaultMessage: 'No winner recorded',
+  },
   matchConsoleLedgerAndStatus: {
     id: 'control.matchConsole.ledgerAndStatus',
     defaultMessage: 'Ledger and status',
@@ -536,21 +609,6 @@ export const messages = defineMessages({
     defaultMessage: 'Clock {time}',
   },
   matchConsoleLogNote: { id: 'control.matchConsole.logNote', defaultMessage: 'Log note' },
-  matchConsoleOperationalSignal: {
-    id: 'control.matchConsole.operationalSignal',
-    defaultMessage: 'Operational signal',
-  },
-  matchConsoleLatency: { id: 'control.matchConsole.latency', defaultMessage: 'Latency' },
-  matchConsolePacketLoss: {
-    id: 'control.matchConsole.packetLoss',
-    defaultMessage: 'Packet loss',
-  },
-  matchConsoleViewers: { id: 'control.matchConsole.viewers', defaultMessage: 'Viewers' },
-  matchConsoleUptime: { id: 'control.matchConsole.uptime', defaultMessage: 'Uptime' },
-  matchConsoleUnavailable: {
-    id: 'control.matchConsole.unavailable',
-    defaultMessage: 'Unavailable',
-  },
 
   // JerseyGrid.tsx
   matchConsoleJerseyGridLabel: {
@@ -623,7 +681,7 @@ export const messages = defineMessages({
     defaultMessage: 'This entrant has no registered players yet.',
   },
 
-  // RegistrationReviewRoute.tsx
+  // RegistrationReviewPage.tsx
   registrationLoading: {
     id: 'control.registration.loading',
     defaultMessage: 'Loading registrations...',
@@ -677,7 +735,7 @@ export const messages = defineMessages({
     defaultMessage: 'Not recorded',
   },
 
-  // lib/review.ts, RegistrationReviewPage.tsx
+  // lib/review.ts, RegistrationReviewTemplate.tsx
   reviewLockExplanation: {
     id: 'control.review.lockExplanation',
     defaultMessage:
@@ -722,6 +780,15 @@ export const messages = defineMessages({
   reviewExperience: { id: 'control.review.experience', defaultMessage: 'Experience' },
   reviewMessage: { id: 'control.review.message', defaultMessage: 'Message' },
   reviewEditMembers: { id: 'control.review.editMembers', defaultMessage: 'Edit members' },
+  reviewEditMembersTitle: {
+    id: 'control.review.editMembersTitle',
+    defaultMessage: 'Edit team members',
+  },
+  reviewEditMembersDescription: {
+    id: 'control.review.editMembersDescription',
+    defaultMessage: 'Change member roles within {team}.',
+  },
+  reviewSaveMembers: { id: 'control.review.saveMembers', defaultMessage: 'Save members' },
   reviewRevoke: { id: 'control.review.revoke', defaultMessage: 'Revoke' },
   reviewEmptyFilter: {
     id: 'control.review.emptyFilter',
@@ -833,7 +900,7 @@ export const messages = defineMessages({
     defaultMessage: 'Search country…',
   },
 
-  // PersonProfileRoute.tsx
+  // PersonProfilePage.tsx
   personProfileTitle: { id: 'control.personProfile.title', defaultMessage: 'Person profile' },
   personProfileLoading: {
     id: 'control.personProfile.loading',
@@ -875,7 +942,7 @@ export const messages = defineMessages({
     defaultMessage: 'No emblem',
   },
 
-  // RolesPermissionsRoute.tsx, RolesPermissionsPage.tsx
+  // RolesPermissionsPage.tsx, RolesPermissionsTemplate.tsx
   rolesLoadFailed: {
     id: 'control.roles.loadFailed',
     defaultMessage: 'Could not load the users.',
@@ -933,6 +1000,11 @@ export const messages = defineMessages({
   rolesRoleBroadcaster: { id: 'control.roles.role.broadcaster', defaultMessage: 'Broadcast' },
   rolesRoleViewer: { id: 'control.roles.role.viewer', defaultMessage: 'Viewer' },
   rolesInviteDialogClose: { id: 'control.roles.inviteDialog.close', defaultMessage: 'Close' },
+  registrationModalClose: {
+    id: 'control.registration.modalClose',
+    defaultMessage: 'Close',
+  },
+  shellDrawerClose: { id: 'control.shell.drawerClose', defaultMessage: 'Close menu' },
   rolesInviteDialogEmail: { id: 'control.roles.inviteDialog.email', defaultMessage: 'Email' },
   rolesInviteDialogRole: { id: 'control.roles.inviteDialog.role', defaultMessage: 'Role' },
   rolesInviteDialogRoleAriaLabel: {
@@ -962,7 +1034,7 @@ export const messages = defineMessages({
     defaultMessage: 'Send invitation',
   },
 
-  // AuditTrailRoute.tsx
+  // AuditTrailPage.tsx
   auditTrailTitle: { id: 'control.auditTrail.title', defaultMessage: 'Audit trail' },
   auditTrailDescription: {
     id: 'control.auditTrail.description',
@@ -981,6 +1053,11 @@ export const messages = defineMessages({
   auditTrailLoadFailed: {
     id: 'control.auditTrail.loadFailed',
     defaultMessage: 'Could not load the audit trail.',
+  },
+  // 0223 — the ledger entry a corrected record expands into.
+  auditTrailCorrectionTitle: {
+    id: 'control.auditTrail.correctionTitle',
+    defaultMessage: 'What this record changed',
   },
   auditTrailColumnTime: { id: 'control.auditTrail.columnTime', defaultMessage: 'When' },
   auditTrailColumnActor: { id: 'control.auditTrail.columnActor', defaultMessage: 'Who' },
@@ -1011,6 +1088,16 @@ export const messages = defineMessages({
   auditTrailPageStatus: {
     id: 'control.auditTrail.pageStatus',
     defaultMessage: '{start}–{end} of {total}',
+  },
+
+  // audit-log-panel.tsx (openspec 0225 task 5.6)
+  auditLogPanelEventCount: {
+    id: 'control.auditLogPanel.eventCount',
+    defaultMessage: '{count, plural, one {# event} other {# events}}',
+  },
+  auditLogPanelLatency: {
+    id: 'control.auditLogPanel.latency',
+    defaultMessage: '{latencyMs}ms latency',
   },
 
   // Wizard steps (lib/wizard.ts WIZARD_STEPS)
@@ -1316,7 +1403,7 @@ export const messages = defineMessages({
       'This cannot be changed once a result exists; use the audited correction workflow instead.',
   },
 
-  // Standings (components/StandingsPage.tsx)
+  // Standings (components/StandingsTemplate.tsx)
   standingsSectionLabel: { id: 'control.standings.sectionLabel', defaultMessage: 'Standings' },
   standingsTitle: { id: 'control.standings.title', defaultMessage: 'Standings' },
   standingsProjectionVersion: {
@@ -1370,6 +1457,16 @@ export const messages = defineMessages({
     id: 'control.standings.distributionEmpty',
     defaultMessage: 'No data to chart.',
   },
+  // 0223 — the standings panel's own chrome, distinct from the table's data labels.
+  standingsPanelDecidedBy: {
+    id: 'control.standings.panelDecidedBy',
+    defaultMessage: 'Decided this position',
+  },
+  standingsTiebreakerSequenceTitle: {
+    id: 'control.standings.tiebreakerSequenceTitle',
+    defaultMessage: 'Tiebreaker sequence',
+  },
+  standingsRankColumn: { id: 'control.standings.rankColumn', defaultMessage: 'Position' },
   standingsSharedRank: { id: 'control.standings.sharedRank', defaultMessage: 'Shared position' },
   standingsTieBroken: { id: 'control.standings.tieBroken', defaultMessage: 'Tiebreak applied' },
   standingsExportCsv: { id: 'control.standings.exportCsv', defaultMessage: 'Export CSV' },
@@ -1465,7 +1562,7 @@ export const messages = defineMessages({
   zoneGroupRename: { id: 'control.zoneGroup.rename', defaultMessage: 'Rename' },
   zoneGroupDelete: { id: 'control.zoneGroup.delete', defaultMessage: 'Delete' },
 
-  // TournamentSettingsPage.tsx, TournamentSettingsRoute.tsx (openspec 0168)
+  // TournamentSettingsTemplate.tsx, TournamentSettingsPage.tsx (openspec 0168)
   settingsTitle: { id: 'control.settings.title', defaultMessage: 'Tournament settings' },
   settingsLoading: { id: 'control.settings.loading', defaultMessage: 'Loading settings…' },
   settingsLoadFailed: {
@@ -1479,6 +1576,10 @@ export const messages = defineMessages({
     id: 'control.settings.checkInClosesAtLabel',
     defaultMessage: 'Check-in closes at',
   },
+  settingsFeaturedLabel: {
+    id: 'control.settings.featuredLabel',
+    defaultMessage: 'Feature on the organization’s public page',
+  },
   settingsPreview: { id: 'control.settings.preview', defaultMessage: 'Preview' },
   settingsSave: { id: 'control.settings.save', defaultMessage: 'Save' },
   settingsSaved: { id: 'control.settings.saved', defaultMessage: 'Settings saved.' },
@@ -1491,8 +1592,36 @@ export const messages = defineMessages({
     id: 'control.settings.link',
     defaultMessage: 'Tournament settings',
   },
+  settingsEmblemHeading: {
+    id: 'control.settings.emblemHeading',
+    defaultMessage: 'Tournament emblem',
+  },
+  settingsEmblemAlt: {
+    id: 'control.settings.emblemAlt',
+    defaultMessage: 'Tournament emblem',
+  },
+  settingsEmblemPlaceholderAlt: {
+    id: 'control.settings.emblemPlaceholderAlt',
+    defaultMessage: 'No tournament emblem uploaded',
+  },
+  settingsUploadEmblem: {
+    id: 'control.settings.uploadEmblem',
+    defaultMessage: 'Upload emblem',
+  },
+  settingsRemoveEmblem: {
+    id: 'control.settings.removeEmblem',
+    defaultMessage: 'Remove emblem',
+  },
+  settingsEmblemUploaded: {
+    id: 'control.settings.emblemUploaded',
+    defaultMessage: 'Tournament emblem uploaded.',
+  },
+  settingsEmblemRemoved: {
+    id: 'control.settings.emblemRemoved',
+    defaultMessage: 'Tournament emblem removed.',
+  },
 
-  // TournamentRulesetPage.tsx, TournamentRulesetRoute.tsx (openspec 0169)
+  // TournamentRulesetTemplate.tsx, TournamentRulesetPage.tsx (openspec 0169)
   rulesetOverridesTitle: { id: 'control.rulesetOverrides.title', defaultMessage: 'Ruleset' },
   rulesetOverridesLink: { id: 'control.rulesetOverrides.link', defaultMessage: 'Ruleset' },
   rulesetOverridesFields: {
@@ -1516,7 +1645,7 @@ export const messages = defineMessages({
     defaultMessage: 'Value (JSON)',
   },
 
-  // SeedingBuilderRoute.tsx — stage rename/format-change/delete (openspec 0168)
+  // SeedingBuilderPage.tsx — stage rename/format-change/delete (openspec 0168)
   stageSettingsTitle: { id: 'control.stageSettings.title', defaultMessage: 'Stage settings' },
   stageRenameLabel: { id: 'control.stageSettings.renameLabel', defaultMessage: 'New stage name' },
   stageRenameSubmit: { id: 'control.stageSettings.renameSubmit', defaultMessage: 'Rename' },
@@ -1531,7 +1660,7 @@ export const messages = defineMessages({
     defaultMessage: 'This stage already has fixtures, so its format and removal are locked.',
   },
 
-  // SeedingBuilderRoute.tsx — stage-configuration override editing (openspec 0169)
+  // SeedingBuilderPage.tsx — stage-configuration override editing (openspec 0169)
   stageConfigurationTitle: {
     id: 'control.stageConfiguration.title',
     defaultMessage: 'Stage configuration',
@@ -1623,6 +1752,44 @@ export const messages = defineMessages({
   landingPickerTitle: {
     id: 'control.landing.pickerTitle',
     defaultMessage: 'Choose an organization',
+  },
+  landingLoading: {
+    id: 'control.landing.loading',
+    defaultMessage: 'Loading control panel…',
+  },
+  landingErrorTitle: {
+    id: 'control.landing.errorTitle',
+    defaultMessage: 'Error loading organizations',
+  },
+  landingErrorGeneric: {
+    id: 'control.landing.errorGeneric',
+    defaultMessage: 'Could not load the organization',
+  },
+  landingBackToLogin: {
+    id: 'control.landing.backToLogin',
+    defaultMessage: 'Back to sign-in',
+  },
+
+  // Not-found screen (ControlApp.tsx's NotFound) — rendered for any path
+  // parseControlPath does not recognize.
+  notFoundTitle: { id: 'control.notFound.title', defaultMessage: 'Screen not found' },
+  notFoundBody: {
+    id: 'control.notFound.body',
+    defaultMessage: 'There is no control screen for {path}.',
+  },
+
+  // OIDC callback screen (ControlApp.tsx's CompletingLogin).
+  callbackLoading: {
+    id: 'control.callback.loading',
+    defaultMessage: 'Completing sign-in…',
+  },
+  callbackErrorTitle: {
+    id: 'control.callback.errorTitle',
+    defaultMessage: 'Could not complete sign-in',
+  },
+  callbackBackHome: {
+    id: 'control.callback.backHome',
+    defaultMessage: 'Back to home',
   },
 
   // Load match data — bulk/structured entry for a match played with no live console.
@@ -2788,7 +2955,7 @@ export const messages = defineMessages({
     defaultMessage: 'Author and install',
   },
 
-  // Matches view (openspec 0172) — MatchesViewRoute.tsx, shared MatchCard.tsx
+  // Matches view (openspec 0172) — MatchesViewPage.tsx, shared MatchCard.tsx
   matchesViewControlTitle: { id: 'control.matchesView.title', defaultMessage: 'Matches' },
   matchesViewControlLoadFailed: {
     id: 'control.matchesView.loadFailed',
@@ -2887,4 +3054,88 @@ export const messages = defineMessages({
     defaultMessage: 'On aggregate {home}–{away}',
   },
   matchesViewSeeAll: { id: 'control.matchesView.seeAll', defaultMessage: 'See every match' },
+
+  // Dashboard tournament card (openspec 0211)
+  dashboardOpen: { id: 'control.dashboard.open', defaultMessage: 'Open' },
+  dashboardExport: { id: 'control.dashboard.export', defaultMessage: 'Export' },
+  dashboardResumeEditing: {
+    id: 'control.dashboard.resumeEditing',
+    defaultMessage: 'Resume editing',
+  },
+
+  // Live console route (openspec 0225 task 2.6).
+  liveConsoleSubtitle: {
+    id: 'control.liveConsole.subtitle',
+    defaultMessage: 'Live operations console for tournaments and matches in play.',
+  },
+  liveConsoleLoading: {
+    id: 'control.liveConsole.loading',
+    defaultMessage: 'Loading live operations…',
+  },
+  liveConsoleNoActiveTournaments: {
+    id: 'control.liveConsole.noActiveTournaments',
+    defaultMessage: 'No active tournaments in this organization.',
+  },
+  liveConsoleCreateTournament: {
+    id: 'control.liveConsole.createTournament',
+    defaultMessage: 'Create tournament',
+  },
+
+  // Preferences route (openspec 0225 task 2.6) — the personal-access-token
+  // list's own loading state. Uses the shared catalogue rather than this
+  // file's local `defineMessages` block: that block's ids (`preferences.*`)
+  // have no locale translations recorded anywhere, only a `defaultMessage`,
+  // so a new id there would not resolve in the other seven catalogues.
+  preferencesTokensLoading: {
+    id: 'control.preferences.tokensLoading',
+    defaultMessage: 'Loading…',
+  },
+
+  // Analytics route (openspec 0225 task 2.6).
+  analyticsSubtitle: {
+    id: 'control.analytics.subtitle',
+    defaultMessage: 'Performance and operational-volume metrics for the organization.',
+  },
+  analyticsLoading: { id: 'control.analytics.loading', defaultMessage: 'Loading analytics…' },
+  analyticsTotalTournaments: {
+    id: 'control.analytics.totalTournaments',
+    defaultMessage: 'Total tournaments',
+  },
+  analyticsTournamentsBreakdown: {
+    id: 'control.analytics.tournamentsBreakdown',
+    defaultMessage: '{live} live · {upcoming} upcoming · {finished} finished',
+  },
+  analyticsFinishedTournaments: {
+    id: 'control.analytics.finishedTournaments',
+    defaultMessage: 'Finished tournaments',
+  },
+  analyticsFinishedDetail: {
+    id: 'control.analytics.finishedDetail',
+    defaultMessage: 'Archived and completed results',
+  },
+  analyticsStorageUsed: {
+    id: 'control.analytics.storageUsed',
+    defaultMessage: 'Storage used',
+  },
+  analyticsMediaFilesCount: {
+    id: 'control.analytics.mediaFilesCount',
+    defaultMessage: '{count} media files',
+  },
+  analyticsNoData: { id: 'control.analytics.noData', defaultMessage: 'No data' },
+
+  // Roster role selector (openspec 0225 task 2.6). `rosterRole*` replace
+  // ROSTER_ROLE_LABELS, previously a plain Spanish-only lookup object
+  // consumed here and by RegistrationReviewTemplate.tsx.
+  rosterRolePlayer: { id: 'control.roster.rolePlayer', defaultMessage: 'Player' },
+  rosterRoleSubstitute: { id: 'control.roster.roleSubstitute', defaultMessage: 'Substitute' },
+  rosterRoleCoach: { id: 'control.roster.roleCoach', defaultMessage: 'Coach' },
+  rosterRoleStaff: { id: 'control.roster.roleStaff', defaultMessage: 'Staff' },
+  rosterNoMembersYet: {
+    id: 'control.roster.noMembersYet',
+    defaultMessage: 'No members on this team yet.',
+  },
+  rosterRoleFieldLabel: {
+    id: 'control.roster.roleFieldLabel',
+    defaultMessage: 'Role for {name}',
+  },
 });

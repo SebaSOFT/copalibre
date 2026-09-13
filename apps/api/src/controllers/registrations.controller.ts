@@ -30,6 +30,7 @@ import {
 import {
   SUPPORTED_FORMATS,
   canDecide,
+  isPlayerRole,
   planBulkReview,
   planRosterReconciliation,
   teamMembershipsApply,
@@ -66,6 +67,7 @@ import {
   ReviewRegistrationRequest,
   SetEntrantAbbreviationRequest,
   TeamIdentityResponse,
+  TeamMemberResponse,
   UpdatePersonIdentityRequest,
   UpdateTeamIdentityRequest,
 } from '../dto/organization.dto.js';
@@ -127,14 +129,52 @@ export class RegistrationsController {
         (ref): ref is Extract<Entrant['entrantRef'], { kind: 'person' }> => ref.kind === 'person',
       )
       .map((ref) => ref.personId);
-    const persons = await new PersonRepository(this.db).findPersons(personIds);
+    const people = new PersonRepository(this.db);
+    const persons = await people.findPersons(personIds);
     const personById = new Map(persons.map((person) => [person.personId, person]));
     const linkedPersonIds = await new IdentityPrincipalRepository(this.db).linkedPersonIds(
       organizationId,
       personIds,
     );
 
-    return visible.map((entrant) => toResponse(entrant, personById, linkedPersonIds));
+    const teamEntrants = visible.filter(
+      (entrant): entrant is Entrant & { entrantRef: { kind: 'team'; teamId: string } } =>
+        entrant.entrantRef.kind === 'team',
+    );
+    const teamMembersByTeamId = new Map<string, TeamMemberResponse[]>();
+    if (teamEntrants.length > 0) {
+      const allTeamSquads = await Promise.all(
+        teamEntrants.map(async (te) => ({
+          teamId: te.entrantRef.teamId,
+          squad: await people.squadOf(te.entrantRef.teamId),
+        })),
+      );
+      const allMemberPersonIds = [
+        ...new Set(allTeamSquads.flatMap(({ squad }) => squad.map((p) => p.personId))),
+      ];
+      const memberPersons = await people.findPersons(allMemberPersonIds);
+      const memberPersonById = new Map(memberPersons.map((p) => [p.personId, p]));
+
+      for (const { teamId, squad } of allTeamSquads) {
+        teamMembersByTeamId.set(
+          teamId,
+          squad.map((player) => {
+            const person = memberPersonById.get(player.personId);
+            return {
+              personId: player.personId,
+              displayName: person?.displayName ?? 'Unknown',
+              role: player.role,
+              ...(person?.nationality ? { nationality: person.nationality } : {}),
+              ...(person?.photoObjectId ? { photoObjectId: person.photoObjectId } : {}),
+            };
+          }),
+        );
+      }
+    }
+
+    return visible.map((entrant) =>
+      toResponse(entrant, personById, linkedPersonIds, teamMembersByTeamId),
+    );
   }
 
   @Post(':entrantId/review')
@@ -563,7 +603,7 @@ export class RegistrationsController {
     if (!editable.ok)
       throw new ConflictException(editable.error.message, { errorCode: 'registration-conflict' });
 
-    if (!Array.isArray(body.personIds)) {
+    if (!Array.isArray(body.personIds) && !Array.isArray(body.members)) {
       throw new BadRequestException('A team-membership edit names the people on it', {
         errorCode: 'registration-bad-request',
       });
@@ -577,8 +617,24 @@ export class RegistrationsController {
     // Narrowed by the check above: only a 'team' entrant reaches this point.
     const { teamId } = entrant.entrantRef as Extract<Entrant['entrantRef'], { kind: 'team' }>;
 
+    const desiredRoleByPersonId = new Map<string, PlayerRole>();
+    if (Array.isArray(body.members)) {
+      for (const m of body.members) {
+        if (m && typeof m.personId === 'string') {
+          const role: PlayerRole = isPlayerRole(m.role) ? m.role : DEFAULT_TEAM_MEMBERSHIP_ROLE;
+          desiredRoleByPersonId.set(m.personId, role);
+        }
+      }
+    } else if (Array.isArray(body.personIds)) {
+      for (const personId of body.personIds) {
+        if (typeof personId === 'string') {
+          desiredRoleByPersonId.set(personId, DEFAULT_TEAM_MEMBERSHIP_ROLE);
+        }
+      }
+    }
+
     const people = new PersonRepository(this.db);
-    const desired = [...new Set(body.personIds)];
+    const desired = [...desiredRoleByPersonId.keys()];
     const named = await people.findPersons(desired);
     // A person id from another organization is not a name we recognise here,
     // and is refused identically to one that does not exist at all.
@@ -604,10 +660,11 @@ export class RegistrationsController {
 
     await withTransaction(this.db, async (uow) => {
       for (const personId of plan.toEnlist) {
+        const role = desiredRoleByPersonId.get(personId) ?? DEFAULT_TEAM_MEMBERSHIP_ROLE;
         await people.enlist(uow, {
           personId,
           teamId,
-          role: DEFAULT_TEAM_MEMBERSHIP_ROLE,
+          role,
           organizationId,
           actor: actorOf(request),
           authorizationContext: (request.subject?.scopes ?? []).join(' '),
@@ -622,6 +679,22 @@ export class RegistrationsController {
           actor: actorOf(request),
           authorizationContext: (request.subject?.scopes ?? []).join(' '),
         });
+      }
+      for (const player of currentSquad) {
+        const desiredRole = desiredRoleByPersonId.get(player.personId);
+        if (
+          desiredRole &&
+          desiredRole !== player.role &&
+          !plan.toRemove.includes(player.personId)
+        ) {
+          await people.setPlayerRole(uow, {
+            playerId: player.playerId,
+            role: desiredRole,
+            organizationId,
+            actor: actorOf(request),
+            authorizationContext: (request.subject?.scopes ?? []).join(' '),
+          });
+        }
       }
     });
 
@@ -749,14 +822,17 @@ function toResponse(
     { displayName: string; nationality?: string; photoObjectId?: string }
   > = new Map(),
   linkedPersonIds: ReadonlySet<string> = new Set(),
+  teamMembersByTeamId: ReadonlyMap<string, TeamMemberResponse[]> = new Map(),
 ): RegistrationResponse {
   if (entrant.entrantRef.kind === 'team') {
+    const teamMembers = teamMembersByTeamId.get(entrant.entrantRef.teamId);
     return {
       entrantId: entrant.entrantId,
       tournamentId: entrant.tournamentId,
       status: entrant.status,
       teamId: entrant.entrantRef.teamId,
       ...(entrant.abbreviation === undefined ? {} : { abbreviation: entrant.abbreviation }),
+      ...(teamMembers !== undefined ? { teamMembers } : {}),
     };
   }
 

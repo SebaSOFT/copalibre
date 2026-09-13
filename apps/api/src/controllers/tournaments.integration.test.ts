@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { footballDescriptor, type TournamentProfile } from '@copalibre/domain';
 import {
+  AuditReader,
   CompetitionRepository,
   EnrollmentRepository,
   TournamentProfileRepository,
@@ -853,6 +854,55 @@ describe('organization-scoped tournament routes', () => {
       { number: 1, name: 'Group Stage', format: 'round-robin' },
       { number: 2, name: 'Final Stage', format: 'single-elimination' },
     ]);
+  });
+
+  it('persists and audits the featured flag, defaulting existing rows to not-featured', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const created = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-featured-test',
+        name: 'Copa Featured Test',
+        descriptor,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    // The migration's default: a tournament nobody has flagged is not featured,
+    // which is what keeps the organization page unchanged until someone decides.
+    expect(created.featured).toBe(false);
+
+    const updated = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.setFeatured(uow, {
+        tournamentId: created.tournamentId,
+        organizationId,
+        featured: true,
+        actor: 'user:organizer',
+        authorizationContext: 'capability:org.manage-tournament-lifecycle',
+      }),
+    );
+    expect(updated.featured).toBe(true);
+
+    const history = await new AuditReader(scratch.db).historyFor(
+      'tournament',
+      created.tournamentId,
+    );
+    const entry = history.find((record) => record.action === 'tournament.featured_updated');
+    expect(entry).toBeDefined();
+    expect(entry?.previousState).toMatchObject({ featured: false });
+    expect(entry?.resultingState).toMatchObject({ featured: true });
+    expect(entry?.actor).toBe('user:organizer');
   });
 
   it('rejects capacity reduction below current accepted entrant count', async () => {

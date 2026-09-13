@@ -11,6 +11,8 @@ import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 import { SYSTEM_ORGANIZATION } from '../relay/scheduled-jobs.js';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 interface OidcIdentity {
   readonly subjectId: string;
   readonly verifiedEmail: string;
@@ -53,10 +55,12 @@ export class IdentityPrincipalRepository {
       throw new InvariantViolationError('Email is already registered');
     }
 
+    const principalId = newId();
     const row = await uow.tx
       .insertInto('identity_principals')
       .values({
-        principal_id: newId(),
+        principal_id: principalId,
+        oidc_subject_id: principalId,
         email,
         password_hash: input.passwordHash ?? null,
         name: input.name ?? null,
@@ -81,10 +85,17 @@ export class IdentityPrincipalRepository {
   }
 
   async findByOidcSubject(subjectId: string): Promise<IdentityPrincipal | undefined> {
+    const isUuid = UUID_PATTERN.test(subjectId);
     const row = await this.db
       .selectFrom('identity_principals')
       .selectAll()
-      .where('oidc_subject_id', '=', subjectId)
+      .where((eb) => {
+        const conditions = [eb('oidc_subject_id', '=', subjectId)];
+        if (isUuid) {
+          conditions.push(eb('principal_id', '=', subjectId));
+        }
+        return eb.or(conditions);
+      })
       .executeTakeFirst();
     return row ? toIdentityPrincipal(row) : undefined;
   }
@@ -93,6 +104,7 @@ export class IdentityPrincipalRepository {
     organizationId: string,
     subjectId: string,
   ): Promise<ParticipantIdentityLink | undefined> {
+    const isUuid = UUID_PATTERN.test(subjectId);
     const row = await this.db
       .selectFrom('participant_identity_links')
       .innerJoin(
@@ -106,7 +118,13 @@ export class IdentityPrincipalRepository {
         'participant_identity_links.person_id as person_id',
       ])
       .where('participant_identity_links.organization_id', '=', organizationId)
-      .where('identity_principals.oidc_subject_id', '=', subjectId)
+      .where((eb) => {
+        const conditions = [eb('identity_principals.oidc_subject_id', '=', subjectId)];
+        if (isUuid) {
+          conditions.push(eb('identity_principals.principal_id', '=', subjectId));
+        }
+        return eb.or(conditions);
+      })
       .executeTakeFirst();
     return row
       ? {

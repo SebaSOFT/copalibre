@@ -1,9 +1,15 @@
 import { useIntl } from 'react-intl';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '../../lib/language-preference.js';
+import { Select } from '../components/ui/atoms/select.js';
 import { messages } from './messages.en.js';
 
-/** Each language's own name, in its own language — never translated. */
-const LANGUAGE_NAMES: Readonly<Record<SupportedLanguage, string>> = {
+/**
+ * Each language's own name, in its own language — never translated.
+ *
+ * Exported so the workbench's language selector labels its options identically
+ * to the application's switcher rather than keeping a second list (0213).
+ */
+export const LANGUAGE_NAMES: Readonly<Record<SupportedLanguage, string>> = {
   en: 'English',
   es: 'Español',
   fr: 'Français',
@@ -28,30 +34,30 @@ export function LanguageSwitcher({
 }): React.JSX.Element {
   const intl = useIntl();
   return (
-    <select
+    <Select
       aria-label={intl.formatMessage(messages.shellLanguage)}
-      className="cl-focusable"
-      onChange={(event) => onChange(event.target.value as SupportedLanguage)}
-      style={selectStyle}
+      icon={
+        // Carried over from the deleted LanguageSelector atom (openspec 0225
+        // task 4.3a) — a language glyph, not a state cue, so it takes a
+        // neutral text token instead of the `--cl-state-live` it misused.
+        <span
+          aria-hidden="true"
+          style={{
+            color: 'var(--cl-text-secondary)',
+            fontWeight: 'var(--cl-weight-bold)',
+            fontSize: 'var(--cl-font-size-sm)',
+            userSelect: 'none',
+          }}
+        >
+          文A
+        </span>
+      }
+      onValueChange={(val) => onChange(val as SupportedLanguage)}
+      options={SUPPORTED_LANGUAGES.map((language) => ({
+        value: language,
+        label: LANGUAGE_NAMES[language],
+      }))}
       value={value}
-    >
-      {SUPPORTED_LANGUAGES.map((language) => (
-        <option key={language} value={language}>
-          {LANGUAGE_NAMES[language]}
-        </option>
-      ))}
-    </select>
+    />
   );
 }
-
-const selectStyle: React.CSSProperties = {
-  display: 'block',
-  width: '100%',
-  minHeight: 'var(--cl-touch-target)',
-  marginTop: 'var(--cl-space-3)',
-  background: 'var(--cl-surface-base)',
-  color: 'var(--cl-text-secondary)',
-  border: '1px solid var(--cl-border-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-};

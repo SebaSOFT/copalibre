@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    // Astro's base config sets `jsx: "preserve"`, because Astro's own compiler
+    // consumes the JSX. Storybook's React builder does not: with `preserve`,
+    // `vite:react-docgen-typescript` re-emits a module that still contains JSX,
+    // `vite:import-analysis` cannot parse it, and every `.tsx` under `src/`
+    // fails to load with a bare 404 — the preview renders nothing at all.
+    //
+    // Scoped to the workbench: the application's own build keeps `preserve`.
+    "jsx": "react-jsx"
+  },
+  "include": ["../src/**/*", "./**/*"]
+}

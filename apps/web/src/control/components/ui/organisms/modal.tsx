@@ -16,6 +16,12 @@ export interface ModalProps {
   readonly description?: string;
   readonly children: ReactNode;
   readonly footer?: ReactNode;
+  /**
+   * Required: a close control with no accessible name is unusable, and a name
+   * this component invents is a name no catalogue translates. It stayed the
+   * literal `"Close"` in all eight languages until it became a prop.
+   */
+  readonly closeLabel: string;
 }
 
 export function Modal({
@@ -25,6 +31,7 @@ export function Modal({
   description,
   children,
   footer,
+  closeLabel,
 }: ModalProps): React.JSX.Element {
   return (
     <RadixDialog.Root onOpenChange={onOpenChange} open={open}>
@@ -39,7 +46,11 @@ export function Modal({
               </RadixDialog.Description>
             ) : null}
             <RadixDialog.Close asChild>
-              <button aria-label="Close" className="cl-focusable cl-modal__close" type="button">
+              <button
+                aria-label={closeLabel}
+                className="cl-focusable cl-modal__close"
+                type="button"
+              >
                 ×
               </button>
             </RadixDialog.Close>

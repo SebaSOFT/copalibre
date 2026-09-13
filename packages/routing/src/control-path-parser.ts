@@ -10,12 +10,17 @@
  */
 
 export type ControlRoute =
+  | { readonly screen: 'root' }
   | { readonly screen: 'callback' }
   | { readonly screen: 'login' }
   | { readonly screen: 'forgot-password' }
   | { readonly screen: 'reset-password' }
   | { readonly screen: 'platformAdministration' }
   | { readonly screen: 'dashboard'; readonly organizationAlias: string }
+  | { readonly screen: 'tournaments'; readonly organizationAlias: string }
+  | { readonly screen: 'liveConsole'; readonly organizationAlias: string }
+  | { readonly screen: 'organization'; readonly organizationAlias: string }
+  | { readonly screen: 'analytics'; readonly organizationAlias: string }
   | { readonly screen: 'roles'; readonly organizationAlias: string }
   | { readonly screen: 'auditTrail'; readonly organizationAlias: string }
   | { readonly screen: 'preferences'; readonly organizationAlias: string }
@@ -113,40 +118,215 @@ export type ControlRoute =
       readonly tournamentAlias: string;
     };
 
-/** Matches a control-panel pathname against the nine real screen shapes. */
-export function parseControlPath(pathname: string): ControlRoute | undefined {
-  const segments = pathname.split('/').filter((segment) => segment.length > 0);
-  if (segments[0] !== 'control') return undefined;
-  const [, organizationAlias, ...rest] = segments;
-  if (organizationAlias === undefined) return undefined;
-
+/**
+ * The reserved-alias and simple org-scoped shapes — every route this module
+ * recognizes before it requires `rest[0] === 'tournaments'`. Order matters:
+ * evaluated top to bottom, first match wins, exactly like the if-chain this
+ * table replaced (openspec 0229). Each `matches`/`build` pair is its own
+ * function, so its internal checks don't add to `parseControlPath`'s own
+ * branch count — the table only walks a list and calls one.
+ */
+const ORG_SCOPED_ROUTES: readonly {
+  readonly matches: (organizationAlias: string, rest: readonly string[]) => boolean;
+  readonly build: (organizationAlias: string, rest: readonly string[]) => ControlRoute | undefined;
+}[] = [
   // Checked first: `/control/callback`, the OIDC redirect target, is
   // the same two-segment shape as `/control/{organization}` — without this,
   // `callback` would parse as an organization alias for the dashboard.
   // Reserved: no real organization may use this alias.
-  if (organizationAlias === 'callback' && rest.length === 0) return { screen: 'callback' };
-  if (organizationAlias === 'login' && rest.length === 0) return { screen: 'login' };
-  if (organizationAlias === 'forgot-password' && rest.length === 0)
-    return { screen: 'forgot-password' };
-  if (organizationAlias === 'reset-password' && rest.length === 0)
-    return { screen: 'reset-password' };
-  if (organizationAlias === 'platform' && rest.length === 0)
-    return { screen: 'platformAdministration' };
+  {
+    matches: (organizationAlias, rest) => organizationAlias === 'callback' && rest.length === 0,
+    build: () => ({ screen: 'callback' }),
+  },
+  {
+    matches: (organizationAlias, rest) => organizationAlias === 'login' && rest.length === 0,
+    build: () => ({ screen: 'login' }),
+  },
+  {
+    matches: (organizationAlias, rest) =>
+      organizationAlias === 'forgot-password' && rest.length === 0,
+    build: () => ({ screen: 'forgot-password' }),
+  },
+  {
+    matches: (organizationAlias, rest) =>
+      organizationAlias === 'reset-password' && rest.length === 0,
+    build: () => ({ screen: 'reset-password' }),
+  },
+  {
+    matches: (organizationAlias, rest) => organizationAlias === 'platform' && rest.length === 0,
+    build: () => ({ screen: 'platformAdministration' }),
+  },
+  {
+    matches: (_organizationAlias, rest) => rest.length === 0,
+    build: (organizationAlias) => ({ screen: 'dashboard', organizationAlias }),
+  },
+  {
+    matches: (_organizationAlias, rest) => rest.length === 1 && rest[0] === 'tournaments',
+    build: (organizationAlias) => ({ screen: 'tournaments', organizationAlias }),
+  },
+  {
+    matches: (_organizationAlias, rest) => rest.length === 1 && rest[0] === 'live',
+    build: (organizationAlias) => ({ screen: 'liveConsole', organizationAlias }),
+  },
+  {
+    matches: (_organizationAlias, rest) => rest.length === 1 && rest[0] === 'organization',
+    build: (organizationAlias) => ({ screen: 'organization', organizationAlias }),
+  },
+  {
+    matches: (_organizationAlias, rest) => rest.length === 1 && rest[0] === 'analytics',
+    build: (organizationAlias) => ({ screen: 'analytics', organizationAlias }),
+  },
+  {
+    matches: (_organizationAlias, rest) => rest.length === 1 && rest[0] === 'roles',
+    build: (organizationAlias) => ({ screen: 'roles', organizationAlias }),
+  },
+  {
+    matches: (_organizationAlias, rest) => rest.length === 1 && rest[0] === 'audit-trail',
+    build: (organizationAlias) => ({ screen: 'auditTrail', organizationAlias }),
+  },
+  {
+    matches: (_organizationAlias, rest) => rest.length === 1 && rest[0] === 'preferences',
+    build: (organizationAlias) => ({ screen: 'preferences', organizationAlias }),
+  },
+  {
+    matches: (_organizationAlias, rest) => rest.length === 1 && rest[0] === 'clubs',
+    build: (organizationAlias) => ({ screen: 'clubs', organizationAlias }),
+  },
+  {
+    matches: (_organizationAlias, rest) => rest.length === 1 && rest[0] === 'resources',
+    build: (organizationAlias) => ({ screen: 'resources', organizationAlias }),
+  },
+  {
+    matches: (_organizationAlias, rest) => rest.length === 2 && rest[0] === 'persons',
+    build: (organizationAlias, rest) => {
+      const personId = rest[1];
+      if (personId === undefined) return undefined;
+      return { screen: 'personProfile', organizationAlias, personId };
+    },
+  },
+];
 
-  if (rest.length === 0) return { screen: 'dashboard', organizationAlias };
-  if (rest.length === 1 && rest[0] === 'roles') return { screen: 'roles', organizationAlias };
-  if (rest.length === 1 && rest[0] === 'audit-trail')
-    return { screen: 'auditTrail', organizationAlias };
-  if (rest.length === 1 && rest[0] === 'preferences')
-    return { screen: 'preferences', organizationAlias };
-  if (rest.length === 1 && rest[0] === 'clubs') return { screen: 'clubs', organizationAlias };
-  if (rest.length === 1 && rest[0] === 'resources')
-    return { screen: 'resources', organizationAlias };
-  if (rest.length === 2 && rest[0] === 'persons') {
-    const personId = rest[1];
-    if (personId === undefined) return undefined;
-    return { screen: 'personProfile', organizationAlias, personId };
-  }
+/** The screen each `/stages/{n}/{suffix}` suffix names. */
+const STAGE_SUFFIX_SCREENS: Readonly<
+  Record<string, 'seeding' | 'standings' | 'zoneGroups' | 'schedule'>
+> = {
+  seeding: 'seeding',
+  standings: 'standings',
+  zones: 'zoneGroups',
+  schedule: 'schedule',
+};
+
+/**
+ * Every route nested under `/control/{org}/tournaments/{tournamentAlias}/...`
+ * — evaluated only once that prefix is confirmed and `tournamentAlias` is
+ * resolved. Same order-matters, first-match-wins shape as `ORG_SCOPED_ROUTES`.
+ */
+const TOURNAMENT_SCOPED_ROUTES: readonly {
+  readonly matches: (rest: readonly string[]) => boolean;
+  readonly build: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    rest: readonly string[],
+  ) => ControlRoute | undefined;
+}[] = [
+  {
+    matches: (rest) => rest.length === 3 && rest[2] === 'registrations',
+    build: (organizationAlias, tournamentAlias) => ({
+      screen: 'registrations',
+      organizationAlias,
+      tournamentAlias,
+    }),
+  },
+  {
+    matches: (rest) => rest.length === 3 && rest[2] === 'settings',
+    build: (organizationAlias, tournamentAlias) => ({
+      screen: 'tournamentSettings',
+      organizationAlias,
+      tournamentAlias,
+    }),
+  },
+  {
+    matches: (rest) => rest.length === 3 && rest[2] === 'ruleset',
+    build: (organizationAlias, tournamentAlias) => ({
+      screen: 'tournamentRuleset',
+      organizationAlias,
+      tournamentAlias,
+    }),
+  },
+  {
+    matches: (rest) => rest.length === 3 && rest[2] === 'reports',
+    build: (organizationAlias, tournamentAlias) => ({
+      screen: 'reports',
+      organizationAlias,
+      tournamentAlias,
+    }),
+  },
+  {
+    matches: (rest) => rest.length === 3 && rest[2] === 'matches-view',
+    build: (organizationAlias, tournamentAlias) => ({
+      screen: 'matchesView',
+      organizationAlias,
+      tournamentAlias,
+    }),
+  },
+  {
+    matches: (rest) => rest.length === 4 && rest[2] === 'matches',
+    build: (organizationAlias, tournamentAlias, rest) => {
+      const matchId = rest[3];
+      if (matchId === undefined) return undefined;
+      return { screen: 'matchConsole', organizationAlias, tournamentAlias, matchId };
+    },
+  },
+  {
+    matches: (rest) => rest.length === 5 && rest[2] === 'matches' && rest[4] === 'load',
+    build: (organizationAlias, tournamentAlias, rest) => {
+      const matchId = rest[3];
+      if (matchId === undefined) return undefined;
+      return { screen: 'loadMatchData', organizationAlias, tournamentAlias, matchId };
+    },
+  },
+  {
+    // One shared finiteness check for all four stage-scoped suffixes, same as
+    // the if-chain this replaced — fanning this into four separate entries
+    // would have quadrupled an untested defensive branch for no behavior
+    // change.
+    matches: (rest) => rest.length === 5 && rest[2] === 'stages',
+    build: (organizationAlias, tournamentAlias, rest) => {
+      const stageNumber = Number(rest[3]);
+      if (!Number.isFinite(stageNumber)) return undefined;
+      const screen = STAGE_SUFFIX_SCREENS[rest[4] ?? ''];
+      if (screen === undefined) return undefined;
+      return { screen, organizationAlias, tournamentAlias, stageNumber };
+    },
+  },
+  {
+    matches: (rest) =>
+      rest.length === 7 && rest[2] === 'stages' && rest[4] === 'zones' && rest[6] === 'promotion',
+    build: (organizationAlias, tournamentAlias, rest) => {
+      const stageNumber = Number(rest[3]);
+      const zoneNumber = Number(rest[5]);
+      if (!Number.isFinite(stageNumber) || !Number.isFinite(zoneNumber)) return undefined;
+      return {
+        screen: 'promotionPlan',
+        organizationAlias,
+        tournamentAlias,
+        stageNumber,
+        zoneNumber,
+      };
+    },
+  },
+];
+
+/** Matches a control-panel pathname against the nine real screen shapes. */
+export function parseControlPath(pathname: string): ControlRoute | undefined {
+  const segments = pathname.split('/').filter((segment) => segment.length > 0);
+  if (segments[0] !== 'control') return undefined;
+  if (segments.length === 1) return { screen: 'root' };
+  const [, organizationAlias, ...rest] = segments;
+  if (organizationAlias === undefined) return undefined;
+
+  const orgScoped = ORG_SCOPED_ROUTES.find((route) => route.matches(organizationAlias, rest));
+  if (orgScoped) return orgScoped.build(organizationAlias, rest);
 
   if (rest[0] !== 'tournaments') return undefined;
   if (rest.length === 2 && rest[1] === 'new') {
@@ -156,53 +336,7 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
   const tournamentAlias = rest[1];
   if (tournamentAlias === undefined) return undefined;
 
-  if (rest.length === 3 && rest[2] === 'registrations') {
-    return { screen: 'registrations', organizationAlias, tournamentAlias };
-  }
-  if (rest.length === 3 && rest[2] === 'settings') {
-    return { screen: 'tournamentSettings', organizationAlias, tournamentAlias };
-  }
-  if (rest.length === 3 && rest[2] === 'ruleset') {
-    return { screen: 'tournamentRuleset', organizationAlias, tournamentAlias };
-  }
-  if (rest.length === 3 && rest[2] === 'reports') {
-    return { screen: 'reports', organizationAlias, tournamentAlias };
-  }
-  if (rest.length === 3 && rest[2] === 'matches-view') {
-    return { screen: 'matchesView', organizationAlias, tournamentAlias };
-  }
-  if (rest.length === 4 && rest[2] === 'matches') {
-    const matchId = rest[3];
-    if (matchId === undefined) return undefined;
-    return { screen: 'matchConsole', organizationAlias, tournamentAlias, matchId };
-  }
-  if (rest.length === 5 && rest[2] === 'matches' && rest[4] === 'load') {
-    const matchId = rest[3];
-    if (matchId === undefined) return undefined;
-    return { screen: 'loadMatchData', organizationAlias, tournamentAlias, matchId };
-  }
-  if (rest.length === 5 && rest[2] === 'stages') {
-    const stageNumber = Number(rest[3]);
-    if (!Number.isFinite(stageNumber)) return undefined;
-    if (rest[4] === 'seeding') {
-      return { screen: 'seeding', organizationAlias, tournamentAlias, stageNumber };
-    }
-    if (rest[4] === 'standings') {
-      return { screen: 'standings', organizationAlias, tournamentAlias, stageNumber };
-    }
-    if (rest[4] === 'zones') {
-      return { screen: 'zoneGroups', organizationAlias, tournamentAlias, stageNumber };
-    }
-    if (rest[4] === 'schedule') {
-      return { screen: 'schedule', organizationAlias, tournamentAlias, stageNumber };
-    }
-  }
-  if (rest.length === 7 && rest[2] === 'stages' && rest[4] === 'zones' && rest[6] === 'promotion') {
-    const stageNumber = Number(rest[3]);
-    const zoneNumber = Number(rest[5]);
-    if (!Number.isFinite(stageNumber) || !Number.isFinite(zoneNumber)) return undefined;
-    return { screen: 'promotionPlan', organizationAlias, tournamentAlias, stageNumber, zoneNumber };
-  }
-
-  return undefined;
+  const tournamentScoped = TOURNAMENT_SCOPED_ROUTES.find((route) => route.matches(rest));
+  if (!tournamentScoped) return undefined;
+  return tournamentScoped.build(organizationAlias, tournamentAlias, rest);
 }

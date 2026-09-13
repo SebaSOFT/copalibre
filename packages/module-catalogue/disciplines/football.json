@@ -68,7 +68,10 @@
           "role": "goalkeeper",
           "side": "every-other-side"
         }
-      ]
+      ],
+      "payloadFieldLabels": {
+        "assistedBy": { "en": "Assisted by", "es": "Asistido por" }
+      }
     },
     {
       "code": "own-goal",
@@ -103,7 +106,11 @@
         },
         "required": ["playerOutId", "playerInId"]
       },
-      "personPayloadFields": ["playerOutId", "playerInId"]
+      "personPayloadFields": ["playerOutId", "playerInId"],
+      "payloadFieldLabels": {
+        "playerOutId": { "en": "Player out", "es": "Sale" },
+        "playerInId": { "en": "Player in", "es": "Entra" }
+      }
     },
     {
       "code": "yellow-card",

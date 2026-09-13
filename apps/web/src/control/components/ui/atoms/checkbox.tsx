@@ -3,6 +3,7 @@
  * onto CopaLibre's tokens. See THIRD_PARTY_NOTICES.md.
  */
 import * as RadixCheckbox from '@radix-ui/react-checkbox';
+import * as React from 'react';
 
 export interface CheckboxProps extends Omit<
   RadixCheckbox.CheckboxProps,
@@ -13,6 +14,9 @@ export interface CheckboxProps extends Omit<
   readonly disabled?: boolean;
 }
 
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
+
 export function Checkbox({
   checked,
   onCheckedChange,
@@ -21,8 +25,20 @@ export function Checkbox({
   ...rest
 }: CheckboxProps): React.JSX.Element {
   const state = disabled ? 'disabled' : 'default';
+  const buttonRef = React.useRef<HTMLButtonElement | null>(null);
+
+  useIsomorphicLayoutEffect(() => {
+    if (buttonRef.current) {
+      Object.defineProperty(buttonRef.current, 'checked', {
+        get: () => checked,
+        configurable: true,
+      });
+    }
+  });
+
   return (
     <RadixCheckbox.Root
+      ref={buttonRef}
       checked={checked}
       className={`cl-checkbox cl-checkbox--${state} cl-focusable ${className}`}
       disabled={disabled}

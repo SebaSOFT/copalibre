@@ -41,10 +41,31 @@ roles:
     service: false
     probePath: /health
     resources: {}
+  # The on-demand renderer behind the public site's dynamic routes — the same
+  # multi-role image, running PRODUCT_ROLE=web, exactly as docker-compose.yml's
+  # web-ssr service does. Its key is `web-ssr` because that is the name the
+  # Service takes and the web role's Caddy addresses; `productRole` carries the
+  # role the image itself expects, which differs from that key.
+  web-ssr:
+    port: 3005
+    replicas: 1
+    service: true
+    probePath: /health
+    productRole: web
+    # Where this role reaches the API while rendering a page. Empty means the
+    # api Service this chart creates. It cannot be left unset: the renderer
+    # falls back to http://127.0.0.1:3001, which inside this pod is the pod
+    # itself, so every render would fail while /health kept passing. Compose
+    # sets the same variable on its web-ssr service for the same reason.
+    apiInternalUrl: ''
+    resources: {}
 
 # web never runs the Nest multi-role image or the shared 22-variable
-# environment contract below — it's Caddy serving Astro's static build, health
-# checked with a plain GET / (see docker-compose.yml's web service).
+# environment contract below — it's Caddy serving Astro's static build. Its
+# probe targets a path Caddy answers itself: GET / is proxied to web-ssr, so
+# probing it would make every static surface unready whenever the renderer is
+# down, and would have made this pod fail to start at all before web-ssr
+# existed in this chart.
 web:
   image:
     repository: copalibre-web
@@ -52,8 +73,14 @@ web:
     pullPolicy: IfNotPresent
   port: 4321
   replicas: 1
-  probePath: /
+  probePath: /runtime-config.json
   resources: {}
+  # Where this role's Caddy sends the dynamic routes. Empty means the Service
+  # this chart creates for the web-ssr role, which is the right answer for
+  # every ordinary install; it is a value rather than an `env` entry because
+  # `env` mirrors docker-compose.yml's web service key-for-key, and Compose
+  # needs no such variable (the Caddyfile's default is Compose's own hostname).
+  ssrUpstream: ''
   env:
     COPALIBRE_JWT_ISSUER: ''
     COPALIBRE_OIDC_CLIENT_ID: ''

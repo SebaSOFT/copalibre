@@ -76,7 +76,7 @@ test('renames a stage from the seeding screen and sees the change immediately', 
   await page.getByLabel('Nuevo nombre de la fase').fill('Fase de grupos (corregida)');
   await page.getByRole('button', { name: 'Renombrar', exact: true }).click();
 
-  await expect(page.getByText('Fase renombrada.')).toBeVisible();
+  await expect(page.getByText('Stage renamed.')).toBeVisible();
 });
 
 test('renames a zone from the zone-management screen and sees the change immediately', async ({
