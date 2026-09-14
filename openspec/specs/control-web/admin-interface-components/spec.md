@@ -734,3 +734,35 @@ state colour or introduce production chroma configuration.
 #### Scenario: An opaque TV panel is previewed
 - **WHEN** a sport backdrop is selected for an opaque kiosk or panel presentation
 - **THEN** its real opaque surfaces remain intact rather than becoming transparent to expose the image
+
+### Requirement: Owned atom for a multi-language display-string field
+The component library SHALL provide an owned single-line-input and an owned multi-line-textarea
+atom for editing one display string across the platform's supported languages, each showing one
+field at a time for whichever language is currently selected via a shared language-tab control,
+rather than one always-visible field per language.
+
+#### Scenario: A language already holding text is marked distinctly from one that is empty
+- **WHEN** the localized-input atom renders its language tabs
+- **THEN** every tab whose language currently has non-empty text carries a visible fill
+  indicator that no empty-language tab carries
+
+#### Scenario: Each language tab shows an abbreviation, not the full language name
+- **WHEN** the localized-input atom renders its language tabs
+- **THEN** each tab's visible label is a short code (e.g. the language's ISO 639-1 code), not
+  the language's full written name
+
+#### Scenario: Selecting a language tab swaps the field to that language's own text
+- **WHEN** an operator selects a different language tab
+- **THEN** the text field displays that language's own current value, and further edits apply
+  to that language only
+
+#### Scenario: The atom carries no language list or i18n logic of its own
+- **WHEN** either atom is inspected
+- **THEN** it receives its set of languages, which are filled, and which is active entirely
+  through props, with no supported-language list, translation lookup, or i18n string embedded
+  in the atom itself
+
+#### Scenario: Every supported language fits without wrapping the tab strip onto a second row
+- **WHEN** all eight of the platform's supported languages are passed to the language-tab
+  control
+- **THEN** the tabs render on a single row, shrinking to their content rather than wrapping
