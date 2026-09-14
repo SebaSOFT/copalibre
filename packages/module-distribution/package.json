@@ -24,7 +24,7 @@
     "ajv": "^8.20.0",
     "image-size": "^2.0.2",
     "semver": "^7.8.5",
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
