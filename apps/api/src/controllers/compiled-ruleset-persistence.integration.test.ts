@@ -46,7 +46,7 @@ describe('compiled-ruleset persistence (integration)', () => {
         name: alias,
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: false,
         requiresCheckIn: false,
       },
