@@ -75,6 +75,28 @@ import { guaranteedMatchCount, readStageSeries, resolveFixtureSeries } from './s
 import { DATABASE } from '../database.token.js';
 
 /**
+ * `StageAllocationRequest.attributeKey`/`direction` are optional on the DTO (only `manual` and
+ * `automatic` need neither), so a weighted declaration missing either would reach domain
+ * `validateAllocation` with `attributeKey` `undefined` and throw a raw `TypeError` instead of the
+ * intended 400 — this closes that structural gap before the domain check runs.
+ */
+export function assertAllocationRequestComplete(allocation: {
+  readonly mode: string;
+  readonly attributeKey?: string;
+  readonly direction?: string;
+}): void {
+  if (
+    allocation.mode === 'weighted' &&
+    (allocation.attributeKey === undefined || allocation.direction === undefined)
+  ) {
+    throw new BadRequestException(
+      'Weighted allocation requires both an attribute key and a direction',
+      { errorCode: 'stage-bad-request' },
+    );
+  }
+}
+
+/**
  * Stage creation.
  *
  * The step between "accepted registrations exist" and "a stage exists, ready to be seeded" — the
@@ -131,6 +153,7 @@ export class StagesController {
     const format = await this.resolveFormat(tournament.tournamentId, descriptor, body.format);
 
     if (body.allocation !== undefined) {
+      assertAllocationRequestComplete(body.allocation);
       const validated = validateAllocation(body.allocation as StageAllocation);
       if (!validated.ok) {
         throw new BadRequestException(validated.error.message, { errorCode: 'stage-bad-request' });
@@ -295,6 +318,7 @@ export class StagesController {
     }
 
     if (body.allocation !== undefined) {
+      assertAllocationRequestComplete(body.allocation);
       const validated = validateAllocation(body.allocation as StageAllocation);
       if (!validated.ok) {
         throw new BadRequestException(validated.error.message, { errorCode: 'stage-bad-request' });

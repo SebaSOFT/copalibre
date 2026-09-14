@@ -785,6 +785,73 @@ describe('organization-scoped tournament routes', () => {
     });
   });
 
+  it('creates an ad-hoc tournament declaring three stages in one pass, each with its own series and allocation', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const response = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'copa-multi-fase',
+        name: 'Copa Multi Fase',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        stages: [
+          { name: 'Grupos', format: 'round-robin', allocation: { mode: 'automatic' } },
+          {
+            name: 'Playoffs',
+            format: 'single-elimination',
+            allocation: { mode: 'manual' },
+          },
+          {
+            name: 'Gran Final',
+            format: 'single-elimination',
+            series: { span: 3, resolutionClass: 'best-of' },
+          },
+        ],
+        publicRegistration: false,
+        requiresCheckIn: false,
+        customScripts: [],
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const created = response.json() as { tournamentId: string; rulesetId: string };
+
+    const stages = await competition.listStagesOfTournament(created.tournamentId);
+    expect(
+      stages.map((stage) => ({ number: stage.number, name: stage.name, format: stage.format })),
+    ).toEqual([
+      { number: 1, name: 'Grupos', format: 'round-robin' },
+      { number: 2, name: 'Playoffs', format: 'single-elimination' },
+      { number: 3, name: 'Gran Final', format: 'single-elimination' },
+    ]);
+
+    // The first declared stage's format is the tournament-level fallback a
+    // later ad-hoc stage addition with no explicit format defaults to.
+    const ruleset = await tournaments.findLatestRuleset(created.tournamentId);
+    expect(ruleset?.overrides).toMatchObject({ format: 'round-robin' });
+
+    const [groupsStage, playoffsStage, finalStage] = stages;
+    if (!groupsStage || !playoffsStage || !finalStage) throw new Error('Expected three stages');
+    const groupsConfig = await tournaments.findLatestStageConfiguration(groupsStage.stageId);
+    expect(groupsConfig?.allocation).toEqual({ mode: 'automatic' });
+    const playoffsConfig = await tournaments.findLatestStageConfiguration(playoffsStage.stageId);
+    expect(playoffsConfig?.allocation).toEqual({ mode: 'manual' });
+    const finalConfig = await tournaments.findLatestStageConfiguration(finalStage.stageId);
+    expect(finalConfig?.overrides).toMatchObject({ 'series.span': 3 });
+  });
+
   it('creates a tournament instantiating a tournament profile and pre-creating declared stages', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const profileRepo = new TournamentProfileRepository(scratch.db);

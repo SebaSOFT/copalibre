@@ -92,6 +92,7 @@ import {
 } from '../tournament-configuration-export.js';
 import { readMatchesView, type MatchesViewRow } from '../matches-view/read.js';
 import { seriesResponseOf } from './public-projections.controller.js';
+import { assertAllocationRequestComplete } from './stages.controller.js';
 
 /**
  * Organization-scoped tournament routes. The path shape mirrors the URL contract
@@ -409,6 +410,7 @@ export class TournamentsController {
       }
 
       if (stage.allocation !== undefined) {
+        assertAllocationRequestComplete(stage.allocation);
         const validated = validateAllocation(stage.allocation as StageAllocation);
         if (!validated.ok) {
           throw new BadRequestException(validated.error.message, {
