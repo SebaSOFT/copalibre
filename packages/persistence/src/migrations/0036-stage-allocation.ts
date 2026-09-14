@@ -10,10 +10,7 @@ import type { Migration } from 'kysely/migration';
  */
 export const stageAllocation: Migration = {
   async up(db: Kysely<unknown>): Promise<void> {
-    await db.schema
-      .alterTable('stage_configurations')
-      .addColumn('allocation', 'jsonb')
-      .execute();
+    await db.schema.alterTable('stage_configurations').addColumn('allocation', 'jsonb').execute();
   },
 
   async down(db: Kysely<unknown>): Promise<void> {

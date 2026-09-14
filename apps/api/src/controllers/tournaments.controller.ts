@@ -31,6 +31,7 @@ import {
 import {
   CompetitionRecordRepository,
   CompetitionRepository,
+  EnrollmentRepository,
   InvariantViolationError,
   OrganizationRepository,
   PublicOverviewReadModel,
@@ -68,6 +69,7 @@ import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
   CreateTournamentRequest,
+  EntrantAttributeKeysResponse,
   HookScriptVocabularyResponse,
   ProblemResponse,
   RulesetOverridesRequest,
@@ -274,6 +276,56 @@ export class TournamentsController {
     return { matches: rows.map(controlMatchResponseOf) };
   }
 
+  /**
+   * Backs weighted allocation's attribute picker (`stage-qualification`'s "An operator can
+   * discover a tournament's known entrant-attribute keys"). Reads distinct keys off this
+   * tournament's own recorded entrant attributes, never a discipline-level catalogue — see
+   * design.md's "Weighted allocation's attribute comes from the tournament's own recorded
+   * entrant attributes".
+   */
+  @Get(':tournamentAlias/entrant-attribute-keys')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-seeding')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "A tournament's distinct recorded entrant-attribute keys" })
+  @ApiOkResponse({ type: EntrantAttributeKeysResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async entrantAttributeKeys(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<EntrantAttributeKeysResponse> {
+    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
+      organizationAlias,
+      tournamentAlias,
+    );
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: tournament.organizationId },
+    });
+
+    const byEntrant = await new EnrollmentRepository(this.db).listTournamentAttributes(
+      tournament.tournamentId,
+    );
+    const keys = new Set<string>();
+    for (const attributes of byEntrant.values()) {
+      for (const attribute of attributes) {
+        // Weighted allocation ranks on a numeric value; a categorical attribute
+        // (e.g. "region") has nothing to sort by.
+        if (attribute.kind === 'numeric') keys.add(attribute.key);
+      }
+    }
+    return { keys: [...keys].sort() };
+  }
+
   @Post()
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationCapability('org.create-tournaments')
@@ -402,7 +454,10 @@ export class TournamentsController {
           authorizationContext: (subject?.scopes ?? []).join(' '),
         });
         // Already validated non-empty above, before the transaction opened.
-        const firstStage = body.stages[0]!;
+        const [firstStage] = body.stages;
+        if (!firstStage) {
+          throw new InvariantViolationError('A tournament needs at least one declared stage', {});
+        }
         const { ruleset, effective } = await tournaments.createRuleset(uow, {
           tournamentId: tournament.tournamentId,
           organizationId: organization.organizationId,
@@ -437,7 +492,9 @@ export class TournamentsController {
         for (const [index, stage] of body.stages.entries()) {
           const number = stage.number ?? index + 1;
           const name = stage.name ?? `Stage ${number}`;
-          const profileDefault = profileToBind?.stages.find((candidate) => candidate.number === number);
+          const profileDefault = profileToBind?.stages.find(
+            (candidate) => candidate.number === number,
+          );
 
           const createdStage = await competition.createStageInTournament(uow, {
             organizationId: organization.organizationId,
@@ -469,8 +526,7 @@ export class TournamentsController {
           // The operator's own declaration overrides the profile's stage default,
           // per "a tournament instance may override it per-stage" (design.md).
           const allocation = (stage.allocation ?? profileDefault?.allocation) as
-            | StageAllocation
-            | undefined;
+            StageAllocation | undefined;
 
           if (Object.keys(overrides).length > 0 || allocation !== undefined) {
             const stageConfiguration = await tournaments.createStageConfiguration(uow, {

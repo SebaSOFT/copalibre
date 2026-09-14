@@ -497,6 +497,18 @@ export class HookScriptVocabularyResponse {
   entries!: readonly RegistryEntryResponse[];
 }
 
+/** Backs weighted allocation's attribute picker — see `StageAllocationRequest`. */
+export class EntrantAttributeKeysResponse {
+  @ApiProperty({
+    type: [String],
+    description:
+      'Distinct entrant-attribute keys recorded anywhere in this tournament, sorted. Empty ' +
+      'when no entrant carries any attribute yet.',
+    example: ['rating', 'seed-rank'],
+  })
+  keys!: readonly string[];
+}
+
 /**
  * A series declaration, as authored. Crosses the wire as this typed shape but is
  * persisted as `series.span` / `series.resolutionClass` / `series.neutralGround`
