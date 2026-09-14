@@ -76,7 +76,7 @@ export function initialProfileWizard(): ProfileWizardState {
   };
 }
 
-const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export function nextStep(state: ProfileWizardState): ProfileStepId {
   const index = PROFILE_STEPS.findIndex((step) => step.id === state.step);

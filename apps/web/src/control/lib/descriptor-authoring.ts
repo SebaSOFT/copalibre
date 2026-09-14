@@ -5,6 +5,8 @@ import {
 } from '@copalibre/domain';
 import type { MessageDescriptor } from 'react-intl';
 import { messages } from '../i18n/messages.en.js';
+import { LANGUAGE_NAMES } from '../i18n/LanguageSwitcher.js';
+import type { LocalizedFieldLanguage } from '../components/ui/atoms/localized-field-tabs.js';
 import type { AuthoredModuleRequest } from './api-client.js';
 
 /**
@@ -95,6 +97,90 @@ export const TRANSLATABLE_LANGUAGES: readonly SupportedLanguage[] = SUPPORTED_LA
   (language) => language !== 'en',
 );
 
+/** This draft's own value for one language — `en` lives on the draft directly, the rest in `translations`. */
+export function localizedDraftValue(draft: LocalizedDraft, language: SupportedLanguage): string {
+  return language === 'en' ? draft.en : (draft.translations[language] ?? '');
+}
+
+/** A copy of `draft` with `language`'s value replaced, keeping every other language untouched. */
+export function withLocalizedValue(
+  draft: LocalizedDraft,
+  language: SupportedLanguage,
+  value: string,
+): LocalizedDraft {
+  return language === 'en'
+    ? { ...draft, en: value }
+    : { ...draft, translations: { ...draft.translations, [language]: value } };
+}
+
+/** Every supported language, each tagged with its display name and whether this draft already has content for it — feeds `LocalizedInput`/`LocalizedTextarea`'s `languages` prop. */
+export function localizedFieldLanguages(draft: LocalizedDraft): readonly LocalizedFieldLanguage[] {
+  return SUPPORTED_LANGUAGES.map((code) => ({
+    code,
+    label: LANGUAGE_NAMES[code],
+    filled: localizedDraftValue(draft, code).trim() !== '',
+  }));
+}
+
+/**
+ * Per-field validation view for a wizard's `Field`/`LocalizedField` slot —
+ * `invalid`, a formatted `errorText` when invalid, and (for a plain `Field`)
+ * the `aria-describedby` value covering both its decision hint and its own
+ * error paragraph. Shared by `ProfileBuilderWizard.tsx` and
+ * `DescriptorBuilderWizard.tsx` so neither one repeats the same ternaries
+ * inline in JSX (each repetition is a branch the wizard's own CRAP score
+ * pays for).
+ */
+export interface FieldValidationView {
+  readonly invalid: boolean;
+  readonly errorText?: string;
+  readonly describedBy?: string;
+}
+
+type FormatMessage = (descriptor: MessageDescriptor) => string;
+
+/** For a field whose format a regex decides (e.g. an alias). */
+export function patternFieldView(
+  value: string,
+  pattern: RegExp,
+  ids: { readonly hintId: string; readonly errorId: string },
+  formatMessage: FormatMessage,
+  message: MessageDescriptor,
+): FieldValidationView {
+  const invalid = !pattern.test(value);
+  return {
+    invalid,
+    errorText: invalid ? formatMessage(message) : undefined,
+    describedBy: invalid ? `${ids.hintId} ${ids.errorId}` : ids.hintId,
+  };
+}
+
+/** For a field that only needs a non-empty value (e.g. a version string). */
+export function requiredFieldView(
+  value: string,
+  errorId: string,
+  formatMessage: FormatMessage,
+  message: MessageDescriptor,
+): FieldValidationView {
+  const invalid = value.trim() === '';
+  return {
+    invalid,
+    errorText: invalid ? formatMessage(message) : undefined,
+    describedBy: invalid ? errorId : undefined,
+  };
+}
+
+/** For a `LocalizedField`'s required English value — invalid only while the English tab is active and empty, per `stepProblems`. */
+export function localizedNameFieldView(
+  activeLanguage: string,
+  englishValue: string,
+  formatMessage: FormatMessage,
+  message: MessageDescriptor,
+): Pick<FieldValidationView, 'invalid' | 'errorText'> {
+  const invalid = activeLanguage === 'en' && englishValue.trim() === '';
+  return { invalid, errorText: invalid ? formatMessage(message) : undefined };
+}
+
 export interface SegmentTypeDraft {
   readonly name: string;
   readonly label: string;
@@ -181,7 +267,7 @@ export function initialDescriptorWizard(): DescriptorWizardState {
   };
 }
 
-const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export function nextStep(state: DescriptorWizardState): DescriptorStepId {
   const index = DESCRIPTOR_STEPS.findIndex((step) => step.id === state.step);

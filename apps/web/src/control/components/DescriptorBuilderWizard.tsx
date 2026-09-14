@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { SupportedLanguage } from '@copalibre/domain';
 import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
@@ -11,21 +12,28 @@ import { TerminalBlock } from './ui/atoms/terminal-block.js';
 import { Inline } from './ui/atoms/layout/inline.js';
 import { Stack } from './ui/atoms/layout/stack.js';
 import { Field } from './ui/molecules/field.js';
+import { LocalizedField } from './ui/molecules/localized-field.js';
 import {
   ACTOR_REQUIREMENTS,
   AGGREGATION_MODES,
+  ALIAS_PATTERN,
   DESCRIPTOR_STEPS,
   EVENT_CATEGORIES,
   TOURNAMENT_FORMATS,
-  TRANSLATABLE_LANGUAGES,
   canContinue,
   canSubmit,
   initialDescriptorWizard,
+  localizedDraftValue,
+  localizedFieldLanguages,
+  localizedNameFieldView,
   nextStep,
+  patternFieldView,
   previousStep,
   progress,
+  requiredFieldView,
   stepProblems,
   toAuthoredModuleRequest,
+  withLocalizedValue,
   type DescriptorWizardState,
   type EventDefinitionDraft,
   type ScoringInputDraft,
@@ -46,7 +54,30 @@ export function DescriptorBuilderWizard({
 }): React.JSX.Element {
   const intl = useIntl();
   const [state, setState] = useState<DescriptorWizardState>(initialDescriptorWizard);
+  // Shared by every localized field on the step: switching the tab on one
+  // moves them all together, so translating the pair means picking the
+  // language once rather than clicking through each field's own tabs.
+  const [activeLanguage, setActiveLanguage] = useState<SupportedLanguage>('en');
   const problems = stepProblems(state);
+  const aliasView = patternFieldView(
+    state.alias,
+    ALIAS_PATTERN,
+    { hintId: 'descriptor-alias-hint', errorId: 'descriptor-alias-error' },
+    intl.formatMessage,
+    messages.descriptorProblemAliasFormat,
+  );
+  const versionView = requiredFieldView(
+    state.version,
+    'descriptor-version-error',
+    intl.formatMessage,
+    messages.descriptorProblemVersion,
+  );
+  const nameView = localizedNameFieldView(
+    activeLanguage,
+    state.name.en,
+    intl.formatMessage,
+    messages.descriptorProblemNameEnglish,
+  );
 
   function patch(next: Partial<DescriptorWizardState>): void {
     setState((current) => ({ ...current, ...next }));
@@ -104,10 +135,15 @@ export function DescriptorBuilderWizard({
       <Card className="cl-chamfer cl-chamfer--control">
         {state.step === 'name' && (
           <div className="cl-platform-form-grid">
-            <Field id="descriptor-alias" label={intl.formatMessage(messages.descriptorFieldAlias)}>
+            <Field
+              errorText={aliasView.errorText}
+              id="descriptor-alias"
+              label={intl.formatMessage(messages.descriptorFieldAlias)}
+            >
               <Input
-                aria-describedby="descriptor-alias-hint"
+                aria-describedby={aliasView.describedBy}
                 id="descriptor-alias"
+                invalid={aliasView.invalid}
                 onChange={(event) => patch({ alias: event.target.value })}
                 value={state.alias}
               />
@@ -117,28 +153,54 @@ export function DescriptorBuilderWizard({
               />
             </Field>
             <Field
+              errorText={versionView.errorText}
               id="descriptor-version"
               label={intl.formatMessage(messages.descriptorFieldVersion)}
             >
               <Input
+                aria-describedby={versionView.describedBy}
                 id="descriptor-version"
+                invalid={versionView.invalid}
                 onChange={(event) => patch({ version: event.target.value })}
                 value={state.version}
               />
             </Field>
-            <LocalizedField
-              draft={state.name}
-              id="descriptor-name"
-              label={intl.formatMessage(messages.descriptorFieldName)}
-              onChange={(name) => patch({ name })}
-            />
-            <LocalizedField
-              draft={state.description}
-              id="descriptor-description"
-              label={intl.formatMessage(messages.descriptorFieldDescription)}
-              onChange={(description) => patch({ description })}
-              required={false}
-            />
+            <div style={{ gridColumn: 'span 2' }}>
+              <LocalizedField
+                activeLanguage={activeLanguage}
+                errorText={nameView.errorText}
+                helpText={intl.formatMessage(messages.descriptorTranslationHelp)}
+                id="descriptor-name"
+                invalid={nameView.invalid}
+                label={intl.formatMessage(messages.descriptorFieldName)}
+                languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
+                languages={localizedFieldLanguages(state.name)}
+                onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
+                onValueChange={(value) =>
+                  patch({ name: withLocalizedValue(state.name, activeLanguage, value) })
+                }
+                required
+                value={localizedDraftValue(state.name, activeLanguage)}
+              />
+            </div>
+            <div style={{ gridColumn: 'span 2' }}>
+              <LocalizedField
+                activeLanguage={activeLanguage}
+                helpText={intl.formatMessage(messages.descriptorTranslationHelp)}
+                id="descriptor-description"
+                label={intl.formatMessage(messages.descriptorFieldDescription)}
+                languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
+                languages={localizedFieldLanguages(state.description)}
+                multiline
+                onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
+                onValueChange={(value) =>
+                  patch({
+                    description: withLocalizedValue(state.description, activeLanguage, value),
+                  })
+                }
+                value={localizedDraftValue(state.description, activeLanguage)}
+              />
+            </div>
           </div>
         )}
 
@@ -647,49 +709,6 @@ export function DescriptorBuilderWizard({
         </footer>
       </Card>
     </section>
-  );
-}
-
-function LocalizedField({
-  id,
-  label,
-  draft,
-  onChange,
-  required = true,
-}: {
-  readonly id: string;
-  readonly label: string;
-  readonly draft: DescriptorWizardState['name'];
-  readonly onChange: (draft: DescriptorWizardState['name']) => void;
-  readonly required?: boolean;
-}): React.JSX.Element {
-  return (
-    <Field id={id} label={`${label}${required ? ' *' : ''}`}>
-      <Input
-        id={id}
-        onChange={(event) => onChange({ ...draft, en: event.target.value })}
-        value={draft.en}
-      />
-      <div style={{ display: 'grid', gap: 'var(--cl-space-2)', marginTop: 'var(--cl-space-2)' }}>
-        {TRANSLATABLE_LANGUAGES.map((language) => (
-          <Input
-            aria-label={`${label} (${language})`}
-            key={language}
-            onChange={(event) =>
-              onChange({
-                ...draft,
-                translations: { ...draft.translations, [language]: event.target.value },
-              })
-            }
-            placeholder={language}
-            value={draft.translations[language] ?? ''}
-          />
-        ))}
-      </div>
-      <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
-        <FormattedMessage {...messages.descriptorTranslationHelp} />
-      </p>
-    </Field>
   );
 }
 

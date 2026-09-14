@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { SupportedLanguage } from '@copalibre/domain';
 import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
@@ -7,8 +8,17 @@ import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { Field } from './ui/molecules/field.js';
-import { TRANSLATABLE_LANGUAGES } from '../lib/descriptor-authoring.js';
+import { LocalizedField } from './ui/molecules/localized-field.js';
 import {
+  localizedDraftValue,
+  localizedFieldLanguages,
+  localizedNameFieldView,
+  patternFieldView,
+  requiredFieldView,
+  withLocalizedValue,
+} from '../lib/descriptor-authoring.js';
+import {
+  ALIAS_PATTERN,
   PROFILE_STEPS,
   canContinue,
   canSubmit,
@@ -40,7 +50,30 @@ export function ProfileBuilderWizard({
 }): React.JSX.Element {
   const intl = useIntl();
   const [state, setState] = useState<ProfileWizardState>(initialProfileWizard);
+  // Shared by every localized field on the step: switching the tab on one
+  // moves them all together, so translating the pair means picking the
+  // language once rather than clicking through each field's own tabs.
+  const [activeLanguage, setActiveLanguage] = useState<SupportedLanguage>('en');
   const problems = stepProblems(state, disciplines);
+  const aliasView = patternFieldView(
+    state.alias,
+    ALIAS_PATTERN,
+    { hintId: 'profile-alias-hint', errorId: 'profile-alias-error' },
+    intl.formatMessage,
+    messages.profileProblemAliasFormat,
+  );
+  const versionView = requiredFieldView(
+    state.version,
+    'profile-version-error',
+    intl.formatMessage,
+    messages.profileProblemVersion,
+  );
+  const nameView = localizedNameFieldView(
+    activeLanguage,
+    state.name.en,
+    intl.formatMessage,
+    messages.profileProblemNameEnglish,
+  );
   const isLastStep = state.step === 'points';
   const allowedFormats = formatsFor(disciplines, state.disciplineAlias);
 
@@ -92,10 +125,15 @@ export function ProfileBuilderWizard({
       <Card className="cl-chamfer cl-chamfer--control">
         {state.step === 'name' && (
           <div className="cl-platform-form-grid">
-            <Field id="profile-alias" label={intl.formatMessage(messages.profileFieldAlias)}>
+            <Field
+              errorText={aliasView.errorText}
+              id="profile-alias"
+              label={intl.formatMessage(messages.profileFieldAlias)}
+            >
               <Input
-                aria-describedby="profile-alias-hint"
+                aria-describedby={aliasView.describedBy}
                 id="profile-alias"
+                invalid={aliasView.invalid}
                 onChange={(event) => patch({ alias: event.target.value })}
                 value={state.alias}
               />
@@ -104,26 +142,53 @@ export function ProfileBuilderWizard({
                 text={intl.formatMessage(messages.profileDecisionAlias)}
               />
             </Field>
-            <Field id="profile-version" label={intl.formatMessage(messages.profileFieldVersion)}>
+            <Field
+              errorText={versionView.errorText}
+              id="profile-version"
+              label={intl.formatMessage(messages.profileFieldVersion)}
+            >
               <Input
+                aria-describedby={versionView.describedBy}
                 id="profile-version"
+                invalid={versionView.invalid}
                 onChange={(event) => patch({ version: event.target.value })}
                 value={state.version}
               />
             </Field>
-            <LocalizedField
-              draft={state.name}
-              id="profile-name"
-              label={intl.formatMessage(messages.profileFieldName)}
-              onChange={(name) => patch({ name })}
-            />
-            <LocalizedField
-              draft={state.description}
-              id="profile-description"
-              label={intl.formatMessage(messages.profileFieldDescription)}
-              onChange={(description) => patch({ description })}
-              required={false}
-            />
+            <div style={{ gridColumn: 'span 2' }}>
+              <LocalizedField
+                activeLanguage={activeLanguage}
+                errorText={nameView.errorText}
+                id="profile-name"
+                invalid={nameView.invalid}
+                label={intl.formatMessage(messages.profileFieldName)}
+                languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
+                languages={localizedFieldLanguages(state.name)}
+                onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
+                onValueChange={(value) =>
+                  patch({ name: withLocalizedValue(state.name, activeLanguage, value) })
+                }
+                required
+                value={localizedDraftValue(state.name, activeLanguage)}
+              />
+            </div>
+            <div style={{ gridColumn: 'span 2' }}>
+              <LocalizedField
+                activeLanguage={activeLanguage}
+                id="profile-description"
+                label={intl.formatMessage(messages.profileFieldDescription)}
+                languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
+                languages={localizedFieldLanguages(state.description)}
+                multiline
+                onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
+                onValueChange={(value) =>
+                  patch({
+                    description: withLocalizedValue(state.description, activeLanguage, value),
+                  })
+                }
+                value={localizedDraftValue(state.description, activeLanguage)}
+              />
+            </div>
           </div>
         )}
 
@@ -306,46 +371,6 @@ export function ProfileBuilderWizard({
         </footer>
       </Card>
     </section>
-  );
-}
-
-function LocalizedField({
-  id,
-  label,
-  draft,
-  onChange,
-  required = true,
-}: {
-  readonly id: string;
-  readonly label: string;
-  readonly draft: ProfileWizardState['name'];
-  readonly onChange: (draft: ProfileWizardState['name']) => void;
-  readonly required?: boolean;
-}): React.JSX.Element {
-  return (
-    <Field id={id} label={`${label}${required ? ' *' : ''}`}>
-      <Input
-        id={id}
-        onChange={(event) => onChange({ ...draft, en: event.target.value })}
-        value={draft.en}
-      />
-      <div style={{ display: 'grid', gap: 'var(--cl-space-2)', marginTop: 'var(--cl-space-2)' }}>
-        {TRANSLATABLE_LANGUAGES.map((language) => (
-          <Input
-            aria-label={`${label} (${language})`}
-            key={language}
-            onChange={(event) =>
-              onChange({
-                ...draft,
-                translations: { ...draft.translations, [language]: event.target.value },
-              })
-            }
-            placeholder={language}
-            value={draft.translations[language] ?? ''}
-          />
-        ))}
-      </div>
-    </Field>
   );
 }
 

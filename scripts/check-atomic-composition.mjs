@@ -240,7 +240,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/screens/PlatformAdministrationTemplate.tsx', 1],
   ['control/components/screens/PreferencesTemplate.tsx', 15],
-  ['control/components/ProfileBuilderWizard.tsx', 6],
+  ['control/components/ProfileBuilderWizard.tsx', 7],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 4],
   ['control/components/screens/StandingsTemplate.tsx', 5],
@@ -658,6 +658,10 @@ export const KNOWN_MULTI_ATOM_OWNERSHIP = new Map([
   ['control/components/ui/atoms/button.tsx', 1],
   ['control/components/ui/atoms/file-picker.tsx', 2], // owns both `button` and `input`
   ['control/components/ui/atoms/input.tsx', 1],
+  // Left unregistered when this atom was added (openspec 0233); its tab
+  // strip renders its own <button> per language tab, a shape none of the
+  // other governed-element owners share (a tab, not a generic click target).
+  ['control/components/ui/atoms/localized-field-tabs.tsx', 1],
 ]);
 
 export function checkSingleAtomOwnership(nodes) {
