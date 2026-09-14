@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { LocalizedInput } from './localized-input.js';
+import { LocalizedTextarea } from './localized-textarea.js';
 import type { LocalizedFieldLanguage } from './localized-field-tabs.js';
 
 /** The platform's eight interface languages (packages/domain/src/i18n.ts SUPPORTED_LANGUAGES). */
@@ -16,18 +16,19 @@ const LANGUAGES: readonly LocalizedFieldLanguage[] = [
 ];
 
 const meta = {
-  title: 'Admin/Atoms/LocalizedInput',
-  component: LocalizedInput,
+  title: 'Admin/Atoms/LocalizedTextarea',
+  component: LocalizedTextarea,
   args: {
-    id: 'localized-input-story',
+    id: 'localized-textarea-story',
     languages: LANGUAGES,
     activeLanguage: 'en',
     onActiveLanguageChange: () => undefined,
     value: '',
     onValueChange: () => undefined,
+    rows: 4,
   },
   argTypes: { disabled: { control: 'boolean' }, invalid: { control: 'boolean' } },
-} satisfies Meta<typeof LocalizedInput>;
+} satisfies Meta<typeof LocalizedTextarea>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -36,8 +37,8 @@ export const Playground: Story = {
   args: { disabled: false, invalid: false },
   render: function Render(args) {
     const [values, setValues] = useState<Record<string, string>>({
-      en: 'Winter Cup',
-      es: 'Copa de Invierno',
+      en: 'Rescheduled after the venue reported a pitch conflict.',
+      es: 'Reprogramado tras un conflicto de cancha en la sede.',
     });
     const [active, setActive] = useState('en');
     const languages = LANGUAGES.map((language) => ({
@@ -46,7 +47,7 @@ export const Playground: Story = {
     }));
     return (
       <div style={{ maxWidth: '320px' }}>
-        <LocalizedInput
+        <LocalizedTextarea
           {...args}
           activeLanguage={active}
           languageTabsLabel="Choose language"
@@ -69,19 +70,17 @@ export const Matrix: Story = {
           [
             {
               label: 'two languages filled, all eight tabs',
-              props: { activeLanguage: 'en', value: 'Winter Cup' },
+              props: { activeLanguage: 'en', value: 'Rescheduled after a pitch conflict.' },
             },
-            {
-              label: 'non-English tab active',
-              props: { activeLanguage: 'fr', value: '' },
-            },
-            {
-              label: 'invalid',
-              props: { activeLanguage: 'en', value: '', invalid: true },
-            },
+            { label: 'non-English tab active', props: { activeLanguage: 'fr', value: '' } },
+            { label: 'invalid', props: { activeLanguage: 'en', value: '', invalid: true } },
             {
               label: 'disabled',
-              props: { activeLanguage: 'en', value: 'Winter Cup', disabled: true },
+              props: {
+                activeLanguage: 'en',
+                value: 'Rescheduled after a pitch conflict.',
+                disabled: true,
+              },
             },
           ] as const
         ).map((cell) => (
@@ -96,11 +95,12 @@ export const Matrix: Story = {
             >
               {cell.label}
             </span>
-            <LocalizedInput
+            <LocalizedTextarea
               id={`matrix-${cell.label}`}
               languages={LANGUAGES}
               onActiveLanguageChange={noop}
               onValueChange={noop}
+              rows={3}
               {...cell.props}
             />
           </div>

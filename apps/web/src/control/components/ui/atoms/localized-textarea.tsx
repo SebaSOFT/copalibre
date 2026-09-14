@@ -1,11 +1,9 @@
-import type { InputHTMLAttributes } from 'react';
-import { Input } from './input.js';
+import type { TextareaHTMLAttributes } from 'react';
+import { Textarea } from './textarea.js';
 import { LocalizedFieldTabs, type LocalizedFieldLanguage } from './localized-field-tabs.js';
 
-export type { LocalizedFieldLanguage as LocalizedInputLanguage } from './localized-field-tabs.js';
-
-export interface LocalizedInputProps
-  extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id' | 'value' | 'onChange'> {
+export interface LocalizedTextareaProps
+  extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id' | 'value' | 'onChange'> {
   readonly id: string;
   readonly languages: readonly LocalizedFieldLanguage[];
   readonly activeLanguage: string;
@@ -18,7 +16,7 @@ export interface LocalizedInputProps
   readonly languageTabsLabel?: string;
 }
 
-export function LocalizedInput({
+export function LocalizedTextarea({
   id,
   languages,
   activeLanguage,
@@ -30,7 +28,7 @@ export function LocalizedInput({
   className = '',
   languageTabsLabel,
   ...rest
-}: LocalizedInputProps): React.JSX.Element {
+}: LocalizedTextareaProps): React.JSX.Element {
   return (
     <div className="cl-localized-field">
       <LocalizedFieldTabs
@@ -41,7 +39,7 @@ export function LocalizedInput({
         onActiveLanguageChange={onActiveLanguageChange}
         tabsLabel={languageTabsLabel}
       />
-      <Input
+      <Textarea
         {...rest}
         className={className}
         disabled={disabled}

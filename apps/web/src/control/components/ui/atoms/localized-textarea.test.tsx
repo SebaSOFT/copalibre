@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { jest } from '@jest/globals';
-import { LocalizedInput } from './localized-input.js';
+import { LocalizedTextarea } from './localized-textarea.js';
 import type { LocalizedFieldLanguage } from './localized-field-tabs.js';
 
 const LANGUAGES: readonly LocalizedFieldLanguage[] = [
@@ -8,44 +8,44 @@ const LANGUAGES: readonly LocalizedFieldLanguage[] = [
   { code: 'es', label: 'Español', filled: false },
 ];
 
-describe('LocalizedInput', () => {
+describe('LocalizedTextarea', () => {
   it("renders the field showing the active language's own value", () => {
     render(
-      <LocalizedInput
+      <LocalizedTextarea
         activeLanguage="es"
-        id="name"
+        id="notes"
         languages={LANGUAGES}
         onActiveLanguageChange={() => undefined}
         onValueChange={() => undefined}
-        value="Copa"
+        value="Reprogramado"
       />,
     );
-    expect(screen.getByDisplayValue('Copa')).not.toBeNull();
+    expect(screen.getByDisplayValue('Reprogramado')).not.toBeNull();
   });
 
   it("edits the active language's own value, not the others", () => {
     const onValueChange = jest.fn();
     render(
-      <LocalizedInput
+      <LocalizedTextarea
         activeLanguage="es"
-        id="name"
+        id="notes"
         languages={LANGUAGES}
         onActiveLanguageChange={() => undefined}
         onValueChange={onValueChange}
-        value="Copa"
+        value="Reprogramado"
       />,
     );
-    const input = screen.getByDisplayValue('Copa');
-    fireEvent.change(input, { target: { value: 'Copa de Invierno' } });
-    expect(onValueChange).toHaveBeenCalledWith('Copa de Invierno');
+    const textarea = screen.getByDisplayValue('Reprogramado');
+    fireEvent.change(textarea, { target: { value: 'Reprogramado por lluvia' } });
+    expect(onValueChange).toHaveBeenCalledWith('Reprogramado por lluvia');
   });
 
   it('switches the active language when a tab is clicked', () => {
     const onActiveLanguageChange = jest.fn();
     render(
-      <LocalizedInput
+      <LocalizedTextarea
         activeLanguage="en"
-        id="name"
+        id="notes"
         languages={LANGUAGES}
         onActiveLanguageChange={onActiveLanguageChange}
         onValueChange={() => undefined}
@@ -58,10 +58,10 @@ describe('LocalizedInput', () => {
 
   it('disables the field alongside the language tabs', () => {
     render(
-      <LocalizedInput
+      <LocalizedTextarea
         activeLanguage="en"
         disabled
-        id="name"
+        id="notes"
         languages={LANGUAGES}
         onActiveLanguageChange={() => undefined}
         onValueChange={() => undefined}
@@ -71,6 +71,6 @@ describe('LocalizedInput', () => {
     expect((screen.getByRole('tab', { name: 'English' }) as HTMLButtonElement).disabled).toBe(
       true,
     );
-    expect((screen.getByDisplayValue('') as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByDisplayValue('') as HTMLTextAreaElement).disabled).toBe(true);
   });
 });
