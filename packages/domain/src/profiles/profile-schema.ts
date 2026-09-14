@@ -22,6 +22,35 @@ const TOURNAMENT_FORMATS = [
   'heats',
 ] as const;
 
+/** Mirrors `StageAllocation` (`rulesets/stage-allocation.ts`) as a wire schema. */
+const STAGE_ALLOCATION_SCHEMA: JsonSchemaDocument = Object.freeze({
+  type: 'object',
+  oneOf: [
+    {
+      type: 'object',
+      required: ['mode'],
+      additionalProperties: false,
+      properties: { mode: { const: 'automatic' } },
+    },
+    {
+      type: 'object',
+      required: ['mode'],
+      additionalProperties: false,
+      properties: { mode: { const: 'manual' } },
+    },
+    {
+      type: 'object',
+      required: ['mode', 'attributeKey', 'direction'],
+      additionalProperties: false,
+      properties: {
+        mode: { const: 'weighted' },
+        attributeKey: { type: 'string', minLength: 1 },
+        direction: { enum: ['higher-first', 'lower-first'] },
+      },
+    },
+  ],
+});
+
 /** Draft-07 wire schema for a publishable tournament-profile document. */
 export const TOURNAMENT_PROFILE_SCHEMA: JsonSchemaDocument = Object.freeze({
   $schema: 'http://json-schema.org/draft-07/schema#',
@@ -71,6 +100,7 @@ export const TOURNAMENT_PROFILE_SCHEMA: JsonSchemaDocument = Object.freeze({
           name: { type: 'string', minLength: 1 },
           format: { enum: TOURNAMENT_FORMATS },
           overrides: { type: 'object' },
+          allocation: STAGE_ALLOCATION_SCHEMA,
         },
       },
     },
