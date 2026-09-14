@@ -305,8 +305,10 @@ jobs:
           node --test scripts/tv-soak-test.test.mjs
           # Change-risk (CRAP) score (openspec 0227): reads this leg's just-produced
           # coverage-final.json files; a workspace this leg doesn't cover is skipped
-          # with a warning, not a failure.
-          yarn crap:check
+          # with a warning, not a failure. --report (openspec 0234) additionally
+          # dumps every scored function (not just gate offenders) for the
+          # cross-leg summary rendered by the crap-report job below.
+          yarn crap:check --report=crap-report-group-1.json
       - name: Unit test execution (Group 2 - Services, Web & SQLite)
         if: matrix.group == 2
         run: |
@@ -324,8 +326,10 @@ jobs:
           yarn workspace @copalibre/web test:coverage --maxWorkers=2
           # Change-risk (CRAP) score (openspec 0227): reads this leg's just-produced
           # coverage-final.json files; a workspace this leg doesn't cover is skipped
-          # with a warning, not a failure.
-          yarn crap:check
+          # with a warning, not a failure. --report (openspec 0234) additionally
+          # dumps every scored function (not just gate offenders) for the
+          # cross-leg summary rendered by the crap-report job below.
+          yarn crap:check --report=crap-report-group-2.json
       - uses: actions/upload-artifact@v7
         if: always() && matrix.group == 1
         with:
@@ -374,6 +378,18 @@ jobs:
           name: coverage-events
           path: apps/events/coverage
           retention-days: 14
+      - uses: actions/upload-artifact@v7
+        if: always() && matrix.group == 1
+        with:
+          name: crap-report-group-1
+          path: crap-report-group-1.json
+          retention-days: 14
+      - uses: actions/upload-artifact@v7
+        if: always() && matrix.group == 2
+        with:
+          name: crap-report-group-2
+          path: crap-report-group-2.json
+          retention-days: 14
 
   # Aggregate required gate preserving the stable check name 'Unit tests'.
   unit-tests:
@@ -393,6 +409,36 @@ jobs:
             --check="Unit tests" \
             --required="1,2" \
             --results='{"1":"${{ needs.unit-tests-group.result == 'success' && 'success' || needs.unit-tests-group.result }}","2":"${{ needs.unit-tests-group.result == 'success' && 'success' || needs.unit-tests-group.result }}"}'
+
+  # Change-risk (CRAP) score report (openspec 0234): merges both matrix legs'
+  # full per-function scores (not just gate offenders) into one repo-wide
+  # top-N ranking, visible in the run's Job Summary even when the gate above
+  # fails. Presentation only — never changes unit-tests-group's exit code.
+  crap-report:
+    name: Change-risk (CRAP) score report
+    runs-on: ubuntu-latest
+    needs: [install, unit-tests-group]
+    if: always()
+    steps:
+      - uses: actions/checkout@v7
+      - run: corepack enable
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: crap-report-group-1
+          path: crap-reports
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: crap-report-group-2
+          path: crap-reports
+      - name: Render change-risk (CRAP) score report
+        run: |
+          node scripts/render-crap-report.mjs crap-reports --top=15 --expect=2 \
+            >> "$GITHUB_STEP_SUMMARY"
 
   # The reusable module-validation.yml workflow (which the curated
   # copalibre-modules repository also calls on its own pull requests) run
