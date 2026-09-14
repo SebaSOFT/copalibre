@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -12,6 +12,7 @@ import {
   crapScore,
   checkWorkspace,
   findWorkspaces,
+  writeReport,
 } from './check-crap-score.mjs';
 
 function parse(code) {
@@ -187,6 +188,7 @@ test('a workspace with no coverage-final.json is skipped with a warning', () => 
   try {
     const result = checkWorkspace('@fixture/empty', dir);
     assert.deepEqual(result.offenders, []);
+    assert.deepEqual(result.scored, []);
     assert.match(result.warning, /no coverage-final\.json yet, skipping/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -247,6 +249,8 @@ test('a registered function whose score has not risen does not fail', () => {
   try {
     const result = checkWorkspace('@fixture/stable', dir);
     assert.deepEqual(result.offenders, []);
+    assert.equal(result.scored.length, 1);
+    assert.equal(result.scored[0].key, key);
   } finally {
     KNOWN_CRAP.delete(key);
     rmSync(dir, { recursive: true, force: true });
@@ -273,6 +277,104 @@ test('a registered function whose score has risen fails as regressed', () => {
     assert.match(result.offenders[0].reason, /regressed from recorded/);
   } finally {
     KNOWN_CRAP.delete(key);
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('scored includes every function regardless of threshold, offenders or not', () => {
+  const source = [
+    'export function risky(a, b, c, d, e) {',
+    '  if (a) return 1;',
+    '  if (b) return 2;',
+    '  if (c) return 3;',
+    '  if (d) return 4;',
+    '  if (e) return 5;',
+    '  return 0;',
+    '}',
+    'export function trivial() { return 1; }',
+  ].join('\n');
+  const entry = istanbulEntry({
+    statements: [
+      [2, 0],
+      [3, 0],
+      [4, 0],
+      [5, 0],
+      [6, 0],
+      [7, 0],
+      [9, 1],
+    ],
+  });
+  const dir = makeWorkspace({
+    name: '@fixture/scored',
+    files: { 'src/risky.ts': { source, entry } },
+  });
+  try {
+    const result = checkWorkspace('@fixture/scored', dir);
+    assert.equal(result.offenders.length, 1);
+    assert.equal(result.scored.length, 2);
+    assert.deepEqual(
+      result.scored.map((fn) => fn.key).sort(),
+      ['@fixture/scored/src/risky.ts#risky', '@fixture/scored/src/risky.ts#trivial'].sort(),
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('runCheck concatenates scored across workspaces the same way it does offenders', async () => {
+  const { runCheck } = await import('./check-crap-score.mjs');
+  const repoRoot = mkdtempSync(join(tmpdir(), 'crap-check-repo-scored-'));
+  try {
+    writeFileSync(join(repoRoot, 'package.json'), JSON.stringify({ workspaces: ['apps/*'] }));
+    const wsDir = join(repoRoot, 'apps', 'demo');
+    mkdirSync(join(wsDir, 'src'), { recursive: true });
+    writeFileSync(join(wsDir, 'package.json'), JSON.stringify({ name: '@fixture/demo' }));
+    const source = 'export function f() { return 1; }';
+    writeFileSync(join(wsDir, 'src', 'f.ts'), source);
+    mkdirSync(join(wsDir, 'coverage'), { recursive: true });
+    writeFileSync(
+      join(wsDir, 'coverage', 'coverage-final.json'),
+      JSON.stringify({
+        [join(wsDir, 'src', 'f.ts')]: istanbulEntry({ statements: [[1, 1]] }),
+      }),
+    );
+
+    const { scored } = runCheck(repoRoot);
+    assert.equal(scored.length, 1);
+    assert.equal(scored[0].key, '@fixture/demo/src/f.ts#f');
+  } finally {
+    rmSync(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('writeReport writes every scored function sorted by score descending', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'crap-check-report-'));
+  const reportPath = join(dir, 'report.json');
+  try {
+    writeReport(
+      [
+        { key: 'a#a', score: 5, complexity: 5, coverage: 1 },
+        { key: 'b#b', score: 30, complexity: 30, coverage: 0 },
+      ],
+      reportPath,
+    );
+    const written = JSON.parse(readFileSync(reportPath, 'utf8'));
+    assert.deepEqual(
+      written.map((fn) => fn.key),
+      ['b#b', 'a#a'],
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('writeReport writes the file even for an empty scored list', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'crap-check-report-empty-'));
+  const reportPath = join(dir, 'report.json');
+  try {
+    writeReport([], reportPath);
+    assert.deepEqual(JSON.parse(readFileSync(reportPath, 'utf8')), []);
+  } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
