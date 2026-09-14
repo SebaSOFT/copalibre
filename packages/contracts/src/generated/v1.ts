@@ -3215,6 +3215,8 @@ export interface components {
             name: string;
             /** @example round-robin */
             format: string;
+            /** @description The profile’s declared default seeding for this stage, if any. */
+            allocation?: components["schemas"]["StageAllocationRequest"];
         };
         TournamentProfileSummaryResponse: {
             /** Format: uuid */

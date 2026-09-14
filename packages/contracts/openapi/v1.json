@@ -12186,6 +12186,14 @@
           "format": {
             "type": "string",
             "example": "round-robin"
+          },
+          "allocation": {
+            "description": "The profile’s declared default seeding for this stage, if any.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageAllocationRequest"
+              }
+            ]
           }
         },
         "required": [
