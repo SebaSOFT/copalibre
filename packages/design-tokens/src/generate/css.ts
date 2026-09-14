@@ -793,6 +793,20 @@ function components(): string {
     '.cl-role-status--active { color: var(--cl-state-live); }',
     '.cl-role-status--inactive { color: var(--cl-text-muted); }',
     '',
+    // Small tabs above the field, not a Select-with-icon: Select's trigger
+    // holds one leading icon for the whole control (select.tsx), not a
+    // per-option marker, so it cannot carry a "this language already has
+    // text" dot per option without changing what an atom's `icon` prop means.
+    // Tabs give every language its own always-visible slot for that dot.
+    '.cl-localized-input { display: grid; gap: var(--cl-space-1); min-width: 0; }',
+    '.cl-localized-input__tabs { display: flex; flex-wrap: wrap; gap: var(--cl-space-1); }',
+    '.cl-localized-input__tab { display: inline-flex; align-items: center; gap: var(--cl-space-1); border: 1px solid var(--cl-border-muted); border-radius: var(--cl-radius-sm); background: var(--cl-surface-chrome); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; padding: var(--cl-space-1) var(--cl-space-2); cursor: pointer; }',
+    '.cl-localized-input__tab--active { background: var(--cl-surface-panel); border-color: var(--cl-primary); color: var(--cl-text-primary); }',
+    '.cl-localized-input__tab:disabled { cursor: not-allowed; opacity: 0.6; }',
+    // Same green as the badge/terminal-block fill dots (--cl-state-positive):
+    // one colour for "this already has a value," everywhere it appears.
+    '.cl-localized-input__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cl-state-positive); flex: 0 0 auto; }',
+    '',
     // One name for one rule. The dashboard's and the platform screen's own
     // section wrappers were byte-identical: a screen that stacks sections is a
     // screen that stacks sections, whichever screen it is.
