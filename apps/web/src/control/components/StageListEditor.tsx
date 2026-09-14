@@ -1,9 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
+import { Card, CardContent } from './ui/atoms/card.js';
 import { Checkbox } from './ui/atoms/checkbox.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { Input } from './ui/atoms/input.js';
+import { Grid } from './ui/atoms/layout/grid.js';
+import { Inline } from './ui/atoms/layout/inline.js';
+import { Stack } from './ui/atoms/layout/stack.js';
 import { Select } from './ui/atoms/select.js';
 import { Field } from './ui/molecules/field.js';
 import {
@@ -83,11 +87,17 @@ export function StageListEditor({
   }
 
   return (
-    <div
+    <Stack
       aria-label={intl.formatMessage(messages.stageEditorTitle)}
       data-readonly={readOnly ? 'true' : undefined}
-      style={{ display: 'grid', gap: 'var(--cl-space-4)' }}
+      gap="4"
     >
+      {/*
+        A stage is genuinely an ordered list, and the layout primitives only
+        ever render a <div> — Stack cannot become an <ol> the way it becomes
+        everything else here. Recorded in KNOWN_INLINE_LAYOUT rather than
+        forced through a primitive that would drop the list semantics.
+      */}
       <ol
         style={{
           display: 'grid',
@@ -98,85 +108,87 @@ export function StageListEditor({
         }}
       >
         {stages.map((stage) => (
-          <li className="cl-card cl-chamfer cl-chamfer--control" key={stage.number}>
-            <div className="cl-card__content" style={{ display: 'grid', gap: 'var(--cl-space-3)' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 'var(--cl-space-3)',
-                }}
-              >
-                <strong>
-                  <FormattedMessage
-                    {...messages.stageEditorStageHeading}
-                    values={{ number: stage.number }}
-                  />
-                </strong>
-                {!readOnly && stages.length > 1 && (
-                  <Button
-                    onClick={() => onChange?.(removeStage(stages, stage.number))}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage {...messages.stageEditorRemoveStage} />
-                  </Button>
-                )}
-              </div>
+          <li key={stage.number}>
+            <Card>
+              <CardContent>
+                <Stack gap="3">
+                  <Inline align="center" justify="between" gap="3">
+                    <strong>
+                      <FormattedMessage
+                        {...messages.stageEditorStageHeading}
+                        values={{ number: stage.number }}
+                      />
+                    </strong>
+                    {!readOnly && stages.length > 1 && (
+                      <Button
+                        onClick={() => onChange?.(removeStage(stages, stage.number))}
+                        type="button"
+                        variant="secondary"
+                      >
+                        <FormattedMessage {...messages.stageEditorRemoveStage} />
+                      </Button>
+                    )}
+                  </Inline>
 
-              <div className="cl-platform-form-grid">
-                <Field
-                  id={`stage-${stage.number}-name`}
-                  label={intl.formatMessage(messages.stageEditorStageName)}
-                >
-                  <Input
-                    disabled={readOnly}
-                    id={`stage-${stage.number}-name`}
-                    onChange={(event) => patchStage(stage.number, { name: event.target.value })}
-                    value={stage.name}
-                  />
-                </Field>
-                <Field
-                  id={`stage-${stage.number}-format`}
-                  label={intl.formatMessage(messages.stageEditorStageFormat)}
-                >
-                  <Select
-                    aria-describedby={
-                      formatHintText === undefined ? undefined : `stage-${stage.number}-format-hint`
-                    }
-                    aria-label={intl.formatMessage(messages.stageEditorStageFormat)}
-                    disabled={readOnly}
-                    id={`stage-${stage.number}-format`}
-                    onValueChange={(val) => patchStage(stage.number, { format: val })}
-                    options={formats.map((format) => ({ value: format, label: format }))}
-                    value={stage.format}
-                  />
-                  {formatHintText !== undefined && (
-                    <DecisionHint id={`stage-${stage.number}-format-hint`} text={formatHintText} />
+                  <div className="cl-platform-form-grid">
+                    <Field
+                      id={`stage-${stage.number}-name`}
+                      label={intl.formatMessage(messages.stageEditorStageName)}
+                    >
+                      <Input
+                        disabled={readOnly}
+                        id={`stage-${stage.number}-name`}
+                        onChange={(event) => patchStage(stage.number, { name: event.target.value })}
+                        value={stage.name}
+                      />
+                    </Field>
+                    <Field
+                      id={`stage-${stage.number}-format`}
+                      label={intl.formatMessage(messages.stageEditorStageFormat)}
+                    >
+                      <Select
+                        aria-describedby={
+                          formatHintText === undefined
+                            ? undefined
+                            : `stage-${stage.number}-format-hint`
+                        }
+                        aria-label={intl.formatMessage(messages.stageEditorStageFormat)}
+                        disabled={readOnly}
+                        id={`stage-${stage.number}-format`}
+                        onValueChange={(val) => patchStage(stage.number, { format: val })}
+                        options={formats.map((format) => ({ value: format, label: format }))}
+                        value={stage.format}
+                      />
+                      {formatHintText !== undefined && (
+                        <DecisionHint
+                          id={`stage-${stage.number}-format-hint`}
+                          text={formatHintText}
+                        />
+                      )}
+                    </Field>
+                  </div>
+
+                  {showSeries && (
+                    <SeriesFields
+                      intl={intl}
+                      onChange={(series) => patchStage(stage.number, { series })}
+                      readOnly={readOnly}
+                      stage={stage}
+                    />
                   )}
-                </Field>
-              </div>
 
-              {showSeries && (
-                <SeriesFields
-                  intl={intl}
-                  onChange={(series) => patchStage(stage.number, { series })}
-                  readOnly={readOnly}
-                  stage={stage}
-                />
-              )}
-
-              {showAllocation && (
-                <AllocationFields
-                  attributeKeys={attributeKeys}
-                  intl={intl}
-                  onChange={(allocation) => patchStage(stage.number, { allocation })}
-                  readOnly={readOnly}
-                  stage={stage}
-                />
-              )}
-            </div>
+                  {showAllocation && (
+                    <AllocationFields
+                      attributeKeys={attributeKeys}
+                      intl={intl}
+                      onChange={(allocation) => patchStage(stage.number, { allocation })}
+                      readOnly={readOnly}
+                      stage={stage}
+                    />
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
           </li>
         ))}
       </ol>
@@ -190,7 +202,7 @@ export function StageListEditor({
           <FormattedMessage {...messages.stageEditorAddStage} />
         </Button>
       )}
-    </div>
+    </Stack>
   );
 }
 
@@ -215,13 +227,10 @@ function SeriesFields({
   }, [stage.series]);
 
   return (
-    <div style={{ display: 'grid', gap: 'var(--cl-space-3)' }}>
-      <label
-        className="cl-toggle cl-focusable"
-        htmlFor={`stage-${stage.number}-series-enable`}
-        style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
-      >
+    <Stack gap="3">
+      <Inline align="center" className="cl-toggle cl-focusable" gap="2">
         <Checkbox
+          aria-label={intl.formatMessage(messages.stageEditorSeriesToggle)}
           checked={enabled}
           disabled={readOnly}
           id={`stage-${stage.number}-series-enable`}
@@ -232,7 +241,7 @@ function SeriesFields({
         <span>
           <FormattedMessage {...messages.stageEditorSeriesToggle} />
         </span>
-      </label>
+      </Inline>
 
       {enabled && stage.series && (
         <SeriesValueFields
@@ -243,7 +252,7 @@ function SeriesFields({
           stageNumber={stage.number}
         />
       )}
-    </div>
+    </Stack>
   );
 }
 
@@ -261,55 +270,50 @@ function SeriesValueFields({
   readonly readOnly: boolean;
 }): React.JSX.Element {
   return (
-    <div className="cl-platform-form-grid">
-      <Field
-        id={`stage-${stageNumber}-series-span`}
-        label={intl.formatMessage(messages.stageEditorSeriesSpan)}
-      >
-        <Input
-          disabled={readOnly}
+    <Stack gap="3">
+      <Grid columns={2} gap="3">
+        <Field
           id={`stage-${stageNumber}-series-span`}
-          inputMode="numeric"
-          min={2}
-          onChange={(event) =>
-            onChange({
-              ...series,
-              span: event.target.value === '' ? undefined : Number.parseInt(event.target.value, 10),
-            })
-          }
-          type="number"
-          value={series.span ?? ''}
-        />
-      </Field>
-      <Field
-        id={`stage-${stageNumber}-series-class`}
-        label={intl.formatMessage(messages.stageEditorSeriesResolutionClass)}
-      >
-        <Select
-          aria-label={intl.formatMessage(messages.stageEditorSeriesResolutionClass)}
-          disabled={readOnly}
+          label={intl.formatMessage(messages.stageEditorSeriesSpan)}
+        >
+          <Input
+            disabled={readOnly}
+            id={`stage-${stageNumber}-series-span`}
+            inputMode="numeric"
+            min={2}
+            onChange={(event) =>
+              onChange({
+                ...series,
+                span:
+                  event.target.value === '' ? undefined : Number.parseInt(event.target.value, 10),
+              })
+            }
+            type="number"
+            value={series.span ?? ''}
+          />
+        </Field>
+        <Field
           id={`stage-${stageNumber}-series-class`}
-          onValueChange={(val) =>
-            onChange({ ...series, resolutionClass: val as SeriesResolutionClass })
-          }
-          options={SERIES_RESOLUTION_CLASSES.map((resolutionClass) => ({
-            value: resolutionClass,
-            label: intl.formatMessage(SERIES_CLASS_LABELS[resolutionClass]),
-          }))}
-          value={series.resolutionClass ?? ''}
-        />
-      </Field>
-      <label
-        className="cl-toggle cl-focusable"
-        htmlFor={`stage-${stageNumber}-series-neutral`}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--cl-space-2)',
-          gridColumn: '1 / -1',
-        }}
-      >
+          label={intl.formatMessage(messages.stageEditorSeriesResolutionClass)}
+        >
+          <Select
+            aria-label={intl.formatMessage(messages.stageEditorSeriesResolutionClass)}
+            disabled={readOnly}
+            id={`stage-${stageNumber}-series-class`}
+            onValueChange={(val) =>
+              onChange({ ...series, resolutionClass: val as SeriesResolutionClass })
+            }
+            options={SERIES_RESOLUTION_CLASSES.map((resolutionClass) => ({
+              value: resolutionClass,
+              label: intl.formatMessage(SERIES_CLASS_LABELS[resolutionClass]),
+            }))}
+            value={series.resolutionClass ?? ''}
+          />
+        </Field>
+      </Grid>
+      <Inline align="center" className="cl-toggle cl-focusable" gap="2">
         <Checkbox
+          aria-label={intl.formatMessage(messages.stageEditorSeriesNeutralGround)}
           checked={series.neutralGround}
           disabled={readOnly}
           id={`stage-${stageNumber}-series-neutral`}
@@ -318,18 +322,10 @@ function SeriesValueFields({
         <span>
           <FormattedMessage {...messages.stageEditorSeriesNeutralGround} />
         </span>
-      </label>
-      <label
-        className="cl-toggle cl-focusable"
-        htmlFor={`stage-${stageNumber}-series-per-series`}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--cl-space-2)',
-          gridColumn: '1 / -1',
-        }}
-      >
+      </Inline>
+      <Inline align="center" className="cl-toggle cl-focusable" gap="2">
         <Checkbox
+          aria-label={intl.formatMessage(messages.stageEditorSeriesAccountPerSeries)}
           checked={series.standingsAccounting === 'series'}
           disabled={readOnly}
           id={`stage-${stageNumber}-series-per-series`}
@@ -340,8 +336,8 @@ function SeriesValueFields({
         <span>
           <FormattedMessage {...messages.stageEditorSeriesAccountPerSeries} />
         </span>
-      </label>
-    </div>
+      </Inline>
+    </Stack>
   );
 }
 

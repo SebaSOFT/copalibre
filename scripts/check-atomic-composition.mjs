@@ -240,12 +240,16 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/screens/PlatformAdministrationTemplate.tsx', 1],
   ['control/components/screens/PreferencesTemplate.tsx', 15],
-  ['control/components/ProfileBuilderWizard.tsx', 7],
+  ['control/components/ProfileBuilderWizard.tsx', 6],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 4],
   ['control/components/screens/StandingsTemplate.tsx', 5],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 4],
-  ['control/components/TournamentSetupWizard.tsx', 17],
+  ['control/components/TournamentSetupWizard.tsx', 15],
+  // A stage is genuinely an ordered list; the layout primitives (Stack/
+  // Inline/Grid) only ever render a <div> and cannot become an <ol>, the
+  // same class of exception as AstroPreview.tsx's <iframe> above.
+  ['control/components/StageListEditor.tsx', 1],
   ['control/components/ui/molecules/callout-banner.tsx', 5],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 5],
   ['control/components/ui/organisms/audit-log-panel.tsx', 10],
@@ -485,9 +489,8 @@ export const KNOWN_ORPHANS = new Map([
   // them — that is task 5.1's inline-layout paydown. `stack.tsx`/`box.tsx`
   // (AnalyticsPage.tsx) and `inline.tsx` (LiveConsolePage.tsx) gained their
   // first real consumer there and are gone from this register; `grid.tsx`
-  // remains a temporary orphan by the migration plan's own ordering, not an
-  // oversight.
-  ['control/components/ui/atoms/layout/grid.tsx', 1],
+  // gained its own first real consumer in `StageListEditor.tsx` (0235) and
+  // is gone from this register the same way.
   // Form's own entry is gone: task 4.2 gave it eleven real consumers across
   // the five files named in check-ui-ownership.mjs's KNOWN_RAW_ELEMENTS
   // comment. FieldSet's own entry is gone the same way — task 2.5's

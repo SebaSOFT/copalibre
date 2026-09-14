@@ -136,7 +136,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   ['control/components/screens/TournamentSettingsTemplate.tsx', 1],
   ['control/components/screens/VenueManagementTemplate.tsx', 11],
   ['control/components/screens/ZoneGroupTemplate.tsx', 4],
-  ['control/components/TournamentSetupWizard.tsx', 7],
+  ['control/components/TournamentSetupWizard.tsx', 5],
 ]);
 
 /**
