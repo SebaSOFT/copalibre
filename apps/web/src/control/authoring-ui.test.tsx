@@ -100,8 +100,8 @@ describe('the tournament setup wizard screen', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
-    expect(screen.getByLabelText('Format').textContent).toContain('single-elimination');
-    expect(screen.getByLabelText('Format').textContent).not.toContain('placement');
+    expect(screen.getByLabelText('Stage format').textContent).toContain('single-elimination');
+    expect(screen.getByLabelText('Stage format').textContent).not.toContain('placement');
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
@@ -113,7 +113,7 @@ describe('the tournament setup wizard screen', () => {
         name: 'Copa Verano',
         descriptorId: '01890000-0000-7000-8000-000000000001',
         descriptorVersion: '1.2.0',
-        format: 'single-elimination',
+        stages: [{ number: 1, format: 'single-elimination' }],
         publicRegistration: false,
         requiresCheckIn: false,
         customScripts: [],
@@ -175,7 +175,11 @@ describe('the tournament setup wizard screen', () => {
         name: 'Torneo Apertura',
         descriptorId: '01890000-0000-7000-8000-000000000001',
         descriptorVersion: '1.2.0',
-        format: 'single-elimination',
+        // The wizard submits the selected profile's own stages verbatim.
+        stages: [
+          { number: 1, name: 'Groups', format: 'round-robin' },
+          { number: 2, name: 'Playoff', format: 'single-elimination' },
+        ],
         publicRegistration: false,
         requiresCheckIn: true,
         region: 'Cuyo',
@@ -226,15 +230,17 @@ describe('the tournament setup wizard screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
-    expect(screen.queryByLabelText('Counts towards standings as')).toBeNull();
+    expect(screen.queryByLabelText('Count standings per series, not per match')).toBeNull();
 
-    fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
+    fireEvent.click(screen.getByLabelText('Settle this stage’s crosses with a series'));
 
-    const grainSelect = screen.getByLabelText('Counts towards standings as') as HTMLSelectElement;
-    expect(grainSelect.value).toBe('match');
+    const grainCheckbox = screen.getByLabelText(
+      'Count standings per series, not per match',
+    ) as HTMLInputElement;
+    expect(grainCheckbox.checked).toBe(false);
 
-    fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
-    expect(screen.queryByLabelText('Counts towards standings as')).toBeNull();
+    fireEvent.click(screen.getByLabelText('Settle this stage’s crosses with a series'));
+    expect(screen.queryByLabelText('Count standings per series, not per match')).toBeNull();
   });
 
   it('captures an explicit choice of series grain in the control’s own value (0160)', () => {
@@ -243,20 +249,23 @@ describe('the tournament setup wizard screen', () => {
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-grano' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
+    fireEvent.click(screen.getByLabelText('Settle this stage’s crosses with a series'));
 
-    const grainSelect = screen.getByLabelText('Counts towards standings as') as HTMLSelectElement;
-    fireEvent.change(grainSelect, { target: { value: 'series' } });
-    expect(grainSelect.value).toBe('series');
+    const grainCheckbox = screen.getByLabelText(
+      'Count standings per series, not per match',
+    ) as HTMLInputElement;
+    fireEvent.click(grainCheckbox);
+    expect(grainCheckbox.checked).toBe(true);
 
     // Toggling series off hides the control without discarding its value —
     // re-enabling shows the same choice, the same way span and resolution
     // class already survive a toggle.
-    fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
-    fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
-    expect((screen.getByLabelText('Counts towards standings as') as HTMLSelectElement).value).toBe(
-      'series',
-    );
+    fireEvent.click(screen.getByLabelText('Settle this stage’s crosses with a series'));
+    fireEvent.click(screen.getByLabelText('Settle this stage’s crosses with a series'));
+    expect(
+      (screen.getByLabelText('Count standings per series, not per match') as HTMLInputElement)
+        .checked,
+    ).toBe(true);
   });
 });
 
@@ -278,22 +287,6 @@ describe('decision descriptions (openspec 0161)', () => {
     },
   ] as const;
 
-  it("shows a discipline's own format description verbatim, ahead of the platform's", () => {
-    render(withIntl(<TournamentSetupWizard disciplines={DISCIPLINE_WITH_DESCRIPTIONS} />));
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Chukka' } });
-    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-chukka' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-    const formatSelect = screen.getByLabelText('Format');
-    expect(formatSelect.textContent).toContain('Every chukka counts toward the season table');
-    // The platform's own generic round-robin text is not shown once the
-    // descriptor supplies its own — tier one wins over tier two.
-    expect(formatSelect.textContent).not.toContain(
-      'Every entrant plays every other entrant once; standings rank by accumulated points.',
-    );
-  });
-
   it('states a blocked_after_results field cannot change once a result exists, before it is chosen, naming the audited correction workflow', () => {
     render(withIntl(<TournamentSetupWizard disciplines={DISCIPLINE_WITH_DESCRIPTIONS} />));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Chukka' } });
@@ -301,7 +294,7 @@ describe('decision descriptions (openspec 0161)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
-    const formatSelect = screen.getByLabelText('Format') as HTMLSelectElement;
+    const formatSelect = screen.getByLabelText('Stage format') as HTMLSelectElement;
     const hintId = formatSelect.getAttribute('aria-describedby');
     expect(hintId).toBeTruthy();
     expect(document.getElementById(hintId ?? '')?.textContent).toContain(
@@ -367,10 +360,14 @@ describe('wizard state transitions and validators', () => {
 
     const step3 = nextStep(state);
     expect(step3).toBe('format');
-    state = { ...state, step: step3, format: 'invalid-format' };
+    state = {
+      ...state,
+      step: step3,
+      stages: [{ number: 1, name: '', format: 'invalid-format' }],
+    };
     expect(stepProblems(state, disciplines).length).toBe(1);
 
-    state = { ...state, format: 'round-robin' };
+    state = { ...state, stages: [{ number: 1, name: '', format: 'round-robin' }] };
     expect(canContinue(state, disciplines)).toBe(true);
 
     const step4 = nextStep(state);

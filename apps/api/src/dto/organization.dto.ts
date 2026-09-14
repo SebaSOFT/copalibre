@@ -1112,6 +1112,12 @@ export class ProfileStageSummaryResponse {
 
   @ApiProperty({ example: 'round-robin' })
   format!: string;
+
+  @ApiPropertyOptional({
+    type: StageAllocationRequest,
+    description: 'The profile’s declared default seeding for this stage, if any.',
+  })
+  allocation?: StageAllocationRequest;
 }
 
 export class TournamentProfileSummaryResponse {

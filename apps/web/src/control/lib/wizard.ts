@@ -6,8 +6,30 @@ import type {
   CreateTournamentRequest,
   HookScriptVocabulary,
   HookVocabularyEntry,
-  SeriesAccountingGrain,
 } from './api-client.js';
+import {
+  initialStages,
+  stageProblems,
+  type StageAllocationDraft,
+  type WizardStageDraft,
+} from './stage-authoring.js';
+
+export {
+  appendStage,
+  emptySeriesDraft,
+  removeStage,
+  replaceStage,
+  ALLOCATION_MODES,
+  PLACEMENT_FORMATS,
+  SERIES_RESOLUTION_CLASSES,
+  type AllocationMode,
+  type SeedDirection,
+  type SeriesAccountingGrain,
+  type SeriesResolutionClass,
+  type StageAllocationDraft,
+  type StageSeriesDraft,
+  type WizardStageDraft,
+} from './stage-authoring.js';
 
 /**
  * The tournament setup wizard.
@@ -48,6 +70,7 @@ export interface ProfileStageOption {
   readonly number: number;
   readonly name: string;
   readonly format: string;
+  readonly allocation?: StageAllocationDraft;
 }
 
 export interface TournamentProfileOption {
@@ -72,7 +95,8 @@ export interface WizardState {
   readonly name?: string;
   readonly descriptorId?: string;
   readonly descriptorVersion?: string;
-  readonly format?: string;
+  /** Every stage of the tournament, in order — add/remove/append only, no reorder. */
+  readonly stages: readonly WizardStageDraft[];
   readonly profileId?: string;
   readonly profileVersion?: string;
   readonly region?: string;
@@ -86,43 +110,18 @@ export interface WizardState {
   readonly customRuleValues: Readonly<Record<string, string>>;
   readonly customRuleOptions: Readonly<Record<string, string>>;
   readonly customRules: readonly WizardRuleDraft[];
-  /**
-   * Off by default and requiring no operator action: a tournament authored
-   * without touching these controls submits exactly the request it did before
-   * they existed — no `series` key at all, not a `series` of span 1.
-   */
-  readonly seriesEnabled: boolean;
-  readonly seriesSpan?: number;
-  readonly seriesResolutionClass?: SeriesResolutionClass;
-  readonly seriesNeutralGround: boolean;
-  /**
-   * Preselected `match`, which is what an undeclared grain has always meant —
-   * an operator who never opens this control gets the request they got before
-   * it existed.
-   */
-  readonly seriesStandingsAccounting: SeriesAccountingGrain;
 }
-
-export type SeriesResolutionClass = 'best-of' | 'aggregate' | 'points-per-leg';
-
-export const SERIES_RESOLUTION_CLASSES: readonly SeriesResolutionClass[] = [
-  'best-of',
-  'aggregate',
-  'points-per-leg',
-];
 
 export function initialWizard(): WizardState {
   return {
     step: 'name',
+    stages: initialStages(),
     publicRegistration: false,
     requiresCheckIn: false,
     customRuleEnabled: false,
     customRuleValues: {},
     customRuleOptions: {},
     customRules: [],
-    seriesEnabled: false,
-    seriesNeutralGround: false,
-    seriesStandingsAccounting: 'match',
   };
 }
 
@@ -199,13 +198,17 @@ export function stepProblems(
     case 'discipline':
       return state.descriptorId === undefined ? [messages.wizardProblemChooseDiscipline] : [];
     case 'format': {
-      if (state.format === undefined) return [messages.wizardProblemChooseFormat];
+      if (state.stages.length === 0) return [messages.wizardProblemChooseFormat];
+      const supported = formatsFor(disciplines, state.descriptorId);
       // Guards against a stale selection: changing the discipline after
-      // choosing a format must not carry the old one through.
-      if (!formatsFor(disciplines, state.descriptorId).includes(state.format)) {
-        return [messages.wizardProblemFormatNotSupported];
-      }
-      return seriesProblems(state);
+      // choosing a format must not carry the old one through. Evaluated
+      // per stage, so one placement-format stage among several is refused
+      // independent of the other stages' validity.
+      return state.stages.flatMap((stage) =>
+        !supported.includes(stage.format)
+          ? [messages.wizardProblemFormatNotSupported]
+          : stageProblems(stage),
+      );
     }
     case 'rules': {
       if (!state.customRuleEnabled) return [];
@@ -224,37 +227,6 @@ export function stepProblems(
         : [];
   }
 }
-
-/**
- * The two refusals, client-side, mirroring the server's own checks so the
- * operator meets them while authoring rather than on submit. Both refuse a
- * configuration that cannot cohere, never an unusual-but-valid one: a placement
- * match has no two sides to settle, and an even-span `best-of` has no majority.
- */
-export function seriesProblems(state: WizardState): readonly MessageDescriptor[] {
-  if (!state.seriesEnabled) return [];
-
-  const problems: MessageDescriptor[] = [];
-  if (state.format !== undefined && PLACEMENT_FORMATS.includes(state.format)) {
-    problems.push(messages.wizardProblemSeriesOnPlacementFormat);
-  }
-  if (
-    state.seriesSpan === undefined ||
-    !Number.isInteger(state.seriesSpan) ||
-    state.seriesSpan < 2
-  ) {
-    problems.push(messages.wizardProblemSeriesSpan);
-  } else if (state.seriesResolutionClass === 'best-of' && state.seriesSpan % 2 === 0) {
-    problems.push(messages.wizardProblemSeriesEvenBestOf);
-  }
-  return problems;
-}
-
-/**
- * Read from the client rather than the API only because it decides which *label*
- * to show; the server refuses a series on a placement format regardless.
- */
-const PLACEMENT_FORMATS: readonly string[] = ['free-for-all', 'heats'];
 
 export function canContinue(
   state: WizardState,
@@ -294,7 +266,7 @@ export function toCreateRequest(
     state.name === undefined ||
     state.descriptorId === undefined ||
     state.descriptorVersion === undefined ||
-    state.format === undefined
+    state.stages.length === 0
   ) {
     throw new Error('The wizard is not complete');
   }
@@ -303,7 +275,7 @@ export function toCreateRequest(
     name: state.name,
     descriptorId: state.descriptorId,
     descriptorVersion: state.descriptorVersion,
-    format: state.format,
+    stages: state.stages.map(stageRequestFrom),
     publicRegistration: state.publicRegistration,
     requiresCheckIn: state.requiresCheckIn,
     ...(state.checkInClosesAt !== undefined && state.checkInClosesAt.trim() !== ''
@@ -314,28 +286,29 @@ export function toCreateRequest(
     ...(state.profileId !== undefined ? { profileId: state.profileId } : {}),
     ...(state.profileVersion !== undefined ? { profileVersion: state.profileVersion } : {}),
     customScripts: customScriptsFrom(state, vocabulary),
-    ...seriesFrom(state),
   };
 }
 
-/**
- * Absent, not empty, when no series is declared — a tournament authored without
- * touching the series controls submits the request it submitted before they
- * existed, byte for byte.
- */
-function seriesFrom(state: WizardState): Pick<CreateTournamentRequest, 'series'> | object {
-  if (!state.seriesEnabled || state.seriesSpan === undefined) return {};
+function stageRequestFrom(stage: WizardStageDraft): CreateTournamentRequest['stages'][number] {
   return {
-    series: {
-      span: state.seriesSpan,
-      ...(state.seriesResolutionClass === undefined
-        ? {}
-        : { resolutionClass: state.seriesResolutionClass }),
-      ...(state.seriesNeutralGround ? { neutralGround: true } : {}),
-      ...(state.seriesStandingsAccounting === 'series'
-        ? { standingsAccounting: 'series' as const }
-        : {}),
-    },
+    number: stage.number,
+    ...(stage.name.trim() === '' ? {} : { name: stage.name }),
+    format: stage.format,
+    ...(stage.series === undefined || stage.series.span === undefined
+      ? {}
+      : {
+          series: {
+            span: stage.series.span,
+            ...(stage.series.resolutionClass === undefined
+              ? {}
+              : { resolutionClass: stage.series.resolutionClass }),
+            ...(stage.series.neutralGround ? { neutralGround: true } : {}),
+            ...(stage.series.standingsAccounting === 'series'
+              ? { standingsAccounting: 'series' as const }
+              : {}),
+          },
+        }),
+    ...(stage.allocation === undefined ? {} : { allocation: stage.allocation }),
   };
 }
 
