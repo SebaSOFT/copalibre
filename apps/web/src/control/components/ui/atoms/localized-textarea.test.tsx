@@ -68,9 +68,7 @@ describe('LocalizedTextarea', () => {
         value=""
       />,
     );
-    expect((screen.getByRole('tab', { name: 'English' }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+    expect((screen.getByRole('tab', { name: 'English' }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByDisplayValue('') as HTMLTextAreaElement).disabled).toBe(true);
   });
 });

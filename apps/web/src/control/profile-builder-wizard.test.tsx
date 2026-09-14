@@ -59,7 +59,9 @@ describe('the tournament profile builder wizard', () => {
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'e2e-cup' } });
     fireEvent.change(screen.getByLabelText('Version'), { target: { value: '1.1.0' } });
     fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'E2E Cup' } });
-    fireEvent.change(screen.getByLabelText('Name (es)'), { target: { value: 'Copa E2E' } });
+    fireEvent.click(screen.getAllByRole('tab', { name: 'Español' })[0] as HTMLButtonElement);
+    fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'Copa E2E' } });
+    fireEvent.click(screen.getAllByRole('tab', { name: 'English' })[0] as HTMLButtonElement);
     fireEvent.change(screen.getByLabelText('Description'), {
       target: { value: 'A multi-stage cup' },
     });

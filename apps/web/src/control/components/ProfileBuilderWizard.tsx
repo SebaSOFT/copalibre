@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { SupportedLanguage } from '@copalibre/domain';
 import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
@@ -7,7 +8,12 @@ import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { Field } from './ui/molecules/field.js';
-import { TRANSLATABLE_LANGUAGES } from '../lib/descriptor-authoring.js';
+import { LocalizedField } from './ui/molecules/localized-field.js';
+import {
+  localizedDraftValue,
+  localizedFieldLanguages,
+  withLocalizedValue,
+} from '../lib/descriptor-authoring.js';
 import {
   PROFILE_STEPS,
   canContinue,
@@ -40,6 +46,10 @@ export function ProfileBuilderWizard({
 }): React.JSX.Element {
   const intl = useIntl();
   const [state, setState] = useState<ProfileWizardState>(initialProfileWizard);
+  // Shared by every localized field on the step: switching the tab on one
+  // moves them all together, so translating the pair means picking the
+  // language once rather than clicking through each field's own tabs.
+  const [activeLanguage, setActiveLanguage] = useState<SupportedLanguage>('en');
   const problems = stepProblems(state, disciplines);
   const isLastStep = state.step === 'points';
   const allowedFormats = formatsFor(disciplines, state.disciplineAlias);
@@ -112,17 +122,31 @@ export function ProfileBuilderWizard({
               />
             </Field>
             <LocalizedField
-              draft={state.name}
+              activeLanguage={activeLanguage}
               id="profile-name"
+              invalid={activeLanguage === 'en' && state.name.en.trim() === ''}
               label={intl.formatMessage(messages.profileFieldName)}
-              onChange={(name) => patch({ name })}
+              languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
+              languages={localizedFieldLanguages(state.name)}
+              onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
+              onValueChange={(value) =>
+                patch({ name: withLocalizedValue(state.name, activeLanguage, value) })
+              }
+              required
+              value={localizedDraftValue(state.name, activeLanguage)}
             />
             <LocalizedField
-              draft={state.description}
+              activeLanguage={activeLanguage}
               id="profile-description"
               label={intl.formatMessage(messages.profileFieldDescription)}
-              onChange={(description) => patch({ description })}
-              required={false}
+              languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
+              languages={localizedFieldLanguages(state.description)}
+              multiline
+              onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
+              onValueChange={(value) =>
+                patch({ description: withLocalizedValue(state.description, activeLanguage, value) })
+              }
+              value={localizedDraftValue(state.description, activeLanguage)}
             />
           </div>
         )}
@@ -306,46 +330,6 @@ export function ProfileBuilderWizard({
         </footer>
       </Card>
     </section>
-  );
-}
-
-function LocalizedField({
-  id,
-  label,
-  draft,
-  onChange,
-  required = true,
-}: {
-  readonly id: string;
-  readonly label: string;
-  readonly draft: ProfileWizardState['name'];
-  readonly onChange: (draft: ProfileWizardState['name']) => void;
-  readonly required?: boolean;
-}): React.JSX.Element {
-  return (
-    <Field id={id} label={`${label}${required ? ' *' : ''}`}>
-      <Input
-        id={id}
-        onChange={(event) => onChange({ ...draft, en: event.target.value })}
-        value={draft.en}
-      />
-      <div style={{ display: 'grid', gap: 'var(--cl-space-2)', marginTop: 'var(--cl-space-2)' }}>
-        {TRANSLATABLE_LANGUAGES.map((language) => (
-          <Input
-            aria-label={`${label} (${language})`}
-            key={language}
-            onChange={(event) =>
-              onChange({
-                ...draft,
-                translations: { ...draft.translations, [language]: event.target.value },
-              })
-            }
-            placeholder={language}
-            value={draft.translations[language] ?? ''}
-          />
-        ))}
-      </div>
-    </Field>
   );
 }
 

@@ -5,6 +5,8 @@ import {
 } from '@copalibre/domain';
 import type { MessageDescriptor } from 'react-intl';
 import { messages } from '../i18n/messages.en.js';
+import { LANGUAGE_NAMES } from '../i18n/LanguageSwitcher.js';
+import type { LocalizedFieldLanguage } from '../components/ui/atoms/localized-field-tabs.js';
 import type { AuthoredModuleRequest } from './api-client.js';
 
 /**
@@ -94,6 +96,31 @@ export function localizedValue(draft: LocalizedDraft): string | LocalizedLabel |
 export const TRANSLATABLE_LANGUAGES: readonly SupportedLanguage[] = SUPPORTED_LANGUAGES.filter(
   (language) => language !== 'en',
 );
+
+/** This draft's own value for one language — `en` lives on the draft directly, the rest in `translations`. */
+export function localizedDraftValue(draft: LocalizedDraft, language: SupportedLanguage): string {
+  return language === 'en' ? draft.en : (draft.translations[language] ?? '');
+}
+
+/** A copy of `draft` with `language`'s value replaced, keeping every other language untouched. */
+export function withLocalizedValue(
+  draft: LocalizedDraft,
+  language: SupportedLanguage,
+  value: string,
+): LocalizedDraft {
+  return language === 'en'
+    ? { ...draft, en: value }
+    : { ...draft, translations: { ...draft.translations, [language]: value } };
+}
+
+/** Every supported language, each tagged with its display name and whether this draft already has content for it — feeds `LocalizedInput`/`LocalizedTextarea`'s `languages` prop. */
+export function localizedFieldLanguages(draft: LocalizedDraft): readonly LocalizedFieldLanguage[] {
+  return SUPPORTED_LANGUAGES.map((code) => ({
+    code,
+    label: LANGUAGE_NAMES[code],
+    filled: localizedDraftValue(draft, code).trim() !== '',
+  }));
+}
 
 export interface SegmentTypeDraft {
   readonly name: string;

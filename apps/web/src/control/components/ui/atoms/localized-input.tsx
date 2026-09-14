@@ -4,8 +4,10 @@ import { LocalizedFieldTabs, type LocalizedFieldLanguage } from './localized-fie
 
 export type { LocalizedFieldLanguage as LocalizedInputLanguage } from './localized-field-tabs.js';
 
-export interface LocalizedInputProps
-  extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id' | 'value' | 'onChange'> {
+export interface LocalizedInputProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  'id' | 'value' | 'onChange'
+> {
   readonly id: string;
   readonly languages: readonly LocalizedFieldLanguage[];
   readonly activeLanguage: string;

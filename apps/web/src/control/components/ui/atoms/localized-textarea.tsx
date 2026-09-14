@@ -2,8 +2,10 @@ import type { TextareaHTMLAttributes } from 'react';
 import { Textarea } from './textarea.js';
 import { LocalizedFieldTabs, type LocalizedFieldLanguage } from './localized-field-tabs.js';
 
-export interface LocalizedTextareaProps
-  extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id' | 'value' | 'onChange'> {
+export interface LocalizedTextareaProps extends Omit<
+  TextareaHTMLAttributes<HTMLTextAreaElement>,
+  'id' | 'value' | 'onChange'
+> {
   readonly id: string;
   readonly languages: readonly LocalizedFieldLanguage[];
   readonly activeLanguage: string;

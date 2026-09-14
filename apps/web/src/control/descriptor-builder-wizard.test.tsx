@@ -71,7 +71,9 @@ describe('the discipline builder wizard', () => {
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'e2e-tennis' } });
     fireEvent.change(screen.getByLabelText('Version'), { target: { value: '1.2.0' } });
     fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'Tennis' } });
-    fireEvent.change(screen.getByLabelText('Name (es)'), { target: { value: 'Tenis' } });
+    fireEvent.click(screen.getAllByRole('tab', { name: 'Español' })[0] as HTMLButtonElement);
+    fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'Tenis' } });
+    fireEvent.click(screen.getAllByRole('tab', { name: 'English' })[0] as HTMLButtonElement);
     fireEvent.change(screen.getByLabelText('Description'), {
       target: { value: 'Racquet sport decided by sets' },
     });

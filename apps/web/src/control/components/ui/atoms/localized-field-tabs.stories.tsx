@@ -31,7 +31,9 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {
   render: function Render(args) {
     const [active, setActive] = useState('en');
-    return <LocalizedFieldTabs {...args} activeLanguage={active} onActiveLanguageChange={setActive} />;
+    return (
+      <LocalizedFieldTabs {...args} activeLanguage={active} onActiveLanguageChange={setActive} />
+    );
   },
 };
 

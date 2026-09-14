@@ -68,9 +68,7 @@ describe('LocalizedInput', () => {
         value=""
       />,
     );
-    expect((screen.getByRole('tab', { name: 'English' }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+    expect((screen.getByRole('tab', { name: 'English' }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByDisplayValue('') as HTMLInputElement).disabled).toBe(true);
   });
 });
