@@ -7,6 +7,12 @@ import {
   type LocalizedDraft,
 } from './descriptor-authoring.js';
 import type { DisciplineOption } from './wizard.js';
+import {
+  stageProblems as stageAllocationProblems,
+  type WizardStageDraft,
+} from './stage-authoring.js';
+
+export { renumbered } from './stage-authoring.js';
 
 /**
  * The tournament profile builder wizard (openspec 0164).
@@ -31,16 +37,13 @@ export const PROFILE_STEPS: readonly {
   { id: 'points', label: messages.profileStepPoints },
 ];
 
-export interface ProfileStageDraft {
-  readonly number: number;
-  readonly name: string;
-  readonly format: string;
-}
-
-/** Keeps `number` a contiguous 1-based sequence after an add or a remove — never a gap or a duplicate. */
-export function renumbered(stages: readonly ProfileStageDraft[]): readonly ProfileStageDraft[] {
-  return stages.map((stage, index) => ({ ...stage, number: index + 1 }));
-}
+/**
+ * A profile's stage shares `TournamentSetupWizard`'s stage shape (design.md,
+ * "one shared stage-editor component") but never declares `series` — a
+ * profile is discipline-neutral and has no per-tournament series concept of
+ * its own; it declares only format and a default seeding `allocation`.
+ */
+export type ProfileStageDraft = WizardStageDraft;
 
 export interface ProfileWizardState {
   readonly step: ProfileStepId;
@@ -129,6 +132,7 @@ export function stepProblems(
       ) {
         problems.push(messages.profileProblemStageFormat);
       }
+      problems.push(...state.stages.flatMap(stageAllocationProblems));
       return problems;
     }
     case 'points':
@@ -174,6 +178,7 @@ export function toAuthoredDocument(state: ProfileWizardState): Record<string, un
       number: stage.number,
       name: stage.name,
       format: stage.format,
+      ...(stage.allocation === undefined ? {} : { allocation: stage.allocation }),
     })),
     points: { win: state.pointsWin, draw: state.pointsDraw, loss: state.pointsLoss },
     tiebreak: [],
