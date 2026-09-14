@@ -208,7 +208,7 @@ export function initialDescriptorWizard(): DescriptorWizardState {
   };
 }
 
-const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export function nextStep(state: DescriptorWizardState): DescriptorStepId {
   const index = DESCRIPTOR_STEPS.findIndex((step) => step.id === state.step);

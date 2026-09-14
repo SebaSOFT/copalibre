@@ -24,6 +24,8 @@ export interface LocalizedFieldProps {
   readonly required?: boolean;
   readonly invalid?: boolean;
   readonly helpText?: string;
+  /** Shown instead of `helpText` and wired to the control via `aria-describedby` (`Field`'s own precedence: an error replaces help, never stacks with it). */
+  readonly errorText?: string;
   /** Accessible name for the language tab group, e.g. "Language". */
   readonly languageTabsLabel?: string;
   /** `LocalizedTextarea` for a longer, multi-line value; `LocalizedInput` otherwise. */
@@ -41,14 +43,17 @@ export function LocalizedField({
   required = false,
   invalid = false,
   helpText,
+  errorText,
   languageTabsLabel,
   multiline = false,
 }: LocalizedFieldProps): React.JSX.Element {
+  const describedBy = errorText ? `${id}-error` : undefined;
   return (
-    <Field helpText={helpText} id={id} label={label} required={required}>
+    <Field errorText={errorText} helpText={helpText} id={id} label={label} required={required}>
       {multiline ? (
         <LocalizedTextarea
           activeLanguage={activeLanguage}
+          aria-describedby={describedBy}
           id={id}
           invalid={invalid}
           languageTabsLabel={languageTabsLabel}
@@ -60,6 +65,7 @@ export function LocalizedField({
       ) : (
         <LocalizedInput
           activeLanguage={activeLanguage}
+          aria-describedby={describedBy}
           id={id}
           invalid={invalid}
           languageTabsLabel={languageTabsLabel}

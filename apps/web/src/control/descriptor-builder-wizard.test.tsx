@@ -14,8 +14,19 @@ describe('the discipline builder wizard', () => {
   it('shows a persistent explanation for the alias decision, bound to the field', () => {
     render(withIntl(<DescriptorBuilderWizard />));
     const alias = screen.getByLabelText('Alias');
-    expect(alias.getAttribute('aria-describedby')).toBe('descriptor-alias-hint');
+    // Empty by default, so the format error is also live and described.
+    expect(alias.getAttribute('aria-describedby')).toBe(
+      'descriptor-alias-hint descriptor-alias-error',
+    );
     expect(screen.getByText(/The stable identity this discipline installs under/)).toBeDefined();
+  });
+
+  it("wires the alias field's aria-describedby to only its decision hint once the alias is valid", () => {
+    render(withIntl(<DescriptorBuilderWizard />));
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'valid-alias' } });
+    expect(screen.getByLabelText('Alias').getAttribute('aria-describedby')).toBe(
+      'descriptor-alias-hint',
+    );
   });
 
   it('refuses to continue past the name step without an English name', () => {

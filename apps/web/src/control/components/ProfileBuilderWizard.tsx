@@ -15,6 +15,7 @@ import {
   withLocalizedValue,
 } from '../lib/descriptor-authoring.js';
 import {
+  ALIAS_PATTERN,
   PROFILE_STEPS,
   canContinue,
   canSubmit,
@@ -102,10 +103,23 @@ export function ProfileBuilderWizard({
       <Card className="cl-chamfer cl-chamfer--control">
         {state.step === 'name' && (
           <div className="cl-platform-form-grid">
-            <Field id="profile-alias" label={intl.formatMessage(messages.profileFieldAlias)}>
+            <Field
+              errorText={
+                ALIAS_PATTERN.test(state.alias)
+                  ? undefined
+                  : intl.formatMessage(messages.profileProblemAliasFormat)
+              }
+              id="profile-alias"
+              label={intl.formatMessage(messages.profileFieldAlias)}
+            >
               <Input
-                aria-describedby="profile-alias-hint"
+                aria-describedby={
+                  ALIAS_PATTERN.test(state.alias)
+                    ? 'profile-alias-hint'
+                    : 'profile-alias-hint profile-alias-error'
+                }
                 id="profile-alias"
+                invalid={!ALIAS_PATTERN.test(state.alias)}
                 onChange={(event) => patch({ alias: event.target.value })}
                 value={state.alias}
               />
@@ -114,40 +128,61 @@ export function ProfileBuilderWizard({
                 text={intl.formatMessage(messages.profileDecisionAlias)}
               />
             </Field>
-            <Field id="profile-version" label={intl.formatMessage(messages.profileFieldVersion)}>
+            <Field
+              errorText={
+                state.version.trim() === ''
+                  ? intl.formatMessage(messages.profileProblemVersion)
+                  : undefined
+              }
+              id="profile-version"
+              label={intl.formatMessage(messages.profileFieldVersion)}
+            >
               <Input
+                aria-describedby={state.version.trim() === '' ? 'profile-version-error' : undefined}
                 id="profile-version"
+                invalid={state.version.trim() === ''}
                 onChange={(event) => patch({ version: event.target.value })}
                 value={state.version}
               />
             </Field>
-            <LocalizedField
-              activeLanguage={activeLanguage}
-              id="profile-name"
-              invalid={activeLanguage === 'en' && state.name.en.trim() === ''}
-              label={intl.formatMessage(messages.profileFieldName)}
-              languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
-              languages={localizedFieldLanguages(state.name)}
-              onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
-              onValueChange={(value) =>
-                patch({ name: withLocalizedValue(state.name, activeLanguage, value) })
-              }
-              required
-              value={localizedDraftValue(state.name, activeLanguage)}
-            />
-            <LocalizedField
-              activeLanguage={activeLanguage}
-              id="profile-description"
-              label={intl.formatMessage(messages.profileFieldDescription)}
-              languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
-              languages={localizedFieldLanguages(state.description)}
-              multiline
-              onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
-              onValueChange={(value) =>
-                patch({ description: withLocalizedValue(state.description, activeLanguage, value) })
-              }
-              value={localizedDraftValue(state.description, activeLanguage)}
-            />
+            <div style={{ gridColumn: 'span 2' }}>
+              <LocalizedField
+                activeLanguage={activeLanguage}
+                errorText={
+                  activeLanguage === 'en' && state.name.en.trim() === ''
+                    ? intl.formatMessage(messages.profileProblemNameEnglish)
+                    : undefined
+                }
+                id="profile-name"
+                invalid={activeLanguage === 'en' && state.name.en.trim() === ''}
+                label={intl.formatMessage(messages.profileFieldName)}
+                languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
+                languages={localizedFieldLanguages(state.name)}
+                onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
+                onValueChange={(value) =>
+                  patch({ name: withLocalizedValue(state.name, activeLanguage, value) })
+                }
+                required
+                value={localizedDraftValue(state.name, activeLanguage)}
+              />
+            </div>
+            <div style={{ gridColumn: 'span 2' }}>
+              <LocalizedField
+                activeLanguage={activeLanguage}
+                id="profile-description"
+                label={intl.formatMessage(messages.profileFieldDescription)}
+                languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
+                languages={localizedFieldLanguages(state.description)}
+                multiline
+                onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
+                onValueChange={(value) =>
+                  patch({
+                    description: withLocalizedValue(state.description, activeLanguage, value),
+                  })
+                }
+                value={localizedDraftValue(state.description, activeLanguage)}
+              />
+            </div>
           </div>
         )}
 

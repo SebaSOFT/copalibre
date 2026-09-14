@@ -16,6 +16,7 @@ import { LocalizedField } from './ui/molecules/localized-field.js';
 import {
   ACTOR_REQUIREMENTS,
   AGGREGATION_MODES,
+  ALIAS_PATTERN,
   DESCRIPTOR_STEPS,
   EVENT_CATEGORIES,
   TOURNAMENT_FORMATS,
@@ -112,10 +113,23 @@ export function DescriptorBuilderWizard({
       <Card className="cl-chamfer cl-chamfer--control">
         {state.step === 'name' && (
           <div className="cl-platform-form-grid">
-            <Field id="descriptor-alias" label={intl.formatMessage(messages.descriptorFieldAlias)}>
+            <Field
+              errorText={
+                ALIAS_PATTERN.test(state.alias)
+                  ? undefined
+                  : intl.formatMessage(messages.descriptorProblemAliasFormat)
+              }
+              id="descriptor-alias"
+              label={intl.formatMessage(messages.descriptorFieldAlias)}
+            >
               <Input
-                aria-describedby="descriptor-alias-hint"
+                aria-describedby={
+                  ALIAS_PATTERN.test(state.alias)
+                    ? 'descriptor-alias-hint'
+                    : 'descriptor-alias-hint descriptor-alias-error'
+                }
                 id="descriptor-alias"
+                invalid={!ALIAS_PATTERN.test(state.alias)}
                 onChange={(event) => patch({ alias: event.target.value })}
                 value={state.alias}
               />
@@ -125,44 +139,64 @@ export function DescriptorBuilderWizard({
               />
             </Field>
             <Field
+              errorText={
+                state.version.trim() === ''
+                  ? intl.formatMessage(messages.descriptorProblemVersion)
+                  : undefined
+              }
               id="descriptor-version"
               label={intl.formatMessage(messages.descriptorFieldVersion)}
             >
               <Input
+                aria-describedby={
+                  state.version.trim() === '' ? 'descriptor-version-error' : undefined
+                }
                 id="descriptor-version"
+                invalid={state.version.trim() === ''}
                 onChange={(event) => patch({ version: event.target.value })}
                 value={state.version}
               />
             </Field>
-            <LocalizedField
-              activeLanguage={activeLanguage}
-              helpText={intl.formatMessage(messages.descriptorTranslationHelp)}
-              id="descriptor-name"
-              invalid={activeLanguage === 'en' && state.name.en.trim() === ''}
-              label={intl.formatMessage(messages.descriptorFieldName)}
-              languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
-              languages={localizedFieldLanguages(state.name)}
-              onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
-              onValueChange={(value) =>
-                patch({ name: withLocalizedValue(state.name, activeLanguage, value) })
-              }
-              required
-              value={localizedDraftValue(state.name, activeLanguage)}
-            />
-            <LocalizedField
-              activeLanguage={activeLanguage}
-              helpText={intl.formatMessage(messages.descriptorTranslationHelp)}
-              id="descriptor-description"
-              label={intl.formatMessage(messages.descriptorFieldDescription)}
-              languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
-              languages={localizedFieldLanguages(state.description)}
-              multiline
-              onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
-              onValueChange={(value) =>
-                patch({ description: withLocalizedValue(state.description, activeLanguage, value) })
-              }
-              value={localizedDraftValue(state.description, activeLanguage)}
-            />
+            <div style={{ gridColumn: 'span 2' }}>
+              <LocalizedField
+                activeLanguage={activeLanguage}
+                errorText={
+                  activeLanguage === 'en' && state.name.en.trim() === ''
+                    ? intl.formatMessage(messages.descriptorProblemNameEnglish)
+                    : undefined
+                }
+                helpText={intl.formatMessage(messages.descriptorTranslationHelp)}
+                id="descriptor-name"
+                invalid={activeLanguage === 'en' && state.name.en.trim() === ''}
+                label={intl.formatMessage(messages.descriptorFieldName)}
+                languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
+                languages={localizedFieldLanguages(state.name)}
+                onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
+                onValueChange={(value) =>
+                  patch({ name: withLocalizedValue(state.name, activeLanguage, value) })
+                }
+                required
+                value={localizedDraftValue(state.name, activeLanguage)}
+              />
+            </div>
+            <div style={{ gridColumn: 'span 2' }}>
+              <LocalizedField
+                activeLanguage={activeLanguage}
+                helpText={intl.formatMessage(messages.descriptorTranslationHelp)}
+                id="descriptor-description"
+                label={intl.formatMessage(messages.descriptorFieldDescription)}
+                languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
+                languages={localizedFieldLanguages(state.description)}
+                multiline
+                onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
+                onValueChange={(value) =>
+                  patch({
+                    description: withLocalizedValue(state.description, activeLanguage, value),
+                  })
+                }
+                value={localizedDraftValue(state.description, activeLanguage)}
+              />
+            </div>
           </div>
         )}
 
