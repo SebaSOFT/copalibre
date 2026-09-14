@@ -25,9 +25,12 @@ import {
   initialDescriptorWizard,
   localizedDraftValue,
   localizedFieldLanguages,
+  localizedNameFieldView,
   nextStep,
+  patternFieldView,
   previousStep,
   progress,
+  requiredFieldView,
   stepProblems,
   toAuthoredModuleRequest,
   withLocalizedValue,
@@ -56,6 +59,25 @@ export function DescriptorBuilderWizard({
   // language once rather than clicking through each field's own tabs.
   const [activeLanguage, setActiveLanguage] = useState<SupportedLanguage>('en');
   const problems = stepProblems(state);
+  const aliasView = patternFieldView(
+    state.alias,
+    ALIAS_PATTERN,
+    { hintId: 'descriptor-alias-hint', errorId: 'descriptor-alias-error' },
+    intl.formatMessage,
+    messages.descriptorProblemAliasFormat,
+  );
+  const versionView = requiredFieldView(
+    state.version,
+    'descriptor-version-error',
+    intl.formatMessage,
+    messages.descriptorProblemVersion,
+  );
+  const nameView = localizedNameFieldView(
+    activeLanguage,
+    state.name.en,
+    intl.formatMessage,
+    messages.descriptorProblemNameEnglish,
+  );
 
   function patch(next: Partial<DescriptorWizardState>): void {
     setState((current) => ({ ...current, ...next }));
@@ -114,22 +136,14 @@ export function DescriptorBuilderWizard({
         {state.step === 'name' && (
           <div className="cl-platform-form-grid">
             <Field
-              errorText={
-                ALIAS_PATTERN.test(state.alias)
-                  ? undefined
-                  : intl.formatMessage(messages.descriptorProblemAliasFormat)
-              }
+              errorText={aliasView.errorText}
               id="descriptor-alias"
               label={intl.formatMessage(messages.descriptorFieldAlias)}
             >
               <Input
-                aria-describedby={
-                  ALIAS_PATTERN.test(state.alias)
-                    ? 'descriptor-alias-hint'
-                    : 'descriptor-alias-hint descriptor-alias-error'
-                }
+                aria-describedby={aliasView.describedBy}
                 id="descriptor-alias"
-                invalid={!ALIAS_PATTERN.test(state.alias)}
+                invalid={aliasView.invalid}
                 onChange={(event) => patch({ alias: event.target.value })}
                 value={state.alias}
               />
@@ -139,20 +153,14 @@ export function DescriptorBuilderWizard({
               />
             </Field>
             <Field
-              errorText={
-                state.version.trim() === ''
-                  ? intl.formatMessage(messages.descriptorProblemVersion)
-                  : undefined
-              }
+              errorText={versionView.errorText}
               id="descriptor-version"
               label={intl.formatMessage(messages.descriptorFieldVersion)}
             >
               <Input
-                aria-describedby={
-                  state.version.trim() === '' ? 'descriptor-version-error' : undefined
-                }
+                aria-describedby={versionView.describedBy}
                 id="descriptor-version"
-                invalid={state.version.trim() === ''}
+                invalid={versionView.invalid}
                 onChange={(event) => patch({ version: event.target.value })}
                 value={state.version}
               />
@@ -160,14 +168,10 @@ export function DescriptorBuilderWizard({
             <div style={{ gridColumn: 'span 2' }}>
               <LocalizedField
                 activeLanguage={activeLanguage}
-                errorText={
-                  activeLanguage === 'en' && state.name.en.trim() === ''
-                    ? intl.formatMessage(messages.descriptorProblemNameEnglish)
-                    : undefined
-                }
+                errorText={nameView.errorText}
                 helpText={intl.formatMessage(messages.descriptorTranslationHelp)}
                 id="descriptor-name"
-                invalid={activeLanguage === 'en' && state.name.en.trim() === ''}
+                invalid={nameView.invalid}
                 label={intl.formatMessage(messages.descriptorFieldName)}
                 languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
                 languages={localizedFieldLanguages(state.name)}

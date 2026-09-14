@@ -122,6 +122,65 @@ export function localizedFieldLanguages(draft: LocalizedDraft): readonly Localiz
   }));
 }
 
+/**
+ * Per-field validation view for a wizard's `Field`/`LocalizedField` slot —
+ * `invalid`, a formatted `errorText` when invalid, and (for a plain `Field`)
+ * the `aria-describedby` value covering both its decision hint and its own
+ * error paragraph. Shared by `ProfileBuilderWizard.tsx` and
+ * `DescriptorBuilderWizard.tsx` so neither one repeats the same ternaries
+ * inline in JSX (each repetition is a branch the wizard's own CRAP score
+ * pays for).
+ */
+export interface FieldValidationView {
+  readonly invalid: boolean;
+  readonly errorText?: string;
+  readonly describedBy?: string;
+}
+
+type FormatMessage = (descriptor: MessageDescriptor) => string;
+
+/** For a field whose format a regex decides (e.g. an alias). */
+export function patternFieldView(
+  value: string,
+  pattern: RegExp,
+  ids: { readonly hintId: string; readonly errorId: string },
+  formatMessage: FormatMessage,
+  message: MessageDescriptor,
+): FieldValidationView {
+  const invalid = !pattern.test(value);
+  return {
+    invalid,
+    errorText: invalid ? formatMessage(message) : undefined,
+    describedBy: invalid ? `${ids.hintId} ${ids.errorId}` : ids.hintId,
+  };
+}
+
+/** For a field that only needs a non-empty value (e.g. a version string). */
+export function requiredFieldView(
+  value: string,
+  errorId: string,
+  formatMessage: FormatMessage,
+  message: MessageDescriptor,
+): FieldValidationView {
+  const invalid = value.trim() === '';
+  return {
+    invalid,
+    errorText: invalid ? formatMessage(message) : undefined,
+    describedBy: invalid ? errorId : undefined,
+  };
+}
+
+/** For a `LocalizedField`'s required English value — invalid only while the English tab is active and empty, per `stepProblems`. */
+export function localizedNameFieldView(
+  activeLanguage: string,
+  englishValue: string,
+  formatMessage: FormatMessage,
+  message: MessageDescriptor,
+): Pick<FieldValidationView, 'invalid' | 'errorText'> {
+  const invalid = activeLanguage === 'en' && englishValue.trim() === '';
+  return { invalid, errorText: invalid ? formatMessage(message) : undefined };
+}
+
 export interface SegmentTypeDraft {
   readonly name: string;
   readonly label: string;

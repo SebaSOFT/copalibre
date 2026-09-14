@@ -12,6 +12,9 @@ import { LocalizedField } from './ui/molecules/localized-field.js';
 import {
   localizedDraftValue,
   localizedFieldLanguages,
+  localizedNameFieldView,
+  patternFieldView,
+  requiredFieldView,
   withLocalizedValue,
 } from '../lib/descriptor-authoring.js';
 import {
@@ -52,6 +55,25 @@ export function ProfileBuilderWizard({
   // language once rather than clicking through each field's own tabs.
   const [activeLanguage, setActiveLanguage] = useState<SupportedLanguage>('en');
   const problems = stepProblems(state, disciplines);
+  const aliasView = patternFieldView(
+    state.alias,
+    ALIAS_PATTERN,
+    { hintId: 'profile-alias-hint', errorId: 'profile-alias-error' },
+    intl.formatMessage,
+    messages.profileProblemAliasFormat,
+  );
+  const versionView = requiredFieldView(
+    state.version,
+    'profile-version-error',
+    intl.formatMessage,
+    messages.profileProblemVersion,
+  );
+  const nameView = localizedNameFieldView(
+    activeLanguage,
+    state.name.en,
+    intl.formatMessage,
+    messages.profileProblemNameEnglish,
+  );
   const isLastStep = state.step === 'points';
   const allowedFormats = formatsFor(disciplines, state.disciplineAlias);
 
@@ -104,22 +126,14 @@ export function ProfileBuilderWizard({
         {state.step === 'name' && (
           <div className="cl-platform-form-grid">
             <Field
-              errorText={
-                ALIAS_PATTERN.test(state.alias)
-                  ? undefined
-                  : intl.formatMessage(messages.profileProblemAliasFormat)
-              }
+              errorText={aliasView.errorText}
               id="profile-alias"
               label={intl.formatMessage(messages.profileFieldAlias)}
             >
               <Input
-                aria-describedby={
-                  ALIAS_PATTERN.test(state.alias)
-                    ? 'profile-alias-hint'
-                    : 'profile-alias-hint profile-alias-error'
-                }
+                aria-describedby={aliasView.describedBy}
                 id="profile-alias"
-                invalid={!ALIAS_PATTERN.test(state.alias)}
+                invalid={aliasView.invalid}
                 onChange={(event) => patch({ alias: event.target.value })}
                 value={state.alias}
               />
@@ -129,18 +143,14 @@ export function ProfileBuilderWizard({
               />
             </Field>
             <Field
-              errorText={
-                state.version.trim() === ''
-                  ? intl.formatMessage(messages.profileProblemVersion)
-                  : undefined
-              }
+              errorText={versionView.errorText}
               id="profile-version"
               label={intl.formatMessage(messages.profileFieldVersion)}
             >
               <Input
-                aria-describedby={state.version.trim() === '' ? 'profile-version-error' : undefined}
+                aria-describedby={versionView.describedBy}
                 id="profile-version"
-                invalid={state.version.trim() === ''}
+                invalid={versionView.invalid}
                 onChange={(event) => patch({ version: event.target.value })}
                 value={state.version}
               />
@@ -148,13 +158,9 @@ export function ProfileBuilderWizard({
             <div style={{ gridColumn: 'span 2' }}>
               <LocalizedField
                 activeLanguage={activeLanguage}
-                errorText={
-                  activeLanguage === 'en' && state.name.en.trim() === ''
-                    ? intl.formatMessage(messages.profileProblemNameEnglish)
-                    : undefined
-                }
+                errorText={nameView.errorText}
                 id="profile-name"
-                invalid={activeLanguage === 'en' && state.name.en.trim() === ''}
+                invalid={nameView.invalid}
                 label={intl.formatMessage(messages.profileFieldName)}
                 languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
                 languages={localizedFieldLanguages(state.name)}
