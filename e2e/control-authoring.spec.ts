@@ -297,7 +297,7 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
           name: 'Apertura Local',
           descriptorId: 'football.default',
           descriptorVersion: '1.0.0',
-          format: 'round-robin',
+          stages: [expect.objectContaining({ number: 1, format: 'round-robin' })],
           publicRegistration: true,
           requiresCheckIn: true,
           region: 'Mendoza',
@@ -355,7 +355,7 @@ test('completes tournament authoring via keyboard and without overflow at 375px'
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   // Step 3 (format & profile)
-  await expect(page.getByLabel('Formato')).toBeVisible();
+  await expect(page.getByLabel('Formato de la fase')).toBeVisible();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   // Step 4 (rules)
@@ -403,7 +403,7 @@ test('explains every decision on every wizard step, reachable by keyboard with n
 
   // Format step: the field-level hint and the reversibility-free (safe by
   // default here) explanation are both present without opening the select.
-  const formatSelect = page.getByLabel('Formato');
+  const formatSelect = page.getByLabel('Formato de la fase');
   const formatHintId = await formatSelect.getAttribute('aria-describedby');
   expect(formatHintId).toBeTruthy();
   await expect(page.locator(`#${formatHintId}`)).toContainText(
@@ -439,7 +439,7 @@ test('states a blocked_after_results decision cannot change after the first resu
 
   // The organizer has not chosen a format yet — the wizard states the
   // consequence up front, before the field is even touched.
-  const formatSelect = page.getByLabel('Formato');
+  const formatSelect = page.getByLabel('Formato de la fase');
   const formatHintId = await formatSelect.getAttribute('aria-describedby');
   await expect(page.locator(`#${formatHintId}`)).toContainText(
     'Esto no se puede cambiar una vez que existe un resultado; usá el flujo de corrección auditado en su lugar.',
