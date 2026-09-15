@@ -155,3 +155,25 @@ cue alongside colour after relocation.
 #### Scenario: A public live card is reused
 - **WHEN** a public live card, badge, or ticker appears on more than one page
 - **THEN** pages compose the owned public component rather than redefining its colour and layout rules
+
+### Requirement: A match report shows the match's position in its stage
+A public match report page for a match belonging to a bracket-format stage SHALL show a compact view
+of that stage's structure with the current match emphasized, so a visitor can see where the match sits
+without leaving the page. The panel SHALL resolve its presentation through declared tokens and SHALL
+NOT distinguish the emphasized match by colour alone, consistent with the existing "Public live
+presentation resolves through declared tokens" requirement.
+
+#### Scenario: A match report shows its bracket context
+- **WHEN** a visitor opens the report page for a match in a bracket-format stage
+- **THEN** the page shows a condensed rendering of that stage's bracket with the current match visually
+  emphasized among the other matches
+
+#### Scenario: A non-bracket stage shows no bracket context panel
+- **WHEN** a visitor opens the report page for a match in a stage whose format is not bracket-shaped
+  (round robin, league, placement)
+- **THEN** the page shows no bracket-context panel rather than a misleading or empty one
+
+#### Scenario: The context panel is read-only orientation, not a duplicate bracket page
+- **WHEN** a visitor interacts with the bracket-context panel on a match report page
+- **THEN** the panel offers a way to reach the stage's full bracket page rather than replicating its
+  full interactive structure inline

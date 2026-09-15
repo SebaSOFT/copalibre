@@ -102,3 +102,25 @@ NOT link to a placeholder or guessed destination.
 - **WHEN** a bracket canvas node is linkable
 - **THEN** it exposes a focus-visible, keyboard-activatable target at least 44px in its constrained
   axis, consistent with every other interactive control in the design system
+
+### Requirement: Bracket canvas can render focused on one match
+The bracket canvas SHALL support rendering with a single named match visually emphasized and scrolled
+into view on mount, while every other node renders with its normal, unmodified presentation — the
+canvas's existing "renders engine-generated structure" requirement continues to govern every node's
+own content and connections; focus SHALL only add emphasis to the named node, never alter or omit
+another node's slots, score, or connections.
+
+#### Scenario: Canvas opens centered on the focused match
+- **WHEN** the bracket canvas is rendered with a focus target set to a match present in its structure
+- **THEN** that match's node is visually emphasized and is scrolled into the visible viewport without
+  requiring the viewer to locate it manually
+
+#### Scenario: Focus does not suppress other nodes
+- **WHEN** the bracket canvas is rendered with a focus target set
+- **THEN** every other node still renders its full slots, score, and connections exactly as it would
+  with no focus target set
+
+#### Scenario: An unknown focus target is ignored
+- **WHEN** the bracket canvas is rendered with a focus target that does not match any node in its
+  structure
+- **THEN** the canvas renders normally with no node emphasized and no error
