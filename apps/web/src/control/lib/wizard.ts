@@ -13,6 +13,7 @@ import {
   type StageAllocationDraft,
   type WizardStageDraft,
 } from './stage-authoring.js';
+import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
 
 export {
   appendStage,
@@ -237,18 +238,15 @@ export function canContinue(
 }
 
 export function nextStep(state: WizardState): WizardStepId {
-  const index = WIZARD_STEPS.findIndex((step) => step.id === state.step);
-  return WIZARD_STEPS[Math.min(index + 1, WIZARD_STEPS.length - 1)]?.id ?? state.step;
+  return nextStepId(WIZARD_STEPS, state.step);
 }
 
 export function previousStep(state: WizardState): WizardStepId {
-  const index = WIZARD_STEPS.findIndex((step) => step.id === state.step);
-  return WIZARD_STEPS[Math.max(index - 1, 0)]?.id ?? state.step;
+  return previousStepId(WIZARD_STEPS, state.step);
 }
 
 export function progress(state: WizardState): number {
-  const index = WIZARD_STEPS.findIndex((step) => step.id === state.step);
-  return Math.round(((index + 1) / WIZARD_STEPS.length) * 100);
+  return stepProgress(WIZARD_STEPS, state.step);
 }
 
 /**

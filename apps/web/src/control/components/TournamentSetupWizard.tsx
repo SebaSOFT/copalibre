@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
-import { Card } from './ui/atoms/card.js';
 import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
@@ -11,6 +10,7 @@ import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { Stack } from './ui/atoms/layout/stack.js';
 import { Field } from './ui/molecules/field.js';
 import { StepHeading } from './ui/molecules/step-heading.js';
+import { WizardShell } from './ui/organisms/wizard-shell.js';
 import { StageListEditor } from './StageListEditor.js';
 import {
   WIZARD_STEPS,
@@ -143,172 +143,81 @@ export function TournamentSetupWizard({
   }
 
   return (
-    <section aria-label={intl.formatMessage(messages.wizardTitle)} className="cl-form-screen">
-      <header className="cl-form-screen__header">
-        <div>
-          <p className="cl-form-screen__breadcrumb">
-            <FormattedMessage {...messages.wizardBreadcrumb} />
-          </p>
-          <h1 className="cl-form-screen__title">
-            <FormattedMessage {...messages.wizardTitle} />
-          </h1>
-        </div>
-        <div className="cl-stat-tile cl-chamfer cl-chamfer--control" data-testid="wizard-progress">
-          <strong className="cl-stat-tile__value">{progress(state)}%</strong>
-          <span>
-            <FormattedMessage {...messages.wizardConfigured} />
-          </span>
-        </div>
-      </header>
+    <WizardShell
+      ariaLabel={intl.formatMessage(messages.wizardTitle)}
+      backLabel={intl.formatMessage(messages.wizardBack)}
+      breadcrumb={intl.formatMessage(messages.wizardBreadcrumb)}
+      currentStepId={state.step}
+      onBack={() => patch({ step: previousStep(state) })}
+      primaryAction={
+        state.step === 'window'
+          ? {
+              label: intl.formatMessage(messages.wizardCreate),
+              disabled: !canContinue(state, disciplines, vocabulary),
+              onClick: submit,
+            }
+          : {
+              label: intl.formatMessage(messages.wizardContinue),
+              disabled: !canContinue(state, disciplines, vocabulary),
+              onClick: () => patch({ step: nextStep(state) }),
+            }
+      }
+      problems={problems.map((problem) => intl.formatMessage(problem))}
+      progress={progress(state)}
+      progressCaption={intl.formatMessage(messages.wizardConfigured)}
+      progressTestId="wizard-progress"
+      stepIndicatorVariant="badge"
+      steps={WIZARD_STEPS.map((step) => ({ id: step.id, label: intl.formatMessage(step.label) }))}
+      stepsAriaLabel={intl.formatMessage(messages.wizardSteps)}
+      title={intl.formatMessage(messages.wizardTitle)}
+    >
+      {/*
+        The strip above says where the operator is in the sequence; this says
+        what they are doing. Until now the panel carried no heading at all, so
+        a screen reader moving by heading arrived at a form with no subject.
+      */}
+      {activeStep !== undefined && (
+        <StepHeading
+          level={2}
+          step={activeStepNumber}
+          title={intl.formatMessage(activeStep.label)}
+        />
+      )}
+      {state.step === 'name' && <NameStep intl={intl} patch={patch} state={state} />}
 
-      <Card
-        className="cl-chamfer cl-chamfer--control"
-        style={{ minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}
-      >
-        <ol
-          aria-label={intl.formatMessage(messages.wizardSteps)}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(5, minmax(8rem, 1fr))',
-            gap: 'var(--cl-space-3)',
-            listStyle: 'none',
-            padding: 0,
-            margin: 0,
-            width: '100%',
-            maxWidth: '100%',
-            overflowX: 'auto',
-            scrollbarGutter: 'stable',
-          }}
-        >
-          {WIZARD_STEPS.map((step, index) => (
-            <li
-              key={step.id}
-              style={{
-                display: 'grid',
-                gap: 'var(--cl-space-2)',
-                justifyItems: 'center',
-                color: 'var(--cl-text-secondary)',
-                fontFamily: 'var(--cl-font-mono)',
-                textTransform: 'uppercase',
-                fontSize: 'var(--cl-font-size-xs)',
-              }}
-            >
-              <span
-                aria-current={step.id === state.step ? 'step' : undefined}
-                style={{
-                  display: 'grid',
-                  placeItems: 'center',
-                  width: 32,
-                  height: 32,
-                  borderWidth: 2,
-                  borderStyle: 'solid',
-                  borderColor:
-                    step.id === state.step ? 'var(--cl-state-live)' : 'var(--cl-border-muted)',
-                  background: step.id === state.step ? 'var(--cl-state-live)' : 'transparent',
-                  color: step.id === state.step ? 'var(--cl-surface-base)' : 'inherit',
-                }}
-              >
-                {index + 1}
-              </span>
-              <span>{intl.formatMessage(step.label)}</span>
-            </li>
-          ))}
-        </ol>
-      </Card>
+      {state.step === 'discipline' && (
+        <DisciplineStep disciplines={disciplines} intl={intl} patch={patch} state={state} />
+      )}
 
-      <Card className="cl-chamfer cl-chamfer--control">
-        {/*
-          The strip above says where the operator is in the sequence; this says
-          what they are doing. Until now the panel carried no heading at all, so
-          a screen reader moving by heading arrived at a form with no subject.
-        */}
-        {activeStep !== undefined && (
-          <StepHeading
-            level={2}
-            step={activeStepNumber}
-            title={intl.formatMessage(activeStep.label)}
-          />
-        )}
-        {state.step === 'name' && <NameStep intl={intl} patch={patch} state={state} />}
+      {state.step === 'format' && (
+        <FormatStep
+          formatHintText={decisionHintText('format', messages.wizardDecisionFormat)}
+          formats={formats}
+          intl={intl}
+          patch={patch}
+          profiles={profiles}
+          state={state}
+        />
+      )}
 
-        {state.step === 'discipline' && (
-          <DisciplineStep disciplines={disciplines} intl={intl} patch={patch} state={state} />
-        )}
+      {state.step === 'window' && (
+        <WindowStep decisionHintText={decisionHintText} intl={intl} patch={patch} state={state} />
+      )}
 
-        {state.step === 'format' && (
-          <FormatStep
-            formatHintText={decisionHintText('format', messages.wizardDecisionFormat)}
-            formats={formats}
-            intl={intl}
-            patch={patch}
-            profiles={profiles}
-            state={state}
-          />
-        )}
-
-        {state.step === 'window' && (
-          <WindowStep decisionHintText={decisionHintText} intl={intl} patch={patch} state={state} />
-        )}
-
-        {state.step === 'rules' && (
-          <RulesStep
-            actions={actions}
-            conditions={conditions}
-            intl={intl}
-            patch={patch}
-            selectedAction={selectedAction}
-            selectedCondition={selectedCondition}
-            setState={setState}
-            state={state}
-            vocabulary={vocabulary}
-          />
-        )}
-
-        {problems.length > 0 && (
-          <Alert block className="cl-inline-alert--spaced" tone="destructive">
-            <ul>
-              {problems.map((problem) => (
-                <li key={problem.id}>{intl.formatMessage(problem)}</li>
-              ))}
-            </ul>
-          </Alert>
-        )}
-
-        <footer
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: 'var(--cl-space-3)',
-            marginTop: 'var(--cl-space-6)',
-          }}
-        >
-          <Button
-            onClick={() => patch({ step: previousStep(state) })}
-            type="button"
-            variant="secondary"
-          >
-            <FormattedMessage {...messages.wizardBack} />
-          </Button>
-          {state.step === 'window' ? (
-            <Button
-              disabled={!canContinue(state, disciplines, vocabulary)}
-              onClick={submit}
-              type="button"
-            >
-              <FormattedMessage {...messages.wizardCreate} />
-            </Button>
-          ) : (
-            <Button
-              disabled={!canContinue(state, disciplines, vocabulary)}
-              onClick={() => patch({ step: nextStep(state) })}
-              type="button"
-            >
-              <FormattedMessage {...messages.wizardContinue} />
-            </Button>
-          )}
-        </footer>
-      </Card>
-    </section>
+      {state.step === 'rules' && (
+        <RulesStep
+          actions={actions}
+          conditions={conditions}
+          intl={intl}
+          patch={patch}
+          selectedAction={selectedAction}
+          selectedCondition={selectedCondition}
+          setState={setState}
+          state={state}
+          vocabulary={vocabulary}
+        />
+      )}
+    </WizardShell>
   );
 }
 

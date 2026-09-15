@@ -235,17 +235,17 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/screens/AnalyticsTemplate.tsx', 5],
   ['control/components/BracketCanvas.tsx', 2],
   ['control/components/ControlApp.tsx', 8],
-  ['control/components/DescriptorBuilderWizard.tsx', 12],
+  ['control/components/DescriptorBuilderWizard.tsx', 9],
   ['control/components/screens/LiveConsoleTemplate.tsx', 4],
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/screens/PlatformAdministrationTemplate.tsx', 1],
   ['control/components/screens/PreferencesTemplate.tsx', 15],
-  ['control/components/ProfileBuilderWizard.tsx', 6],
+  ['control/components/ProfileBuilderWizard.tsx', 3],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 4],
   ['control/components/screens/StandingsTemplate.tsx', 5],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 4],
-  ['control/components/TournamentSetupWizard.tsx', 15],
+  ['control/components/TournamentSetupWizard.tsx', 10],
   // A stage is genuinely an ordered list; the layout primitives (Stack/
   // Inline/Grid) only ever render a <div> and cannot become an <ol>, the
   // same class of exception as AstroPreview.tsx's <iframe> above.
@@ -255,6 +255,10 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/ui/organisms/audit-log-panel.tsx', 10],
   ['control/components/ui/organisms/standings-panel.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 2],
+  // The step-indicator <ol>/<li>/<span> is the same ordered-list exception
+  // StageListEditor.tsx's entry above documents, moved here from the three
+  // wizards' own hand-rolled chrome (openspec 0236) rather than newly added.
+  ['control/components/ui/organisms/wizard-shell.tsx', 3],
 ]);
 
 export function checkInlineLayout(nodes) {
@@ -317,16 +321,18 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['components/ui/AstroPreview.tsx', 1],
   ['control/components/screens/AnalyticsTemplate.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
-  ['control/components/DescriptorBuilderWizard.tsx', 1],
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/screens/PreferencesTemplate.tsx', 14],
-  ['control/components/ProfileBuilderWizard.tsx', 1],
   ['control/components/RosterRoleSelector.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 1],
-  ['control/components/TournamentSetupWizard.tsx', 2],
+  ['control/components/TournamentSetupWizard.tsx', 1],
   ['control/components/ui/molecules/callout-banner.tsx', 2],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 2],
   ['control/components/ui/organisms/audit-log-panel.tsx', 5],
+  // The step-indicator grid's `minmax(8rem, 1fr)`/`minmax(min(100%, 6rem), 1fr)`
+  // moved here from the three wizards' own hand-rolled chrome (openspec 0236)
+  // rather than newly added.
+  ['control/components/ui/organisms/wizard-shell.tsx', 1],
 ]);
 
 export function checkRawStyleValues(nodes) {
