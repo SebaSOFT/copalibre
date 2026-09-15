@@ -172,8 +172,8 @@ export const mixedBracket: readonly CanvasMatch[] = [
     position: 1,
     status: 'scheduled',
     slots: [
-      { kind: 'entrant', entrantId: ids.first },
-      { kind: 'entrant', entrantId: ids.second },
+      { kind: 'entrant', entrantId: names[ids.first] },
+      { kind: 'entrant', entrantId: names[ids.second] },
     ],
   },
   {
@@ -184,8 +184,8 @@ export const mixedBracket: readonly CanvasMatch[] = [
     position: 2,
     status: 'scheduled',
     slots: [
-      { kind: 'entrant', entrantId: ids.third },
-      { kind: 'entrant', entrantId: ids.fourth },
+      { kind: 'entrant', entrantId: names[ids.third] },
+      { kind: 'entrant', entrantId: names[ids.fourth] },
     ],
   },
   {
