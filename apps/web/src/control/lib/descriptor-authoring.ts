@@ -8,6 +8,7 @@ import { messages } from '../i18n/messages.en.js';
 import { LANGUAGE_NAMES } from '../i18n/LanguageSwitcher.js';
 import type { LocalizedFieldLanguage } from '../components/ui/atoms/localized-field-tabs.js';
 import type { AuthoredModuleRequest } from './api-client.js';
+import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
 
 /**
  * The discipline builder wizard (openspec 0164).
@@ -270,18 +271,15 @@ export function initialDescriptorWizard(): DescriptorWizardState {
 export const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export function nextStep(state: DescriptorWizardState): DescriptorStepId {
-  const index = DESCRIPTOR_STEPS.findIndex((step) => step.id === state.step);
-  return DESCRIPTOR_STEPS[Math.min(index + 1, DESCRIPTOR_STEPS.length - 1)]?.id ?? state.step;
+  return nextStepId(DESCRIPTOR_STEPS, state.step);
 }
 
 export function previousStep(state: DescriptorWizardState): DescriptorStepId {
-  const index = DESCRIPTOR_STEPS.findIndex((step) => step.id === state.step);
-  return DESCRIPTOR_STEPS[Math.max(index - 1, 0)]?.id ?? state.step;
+  return previousStepId(DESCRIPTOR_STEPS, state.step);
 }
 
 export function progress(state: DescriptorWizardState): number {
-  const index = DESCRIPTOR_STEPS.findIndex((step) => step.id === state.step);
-  return Math.round(((index + 1) / DESCRIPTOR_STEPS.length) * 100);
+  return stepProgress(DESCRIPTOR_STEPS, state.step);
 }
 
 /** What is missing on this step — every one refused in the surface, before submission. */

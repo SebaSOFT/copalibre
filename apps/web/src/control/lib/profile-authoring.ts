@@ -11,6 +11,7 @@ import {
   stageProblems as stageAllocationProblems,
   type WizardStageDraft,
 } from './stage-authoring.js';
+import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
 
 export { renumbered } from './stage-authoring.js';
 
@@ -82,18 +83,15 @@ export function initialProfileWizard(): ProfileWizardState {
 export const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export function nextStep(state: ProfileWizardState): ProfileStepId {
-  const index = PROFILE_STEPS.findIndex((step) => step.id === state.step);
-  return PROFILE_STEPS[Math.min(index + 1, PROFILE_STEPS.length - 1)]?.id ?? state.step;
+  return nextStepId(PROFILE_STEPS, state.step);
 }
 
 export function previousStep(state: ProfileWizardState): ProfileStepId {
-  const index = PROFILE_STEPS.findIndex((step) => step.id === state.step);
-  return PROFILE_STEPS[Math.max(index - 1, 0)]?.id ?? state.step;
+  return previousStepId(PROFILE_STEPS, state.step);
 }
 
 export function progress(state: ProfileWizardState): number {
-  const index = PROFILE_STEPS.findIndex((step) => step.id === state.step);
-  return Math.round(((index + 1) / PROFILE_STEPS.length) * 100);
+  return stepProgress(PROFILE_STEPS, state.step);
 }
 
 export function formatsFor(
