@@ -171,7 +171,7 @@ function BracketNode({
         <div key={`${node.matchId}-${index}`} style={slot.pending ? pendingSlotStyle : slotStyle}>
           {/* Named, never blank: "Ganador del WB-R1-M2" tells an
               operator what has to happen; an empty box reads as a bug. */}
-          <span>{slot.pending ? `TBD · ${slot.label}` : slot.label}</span>
+          <span>{slot.label}</span>
           <span style={scoreStyle}>{slot.score ?? '—'}</span>
         </div>
       ))}
