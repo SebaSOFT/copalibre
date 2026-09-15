@@ -155,6 +155,15 @@ export const messages = defineMessages({
     id: 'publicWeb.bracket.championshipTitle',
     defaultMessage: 'Final',
   },
+  // MatchBracketContext.astro
+  bracketContextAriaLabel: {
+    id: 'publicWeb.bracket.contextAriaLabel',
+    defaultMessage: 'This match in the bracket',
+  },
+  bracketContextViewFullLink: {
+    id: 'publicWeb.bracket.contextViewFullLink',
+    defaultMessage: 'View full bracket',
+  },
 
   // BroadcastStatusPanel.astro
   broadcastStatusNote: {

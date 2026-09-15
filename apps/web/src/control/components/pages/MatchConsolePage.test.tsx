@@ -9,6 +9,7 @@ import { clearAll } from '../../lib/offline-queue.js';
 function mockProjection(overrides: Partial<MatchConsoleResponse> = {}): MatchConsoleResponse {
   return {
     matchId: 'match-1',
+    stageNumber: 1,
     status: 'in-progress',
     result: null,
     liveScores: [
@@ -118,6 +119,51 @@ describe('MatchConsolePage', () => {
     expect(screen.getByText('Match operations')).toBeDefined();
     expect(screen.getByText('Event ledger')).toBeDefined();
     expect(screen.getByText('Clock and period')).toBeDefined();
+  });
+
+  it('shows the bracket-context panel, focused on the open match, once expanded', async () => {
+    Element.prototype.scrollIntoView = jest.fn();
+    const client = {
+      ...stubClient(),
+      fetchSeeding: () =>
+        Promise.resolve({
+          stageId: 'stage-1',
+          format: 'single-elimination',
+          seeds: [],
+          matches: [
+            {
+              matchId: 'WB-R1-M1',
+              persistedMatchId: 'match-1',
+              bracket: 'winners',
+              round: 1,
+              position: 1,
+              status: 'in-progress',
+              slots: [
+                { kind: 'entrant', entrantId: 'entrant-home' },
+                { kind: 'entrant', entrantId: 'entrant-away' },
+              ],
+            },
+          ],
+          hasRecordedResults: false,
+        }),
+    } as unknown as MatchConsoleApiClient;
+
+    render(
+      withIntl(
+        <MatchConsolePage
+          client={client}
+          matchId="match-1"
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    const toggle = await screen.findByRole('button', { name: 'Show bracket' });
+    fireEvent.click(toggle);
+
+    const focusedNode = await screen.findByText('WB-R1-M1');
+    expect(focusedNode.closest('[data-match]')?.getAttribute('data-focused')).toBe('true');
   });
 
   it('sends no winner derived from a jersey tap; the confirmation defaults to no winner selected', async () => {

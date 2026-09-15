@@ -480,6 +480,18 @@ export const messages = defineMessages({
     id: 'control.matchConsole.collapseLedger',
     defaultMessage: 'Show less',
   },
+  matchConsoleBracketContext: {
+    id: 'control.matchConsole.bracketContext',
+    defaultMessage: 'Where this match sits',
+  },
+  matchConsoleExpandBracket: {
+    id: 'control.matchConsole.expandBracket',
+    defaultMessage: 'Show bracket',
+  },
+  matchConsoleCollapseBracket: {
+    id: 'control.matchConsole.collapseBracket',
+    defaultMessage: 'Hide bracket',
+  },
   matchConsoleUnnamedEntrant: {
     id: 'control.matchConsole.unnamedEntrant',
     defaultMessage: 'Unnamed entrant',

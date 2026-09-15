@@ -32,6 +32,7 @@ import BracketView from '../components/ui/organisms/BracketView.astro';
 import ChampionPodium from '../components/ui/organisms/ChampionPodium.astro';
 import DataTable from '../components/ui/organisms/DataTable.astro';
 import MatchCardGrid from '../components/ui/organisms/MatchCardGrid.astro';
+import MatchBracketContext from '../components/ui/organisms/MatchBracketContext.astro';
 import MatchHero from '../components/ui/organisms/MatchHero.astro';
 import MatchNode from '../components/ui/organisms/MatchNode.astro';
 import MatchOfficials from '../components/ui/organisms/MatchOfficials.astro';
@@ -87,6 +88,9 @@ const PREVIEWABLE = new Set([
   'score-ticker-empty',
   'score-ticker-stale',
   'bracket-stage',
+  'match-bracket-context-early',
+  'match-bracket-context-championship',
+  'match-bracket-context-unknown-focus',
   'public-header',
   // openspec 0225 task 7.4 — every remaining server-rendered library component.
   'button',
@@ -221,6 +225,50 @@ const tournaments = referenceTournamentListing();
       component === 'bracket-stage' && (
         <BracketView
           intl={intl}
+          matches={referenceBracket()}
+          organizationAlias="reference-league"
+          stageNumber={1}
+          tournamentAlias="reference-cup"
+        />
+      )
+    }
+    {
+      /* Round one's match 1 emphasized — the case a spectator most often lands on: a
+         resolved early match, three more rounds still ahead of it. */
+      component === 'match-bracket-context-early' && (
+        <MatchBracketContext
+          currentMatchNumber={1}
+          intl={intl}
+          localePrefix=""
+          matches={referenceBracket()}
+          organizationAlias="reference-league"
+          stageNumber={1}
+          tournamentAlias="reference-cup"
+        />
+      )
+    }
+    {
+      /* Match 7, the championship — still-pending winner-of slots on both sides. */
+      component === 'match-bracket-context-championship' && (
+        <MatchBracketContext
+          currentMatchNumber={7}
+          intl={intl}
+          localePrefix=""
+          matches={referenceBracket()}
+          organizationAlias="reference-league"
+          stageNumber={1}
+          tournamentAlias="reference-cup"
+        />
+      )
+    }
+    {
+      /* A match number the structure does not contain — the "unknown focus target
+         is ignored" scenario: renders normally, nothing emphasized, no error. */
+      component === 'match-bracket-context-unknown-focus' && (
+        <MatchBracketContext
+          currentMatchNumber={99}
+          intl={intl}
+          localePrefix=""
           matches={referenceBracket()}
           organizationAlias="reference-league"
           stageNumber={1}

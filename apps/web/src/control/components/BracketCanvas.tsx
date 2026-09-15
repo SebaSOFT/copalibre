@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   DEFAULT_GEOMETRY,
@@ -31,6 +32,7 @@ export function BracketCanvas({
   onZoomChange,
   emptyMessage,
   matchUrl,
+  focusMatchId,
 }: {
   readonly matches: readonly CanvasMatch[];
   readonly zoom: number;
@@ -38,10 +40,24 @@ export function BracketCanvas({
   readonly emptyMessage?: React.ReactNode;
   /** Builds a node's control-screen URL from its persisted match id. Absent nodes stay unlinked. */
   readonly matchUrl?: (persistedMatchId: string) => string;
+  /**
+   * The persisted match id (`persistedMatchId`, not the engine's structural label) to visually
+   * emphasize and scroll into view on mount — a console page knows a match by its real id, never
+   * by `WB-R2-M1`. A value naming no node's `persistedMatchId` is not an error — the canvas
+   * simply renders with nothing emphasized.
+   */
+  readonly focusMatchId?: string;
 }): React.JSX.Element {
   const intl = useIntl();
   const layout = layoutBracket(matches);
   const padding = DEFAULT_GEOMETRY.grid * 2;
+  const focusedNodeRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    focusedNodeRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    // Keyed on the focus target, not on layout/matches — re-scrolling on an unrelated
+    // data refresh (a score updating) would yank the viewport for no reason.
+  }, [focusMatchId]);
 
   return (
     <div style={wrapperStyle}>
@@ -104,6 +120,12 @@ export function BracketCanvas({
 
             {layout.matches.map((node) => (
               <BracketNode
+                focused={focusMatchId !== undefined && node.persistedMatchId === focusMatchId}
+                focusedRef={
+                  focusMatchId !== undefined && node.persistedMatchId === focusMatchId
+                    ? focusedNodeRef
+                    : undefined
+                }
                 href={
                   node.persistedMatchId === undefined
                     ? undefined
@@ -128,9 +150,14 @@ export function BracketCanvas({
  * version of this) drew a ring that didn't match the card's shape at all.
  */
 function BracketNode({
+  focused,
+  focusedRef,
   href,
   node,
 }: {
+  readonly focused: boolean;
+  /** Set only on the focused node, so `BracketCanvas` can scroll it into view on mount. */
+  readonly focusedRef: React.RefObject<HTMLElement | null> | undefined;
   readonly href: string | undefined;
   readonly node: LaidOutMatch;
 }): React.JSX.Element {
@@ -144,7 +171,7 @@ function BracketNode({
         <div key={`${node.matchId}-${index}`} style={slot.pending ? pendingSlotStyle : slotStyle}>
           {/* Named, never blank: "Ganador del WB-R1-M2" tells an
               operator what has to happen; an empty box reads as a bug. */}
-          <span>{slot.pending ? `TBD · ${slot.label}` : slot.label}</span>
+          <span>{slot.label}</span>
           <span style={scoreStyle}>{slot.score ?? '—'}</span>
         </div>
       ))}
@@ -157,6 +184,9 @@ function BracketNode({
     top: node.y,
     width: node.width,
     minHeight: node.height,
+    // Same treatment the public bracket-context panel gives its focused node — one
+    // "look here" cue reused across both surfaces, not two different ones to learn.
+    ...(focused ? { borderWidth: 2, borderColor: 'var(--cl-primary)' } : {}),
   };
 
   if (href === undefined) {
@@ -164,7 +194,9 @@ function BracketNode({
       <article
         className={NODE_CLASS_NAME}
         data-bracket={node.bracket}
+        data-focused={focused ? 'true' : undefined}
         data-match={node.matchId}
+        ref={focusedRef as React.RefObject<HTMLElement>}
         style={{ ...positionStyle, ...nodeContentStyle }}
       >
         {children}
@@ -176,9 +208,11 @@ function BracketNode({
     <a
       className={`${NODE_CLASS_NAME} cl-focusable`}
       data-bracket={node.bracket}
+      data-focused={focused ? 'true' : undefined}
       data-match={node.matchId}
       href={href}
       onClick={controlLinkClick(href)}
+      ref={focusedRef as React.RefObject<HTMLAnchorElement>}
       style={{
         ...positionStyle,
         ...nodeContentStyle,

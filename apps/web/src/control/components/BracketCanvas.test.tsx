@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 import { BracketCanvas } from './BracketCanvas.js';
 import { withIntl } from '../i18n/test-support.js';
@@ -65,5 +66,41 @@ describe('BracketCanvas', () => {
     render(withIntl(<BracketCanvas matches={matches} zoom={1} />));
 
     expect(screen.getByText('WB-R1-M1').closest('a')).toBeNull();
+  });
+
+  it('marks the focused node (by its persisted match id) and scrolls it into view on mount', () => {
+    const scrollIntoView = jest.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    render(withIntl(<BracketCanvas focusMatchId="persisted-match-1" matches={matches} zoom={1} />));
+
+    const focusedNode = screen.getByText('WB-R1-M1').closest('[data-match]');
+    expect(focusedNode?.getAttribute('data-focused')).toBe('true');
+    expect(screen.getByText('WB-R2-M1').closest('[data-match]')?.getAttribute('data-focused')).toBe(
+      null,
+    );
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+
+  it('renders normally with nothing emphasized when focusMatchId matches no node', () => {
+    render(withIntl(<BracketCanvas focusMatchId="does-not-exist" matches={matches} zoom={1} />));
+
+    expect(screen.getByText('WB-R1-M1').closest('[data-match]')?.getAttribute('data-focused')).toBe(
+      null,
+    );
+    expect(screen.getByText('WB-R2-M1').closest('[data-match]')?.getAttribute('data-focused')).toBe(
+      null,
+    );
+  });
+
+  it('leaves every node unfocused when focusMatchId is not supplied, including an unmaterialized one', () => {
+    render(withIntl(<BracketCanvas matches={matches} zoom={1} />));
+
+    expect(screen.getByText('WB-R1-M1').closest('[data-match]')?.getAttribute('data-focused')).toBe(
+      null,
+    );
+    expect(screen.getByText('WB-R2-M1').closest('[data-match]')?.getAttribute('data-focused')).toBe(
+      null,
+    );
   });
 });

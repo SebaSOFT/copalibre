@@ -264,6 +264,13 @@ export class PublicMatchReportResponse {
   @ApiProperty()
   stageNumber!: number;
 
+  @ApiProperty({
+    description:
+      "The stage's competition format — identifies which stage this match belongs to, so a " +
+      'client can decide whether a bracket-context panel applies without a second request.',
+  })
+  stageFormat!: string;
+
   @ApiProperty()
   matchNumber!: number;
 

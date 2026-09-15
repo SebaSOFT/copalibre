@@ -576,6 +576,7 @@ export class PublicProjectionsController {
         ? {}
         : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),
       stageNumber,
+      stageFormat: stage.format,
       matchNumber,
       round: match.round,
       status: publicMatchStatus(match.status),

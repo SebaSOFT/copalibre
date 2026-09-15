@@ -3612,6 +3612,8 @@ export interface components {
         MatchConsoleResponse: {
             /** Format: uuid */
             matchId: string;
+            /** @description The match's stage number, for a bracket-context panel */
+            stageNumber: number;
             /** @enum {string} */
             status: "scheduled" | "in-progress" | "finalized";
             /** @description Resolved authoritative result when one exists */
@@ -4659,6 +4661,8 @@ export interface components {
             tournamentName: string;
             disciplineImages?: components["schemas"]["PublicObjectReferenceResponse"][];
             stageNumber: number;
+            /** @description The stage's competition format — identifies which stage this match belongs to, so a client can decide whether a bracket-context panel applies without a second request. */
+            stageFormat: string;
             matchNumber: number;
             round: number;
             /** @enum {string} */

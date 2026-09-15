@@ -302,6 +302,7 @@ describe('live match console (integration)', () => {
     expect(consoleRead.statusCode).toBe(200);
     expect(consoleRead.json()).toMatchObject({
       matchId,
+      stageNumber: 1,
       eligiblePersonIds: [rosteredPersonId],
       capabilities: expect.arrayContaining(['match.record-event', 'match.select-roster']),
     });

@@ -280,6 +280,7 @@ describe('the control routes', () => {
   it('renders the match console route inside the shell', async () => {
     const projection: MatchConsoleResponse = {
       matchId: 'match-1',
+      stageNumber: 1,
       status: 'scheduled',
       result: null,
       liveScores: [],

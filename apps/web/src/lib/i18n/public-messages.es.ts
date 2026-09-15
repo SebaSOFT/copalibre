@@ -160,6 +160,8 @@ export const messages: Record<string, string> = {
   'publicWeb.bracket.outcomePending': 'Sin definir',
   'publicWeb.bracket.outlineHeading': 'Rondas y ramas',
   'publicWeb.bracket.championshipTitle': 'Final',
+  'publicWeb.bracket.contextAriaLabel': 'Este partido en la llave',
+  'publicWeb.bracket.contextViewFullLink': 'Ver la llave completa',
   'publicWeb.header.openMenu': 'Abrir el menú',
   'publicWeb.header.closeMenu': 'Cerrar el menú',
   'publicWeb.header.language': 'Idioma',

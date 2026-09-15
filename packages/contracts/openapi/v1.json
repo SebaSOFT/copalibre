@@ -13247,6 +13247,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "stageNumber": {
+            "type": "number",
+            "description": "The match's stage number, for a bracket-context panel"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -13339,6 +13343,7 @@
         },
         "required": [
           "matchId",
+          "stageNumber",
           "status",
           "result",
           "liveScores",
@@ -16063,6 +16068,10 @@
           "stageNumber": {
             "type": "number"
           },
+          "stageFormat": {
+            "type": "string",
+            "description": "The stage's competition format — identifies which stage this match belongs to, so a client can decide whether a bracket-context panel applies without a second request."
+          },
           "matchNumber": {
             "type": "number"
           },
@@ -16135,6 +16144,7 @@
           "tournamentAlias",
           "tournamentName",
           "stageNumber",
+          "stageFormat",
           "matchNumber",
           "round",
           "status",

@@ -27,6 +27,7 @@ const CANDIDATES: Record<string, readonly RosterCandidate[]> = {
 function scheduledProjection(overrides: Partial<MatchConsoleResponse> = {}): MatchConsoleResponse {
   return {
     matchId: 'match-1',
+    stageNumber: 1,
     status: 'scheduled',
     result: null,
     liveScores: [],

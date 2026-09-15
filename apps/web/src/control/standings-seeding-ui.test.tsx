@@ -195,7 +195,7 @@ describe('SeedingBuilderTemplate', () => {
 
     // describeSlot (lib/bracket-canvas.ts) is not yet extracted (documented
     // follow-up) — its dynamic match-ID interpolation stays Spanish regardless of locale.
-    expect(screen.getByText('TBD · Ganador del WB-R1-M1')).toBeTruthy();
+    expect(screen.getByText('Ganador del WB-R1-M1')).toBeTruthy();
     expect(screen.getByText('BO3')).toBeTruthy();
   });
 
