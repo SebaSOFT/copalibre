@@ -2061,31 +2061,45 @@ export class MatchControlController {
       });
 
     const stageId = await this.stageOf(matchId);
-    const [segments, events, descriptor, resolvedTimerIds, assignments, rosters, fixture, version] =
-      await Promise.all([
-        competition.listSegments(matchId),
-        competition.listEvents(matchId),
-        this.descriptorFor(organizationAlias, tournamentAlias),
-        competition.resolvedTimerIds(matchId),
-        new MatchAssignmentRepository(this.db).forSubject({
-          organizationId: tournament.organizationId,
-          subjectId: request.subject?.subjectId ?? '',
-          matchId,
-          stageId,
-        }),
-        this.db
-          .selectFrom('match_rosters')
-          .select(['entrant_id', 'roster_members'])
-          .where('match_id', '=', matchId)
-          .execute(),
-        this.db
-          .selectFrom('matches')
-          .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-          .select(['fixtures.home_entrant_id', 'fixtures.away_entrant_id'])
-          .where('matches.match_id', '=', matchId)
-          .executeTakeFirst(),
-        new ProjectionStore(this.db).versionOf('match-console', matchId),
-      ]);
+    const [
+      segments,
+      events,
+      descriptor,
+      resolvedTimerIds,
+      assignments,
+      rosters,
+      fixture,
+      version,
+      stage,
+    ] = await Promise.all([
+      competition.listSegments(matchId),
+      competition.listEvents(matchId),
+      this.descriptorFor(organizationAlias, tournamentAlias),
+      competition.resolvedTimerIds(matchId),
+      new MatchAssignmentRepository(this.db).forSubject({
+        organizationId: tournament.organizationId,
+        subjectId: request.subject?.subjectId ?? '',
+        matchId,
+        stageId,
+      }),
+      this.db
+        .selectFrom('match_rosters')
+        .select(['entrant_id', 'roster_members'])
+        .where('match_id', '=', matchId)
+        .execute(),
+      this.db
+        .selectFrom('matches')
+        .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+        .select(['fixtures.home_entrant_id', 'fixtures.away_entrant_id'])
+        .where('matches.match_id', '=', matchId)
+        .executeTakeFirst(),
+      new ProjectionStore(this.db).versionOf('match-console', matchId),
+      this.db
+        .selectFrom('stages')
+        .select(['number'])
+        .where('stage_id', '=', stageId)
+        .executeTakeFirst(),
+    ]);
     const isOrgAdmin =
       request.subject?.grantorContext?.organizationAdminOf === tournament.organizationId ||
       request.subject?.grantorContext?.isSuperAdmin === true;
@@ -2097,6 +2111,10 @@ export class MatchControlController {
         errorCode: 'match-control-forbidden',
       });
     }
+    if (!stage)
+      throw new NotFoundException(`Stage "${stageId}" no longer exists`, {
+        errorCode: 'match-control-not-found',
+      });
 
     const entrantIds = [fixture?.home_entrant_id, fixture?.away_entrant_id].filter(
       (entrantId): entrantId is string => entrantId !== null && entrantId !== undefined,
@@ -2107,6 +2125,7 @@ export class MatchControlController {
 
     return {
       matchId,
+      stageNumber: stage.number,
       status: match.status,
       result: (match.result as Record<string, unknown> | undefined) ?? null,
       liveScores: [...foldLiveScores(descriptor, events, entrantIds)],

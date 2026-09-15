@@ -160,6 +160,8 @@ export const messages: Record<string, string> = {
   'publicWeb.bracket.outcomePending': 'Noch nicht entschieden',
   'publicWeb.bracket.outlineHeading': 'Runden und Zweige',
   'publicWeb.bracket.championshipTitle': 'Finale',
+  'publicWeb.bracket.contextAriaLabel': 'Dieses Spiel im Turnierbaum',
+  'publicWeb.bracket.contextViewFullLink': 'Vollständigen Turnierbaum ansehen',
   'publicWeb.header.openMenu': 'Menü öffnen',
   'publicWeb.header.closeMenu': 'Menü schließen',
   'publicWeb.header.language': 'Sprache',

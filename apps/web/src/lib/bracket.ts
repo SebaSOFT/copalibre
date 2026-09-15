@@ -201,6 +201,19 @@ export function matchReportUrl(input: {
   )}/stages/${stageNumber}/matches/${matchNumber}`;
 }
 
+/** The stage's own full bracket/matches page — where a bracket-context panel links out to. */
+export function stagePath(input: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly localePrefix?: string;
+}): string {
+  const { organizationAlias, tournamentAlias, stageNumber, localePrefix = '' } = input;
+  return `${localePrefix}/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+    tournamentAlias,
+  )}/stages/${stageNumber}`;
+}
+
 /**
  * The stage's last cross, where the structure has exactly one.
  *

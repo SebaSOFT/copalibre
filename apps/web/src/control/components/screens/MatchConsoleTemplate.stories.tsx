@@ -1,7 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MatchConsoleTemplate } from '../screens/MatchConsoleTemplate.js';
 import type { MatchConsoleApiClient } from '../../lib/api-client.js';
-import { ORG, TOURNAMENT, ids, consoleProjection, storyClient } from '../screen-story-fixtures.js';
+import {
+  ORG,
+  TOURNAMENT,
+  ids,
+  consoleProjection,
+  focusableBracket,
+  storyClient,
+} from '../screen-story-fixtures.js';
 
 const client = storyClient<MatchConsoleApiClient>({
   fetchRosterCandidates: async () => [{ personId: ids.person, name: 'V. Kael' }],
@@ -35,6 +42,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
+/** The bracket-context panel, embedded and focused on the open match — `ids.match`. */
+export const WithBracketContext: Story = {
+  args: { bracketMatches: focusableBracket },
+};
 export const Empty: Story = {
   args: {
     projection: {

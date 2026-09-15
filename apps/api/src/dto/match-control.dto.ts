@@ -208,6 +208,9 @@ export class MatchConsoleResponse {
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
 
+  @ApiProperty({ description: "The match's stage number, for a bracket-context panel" })
+  stageNumber!: number;
+
   @ApiProperty({ enum: ['scheduled', 'in-progress', 'finalized'] })
   status!: string;
 

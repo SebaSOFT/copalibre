@@ -90,6 +90,26 @@ export const BracketStage: Story = {
   args: { component: 'bracket-stage', height: 640 },
 };
 
+/** The condensed bracket-context panel, emphasizing an early, already-resolved match. */
+export const MatchBracketContextEarly: Story = {
+  args: { component: 'match-bracket-context-early', height: 420 },
+};
+
+/** The same panel emphasizing the championship match — winner-of slots still pending. */
+export const MatchBracketContextChampionship: Story = {
+  args: { component: 'match-bracket-context-championship', height: 420 },
+};
+
+/**
+ * A focus target the structure does not contain.
+ *
+ * Renders exactly like an unfocused canvas — no node emphasized, no error — the same
+ * contract `BracketCanvas`'s control-side focus mode makes.
+ */
+export const MatchBracketContextUnknownFocus: Story = {
+  args: { component: 'match-bracket-context-unknown-focus', height: 420 },
+};
+
 /**
  * An id the route does not allowlist.
  *

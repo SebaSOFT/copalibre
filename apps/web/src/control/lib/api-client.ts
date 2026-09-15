@@ -954,6 +954,16 @@ export interface MatchConsoleApiClient {
   readonly controlStream?: (organizationAlias: string) => MatchConsoleStream;
   /** Authenticated stream configuration; events never carry console details. */
   readonly matchConsoleStream?: (organizationAlias: string) => MatchConsoleStream;
+  /**
+   * The match's stage bracket, for the console's embedded bracket-context panel. Optional
+   * because a match-console-only client (a test double, say) has no reason to implement it —
+   * the panel simply doesn't render without it.
+   */
+  readonly fetchSeeding?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+  ) => Promise<SeedingResponse>;
 }
 
 export interface MatchConsoleStream {
@@ -1656,6 +1666,8 @@ export interface ConsoleRosterRole {
 
 export interface MatchConsoleResponse {
   readonly matchId: string;
+  /** For an embedded bracket-context panel — which stage the match belongs to. */
+  readonly stageNumber: number;
   readonly status: 'scheduled' | 'in-progress' | 'finalized';
   readonly result: Record<string, unknown> | null;
   readonly liveScores: readonly ConsoleLiveScore[];

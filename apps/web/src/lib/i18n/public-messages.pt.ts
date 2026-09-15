@@ -161,6 +161,8 @@ export const messages: Record<string, string> = {
   'publicWeb.bracket.outcomePending': 'Ainda por decidir',
   'publicWeb.bracket.outlineHeading': 'Rondas e ramos',
   'publicWeb.bracket.championshipTitle': 'Final',
+  'publicWeb.bracket.contextAriaLabel': 'Esta partida na chave',
+  'publicWeb.bracket.contextViewFullLink': 'Ver a chave completa',
   'publicWeb.header.openMenu': 'Abrir o menu',
   'publicWeb.header.closeMenu': 'Fechar o menu',
   'publicWeb.header.language': 'Idioma',

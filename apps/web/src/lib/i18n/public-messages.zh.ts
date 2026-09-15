@@ -159,6 +159,8 @@ export const messages: Record<string, string> = {
   'publicWeb.bracket.outcomePending': '尚未确定',
   'publicWeb.bracket.outlineHeading': '轮次与分支',
   'publicWeb.bracket.championshipTitle': '决赛',
+  'publicWeb.bracket.contextAriaLabel': '该场比赛在赛程图中的位置',
+  'publicWeb.bracket.contextViewFullLink': '查看完整赛程图',
   'publicWeb.header.openMenu': '打开菜单',
   'publicWeb.header.closeMenu': '关闭菜单',
   'publicWeb.header.language': '语言',

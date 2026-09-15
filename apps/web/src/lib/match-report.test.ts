@@ -8,6 +8,7 @@ const report = (): PublicMatchReportResponse => ({
   tournamentAlias: 'apertura',
   tournamentName: 'Apertura',
   stageNumber: 1,
+  stageFormat: 'single-elimination',
   matchNumber: 4,
   round: 2,
   status: 'final',

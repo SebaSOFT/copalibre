@@ -10,6 +10,7 @@ import {
   type MatchConsoleResponse,
   type SegmentClockCommand,
 } from '../../lib/api-client.js';
+import type { CanvasMatch } from '../../lib/bracket-canvas.js';
 import {
   currentEpochMilliseconds,
   descriptionFor,
@@ -83,6 +84,7 @@ export function MatchConsolePage({
     typeof navigator === 'undefined' ? true : navigator.onLine,
   );
   const [lastSyncedAt, setLastSyncedAt] = useState<number>();
+  const [bracketMatches, setBracketMatches] = useState<readonly CanvasMatch[]>();
   const projectionVersion = useRef(0);
   const finalizationInFlight = useRef(false);
   const drainingRef = useRef(false);
@@ -110,6 +112,25 @@ export function MatchConsolePage({
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  // Read only, keyed on the stage number itself rather than on the whole projection, so a live
+  // score update never re-fetches a bracket that hasn't changed. Absent when `api.fetchSeeding`
+  // isn't implemented (a test double) or the stage genuinely has none yet — the panel simply
+  // doesn't render either way.
+  const stageNumber = projection?.stageNumber;
+  useEffect(() => {
+    if (stageNumber === undefined || !api.fetchSeeding) return undefined;
+    let live = true;
+    api
+      .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
+      .then((seeding) => {
+        if (live) setBracketMatches(seeding.matches);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [api, organizationAlias, tournamentAlias, stageNumber]);
 
   const refreshPendingMutations = useCallback(async (): Promise<void> => {
     setPendingMutations(await listPending(matchId));
@@ -454,6 +475,7 @@ export function MatchConsolePage({
   return (
     <MatchConsoleTemplate
       api={api}
+      bracketMatches={bracketMatches}
       finalizing={finalizing}
       lastSyncedAt={lastSyncedAt}
       matchId={matchId}

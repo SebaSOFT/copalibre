@@ -4,8 +4,14 @@ import MatchHero from '../../../../../../../../components/ui/organisms/MatchHero
 import MatchOfficials from '../../../../../../../../components/ui/organisms/MatchOfficials.astro';
 import MatchRosters from '../../../../../../../../components/ui/organisms/MatchRosters.astro';
 import MatchTimeline from '../../../../../../../../components/ui/organisms/MatchTimeline.astro';
+import MatchBracketContext from '../../../../../../../../components/ui/organisms/MatchBracketContext.astro';
 import { buildMatchReport } from '../../../../../../../../lib/match-report.ts';
-import { fetchMatchReport } from '../../../../../../../../lib/public-api-client.ts';
+import {
+  fetchBracket,
+  fetchMatchReport,
+  mapBracketResponse,
+} from '../../../../../../../../lib/public-api-client.ts';
+import { selectStageLayout } from '../../../../../../../../lib/bracket.ts';
 import { publicIntl } from '../../../../../../../../lib/i18n/public-intl.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
@@ -32,6 +38,17 @@ if (!response) {
 }
 
 const model = buildMatchReport(response);
+
+// Gated on the stage's own format, already known from `response.stageFormat` — a round-robin/
+// league/placement match report issues no second request at all (design.md's own decision:
+// a report is requested far more often per stage than a bracket changes).
+const localePrefix = locale ? `/${locale}` : '';
+let bracketData: ReturnType<typeof mapBracketResponse> | undefined;
+if (selectStageLayout(response.stageFormat) === 'bracket') {
+  const rawBracket = await fetchBracket(organization!, tournament!, stageNumber);
+  if (rawBracket) bracketData = mapBracketResponse(rawBracket);
+}
+
 const structuredData = {
   '@type': 'SportsEvent' as const,
   name: `${model.home.name} vs ${model.away.name} — ${model.tournamentName}`,
@@ -49,6 +66,20 @@ const structuredData = {
 >
   <article class="cl-match-page">
     <MatchHero model={model} />
+
+    {
+      bracketData && bracketData.matches.length > 0 && (
+        <MatchBracketContext
+          currentMatchNumber={matchNumber}
+          intl={intl}
+          localePrefix={localePrefix}
+          matches={bracketData.matches}
+          organizationAlias={organization!}
+          stageNumber={stageNumber}
+          tournamentAlias={tournament!}
+        />
+      )
+    }
 
     <div class="cl-match-details">
       <MatchOfficials model={model} />
