@@ -14403,6 +14403,11 @@
             "description": "Deterministic engine id, e.g. WB-R2-M1",
             "example": "WB-R2-M1"
           },
+          "persistedMatchId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The real persisted matches.match_id, present only once this node has been generated as an actual fixture. Absent for a not-yet-materialized future-round node — never a placeholder or guessed value."
+          },
           "bracket": {
             "type": "string",
             "enum": [

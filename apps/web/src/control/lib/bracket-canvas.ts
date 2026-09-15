@@ -20,6 +20,8 @@ export interface CanvasSlot {
 
 export interface CanvasMatch {
   readonly matchId: string;
+  /** The real persisted matches.match_id — absent for a not-yet-materialized node. */
+  readonly persistedMatchId?: string;
   readonly bracket: string;
   readonly round: number;
   readonly position: number;
@@ -60,6 +62,7 @@ export interface LaidOutSlot {
 
 export interface LaidOutMatch {
   readonly matchId: string;
+  readonly persistedMatchId?: string;
   readonly bracket: string;
   readonly round: number;
   readonly position: number;
@@ -127,6 +130,9 @@ export function layoutBracket(
 
         laidOut.set(match.matchId, {
           matchId: match.matchId,
+          ...(match.persistedMatchId === undefined
+            ? {}
+            : { persistedMatchId: match.persistedMatchId }),
           bracket: match.bracket,
           round: match.round,
           position: match.position,

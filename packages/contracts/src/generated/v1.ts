@@ -4040,6 +4040,11 @@ export interface components {
              * @example WB-R2-M1
              */
             matchId: string;
+            /**
+             * Format: uuid
+             * @description The real persisted matches.match_id, present only once this node has been generated as an actual fixture. Absent for a not-yet-materialized future-round node — never a placeholder or guessed value.
+             */
+            persistedMatchId?: string;
             /** @enum {string} */
             bracket: "winners" | "losers" | "grand-final" | "round-robin" | "placement";
             /** @description 1-based round within the bracket */

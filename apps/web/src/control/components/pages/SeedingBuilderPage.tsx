@@ -434,6 +434,7 @@ export function SeedingBuilderPage({
         }
         organizationAlias={organizationAlias}
         seeds={assignments}
+        tournamentAlias={tournamentAlias}
         tournamentName={tournamentAlias}
       />
     </>

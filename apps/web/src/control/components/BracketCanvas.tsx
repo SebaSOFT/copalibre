@@ -5,9 +5,11 @@ import {
   zoomIn,
   zoomOut,
   type CanvasMatch,
+  type LaidOutMatch,
 } from '../lib/bracket-canvas.js';
 import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
+import { controlLinkClick } from '../lib/control-navigation.js';
 
 /**
  * A6 — the bracket canvas.
@@ -28,11 +30,14 @@ export function BracketCanvas({
   zoom,
   onZoomChange,
   emptyMessage,
+  matchUrl,
 }: {
   readonly matches: readonly CanvasMatch[];
   readonly zoom: number;
   readonly onZoomChange?: (zoom: number) => void;
   readonly emptyMessage?: React.ReactNode;
+  /** Builds a node's control-screen URL from its persisted match id. Absent nodes stay unlinked. */
+  readonly matchUrl?: (persistedMatchId: string) => string;
 }): React.JSX.Element {
   const intl = useIntl();
   const layout = layoutBracket(matches);
@@ -98,40 +103,11 @@ export function BracketCanvas({
             </svg>
 
             {layout.matches.map((node) => (
-              <article
-                className="cl-card cl-chamfer"
-                data-bracket={node.bracket}
-                data-match={node.matchId}
+              <BracketNode
+                href={node.persistedMatchId === undefined ? undefined : matchUrl?.(node.persistedMatchId)}
                 key={node.matchId}
-                style={{
-                  position: 'absolute',
-                  left: node.x,
-                  top: node.y,
-                  width: node.width,
-                  minHeight: node.height,
-                  padding: 'var(--cl-space-2)',
-                  display: 'grid',
-                  gap: 2,
-                }}
-              >
-                <header style={nodeHeaderStyle}>
-                  <span>{node.matchId}</span>
-                  {node.format === undefined ? null : (
-                    <span className="cl-badge">{node.format}</span>
-                  )}
-                </header>
-                {node.slots.map((slot, index) => (
-                  <div
-                    key={`${node.matchId}-${index}`}
-                    style={slot.pending ? pendingSlotStyle : slotStyle}
-                  >
-                    {/* Named, never blank: "Ganador del WB-R1-M2" tells an
-                        operator what has to happen; an empty box reads as a bug. */}
-                    <span>{slot.pending ? `TBD · ${slot.label}` : slot.label}</span>
-                    <span style={scoreStyle}>{slot.score ?? '—'}</span>
-                  </div>
-                ))}
-              </article>
+                node={node}
+              />
             ))}
           </div>
         </div>
@@ -139,6 +115,69 @@ export function BracketCanvas({
     </div>
   );
 }
+
+/**
+ * One node's content, wrapped in a link only when `href` resolves — mirroring `MatchCard`'s
+ * `reportUrl` conditional-wrap. The anchor takes over the article's own positioning so a
+ * linkable node keeps the same 44px-plus footprint as the interactive-target contract requires.
+ */
+function BracketNode({
+  href,
+  node,
+}: {
+  readonly href: string | undefined;
+  readonly node: LaidOutMatch;
+}): React.JSX.Element {
+  const content = (
+    <article
+      className="cl-card cl-chamfer"
+      data-bracket={node.bracket}
+      data-match={node.matchId}
+      style={nodeContentStyle}
+    >
+      <header style={nodeHeaderStyle}>
+        <span>{node.matchId}</span>
+        {node.format === undefined ? null : <span className="cl-badge">{node.format}</span>}
+      </header>
+      {node.slots.map((slot, index) => (
+        <div key={`${node.matchId}-${index}`} style={slot.pending ? pendingSlotStyle : slotStyle}>
+          {/* Named, never blank: "Ganador del WB-R1-M2" tells an
+              operator what has to happen; an empty box reads as a bug. */}
+          <span>{slot.pending ? `TBD · ${slot.label}` : slot.label}</span>
+          <span style={scoreStyle}>{slot.score ?? '—'}</span>
+        </div>
+      ))}
+    </article>
+  );
+
+  const positionStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: node.x,
+    top: node.y,
+    width: node.width,
+    minHeight: node.height,
+  };
+
+  if (href === undefined) return <div style={positionStyle}>{content}</div>;
+
+  return (
+    <a
+      className="cl-focusable"
+      href={href}
+      onClick={controlLinkClick(href)}
+      style={{ ...positionStyle, display: 'block', color: 'inherit', textDecoration: 'none' }}
+    >
+      {content}
+    </a>
+  );
+}
+
+const nodeContentStyle: React.CSSProperties = {
+  height: '100%',
+  padding: 'var(--cl-space-2)',
+  display: 'grid',
+  gap: 2,
+};
 
 const wrapperStyle: React.CSSProperties = {
   display: 'grid',
