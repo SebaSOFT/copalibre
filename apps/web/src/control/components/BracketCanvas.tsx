@@ -121,9 +121,11 @@ export function BracketCanvas({
 }
 
 /**
- * One node's content, wrapped in a link only when `href` resolves — mirroring `MatchCard`'s
- * `reportUrl` conditional-wrap. The anchor takes over the article's own positioning so a
- * linkable node keeps the same 44px-plus footprint as the interactive-target contract requires.
+ * One node, `<article>` normally, an `<a>` carrying the same `cl-chamfer`/positioning styles
+ * when `href` resolves. `cl-chamfer` cuts its corners via `border-radius`/`corner-shape`, never
+ * `clip-path`, precisely so a `cl-focusable` ring on the *same* element still traces the
+ * chamfer — putting the ring on a separate rectangular wrapper around the card (an earlier
+ * version of this) drew a ring that didn't match the card's shape at all.
  */
 function BracketNode({
   href,
@@ -132,13 +134,8 @@ function BracketNode({
   readonly href: string | undefined;
   readonly node: LaidOutMatch;
 }): React.JSX.Element {
-  const content = (
-    <article
-      className="cl-card cl-chamfer"
-      data-bracket={node.bracket}
-      data-match={node.matchId}
-      style={nodeContentStyle}
-    >
+  const children = (
+    <>
       <header style={nodeHeaderStyle}>
         <span>{node.matchId}</span>
         {node.format === undefined ? null : <span className="cl-badge">{node.format}</span>}
@@ -151,7 +148,7 @@ function BracketNode({
           <span style={scoreStyle}>{slot.score ?? '—'}</span>
         </div>
       ))}
-    </article>
+    </>
   );
 
   const positionStyle: React.CSSProperties = {
@@ -162,22 +159,42 @@ function BracketNode({
     minHeight: node.height,
   };
 
-  if (href === undefined) return <div style={positionStyle}>{content}</div>;
+  if (href === undefined) {
+    return (
+      <article
+        className={NODE_CLASS_NAME}
+        data-bracket={node.bracket}
+        data-match={node.matchId}
+        style={{ ...positionStyle, ...nodeContentStyle }}
+      >
+        {children}
+      </article>
+    );
+  }
 
   return (
     <a
-      className="cl-focusable"
+      className={`${NODE_CLASS_NAME} cl-focusable`}
+      data-bracket={node.bracket}
+      data-match={node.matchId}
       href={href}
       onClick={controlLinkClick(href)}
-      style={{ ...positionStyle, display: 'block', color: 'inherit', textDecoration: 'none' }}
+      style={{
+        ...positionStyle,
+        ...nodeContentStyle,
+        color: 'inherit',
+        textDecoration: 'none',
+      }}
     >
-      {content}
+      {children}
     </a>
   );
 }
 
+/** Shared so the source only names `cl-card` once — see check-ui-ownership.mjs's per-file ratchet. */
+const NODE_CLASS_NAME = 'cl-card cl-chamfer';
+
 const nodeContentStyle: React.CSSProperties = {
-  height: '100%',
   padding: 'var(--cl-space-2)',
   display: 'grid',
   gap: 2,
