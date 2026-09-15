@@ -1484,6 +1484,20 @@ function compositions(): string {
     '',
     '.cl-bracket-stage__node { min-width: 0; }',
     '',
+    // The default .cl-card padding (--cl-space-4, 16px) plus its 4px accent
+    // border eats over a third of the round column's 200px min-width — the
+    // same reason the control BracketCanvas overrides its own node padding
+    // down to --cl-space-2 (8px). Matched here for the same reason.
+    '.cl-bracket-stage__node .cl-card { padding: var(--cl-space-2); }',
+    '',
+    // Bare .cl-slot had no rules of its own, so the ordered list's browser
+    // default 40px marker indent — far more than the card padding itself —
+    // was left to squeeze slot rows down to almost nothing. list-style-position:
+    // inside folds the marker back into the content box, and the flex row
+    // keeps the entrant name and score on one line instead of wrapping.
+    '.cl-bracket-stage__node ol { margin: 0; padding: 0; list-style-position: inside; }',
+    '.cl-slot { display: flex; justify-content: space-between; gap: var(--cl-space-2); }',
+    '',
     // Per-slot, not per-match: a card with one confirmed entrant and one
     // still-unresolved "winner of" slot marks only the slot that's waiting,
     // matching the control BracketCanvas's own pendingSlotStyle treatment.
