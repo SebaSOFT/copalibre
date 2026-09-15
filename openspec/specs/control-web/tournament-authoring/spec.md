@@ -100,7 +100,11 @@ not have.
 When the selected discipline and format combination has one or more compatible `TournamentProfile`
 entries in the installed catalogue, the wizard SHALL let the organizer select one explicitly (or
 proceed without one), and a selected profile's declared stages SHALL be pre-created on the resulting
-tournament.
+tournament. Selecting a profile SHALL show the operator a read-only preview of that profile's
+declared stages, each stage's format, and each stage's declared default allocation, before the
+tournament is created. The preview SHALL NOT be editable from the wizard; an operator wanting a
+different stage list or allocation for this one tournament proceeds without selecting a profile, or
+edits the tournament's stages after creation through the existing stage-management surface.
 
 #### Scenario: A multi-stage profile is offered and instantiated
 - **WHEN** an organizer selects a discipline and format for which an installed `TournamentProfile`
@@ -112,6 +116,17 @@ tournament.
 - **WHEN** no installed `TournamentProfile` is compatible with the selected discipline and format
 - **THEN** the wizard proceeds without offering a profile selection, producing a single-stage tournament
   as it does today
+
+#### Scenario: Selecting a profile previews its stages and seeding read-only
+- **WHEN** an organizer selects an installed profile declaring three stages, each with its own
+  allocation default
+- **THEN** the wizard shows all three stages, their formats, and their declared allocation defaults,
+  with no control to edit any of them from this screen
+
+#### Scenario: An operator who wants a different structure proceeds without a profile
+- **WHEN** an organizer wants a stage structure that differs from every installed profile
+- **THEN** the organizer proceeds without selecting a profile and authors the stage list directly,
+  rather than being offered an in-place edit of a profile's preview
 
 ### Requirement: The wizard offers a per-event rule-authoring step
 The tournament setup wizard SHALL offer a step where an organizer may define zero or more custom
@@ -365,3 +380,58 @@ alongside the existing public-registration and check-in toggles. Setting it SHAL
 #### Scenario: A non-admin cannot set the Featured toggle
 - **WHEN** a user without the organization-admin role attempts to change the Featured toggle
 - **THEN** the request is rejected and the tournament's `featured` value is unchanged
+
+### Requirement: Wizard authors every stage of a tournament in one pass
+The tournament setup wizard SHALL let an operator declare the tournament's full stage list —
+add, remove, or append a stage — rather than a single implicit stage, before creating the
+tournament. Each stage SHALL carry its own format, chosen from the formats the selected
+discipline supports. The list SHALL have no maximum stage count and a minimum of one stage.
+Stages SHALL NOT be reorderable in this pass; an operator wanting a different order removes and
+re-adds stages. Each stage's position SHALL be renumbered to a contiguous 1-based sequence after
+any add or remove, with no gap and no duplicate.
+
+#### Scenario: An operator declares a three-stage tournament
+- **WHEN** an operator adds a round-robin stage, then a single-elimination stage, then a second
+  single-elimination stage, and completes the wizard
+- **THEN** the created tournament has all three stages pre-created in that order, each with its
+  declared format
+
+#### Scenario: Removing a middle stage renumbers the remainder
+- **WHEN** an operator has declared three stages and removes the second
+- **THEN** the remaining two stages are numbered 1 and 2, with no gap
+
+#### Scenario: A single-stage tournament is unaffected
+- **WHEN** an operator declares exactly one stage and completes the wizard
+- **THEN** the created tournament has one stage, identical to what a tournament created before
+  this capability existed would have
+
+### Requirement: Each authored stage declares its own seeding/allocation mode
+Each stage declared in the wizard SHALL let the operator choose how that stage's entrants and
+seed order will be filled: automatic (the prior stage's qualification cut), manual (the operator
+places entrants), or weighted (a numeric entrant attribute, with a direction stating whether
+higher or lower values seed first). Weighted mode's attribute SHALL be chosen from a list of the
+tournament's known entrant-attribute keys, not free text. A stage's allocation mode SHALL NOT be
+validated against its own or a prior stage's format in the wizard; an incompatible combination is
+refused at submission by the same validation the domain already applies to allocation.
+
+#### Scenario: An operator declares automatic allocation for a knockout stage following a group stage
+- **WHEN** an operator declares a knockout stage's allocation as automatic
+- **THEN** the created stage's configuration records automatic allocation, and once the prior
+  stage completes its entrants and seed order come from that stage's qualification cut
+
+#### Scenario: An operator declares weighted allocation by a known attribute
+- **WHEN** an operator declares a stage's allocation as weighted by an attribute already recorded
+  on this tournament's entrants, with direction "higher-first"
+- **THEN** the created stage's configuration records weighted allocation on that attribute and
+  direction
+
+#### Scenario: A stage left undeclared defaults to manual
+- **WHEN** an operator completes the wizard without choosing an allocation mode for a stage
+- **THEN** the stage's configuration declares no allocation, which the seeding surface treats as
+  it does today — the operator supplies the order
+
+#### Scenario: An incompatible allocation is refused at submission, not mid-authoring
+- **WHEN** an operator submits the wizard with an allocation the domain refuses for that stage's
+  configuration
+- **THEN** the refusal is reported at submission with the domain's own reason, and the wizard does
+  not pre-filter allocation choices while the operator is still authoring
