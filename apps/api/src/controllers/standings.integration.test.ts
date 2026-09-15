@@ -286,6 +286,27 @@ describe('standings and seeding routes (integration)', () => {
     expect(body.matches.length).toBeGreaterThan(0);
     expect(body.matches[0].format).toBe('BO5');
     expect(body.hasRecordedResults).toBe(false);
+
+    // Round-robin fills every node's slots with real entrants directly from the graph, so
+    // `persistedMatchId` is the only signal a materialized fixture vs. a still-generated-only
+    // node — `beforeAll` persisted exactly the entrantIds[0]-vs-[1] and [2]-vs-[3] pairings.
+    type BracketMatch = {
+      readonly persistedMatchId?: string;
+      readonly slots: readonly { readonly entrantId?: string }[];
+    };
+    const namedByBoth = (match: BracketMatch, a: string, b: string): boolean => {
+      const named = match.slots.map((slot) => slot.entrantId);
+      return named.includes(a) && named.includes(b);
+    };
+    const materialized = body.matches.find((match: BracketMatch) =>
+      namedByBoth(match, entrantIds[0] as string, entrantIds[1] as string),
+    );
+    expect(materialized?.persistedMatchId).toEqual(expect.any(String));
+
+    const notYetMaterialized = body.matches.find((match: BracketMatch) =>
+      namedByBoth(match, entrantIds[0] as string, entrantIds[2] as string),
+    );
+    expect(notYetMaterialized?.persistedMatchId).toBeUndefined();
   });
 
   it('accepts a seed order while no result exists, persists it, and regenerates the fixture graph', async () => {
@@ -585,5 +606,44 @@ describe('standings and seeding routes (integration)', () => {
 
     expect(node.status).toBe('scheduled');
     expect(node.slots.some((slot) => slot.score !== undefined)).toBe(false);
+  });
+
+  it('surfaces the persisted match id only for a node the fixtures table actually has a row for', () => {
+    const materialized = toBracketMatch(
+      {
+        id: 'WB-R1-M1',
+        shape: 'duel',
+        bracket: 'winners',
+        round: 1,
+        position: 1,
+        slotA: { kind: 'entrant', entrantId: 'entrant-a', seed: 1 },
+        slotB: { kind: 'entrant', entrantId: 'entrant-b', seed: 2 },
+      },
+      [
+        {
+          matchId: 'persisted-match-id',
+          fixtureId: 'fixture-1',
+          round: 1,
+          position: 1,
+          status: 'scheduled',
+          games: [{ matchId: 'persisted-match-id', number: 1, status: 'scheduled' }],
+        },
+      ],
+    );
+    expect(materialized.persistedMatchId).toBe('persisted-match-id');
+
+    const notYetMaterialized = toBracketMatch(
+      {
+        id: 'WB-R2-M1',
+        shape: 'duel',
+        bracket: 'winners',
+        round: 2,
+        position: 1,
+        slotA: { kind: 'winner-of', matchId: 'WB-R1-M1' },
+        slotB: { kind: 'winner-of', matchId: 'WB-R1-M2' },
+      },
+      [],
+    );
+    expect(notYetMaterialized.persistedMatchId).toBeUndefined();
   });
 });

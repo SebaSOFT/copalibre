@@ -123,6 +123,15 @@ export class BracketMatchResponse {
   @ApiProperty({ description: 'Deterministic engine id, e.g. WB-R2-M1', example: 'WB-R2-M1' })
   matchId!: string;
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'The real persisted matches.match_id, present only once this node has been generated as ' +
+      'an actual fixture. Absent for a not-yet-materialized future-round node — never a ' +
+      'placeholder or guessed value.',
+  })
+  persistedMatchId?: string;
+
   @ApiProperty({ enum: ['winners', 'losers', 'grand-final', 'round-robin', 'placement'] })
   bracket!: string;
 

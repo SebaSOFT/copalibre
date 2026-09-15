@@ -102,6 +102,7 @@ const seedingFixture = {
   matches: [
     {
       matchId: 'WB-R1-M1',
+      persistedMatchId: 'persisted-wb-r1-m1',
       bracket: 'winners',
       round: 1,
       position: 1,
@@ -164,12 +165,41 @@ const seedingFixture = {
   hasRecordedResults: false,
 };
 
+/** The console projection for the one materialized match the seeding fixture links. */
+const matchConsoleFixture = {
+  matchId: 'persisted-wb-r1-m1',
+  status: 'finalized',
+  result: null,
+  liveScores: [],
+  segments: [],
+  runningTimers: [],
+  events: [],
+  eventDefinitions: [],
+  eligiblePersonIds: [],
+  rosters: [],
+  rosterRoles: [],
+  eligibleStaffIds: [],
+  entrants: [],
+  capabilities: [],
+  projectionVersion: 1,
+};
+
 async function mockControlApi(
   page: Page,
   options: { readonly reseedBlocked?: boolean } = {},
 ): Promise<void> {
   await page.addInitScript(
-    ({ tournament, stage, layouts, projection, trace, seeding, reseedBlocked, tokenEndpoint }) => {
+    ({
+      tournament,
+      stage,
+      layouts,
+      projection,
+      trace,
+      seeding,
+      matchConsole,
+      reseedBlocked,
+      tokenEndpoint,
+    }) => {
       // `addInitScript` re-runs on every navigation, including a reload, so a
       // plain closure variable would not survive one — sessionStorage does,
       // letting a GET after a reload reflect what the server would have
@@ -202,6 +232,9 @@ async function mockControlApi(
           return Response.json(trace[entrantId] ?? { entrantId, lines: [] });
         }
         if (url === `${stage}/seeding` && method === 'GET') return Response.json(readCurrent());
+        if (url === `${tournament}/matches/persisted-wb-r1-m1/console`) {
+          return Response.json(matchConsole);
+        }
         if (url === `${stage}/seeding` && method === 'POST') {
           if (reseedBlocked) {
             return Response.json(
@@ -231,6 +264,7 @@ async function mockControlApi(
       projection: groupStandingsProjectionFixture,
       trace: traceByEntrant,
       seeding: seedingFixture,
+      matchConsole: matchConsoleFixture,
       reseedBlocked: options.reseedBlocked ?? false,
       tokenEndpoint: TOKEN_ENDPOINT,
     },
@@ -317,6 +351,42 @@ test('renders both halves of a double-elimination bracket with named placeholder
   await expect(canvas.getByText('TBD · Perdedor del WB-R1-M1')).toBeVisible();
   await expect(canvas.getByText('TBD · Ganador del LB-R1-M1')).toBeVisible();
   await expect(canvas.getByText('BO5').first()).toBeVisible();
+});
+
+test('opens a resolved bracket node in the match console', async ({ page }) => {
+  await mockControlApi(page);
+
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const canvas = page.getByLabel('Llave');
+  await canvas.getByText('WB-R1-M1', { exact: true }).click();
+
+  await page.waitForURL(
+    '**/control/liga-mendocina/tournaments/apertura-2026/matches/persisted-wb-r1-m1',
+  );
+});
+
+test('a not-yet-materialized bracket node has no link and does nothing when activated', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const canvas = page.getByLabel('Llave');
+  // `WB-R2-M1` names two winner-of placeholders, not a persisted match — no fixture row
+  // exists for it yet, so the canvas renders it with no anchor at all.
+  const pendingNode = canvas.getByText('WB-R2-M1', { exact: true });
+  await expect(pendingNode.locator('xpath=ancestor::a')).toHaveCount(0);
+
+  await pendingNode.click();
+  await expect(page).toHaveURL(new RegExp(`${target}$`));
 });
 
 test('a published seed order survives a page reload', async ({ page }) => {

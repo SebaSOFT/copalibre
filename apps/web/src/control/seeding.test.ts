@@ -230,6 +230,16 @@ describe('layoutBracket', () => {
   it('returns an empty canvas for a stage with no structure', () => {
     expect(layoutBracket([])).toMatchObject({ matches: [], connectors: [], width: 0, height: 0 });
   });
+
+  it('carries persistedMatchId through layout for a materialized node and leaves it absent otherwise', () => {
+    const matches = singleElimination(4).map((match) =>
+      match.matchId === 'SE-R1-M1' ? { ...match, persistedMatchId: 'real-match-id' } : match,
+    );
+    const layout = layoutBracket(matches);
+
+    expect(nodeOf(layout, 'SE-R1-M1').persistedMatchId).toBe('real-match-id');
+    expect(nodeOf(layout, 'SE-R2-M1').persistedMatchId).toBeUndefined();
+  });
 });
 
 describe('snap and zoom', () => {

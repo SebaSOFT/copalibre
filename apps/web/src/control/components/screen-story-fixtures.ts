@@ -32,11 +32,14 @@ export const ids = {
   second: '019927d0-0000-7000-8000-000000000006',
   third: '019927d0-0000-7000-8000-000000000007',
   person: '019927d0-0000-7000-8000-000000000008',
+  fourth: '019927d0-0000-7000-8000-000000000009',
+  matchTwo: '019927d0-0000-7000-8000-00000000000a',
 } as const;
 export const names = {
   [ids.first]: 'Meridian Seven',
   [ids.second]: 'Ironclad Five',
   [ids.third]: 'Echo Squadron',
+  [ids.fourth]: 'Vanguard Nine',
 };
 export const tournament = {
   tournamentId: ids.tournament,
@@ -154,6 +157,54 @@ export const bracket: readonly CanvasMatch[] = [
     ],
   },
 ];
+
+/**
+ * A 4-entrant single-elimination canvas mixing a fully-linked round (both
+ * round-one matches materialized as real fixtures) with a still-pending
+ * final — every node a persisted match links, a node with none doesn't.
+ */
+export const mixedBracket: readonly CanvasMatch[] = [
+  {
+    matchId: 'SE-R1-M1',
+    persistedMatchId: ids.match,
+    bracket: 'winners',
+    round: 1,
+    position: 1,
+    status: 'scheduled',
+    slots: [
+      { kind: 'entrant', entrantId: names[ids.first] },
+      { kind: 'entrant', entrantId: names[ids.second] },
+    ],
+  },
+  {
+    matchId: 'SE-R1-M2',
+    persistedMatchId: ids.matchTwo,
+    bracket: 'winners',
+    round: 1,
+    position: 2,
+    status: 'scheduled',
+    slots: [
+      { kind: 'entrant', entrantId: names[ids.third] },
+      { kind: 'entrant', entrantId: names[ids.fourth] },
+    ],
+  },
+  {
+    matchId: 'SE-R2-M1',
+    bracket: 'winners',
+    round: 2,
+    position: 1,
+    status: 'scheduled',
+    slots: [
+      { kind: 'winner-of', matchId: 'SE-R1-M1' },
+      { kind: 'winner-of', matchId: 'SE-R1-M2' },
+    ],
+  },
+];
+
+/** Every round-one node linkable, none pending — the fully-linked-round story. */
+export const fullyLinkedBracket: readonly CanvasMatch[] = mixedBracket.filter(
+  (match) => match.round === 1,
+);
 
 export const registrations: readonly RegistrationResponse[] = [
   ids.first,

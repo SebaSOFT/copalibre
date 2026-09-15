@@ -323,6 +323,7 @@ export function toBracketMatch(
 
   return {
     matchId: match.id,
+    ...(recorded === undefined ? {} : { persistedMatchId: recorded.matchId }),
     bracket: match.bracket,
     round: match.round,
     position: match.position,

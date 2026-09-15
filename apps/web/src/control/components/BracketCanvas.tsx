@@ -5,9 +5,11 @@ import {
   zoomIn,
   zoomOut,
   type CanvasMatch,
+  type LaidOutMatch,
 } from '../lib/bracket-canvas.js';
 import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
+import { controlLinkClick } from '../lib/control-navigation.js';
 
 /**
  * A6 — the bracket canvas.
@@ -28,11 +30,14 @@ export function BracketCanvas({
   zoom,
   onZoomChange,
   emptyMessage,
+  matchUrl,
 }: {
   readonly matches: readonly CanvasMatch[];
   readonly zoom: number;
   readonly onZoomChange?: (zoom: number) => void;
   readonly emptyMessage?: React.ReactNode;
+  /** Builds a node's control-screen URL from its persisted match id. Absent nodes stay unlinked. */
+  readonly matchUrl?: (persistedMatchId: string) => string;
 }): React.JSX.Element {
   const intl = useIntl();
   const layout = layoutBracket(matches);
@@ -98,40 +103,15 @@ export function BracketCanvas({
             </svg>
 
             {layout.matches.map((node) => (
-              <article
-                className="cl-card cl-chamfer"
-                data-bracket={node.bracket}
-                data-match={node.matchId}
+              <BracketNode
+                href={
+                  node.persistedMatchId === undefined
+                    ? undefined
+                    : matchUrl?.(node.persistedMatchId)
+                }
                 key={node.matchId}
-                style={{
-                  position: 'absolute',
-                  left: node.x,
-                  top: node.y,
-                  width: node.width,
-                  minHeight: node.height,
-                  padding: 'var(--cl-space-2)',
-                  display: 'grid',
-                  gap: 2,
-                }}
-              >
-                <header style={nodeHeaderStyle}>
-                  <span>{node.matchId}</span>
-                  {node.format === undefined ? null : (
-                    <span className="cl-badge">{node.format}</span>
-                  )}
-                </header>
-                {node.slots.map((slot, index) => (
-                  <div
-                    key={`${node.matchId}-${index}`}
-                    style={slot.pending ? pendingSlotStyle : slotStyle}
-                  >
-                    {/* Named, never blank: "Ganador del WB-R1-M2" tells an
-                        operator what has to happen; an empty box reads as a bug. */}
-                    <span>{slot.pending ? `TBD · ${slot.label}` : slot.label}</span>
-                    <span style={scoreStyle}>{slot.score ?? '—'}</span>
-                  </div>
-                ))}
-              </article>
+                node={node}
+              />
             ))}
           </div>
         </div>
@@ -139,6 +119,86 @@ export function BracketCanvas({
     </div>
   );
 }
+
+/**
+ * One node, `<article>` normally, an `<a>` carrying the same `cl-chamfer`/positioning styles
+ * when `href` resolves. `cl-chamfer` cuts its corners via `border-radius`/`corner-shape`, never
+ * `clip-path`, precisely so a `cl-focusable` ring on the *same* element still traces the
+ * chamfer — putting the ring on a separate rectangular wrapper around the card (an earlier
+ * version of this) drew a ring that didn't match the card's shape at all.
+ */
+function BracketNode({
+  href,
+  node,
+}: {
+  readonly href: string | undefined;
+  readonly node: LaidOutMatch;
+}): React.JSX.Element {
+  const children = (
+    <>
+      <header style={nodeHeaderStyle}>
+        <span>{node.matchId}</span>
+        {node.format === undefined ? null : <span className="cl-badge">{node.format}</span>}
+      </header>
+      {node.slots.map((slot, index) => (
+        <div key={`${node.matchId}-${index}`} style={slot.pending ? pendingSlotStyle : slotStyle}>
+          {/* Named, never blank: "Ganador del WB-R1-M2" tells an
+              operator what has to happen; an empty box reads as a bug. */}
+          <span>{slot.pending ? `TBD · ${slot.label}` : slot.label}</span>
+          <span style={scoreStyle}>{slot.score ?? '—'}</span>
+        </div>
+      ))}
+    </>
+  );
+
+  const positionStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: node.x,
+    top: node.y,
+    width: node.width,
+    minHeight: node.height,
+  };
+
+  if (href === undefined) {
+    return (
+      <article
+        className={NODE_CLASS_NAME}
+        data-bracket={node.bracket}
+        data-match={node.matchId}
+        style={{ ...positionStyle, ...nodeContentStyle }}
+      >
+        {children}
+      </article>
+    );
+  }
+
+  return (
+    <a
+      className={`${NODE_CLASS_NAME} cl-focusable`}
+      data-bracket={node.bracket}
+      data-match={node.matchId}
+      href={href}
+      onClick={controlLinkClick(href)}
+      style={{
+        ...positionStyle,
+        ...nodeContentStyle,
+        color: 'inherit',
+        textDecoration: 'none',
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+
+/** Shared so the source only names `cl-card` once — see check-ui-ownership.mjs's per-file ratchet. */
+const NODE_CLASS_NAME = 'cl-card cl-chamfer';
+
+const nodeContentStyle: React.CSSProperties = {
+  padding: 'var(--cl-space-2)',
+  display: 'grid',
+  gap: 2,
+};
 
 const wrapperStyle: React.CSSProperties = {
   display: 'grid',
