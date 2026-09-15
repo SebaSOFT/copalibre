@@ -1483,7 +1483,11 @@ function compositions(): string {
     '}',
     '',
     '.cl-bracket-stage__node { min-width: 0; }',
-    '.cl-bracket-stage__node--pending .cl-card { border-style: dashed; border-color: var(--cl-border-muted); }',
+    '',
+    // Per-slot, not per-match: a card with one confirmed entrant and one
+    // still-unresolved "winner of" slot marks only the slot that's waiting,
+    // matching the control BracketCanvas's own pendingSlotStyle treatment.
+    '.cl-slot--pending { border-left: 2px dashed var(--cl-border-muted); padding-left: var(--cl-space-2); }',
     '',
     /*
      * The textual view. Not a degraded copy: it carries seeds, sources and

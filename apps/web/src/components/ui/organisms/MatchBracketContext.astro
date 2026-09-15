@@ -55,8 +55,6 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
               <div
                 class:list={[
                   'cl-bracket-stage__node',
-                  match.slots.some((slot) => slot.kind !== 'entrant') &&
-                    'cl-bracket-stage__node--pending',
                   match.matchNumber === currentMatchNumber && 'cl-bracket-stage__node--focused',
                 ]}
               >
