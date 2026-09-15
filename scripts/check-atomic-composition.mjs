@@ -233,7 +233,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['components/ui/AstroPreview.tsx', 1],
   ['components/ui/organisms/MatchCard.tsx', 1],
   ['control/components/screens/AnalyticsTemplate.tsx', 5],
-  ['control/components/BracketCanvas.tsx', 2],
+  ['control/components/BracketCanvas.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
   ['control/components/DescriptorBuilderWizard.tsx', 12],
   ['control/components/screens/LiveConsoleTemplate.tsx', 4],
