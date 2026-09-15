@@ -78,3 +78,27 @@ persistence-layer access.
   progress
 - **THEN** the public bracket view SHALL render an explicit, clearly-labeled "not yet determined" state
   for that round, never `NaN` or any other malformed placeholder
+
+### Requirement: Bracket canvas links to a match's control screen
+Each bracket canvas node representing a persisted match SHALL link to that match's control screen
+(the live match console when a console session exists for it, otherwise the load-match-data screen),
+resolved by the match's persisted identifier rather than the tournament engine's structural label. A
+node with no persisted match yet SHALL render with no link, in the same TBD/pending presentation the
+existing "Bracket canvas renders engine-generated structure" requirement already defines — it SHALL
+NOT link to a placeholder or guessed destination.
+
+#### Scenario: An operator opens a resolved match from the canvas
+- **WHEN** an operator activates a bracket canvas node whose match has been generated as a real
+  fixture
+- **THEN** the operator is taken to that match's control screen (console or load-match-data,
+  whichever applies), matching the same match the node's score and slots describe
+
+#### Scenario: A not-yet-materialized node offers no link
+- **WHEN** a bracket canvas node represents a future round not yet materialized into a real fixture
+- **THEN** the node renders its existing TBD/pending presentation with no link, and activating it has
+  no effect
+
+#### Scenario: Interactive nodes meet the platform's interaction contract
+- **WHEN** a bracket canvas node is linkable
+- **THEN** it exposes a focus-visible, keyboard-activatable target at least 44px in its constrained
+  axis, consistent with every other interactive control in the design system
