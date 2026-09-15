@@ -104,7 +104,11 @@ export function BracketCanvas({
 
             {layout.matches.map((node) => (
               <BracketNode
-                href={node.persistedMatchId === undefined ? undefined : matchUrl?.(node.persistedMatchId)}
+                href={
+                  node.persistedMatchId === undefined
+                    ? undefined
+                    : matchUrl?.(node.persistedMatchId)
+                }
                 key={node.matchId}
                 node={node}
               />
