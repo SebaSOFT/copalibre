@@ -101,7 +101,10 @@ describe('the tournament authoring route container', () => {
     });
 
     expect(requests).toHaveLength(1);
-    expect(requests[0]).toMatchObject({ descriptorVersion: '1.0.0', format: 'round-robin' });
+    expect(requests[0]).toMatchObject({
+      descriptorVersion: '1.0.0',
+      stages: [{ number: 1, format: 'round-robin' }],
+    });
   });
 
   it('surfaces backend custom-script refusal verbatim', async () => {

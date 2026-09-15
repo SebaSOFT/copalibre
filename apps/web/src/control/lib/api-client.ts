@@ -50,6 +50,11 @@ export interface ControlApiClient {
   readonly fetchCustomScriptVocabulary?: (
     organizationAlias: string,
   ) => Promise<HookScriptVocabulary>;
+  /** Backs weighted allocation's attribute picker. */
+  readonly fetchEntrantAttributeKeys?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<EntrantAttributeKeysResponse>;
   /** The organization's active (non-archived) tournaments, for the dashboard. */
   readonly listActiveTournaments?: (
     organizationAlias: string,
@@ -1064,11 +1069,14 @@ export interface StageResponse {
   readonly number: number;
   readonly name: string;
   readonly format: string;
+  readonly series?: SeriesDeclaration;
+  readonly allocation?: StageAllocationDeclaration;
 }
 
 export interface UpdateStageRequest {
   readonly name?: string;
   readonly format?: string;
+  readonly allocation?: StageAllocationDeclaration;
 }
 
 export interface TournamentSettingsResponse {
@@ -1226,7 +1234,8 @@ export interface CreateTournamentRequest {
   readonly name: string;
   readonly descriptorId: string;
   readonly descriptorVersion: string;
-  readonly format: string;
+  /** Every stage of the tournament, in order. At least one is required. */
+  readonly stages: readonly CreateTournamentStageRequest[];
   readonly publicRegistration: boolean;
   readonly requiresCheckIn: boolean;
   readonly checkInClosesAt?: string;
@@ -1235,13 +1244,16 @@ export interface CreateTournamentRequest {
   readonly profileId?: string;
   readonly profileVersion?: string;
   readonly customScripts: readonly HookScriptAttachment[];
-  readonly series?: SeriesDeclaration;
 }
 
-/**
- * Declared here rather than at a stage, because the wizard authors one tournament
- * before any stage exists. It rides the same dot-path override layer server-side.
- */
+export interface CreateTournamentStageRequest {
+  readonly number?: number;
+  readonly name?: string;
+  readonly format: string;
+  readonly series?: SeriesDeclaration;
+  readonly allocation?: StageAllocationDeclaration;
+}
+
 export type SeriesResolutionClass = 'best-of' | 'aggregate' | 'points-per-leg';
 
 export interface SeriesDeclaration {
@@ -1253,6 +1265,17 @@ export interface SeriesDeclaration {
 }
 
 export type SeriesAccountingGrain = 'series' | 'match';
+
+/** Mirrors the domain's `StageAllocation` union (`automatic` | `manual` | `weighted`). */
+export interface StageAllocationDeclaration {
+  readonly mode: 'automatic' | 'manual' | 'weighted';
+  readonly attributeKey?: string;
+  readonly direction?: 'higher-first' | 'lower-first';
+}
+
+export interface EntrantAttributeKeysResponse {
+  readonly keys: readonly string[];
+}
 
 export interface HookScriptAttachment {
   readonly hook: string;
@@ -1875,6 +1898,13 @@ export function createControlApiClient(input: {
       requestJson<HookScriptVocabulary>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/custom-script-vocabulary`,
+        { token: input.accessToken?.() },
+      ),
+
+    fetchEntrantAttributeKeys: (organizationAlias, tournamentAlias) =>
+      requestJson<EntrantAttributeKeysResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/entrant-attribute-keys`,
         { token: input.accessToken?.() },
       ),
 

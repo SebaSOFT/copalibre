@@ -333,3 +333,33 @@ skipped with a warning rather than failed.
 - **WHEN** a developer runs `yarn crap:check` locally after `yarn workspace @copalibre/<workspace>
   test:coverage`
 - **THEN** the same score computation, threshold, and debt-register enforcement run locally as in CI
+
+### Requirement: Change-risk (CRAP) score report visibility
+
+The repository SHALL render every function's computed change-risk (CRAP) score (per the "Change-risk
+(CRAP) score reporting" requirement's formula and coverage source) as a repo-wide, top-N-by-score
+markdown table in the CI run's GitHub Actions Job Summary, regardless of whether the gate itself
+passes or fails. The complete, unabridged per-function list SHALL be available as a downloadable JSON
+build artifact for the same run. Rendering the report SHALL NOT alter the gate's pass/fail outcome,
+its exit code, or its debt register.
+
+#### Scenario: Report renders on a passing run
+- **WHEN** a pull request's `unit-tests-group` job runs with no CRAP offenders
+- **THEN** the run's Job Summary still shows the top-N highest-scoring functions across every scanned
+  workspace, and a JSON artifact with the complete per-function list is attached to the run
+
+#### Scenario: Report renders on a failing run
+- **WHEN** a pull request's `unit-tests-group` job fails because a function exceeds the CRAP
+  threshold or a grandfathered function regressed
+- **THEN** the run's Job Summary still shows the top-N highest-scoring functions, including the
+  function(s) that failed the gate, and the job's exit code is unchanged by the report step
+
+#### Scenario: Report spans both matrix legs
+- **WHEN** `unit-tests-group` runs its two matrix legs, each covering a disjoint set of workspaces
+- **THEN** the Job Summary's top-N table is computed over the union of both legs' scored functions,
+  not just one leg's
+
+#### Scenario: A workspace with no coverage output is absent from the report, not reported as zero risk
+- **WHEN** a workspace has not yet produced an Istanbul `coverage-final.json` for this run
+- **THEN** that workspace contributes no entries to the report, consistent with the existing gate's
+  skip-with-warning behavior for the same condition

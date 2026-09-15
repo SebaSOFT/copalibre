@@ -31,6 +31,7 @@ import {
 import {
   CompetitionRecordRepository,
   CompetitionRepository,
+  EnrollmentRepository,
   InvariantViolationError,
   OrganizationRepository,
   PublicOverviewReadModel,
@@ -47,9 +48,11 @@ import {
   compileProfile,
   evaluateMutation,
   isPlacementFormat,
+  validateAllocation,
   validateHookScriptAttachment,
   validateSeriesDeclaration,
   type HookScriptAttachment,
+  type StageAllocation,
   type TournamentFormat,
   type TournamentProfile,
 } from '@copalibre/domain';
@@ -66,6 +69,7 @@ import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
   CreateTournamentRequest,
+  EntrantAttributeKeysResponse,
   HookScriptVocabularyResponse,
   ProblemResponse,
   RulesetOverridesRequest,
@@ -88,6 +92,7 @@ import {
 } from '../tournament-configuration-export.js';
 import { readMatchesView, type MatchesViewRow } from '../matches-view/read.js';
 import { seriesResponseOf } from './public-projections.controller.js';
+import { assertAllocationRequestComplete } from './stages.controller.js';
 
 /**
  * Organization-scoped tournament routes. The path shape mirrors the URL contract
@@ -272,6 +277,56 @@ export class TournamentsController {
     return { matches: rows.map(controlMatchResponseOf) };
   }
 
+  /**
+   * Backs weighted allocation's attribute picker (`stage-qualification`'s "An operator can
+   * discover a tournament's known entrant-attribute keys"). Reads distinct keys off this
+   * tournament's own recorded entrant attributes, never a discipline-level catalogue — see
+   * design.md's "Weighted allocation's attribute comes from the tournament's own recorded
+   * entrant attributes".
+   */
+  @Get(':tournamentAlias/entrant-attribute-keys')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-seeding')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "A tournament's distinct recorded entrant-attribute keys" })
+  @ApiOkResponse({ type: EntrantAttributeKeysResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async entrantAttributeKeys(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<EntrantAttributeKeysResponse> {
+    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
+      organizationAlias,
+      tournamentAlias,
+    );
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: tournament.organizationId },
+    });
+
+    const byEntrant = await new EnrollmentRepository(this.db).listTournamentAttributes(
+      tournament.tournamentId,
+    );
+    const keys = new Set<string>();
+    for (const attributes of byEntrant.values()) {
+      for (const attribute of attributes) {
+        // Weighted allocation ranks on a numeric value; a categorical attribute
+        // (e.g. "region") has nothing to sort by.
+        if (attribute.kind === 'numeric') keys.add(attribute.key);
+      }
+    }
+    return { keys: [...keys].sort() };
+  }
+
   @Post()
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationCapability('org.create-tournaments')
@@ -312,36 +367,60 @@ export class TournamentsController {
       );
     }
 
-    const available = new Set<string>(descriptor.availableFormats);
-    if (
-      !(SUPPORTED_FORMATS as readonly string[]).includes(body.format) ||
-      !available.has(body.format)
-    ) {
-      throw new BadRequestException(
-        `Discipline descriptor ${body.descriptorId}@${body.descriptorVersion} does not support ${body.format}`,
-        { errorCode: 'tournament-bad-request' },
-      );
+    if (!Array.isArray(body.stages) || body.stages.length === 0) {
+      throw new BadRequestException('A tournament needs at least one declared stage', {
+        errorCode: 'tournament-bad-request',
+      });
     }
 
-    const customScripts = validateCustomScripts(body.customScripts ?? []);
-
-    if (body.series !== undefined) {
-      // A placement format produces an ordering, not two sides that could contest
-      // a series — refused before anything is stored, so the wizard surfaces it as
-      // a configuration refusal rather than the operator meeting it at generation.
-      if (isPlacementFormat(body.format as TournamentFormat)) {
+    const available = new Set<string>(descriptor.availableFormats);
+    const stageNumbers = new Set<number>();
+    body.stages.forEach((stage, index) => {
+      const format = stage.format;
+      if (!(SUPPORTED_FORMATS as readonly string[]).includes(format) || !available.has(format)) {
         throw new BadRequestException(
-          `Format "${body.format}" produces an ordering rather than two sides, so it cannot declare a series`,
+          `Discipline descriptor ${body.descriptorId}@${body.descriptorVersion} does not support ${format}`,
           { errorCode: 'tournament-bad-request' },
         );
       }
-      const validated = validateSeriesDeclaration(body.series);
-      if (!validated.ok) {
-        throw new BadRequestException(validated.error.message, {
+      const number = stage.number ?? index + 1;
+      if (stageNumbers.has(number)) {
+        throw new BadRequestException(`Stage number ${number} is declared more than once`, {
           errorCode: 'tournament-bad-request',
         });
       }
-    }
+      stageNumbers.add(number);
+
+      if (stage.series !== undefined) {
+        // A placement format produces an ordering, not two sides that could contest
+        // a series — refused before anything is stored, so the wizard surfaces it as
+        // a configuration refusal rather than the operator meeting it at generation.
+        if (isPlacementFormat(format as TournamentFormat)) {
+          throw new BadRequestException(
+            `Stage ${number} format "${format}" produces an ordering rather than two sides, so it cannot declare a series`,
+            { errorCode: 'tournament-bad-request' },
+          );
+        }
+        const validated = validateSeriesDeclaration(stage.series);
+        if (!validated.ok) {
+          throw new BadRequestException(validated.error.message, {
+            errorCode: 'tournament-bad-request',
+          });
+        }
+      }
+
+      if (stage.allocation !== undefined) {
+        assertAllocationRequestComplete(stage.allocation);
+        const validated = validateAllocation(stage.allocation as StageAllocation);
+        if (!validated.ok) {
+          throw new BadRequestException(validated.error.message, {
+            errorCode: 'tournament-bad-request',
+          });
+        }
+      }
+    });
+
+    const customScripts = validateCustomScripts(body.customScripts ?? []);
 
     let profileToBind: TournamentProfile | undefined;
     if (body.profileId !== undefined && body.profileVersion !== undefined) {
@@ -376,12 +455,21 @@ export class TournamentsController {
           actor: `user:${subject?.subjectId ?? 'unknown'}`,
           authorizationContext: (subject?.scopes ?? []).join(' '),
         });
+        // Already validated non-empty above, before the transaction opened.
+        const [firstStage] = body.stages;
+        if (!firstStage) {
+          throw new InvariantViolationError('A tournament needs at least one declared stage', {});
+        }
         const { ruleset, effective } = await tournaments.createRuleset(uow, {
           tournamentId: tournament.tournamentId,
           organizationId: organization.organizationId,
           descriptor,
           overrides: {
-            format: body.format,
+            // A stage added later with no explicit format defaults to this — see
+            // `StagesController.resolveFormat`. The first declared stage's format
+            // is the closest analogue to the single top-level `format` this
+            // replaced.
+            format: firstStage.format,
             'registration.publicOpen': body.publicRegistration,
             'registration.requiresCheckIn': body.requiresCheckIn,
             ...(body.checkInClosesAt === undefined
@@ -389,20 +477,6 @@ export class TournamentsController {
               : { 'registration.checkInClosesAt': body.checkInClosesAt }),
             ...(body.region === undefined ? {} : { 'registration.region': body.region }),
             ...(body.capacity === undefined ? {} : { 'registration.capacity': body.capacity }),
-            ...(body.series === undefined
-              ? {}
-              : {
-                  'series.span': body.series.span,
-                  ...(body.series.resolutionClass === undefined
-                    ? {}
-                    : { 'series.resolutionClass': body.series.resolutionClass }),
-                  ...(body.series.neutralGround === undefined
-                    ? {}
-                    : { 'series.neutralGround': body.series.neutralGround }),
-                  ...(body.series.standingsAccounting === undefined
-                    ? {}
-                    : { 'series.standingsAccounting': body.series.standingsAccounting }),
-                }),
           },
           customScripts,
           actor: `user:${subject?.subjectId ?? 'unknown'}`,
@@ -416,42 +490,66 @@ export class TournamentsController {
           authorizationContext: (subject?.scopes ?? []).join(' '),
         });
 
-        if (profileToBind) {
-          const competition = new CompetitionRepository(this.db);
-          for (const stage of profileToBind.stages) {
-            const createdStage = await competition.createStageInTournament(uow, {
+        const competition = new CompetitionRepository(this.db);
+        for (const [index, stage] of body.stages.entries()) {
+          const number = stage.number ?? index + 1;
+          const name = stage.name ?? `Stage ${number}`;
+          const profileDefault = profileToBind?.stages.find(
+            (candidate) => candidate.number === number,
+          );
+
+          const createdStage = await competition.createStageInTournament(uow, {
+            organizationId: organization.organizationId,
+            tournamentId: tournament.tournamentId,
+            name,
+            number,
+            format: stage.format as TournamentFormat,
+            actor: `user:${subject?.subjectId ?? 'unknown'}`,
+            authorizationContext: (subject?.scopes ?? []).join(' '),
+          });
+
+          const overrides = {
+            ...(profileDefault?.overrides ?? {}),
+            ...(stage.series === undefined
+              ? {}
+              : {
+                  'series.span': stage.series.span,
+                  ...(stage.series.resolutionClass === undefined
+                    ? {}
+                    : { 'series.resolutionClass': stage.series.resolutionClass }),
+                  ...(stage.series.neutralGround === undefined
+                    ? {}
+                    : { 'series.neutralGround': stage.series.neutralGround }),
+                  ...(stage.series.standingsAccounting === undefined
+                    ? {}
+                    : { 'series.standingsAccounting': stage.series.standingsAccounting }),
+                }),
+          };
+          // The operator's own declaration overrides the profile's stage default,
+          // per "a tournament instance may override it per-stage" (design.md).
+          const allocation = (stage.allocation ?? profileDefault?.allocation) as
+            StageAllocation | undefined;
+
+          if (Object.keys(overrides).length > 0 || allocation !== undefined) {
+            const stageConfiguration = await tournaments.createStageConfiguration(uow, {
               organizationId: organization.organizationId,
-              tournamentId: tournament.tournamentId,
-              name: stage.name,
-              number: stage.number,
-              format: stage.format,
+              stageId: createdStage.stageId,
+              rulesetId: ruleset.rulesetId,
+              overrides,
+              ...(allocation === undefined ? {} : { allocation }),
               actor: `user:${subject?.subjectId ?? 'unknown'}`,
               authorizationContext: (subject?.scopes ?? []).join(' '),
             });
-            if (stage.overrides && Object.keys(stage.overrides).length > 0) {
-              const stageConfiguration = await tournaments.createStageConfiguration(uow, {
-                organizationId: organization.organizationId,
+            const compiledStage = compileEffectiveRuleset(descriptor, ruleset, stageConfiguration);
+            if (compiledStage.ok) {
+              await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
+                tournamentId: tournament.tournamentId,
                 stageId: createdStage.stageId,
-                rulesetId: ruleset.rulesetId,
-                overrides: stage.overrides,
+                ruleset: compiledStage.value,
+                organizationId: organization.organizationId,
                 actor: `user:${subject?.subjectId ?? 'unknown'}`,
                 authorizationContext: (subject?.scopes ?? []).join(' '),
               });
-              const compiledStage = compileEffectiveRuleset(
-                descriptor,
-                ruleset,
-                stageConfiguration,
-              );
-              if (compiledStage.ok) {
-                await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
-                  tournamentId: tournament.tournamentId,
-                  stageId: createdStage.stageId,
-                  ruleset: compiledStage.value,
-                  organizationId: organization.organizationId,
-                  actor: `user:${subject?.subjectId ?? 'unknown'}`,
-                  authorizationContext: (subject?.scopes ?? []).join(' '),
-                });
-              }
             }
           }
         }

@@ -43,6 +43,7 @@ import { roleScopeColumns } from './0032-role-scope-columns.js';
 import { organizationInviteRescission } from './0033-organization-invite-rescission.js';
 import { tournamentEmblem } from './0034-tournament-emblem.js';
 import { tournamentFeatured } from './0035-tournament-featured.js';
+import { stageAllocation } from './0036-stage-allocation.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -86,6 +87,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0033-organization-invite-rescission': organizationInviteRescission,
   '0034-tournament-emblem': tournamentEmblem,
   '0035-tournament-featured': tournamentFeatured,
+  '0036-stage-allocation': stageAllocation,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

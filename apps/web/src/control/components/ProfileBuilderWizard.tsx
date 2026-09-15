@@ -9,6 +9,7 @@ import { Select } from './ui/atoms/select.js';
 import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { Field } from './ui/molecules/field.js';
 import { LocalizedField } from './ui/molecules/localized-field.js';
+import { StageListEditor } from './StageListEditor.js';
 import {
   localizedDraftValue,
   localizedFieldLanguages,
@@ -27,10 +28,8 @@ import {
   nextStep,
   previousStep,
   progress,
-  renumbered,
   stepProblems,
   toAuthoredModuleRequest,
-  type ProfileStageDraft,
   type ProfileWizardState,
 } from '../lib/profile-authoring.js';
 import type { AuthoredModuleValidationFailureResponse } from '../lib/api-client.js';
@@ -255,12 +254,10 @@ export function ProfileBuilderWizard({
               />
             </Field>
             <div style={{ gridColumn: '1 / -1' }}>
-              <StageList
-                allowedFormats={allowedFormats}
-                onAdd={(stage) => patch({ stages: renumbered([...state.stages, stage]) })}
-                onRemove={(index) =>
-                  patch({ stages: renumbered(state.stages.filter((_stage, i) => i !== index)) })
-                }
+              <StageListEditor
+                formats={allowedFormats}
+                onChange={(stages) => patch({ stages })}
+                showAllocation
                 stages={state.stages}
               />
             </div>
@@ -371,77 +368,5 @@ export function ProfileBuilderWizard({
         </footer>
       </Card>
     </section>
-  );
-}
-
-function StageList({
-  stages,
-  allowedFormats,
-  onAdd,
-  onRemove,
-}: {
-  readonly stages: readonly ProfileStageDraft[];
-  readonly allowedFormats: readonly string[];
-  readonly onAdd: (stage: ProfileStageDraft) => void;
-  readonly onRemove: (index: number) => void;
-}): React.JSX.Element {
-  const intl = useIntl();
-  const [draft, setDraft] = useState<{ name: string; format: string }>({
-    name: '',
-    format: allowedFormats[0] ?? '',
-  });
-  return (
-    <div style={{ display: 'grid', gap: 'var(--cl-space-3)' }}>
-      <h3>
-        <FormattedMessage {...messages.profileStagesHeading} />
-      </h3>
-      <DecisionHint
-        id="profile-stages-hint"
-        text={intl.formatMessage(messages.profileDecisionStages)}
-      />
-      {stages.length > 0 && (
-        <ol>
-          {stages.map((stage, index) => (
-            <li key={`${stage.name}-${index}`}>
-              {stage.number}. {stage.name} ({stage.format})
-              <Button onClick={() => onRemove(index)} type="button" variant="secondary">
-                <FormattedMessage {...messages.profileRemove} />
-              </Button>
-            </li>
-          ))}
-        </ol>
-      )}
-      <div className="cl-platform-form-grid">
-        <Input
-          aria-label={intl.formatMessage(messages.profileFieldStageName)}
-          onChange={(event) => setDraft({ ...draft, name: event.target.value })}
-          placeholder={intl.formatMessage(messages.profileFieldStageName)}
-          value={draft.name}
-        />
-        <Select
-          aria-label={intl.formatMessage(messages.profileFieldStageFormat)}
-          onValueChange={(val) => setDraft({ ...draft, format: val })}
-          options={[
-            { value: '', label: '' },
-            ...allowedFormats.map((format) => ({
-              value: format,
-              label: format,
-            })),
-          ]}
-          value={draft.format}
-        />
-        <Button
-          disabled={draft.name.trim() === '' || draft.format.trim() === ''}
-          onClick={() => {
-            onAdd({ number: stages.length + 1, name: draft.name.trim(), format: draft.format });
-            setDraft({ name: '', format: allowedFormats[0] ?? '' });
-          }}
-          type="button"
-          variant="secondary"
-        >
-          <FormattedMessage {...messages.profileAdd} />
-        </Button>
-      </div>
-    </div>
   );
 }

@@ -124,12 +124,28 @@ describe('the wizard gates each step', () => {
     const stale = wizard({
       step: 'format',
       descriptorId: 'd-swimming',
-      format: 'round-robin',
+      stages: [{ number: 1, name: '', format: 'round-robin' }],
     });
 
     expect(stepProblems(stale, DISCIPLINES).map((problem) => problem.id)).toEqual([
       'control.wizard.problem.formatNotSupported',
     ]);
+  });
+
+  it('refuses a placement-format stage independent of the other stages in a multi-stage draft', () => {
+    const mixed = wizard({
+      step: 'format',
+      descriptorId: 'd-placement',
+      stages: [
+        { number: 1, name: '', format: 'free-for-all' },
+        { number: 2, name: '', format: 'heats' },
+      ],
+    });
+
+    // Neither stage's format is missing from the discipline — the only
+    // possible problem here would come from stage-level rules (series,
+    // allocation), proving each stage is evaluated on its own.
+    expect(stepProblems(mixed, PLACEMENT_DISCIPLINES).map((problem) => problem.id)).toEqual([]);
   });
 
   it('refuses a tournament nobody could play', () => {
@@ -155,7 +171,7 @@ describe('the wizard gates each step', () => {
         name: 'Copa Verano',
         descriptorId: 'd-football',
         descriptorVersion: '1.2.0',
-        format: 'round-robin',
+        stages: [{ number: 1, name: '', format: 'round-robin' }],
         publicRegistration: true,
         requiresCheckIn: true,
       }),
@@ -166,11 +182,55 @@ describe('the wizard gates each step', () => {
       name: 'Copa Verano',
       descriptorId: 'd-football',
       descriptorVersion: '1.2.0',
-      format: 'round-robin',
+      stages: [{ number: 1, format: 'round-robin' }],
       publicRegistration: true,
       requiresCheckIn: true,
       customScripts: [],
     });
+  });
+
+  it('submits every declared stage, each with its own format, series, and allocation', () => {
+    const request = toCreateRequest(
+      wizard({
+        alias: 'copa-fases',
+        name: 'Copa Fases',
+        descriptorId: 'd-football',
+        descriptorVersion: '1.2.0',
+        stages: [
+          {
+            number: 1,
+            name: 'Grupos',
+            format: 'round-robin',
+            allocation: { mode: 'automatic' },
+          },
+          {
+            number: 2,
+            name: 'Final',
+            format: 'single-elimination',
+            series: {
+              span: 5,
+              resolutionClass: 'best-of',
+              neutralGround: false,
+              standingsAccounting: 'match',
+            },
+            allocation: { mode: 'weighted', attributeKey: 'rating', direction: 'higher-first' },
+          },
+        ],
+        publicRegistration: false,
+        requiresCheckIn: false,
+      }),
+    );
+
+    expect(request.stages).toEqual([
+      { number: 1, name: 'Grupos', format: 'round-robin', allocation: { mode: 'automatic' } },
+      {
+        number: 2,
+        name: 'Final',
+        format: 'single-elimination',
+        series: { span: 5, resolutionClass: 'best-of' },
+        allocation: { mode: 'weighted', attributeKey: 'rating', direction: 'higher-first' },
+      },
+    ]);
   });
 
   it('refuses to submit an incomplete wizard', () => {
@@ -183,21 +243,28 @@ describe('the wizard gates each step', () => {
       name: 'Copa Verano',
       descriptorId: 'd-football',
       descriptorVersion: '1.2.0',
-      format: 'round-robin',
     } as const;
+
+    function withSeries(series: Partial<NonNullable<WizardState['stages'][number]['series']>>) {
+      return wizard({
+        ...complete,
+        stages: [
+          {
+            number: 1,
+            name: '',
+            format: 'round-robin',
+            series: { neutralGround: false, standingsAccounting: 'match', ...series },
+          },
+        ],
+      });
+    }
 
     it('submits a declared series alongside the rest of the request', () => {
       const request = toCreateRequest(
-        wizard({
-          ...complete,
-          seriesEnabled: true,
-          seriesSpan: 5,
-          seriesResolutionClass: 'best-of',
-          seriesNeutralGround: true,
-        }),
+        withSeries({ span: 5, resolutionClass: 'best-of', neutralGround: true }),
       );
 
-      expect(request.series).toEqual({
+      expect(request.stages[0]?.series).toEqual({
         span: 5,
         resolutionClass: 'best-of',
         neutralGround: true,
@@ -205,60 +272,33 @@ describe('the wizard gates each step', () => {
     });
 
     it('omits neutralGround rather than sending false, so an untouched toggle adds nothing', () => {
-      const request = toCreateRequest(
-        wizard({
-          ...complete,
-          seriesEnabled: true,
-          seriesSpan: 3,
-          seriesResolutionClass: 'best-of',
-        }),
-      );
+      const request = toCreateRequest(withSeries({ span: 3, resolutionClass: 'best-of' }));
 
-      expect(request.series).toEqual({ span: 3, resolutionClass: 'best-of' });
+      expect(request.stages[0]?.series).toEqual({ span: 3, resolutionClass: 'best-of' });
     });
 
-    it('drops a series left configured but switched back off', () => {
+    it('drops a series left off the stage entirely', () => {
       const request = toCreateRequest(
-        wizard({
-          ...complete,
-          seriesEnabled: false,
-          seriesSpan: 5,
-          seriesResolutionClass: 'best-of',
-        }),
+        wizard({ ...complete, stages: [{ number: 1, name: '', format: 'round-robin' }] }),
       );
 
-      expect('series' in request).toBe(false);
+      expect(request.stages[0]?.series).toBeUndefined();
     });
 
     it('preselects match grain, sending no standingsAccounting key when untouched (0160)', () => {
-      expect(initialWizard().seriesStandingsAccounting).toBe('match');
-
-      const request = toCreateRequest(
-        wizard({
-          ...complete,
-          seriesEnabled: true,
-          seriesSpan: 3,
-          seriesResolutionClass: 'best-of',
-        }),
-      );
+      const request = toCreateRequest(withSeries({ span: 3, resolutionClass: 'best-of' }));
 
       // Byte-identical to the request a wizard authored before this control
       // existed: no `standingsAccounting` key, not one explicitly set to `match`.
-      expect(request.series).toEqual({ span: 3, resolutionClass: 'best-of' });
+      expect(request.stages[0]?.series).toEqual({ span: 3, resolutionClass: 'best-of' });
     });
 
     it('sends standingsAccounting only once the operator declares series grain (0160)', () => {
       const request = toCreateRequest(
-        wizard({
-          ...complete,
-          seriesEnabled: true,
-          seriesSpan: 5,
-          seriesResolutionClass: 'best-of',
-          seriesStandingsAccounting: 'series',
-        }),
+        withSeries({ span: 5, resolutionClass: 'best-of', standingsAccounting: 'series' }),
       );
 
-      expect(request.series).toEqual({
+      expect(request.stages[0]?.series).toEqual({
         span: 5,
         resolutionClass: 'best-of',
         standingsAccounting: 'series',
@@ -271,10 +311,19 @@ describe('the wizard gates each step', () => {
           ...complete,
           step: 'format',
           descriptorId: 'd-placement',
-          format: 'free-for-all',
-          seriesEnabled: true,
-          seriesSpan: 3,
-          seriesResolutionClass: 'best-of',
+          stages: [
+            {
+              number: 1,
+              name: '',
+              format: 'free-for-all',
+              series: {
+                span: 3,
+                resolutionClass: 'best-of',
+                neutralGround: false,
+                standingsAccounting: 'match',
+              },
+            },
+          ],
         }),
         PLACEMENT_DISCIPLINES,
       ).map((problem) => problem.id);
@@ -283,33 +332,31 @@ describe('the wizard gates each step', () => {
     });
 
     it('refuses an even-span best-of but accepts the same span as an aggregate', () => {
-      const evenBestOf = wizard({
-        ...complete,
-        step: 'format',
-        seriesEnabled: true,
-        seriesSpan: 4,
-        seriesResolutionClass: 'best-of',
-      });
-      expect(stepProblems(evenBestOf, DISCIPLINES).map((p) => p.id)).toContain(
-        'control.wizard.problem.seriesEvenBestOf',
-      );
-      expect(canContinue(evenBestOf, DISCIPLINES)).toBe(false);
+      const evenBestOf = withSeries({ span: 4, resolutionClass: 'best-of' });
+      expect(
+        stepProblems({ ...evenBestOf, step: 'format' }, DISCIPLINES).map((p) => p.id),
+      ).toContain('control.wizard.problem.seriesEvenBestOf');
+      expect(canContinue({ ...evenBestOf, step: 'format' }, DISCIPLINES)).toBe(false);
 
       // The same even span is coherent for the classes the refusal points at.
-      expect(canContinue({ ...evenBestOf, seriesResolutionClass: 'aggregate' }, DISCIPLINES)).toBe(
-        true,
-      );
+      const [firstStage] = evenBestOf.stages;
+      if (!firstStage?.series) throw new Error('Expected a stage with a declared series');
+      const aggregate = {
+        ...evenBestOf,
+        step: 'format' as const,
+        stages: [
+          {
+            ...firstStage,
+            series: { ...firstStage.series, resolutionClass: 'aggregate' as const },
+          },
+        ],
+      };
+      expect(canContinue(aggregate, DISCIPLINES)).toBe(true);
     });
 
     it('refuses a span below two', () => {
       const problems = stepProblems(
-        wizard({
-          ...complete,
-          step: 'format',
-          seriesEnabled: true,
-          seriesSpan: 1,
-          seriesResolutionClass: 'best-of',
-        }),
+        { ...withSeries({ span: 1, resolutionClass: 'best-of' }), step: 'format' },
         DISCIPLINES,
       ).map((problem) => problem.id);
 
@@ -317,7 +364,16 @@ describe('the wizard gates each step', () => {
     });
 
     it('leaves the format step unblocked when no series is declared', () => {
-      expect(canContinue(wizard({ ...complete, step: 'format' }), DISCIPLINES)).toBe(true);
+      expect(
+        canContinue(
+          wizard({
+            ...complete,
+            step: 'format',
+            stages: [{ number: 1, name: '', format: 'round-robin' }],
+          }),
+          DISCIPLINES,
+        ),
+      ).toBe(true);
     });
   });
 
@@ -348,7 +404,7 @@ describe('the wizard gates each step', () => {
       name: 'Copa Reglas',
       descriptorId: 'd-football',
       descriptorVersion: '1.2.0',
-      format: 'round-robin',
+      stages: [{ number: 1, name: '', format: 'round-robin' }],
     };
     const scripts = toCreateRequest(state, HOOK_VOCABULARY).customScripts;
     expect(scripts).toHaveLength(1);
@@ -423,7 +479,7 @@ describe('the wizard gates each step', () => {
       name: 'Copa Reglas',
       descriptorId: 'd-football',
       descriptorVersion: '1.2.0',
-      format: 'round-robin',
+      stages: [{ number: 1, name: '', format: 'round-robin' }],
       customRuleEnabled: true,
       customRuleConditionType: 'configured',
       customRuleActionType: 'startTimer',

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from './ui/atoms/alert.js';
 import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
@@ -11,8 +11,8 @@ import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { Stack } from './ui/atoms/layout/stack.js';
 import { Field } from './ui/molecules/field.js';
 import { StepHeading } from './ui/molecules/step-heading.js';
+import { StageListEditor } from './StageListEditor.js';
 import {
-  SERIES_RESOLUTION_CLASSES,
   WIZARD_STEPS,
   addCustomRule,
   canContinue,
@@ -31,75 +31,16 @@ import {
   stepProblems,
   toCreateRequest,
   type DisciplineOption,
-  type SeriesResolutionClass,
   type TournamentProfileOption,
   type WizardState,
 } from '../lib/wizard.js';
-import type {
-  HookScriptVocabulary,
-  HookVocabularyEntry,
-  SeriesAccountingGrain,
-} from '../lib/api-client.js';
+import { initialStages } from '../lib/stage-authoring.js';
+import type { HookScriptVocabulary, HookVocabularyEntry } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 import { localizedText } from '../../lib/localized-label.js';
 
 const EMPTY_PROFILES: readonly TournamentProfileOption[] = [];
 const EMPTY_VOCABULARY: HookScriptVocabulary = { hooks: [], entries: [] };
-
-/**
- * Each class answers a different question for the operator, so each gets its own
- * sentence rather than a bare enum value the wizard would otherwise render raw.
- */
-const SERIES_CLASS_LABELS: Record<SeriesResolutionClass, typeof messages.wizardSeriesClassBestOf> =
-  {
-    'best-of': messages.wizardSeriesClassBestOf,
-    aggregate: messages.wizardSeriesClassAggregate,
-    'points-per-leg': messages.wizardSeriesClassPointsPerLeg,
-  };
-
-/**
- * Each option states what it does to the standings table, not the platform's
- * own vocabulary for it — an operator choosing here is choosing a consequence,
- * not a label.
- */
-const SERIES_ACCOUNTING_LABELS: Record<
-  SeriesAccountingGrain,
-  typeof messages.wizardSeriesAccountingMatch
-> = {
-  match: messages.wizardSeriesAccountingMatch,
-  series: messages.wizardSeriesAccountingSeries,
-};
-
-/** What choosing this resolution class does, shown beside every option. */
-const SERIES_CLASS_DESCRIPTIONS: Record<
-  SeriesResolutionClass,
-  typeof messages.wizardSeriesClassBestOfDescription
-> = {
-  'best-of': messages.wizardSeriesClassBestOfDescription,
-  aggregate: messages.wizardSeriesClassAggregateDescription,
-  'points-per-leg': messages.wizardSeriesClassPointsPerLegDescription,
-};
-
-/** What choosing this accounting grain does, shown beside every option. */
-const SERIES_ACCOUNTING_DESCRIPTIONS: Record<
-  SeriesAccountingGrain,
-  typeof messages.wizardSeriesAccountingMatchDescription
-> = {
-  match: messages.wizardSeriesAccountingMatchDescription,
-  series: messages.wizardSeriesAccountingSeriesDescription,
-};
-
-/** The platform's own explanation of each format, keyed by format. */
-const FORMAT_DESCRIPTIONS: Record<string, typeof messages.wizardFormatDescriptionRoundRobin> = {
-  'single-elimination': messages.wizardFormatDescriptionSingleElimination,
-  'double-elimination': messages.wizardFormatDescriptionDoubleElimination,
-  'round-robin': messages.wizardFormatDescriptionRoundRobin,
-  league: messages.wizardFormatDescriptionLeague,
-  'round-robin-single-leg': messages.wizardFormatDescriptionRoundRobinSingleLeg,
-  'round-robin-home-away': messages.wizardFormatDescriptionRoundRobinHomeAway,
-  'free-for-all': messages.wizardFormatDescriptionFreeForAll,
-  heats: messages.wizardFormatDescriptionHeats,
-};
 
 export function TournamentSetupWizard({
   disciplines,
@@ -128,16 +69,17 @@ export function TournamentSetupWizard({
       : {
           descriptorId: firstDiscipline.descriptorId,
           descriptorVersion: firstDiscipline.version,
-          format: firstDiscipline.supportedFormats[0],
+          stages: initialStages(firstDiscipline.supportedFormats[0]),
         }),
   }));
+  const firstStageFormat = state.stages[0]?.format;
 
   useEffect(() => {
     if (!loadProfiles || !state.descriptorId || !state.descriptorVersion) {
       return;
     }
     let live = true;
-    loadProfiles(state.descriptorId, state.descriptorVersion, state.format)
+    loadProfiles(state.descriptorId, state.descriptorVersion, firstStageFormat)
       .then((loaded) => {
         if (live) setAsyncProfiles(loaded);
       })
@@ -145,7 +87,7 @@ export function TournamentSetupWizard({
     return () => {
       live = false;
     };
-  }, [loadProfiles, state.descriptorId, state.descriptorVersion, state.format]);
+  }, [loadProfiles, state.descriptorId, state.descriptorVersion, firstStageFormat]);
 
   const profiles = loadProfiles ? asyncProfiles : initialProfiles;
 
@@ -194,16 +136,6 @@ export function TournamentSetupWizard({
     return [description, reversibility]
       .filter((part): part is string => part !== undefined)
       .join(' ');
-  }
-
-  /** A format option's description: the discipline's own text first, then the platform's. */
-  function formatOptionDescription(format: string): string | undefined {
-    const descriptorText = selectedDiscipline?.formatDescriptions?.[format];
-    const catalogueMessage = FORMAT_DESCRIPTIONS[format];
-    return resolveDecisionDescription(
-      descriptorText === undefined ? undefined : localizedText(descriptorText, intl.locale),
-      catalogueMessage === undefined ? undefined : intl.formatMessage(catalogueMessage),
-    );
   }
 
   function submit(): void {
@@ -305,8 +237,7 @@ export function TournamentSetupWizard({
 
         {state.step === 'format' && (
           <FormatStep
-            decisionHintText={decisionHintText}
-            formatOptionDescription={formatOptionDescription}
+            formatHintText={decisionHintText('format', messages.wizardDecisionFormat)}
             formats={formats}
             intl={intl}
             patch={patch}
@@ -438,7 +369,7 @@ function DisciplineStep({
           patch({
             descriptorId: discipline?.descriptorId,
             descriptorVersion: discipline?.version,
-            format: discipline?.supportedFormats[0],
+            stages: initialStages(discipline?.supportedFormats[0]),
             profileId: undefined,
             profileVersion: undefined,
           });
@@ -462,65 +393,56 @@ function DisciplineStep({
 }
 
 function FormatStep({
-  decisionHintText,
-  formatOptionDescription,
+  formatHintText,
   formats,
   intl,
   patch,
   profiles,
   state,
 }: {
-  readonly decisionHintText: (
-    dotPath: string,
-    catalogue: (typeof messages)['wizardDecisionFormat'],
-  ) => string;
-  readonly formatOptionDescription: (format: string) => string | undefined;
+  readonly formatHintText: string;
   readonly formats: readonly string[];
   readonly intl: IntlShape;
   readonly patch: (next: Partial<WizardState>) => void;
   readonly profiles: readonly TournamentProfileOption[];
   readonly state: WizardState;
 }): React.JSX.Element {
+  const selectedProfile = profiles.find((profile) => profile.profileId === state.profileId);
+  // Stashed so clearing the profile selection restores what the operator had
+  // authored, rather than resetting to a single blank stage.
+  const preProfileStages = useRef<WizardState['stages'] | undefined>(undefined);
+
   return (
     <div className="cl-platform-form-grid">
-      <Field id="wizard-format" label={intl.formatMessage(messages.wizardFieldFormat)}>
-        <Select
-          aria-describedby="wizard-format-hint"
-          aria-label={intl.formatMessage(messages.wizardFieldFormat)}
-          id="wizard-format"
-          onValueChange={(val) =>
-            patch({
-              format: val,
-              profileId: undefined,
-              profileVersion: undefined,
-            })
-          }
-          options={formats.map((format) => {
-            const description = formatOptionDescription(format);
-            return {
-              value: format,
-              label: `${format}${description === undefined ? '' : ` — ${description}`}`,
-            };
-          })}
-          value={state.format ?? ''}
-        />
-        <DecisionHint
-          id="wizard-format-hint"
-          text={decisionHintText('format', messages.wizardDecisionFormat)}
-        />
-      </Field>
-
       {profiles.length > 0 && (
         <Field id="wizard-profile" label={intl.formatMessage(messages.wizardFieldProfile)}>
           <Select
             aria-label={intl.formatMessage(messages.wizardFieldProfile)}
             id="wizard-profile"
             onValueChange={(val) => {
-              const selectedProfile = profiles.find((p) => p.profileId === val);
-              patch({
-                profileId: selectedProfile?.profileId,
-                profileVersion: selectedProfile?.version,
-              });
+              const nextProfile = profiles.find((p) => p.profileId === val);
+              if (nextProfile) {
+                if (preProfileStages.current === undefined) preProfileStages.current = state.stages;
+                patch({
+                  profileId: nextProfile.profileId,
+                  profileVersion: nextProfile.version,
+                  // The wizard submits the profile's own stages verbatim — this
+                  // read-only preview and the submitted request never disagree.
+                  stages: nextProfile.stages.map((stage) => ({
+                    number: stage.number,
+                    name: stage.name,
+                    format: stage.format,
+                    ...(stage.allocation === undefined ? {} : { allocation: stage.allocation }),
+                  })),
+                });
+              } else {
+                patch({
+                  profileId: undefined,
+                  profileVersion: undefined,
+                  stages: preProfileStages.current ?? initialStages(formats[0]),
+                });
+                preProfileStages.current = undefined;
+              }
             }}
             options={[
               { value: '', label: intl.formatMessage(messages.wizardProfileNone) },
@@ -536,158 +458,23 @@ function FormatStep({
         </Field>
       )}
 
-      <div style={{ display: 'grid', gap: 'var(--cl-space-4)', gridColumn: '1 / -1' }}>
-        <label
-          className="cl-toggle cl-focusable"
-          htmlFor="wizard-enable-series"
-          style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
-        >
-          <Checkbox
-            aria-describedby="tournament-series-hint"
-            aria-label={intl.formatMessage(messages.wizardEnableSeries)}
-            checked={state.seriesEnabled}
-            id="wizard-enable-series"
-            onCheckedChange={(checked) =>
-              patch({
-                seriesEnabled: checked,
-                // Defaults appear only once the operator opts in, so an
-                // untouched wizard submits no series at all.
-                ...(checked && state.seriesSpan === undefined
-                  ? { seriesSpan: 3, seriesResolutionClass: 'best-of' as const }
-                  : {}),
-              })
-            }
-          />
-          <span>
-            <FormattedMessage {...messages.wizardEnableSeries} />
-          </span>
-        </label>
-
-        {!state.seriesEnabled && (
-          <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
-            <FormattedMessage {...messages.wizardSeriesHelp} />
-          </p>
-        )}
-
-        {state.seriesEnabled && (
-          <div className="cl-platform-form-grid">
-            <Field
-              id="wizard-series-span"
-              label={intl.formatMessage(messages.wizardFieldSeriesSpan)}
-            >
-              <Input
-                aria-describedby="wizard-series-span-hint"
-                id="wizard-series-span"
-                inputMode="numeric"
-                min={2}
-                onChange={(event) =>
-                  patch({
-                    seriesSpan:
-                      event.target.value === ''
-                        ? undefined
-                        : Number.parseInt(event.target.value, 10),
-                  })
-                }
-                type="number"
-                value={state.seriesSpan ?? ''}
-              />
-              <DecisionHint
-                id="wizard-series-span-hint"
-                text={decisionHintText('series.span', messages.wizardDecisionSeriesSpan)}
-              />
-            </Field>
-
-            <Field
-              id="wizard-series-class"
-              label={intl.formatMessage(messages.wizardFieldSeriesResolutionClass)}
-            >
-              <Select
-                aria-describedby="wizard-series-class-hint"
-                aria-label={intl.formatMessage(messages.wizardFieldSeriesResolutionClass)}
-                id="wizard-series-class"
-                onValueChange={(val) =>
-                  patch({
-                    seriesResolutionClass: val as WizardState['seriesResolutionClass'],
-                  })
-                }
-                options={SERIES_RESOLUTION_CLASSES.map((resolutionClass) => ({
-                  value: resolutionClass,
-                  label: `${intl.formatMessage(
-                    SERIES_CLASS_LABELS[resolutionClass],
-                  )} — ${intl.formatMessage(SERIES_CLASS_DESCRIPTIONS[resolutionClass])}`,
-                }))}
-                value={state.seriesResolutionClass ?? ''}
-              />
-              <DecisionHint
-                id="wizard-series-class-hint"
-                text={decisionHintText(
-                  'series.resolutionClass',
-                  messages.wizardDecisionSeriesResolutionClass,
-                )}
-              />
-            </Field>
-
-            <label
-              className="cl-toggle cl-focusable"
-              htmlFor="wizard-series-neutral-ground"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--cl-space-2)',
-                gridColumn: '1 / -1',
-              }}
-            >
-              <Checkbox
-                aria-describedby="wizard-series-neutral-ground-hint"
-                aria-label={intl.formatMessage(messages.wizardFieldSeriesNeutralGround)}
-                checked={state.seriesNeutralGround}
-                id="wizard-series-neutral-ground"
-                onCheckedChange={(checked) => patch({ seriesNeutralGround: checked })}
-              />
-              <span>
-                <FormattedMessage {...messages.wizardFieldSeriesNeutralGround} />
-              </span>
-            </label>
-            <DecisionHint
-              id="wizard-series-neutral-ground-hint"
-              text={decisionHintText(
-                'series.neutralGround',
-                messages.wizardDecisionSeriesNeutralGround,
-              )}
-            />
-
-            <div style={{ gridColumn: '1 / -1' }}>
-              <Field
-                id="wizard-series-accounting"
-                label={intl.formatMessage(messages.wizardFieldSeriesStandingsAccounting)}
-              >
-                <Select
-                  aria-describedby="wizard-series-accounting-hint"
-                  aria-label={intl.formatMessage(messages.wizardFieldSeriesStandingsAccounting)}
-                  id="wizard-series-accounting"
-                  onValueChange={(val) =>
-                    patch({
-                      seriesStandingsAccounting: val as SeriesAccountingGrain,
-                    })
-                  }
-                  options={(['match', 'series'] as const).map((grain) => ({
-                    value: grain,
-                    label: `${intl.formatMessage(
-                      SERIES_ACCOUNTING_LABELS[grain],
-                    )} — ${intl.formatMessage(SERIES_ACCOUNTING_DESCRIPTIONS[grain])}`,
-                  }))}
-                  value={state.seriesStandingsAccounting}
-                />
-                <DecisionHint
-                  id="wizard-series-accounting-hint"
-                  text={decisionHintText(
-                    'series.standingsAccounting',
-                    messages.wizardDecisionSeriesStandingsAccounting,
-                  )}
-                />
-              </Field>
-            </div>
+      <div style={{ gridColumn: '1 / -1' }}>
+        {selectedProfile ? (
+          <div style={{ display: 'grid', gap: 'var(--cl-space-3)' }}>
+            <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
+              <FormattedMessage {...messages.stageEditorProfilePreviewHint} />
+            </p>
+            <StageListEditor formats={formats} readOnly showAllocation stages={state.stages} />
           </div>
+        ) : (
+          <StageListEditor
+            formatHintText={formatHintText}
+            formats={formats}
+            onChange={(stages) => patch({ stages })}
+            showAllocation
+            showSeries
+            stages={state.stages}
+          />
         )}
       </div>
     </div>

@@ -201,7 +201,7 @@ describe('collector-threshold notifications across a stage (integration)', () =>
         name: 'Apertura CT',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: false,
         requiresCheckIn: false,
       },
@@ -235,7 +235,8 @@ describe('collector-threshold notifications across a stage (integration)', () =>
 
       const stage1 = await competition.createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
-        number: 1,
+        // createTournament's own request already declares stage 1.
+        number: 2,
         name: 'Regular',
         format: 'round-robin',
         organizationId,
@@ -304,7 +305,7 @@ describe('collector-threshold notifications across a stage (integration)', () =>
 
       const stage2 = await competition.createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
-        number: 2,
+        number: 3,
         name: 'Segunda',
         format: 'round-robin',
         organizationId,

@@ -113,7 +113,7 @@ describe('the control API client', () => {
       name: 'Copa Verano',
       descriptorId: 'd-1',
       descriptorVersion: '1.0.0',
-      format: 'round-robin',
+      stages: [{ number: 1, format: 'round-robin' }],
       publicRegistration: true,
       requiresCheckIn: true,
       customScripts: [],
@@ -122,7 +122,7 @@ describe('the control API client', () => {
     expect(authorization).toBe('Bearer token-1');
     expect(JSON.parse(body)).toMatchObject({
       descriptorVersion: '1.0.0',
-      format: 'round-robin',
+      stages: [{ number: 1, format: 'round-robin' }],
       publicRegistration: true,
       requiresCheckIn: true,
     });

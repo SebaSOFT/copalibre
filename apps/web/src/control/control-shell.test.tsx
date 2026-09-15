@@ -458,7 +458,7 @@ describe('the wizard beyond the first step', () => {
 
     // Changing the discipline must not carry the previous discipline's format
     // through — the API rejects it, and the operator would not know why.
-    expect(screen.getByLabelText('Format')).toHaveProperty('value', 'placement');
+    expect(screen.getByLabelText('Stage format')).toHaveProperty('value', 'placement');
   });
 
   it('goes back without losing what was typed', () => {
@@ -585,13 +585,16 @@ describe('the API client', () => {
       name: 'Copa',
       descriptorId: 'd-1',
       descriptorVersion: '1.0.0',
-      format: 'round-robin',
+      stages: [{ number: 1, format: 'round-robin' }],
       publicRegistration: true,
       requiresCheckIn: false,
       customScripts: [],
     });
 
-    expect(bodies[0]).toMatchObject({ descriptorVersion: '1.0.0', format: 'round-robin' });
+    expect(bodies[0]).toMatchObject({
+      descriptorVersion: '1.0.0',
+      stages: [{ number: 1, format: 'round-robin' }],
+    });
   });
 
   it('reviews one registration through its own endpoint', async () => {

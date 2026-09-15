@@ -115,6 +115,7 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   // org.manage-seeding
   'SeedingController.publish': 'org.manage-seeding',
   'SeedingController.seeding': 'org.manage-seeding',
+  'TournamentsController.entrantAttributeKeys': 'org.manage-seeding',
 
   // org.manage-registrations
   'RegistrationsController.bulkReview': 'org.manage-registrations',

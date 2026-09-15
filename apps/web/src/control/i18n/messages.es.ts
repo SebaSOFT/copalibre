@@ -404,6 +404,31 @@ export const messages: Record<string, string> = {
   'control.wizard.problem.seriesSpan': 'Una serie abarca al menos dos partidos',
   'control.wizard.problem.seriesEvenBestOf':
     'Una serie al mejor de necesita un número impar de partidos para que un lado gane la mayoría. Usá Global o Puntos por partido si querés un número par.',
+  'control.wizard.problem.allocationAttributeKey':
+    'El sembrado ponderado necesita un atributo para ordenar a los participantes',
+
+  'control.stageEditor.title': 'Fases',
+  'control.stageEditor.addStage': 'Agregar fase',
+  'control.stageEditor.removeStage': 'Quitar',
+  'control.stageEditor.stageHeading': 'Fase {number}',
+  'control.stageEditor.stageName': 'Nombre de la fase',
+  'control.stageEditor.stageFormat': 'Formato de la fase',
+  'control.stageEditor.seriesToggle': 'Definir los cruces de esta fase con una serie',
+  'control.stageEditor.seriesSpan': 'Partidos',
+  'control.stageEditor.seriesResolutionClass': 'Se define por',
+  'control.stageEditor.seriesNeutralGround': 'Cancha neutral',
+  'control.stageEditor.seriesAccountPerSeries': 'Contar las tablas por serie, no por partido',
+  'control.stageEditor.allocationLabel': 'Sembrado',
+  'control.stageEditor.allocationNone': 'Decidir más adelante',
+  'control.stageEditor.allocationAutomatic': 'Automático — orden de corte de la fase anterior',
+  'control.stageEditor.allocationManual': 'Manual — lo ubico yo mismo',
+  'control.stageEditor.allocationWeighted': 'Ponderado — ordena por un atributo del participante',
+  'control.stageEditor.allocationAttributeKey': 'Atributo',
+  'control.stageEditor.allocationDirection': 'Dirección',
+  'control.stageEditor.allocationDirectionHigherFirst': 'El valor más alto siembra primero',
+  'control.stageEditor.allocationDirectionLowerFirst': 'El valor más bajo siembra primero',
+  'control.stageEditor.profilePreviewHint':
+    'Este torneo usará las fases propias del perfil, mostradas acá en solo lectura.',
   'control.wizard.series.enable': 'Definir cada cruce con una serie de partidos',
   'control.wizard.series.help':
     'Dejalo apagado para jugar un partido por cruce. Al activarlo se programan varios partidos entre los mismos dos lados y el cruce se define con todos ellos juntos.',
