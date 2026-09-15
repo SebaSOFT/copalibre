@@ -1483,7 +1483,7 @@ function compositions(): string {
     '}',
     '',
     '.cl-bracket-stage__node { min-width: 0; }',
-    '.cl-bracket-stage__node--pending { border-style: dashed; }',
+    '.cl-bracket-stage__node--pending .cl-card { border-style: dashed; border-color: var(--cl-border-muted); }',
     '',
     /*
      * The textual view. Not a degraded copy: it carries seeds, sources and

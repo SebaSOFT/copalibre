@@ -665,40 +665,6 @@ export function MatchConsoleTemplate({
 
   const railNode = (
     <>
-      {bracketMatches && bracketMatches.length > 0 && (
-        <Card className="cl-chamfer cl-chamfer--control">
-          <header className="cl-card__header">
-            <h2 className="cl-card__title">
-              <FormattedMessage {...messages.matchConsoleBracketContext} />
-            </h2>
-            {/* Collapsed by default — orientation an operator reaches for occasionally,
-                not screen space the recording controls need by default. */}
-            <Button
-              aria-expanded={bracketExpanded}
-              onClick={() => setBracketExpanded((expanded) => !expanded)}
-              type="button"
-              variant="secondary"
-            >
-              <FormattedMessage
-                {...(bracketExpanded
-                  ? messages.matchConsoleCollapseBracket
-                  : messages.matchConsoleExpandBracket)}
-              />
-            </Button>
-          </header>
-          {bracketExpanded && (
-            <div className="cl-card__content">
-              <BracketCanvas
-                focusMatchId={matchId}
-                matches={bracketMatches}
-                onZoomChange={setBracketZoom}
-                zoom={bracketZoom}
-              />
-            </div>
-          )}
-        </Card>
-      )}
-
       <Card className="cl-chamfer cl-chamfer--control">
         <header className="cl-card__header">
           <h2 className="cl-card__title">
@@ -796,6 +762,40 @@ export function MatchConsoleTemplate({
           </Field>
         </div>
       </Card>
+
+      {bracketMatches && bracketMatches.length > 0 && (
+        <Card className="cl-chamfer cl-chamfer--control">
+          <header className="cl-card__header">
+            <h2 className="cl-card__title">
+              <FormattedMessage {...messages.matchConsoleBracketContext} />
+            </h2>
+            {/* Collapsed by default — orientation an operator reaches for occasionally,
+                not screen space the recording controls need by default. */}
+            <Button
+              aria-expanded={bracketExpanded}
+              onClick={() => setBracketExpanded((expanded) => !expanded)}
+              type="button"
+              variant="secondary"
+            >
+              <FormattedMessage
+                {...(bracketExpanded
+                  ? messages.matchConsoleCollapseBracket
+                  : messages.matchConsoleExpandBracket)}
+              />
+            </Button>
+          </header>
+          {bracketExpanded && (
+            <div className="cl-card__content">
+              <BracketCanvas
+                focusMatchId={matchId}
+                matches={bracketMatches}
+                onZoomChange={setBracketZoom}
+                zoom={bracketZoom}
+              />
+            </div>
+          )}
+        </Card>
+      )}
     </>
   );
 
