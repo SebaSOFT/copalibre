@@ -1484,12 +1484,6 @@ function compositions(): string {
     '',
     '.cl-bracket-stage__node { min-width: 0; }',
     '',
-    // The default .cl-card padding (--cl-space-4, 16px) plus its 4px accent
-    // border eats over a third of the round column's 200px min-width — the
-    // same reason the control BracketCanvas overrides its own node padding
-    // down to --cl-space-2 (8px). Matched here for the same reason.
-    '.cl-bracket-stage__node .cl-card { padding: var(--cl-space-2); }',
-    '',
     // Bare .cl-slot had no rules of its own, so the ordered list's browser
     // default 40px marker indent — far more than the card padding itself —
     // was left to squeeze slot rows down to almost nothing. list-style-position:
