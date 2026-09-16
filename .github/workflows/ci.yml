@@ -484,6 +484,7 @@ jobs:
       - run: yarn workspace @copalibre/domain build
       - run: yarn workspace @copalibre/routing build
       - run: yarn workspace @copalibre/realtime build
+      - run: yarn workspace @copalibre/tournament-engine build
       - run: yarn workspace @copalibre/design-tokens build:tokens
       - run: yarn workspace @copalibre/web build
       - name: Tag build identity

@@ -26,6 +26,7 @@ describe('help static build (integration)', () => {
     await runWorkspaceScript('@copalibre/domain', 'build');
     await runWorkspaceScript('@copalibre/routing', 'build');
     await runWorkspaceScript('@copalibre/realtime', 'build');
+    await runWorkspaceScript('@copalibre/tournament-engine', 'build');
     await runWorkspaceScript('@copalibre/design-tokens', 'build:tokens');
     await runWorkspaceScript('@copalibre/web', 'verify:docs');
 
