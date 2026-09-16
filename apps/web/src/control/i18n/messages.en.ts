@@ -11,6 +11,15 @@ import { defineMessages } from 'react-intl';
  * {...messages.someKey} />` directly.
  */
 export const messages = defineMessages({
+  bracketHighlightEntrant: {
+    id: 'control.bracket.highlightEntrant',
+    defaultMessage: 'Highlight path for {entrant}',
+  },
+  bracketHighlightHint: {
+    id: 'control.bracket.highlightHint',
+    defaultMessage:
+      'Select an entrant to follow their path. Select again or press Escape to clear. Future matches show their possible winning route.',
+  },
   // Shell
   shellSections: { id: 'control.shell.sections', defaultMessage: 'Sections' },
   shellWhatIsThisScreen: {
@@ -479,6 +488,18 @@ export const messages = defineMessages({
   matchConsoleCollapseLedger: {
     id: 'control.matchConsole.collapseLedger',
     defaultMessage: 'Show less',
+  },
+  matchConsoleBracketContext: {
+    id: 'control.matchConsole.bracketContext',
+    defaultMessage: 'Where this match sits',
+  },
+  matchConsoleExpandBracket: {
+    id: 'control.matchConsole.expandBracket',
+    defaultMessage: 'Show bracket',
+  },
+  matchConsoleCollapseBracket: {
+    id: 'control.matchConsole.collapseBracket',
+    defaultMessage: 'Hide bracket',
   },
   matchConsoleUnnamedEntrant: {
     id: 'control.matchConsole.unnamedEntrant',

@@ -434,6 +434,7 @@ describe('public projections routes', () => {
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.payload as string)).toMatchObject({
       status: 'final',
+      stageFormat: 'single-elimination',
       homeName: 'Atlas',
       homeAbbreviation: 'ATL',
       homeScore: 2,

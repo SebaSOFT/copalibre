@@ -20,6 +20,7 @@ import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
  */
 export function SeedingBuilderTemplate({
   organizationAlias,
+  tournamentAlias,
   tournamentName,
   seeds,
   matches,
@@ -29,6 +30,12 @@ export function SeedingBuilderTemplate({
   random,
 }: {
   readonly organizationAlias: string;
+  /**
+   * The URL alias, used to build the bracket canvas's per-node console link.
+   * Absent from `matchUrl` (rather than reusing `tournamentName`) so a display
+   * name that happens to differ from the alias never leaks into a route.
+   */
+  readonly tournamentAlias?: string;
   readonly tournamentName: string;
   readonly seeds: readonly SeedAssignment[];
   readonly matches: readonly CanvasMatch[];
@@ -40,6 +47,7 @@ export function SeedingBuilderTemplate({
   const intl = useIntl();
   const [history, setHistory] = useState(() => initHistory<readonly SeedAssignment[]>(seeds));
   const [zoom, setZoom] = useState(1);
+  const [highlightEntrantId, setHighlightEntrantId] = useState<string>();
   const current = history.present;
 
   // A courtesy, not the authority: the API classifies the same change and
@@ -145,7 +153,20 @@ export function SeedingBuilderTemplate({
             </h2>
           </header>
           <div className="cl-card__content">
-            <BracketCanvas matches={matches} onZoomChange={setZoom} zoom={zoom} />
+            <BracketCanvas
+              matches={matches}
+              highlightEntrantId={highlightEntrantId}
+              onHighlightEntrant={setHighlightEntrantId}
+              names={names}
+              matchUrl={
+                tournamentAlias === undefined
+                  ? undefined
+                  : (persistedMatchId) =>
+                      `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${persistedMatchId}`
+              }
+              onZoomChange={setZoom}
+              zoom={zoom}
+            />
           </div>
         </div>
       </div>

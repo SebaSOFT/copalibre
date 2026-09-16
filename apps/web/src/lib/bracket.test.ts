@@ -7,6 +7,7 @@ import {
   nodeOutcomes,
   stageOutcomes,
   selectStageLayout,
+  stagePath,
   toRounds,
   toNode,
   type BracketMatch,
@@ -231,6 +232,29 @@ describe('matchReportUrl', () => {
         localePrefix: '/es',
       }),
     ).toBe('/es/liga-central/tournaments/apertura-2026/stages/1/matches/3');
+  });
+});
+
+describe('stagePath', () => {
+  it('constructs the stage page path without locale prefix', () => {
+    expect(
+      stagePath({
+        organizationAlias: 'liga-central',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 2,
+      }),
+    ).toBe('/liga-central/tournaments/apertura-2026/stages/2');
+  });
+
+  it('constructs the stage page path with locale prefix', () => {
+    expect(
+      stagePath({
+        organizationAlias: 'liga-central',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
+        localePrefix: '/es',
+      }),
+    ).toBe('/es/liga-central/tournaments/apertura-2026/stages/1');
   });
 });
 

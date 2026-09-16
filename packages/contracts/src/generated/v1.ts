@@ -3676,6 +3676,8 @@ export interface components {
         MatchConsoleResponse: {
             /** Format: uuid */
             matchId: string;
+            /** @description The match's stage number, for a bracket-context panel */
+            stageNumber: number;
             /** @enum {string} */
             status: "scheduled" | "in-progress" | "finalized";
             /** @description Resolved authoritative result when one exists */
@@ -4104,6 +4106,11 @@ export interface components {
              * @example WB-R2-M1
              */
             matchId: string;
+            /**
+             * Format: uuid
+             * @description The real persisted matches.match_id, present only once this node has been generated as an actual fixture. Absent for a not-yet-materialized future-round node — never a placeholder or guessed value.
+             */
+            persistedMatchId?: string;
             /** @enum {string} */
             bracket: "winners" | "losers" | "grand-final" | "round-robin" | "placement";
             /** @description 1-based round within the bracket */
@@ -4724,6 +4731,8 @@ export interface components {
             tournamentName: string;
             disciplineImages?: components["schemas"]["PublicObjectReferenceResponse"][];
             stageNumber: number;
+            /** @description The stage's competition format — identifies which stage this match belongs to, so a client can decide whether a bracket-context panel applies without a second request. */
+            stageFormat: string;
             matchNumber: number;
             round: number;
             /** @enum {string} */

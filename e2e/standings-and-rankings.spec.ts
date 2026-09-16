@@ -569,13 +569,13 @@ test.describe('B2: public tournament page', () => {
 
     // The played match (position 1, matchNumber 1) links to the report
     // already asserted above (same fixture, same header).
-    await page.locator('a:has(article[data-match="1"])').click();
+    await page.locator('article[data-match="1"] a[href$="/matches/1"]').click();
     await expect(page.getByRole('heading', { name: /TAL.*2.*1.*IND/ })).toBeVisible();
 
     // Still linked though its own slots are winner-of placeholders: the
     // report page renders correctly for a not-yet-played match.
     await page.goBack();
-    await page.locator('a:has(article[data-match="2"])').click();
+    await page.locator('article[data-match="2"] a[href$="/matches/2"]').click();
     await page.waitForURL(`**/stages/1/matches/2`);
   });
 

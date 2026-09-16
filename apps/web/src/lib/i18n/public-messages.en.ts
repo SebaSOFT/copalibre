@@ -13,6 +13,15 @@ import { defineMessages } from 'react-intl';
  * string as a plain prop instead of importing this catalog itself.
  */
 export const messages = defineMessages({
+  bracketHighlightEntrant: {
+    id: 'publicWeb.bracket.highlightEntrant',
+    defaultMessage: 'Highlight path for {entrant}',
+  },
+  bracketHighlightHint: {
+    id: 'publicWeb.bracket.highlightHint',
+    defaultMessage:
+      'Select an entrant to follow their path. Select again or press Escape to clear. Future matches show their possible winning route.',
+  },
   // Layout chrome (layouts/PublicLayout.astro)
   layoutSkipToContent: { id: 'publicWeb.layout.skipToContent', defaultMessage: 'Skip to content' },
   layoutNavAriaLabel: { id: 'publicWeb.layout.navAriaLabel', defaultMessage: 'Main' },
@@ -154,6 +163,15 @@ export const messages = defineMessages({
   bracketChampionshipTitle: {
     id: 'publicWeb.bracket.championshipTitle',
     defaultMessage: 'Final',
+  },
+  // MatchBracketContext.astro
+  bracketContextAriaLabel: {
+    id: 'publicWeb.bracket.contextAriaLabel',
+    defaultMessage: 'This match in the bracket',
+  },
+  bracketContextViewFullLink: {
+    id: 'publicWeb.bracket.contextViewFullLink',
+    defaultMessage: 'View full bracket',
   },
 
   // BroadcastStatusPanel.astro

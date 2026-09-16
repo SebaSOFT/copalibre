@@ -556,7 +556,12 @@ const EXPORTS_COMPONENT = /export\s+(?:function|const)\s+[A-Z]\w*/;
  * rather than after the file — `BracketView.astro` previews as a populated
  * bracket stage, not as "a bracket view" in the abstract.
  */
-const PREVIEW_ID_ALIASES = new Map([['BracketView.astro', 'bracket-stage']]);
+const PREVIEW_ID_ALIASES = new Map([
+  ['BracketView.astro', 'bracket-stage'],
+  // Three situational ids exist (early/championship/unknown-focus match); any one
+  // satisfies coverage here, so this points at the first.
+  ['MatchBracketContext.astro', 'match-bracket-context-early'],
+]);
 
 /** `MatchCardGrid.astro` -> `match-card-grid`. The preview seam's own naming convention. */
 function astroPreviewId(filename) {

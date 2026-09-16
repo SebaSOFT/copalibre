@@ -28,6 +28,8 @@ import { Textarea } from '../ui/atoms/textarea.js';
 import { Field } from '../ui/molecules/field.js';
 import { FieldSet } from '../ui/molecules/field-set.js';
 import { ClockRing } from '../ui/organisms/clock-ring.js';
+import { BracketCanvas } from '../BracketCanvas.js';
+import type { CanvasMatch } from '../../lib/bracket-canvas.js';
 import { EntrantName } from '../../../components/ui/atoms/EntrantName.js';
 import { JerseyGrid } from '../JerseyGrid.js';
 import { RosterSelectionStep } from '../RosterSelectionStep.js';
@@ -68,6 +70,7 @@ export interface RecordEventContext {
  */
 export function MatchConsoleTemplate({
   api,
+  bracketMatches,
   finalizing,
   lastSyncedAt,
   matchId,
@@ -88,6 +91,8 @@ export function MatchConsoleTemplate({
   tournamentAlias,
 }: {
   readonly api: MatchConsoleApiClient;
+  /** The match's stage bracket, for the "where this match sits" panel. Absent while loading. */
+  readonly bracketMatches?: readonly CanvasMatch[];
   readonly finalizing: boolean;
   readonly lastSyncedAt: number | undefined;
   readonly matchId: string;
@@ -154,6 +159,8 @@ export function MatchConsoleTemplate({
   );
   const [logNote, setLogNote] = useState('');
   const [ledgerExpanded, setLedgerExpanded] = useState(false);
+  const [bracketExpanded, setBracketExpanded] = useState(false);
+  const [bracketZoom, setBracketZoom] = useState(1);
 
   // A default segment/side/person/staff selection, filled in whenever it is
   // still unset — on first render and again after every reload, the same
@@ -755,6 +762,40 @@ export function MatchConsoleTemplate({
           </Field>
         </div>
       </Card>
+
+      {bracketMatches && bracketMatches.length > 0 && (
+        <Card className="cl-chamfer cl-chamfer--control">
+          <header className="cl-card__header">
+            <h2 className="cl-card__title">
+              <FormattedMessage {...messages.matchConsoleBracketContext} />
+            </h2>
+            {/* Collapsed by default — orientation an operator reaches for occasionally,
+                not screen space the recording controls need by default. */}
+            <Button
+              aria-expanded={bracketExpanded}
+              onClick={() => setBracketExpanded((expanded) => !expanded)}
+              type="button"
+              variant="secondary"
+            >
+              <FormattedMessage
+                {...(bracketExpanded
+                  ? messages.matchConsoleCollapseBracket
+                  : messages.matchConsoleExpandBracket)}
+              />
+            </Button>
+          </header>
+          {bracketExpanded && (
+            <div className="cl-card__content">
+              <BracketCanvas
+                focusMatchId={matchId}
+                matches={bracketMatches}
+                onZoomChange={setBracketZoom}
+                zoom={bracketZoom}
+              />
+            </div>
+          )}
+        </Card>
+      )}
     </>
   );
 

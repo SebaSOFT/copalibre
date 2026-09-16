@@ -4,6 +4,9 @@
  * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'control.bracket.highlightEntrant': 'Weg von {entrant} hervorheben',
+  'control.bracket.highlightHint':
+    'Wählen Sie einen Teilnehmer, um seinen Weg zu verfolgen. Erneut auswählen oder Escape drücken, um die Markierung aufzuheben. Zukünftige Spiele zeigen den möglichen Weg bei weiteren Siegen.',
   'control.shell.sections': 'Bereiche',
   'control.shell.whatIsThisScreen': 'Was ist dieser Bildschirm?',
   'control.shell.openNavigation': 'Navigationsmenü öffnen',
@@ -169,6 +172,9 @@ export const messages: Record<string, string> = {
   'control.matchConsole.endSegment': 'Abschnitt beenden',
   'control.matchConsole.expandLedger': 'Vollständigen Verlauf anzeigen',
   'control.matchConsole.collapseLedger': 'Weniger anzeigen',
+  'control.matchConsole.bracketContext': 'Position im Turnierbaum',
+  'control.matchConsole.expandBracket': 'Turnierbaum anzeigen',
+  'control.matchConsole.collapseBracket': 'Turnierbaum ausblenden',
   'control.matchConsole.refusedAction': 'Abgelehnt ({kind}): {reason}',
   'control.matchConsole.refusedContents': 'Sie haben erfasst: {contents}',
   'control.matchConsole.dismiss': 'Verwerfen',

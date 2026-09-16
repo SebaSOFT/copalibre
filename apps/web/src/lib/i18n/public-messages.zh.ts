@@ -4,6 +4,9 @@
  * choice): ship now, native-speaker review later.
  */
 export const messages: Record<string, string> = {
+  'publicWeb.bracket.highlightEntrant': '突出显示{entrant}的晋级路线',
+  'publicWeb.bracket.highlightHint':
+    '选择参赛者查看其路线。再次选择或按 Escape 清除。未来比赛显示继续获胜时的可能路线。',
   'publicWeb.layout.skipToContent': '跳至内容',
   'publicWeb.layout.navAriaLabel': '主导航',
   'publicWeb.layout.footer': '由 CopaLibre 发布 — AGPL-3.0',
@@ -159,6 +162,8 @@ export const messages: Record<string, string> = {
   'publicWeb.bracket.outcomePending': '尚未确定',
   'publicWeb.bracket.outlineHeading': '轮次与分支',
   'publicWeb.bracket.championshipTitle': '决赛',
+  'publicWeb.bracket.contextAriaLabel': '该场比赛在赛程图中的位置',
+  'publicWeb.bracket.contextViewFullLink': '查看完整赛程图',
   'publicWeb.header.openMenu': '打开菜单',
   'publicWeb.header.closeMenu': '关闭菜单',
   'publicWeb.header.language': '语言',

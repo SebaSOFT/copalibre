@@ -1,4 +1,5 @@
 ---
+import type { HTMLAttributes } from 'astro/types';
 /**
  * The public-web counterpart to Control-web's `Button` atom (`control/components/ui/atoms/button.tsx`).
  *
@@ -12,7 +13,7 @@
  */
 export type PublicButtonVariant = 'primary' | 'secondary' | 'destructive' | 'destructive-outline';
 
-interface Props {
+interface Props extends HTMLAttributes<'button'> {
   readonly variant?: PublicButtonVariant;
   readonly href?: string;
   readonly type?: 'button' | 'submit' | 'reset';
@@ -20,7 +21,14 @@ interface Props {
   readonly class?: string;
 }
 
-const { variant = 'primary', href, type = 'button', title, class: extraClass = '' } = Astro.props;
+const {
+  variant = 'primary',
+  href,
+  type = 'button',
+  title,
+  class: extraClass = '',
+  ...attributes
+} = Astro.props;
 
 const classes = [
   'cl-btn',
@@ -43,7 +51,7 @@ const classes = [
       <slot />
     </a>
   ) : (
-    <button class={classes} type={type} title={title}>
+    <button {...attributes} class={classes} type={type} title={title}>
       <slot />
     </button>
   )

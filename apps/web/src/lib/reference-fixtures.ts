@@ -295,8 +295,8 @@ export function referenceBracket(): readonly BracketMatch[] {
   const e = REFERENCE_ENTRANTS;
   const pair = (a: number, b: number) =>
     [
-      { kind: 'entrant', name: e[a].name, abbreviation: e[a].abbreviation },
-      { kind: 'entrant', name: e[b].name, abbreviation: e[b].abbreviation },
+      { kind: 'entrant', entrantId: e[a].id, name: e[a].name, abbreviation: e[a].abbreviation },
+      { kind: 'entrant', entrantId: e[b].id, name: e[b].name, abbreviation: e[b].abbreviation },
     ] as const;
   return [
     {
@@ -855,4 +855,24 @@ export function referenceTableProjection(): TableProjectionResponse {
     })),
     projectionVersion: 12,
   };
+}
+
+/** Journey review: the same eight-entrant bracket, optionally completed. */
+export function referenceJourneyBracket(complete = false): readonly BracketMatch[] {
+  const bracket = referenceBracket();
+  if (!complete) return bracket;
+  const slot = (index: number) => ({
+    kind: 'entrant' as const,
+    entrantId: REFERENCE_ENTRANTS[index].id,
+    name: REFERENCE_ENTRANTS[index].name,
+  });
+  return bracket.map((match) => {
+    if (match.matchNumber === 5)
+      return { ...match, state: 'final' as const, slots: [slot(0), slot(4)], scores: [3, 1] };
+    if (match.matchNumber === 6)
+      return { ...match, state: 'final' as const, slots: [slot(2), slot(1)], scores: [1, 2] };
+    if (match.matchNumber === 7)
+      return { ...match, state: 'final' as const, slots: [slot(0), slot(1)], scores: [2, 1] };
+    return match;
+  });
 }

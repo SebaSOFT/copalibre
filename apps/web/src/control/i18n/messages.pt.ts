@@ -4,6 +4,9 @@
  * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'control.bracket.highlightEntrant': 'Destacar percurso de {entrant}',
+  'control.bracket.highlightHint':
+    'Selecione um participante para seguir seu percurso. Selecione novamente ou pressione Escape para limpar. As partidas futuras mostram o possível percurso de vitórias.',
   'control.shell.sections': 'Seções',
   'control.shell.whatIsThisScreen': 'O que é esta tela?',
   'control.shell.openNavigation': 'Abrir menu de navegação',
@@ -166,6 +169,9 @@ export const messages: Record<string, string> = {
   'control.matchConsole.endSegment': 'Encerrar período',
   'control.matchConsole.expandLedger': 'Ver histórico completo',
   'control.matchConsole.collapseLedger': 'Ver menos',
+  'control.matchConsole.bracketContext': 'Posição na chave',
+  'control.matchConsole.expandBracket': 'Mostrar chave',
+  'control.matchConsole.collapseBracket': 'Ocultar chave',
   'control.matchConsole.refusedAction': 'Recusado ({kind}): {reason}',
   'control.matchConsole.refusedContents': 'Você registrou: {contents}',
   'control.matchConsole.dismiss': 'Dispensar',

@@ -78,3 +78,49 @@ persistence-layer access.
   progress
 - **THEN** the public bracket view SHALL render an explicit, clearly-labeled "not yet determined" state
   for that round, never `NaN` or any other malformed placeholder
+
+### Requirement: Bracket canvas links to a match's control screen
+Each bracket canvas node representing a persisted match SHALL link to that match's control screen
+(the live match console when a console session exists for it, otherwise the load-match-data screen),
+resolved by the match's persisted identifier rather than the tournament engine's structural label. A
+node with no persisted match yet SHALL render with no link, in the same TBD/pending presentation the
+existing "Bracket canvas renders engine-generated structure" requirement already defines — it SHALL
+NOT link to a placeholder or guessed destination.
+
+#### Scenario: An operator opens a resolved match from the canvas
+- **WHEN** an operator activates a bracket canvas node whose match has been generated as a real
+  fixture
+- **THEN** the operator is taken to that match's control screen (console or load-match-data,
+  whichever applies), matching the same match the node's score and slots describe
+
+#### Scenario: A not-yet-materialized node offers no link
+- **WHEN** a bracket canvas node represents a future round not yet materialized into a real fixture
+- **THEN** the node renders its existing TBD/pending presentation with no link, and activating it has
+  no effect
+
+#### Scenario: Interactive nodes meet the platform's interaction contract
+- **WHEN** a bracket canvas node is linkable
+- **THEN** it exposes a focus-visible, keyboard-activatable target at least 44px in its constrained
+  axis, consistent with every other interactive control in the design system
+
+### Requirement: Bracket canvas can render focused on one match
+The bracket canvas SHALL support rendering with a single named match visually emphasized and scrolled
+into view on mount, while every other node renders with its normal, unmodified presentation — the
+canvas's existing "renders engine-generated structure" requirement continues to govern every node's
+own content and connections; focus SHALL only add emphasis to the named node, never alter or omit
+another node's slots, score, or connections.
+
+#### Scenario: Canvas opens centered on the focused match
+- **WHEN** the bracket canvas is rendered with a focus target set to a match present in its structure
+- **THEN** that match's node is visually emphasized and is scrolled into the visible viewport without
+  requiring the viewer to locate it manually
+
+#### Scenario: Focus does not suppress other nodes
+- **WHEN** the bracket canvas is rendered with a focus target set
+- **THEN** every other node still renders its full slots, score, and connections exactly as it would
+  with no focus target set
+
+#### Scenario: An unknown focus target is ignored
+- **WHEN** the bracket canvas is rendered with a focus target that does not match any node in its
+  structure
+- **THEN** the canvas renders normally with no node emphasized and no error

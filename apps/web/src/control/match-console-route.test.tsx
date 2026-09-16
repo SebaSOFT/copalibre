@@ -16,6 +16,7 @@ beforeEach(async () => {
 
 const projection: MatchConsoleResponse = {
   matchId: 'match-1',
+  stageNumber: 1,
   status: 'in-progress',
   result: null,
   liveScores: [

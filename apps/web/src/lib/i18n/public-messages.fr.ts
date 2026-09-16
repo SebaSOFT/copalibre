@@ -4,6 +4,9 @@
  * (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'publicWeb.bracket.highlightEntrant': 'Mettre en évidence le parcours de {entrant}',
+  'publicWeb.bracket.highlightHint':
+    'Sélectionnez un participant pour suivre son parcours. Sélectionnez-le à nouveau ou appuyez sur Échap pour effacer. Les matchs futurs montrent son parcours possible en cas de victoire.',
   'publicWeb.layout.skipToContent': 'Aller au contenu',
   'publicWeb.layout.navAriaLabel': 'Principal',
   'publicWeb.layout.footer': 'Publié avec CopaLibre — AGPL-3.0',
@@ -160,6 +163,8 @@ export const messages: Record<string, string> = {
   'publicWeb.bracket.outcomePending': 'Pas encore décidé',
   'publicWeb.bracket.outlineHeading': 'Tours et branches',
   'publicWeb.bracket.championshipTitle': 'Finale',
+  'publicWeb.bracket.contextAriaLabel': 'Ce match dans le tableau',
+  'publicWeb.bracket.contextViewFullLink': 'Voir le tableau complet',
   'publicWeb.header.openMenu': 'Ouvrir le menu',
   'publicWeb.header.closeMenu': 'Fermer le menu',
   'publicWeb.header.language': 'Langue',

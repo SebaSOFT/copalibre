@@ -1508,7 +1508,19 @@ function compositions(): string {
     '}',
     '',
     '.cl-bracket-stage__node { min-width: 0; }',
-    '.cl-bracket-stage__node--pending { border-style: dashed; }',
+    '',
+    // Bare .cl-slot had no rules of its own, so the ordered list's browser
+    // default 40px marker indent — far more than the card padding itself —
+    // was left to squeeze slot rows down to almost nothing. list-style-position:
+    // inside folds the marker back into the content box, and the flex row
+    // keeps the entrant name and score on one line instead of wrapping.
+    '.cl-bracket-stage__node ol { margin: 0; padding: 0; list-style-position: inside; }',
+    '.cl-slot { display: flex; justify-content: space-between; gap: var(--cl-space-2); }',
+    '',
+    // Per-slot, not per-match: a card with one confirmed entrant and one
+    // still-unresolved "winner of" slot marks only the slot that's waiting,
+    // matching the control BracketCanvas's own pendingSlotStyle treatment.
+    '.cl-slot--pending { border-left: 2px dashed var(--cl-border-muted); padding-left: var(--cl-space-2); }',
     '',
     /*
      * The textual view. Not a degraded copy: it carries seeds, sources and

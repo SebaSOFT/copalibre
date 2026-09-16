@@ -4,6 +4,9 @@
  * reads exactly as the site did before this change.
  */
 export const messages: Record<string, string> = {
+  'publicWeb.bracket.highlightEntrant': 'Resaltar recorrido de {entrant}',
+  'publicWeb.bracket.highlightHint':
+    'Seleccioná un participante para seguir su recorrido. Seleccioná de nuevo o presioná Escape para quitar el resaltado. Los partidos futuros muestran su posible recorrido si gana.',
   'publicWeb.layout.skipToContent': 'Saltar al contenido',
   'publicWeb.layout.navAriaLabel': 'Principal',
   'publicWeb.layout.footer': 'Publicado con CopaLibre — AGPL-3.0',
@@ -160,6 +163,8 @@ export const messages: Record<string, string> = {
   'publicWeb.bracket.outcomePending': 'Sin definir',
   'publicWeb.bracket.outlineHeading': 'Rondas y ramas',
   'publicWeb.bracket.championshipTitle': 'Final',
+  'publicWeb.bracket.contextAriaLabel': 'Este partido en la llave',
+  'publicWeb.bracket.contextViewFullLink': 'Ver la llave completa',
   'publicWeb.header.openMenu': 'Abrir el menú',
   'publicWeb.header.closeMenu': 'Cerrar el menú',
   'publicWeb.header.language': 'Idioma',

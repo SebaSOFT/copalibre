@@ -544,9 +544,9 @@ describe('public-api-client', () => {
             bracket: 'winners',
             status: 'completed',
             slots: [
-              { kind: 'entrant', name: 'A', abbreviation: 'A', score: 1 },
-              { kind: 'winner-of', matchId: '2', score: 0 },
-              { kind: 'loser-of', matchId: '3', score: 0 },
+              { kind: 'entrant', entrantId: 'entrant-a', name: 'A', abbreviation: 'A', score: 1 },
+              { kind: 'winner-of', matchId: 'WB-R1-M2', score: 0 },
+              { kind: 'loser-of', matchId: 'WB-R1-M3', score: 0 },
               { kind: 'entrant' }, // missing name
             ],
           },
@@ -556,9 +556,20 @@ describe('public-api-client', () => {
         response as unknown as Parameters<typeof mapBracketResponse>[0],
       );
       expect(result.matches[0].matchNumber).toBe(1);
-      expect(result.matches[0].slots[0]).toEqual({ kind: 'entrant', name: 'A', abbreviation: 'A' });
-      expect(result.matches[0].slots[1]).toEqual({ kind: 'winner-of', matchNumber: 2 });
-      expect(result.matches[0].slots[2]).toEqual({ kind: 'loser-of', matchNumber: 3 });
+      expect(result.matches[0].slots[0]).toEqual({
+        kind: 'entrant',
+        entrantId: 'entrant-a',
+        name: 'A',
+        abbreviation: 'A',
+      });
+      expect(result.matches[0].slots[1]).toEqual({
+        kind: 'winner-of',
+        matchId: 'WB-R1-M2',
+      });
+      expect(result.matches[0].slots[2]).toEqual({
+        kind: 'loser-of',
+        matchId: 'WB-R1-M3',
+      });
       expect(result.matches[0].slots[3]).toEqual({
         kind: 'entrant',
         name: 'TBD',
@@ -585,8 +596,39 @@ describe('public-api-client', () => {
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
       );
-      expect(result.matches[0].slots[0]).toEqual({ kind: 'winner-of', matchNumber: 0 });
-      expect(result.matches[0].slots[1]).toEqual({ kind: 'loser-of', matchNumber: 0 });
+      expect(result.matches[0].slots[0]).toEqual({ kind: 'winner-of' });
+      expect(result.matches[0].slots[1]).toEqual({ kind: 'loser-of' });
+    });
+
+    it('resolves readable positions from exact structural ids without joining their digits', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'WB-R1-M2',
+            position: 2,
+            round: 1,
+            bracket: 'winners',
+            status: 'scheduled',
+            slots: [],
+          },
+          {
+            matchId: 'WB-R2-M1',
+            position: 1,
+            round: 2,
+            bracket: 'winners',
+            status: 'scheduled',
+            slots: [
+              { kind: 'winner-of', matchId: 'WB-R1-M2' },
+              { kind: 'loser-of', matchId: '3' },
+            ],
+          },
+        ],
+      };
+      const result = mapBracketResponse(response as Parameters<typeof mapBracketResponse>[0]);
+      expect(result.matches[1]?.slots).toEqual([
+        { kind: 'winner-of', matchId: 'WB-R1-M2', matchNumber: 2 },
+        { kind: 'loser-of', matchId: '3', matchNumber: 3 },
+      ]);
     });
   });
 });

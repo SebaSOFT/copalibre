@@ -1,13 +1,17 @@
+import { useEffect, useRef } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   DEFAULT_GEOMETRY,
   layoutBracket,
+  canvasEntrantPath,
   zoomIn,
   zoomOut,
   type CanvasMatch,
+  type LaidOutMatch,
 } from '../lib/bracket-canvas.js';
 import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
+import { controlLinkClick } from '../lib/control-navigation.js';
 
 /**
  * A6 — the bracket canvas.
@@ -28,18 +32,58 @@ export function BracketCanvas({
   zoom,
   onZoomChange,
   emptyMessage,
+  matchUrl,
+  focusMatchId,
+  highlightEntrantId,
+  onHighlightEntrant,
+  names = {},
 }: {
   readonly matches: readonly CanvasMatch[];
   readonly zoom: number;
   readonly onZoomChange?: (zoom: number) => void;
   readonly emptyMessage?: React.ReactNode;
+  /** Builds a node's control-screen URL from its persisted match id. Absent nodes stay unlinked. */
+  readonly matchUrl?: (persistedMatchId: string) => string;
+  /**
+   * The persisted match id (`persistedMatchId`, not the engine's structural label) to visually
+   * emphasize and scroll into view on mount — a console page knows a match by its real id, never
+   * by `WB-R2-M1`. A value naming no node's `persistedMatchId` is not an error — the canvas
+   * simply renders with nothing emphasized.
+   */
+  readonly focusMatchId?: string;
+  readonly highlightEntrantId?: string;
+  readonly onHighlightEntrant?: (entrantId?: string) => void;
+  readonly names?: Readonly<Record<string, string>>;
 }): React.JSX.Element {
   const intl = useIntl();
-  const layout = layoutBracket(matches);
+  const interactive = onHighlightEntrant !== undefined;
+  const layout = layoutBracket(
+    matches,
+    interactive ? { ...DEFAULT_GEOMETRY, nodeHeight: 88 } : DEFAULT_GEOMETRY,
+  );
+  const path =
+    highlightEntrantId === undefined ? undefined : canvasEntrantPath(matches, highlightEntrantId);
   const padding = DEFAULT_GEOMETRY.grid * 2;
+  const focusedNodeRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    focusedNodeRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    // Keyed on the focus target, not on layout/matches — re-scrolling on an unrelated
+    // data refresh (a score updating) would yank the viewport for no reason.
+  }, [focusMatchId]);
 
   return (
-    <div style={wrapperStyle}>
+    <div
+      style={wrapperStyle}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') onHighlightEntrant?.(undefined);
+      }}
+    >
+      {onHighlightEntrant !== undefined && (
+        <p>
+          <FormattedMessage {...messages.bracketHighlightHint} />
+        </p>
+      )}
       <div style={toolbarStyle}>
         <Button
           aria-label={intl.formatMessage(messages.bracketZoomOut)}
@@ -98,40 +142,27 @@ export function BracketCanvas({
             </svg>
 
             {layout.matches.map((node) => (
-              <article
-                className="cl-card cl-chamfer"
-                data-bracket={node.bracket}
-                data-match={node.matchId}
+              <BracketNode
+                focused={focusMatchId !== undefined && node.persistedMatchId === focusMatchId}
+                focusedRef={
+                  focusMatchId !== undefined && node.persistedMatchId === focusMatchId
+                    ? focusedNodeRef
+                    : undefined
+                }
+                href={
+                  node.persistedMatchId === undefined
+                    ? undefined
+                    : matchUrl?.(node.persistedMatchId)
+                }
                 key={node.matchId}
-                style={{
-                  position: 'absolute',
-                  left: node.x,
-                  top: node.y,
-                  width: node.width,
-                  minHeight: node.height,
-                  padding: 'var(--cl-space-2)',
-                  display: 'grid',
-                  gap: 2,
-                }}
-              >
-                <header style={nodeHeaderStyle}>
-                  <span>{node.matchId}</span>
-                  {node.format === undefined ? null : (
-                    <span className="cl-badge">{node.format}</span>
-                  )}
-                </header>
-                {node.slots.map((slot, index) => (
-                  <div
-                    key={`${node.matchId}-${index}`}
-                    style={slot.pending ? pendingSlotStyle : slotStyle}
-                  >
-                    {/* Named, never blank: "Ganador del WB-R1-M2" tells an
-                        operator what has to happen; an empty box reads as a bug. */}
-                    <span>{slot.pending ? `TBD · ${slot.label}` : slot.label}</span>
-                    <span style={scoreStyle}>{slot.score ?? '—'}</span>
-                  </div>
-                ))}
-              </article>
+                node={node}
+                pathState={
+                  path?.size ? (path.has(node.matchId) ? 'included' : 'excluded') : undefined
+                }
+                highlightEntrantId={highlightEntrantId}
+                onHighlightEntrant={onHighlightEntrant}
+                names={names}
+              />
             ))}
           </div>
         </div>
@@ -139,6 +170,137 @@ export function BracketCanvas({
     </div>
   );
 }
+
+/**
+ * One node, `<article>` normally, an `<a>` carrying the same `cl-chamfer`/positioning styles
+ * when `href` resolves. `cl-chamfer` cuts its corners via `border-radius`/`corner-shape`, never
+ * `clip-path`, precisely so a `cl-focusable` ring on the *same* element still traces the
+ * chamfer — putting the ring on a separate rectangular wrapper around the card (an earlier
+ * version of this) drew a ring that didn't match the card's shape at all.
+ */
+function BracketNode({
+  focused,
+  focusedRef,
+  href,
+  node,
+  pathState,
+  highlightEntrantId,
+  onHighlightEntrant,
+  names,
+}: {
+  readonly focused: boolean;
+  /** Set only on the focused node, so `BracketCanvas` can scroll it into view on mount. */
+  readonly focusedRef: React.RefObject<HTMLElement | null> | undefined;
+  readonly href: string | undefined;
+  readonly node: LaidOutMatch;
+  readonly pathState?: 'included' | 'excluded';
+  readonly highlightEntrantId?: string;
+  readonly onHighlightEntrant?: (entrantId?: string) => void;
+  readonly names: Readonly<Record<string, string>>;
+}): React.JSX.Element {
+  const intl = useIntl();
+  const interactive = onHighlightEntrant !== undefined;
+  const children = (
+    <>
+      <header style={nodeHeaderStyle}>
+        {interactive && href !== undefined ? (
+          <a className="cl-focusable" href={href} onClick={controlLinkClick(href)}>
+            {node.matchId}
+          </a>
+        ) : (
+          <span>{node.matchId}</span>
+        )}
+        {node.format === undefined ? null : <span className="cl-badge">{node.format}</span>}
+      </header>
+      {node.slots.map((slot, index) => (
+        <div key={`${node.matchId}-${index}`} style={slot.pending ? pendingSlotStyle : slotStyle}>
+          {/* Named, never blank: "Ganador del WB-R1-M2" tells an
+              operator what has to happen; an empty box reads as a bug. */}
+          {interactive && slot.entrantId !== undefined ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="cl-journey-name"
+              aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                entrant: names[slot.entrantId] ?? slot.label,
+              })}
+              aria-pressed={highlightEntrantId === slot.entrantId}
+              onClick={() =>
+                onHighlightEntrant(
+                  slot.entrantId === highlightEntrantId ? undefined : slot.entrantId,
+                )
+              }
+            >
+              {names[slot.entrantId] ?? slot.label}
+            </Button>
+          ) : (
+            <span>
+              {slot.entrantId === undefined ? slot.label : (names[slot.entrantId] ?? slot.label)}
+            </span>
+          )}
+          <span style={scoreStyle}>{slot.score ?? '—'}</span>
+        </div>
+      ))}
+    </>
+  );
+
+  const positionStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: node.x,
+    top: node.y,
+    width: node.width,
+    minHeight: node.height,
+    // Same treatment the public bracket-context panel gives its focused node — one
+    // "look here" cue reused across both surfaces, not two different ones to learn.
+    ...(focused ? { borderWidth: 2, borderColor: 'var(--cl-primary)' } : {}),
+  };
+
+  if (href === undefined || interactive) {
+    return (
+      <article
+        className={NODE_CLASS_NAME}
+        data-bracket={node.bracket}
+        data-focused={focused ? 'true' : undefined}
+        data-match={node.matchId}
+        data-entrant-path={pathState}
+        ref={focusedRef as React.RefObject<HTMLElement>}
+        style={{ ...positionStyle, ...nodeContentStyle }}
+      >
+        {children}
+      </article>
+    );
+  }
+
+  return (
+    <a
+      className={`${NODE_CLASS_NAME} cl-focusable`}
+      data-bracket={node.bracket}
+      data-focused={focused ? 'true' : undefined}
+      data-match={node.matchId}
+      data-entrant-path={pathState}
+      href={href}
+      onClick={controlLinkClick(href)}
+      ref={focusedRef as React.RefObject<HTMLAnchorElement>}
+      style={{
+        ...positionStyle,
+        ...nodeContentStyle,
+        color: 'inherit',
+        textDecoration: 'none',
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+
+/** Shared so the source only names `cl-card` once — see check-ui-ownership.mjs's per-file ratchet. */
+const NODE_CLASS_NAME = 'cl-card cl-chamfer';
+
+const nodeContentStyle: React.CSSProperties = {
+  padding: 'var(--cl-space-2)',
+  display: 'grid',
+  gap: 2,
+};
 
 const wrapperStyle: React.CSSProperties = {
   display: 'grid',

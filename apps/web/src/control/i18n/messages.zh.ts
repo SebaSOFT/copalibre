@@ -4,6 +4,9 @@
  * ship now, native-speaker review later.
  */
 export const messages: Record<string, string> = {
+  'control.bracket.highlightEntrant': '突出显示{entrant}的晋级路线',
+  'control.bracket.highlightHint':
+    '选择参赛者查看其路线。再次选择或按 Escape 清除。未来比赛显示继续获胜时的可能路线。',
   'control.shell.sections': '版块',
   'control.shell.whatIsThisScreen': '这是什么界面？',
   'control.shell.openNavigation': '打开导航菜单',
@@ -162,6 +165,9 @@ export const messages: Record<string, string> = {
   'control.matchConsole.endSegment': '结束本节',
   'control.matchConsole.expandLedger': '查看完整记录',
   'control.matchConsole.collapseLedger': '收起',
+  'control.matchConsole.bracketContext': '该场比赛在赛程图中的位置',
+  'control.matchConsole.expandBracket': '显示赛程图',
+  'control.matchConsole.collapseBracket': '隐藏赛程图',
   'control.matchConsole.refusedAction': '被拒绝（{kind}）：{reason}',
   'control.matchConsole.refusedContents': '你记录的内容：{contents}',
   'control.matchConsole.dismiss': '关闭',

@@ -4,6 +4,9 @@
  * `primaryLanguage: "es"` sees no behavior change from this refactor.
  */
 export const messages: Record<string, string> = {
+  'control.bracket.highlightEntrant': 'Resaltar recorrido de {entrant}',
+  'control.bracket.highlightHint':
+    'Seleccioná un participante para seguir su recorrido. Seleccioná de nuevo o presioná Escape para quitar el resaltado. Los partidos futuros muestran su posible recorrido si gana.',
   'control.shell.sections': 'Secciones',
   'control.shell.whatIsThisScreen': '¿Qué es esta pantalla?',
   'control.shell.openNavigation': 'Abrir menú de navegación',
@@ -167,6 +170,9 @@ export const messages: Record<string, string> = {
   'control.matchConsole.endSegment': 'Terminar período',
   'control.matchConsole.expandLedger': 'Ver historial completo',
   'control.matchConsole.collapseLedger': 'Ver menos',
+  'control.matchConsole.bracketContext': 'Ubicación en la llave',
+  'control.matchConsole.expandBracket': 'Mostrar llave',
+  'control.matchConsole.collapseBracket': 'Ocultar llave',
   'control.matchConsole.refusedAction': 'Rechazado ({kind}): {reason}',
   'control.matchConsole.refusedContents': 'Registraste: {contents}',
   'control.matchConsole.dismiss': 'Descartar',

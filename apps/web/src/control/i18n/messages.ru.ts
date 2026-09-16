@@ -6,6 +6,9 @@
  * two — `react-intl`'s `Intl.PluralRules` selects the right branch for `ru`.
  */
 export const messages: Record<string, string> = {
+  'control.bracket.highlightEntrant': 'Выделить путь участника {entrant}',
+  'control.bracket.highlightHint':
+    'Выберите участника, чтобы увидеть его путь. Нажмите повторно или Escape для сброса. Будущие матчи показывают возможный путь при победах.',
   'control.shell.sections': 'Разделы',
   'control.shell.whatIsThisScreen': 'Что это за экран?',
   'control.shell.openNavigation': 'Открыть меню навигации',
@@ -169,6 +172,9 @@ export const messages: Record<string, string> = {
   'control.matchConsole.endSegment': 'Завершить период',
   'control.matchConsole.expandLedger': 'Показать всю историю',
   'control.matchConsole.collapseLedger': 'Показать меньше',
+  'control.matchConsole.bracketContext': 'Место в турнирной сетке',
+  'control.matchConsole.expandBracket': 'Показать сетку',
+  'control.matchConsole.collapseBracket': 'Скрыть сетку',
   'control.matchConsole.refusedAction': 'Отклонено ({kind}): {reason}',
   'control.matchConsole.refusedContents': 'Вы записали: {contents}',
   'control.matchConsole.dismiss': 'Скрыть',
