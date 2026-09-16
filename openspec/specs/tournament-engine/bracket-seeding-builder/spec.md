@@ -124,3 +124,31 @@ another node's slots, score, or connections.
 - **WHEN** the bracket canvas is rendered with a focus target that does not match any node in its
   structure
 - **THEN** the canvas renders normally with no node emphasized and no error
+
+### Requirement: Bracket canvas can highlight one entrant's path
+The bracket canvas SHALL support highlighting one entrant's path through the structure — every match
+it occupies a slot in, plus, while it remains alive, its potential winning chain of not-yet-resolved
+matches — with path matches at full presentation carrying an explicit marker and non-path matches at
+reduced emphasis. This mode SHALL NOT alter the structural rendering the canvas's existing "renders
+engine-generated structure" requirement governs.
+
+#### Scenario: An operator highlights an entrant's path
+- **WHEN** an operator activates highlighting for an entrant present in the canvas
+- **THEN** every match on that entrant's path renders with an explicit marker at full presentation, and
+  every other match renders at reduced emphasis
+
+#### Scenario: Highlighting an eliminated entrant stops at elimination
+- **WHEN** an operator activates highlighting for an entrant a resolved match has already eliminated
+- **THEN** the highlighted path ends at the eliminating match, with no future match included
+
+#### Scenario: A first loss continues into the losers' bracket
+- **WHEN** the selected entrant lost a resolved match with a declared `loser-of` continuation
+- **THEN** the path follows that continuation and does not classify the first loss as elimination
+
+#### Scenario: Graph identity survives repeated round positions
+- **WHEN** multiple matches have the same position in different rounds or branches
+- **THEN** highlighting follows exact structural match/source ids without confusing those nodes
+
+#### Scenario: Highlighting can be cleared with a keyboard
+- **WHEN** the visitor activates the selected entrant again or presses Escape within the bracket
+- **THEN** all matches return to normal emphasis and activation buttons expose their pressed state

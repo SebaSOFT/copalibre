@@ -177,3 +177,44 @@ presentation resolves through declared tokens" requirement.
 - **WHEN** a visitor interacts with the bracket-context panel on a match report page
 - **THEN** the panel offers a way to reach the stage's full bracket page rather than replicating its
   full interactive structure inline
+
+### Requirement: A spectator can highlight one entrant's path through the bracket
+The public bracket view SHALL let a visitor activate one entrant named in it and, on activation, SHALL
+visually emphasize every match on that entrant's path (every match it occupies a slot in, plus, only
+while it remains alive, its potential winning chain of not-yet-resolved matches) while every other match
+renders at reduced emphasis. The distinction SHALL NOT rely on reduced emphasis alone: a path match
+SHALL carry an explicit marker in addition to full presentation. The bracket SHALL remain fully correct
+and complete with no entrant highlighted and with JavaScript unavailable, identically to its behavior
+before this requirement existed.
+
+#### Scenario: Activating an entrant highlights its path
+- **WHEN** a visitor activates an entrant named in the bracket
+- **THEN** every match that entrant has played, and — while still alive — its next not-yet-resolved
+  match, renders with full presentation and an explicit path marker, and every other match renders at
+  reduced emphasis
+
+#### Scenario: An eliminated entrant's path stops at elimination
+- **WHEN** a visitor activates an entrant that a resolved match has already eliminated
+- **THEN** the highlighted path includes every match that entrant played and ends there, with no
+  hypothetical future match included
+
+#### Scenario: The bracket works with no entrant activated and no JavaScript
+- **WHEN** a visitor with JavaScript unavailable views the bracket
+- **THEN** every match, slot, and outcome renders completely and correctly, with no entrant activation
+  control appearing to offer functionality that cannot work
+
+#### Scenario: Path marking is not colour-dependent
+- **WHEN** an entrant's path is highlighted
+- **THEN** a path match is distinguishable from a non-path match by more than colour or opacity alone
+
+#### Scenario: A first loss continues into the losers' bracket
+- **WHEN** the selected entrant lost a resolved match with a declared `loser-of` continuation
+- **THEN** the path follows that continuation and does not classify the first loss as elimination
+
+#### Scenario: Graph identity survives repeated round positions
+- **WHEN** multiple matches have the same position in different rounds or branches
+- **THEN** highlighting follows exact structural match/source ids without confusing those nodes
+
+#### Scenario: Highlighting can be cleared with a keyboard
+- **WHEN** the visitor activates the selected entrant again or presses Escape within the bracket
+- **THEN** all matches return to normal emphasis and activation buttons expose their pressed state
