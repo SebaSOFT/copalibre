@@ -10,6 +10,7 @@ import {
   type LaidOutMatch,
 } from '../lib/bracket-canvas.js';
 import { Button } from './ui/atoms/button.js';
+import { Badge } from './ui/atoms/badge.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
 
@@ -57,9 +58,14 @@ export function BracketCanvas({
 }): React.JSX.Element {
   const intl = useIntl();
   const interactive = onHighlightEntrant !== undefined;
+  const hasSeries = matches.some((m) => m.series !== undefined);
   const layout = layoutBracket(
     matches,
-    interactive ? { ...DEFAULT_GEOMETRY, nodeHeight: 88 } : DEFAULT_GEOMETRY,
+    interactive
+      ? { ...DEFAULT_GEOMETRY, nodeHeight: hasSeries ? 128 : 88 }
+      : hasSeries
+        ? { ...DEFAULT_GEOMETRY, nodeHeight: 104 }
+        : DEFAULT_GEOMETRY,
   );
   const path =
     highlightEntrantId === undefined ? undefined : canvasEntrantPath(matches, highlightEntrantId);
@@ -241,6 +247,68 @@ function BracketNode({
           <span style={scoreStyle}>{slot.score ?? '—'}</span>
         </div>
       ))}
+      {node.series !== undefined && (
+        <div
+          data-series-status={node.series.status === 'decided' ? 'decided' : 'undecided'}
+          style={seriesIndicatorStyle}
+        >
+          <div style={seriesIndicatorHeaderStyle}>
+            <span style={seriesScoreStyle}>
+              <FormattedMessage
+                {...messages.bracketSeriesScore}
+                values={{
+                  home: node.series.homeGamesWon,
+                  away: node.series.awayGamesWon,
+                }}
+              />
+            </span>
+            <Badge
+              label={intl.formatMessage(
+                node.series.status === 'decided'
+                  ? messages.bracketSeriesDecided
+                  : messages.bracketSeriesPending,
+              )}
+            />
+          </div>
+          {node.series.status === 'decided' &&
+            node.series.games.some((game) => game.status === 'not-required') && (
+              <span data-testid="series-anulled" style={seriesLegsStyle}>
+                <FormattedMessage
+                  {...messages.bracketSeriesAnulled}
+                  values={{
+                    count: node.series.games.filter((game) => game.status === 'not-required')
+                      .length,
+                    legs: node.series.games
+                      .filter((game) => game.status === 'not-required')
+                      .map((game) => game.number)
+                      .join(', '),
+                  }}
+                />
+              </span>
+            )}
+          {node.series.status !== 'decided' &&
+            node.series.games.some(
+              (game) => game.status === 'scheduled' || game.status === 'in-progress',
+            ) && (
+              <span data-testid="series-remaining" style={seriesLegsStyle}>
+                <FormattedMessage
+                  {...messages.bracketSeriesRemaining}
+                  values={{
+                    count: node.series.games.filter(
+                      (game) => game.status === 'scheduled' || game.status === 'in-progress',
+                    ).length,
+                    legs: node.series.games
+                      .filter(
+                        (game) => game.status === 'scheduled' || game.status === 'in-progress',
+                      )
+                      .map((game) => game.number)
+                      .join(', '),
+                  }}
+                />
+              </span>
+            )}
+        </div>
+      )}
     </>
   );
 
@@ -344,4 +412,24 @@ const mutedStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
   fontSize: 'var(--cl-font-size-xs)',
+};
+const seriesIndicatorStyle: React.CSSProperties = {
+  display: 'grid',
+  gap: 'var(--cl-space-1)',
+  borderTop: '1px solid var(--cl-border-muted)',
+  paddingTop: 'var(--cl-space-1)',
+  marginTop: 'var(--cl-space-1)',
+  fontSize: 'var(--cl-font-size-xs)',
+  fontFamily: 'var(--cl-font-mono)',
+};
+const seriesIndicatorHeaderStyle: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+};
+const seriesScoreStyle: React.CSSProperties = {
+  fontWeight: 'var(--cl-font-weight-bold)',
+};
+const seriesLegsStyle: React.CSSProperties = {
+  color: 'var(--cl-text-muted)',
 };

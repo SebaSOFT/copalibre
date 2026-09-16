@@ -109,6 +109,13 @@ export const messages: Record<string, string> = {
   'control.bracket.zoomIn': 'Ingrandisci',
   'control.bracket.empty': 'Non è stata ancora generata alcuna struttura per questa fase.',
   'control.bracket.groupLabel': 'Tabellone',
+  'control.bracket.seriesDecided': 'Decisa',
+  'control.bracket.seriesPending': 'In sospeso',
+  'control.bracket.seriesScore': 'Serie: {home}–{away}',
+  'control.bracket.seriesRemaining':
+    'Rimanente: {count, plural, one {partita {legs}} other {partite {legs}}}',
+  'control.bracket.seriesAnulled':
+    'Annullata: {count, plural, one {partita {legs}} other {partite {legs}}}',
 
   'control.mutation.blockedAfterResults':
     'Questa modifica non può più essere applicata con la modifica normale: usa il flusso di correzione verificata.',

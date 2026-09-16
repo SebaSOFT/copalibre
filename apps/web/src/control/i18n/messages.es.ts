@@ -109,6 +109,13 @@ export const messages: Record<string, string> = {
   'control.bracket.zoomIn': 'Acercar',
   'control.bracket.empty': 'Todavía no hay estructura generada para esta fase.',
   'control.bracket.groupLabel': 'Llave',
+  'control.bracket.seriesDecided': 'Decidida',
+  'control.bracket.seriesPending': 'Pendiente',
+  'control.bracket.seriesScore': 'Serie: {home}–{away}',
+  'control.bracket.seriesRemaining':
+    'Restante: {count, plural, one {partida {legs}} other {partidas {legs}}}',
+  'control.bracket.seriesAnulled':
+    'Anulada: {count, plural, one {partida {legs}} other {partidas {legs}}}',
 
   'control.mutation.blockedAfterResults':
     'Este cambio ya no se puede aplicar desde edición normal: usá el flujo de corrección auditada.',

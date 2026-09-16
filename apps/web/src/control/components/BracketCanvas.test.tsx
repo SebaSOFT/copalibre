@@ -140,3 +140,135 @@ it('toggles journey selection without nesting buttons inside report links', () =
   fireEvent.keyDown(button, { key: 'Escape' });
   expect(callback).toHaveBeenLastCalledWith(undefined);
 });
+
+describe('BracketCanvas series progress indicator', () => {
+  const inProgressSeriesMatch: CanvasMatch = {
+    matchId: 'WB-R1-M1',
+    bracket: 'winners',
+    round: 1,
+    position: 1,
+    status: 'in-progress',
+    slots: [
+      { kind: 'entrant', entrantId: 'team-a', score: 1 },
+      { kind: 'entrant', entrantId: 'team-b', score: 0 },
+    ],
+    series: {
+      span: 3,
+      resolutionClass: 'best-of',
+      status: 'undecided',
+      homeGamesWon: 1,
+      awayGamesWon: 0,
+      explanation: 'Best-of-3 series stands at 1-0',
+      games: [
+        { number: 1, status: 'finalized', winner: 'home', scores: [2, 1] },
+        { number: 2, status: 'scheduled' },
+        { number: 3, status: 'scheduled' },
+      ],
+    },
+  };
+
+  const decidedSeriesMatch: CanvasMatch = {
+    matchId: 'WB-R1-M2',
+    bracket: 'winners',
+    round: 1,
+    position: 2,
+    status: 'finalized',
+    slots: [
+      { kind: 'entrant', entrantId: 'team-c', score: 2 },
+      { kind: 'entrant', entrantId: 'team-d', score: 0 },
+    ],
+    series: {
+      span: 3,
+      resolutionClass: 'best-of',
+      status: 'decided',
+      winner: 'home',
+      winnerEntrantId: 'team-c',
+      homeGamesWon: 2,
+      awayGamesWon: 0,
+      explanation: 'Best-of-3 series won by team-c (2-0)',
+      games: [
+        { number: 1, status: 'finalized', winner: 'home', scores: [3, 0] },
+        { number: 2, status: 'finalized', winner: 'home', scores: [2, 1] },
+        { number: 3, status: 'not-required' },
+      ],
+    },
+  };
+
+  const nonSeriesMatch: CanvasMatch = {
+    matchId: 'WB-R1-M3',
+    bracket: 'winners',
+    round: 1,
+    position: 3,
+    status: 'scheduled',
+    slots: [
+      { kind: 'entrant', entrantId: 'team-e' },
+      { kind: 'entrant', entrantId: 'team-f' },
+    ],
+  };
+
+  it('renders series indicator for an in-progress series with score, pending label, and remaining legs', () => {
+    render(withIntl(<BracketCanvas matches={[inProgressSeriesMatch]} zoom={1} />));
+
+    const node = screen.getByText('WB-R1-M1').closest('[data-match]');
+    expect(node).not.toBeNull();
+    const indicator = node?.querySelector('[data-series-status]');
+    expect(indicator).not.toBeNull();
+    expect(indicator?.getAttribute('data-series-status')).toBe('undecided');
+
+    expect(screen.getByText('Series: 1–0')).not.toBeNull();
+    expect(screen.getByText('Pending')).not.toBeNull();
+    expect(screen.getByTestId('series-remaining').textContent).toContain('Remaining: Legs 2, 3');
+    expect(screen.queryByTestId('series-anulled')).toBeNull();
+  });
+
+  it('renders series indicator for a decided series with score, decided label, and anulled legs', () => {
+    render(withIntl(<BracketCanvas matches={[decidedSeriesMatch]} zoom={1} />));
+
+    const node = screen.getByText('WB-R1-M2').closest('[data-match]');
+    expect(node).not.toBeNull();
+    const indicator = node?.querySelector('[data-series-status]');
+    expect(indicator).not.toBeNull();
+    expect(indicator?.getAttribute('data-series-status')).toBe('decided');
+
+    expect(screen.getByText('Series: 2–0')).not.toBeNull();
+    expect(screen.getByText('Decided')).not.toBeNull();
+    expect(screen.getByTestId('series-anulled').textContent).toContain('Anulled: Leg 3');
+    expect(screen.queryByTestId('series-remaining')).toBeNull();
+  });
+
+  it('does not render series indicator for a non-series node', () => {
+    render(withIntl(<BracketCanvas matches={[nonSeriesMatch]} zoom={1} />));
+
+    const node = screen.getByText('WB-R1-M3').closest('[data-match]');
+    expect(node).not.toBeNull();
+    const indicator = node?.querySelector('[data-series-status]');
+    expect(indicator).toBeNull();
+    expect(screen.queryByText(/Series:/)).toBeNull();
+  });
+
+  it('distinguishes decided vs pending state using distinct text labels and data attributes without relying on colour alone', () => {
+    render(
+      withIntl(<BracketCanvas matches={[inProgressSeriesMatch, decidedSeriesMatch]} zoom={1} />),
+    );
+
+    const pendingNode = screen.getByText('WB-R1-M1').closest('[data-match]');
+    const decidedNode = screen.getByText('WB-R1-M2').closest('[data-match]');
+
+    const pendingIndicator = pendingNode?.querySelector('[data-series-status]');
+    const decidedIndicator = decidedNode?.querySelector('[data-series-status]');
+
+    // Structural attribute distinction
+    expect(pendingIndicator?.getAttribute('data-series-status')).toBe('undecided');
+    expect(decidedIndicator?.getAttribute('data-series-status')).toBe('decided');
+
+    // Textual distinction (WCAG non-colour requirement)
+    expect(pendingIndicator?.textContent).toContain('Pending');
+    expect(decidedIndicator?.textContent).toContain('Decided');
+    expect(pendingIndicator?.textContent).not.toContain('Decided');
+    expect(decidedIndicator?.textContent).not.toContain('Pending');
+
+    // Content distinction: pending announces remaining legs; decided announces anulled legs
+    expect(pendingIndicator?.textContent).toContain('Remaining: Legs 2, 3');
+    expect(decidedIndicator?.textContent).toContain('Anulled: Leg 3');
+  });
+});

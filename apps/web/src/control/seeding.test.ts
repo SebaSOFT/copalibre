@@ -231,6 +231,42 @@ describe('layoutBracket', () => {
     expect(layoutBracket([])).toMatchObject({ matches: [], connectors: [], width: 0, height: 0 });
   });
 
+  it('preserves series state through layoutBracket', () => {
+    const seriesMatch: CanvasMatch = {
+      matchId: 'WB-R1-M1',
+      bracket: 'winners',
+      round: 1,
+      position: 1,
+      status: 'in-progress',
+      slots: [
+        { kind: 'entrant', entrantId: 'a', score: 1 },
+        { kind: 'entrant', entrantId: 'b', score: 0 },
+      ],
+      series: {
+        span: 3,
+        resolutionClass: 'best-of',
+        games: [
+          { number: 1, status: 'finalized', scores: [2, 1], winnerEntrantId: 'a', winner: 'home' },
+          { number: 2, status: 'scheduled' },
+          { number: 3, status: 'scheduled' },
+        ],
+        homeGamesWon: 1,
+        awayGamesWon: 0,
+        status: 'undecided',
+        explanation: 'Series is in progress',
+      },
+    };
+
+    const layout = layoutBracket([seriesMatch]);
+    const node = nodeOf(layout, 'WB-R1-M1');
+
+    expect(node.series).toBeDefined();
+    expect(node.series).toEqual(seriesMatch.series);
+    expect(node.series?.status).toBe('undecided');
+    expect(node.series?.homeGamesWon).toBe(1);
+    expect(node.series?.awayGamesWon).toBe(0);
+  });
+
   it('carries persistedMatchId through layout for a materialized node and leaves it absent otherwise', () => {
     const matches = singleElimination(4).map((match) =>
       match.matchId === 'SE-R1-M1' ? { ...match, persistedMatchId: 'real-match-id' } : match,
