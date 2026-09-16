@@ -86,7 +86,11 @@ for (const width of [375, 1440]) {
       bracket.locator('[data-journey-match="WB-R1-M2"][data-entrant-path="excluded"]'),
     ).toHaveCount(2);
     const marked = bracket.locator('[data-entrant-path="included"]:visible').first();
-    await expect(marked).toHaveCSS('outline-style', 'double');
+    if (width === 375) {
+      await expect(marked).toHaveCSS('border-left-style', 'solid');
+    } else {
+      await expect(marked.locator('.cl-card')).toHaveCSS('box-shadow', /rgb\(0, 212, 255\)/);
+    }
     await expect(page).toHaveURL(new RegExp(`${route}$`));
     await button.press('Escape');
     await expect(bracket.locator('[data-entrant-path]')).toHaveCount(0);

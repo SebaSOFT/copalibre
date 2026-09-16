@@ -1,7 +1,14 @@
-/* A shape cue survives monochrome and print; unrelated matches retain readable contrast. */
-[data-entrant-path='included'] {
-  outline: var(--cl-space-1) double var(--cl-text-primary);
-  outline-offset: var(--cl-space-1);
+/* The highlighted path traces the chamfered card with a Signal Cyan ring; unrelated matches retain readable contrast. */
+[data-entrant-path='included'] .cl-card,
+:is(article, a)[data-entrant-path='included'].cl-card {
+  box-shadow:
+    0 0 0 1px var(--cl-surface-base),
+    0 0 0 3px var(--cl-primary);
+}
+
+li[data-entrant-path='included'] {
+  border-left: var(--cl-space-1) solid var(--cl-primary);
+  padding-left: var(--cl-space-2);
 }
 
 [data-entrant-path='excluded'] {
