@@ -14615,6 +14615,14 @@
             "items": {
               "$ref": "#/components/schemas/BracketSlotResponse"
             }
+          },
+          "series": {
+            "description": "Present only on a cross settled by a series",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicSeriesStateResponse"
+              }
+            ]
           }
         },
         "required": [

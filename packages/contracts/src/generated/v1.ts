@@ -4125,6 +4125,8 @@ export interface components {
              */
             format?: string;
             slots: components["schemas"]["BracketSlotResponse"][];
+            /** @description Present only on a cross settled by a series */
+            series?: components["schemas"]["PublicSeriesStateResponse"];
         };
         SeedingResponse: {
             /** Format: uuid */
