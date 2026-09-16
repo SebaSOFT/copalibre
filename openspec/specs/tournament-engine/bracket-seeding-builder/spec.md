@@ -152,3 +152,25 @@ engine-generated structure" requirement governs.
 #### Scenario: Highlighting can be cleared with a keyboard
 - **WHEN** the visitor activates the selected entrant again or presses Escape within the bracket
 - **THEN** all matches return to normal emphasis and activation buttons expose their pressed state
+
+### Requirement: Bracket canvas shows series progress for a cross a series settles
+Where a cross rendered in the bracket canvas is settled by a series, the canvas SHALL show that
+series's current state — legs played, running score, decided-or-pending status, and any anulled leg —
+resolved by the same series-resolution logic the public bracket already uses, rather than rendering the
+series's legs as unrelated matches. A cross not settled by a series SHALL render exactly as it does
+today, with no series indicator.
+
+#### Scenario: An in-progress series shows its running state
+- **WHEN** an operator views a bracket canvas node whose cross is settled by a series with some but not
+  all legs played
+- **THEN** the node shows the series' current score and which legs remain to be played
+
+#### Scenario: A decided series shows its outcome and anulled legs
+- **WHEN** an operator views a bracket canvas node whose series has already been decided before every
+  possible leg was played
+- **THEN** the node shows the decided outcome and identifies which remaining legs the decision anulled
+
+#### Scenario: A cross with no series declaration is unaffected
+- **WHEN** an operator views a bracket canvas node for a cross with no series declaration
+- **THEN** the node renders exactly as it does without this requirement, with no series indicator
+
