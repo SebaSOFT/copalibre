@@ -4,9 +4,15 @@ import {
   type SeriesDeclaration,
   type SeriesResolutionResult,
 } from '@copalibre/domain';
-import { CompetitionRepository, TournamentRepository, type Database } from '@copalibre/persistence';
+import {
+  CompetitionRepository,
+  TournamentRepository,
+  type Database,
+  type StageMatchRecord,
+} from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { ConflictException } from '../http/error-contract.js';
+import type { PublicSeriesStateResponse } from '../dto/public-tournament.dto.js';
 
 /**
  * Reads a stage's effective series declaration out of the dot-path `OverrideSet` it is
@@ -389,4 +395,65 @@ function scoreOf(
 ): number {
   const side = result.sides.find((candidate) => candidate.entrantId === entrantId);
   return side?.statistics?.score ?? side?.statistics?.goals ?? side?.statistics?.points ?? 0;
+}
+
+/**
+ * Every cross of a stage that a series settles, keyed by `round:position`.
+ * Returns an empty map when no series is declared.
+ */
+export async function readStageSeriesByPosition(
+  db: Kysely<Database>,
+  input: {
+    readonly tournamentId: string;
+    readonly stageId: string;
+    readonly records: readonly StageMatchRecord[];
+  },
+): Promise<ReadonlyMap<string, PublicSeriesState>> {
+  const declaration = await readStageSeries(db, {
+    tournamentId: input.tournamentId,
+    stageId: input.stageId,
+  });
+  if (declaration === undefined) return new Map();
+
+  const matches = await new CompetitionRepository(db).listMatchesForStage(input.stageId);
+  const byFixture = new Map<string, typeof matches>();
+  for (const match of matches) {
+    byFixture.set(match.fixtureId, [...(byFixture.get(match.fixtureId) ?? []), match]);
+  }
+
+  const states = new Map<string, PublicSeriesState>();
+  for (const record of input.records) {
+    const games = byFixture.get(record.fixtureId) ?? [];
+    const state = publicSeriesState({
+      declaration,
+      ...(record.homeEntrantId === undefined ? {} : { homeEntrantId: record.homeEntrantId }),
+      ...(record.awayEntrantId === undefined ? {} : { awayEntrantId: record.awayEntrantId }),
+      games,
+    });
+    if (state !== undefined) states.set(`${record.round}:${record.position}`, state);
+  }
+  return states;
+}
+
+export function seriesResponseOf(series: PublicSeriesState): PublicSeriesStateResponse {
+  return {
+    span: series.span,
+    ...(series.resolutionClass === undefined ? {} : { resolutionClass: series.resolutionClass }),
+    games: series.games.map((game) => ({
+      number: game.number,
+      status: game.status,
+      ...(game.winnerEntrantId === undefined ? {} : { winnerEntrantId: game.winnerEntrantId }),
+      ...(game.winner === undefined ? {} : { winner: game.winner }),
+      ...(game.scores === undefined ? {} : { scores: [...game.scores] }),
+    })),
+    homeGamesWon: series.homeGamesWon,
+    awayGamesWon: series.awayGamesWon,
+    ...(series.aggregateScores === undefined
+      ? {}
+      : { aggregateScores: [...series.aggregateScores] }),
+    status: series.status,
+    ...(series.winnerEntrantId === undefined ? {} : { winnerEntrantId: series.winnerEntrantId }),
+    ...(series.winner === undefined ? {} : { winner: series.winner }),
+    explanation: series.explanation,
+  };
 }
