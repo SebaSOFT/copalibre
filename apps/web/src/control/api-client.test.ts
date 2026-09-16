@@ -608,4 +608,43 @@ describe('the control API client', () => {
       'https://api.copalibre.test/organizations/liga-orbital/tournaments/copa-verano/emblem',
     );
   });
+
+  it('fetches tournament completion with authorization token', async () => {
+    const calls: Array<{ url: string; method: string; token?: string }> = [];
+    const client = createControlApiClient({
+      accessToken: () => 'control-token',
+      fetch: async (input, init) => {
+        const headers =
+          init?.headers instanceof Headers ? init.headers : new Headers(init?.headers);
+        calls.push({
+          url: String(input),
+          method: init?.method ?? 'GET',
+          token: headers.get('authorization') ?? undefined,
+        });
+        return response({
+          totalMatches: 10,
+          resolvedMatches: 6,
+          liveMatches: 2,
+          scheduledMatches: 2,
+          stages: [],
+        });
+      },
+    });
+
+    const completion = await client.fetchCompletion?.('liga-orbital', 'copa-verano');
+    expect(completion).toEqual({
+      totalMatches: 10,
+      resolvedMatches: 6,
+      liveMatches: 2,
+      scheduledMatches: 2,
+      stages: [],
+    });
+    expect(calls).toEqual([
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/completion',
+        method: 'GET',
+        token: 'Bearer control-token',
+      },
+    ]);
+  });
 });

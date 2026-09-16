@@ -1140,6 +1140,84 @@ describe('organization-scoped tournament routes', () => {
     );
     expect(found).toBeUndefined();
   });
+
+  it('applies visibility rules to GET completion: allows public access for published, requires auth for draft', async () => {
+    const tournaments = new TournamentRepository(scratch.db as Kysely<Database>);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+    });
+
+    const createdResponse = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'completion-visibility-test',
+        name: 'Completion Visibility Test',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        stages: [{ format: 'single-elimination' }],
+        publicRegistration: true,
+        requiresCheckIn: false,
+        customScripts: [],
+      },
+    });
+    expect(createdResponse.statusCode).toBe(201);
+    const created = JSON.parse(createdResponse.payload as string);
+    const tournamentId = created.tournamentId;
+
+    // 1. Unpublished (draft) tournament requested publicly (anonymous) -> 404
+    const anonDraftResponse = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+    });
+    expect(anonDraftResponse.statusCode).toBe(404);
+    const anonDraftBody = JSON.parse(anonDraftResponse.payload as string);
+    expect(anonDraftBody.errorCode).toBe('tournament-not-found');
+
+    // 2. Unpublished (draft) tournament requested by authorized organizer -> 200
+    const authDraftResponse = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+      token: 'organizer-org1',
+    });
+    expect(authDraftResponse.statusCode).toBe(200);
+    const authDraftBody = JSON.parse(authDraftResponse.payload as string);
+    expect(authDraftBody.totalMatches).toBe(0);
+    expect(authDraftBody.stages).toHaveLength(1);
+
+    // Publish the tournament
+    await (scratch.db as Kysely<Database>)
+      .updateTable('tournaments')
+      .set({ status: 'published' })
+      .where('tournament_id', '=', tournamentId)
+      .execute();
+
+    // 3. Published tournament requested publicly (anonymous) -> 200
+    const anonPubResponse = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+    });
+    expect(anonPubResponse.statusCode).toBe(200);
+    const anonPubBody = JSON.parse(anonPubResponse.payload as string);
+    expect(anonPubBody.totalMatches).toBe(0);
+    expect(anonPubBody.stages).toHaveLength(1);
+
+    // 4. Published tournament requested by authorized organizer -> 200
+    const authPubResponse = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+      token: 'organizer-org1',
+    });
+    expect(authPubResponse.statusCode).toBe(200);
+    const authPubBody = JSON.parse(authPubResponse.payload as string);
+    expect(authPubBody.totalMatches).toBe(0);
+  });
 });
 
 function collectObjectKeys(value: unknown): string[] {

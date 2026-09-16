@@ -529,6 +529,46 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/completion": {
+      "get": {
+        "description": "Available publicly for published tournaments, and with organization-scoped authorization for unpublished tournaments.",
+        "operationId": "TournamentsController_completion",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentCompletionResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Tournament completion overview with per-stage and tournament-wide rollups",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/export": {
       "get": {
         "operationId": "TournamentsController_exportConfiguration",
@@ -11349,6 +11389,118 @@
           "alias",
           "name",
           "status"
+        ]
+      },
+      "StageCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUIDv7 identifier"
+          },
+          "stageNumber": {
+            "type": "number",
+            "description": "1-based stage order in the tournament",
+            "example": 1
+          },
+          "stageName": {
+            "type": "string",
+            "description": "Stage name",
+            "example": "Group Stage"
+          },
+          "totalMatches": {
+            "type": "number",
+            "description": "Total matches in the stage, excluding cancelled/not-required",
+            "example": 12
+          },
+          "resolvedMatches": {
+            "type": "number",
+            "description": "Resolved matches (finalized + forfeited)",
+            "example": 8
+          },
+          "liveMatches": {
+            "type": "number",
+            "description": "Live / in-progress matches",
+            "example": 1
+          },
+          "scheduledMatches": {
+            "type": "number",
+            "description": "Scheduled matches not yet played",
+            "example": 3
+          },
+          "finalizedMatches": {
+            "type": "number",
+            "description": "Finalized matches",
+            "example": 7
+          },
+          "forfeitedMatches": {
+            "type": "number",
+            "description": "Forfeited matches",
+            "example": 1
+          }
+        },
+        "required": [
+          "stageId",
+          "stageNumber",
+          "stageName",
+          "totalMatches",
+          "resolvedMatches",
+          "liveMatches",
+          "scheduledMatches",
+          "finalizedMatches",
+          "forfeitedMatches"
+        ]
+      },
+      "TournamentCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "totalMatches": {
+            "type": "number",
+            "description": "Total matches across all stages, excluding cancelled/not-required",
+            "example": 32
+          },
+          "resolvedMatches": {
+            "type": "number",
+            "description": "Total resolved matches across all stages (finalized + forfeited)",
+            "example": 18
+          },
+          "liveMatches": {
+            "type": "number",
+            "description": "Total live matches across all stages",
+            "example": 2
+          },
+          "scheduledMatches": {
+            "type": "number",
+            "description": "Total scheduled matches across all stages",
+            "example": 12
+          },
+          "finalizedMatches": {
+            "type": "number",
+            "description": "Total finalized matches across all stages",
+            "example": 17
+          },
+          "forfeitedMatches": {
+            "type": "number",
+            "description": "Total forfeited matches across all stages",
+            "example": 1
+          },
+          "stages": {
+            "description": "Per-stage breakdown ordered by stage number",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageCompletionResponse"
+            }
+          }
+        },
+        "required": [
+          "totalMatches",
+          "resolvedMatches",
+          "liveMatches",
+          "scheduledMatches",
+          "finalizedMatches",
+          "forfeitedMatches",
+          "stages"
         ]
       },
       "TournamentConfigurationDescriptorRefResponse": {

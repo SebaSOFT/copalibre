@@ -1141,4 +1141,6 @@ export const messages: Record<string, string> = {
   'control.roster.roleFieldLabel': 'Rolle von {name}',
   'control.auditLogPanel.eventCount': '{count, plural, one {# Ereignis} other {# Ereignisse}}',
   'control.auditLogPanel.latency': '{latencyMs}ms Latenz',
+  'control.tournament.completion': 'Turnierabschluss',
+  'control.tournament.completionStage': 'Phase {stageNumber}',
 };

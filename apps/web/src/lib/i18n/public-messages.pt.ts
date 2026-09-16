@@ -186,4 +186,9 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.standingsTab': 'Classificação',
   'publicWeb.tvDashboard.performersTab': 'Melhores jogadores',
   'publicWeb.tvDashboard.statisticsTab': 'Estatísticas',
+  'publicWeb.completion.heading': 'Progresso do torneio',
+  'publicWeb.completion.summary': '{resolved} de {total} partidas disputadas',
+  'publicWeb.completion.complete': 'Concluído',
+  'publicWeb.completion.inProgress': 'Em andamento',
+  'publicWeb.completion.unmeasured': 'Nenhuma partida agendada',
 };

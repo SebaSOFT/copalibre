@@ -398,11 +398,15 @@ export {
 export {
   validateStageCompletion,
   validateNextStage,
+  foldTournamentCompletion,
   StageCompletionError,
   StageNotReadyError,
   type StageStatus,
   type StageCompletionPreconditions,
   type NextStagePreconditions,
+  type RawStageStatusCount,
+  type StageCompletionSummary,
+  type TournamentCompletionSummary,
 } from './aggregates/stage-completion.js';
 export {
   validateStart,

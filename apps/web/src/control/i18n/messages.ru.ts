@@ -1126,4 +1126,6 @@ export const messages: Record<string, string> = {
   'control.auditLogPanel.eventCount':
     '{count, plural, one {# событие} few {# события} many {# событий} other {# события}}',
   'control.auditLogPanel.latency': 'Задержка {latencyMs}мс',
+  'control.tournament.completion': 'Завершение турнира',
+  'control.tournament.completionStage': 'Этап {stageNumber}',
 };

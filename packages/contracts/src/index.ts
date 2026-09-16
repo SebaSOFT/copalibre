@@ -19,6 +19,8 @@ export type OrganizationStorageUsageResponse =
   components['schemas']['OrganizationStorageUsageResponse'];
 export type CreateOrganizationRequest = components['schemas']['CreateOrganizationRequest'];
 export type TournamentResponse = components['schemas']['TournamentResponse'];
+export type TournamentCompletionResponse = components['schemas']['TournamentCompletionResponse'];
+export type StageCompletionResponse = components['schemas']['StageCompletionResponse'];
 export type CreateTournamentRequest = components['schemas']['CreateTournamentRequest'];
 export type ProblemResponse = components['schemas']['ProblemResponse'];
 export type HealthResponse = components['schemas']['HealthResponse'];

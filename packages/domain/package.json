@@ -17,7 +17,7 @@
   },
   "sideEffects": false,
   "scripts": {
-    "build": "tsc --build",
+    "build": "../../node_modules/.bin/tsc --build",
     "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
     "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage"
   },

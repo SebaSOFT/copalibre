@@ -184,4 +184,9 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.standingsTab': '积分榜',
   'publicWeb.tvDashboard.performersTab': '最佳球员',
   'publicWeb.tvDashboard.statisticsTab': '统计数据',
+  'publicWeb.completion.heading': '赛事进度',
+  'publicWeb.completion.summary': '已进行 {resolved} / {total} 场比赛',
+  'publicWeb.completion.complete': '已完成',
+  'publicWeb.completion.inProgress': '进行中',
+  'publicWeb.completion.unmeasured': '未安排比赛',
 };

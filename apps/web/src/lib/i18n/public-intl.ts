@@ -367,3 +367,45 @@ export function tournamentHeroLabels(intl: IntlShape, model: OverviewModel): Tou
         : intl.formatMessage(messages.heroNoLiveMatches),
   };
 }
+
+export interface CompletionFigureLabels {
+  readonly heading: string;
+  readonly summary: string;
+  readonly stateLabel: string;
+  readonly stateGlyph: string;
+  readonly unmeasuredLabel: string;
+}
+
+export function completionFigureLabels(
+  intl: IntlShape,
+  completion: { totalMatches: number; resolvedMatches: number; liveMatches?: number },
+): CompletionFigureLabels {
+  const isUnmeasured = completion.totalMatches === 0;
+  const isComplete =
+    completion.totalMatches > 0 && completion.resolvedMatches === completion.totalMatches;
+
+  let stateLabel: string;
+  let stateGlyph: string;
+
+  if (isUnmeasured) {
+    stateLabel = intl.formatMessage(messages.completionUnmeasured);
+    stateGlyph = '—';
+  } else if (isComplete) {
+    stateLabel = intl.formatMessage(messages.completionComplete);
+    stateGlyph = '✓';
+  } else {
+    stateLabel = intl.formatMessage(messages.completionInProgress);
+    stateGlyph = '◐';
+  }
+
+  return {
+    heading: intl.formatMessage(messages.completionHeading),
+    summary: intl.formatMessage(messages.completionSummary, {
+      resolved: completion.resolvedMatches,
+      total: completion.totalMatches,
+    }),
+    stateLabel,
+    stateGlyph,
+    unmeasuredLabel: intl.formatMessage(messages.completionUnmeasured),
+  };
+}

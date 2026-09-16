@@ -1075,4 +1075,6 @@ export const messages: Record<string, string> = {
   'control.roster.roleFieldLabel': '{name} 的角色',
   'control.auditLogPanel.eventCount': '{count, plural, other {# 个事件}}',
   'control.auditLogPanel.latency': '延迟 {latencyMs}毫秒',
+  'control.tournament.completion': '赛事进度',
+  'control.tournament.completionStage': '阶段 {stageNumber}',
 };

@@ -82,6 +82,7 @@ import {
   TournamentSettingsResponse,
 } from '../dto/organization.dto.js';
 import { TournamentConfigurationExportResponse } from '../dto/tournament-configuration-export.dto.js';
+import { TournamentCompletionResponse } from '../dto/tournament-completion.dto.js';
 import { ControlMatchesViewResponse } from '../dto/matches-view.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
 import { recordSensitiveRead } from '../http/sensitive-read-audit.js';
@@ -182,6 +183,71 @@ export class TournamentsController {
       resource: { organizationId: tournament.organizationId },
     });
     return tournament;
+  }
+
+  @Get(':tournamentAlias/completion')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({
+    summary: 'Tournament completion overview with per-stage and tournament-wide rollups',
+    description:
+      'Available publicly for published tournaments, and with organization-scoped authorization for unpublished tournaments.',
+  })
+  @ApiOkResponse({ type: TournamentCompletionResponse })
+  async completion(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<TournamentCompletionResponse> {
+    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
+      organizationAlias,
+      tournamentAlias,
+    );
+    if (!tournament) {
+      throw new NotFoundException(
+        `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
+        { errorCode: 'tournament-not-found' },
+      );
+    }
+
+    const isControlRequest = Boolean(
+      request.subject && request.subject.organizationId === tournament.organizationId,
+    );
+
+    if (tournament.status === 'draft') {
+      if (!isControlRequest || !request.subject) {
+        throw new NotFoundException(
+          `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
+          { errorCode: 'tournament-not-found' },
+        );
+      }
+      enforcePolicy({
+        plane: 'admin-control',
+        subject: request.subject,
+        resource: {
+          organizationId: tournament.organizationId,
+          ownerTournamentId: tournament.tournamentId,
+        },
+      });
+    } else {
+      if (isControlRequest && request.subject) {
+        enforcePolicy({
+          plane: 'admin-control',
+          subject: request.subject,
+          resource: {
+            organizationId: tournament.organizationId,
+            ownerTournamentId: tournament.tournamentId,
+          },
+        });
+      } else {
+        enforcePolicy({
+          plane: 'public-read',
+          resource: { organizationId: tournament.organizationId },
+        });
+      }
+    }
+
+    const competition = new CompetitionRepository(this.db);
+    return competition.getTournamentCompletion(tournament.tournamentId);
   }
 
   @Get(':tournamentAlias/export')
