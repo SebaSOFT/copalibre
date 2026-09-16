@@ -11,14 +11,12 @@ import {
   withTransaction,
   StageReadModel,
   PublicOverviewReadModel,
-  type StageMatchRecord,
 } from '@copalibre/persistence';
 import {
   PublicOverviewResponse,
   PublicLiveResponse,
   PublicBracketResponse,
   PublicMatchesViewResponse,
-  PublicSeriesStateResponse,
   PublicOverviewMatchResponse,
   PublicMatchReportResponse,
   PublicPersonProfileResponse,
@@ -38,7 +36,7 @@ import {
 } from '../table-projections/read.js';
 
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
-import { publicSeriesState, readStageSeries, type PublicSeriesState } from './stage-series.js';
+import { readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
 import { segmentedTableResponse, tableResponse } from './table-projections.controller.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
 import {
@@ -770,11 +768,11 @@ export class PublicProjectionsController {
 
     // Keyed by the round/position the bracket graph and the read model agree on, so a series
     // rides onto the cross it settles rather than onto a match id neither side shares.
-    const seriesByPosition = await this.seriesByPosition(
-      tournament.tournamentId,
-      stage.stageId,
-      stageMatchesMapped,
-    );
+    const seriesByPosition = await readStageSeriesByPosition(this.db, {
+      tournamentId: tournament.tournamentId,
+      stageId: stage.stageId,
+      records: stageMatchesMapped,
+    });
 
     return {
       format: stage.format,
@@ -857,41 +855,6 @@ export class PublicProjectionsController {
         ...(row.decidingFactor === undefined ? {} : { decidingFactor: row.decidingFactor }),
       })),
     };
-  }
-
-  /**
-   * Every cross of a stage that a series settles, by `round:position`.
-   *
-   * Returns an empty map — and reads nothing beyond the one declaration lookup — for a stage
-   * declaring no series, which is very nearly every stage. Nothing about this endpoint changes
-   * for one.
-   */
-  private async seriesByPosition(
-    tournamentId: string,
-    stageId: string,
-    records: readonly StageMatchRecord[],
-  ): Promise<ReadonlyMap<string, PublicSeriesState>> {
-    const declaration = await readStageSeries(this.db, { tournamentId, stageId });
-    if (declaration === undefined) return new Map();
-
-    const matches = await new CompetitionRepository(this.db).listMatchesForStage(stageId);
-    const byFixture = new Map<string, typeof matches>();
-    for (const match of matches) {
-      byFixture.set(match.fixtureId, [...(byFixture.get(match.fixtureId) ?? []), match]);
-    }
-
-    const states = new Map<string, PublicSeriesState>();
-    for (const record of records) {
-      const games = byFixture.get(record.fixtureId) ?? [];
-      const state = publicSeriesState({
-        declaration,
-        ...(record.homeEntrantId === undefined ? {} : { homeEntrantId: record.homeEntrantId }),
-        ...(record.awayEntrantId === undefined ? {} : { awayEntrantId: record.awayEntrantId }),
-        games,
-      });
-      if (state !== undefined) states.set(`${record.round}:${record.position}`, state);
-    }
-    return states;
   }
 
   // 'public/tables', not 'tables': the admin `TableProjectionsController`
@@ -1090,28 +1053,7 @@ function publicScores(
   return sides.map((side) => primaryScoreOf(side.statistics, descriptor));
 }
 
-export function seriesResponseOf(series: PublicSeriesState): PublicSeriesStateResponse {
-  return {
-    span: series.span,
-    ...(series.resolutionClass === undefined ? {} : { resolutionClass: series.resolutionClass }),
-    games: series.games.map((game) => ({
-      number: game.number,
-      status: game.status,
-      ...(game.winnerEntrantId === undefined ? {} : { winnerEntrantId: game.winnerEntrantId }),
-      ...(game.winner === undefined ? {} : { winner: game.winner }),
-      ...(game.scores === undefined ? {} : { scores: [...game.scores] }),
-    })),
-    homeGamesWon: series.homeGamesWon,
-    awayGamesWon: series.awayGamesWon,
-    ...(series.aggregateScores === undefined
-      ? {}
-      : { aggregateScores: [...series.aggregateScores] }),
-    status: series.status,
-    ...(series.winnerEntrantId === undefined ? {} : { winnerEntrantId: series.winnerEntrantId }),
-    ...(series.winner === undefined ? {} : { winner: series.winner }),
-    explanation: series.explanation,
-  };
-}
+export { seriesResponseOf } from './stage-series.js';
 
 function publicMatchStatus(status: string): PublicMatchReportResponse['status'] {
   if (status === 'finalized') return 'final';

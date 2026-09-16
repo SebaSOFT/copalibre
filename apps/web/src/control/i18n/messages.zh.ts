@@ -105,6 +105,11 @@ export const messages: Record<string, string> = {
   'control.bracket.zoomIn': '放大',
   'control.bracket.empty': '此阶段尚未生成对阵结构。',
   'control.bracket.groupLabel': '对阵表',
+  'control.bracket.seriesDecided': '已决定',
+  'control.bracket.seriesPending': '待定',
+  'control.bracket.seriesScore': '系列赛: {home}–{away}',
+  'control.bracket.seriesRemaining': '剩余: {legs}',
+  'control.bracket.seriesAnulled': '已取消: {legs}',
 
   'control.mutation.blockedAfterResults':
     '此更改已无法通过常规编辑方式应用：请使用经过审计的更正流程。',

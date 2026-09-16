@@ -21,6 +21,8 @@ import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { SeedingController, toBracketMatch } from './seeding.controller.js';
 import { StandingsController } from './standings.controller.js';
+import { PublicProjectionsController } from './public-projections.controller.js';
+import type { PublicSeriesStateResponse } from '../dto/public-tournament.dto.js';
 
 /**
  * Standings and seeding through the real HTTP stack.
@@ -80,6 +82,7 @@ describe('standings and seeding routes (integration)', () => {
   let organizationId = '';
   let tournamentId = '';
   let stageId = '';
+  let seriesStageId = '';
   const entrantIds: string[] = [];
   let finalizedMatchId = '';
 
@@ -87,7 +90,7 @@ describe('standings and seeding routes (integration)', () => {
     scratch = await createMigratedDatabase('standings');
 
     @Module({
-      controllers: [StandingsController, SeedingController],
+      controllers: [StandingsController, SeedingController, PublicProjectionsController],
       providers: [
         { provide: DATABASE, useValue: scratch.db },
         { provide: TokenVerifier, useValue: new FakeTokenVerifier(() => organizationId) },
@@ -173,7 +176,42 @@ describe('standings and seeding routes (integration)', () => {
         ...AUDIT,
       });
       if (!fixtures[0]) throw new Error('Expected at least one seeded fixture');
+
+      const stage2 = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 2,
+        name: 'Playoffs',
+        format: 'single-elimination',
+        organizationId,
+        ...AUDIT,
+      });
+      seriesStageId = stage2.stageId;
+      await tournaments.createStageConfiguration(uow, {
+        stageId: stage2.stageId,
+        rulesetId: ruleset.rulesetId,
+        organizationId,
+        overrides: { 'series.span': 3, 'series.resolutionClass': 'best-of' },
+        ...AUDIT,
+      });
+      await competition.createFixtures(uow, {
+        stageId: stage2.stageId,
+        fixtures: [
+          { round: 1, homeEntrantId: entrantIds[0], awayEntrantId: entrantIds[3] },
+          { round: 1, homeEntrantId: entrantIds[1], awayEntrantId: entrantIds[2] },
+        ],
+        matchCount: 3,
+        organizationId,
+        ...AUDIT,
+      });
     });
+
+    await withTransaction(scratch.db, (uow) =>
+      tournaments.publish(uow, {
+        tournamentId,
+        organizationId,
+        ...AUDIT,
+      }),
+    );
   });
 
   afterAll(async () => {
@@ -645,5 +683,284 @@ describe('standings and seeding routes (integration)', () => {
       [],
     );
     expect(notYetMaterialized.persistedMatchId).toBeUndefined();
+  });
+
+  it('serves series progress on the seeding read matching the public projection for a series-declared stage', async () => {
+    const seriesBase = '/organizations/liga-mendocina/tournaments/apertura-2026/stages/2';
+
+    // 1. Seed the stage: 4 entrants in single-elimination with span 3 creates 2 semifinal fixtures with 3 games each.
+    const seedResponse = await request({
+      method: 'POST',
+      url: `${seriesBase}/seeding`,
+      token: 'organizer',
+      payload: {
+        seeds: [
+          { seed: 1, entrantId: entrantIds[0] },
+          { seed: 2, entrantId: entrantIds[1] },
+          { seed: 3, entrantId: entrantIds[2] },
+          { seed: 4, entrantId: entrantIds[3] },
+        ],
+      },
+    });
+    expect(seedResponse.statusCode).toBe(200);
+
+    // 2. Fetch seeding read and public bracket before any games are played:
+    const seedingBefore = await request({
+      method: 'GET',
+      url: `${seriesBase}/seeding`,
+      token: 'organizer',
+    });
+    const publicBefore = await request({
+      method: 'GET',
+      url: `${seriesBase}/bracket`,
+    });
+    expect(seedingBefore.statusCode).toBe(200);
+    expect(publicBefore.statusCode).toBe(200);
+
+    const seedingMatchesBefore = seedingBefore.json().matches;
+    const publicMatchesBefore = publicBefore.json().matches;
+    expect(seedingMatchesBefore[0].series).toBeDefined();
+    expect(seedingMatchesBefore[0].series).toEqual(publicMatchesBefore[0].series);
+    expect(seedingMatchesBefore[0].series).toMatchObject({
+      span: 3,
+      homeGamesWon: 0,
+      awayGamesWon: 0,
+      status: 'undecided',
+    });
+
+    // 3. Record Game 1 result: Entrant 0 wins against Entrant 3.
+    const competition = new CompetitionRepository(scratch.db);
+    const fixtures = await competition.listFixturesOfStage(seriesStageId);
+    const homeEntrantId = entrantIds[0];
+    const awayEntrantId = entrantIds[3];
+    expect(homeEntrantId).toBeDefined();
+    expect(awayEntrantId).toBeDefined();
+    if (!homeEntrantId || !awayEntrantId) throw new Error('Entrants undefined');
+
+    const sf1Fixture = fixtures.find((f) => f.homeEntrantId === homeEntrantId);
+    expect(sf1Fixture).toBeDefined();
+    if (!sf1Fixture) throw new Error('Fixture undefined');
+
+    const matches = await competition.listMatchesForStage(seriesStageId);
+    const sf1Matches = matches
+      .filter((m) => m.fixtureId === sf1Fixture.fixtureId)
+      .sort((a, b) => a.number - b.number);
+    expect(sf1Matches).toHaveLength(3);
+
+    const game1 = sf1Matches[0];
+    const game2 = sf1Matches[1];
+    if (!game1 || !game2) throw new Error('Games undefined');
+
+    await withTransaction(scratch.db, (uow) =>
+      competition.recordResult(uow, {
+        matchId: game1.matchId,
+        result: {
+          sides: [
+            { entrantId: homeEntrantId, statistics: { points: 3 } },
+            { entrantId: awayEntrantId, statistics: { points: 0 } },
+          ],
+          winnerEntrantId: homeEntrantId,
+          recordedAt: new Date().toISOString(),
+        },
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    // 4. Fetch seeding read and public bracket with in-progress series:
+    const seedingInProgress = await request({
+      method: 'GET',
+      url: `${seriesBase}/seeding`,
+      token: 'organizer',
+    });
+    const publicInProgress = await request({
+      method: 'GET',
+      url: `${seriesBase}/bracket`,
+    });
+    expect(seedingInProgress.statusCode).toBe(200);
+    expect(publicInProgress.statusCode).toBe(200);
+
+    const sf1Seeding = seedingInProgress
+      .json()
+      .matches.find((m: { round: number; position: number }) => m.round === 1 && m.position === 1);
+    const sf1Public = publicInProgress
+      .json()
+      .matches.find((m: { round: number; position: number }) => m.round === 1 && m.position === 1);
+    expect(sf1Seeding.series).toBeDefined();
+    expect(sf1Seeding.series).toEqual(sf1Public.series);
+    expect(sf1Seeding.series).toMatchObject({
+      span: 3,
+      homeGamesWon: 1,
+      awayGamesWon: 0,
+      status: 'undecided',
+    });
+
+    // 5. Record Game 2 result: Entrant 0 wins again (2–0 in best-of-3 decides the series and anulls Game 3).
+    await withTransaction(scratch.db, async (uow) => {
+      await competition.recordResult(uow, {
+        matchId: game2.matchId,
+        result: {
+          sides: [
+            { entrantId: homeEntrantId, statistics: { points: 2 } },
+            { entrantId: awayEntrantId, statistics: { points: 1 } },
+          ],
+          winnerEntrantId: homeEntrantId,
+          recordedAt: new Date().toISOString(),
+        },
+        organizationId,
+        ...AUDIT,
+      });
+      await competition.anullSurplusMatches(uow, {
+        fixtureId: sf1Fixture.fixtureId,
+        anulledMatchNumbers: [3],
+        organizationId,
+        ...AUDIT,
+      });
+    });
+
+    // 6. Fetch seeding read and public bracket with decided series:
+    const seedingDecided = await request({
+      method: 'GET',
+      url: `${seriesBase}/seeding`,
+      token: 'organizer',
+    });
+    const publicDecided = await request({
+      method: 'GET',
+      url: `${seriesBase}/bracket`,
+    });
+    expect(seedingDecided.statusCode).toBe(200);
+    expect(publicDecided.statusCode).toBe(200);
+
+    const sf1DecidedSeeding = seedingDecided
+      .json()
+      .matches.find((m: { round: number; position: number }) => m.round === 1 && m.position === 1);
+    const sf1DecidedPublic = publicDecided
+      .json()
+      .matches.find((m: { round: number; position: number }) => m.round === 1 && m.position === 1);
+    expect(sf1DecidedSeeding.series).toBeDefined();
+    expect(sf1DecidedSeeding.series).toEqual(sf1DecidedPublic.series);
+    expect(sf1DecidedSeeding.series).toMatchObject({
+      span: 3,
+      homeGamesWon: 2,
+      awayGamesWon: 0,
+      status: 'decided',
+      winner: 'home',
+      winnerEntrantId: entrantIds[0],
+    });
+
+    const anulledLegs = sf1DecidedSeeding.series.games.filter(
+      (g: { status: string }) => g.status === 'not-required',
+    );
+    expect(anulledLegs).toHaveLength(1);
+    expect(anulledLegs[0].number).toBe(3);
+  });
+
+  it('populates series state on a node when provided in options', () => {
+    const inProgressSeries: PublicSeriesStateResponse = {
+      span: 3,
+      resolutionClass: 'best-of',
+      games: [
+        {
+          number: 1,
+          status: 'finalized',
+          scores: [2, 1],
+          winnerEntrantId: 'entrant-a',
+          winner: 'home',
+        },
+        { number: 2, status: 'scheduled' },
+        { number: 3, status: 'scheduled' },
+      ],
+      homeGamesWon: 1,
+      awayGamesWon: 0,
+      status: 'undecided',
+      explanation: 'Series is in progress (1–0)',
+    };
+
+    const nodeWithSeries = toBracketMatch(
+      {
+        id: 'WB-R1-M1',
+        shape: 'duel',
+        bracket: 'winners',
+        round: 1,
+        position: 1,
+        slotA: { kind: 'entrant', entrantId: 'entrant-a', seed: 1 },
+        slotB: { kind: 'entrant', entrantId: 'entrant-b', seed: 2 },
+      },
+      [],
+      { series: inProgressSeries },
+    );
+
+    expect(nodeWithSeries.series).toBeDefined();
+    expect(nodeWithSeries.series?.status).toBe('undecided');
+    expect(nodeWithSeries.series?.homeGamesWon).toBe(1);
+    expect(nodeWithSeries.series?.awayGamesWon).toBe(0);
+    expect(nodeWithSeries.series?.games).toHaveLength(3);
+  });
+
+  it('populates a decided series with anulled legs on toBracketMatch', () => {
+    const decidedSeries: PublicSeriesStateResponse = {
+      span: 3,
+      resolutionClass: 'best-of',
+      games: [
+        {
+          number: 1,
+          status: 'finalized',
+          scores: [2, 0],
+          winnerEntrantId: 'entrant-a',
+          winner: 'home',
+        },
+        {
+          number: 2,
+          status: 'finalized',
+          scores: [2, 1],
+          winnerEntrantId: 'entrant-a',
+          winner: 'home',
+        },
+        { number: 3, status: 'not-required' },
+      ],
+      homeGamesWon: 2,
+      awayGamesWon: 0,
+      status: 'decided',
+      winnerEntrantId: 'entrant-a',
+      winner: 'home',
+      explanation: 'entrant-a won the best-of-3 series 2–0',
+    };
+
+    const nodeDecided = toBracketMatch(
+      {
+        id: 'WB-R1-M1',
+        shape: 'duel',
+        bracket: 'winners',
+        round: 1,
+        position: 1,
+        slotA: { kind: 'entrant', entrantId: 'entrant-a', seed: 1 },
+        slotB: { kind: 'entrant', entrantId: 'entrant-b', seed: 2 },
+      },
+      [],
+      { series: decidedSeries },
+    );
+
+    expect(nodeDecided.series?.status).toBe('decided');
+    expect(nodeDecided.series?.winner).toBe('home');
+    const anulled = nodeDecided.series?.games.filter((g) => g.status === 'not-required');
+    expect(anulled).toHaveLength(1);
+    expect(anulled?.[0]?.number).toBe(3);
+  });
+
+  it('leaves series undefined on toBracketMatch for a cross with no series', () => {
+    const nodeNoSeries = toBracketMatch(
+      {
+        id: 'WB-R1-M1',
+        shape: 'duel',
+        bracket: 'winners',
+        round: 1,
+        position: 1,
+        slotA: { kind: 'entrant', entrantId: 'entrant-a', seed: 1 },
+        slotB: { kind: 'entrant', entrantId: 'entrant-b', seed: 2 },
+      },
+      [],
+    );
+
+    expect(nodeNoSeries.series).toBeUndefined();
   });
 });

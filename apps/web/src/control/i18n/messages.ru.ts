@@ -111,6 +111,13 @@ export const messages: Record<string, string> = {
   'control.bracket.zoomIn': 'Увеличить',
   'control.bracket.empty': 'Для этого этапа структура ещё не создана.',
   'control.bracket.groupLabel': 'Турнирная сетка',
+  'control.bracket.seriesDecided': 'Решено',
+  'control.bracket.seriesPending': 'Ожидает',
+  'control.bracket.seriesScore': 'Серия: {home}–{away}',
+  'control.bracket.seriesRemaining':
+    'Осталось: {count, plural, one {игра {legs}} few {игры {legs}} many {игр {legs}} other {игры {legs}}}',
+  'control.bracket.seriesAnulled':
+    'Аннулировано: {count, plural, one {игра {legs}} few {игры {legs}} many {игр {legs}} other {игры {legs}}}',
 
   'control.mutation.blockedAfterResults':
     'Это изменение больше нельзя применить через обычное редактирование: используйте процесс проверенной корректировки.',

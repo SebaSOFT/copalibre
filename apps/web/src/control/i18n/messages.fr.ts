@@ -109,6 +109,13 @@ export const messages: Record<string, string> = {
   'control.bracket.zoomIn': 'Zoom avant',
   'control.bracket.empty': 'Aucune structure n’a encore été générée pour cette phase.',
   'control.bracket.groupLabel': 'Tableau',
+  'control.bracket.seriesDecided': 'Décidée',
+  'control.bracket.seriesPending': 'En attente',
+  'control.bracket.seriesScore': 'Série : {home}–{away}',
+  'control.bracket.seriesRemaining':
+    'Restant : {count, plural, one {manche {legs}} other {manches {legs}}}',
+  'control.bracket.seriesAnulled':
+    'Annulée : {count, plural, one {manche {legs}} other {manches {legs}}}',
 
   'control.mutation.blockedAfterResults':
     'Cette modification ne peut plus être appliquée par l’édition normale : utilisez le flux de correction auditée.',

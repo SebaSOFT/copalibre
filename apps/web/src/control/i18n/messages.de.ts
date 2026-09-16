@@ -110,6 +110,13 @@ export const messages: Record<string, string> = {
   'control.bracket.zoomIn': 'Vergrößern',
   'control.bracket.empty': 'Für diese Phase wurde noch keine Struktur erzeugt.',
   'control.bracket.groupLabel': 'Turnierbaum',
+  'control.bracket.seriesDecided': 'Entschieden',
+  'control.bracket.seriesPending': 'Ausstehend',
+  'control.bracket.seriesScore': 'Serie: {home}–{away}',
+  'control.bracket.seriesRemaining':
+    'Verbleibend: {count, plural, one {Spiel {legs}} other {Spiele {legs}}}',
+  'control.bracket.seriesAnulled':
+    'Annulliert: {count, plural, one {Spiel {legs}} other {Spiele {legs}}}',
 
   'control.mutation.blockedAfterResults':
     'Diese Änderung kann nicht mehr über die normale Bearbeitung angewendet werden: verwenden Sie den geprüften Korrekturablauf.',

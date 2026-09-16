@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsArray, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { PublicSeriesStateResponse } from './public-tournament.dto.js';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 
@@ -152,6 +153,12 @@ export class BracketMatchResponse {
 
   @ApiProperty({ type: BracketSlotResponse, isArray: true })
   slots!: BracketSlotResponse[];
+
+  @ApiPropertyOptional({
+    type: () => PublicSeriesStateResponse,
+    description: 'Present only on a cross settled by a series',
+  })
+  series?: PublicSeriesStateResponse;
 }
 
 export class SeedingResponse {

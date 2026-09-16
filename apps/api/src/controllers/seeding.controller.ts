@@ -56,7 +56,8 @@ import {
   SeedingResponse,
 } from '../dto/standings.dto.js';
 import { resolveTournament } from './standings.controller.js';
-import { readStageSeries } from './stage-series.js';
+import { readStageSeries, readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
+import { PublicSeriesStateResponse } from '../dto/public-tournament.dto.js';
 import { DATABASE } from '../database.token.js';
 
 /**
@@ -106,14 +107,24 @@ export class SeedingController {
 
     const ambiguousPositions = ambiguousRoundPositions(graph.matches);
     const matchFormat = matchFormatOf(record.overrides);
+    const seriesByPosition = await readStageSeriesByPosition(this.db, {
+      tournamentId,
+      stageId,
+      records: persisted,
+    });
 
     return {
       stageId,
       format: record.format,
       seeds: seedOrder.map((entrantId, index) => ({ seed: index + 1, entrantId })),
-      matches: graph.matches.map((match) =>
-        toBracketMatch(match, persisted, { ambiguousPositions, matchFormat }),
-      ),
+      matches: graph.matches.map((match) => {
+        const series = seriesByPosition.get(roundPositionKey(match));
+        return toBracketMatch(match, persisted, {
+          ambiguousPositions,
+          matchFormat,
+          ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
+        });
+      }),
       hasRecordedResults: record.hasRecordedResults,
     };
   }
@@ -357,6 +368,7 @@ export function toBracketMatch(
   options: {
     readonly ambiguousPositions?: ReadonlySet<string>;
     readonly matchFormat?: string;
+    readonly series?: PublicSeriesStateResponse;
   } = {},
 ): BracketMatchResponse {
   const key = roundPositionKey(match);
@@ -396,6 +408,7 @@ export function toBracketMatch(
           : { resultReason: recorded.resultReasons[index] }),
       };
     }),
+    ...(options.series === undefined ? {} : { series: options.series }),
   };
 }
 

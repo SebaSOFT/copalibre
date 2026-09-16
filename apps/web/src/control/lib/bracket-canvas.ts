@@ -8,8 +8,10 @@
  * the tournament, and the operator has no way to tell which one is real.
  */
 
+import type { components } from '@copalibre/contracts';
 import { entrantPath, type BracketMatch } from '../../lib/bracket.js';
 
+export type CanvasSeriesState = components['schemas']['PublicSeriesStateResponse'];
 export type CanvasSlotKind = 'entrant' | 'bye' | 'winner-of' | 'loser-of';
 
 /** Adapt control's structural ids to the shared journey algorithm. */
@@ -59,6 +61,8 @@ export interface CanvasMatch {
   /** Declared match format badge, e.g. `BO3`. Absent when the stage declares none. */
   readonly format?: string;
   readonly slots: readonly CanvasSlot[];
+  /** Present only on a cross settled by a series */
+  readonly series?: CanvasSeriesState;
 }
 
 export interface CanvasGeometry {
@@ -98,6 +102,7 @@ export interface LaidOutMatch {
   readonly position: number;
   readonly status: string;
   readonly format?: string;
+  readonly series?: CanvasSeriesState;
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -168,6 +173,7 @@ export function layoutBracket(
           position: match.position,
           status: match.status,
           ...(match.format === undefined ? {} : { format: match.format }),
+          ...(match.series === undefined ? {} : { series: match.series }),
           x,
           y,
           width: geometry.nodeWidth,

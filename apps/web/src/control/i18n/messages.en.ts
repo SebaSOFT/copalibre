@@ -325,6 +325,20 @@ export const messages = defineMessages({
     defaultMessage: 'No structure has been generated for this stage yet.',
   },
   bracketGroupLabel: { id: 'control.bracket.groupLabel', defaultMessage: 'Bracket' },
+  bracketSeriesDecided: { id: 'control.bracket.seriesDecided', defaultMessage: 'Decided' },
+  bracketSeriesPending: { id: 'control.bracket.seriesPending', defaultMessage: 'Pending' },
+  bracketSeriesScore: {
+    id: 'control.bracket.seriesScore',
+    defaultMessage: 'Series: {home}–{away}',
+  },
+  bracketSeriesRemaining: {
+    id: 'control.bracket.seriesRemaining',
+    defaultMessage: 'Remaining: {count, plural, one {Leg {legs}} other {Legs {legs}}}',
+  },
+  bracketSeriesAnulled: {
+    id: 'control.bracket.seriesAnulled',
+    defaultMessage: 'Anulled: {count, plural, one {Leg {legs}} other {Legs {legs}}}',
+  },
 
   // Mutation feedback (lib/mutation-feedback.ts)
   mutationBlockedAfterResults: {

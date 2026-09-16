@@ -574,6 +574,7 @@ jobs:
 
   # Operator flows are client-side islands backed by the control API.
   # Playwright runs against the single verified web build through two independent shards.
+  # Covers standings, seeding builder series progress, and operator console flows.
   # Fixture servers dynamically allocate unique ports via workerIndex (3001 + workerIndex).
   e2e-tests-shard:
     name: E2E tests (shard ${{ matrix.shard }})

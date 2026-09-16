@@ -186,7 +186,10 @@ const matchConsoleFixture = {
 
 async function mockControlApi(
   page: Page,
-  options: { readonly reseedBlocked?: boolean } = {},
+  options: {
+    readonly reseedBlocked?: boolean;
+    readonly seeding?: typeof seedingFixture;
+  } = {},
 ): Promise<void> {
   await page.addInitScript(
     ({
@@ -263,7 +266,7 @@ async function mockControlApi(
       layouts: tableLayoutsFixture,
       projection: groupStandingsProjectionFixture,
       trace: traceByEntrant,
-      seeding: seedingFixture,
+      seeding: options.seeding ?? seedingFixture,
       matchConsole: matchConsoleFixture,
       reseedBlocked: options.reseedBlocked ?? false,
       tokenEndpoint: TOKEN_ENDPOINT,
@@ -480,4 +483,187 @@ test('entrant highlighting follows a first loss into the losers bracket and clea
   await button.click();
   await button.click();
   await expect(button).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('opening the seeding builder for a stage with a declared series shows the running series state on the relevant bracket canvas node', async ({
+  page,
+}) => {
+  const inProgressSeeding = {
+    ...seedingFixture,
+    matches: [
+      {
+        ...seedingFixture.matches[0],
+        status: 'in-progress',
+        slots: [
+          { kind: 'entrant', entrantId: 'Deportivo Norte', score: 1 },
+          { kind: 'entrant', entrantId: 'Unión Andina', score: 0 },
+        ],
+        series: {
+          span: 3,
+          resolutionClass: 'best-of' as const,
+          status: 'undecided' as const,
+          homeGamesWon: 1,
+          awayGamesWon: 0,
+          explanation: 'Best-of-3 series stands at 1-0',
+          games: [
+            { number: 1, status: 'finalized' as const, winner: 'home' as const, scores: [2, 1] },
+            { number: 2, status: 'scheduled' as const },
+            { number: 3, status: 'scheduled' as const },
+          ],
+        },
+      },
+      ...seedingFixture.matches.slice(1),
+    ],
+  };
+
+  await mockControlApi(page, { seeding: inProgressSeeding });
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const canvas = page.getByLabel('Llave');
+  const node = canvas.locator('[data-match="WB-R1-M1"]');
+  await expect(node).toBeVisible();
+
+  const indicator = node.locator('[data-series-status="undecided"]');
+  await expect(indicator).toBeVisible();
+  await expect(indicator.getByText('Serie: 1–0')).toBeVisible();
+  await expect(indicator.getByText('Pendiente')).toBeVisible();
+  await expect(indicator.getByTestId('series-remaining')).toContainText('Restante: partidas 2, 3');
+});
+
+test('a decided series with anulled legs shows the anulled legs on the canvas node', async ({
+  page,
+}) => {
+  const decidedSeeding = {
+    ...seedingFixture,
+    matches: [
+      {
+        ...seedingFixture.matches[0],
+        status: 'finalized',
+        slots: [
+          { kind: 'entrant', entrantId: 'Deportivo Norte', score: 2 },
+          { kind: 'entrant', entrantId: 'Unión Andina', score: 0 },
+        ],
+        series: {
+          span: 3,
+          resolutionClass: 'best-of' as const,
+          status: 'decided' as const,
+          winner: 'home' as const,
+          winnerEntrantId: 'Deportivo Norte',
+          homeGamesWon: 2,
+          awayGamesWon: 0,
+          explanation: 'Best-of-3 series won by Deportivo Norte (2-0)',
+          games: [
+            { number: 1, status: 'finalized' as const, winner: 'home' as const, scores: [3, 0] },
+            { number: 2, status: 'finalized' as const, winner: 'home' as const, scores: [2, 1] },
+            { number: 3, status: 'not-required' as const },
+          ],
+        },
+      },
+      ...seedingFixture.matches.slice(1),
+    ],
+  };
+
+  await mockControlApi(page, { seeding: decidedSeeding });
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const canvas = page.getByLabel('Llave');
+  const node = canvas.locator('[data-match="WB-R1-M1"]');
+  await expect(node).toBeVisible();
+
+  const indicator = node.locator('[data-series-status="decided"]');
+  await expect(indicator).toBeVisible();
+  await expect(indicator.getByText('Serie: 2–0')).toBeVisible();
+  await expect(indicator.getByText('Decidida')).toBeVisible();
+  await expect(indicator.getByTestId('series-anulled')).toContainText('Anulada: partida 3');
+});
+
+test('captures screenshots of bracket series progress at DESIGN.md breakpoints', async ({
+  page,
+}) => {
+  const seriesSeeding = {
+    ...seedingFixture,
+    matches: [
+      {
+        ...seedingFixture.matches[0],
+        matchId: 'WB-R1-M1',
+        status: 'in-progress',
+        slots: [
+          { kind: 'entrant', entrantId: 'Deportivo Norte', score: 1 },
+          { kind: 'entrant', entrantId: 'Unión Andina', score: 0 },
+        ],
+        series: {
+          span: 3,
+          resolutionClass: 'best-of' as const,
+          status: 'undecided' as const,
+          homeGamesWon: 1,
+          awayGamesWon: 0,
+          explanation: 'Best-of-3 series stands at 1-0',
+          games: [
+            { number: 1, status: 'finalized' as const, winner: 'home' as const, scores: [2, 1] },
+            { number: 2, status: 'scheduled' as const },
+            { number: 3, status: 'scheduled' as const },
+          ],
+        },
+      },
+      {
+        ...seedingFixture.matches[1],
+        matchId: 'WB-R1-M2',
+        status: 'finalized',
+        slots: [
+          { kind: 'entrant', entrantId: 'Atlético Sur', score: 2 },
+          { kind: 'entrant', entrantId: 'Club Cometa', score: 0 },
+        ],
+        series: {
+          span: 3,
+          resolutionClass: 'best-of' as const,
+          status: 'decided' as const,
+          winner: 'home' as const,
+          winnerEntrantId: 'Atlético Sur',
+          homeGamesWon: 2,
+          awayGamesWon: 0,
+          explanation: 'Best-of-3 series won by Atlético Sur (2-0)',
+          games: [
+            { number: 1, status: 'finalized' as const, winner: 'home' as const, scores: [3, 0] },
+            { number: 2, status: 'finalized' as const, winner: 'home' as const, scores: [2, 1] },
+            { number: 3, status: 'not-required' as const },
+          ],
+        },
+      },
+      ...seedingFixture.matches.slice(2),
+    ],
+  };
+
+  await mockControlApi(page, { seeding: seriesSeeding });
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const canvas = page.getByLabel('Llave');
+  await expect(
+    canvas.locator('[data-match="WB-R1-M1"] [data-series-status="undecided"]'),
+  ).toBeVisible();
+  await expect(
+    canvas.locator('[data-match="WB-R1-M2"] [data-series-status="decided"]'),
+  ).toBeVisible();
+
+  for (const width of [375, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.waitForTimeout(200);
+    await canvas.screenshot({
+      path: `docs/assets/screenshots/0240-control-series-progress-${width}.png`,
+    });
+  }
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.screenshot({
+    fullPage: true,
+    path: 'docs/assets/screenshots/0240-control-series-progress-seeding-builder.png',
+  });
 });
