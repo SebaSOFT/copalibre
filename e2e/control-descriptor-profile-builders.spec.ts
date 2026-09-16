@@ -215,9 +215,10 @@ test('refuses to author a profile stage format the discipline does not declare, 
   await profileWizard
     .getByLabel('Verificar formatos de fase contra')
     .selectOption('e2e-square-sport');
-  await profileWizard.getByPlaceholder('Nombre de la fase').fill('Playoffs');
+  await profileWizard.getByRole('button', { name: 'Agregar fase' }).click();
+  await profileWizard.getByLabel('Nombre de la fase').fill('Playoffs');
   // Only round-robin is declared by the discipline — no other option exists to select instead.
-  await expect(profileWizard.getByRole('combobox').last()).toHaveText(/round-robin/);
+  await expect(profileWizard.getByLabel('Formato de la fase')).toHaveText(/round-robin/);
 });
 
 /**

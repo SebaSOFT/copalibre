@@ -38,6 +38,7 @@ describe('the tournament profile builder wizard', () => {
     fireEvent.change(screen.getByLabelText('Check stage formats against'), {
       target: { value: 'football' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Add stage' }));
     const options = screen.getAllByRole('option').map((option) => option.textContent);
     expect(options).toContain('round-robin');
     expect(options).toContain('single-elimination');
@@ -59,7 +60,9 @@ describe('the tournament profile builder wizard', () => {
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'e2e-cup' } });
     fireEvent.change(screen.getByLabelText('Version'), { target: { value: '1.1.0' } });
     fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'E2E Cup' } });
-    fireEvent.change(screen.getByLabelText('Name (es)'), { target: { value: 'Copa E2E' } });
+    fireEvent.click(screen.getAllByRole('tab', { name: 'Español' })[0] as HTMLButtonElement);
+    fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'Copa E2E' } });
+    fireEvent.click(screen.getAllByRole('tab', { name: 'English' })[0] as HTMLButtonElement);
     fireEvent.change(screen.getByLabelText('Description'), {
       target: { value: 'A multi-stage cup' },
     });
@@ -77,20 +80,27 @@ describe('the tournament profile builder wizard', () => {
     fireEvent.change(screen.getByLabelText('Check stage formats against'), {
       target: { value: 'football' },
     });
-    fireEvent.change(screen.getByLabelText('Stage name'), { target: { value: 'Playoffs' } });
-    fireEvent.change(screen.getByLabelText('Stage format'), {
+    fireEvent.click(screen.getByRole('button', { name: 'Add stage' }));
+    fireEvent.change(screen.getAllByLabelText('Stage name')[0] as HTMLInputElement, {
+      target: { value: 'Playoffs' },
+    });
+    fireEvent.change(screen.getAllByLabelText('Stage format')[0] as HTMLSelectElement, {
       target: { value: 'single-elimination' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
-    fireEvent.change(screen.getByLabelText('Stage name'), { target: { value: 'Groups' } });
-    fireEvent.change(screen.getByLabelText('Stage format'), { target: { value: 'round-robin' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
-    expect(screen.getByText(/1\. Playoffs \(single-elimination\)/)).toBeDefined();
-    expect(screen.getByText(/2\. Groups \(round-robin\)/)).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add stage' }));
+    fireEvent.change(screen.getAllByLabelText('Stage name')[1] as HTMLInputElement, {
+      target: { value: 'Groups' },
+    });
+    fireEvent.change(screen.getAllByLabelText('Stage format')[1] as HTMLSelectElement, {
+      target: { value: 'round-robin' },
+    });
+    expect(screen.getByDisplayValue('Playoffs')).toBeDefined();
+    expect(screen.getByDisplayValue('Groups')).toBeDefined();
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0] as HTMLButtonElement);
-    expect(screen.queryByText(/Playoffs/)).toBeNull();
-    expect(screen.getByText(/1\. Groups \(round-robin\)/)).toBeDefined();
+    expect(screen.queryByDisplayValue('Playoffs')).toBeNull();
+    expect(screen.getByDisplayValue('Groups')).toBeDefined();
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
@@ -110,6 +120,40 @@ describe('the tournament profile builder wizard', () => {
     expect(request.document.name).toEqual({ en: 'E2E Cup', es: 'Copa E2E' });
     expect(request.document.stages).toEqual([{ number: 1, name: 'Groups', format: 'round-robin' }]);
     expect(request.document.points).toEqual({ win: 2, draw: 1, loss: 0 });
+  });
+
+  it('declares a per-stage allocation default and carries it into the submitted document', () => {
+    const submitted: unknown[] = [];
+    render(
+      withIntl(
+        <ProfileBuilderWizard
+          disciplines={DISCIPLINES}
+          onSubmit={(request) => submitted.push(request)}
+        />,
+      ),
+    );
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'seeded-cup' } });
+    fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'Seeded Cup' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.change(screen.getByLabelText('Author'), { target: { value: 'Author' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    fireEvent.change(screen.getByLabelText('Check stage formats against'), {
+      target: { value: 'football' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add stage' }));
+    fireEvent.change(screen.getByLabelText('Stage name'), { target: { value: 'Groups' } });
+    fireEvent.change(screen.getByLabelText('Stage format'), { target: { value: 'round-robin' } });
+    fireEvent.change(screen.getByLabelText('Seeding'), { target: { value: 'automatic' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Author and install' }));
+
+    expect(submitted).toHaveLength(1);
+    const request = submitted[0] as { document: { stages: readonly unknown[] } };
+    expect(request.document.stages).toEqual([
+      { number: 1, name: 'Groups', format: 'round-robin', allocation: { mode: 'automatic' } },
+    ]);
   });
 
   it('shows server-side validation failures when the parent passes them', () => {

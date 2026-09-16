@@ -239,6 +239,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrant-attribute-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A tournament's distinct recorded entrant-attribute keys */
+        get: operations["TournamentsController_entrantAttributeKeys"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments": {
         parameters: {
             query?: never;
@@ -2990,6 +3007,16 @@ export interface components {
         ControlMatchesViewResponse: {
             matches: components["schemas"]["ControlMatchesViewMatchResponse"][];
         };
+        EntrantAttributeKeysResponse: {
+            /**
+             * @description Distinct entrant-attribute keys recorded anywhere in this tournament, sorted. Empty when no entrant carries any attribute yet.
+             * @example [
+             *       "rating",
+             *       "seed-rank"
+             *     ]
+             */
+            keys: string[];
+        };
         SeriesDeclarationRequest: {
             /**
              * @description Total number of scheduled matches in the series.
@@ -3011,6 +3038,43 @@ export interface components {
              */
             standingsAccounting?: "series" | "match";
         };
+        StageAllocationRequest: {
+            /**
+             * @description Where this stage’s seed order comes from: the prior stage’s qualification cut (automatic), an operator’s explicit placement (manual), or a numeric entrant attribute (weighted).
+             * @example automatic
+             * @enum {string}
+             */
+            mode: "automatic" | "manual" | "weighted";
+            /**
+             * @description Required when mode is "weighted": the entrant attribute key to rank on.
+             * @example rating
+             */
+            attributeKey?: string;
+            /**
+             * @description Required when mode is "weighted": never inferred from the attribute’s values.
+             * @example higher-first
+             * @enum {string}
+             */
+            direction?: "higher-first" | "lower-first";
+        };
+        CreateTournamentStageRequest: {
+            /**
+             * @description Defaults to this stage’s 1-based position within `stages`.
+             * @example 1
+             */
+            number?: number;
+            /**
+             * @description Defaults to "Stage {number}".
+             * @example Fase de grupos
+             */
+            name?: string;
+            /** @example round-robin */
+            format: string;
+            /** @description Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross. */
+            series?: components["schemas"]["SeriesDeclarationRequest"];
+            /** @description Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view. */
+            allocation?: components["schemas"]["StageAllocationRequest"];
+        };
         CreateTournamentRequest: {
             /** @example copa-verano */
             alias: string;
@@ -3026,8 +3090,8 @@ export interface components {
              * @example 1.2.0
              */
             descriptorVersion: string;
-            /** @example round-robin */
-            format: string;
+            /** @description Every stage of the tournament, in order. At least one is required — a tournament with one stage is the common case, declared the same way as a multi-stage one. */
+            stages: components["schemas"]["CreateTournamentStageRequest"][];
             /** @description Whether anonymous/public registration intake is open for this tournament. */
             publicRegistration: boolean;
             /** @description Whether accepted entrants must check in before eligibility is locked. */
@@ -3062,8 +3126,6 @@ export interface components {
              * @default []
              */
             customScripts: components["schemas"]["HookScriptAttachmentRequest"][];
-            /** @description Declares this tournament’s crosses as multi-match series by default. Absent stays the default: no series, a single match per cross, requiring no further action. */
-            series?: components["schemas"]["SeriesDeclarationRequest"];
         };
         TournamentSettingsResponse: {
             /** @example Copa Verano */
@@ -3153,6 +3215,8 @@ export interface components {
             name: string;
             /** @example round-robin */
             format: string;
+            /** @description The profile’s declared default seeding for this stage, if any. */
+            allocation?: components["schemas"]["StageAllocationRequest"];
         };
         TournamentProfileSummaryResponse: {
             /** Format: uuid */
@@ -4104,6 +4168,8 @@ export interface components {
             format?: string;
             /** @description Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross, requiring no further action. */
             series?: components["schemas"]["SeriesDeclarationRequest"];
+            /** @description Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view. */
+            allocation?: components["schemas"]["StageAllocationRequest"];
         };
         StageResponse: {
             /** Format: uuid */
@@ -4124,6 +4190,8 @@ export interface components {
             format: string;
             /** @description Absent when this stage declares no series. */
             series?: components["schemas"]["SeriesDeclarationRequest"];
+            /** @description Absent when this stage declares no allocation. */
+            allocation?: components["schemas"]["StageAllocationRequest"];
         };
         UpdateStageRequest: {
             /** @example Fase de grupos (corregida) */
@@ -4133,6 +4201,8 @@ export interface components {
              * @example round-robin
              */
             format?: string;
+            /** @description Replaces this stage’s declared allocation. Absent leaves it unchanged; there is no way to clear a declared allocation back to none through this endpoint. */
+            allocation?: components["schemas"]["StageAllocationRequest"];
         };
         StageConfigurationResponse: {
             /** @description The full stage-configuration override document, not only the changed fields. */
@@ -5960,6 +6030,52 @@ export interface operations {
                 };
             };
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TournamentsController_entrantAttributeKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntrantAttributeKeysResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

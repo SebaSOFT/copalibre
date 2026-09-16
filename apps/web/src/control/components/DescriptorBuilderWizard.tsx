@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Alert } from './ui/atoms/alert.js';
+import type { SupportedLanguage } from '@copalibre/domain';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
-import { Card } from './ui/atoms/card.js';
 import { Checkbox } from './ui/atoms/checkbox.js';
 import { Input } from './ui/atoms/input.js';
 import { Select } from './ui/atoms/select.js';
@@ -11,21 +10,29 @@ import { TerminalBlock } from './ui/atoms/terminal-block.js';
 import { Inline } from './ui/atoms/layout/inline.js';
 import { Stack } from './ui/atoms/layout/stack.js';
 import { Field } from './ui/molecules/field.js';
+import { LocalizedField } from './ui/molecules/localized-field.js';
+import { WizardShell } from './ui/organisms/wizard-shell.js';
 import {
   ACTOR_REQUIREMENTS,
   AGGREGATION_MODES,
+  ALIAS_PATTERN,
   DESCRIPTOR_STEPS,
   EVENT_CATEGORIES,
   TOURNAMENT_FORMATS,
-  TRANSLATABLE_LANGUAGES,
   canContinue,
   canSubmit,
   initialDescriptorWizard,
+  localizedDraftValue,
+  localizedFieldLanguages,
+  localizedNameFieldView,
   nextStep,
+  patternFieldView,
   previousStep,
   progress,
+  requiredFieldView,
   stepProblems,
   toAuthoredModuleRequest,
+  withLocalizedValue,
   type DescriptorWizardState,
   type EventDefinitionDraft,
   type ScoringInputDraft,
@@ -46,7 +53,30 @@ export function DescriptorBuilderWizard({
 }): React.JSX.Element {
   const intl = useIntl();
   const [state, setState] = useState<DescriptorWizardState>(initialDescriptorWizard);
+  // Shared by every localized field on the step: switching the tab on one
+  // moves them all together, so translating the pair means picking the
+  // language once rather than clicking through each field's own tabs.
+  const [activeLanguage, setActiveLanguage] = useState<SupportedLanguage>('en');
   const problems = stepProblems(state);
+  const aliasView = patternFieldView(
+    state.alias,
+    ALIAS_PATTERN,
+    { hintId: 'descriptor-alias-hint', errorId: 'descriptor-alias-error' },
+    intl.formatMessage,
+    messages.descriptorProblemAliasFormat,
+  );
+  const versionView = requiredFieldView(
+    state.version,
+    'descriptor-version-error',
+    intl.formatMessage,
+    messages.descriptorProblemVersion,
+  );
+  const nameView = localizedNameFieldView(
+    activeLanguage,
+    state.name.en,
+    intl.formatMessage,
+    messages.descriptorProblemNameEnglish,
+  );
 
   function patch(next: Partial<DescriptorWizardState>): void {
     setState((current) => ({ ...current, ...next }));
@@ -61,545 +91,9 @@ export function DescriptorBuilderWizard({
   const documentFilename = `${state.alias === undefined || state.alias === '' ? 'discipline' : state.alias}.json`;
 
   return (
-    <section
-      aria-label={intl.formatMessage(messages.descriptorWizardTitle)}
-      className="cl-form-screen"
-    >
-      <header className="cl-form-screen__header">
-        <h1 className="cl-form-screen__title">
-          <FormattedMessage {...messages.descriptorWizardTitle} />
-        </h1>
-        <div
-          className="cl-stat-tile cl-chamfer cl-chamfer--control"
-          data-testid="descriptor-wizard-progress"
-        >
-          <strong className="cl-stat-tile__value">{progress(state)}%</strong>
-        </div>
-      </header>
-
-      <Card className="cl-chamfer cl-chamfer--control">
-        <ol
-          aria-label={intl.formatMessage(messages.descriptorWizardSteps)}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))',
-            gap: 'var(--cl-space-3)',
-            listStyle: 'none',
-            padding: 0,
-            margin: 0,
-          }}
-        >
-          {DESCRIPTOR_STEPS.map((step, index) => (
-            <li
-              key={step.id}
-              style={{ display: 'grid', gap: 'var(--cl-space-2)', justifyItems: 'center' }}
-            >
-              <span aria-current={step.id === state.step ? 'step' : undefined}>{index + 1}</span>
-              <span>{intl.formatMessage(step.label)}</span>
-            </li>
-          ))}
-        </ol>
-      </Card>
-
-      <Card className="cl-chamfer cl-chamfer--control">
-        {state.step === 'name' && (
-          <div className="cl-platform-form-grid">
-            <Field id="descriptor-alias" label={intl.formatMessage(messages.descriptorFieldAlias)}>
-              <Input
-                aria-describedby="descriptor-alias-hint"
-                id="descriptor-alias"
-                onChange={(event) => patch({ alias: event.target.value })}
-                value={state.alias}
-              />
-              <DecisionHint
-                id="descriptor-alias-hint"
-                text={intl.formatMessage(messages.descriptorDecisionAlias)}
-              />
-            </Field>
-            <Field
-              id="descriptor-version"
-              label={intl.formatMessage(messages.descriptorFieldVersion)}
-            >
-              <Input
-                id="descriptor-version"
-                onChange={(event) => patch({ version: event.target.value })}
-                value={state.version}
-              />
-            </Field>
-            <LocalizedField
-              draft={state.name}
-              id="descriptor-name"
-              label={intl.formatMessage(messages.descriptorFieldName)}
-              onChange={(name) => patch({ name })}
-            />
-            <LocalizedField
-              draft={state.description}
-              id="descriptor-description"
-              label={intl.formatMessage(messages.descriptorFieldDescription)}
-              onChange={(description) => patch({ description })}
-              required={false}
-            />
-          </div>
-        )}
-
-        {state.step === 'authorship' && (
-          <div className="cl-platform-form-grid">
-            <Field
-              id="descriptor-author"
-              label={intl.formatMessage(messages.descriptorFieldAuthor)}
-            >
-              <Input
-                aria-describedby="descriptor-author-hint"
-                id="descriptor-author"
-                onChange={(event) => patch({ author: event.target.value })}
-                value={state.author}
-              />
-              <DecisionHint
-                id="descriptor-author-hint"
-                text={intl.formatMessage(messages.descriptorDecisionAuthor)}
-              />
-            </Field>
-            <Field
-              id="descriptor-licence"
-              label={intl.formatMessage(messages.descriptorFieldLicence)}
-            >
-              <Input
-                aria-describedby="descriptor-licence-hint"
-                id="descriptor-licence"
-                onChange={(event) => patch({ licence: event.target.value })}
-                value={state.licence}
-              />
-              <DecisionHint
-                id="descriptor-licence-hint"
-                text={intl.formatMessage(messages.descriptorDecisionLicence)}
-              />
-            </Field>
-            <Field
-              id="descriptor-source-url"
-              label={intl.formatMessage(messages.descriptorFieldSourceUrl)}
-            >
-              <Input
-                id="descriptor-source-url"
-                onChange={(event) => patch({ sourceUrl: event.target.value })}
-                value={state.sourceUrl}
-              />
-            </Field>
-          </div>
-        )}
-
-        {state.step === 'participants' && (
-          <div className="cl-platform-form-grid">
-            <Field
-              id="descriptor-participant-types"
-              label={intl.formatMessage(messages.descriptorFieldParticipantTypes)}
-            >
-              <Inline aria-describedby="descriptor-participant-types-hint" gap="3">
-                {(['individual', 'team'] as const).map((type) => (
-                  <label
-                    key={type}
-                    className="cl-toggle cl-focusable"
-                    style={{ display: 'flex', gap: 'var(--cl-space-2)' }}
-                  >
-                    <Checkbox
-                      aria-label={type}
-                      checked={state.participantTypes.includes(type)}
-                      id={`descriptor-participant-type-${type}`}
-                      onCheckedChange={(checked) =>
-                        patch({
-                          participantTypes: checked
-                            ? [...state.participantTypes, type]
-                            : state.participantTypes.filter((one) => one !== type),
-                        })
-                      }
-                    />
-                    <span>{type}</span>
-                  </label>
-                ))}
-              </Inline>
-              <DecisionHint
-                id="descriptor-participant-types-hint"
-                text={intl.formatMessage(messages.descriptorDecisionParticipantTypes)}
-              />
-            </Field>
-            <Field
-              id="descriptor-min-players"
-              label={intl.formatMessage(messages.descriptorFieldMinPlayers)}
-            >
-              <Input
-                id="descriptor-min-players"
-                min={1}
-                onChange={(event) => patch({ minPlayers: Number(event.target.value) })}
-                type="number"
-                value={state.minPlayers}
-              />
-            </Field>
-            <Field
-              id="descriptor-max-players"
-              label={intl.formatMessage(messages.descriptorFieldMaxPlayers)}
-            >
-              <Input
-                aria-describedby="descriptor-max-players-hint"
-                id="descriptor-max-players"
-                min={1}
-                onChange={(event) => patch({ maxPlayers: Number(event.target.value) })}
-                type="number"
-                value={state.maxPlayers}
-              />
-              <DecisionHint
-                id="descriptor-max-players-hint"
-                text={intl.formatMessage(messages.descriptorDecisionRosterConstraints)}
-              />
-            </Field>
-            <label
-              className="cl-toggle cl-focusable"
-              style={{ display: 'flex', gap: 'var(--cl-space-2)' }}
-            >
-              <Checkbox
-                aria-label={intl.formatMessage(messages.descriptorFieldAllowMidTournamentChanges)}
-                checked={state.allowMidTournamentChanges}
-                id="descriptor-mid-tournament-changes"
-                onCheckedChange={(checked) => patch({ allowMidTournamentChanges: checked })}
-              />
-              <span>
-                <FormattedMessage {...messages.descriptorFieldAllowMidTournamentChanges} />
-              </span>
-            </label>
-
-            <div style={{ gridColumn: '1 / -1' }}>
-              <h3>
-                <FormattedMessage {...messages.descriptorSegmentTypesHeading} />
-              </h3>
-              <DecisionHint
-                id="descriptor-segment-types-hint"
-                text={intl.formatMessage(messages.descriptorDecisionSegmentTypes)}
-              />
-              <SegmentTypeList
-                onAdd={(segment) => patch({ segmentTypes: [...state.segmentTypes, segment] })}
-                onRemove={(index) =>
-                  patch({ segmentTypes: state.segmentTypes.filter((_segment, i) => i !== index) })
-                }
-                segments={state.segmentTypes}
-              />
-            </div>
-          </div>
-        )}
-
-        {state.step === 'statistics' && (
-          <Stack gap="4">
-            <div>
-              <h3>
-                <FormattedMessage {...messages.descriptorStatisticsHeading} />
-              </h3>
-              <DecisionHint
-                id="descriptor-statistics-hint"
-                text={intl.formatMessage(messages.descriptorDecisionStatistics)}
-              />
-              <StatisticList
-                onAdd={(statistic) => patch({ statistics: [...state.statistics, statistic] })}
-                onRemove={(index) =>
-                  patch({ statistics: state.statistics.filter((_statistic, i) => i !== index) })
-                }
-                statistics={state.statistics}
-              />
-            </div>
-            <div>
-              <h3>
-                <FormattedMessage {...messages.descriptorEventsHeading} />
-              </h3>
-              <DecisionHint
-                id="descriptor-events-hint"
-                text={intl.formatMessage(messages.descriptorDecisionEvents)}
-              />
-              <EventDefinitionList
-                events={state.eventDefinitions}
-                onAdd={(event) => patch({ eventDefinitions: [...state.eventDefinitions, event] })}
-                onRemove={(index) =>
-                  patch({
-                    eventDefinitions: state.eventDefinitions.filter((_event, i) => i !== index),
-                  })
-                }
-                segmentTypes={state.segmentTypes}
-                statistics={state.statistics}
-              />
-            </div>
-          </Stack>
-        )}
-
-        {state.step === 'formats' && (
-          <div className="cl-platform-form-grid">
-            <Field
-              id="descriptor-formats"
-              label={intl.formatMessage(messages.descriptorFieldAvailableFormats)}
-            >
-              <Stack aria-describedby="descriptor-formats-hint" gap="2">
-                {TOURNAMENT_FORMATS.map((format) => (
-                  <label
-                    key={format}
-                    className="cl-toggle cl-focusable"
-                    style={{ display: 'flex', gap: 'var(--cl-space-2)' }}
-                  >
-                    <Checkbox
-                      aria-label={format}
-                      checked={state.availableFormats.includes(format)}
-                      id={`descriptor-format-${format}`}
-                      onCheckedChange={(checked) =>
-                        patch({
-                          availableFormats: checked
-                            ? [...state.availableFormats, format]
-                            : state.availableFormats.filter((one) => one !== format),
-                        })
-                      }
-                    />
-                    <span>{format}</span>
-                  </label>
-                ))}
-              </Stack>
-              <DecisionHint
-                id="descriptor-formats-hint"
-                text={intl.formatMessage(messages.descriptorDecisionFormats)}
-              />
-            </Field>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <h3>
-                <FormattedMessage {...messages.descriptorScoringInputsHeading} />
-              </h3>
-              <DecisionHint
-                id="descriptor-scoring-inputs-hint"
-                text={intl.formatMessage(messages.descriptorDecisionScoringInputs)}
-              />
-              <ScoringInputList
-                inputs={state.scoringInputs}
-                onAdd={(input) => patch({ scoringInputs: [...state.scoringInputs, input] })}
-                onRemove={(index) =>
-                  patch({ scoringInputs: state.scoringInputs.filter((_input, i) => i !== index) })
-                }
-              />
-            </div>
-          </div>
-        )}
-
-        {state.step === 'winCondition' && (
-          <div className="cl-platform-form-grid">
-            <Field
-              id="descriptor-win-condition-mode"
-              label={intl.formatMessage(messages.descriptorFieldWinConditionMode)}
-            >
-              <Select
-                aria-describedby="descriptor-win-condition-mode-hint"
-                aria-label={intl.formatMessage(messages.descriptorFieldWinConditionMode)}
-                id="descriptor-win-condition-mode"
-                onValueChange={(val) =>
-                  patch({
-                    winConditionMode: val as DescriptorWizardState['winConditionMode'],
-                  })
-                }
-                options={[
-                  {
-                    value: 'simple',
-                    label: intl.formatMessage(messages.descriptorWinConditionModeSimple),
-                  },
-                  {
-                    value: 'segmented',
-                    label: intl.formatMessage(messages.descriptorWinConditionModeSegmented),
-                  },
-                ]}
-                value={state.winConditionMode}
-              />
-              <DecisionHint
-                id="descriptor-win-condition-mode-hint"
-                text={intl.formatMessage(messages.descriptorDecisionWinConditionMode)}
-              />
-            </Field>
-
-            {state.winConditionMode === 'segmented' && (
-              <>
-                <Field
-                  id="descriptor-segment-margin"
-                  label={intl.formatMessage(messages.descriptorFieldSegmentMargin)}
-                >
-                  <Input
-                    id="descriptor-segment-margin"
-                    min={0}
-                    onChange={(event) =>
-                      patch({
-                        segmentMargin:
-                          event.target.value === '' ? undefined : Number(event.target.value),
-                      })
-                    }
-                    type="number"
-                    value={state.segmentMargin ?? ''}
-                  />
-                </Field>
-                <Field
-                  id="descriptor-segment-name"
-                  label={intl.formatMessage(messages.descriptorFieldSegmentName)}
-                >
-                  <Select
-                    aria-label={intl.formatMessage(messages.descriptorFieldSegmentName)}
-                    id="descriptor-segment-name"
-                    onValueChange={(val) => patch({ segmentName: val })}
-                    options={[
-                      { value: '', label: '' },
-                      ...state.segmentTypes.map((segment) => ({
-                        value: segment.name,
-                        label: segment.name,
-                      })),
-                    ]}
-                    value={state.segmentName}
-                  />
-                </Field>
-                <Field
-                  id="descriptor-segment-target"
-                  label={intl.formatMessage(messages.descriptorFieldSegmentTarget)}
-                >
-                  <Input
-                    id="descriptor-segment-target"
-                    min={1}
-                    onChange={(event) =>
-                      patch({
-                        segmentTarget:
-                          event.target.value === '' ? undefined : Number(event.target.value),
-                      })
-                    }
-                    type="number"
-                    value={state.segmentTarget ?? ''}
-                  />
-                </Field>
-                <Field
-                  id="descriptor-tiebreak-at"
-                  label={intl.formatMessage(messages.descriptorFieldTiebreakAt)}
-                >
-                  <Input
-                    id="descriptor-tiebreak-at"
-                    min={0}
-                    onChange={(event) =>
-                      patch({
-                        tiebreakAt:
-                          event.target.value === '' ? undefined : Number(event.target.value),
-                      })
-                    }
-                    type="number"
-                    value={state.tiebreakAt ?? ''}
-                  />
-                </Field>
-                <Field
-                  id="descriptor-tiebreak-target"
-                  label={intl.formatMessage(messages.descriptorFieldTiebreakTarget)}
-                >
-                  <Input
-                    id="descriptor-tiebreak-target"
-                    min={0}
-                    onChange={(event) =>
-                      patch({
-                        tiebreakTarget:
-                          event.target.value === '' ? undefined : Number(event.target.value),
-                      })
-                    }
-                    type="number"
-                    value={state.tiebreakTarget ?? ''}
-                  />
-                </Field>
-                <Field
-                  id="descriptor-tiebreak-margin"
-                  label={intl.formatMessage(messages.descriptorFieldTiebreakMargin)}
-                >
-                  <Input
-                    id="descriptor-tiebreak-margin"
-                    min={0}
-                    onChange={(event) =>
-                      patch({
-                        tiebreakMargin:
-                          event.target.value === '' ? undefined : Number(event.target.value),
-                      })
-                    }
-                    type="number"
-                    value={state.tiebreakMargin ?? ''}
-                  />
-                </Field>
-              </>
-            )}
-
-            <Field
-              id="descriptor-win-match-unit"
-              label={intl.formatMessage(
-                state.winConditionMode === 'simple'
-                  ? messages.descriptorFieldWinMatchUnitSimple
-                  : messages.descriptorFieldWinMatchUnitSegmented,
-              )}
-            >
-              <Input
-                aria-describedby="descriptor-win-match-unit-hint"
-                id="descriptor-win-match-unit"
-                onChange={(event) => patch({ winMatchUnit: event.target.value })}
-                value={state.winMatchUnit}
-              />
-              <DecisionHint
-                id="descriptor-win-match-unit-hint"
-                text={intl.formatMessage(messages.descriptorDecisionWinMatchUnit)}
-              />
-            </Field>
-            <Field
-              id="descriptor-win-match-target"
-              label={intl.formatMessage(messages.descriptorFieldWinMatchTarget)}
-            >
-              <Input
-                aria-describedby="descriptor-win-match-target-hint"
-                id="descriptor-win-match-target"
-                min={0}
-                onChange={(event) =>
-                  patch({
-                    winMatchTarget:
-                      event.target.value === '' ? undefined : Number(event.target.value),
-                  })
-                }
-                type="number"
-                value={state.winMatchTarget ?? ''}
-              />
-              <DecisionHint
-                id="descriptor-win-match-target-hint"
-                text={intl.formatMessage(messages.descriptorDecisionWinMatchTarget)}
-              />
-            </Field>
-          </div>
-        )}
-
-        {problems.length > 0 && (
-          <Alert block className="cl-inline-alert--spaced" tone="destructive">
-            <ul>
-              {problems.map((problem) => (
-                <li key={problem.id}>{intl.formatMessage(problem)}</li>
-              ))}
-            </ul>
-          </Alert>
-        )}
-
-        {failures.length > 0 && (
-          <Alert
-            block
-            className="cl-inline-alert--spaced"
-            testId="descriptor-server-failures"
-            tone="destructive"
-          >
-            <ul>
-              {failures.map((failure, index) => (
-                <li key={`${failure.stage}-${failure.field ?? index}`}>
-                  [{failure.stage}
-                  {failure.field ? `:${failure.field}` : ''}] {failure.message}
-                </li>
-              ))}
-            </ul>
-          </Alert>
-        )}
-
-        {/*
-          The document itself, on the step that installs it. Versioned modules
-          are JSON in this repository's own model, so an author about to install
-          one wants the file — to read before committing to it, and to keep
-          under version control afterwards. It is shown, never generated on the
-          side: this is `toAuthoredModuleRequest`'s own document, the same bytes
-          the button below submits.
-        */}
-        {isLastStep && (
+    <WizardShell
+      afterFailures={
+        isLastStep ? (
           <TerminalBlock
             code={authoredDocument}
             codeRegionLabel={intl.formatMessage(messages.descriptorDocumentRegion)}
@@ -610,86 +104,530 @@ export function DescriptorBuilderWizard({
             title={documentFilename}
             variant="file"
           />
-        )}
-
-        <footer
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: 'var(--cl-space-3)',
-            marginTop: 'var(--cl-space-6)',
-          }}
-        >
-          <Button
-            onClick={() => patch({ step: previousStep(state) })}
-            type="button"
-            variant="secondary"
-          >
-            <FormattedMessage {...messages.descriptorBack} />
-          </Button>
-          {isLastStep ? (
-            <Button
-              disabled={busy || !canContinue(state) || !canSubmit(state)}
-              onClick={() => onSubmit?.(toAuthoredModuleRequest(state))}
-              type="button"
-            >
-              <FormattedMessage {...messages.descriptorAuthorAndInstall} />
-            </Button>
-          ) : (
-            <Button
-              disabled={!canContinue(state)}
-              onClick={() => patch({ step: nextStep(state) })}
-              type="button"
-            >
-              <FormattedMessage {...messages.descriptorContinue} />
-            </Button>
-          )}
-        </footer>
-      </Card>
-    </section>
-  );
-}
-
-function LocalizedField({
-  id,
-  label,
-  draft,
-  onChange,
-  required = true,
-}: {
-  readonly id: string;
-  readonly label: string;
-  readonly draft: DescriptorWizardState['name'];
-  readonly onChange: (draft: DescriptorWizardState['name']) => void;
-  readonly required?: boolean;
-}): React.JSX.Element {
-  return (
-    <Field id={id} label={`${label}${required ? ' *' : ''}`}>
-      <Input
-        id={id}
-        onChange={(event) => onChange({ ...draft, en: event.target.value })}
-        value={draft.en}
-      />
-      <div style={{ display: 'grid', gap: 'var(--cl-space-2)', marginTop: 'var(--cl-space-2)' }}>
-        {TRANSLATABLE_LANGUAGES.map((language) => (
-          <Input
-            aria-label={`${label} (${language})`}
-            key={language}
-            onChange={(event) =>
-              onChange({
-                ...draft,
-                translations: { ...draft.translations, [language]: event.target.value },
-              })
+        ) : undefined
+      }
+      ariaLabel={intl.formatMessage(messages.descriptorWizardTitle)}
+      backLabel={intl.formatMessage(messages.descriptorBack)}
+      currentStepId={state.step}
+      failures={failures.map((failure, index) => ({
+        key: `${failure.stage}-${failure.field ?? index}`,
+        text: `[${failure.stage}${failure.field ? `:${failure.field}` : ''}] ${failure.message}`,
+      }))}
+      failuresTestId="descriptor-server-failures"
+      onBack={() => patch({ step: previousStep(state) })}
+      primaryAction={
+        isLastStep
+          ? {
+              label: intl.formatMessage(messages.descriptorAuthorAndInstall),
+              disabled: busy || !canContinue(state) || !canSubmit(state),
+              onClick: () => onSubmit?.(toAuthoredModuleRequest(state)),
             }
-            placeholder={language}
-            value={draft.translations[language] ?? ''}
-          />
-        ))}
-      </div>
-      <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
-        <FormattedMessage {...messages.descriptorTranslationHelp} />
-      </p>
-    </Field>
+          : {
+              label: intl.formatMessage(messages.descriptorContinue),
+              disabled: !canContinue(state),
+              onClick: () => patch({ step: nextStep(state) }),
+            }
+      }
+      problems={problems.map((problem) => intl.formatMessage(problem))}
+      progress={progress(state)}
+      progressTestId="descriptor-wizard-progress"
+      stepIndicatorVariant="plain"
+      steps={DESCRIPTOR_STEPS.map((step) => ({
+        id: step.id,
+        label: intl.formatMessage(step.label),
+      }))}
+      stepsAriaLabel={intl.formatMessage(messages.descriptorWizardSteps)}
+      title={intl.formatMessage(messages.descriptorWizardTitle)}
+    >
+      {state.step === 'name' && (
+        <div className="cl-platform-form-grid">
+          <Field
+            errorText={aliasView.errorText}
+            id="descriptor-alias"
+            label={intl.formatMessage(messages.descriptorFieldAlias)}
+          >
+            <Input
+              aria-describedby={aliasView.describedBy}
+              id="descriptor-alias"
+              invalid={aliasView.invalid}
+              onChange={(event) => patch({ alias: event.target.value })}
+              value={state.alias}
+            />
+            <DecisionHint
+              id="descriptor-alias-hint"
+              text={intl.formatMessage(messages.descriptorDecisionAlias)}
+            />
+          </Field>
+          <Field
+            errorText={versionView.errorText}
+            id="descriptor-version"
+            label={intl.formatMessage(messages.descriptorFieldVersion)}
+          >
+            <Input
+              aria-describedby={versionView.describedBy}
+              id="descriptor-version"
+              invalid={versionView.invalid}
+              onChange={(event) => patch({ version: event.target.value })}
+              value={state.version}
+            />
+          </Field>
+          <div style={{ gridColumn: 'span 2' }}>
+            <LocalizedField
+              activeLanguage={activeLanguage}
+              errorText={nameView.errorText}
+              helpText={intl.formatMessage(messages.descriptorTranslationHelp)}
+              id="descriptor-name"
+              invalid={nameView.invalid}
+              label={intl.formatMessage(messages.descriptorFieldName)}
+              languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
+              languages={localizedFieldLanguages(state.name)}
+              onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
+              onValueChange={(value) =>
+                patch({ name: withLocalizedValue(state.name, activeLanguage, value) })
+              }
+              required
+              value={localizedDraftValue(state.name, activeLanguage)}
+            />
+          </div>
+          <div style={{ gridColumn: 'span 2' }}>
+            <LocalizedField
+              activeLanguage={activeLanguage}
+              helpText={intl.formatMessage(messages.descriptorTranslationHelp)}
+              id="descriptor-description"
+              label={intl.formatMessage(messages.descriptorFieldDescription)}
+              languageTabsLabel={intl.formatMessage(messages.shellLanguage)}
+              languages={localizedFieldLanguages(state.description)}
+              multiline
+              onActiveLanguageChange={(code) => setActiveLanguage(code as SupportedLanguage)}
+              onValueChange={(value) =>
+                patch({
+                  description: withLocalizedValue(state.description, activeLanguage, value),
+                })
+              }
+              value={localizedDraftValue(state.description, activeLanguage)}
+            />
+          </div>
+        </div>
+      )}
+
+      {state.step === 'authorship' && (
+        <div className="cl-platform-form-grid">
+          <Field id="descriptor-author" label={intl.formatMessage(messages.descriptorFieldAuthor)}>
+            <Input
+              aria-describedby="descriptor-author-hint"
+              id="descriptor-author"
+              onChange={(event) => patch({ author: event.target.value })}
+              value={state.author}
+            />
+            <DecisionHint
+              id="descriptor-author-hint"
+              text={intl.formatMessage(messages.descriptorDecisionAuthor)}
+            />
+          </Field>
+          <Field
+            id="descriptor-licence"
+            label={intl.formatMessage(messages.descriptorFieldLicence)}
+          >
+            <Input
+              aria-describedby="descriptor-licence-hint"
+              id="descriptor-licence"
+              onChange={(event) => patch({ licence: event.target.value })}
+              value={state.licence}
+            />
+            <DecisionHint
+              id="descriptor-licence-hint"
+              text={intl.formatMessage(messages.descriptorDecisionLicence)}
+            />
+          </Field>
+          <Field
+            id="descriptor-source-url"
+            label={intl.formatMessage(messages.descriptorFieldSourceUrl)}
+          >
+            <Input
+              id="descriptor-source-url"
+              onChange={(event) => patch({ sourceUrl: event.target.value })}
+              value={state.sourceUrl}
+            />
+          </Field>
+        </div>
+      )}
+
+      {state.step === 'participants' && (
+        <div className="cl-platform-form-grid">
+          <Field
+            id="descriptor-participant-types"
+            label={intl.formatMessage(messages.descriptorFieldParticipantTypes)}
+          >
+            <Inline aria-describedby="descriptor-participant-types-hint" gap="3">
+              {(['individual', 'team'] as const).map((type) => (
+                <label
+                  key={type}
+                  className="cl-toggle cl-focusable"
+                  style={{ display: 'flex', gap: 'var(--cl-space-2)' }}
+                >
+                  <Checkbox
+                    aria-label={type}
+                    checked={state.participantTypes.includes(type)}
+                    id={`descriptor-participant-type-${type}`}
+                    onCheckedChange={(checked) =>
+                      patch({
+                        participantTypes: checked
+                          ? [...state.participantTypes, type]
+                          : state.participantTypes.filter((one) => one !== type),
+                      })
+                    }
+                  />
+                  <span>{type}</span>
+                </label>
+              ))}
+            </Inline>
+            <DecisionHint
+              id="descriptor-participant-types-hint"
+              text={intl.formatMessage(messages.descriptorDecisionParticipantTypes)}
+            />
+          </Field>
+          <Field
+            id="descriptor-min-players"
+            label={intl.formatMessage(messages.descriptorFieldMinPlayers)}
+          >
+            <Input
+              id="descriptor-min-players"
+              min={1}
+              onChange={(event) => patch({ minPlayers: Number(event.target.value) })}
+              type="number"
+              value={state.minPlayers}
+            />
+          </Field>
+          <Field
+            id="descriptor-max-players"
+            label={intl.formatMessage(messages.descriptorFieldMaxPlayers)}
+          >
+            <Input
+              aria-describedby="descriptor-max-players-hint"
+              id="descriptor-max-players"
+              min={1}
+              onChange={(event) => patch({ maxPlayers: Number(event.target.value) })}
+              type="number"
+              value={state.maxPlayers}
+            />
+            <DecisionHint
+              id="descriptor-max-players-hint"
+              text={intl.formatMessage(messages.descriptorDecisionRosterConstraints)}
+            />
+          </Field>
+          <label
+            className="cl-toggle cl-focusable"
+            style={{ display: 'flex', gap: 'var(--cl-space-2)' }}
+          >
+            <Checkbox
+              aria-label={intl.formatMessage(messages.descriptorFieldAllowMidTournamentChanges)}
+              checked={state.allowMidTournamentChanges}
+              id="descriptor-mid-tournament-changes"
+              onCheckedChange={(checked) => patch({ allowMidTournamentChanges: checked })}
+            />
+            <span>
+              <FormattedMessage {...messages.descriptorFieldAllowMidTournamentChanges} />
+            </span>
+          </label>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <h3>
+              <FormattedMessage {...messages.descriptorSegmentTypesHeading} />
+            </h3>
+            <DecisionHint
+              id="descriptor-segment-types-hint"
+              text={intl.formatMessage(messages.descriptorDecisionSegmentTypes)}
+            />
+            <SegmentTypeList
+              onAdd={(segment) => patch({ segmentTypes: [...state.segmentTypes, segment] })}
+              onRemove={(index) =>
+                patch({ segmentTypes: state.segmentTypes.filter((_segment, i) => i !== index) })
+              }
+              segments={state.segmentTypes}
+            />
+          </div>
+        </div>
+      )}
+
+      {state.step === 'statistics' && (
+        <Stack gap="4">
+          <div>
+            <h3>
+              <FormattedMessage {...messages.descriptorStatisticsHeading} />
+            </h3>
+            <DecisionHint
+              id="descriptor-statistics-hint"
+              text={intl.formatMessage(messages.descriptorDecisionStatistics)}
+            />
+            <StatisticList
+              onAdd={(statistic) => patch({ statistics: [...state.statistics, statistic] })}
+              onRemove={(index) =>
+                patch({ statistics: state.statistics.filter((_statistic, i) => i !== index) })
+              }
+              statistics={state.statistics}
+            />
+          </div>
+          <div>
+            <h3>
+              <FormattedMessage {...messages.descriptorEventsHeading} />
+            </h3>
+            <DecisionHint
+              id="descriptor-events-hint"
+              text={intl.formatMessage(messages.descriptorDecisionEvents)}
+            />
+            <EventDefinitionList
+              events={state.eventDefinitions}
+              onAdd={(event) => patch({ eventDefinitions: [...state.eventDefinitions, event] })}
+              onRemove={(index) =>
+                patch({
+                  eventDefinitions: state.eventDefinitions.filter((_event, i) => i !== index),
+                })
+              }
+              segmentTypes={state.segmentTypes}
+              statistics={state.statistics}
+            />
+          </div>
+        </Stack>
+      )}
+
+      {state.step === 'formats' && (
+        <div className="cl-platform-form-grid">
+          <Field
+            id="descriptor-formats"
+            label={intl.formatMessage(messages.descriptorFieldAvailableFormats)}
+          >
+            <Stack aria-describedby="descriptor-formats-hint" gap="2">
+              {TOURNAMENT_FORMATS.map((format) => (
+                <label
+                  key={format}
+                  className="cl-toggle cl-focusable"
+                  style={{ display: 'flex', gap: 'var(--cl-space-2)' }}
+                >
+                  <Checkbox
+                    aria-label={format}
+                    checked={state.availableFormats.includes(format)}
+                    id={`descriptor-format-${format}`}
+                    onCheckedChange={(checked) =>
+                      patch({
+                        availableFormats: checked
+                          ? [...state.availableFormats, format]
+                          : state.availableFormats.filter((one) => one !== format),
+                      })
+                    }
+                  />
+                  <span>{format}</span>
+                </label>
+              ))}
+            </Stack>
+            <DecisionHint
+              id="descriptor-formats-hint"
+              text={intl.formatMessage(messages.descriptorDecisionFormats)}
+            />
+          </Field>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <h3>
+              <FormattedMessage {...messages.descriptorScoringInputsHeading} />
+            </h3>
+            <DecisionHint
+              id="descriptor-scoring-inputs-hint"
+              text={intl.formatMessage(messages.descriptorDecisionScoringInputs)}
+            />
+            <ScoringInputList
+              inputs={state.scoringInputs}
+              onAdd={(input) => patch({ scoringInputs: [...state.scoringInputs, input] })}
+              onRemove={(index) =>
+                patch({ scoringInputs: state.scoringInputs.filter((_input, i) => i !== index) })
+              }
+            />
+          </div>
+        </div>
+      )}
+
+      {state.step === 'winCondition' && (
+        <div className="cl-platform-form-grid">
+          <Field
+            id="descriptor-win-condition-mode"
+            label={intl.formatMessage(messages.descriptorFieldWinConditionMode)}
+          >
+            <Select
+              aria-describedby="descriptor-win-condition-mode-hint"
+              aria-label={intl.formatMessage(messages.descriptorFieldWinConditionMode)}
+              id="descriptor-win-condition-mode"
+              onValueChange={(val) =>
+                patch({
+                  winConditionMode: val as DescriptorWizardState['winConditionMode'],
+                })
+              }
+              options={[
+                {
+                  value: 'simple',
+                  label: intl.formatMessage(messages.descriptorWinConditionModeSimple),
+                },
+                {
+                  value: 'segmented',
+                  label: intl.formatMessage(messages.descriptorWinConditionModeSegmented),
+                },
+              ]}
+              value={state.winConditionMode}
+            />
+            <DecisionHint
+              id="descriptor-win-condition-mode-hint"
+              text={intl.formatMessage(messages.descriptorDecisionWinConditionMode)}
+            />
+          </Field>
+
+          {state.winConditionMode === 'segmented' && (
+            <>
+              <Field
+                id="descriptor-segment-margin"
+                label={intl.formatMessage(messages.descriptorFieldSegmentMargin)}
+              >
+                <Input
+                  id="descriptor-segment-margin"
+                  min={0}
+                  onChange={(event) =>
+                    patch({
+                      segmentMargin:
+                        event.target.value === '' ? undefined : Number(event.target.value),
+                    })
+                  }
+                  type="number"
+                  value={state.segmentMargin ?? ''}
+                />
+              </Field>
+              <Field
+                id="descriptor-segment-name"
+                label={intl.formatMessage(messages.descriptorFieldSegmentName)}
+              >
+                <Select
+                  aria-label={intl.formatMessage(messages.descriptorFieldSegmentName)}
+                  id="descriptor-segment-name"
+                  onValueChange={(val) => patch({ segmentName: val })}
+                  options={[
+                    { value: '', label: '' },
+                    ...state.segmentTypes.map((segment) => ({
+                      value: segment.name,
+                      label: segment.name,
+                    })),
+                  ]}
+                  value={state.segmentName}
+                />
+              </Field>
+              <Field
+                id="descriptor-segment-target"
+                label={intl.formatMessage(messages.descriptorFieldSegmentTarget)}
+              >
+                <Input
+                  id="descriptor-segment-target"
+                  min={1}
+                  onChange={(event) =>
+                    patch({
+                      segmentTarget:
+                        event.target.value === '' ? undefined : Number(event.target.value),
+                    })
+                  }
+                  type="number"
+                  value={state.segmentTarget ?? ''}
+                />
+              </Field>
+              <Field
+                id="descriptor-tiebreak-at"
+                label={intl.formatMessage(messages.descriptorFieldTiebreakAt)}
+              >
+                <Input
+                  id="descriptor-tiebreak-at"
+                  min={0}
+                  onChange={(event) =>
+                    patch({
+                      tiebreakAt:
+                        event.target.value === '' ? undefined : Number(event.target.value),
+                    })
+                  }
+                  type="number"
+                  value={state.tiebreakAt ?? ''}
+                />
+              </Field>
+              <Field
+                id="descriptor-tiebreak-target"
+                label={intl.formatMessage(messages.descriptorFieldTiebreakTarget)}
+              >
+                <Input
+                  id="descriptor-tiebreak-target"
+                  min={0}
+                  onChange={(event) =>
+                    patch({
+                      tiebreakTarget:
+                        event.target.value === '' ? undefined : Number(event.target.value),
+                    })
+                  }
+                  type="number"
+                  value={state.tiebreakTarget ?? ''}
+                />
+              </Field>
+              <Field
+                id="descriptor-tiebreak-margin"
+                label={intl.formatMessage(messages.descriptorFieldTiebreakMargin)}
+              >
+                <Input
+                  id="descriptor-tiebreak-margin"
+                  min={0}
+                  onChange={(event) =>
+                    patch({
+                      tiebreakMargin:
+                        event.target.value === '' ? undefined : Number(event.target.value),
+                    })
+                  }
+                  type="number"
+                  value={state.tiebreakMargin ?? ''}
+                />
+              </Field>
+            </>
+          )}
+
+          <Field
+            id="descriptor-win-match-unit"
+            label={intl.formatMessage(
+              state.winConditionMode === 'simple'
+                ? messages.descriptorFieldWinMatchUnitSimple
+                : messages.descriptorFieldWinMatchUnitSegmented,
+            )}
+          >
+            <Input
+              aria-describedby="descriptor-win-match-unit-hint"
+              id="descriptor-win-match-unit"
+              onChange={(event) => patch({ winMatchUnit: event.target.value })}
+              value={state.winMatchUnit}
+            />
+            <DecisionHint
+              id="descriptor-win-match-unit-hint"
+              text={intl.formatMessage(messages.descriptorDecisionWinMatchUnit)}
+            />
+          </Field>
+          <Field
+            id="descriptor-win-match-target"
+            label={intl.formatMessage(messages.descriptorFieldWinMatchTarget)}
+          >
+            <Input
+              aria-describedby="descriptor-win-match-target-hint"
+              id="descriptor-win-match-target"
+              min={0}
+              onChange={(event) =>
+                patch({
+                  winMatchTarget:
+                    event.target.value === '' ? undefined : Number(event.target.value),
+                })
+              }
+              type="number"
+              value={state.winMatchTarget ?? ''}
+            />
+            <DecisionHint
+              id="descriptor-win-match-target-hint"
+              text={intl.formatMessage(messages.descriptorDecisionWinMatchTarget)}
+            />
+          </Field>
+        </div>
+      )}
+    </WizardShell>
   );
 }
 

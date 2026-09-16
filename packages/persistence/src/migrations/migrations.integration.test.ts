@@ -200,6 +200,22 @@ describe('migrations (integration)', () => {
     expect(afterUpTables.find((table) => table.name === 'tournaments')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'featured' })]),
     );
+    expect(afterUpTables.find((table) => table.name === 'stage_configurations')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'allocation' })]),
+    );
+
+    const stageAllocationDown = await migrateDownOneStep(scratch.db);
+    expect(stageAllocationDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0035-tournament-featured');
+    const afterStageAllocationDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterStageAllocationDownTables.find((table) => table.name === 'stage_configurations')
+        ?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'allocation' })]));
+    // The column beneath it survives the step down.
+    expect(
+      afterStageAllocationDownTables.find((table) => table.name === 'tournaments')?.columns,
+    ).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'featured' })]));
 
     const tournamentFeaturedDown = await migrateDownOneStep(scratch.db);
     expect(tournamentFeaturedDown.error).toBeUndefined();

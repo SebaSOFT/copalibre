@@ -43,8 +43,12 @@ installation can run.
 
 ### Requirement: A tournament profile can be authored against an installed discipline
 The control panel SHALL offer a guided surface that authors a tournament profile — its stages, each
-stage's format, and how each stage qualifies into the next — against a discipline already installed, and
-SHALL refuse a stage whose format that discipline does not declare.
+stage's format, each stage's default seeding/allocation mode, and how each stage qualifies into the
+next — against a discipline already installed, and SHALL refuse a stage whose format that discipline
+does not declare. A stage's declared allocation default SHALL be one of automatic, manual, or
+weighted (with a direction and attribute when weighted), and SHALL be optional: a stage declaring
+none behaves as it did before this capability existed, leaving seeding entirely to the operator when
+a tournament is later instantiated from the profile.
 
 #### Scenario: A multi-stage profile is authored
 - **WHEN** an administrator authors a profile declaring a group stage feeding a knockout stage
@@ -54,6 +58,17 @@ SHALL refuse a stage whose format that discipline does not declare.
 #### Scenario: A format the discipline does not support is refused
 - **WHEN** an author selects a stage format the chosen discipline does not declare
 - **THEN** the selection is refused, naming the discipline and the formats it does declare
+
+#### Scenario: A profile declares a default allocation for its knockout stage
+- **WHEN** an administrator authoring a group-stage-into-knockout profile declares the knockout
+  stage's allocation as automatic
+- **THEN** the profile document records that default, and a tournament created from it carries the
+  same default on its corresponding stage configuration
+
+#### Scenario: A profile stage with no declared allocation is unchanged
+- **WHEN** an administrator authors a stage without setting an allocation
+- **THEN** the stage is stored with no allocation declared, identical to a profile authored before
+  this capability existed
 
 ### Requirement: An authored module carries its authorship, description and translations
 The authoring surface SHALL capture a module's author, licence and attribution, a description of what

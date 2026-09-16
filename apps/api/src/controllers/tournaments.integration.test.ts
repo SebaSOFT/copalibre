@@ -113,7 +113,12 @@ describe('organization-scoped tournament routes', () => {
         name: 'Copa Export Multi',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        // Mirrors profile.stages — the wizard submits its read-only preview
+        // of the profile's own declared stages verbatim.
+        stages: [
+          { number: 1, name: 'Groups', format: 'round-robin' },
+          { number: 2, name: 'Final', format: 'single-elimination' },
+        ],
         publicRegistration: true,
         requiresCheckIn: false,
         region: 'Cuyo',
@@ -387,7 +392,7 @@ describe('organization-scoped tournament routes', () => {
         name: 'Copa Custom Scripts',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: false,
         requiresCheckIn: false,
         customScripts: [notifyAttachment()],
@@ -475,7 +480,7 @@ describe('organization-scoped tournament routes', () => {
         name: 'Copa Invalid Script',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: false,
         requiresCheckIn: false,
         customScripts: [invalid],
@@ -505,7 +510,7 @@ describe('organization-scoped tournament routes', () => {
         name: 'Copa Unpublished Expression',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: false,
         requiresCheckIn: false,
         customScripts: [unpublished],
@@ -756,7 +761,7 @@ describe('organization-scoped tournament routes', () => {
         name: 'Copa Completa',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: true,
         requiresCheckIn: true,
         checkInClosesAt: '2026-09-01T12:00:00.000Z',
@@ -778,6 +783,73 @@ describe('organization-scoped tournament routes', () => {
       'registration.publicOpen': true,
       'registration.requiresCheckIn': true,
     });
+  });
+
+  it('creates an ad-hoc tournament declaring three stages in one pass, each with its own series and allocation', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const response = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'copa-multi-fase',
+        name: 'Copa Multi Fase',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        stages: [
+          { name: 'Grupos', format: 'round-robin', allocation: { mode: 'automatic' } },
+          {
+            name: 'Playoffs',
+            format: 'single-elimination',
+            allocation: { mode: 'manual' },
+          },
+          {
+            name: 'Gran Final',
+            format: 'single-elimination',
+            series: { span: 3, resolutionClass: 'best-of' },
+          },
+        ],
+        publicRegistration: false,
+        requiresCheckIn: false,
+        customScripts: [],
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const created = response.json() as { tournamentId: string; rulesetId: string };
+
+    const stages = await competition.listStagesOfTournament(created.tournamentId);
+    expect(
+      stages.map((stage) => ({ number: stage.number, name: stage.name, format: stage.format })),
+    ).toEqual([
+      { number: 1, name: 'Grupos', format: 'round-robin' },
+      { number: 2, name: 'Playoffs', format: 'single-elimination' },
+      { number: 3, name: 'Gran Final', format: 'single-elimination' },
+    ]);
+
+    // The first declared stage's format is the tournament-level fallback a
+    // later ad-hoc stage addition with no explicit format defaults to.
+    const ruleset = await tournaments.findLatestRuleset(created.tournamentId);
+    expect(ruleset?.overrides).toMatchObject({ format: 'round-robin' });
+
+    const [groupsStage, playoffsStage, finalStage] = stages;
+    if (!groupsStage || !playoffsStage || !finalStage) throw new Error('Expected three stages');
+    const groupsConfig = await tournaments.findLatestStageConfiguration(groupsStage.stageId);
+    expect(groupsConfig?.allocation).toEqual({ mode: 'automatic' });
+    const playoffsConfig = await tournaments.findLatestStageConfiguration(playoffsStage.stageId);
+    expect(playoffsConfig?.allocation).toEqual({ mode: 'manual' });
+    const finalConfig = await tournaments.findLatestStageConfiguration(finalStage.stageId);
+    expect(finalConfig?.overrides).toMatchObject({ 'series.span': 3 });
   });
 
   it('creates a tournament instantiating a tournament profile and pre-creating declared stages', async () => {
@@ -832,7 +904,12 @@ describe('organization-scoped tournament routes', () => {
         name: 'Copa With Profile',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        // Mirrors profile.stages — the wizard submits its read-only preview
+        // of the profile's own declared stages verbatim.
+        stages: [
+          { number: 1, name: 'Group Stage', format: 'round-robin' },
+          { number: 2, name: 'Final Stage', format: 'single-elimination' },
+        ],
         publicRegistration: false,
         requiresCheckIn: false,
         profileId: profile.profileId,
@@ -1037,7 +1114,7 @@ describe('organization-scoped tournament routes', () => {
       name: 'Rejected Undeclared Tournament',
       descriptorId: descriptor.descriptorId,
       descriptorVersion: descriptor.version,
-      format: 'single-elimination',
+      stages: [{ format: 'single-elimination' }],
       publicRegistration: true,
       requiresCheckIn: false,
       customScripts: [],

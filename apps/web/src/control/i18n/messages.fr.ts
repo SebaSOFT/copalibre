@@ -412,6 +412,33 @@ export const messages: Record<string, string> = {
   'control.wizard.problem.seriesSpan': 'Une série compte au moins deux matchs',
   'control.wizard.problem.seriesEvenBestOf':
     'Une série au meilleur de exige un nombre impair de matchs pour qu’un camp obtienne la majorité. Utilisez Cumulé ou Points par match pour un nombre pair.',
+  'control.wizard.problem.allocationAttributeKey':
+    'La répartition pondérée nécessite un attribut pour classer les participants',
+  'control.stageEditor.title': 'Phases',
+  'control.stageEditor.addStage': 'Ajouter une phase',
+  'control.stageEditor.removeStage': 'Retirer',
+  'control.stageEditor.stageHeading': 'Phase {number}',
+  'control.stageEditor.stageName': 'Nom de la phase',
+  'control.stageEditor.stageFormat': 'Format de la phase',
+  'control.stageEditor.seriesToggle': 'Décider les confrontations de cette phase par une série',
+  'control.stageEditor.seriesSpan': 'Matchs',
+  'control.stageEditor.seriesResolutionClass': 'Résolution',
+  'control.stageEditor.seriesNeutralGround': 'Terrain neutre',
+  'control.stageEditor.seriesAccountPerSeries': 'Compter le classement par série, pas par match',
+  'control.stageEditor.allocationLabel': 'Répartition',
+  'control.stageEditor.allocationNone': 'Décider plus tard',
+  'control.stageEditor.allocationAutomatic':
+    'Automatique — ordre de classement de la phase précédente',
+  'control.stageEditor.allocationManual': 'Manuel — je place moi-même les participants',
+  'control.stageEditor.allocationWeighted': 'Pondérée — classe selon un attribut du participant',
+  'control.stageEditor.allocationAttributeKey': 'Attribut',
+  'control.stageEditor.allocationDirection': 'Sens',
+  'control.stageEditor.allocationDirectionHigherFirst':
+    'La valeur la plus élevée est répartie en premier',
+  'control.stageEditor.allocationDirectionLowerFirst':
+    'La valeur la plus faible est répartie en premier',
+  'control.stageEditor.profilePreviewHint':
+    'Ce tournoi utilisera les propres phases du profil, affichées ici en lecture seule.',
   'control.wizard.series.enable': 'Décider chaque confrontation par une série de matchs',
   'control.wizard.series.help':
     'Laissez désactivé pour jouer un match par confrontation. Activé, plusieurs matchs entre les deux mêmes camps sont programmés et la confrontation se décide sur leur ensemble.',

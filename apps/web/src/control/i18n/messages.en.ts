@@ -1128,6 +1128,77 @@ export const messages = defineMessages({
   wizardStepRules: { id: 'control.wizard.step.rules', defaultMessage: 'Event rules' },
   wizardStepWindow: { id: 'control.wizard.step.window', defaultMessage: 'Window' },
 
+  // Shared stage editor (lib/stage-authoring.ts, components/StageListEditor.tsx)
+  stageEditorTitle: { id: 'control.stageEditor.title', defaultMessage: 'Stages' },
+  stageEditorAddStage: { id: 'control.stageEditor.addStage', defaultMessage: 'Add stage' },
+  stageEditorRemoveStage: { id: 'control.stageEditor.removeStage', defaultMessage: 'Remove' },
+  stageEditorStageHeading: {
+    id: 'control.stageEditor.stageHeading',
+    defaultMessage: 'Stage {number}',
+  },
+  stageEditorStageName: { id: 'control.stageEditor.stageName', defaultMessage: 'Stage name' },
+  stageEditorStageFormat: {
+    id: 'control.stageEditor.stageFormat',
+    defaultMessage: 'Stage format',
+  },
+  stageEditorSeriesToggle: {
+    id: 'control.stageEditor.seriesToggle',
+    defaultMessage: 'Settle this stage’s crosses with a series',
+  },
+  stageEditorSeriesSpan: { id: 'control.stageEditor.seriesSpan', defaultMessage: 'Matches' },
+  stageEditorSeriesResolutionClass: {
+    id: 'control.stageEditor.seriesResolutionClass',
+    defaultMessage: 'Resolution',
+  },
+  stageEditorSeriesNeutralGround: {
+    id: 'control.stageEditor.seriesNeutralGround',
+    defaultMessage: 'Neutral ground',
+  },
+  stageEditorSeriesAccountPerSeries: {
+    id: 'control.stageEditor.seriesAccountPerSeries',
+    defaultMessage: 'Count standings per series, not per match',
+  },
+  stageEditorAllocationLabel: {
+    id: 'control.stageEditor.allocationLabel',
+    defaultMessage: 'Seeding',
+  },
+  stageEditorAllocationNone: {
+    id: 'control.stageEditor.allocationNone',
+    defaultMessage: 'Decide later',
+  },
+  stageEditorAllocationAutomatic: {
+    id: 'control.stageEditor.allocationAutomatic',
+    defaultMessage: 'Automatic — prior stage’s cut order',
+  },
+  stageEditorAllocationManual: {
+    id: 'control.stageEditor.allocationManual',
+    defaultMessage: 'Manual — I’ll place entrants myself',
+  },
+  stageEditorAllocationWeighted: {
+    id: 'control.stageEditor.allocationWeighted',
+    defaultMessage: 'Weighted — rank by an entrant attribute',
+  },
+  stageEditorAllocationAttributeKey: {
+    id: 'control.stageEditor.allocationAttributeKey',
+    defaultMessage: 'Attribute',
+  },
+  stageEditorAllocationDirection: {
+    id: 'control.stageEditor.allocationDirection',
+    defaultMessage: 'Direction',
+  },
+  stageEditorAllocationDirectionHigherFirst: {
+    id: 'control.stageEditor.allocationDirectionHigherFirst',
+    defaultMessage: 'Higher value seeds first',
+  },
+  stageEditorAllocationDirectionLowerFirst: {
+    id: 'control.stageEditor.allocationDirectionLowerFirst',
+    defaultMessage: 'Lower value seeds first',
+  },
+  stageEditorProfilePreviewHint: {
+    id: 'control.stageEditor.profilePreviewHint',
+    defaultMessage: 'This tournament will use the profile’s own stages, shown here read-only.',
+  },
+
   // Wizard validation problems (lib/wizard.ts stepProblems)
   wizardProblemMissingName: {
     id: 'control.wizard.problem.missingName',
@@ -1162,6 +1233,10 @@ export const messages = defineMessages({
     id: 'control.wizard.problem.seriesEvenBestOf',
     defaultMessage:
       'A best-of series needs an odd number of matches so one side can win the majority. Use Aggregate or Points per leg for an even number.',
+  },
+  wizardProblemAllocationAttributeKey: {
+    id: 'control.wizard.problem.allocationAttributeKey',
+    defaultMessage: 'Weighted seeding needs an attribute to rank entrants on',
   },
   wizardProblemMinParticipants: {
     id: 'control.wizard.problem.minParticipants',

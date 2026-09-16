@@ -25,6 +25,8 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
+  AllocationError,
+  allocateSeeds,
   classifyEngineMutation,
   generateFixtures,
   isDuelMatch,
@@ -37,6 +39,7 @@ import {
   EnrollmentRepository,
   InvariantViolationError,
   StageReadModel,
+  TournamentRepository,
   withTransaction,
   type Database,
   type StageMatchRecord,
@@ -90,14 +93,15 @@ export class SeedingController {
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
     @Req() request: RequestWithSubject,
   ): Promise<SeedingResponse> {
-    const { record, stageId } = await this.stage(
+    const { record, stageId, tournamentId } = await this.stage(
       organizationAlias,
       tournamentAlias,
       stageNumber,
       request,
     );
 
-    const graph = this.graphOf(record.format, record.entrantIds);
+    const seedOrder = await this.seedOrderFor(stageId, record.entrantIds, tournamentId);
+    const graph = this.graphOf(record.format, seedOrder);
     const persisted = await new StageReadModel(this.db).matches(stageId);
 
     const ambiguousPositions = ambiguousRoundPositions(graph.matches);
@@ -106,12 +110,53 @@ export class SeedingController {
     return {
       stageId,
       format: record.format,
-      seeds: record.entrantIds.map((entrantId, index) => ({ seed: index + 1, entrantId })),
+      seeds: seedOrder.map((entrantId, index) => ({ seed: index + 1, entrantId })),
       matches: graph.matches.map((match) =>
         toBracketMatch(match, persisted, { ambiguousPositions, matchFormat }),
       ),
       hasRecordedResults: record.hasRecordedResults,
     };
+  }
+
+  /**
+   * Pre-fills the seed order from the stage's declared `StageAllocation` when
+   * one exists and can be resolved without operator input (`automatic`,
+   * `weighted`). `manual` and an undeclared allocation both keep today's
+   * behavior: the entrants in `entrantIds` order, left for the operator to
+   * reorder by hand. A resolution failure (e.g. a weighted attribute missing
+   * on an entrant) falls back the same way rather than failing this read.
+   */
+  private async seedOrderFor(
+    stageId: string,
+    entrantIds: readonly string[],
+    tournamentId: string,
+  ): Promise<readonly string[]> {
+    const configuration = await new TournamentRepository(this.db).findLatestStageConfiguration(
+      stageId,
+    );
+    const allocation = configuration?.allocation;
+    if (allocation === undefined || allocation.mode === 'manual') return entrantIds;
+
+    try {
+      const attributesByEntrant =
+        allocation.mode === 'weighted'
+          ? await new EnrollmentRepository(this.db).listTournamentAttributes(tournamentId)
+          : undefined;
+
+      const outcome = allocateSeeds({
+        allocation,
+        entrants: entrantIds.map((entrantId) => ({
+          entrantId,
+          attributes: attributesByEntrant?.get(entrantId),
+        })),
+        qualified: entrantIds,
+        slots: entrantIds.length,
+      });
+      return outcome.seeds.map((seed) => seed.entrantId);
+    } catch (error) {
+      if (error instanceof AllocationError) return entrantIds;
+      throw error;
+    }
   }
 
   @Post('seeding')

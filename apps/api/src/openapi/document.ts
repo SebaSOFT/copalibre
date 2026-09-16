@@ -28,8 +28,12 @@ import type { OpenAPIObject } from '@nestjs/swagger';
  * Bumped to 6.0.0 for match-grain scheduling: schedule assignment requests now
  * specify `matchId` and `slotId` against organization schedule grids, and fixture
  * responses include the fixture's primary `matchId`.
+ *
+ * Bumped to 7.0.0 for multi-stage tournament authoring: tournament creation now
+ * requires a `stages` array declaring every stage up front, replacing the single
+ * top-level `format`/`series` fields.
  */
-export const OPENAPI_VERSION = '6.0.0';
+export const OPENAPI_VERSION = '7.0.0';
 
 export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()

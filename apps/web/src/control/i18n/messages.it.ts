@@ -410,6 +410,32 @@ export const messages: Record<string, string> = {
   'control.wizard.problem.seriesSpan': 'Una serie comprende almeno due partite',
   'control.wizard.problem.seriesEvenBestOf':
     'Una serie al meglio di richiede un numero dispari di partite perché una parte ottenga la maggioranza. Usa Aggregato o Punti per gara per un numero pari.',
+  'control.wizard.problem.allocationAttributeKey':
+    'La distribuzione ponderata richiede un attributo su cui classificare i partecipanti',
+  'control.stageEditor.title': 'Fasi',
+  'control.stageEditor.addStage': 'Aggiungi fase',
+  'control.stageEditor.removeStage': 'Rimuovi',
+  'control.stageEditor.stageHeading': 'Fase {number}',
+  'control.stageEditor.stageName': 'Nome fase',
+  'control.stageEditor.stageFormat': 'Formato fase',
+  'control.stageEditor.seriesToggle': 'Decidi gli incroci di questa fase con una serie',
+  'control.stageEditor.seriesSpan': 'Partite',
+  'control.stageEditor.seriesResolutionClass': 'Risoluzione',
+  'control.stageEditor.seriesNeutralGround': 'Campo neutro',
+  'control.stageEditor.seriesAccountPerSeries': 'Conta la classifica per serie, non per partita',
+  'control.stageEditor.allocationLabel': 'Distribuzione',
+  'control.stageEditor.allocationNone': 'Decidi più avanti',
+  'control.stageEditor.allocationAutomatic': 'Automatica — ordine di taglio della fase precedente',
+  'control.stageEditor.allocationManual': 'Manuale — assegno io stesso i partecipanti',
+  'control.stageEditor.allocationWeighted': 'Ponderata — ordina per un attributo del partecipante',
+  'control.stageEditor.allocationAttributeKey': 'Attributo',
+  'control.stageEditor.allocationDirection': 'Direzione',
+  'control.stageEditor.allocationDirectionHigherFirst':
+    'Il valore più alto viene distribuito per primo',
+  'control.stageEditor.allocationDirectionLowerFirst':
+    'Il valore più basso viene distribuito per primo',
+  'control.stageEditor.profilePreviewHint':
+    'Questo torneo userà le fasi proprie del profilo, mostrate qui in sola lettura.',
   'control.wizard.series.enable': 'Decidere ogni incrocio con una serie di partite',
   'control.wizard.series.help':
     'Lascia disattivato per giocare una partita per incrocio. Attivandolo vengono programmate più partite tra le stesse due parti e l’incrocio si decide considerandole tutte insieme.',

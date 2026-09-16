@@ -793,6 +793,31 @@ function components(): string {
     '.cl-role-status--active { color: var(--cl-state-live); }',
     '.cl-role-status--inactive { color: var(--cl-text-muted); }',
     '',
+    // Small tabs above the field, not a Select-with-icon: Select's trigger
+    // holds one leading icon for the whole control (select.tsx), not a
+    // per-option marker, so it cannot carry a "this language already has
+    // text" dot per option without changing what an atom's `icon` prop means.
+    // Tabs give every language its own always-visible slot for that dot.
+    //
+    // Shared by LocalizedInput and LocalizedTextarea (localized-field-tabs.tsx)
+    // - one class family, not one copy per field control. The strip sits
+    // flush on the field it controls, not floating above it with a gap: the
+    // tabs' bottom border is dropped, the row is pulled down 1px onto the
+    // field's own top border (`margin-bottom: -1px`), and the field's top
+    // corners are squared under the tabs so the two read as one piece, not
+    // two stacked boxes.
+    '.cl-localized-field { display: grid; min-width: 0; }',
+    '.cl-localized-field__tabs { display: flex; gap: var(--cl-space-1); overflow-x: auto; margin-bottom: -1px; }',
+    '.cl-localized-field__tab { display: inline-flex; flex: 0 0 auto; align-items: center; gap: var(--cl-space-1); border: 1px solid var(--cl-border-muted); border-bottom: none; border-radius: var(--cl-radius-sm) var(--cl-radius-sm) 0 0; background: var(--cl-surface-chrome); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); line-height: 1; text-transform: uppercase; white-space: nowrap; padding: var(--cl-space-1); cursor: pointer; }',
+    '.cl-localized-field__tab--active { position: relative; z-index: 1; background: var(--cl-surface-panel); border-color: var(--cl-primary); color: var(--cl-text-primary); }',
+    '.cl-localized-field__tab:disabled { cursor: not-allowed; opacity: 0.6; }',
+    // Same green as the badge/terminal-block fill dots (--cl-state-positive):
+    // one colour for "this already has a value," everywhere it appears. A
+    // fixed small size, like the sync-indicator dot (control.css) - a dot's
+    // exact pixel size is a bespoke visual detail, not a spacing decision.
+    '.cl-localized-field__dot { width: 4px; height: 4px; border-radius: 50%; background: var(--cl-state-positive); flex: 0 0 auto; }',
+    '.cl-localized-field .cl-input, .cl-localized-field .cl-textarea { position: relative; border-top-left-radius: 0; border-top-right-radius: 0; }',
+    '',
     // One name for one rule. The dashboard's and the platform screen's own
     // section wrappers were byte-identical: a screen that stacks sections is a
     // screen that stacks sections, whichever screen it is.

@@ -657,6 +657,80 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrant-attribute-keys": {
+      "get": {
+        "operationId": "TournamentsController_entrantAttributeKeys",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntrantAttributeKeysResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A tournament's distinct recorded entrant-attribute keys",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments": {
       "post": {
         "description": "Requires the copalibre.control scope and a token scoped to the target organization.",
@@ -10831,7 +10905,7 @@
   "info": {
     "title": "CopaLibre API",
     "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "6.0.0",
+    "version": "7.0.0",
     "contact": {}
   },
   "tags": [],
@@ -11739,6 +11813,25 @@
           "matches"
         ]
       },
+      "EntrantAttributeKeysResponse": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "description": "Distinct entrant-attribute keys recorded anywhere in this tournament, sorted. Empty when no entrant carries any attribute yet.",
+            "example": [
+              "rating",
+              "seed-rank"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "keys"
+        ]
+      },
       "SeriesDeclarationRequest": {
         "type": "object",
         "properties": {
@@ -11775,6 +11868,76 @@
           "span"
         ]
       },
+      "StageAllocationRequest": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "manual",
+              "weighted"
+            ],
+            "description": "Where this stage’s seed order comes from: the prior stage’s qualification cut (automatic), an operator’s explicit placement (manual), or a numeric entrant attribute (weighted).",
+            "example": "automatic"
+          },
+          "attributeKey": {
+            "type": "string",
+            "description": "Required when mode is \"weighted\": the entrant attribute key to rank on.",
+            "example": "rating"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "higher-first",
+              "lower-first"
+            ],
+            "description": "Required when mode is \"weighted\": never inferred from the attribute’s values.",
+            "example": "higher-first"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "CreateTournamentStageRequest": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "Defaults to this stage’s 1-based position within `stages`.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Defaults to \"Stage {number}\".",
+            "example": "Fase de grupos"
+          },
+          "format": {
+            "type": "string",
+            "example": "round-robin"
+          },
+          "series": {
+            "description": "Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
+          },
+          "allocation": {
+            "description": "Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageAllocationRequest"
+              }
+            ]
+          }
+        },
+        "required": [
+          "format"
+        ]
+      },
       "CreateTournamentRequest": {
         "type": "object",
         "properties": {
@@ -11796,9 +11959,12 @@
             "description": "Pinned descriptor version (semver). Rulesets never track \"latest\": the version a tournament starts on is frozen.",
             "example": "1.2.0"
           },
-          "format": {
-            "type": "string",
-            "example": "round-robin"
+          "stages": {
+            "description": "Every stage of the tournament, in order. At least one is required — a tournament with one stage is the common case, declared the same way as a multi-stage one.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateTournamentStageRequest"
+            }
           },
           "publicRegistration": {
             "type": "boolean",
@@ -11840,14 +12006,6 @@
             "items": {
               "$ref": "#/components/schemas/HookScriptAttachmentRequest"
             }
-          },
-          "series": {
-            "description": "Declares this tournament’s crosses as multi-match series by default. Absent stays the default: no series, a single match per cross, requiring no further action.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SeriesDeclarationRequest"
-              }
-            ]
           }
         },
         "required": [
@@ -11855,7 +12013,7 @@
           "name",
           "descriptorId",
           "descriptorVersion",
-          "format",
+          "stages",
           "publicRegistration",
           "requiresCheckIn",
           "customScripts"
@@ -12028,6 +12186,14 @@
           "format": {
             "type": "string",
             "example": "round-robin"
+          },
+          "allocation": {
+            "description": "The profile’s declared default seeding for this stage, if any.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageAllocationRequest"
+              }
+            ]
           }
         },
         "required": [
@@ -14575,6 +14741,14 @@
                 "$ref": "#/components/schemas/SeriesDeclarationRequest"
               }
             ]
+          },
+          "allocation": {
+            "description": "Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageAllocationRequest"
+              }
+            ]
           }
         }
       },
@@ -14610,6 +14784,14 @@
                 "$ref": "#/components/schemas/SeriesDeclarationRequest"
               }
             ]
+          },
+          "allocation": {
+            "description": "Absent when this stage declares no allocation.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageAllocationRequest"
+              }
+            ]
           }
         },
         "required": [
@@ -14631,6 +14813,14 @@
             "type": "string",
             "description": "Refused once the stage already holds a generated fixture. Validated against the tournament's discipline descriptor.",
             "example": "round-robin"
+          },
+          "allocation": {
+            "description": "Replaces this stage’s declared allocation. Absent leaves it unchanged; there is no way to clear a declared allocation back to none through this endpoint.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageAllocationRequest"
+              }
+            ]
           }
         }
       },
