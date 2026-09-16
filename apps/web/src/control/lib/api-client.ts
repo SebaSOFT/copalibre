@@ -2,6 +2,7 @@ import type { LocalizedLabel } from '@copalibre/domain';
 import type {
   CreateOrganizationRequest,
   OrganizationResponse as ContractOrganizationResponse,
+  TournamentCompletionResponse,
   components,
 } from '@copalibre/contracts';
 import type { CanvasMatch } from './bracket-canvas.js';
@@ -163,6 +164,13 @@ export interface ControlApiClient {
       readonly state?: 'all' | 'live' | 'upcoming' | 'final';
     },
   ) => Promise<{ readonly matches: readonly MatchCardData[] }>;
+  /**
+   * Tournament completion aggregate summary (openspec 0241).
+   */
+  readonly fetchCompletion?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<TournamentCompletionResponse>;
   /**
    * One row's comparator chain, fetched when it is expanded.
    *
@@ -2094,6 +2102,13 @@ export function createControlApiClient(input: {
         { token: input.accessToken?.() },
       );
     },
+
+    fetchCompletion: (organizationAlias, tournamentAlias) =>
+      requestJson<TournamentCompletionResponse>(
+        input.fetch,
+        `${tournamentPath(baseUrl, organizationAlias, tournamentAlias)}/completion`,
+        { token: input.accessToken?.() },
+      ),
 
     fetchTiebreakTrace: (organizationAlias, tournamentAlias, stageNumber, entrantId) =>
       requestJson<TiebreakTraceResponse>(

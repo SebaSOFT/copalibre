@@ -185,4 +185,9 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.standingsTab': 'Турнирная таблица',
   'publicWeb.tvDashboard.performersTab': 'Лучшие игроки',
   'publicWeb.tvDashboard.statisticsTab': 'Статистика',
+  'publicWeb.completion.heading': 'Прогресс турнира',
+  'publicWeb.completion.summary': 'Сыграно матчей: {resolved} из {total}',
+  'publicWeb.completion.complete': 'Завершено',
+  'publicWeb.completion.inProgress': 'В процессе',
+  'publicWeb.completion.unmeasured': 'Матчи не запланированы',
 };

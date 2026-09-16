@@ -180,4 +180,132 @@ describe('MatchesViewPage', () => {
     });
     expect(document.querySelector('.cl-matches-view__grid')).toBeNull();
   });
+
+  it('fetches and renders the tournament completion summary', async () => {
+    const fetchCompletion = jest.fn(() =>
+      Promise.resolve({
+        totalMatches: 32,
+        resolvedMatches: 18,
+        finalizedMatches: 17,
+        forfeitedMatches: 1,
+        liveMatches: 2,
+        scheduledMatches: 12,
+        stages: [
+          {
+            stageId: 'stage-1',
+            stageNumber: 1,
+            stageName: 'Fase Regular',
+            totalMatches: 32,
+            resolvedMatches: 18,
+            finalizedMatches: 17,
+            forfeitedMatches: 1,
+            liveMatches: 2,
+            scheduledMatches: 12,
+          },
+        ],
+      }),
+    );
+
+    render(
+      withIntl(
+        <MatchesViewPage
+          client={stubClient({ fetchCompletion })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    expect(fetchCompletion).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026');
+    await waitFor(() => {
+      expect(screen.getByTestId('completion-value').textContent).toBe('18 of 32');
+    });
+    expect(screen.getByText('Tournament completion')).toBeDefined();
+  });
+
+  it('renders StatTile unavailable presentation rather than a bare zero when tournament has no matches', async () => {
+    const fetchCompletion = jest.fn(() =>
+      Promise.resolve({
+        totalMatches: 0,
+        resolvedMatches: 0,
+        finalizedMatches: 0,
+        forfeitedMatches: 0,
+        liveMatches: 0,
+        scheduledMatches: 0,
+        stages: [],
+      }),
+    );
+
+    render(
+      withIntl(
+        <MatchesViewPage
+          client={stubClient({ fetchCompletion })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Not available')).toBeDefined();
+    });
+    expect(screen.queryByTestId('completion-value')).toBeNull();
+    expect(screen.queryByText('0 of 0')).toBeNull();
+    expect(screen.getByText('Tournament completion')).toBeDefined();
+  });
+
+  it('renders per-stage completion breakdown when multiple stages exist', async () => {
+    const fetchCompletion = jest.fn(() =>
+      Promise.resolve({
+        totalMatches: 40,
+        resolvedMatches: 25,
+        finalizedMatches: 24,
+        forfeitedMatches: 1,
+        liveMatches: 3,
+        scheduledMatches: 12,
+        stages: [
+          {
+            stageId: 'stage-1',
+            stageNumber: 1,
+            stageName: 'Fase Regular',
+            totalMatches: 30,
+            resolvedMatches: 20,
+            finalizedMatches: 19,
+            forfeitedMatches: 1,
+            liveMatches: 2,
+            scheduledMatches: 8,
+          },
+          {
+            stageId: 'stage-2',
+            stageNumber: 2,
+            stageName: 'Playoffs',
+            totalMatches: 10,
+            resolvedMatches: 5,
+            finalizedMatches: 5,
+            forfeitedMatches: 0,
+            liveMatches: 1,
+            scheduledMatches: 4,
+          },
+        ],
+      }),
+    );
+
+    render(
+      withIntl(
+        <MatchesViewPage
+          client={stubClient({ fetchCompletion })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('completion-value').textContent).toBe('25 of 40');
+    });
+    expect(screen.getByTestId('completion-stage-1').textContent).toBe('20 of 30');
+    expect(screen.getByTestId('completion-stage-2').textContent).toBe('5 of 10');
+    expect(screen.getByText('Stage 1')).toBeDefined();
+    expect(screen.getByText('Stage 2')).toBeDefined();
+  });
 });

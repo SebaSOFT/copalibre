@@ -3248,4 +3248,12 @@ export const messages = defineMessages({
     id: 'control.roster.roleFieldLabel',
     defaultMessage: 'Role for {name}',
   },
+  tournamentCompletion: {
+    id: 'control.tournament.completion',
+    defaultMessage: 'Tournament completion',
+  },
+  tournamentCompletionStage: {
+    id: 'control.tournament.completionStage',
+    defaultMessage: 'Stage {stageNumber}',
+  },
 });

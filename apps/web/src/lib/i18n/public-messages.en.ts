@@ -500,4 +500,24 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.statisticsTab',
     defaultMessage: 'Statistics',
   },
+  completionHeading: {
+    id: 'publicWeb.completion.heading',
+    defaultMessage: 'Tournament Progress',
+  },
+  completionSummary: {
+    id: 'publicWeb.completion.summary',
+    defaultMessage: '{resolved} of {total} matches played',
+  },
+  completionComplete: {
+    id: 'publicWeb.completion.complete',
+    defaultMessage: 'Complete',
+  },
+  completionInProgress: {
+    id: 'publicWeb.completion.inProgress',
+    defaultMessage: 'In progress',
+  },
+  completionUnmeasured: {
+    id: 'publicWeb.completion.unmeasured',
+    defaultMessage: 'No matches scheduled',
+  },
 });

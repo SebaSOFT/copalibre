@@ -205,6 +205,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/completion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tournament completion overview with per-stage and tournament-wide rollups
+         * @description Available publicly for published tournaments, and with organization-scoped authorization for unpublished tournaments.
+         */
+        get: operations["TournamentsController_completion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/export": {
         parameters: {
             query?: never;
@@ -2841,6 +2861,87 @@ export interface components {
              * @description Object storage ID of the tournament emblem, when one has been uploaded.
              */
             emblemObjectId?: string;
+        };
+        StageCompletionResponse: {
+            /**
+             * Format: uuid
+             * @description UUIDv7 identifier
+             */
+            stageId: string;
+            /**
+             * @description 1-based stage order in the tournament
+             * @example 1
+             */
+            stageNumber: number;
+            /**
+             * @description Stage name
+             * @example Group Stage
+             */
+            stageName: string;
+            /**
+             * @description Total matches in the stage, excluding cancelled/not-required
+             * @example 12
+             */
+            totalMatches: number;
+            /**
+             * @description Resolved matches (finalized + forfeited)
+             * @example 8
+             */
+            resolvedMatches: number;
+            /**
+             * @description Live / in-progress matches
+             * @example 1
+             */
+            liveMatches: number;
+            /**
+             * @description Scheduled matches not yet played
+             * @example 3
+             */
+            scheduledMatches: number;
+            /**
+             * @description Finalized matches
+             * @example 7
+             */
+            finalizedMatches: number;
+            /**
+             * @description Forfeited matches
+             * @example 1
+             */
+            forfeitedMatches: number;
+        };
+        TournamentCompletionResponse: {
+            /**
+             * @description Total matches across all stages, excluding cancelled/not-required
+             * @example 32
+             */
+            totalMatches: number;
+            /**
+             * @description Total resolved matches across all stages (finalized + forfeited)
+             * @example 18
+             */
+            resolvedMatches: number;
+            /**
+             * @description Total live matches across all stages
+             * @example 2
+             */
+            liveMatches: number;
+            /**
+             * @description Total scheduled matches across all stages
+             * @example 12
+             */
+            scheduledMatches: number;
+            /**
+             * @description Total finalized matches across all stages
+             * @example 17
+             */
+            finalizedMatches: number;
+            /**
+             * @description Total forfeited matches across all stages
+             * @example 1
+             */
+            forfeitedMatches: number;
+            /** @description Per-stage breakdown ordered by stage number */
+            stages: components["schemas"]["StageCompletionResponse"][];
         };
         TournamentConfigurationDescriptorRefResponse: {
             /** Format: uuid */
@@ -5961,6 +6062,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TournamentResponse"];
+                };
+            };
+        };
+    };
+    TournamentsController_completion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentCompletionResponse"];
                 };
             };
         };

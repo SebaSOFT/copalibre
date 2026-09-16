@@ -2066,4 +2066,128 @@ describe('public overview projection (integration)', () => {
       'not-required',
     ]);
   });
+
+  it('aggregates per-stage match counts by status and folds tournament completion', async () => {
+    const competition = new CompetitionRepository(scratch.db);
+    const tournaments = new TournamentRepository(scratch.db);
+
+    const tournament = await withTransaction(scratch.db, async (uow) => {
+      const d = descriptor();
+      await tournaments.saveDescriptor(uow, d, { organizationId, ...AUDIT });
+      return tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-completion-test',
+        name: 'Copa Completion Test',
+        descriptor: d,
+        ...AUDIT,
+      });
+    });
+
+    const stage1 = await withTransaction(scratch.db, (uow) =>
+      competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Group Stage',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    const stage2 = await withTransaction(scratch.db, (uow) =>
+      competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 2,
+        name: 'Playoffs',
+        format: 'single-elimination',
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    const fixtures = await withTransaction(scratch.db, (uow) =>
+      competition.createFixtures(uow, {
+        stageId: stage1.stageId,
+        matchCount: 5,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    const firstFixture = fixtures[0];
+    if (!firstFixture) throw new Error('expected firstFixture');
+
+    const createdMatches = await scratch.db
+      .selectFrom('matches')
+      .select(['match_id', 'number'])
+      .where('fixture_id', '=', firstFixture.fixtureId)
+      .orderBy('number', 'asc')
+      .execute();
+
+    expect(createdMatches).toHaveLength(5);
+    const m0 = createdMatches[0];
+    const m1 = createdMatches[1];
+    const m2 = createdMatches[2];
+    const m4 = createdMatches[4];
+    if (!m0 || !m1 || !m2 || !m4) throw new Error('expected createdMatches');
+
+    await scratch.db
+      .updateTable('matches')
+      .set({ status: 'finalized' })
+      .where('match_id', '=', m0.match_id)
+      .execute();
+
+    await scratch.db
+      .updateTable('matches')
+      .set({ status: 'forfeited' })
+      .where('match_id', '=', m1.match_id)
+      .execute();
+
+    await scratch.db
+      .updateTable('matches')
+      .set({ status: 'live' })
+      .where('match_id', '=', m2.match_id)
+      .execute();
+
+    await scratch.db
+      .updateTable('matches')
+      .set({ status: 'not-required' })
+      .where('match_id', '=', m4.match_id)
+      .execute();
+
+    const rawCounts = await competition.countTournamentMatchesByStatus(tournament.tournamentId);
+
+    const stage1Counts = rawCounts.filter((r) => r.stageId === stage1.stageId);
+    expect(stage1Counts.length).toBeGreaterThanOrEqual(4);
+
+    const stage2Counts = rawCounts.filter((r) => r.stageId === stage2.stageId);
+    expect(stage2Counts).toHaveLength(1);
+    expect(stage2Counts[0]?.status).toBeNull();
+    expect(stage2Counts[0]?.count).toBe(0);
+
+    const completion = await competition.getTournamentCompletion(tournament.tournamentId);
+
+    expect(completion.stages).toHaveLength(2);
+    expect(completion.stages[0]?.stageId).toBe(stage1.stageId);
+    expect(completion.stages[0]?.stageName).toBe('Group Stage');
+    expect(completion.stages[0]?.totalMatches).toBe(4);
+    expect(completion.stages[0]?.resolvedMatches).toBe(2);
+    expect(completion.stages[0]?.finalizedMatches).toBe(1);
+    expect(completion.stages[0]?.forfeitedMatches).toBe(1);
+    expect(completion.stages[0]?.liveMatches).toBe(1);
+    expect(completion.stages[0]?.scheduledMatches).toBe(1);
+
+    expect(completion.stages[1]?.stageId).toBe(stage2.stageId);
+    expect(completion.stages[1]?.stageName).toBe('Playoffs');
+    expect(completion.stages[1]?.totalMatches).toBe(0);
+    expect(completion.stages[1]?.resolvedMatches).toBe(0);
+
+    expect(completion.totalMatches).toBe(4);
+    expect(completion.resolvedMatches).toBe(2);
+    expect(completion.finalizedMatches).toBe(1);
+    expect(completion.forfeitedMatches).toBe(1);
+    expect(completion.liveMatches).toBe(1);
+    expect(completion.scheduledMatches).toBe(1);
+  });
 });

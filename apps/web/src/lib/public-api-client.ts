@@ -10,6 +10,7 @@ import type {
   PublicOrganizationTournamentListResponse,
 } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import type { OrganizationResponse } from '@copalibre/api/src/dto/organization.dto.js';
+import type { TournamentCompletionResponse } from '@copalibre/contracts';
 import type {
   TableLayoutListResponse,
   TableProjectionResponse,
@@ -69,6 +70,15 @@ export async function fetchOverview(
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/overview`;
   return fetchOr404<PublicOverviewResponse>(url);
+}
+
+export async function fetchCompletion(
+  organizationAlias: string,
+  tournamentAlias: string,
+): Promise<TournamentCompletionResponse | undefined> {
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/completion`;
+  return fetchOr404<TournamentCompletionResponse>(url);
 }
 
 export async function fetchLive(

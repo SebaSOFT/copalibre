@@ -92,6 +92,17 @@ describe('ControlApp', () => {
         if (url.includes('/internal-matches-view')) {
           return json({ matches: [] });
         }
+        if (url.includes('/completion')) {
+          return json({
+            totalMatches: 0,
+            resolvedMatches: 0,
+            finalizedMatches: 0,
+            forfeitedMatches: 0,
+            liveMatches: 0,
+            scheduledMatches: 0,
+            stages: [],
+          });
+        }
         if (url.endsWith('/tournaments/apertura-2026/settings')) {
           return json({ name: 'Apertura 2026', region: 'Cuyo', capacity: 16 });
         }

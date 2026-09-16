@@ -1,6 +1,7 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import {
   fetchOverview,
+  fetchCompletion,
   fetchLive,
   fetchBracket,
   fetchMatchesView,
@@ -65,6 +66,53 @@ describe('public-api-client', () => {
       } as unknown as Response);
 
       await expect(fetchOverview('org1', 'tourney1')).rejects.toThrow(/500 Internal Server Error/);
+    });
+  });
+
+  describe('fetchCompletion', () => {
+    it('returns parsed json on 200', async () => {
+      const mockData = {
+        totalMatches: 10,
+        resolvedMatches: 6,
+        liveMatches: 1,
+        scheduledMatches: 3,
+        finalizedMatches: 5,
+        forfeitedMatches: 1,
+        stages: [],
+      };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      const result = await fetchCompletion('org1', 'tourney1');
+      expect(result).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/completion',
+      );
+    });
+
+    it('returns undefined on 404', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as unknown as Response);
+
+      const result = await fetchCompletion('org1', 'tourney1');
+      expect(result).toBeUndefined();
+    });
+
+    it('throws on non-404 failure', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      } as unknown as Response);
+
+      await expect(fetchCompletion('org1', 'tourney1')).rejects.toThrow(
+        /500 Internal Server Error/,
+      );
     });
   });
 

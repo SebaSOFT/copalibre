@@ -1,8 +1,10 @@
 import { useIntl } from 'react-intl';
+import type { TournamentCompletionResponse } from '@copalibre/contracts';
 import { MatchCard } from '../../../components/ui/organisms/MatchCard.js';
 import type { MatchCardData } from '../../../lib/matches-view.js';
 import type { matchCardLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
 import { Button } from '../ui/atoms/button.js';
+import { MetricStrip } from '../ui/molecules/metric-strip.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
@@ -14,12 +16,14 @@ type StateFilter = 'all' | 'live' | 'upcoming' | 'final';
  * the page instead, since selecting one drives a refetch.
  */
 export function MatchesViewTemplate({
+  completion,
   labels,
   matches,
   onSelectState,
   state,
   status,
 }: {
+  readonly completion?: TournamentCompletionResponse;
   readonly labels: ReturnType<typeof matchCardLabelsFromControlIntl>;
   readonly matches: readonly MatchCardData[];
   readonly onSelectState: (state: StateFilter) => void;
@@ -46,6 +50,46 @@ export function MatchesViewTemplate({
 
   const listingNode = (
     <>
+      {completion !== undefined && (
+        <MetricStrip
+          ariaLabel={intl.formatMessage(messages.tournamentCompletion)}
+          className="cl-matches-view__completion"
+          metrics={[
+            {
+              key: 'tournament',
+              label: intl.formatMessage(messages.tournamentCompletion),
+              unavailableLabel: intl.formatMessage(messages.metricUnavailable),
+              ...(completion.totalMatches > 0
+                ? {
+                    value: (
+                      <span data-testid="completion-value">
+                        {`${completion.resolvedMatches} of ${completion.totalMatches}`}
+                      </span>
+                    ),
+                  }
+                : {}),
+            },
+            ...(Array.isArray(completion.stages) && completion.stages.length > 1
+              ? completion.stages.map((stage) => ({
+                  key: `stage-${stage.stageNumber}`,
+                  label: intl.formatMessage(messages.tournamentCompletionStage, {
+                    stageNumber: stage.stageNumber,
+                  }),
+                  unavailableLabel: intl.formatMessage(messages.metricUnavailable),
+                  ...(stage.totalMatches > 0
+                    ? {
+                        value: (
+                          <span data-testid={`completion-stage-${stage.stageNumber}`}>
+                            {`${stage.resolvedMatches} of ${stage.totalMatches}`}
+                          </span>
+                        ),
+                      }
+                    : {}),
+                }))
+              : []),
+          ]}
+        />
+      )}
       {status === 'error' && <p>{intl.formatMessage(messages.matchesViewControlLoadFailed)}</p>}
       {status === 'ready' && matches.length === 0 && (
         <p className="cl-list-screen__empty">{labels.empty}</p>
