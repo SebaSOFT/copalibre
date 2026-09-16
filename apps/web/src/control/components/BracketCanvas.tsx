@@ -428,7 +428,7 @@ const seriesIndicatorHeaderStyle: React.CSSProperties = {
   alignItems: 'center',
 };
 const seriesScoreStyle: React.CSSProperties = {
-  fontWeight: 'var(--cl-font-weight-bold)',
+  fontWeight: 'var(--cl-weight-bold)',
 };
 const seriesLegsStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
