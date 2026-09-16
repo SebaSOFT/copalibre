@@ -773,3 +773,68 @@ test('revokes an expanded registration from the review queue', async ({ page }) 
       }),
     );
 });
+
+test('previews first stage structure on the format step and updates on format change without reload', async ({
+  page,
+}) => {
+  await mockControlApi(page, { disciplines: disciplineWithBothFormatsFixture });
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Apertura Preview Test');
+  await page.getByLabel('Alias').fill('apertura-preview-test');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  const preview = page.getByTestId('stage-structure-preview');
+  await expect(preview).toBeVisible();
+  await expect(preview.getByText('Vista previa de la estructura')).toBeVisible();
+
+  const illustrative = page.getByTestId('wizard-preview-demonstration');
+  await expect(illustrative).toBeVisible();
+  await expect(illustrative).toHaveText('Vista previa ilustrativa (8 participantes)');
+  await expect(page.getByText('RR-R1-M1')).toBeVisible();
+
+  await page.locator('#stage-1-format').selectOption('single-elimination');
+
+  await expect(page.getByText('SE-R3-M1')).toBeVisible();
+  await expect(page.getByText('RR-R1-M1')).not.toBeVisible();
+});
+
+test('setting registration capacity updates preview entrant count and removes illustrative label', async ({
+  page,
+}) => {
+  await mockControlApi(page, { disciplines: disciplineWithBothFormatsFixture });
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Apertura Capacity Test');
+  await page.getByLabel('Alias').fill('apertura-capacity-test');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  await page.locator('#stage-1-format').selectOption('single-elimination');
+  await expect(page.getByTestId('wizard-preview-demonstration')).toBeVisible();
+  await expect(page.getByText('SE-R3-M1')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  await page.getByLabel('Capacidad').fill('4');
+
+  await page.getByRole('button', { name: 'Volver' }).click();
+  await page.getByRole('button', { name: 'Volver' }).click();
+
+  await expect(page.getByTestId('wizard-preview-demonstration')).not.toBeVisible();
+
+  const capacityLabel = page.getByTestId('wizard-preview-capacity');
+  await expect(capacityLabel).toBeVisible();
+  await expect(capacityLabel).toHaveText('4 participantes');
+
+  await expect(page.getByText('SE-R2-M1')).toBeVisible();
+  await expect(page.getByText('SE-R3-M1')).not.toBeVisible();
+});

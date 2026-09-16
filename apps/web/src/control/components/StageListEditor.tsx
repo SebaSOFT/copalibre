@@ -1,5 +1,21 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
+import { messages } from '../i18n/messages.en.js';
+import type {
+  AllocationMode,
+  SeedDirection,
+  SeriesResolutionClass,
+  WizardStageDraft,
+} from '../lib/stage-authoring.js';
+import { appendStage, removeStage, replaceStage } from '../lib/stage-authoring.js';
+import {
+  derivePreviewEntrantCount,
+  derivePreviewPlaceholders,
+  generatePreviewMatches,
+  generatePreviewNames,
+  isIllustrativePreview,
+} from '../lib/wizard-preview.js';
+import { BracketCanvas } from './BracketCanvas.js';
 import { Button } from './ui/atoms/button.js';
 import { Card, CardContent } from './ui/atoms/card.js';
 import { Checkbox } from './ui/atoms/checkbox.js';
@@ -13,16 +29,8 @@ import { Field } from './ui/molecules/field.js';
 import {
   ALLOCATION_MODES,
   SERIES_RESOLUTION_CLASSES,
-  appendStage,
   emptySeriesDraft,
-  removeStage,
-  replaceStage,
-  type AllocationMode,
-  type SeedDirection,
-  type SeriesResolutionClass,
-  type WizardStageDraft,
 } from '../lib/stage-authoring.js';
-import { messages } from '../i18n/messages.en.js';
 
 const SERIES_CLASS_LABELS: Record<SeriesResolutionClass, typeof messages.wizardSeriesClassBestOf> =
   {
@@ -68,6 +76,8 @@ export function StageListEditor({
   attributeKeys = [],
   readOnly = false,
   formatHintText,
+  showStructurePreview = false,
+  capacity,
 }: {
   readonly stages: readonly WizardStageDraft[];
   readonly formats: readonly string[];
@@ -79,6 +89,10 @@ export function StageListEditor({
   readonly readOnly?: boolean;
   /** The discipline's own format decision hint (description, reversibility) — same for every stage. */
   readonly formatHintText?: string;
+  /** Previews the first stage's bracket structure (openspec 0242). */
+  readonly showStructurePreview?: boolean;
+  /** Registration capacity used to determine preview entrant count. */
+  readonly capacity?: number;
 }): React.JSX.Element {
   const intl = useIntl();
 
@@ -185,6 +199,10 @@ export function StageListEditor({
                       readOnly={readOnly}
                       stage={stage}
                     />
+                  )}
+
+                  {showStructurePreview && stage.number === 1 && (
+                    <StageStructurePreview capacity={capacity} format={stage.format} />
                   )}
                 </Stack>
               </CardContent>
@@ -456,5 +474,47 @@ function WeightedAllocationFields({
         />
       </Field>
     </>
+  );
+}
+
+function StageStructurePreview({
+  format,
+  capacity,
+}: {
+  readonly format: string;
+  readonly capacity?: number;
+}): React.JSX.Element {
+  const [zoom, setZoom] = useState(1);
+  const entrants = useMemo(() => derivePreviewPlaceholders(capacity), [capacity]);
+  const matches = useMemo(() => generatePreviewMatches(format, entrants), [format, entrants]);
+  const names = useMemo(() => generatePreviewNames(entrants), [entrants]);
+  const illustrative = isIllustrativePreview(capacity);
+
+  return (
+    <div className="cl-stage-structure-preview" data-testid="stage-structure-preview">
+      <Stack gap="2">
+        <Inline align="center" justify="between" gap="2">
+          <strong>
+            <FormattedMessage {...messages.wizardFormatPreviewTitle} />
+          </strong>
+          {illustrative ? (
+            <span
+              className="cl-metric-strip__demonstration"
+              data-testid="wizard-preview-demonstration"
+            >
+              <FormattedMessage {...messages.wizardFormatPreviewIllustrative} />
+            </span>
+          ) : (
+            <span className="cl-metric-strip__demonstration" data-testid="wizard-preview-capacity">
+              <FormattedMessage
+                {...messages.wizardFormatPreviewCapacity}
+                values={{ count: derivePreviewEntrantCount(capacity) }}
+              />
+            </span>
+          )}
+        </Inline>
+        <BracketCanvas matches={matches} names={names} onZoomChange={setZoom} zoom={zoom} />
+      </Stack>
+    </div>
   );
 }

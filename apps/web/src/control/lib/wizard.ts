@@ -31,6 +31,16 @@ export {
   type StageSeriesDraft,
   type WizardStageDraft,
 } from './stage-authoring.js';
+export {
+  DEFAULT_PREVIEW_ENTRANT_COUNT,
+  derivePreviewEntrantCount,
+  derivePreviewPlaceholders,
+  generatePreviewEntrants,
+  generatePreviewMatches,
+  generatePreviewNames,
+  isIllustrativePreview,
+  mapFixtureGraphToCanvasMatches,
+} from './wizard-preview.js';
 
 /**
  * The tournament setup wizard.

@@ -407,6 +407,10 @@ export const messages: Record<string, string> = {
   'control.wizard.step.discipline': 'Disziplin',
   'control.wizard.step.format': 'Format',
   'control.wizard.step.window': 'Zeitfenster',
+  'control.wizard.formatPreview.title': 'Strukturvorschau',
+  'control.wizard.formatPreview.illustrative': 'Illustrative Vorschau (8 Teilnehmer)',
+  'control.wizard.formatPreview.capacity':
+    '{count, plural, one {# Teilnehmer} other {# Teilnehmer}}',
 
   'control.wizard.problem.missingName': 'Der Name fehlt',
   'control.wizard.problem.aliasFormat': 'Der Alias verwendet Kleinbuchstaben und Bindestriche',
