@@ -4,6 +4,9 @@
  * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'control.bracket.highlightEntrant': 'Evidenzia il percorso di {entrant}',
+  'control.bracket.highlightHint':
+    'Seleziona un partecipante per seguirne il percorso. Selezionalo di nuovo o premi Escape per cancellare. Gli incontri futuri mostrano il possibile percorso in caso di vittoria.',
   'control.shell.sections': 'Sezioni',
   'control.shell.whatIsThisScreen': 'Cos’è questa schermata?',
   'control.shell.openNavigation': 'Apri il menu di navigazione',

@@ -4,6 +4,9 @@
  * choice): ship now, native-speaker review later.
  */
 export const messages: Record<string, string> = {
+  'publicWeb.bracket.highlightEntrant': '突出显示{entrant}的晋级路线',
+  'publicWeb.bracket.highlightHint':
+    '选择参赛者查看其路线。再次选择或按 Escape 清除。未来比赛显示继续获胜时的可能路线。',
   'publicWeb.layout.skipToContent': '跳至内容',
   'publicWeb.layout.navAriaLabel': '主导航',
   'publicWeb.layout.footer': '由 CopaLibre 发布 — AGPL-3.0',

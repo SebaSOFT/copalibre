@@ -4,6 +4,9 @@
  * pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'publicWeb.bracket.highlightEntrant': 'Destacar percurso de {entrant}',
+  'publicWeb.bracket.highlightHint':
+    'Selecione um participante para seguir seu percurso. Selecione novamente ou pressione Escape para limpar. As partidas futuras mostram o possível percurso de vitórias.',
   'publicWeb.layout.skipToContent': 'Pular para o conteúdo',
   'publicWeb.layout.navAriaLabel': 'Principal',
   'publicWeb.layout.footer': 'Publicado com CopaLibre — AGPL-3.0',

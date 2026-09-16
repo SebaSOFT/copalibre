@@ -6,6 +6,9 @@
  * two — `react-intl`'s `Intl.PluralRules` selects the right branch for `ru`.
  */
 export const messages: Record<string, string> = {
+  'control.bracket.highlightEntrant': 'Выделить путь участника {entrant}',
+  'control.bracket.highlightHint':
+    'Выберите участника, чтобы увидеть его путь. Нажмите повторно или Escape для сброса. Будущие матчи показывают возможный путь при победах.',
   'control.shell.sections': 'Разделы',
   'control.shell.whatIsThisScreen': 'Что это за экран?',
   'control.shell.openNavigation': 'Открыть меню навигации',

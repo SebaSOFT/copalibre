@@ -4,6 +4,9 @@
  * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
+  'control.bracket.highlightEntrant': 'Destacar percurso de {entrant}',
+  'control.bracket.highlightHint':
+    'Selecione um participante para seguir seu percurso. Selecione novamente ou pressione Escape para limpar. As partidas futuras mostram o possível percurso de vitórias.',
   'control.shell.sections': 'Seções',
   'control.shell.whatIsThisScreen': 'O que é esta tela?',
   'control.shell.openNavigation': 'Abrir menu de navegação',

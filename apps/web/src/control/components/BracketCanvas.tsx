@@ -3,6 +3,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import {
   DEFAULT_GEOMETRY,
   layoutBracket,
+  canvasEntrantPath,
   zoomIn,
   zoomOut,
   type CanvasMatch,
@@ -33,6 +34,9 @@ export function BracketCanvas({
   emptyMessage,
   matchUrl,
   focusMatchId,
+  highlightEntrantId,
+  onHighlightEntrant,
+  names = {},
 }: {
   readonly matches: readonly CanvasMatch[];
   readonly zoom: number;
@@ -47,9 +51,18 @@ export function BracketCanvas({
    * simply renders with nothing emphasized.
    */
   readonly focusMatchId?: string;
+  readonly highlightEntrantId?: string;
+  readonly onHighlightEntrant?: (entrantId?: string) => void;
+  readonly names?: Readonly<Record<string, string>>;
 }): React.JSX.Element {
   const intl = useIntl();
-  const layout = layoutBracket(matches);
+  const interactive = onHighlightEntrant !== undefined;
+  const layout = layoutBracket(
+    matches,
+    interactive ? { ...DEFAULT_GEOMETRY, nodeHeight: 88 } : DEFAULT_GEOMETRY,
+  );
+  const path =
+    highlightEntrantId === undefined ? undefined : canvasEntrantPath(matches, highlightEntrantId);
   const padding = DEFAULT_GEOMETRY.grid * 2;
   const focusedNodeRef = useRef<HTMLElement | null>(null);
 
@@ -60,7 +73,17 @@ export function BracketCanvas({
   }, [focusMatchId]);
 
   return (
-    <div style={wrapperStyle}>
+    <div
+      style={wrapperStyle}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') onHighlightEntrant?.(undefined);
+      }}
+    >
+      {onHighlightEntrant !== undefined && (
+        <p>
+          <FormattedMessage {...messages.bracketHighlightHint} />
+        </p>
+      )}
       <div style={toolbarStyle}>
         <Button
           aria-label={intl.formatMessage(messages.bracketZoomOut)}
@@ -133,6 +156,12 @@ export function BracketCanvas({
                 }
                 key={node.matchId}
                 node={node}
+                pathState={
+                  path?.size ? (path.has(node.matchId) ? 'included' : 'excluded') : undefined
+                }
+                highlightEntrantId={highlightEntrantId}
+                onHighlightEntrant={onHighlightEntrant}
+                names={names}
               />
             ))}
           </div>
@@ -154,24 +183,61 @@ function BracketNode({
   focusedRef,
   href,
   node,
+  pathState,
+  highlightEntrantId,
+  onHighlightEntrant,
+  names,
 }: {
   readonly focused: boolean;
   /** Set only on the focused node, so `BracketCanvas` can scroll it into view on mount. */
   readonly focusedRef: React.RefObject<HTMLElement | null> | undefined;
   readonly href: string | undefined;
   readonly node: LaidOutMatch;
+  readonly pathState?: 'included' | 'excluded';
+  readonly highlightEntrantId?: string;
+  readonly onHighlightEntrant?: (entrantId?: string) => void;
+  readonly names: Readonly<Record<string, string>>;
 }): React.JSX.Element {
+  const intl = useIntl();
+  const interactive = onHighlightEntrant !== undefined;
   const children = (
     <>
       <header style={nodeHeaderStyle}>
-        <span>{node.matchId}</span>
+        {interactive && href !== undefined ? (
+          <a className="cl-focusable" href={href} onClick={controlLinkClick(href)}>
+            {node.matchId}
+          </a>
+        ) : (
+          <span>{node.matchId}</span>
+        )}
         {node.format === undefined ? null : <span className="cl-badge">{node.format}</span>}
       </header>
       {node.slots.map((slot, index) => (
         <div key={`${node.matchId}-${index}`} style={slot.pending ? pendingSlotStyle : slotStyle}>
           {/* Named, never blank: "Ganador del WB-R1-M2" tells an
               operator what has to happen; an empty box reads as a bug. */}
-          <span>{slot.label}</span>
+          {interactive && slot.entrantId !== undefined ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="cl-journey-name"
+              aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                entrant: names[slot.entrantId] ?? slot.label,
+              })}
+              aria-pressed={highlightEntrantId === slot.entrantId}
+              onClick={() =>
+                onHighlightEntrant(
+                  slot.entrantId === highlightEntrantId ? undefined : slot.entrantId,
+                )
+              }
+            >
+              {names[slot.entrantId] ?? slot.label}
+            </Button>
+          ) : (
+            <span>
+              {slot.entrantId === undefined ? slot.label : (names[slot.entrantId] ?? slot.label)}
+            </span>
+          )}
           <span style={scoreStyle}>{slot.score ?? '—'}</span>
         </div>
       ))}
@@ -189,13 +255,14 @@ function BracketNode({
     ...(focused ? { borderWidth: 2, borderColor: 'var(--cl-primary)' } : {}),
   };
 
-  if (href === undefined) {
+  if (href === undefined || interactive) {
     return (
       <article
         className={NODE_CLASS_NAME}
         data-bracket={node.bracket}
         data-focused={focused ? 'true' : undefined}
         data-match={node.matchId}
+        data-entrant-path={pathState}
         ref={focusedRef as React.RefObject<HTMLElement>}
         style={{ ...positionStyle, ...nodeContentStyle }}
       >
@@ -210,6 +277,7 @@ function BracketNode({
       data-bracket={node.bracket}
       data-focused={focused ? 'true' : undefined}
       data-match={node.matchId}
+      data-entrant-path={pathState}
       href={href}
       onClick={controlLinkClick(href)}
       ref={focusedRef as React.RefObject<HTMLAnchorElement>}

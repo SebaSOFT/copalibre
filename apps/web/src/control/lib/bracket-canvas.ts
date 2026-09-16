@@ -8,7 +8,37 @@
  * the tournament, and the operator has no way to tell which one is real.
  */
 
+import { entrantPath, type BracketMatch } from '../../lib/bracket.js';
+
 export type CanvasSlotKind = 'entrant' | 'bye' | 'winner-of' | 'loser-of';
+
+/** Adapt control's structural ids to the shared journey algorithm. */
+export function canvasEntrantPath(
+  matches: readonly CanvasMatch[],
+  entrantId: string,
+): ReadonlySet<string> {
+  return entrantPath(
+    matches.map((match): BracketMatch => ({
+      matchId: match.matchId,
+      matchNumber: match.position,
+      roundNumber: match.round,
+      branch: match.bracket,
+      state:
+        match.status === 'finalized' || match.status === 'forfeited' || match.status === 'final'
+          ? 'final'
+          : 'upcoming',
+      scores: match.slots.map((slot) => slot.score),
+      slots: match.slots.map((slot) =>
+        slot.kind === 'entrant'
+          ? { kind: 'entrant', entrantId: slot.entrantId, name: slot.entrantId ?? '' }
+          : slot.kind === 'bye'
+            ? { kind: 'seed', seed: 0 }
+            : { kind: slot.kind, matchId: slot.matchId },
+      ),
+    })),
+    entrantId,
+  );
+}
 
 export interface CanvasSlot {
   readonly kind: CanvasSlotKind;

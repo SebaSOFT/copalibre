@@ -120,3 +120,13 @@ export const MatchBracketContextUnknownFocus: Story = {
 export const UnknownComponent: Story = {
   args: { component: 'not-a-component', height: 220 },
 };
+
+export const BracketJourneyAlive: Story = {
+  args: { component: 'bracket-journey-alive', height: 640 },
+};
+export const BracketJourneyChampion: Story = {
+  args: { component: 'bracket-journey-champion', height: 640 },
+};
+export const BracketJourneyEliminated: Story = {
+  args: { component: 'bracket-journey-eliminated', height: 640 },
+};

@@ -29,3 +29,7 @@ Costruisce il sorteggio/tabellone di una fase: assegna a ciascun partecipante un
 Il sorteggio può essere rifatto finché la fase non è iniziata. Una volta che la fase è in corso,
 rifare il sorteggio non avrebbe più senso con partite già giocate — la schermata non lo permette a
 quel punto.
+
+## Seguire un partecipante
+
+Nel tabellone pubblico o nella schermata delle teste di serie, seleziona un partecipante per evidenziare i suoi incontri e il possibile percorso in caso di vittoria. Una prima sconfitta prosegue nel tabellone dei perdenti quando previsto. Seleziona di nuovo il nome o premi Escape per cancellare. I collegamenti ai resoconti restano separati. I risultati pubblici sono leggibili senza JavaScript.

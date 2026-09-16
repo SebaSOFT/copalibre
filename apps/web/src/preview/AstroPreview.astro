@@ -59,6 +59,7 @@ import {
 import { messages } from '../lib/i18n/public-messages.en.ts';
 import {
   referenceBracket,
+  referenceJourneyBracket,
   referenceClubs,
   referenceGroupMatches,
   referenceMatchReportModel,
@@ -88,6 +89,9 @@ const PREVIEWABLE = new Set([
   'score-ticker-empty',
   'score-ticker-stale',
   'bracket-stage',
+  'bracket-journey-alive',
+  'bracket-journey-champion',
+  'bracket-journey-eliminated',
   'match-bracket-context-early',
   'match-bracket-context-championship',
   'match-bracket-context-unknown-focus',
@@ -222,10 +226,10 @@ const tournaments = referenceTournamentListing();
       /* Eight entrants, four quarter-finals decided and a final still waiting on
          its sources — the case the graph, its key and its textual view all have
          to describe without inventing an advancement. */
-      component === 'bracket-stage' && (
+      (component === 'bracket-stage' || component.startsWith('bracket-journey-')) && (
         <BracketView
           intl={intl}
-          matches={referenceBracket()}
+          matches={referenceJourneyBracket(component === 'bracket-journey-champion')}
           organizationAlias="reference-league"
           stageNumber={1}
           tournamentAlias="reference-cup"
@@ -462,3 +466,23 @@ const tournaments = referenceTournamentListing();
     }
   </body>
 </html>
+
+<script>
+  // Story-only selection uses the same activation a visitor uses on the production bracket.
+  const state = window.location.pathname.split('/').pop();
+  if (state?.startsWith('bracket-journey-')) {
+    const select = (): void => {
+      const root = document.querySelector('.cl-bracket-stage');
+      const buttons = root?.querySelectorAll<HTMLButtonElement>('button[data-entrant-id]');
+      const button = buttons?.[state === 'bracket-journey-eliminated' ? 1 : 0];
+      if (button && !button.hidden) {
+        observer.disconnect();
+        button.click();
+      }
+    };
+    const observer = new MutationObserver(select);
+    observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+    select();
+    window.addEventListener('pagehide', () => observer.disconnect(), { once: true });
+  }
+</script>

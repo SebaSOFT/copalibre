@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { BracketCanvas } from './BracketCanvas.js';
 import { withIntl } from '../i18n/test-support.js';
 import type { CanvasMatch } from '../lib/bracket-canvas.js';
@@ -103,4 +103,40 @@ describe('BracketCanvas', () => {
       null,
     );
   });
+});
+
+it('toggles journey selection without nesting buttons inside report links', () => {
+  const callback = jest.fn();
+  const { rerender } = render(
+    withIntl(
+      <BracketCanvas
+        matches={matches}
+        zoom={1}
+        onHighlightEntrant={callback}
+        matchUrl={() => '/report'}
+      />,
+    ),
+  );
+  const button = screen.getByRole('button', { name: 'Highlight path for entrant-1' });
+  expect(button.closest('a')).toBeNull();
+  fireEvent.click(button);
+  expect(callback).toHaveBeenLastCalledWith('entrant-1');
+  rerender(
+    withIntl(
+      <BracketCanvas
+        matches={matches}
+        zoom={1}
+        highlightEntrantId="entrant-1"
+        onHighlightEntrant={callback}
+      />,
+    ),
+  );
+  expect(
+    screen.getByText('WB-R2-M1').closest('[data-match]')?.getAttribute('data-entrant-path'),
+  ).toBe('included');
+  expect(button.getAttribute('aria-pressed')).toBe('true');
+  fireEvent.click(button);
+  expect(callback).toHaveBeenLastCalledWith(undefined);
+  fireEvent.keyDown(button, { key: 'Escape' });
+  expect(callback).toHaveBeenLastCalledWith(undefined);
 });

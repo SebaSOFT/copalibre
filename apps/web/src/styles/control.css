@@ -1,3 +1,5 @@
+@import './entrant-path.css';
+
 html,
 body {
   margin: 0;
@@ -100,6 +102,12 @@ body {
 .cl-control button,
 .cl-control select {
   min-height: var(--cl-touch-target);
+}
+
+/* Entrant journey controls live inside compact bracket slots; preserve the canvas row rhythm. */
+.cl-control button.cl-journey-name {
+  min-height: 0;
+  height: auto;
 }
 
 .cl-control > nav a,

@@ -1,9 +1,12 @@
 ---
 import type { IntlShape } from 'react-intl';
 import MatchNode from './MatchNode.astro';
+import Button from '../atoms/Button.astro';
+import '../../../styles/entrant-path.css';
 import { OutcomeLegend, type BracketOutcome } from '../molecules/OutcomeLegend.tsx';
 import {
   championshipMatch,
+  bracketMatchId,
   describeSlot,
   nodeOutcomes,
   stageOutcomes,
@@ -57,6 +60,13 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
 */
 }
 <section aria-label={intl.formatMessage(messages.bracketStageAriaLabel)} class="cl-bracket-stage">
+  <script
+    is:inline
+    type="application/json"
+    data-journey-matches
+    set:html={JSON.stringify(Astro.props.matches).replace(/</g, '\\u003c')}
+  />
+  <p hidden data-journey-hint>{intl.formatMessage(messages.bracketHighlightHint)}</p>
   {
     legend.length > 0 && (
       <OutcomeLegend entries={legend} label={intl.formatMessage(messages.bracketLegendLabel)} />
@@ -82,6 +92,7 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
             <h3 class="cl-bracket-stage__round-label">{roundLabel(round)}</h3>
             {round.matches.map((match) => (
               <div
+                data-journey-match={bracketMatchId(match)}
                 class:list={[
                   'cl-bracket-stage__node',
                   championship?.matchNumber === match.matchNumber &&
@@ -89,6 +100,7 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
                 ]}
               >
                 <MatchNode
+                  highlightEntrants
                   intl={intl}
                   localePrefix={localePrefix}
                   match={match}
@@ -121,11 +133,29 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
             {round.matches.map((match) => {
               const outcomes = nodeOutcomes(match);
               return (
-                <li>
+                <li data-journey-match={bracketMatchId(match)}>
                   {match.slots.map((slot, index) => (
                     <>
                       {index > 0 && ' — '}
-                      <span>{describeSlot(slot)}</span>
+                      {slot.kind === 'entrant' && slot.entrantId !== undefined ? (
+                        <>
+                          <span data-journey-fallback>{describeSlot(slot)}</span>
+                          <Button
+                            hidden
+                            aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                              entrant: slot.name,
+                            })}
+                            aria-pressed="false"
+                            class="cl-journey-name"
+                            data-entrant-id={slot.entrantId}
+                            variant="secondary"
+                          >
+                            {slot.name}
+                          </Button>
+                        </>
+                      ) : (
+                        <span>{describeSlot(slot)}</span>
+                      )}
                       {match.scores?.[index] !== undefined && (
                         <span class="cl-row__figure"> {match.scores[index]}</span>
                       )}
@@ -143,6 +173,15 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
     }
   </div>
 </section>
+
+<script>
+  import { initializeEntrantHighlight } from '../../../lib/entrant-highlight';
+  const initialize = (): void => {
+    document.querySelectorAll<HTMLElement>('.cl-bracket-stage').forEach(initializeEntrantHighlight);
+  };
+  initialize();
+  document.addEventListener('astro:page-load', initialize);
+</script>
 
 <style>
   /*

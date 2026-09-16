@@ -453,3 +453,31 @@ test('shows the server’s refusal when a reseed lands after a result', async ({
 
   await expect(page.getByRole('alert')).toContainText('Seeding cannot change once a result exists');
 });
+
+test('entrant highlighting follows a first loss into the losers bracket and clears with Escape', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+  const canvas = page.getByLabel('Llave');
+  const button = canvas.getByRole('button', { name: 'Resaltar recorrido de Unión Andina' });
+  await button.click();
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  await expect(canvas.locator('[data-match="LB-R1-M1"]')).toHaveAttribute(
+    'data-entrant-path',
+    'included',
+  );
+  await expect(canvas.locator('[data-match="WB-R2-M1"]')).toHaveAttribute(
+    'data-entrant-path',
+    'excluded',
+  );
+  await expect(page).toHaveURL(new RegExp(`${target}$`));
+  await button.press('Escape');
+  await expect(canvas.locator('[data-entrant-path]')).toHaveCount(0);
+  await button.click();
+  await button.click();
+  await expect(button).toHaveAttribute('aria-pressed', 'false');
+});

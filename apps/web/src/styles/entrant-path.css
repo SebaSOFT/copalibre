@@ -1,0 +1,37 @@
+/* A shape cue survives monochrome and print; unrelated matches retain readable contrast. */
+[data-entrant-path='included'] {
+  outline: var(--cl-space-1) double var(--cl-text-primary);
+  outline-offset: var(--cl-space-1);
+}
+
+[data-entrant-path='excluded'] {
+  opacity: 0.65;
+}
+
+.cl-journey-name {
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+  text-align: start;
+  white-space: normal;
+  justify-content: start;
+  text-decoration: underline;
+  text-underline-offset: var(--cl-space-1);
+}
+
+.cl-journey-name[hidden],
+[data-journey-fallback][hidden] {
+  display: none;
+}
+
+.cl-journey-name[aria-pressed='true'] {
+  font-weight: var(--cl-weight-bold);
+  text-decoration-style: double;
+}

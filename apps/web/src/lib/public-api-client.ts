@@ -227,27 +227,42 @@ export function mapBracketResponse(response: PublicBracketResponse): {
   format?: string;
   matches: readonly BracketMatch[];
 } {
+  const sourcePositions = new Map(response.matches.map((match) => [match.matchId, match.position]));
+  const sourceNumber = (matchId?: string): number | undefined => {
+    if (matchId === undefined) return undefined;
+    const position = sourcePositions.get(matchId);
+    if (position !== undefined) return position;
+    return /^\d+$/.test(matchId) ? Number(matchId) : undefined;
+  };
   return {
     format: response.format,
     matches: response.matches.map((m) => ({
+      matchId: m.matchId,
       matchNumber: m.position,
       roundNumber: m.round,
       branch: m.bracket,
-      state: m.status as MatchState,
+      state: (m.status === 'finalized' || m.status === 'forfeited'
+        ? 'final'
+        : m.status === 'scheduled'
+          ? 'upcoming'
+          : m.status) as MatchState,
       scores: m.slots.map((s) => s.score),
       resultReasons: m.slots.map((s) => s.resultReason as ResultReason | undefined),
       slots: m.slots.map((s): SlotSource => {
-        if (s.kind === 'winner-of') {
-          const digits = s.matchId?.match(/\d+/g)?.join('');
-          const parsed = digits ? parseInt(digits, 10) : 0;
-          return { kind: 'winner-of', matchNumber: Number.isNaN(parsed) ? 0 : parsed };
+        if (s.kind === 'winner-of' || s.kind === 'loser-of') {
+          const matchNumber = sourceNumber(s.matchId);
+          return {
+            kind: s.kind,
+            matchId: s.matchId,
+            ...(matchNumber === undefined ? {} : { matchNumber }),
+          };
         }
-        if (s.kind === 'loser-of') {
-          const digits = s.matchId?.match(/\d+/g)?.join('');
-          const parsed = digits ? parseInt(digits, 10) : 0;
-          return { kind: 'loser-of', matchNumber: Number.isNaN(parsed) ? 0 : parsed };
-        }
-        return { kind: 'entrant', name: s.name ?? 'TBD', abbreviation: s.abbreviation };
+        return {
+          kind: 'entrant',
+          entrantId: s.entrantId,
+          name: s.name ?? 'TBD',
+          abbreviation: s.abbreviation,
+        };
       }),
       ...(m.series === undefined ? {} : { series: m.series as PublicSeriesState }),
     })),

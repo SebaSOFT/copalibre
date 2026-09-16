@@ -47,6 +47,7 @@ export function SeedingBuilderTemplate({
   const intl = useIntl();
   const [history, setHistory] = useState(() => initHistory<readonly SeedAssignment[]>(seeds));
   const [zoom, setZoom] = useState(1);
+  const [highlightEntrantId, setHighlightEntrantId] = useState<string>();
   const current = history.present;
 
   // A courtesy, not the authority: the API classifies the same change and
@@ -154,6 +155,9 @@ export function SeedingBuilderTemplate({
           <div className="cl-card__content">
             <BracketCanvas
               matches={matches}
+              highlightEntrantId={highlightEntrantId}
+              onHighlightEntrant={setHighlightEntrantId}
+              names={names}
               matchUrl={
                 tournamentAlias === undefined
                   ? undefined

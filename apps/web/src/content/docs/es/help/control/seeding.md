@@ -29,3 +29,7 @@ respetando las restricciones declaradas para esa disciplina/formato.
 El sorteo puede rehacerse mientras la etapa no haya arrancado. Una vez que la etapa está en curso,
 rehacer el sorteo dejaría de tener sentido con partidos ya jugados — la pantalla no lo permite en
 ese punto.
+
+## Seguir a un participante
+
+En la llave pública o el cuadro de siembra, seleccioná un participante para resaltar sus partidos y su posible recorrido si gana. La primera derrota continúa en la llave de perdedores cuando el cuadro define esa ruta. Seleccioná el nombre de nuevo o presioná Escape para quitar el resaltado. Los enlaces a los informes siguen separados. Los resultados públicos se pueden leer sin JavaScript.

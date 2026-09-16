@@ -14,7 +14,12 @@ import type { PublicSeriesState } from './series.js';
  */
 
 export type SlotSource =
-  | { readonly kind: 'entrant'; readonly name: string; readonly abbreviation?: string }
+  | {
+      readonly kind: 'entrant';
+      readonly name: string;
+      readonly abbreviation?: string;
+      readonly entrantId?: string;
+    }
   | { readonly kind: 'winner-of'; readonly matchNumber?: number; readonly matchId?: string }
   | { readonly kind: 'loser-of'; readonly matchNumber?: number; readonly matchId?: string }
   | { readonly kind: 'seed'; readonly seed: number };
@@ -40,6 +45,7 @@ export function selectStageLayout(format?: string): StageLayout {
 }
 
 export interface BracketMatch {
+  readonly matchId?: string;
   readonly matchNumber: number;
   readonly roundNumber: number;
   /** `winners`, `losers`, `final` — a label, not an enum the engine owns. */
@@ -64,6 +70,7 @@ export interface BracketRound {
 }
 
 export interface NodeSlotView {
+  readonly entrantId?: string;
   readonly label: string;
   /** Entrant labels retain full and compact forms for responsive rendering. */
   readonly fullName?: string;
@@ -121,6 +128,7 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
         ...(slot.kind === 'entrant'
           ? {
               fullName: slot.name,
+              ...(slot.entrantId === undefined ? {} : { entrantId: slot.entrantId }),
               ...(slot.abbreviation === undefined ? {} : { abbreviation: slot.abbreviation }),
             }
           : {}),
@@ -281,4 +289,68 @@ export function stageOutcomes(matches: readonly BracketMatch[]): readonly Bracke
   return (['advancing', 'eliminated', 'pending'] as const).filter((outcome) =>
     present.has(outcome),
   );
+}
+
+/** Structural identity; numeric fallback is only for legacy/sample brackets. */
+export function bracketMatchId(match: BracketMatch): string {
+  return match.matchId ?? String(match.matchNumber);
+}
+
+/**
+ * Recorded participation plus the potential winning continuation. A match loss follows a
+ * declared loser edge; only a loss without a continuation ends the journey. No sport rules
+ * are inferred here. A visited set also makes malformed cyclic input harmless.
+ */
+export function entrantPath(
+  matches: readonly BracketMatch[],
+  entrantId: string,
+): ReadonlySet<string> {
+  const path = new Set<string>();
+  const edges = new Map<string, { match: BracketMatch; kind: 'winner-of' | 'loser-of' }[]>();
+  const numbered = new Map<number, BracketMatch[]>();
+  for (const match of matches) {
+    numbered.set(match.matchNumber, [...(numbered.get(match.matchNumber) ?? []), match]);
+  }
+  for (const match of matches) {
+    for (const slot of match.slots) {
+      if (slot.kind !== 'winner-of' && slot.kind !== 'loser-of') continue;
+      const candidates =
+        slot.matchNumber === undefined ? [] : (numbered.get(slot.matchNumber) ?? []);
+      const source =
+        slot.matchId ??
+        (candidates.length === 1 ? bracketMatchId(candidates[0] as BracketMatch) : undefined);
+      if (source === undefined) continue;
+      edges.set(source, [...(edges.get(source) ?? []), { match, kind: slot.kind }]);
+    }
+  }
+  const queue = matches.filter((match) => entrantSlot(match, entrantId) >= 0);
+  for (const match of queue) {
+    const id = bracketMatchId(match);
+    if (path.has(id)) continue;
+    path.add(id);
+    const continuation = entrantContinuation(match, entrantId);
+    for (const edge of edges.get(id) ?? []) {
+      if (edge.kind !== continuation) continue;
+      // Never extend a hypothetical route into somebody else's recorded result.
+      if (edge.match.state === 'final' && entrantSlot(edge.match, entrantId) < 0) continue;
+      queue.push(edge.match);
+    }
+  }
+  return path;
+}
+
+function entrantSlot(match: BracketMatch, entrantId: string): number {
+  return match.slots.findIndex((slot) => slot.kind === 'entrant' && slot.entrantId === entrantId);
+}
+
+function entrantContinuation(
+  match: BracketMatch,
+  entrantId: string,
+): 'winner-of' | 'loser-of' | undefined {
+  if (match.series !== undefined && match.series.winner === undefined) return 'winner-of';
+  if (match.state !== 'final' && match.series?.winner === undefined) return 'winner-of';
+  const outcome = nodeOutcomes(match)[entrantSlot(match, entrantId)];
+  if (outcome === 'advancing') return 'winner-of';
+  if (outcome === 'eliminated') return 'loser-of';
+  return undefined;
 }
