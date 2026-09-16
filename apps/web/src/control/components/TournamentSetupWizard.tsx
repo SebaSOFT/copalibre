@@ -48,6 +48,7 @@ export function TournamentSetupWizard({
   loadProfiles,
   vocabulary = EMPTY_VOCABULARY,
   onSubmit,
+  initialState,
 }: {
   readonly disciplines: readonly DisciplineOption[];
   readonly profiles?: readonly TournamentProfileOption[];
@@ -58,6 +59,7 @@ export function TournamentSetupWizard({
   ) => Promise<readonly TournamentProfileOption[]>;
   readonly vocabulary?: HookScriptVocabulary;
   readonly onSubmit?: (request: ReturnType<typeof toCreateRequest>) => void;
+  readonly initialState?: Partial<WizardState>;
 }): React.JSX.Element {
   const intl = useIntl();
   const firstDiscipline = disciplines[0];
@@ -71,6 +73,7 @@ export function TournamentSetupWizard({
           descriptorVersion: firstDiscipline.version,
           stages: initialStages(firstDiscipline.supportedFormats[0]),
         }),
+    ...initialState,
   }));
   const firstStageFormat = state.stages[0]?.format;
 
@@ -373,15 +376,24 @@ function FormatStep({
             <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
               <FormattedMessage {...messages.stageEditorProfilePreviewHint} />
             </p>
-            <StageListEditor formats={formats} readOnly showAllocation stages={state.stages} />
+            <StageListEditor
+              capacity={state.capacity}
+              formats={formats}
+              readOnly
+              showAllocation
+              showStructurePreview
+              stages={state.stages}
+            />
           </div>
         ) : (
           <StageListEditor
+            capacity={state.capacity}
             formatHintText={formatHintText}
             formats={formats}
             onChange={(stages) => patch({ stages })}
             showAllocation
             showSeries
+            showStructurePreview
             stages={state.stages}
           />
         )}

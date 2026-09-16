@@ -10,6 +10,7 @@ capabilities:
   - platform/design-tokens
   - platform/organization-directory
   - tournament-engine/competition-lifecycle
+  - tournament-engine/tournament-completion-overview
 roles:
   - admin
   - club-admin

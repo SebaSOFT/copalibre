@@ -406,6 +406,10 @@ export const messages: Record<string, string> = {
   'control.wizard.step.discipline': 'Дисциплина',
   'control.wizard.step.format': 'Формат',
   'control.wizard.step.window': 'Окно',
+  'control.wizard.formatPreview.title': 'Предварительный просмотр структуры',
+  'control.wizard.formatPreview.illustrative': 'Иллюстративный просмотр (8 участников)',
+  'control.wizard.formatPreview.capacity':
+    '{count, plural, one {# участник} few {# участника} other {# участников}}',
 
   'control.wizard.problem.missingName': 'Отсутствует название',
   'control.wizard.problem.aliasFormat': 'Алиас использует строчные буквы и дефисы',

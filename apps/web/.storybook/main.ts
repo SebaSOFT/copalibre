@@ -23,6 +23,13 @@ const config: StorybookConfig = {
    */
   viteFinal: (config) => ({
     ...config,
+    resolve: {
+      ...config.resolve,
+      alias: {
+        ...(Array.isArray(config.resolve?.alias) ? {} : config.resolve?.alias),
+        'node:crypto': new URL('./node-crypto-stub.ts', import.meta.url).pathname,
+      },
+    },
     plugins: [...(config.plugins ?? []), react()],
     server: {
       ...config.server,

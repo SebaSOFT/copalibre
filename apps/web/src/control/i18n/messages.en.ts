@@ -1141,6 +1141,18 @@ export const messages = defineMessages({
   wizardStepFormat: { id: 'control.wizard.step.format', defaultMessage: 'Format' },
   wizardStepRules: { id: 'control.wizard.step.rules', defaultMessage: 'Event rules' },
   wizardStepWindow: { id: 'control.wizard.step.window', defaultMessage: 'Window' },
+  wizardFormatPreviewTitle: {
+    id: 'control.wizard.formatPreview.title',
+    defaultMessage: 'Structure preview',
+  },
+  wizardFormatPreviewIllustrative: {
+    id: 'control.wizard.formatPreview.illustrative',
+    defaultMessage: 'Illustrative preview (8 entrants)',
+  },
+  wizardFormatPreviewCapacity: {
+    id: 'control.wizard.formatPreview.capacity',
+    defaultMessage: '{count, plural, one {# entrant} other {# entrants}}',
+  },
 
   // Shared stage editor (lib/stage-authoring.ts, components/StageListEditor.tsx)
   stageEditorTitle: { id: 'control.stageEditor.title', defaultMessage: 'Stages' },

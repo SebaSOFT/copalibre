@@ -396,6 +396,9 @@ export const messages: Record<string, string> = {
   'control.wizard.step.discipline': '项目',
   'control.wizard.step.format': '赛制',
   'control.wizard.step.window': '时间窗口',
+  'control.wizard.formatPreview.title': '结构预览',
+  'control.wizard.formatPreview.illustrative': '示例预览（8名参赛者）',
+  'control.wizard.formatPreview.capacity': '{count} 名参赛者',
 
   'control.wizard.problem.missingName': '缺少名称',
   'control.wizard.problem.aliasFormat': '别名须使用小写字母和连字符',

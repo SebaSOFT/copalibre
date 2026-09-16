@@ -537,4 +537,79 @@ describe('the registration review screen', () => {
         .some((button) => (button as HTMLButtonElement).disabled),
     ).toBe(true);
   });
+
+  it('renders structure preview for stage 1 on the format step and updates on format change', () => {
+    render(
+      withIntl(
+        <TournamentSetupWizard
+          disciplines={sampleDisciplines()}
+          initialState={{
+            step: 'format',
+            stages: [{ number: 1, name: 'Main Stage', format: 'single-elimination' }],
+          }}
+          vocabulary={HOOK_VOCABULARY}
+        />,
+      ),
+    );
+
+    expect(screen.getByTestId('stage-structure-preview')).toBeDefined();
+    expect(screen.getByText('Structure preview')).toBeDefined();
+    expect(screen.getByTestId('wizard-preview-demonstration')).toBeDefined();
+    expect(screen.getByText('Illustrative preview (8 entrants)')).toBeDefined();
+    expect(screen.getByText('SE-R3-M1')).toBeDefined();
+
+    // Select round-robin
+    fireEvent.change(screen.getByLabelText('Stage format'), {
+      target: { value: 'round-robin' },
+    });
+
+    // Round-robin with 8 entrants produces RR matches
+    expect(screen.getByText('RR-R1-M1')).toBeDefined();
+  });
+
+  it('shows capacity-derived count and hides illustrative label when capacity is declared', () => {
+    render(
+      withIntl(
+        <TournamentSetupWizard
+          disciplines={sampleDisciplines()}
+          initialState={{
+            step: 'format',
+            capacity: 4,
+            stages: [{ number: 1, name: 'Main Stage', format: 'single-elimination' }],
+          }}
+          vocabulary={HOOK_VOCABULARY}
+        />,
+      ),
+    );
+
+    expect(screen.getByTestId('stage-structure-preview')).toBeDefined();
+    expect(screen.queryByTestId('wizard-preview-demonstration')).toBeNull();
+    expect(screen.getByTestId('wizard-preview-capacity')).toBeDefined();
+    expect(screen.getByText('4 entrants')).toBeDefined();
+    // 4 entrants in single elimination has 2 rounds: final is SE-R2-M1
+    expect(screen.getByText('SE-R2-M1')).toBeDefined();
+  });
+
+  it('shows only one preview panel when multiple stages exist', () => {
+    render(
+      withIntl(
+        <TournamentSetupWizard
+          disciplines={sampleDisciplines()}
+          initialState={{
+            step: 'format',
+            stages: [
+              { number: 1, name: 'Stage 1', format: 'round-robin' },
+              { number: 2, name: 'Stage 2', format: 'single-elimination' },
+            ],
+          }}
+          vocabulary={HOOK_VOCABULARY}
+        />,
+      ),
+    );
+
+    const previewPanels = screen.getAllByTestId('stage-structure-preview');
+    expect(previewPanels).toHaveLength(1);
+    expect(screen.getByText('Stage 1')).toBeDefined();
+    expect(screen.getByText('Stage 2')).toBeDefined();
+  });
 });
