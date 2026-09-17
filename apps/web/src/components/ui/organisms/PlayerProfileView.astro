@@ -200,21 +200,25 @@ const historyColumns = [
             {intl.formatMessage(messages.playerProfileNoTournamentStats)}
           </p>
         )}
-        {hasStatistics && statistics?.tournamentTotal !== undefined && (
-          <DataTable
-            caption={intl.formatMessage(messages.playerProfileTournamentTotalHeading)}
-            ariaLabel={intl.formatMessage(messages.playerProfileTournamentTotalHeading)}
-            columns={totalColumns}
-            rows={[statistics.tournamentTotal]}
-          />
-        )}
-        {hasStatistics && statistics && statistics.matches.length > 0 && (
-          <DataTable
-            caption={intl.formatMessage(messages.playerProfileMatchByMatchHeading)}
-            ariaLabel={intl.formatMessage(messages.playerProfileMatchByMatchHeading)}
-            columns={matchColumns}
-            rows={statistics.matches}
-          />
+        {hasStatistics && (
+          <div class="cl-player-profile__stats-tables">
+            {statistics?.tournamentTotal !== undefined && (
+              <DataTable
+                caption={intl.formatMessage(messages.playerProfileTournamentTotalHeading)}
+                ariaLabel={intl.formatMessage(messages.playerProfileTournamentTotalHeading)}
+                columns={totalColumns}
+                rows={[statistics.tournamentTotal]}
+              />
+            )}
+            {statistics && statistics.matches.length > 0 && (
+              <DataTable
+                caption={intl.formatMessage(messages.playerProfileMatchByMatchHeading)}
+                ariaLabel={intl.formatMessage(messages.playerProfileMatchByMatchHeading)}
+                columns={matchColumns}
+                rows={statistics.matches}
+              />
+            )}
+          </div>
         )}
       </section>
     )
@@ -324,6 +328,11 @@ const historyColumns = [
     .cl-player-profile__stat-list {
       grid-template-columns: minmax(0, 1fr);
     }
+  }
+  .cl-player-profile__stats-tables {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
   .cl-player-profile__layout-selector {
     display: flex;
