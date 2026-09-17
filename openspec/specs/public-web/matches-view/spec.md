@@ -179,3 +179,25 @@ concatenated inline text.
 #### Scenario: The active filter is visually distinguishable
 - **WHEN** a visitor selects a state filter option
 - **THEN** that option shows a visible active state distinct from the unselected options
+
+### Requirement: Generic Hierarchical Match Schedule Filtering
+The public match schedule component SHALL dynamically inspect the tournament's structural hierarchy
+and provide multi-level filtering controls across arbitrary numbers of stages, zones, groups, and
+rounds, keeping vertical scroll bounded regardless of match volume. This filter bar SHALL replace, not
+duplicate, any prior flat state-only filter for the same view, and every selection SHALL be carried in
+the page's URL query string so a filtered view is linkable and server-renders with scripting off.
+
+#### Scenario: Stage with multiple zones and groups
+- **WHEN** a stage defines more than one zone and/or more than one group
+- **THEN** the filter component exposes interactive selectors allowing the user to view matches for
+  any individual zone or group, and the current selection is reflected in the URL
+
+#### Scenario: A single-stage, single-zone, single-group tournament shows no redundant selector
+- **WHEN** a tournament's structure has exactly one stage, one zone, and one group
+- **THEN** the filter component shows only the match-state filter, with no stage/zone/group selector
+  rendered for a dimension that has only one value
+
+#### Scenario: Round-grouped schedule
+- **WHEN** matches are scheduled across distinct rounds
+- **THEN** matches are grouped under round section headers, each match showing its own venue and
+  localized kickoff time

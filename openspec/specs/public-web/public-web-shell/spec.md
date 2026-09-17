@@ -757,3 +757,59 @@ Components moved into that tier SHALL continue to resolve every value through de
 - **WHEN** an existing public component moves into the owned tier
 - **THEN** its rendered output is unchanged and it introduces no undeclared token or unapproved raw
   colour
+
+### Requirement: Generic Discipline Hero Backdrop
+The tournament overview's hero SHALL fill its full section with the active discipline's background
+image, when one is declared, at full visual strength (no low-opacity wash), with a gradient scrim
+behind the title/emblem content for legibility, dynamically resolving for any installed discipline via
+the same mechanism the public shell already uses for its page-wide background. The hero SHALL NOT be
+rendered as an enclosed card (no card border/background framing it).
+
+#### Scenario: Renders discipline hero background
+- **WHEN** viewing a tournament's public overview whose discipline declares background imagery
+- **THEN** the hero's image fills the entire hero section, visibly showing the photo (not a faint
+  wash), with its title and other content legible over a gradient scrim
+
+#### Scenario: A discipline with no imagery keeps a plain fill
+- **WHEN** viewing a tournament's public overview whose discipline declares no background imagery
+- **THEN** the hero renders a flat surface fill, with no other discipline's imagery substituted and no
+  card framing
+  substituted
+
+### Requirement: Standardized Tournament Progress Spacing
+The tournament progress component SHALL enforce a minimum top margin of `--space-6` (24px) separating
+it from the hero banner.
+
+#### Scenario: Progress bar spacing
+- **WHEN** the tournament progress bar is rendered
+- **THEN** it maintains at least 24px vertical separation from the preceding section
+
+### Requirement: Per-zone winner resolution is isolated and never guesses an ambiguous final
+Resolving a finished tournament's per-zone champion/runner-up SHALL treat each zone of the terminal
+stage independently: a failure or an ambiguous terminal round for one zone SHALL NOT prevent the other
+zones of the same tournament from resolving. A zone's terminal round that contains more than one
+finalized match SHALL be reported as unresolved for that zone rather than resolved from an arbitrarily
+chosen match among them.
+
+#### Scenario: One zone's ambiguous terminal round does not affect the others
+- **WHEN** a finished tournament's terminal stage has multiple zones, and exactly one zone's terminal
+  round contains more than one finalized match while the other zones' terminal rounds each contain
+  exactly one
+- **THEN** the ambiguous zone is omitted from the results and every other zone's champion/runner-up is
+  still returned
+
+#### Scenario: A single-match terminal round resolves normally
+- **WHEN** a zone's terminal round contains exactly one finalized match
+- **THEN** that match's result determines the zone's champion and runner-up, unchanged from today's
+  behavior
+
+### Requirement: Emblem images fall back on a client-side load failure
+Every surface rendering a club, organization, or person emblem/photo through the shared emblem atoms
+SHALL fall back to the existing placeholder graphic when the image fails to load in the browser, not
+only when no image reference is on record.
+
+#### Scenario: A recorded emblem whose image request fails still shows a placeholder
+- **WHEN** an entity has an emblem/photo object recorded, but the browser's request for that image
+  fails or errors
+- **THEN** the UI shows the same placeholder graphic used when no emblem is recorded, never a
+  broken-image icon
