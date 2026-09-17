@@ -104,9 +104,24 @@ describe('public tables and filter pills (openspec 0199)', () => {
   });
 
   it('renders standings through the shared table treatment', () => {
-    expect(standings).toContain('<table class="cl-table">');
+    expect(standings).toContain('<table class="cl-table" data-sortable-table>');
     expect(standings).toContain('cl-table-scroll');
     expect(standings).toContain("'cl-table__num'");
+  });
+
+  it('renders declared columns as accessible local sort controls', () => {
+    expect(standings).toContain('data-sortable-table');
+    expect(standings).toContain('aria-sort="none"');
+    expect(standings).toContain('data-column-code');
+    expect(standings).toContain('data-sort-value');
+    expect(standings).toContain('data-player-id');
+    expect(standings).toContain('initTableSorting');
+  });
+
+  it('keeps missing values after numeric rows and reverses activation direction', () => {
+    expect(standings).toContain('sortMissing');
+    expect(standings).toContain("direction === 'ascending'");
+    expect(standings).toContain("header.setAttribute('aria-sort'");
   });
 
   it('renders the standings club filter through the shared pill, not a local duplicate', () => {

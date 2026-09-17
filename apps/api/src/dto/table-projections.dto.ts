@@ -74,6 +74,9 @@ export class TableColumnResponse {
   @ApiPropertyOptional()
   shortHeader?: string | LocalizedLabel;
 
+  @ApiPropertyOptional({ description: 'Displayed text when the numeric value is exactly zero' })
+  zeroDisplay?: string;
+
   @ApiProperty({ enum: ['text', 'number', 'decimal-1', 'decimal-2', 'percentage', 'fraction'] })
   format!: string;
 }

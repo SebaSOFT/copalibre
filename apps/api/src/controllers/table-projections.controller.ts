@@ -262,6 +262,7 @@ export function tableResponse(result: TableProjectionResult): TableProjectionRes
       code: column.code,
       header: column.header,
       ...(column.shortHeader === undefined ? {} : { shortHeader: column.shortHeader }),
+      ...(column.zeroDisplay === undefined ? {} : { zeroDisplay: column.zeroDisplay }),
       format: column.format,
     })),
     defaultSort: result.layout.defaultSort.map((rule) => ({ ...rule })),

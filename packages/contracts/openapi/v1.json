@@ -14458,6 +14458,10 @@
           "shortHeader": {
             "type": "object"
           },
+          "zeroDisplay": {
+            "type": "string",
+            "description": "Displayed text when the numeric value is exactly zero"
+          },
           "format": {
             "type": "string",
             "enum": [
