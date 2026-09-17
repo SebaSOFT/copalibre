@@ -20,6 +20,7 @@ import {
   PublicOverviewMatchResponse,
   PublicMatchReportResponse,
   PublicPersonProfileResponse,
+  PlayerStatisticsDrilldownResponse,
   PublicOrganizationTournamentListResponse,
   PublicTournamentListingItemResponse,
   PublicTournamentWinnerZoneResponse,
@@ -31,8 +32,10 @@ import { readStandings } from '../standings/read.js';
 import { readMatchesView } from '../matches-view/read.js';
 import {
   listEffectiveTableLayouts,
+  readPlayerStatisticsDrilldown,
   readSegmentedTableProjection,
   readTableProjection,
+  type PlayerStatisticsDrilldownResult,
 } from '../table-projections/read.js';
 
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
@@ -1044,6 +1047,88 @@ export class PublicProjectionsController {
       careerStatistics,
     };
   }
+
+  @Get('persons/:personId/public/statistics')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: "A person's tournament-total and match-by-match declared statistics" })
+  @ApiOkResponse({ type: PlayerStatisticsDrilldownResponse })
+  async playerStatistics(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('personId') personId: string,
+    @Query('layout') layoutParam?: string,
+  ): Promise<PlayerStatisticsDrilldownResponse> {
+    const { tournament } = await this.resolvePublishedTournament(
+      organizationAlias,
+      tournamentAlias,
+    );
+
+    const person = await new PersonRepository(this.db).findPerson(personId);
+    if (!person || person.organizationId !== tournament.organizationId) {
+      throw new NotFoundException(
+        `No person "${personId}" found in organization "${organizationAlias}"`,
+        { errorCode: 'public-projection-not-found' },
+      );
+    }
+
+    let layoutCode = layoutParam;
+    if (layoutCode === undefined) {
+      const layouts = await listEffectiveTableLayouts(this.db, {
+        tournamentId: tournament.tournamentId,
+        disciplineRef: tournament.disciplineRef,
+      });
+      const defaultLayout = layouts.find(
+        (one) => one.entityGranularity === 'person' || one.entityGranularity === 'player',
+      );
+      if (!defaultLayout) {
+        throw new NotFoundException(
+          `No person-granularity table layout for tournament "${tournamentAlias}"`,
+          { errorCode: 'public-projection-not-found' },
+        );
+      }
+      layoutCode = defaultLayout.code;
+    }
+
+    const result = await readPlayerStatisticsDrilldown(
+      this.db,
+      {
+        organizationId: tournament.organizationId,
+        tournament: {
+          tournamentId: tournament.tournamentId,
+          disciplineRef: tournament.disciplineRef,
+        },
+      },
+      personId,
+      layoutCode,
+    );
+    return playerStatisticsResponse(result);
+  }
+}
+
+function playerStatisticsResponse(
+  result: PlayerStatisticsDrilldownResult,
+): PlayerStatisticsDrilldownResponse {
+  const columns = result.layout.columns
+    .filter((column) => column.source.kind !== 'rank')
+    .map((column) => ({
+      code: column.code,
+      header: column.header,
+      ...(column.shortHeader === undefined ? {} : { shortHeader: column.shortHeader }),
+      ...(column.zeroDisplay === undefined ? {} : { zeroDisplay: column.zeroDisplay }),
+      format: column.format,
+    }));
+
+  return {
+    layoutCode: result.layout.code,
+    label: result.layout.label,
+    columns,
+    ...(result.tournamentTotal === undefined ? {} : { tournamentTotal: result.tournamentTotal }),
+    matches: result.matches.map((row) => ({
+      stageNumber: row.match.stageNumber,
+      matchNumber: row.match.matchNumber,
+      cells: row.cells,
+    })),
+  };
 }
 
 function publicScores(

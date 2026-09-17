@@ -4,6 +4,8 @@ import PlayerProfileView from '../../../../../../components/ui/organisms/PlayerP
 import {
   fetchOverview,
   fetchPlayerProfile,
+  fetchPlayerStatistics,
+  fetchPublicTableLayouts,
   mapOverviewResponse,
 } from '../../../../../../lib/public-api-client.ts';
 import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
@@ -17,19 +19,36 @@ const { locale, organization, tournament, personId } = Astro.params;
 const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
 const intl = publicIntl(resolvedLocale);
 
-const [overviewData, profile] = await Promise.all([
+const [overviewData, profile, tableLayouts] = await Promise.all([
   fetchOverview(organization!, tournament!),
   fetchPlayerProfile(organization!, tournament!, personId!),
+  fetchPublicTableLayouts(organization!, tournament!),
 ]);
 
 if (!overviewData || !profile) {
   return Astro.rewrite('/404');
 }
 
+// Every effective layout a spectator could select the drilldown by — never
+// hardcoded to a discipline, since any installed discipline that declares a
+// person-granularity player-ranking layout gets this section for free.
+const statisticsLayouts = (tableLayouts?.layouts ?? []).filter(
+  (one) => one.entityGranularity === 'person' || one.entityGranularity === 'player',
+);
+const requestedLayoutCode = Astro.url.searchParams.get('layout');
+const activeStatisticsLayout =
+  (requestedLayoutCode
+    ? statisticsLayouts.find((one) => one.code === requestedLayoutCode)
+    : undefined) ?? statisticsLayouts[0];
+const statistics = activeStatisticsLayout
+  ? await fetchPlayerStatistics(organization!, tournament!, personId!, activeStatisticsLayout.code)
+  : undefined;
+
 const model = buildOverview(mapOverviewResponse(overviewData));
 const title = `${profile.displayName} — ${displayName(model)}`;
 const localePrefix = locale ? `/${locale}` : '';
-const canonicalPath = `${localePrefix}${model.canonicalPath}/players/${personId}`;
+const tournamentCanonicalPath = `${localePrefix}${model.canonicalPath}`;
+const canonicalPath = `${tournamentCanonicalPath}/players/${personId}`;
 ---
 
 <PublicLayout
@@ -41,12 +60,20 @@ const canonicalPath = `${localePrefix}${model.canonicalPath}/players/${personId}
 >
   <main class="cl-player-profile-page">
     <nav class="cl-player-profile-page__back">
-      <a href={`${locale ? `/${locale}` : ''}${model.canonicalPath}`}>
+      <a href={tournamentCanonicalPath}>
         ← Back to {displayName(model)}
       </a>
     </nav>
     <div class="cl-card">
-      <PlayerProfileView organizationAlias={organization!} profile={profile} intl={intl} />
+      <PlayerProfileView
+        organizationAlias={organization!}
+        profile={profile}
+        intl={intl}
+        canonicalPath={tournamentCanonicalPath}
+        statisticsLayouts={statisticsLayouts}
+        activeStatisticsLayoutCode={activeStatisticsLayout?.code}
+        statistics={statistics}
+      />
     </div>
   </main>
 </PublicLayout>

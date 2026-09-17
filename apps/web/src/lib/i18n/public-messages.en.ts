@@ -329,6 +329,32 @@ export const messages = defineMessages({
     defaultMessage: 'No photo uploaded',
   },
 
+  // Player statistics drilldown (0244)
+  playerProfileTournamentStatsHeading: {
+    id: 'publicWeb.playerProfile.tournamentStatsHeading',
+    defaultMessage: 'Tournament Statistics',
+  },
+  playerProfileTournamentTotalHeading: {
+    id: 'publicWeb.playerProfile.tournamentTotalHeading',
+    defaultMessage: 'Tournament Total',
+  },
+  playerProfileMatchByMatchHeading: {
+    id: 'publicWeb.playerProfile.matchByMatchHeading',
+    defaultMessage: 'Match by Match',
+  },
+  playerProfileNoTournamentStats: {
+    id: 'publicWeb.playerProfile.noTournamentStats',
+    defaultMessage: 'No tournament statistics recorded for this player.',
+  },
+  playerProfileMatchColumnHeading: {
+    id: 'publicWeb.playerProfile.matchColumnHeading',
+    defaultMessage: 'Match',
+  },
+  playerProfileMatchLabel: {
+    id: 'publicWeb.playerProfile.matchLabel',
+    defaultMessage: 'Stage {stage} · Match {match}',
+  },
+
   // Organization tournament listing
   tournamentsPageTitle: { id: 'publicWeb.tournamentsPage.title', defaultMessage: 'Tournaments' },
   tournamentsLiveHeading: {

@@ -196,7 +196,11 @@ const isPlayerRanking =
                   const cellFormatted = row.cells[column.code]?.formatted ?? '—';
                   const cellRaw = row.cells[column.code]?.raw;
                   const cellMissing = cellRaw === undefined;
-                  const playerPageUrl = `${canonicalPath}/players/${row.actorId}`;
+                  const playerPageUrl = `${canonicalPath}/players/${row.actorId}${
+                    isPlayerRanking && effectiveLayoutCode
+                      ? `?layout=${encodeURIComponent(effectiveLayoutCode)}`
+                      : ''
+                  }`;
                   const apiProfileUrl =
                     organizationAlias && tournamentAlias && row.actorId
                       ? `/api/player-profile?organization=${encodeURIComponent(organizationAlias)}&tournament=${encodeURIComponent(tournamentAlias)}&personId=${encodeURIComponent(row.actorId)}`

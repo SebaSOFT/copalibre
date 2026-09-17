@@ -1,4 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { TableCellResponse, TableColumnResponse } from './table-projections.dto.js';
+import type { LocalizedLabel } from '@copalibre/domain';
 
 export class PublicStandingsRowResponse {
   @ApiProperty()
@@ -562,6 +564,57 @@ export class PublicPersonProfileResponse {
 
   @ApiProperty({ type: [PublicPersonCareerDisciplineTotalsResponse] })
   careerStatistics!: PublicPersonCareerDisciplineTotalsResponse[];
+}
+
+export class PlayerStatisticsMatchRowResponse {
+  @ApiProperty({ description: 'Public stage number, for linking to this match’s public report' })
+  stageNumber!: number;
+
+  @ApiProperty({
+    description: 'Public match number within its stage, for linking to this match’s public report',
+  })
+  matchNumber!: number;
+
+  @ApiProperty({
+    description:
+      'One cell per collector-kind declared column, keyed by column code — composite and ' +
+      'computed columns are aggregate ratios/expressions that do not apply to a single match, ' +
+      'so they never appear here',
+    type: TableCellResponse,
+  })
+  cells!: Record<string, TableCellResponse>;
+}
+
+export class PlayerStatisticsDrilldownResponse {
+  @ApiProperty()
+  layoutCode!: string;
+
+  @ApiProperty()
+  label!: string | LocalizedLabel;
+
+  @ApiProperty({
+    type: TableColumnResponse,
+    isArray: true,
+    description: 'Every non-rank declared column — collector, composite, and computed',
+  })
+  columns!: TableColumnResponse[];
+
+  @ApiPropertyOptional({
+    type: TableCellResponse,
+    description:
+      'One cell per column in `columns`, keyed by column code — the same values as this ' +
+      'player’s own leaderboard row. Absent when the player has no recorded roster appearance ' +
+      'anywhere in the tournament.',
+  })
+  tournamentTotal?: Record<string, TableCellResponse>;
+
+  @ApiProperty({
+    type: PlayerStatisticsMatchRowResponse,
+    isArray: true,
+    description:
+      'One row per finalized match the player is rostered in, ordered by stage then match number',
+  })
+  matches!: PlayerStatisticsMatchRowResponse[];
 }
 
 export class PublicTournamentEntrantPodiumResponse {

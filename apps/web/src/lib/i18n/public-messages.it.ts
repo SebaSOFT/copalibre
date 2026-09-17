@@ -90,6 +90,13 @@ export const messages: Record<string, string> = {
   'publicWeb.playerProfile.close': 'Chiudi',
   'publicWeb.playerProfile.photoAlt': '{name}',
   'publicWeb.playerProfile.photoPlaceholderAlt': 'Nessuna foto caricata',
+  'publicWeb.playerProfile.tournamentStatsHeading': 'Statistiche del Torneo',
+  'publicWeb.playerProfile.tournamentTotalHeading': 'Totale del Torneo',
+  'publicWeb.playerProfile.matchByMatchHeading': 'Partita per Partita',
+  'publicWeb.playerProfile.noTournamentStats':
+    'Nessuna statistica di torneo registrata per questo giocatore.',
+  'publicWeb.playerProfile.matchColumnHeading': 'Partita',
+  'publicWeb.playerProfile.matchLabel': 'Fase {stage} · Partita {match}',
 
   'publicWeb.tournamentsPage.title': 'Tornei',
   'publicWeb.tournamentsPage.liveHeading': 'Dal vivo e attivi',

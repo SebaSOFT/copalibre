@@ -7473,6 +7473,61 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/statistics": {
+      "get": {
+        "operationId": "PublicProjectionsController_playerStatistics",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layout",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerStatisticsDrilldownResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A person's tournament-total and match-by-match declared statistics",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
     "/objects/discipline-background-image": {
       "get": {
         "operationId": "PublicObjectsController_disciplineBackgroundImage",
@@ -16953,6 +17008,71 @@
           "displayName",
           "competitionHistory",
           "careerStatistics"
+        ]
+      },
+      "PlayerStatisticsMatchRowResponse": {
+        "type": "object",
+        "properties": {
+          "stageNumber": {
+            "type": "number",
+            "description": "Public stage number, for linking to this match’s public report"
+          },
+          "matchNumber": {
+            "type": "number",
+            "description": "Public match number within its stage, for linking to this match’s public report"
+          },
+          "cells": {
+            "description": "One cell per collector-kind declared column, keyed by column code — composite and computed columns are aggregate ratios/expressions that do not apply to a single match, so they never appear here",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TableCellResponse"
+              }
+            ]
+          }
+        },
+        "required": [
+          "stageNumber",
+          "matchNumber",
+          "cells"
+        ]
+      },
+      "PlayerStatisticsDrilldownResponse": {
+        "type": "object",
+        "properties": {
+          "layoutCode": {
+            "type": "string"
+          },
+          "label": {
+            "type": "object"
+          },
+          "columns": {
+            "description": "Every non-rank declared column — collector, composite, and computed",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableColumnResponse"
+            }
+          },
+          "tournamentTotal": {
+            "description": "One cell per column in `columns`, keyed by column code — the same values as this player’s own leaderboard row. Absent when the player has no recorded roster appearance anywhere in the tournament.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TableCellResponse"
+              }
+            ]
+          },
+          "matches": {
+            "description": "One row per finalized match the player is rostered in, ordered by stage then match number",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlayerStatisticsMatchRowResponse"
+            }
+          }
+        },
+        "required": [
+          "layoutCode",
+          "label",
+          "columns",
+          "matches"
         ]
       },
       "LoginRequest": {

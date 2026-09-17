@@ -1896,6 +1896,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/statistics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A person's tournament-total and match-by-match declared statistics */
+        get: operations["PublicProjectionsController_playerStatistics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/objects/discipline-background-image": {
         parameters: {
             query?: never;
@@ -4996,6 +5013,24 @@ export interface components {
             age?: number;
             competitionHistory: components["schemas"]["PublicPersonCompetitionHistoryResponse"][];
             careerStatistics: components["schemas"]["PublicPersonCareerDisciplineTotalsResponse"][];
+        };
+        PlayerStatisticsMatchRowResponse: {
+            /** @description Public stage number, for linking to this match’s public report */
+            stageNumber: number;
+            /** @description Public match number within its stage, for linking to this match’s public report */
+            matchNumber: number;
+            /** @description One cell per collector-kind declared column, keyed by column code — composite and computed columns are aggregate ratios/expressions that do not apply to a single match, so they never appear here */
+            cells: components["schemas"]["TableCellResponse"];
+        };
+        PlayerStatisticsDrilldownResponse: {
+            layoutCode: string;
+            label: Record<string, never>;
+            /** @description Every non-rank declared column — collector, composite, and computed */
+            columns: components["schemas"]["TableColumnResponse"][];
+            /** @description One cell per column in `columns`, keyed by column code — the same values as this player’s own leaderboard row. Absent when the player has no recorded roster appearance anywhere in the tournament. */
+            tournamentTotal?: components["schemas"]["TableCellResponse"];
+            /** @description One row per finalized match the player is rostered in, ordered by stage then match number */
+            matches: components["schemas"]["PlayerStatisticsMatchRowResponse"][];
         };
         LoginRequest: {
             /** Format: email */
@@ -9805,6 +9840,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicPersonProfileResponse"];
+                };
+            };
+        };
+    };
+    PublicProjectionsController_playerStatistics: {
+        parameters: {
+            query: {
+                layout: string;
+            };
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerStatisticsDrilldownResponse"];
                 };
             };
         };
