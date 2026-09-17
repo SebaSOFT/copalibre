@@ -38,7 +38,7 @@ function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
       stageId: 's-1',
       format: 'round-robin',
       seeds: [],
-      matches: [],
+      zones: [],
       hasRecordedResults: false,
     }),
     publishSeeding: async () => ({

@@ -1042,11 +1042,22 @@ export interface TableProjectionResponseData {
   readonly countColumnCode?: string;
 }
 
+/**
+ * One zone's own independent bracket in the seeding canvas — or the stage's only bracket, for an
+ * un-zoned stage, which always comes back as exactly one zone entry with no
+ * `zoneId`/`zoneName` (openspec 0246).
+ */
+export interface SeedingZoneResponse {
+  readonly zoneId?: string;
+  readonly zoneName?: string;
+  readonly matches: readonly CanvasMatch[];
+}
+
 export interface SeedingResponse {
   readonly stageId: string;
   readonly format: string;
   readonly seeds: readonly { readonly seed: number; readonly entrantId: string }[];
-  readonly matches: readonly CanvasMatch[];
+  readonly zones: readonly SeedingZoneResponse[];
   readonly hasRecordedResults: boolean;
 }
 

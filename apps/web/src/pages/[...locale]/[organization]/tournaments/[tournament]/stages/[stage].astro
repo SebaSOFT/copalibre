@@ -113,14 +113,35 @@ const structuredData = {
   {
     layoutMode === 'bracket' ? (
       <>
-        <BracketView
-          intl={intl}
-          localePrefix={localePrefix}
-          matches={bracketData.matches}
-          organizationAlias={organization!}
-          stageNumber={stageNumber}
-          tournamentAlias={tournament!}
-        />
+        {bracketData.zones.length > 1 && (
+          <nav aria-label={intl.formatMessage(messages.bracketZoneJumpAriaLabel)}>
+            <ul class="cl-bracket-zone-jump">
+              {bracketData.zones.map((zone, index) => (
+                <li>
+                  <a href={`#cl-bracket-zone-${index}`}>
+                    {zone.zoneName ??
+                      intl.formatMessage(messages.bracketRoundHeading, { round: index + 1 })}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
+        {bracketData.zones.map((zone, index) => (
+          <section aria-labelledby={zone.zoneName ? `cl-bracket-zone-${index}` : undefined}>
+            {bracketData.zones.length > 1 && (
+              <h2 id={`cl-bracket-zone-${index}`}>{zone.zoneName}</h2>
+            )}
+            <BracketView
+              intl={intl}
+              localePrefix={localePrefix}
+              matches={zone.matches}
+              organizationAlias={organization!}
+              stageNumber={stageNumber}
+              tournamentAlias={tournament!}
+            />
+          </section>
+        ))}
         <ResultLegend
           heading={intl.formatMessage(messages.legendHeading)}
           labels={resultStateLabels(intl)}
@@ -160,3 +181,14 @@ const structuredData = {
     )
   }
 </PublicLayout>
+
+<style>
+  .cl-bracket-zone-jump {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cl-space-2);
+    list-style: none;
+    margin: 0 0 var(--cl-space-4);
+    padding: 0;
+  }
+</style>

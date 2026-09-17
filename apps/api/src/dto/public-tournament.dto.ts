@@ -341,6 +341,15 @@ export class PublicBracketSlotResponse {
   @ApiPropertyOptional()
   abbreviation?: string;
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: "The entrant's club, when it belongs to one",
+  })
+  clubId?: string;
+
+  @ApiPropertyOptional({ description: "The club's emblem object id, when one is on record" })
+  emblemObjectId?: string;
+
   @ApiPropertyOptional({ description: 'Match this slot sources its participant from' })
   matchId?: string;
 
@@ -466,12 +475,27 @@ export class PublicBracketMatchResponse {
   series?: PublicSeriesStateResponse;
 }
 
+/**
+ * One zone's own independent bracket — or the stage's only bracket, for an un-zoned stage, which
+ * always comes back as exactly one zone entry with no `zoneId`/`zoneName` (openspec 0246).
+ */
+export class PublicBracketZoneResponse {
+  @ApiPropertyOptional({ format: 'uuid', description: 'Absent for an un-zoned stage' })
+  zoneId?: string;
+
+  @ApiPropertyOptional({ description: 'Absent for an un-zoned stage' })
+  zoneName?: string;
+
+  @ApiProperty({ type: [PublicBracketMatchResponse] })
+  matches!: PublicBracketMatchResponse[];
+}
+
 export class PublicBracketResponse {
   @ApiPropertyOptional({ description: 'The competition format of the stage' })
   format?: string;
 
-  @ApiProperty({ type: [PublicBracketMatchResponse] })
-  matches!: PublicBracketMatchResponse[];
+  @ApiProperty({ type: [PublicBracketZoneResponse] })
+  zones!: PublicBracketZoneResponse[];
 }
 
 export class PublicPersonCompetitionHistoryResponse {

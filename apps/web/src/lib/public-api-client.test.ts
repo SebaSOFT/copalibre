@@ -585,19 +585,38 @@ describe('public-api-client', () => {
   });
 
   describe('mapBracketResponse', () => {
+    function zoneAt(
+      result: ReturnType<typeof mapBracketResponse>,
+      index: number,
+    ): ReturnType<typeof mapBracketResponse>['zones'][number] {
+      const zone = result.zones[index];
+      if (zone === undefined) throw new Error(`expected a zone at index ${index}`);
+      return zone;
+    }
+
     it('maps correctly for entrant and winner-of / loser-of', () => {
       const response = {
-        matches: [
+        zones: [
           {
-            position: 1,
-            round: 1,
-            bracket: 'winners',
-            status: 'completed',
-            slots: [
-              { kind: 'entrant', entrantId: 'entrant-a', name: 'A', abbreviation: 'A', score: 1 },
-              { kind: 'winner-of', matchId: 'WB-R1-M2', score: 0 },
-              { kind: 'loser-of', matchId: 'WB-R1-M3', score: 0 },
-              { kind: 'entrant' }, // missing name
+            matches: [
+              {
+                position: 1,
+                round: 1,
+                bracket: 'winners',
+                status: 'completed',
+                slots: [
+                  {
+                    kind: 'entrant',
+                    entrantId: 'entrant-a',
+                    name: 'A',
+                    abbreviation: 'A',
+                    score: 1,
+                  },
+                  { kind: 'winner-of', matchId: 'WB-R1-M2', score: 0 },
+                  { kind: 'loser-of', matchId: 'WB-R1-M3', score: 0 },
+                  { kind: 'entrant' }, // missing name
+                ],
+              },
             ],
           },
         ],
@@ -605,40 +624,49 @@ describe('public-api-client', () => {
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
       );
-      expect(result.matches[0].matchNumber).toBe(1);
-      expect(result.matches[0].slots[0]).toEqual({
+      const matches = zoneAt(result, 0).matches;
+      expect(matches[0].matchNumber).toBe(1);
+      expect(matches[0].slots[0]).toEqual({
         kind: 'entrant',
         entrantId: 'entrant-a',
         name: 'A',
         abbreviation: 'A',
+        clubId: undefined,
+        emblemObjectId: undefined,
       });
-      expect(result.matches[0].slots[1]).toEqual({
+      expect(matches[0].slots[1]).toEqual({
         kind: 'winner-of',
         matchId: 'WB-R1-M2',
       });
-      expect(result.matches[0].slots[2]).toEqual({
+      expect(matches[0].slots[2]).toEqual({
         kind: 'loser-of',
         matchId: 'WB-R1-M3',
       });
-      expect(result.matches[0].slots[3]).toEqual({
+      expect(matches[0].slots[3]).toEqual({
         kind: 'entrant',
         name: 'TBD',
         abbreviation: undefined,
+        clubId: undefined,
+        emblemObjectId: undefined,
       });
-      expect(result.matches[0].scores).toEqual([1, 0, 0, undefined]);
+      expect(matches[0].scores).toEqual([1, 0, 0, undefined]);
     });
 
     it('handles missing matchId for winner/loser', () => {
       const response = {
-        matches: [
+        zones: [
           {
-            position: 1,
-            round: 1,
-            bracket: 'winners',
-            status: 'completed',
-            slots: [
-              { kind: 'winner-of', score: 0 },
-              { kind: 'loser-of', score: 0 },
+            matches: [
+              {
+                position: 1,
+                round: 1,
+                bracket: 'winners',
+                status: 'completed',
+                slots: [
+                  { kind: 'winner-of', score: 0 },
+                  { kind: 'loser-of', score: 0 },
+                ],
+              },
             ],
           },
         ],
@@ -646,39 +674,111 @@ describe('public-api-client', () => {
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
       );
-      expect(result.matches[0].slots[0]).toEqual({ kind: 'winner-of' });
-      expect(result.matches[0].slots[1]).toEqual({ kind: 'loser-of' });
+      const matches = zoneAt(result, 0).matches;
+      expect(matches[0].slots[0]).toEqual({ kind: 'winner-of' });
+      expect(matches[0].slots[1]).toEqual({ kind: 'loser-of' });
     });
 
     it('resolves readable positions from exact structural ids without joining their digits', () => {
       const response = {
-        matches: [
+        zones: [
           {
-            matchId: 'WB-R1-M2',
-            position: 2,
-            round: 1,
-            bracket: 'winners',
-            status: 'scheduled',
-            slots: [],
-          },
-          {
-            matchId: 'WB-R2-M1',
-            position: 1,
-            round: 2,
-            bracket: 'winners',
-            status: 'scheduled',
-            slots: [
-              { kind: 'winner-of', matchId: 'WB-R1-M2' },
-              { kind: 'loser-of', matchId: '3' },
+            matches: [
+              {
+                matchId: 'WB-R1-M2',
+                position: 2,
+                round: 1,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [],
+              },
+              {
+                matchId: 'WB-R2-M1',
+                position: 1,
+                round: 2,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [
+                  { kind: 'winner-of', matchId: 'WB-R1-M2' },
+                  { kind: 'loser-of', matchId: '3' },
+                ],
+              },
             ],
           },
         ],
       };
       const result = mapBracketResponse(response as Parameters<typeof mapBracketResponse>[0]);
-      expect(result.matches[1]?.slots).toEqual([
+      expect(zoneAt(result, 0).matches[1]?.slots).toEqual([
         { kind: 'winner-of', matchId: 'WB-R1-M2', matchNumber: 2 },
         { kind: 'loser-of', matchId: '3', matchNumber: 3 },
       ]);
+    });
+
+    it('resolves winner-of/loser-of positions independently per zone', () => {
+      const response = {
+        zones: [
+          {
+            zoneId: 'zone-1',
+            zoneName: 'Copa de Oro',
+            matches: [
+              {
+                matchId: 'z1-m1',
+                position: 1,
+                round: 1,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [],
+              },
+              {
+                matchId: 'z1-m2',
+                position: 1,
+                round: 2,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [{ kind: 'winner-of', matchId: 'z1-m1' }],
+              },
+            ],
+          },
+          {
+            zoneId: 'zone-2',
+            zoneName: 'Copa de Plata',
+            matches: [
+              {
+                matchId: 'z2-m1',
+                position: 1,
+                round: 1,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [],
+              },
+              {
+                matchId: 'z2-m2',
+                position: 1,
+                round: 2,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [{ kind: 'winner-of', matchId: 'z2-m1' }],
+              },
+            ],
+          },
+        ],
+      };
+      const result = mapBracketResponse(
+        response as unknown as Parameters<typeof mapBracketResponse>[0],
+      );
+      expect(result.zones).toHaveLength(2);
+      expect(zoneAt(result, 0).zoneName).toBe('Copa de Oro');
+      expect(zoneAt(result, 0).matches[1]?.slots[0]).toEqual({
+        kind: 'winner-of',
+        matchId: 'z1-m1',
+        matchNumber: 1,
+      });
+      expect(zoneAt(result, 1).zoneName).toBe('Copa de Plata');
+      expect(zoneAt(result, 1).matches[1]?.slots[0]).toEqual({
+        kind: 'winner-of',
+        matchId: 'z2-m1',
+        matchNumber: 1,
+      });
     });
   });
 });

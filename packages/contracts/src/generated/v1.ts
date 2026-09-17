@@ -4250,13 +4250,25 @@ export interface components {
             /** @description Present only on a cross settled by a series */
             series?: components["schemas"]["PublicSeriesStateResponse"];
         };
+        SeedingZoneResponse: {
+            /**
+             * Format: uuid
+             * @description Absent for an un-zoned stage
+             */
+            zoneId?: string;
+            /** @description Absent for an un-zoned stage */
+            zoneName?: string;
+            matches: components["schemas"]["BracketMatchResponse"][];
+        };
         SeedingResponse: {
             /** Format: uuid */
             stageId: string;
             /** @enum {string} */
             format: "single-elimination" | "double-elimination" | "round-robin" | "league";
+            /** @description The stage’s one flat seed order, across every zone — unaffected by `zones` below */
             seeds: components["schemas"]["SeedAssignmentResponse"][];
-            matches: components["schemas"]["BracketMatchResponse"][];
+            /** @description Display only: one entry per zone the stage’s fixtures already declare */
+            zones: components["schemas"]["SeedingZoneResponse"][];
             /** @description True once any match in this stage has a recorded result */
             hasRecordedResults: boolean;
         };
@@ -4908,6 +4920,13 @@ export interface components {
             entrantId?: string;
             name?: string;
             abbreviation?: string;
+            /**
+             * Format: uuid
+             * @description The entrant's club, when it belongs to one
+             */
+            clubId?: string;
+            /** @description The club's emblem object id, when one is on record */
+            emblemObjectId?: string;
             /** @description Match this slot sources its participant from */
             matchId?: string;
             /** @description Score recorded for this side, when the match is finalized */
@@ -4930,10 +4949,20 @@ export interface components {
             /** @description Present only on a cross settled by a series */
             series?: components["schemas"]["PublicSeriesStateResponse"];
         };
+        PublicBracketZoneResponse: {
+            /**
+             * Format: uuid
+             * @description Absent for an un-zoned stage
+             */
+            zoneId?: string;
+            /** @description Absent for an un-zoned stage */
+            zoneName?: string;
+            matches: components["schemas"]["PublicBracketMatchResponse"][];
+        };
         PublicBracketResponse: {
             /** @description The competition format of the stage */
             format?: string;
-            matches: components["schemas"]["PublicBracketMatchResponse"][];
+            zones: components["schemas"]["PublicBracketZoneResponse"][];
         };
         PublicMatchesViewMatchResponse: {
             /** Format: uuid */

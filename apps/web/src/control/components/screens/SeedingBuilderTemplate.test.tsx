@@ -22,7 +22,7 @@ describe('SeedingBuilderTemplate', () => {
       withIntl(
         <SeedingBuilderTemplate
           hasRecordedResults={false}
-          matches={[]}
+          zones={[]}
           names={{ 'entrant-1': 'Godoy Cruz', 'entrant-2': 'Independiente Rivadavia' }}
           organizationAlias="liga-mendocina"
           seeds={[
@@ -47,7 +47,7 @@ describe('SeedingBuilderTemplate', () => {
       withIntl(
         <SeedingBuilderTemplate
           hasRecordedResults={false}
-          matches={[materializedMatch]}
+          zones={[{ matches: [materializedMatch] }]}
           organizationAlias="liga-mendocina"
           seeds={[{ seed: 1, entrantId: 'entrant-1', locked: false }]}
           tournamentAlias="apertura-2026"
@@ -67,7 +67,7 @@ describe('SeedingBuilderTemplate', () => {
       withIntl(
         <SeedingBuilderTemplate
           hasRecordedResults={false}
-          matches={[materializedMatch]}
+          zones={[{ matches: [materializedMatch] }]}
           organizationAlias="liga-mendocina"
           seeds={[{ seed: 1, entrantId: 'entrant-1', locked: false }]}
           tournamentName="Apertura 2026"

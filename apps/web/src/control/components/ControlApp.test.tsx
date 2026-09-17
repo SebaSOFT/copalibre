@@ -50,7 +50,7 @@ describe('ControlApp', () => {
             stageId: 'stage-1',
             format: 'single-elimination',
             seeds: [],
-            matches: [],
+            zones: [],
             hasRecordedResults: false,
           });
         }

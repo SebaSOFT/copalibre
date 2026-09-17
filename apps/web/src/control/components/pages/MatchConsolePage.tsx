@@ -124,13 +124,20 @@ export function MatchConsolePage({
     api
       .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
       .then((seeding) => {
-        if (live) setBracketMatches(seeding.matches);
+        // This match's own zone only — flattening every zone's matches back together would
+        // reintroduce the cross-zone round/position collision the zone-scoped canvas exists to
+        // avoid (openspec 0246), inside the journey-highlight/context logic instead of the
+        // canvas itself.
+        const ownZone = seeding.zones.find((zone) =>
+          zone.matches.some((m) => m.persistedMatchId === matchId),
+        );
+        if (live) setBracketMatches(ownZone?.matches ?? []);
       })
       .catch(() => undefined);
     return () => {
       live = false;
     };
-  }, [api, organizationAlias, tournamentAlias, stageNumber]);
+  }, [api, organizationAlias, tournamentAlias, stageNumber, matchId]);
 
   const refreshPendingMutations = useCallback(async (): Promise<void> => {
     setPendingMutations(await listPending(matchId));

@@ -243,7 +243,7 @@ async function mockControlApi(
                 { seed: 1, entrantId: 'Deportivo Norte' },
                 { seed: 2, entrantId: 'Atlético Sur' },
               ],
-              matches: [],
+              zones: [],
               hasRecordedResults: false,
             });
           }

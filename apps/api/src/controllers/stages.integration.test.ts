@@ -340,7 +340,7 @@ describe('stage creation routes (integration)', () => {
           (seed: { entrantId: string }) => seed.entrantId === pendingEntrantId,
         ),
       ).toBe(false);
-      expect(previewBody.matches.length).toBeGreaterThan(0);
+      expect(previewBody.zones[0].matches.length).toBeGreaterThan(0);
       expect(previewBody.hasRecordedResults).toBe(false);
 
       const publish = await request({
@@ -382,9 +382,11 @@ describe('stage creation routes (integration)', () => {
       const after = await request({ method: 'GET', url: seedingUrl, token: 'organizer' });
       expect(after.statusCode).toBe(200);
       const afterBody = after.json();
-      expect(afterBody.matches.length).toBeGreaterThan(0);
+      expect(afterBody.zones[0].matches.length).toBeGreaterThan(0);
       expect(
-        afterBody.matches.some((match: { status: string }) => match.status === 'scheduled'),
+        afterBody.zones[0].matches.some(
+          (match: { status: string }) => match.status === 'scheduled',
+        ),
       ).toBe(true);
     },
   );
@@ -1084,7 +1086,7 @@ describe('stage creation routes (integration)', () => {
         token: 'organizer',
       });
       expect(bracketPreview.statusCode).toBe(200);
-      const bracketMatches = bracketPreview.json().matches;
+      const bracketMatches = bracketPreview.json().zones[0].matches;
       const finalNode = bracketMatches.find((b: { round: number }) => b.round === 2);
       expect(finalNode).toBeDefined();
       expect(finalNode.slots[0].kind).toBe('entrant');

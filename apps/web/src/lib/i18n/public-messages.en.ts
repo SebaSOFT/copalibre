@@ -139,6 +139,11 @@ export const messages = defineMessages({
   bracketRoundHeading: { id: 'publicWeb.bracket.roundHeading', defaultMessage: 'Round {round}' },
   // 0223 — the bracket stage's own chrome, its key, and its textual view.
   bracketStageAriaLabel: { id: 'publicWeb.bracket.stageAriaLabel', defaultMessage: 'Bracket' },
+  // 0246 — jump-to-zone navigation, shown only when a stage has more than one zone.
+  bracketZoneJumpAriaLabel: {
+    id: 'publicWeb.bracket.zoneJumpAriaLabel',
+    defaultMessage: 'Jump to a zone’s bracket',
+  },
   bracketScrollAriaLabel: {
     id: 'publicWeb.bracket.scrollAriaLabel',
     defaultMessage: 'Bracket graph, scrolls sideways',

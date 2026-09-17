@@ -109,7 +109,7 @@ test.beforeAll(async ({ workerPort }) => {
       return;
     }
     if (req.url === `${STAGE}/bracket`) {
-      res.end(JSON.stringify(bracketFixture));
+      res.end(JSON.stringify({ zones: [{ matches: bracketFixture.matches }] }));
       return;
     }
     if (req.url === `${TOURNAMENT}/public/tables`) {

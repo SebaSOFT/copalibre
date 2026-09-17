@@ -80,7 +80,7 @@ const overview = {
 
 const roundRobinBracket = {
   format: 'round-robin',
-  matches: [],
+  zones: [],
 };
 
 const stageMatches = [

@@ -18,12 +18,19 @@ import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
  * list; the canvas is read-only, because bracket shape is engine-derived and
  * dragging a match somewhere else would be editing a picture of the truth.
  */
+/** One zone's own independent bracket — see `SeedingResponse.zones` (openspec 0246). */
+export interface SeedingCanvasZone {
+  readonly zoneId?: string;
+  readonly zoneName?: string;
+  readonly matches: readonly CanvasMatch[];
+}
+
 export function SeedingBuilderTemplate({
   organizationAlias,
   tournamentAlias,
   tournamentName,
   seeds,
-  matches,
+  zones,
   names = {},
   hasRecordedResults,
   onPublish,
@@ -38,7 +45,11 @@ export function SeedingBuilderTemplate({
   readonly tournamentAlias?: string;
   readonly tournamentName: string;
   readonly seeds: readonly SeedAssignment[];
-  readonly matches: readonly CanvasMatch[];
+  /**
+   * One entry per zone the stage's fixtures already declare — always exactly one entry, with no
+   * `zoneId`/`zoneName`, for an un-zoned stage (openspec 0246).
+   */
+  readonly zones: readonly SeedingCanvasZone[];
   readonly names?: Readonly<Record<string, string>>;
   readonly hasRecordedResults: boolean;
   readonly onPublish?: (seeds: readonly SeedAssignment[]) => Promise<void> | void;
@@ -153,20 +164,29 @@ export function SeedingBuilderTemplate({
             </h2>
           </header>
           <div className="cl-card__content">
-            <BracketCanvas
-              matches={matches}
-              highlightEntrantId={highlightEntrantId}
-              onHighlightEntrant={setHighlightEntrantId}
-              names={names}
-              matchUrl={
-                tournamentAlias === undefined
-                  ? undefined
-                  : (persistedMatchId) =>
-                      `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${persistedMatchId}`
-              }
-              onZoomChange={setZoom}
-              zoom={zoom}
-            />
+            {/* At least one canvas always renders, even for a not-yet-generated stage, so
+                `BracketCanvas`'s own "no structure yet" empty state still shows. */}
+            {(zones.length > 0 ? zones : [{ matches: [] as readonly CanvasMatch[] }]).map(
+              (zone, index) => (
+                <div key={('zoneId' in zone && zone.zoneId) || index}>
+                  {zones.length > 1 && 'zoneName' in zone && <h3>{zone.zoneName}</h3>}
+                  <BracketCanvas
+                    matches={zone.matches}
+                    highlightEntrantId={highlightEntrantId}
+                    onHighlightEntrant={setHighlightEntrantId}
+                    names={names}
+                    matchUrl={
+                      tournamentAlias === undefined
+                        ? undefined
+                        : (persistedMatchId) =>
+                            `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${persistedMatchId}`
+                    }
+                    onZoomChange={setZoom}
+                    zoom={zoom}
+                  />
+                </div>
+              ),
+            )}
           </div>
         </div>
       </div>

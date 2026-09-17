@@ -166,6 +166,7 @@ export const messages: Record<string, string> = {
   'publicWeb.ticker.stale': '最后已知比分 — 实时连接已断开',
   'publicWeb.ticker.empty': '暂无赛事可报告',
   'publicWeb.bracket.stageAriaLabel': '对阵表',
+  'publicWeb.bracket.zoneJumpAriaLabel': '跳转到某个赛区的对阵表',
   'publicWeb.bracket.scrollAriaLabel': '对阵图，可横向滚动',
   'publicWeb.bracket.legendLabel': '对阵表图例',
   'publicWeb.bracket.outcomeAdvancing': '晋级',

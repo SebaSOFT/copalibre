@@ -92,7 +92,7 @@ describe('SeedingBuilderTemplate', () => {
       withIntl(
         <SeedingBuilderTemplate
           hasRecordedResults={false}
-          matches={matches}
+          zones={[{ matches }]}
           organizationAlias="liga-mendocina"
           random={() => 0.99}
           seeds={seeds}
@@ -113,7 +113,7 @@ describe('SeedingBuilderTemplate', () => {
       withIntl(
         <SeedingBuilderTemplate
           hasRecordedResults={false}
-          matches={matches}
+          zones={[{ matches }]}
           organizationAlias="liga-mendocina"
           seeds={seeds}
           tournamentName="Apertura"
@@ -136,7 +136,7 @@ describe('SeedingBuilderTemplate', () => {
       withIntl(
         <SeedingBuilderTemplate
           hasRecordedResults
-          matches={matches}
+          zones={[{ matches }]}
           organizationAlias="liga-mendocina"
           seeds={seeds}
           tournamentName="Apertura"
@@ -161,7 +161,7 @@ describe('SeedingBuilderTemplate', () => {
       withIntl(
         <SeedingBuilderTemplate
           hasRecordedResults={false}
-          matches={matches}
+          zones={[{ matches }]}
           onPublish={onPublish as unknown as (next: readonly (typeof seeds)[number][]) => void}
           organizationAlias="liga-mendocina"
           random={() => 0}
@@ -185,7 +185,7 @@ describe('SeedingBuilderTemplate', () => {
       withIntl(
         <SeedingBuilderTemplate
           hasRecordedResults={false}
-          matches={matches}
+          zones={[{ matches }]}
           organizationAlias="liga-mendocina"
           seeds={seeds}
           tournamentName="Apertura"
@@ -204,7 +204,7 @@ describe('SeedingBuilderTemplate', () => {
       withIntl(
         <SeedingBuilderTemplate
           hasRecordedResults={false}
-          matches={matches}
+          zones={[{ matches }]}
           organizationAlias="liga-mendocina"
           seeds={seeds}
           tournamentName="Apertura"
@@ -224,7 +224,7 @@ describe('SeedingBuilderTemplate', () => {
       withIntl(
         <SeedingBuilderTemplate
           hasRecordedResults={false}
-          matches={[]}
+          zones={[]}
           organizationAlias="liga-mendocina"
           seeds={[]}
           tournamentName="Apertura"
@@ -254,7 +254,7 @@ function stubClient(overrides: Partial<ControlApiClient>): ControlApiClient {
         stageId: 'stage-1',
         format: 'single-elimination',
         seeds: [{ seed: 1, entrantId: 'tll' }],
-        matches,
+        zones: [{ matches }],
         hasRecordedResults: false,
       }),
     publishSeeding: () =>
@@ -400,7 +400,7 @@ describe('control routes', () => {
                 { seed: 1, entrantId: 'tll' },
                 { seed: 2, entrantId: 'ind' },
               ],
-              matches,
+              zones: [{ matches }],
               hasRecordedResults: false,
             }),
           publishSeeding: () =>
@@ -435,7 +435,7 @@ describe('control routes', () => {
           { seed: 1, entrantId: 'tll' },
           { seed: 2, entrantId: 'ind' },
         ],
-        matches,
+        zones: [{ matches }],
         hasRecordedResults: false,
       })
       .mockResolvedValueOnce({
@@ -445,7 +445,7 @@ describe('control routes', () => {
           { seed: 1, entrantId: 'ind' },
           { seed: 2, entrantId: 'tll' },
         ],
-        matches,
+        zones: [{ matches }],
         hasRecordedResults: false,
       });
 
@@ -510,7 +510,7 @@ describe('control routes', () => {
               stageId: 'stage-2',
               format: 'single-elimination',
               seeds: [],
-              matches: [],
+              zones: [],
               hasRecordedResults: false,
             }),
           fetchPromotionPlansTargetingStage: () =>
@@ -550,7 +550,7 @@ describe('control routes', () => {
               stageId: 'stage-2',
               format: 'single-elimination',
               seeds: [{ seed: 1, entrantId: 'tll' }],
-              matches,
+              zones: [{ matches }],
               hasRecordedResults: false,
             }),
           fetchPromotionPlansTargetingStage,
@@ -582,7 +582,7 @@ describe('control routes', () => {
               stageId: 'stage-2',
               format: 'single-elimination',
               seeds: [],
-              matches: [],
+              zones: [],
               hasRecordedResults: false,
             }),
           fetchPromotionPlansTargetingStage: () => Promise.resolve([]),

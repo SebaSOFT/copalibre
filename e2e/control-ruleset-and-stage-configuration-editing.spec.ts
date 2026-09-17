@@ -126,15 +126,19 @@ test("edits a stage's configuration override before seeding, then finds it locke
           stageId: 'stage-1',
           format: 'round-robin',
           seeds: [],
-          matches: seeded
+          zones: seeded
             ? [
                 {
-                  matchId: 'm-1',
-                  bracket: 'main',
-                  round: 1,
-                  position: 1,
-                  status: 'scheduled',
-                  slots: [],
+                  matches: [
+                    {
+                      matchId: 'm-1',
+                      bracket: 'main',
+                      round: 1,
+                      position: 1,
+                      status: 'scheduled',
+                      slots: [],
+                    },
+                  ],
                 },
               ]
             : [],

@@ -247,48 +247,70 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
   } as LiveDashboard;
 }
 
-export function mapBracketResponse(response: PublicBracketResponse): {
-  format?: string;
-  matches: readonly BracketMatch[];
-} {
-  const sourcePositions = new Map(response.matches.map((match) => [match.matchId, match.position]));
+/** One zone's own bracket, mapped from the wire shape — see `mapBracketResponse`. */
+export interface BracketZone {
+  readonly zoneId?: string;
+  readonly zoneName?: string;
+  readonly matches: readonly BracketMatch[];
+}
+
+function mapBracketZoneMatches(
+  matches: PublicBracketResponse['zones'][number]['matches'],
+): readonly BracketMatch[] {
+  // Scoped to one zone's own matches: a `winner-of`/`loser-of` slot's source position only ever
+  // names a match within the same zone, so resolving it against another zone's matches would be
+  // exactly the cross-zone collision this mapping exists to avoid (openspec 0246).
+  const sourcePositions = new Map(matches.map((match) => [match.matchId, match.position]));
   const sourceNumber = (matchId?: string): number | undefined => {
     if (matchId === undefined) return undefined;
     const position = sourcePositions.get(matchId);
     if (position !== undefined) return position;
     return /^\d+$/.test(matchId) ? Number(matchId) : undefined;
   };
+  return matches.map((m) => ({
+    matchId: m.matchId,
+    matchNumber: m.position,
+    roundNumber: m.round,
+    branch: m.bracket,
+    state: (m.status === 'finalized' || m.status === 'forfeited'
+      ? 'final'
+      : m.status === 'scheduled'
+        ? 'upcoming'
+        : m.status) as MatchState,
+    scores: m.slots.map((s) => s.score),
+    resultReasons: m.slots.map((s) => s.resultReason as ResultReason | undefined),
+    slots: m.slots.map((s): SlotSource => {
+      if (s.kind === 'winner-of' || s.kind === 'loser-of') {
+        const matchNumber = sourceNumber(s.matchId);
+        return {
+          kind: s.kind,
+          matchId: s.matchId,
+          ...(matchNumber === undefined ? {} : { matchNumber }),
+        };
+      }
+      return {
+        kind: 'entrant',
+        entrantId: s.entrantId,
+        name: s.name ?? 'TBD',
+        abbreviation: s.abbreviation,
+        clubId: s.clubId,
+        emblemObjectId: s.emblemObjectId,
+      };
+    }),
+    ...(m.series === undefined ? {} : { series: m.series as PublicSeriesState }),
+  }));
+}
+
+export function mapBracketResponse(response: PublicBracketResponse): {
+  format?: string;
+  zones: readonly BracketZone[];
+} {
   return {
     format: response.format,
-    matches: response.matches.map((m) => ({
-      matchId: m.matchId,
-      matchNumber: m.position,
-      roundNumber: m.round,
-      branch: m.bracket,
-      state: (m.status === 'finalized' || m.status === 'forfeited'
-        ? 'final'
-        : m.status === 'scheduled'
-          ? 'upcoming'
-          : m.status) as MatchState,
-      scores: m.slots.map((s) => s.score),
-      resultReasons: m.slots.map((s) => s.resultReason as ResultReason | undefined),
-      slots: m.slots.map((s): SlotSource => {
-        if (s.kind === 'winner-of' || s.kind === 'loser-of') {
-          const matchNumber = sourceNumber(s.matchId);
-          return {
-            kind: s.kind,
-            matchId: s.matchId,
-            ...(matchNumber === undefined ? {} : { matchNumber }),
-          };
-        }
-        return {
-          kind: 'entrant',
-          entrantId: s.entrantId,
-          name: s.name ?? 'TBD',
-          abbreviation: s.abbreviation,
-        };
-      }),
-      ...(m.series === undefined ? {} : { series: m.series as PublicSeriesState }),
+    zones: response.zones.map((zone) => ({
+      zoneId: zone.zoneId,
+      zoneName: zone.zoneName,
+      matches: mapBracketZoneMatches(zone.matches),
     })),
   };
 }

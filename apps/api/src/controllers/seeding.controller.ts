@@ -56,6 +56,7 @@ import {
   SeedingResponse,
 } from '../dto/standings.dto.js';
 import { resolveTournament } from './standings.controller.js';
+import { resolveStageZones } from './bracket-zones.js';
 import { readStageSeries, readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
 import { PublicSeriesStateResponse } from '../dto/public-tournament.dto.js';
 import { DATABASE } from '../database.token.js';
@@ -102,29 +103,51 @@ export class SeedingController {
     );
 
     const seedOrder = await this.seedOrderFor(stageId, record.entrantIds, tournamentId);
-    const graph = this.graphOf(record.format, seedOrder);
-    const persisted = await new StageReadModel(this.db).matches(stageId);
-
-    const ambiguousPositions = ambiguousRoundPositions(graph.matches);
     const matchFormat = matchFormatOf(record.overrides);
-    const seriesByPosition = await readStageSeriesByPosition(this.db, {
-      tournamentId,
-      stageId,
-      records: persisted,
-    });
+    const readModel = new StageReadModel(this.db);
+
+    // Seed order/publish stay scoped to the stage's one flat entrant list — only the canvas
+    // *display* below is broken out per zone, matching design.md 0246 Decision 3b: this display
+    // fix does not touch how a stage is seeded or reseeded.
+    const zones = await resolveStageZones(this.db, stageId);
+    const zoneResponses = await Promise.all(
+      zones.map(async (zone) => {
+        // The implicit (un-zoned) case reuses `record` as-is: it already carries `this.stage()`'s
+        // no-fixtures-yet substitution (accepted registrations in registration order), which a
+        // fresh `StageReadModel.stageRecord` call here would not. A real declared zone always has
+        // fixtures already generated for it, so no such substitution applies there.
+        const zoneRecord =
+          zone.zoneId === undefined
+            ? record
+            : await readModel.stageRecord(stageId, undefined, zone.zoneId);
+        const persisted = await readModel.matches(stageId, undefined, zone.zoneId);
+        const graph = this.graphOf(record.format, zoneRecord?.entrantIds ?? []);
+        const ambiguousPositions = ambiguousRoundPositions(graph.matches);
+        const seriesByPosition = await readStageSeriesByPosition(this.db, {
+          tournamentId,
+          stageId,
+          records: persisted,
+        });
+
+        return {
+          ...zone,
+          matches: graph.matches.map((match) => {
+            const series = seriesByPosition.get(roundPositionKey(match));
+            return toBracketMatch(match, persisted, {
+              ambiguousPositions,
+              matchFormat,
+              ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
+            });
+          }),
+        };
+      }),
+    );
 
     return {
       stageId,
       format: record.format,
       seeds: seedOrder.map((entrantId, index) => ({ seed: index + 1, entrantId })),
-      matches: graph.matches.map((match) => {
-        const series = seriesByPosition.get(roundPositionKey(match));
-        return toBracketMatch(match, persisted, {
-          ambiguousPositions,
-          matchFormat,
-          ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
-        });
-      }),
+      zones: zoneResponses,
       hasRecordedResults: record.hasRecordedResults,
     };
   }

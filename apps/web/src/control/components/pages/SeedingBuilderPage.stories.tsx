@@ -29,7 +29,7 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
                 { seed: 1, entrantId: ids.first, locked: true },
                 { seed: 2, entrantId: ids.second, locked: false },
               ],
-          matches: empty ? [] : bracket,
+          zones: empty ? [] : [{ matches: bracket }],
           hasRecordedResults: false,
         }),
     });

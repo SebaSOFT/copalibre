@@ -68,7 +68,11 @@ export interface StageMatchRecord {
 export class StageReadModel {
   constructor(private readonly db: Kysely<Database>) {}
 
-  async stageRecord(stageId: string, groupId?: string): Promise<StageRecord | undefined> {
+  async stageRecord(
+    stageId: string,
+    groupId?: string,
+    zoneId?: string,
+  ): Promise<StageRecord | undefined> {
     const stage = await this.db
       .selectFrom('stages')
       .leftJoin(
@@ -81,7 +85,7 @@ export class StageReadModel {
       .executeTakeFirst();
     if (!stage) return undefined;
 
-    const matches = await this.matches(stageId, groupId);
+    const matches = await this.matches(stageId, groupId, zoneId);
     const entrantIds: string[] = [];
     for (const match of matches) {
       for (const entrantId of [match.homeEntrantId, match.awayEntrantId]) {
@@ -115,7 +119,11 @@ export class StageReadModel {
    * play order, and the top-level `matchId`/`status`/`scores` describe the first game — which
    * is the only game for every fixture that declares no series, leaving those byte-identical.
    */
-  async matches(stageId: string, groupId?: string): Promise<readonly StageMatchRecord[]> {
+  async matches(
+    stageId: string,
+    groupId?: string,
+    zoneId?: string,
+  ): Promise<readonly StageMatchRecord[]> {
     let query = this.db
       .selectFrom('fixtures')
       .leftJoin('matches', 'matches.fixture_id', 'fixtures.fixture_id')
@@ -132,6 +140,7 @@ export class StageReadModel {
       ])
       .where('fixtures.stage_id', '=', stageId);
     if (groupId !== undefined) query = query.where('fixtures.group_id', '=', groupId);
+    if (zoneId !== undefined) query = query.where('fixtures.zone_id', '=', zoneId);
     const rows = await query
       .orderBy('fixtures.round')
       .orderBy('fixtures.created_at')

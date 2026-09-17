@@ -650,7 +650,7 @@ function controlClient(overrides: Partial<ControlApiClient>): ControlApiClient {
       stageId: 'stage',
       format: 'single-elimination',
       seeds: [],
-      matches: [],
+      zones: [],
       hasRecordedResults: false,
     }),
     publishSeeding: async () => ({

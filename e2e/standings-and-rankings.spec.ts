@@ -508,7 +508,7 @@ test.describe('B2: public tournament page', () => {
         return;
       }
       if (req.url === `${STAGE}/bracket`) {
-        res.end(JSON.stringify(bracketFixture));
+        res.end(JSON.stringify({ zones: [{ matches: bracketFixture.matches }] }));
         return;
       }
       if (req.url === `${STAGE}/matches/1`) {

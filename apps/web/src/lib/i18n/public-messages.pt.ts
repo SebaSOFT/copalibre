@@ -169,6 +169,7 @@ export const messages: Record<string, string> = {
   'publicWeb.ticker.stale': 'Últimos resultados conhecidos — a ligação ao vivo foi perdida',
   'publicWeb.ticker.empty': 'Ainda não há jogos a comunicar',
   'publicWeb.bracket.stageAriaLabel': 'Chave',
+  'publicWeb.bracket.zoneJumpAriaLabel': 'Ir para a chave de uma zona',
   'publicWeb.bracket.scrollAriaLabel': 'Gráfico da chave, desloca-se lateralmente',
   'publicWeb.bracket.legendLabel': 'Legenda da chave',
   'publicWeb.bracket.outcomeAdvancing': 'Avança',

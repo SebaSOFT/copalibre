@@ -56,7 +56,7 @@ test.beforeAll(async ({ workerPort }) => {
         }),
       );
     } else if (req.url === `${base}/stages/1/bracket`) {
-      res.end(JSON.stringify({ format: 'single-elimination', matches }));
+      res.end(JSON.stringify({ format: 'single-elimination', zones: [{ matches }] }));
     } else {
       res.statusCode = 404;
       res.end('{}');
