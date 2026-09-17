@@ -9,6 +9,7 @@ import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
 import type { ClubView } from '../../../lib/overview.ts';
 import EmblemImage from '../atoms/EmblemImage.astro';
+import Button from '../atoms/Button.astro';
 
 interface Props {
   /** The declared layouts for building the tab strip. */
@@ -168,7 +169,7 @@ const isPlayerRanking =
                 const header = localizedText(column.header, intl.locale);
                 return (
                   <th scope="col" title={header} aria-sort="none">
-                    <button
+                    <Button
                       type="button"
                       class="cl-table__sort"
                       data-table-sort-button
@@ -176,7 +177,7 @@ const isPlayerRanking =
                       aria-label={header}
                     >
                       {localizedText(column.shortHeader ?? column.header, intl.locale)}
-                    </button>
+                    </Button>
                   </th>
                 );
               })}

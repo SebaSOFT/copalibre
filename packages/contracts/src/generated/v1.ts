@@ -4106,6 +4106,8 @@ export interface components {
             code: string;
             header: Record<string, never>;
             shortHeader?: Record<string, never>;
+            /** @description Displayed text when the numeric value is exactly zero */
+            zeroDisplay?: string;
             /** @enum {string} */
             format: "text" | "number" | "decimal-1" | "decimal-2" | "percentage" | "fraction";
         };
