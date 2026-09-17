@@ -367,6 +367,9 @@ export const KNOWN_DATA_BELOW_PAGE = new Map([
   ['components/ui/organisms/StandingsTable.astro', 2],
   ['components/ui/molecules/TournamentHero.astro', 1],
   ['components/ui/organisms/PlayerProfileView.astro', 1],
+  // openspec 0246: bracket entrant slots gain a club emblem, the same
+  // clubEmblemUrl()-in-the-template pattern StandingsTable.astro already uses above.
+  ['components/ui/organisms/MatchNode.astro', 1],
 ]);
 
 export function checkDataAccess(nodes) {
