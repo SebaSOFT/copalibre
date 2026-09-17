@@ -193,6 +193,8 @@ export interface MatchCardLabels {
    */
   readonly clockAriaLabel: string;
   readonly venueAriaLabel: string;
+  /** Absent on a surface (e.g. control-web) that doesn't show kickoff time. */
+  readonly scheduledAtAriaLabel?: string;
   readonly latestEventAriaLabel: string;
   readonly zoneGroupAriaLabel: string;
   readonly positionInGroup: string;
@@ -222,6 +224,9 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
     empty: intl.formatMessage(messages.matchesViewEmpty),
     clockAriaLabel: intl.formatMessage(messages.matchesViewClockAriaLabel, { time: '{time}' }),
     venueAriaLabel: intl.formatMessage(messages.matchesViewVenueAriaLabel, { venue: '{venue}' }),
+    scheduledAtAriaLabel: intl.formatMessage(messages.matchesViewScheduledAtAriaLabel, {
+      time: '{time}',
+    }),
     latestEventAriaLabel: intl.formatMessage(messages.matchesViewLatestEventAriaLabel, {
       event: '{event}',
     }),

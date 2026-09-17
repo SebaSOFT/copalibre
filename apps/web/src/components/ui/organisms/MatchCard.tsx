@@ -83,12 +83,26 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
         </p>
       )}
 
-      {match.venueName !== undefined && (
-        <p
-          className="cl-match-card__venue"
-          title={applyTemplate(labels.venueAriaLabel, { venue: match.venueName })}
-        >
-          {match.venueName}
+      {(match.venueName !== undefined || match.scheduledAtLabel !== undefined) && (
+        <p className="cl-match-card__venue">
+          {match.scheduledAtLabel !== undefined && (
+            <time
+              dateTime={match.scheduledAt}
+              title={
+                labels.scheduledAtAriaLabel
+                  ? applyTemplate(labels.scheduledAtAriaLabel, { time: match.scheduledAtLabel })
+                  : undefined
+              }
+            >
+              {match.scheduledAtLabel}
+            </time>
+          )}
+          {match.venueName !== undefined && match.scheduledAtLabel !== undefined && ' · '}
+          {match.venueName !== undefined && (
+            <span title={applyTemplate(labels.venueAriaLabel, { venue: match.venueName })}>
+              {match.venueName}
+            </span>
+          )}
         </p>
       )}
 

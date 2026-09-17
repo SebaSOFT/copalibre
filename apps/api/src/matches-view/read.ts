@@ -46,6 +46,7 @@ export interface MatchesViewRow {
   readonly awayScore?: number;
   readonly clockSeconds?: number;
   readonly venueName?: string;
+  readonly scheduledAt?: string;
   readonly latestEvent?: { readonly label: string; readonly occurredAt: string };
   readonly zoneName?: string;
   readonly groupName?: string;
@@ -125,19 +126,21 @@ async function readStageMatchesView(
     if (record.awayEntrantId) entrantIds.add(record.awayEntrantId);
   }
   const enrollment = new EnrollmentRepository(db);
-  const [names, clubIdByEntrant, descriptor, seriesByPosition, venueByMatch] = await Promise.all([
-    enrollment.resolveEntrantNames([...entrantIds]),
-    clubIdsOfEntrants(db, enrollment, [...entrantIds]),
-    new TournamentRepository(db).findDescriptor(
-      tournament.disciplineRef.descriptorId,
-      tournament.disciplineRef.version,
-    ),
-    seriesStatesByPosition(db, tournament.tournamentId, stage.stageId, records),
-    venueByMatchId(
-      db,
-      records.map((record) => record.matchId),
-    ),
-  ]);
+  const [names, clubIdByEntrant, descriptor, seriesByPosition, scheduleByMatch] = await Promise.all(
+    [
+      enrollment.resolveEntrantNames([...entrantIds]),
+      clubIdsOfEntrants(db, enrollment, [...entrantIds]),
+      new TournamentRepository(db).findDescriptor(
+        tournament.disciplineRef.descriptorId,
+        tournament.disciplineRef.version,
+      ),
+      seriesStatesByPosition(db, tournament.tournamentId, stage.stageId, records),
+      scheduleByMatchId(
+        db,
+        records.map((record) => record.matchId),
+      ),
+    ],
+  );
   const definitionByCode = new Map(
     (descriptor?.eventDefinitions ?? []).map((definition) => [definition.code, definition]),
   );
@@ -176,7 +179,7 @@ async function readStageMatchesView(
       ]);
       const latestEvent = events.at(-1);
       const activeSegment = segments.find((segment) => segment.state === 'active');
-      const venueName = venueByMatch.get(record.matchId);
+      const schedule = scheduleByMatch.get(record.matchId);
 
       return {
         matchId: record.matchId,
@@ -200,7 +203,8 @@ async function readStageMatchesView(
           : { awayAbbreviation: names.get(record.awayEntrantId)?.abbreviation }),
         ...(scores?.[0] === undefined ? {} : { homeScore: scores[0] }),
         ...(scores?.[1] === undefined ? {} : { awayScore: scores[1] }),
-        ...(venueName === undefined ? {} : { venueName }),
+        ...(schedule?.venueName === undefined ? {} : { venueName: schedule.venueName }),
+        ...(schedule?.scheduledAt === undefined ? {} : { scheduledAt: schedule.scheduledAt }),
         ...(activeSegment === undefined
           ? {}
           : { clockSeconds: elapsedSecondsOf(activeSegment, Date.now()) }),
@@ -364,17 +368,34 @@ function decidingFactorOf(
   );
 }
 
-async function venueByMatchId(
+interface ScheduleInfo {
+  readonly venueName?: string;
+  readonly scheduledAt: string;
+}
+
+async function scheduleByMatchId(
   db: Kysely<Database>,
   matchIds: readonly string[],
-): Promise<ReadonlyMap<string, string>> {
+): Promise<ReadonlyMap<string, ScheduleInfo>> {
   if (matchIds.length === 0) return new Map();
   const rows = await db
     .selectFrom('match_schedule_assignments')
     .innerJoin('schedule_slots', 'schedule_slots.slot_id', 'match_schedule_assignments.slot_id')
-    .innerJoin('venues', 'venues.venue_id', 'schedule_slots.venue_id')
-    .select(['match_schedule_assignments.match_id', 'venues.name as venue_name'])
+    .leftJoin('venues', 'venues.venue_id', 'schedule_slots.venue_id')
+    .select([
+      'match_schedule_assignments.match_id',
+      'schedule_slots.starts_at',
+      'venues.name as venue_name',
+    ])
     .where('match_schedule_assignments.match_id', 'in', matchIds)
     .execute();
-  return new Map(rows.map((row) => [row.match_id, row.venue_name]));
+  return new Map(
+    rows.map((row) => [
+      row.match_id,
+      {
+        ...(row.venue_name === null ? {} : { venueName: row.venue_name }),
+        scheduledAt: new Date(Number(row.starts_at)).toISOString(),
+      },
+    ]),
+  );
 }
