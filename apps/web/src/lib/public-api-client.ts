@@ -7,6 +7,7 @@ import type {
   PublicStandingsRowResponse,
   PublicMatchReportResponse,
   PublicPersonProfileResponse,
+  PlayerStatisticsDrilldownResponse,
   PublicOrganizationTournamentListResponse,
 } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import type { OrganizationResponse } from '@copalibre/api/src/dto/organization.dto.js';
@@ -166,6 +167,19 @@ export async function fetchPlayerProfile(
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(personId)}/public/profile`;
   return fetchOr404<PublicPersonProfileResponse>(url);
+}
+
+/** `layoutCode` absent reads the tournament's default person-granularity layout. */
+export async function fetchPlayerStatistics(
+  organizationAlias: string,
+  tournamentAlias: string,
+  personId: string,
+  layoutCode?: string,
+): Promise<PlayerStatisticsDrilldownResponse | undefined> {
+  const baseUrl = getApiBaseUrl();
+  const query = layoutCode ? `?layout=${encodeURIComponent(layoutCode)}` : '';
+  const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(personId)}/public/statistics${query}`;
+  return fetchOr404<PlayerStatisticsDrilldownResponse>(url);
 }
 
 export function mapOverviewResponse(response: PublicOverviewResponse): OverviewInput {

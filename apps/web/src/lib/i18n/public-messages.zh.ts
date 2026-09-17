@@ -89,6 +89,12 @@ export const messages: Record<string, string> = {
   'publicWeb.playerProfile.close': '关闭',
   'publicWeb.playerProfile.photoAlt': '{name}',
   'publicWeb.playerProfile.photoPlaceholderAlt': '未上传照片',
+  'publicWeb.playerProfile.tournamentStatsHeading': '赛事统计',
+  'publicWeb.playerProfile.tournamentTotalHeading': '赛事总计',
+  'publicWeb.playerProfile.matchByMatchHeading': '逐场比赛',
+  'publicWeb.playerProfile.noTournamentStats': '该球员暂无本赛事统计数据。',
+  'publicWeb.playerProfile.matchColumnHeading': '比赛',
+  'publicWeb.playerProfile.matchLabel': '阶段 {stage} · 比赛 {match}',
 
   'publicWeb.tournamentsPage.title': '赛事列表',
   'publicWeb.tournamentsPage.liveHeading': '正在进行与活跃赛事',
