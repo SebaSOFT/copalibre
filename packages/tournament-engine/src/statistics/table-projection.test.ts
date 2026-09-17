@@ -115,6 +115,45 @@ describe('projectTableLayout', () => {
     expect(projection.rows[1]?.cells['goals-per-match']).toEqual({ raw: 1, formatted: '1.00' });
   });
 
+  it('uses a declared zero display without changing the raw numeric value', () => {
+    const layout: TableLayoutDefinition = {
+      code: 'cards',
+      target: 'player-ranking',
+      label: { en: 'Cards' },
+      entityGranularity: 'team',
+      defaultSort: [{ columnCode: 'cards-per-match', direction: 'desc' }],
+      columns: [
+        {
+          code: 'cards',
+          header: { en: 'Cards' },
+          source: { kind: 'collector', code: 'cards' },
+          format: 'number',
+        },
+        {
+          code: 'played',
+          header: { en: 'Matches played' },
+          source: { kind: 'collector', code: 'played' },
+          format: 'number',
+        },
+        {
+          code: 'cards-per-match',
+          header: { en: 'Cards per match' },
+          source: { kind: 'computed', expression: 'cards / max(played, 1)' },
+          format: 'decimal-2',
+          zeroDisplay: '-',
+        },
+      ],
+    };
+
+    const projection = projectTableLayout(
+      [figure('a-1', 'cards', 0), figure('a-1', 'played', 2)],
+      layout,
+      { actors: [team('a-1', 'Alice')] },
+    );
+
+    expect(projection.rows[0]?.cells['cards-per-match']).toEqual({ raw: 0, formatted: '-' });
+  });
+
   it('formats a composite column as a fraction and carries numerator/denominator', () => {
     const layout: TableLayoutDefinition = {
       code: 'penalties',
@@ -142,6 +181,41 @@ describe('projectTableLayout', () => {
     expect(projection.rows[0]?.cells['penalties']).toEqual({
       raw: 0.8,
       formatted: '4/5',
+      numerator: 4,
+      denominator: 5,
+    });
+  });
+
+  it('formats a composite column as a percentage while retaining its ratio', () => {
+    const layout: TableLayoutDefinition = {
+      code: 'penalty-conversion',
+      target: 'player-ranking',
+      label: { en: 'Penalty conversion' },
+      entityGranularity: 'team',
+      defaultSort: [{ columnCode: 'percentage', direction: 'desc' }],
+      columns: [
+        {
+          code: 'percentage',
+          header: { en: 'Penalty conversion' },
+          source: {
+            kind: 'composite',
+            numerator: 'penalties-scored',
+            denominator: 'penalties-taken',
+          },
+          format: 'percentage',
+        },
+      ],
+    };
+
+    const projection = projectTableLayout(
+      [figure('a-1', 'penalties-scored', 4), figure('a-1', 'penalties-taken', 5)],
+      layout,
+      { actors: [team('a-1', 'Alice')] },
+    );
+
+    expect(projection.rows[0]?.cells.percentage).toEqual({
+      raw: 0.8,
+      formatted: '80%',
       numerator: 4,
       denominator: 5,
     });
