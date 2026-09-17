@@ -11952,6 +11952,10 @@
           "venueName": {
             "type": "string"
           },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
           "latestEvent": {
             "$ref": "#/components/schemas/PublicMatchesViewEventResponse"
           },
@@ -16807,6 +16811,10 @@
           },
           "venueName": {
             "type": "string"
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
           },
           "latestEvent": {
             "$ref": "#/components/schemas/PublicMatchesViewEventResponse"
