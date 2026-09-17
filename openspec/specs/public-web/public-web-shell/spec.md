@@ -813,3 +813,46 @@ only when no image reference is on record.
   fails or errors
 - **THEN** the UI shows the same placeholder graphic used when no emblem is recorded, never a
   broken-image icon
+
+### Requirement: Zone-Scoped Public Bracket Presentation
+The public stage bracket view SHALL render an independent bracket diagram for every zone ($1..Z$)
+defined in an elimination stage, each showing only that zone's own matches, participants, and
+resolved status — never a match dropped to a placeholder because another zone's fixture happens to
+share the same round and position.
+
+#### Scenario: Displaying Z zones in an elimination stage
+- **WHEN** a spectator views an elimination stage with $Z > 1$ zones
+- **THEN** the view renders $Z$ distinct bracket diagrams, each with a zone heading and containing only
+  that zone's matches, with real entrant names, scores, and match status (not "TBD" placeholders caused
+  by a collision with another zone's fixture at the same round/position)
+
+#### Scenario: A single-zone or un-zoned stage is unaffected
+- **WHEN** a spectator views an elimination stage with exactly one zone (or none declared)
+- **THEN** the view renders exactly one bracket diagram, with no zone heading and no jump-list, matching
+  today's behavior
+
+### Requirement: Bracket Entrant Club Emblem Display
+Bracket entrant slots resolved to a real entrant SHALL display that entrant's club emblem, when one is
+on record, alongside the team name and abbreviation — the same emblem-or-placeholder treatment already
+used by the standings table and tournament hero.
+
+#### Scenario: An entrant with a recorded club emblem
+- **WHEN** a bracket cross's slot resolves to an entrant whose club has an emblem on record
+- **THEN** the slot displays that emblem image beside the entrant's name
+
+#### Scenario: An entrant with no recorded club emblem
+- **WHEN** a bracket cross's slot resolves to an entrant with no emblem on record (or is not yet
+  resolved)
+- **THEN** the slot displays the existing placeholder graphic, never a broken-image icon or empty gap
+
+### Requirement: Independent Per-Zone Champion Highlight
+Each zone's own completed bracket SHALL highlight that zone's own champion, independently of every
+other zone's completion state, using the existing single-match-terminal-round rule (a zone whose
+deepest round holds more than one match is not marked, consistent with the tournament overview's
+winner-resolution behavior).
+
+#### Scenario: One zone completes before the others
+- **WHEN** one zone's terminal round has finalized to a single match while the tournament's other zones
+  have not yet finished
+- **THEN** that zone's bracket highlights its own champion, and every other zone's bracket renders
+  unaffected by that zone's completion
