@@ -427,7 +427,7 @@ function minimalControlClient(overrides: Partial<ControlApiClient>): ControlApiC
       stageId: 'stage',
       format: 'single-elimination',
       seeds: [],
-      matches: [],
+      zones: [],
       hasRecordedResults: false,
     }),
     publishSeeding: async () => ({

@@ -46,7 +46,7 @@ test('renames a stage from the seeding screen and sees the change immediately', 
           stageId: 'stage-1',
           format: 'round-robin',
           seeds: [],
-          matches: [],
+          zones: [],
           hasRecordedResults: false,
         },
       };

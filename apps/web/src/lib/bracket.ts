@@ -19,6 +19,8 @@ export type SlotSource =
       readonly name: string;
       readonly abbreviation?: string;
       readonly entrantId?: string;
+      readonly clubId?: string;
+      readonly emblemObjectId?: string;
     }
   | { readonly kind: 'winner-of'; readonly matchNumber?: number; readonly matchId?: string }
   | { readonly kind: 'loser-of'; readonly matchNumber?: number; readonly matchId?: string }
@@ -75,6 +77,8 @@ export interface NodeSlotView {
   /** Entrant labels retain full and compact forms for responsive rendering. */
   readonly fullName?: string;
   readonly abbreviation?: string;
+  readonly clubId?: string;
+  readonly emblemObjectId?: string;
   readonly score?: number;
   /** Absent, or `played`, renders nothing — only an unusual reason is shown. */
   readonly resultReason?: Exclude<ResultReason, 'played'>;
@@ -130,6 +134,8 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
               fullName: slot.name,
               ...(slot.entrantId === undefined ? {} : { entrantId: slot.entrantId }),
               ...(slot.abbreviation === undefined ? {} : { abbreviation: slot.abbreviation }),
+              ...(slot.clubId === undefined ? {} : { clubId: slot.clubId }),
+              ...(slot.emblemObjectId === undefined ? {} : { emblemObjectId: slot.emblemObjectId }),
             }
           : {}),
         ...(score === undefined ? {} : { score }),

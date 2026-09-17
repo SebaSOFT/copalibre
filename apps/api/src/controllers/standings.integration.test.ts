@@ -321,8 +321,8 @@ describe('standings and seeding routes (integration)', () => {
     expect(response.statusCode).toBe(200);
     const body = response.json();
     expect(body.seeds.map((seed: { seed: number }) => seed.seed)).toEqual([1, 2, 3, 4]);
-    expect(body.matches.length).toBeGreaterThan(0);
-    expect(body.matches[0].format).toBe('BO5');
+    expect(body.zones[0].matches.length).toBeGreaterThan(0);
+    expect(body.zones[0].matches[0].format).toBe('BO5');
     expect(body.hasRecordedResults).toBe(false);
 
     // Round-robin fills every node's slots with real entrants directly from the graph, so
@@ -336,15 +336,102 @@ describe('standings and seeding routes (integration)', () => {
       const named = match.slots.map((slot) => slot.entrantId);
       return named.includes(a) && named.includes(b);
     };
-    const materialized = body.matches.find((match: BracketMatch) =>
+    const materialized = body.zones[0].matches.find((match: BracketMatch) =>
       namedByBoth(match, entrantIds[0] as string, entrantIds[1] as string),
     );
     expect(materialized?.persistedMatchId).toEqual(expect.any(String));
 
-    const notYetMaterialized = body.matches.find((match: BracketMatch) =>
+    const notYetMaterialized = body.zones[0].matches.find((match: BracketMatch) =>
       namedByBoth(match, entrantIds[0] as string, entrantIds[2] as string),
     );
     expect(notYetMaterialized?.persistedMatchId).toBeUndefined();
+  });
+
+  it('projects one correctly-scoped bracket per zone on the operator seeding read (openspec 0246)', async () => {
+    // Reproduces the same cross-zone round/position collision as the public bracket endpoint's
+    // own test (public-projections.integration.test.ts): 2 zones, each with a round-1/position-1
+    // fixture. Before the fix, `seeding()` generated one flat graph from every zone's entrants
+    // combined, so both zones' round-1/position-1 nodes collided and were dropped as "ambiguous".
+    const competition = new CompetitionRepository(scratch.db);
+    const participants = new EnrollmentRepository(scratch.db);
+    const zoneEntrantIds: string[] = [];
+
+    await withTransaction(scratch.db, async (uow) => {
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId,
+        number: 3,
+        name: 'Playoffs Multizona',
+        format: 'single-elimination',
+        organizationId,
+        ...AUDIT,
+      });
+
+      const gold = await competition.createZone(uow, {
+        stageId: stage.stageId,
+        number: 1,
+        name: 'Copa de Oro',
+        organizationId,
+        ...AUDIT,
+      });
+      const silver = await competition.createZone(uow, {
+        stageId: stage.stageId,
+        number: 2,
+        name: 'Copa de Plata',
+        organizationId,
+        ...AUDIT,
+      });
+
+      for (const name of ['Zona Oro A', 'Zona Oro B', 'Zona Plata A', 'Zona Plata B']) {
+        const team = await participants.createTeam(uow, { organizationId, name, ...AUDIT });
+        const entrant = await participants.registerEntrant(uow, {
+          tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        zoneEntrantIds.push(entrant.entrantId);
+      }
+
+      await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [
+          {
+            round: 1,
+            homeEntrantId: zoneEntrantIds[0],
+            awayEntrantId: zoneEntrantIds[1],
+            zoneId: gold.zoneId,
+          },
+          {
+            round: 1,
+            homeEntrantId: zoneEntrantIds[2],
+            awayEntrantId: zoneEntrantIds[3],
+            zoneId: silver.zoneId,
+          },
+        ],
+        organizationId,
+        ...AUDIT,
+      });
+    });
+
+    const response = await request({
+      method: 'GET',
+      url: `/organizations/liga-mendocina/tournaments/apertura-2026/stages/3/seeding`,
+      token: 'organizer',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    // Seed order stays one flat list across every zone (design.md Decision 3b) — unaffected by
+    // the zone-scoped `zones` display below.
+    expect(body.seeds).toHaveLength(4);
+    expect(body.zones).toHaveLength(2);
+    for (const zone of body.zones) {
+      expect(zone.matches).toHaveLength(1);
+      for (const slot of zone.matches[0].slots) {
+        expect(slot.kind).toBe('entrant');
+        expect(slot.entrantId).toEqual(expect.any(String));
+      }
+    }
   });
 
   it('accepts a seed order while no result exists, persists it, and regenerates the fixture graph', async () => {
@@ -383,7 +470,7 @@ describe('standings and seeding routes (integration)', () => {
     // set — not the 2 fixtures `beforeAll` seeded manually.
     const seeding = await request({ method: 'GET', url: `${base}/seeding`, token: 'organizer' });
     const body = seeding.json();
-    expect(body.matches).toHaveLength(6);
+    expect(body.zones[0].matches).toHaveLength(6);
     expect([...body.seeds].map((seed: { entrantId: string }) => seed.entrantId).sort()).toEqual(
       [...reversed].sort(),
     );
@@ -717,8 +804,8 @@ describe('standings and seeding routes (integration)', () => {
     expect(seedingBefore.statusCode).toBe(200);
     expect(publicBefore.statusCode).toBe(200);
 
-    const seedingMatchesBefore = seedingBefore.json().matches;
-    const publicMatchesBefore = publicBefore.json().matches;
+    const seedingMatchesBefore = seedingBefore.json().zones[0].matches;
+    const publicMatchesBefore = publicBefore.json().zones[0].matches;
     expect(seedingMatchesBefore[0].series).toBeDefined();
     expect(seedingMatchesBefore[0].series).toEqual(publicMatchesBefore[0].series);
     expect(seedingMatchesBefore[0].series).toMatchObject({
@@ -782,10 +869,14 @@ describe('standings and seeding routes (integration)', () => {
 
     const sf1Seeding = seedingInProgress
       .json()
-      .matches.find((m: { round: number; position: number }) => m.round === 1 && m.position === 1);
+      .zones[0].matches.find(
+        (m: { round: number; position: number }) => m.round === 1 && m.position === 1,
+      );
     const sf1Public = publicInProgress
       .json()
-      .matches.find((m: { round: number; position: number }) => m.round === 1 && m.position === 1);
+      .zones[0].matches.find(
+        (m: { round: number; position: number }) => m.round === 1 && m.position === 1,
+      );
     expect(sf1Seeding.series).toBeDefined();
     expect(sf1Seeding.series).toEqual(sf1Public.series);
     expect(sf1Seeding.series).toMatchObject({
@@ -833,10 +924,14 @@ describe('standings and seeding routes (integration)', () => {
 
     const sf1DecidedSeeding = seedingDecided
       .json()
-      .matches.find((m: { round: number; position: number }) => m.round === 1 && m.position === 1);
+      .zones[0].matches.find(
+        (m: { round: number; position: number }) => m.round === 1 && m.position === 1,
+      );
     const sf1DecidedPublic = publicDecided
       .json()
-      .matches.find((m: { round: number; position: number }) => m.round === 1 && m.position === 1);
+      .zones[0].matches.find(
+        (m: { round: number; position: number }) => m.round === 1 && m.position === 1,
+      );
     expect(sf1DecidedSeeding.series).toBeDefined();
     expect(sf1DecidedSeeding.series).toEqual(sf1DecidedPublic.series);
     expect(sf1DecidedSeeding.series).toMatchObject({

@@ -39,6 +39,7 @@ import {
 } from '../table-projections/read.js';
 
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
+import { resolveStageZones } from './bracket-zones.js';
 import { readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
 import { segmentedTableResponse, tableResponse } from './table-projections.controller.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
@@ -759,76 +760,92 @@ export class PublicProjectionsController {
     if (!stage) throw new NotFoundException({ errorCode: 'public-projection-not-found' });
 
     const readModel = new StageReadModel(this.db);
-    const stageMatchesMapped = await readModel.matches(stage.stageId);
-    const record = await readModel.stageRecord(stage.stageId);
+    const enrollmentRepo = new EnrollmentRepository(this.db);
+    const zones = await resolveStageZones(this.db, stage.stageId);
 
-    // Seeded from the stage's own entrants, the same way the control panel's bracket is: the
-    // graph's shape is a function of format plus seed order, and generating from an empty
-    // entrant list produces no graph at all — which is what this endpoint used to return for
-    // every stage, an empty bracket the public web then rendered as an empty page.
-    const generated = generateFixtures({
-      format: stage.format as Parameters<typeof generateFixtures>[0]['format'],
-      entrants: (record?.entrantIds ?? []).map((entrantId, index) => ({
-        entrantId,
-        seed: index + 1,
-      })),
-    });
-    if (!generated.ok) {
-      return { format: stage.format, matches: [] };
-    }
-    const graph = generated.value;
+    const zoneResponses = await Promise.all(
+      zones.map(async (zone) => {
+        const stageMatchesMapped = await readModel.matches(stage.stageId, undefined, zone.zoneId);
+        const record = await readModel.stageRecord(stage.stageId, undefined, zone.zoneId);
 
-    const ambiguous = ambiguousRoundPositions(graph.matches);
-
-    const bracketMatches = graph.matches.map((match) =>
-      toBracketMatch(match, stageMatchesMapped, {
-        ambiguousPositions: ambiguous,
-        matchFormat: undefined,
-      }),
-    );
-
-    const entrantIds = new Set<string>();
-    for (const match of bracketMatches) {
-      for (const slot of match.slots) {
-        if (slot.entrantId) entrantIds.add(slot.entrantId);
-      }
-    }
-    const names = await new EnrollmentRepository(this.db).resolveEntrantNames(
-      Array.from(entrantIds),
-    );
-
-    // Keyed by the round/position the bracket graph and the read model agree on, so a series
-    // rides onto the cross it settles rather than onto a match id neither side shares.
-    const seriesByPosition = await readStageSeriesByPosition(this.db, {
-      tournamentId: tournament.tournamentId,
-      stageId: stage.stageId,
-      records: stageMatchesMapped,
-    });
-
-    return {
-      format: stage.format,
-      matches: bracketMatches.map((m) => {
-        const series = seriesByPosition.get(`${m.round}:${m.position}`);
-        return {
-          matchId: m.matchId,
-          bracket: m.bracket,
-          round: m.round,
-          position: m.position,
-          status: m.status,
-          format: m.format,
-          slots: m.slots.map((s) => ({
-            kind: s.kind,
-            entrantId: s.entrantId,
-            name: s.entrantId ? (names.get(s.entrantId)?.name ?? 'Unknown') : undefined,
-            abbreviation: s.entrantId ? names.get(s.entrantId)?.abbreviation : undefined,
-            matchId: s.matchId,
-            score: s.score,
-            resultReason: s.resultReason,
+        // Seeded from this zone's own entrants, the same way the control panel's bracket is: the
+        // graph's shape is a function of format plus seed order, and generating from an empty
+        // entrant list produces no graph at all — which is what this endpoint used to return for
+        // every stage, an empty bracket the public web then rendered as an empty page. Scoping the
+        // entrant list (and every match lookup below) to this one zone is what stops a multi-zone
+        // stage's zones from colliding on the same round/position (openspec 0246).
+        const generated = generateFixtures({
+          format: stage.format as Parameters<typeof generateFixtures>[0]['format'],
+          entrants: (record?.entrantIds ?? []).map((entrantId, index) => ({
+            entrantId,
+            seed: index + 1,
           })),
-          ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
+        });
+        if (!generated.ok) {
+          return { ...zone, matches: [] };
+        }
+        const graph = generated.value;
+
+        const ambiguous = ambiguousRoundPositions(graph.matches);
+
+        const bracketMatches = graph.matches.map((match) =>
+          toBracketMatch(match, stageMatchesMapped, {
+            ambiguousPositions: ambiguous,
+            matchFormat: undefined,
+          }),
+        );
+
+        const entrantIds = new Set<string>();
+        for (const match of bracketMatches) {
+          for (const slot of match.slots) {
+            if (slot.entrantId) entrantIds.add(slot.entrantId);
+          }
+        }
+        const details = await enrollmentRepo.resolveEntrantPodiumDetails(Array.from(entrantIds));
+
+        // Keyed by the round/position the bracket graph and the read model agree on, so a series
+        // rides onto the cross it settles rather than onto a match id neither side shares — scoped
+        // to this zone's own records, so a series can't ride onto another zone's identically
+        // round/position-keyed cross.
+        const seriesByPosition = await readStageSeriesByPosition(this.db, {
+          tournamentId: tournament.tournamentId,
+          stageId: stage.stageId,
+          records: stageMatchesMapped,
+        });
+
+        return {
+          ...zone,
+          matches: bracketMatches.map((m) => {
+            const series = seriesByPosition.get(`${m.round}:${m.position}`);
+            return {
+              matchId: m.matchId,
+              bracket: m.bracket,
+              round: m.round,
+              position: m.position,
+              status: m.status,
+              format: m.format,
+              slots: m.slots.map((s) => {
+                const detail = s.entrantId ? details.get(s.entrantId) : undefined;
+                return {
+                  kind: s.kind,
+                  entrantId: s.entrantId,
+                  name: s.entrantId ? (detail?.name ?? 'Unknown') : undefined,
+                  abbreviation: detail?.abbreviation,
+                  clubId: detail?.clubId,
+                  emblemObjectId: detail?.emblemObjectId,
+                  matchId: s.matchId,
+                  score: s.score,
+                  resultReason: s.resultReason,
+                };
+              }),
+              ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
+            };
+          }),
         };
       }),
-    };
+    );
+
+    return { format: stage.format, zones: zoneResponses };
   }
 
   /**

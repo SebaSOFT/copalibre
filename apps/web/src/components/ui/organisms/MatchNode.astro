@@ -3,11 +3,13 @@ import type { IntlShape } from 'react-intl';
 import { Badge } from '../atoms/Badge.tsx';
 import { Card } from '../atoms/Card.tsx';
 import { EntrantName } from '../atoms/EntrantName.tsx';
+import EmblemImage from '../atoms/EmblemImage.astro';
 import StateBadge from '../atoms/StateBadge.astro';
 import Button from '../atoms/Button.astro';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import SeriesStateBar from '../molecules/SeriesStateBar.astro';
 import { matchReportUrl, toNode, type BracketMatch } from '../../../lib/bracket.ts';
+import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
 import { toSeriesInput } from '../../../lib/series.ts';
 import {
   resultReasonLabels,
@@ -69,30 +71,50 @@ const legScores =
                 tells a spectator what has to happen first. */}
             {slot.fullName === undefined ? (
               <span>{slot.label}</span>
-            ) : highlight && slot.entrantId !== undefined ? (
+            ) : (
               <>
-                <span data-journey-fallback>
+                {organizationAlias && (
+                  <EmblemImage
+                    alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: slot.fullName })}
+                    placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                    size={20}
+                    src={
+                      slot.clubId && slot.emblemObjectId
+                        ? clubEmblemUrl(organizationAlias, slot.clubId)
+                        : undefined
+                    }
+                  />
+                )}
+                {highlight && slot.entrantId !== undefined ? (
+                  <>
+                    <span data-journey-fallback>
+                      <EntrantName
+                        abbreviation={slot.abbreviation}
+                        client:load
+                        fullName={slot.fullName}
+                      />
+                    </span>
+                    <Button
+                      hidden
+                      aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                        entrant: slot.fullName,
+                      })}
+                      aria-pressed="false"
+                      class="cl-journey-name"
+                      data-entrant-id={slot.entrantId}
+                      variant="secondary"
+                    >
+                      {slot.fullName}
+                    </Button>
+                  </>
+                ) : (
                   <EntrantName
                     abbreviation={slot.abbreviation}
                     client:load
                     fullName={slot.fullName}
                   />
-                </span>
-                <Button
-                  hidden
-                  aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
-                    entrant: slot.fullName,
-                  })}
-                  aria-pressed="false"
-                  class="cl-journey-name"
-                  data-entrant-id={slot.entrantId}
-                  variant="secondary"
-                >
-                  {slot.fullName}
-                </Button>
+                )}
               </>
-            ) : (
-              <EntrantName abbreviation={slot.abbreviation} client:load fullName={slot.fullName} />
             )}
             {slot.resultReason && (
               // A walkover 0-10 must not read like an actual 10-goal win — the
@@ -133,3 +155,12 @@ const legScores =
     }
   </Card>
 </Wrapper>
+
+<style>
+  .cl-slot,
+  .cl-slot--pending {
+    display: flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+  }
+</style>

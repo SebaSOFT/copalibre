@@ -45,38 +45,42 @@ const bracketMatchReport = {
 /** The same stage's bracket, three matches across two rounds. */
 const bracketData = {
   format: 'single-elimination',
-  matches: [
+  zones: [
     {
-      matchId: 'WB-R1-M1',
-      bracket: 'winners',
-      round: 1,
-      position: 1,
-      status: 'finalized',
-      slots: [
-        { kind: 'entrant', name: 'Talleres', score: 2 },
-        { kind: 'entrant', name: 'Independiente', score: 0 },
-      ],
-    },
-    {
-      matchId: 'WB-R1-M2',
-      bracket: 'winners',
-      round: 1,
-      position: 2,
-      status: 'scheduled',
-      slots: [
-        { kind: 'entrant', name: 'Gimnasia' },
-        { kind: 'entrant', name: 'Maipú' },
-      ],
-    },
-    {
-      matchId: 'WB-R2-M1',
-      bracket: 'winners',
-      round: 2,
-      position: 1,
-      status: 'scheduled',
-      slots: [
-        { kind: 'winner-of', matchId: 'WB-R1-M1' },
-        { kind: 'winner-of', matchId: 'WB-R1-M2' },
+      matches: [
+        {
+          matchId: 'WB-R1-M1',
+          bracket: 'winners',
+          round: 1,
+          position: 1,
+          status: 'finalized',
+          slots: [
+            { kind: 'entrant', name: 'Talleres', score: 2 },
+            { kind: 'entrant', name: 'Independiente', score: 0 },
+          ],
+        },
+        {
+          matchId: 'WB-R1-M2',
+          bracket: 'winners',
+          round: 1,
+          position: 2,
+          status: 'scheduled',
+          slots: [
+            { kind: 'entrant', name: 'Gimnasia' },
+            { kind: 'entrant', name: 'Maipú' },
+          ],
+        },
+        {
+          matchId: 'WB-R2-M1',
+          bracket: 'winners',
+          round: 2,
+          position: 1,
+          status: 'scheduled',
+          slots: [
+            { kind: 'winner-of', matchId: 'WB-R1-M1' },
+            { kind: 'winner-of', matchId: 'WB-R1-M2' },
+          ],
+        },
       ],
     },
   ],

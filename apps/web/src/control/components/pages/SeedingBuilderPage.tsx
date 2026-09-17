@@ -386,7 +386,7 @@ export function SeedingBuilderPage({
               pushError(error);
             }) ?? Promise.resolve()
         }
-        seeded={seeding.matches.length > 0}
+        seeded={seeding.zones.some((zone) => zone.matches.length > 0)}
       />
       <StageConfigurationSection
         onApply={(changed) =>
@@ -407,11 +407,11 @@ export function SeedingBuilderPage({
             }) ?? Promise.resolve()
         }
         overrides={stageOverrides}
-        seeded={seeding.matches.length > 0}
+        seeded={seeding.zones.some((zone) => zone.matches.length > 0)}
       />
       <SeedingBuilderTemplate
         hasRecordedResults={seeding.hasRecordedResults}
-        matches={seeding.matches}
+        zones={seeding.zones}
         onPublish={(seeds) =>
           api
             .publishSeeding(organizationAlias, tournamentAlias, stageNumber, {

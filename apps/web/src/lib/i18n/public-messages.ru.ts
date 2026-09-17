@@ -168,6 +168,7 @@ export const messages: Record<string, string> = {
   'publicWeb.ticker.stale': 'Последние известные результаты — прямое соединение потеряно',
   'publicWeb.ticker.empty': 'Пока нет матчей для показа',
   'publicWeb.bracket.stageAriaLabel': 'Сетка',
+  'publicWeb.bracket.zoneJumpAriaLabel': 'Перейти к сетке зоны',
   'publicWeb.bracket.scrollAriaLabel': 'Схема сетки, прокручивается по горизонтали',
   'publicWeb.bracket.legendLabel': 'Условные обозначения сетки',
   'publicWeb.bracket.outcomeAdvancing': 'Проходит дальше',

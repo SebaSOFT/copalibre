@@ -168,6 +168,7 @@ export const messages: Record<string, string> = {
   'publicWeb.ticker.stale': 'Zuletzt bekannte Ergebnisse — die Live-Verbindung ist abgebrochen',
   'publicWeb.ticker.empty': 'Noch keine Begegnungen zu melden',
   'publicWeb.bracket.stageAriaLabel': 'Turnierbaum',
+  'publicWeb.bracket.zoneJumpAriaLabel': 'Zu einer Zone springen',
   'publicWeb.bracket.scrollAriaLabel': 'Turnierbaum-Grafik, seitlich scrollbar',
   'publicWeb.bracket.legendLabel': 'Legende des Turnierbaums',
   'publicWeb.bracket.outcomeAdvancing': 'Weiter',

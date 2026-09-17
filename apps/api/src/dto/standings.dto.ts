@@ -161,6 +161,22 @@ export class BracketMatchResponse {
   series?: PublicSeriesStateResponse;
 }
 
+/**
+ * One zone's own independent bracket in the seeding canvas — or the stage's only bracket, for an
+ * un-zoned stage, which always comes back as exactly one zone entry with no
+ * `zoneId`/`zoneName` (openspec 0246, mirroring `PublicBracketZoneResponse`).
+ */
+export class SeedingZoneResponse {
+  @ApiPropertyOptional({ format: 'uuid', description: 'Absent for an un-zoned stage' })
+  zoneId?: string;
+
+  @ApiPropertyOptional({ description: 'Absent for an un-zoned stage' })
+  zoneName?: string;
+
+  @ApiProperty({ type: BracketMatchResponse, isArray: true })
+  matches!: BracketMatchResponse[];
+}
+
 export class SeedingResponse {
   @ApiProperty({ format: 'uuid' })
   stageId!: string;
@@ -168,11 +184,19 @@ export class SeedingResponse {
   @ApiProperty({ enum: ['single-elimination', 'double-elimination', 'round-robin', 'league'] })
   format!: string;
 
-  @ApiProperty({ type: SeedAssignmentResponse, isArray: true })
+  @ApiProperty({
+    type: SeedAssignmentResponse,
+    isArray: true,
+    description: 'The stage’s one flat seed order, across every zone — unaffected by `zones` below',
+  })
   seeds!: SeedAssignmentResponse[];
 
-  @ApiProperty({ type: BracketMatchResponse, isArray: true })
-  matches!: BracketMatchResponse[];
+  @ApiProperty({
+    type: SeedingZoneResponse,
+    isArray: true,
+    description: 'Display only: one entry per zone the stage’s fixtures already declare',
+  })
+  zones!: SeedingZoneResponse[];
 
   @ApiProperty({ description: 'True once any match in this stage has a recorded result' })
   hasRecordedResults!: boolean;

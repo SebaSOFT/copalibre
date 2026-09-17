@@ -182,7 +182,7 @@ test.beforeAll(async ({ workerPort }) => {
       return;
     }
     if (path === `${BASE}/stages/1/bracket`) {
-      res.end(JSON.stringify(bracket));
+      res.end(JSON.stringify({ format: bracket.format, zones: [{ matches: bracket.matches }] }));
       return;
     }
     if (path === `${BASE}/live`) {

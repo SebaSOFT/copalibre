@@ -43,10 +43,17 @@ const model = buildMatchReport(response);
 // league/placement match report issues no second request at all (design.md's own decision:
 // a report is requested far more often per stage than a bracket changes).
 const localePrefix = locale ? `/${locale}` : '';
-let bracketData: ReturnType<typeof mapBracketResponse> | undefined;
+// The current match's own zone only — flattening every zone's matches back together would
+// reintroduce the cross-zone matchNumber collision the zone-scoped bracket endpoint exists to
+// avoid (openspec 0246).
+let bracketMatches: ReturnType<typeof mapBracketResponse>['zones'][number]['matches'] = [];
 if (selectStageLayout(response.stageFormat) === 'bracket') {
   const rawBracket = await fetchBracket(organization!, tournament!, stageNumber);
-  if (rawBracket) bracketData = mapBracketResponse(rawBracket);
+  if (rawBracket) {
+    const { zones } = mapBracketResponse(rawBracket);
+    const ownZone = zones.find((zone) => zone.matches.some((m) => m.matchNumber === matchNumber));
+    bracketMatches = ownZone?.matches ?? [];
+  }
 }
 
 const structuredData = {
@@ -68,12 +75,12 @@ const structuredData = {
     <MatchHero model={model} />
 
     {
-      bracketData && bracketData.matches.length > 0 && (
+      bracketMatches.length > 0 && (
         <MatchBracketContext
           currentMatchNumber={matchNumber}
           intl={intl}
           localePrefix={localePrefix}
-          matches={bracketData.matches}
+          matches={bracketMatches}
           organizationAlias={organization!}
           stageNumber={stageNumber}
           tournamentAlias={tournament!}

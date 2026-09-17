@@ -14849,6 +14849,29 @@
           "slots"
         ]
       },
+      "SeedingZoneResponse": {
+        "type": "object",
+        "properties": {
+          "zoneId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Absent for an un-zoned stage"
+          },
+          "zoneName": {
+            "type": "string",
+            "description": "Absent for an un-zoned stage"
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BracketMatchResponse"
+            }
+          }
+        },
+        "required": [
+          "matches"
+        ]
+      },
       "SeedingResponse": {
         "type": "object",
         "properties": {
@@ -14866,15 +14889,17 @@
             ]
           },
           "seeds": {
+            "description": "The stage’s one flat seed order, across every zone — unaffected by `zones` below",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SeedAssignmentResponse"
             }
           },
-          "matches": {
+          "zones": {
+            "description": "Display only: one entry per zone the stage’s fixtures already declare",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/BracketMatchResponse"
+              "$ref": "#/components/schemas/SeedingZoneResponse"
             }
           },
           "hasRecordedResults": {
@@ -14886,7 +14911,7 @@
           "stageId",
           "format",
           "seeds",
-          "matches",
+          "zones",
           "hasRecordedResults"
         ]
       },
@@ -16662,6 +16687,15 @@
           "abbreviation": {
             "type": "string"
           },
+          "clubId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The entrant's club, when it belongs to one"
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "description": "The club's emblem object id, when one is on record"
+          },
           "matchId": {
             "type": "string",
             "description": "Match this slot sources its participant from"
@@ -16737,12 +16771,17 @@
           "slots"
         ]
       },
-      "PublicBracketResponse": {
+      "PublicBracketZoneResponse": {
         "type": "object",
         "properties": {
-          "format": {
+          "zoneId": {
             "type": "string",
-            "description": "The competition format of the stage"
+            "format": "uuid",
+            "description": "Absent for an un-zoned stage"
+          },
+          "zoneName": {
+            "type": "string",
+            "description": "Absent for an un-zoned stage"
           },
           "matches": {
             "type": "array",
@@ -16753,6 +16792,24 @@
         },
         "required": [
           "matches"
+        ]
+      },
+      "PublicBracketResponse": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "description": "The competition format of the stage"
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBracketZoneResponse"
+            }
+          }
+        },
+        "required": [
+          "zones"
         ]
       },
       "PublicMatchesViewMatchResponse": {

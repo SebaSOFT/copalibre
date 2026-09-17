@@ -234,7 +234,10 @@ async function mockControlApi(
           );
           return Response.json(trace[entrantId] ?? { entrantId, lines: [] });
         }
-        if (url === `${stage}/seeding` && method === 'GET') return Response.json(readCurrent());
+        if (url === `${stage}/seeding` && method === 'GET') {
+          const current = readCurrent();
+          return Response.json({ ...current, zones: [{ matches: current.matches }] });
+        }
         if (url === `${tournament}/matches/persisted-wb-r1-m1/console`) {
           return Response.json(matchConsole);
         }

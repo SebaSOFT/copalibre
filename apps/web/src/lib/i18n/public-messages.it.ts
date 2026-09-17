@@ -168,6 +168,7 @@ export const messages: Record<string, string> = {
   'publicWeb.ticker.stale': 'Ultimi risultati noti — la connessione in diretta è stata persa',
   'publicWeb.ticker.empty': 'Nessuna partita da segnalare per ora',
   'publicWeb.bracket.stageAriaLabel': 'Tabellone',
+  'publicWeb.bracket.zoneJumpAriaLabel': 'Vai al tabellone di una zona',
   'publicWeb.bracket.scrollAriaLabel': 'Grafico del tabellone, scorre lateralmente',
   'publicWeb.bracket.legendLabel': 'Legenda del tabellone',
   'publicWeb.bracket.outcomeAdvancing': 'Avanza',

@@ -9,7 +9,7 @@ function seeding(overrides: Partial<SeedingResponse> = {}): SeedingResponse {
     stageId: 'stage-1',
     format: 'round-robin',
     seeds: [],
-    matches: [],
+    zones: [],
     hasRecordedResults: false,
     ...overrides,
   };
@@ -214,14 +214,18 @@ describe('SeedingBuilderPage — stage settings (task 2.3)', () => {
             fetchSeeding: () =>
               Promise.resolve(
                 seeding({
-                  matches: [
+                  zones: [
                     {
-                      matchId: 'm-1',
-                      bracket: 'main',
-                      round: 1,
-                      position: 1,
-                      status: 'scheduled',
-                      slots: [],
+                      matches: [
+                        {
+                          matchId: 'm-1',
+                          bracket: 'main',
+                          round: 1,
+                          position: 1,
+                          status: 'scheduled',
+                          slots: [],
+                        },
+                      ],
                     },
                   ],
                 }),
@@ -415,14 +419,18 @@ describe('SeedingBuilderPage — stage configuration (openspec 0169)', () => {
             fetchSeeding: () =>
               Promise.resolve(
                 seeding({
-                  matches: [
+                  zones: [
                     {
-                      matchId: 'm-1',
-                      bracket: 'main',
-                      round: 1,
-                      position: 1,
-                      status: 'scheduled',
-                      slots: [],
+                      matches: [
+                        {
+                          matchId: 'm-1',
+                          bracket: 'main',
+                          round: 1,
+                          position: 1,
+                          status: 'scheduled',
+                          slots: [],
+                        },
+                      ],
                     },
                   ],
                 }),
