@@ -826,6 +826,426 @@ describe('public projections routes', () => {
     expect(unknownResponse.statusCode).toBe(404);
   });
 
+  describe('player statistics drilldown', () => {
+    const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+
+    const PLAYER_STATS_LAYOUT = {
+      code: 'player-stats',
+      target: 'player-ranking' as const,
+      label: { en: 'Player Stats' },
+      entityGranularity: 'person' as const,
+      defaultSort: [{ columnCode: 'goals', direction: 'desc' as const }],
+      columns: [
+        {
+          code: 'player',
+          header: { en: 'Player' },
+          source: { kind: 'actor-name' as const },
+          format: 'text' as const,
+        },
+        {
+          code: 'goals',
+          header: { en: 'Goals' },
+          source: { kind: 'collector' as const, code: 'drilldown-goals' },
+          format: 'number' as const,
+        },
+        {
+          code: 'appearances',
+          header: { en: 'Apps' },
+          source: { kind: 'collector' as const, code: 'drilldown-appearances' },
+          format: 'number' as const,
+        },
+        {
+          code: 'goals-per-match',
+          header: { en: 'Goals/Match' },
+          source: {
+            kind: 'composite' as const,
+            numerator: 'drilldown-goals',
+            denominator: 'drilldown-appearances',
+          },
+          format: 'decimal-2' as const,
+        },
+      ],
+    };
+
+    const TEAM_STANDINGS_LAYOUT = {
+      code: 'team-standings-drilldown',
+      target: 'team-ranking' as const,
+      label: { en: 'Team Standings' },
+      entityGranularity: 'team' as const,
+      defaultSort: [] as const,
+      columns: [
+        {
+          code: 'name',
+          header: { en: 'Team' },
+          source: { kind: 'entrant-name' as const },
+          format: 'text' as const,
+        },
+      ],
+    };
+
+    function drilldownDescriptor() {
+      return footballDescriptor({
+        // A distinct (descriptorId, version) pair — `saveDescriptor` upserts
+        // on that pair with `onConflict(...).doNothing()`, and the outer
+        // `describe`'s `beforeAll` already saved plain `footballDescriptor()`
+        // under the base id/version in this same scratch database.
+        descriptorId: '01890000-0000-7000-8000-0000000f0244',
+        version: '1.0.0-drilldown-test',
+        collectors: [
+          {
+            code: 'drilldown-goals',
+            label: 'Goals',
+            source: { kind: 'event', definitionCodes: ['goal'], actorSource: 'primary' },
+            measure: { kind: 'count' },
+            granularity: { actor: 'person', competition: 'match' },
+            cadence: { kind: 'live' },
+          },
+          {
+            code: 'drilldown-appearances',
+            label: 'Appearances',
+            source: { kind: 'event', definitionCodes: ['goal'], actorSource: 'primary' },
+            measure: { kind: 'count' },
+            granularity: { actor: 'person', competition: 'match' },
+            cadence: { kind: 'live' },
+          },
+        ],
+        tableLayouts: [PLAYER_STATS_LAYOUT, TEAM_STANDINGS_LAYOUT],
+      });
+    }
+
+    let drilldownTournament: Awaited<ReturnType<TournamentRepository['create']>>;
+    let drilldownDraftTournament: Awaited<ReturnType<TournamentRepository['create']>>;
+    let scorerId: string;
+    let benchedId: string;
+    let matchOne: string;
+    let matchTwo: string;
+    let stageNumber: number;
+
+    beforeAll(async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const enrollment = new EnrollmentRepository(scratch.db);
+      const persons = new PersonRepository(scratch.db);
+      const competition = new CompetitionRepository(scratch.db);
+      const statistics = new StatisticRepository(scratch.db);
+      const discipline = drilldownDescriptor();
+
+      await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.saveDescriptor(uow, discipline, { organizationId, ...AUDIT });
+        drilldownDraftTournament = await tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-drilldown-draft',
+          name: 'Copa Drilldown Draft',
+          descriptor: discipline,
+          ...AUDIT,
+        });
+      });
+
+      const created = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        return tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-drilldown',
+          name: 'Copa Drilldown',
+          descriptor: discipline,
+          ...AUDIT,
+        });
+      });
+
+      drilldownTournament = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.publish(uow, { tournamentId: created.tournamentId, organizationId, ...AUDIT }),
+      );
+
+      await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        const team = await enrollment.createTeam(uow, {
+          organizationId,
+          name: 'Drilldown United',
+          ...AUDIT,
+        });
+        const opponent = await enrollment.createTeam(uow, {
+          organizationId,
+          name: 'Drilldown Rivals',
+          ...AUDIT,
+        });
+        const entrant = await enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: drilldownTournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          ...AUDIT,
+        });
+        const opponentEntrant = await enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: drilldownTournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: opponent.teamId },
+          ...AUDIT,
+        });
+        const { person: scorer } = await persons.register(uow, {
+          organizationId,
+          displayName: 'Drilldown Scorer',
+          ...AUDIT,
+        });
+        scorerId = scorer.personId;
+        await persons.enlist(uow, {
+          personId: scorerId,
+          teamId: team.teamId,
+          role: 'player',
+          organizationId,
+          ...AUDIT,
+        });
+
+        const { person: benched } = await persons.register(uow, {
+          organizationId,
+          displayName: 'Drilldown Benched',
+          ...AUDIT,
+        });
+        benchedId = benched.personId;
+        await persons.enlist(uow, {
+          personId: benchedId,
+          teamId: team.teamId,
+          role: 'player',
+          organizationId,
+          ...AUDIT,
+        });
+
+        const stage = await competition.createStageInTournament(uow, {
+          tournamentId: drilldownTournament.tournamentId,
+          number: 1,
+          name: 'League',
+          format: 'round-robin',
+          organizationId,
+          ...AUDIT,
+        });
+        stageNumber = stage.number;
+
+        const [fixtureOne, fixtureTwo] = await competition.createFixtures(uow, {
+          stageId: stage.stageId,
+          fixtures: [
+            {
+              round: 1,
+              homeEntrantId: entrant.entrantId,
+              awayEntrantId: opponentEntrant.entrantId,
+            },
+            {
+              round: 2,
+              homeEntrantId: entrant.entrantId,
+              awayEntrantId: opponentEntrant.entrantId,
+            },
+          ],
+          organizationId,
+          ...AUDIT,
+        });
+        if (!fixtureOne || !fixtureTwo) throw new Error('Fixture creation failed in test setup');
+
+        const createdMatchOne = await competition.createMatch(uow, {
+          fixtureId: fixtureOne.fixtureId,
+          number: 1,
+          organizationId,
+          ...AUDIT,
+        });
+        matchOne = createdMatchOne.matchId;
+        const createdMatchTwo = await competition.createMatch(uow, {
+          fixtureId: fixtureTwo.fixtureId,
+          number: 2,
+          organizationId,
+          ...AUDIT,
+        });
+        matchTwo = createdMatchTwo.matchId;
+
+        // Only `scorerId` is rostered — `benchedId` is enlisted on the team but
+        // never named on either match's roster, so the "no roster appearance"
+        // scenario has a real organization-level person to point at.
+        await uow.tx
+          .insertInto('match_rosters')
+          .values([
+            {
+              match_id: matchOne,
+              entrant_id: entrant.entrantId,
+              roster_members: JSON.stringify([
+                { personId: scorerId, name: 'Drilldown Scorer', onField: true },
+              ]),
+              updated_at: new Date(),
+            },
+            {
+              match_id: matchTwo,
+              entrant_id: entrant.entrantId,
+              roster_members: JSON.stringify([
+                { personId: scorerId, name: 'Drilldown Scorer', onField: true },
+              ]),
+              updated_at: new Date(),
+            },
+          ])
+          .execute();
+
+        await statistics.projectMatch(uow, {
+          organizationId,
+          matchId: matchOne,
+          projectionVersion: 1,
+          figures: [
+            {
+              collectorCode: 'drilldown-goals',
+              actorGranularity: 'person',
+              actorId: scorerId,
+              competitionGranularity: 'match',
+              competitionId: matchOne,
+              value: 2,
+              samples: 1,
+            },
+            {
+              collectorCode: 'drilldown-appearances',
+              actorGranularity: 'person',
+              actorId: scorerId,
+              competitionGranularity: 'match',
+              competitionId: matchOne,
+              value: 1,
+              samples: 1,
+            },
+          ],
+        });
+        await statistics.projectMatch(uow, {
+          organizationId,
+          matchId: matchTwo,
+          projectionVersion: 1,
+          figures: [
+            {
+              collectorCode: 'drilldown-goals',
+              actorGranularity: 'person',
+              actorId: scorerId,
+              competitionGranularity: 'match',
+              competitionId: matchTwo,
+              value: 1,
+              samples: 1,
+            },
+            {
+              collectorCode: 'drilldown-appearances',
+              actorGranularity: 'person',
+              actorId: scorerId,
+              competitionGranularity: 'match',
+              competitionId: matchTwo,
+              value: 1,
+              samples: 1,
+            },
+          ],
+        });
+
+        // Finalizing is what makes a match count as a "finalized match" for
+        // `listFinalizedMatches`, the boundary the drilldown's match rows and
+        // tournament total both read through.
+        await competition.recordResult(uow, {
+          matchId: matchOne,
+          result: {
+            sides: [
+              { entrantId: entrant.entrantId, statistics: {} },
+              { entrantId: opponentEntrant.entrantId, statistics: {} },
+            ],
+            winnerEntrantId: entrant.entrantId,
+            recordedAt: new Date().toISOString(),
+          },
+          organizationId,
+          ...AUDIT,
+        });
+        await competition.recordResult(uow, {
+          matchId: matchTwo,
+          result: {
+            sides: [
+              { entrantId: entrant.entrantId, statistics: {} },
+              { entrantId: opponentEntrant.entrantId, statistics: {} },
+            ],
+            winnerEntrantId: entrant.entrantId,
+            recordedAt: new Date().toISOString(),
+          },
+          organizationId,
+          ...AUDIT,
+        });
+      });
+    });
+
+    it('projects the tournament total with composite columns and one row per finalized match without them', async () => {
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${scorerId}/public/statistics?layout=player-stats`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload as string);
+      expect(body.layoutCode).toBe('player-stats');
+      expect(body.columns.map((c: { code: string }) => c.code)).toEqual([
+        'player',
+        'goals',
+        'appearances',
+        'goals-per-match',
+      ]);
+
+      // Tournament total: every non-rank column, composite included.
+      expect(body.tournamentTotal.goals).toEqual({ raw: 3, formatted: '3' });
+      expect(body.tournamentTotal.appearances).toEqual({ raw: 2, formatted: '2' });
+      expect(body.tournamentTotal['goals-per-match'].raw).toBeCloseTo(1.5);
+
+      // Match rows: collector-kind columns only, chronological, own figures.
+      expect(body.matches).toHaveLength(2);
+      expect(body.matches[0]).toMatchObject({ stageNumber, matchNumber: 1 });
+      expect(body.matches[0].cells).toEqual({
+        goals: { raw: 2, formatted: '2' },
+        appearances: { raw: 1, formatted: '1' },
+      });
+      expect(body.matches[0].cells['goals-per-match']).toBeUndefined();
+      expect(body.matches[0].cells.player).toBeUndefined();
+      expect(body.matches[1]).toMatchObject({ stageNumber, matchNumber: 2 });
+      expect(body.matches[1].cells.goals).toEqual({ raw: 1, formatted: '1' });
+    });
+
+    it('defaults to the tournament’s first effective person-granularity layout when no layout is given', async () => {
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${scorerId}/public/statistics`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.payload as string).layoutCode).toBe('player-stats');
+    });
+
+    it('404s a team-granularity (non-person) layout named for the drilldown', async () => {
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${scorerId}/public/statistics?layout=team-standings-drilldown`,
+      });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('404s an undeclared layout code', async () => {
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${scorerId}/public/statistics?layout=nonexistent`,
+      });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('404s an unpublished (draft) tournament', async () => {
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${drilldownDraftTournament.alias}/persons/${scorerId}/public/statistics`,
+      });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('404s an unknown or cross-organization person', async () => {
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/01890000-0000-7000-8000-999999999999/public/statistics`,
+      });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('has no inferred tournament total or match rows for a person never named on a match roster', async () => {
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${drilldownTournament.alias}/persons/${benchedId}/public/statistics?layout=player-stats`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload as string);
+      expect(body.tournamentTotal).toBeUndefined();
+      expect(body.matches).toEqual([]);
+    });
+  });
+
   describe('organization tournaments listing', () => {
     it('returns only published tournaments and excludes drafts', async () => {
       const response = await request({

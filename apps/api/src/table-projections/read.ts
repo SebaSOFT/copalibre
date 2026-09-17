@@ -4,6 +4,7 @@ import {
   computeStandings,
   projectTableLayout,
   type CollectedFigure,
+  type TableCell,
   type TableProjectionActor,
   type TableRow,
 } from '@copalibre/tournament-engine';
@@ -248,6 +249,123 @@ export async function readTableProjection(
   };
 }
 
+export interface PlayerStatisticsMatchIdentity {
+  readonly stageNumber: number;
+  readonly matchNumber: number;
+}
+
+export interface PlayerMatchStatisticsRow {
+  readonly match: PlayerStatisticsMatchIdentity;
+  readonly cells: Readonly<Record<string, TableCell>>;
+}
+
+export interface PlayerStatisticsDrilldownResult {
+  readonly layout: TableLayoutDefinition;
+  /** Absent when the player has no recorded roster appearance anywhere in the tournament. */
+  readonly tournamentTotal?: Readonly<Record<string, TableCell>>;
+  /** One row per finalized match the player is rostered in, ordered by stage then match number. */
+  readonly matches: readonly PlayerMatchStatisticsRow[];
+}
+
+/**
+ * One player's declared statistics at tournament-total and per-match scope,
+ * for the public profile drilldown (openspec 0244).
+ *
+ * The tournament total reuses `readTableProjection` unchanged — it is
+ * byte-identical to that player's own leaderboard row, composite/computed
+ * columns included. A match row is a *separate* per-match projection using
+ * only the layout's `collector`-kind columns: `composite` (a ratio) and
+ * `computed` (an arbitrary expression) are aggregate-shaped by construction
+ * and either meaningless or trivially degenerate against one match's
+ * figures (e.g. a "per match" rate on a single match).
+ */
+export async function readPlayerStatisticsDrilldown(
+  db: Kysely<Database>,
+  scope: {
+    readonly organizationId: string;
+    readonly tournament: {
+      readonly tournamentId: string;
+      readonly disciplineRef: { readonly descriptorId: string; readonly version: string };
+    };
+  },
+  personId: string,
+  layoutCode: string,
+): Promise<PlayerStatisticsDrilldownResult> {
+  const tournamentRepo = new TournamentRepository(db);
+  const descriptor = await tournamentRepo.findDescriptor(
+    scope.tournament.disciplineRef.descriptorId,
+    scope.tournament.disciplineRef.version,
+  );
+  if (!descriptor) {
+    throw new NotFoundException(
+      `Discipline ${scope.tournament.disciplineRef.descriptorId}@${scope.tournament.disciplineRef.version} is not installed`,
+    );
+  }
+
+  const ruleset = await tournamentRepo.findLatestRuleset(scope.tournament.tournamentId);
+  const layout = findTableLayout(descriptor, layoutCode, ruleset?.overrides);
+  if (!layout) throw new NotFoundException(`No table layout "${layoutCode}"`);
+  if (layout.entityGranularity !== 'person' && layout.entityGranularity !== 'player') {
+    throw new NotFoundException(`Table layout "${layoutCode}" is not a person-granularity layout`);
+  }
+
+  const whole = await readTableProjection(
+    db,
+    { organizationId: scope.organizationId, tournament: scope.tournament },
+    layoutCode,
+  );
+  const totalRow = whole.rows.find((row) => row.actorId === personId);
+
+  const matchIds = await new CompetitionRepository(db).listFinalizedMatches({
+    organizationId: scope.organizationId,
+    tournamentId: scope.tournament.tournamentId,
+  });
+  const identities = await matchPublicIdentities(db, scope.tournament.tournamentId, matchIds);
+
+  const matchLayout: TableLayoutDefinition = {
+    ...layout,
+    columns: layout.columns.filter((column) => column.source.kind === 'collector'),
+  };
+  const collectorByCode = new Map((descriptor.collectors ?? []).map((one) => [one.code, one]));
+  const referencedCodes = matchLayout.columns
+    .filter((column) => column.source.kind === 'collector')
+    .map((column) => (column.source as { readonly kind: 'collector'; readonly code: string }).code);
+
+  const matches: PlayerMatchStatisticsRow[] = [];
+  for (const matchId of matchIds) {
+    const identity = identities.get(matchId);
+    if (!identity) continue;
+
+    const figures = await figuresForCollectors(db, {
+      organizationId: scope.organizationId,
+      codes: referencedCodes,
+      collectorByCode,
+      entityGranularity: layout.entityGranularity,
+      competitionGranularity: 'match',
+      competitionId: matchId,
+      matchIds: [matchId],
+    });
+    const actors = await personActors(db, [matchId], figures);
+    if (!actors.some((actor) => actor.actorId === personId)) continue;
+
+    const projection = projectTableLayout(figures, matchLayout, { actors });
+    const row = projection.rows.find((one) => one.actorId === personId);
+    if (!row) continue;
+    matches.push({ match: identity, cells: row.cells });
+  }
+
+  matches.sort(
+    (a, b) =>
+      a.match.stageNumber - b.match.stageNumber || a.match.matchNumber - b.match.matchNumber,
+  );
+
+  return {
+    layout,
+    ...(totalRow === undefined ? {} : { tournamentTotal: totalRow.cells }),
+    matches,
+  };
+}
+
 /**
  * A stage's table projection, split into one ranked block per group.
  *
@@ -311,6 +429,37 @@ function collectorCodesReferencedBy(layout: TableLayoutDefinition): ReadonlySet<
   }
   if (layout.filter?.minSamples) codes.add(layout.filter.minSamples.collectorCode);
   return codes;
+}
+
+/**
+ * Maps each given `matchId` to the public identity its match report is
+ * reachable at — `(stageNumber, matchNumber)`, never the internal `matchId`
+ * itself, per the "a public read never receives a natural key" boundary.
+ */
+async function matchPublicIdentities(
+  db: Kysely<Database>,
+  tournamentId: string,
+  matchIds: readonly string[],
+): Promise<ReadonlyMap<string, PlayerStatisticsMatchIdentity>> {
+  if (matchIds.length === 0) return new Map();
+
+  const stages = await new CompetitionRepository(db).listStagesOfTournament(tournamentId);
+  const stageNumberById = new Map(stages.map((stage) => [stage.stageId, stage.number]));
+
+  const rows = await db
+    .selectFrom('matches')
+    .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+    .select(['matches.match_id', 'matches.number', 'fixtures.stage_id'])
+    .where('matches.match_id', 'in', matchIds)
+    .execute();
+
+  const result = new Map<string, PlayerStatisticsMatchIdentity>();
+  for (const row of rows) {
+    const stageNumber = stageNumberById.get(row.stage_id);
+    if (stageNumber === undefined) continue;
+    result.set(row.match_id, { stageNumber, matchNumber: row.number });
+  }
+  return result;
 }
 
 async function figuresForCollectors(
