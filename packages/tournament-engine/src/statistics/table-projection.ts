@@ -165,25 +165,29 @@ function resolveCell(
     }
     case 'collector': {
       const value = figuresByActor.get(`${actor.actorId} ${source.code}`)?.value;
-      return { raw: value, formatted: formatScalar(value, column.format) };
+      return { raw: value, formatted: formatColumnValue(value, column) };
     }
     case 'composite': {
       const numerator = figuresByActor.get(`${actor.actorId} ${source.numerator}`)?.value ?? 0;
       const denominator = figuresByActor.get(`${actor.actorId} ${source.denominator}`)?.value ?? 0;
+      const raw = denominator === 0 ? undefined : numerator / denominator;
       return {
-        raw: denominator === 0 ? undefined : numerator / denominator,
-        formatted: `${numerator}/${denominator}`,
+        raw,
+        formatted:
+          column.format === 'fraction'
+            ? `${numerator}/${denominator}`
+            : formatColumnValue(raw, column),
         numerator,
         denominator,
       };
     }
     case 'computed': {
       const value = evaluateExpression(source.expression, executionContext(state));
-      return { raw: value, formatted: formatScalar(value, column.format) };
+      return { raw: value, formatted: formatColumnValue(value, column) };
     }
     case 'template': {
       const value = resolveExpressionField(source.template, executionContext(state));
-      return { raw: value, formatted: formatScalar(value, column.format) };
+      return { raw: value, formatted: formatColumnValue(value, column) };
     }
     case 'rank':
       // Unreachable: filtered out by the caller before this function runs.
@@ -193,6 +197,11 @@ function resolveCell(
 
 function executionContext(state: Readonly<Record<string, unknown>>): ExecutionContext {
   return { messages: [], state: { ...state } };
+}
+
+function formatColumnValue(raw: unknown, column: TableColumnDefinition): string {
+  if (raw === 0 && column.zeroDisplay !== undefined) return column.zeroDisplay;
+  return formatScalar(raw, column.format);
 }
 
 function formatScalar(raw: unknown, format: TableColumnDefinition['format']): string {

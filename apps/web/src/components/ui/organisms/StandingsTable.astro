@@ -9,6 +9,7 @@ import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
 import type { ClubView } from '../../../lib/overview.ts';
 import EmblemImage from '../atoms/EmblemImage.astro';
+import Button from '../atoms/Button.astro';
 
 interface Props {
   /** The declared layouts for building the tab strip. */
@@ -161,14 +162,25 @@ const isPlayerRanking =
     {rows.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
     {
       rows.length > 0 && (
-        <table class="cl-table">
+        <table class="cl-table" data-sortable-table>
           <thead>
             <tr>
-              {columns.map((column) => (
-                <th scope="col" title={localizedText(column.header, intl.locale)}>
-                  {localizedText(column.shortHeader ?? column.header, intl.locale)}
-                </th>
-              ))}
+              {columns.map((column) => {
+                const header = localizedText(column.header, intl.locale);
+                return (
+                  <th scope="col" title={header} aria-sort="none">
+                    <Button
+                      type="button"
+                      class="cl-table__sort"
+                      data-table-sort-button
+                      data-column-code={column.code}
+                      aria-label={header}
+                    >
+                      {localizedText(column.shortHeader ?? column.header, intl.locale)}
+                    </Button>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -182,6 +194,8 @@ const isPlayerRanking =
                       column.code === 'entrant' ||
                       column.code === 'name');
                   const cellFormatted = row.cells[column.code]?.formatted ?? '—';
+                  const cellRaw = row.cells[column.code]?.raw;
+                  const cellMissing = cellRaw === undefined;
                   const playerPageUrl = `${canonicalPath}/players/${row.actorId}`;
                   const apiProfileUrl =
                     organizationAlias && tournamentAlias && row.actorId
@@ -189,7 +203,12 @@ const isPlayerRanking =
                       : playerPageUrl;
 
                   return (
-                    <td class={isPlayerNameCell ? undefined : 'cl-table__num'}>
+                    <td
+                      class={isPlayerNameCell ? undefined : 'cl-table__num'}
+                      data-sort-value={cellMissing ? undefined : String(cellRaw)}
+                      data-sort-type={typeof cellRaw === 'number' ? 'number' : 'text'}
+                      data-sort-missing={cellMissing ? 'true' : undefined}
+                    >
                       {isPlayerNameCell && row.actorId ? (
                         <a
                           href={playerPageUrl}
@@ -232,6 +251,59 @@ const isPlayerRanking =
 </section>
 
 <script>
+  function initTableSorting() {
+    document.querySelectorAll<HTMLTableElement>('[data-sortable-table]').forEach((table) => {
+      const body = table.tBodies.item(0);
+      if (!body) return;
+
+      let activeColumn: string | undefined;
+      let direction: 'ascending' | 'descending' = 'ascending';
+      const headers = Array.from(table.querySelectorAll<HTMLTableCellElement>('thead th'));
+
+      for (const button of table.querySelectorAll<HTMLButtonElement>('[data-table-sort-button]')) {
+        button.addEventListener('click', () => {
+          const columnCode = button.dataset.columnCode;
+          if (!columnCode) return;
+          direction =
+            activeColumn === columnCode && direction === 'ascending' ? 'descending' : 'ascending';
+          activeColumn = columnCode;
+
+          const columnIndex = headers.findIndex(
+            (header) =>
+              header.querySelector<HTMLButtonElement>('[data-table-sort-button]')?.dataset
+                .columnCode === columnCode,
+          );
+          if (columnIndex < 0) return;
+
+          const rows = Array.from(body.rows);
+          rows.sort((left, right) => {
+            const leftCell = left.cells.item(columnIndex);
+            const rightCell = right.cells.item(columnIndex);
+            const leftMissing = leftCell?.dataset.sortMissing === 'true';
+            const rightMissing = rightCell?.dataset.sortMissing === 'true';
+            if (leftMissing && rightMissing) return 0;
+            if (leftMissing) return 1;
+            if (rightMissing) return -1;
+
+            const leftValue = leftCell?.dataset.sortValue ?? '';
+            const rightValue = rightCell?.dataset.sortValue ?? '';
+            const numeric =
+              leftCell?.dataset.sortType === 'number' && rightCell?.dataset.sortType === 'number';
+            const comparison = numeric
+              ? Number(leftValue) - Number(rightValue)
+              : leftValue.localeCompare(rightValue);
+            return direction === 'ascending' ? comparison : -comparison;
+          });
+          body.append(...rows);
+
+          headers.forEach((header, index) => {
+            header.setAttribute('aria-sort', index === columnIndex ? direction : 'none');
+          });
+        });
+      }
+    });
+  }
+
   function initPlayerDialog() {
     const dialog = document.getElementById('cl-player-dialog') as HTMLDialogElement | null;
     if (!dialog) return;
@@ -341,8 +413,12 @@ const isPlayerRanking =
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPlayerDialog);
+    document.addEventListener('DOMContentLoaded', () => {
+      initTableSorting();
+      initPlayerDialog();
+    });
   } else {
+    initTableSorting();
     initPlayerDialog();
   }
 </script>
@@ -393,6 +469,19 @@ const isPlayerRanking =
   }
   .cl-player-link:hover {
     text-decoration: underline;
+  }
+  .cl-table__sort {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+  }
+  .cl-table__sort:focus-visible {
+    outline: 2px solid var(--cl-focus-ring);
+    outline-offset: 2px;
   }
   .cl-player-dialog {
     border: 1px solid var(--cl-border-muted);

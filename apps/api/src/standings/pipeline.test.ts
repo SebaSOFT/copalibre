@@ -71,6 +71,16 @@ describe('standingsPipeline (tiebreak order resolution)', () => {
     expect(pipeline.parameters[0]?.id).toBe('wins');
   });
 
+  it('preserves lower-is-better ordering for defensive statistics', () => {
+    const desc = communityDiscipline();
+    const pipeline = standingsPipeline(desc, {
+      tiebreakers: ['points', { statisticCode: 'points-against', direction: 'lower_wins' }],
+    });
+
+    expect(pipeline.parameters[1]?.id).toBe('points-against');
+    expect(pipeline.parameters[1]?.direction).toBe('lower_wins');
+  });
+
   it('falls back to engine-points when neither overrides nor defaults declare tiebreakers', () => {
     const bareDesc = {
       ...communityDiscipline(),
