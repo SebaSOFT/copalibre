@@ -775,6 +775,9 @@ export class PublicMatchesViewMatchResponse {
   @ApiPropertyOptional()
   venueName?: string;
 
+  @ApiPropertyOptional({ format: 'date-time' })
+  scheduledAt?: string;
+
   @ApiPropertyOptional({ type: PublicMatchesViewEventResponse })
   latestEvent?: PublicMatchesViewEventResponse;
 

@@ -1466,6 +1466,189 @@ describe('public projections routes', () => {
       expect(found.winners[0].runnerUp.abbreviation).toBe('BET');
     });
 
+    it('resolves each zone independently, skipping only a zone whose terminal round is ambiguous (openspec 0245)', async () => {
+      // Reproduces the panamericano-clubes-2025 shape that surfaced the bug:
+      // a multi-zone terminal stage where one zone's deepest round holds more
+      // than one finalized match (a real final alongside a classification
+      // match) — resolveTournamentWinners must skip only that zone, not the
+      // whole tournament.
+      const tournaments = new TournamentRepository(scratch.db);
+      const competition = new CompetitionRepository(scratch.db);
+      const enrollments = new EnrollmentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+
+      const created = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-multizona-ambigua',
+          name: 'Copa Multizona Ambigua',
+          descriptor,
+          ...audit,
+        }),
+      );
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.publish(uow, { tournamentId: created.tournamentId, organizationId, ...audit }),
+      );
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'started' })
+        .where('tournament_id', '=', created.tournamentId)
+        .execute();
+
+      const { silverChamp, silverRunnerUp } = await withTransaction(
+        scratch.db as Kysely<Database>,
+        async (uow) => {
+          async function team(alias: string, name: string): Promise<{ entrantId: string }> {
+            const club = await enrollments.createClub(uow, {
+              organizationId,
+              alias: `club-${alias}`,
+              name: `Club ${name}`,
+              actor: 'user:seed',
+              authorizationContext: 'seed',
+            });
+            const registeredTeam = await enrollments.createTeam(uow, {
+              organizationId,
+              alias: `team-${alias}`,
+              name,
+              clubId: club.clubId,
+              ...audit,
+            });
+            return enrollments.registerEntrant(uow, {
+              tournamentId: created.tournamentId,
+              organizationId,
+              entrantRef: { kind: 'team', teamId: registeredTeam.teamId },
+              ...audit,
+            });
+          }
+
+          const stage = await competition.createStageInTournament(uow, {
+            tournamentId: created.tournamentId,
+            number: 1,
+            name: 'Playoffs Multizona',
+            format: 'single-elimination',
+            organizationId,
+            ...audit,
+          });
+
+          // Both zones must be created before ANY fixture in the stage
+          // (createZone refuses once the stage has fixtures).
+          const gold = await competition.createZone(uow, {
+            stageId: stage.stageId,
+            number: 1,
+            name: 'Copa de Oro',
+            organizationId,
+            ...audit,
+          });
+          const silver = await competition.createZone(uow, {
+            stageId: stage.stageId,
+            number: 2,
+            name: 'Copa de Plata',
+            organizationId,
+            ...audit,
+          });
+
+          const [goldA1, goldA2, goldB1, goldB2, silverChamp, silverRunnerUp] = await Promise.all([
+            team('gold-a1', 'Gold Finalist A'),
+            team('gold-a2', 'Gold Finalist B'),
+            team('gold-b1', 'Gold Classification A'),
+            team('gold-b2', 'Gold Classification B'),
+            team('silver-1', 'Silver Champion'),
+            team('silver-2', 'Silver Runner-up'),
+          ]);
+
+          // Gold zone: terminal round has TWO finalized matches (final +
+          // classification) — ambiguous, must be skipped. Silver zone: a
+          // normal single-match terminal round — must still resolve correctly
+          // alongside the ambiguous gold zone.
+          const fixtures = await competition.createFixtures(uow, {
+            stageId: stage.stageId,
+            fixtures: [
+              {
+                round: 1,
+                homeEntrantId: goldA1.entrantId,
+                awayEntrantId: goldA2.entrantId,
+                zoneId: gold.zoneId,
+              },
+              {
+                round: 1,
+                homeEntrantId: goldB1.entrantId,
+                awayEntrantId: goldB2.entrantId,
+                zoneId: gold.zoneId,
+              },
+              {
+                round: 1,
+                homeEntrantId: silverChamp.entrantId,
+                awayEntrantId: silverRunnerUp.entrantId,
+                zoneId: silver.zoneId,
+              },
+            ],
+            organizationId,
+            ...audit,
+          });
+          for (const [fixture, winnerEntrantId] of [
+            [fixtures[0], goldA1.entrantId],
+            [fixtures[1], goldB1.entrantId],
+            [fixtures[2], silverChamp.entrantId],
+          ] as const) {
+            if (!fixture) throw new Error('Expected fixture');
+            const { homeEntrantId, awayEntrantId } = fixture;
+            if (!homeEntrantId || !awayEntrantId) throw new Error('Expected both entrants');
+            const match = await competition.createMatch(uow, {
+              fixtureId: fixture.fixtureId,
+              number: 1,
+              organizationId,
+              ...audit,
+            });
+            await competition.recordResult(uow, {
+              matchId: match.matchId,
+              result: {
+                sides: [
+                  { entrantId: homeEntrantId, statistics: {} },
+                  { entrantId: awayEntrantId, statistics: {} },
+                ],
+                winnerEntrantId,
+                recordedAt: new Date().toISOString(),
+              },
+              organizationId,
+              ...audit,
+            });
+          }
+
+          return { silverChamp, silverRunnerUp };
+        },
+      );
+
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'finished' })
+        .where('tournament_id', '=', created.tournamentId)
+        .execute();
+
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/public/tournaments`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload as string);
+      const found = body.tournaments.find(
+        (t: { tournamentId: string }) => t.tournamentId === created.tournamentId,
+      );
+      expect(found).toBeDefined();
+      expect(found.winners).toBeDefined();
+      const zoneNames = found.winners.map((zone: { zoneName?: string }) => zone.zoneName);
+      // The ambiguous gold zone is skipped entirely — not present, and its
+      // absence never prevents the silver zone from resolving.
+      expect(zoneNames).not.toContain('Copa de Oro');
+      expect(zoneNames).toContain('Copa de Plata');
+      const silverZone = found.winners.find(
+        (zone: { zoneName?: string }) => zone.zoneName === 'Copa de Plata',
+      );
+      expect(silverZone.champion.entrantId).toBe(silverChamp.entrantId);
+      expect(silverZone.runnerUp.entrantId).toBe(silverRunnerUp.entrantId);
+    });
+
     it('resolves champions and runners-up for finished placement/round-robin tournaments', async () => {
       const tournaments = new TournamentRepository(scratch.db);
       const competition = new CompetitionRepository(scratch.db);

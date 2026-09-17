@@ -37,6 +37,7 @@ import MatchHero from '../components/ui/organisms/MatchHero.astro';
 import MatchNode from '../components/ui/organisms/MatchNode.astro';
 import MatchOfficials from '../components/ui/organisms/MatchOfficials.astro';
 import MatchRosters from '../components/ui/organisms/MatchRosters.astro';
+import MatchScheduleFilters from '../components/ui/organisms/MatchScheduleFilters.astro';
 import MatchTimeline from '../components/ui/organisms/MatchTimeline.astro';
 import Modal from '../components/ui/organisms/Modal.astro';
 import OrganizationClubs from '../components/ui/organisms/OrganizationClubs.astro';
@@ -49,6 +50,7 @@ import StandingsTable from '../components/ui/organisms/StandingsTable.astro';
 import TournamentCard from '../components/ui/organisms/TournamentCard.astro';
 import TournamentSection from '../components/ui/organisms/TournamentSection.astro';
 import {
+  matchCardLabels,
   publicIntl,
   resultStateLabels,
   seriesStateBarLabels,
@@ -113,6 +115,7 @@ const PREVIEWABLE = new Set([
   'match-node',
   'match-officials',
   'match-rosters',
+  'match-schedule-filters',
   'match-timeline',
   'modal',
   'organization-clubs',
@@ -387,6 +390,29 @@ const tournaments = referenceTournamentListing();
           model={matchReport}
           organization="reference-league"
           tournament="reference-cup"
+        />
+      )
+    }
+    {
+      component === 'match-schedule-filters' && (
+        <MatchScheduleFilters
+          activeStageNumber={1}
+          activeZone="Copa de Oro"
+          buildUrl={() => '#'}
+          groups={['Group A', 'Group B']}
+          labels={{
+            stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
+            zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
+            groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
+            stateFilterAriaLabel: intl.formatMessage(messages.matchesViewStateFilterAriaLabel),
+            filters: matchCardLabels(intl).filters,
+          }}
+          stages={[
+            { stageNumber: 1, stageName: 'Group Stage' },
+            { stageNumber: 2, stageName: 'Playoffs' },
+          ]}
+          state="all"
+          zones={['Copa de Oro', 'Copa de Plata']}
         />
       )
     }

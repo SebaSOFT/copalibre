@@ -291,18 +291,49 @@ ranking computation.
 
 ### Requirement: Public player profile popup
 
-The public site SHALL serve a per-person competition profile, reachable from wherever a player's name
-is rendered on a public page, showing display name, nationality flag, photo or placeholder, computed
-age when set, competition history (every tournament and team the person has been entered under, within
-the person's organization), and career statistic totals aggregated across every tournament, per
-discipline. The photo, or its placeholder, SHALL render inside the platform's standard 4:5 framed-image
-presentation.
+The public site SHALL serve a per-person competition profile, reachable from wherever a player's
+name is rendered on a public page, showing display name, nationality flag, photo or placeholder,
+computed age when set, competition history (every tournament and team the person has been entered
+under, within the person's organization), and career statistic totals aggregated across every
+tournament, per discipline. The photo, or its placeholder, SHALL render inside the platform's
+standard 4:5 framed-image presentation.
+
+Within the current published tournament, a profile SHALL also expose every effective
+person-granularity player-ranking layout through a labeled selector. For the selected layout, it
+SHALL show that player's tournament total and a match-by-match table for finalized matches where
+the player appears in a recorded roster, ordered chronologically by stage and match number. The
+tournament-total table SHALL show every declared column, including composite and computed ones; the
+match-by-match table SHALL show only the layout's collector-kind (atomic) columns, since composite
+and computed columns are ratios or expressions that depend on more than one match. Both tables SHALL
+use the layout's declared localized labels, values, and zero-value display rules. The selected
+layout identifier SHALL be a query parameter on the profile URL, defaulting to the tournament's
+first effective person-granularity layout when omitted, and a player link from a ranking SHALL open
+the matching layout when one exists.
 
 #### Scenario: Visiting a player's public profile
 - **WHEN** an anonymous visitor opens a player's name on a public page
 - **THEN** the profile shows the player's display name, nationality flag if set, photo or placeholder
   inside the standard framed presentation, computed age if a birth date is set, their competition
   history, and their career statistic totals
+
+#### Scenario: A player views statistics for the current tournament
+- **WHEN** a spectator opens a player profile from a published tournament ranking, for the
+  tournament's installed discipline
+- **THEN** the tournament-total table shows the same declared columns, values, and presentation
+  rules as that discipline's ranking, and the match-by-match table shows a row per finalized match
+  with only the layout's collector-kind columns
+
+#### Scenario: A profile selects another declared player layout
+- **WHEN** a tournament declares more than one person-granularity player-ranking layout and a
+  spectator changes the profile's selected layout
+- **THEN** the URL identifies that layout and the profile renders its declared columns without
+  combining values from another layout
+
+#### Scenario: A player with no current-tournament roster record has no inferred match rows
+- **WHEN** a player profile belongs to the organization but the person has no recorded roster
+  appearance in the current tournament
+- **THEN** the profile shows the existing identity and career sections with an empty
+  tournament-statistics state and does not infer zero-valued match rows
 
 #### Scenario: A player with no career statistics still has a valid profile
 - **WHEN** a player's discipline declares no organization-granularity collector, or the player has none

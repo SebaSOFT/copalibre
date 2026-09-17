@@ -3104,6 +3104,8 @@ export interface components {
             /** @description Present only while the match is in progress */
             clockSeconds?: number;
             venueName?: string;
+            /** Format: date-time */
+            scheduledAt?: string;
             latestEvent?: components["schemas"]["PublicMatchesViewEventResponse"];
             /** @description Absent for the implicit, single zone/group every stage defaults to */
             zoneName?: string;
@@ -4954,6 +4956,8 @@ export interface components {
             /** @description Present only while the match is in progress */
             clockSeconds?: number;
             venueName?: string;
+            /** Format: date-time */
+            scheduledAt?: string;
             latestEvent?: components["schemas"]["PublicMatchesViewEventResponse"];
             /** @description Absent for the implicit, single zone/group every stage defaults to */
             zoneName?: string;

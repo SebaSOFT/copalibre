@@ -1,9 +1,13 @@
 ---
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
 import { MatchCard } from '../../../../../components/ui/organisms/MatchCard.tsx';
+import MatchScheduleFilters, {
+  type MatchScheduleState,
+} from '../../../../../components/ui/organisms/MatchScheduleFilters.astro';
 import { matchReportUrl } from '../../../../../lib/bracket.ts';
 import {
   fetchOverview,
+  fetchCompletion,
   fetchMatchesView,
   mapOverviewResponse,
   mapMatchesViewResponse,
@@ -12,15 +16,20 @@ import { buildOverview, displayName } from '../../../../../lib/overview.ts';
 import { publicIntl, matchCardLabels } from '../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import {
+  distinctFacetValues,
+  groupMatchesByRound,
+  type MatchCardData,
+} from '../../../../../lib/matches-view.ts';
 
 /**
- * The matches view (openspec 0172): a flat, filterable card grid of a
- * tournament's matches — the whole tournament by default, or one
- * stage/group when named via query params — richer than the ticker's own
- * card and, unlike the bracket, equally at home for a round-robin/league
- * stage with no advancement tree to draw. State/stage/group filters are
- * plain query-string links, so the default (unfiltered) view and every
- * filtered one alike are server-rendered and work with scripting off.
+ * The matches view (openspec 0172, consolidated by openspec 0245): a
+ * filterable card grid of a tournament's matches, grouped by round, with a
+ * hierarchical stage/zone/group filter bar on top of the match-state
+ * filter. Zone/group facets are derived from the active stage's own rows
+ * (`zoneName`/`groupName`, already returned per match) rather than a new
+ * backend filter — every selection is still a plain query-string link, so
+ * every filtered view is server-rendered and works with scripting off.
  */
 export const prerender = false;
 
@@ -36,27 +45,78 @@ if (!overviewData) {
 }
 const model = buildOverview(mapOverviewResponse(overviewData));
 
+const completionData = await fetchCompletion(organization!, tournament!);
+const stageOptions = (completionData?.stages ?? []).map((stage) => ({
+  stageNumber: stage.stageNumber,
+  stageName: stage.stageName,
+}));
+
 const stateParam = Astro.url.searchParams.get('state');
-const state =
+const state: MatchScheduleState =
   stateParam === 'live' || stateParam === 'upcoming' || stateParam === 'final' ? stateParam : 'all';
 const stageParam = Astro.url.searchParams.get('stageNumber');
 const stageNumber = stageParam ? Number(stageParam) : undefined;
-const groupId = Astro.url.searchParams.get('groupId') ?? undefined;
+const zoneParam = Astro.url.searchParams.get('zone') ?? undefined;
+const groupParam = Astro.url.searchParams.get('group') ?? undefined;
 
 const matchesData = await fetchMatchesView(organization!, tournament!, {
   ...(stageNumber === undefined ? {} : { stageNumber }),
-  ...(groupId === undefined ? {} : { groupId }),
   state,
 });
 if (!matchesData) {
   return Astro.rewrite('/404');
 }
-const { matches } = mapMatchesViewResponse(matchesData);
+const { matches: stageRows } = mapMatchesViewResponse(matchesData);
 
-function filterUrl(nextState: 'all' | 'live' | 'upcoming' | 'final'): string {
+// Zone/group facets are derived from the rows the active stage(s) and state
+// filter already returned, not a separate backend query — a stage the
+// active filter narrows to zero rows for simply shows no zone/group pills.
+const zones = distinctFacetValues(stageRows, 'zoneName');
+const zoneFiltered =
+  zoneParam === undefined ? stageRows : stageRows.filter((row) => row.zoneName === zoneParam);
+const groups = distinctFacetValues(zoneFiltered, 'groupName');
+const matches: readonly MatchCardData[] =
+  groupParam === undefined
+    ? zoneFiltered
+    : zoneFiltered.filter((row) => row.groupName === groupParam);
+
+const kickoffFormatter = new Intl.DateTimeFormat(resolvedLocale, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+const matchesWithLabels: readonly MatchCardData[] = matches.map((match) => ({
+  ...match,
+  scheduledAtLabel: match.scheduledAt
+    ? kickoffFormatter.format(new Date(match.scheduledAt))
+    : undefined,
+}));
+
+const roundGroups = groupMatchesByRound(matchesWithLabels);
+
+function buildUrl(
+  overrides: Partial<{
+    stageNumber: number | undefined;
+    zone: string | undefined;
+    group: string | undefined;
+    state: MatchScheduleState;
+  }>,
+): string {
   const params = new URLSearchParams(Astro.url.search);
-  if (nextState === 'all') params.delete('state');
-  else params.set('state', nextState);
+  const next = {
+    stageNumber,
+    zone: zoneParam,
+    group: groupParam,
+    state,
+    ...overrides,
+  };
+  if (next.stageNumber === undefined) params.delete('stageNumber');
+  else params.set('stageNumber', String(next.stageNumber));
+  if (next.zone === undefined) params.delete('zone');
+  else params.set('zone', next.zone);
+  if (next.group === undefined) params.delete('group');
+  else params.set('group', next.group);
+  if (next.state === 'all') params.delete('state');
+  else params.set('state', next.state);
   const query = params.toString();
   return `${localePrefix}${model.canonicalPath}/matches${query ? `?${query}` : ''}`;
 }
@@ -78,49 +138,63 @@ const structuredData = {
 >
   <h1>{intl.formatMessage(messages.matchesViewPageTitle)}</h1>
 
-  <nav class="cl-pill-group" aria-label={intl.formatMessage(messages.matchesViewPageTitle)}>
-    <a
-      class="cl-pill cl-focusable"
-      href={filterUrl('all')}
-      aria-current={state === 'all' ? 'true' : undefined}>{labels.filters.all}</a
-    >
-    <a
-      class="cl-pill cl-focusable"
-      href={filterUrl('live')}
-      aria-current={state === 'live' ? 'true' : undefined}>{labels.filters.live}</a
-    >
-    <a
-      class="cl-pill cl-focusable"
-      href={filterUrl('upcoming')}
-      aria-current={state === 'upcoming' ? 'true' : undefined}>{labels.filters.upcoming}</a
-    >
-    <a
-      class="cl-pill cl-focusable"
-      href={filterUrl('final')}
-      aria-current={state === 'final' ? 'true' : undefined}>{labels.filters.final}</a
-    >
-  </nav>
+  <MatchScheduleFilters
+    stages={stageOptions}
+    activeStageNumber={stageNumber}
+    zones={zones}
+    activeZone={zoneParam}
+    groups={groups}
+    activeGroup={groupParam}
+    state={state}
+    labels={{
+      stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
+      zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
+      groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
+      stateFilterAriaLabel: intl.formatMessage(messages.matchesViewStateFilterAriaLabel),
+      filters: labels.filters,
+    }}
+    buildUrl={buildUrl}
+  />
 
   {
-    matches.length === 0 ? (
+    matchesWithLabels.length === 0 ? (
       <p>{labels.empty}</p>
     ) : (
-      <div class="cl-matches-view__grid">
-        {matches.map((match) => (
-          <MatchCard
-            client:load
-            match={match}
-            labels={labels}
-            reportUrl={matchReportUrl({
-              organizationAlias: organization!,
-              tournamentAlias: tournament!,
-              stageNumber: match.stageNumber,
-              matchNumber: match.matchNumber,
-              localePrefix,
-            })}
-          />
-        ))}
-      </div>
+      roundGroups.map((group) => (
+        <section class="cl-matches-view__round">
+          <h2 class="cl-matches-view__round-heading">
+            {intl.formatMessage(messages.bracketRoundHeading, { round: group.round })}
+          </h2>
+          <div class="cl-matches-view__grid">
+            {group.matches.map((match) => (
+              <MatchCard
+                client:load
+                match={match}
+                labels={labels}
+                reportUrl={matchReportUrl({
+                  organizationAlias: organization!,
+                  tournamentAlias: tournament!,
+                  stageNumber: match.stageNumber,
+                  matchNumber: match.matchNumber,
+                  localePrefix,
+                })}
+              />
+            ))}
+          </div>
+        </section>
+      ))
     )
   }
 </PublicLayout>
+
+<style>
+  .cl-matches-view__round {
+    margin-top: var(--cl-space-6);
+  }
+  .cl-matches-view__round-heading {
+    font-size: var(--cl-font-size-md);
+    font-weight: 600;
+    color: var(--cl-text-primary);
+    margin: 0 0 var(--cl-space-3) 0;
+  }
+</style>

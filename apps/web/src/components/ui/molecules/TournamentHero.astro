@@ -1,45 +1,115 @@
 ---
 import { displayName, type OverviewModel } from '../../../lib/overview.ts';
 import { tournamentEmblemUrl } from '../../../lib/public-api-client.ts';
+import {
+  selectDisciplineBackground,
+  type PublicObjectReference,
+} from '../../../lib/discipline-background.ts';
 import type { TournamentHeroLabels } from '../../../lib/i18n/public-intl.ts';
 import { Badge } from '../atoms/Badge.tsx';
-import { Card } from '../atoms/Card.tsx';
 import EmblemImage from '../atoms/EmblemImage.astro';
 
 interface Props {
   readonly model: OverviewModel;
   readonly labels: TournamentHeroLabels;
+  readonly disciplineImages?: readonly PublicObjectReference[];
 }
-const { model, labels } = Astro.props;
+const { model, labels, disciplineImages } = Astro.props;
 const tournamentName = displayName(model);
 const emblemSrc =
   model.emblemObjectId && model.organizationAlias && model.tournamentAlias
     ? tournamentEmblemUrl(model.organizationAlias, model.tournamentAlias)
     : undefined;
+const backdrop = selectDisciplineBackground(disciplineImages);
 ---
 
-<Card as="section" className="cl-card--live">
-  <div class="cl-tournament-hero__header">
-    {
-      emblemSrc && (
-        <EmblemImage
-          alt={labels.emblemAlt}
-          placeholderAlt={labels.emblemPlaceholderAlt}
-          size={56}
-          src={emblemSrc}
-        />
-      )
-    }
-    <div class="cl-tournament-hero__titles">
-      <p>{model.organizationName}</p>
-      <h1>{tournamentName}</h1>
+<section
+  class:list={['cl-tournament-hero', { 'cl-tournament-hero--neutral': !backdrop }]}
+  aria-label={tournamentName}
+>
+  {
+    backdrop && (
+      <img
+        class="cl-tournament-hero__backdrop"
+        src={backdrop.url}
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+      />
+    )
+  }
+  <div class="cl-tournament-hero__scrim" aria-hidden="true"></div>
+  <div class="cl-tournament-hero__content">
+    <div class="cl-tournament-hero__header">
+      {
+        emblemSrc && (
+          <EmblemImage
+            alt={labels.emblemAlt}
+            placeholderAlt={labels.emblemPlaceholderAlt}
+            size={56}
+            src={emblemSrc}
+          />
+        )
+      }
+      <div class="cl-tournament-hero__titles">
+        <p>{model.organizationName}</p>
+        <h1>{tournamentName}</h1>
+      </div>
     </div>
+    {/* The count is the label: "live" as a colour alone is not a state. */}
+    <Badge as="p">{labels.liveCountText}</Badge>
   </div>
-  {/* The count is the label: "live" as a colour alone is not a state. */}
-  <Badge as="p">{labels.liveCountText}</Badge>
-</Card>
+</section>
 
 <style>
+  .cl-tournament-hero {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    min-height: 320px;
+    padding: var(--cl-space-5);
+    color: var(--cl-text-primary);
+  }
+  .cl-tournament-hero--neutral {
+    background: var(--cl-surface-panel);
+  }
+  .cl-tournament-hero__backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+  }
+  /*
+   * A scrim, not a wash: the photo reads at full strength up top and the
+   * text sits on a solid-enough ground at the bottom, built from the
+   * declared ink token rather than a flat low-opacity overlay
+   * (`color-mix()` over a token is the sanctioned way to build this —
+   * see design-tokens/integrity.ts).
+   */
+  .cl-tournament-hero__scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--cl-color-ink-950) 92%, transparent) 0%,
+      color-mix(in srgb, var(--cl-color-ink-950) 45%, transparent) 60%,
+      color-mix(in srgb, var(--cl-color-ink-950) 5%, transparent) 100%
+    );
+  }
+  .cl-tournament-hero--neutral .cl-tournament-hero__scrim {
+    display: none;
+  }
+  .cl-tournament-hero__content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+  }
   .cl-tournament-hero__header {
     display: flex;
     align-items: center;

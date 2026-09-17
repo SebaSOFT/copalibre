@@ -163,7 +163,11 @@ const structuredData = {
     resumeLabel={tickerChrome.resume}
     staleLabel={tickerChrome.stale}
   />
-  <TournamentHero labels={tournamentHeroLabels(intl, model)} model={model} />
+  <TournamentHero
+    disciplineImages={overviewData.disciplineImages}
+    labels={tournamentHeroLabels(intl, model)}
+    model={model}
+  />
   <CompletionFigure
     totalMatches={completion.totalMatches}
     resolvedMatches={completion.resolvedMatches}
@@ -202,3 +206,10 @@ const structuredData = {
   />
   <RulesetBriefing heading={intl.formatMessage(messages.rulesetHeading)} model={model} />
 </PublicLayout>
+
+<style>
+  /* Guarantees clear separation from the hero banner above (openspec 0245). */
+  :global(.cl-completion-figure) {
+    margin-top: var(--cl-space-6);
+  }
+</style>

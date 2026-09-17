@@ -11,6 +11,7 @@ export interface MatchCardData {
   readonly matchId: string;
   readonly stageNumber: number;
   readonly matchNumber: number;
+  readonly round?: number;
   readonly state: ResultState;
   readonly homeName?: string;
   readonly homeAbbreviation?: string;
@@ -20,6 +21,9 @@ export interface MatchCardData {
   readonly awayScore?: number;
   readonly clockSeconds?: number;
   readonly venueName?: string;
+  /** Raw ISO instant. `scheduledAtLabel` is the already-localized display string. */
+  readonly scheduledAt?: string;
+  readonly scheduledAtLabel?: string;
   readonly latestEvent?: { readonly label: string; readonly occurredAt: string };
   readonly zoneName?: string;
   readonly groupName?: string;
@@ -30,6 +34,51 @@ export interface MatchCardData {
   /** Present only on the control-web response, for an authorized viewer. */
   readonly homeTrace?: readonly string[];
   readonly awayTrace?: readonly string[];
+}
+
+/**
+ * The distinct zone/group names present across a set of match rows, in
+ * first-seen order — the facet options `MatchScheduleFilters` renders. A
+ * dimension with zero or one distinct value yields no pill for it (openspec
+ * 0245): the caller decides whether to render based on `.length > 1`.
+ */
+export function distinctFacetValues(
+  rows: readonly Pick<MatchCardData, 'zoneName' | 'groupName'>[],
+  facet: 'zoneName' | 'groupName',
+): readonly string[] {
+  const seen = new Set<string>();
+  const values: string[] = [];
+  for (const row of rows) {
+    const value = row[facet];
+    if (value !== undefined && !seen.has(value)) {
+      seen.add(value);
+      values.push(value);
+    }
+  }
+  return values;
+}
+
+/**
+ * Groups matches by round, sorted ascending, each round's matches sorted by
+ * match number — the shape `matches.astro` renders one round-heading
+ * section per entry from.
+ */
+export function groupMatchesByRound<T extends Pick<MatchCardData, 'round' | 'matchNumber'>>(
+  rows: readonly T[],
+): readonly { readonly round: number; readonly matches: readonly T[] }[] {
+  const byRound = new Map<number, T[]>();
+  for (const row of rows) {
+    const round = row.round ?? 0;
+    const bucket = byRound.get(round);
+    if (bucket) bucket.push(row);
+    else byRound.set(round, [row]);
+  }
+  return [...byRound.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([round, matches]) => ({
+      round,
+      matches: [...matches].sort((a, b) => a.matchNumber - b.matchNumber),
+    }));
 }
 
 /** `78:46` — minutes can exceed 59, unlike a wall clock. */

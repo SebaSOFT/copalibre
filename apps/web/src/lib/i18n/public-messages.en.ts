@@ -206,6 +206,10 @@ export const messages = defineMessages({
     id: 'publicWeb.matchesView.venueAriaLabel',
     defaultMessage: 'Venue: {venue}',
   },
+  matchesViewScheduledAtAriaLabel: {
+    id: 'publicWeb.matchesView.scheduledAtAriaLabel',
+    defaultMessage: 'Kickoff: {time}',
+  },
   matchesViewLatestEventAriaLabel: {
     id: 'publicWeb.matchesView.latestEventAriaLabel',
     defaultMessage: 'Latest event: {event}',
@@ -213,6 +217,22 @@ export const messages = defineMessages({
   matchesViewZoneGroupAriaLabel: {
     id: 'publicWeb.matchesView.zoneGroupAriaLabel',
     defaultMessage: 'Zone/group: {scope}',
+  },
+  matchesViewStageFilterAriaLabel: {
+    id: 'publicWeb.matchesView.stageFilterAriaLabel',
+    defaultMessage: 'Filter by stage',
+  },
+  matchesViewZoneFilterAriaLabel: {
+    id: 'publicWeb.matchesView.zoneFilterAriaLabel',
+    defaultMessage: 'Filter by zone',
+  },
+  matchesViewGroupFilterAriaLabel: {
+    id: 'publicWeb.matchesView.groupFilterAriaLabel',
+    defaultMessage: 'Filter by group',
+  },
+  matchesViewStateFilterAriaLabel: {
+    id: 'publicWeb.matchesView.stateFilterAriaLabel',
+    defaultMessage: 'Filter by match state',
   },
   matchesViewPositionInGroup: {
     id: 'publicWeb.matchesView.positionInGroup',

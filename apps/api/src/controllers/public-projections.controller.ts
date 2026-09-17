@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Inject } from '@nestjs/common';
+import { Controller, Get, Param, Query, Inject, Logger } from '@nestjs/common';
 import { NotFoundException } from '../http/error-contract.js';
 import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
@@ -152,6 +152,8 @@ export class PublicTournamentListingController {
   }
 }
 
+const resolveTournamentWinnersLogger = new Logger('resolveTournamentWinners');
+
 export async function resolveTournamentWinners(
   db: Kysely<Database>,
   tournament: Tournament,
@@ -183,69 +185,91 @@ export async function resolveTournamentWinners(
   const results: PublicTournamentWinnerZoneResponse[] = [];
 
   for (const zone of zonesToProcess) {
-    const isDuel =
-      terminalStage.format === 'single-elimination' ||
-      terminalStage.format === 'double-elimination';
+    // Each zone is resolved independently: one zone's error or ambiguous
+    // terminal round must never prevent the other zones from resolving
+    // (openspec 0245 — previously an uncaught error in this loop's duel
+    // branch aborted every zone's result, not just the failing one).
+    try {
+      const isDuel =
+        terminalStage.format === 'single-elimination' ||
+        terminalStage.format === 'double-elimination';
 
-    if (isDuel) {
-      let matchQuery = db
-        .selectFrom('matches')
-        .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-        .selectAll('matches')
-        .where('fixtures.stage_id', '=', terminalStage.stageId)
-        .where('matches.status', '=', 'finalized');
+      if (isDuel) {
+        let matchQuery = db
+          .selectFrom('matches')
+          .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+          .selectAll('matches')
+          .select('fixtures.round as terminalRound')
+          .where('fixtures.stage_id', '=', terminalStage.stageId)
+          .where('matches.status', '=', 'finalized');
 
-      if (zone.zoneId) {
-        matchQuery = matchQuery.where('fixtures.zone_id', '=', zone.zoneId);
-      }
+        if (zone.zoneId) {
+          matchQuery = matchQuery.where('fixtures.zone_id', '=', zone.zoneId);
+        }
 
-      const matches = await matchQuery
-        .orderBy('fixtures.round', 'desc')
-        .orderBy('matches.number', 'desc')
-        .execute();
+        const matches = await matchQuery
+          .orderBy('fixtures.round', 'desc')
+          .orderBy('matches.number', 'desc')
+          .execute();
 
-      if (matches.length > 0 && matches[0]) {
         const finalMatch = matches[0];
-        const result = (
-          typeof finalMatch.result === 'string' ? JSON.parse(finalMatch.result) : finalMatch.result
-        ) as MatchResult | null;
+        if (finalMatch) {
+          const deepestRoundMatches = matches.filter(
+            (m) => m.terminalRound === finalMatch.terminalRound,
+          );
+          if (deepestRoundMatches.length > 1) {
+            // No fixture-role/lineage column exists to tell a real final
+            // apart from a concurrent classification/placement match in
+            // the same round (see design.md's Open Gates) — report,
+            // don't guess.
+            resolveTournamentWinnersLogger.warn(
+              `Ambiguous terminal round for zone ${zone.zoneId ?? '(default)'} of tournament ${
+                tournament.tournamentId
+              }: ${deepestRoundMatches.length} finalized matches share round ${finalMatch.terminalRound}; skipping this zone's champion`,
+            );
+          } else {
+            const result = (
+              typeof finalMatch.result === 'string'
+                ? JSON.parse(finalMatch.result)
+                : finalMatch.result
+            ) as MatchResult | null;
 
-        if (result?.winnerEntrantId) {
-          const championId = result.winnerEntrantId;
-          const runnerUpId = result.sides.find((s) => s.entrantId !== championId)?.entrantId;
-          const entrantIds = runnerUpId ? [championId, runnerUpId] : [championId];
-          const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails(entrantIds);
-          const championDetails = podiumDetails.get(championId);
+            if (result?.winnerEntrantId) {
+              const championId = result.winnerEntrantId;
+              const runnerUpId = result.sides.find((s) => s.entrantId !== championId)?.entrantId;
+              const entrantIds = runnerUpId ? [championId, runnerUpId] : [championId];
+              const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails(entrantIds);
+              const championDetails = podiumDetails.get(championId);
 
-          if (championDetails) {
-            const runnerUpDetails = runnerUpId ? podiumDetails.get(runnerUpId) : undefined;
-            results.push({
-              ...(zone.zoneId ? { zoneId: zone.zoneId } : {}),
-              ...(zone.zoneName ? { zoneName: zone.zoneName } : {}),
-              champion: {
-                entrantId: championId,
-                name: championDetails.name,
-                abbreviation: championDetails.abbreviation,
-                clubId: championDetails.clubId,
-                emblemObjectId: championDetails.emblemObjectId,
-              },
-              ...(runnerUpDetails && runnerUpId
-                ? {
-                    runnerUp: {
-                      entrantId: runnerUpId,
-                      name: runnerUpDetails.name,
-                      abbreviation: runnerUpDetails.abbreviation,
-                      clubId: runnerUpDetails.clubId,
-                      emblemObjectId: runnerUpDetails.emblemObjectId,
-                    },
-                  }
-                : {}),
-            });
+              if (championDetails) {
+                const runnerUpDetails = runnerUpId ? podiumDetails.get(runnerUpId) : undefined;
+                results.push({
+                  ...(zone.zoneId ? { zoneId: zone.zoneId } : {}),
+                  ...(zone.zoneName ? { zoneName: zone.zoneName } : {}),
+                  champion: {
+                    entrantId: championId,
+                    name: championDetails.name,
+                    abbreviation: championDetails.abbreviation,
+                    clubId: championDetails.clubId,
+                    emblemObjectId: championDetails.emblemObjectId,
+                  },
+                  ...(runnerUpDetails && runnerUpId
+                    ? {
+                        runnerUp: {
+                          entrantId: runnerUpId,
+                          name: runnerUpDetails.name,
+                          abbreviation: runnerUpDetails.abbreviation,
+                          clubId: runnerUpDetails.clubId,
+                          emblemObjectId: runnerUpDetails.emblemObjectId,
+                        },
+                      }
+                    : {}),
+                });
+              }
+            }
           }
         }
-      }
-    } else {
-      try {
+      } else {
         const standings = await readStandings(db, tournament, terminalStage.number);
         if (standings.rows.length > 0) {
           const rank1 = standings.rows.find((r) => r.rank === 1) ?? standings.rows[0];
@@ -284,9 +308,13 @@ export async function resolveTournamentWinners(
             }
           }
         }
-      } catch {
-        // Fallback if standings cannot be computed
       }
+    } catch (error) {
+      resolveTournamentWinnersLogger.warn(
+        `Failed to resolve winner for zone ${zone.zoneId ?? '(default)'} of tournament ${
+          tournament.tournamentId
+        }: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -849,6 +877,7 @@ export class PublicProjectionsController {
         ...(row.awayScore === undefined ? {} : { awayScore: row.awayScore }),
         ...(row.clockSeconds === undefined ? {} : { clockSeconds: row.clockSeconds }),
         ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
+        ...(row.scheduledAt === undefined ? {} : { scheduledAt: row.scheduledAt }),
         ...(row.latestEvent === undefined ? {} : { latestEvent: row.latestEvent }),
         ...(row.zoneName === undefined ? {} : { zoneName: row.zoneName }),
         ...(row.groupName === undefined ? {} : { groupName: row.groupName }),
