@@ -45,6 +45,18 @@ describe('ControlApp', () => {
         if (url === 'https://identity.example/token') {
           return json({ access_token: 'fresh-access-token', expires_in: 3600 });
         }
+        if (url.endsWith('/tournaments/apertura-2026/stages')) {
+          return json([
+            {
+              stageId: 'stage-1',
+              seasonId: 'season-1',
+              number: 1,
+              name: 'Fase de grupos',
+              format: 'round-robin',
+              seeded: false,
+            },
+          ]);
+        }
         if (url.includes('/seeding')) {
           return json({
             stageId: 'stage-1',
@@ -127,6 +139,16 @@ describe('ControlApp', () => {
     ['/control/liga-mendocina', 'Dashboard — liga-mendocina', 'Torneos'],
     ['/control/liga-mendocina/roles', 'Roles and permissions - liga-mendocina', 'Rol'],
     ['/control/liga-mendocina/tournaments/new', 'Create tournament — liga-mendocina', 'torneo'],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026',
+      'Stages — apertura-2026',
+      'apertura-2026',
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
+      'Stage 1 — apertura-2026',
+      'apertura-2026',
+    ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/registrations',
       'Registrations — apertura-2026',

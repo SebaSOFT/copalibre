@@ -321,6 +321,7 @@ describe('the control API client', () => {
       !client.fetchTournamentSettings ||
       !client.previewTournamentSettings ||
       !client.updateTournamentSettings ||
+      !client.listStages ||
       !client.updateStage ||
       !client.deleteStage ||
       !client.renameZone ||
@@ -336,6 +337,7 @@ describe('the control API client', () => {
     await client.fetchTournamentSettings('liga-orbital', 'copa-verano');
     await client.previewTournamentSettings('liga-orbital', 'copa-verano', { region: 'Europe' });
     await client.updateTournamentSettings('liga-orbital', 'copa-verano', { region: 'Europe' });
+    await client.listStages('liga-orbital', 'copa-verano');
     await client.updateStage('liga-orbital', 'copa-verano', 1, { name: 'Fase 1' });
     await client.deleteStage('liga-orbital', 'copa-verano', 1);
     await client.renameZone('liga-orbital', 'copa-verano', 1, 1, { name: 'Zona 1' });
@@ -359,6 +361,10 @@ describe('the control API client', () => {
         url: '/organizations/liga-orbital/tournaments/copa-verano/settings',
         method: 'PUT',
         body: { region: 'Europe' },
+      },
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/stages',
+        method: 'GET',
       },
       {
         url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1',

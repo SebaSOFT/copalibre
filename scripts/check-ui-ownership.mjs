@@ -107,7 +107,9 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // forced onto an atom built for a different shape.
   ['control/components/ui/layouts/form-screen-layout.tsx', 1],
   // Operator surface — converted screens eliminated; only remaining items:
-  ['control/components/pages/SeedingBuilderPage.tsx', 5],
+  // openspec 0250 moved `StageSettingsSection`'s raw `<input>`s to
+  // `StageHubTemplate.tsx`, lowering this file's count from 5 to 3.
+  ['control/components/pages/SeedingBuilderPage.tsx', 3],
   ['control/components/screens/TournamentRulesetTemplate.tsx', 3],
   // Form-structure elements (task 2.4): `<form>`, `<label>`, `<fieldset>`,
   // `<legend>` and table parts outside the table owners, now governed by
@@ -230,9 +232,14 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 2],
   ['control/components/screens/SeedingBuilderTemplate.tsx', 2],
-  ['control/components/pages/SeedingBuilderPage.tsx', 2],
+  // openspec 0250 moved `StageSettingsSection`'s hand-written `cl-card` to
+  // `StageHubTemplate.tsx`, lowering this file's count from 2 to 1.
+  ['control/components/pages/SeedingBuilderPage.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 2],
-  ['control/components/TournamentSummaryCard.tsx', 1],
+  // openspec 0250 added a second `cl-btn`-as-anchor (the Tournament hub
+  // entry point), the same genuine gap this file's first one is recorded
+  // for above — the `Button` atom renders a `<button>`, which cannot link.
+  ['control/components/TournamentSummaryCard.tsx', 2],
   // Same gap as `TournamentSummaryCard.tsx` above: an `<a>` styled as a
   // button, which the `Button` atom cannot render (openspec 0225 task 8.1,
   // surfaced by narrowing the `ui/` directory skip to the atom tier).

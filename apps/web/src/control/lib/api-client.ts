@@ -216,6 +216,11 @@ export interface ControlApiClient {
     stageNumber: number,
     request: PublishSeedingRequest,
   ) => Promise<SeedingClassificationResponse>;
+  /** A tournament's stages, in order, each with whether it already holds a generated fixture. */
+  readonly listStages?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<readonly StageResponse[]>;
   /** Rename applies regardless of seeding; a format change is refused once the stage holds a fixture. */
   readonly updateStage?: (
     organizationAlias: string,
@@ -1100,6 +1105,8 @@ export interface StageResponse {
   readonly format: string;
   readonly series?: SeriesDeclaration;
   readonly allocation?: StageAllocationDeclaration;
+  /** Present on the list read only — whether this stage already holds a generated fixture. */
+  readonly seeded?: boolean;
 }
 
 export interface UpdateStageRequest {
@@ -2168,6 +2175,13 @@ export function createControlApiClient(input: {
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/seeding`,
         { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    listStages: (organizationAlias, tournamentAlias) =>
+      requestJson<readonly StageResponse[]>(
+        input.fetch,
+        `${tournamentPath(baseUrl, organizationAlias, tournamentAlias)}/stages`,
+        { token: input.accessToken?.() },
       ),
 
     updateStage: (organizationAlias, tournamentAlias, stageNumber, body) =>

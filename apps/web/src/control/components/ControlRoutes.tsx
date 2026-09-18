@@ -14,6 +14,8 @@ import { AuditTrailPage } from './pages/AuditTrailPage.js';
 import { MatchConsolePage } from './pages/MatchConsolePage.js';
 import { LoadMatchDataPage } from './pages/LoadMatchDataPage.js';
 import { ZoneGroupPage } from './pages/ZoneGroupPage.js';
+import { TournamentHubPage } from './pages/TournamentHubPage.js';
+import { StageHubPage } from './pages/StageHubPage.js';
 import { PromotionPlanPage } from './pages/PromotionPlanPage.js';
 import { PreferencesPage } from './pages/PreferencesPage.js';
 import { ClubManagementPage } from './pages/ClubManagementPage.js';
@@ -412,6 +414,49 @@ export function LoadMatchDataControlRoute({
         client={client}
         matchId={matchId}
         organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
+      />
+    </ControlShell>
+  );
+}
+
+export function TournamentHubControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="tournament-hub" organizationAlias={organizationAlias}>
+      <TournamentHubPage
+        client={client}
+        organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
+      />
+    </ControlShell>
+  );
+}
+
+export function StageHubControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="stage-hub" organizationAlias={organizationAlias}>
+      <StageHubPage
+        client={client}
+        organizationAlias={organizationAlias}
+        stageNumber={stageNumber}
         tournamentAlias={tournamentAlias}
       />
     </ControlShell>

@@ -1782,6 +1782,54 @@ export const messages = defineMessages({
     defaultMessage: 'This stage already has fixtures, so its format and removal are locked.',
   },
 
+  // TournamentHubTemplate.tsx / StageHubTemplate.tsx (openspec 0250)
+  tournamentHubTitle: { id: 'control.tournamentHub.title', defaultMessage: 'Stages' },
+  tournamentHubStagesHeading: {
+    id: 'control.tournamentHub.stagesHeading',
+    defaultMessage: 'Stages',
+  },
+  tournamentHubEmpty: {
+    id: 'control.tournamentHub.empty',
+    defaultMessage: 'This tournament has no stages yet.',
+  },
+  tournamentHubSeeded: { id: 'control.tournamentHub.seeded', defaultMessage: 'Seeded' },
+  tournamentHubUnseeded: { id: 'control.tournamentHub.unseeded', defaultMessage: 'Unseeded' },
+  tournamentHubOpenStage: {
+    id: 'control.tournamentHub.openStage',
+    defaultMessage: 'Open stage {number}: {name}',
+  },
+  tournamentHubLoading: {
+    id: 'control.tournamentHub.loading',
+    defaultMessage: 'Loading stages…',
+  },
+  tournamentHubLoadFailed: {
+    id: 'control.tournamentHub.loadFailed',
+    defaultMessage: 'Could not load this tournament’s stages.',
+  },
+  stageHubTitle: { id: 'control.stageHub.title', defaultMessage: 'Stage {number}' },
+  stageHubToolsHeading: { id: 'control.stageHub.toolsHeading', defaultMessage: 'Stage tools' },
+  stageHubSeedingLink: { id: 'control.stageHub.seedingLink', defaultMessage: 'Seeding' },
+  stageHubZoneGroupsLink: {
+    id: 'control.stageHub.zoneGroupsLink',
+    defaultMessage: 'Zones and groups',
+  },
+  stageHubStandingsLink: { id: 'control.stageHub.standingsLink', defaultMessage: 'Standings' },
+  stageHubScheduleLink: { id: 'control.stageHub.scheduleLink', defaultMessage: 'Schedule' },
+  stageHubLoading: { id: 'control.stageHub.loading', defaultMessage: 'Loading stage…' },
+  stageHubLoadFailed: {
+    id: 'control.stageHub.loadFailed',
+    defaultMessage: 'Could not load this stage.',
+  },
+  stageHubNotFound: {
+    id: 'control.stageHub.notFound',
+    defaultMessage: 'No stage {number} in this tournament.',
+  },
+  stageHubBreadcrumbLink: {
+    id: 'control.stageHub.breadcrumbLink',
+    defaultMessage: 'Stage {stageNumber}',
+  },
+  dashboardStages: { id: 'control.dashboard.stages', defaultMessage: 'Stages' },
+
   // SeedingBuilderPage.tsx — stage-configuration override editing (openspec 0169)
   stageConfigurationTitle: {
     id: 'control.stageConfiguration.title',

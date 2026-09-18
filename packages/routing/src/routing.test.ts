@@ -232,6 +232,14 @@ describe('parseControlPath', () => {
       },
     ],
     [
+      '/control/liga-mendocina/tournaments/apertura-2026',
+      {
+        screen: 'tournamentHub',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+      },
+    ],
+    [
       '/control/liga-mendocina/tournaments/apertura-2026/registrations',
       {
         screen: 'registrations',
@@ -283,6 +291,15 @@ describe('parseControlPath', () => {
         organizationAlias: 'liga-mendocina',
         tournamentAlias: 'apertura-2026',
         matchId: '00000000-0000-7000-8000-000000000001',
+      },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
+      {
+        screen: 'stageHub',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
       },
     ],
     [
@@ -338,8 +355,6 @@ describe('parseControlPath', () => {
   it.each([
     ['/'],
     ['/liga-mendocina'],
-    ['/control/liga-mendocina/tournaments/apertura-2026'],
-    ['/control/liga-mendocina/tournaments/apertura-2026/stages/1'],
     ['/control/liga-mendocina/tournaments/apertura-2026/stages/1/unknown'],
     ['/control/liga-mendocina/tournaments/apertura-2026/matches'],
     ['/control/liga-mendocina/persons'],
