@@ -187,3 +187,66 @@ exception.
 - **WHEN** an existing TV component moves into the owned tier
 - **THEN** its overlay remains readable over video, its state cues remain non-colour-only, and it
   introduces no undeclared token
+
+### Requirement: Reusable `ResponsiveTimestamp` Atom
+The system SHALL provide a reusable, restylable `ResponsiveTimestamp` atom component that dynamically calculates and renders kickoff, event, or log time relative to the viewing date across TV broadcast, public spectator, and operator control surfaces. It SHALL also support a relative-time format for feeds that intentionally show elapsed time rather than a clock time.
+
+#### Scenario: Same-day timestamp calculation
+- **WHEN** a scheduled or recorded timestamp occurs on the current viewing date
+- **THEN** `ResponsiveTimestamp` outputs the localized hour and minute (e.g. `14:30`) in an accessible `<time datetime="...">` element.
+
+#### Scenario: Different-day timestamp calculation
+- **WHEN** a scheduled or recorded timestamp occurs on a different calendar date
+- **THEN** `ResponsiveTimestamp` outputs the localized abbreviated day, month, and time (e.g. `02-Nov 14:30`).
+
+#### Scenario: Relative-time rendering for an activity feed
+- **WHEN** `ResponsiveTimestamp` is used with `format="relative"`
+- **THEN** it outputs elapsed time relative to now (e.g. "5 minutes ago") in an accessible `<time datetime="...">` element, matching the operator dashboard's existing activity-feed convention.
+
+### Requirement: Entrant Name Responsive Fallback
+The system SHALL render an entrant's or club's name so that it adaptively falls back to its official 3/4-letter abbreviation whenever container space is constrained, eliminating ellipsis (`...`) truncation, across all tournament surfaces including TV broadcast.
+
+#### Scenario: Constrained container layout
+- **WHEN** container width cannot fit the full entrant name
+- **THEN** the rendered name switches to the official abbreviation while retaining the full name in an accessible `title` attribute.
+
+#### Scenario: Unconstrained container layout
+- **WHEN** container width accommodates the full entrant name
+- **THEN** the full name renders, with optional crest or monogram support.
+
+### Requirement: Reusable `ResponsivePlayerName` Atom
+The system SHALL provide a reusable, restylable `ResponsivePlayerName` atom that adaptively renders player/person identities across four responsive width tiers based on available container space:
+1. Tier 1 (Full): `[Flag] [First Name] [Last Name]` (e.g. `[ARG] Sebastian Dieguez`)
+2. Tier 2 (Medium): `[First Name] [Last Name]` (e.g. `Sebastian Dieguez`)
+3. Tier 3 (Compact): `[Initial]. [Last Name]` (e.g. `S. Dieguez`)
+4. Tier 4 (Minimal): `[Initial]. [Initial].` (e.g. `S. D.`)
+
+#### Scenario: Full container width
+- **WHEN** container width accommodates the complete representation
+- **THEN** `ResponsivePlayerName` renders nationality flag icon, first name, and last name.
+
+#### Scenario: Progressively constrained container widths
+- **WHEN** container space narrows through medium, compact, and minimal thresholds
+- **THEN** `ResponsivePlayerName` gracefully degrades to `First Last`, `F. Last`, and `F. L.` respectively, retaining full name and nationality in `title` and `aria-label`.
+
+#### Scenario: Nationality not available
+- **WHEN** no nationality code is supplied for a person
+- **THEN** `ResponsivePlayerName` renders the name tiers with no flag and no layout gap, rather than a broken or placeholder icon.
+
+### Requirement: Person-Granularity Table Rows Carry Name, Abbreviation, and Nationality
+A person-granularity table projection row SHALL report the actor's resolved display name, tournament-scoped abbreviation (when the actor is a team), and nationality code (when the actor is a person), so that public and TV consumers of the same projection can render responsive team and player identities without a second lookup.
+
+#### Scenario: Player ranking row exposes nationality
+- **WHEN** a stage's player-ranking table projection includes a roster member whose match-roster snapshot recorded a nationality
+- **THEN** that row's response carries the nationality code, and any consumer of the same projection (standings table, TV top-performers view) can render a flag from it.
+
+#### Scenario: Team ranking row exposes name and abbreviation end to end
+- **WHEN** a stage's team-ranking table projection is read through either the operator or the public table route
+- **THEN** each row's response carries the resolved entrant name and, when configured, its tournament-scoped abbreviation.
+
+### Requirement: Prominent TV Match Spotlight Emblems
+The TV broadcast match spotlight SHALL render high-contrast, prominent team emblems, with the primary home team emblem sized at least 120x120px on the left side.
+
+#### Scenario: Match spotlight layout
+- **WHEN** a featured match is displayed on the TV broadcast kiosk
+- **THEN** the left home emblem renders with minimum dimensions of 120x120px.
