@@ -379,3 +379,34 @@ was rescinded rather than returning the generic not-found response an unrecogniz
   it
 - **THEN** acceptance is refused with an explanation that the invitation was rescinded, and no role
   assignment is created
+
+### Requirement: Role selection explains what the selected role can do, with a path to the full manual
+
+Wherever an operator chooses an organization role for a person — assigning a role to an existing
+member or setting the role on a pending invitation — the control SHALL show a short description of
+what the currently-selected role can do, alongside the role picker, the same way every other
+multi-option decision in control-web (discipline authoring, tournament setup, stage authoring) pairs
+its choice with a description of the selected option. The short description SHALL be accompanied by
+a link to that role's own help page, for an operator who wants the full explanation rather than the
+condensed one.
+
+#### Scenario: Changing a member's role shows what that role can do
+- **WHEN** an operator selects a different role for an existing organization member
+- **THEN** a short description of that role's authority is shown beside the role picker
+
+#### Scenario: Inviting a new member shows what the chosen role can do
+- **WHEN** an operator selects a role while creating an invitation
+- **THEN** a short description of that role's authority is shown beside the role picker
+
+#### Scenario: The description matches the role manual, condensed
+- **WHEN** the description shown for a role is compared to that role's own manual page
+- **THEN** it states the same authority the manual page states, in fewer words, and never claims an
+  authority the manual page does not
+
+#### Scenario: The short description links to that role's own manual page
+- **WHEN** an operator activates the "learn more" link beside a role's short description
+- **THEN** the control panel opens that specific role's own help page, not the role-manual index
+
+#### Scenario: The link follows the selected role, not the one shown a moment ago
+- **WHEN** an operator changes the selected role after the link has already rendered once
+- **THEN** the link now points to the newly-selected role's own help page
