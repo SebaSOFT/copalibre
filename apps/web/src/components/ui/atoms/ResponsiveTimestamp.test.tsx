@@ -8,9 +8,11 @@ import { ResponsiveTimestamp } from './ResponsiveTimestamp.js';
  * specific offset.
  */
 function localTime(iso: string): string {
-  return new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(
-    new Date(iso),
-  );
+  return new Intl.DateTimeFormat('en', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(iso));
 }
 
 function localDateOnly(iso: string): string {
@@ -28,18 +30,36 @@ describe('ResponsiveTimestamp', () => {
   const otherDayTimestamp = '2025-11-02T14:30:00.000Z';
 
   it('renders same-day timestamps as HH:mm', () => {
-    render(<ResponsiveTimestamp locale="en" referenceDate={referenceDate} timestamp={sameDayTimestamp} />);
+    render(
+      <ResponsiveTimestamp
+        locale="en"
+        referenceDate={referenceDate}
+        timestamp={sameDayTimestamp}
+      />,
+    );
     expect(screen.getByText(localTime(sameDayTimestamp)).tagName).toBe('TIME');
   });
 
   it('renders a different-day timestamp as d-MMM HH:mm', () => {
-    render(<ResponsiveTimestamp locale="en" referenceDate={referenceDate} timestamp={otherDayTimestamp} />);
+    render(
+      <ResponsiveTimestamp
+        locale="en"
+        referenceDate={referenceDate}
+        timestamp={otherDayTimestamp}
+      />,
+    );
     const expected = `${localDateOnly(otherDayTimestamp)} ${localTime(otherDayTimestamp)}`;
     expect(screen.getByText(expected).tagName).toBe('TIME');
   });
 
   it('emits a semantic <time> element with the ISO instant and a localized title', () => {
-    render(<ResponsiveTimestamp locale="en" referenceDate={referenceDate} timestamp={sameDayTimestamp} />);
+    render(
+      <ResponsiveTimestamp
+        locale="en"
+        referenceDate={referenceDate}
+        timestamp={sameDayTimestamp}
+      />,
+    );
     const el = screen.getByText(localTime(sameDayTimestamp));
     expect(el.getAttribute('dateTime')).toBe(sameDayTimestamp);
     expect(el.getAttribute('title')).toBeTruthy();
@@ -60,12 +80,22 @@ describe('ResponsiveTimestamp', () => {
     it('formats recent events (<45s) as just now / hace un momento', () => {
       const recent = new Date(referenceDate.getTime() - 10_000).toISOString();
       const { rerender } = render(
-        <ResponsiveTimestamp format="relative" locale="es" referenceDate={referenceDate} timestamp={recent} />,
+        <ResponsiveTimestamp
+          format="relative"
+          locale="es"
+          referenceDate={referenceDate}
+          timestamp={recent}
+        />,
       );
       expect(screen.getByText('hace un momento')).toBeTruthy();
 
       rerender(
-        <ResponsiveTimestamp format="relative" locale="en" referenceDate={referenceDate} timestamp={recent} />,
+        <ResponsiveTimestamp
+          format="relative"
+          locale="en"
+          referenceDate={referenceDate}
+          timestamp={recent}
+        />,
       );
       expect(screen.getByText('just now')).toBeTruthy();
     });

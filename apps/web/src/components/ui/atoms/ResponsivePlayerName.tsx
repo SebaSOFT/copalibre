@@ -8,6 +8,7 @@ export interface ResponsivePlayerNameProps {
   /** ISO 3166-1 alpha-2. Absent renders every tier with no flag, not a placeholder icon. */
   readonly nationalityCode?: string;
   readonly className?: string;
+  readonly style?: React.CSSProperties;
 }
 
 type Tier = 'full' | 'medium' | 'compact' | 'minimal';
@@ -72,6 +73,7 @@ export function ResponsivePlayerName({
   fullName,
   nationalityCode,
   className,
+  style,
 }: ResponsivePlayerNameProps): React.JSX.Element {
   const ref = useRef<HTMLSpanElement>(null);
   const [tier, setTier] = useState<Tier>('full');
@@ -79,7 +81,13 @@ export function ResponsivePlayerName({
   useEffect(() => {
     const element = ref.current;
     if (!element || typeof ResizeObserver === 'undefined') return;
-    const update = (): void => setTier(tierForWidth(element.clientWidth));
+    // An unmeasured layout (width 0 — a test environment with no real layout
+    // engine, or a not-yet-painted frame) keeps the safe default (`full`)
+    // rather than reading it as "narrower than every tier", mirroring
+    // `EntrantName`'s own safe-default-until-measured behavior.
+    const update = (): void => {
+      if (element.clientWidth > 0) setTier(tierForWidth(element.clientWidth));
+    };
     const observer = new ResizeObserver(update);
     observer.observe(element);
     update();
@@ -88,7 +96,8 @@ export function ResponsivePlayerName({
 
   const { first, last } = nameParts(firstName, lastName, fullName);
   const wholeName = [first, last].filter(Boolean).join(' ');
-  const flag = tier === 'full' && nationalityCode !== undefined ? flagEmoji(nationalityCode) : undefined;
+  const flag =
+    tier === 'full' && nationalityCode !== undefined ? flagEmoji(nationalityCode) : undefined;
   const accessibleLabel = [wholeName, nationalityCode].filter(Boolean).join(', ');
 
   return (
@@ -97,6 +106,7 @@ export function ResponsivePlayerName({
       className={`cl-responsive-player-name ${className ?? ''}`.trim()}
       data-testid="responsive-player-name"
       ref={ref}
+      style={style}
       title={wholeName || undefined}
     >
       {flag !== undefined && <span aria-hidden="true">{flag} </span>}

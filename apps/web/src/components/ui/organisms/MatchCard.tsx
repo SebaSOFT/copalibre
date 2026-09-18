@@ -1,6 +1,7 @@
 import { Badge } from '../atoms/Badge.js';
 import { Card } from '../atoms/Card.js';
 import { EntrantName } from '../atoms/EntrantName.js';
+import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.js';
 import { presentState } from '../../../lib/result-state.js';
 import { seriesScore, seriesSegments, seriesPending, toSeriesInput } from '../../../lib/series.js';
 import { applyTemplate, formatClock, type MatchCardData } from '../../../lib/matches-view.js';
@@ -83,21 +84,20 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
         </p>
       )}
 
-      {(match.venueName !== undefined || match.scheduledAtLabel !== undefined) && (
+      {(match.venueName !== undefined || match.scheduledAt !== undefined) && (
         <p className="cl-match-card__venue">
-          {match.scheduledAtLabel !== undefined && (
-            <time
-              dateTime={match.scheduledAt}
-              title={
-                labels.scheduledAtAriaLabel
+          {match.scheduledAt !== undefined && (
+            <span
+              aria-label={
+                labels.scheduledAtAriaLabel && match.scheduledAtLabel !== undefined
                   ? applyTemplate(labels.scheduledAtAriaLabel, { time: match.scheduledAtLabel })
                   : undefined
               }
             >
-              {match.scheduledAtLabel}
-            </time>
+              <ResponsiveTimestamp timestamp={match.scheduledAt} />
+            </span>
           )}
-          {match.venueName !== undefined && match.scheduledAtLabel !== undefined && ' · '}
+          {match.venueName !== undefined && match.scheduledAt !== undefined && ' · '}
           {match.venueName !== undefined && (
             <span title={applyTemplate(labels.venueAriaLabel, { venue: match.venueName })}>
               {match.venueName}

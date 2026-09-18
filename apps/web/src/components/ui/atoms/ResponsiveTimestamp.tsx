@@ -104,14 +104,17 @@ export function ResponsiveTimestamp({
 }: ResponsiveTimestampProps): React.JSX.Element {
   const date = toDate(timestamp);
   const reference = referenceDate === undefined ? new Date() : toDate(referenceDate);
-  const resolvedLocale =
-    locale ?? (typeof navigator === 'undefined' ? 'es' : navigator.language);
+  const resolvedLocale = locale ?? (typeof navigator === 'undefined' ? 'es' : navigator.language);
 
   // A malformed value has no ISO instant to carry in `dateTime` — render it
   // verbatim rather than throwing out of `toISOString()`, matching the
   // graceful degradation the pre-existing relative-time formatter had.
   if (Number.isNaN(date.getTime())) {
-    return <span className={`cl-responsive-timestamp ${className ?? ''}`.trim()}>{String(timestamp)}</span>;
+    return (
+      <span className={`cl-responsive-timestamp ${className ?? ''}`.trim()}>
+        {String(timestamp)}
+      </span>
+    );
   }
 
   return (

@@ -1,6 +1,7 @@
 import { useIntl } from 'react-intl';
 import { messages } from '../../../i18n/messages.en.js';
 import { auditFieldLabel } from '../../../lib/audit-log.js';
+import { ResponsiveTimestamp } from '../../../../components/ui/atoms/ResponsiveTimestamp.js';
 
 export interface AuditDiffField {
   /** The record's own field name — never a fixed label, since a correction may change any field. */
@@ -136,7 +137,7 @@ export function AuditLogPanel({
                       })}
                     </span>
                   )}
-                  <span>{item.timestamp}</span>
+                  <ResponsiveTimestamp locale={intl.locale} timestamp={item.timestamp} />
                 </div>
               </div>
 

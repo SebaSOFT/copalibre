@@ -135,7 +135,8 @@ export function deriveTopPerformers(
       const name =
         row.actorName || fill(labels.unnamedActor, { reference: row.actorId.substring(0, 6) });
       const clubMatch = clubs?.find(
-        (c) => row.entrantName !== undefined && c.name.toLowerCase() === row.entrantName.toLowerCase(),
+        (c) =>
+          row.entrantName !== undefined && c.name.toLowerCase() === row.entrantName.toLowerCase(),
       );
       const rawVal = cell?.formatted || (cell?.raw !== undefined ? String(cell.raw) : '0');
       return {

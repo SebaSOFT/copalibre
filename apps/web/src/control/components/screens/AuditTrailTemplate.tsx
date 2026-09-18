@@ -8,6 +8,7 @@ import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
 import { AuditLogPanel } from '../ui/organisms/audit-log-panel.js';
 import { toAuditLogItem } from '../../lib/audit-log.js';
+import { ResponsiveTimestamp } from '../../../components/ui/atoms/ResponsiveTimestamp.js';
 
 /**
  * Read-only by design: the audit trail is inspected, never edited — there is
@@ -45,7 +46,7 @@ export function AuditTrailTemplate({
     {
       key: 'occurredAt',
       header: <FormattedMessage {...messages.auditTrailColumnTime} />,
-      render: (row) => <time dateTime={row.occurredAt}>{row.occurredAt}</time>,
+      render: (row) => <ResponsiveTimestamp locale={intl.locale} timestamp={row.occurredAt} />,
     },
     {
       key: 'actor',
