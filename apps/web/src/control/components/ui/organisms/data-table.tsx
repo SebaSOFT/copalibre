@@ -11,6 +11,8 @@ export interface DataTableColumn<Row> {
   readonly key: string;
   readonly header: ReactNode;
   readonly render: (row: Row) => ReactNode;
+  /** Set only by a caller driving its own client-side sort; absent leaves the header a plain label. */
+  readonly ariaSort?: 'none' | 'ascending' | 'descending';
 }
 
 export interface DataTableProps<Row> {
@@ -21,6 +23,10 @@ export interface DataTableProps<Row> {
   readonly emptyMessage?: string;
   readonly ariaLabel?: string;
   readonly renderRowDetail?: (row: Row) => ReactNode;
+  /** Opt-in denser row padding (~44px rows) for a screen that wants more rows on screen. */
+  readonly compact?: boolean;
+  /** Opt-in `position: sticky` header, anchored while a tall table scrolls past it. */
+  readonly stickyHeader?: boolean;
 }
 
 export function DataTable<Row>({
@@ -31,11 +37,16 @@ export function DataTable<Row>({
   emptyMessage,
   ariaLabel,
   renderRowDetail,
+  compact = false,
+  stickyHeader = false,
 }: DataTableProps<Row>): React.JSX.Element {
+  const modifiers = [compact && 'cl-data-table--compact', stickyHeader && 'cl-data-table--sticky']
+    .filter(Boolean)
+    .join(' ');
   return (
     <div
       aria-label={ariaLabel}
-      className="cl-data-table cl-card cl-chamfer cl-chamfer--control"
+      className={`cl-data-table cl-card cl-chamfer cl-chamfer--control ${modifiers}`.trim()}
       role="region"
       tabIndex={0}
     >
@@ -44,7 +55,7 @@ export function DataTable<Row>({
         <thead>
           <tr>
             {columns.map((column) => (
-              <th key={column.key} scope="col">
+              <th aria-sort={column.ariaSort} key={column.key} scope="col">
                 {column.header}
               </th>
             ))}
