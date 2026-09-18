@@ -26,10 +26,16 @@ const overview = {
   ruleset: {},
 };
 
-/** Both zones' only round is round 1/position 1 — the exact cross-zone collision shape. */
+/**
+ * Both zones' only round is round 1/position 1 — the exact cross-zone collision shape. Each match
+ * also carries the stage-wide `matchNumber` the server now computes across every zone combined
+ * (openspec 0249) — gold and silver's round-1/position-1 nodes would build an identical
+ * `/matches/1` report link if the client still synthesized it from `position` alone.
+ */
 const goldZoneMatches = [
   {
     matchId: 'gold-final',
+    matchNumber: 1,
     bracket: 'winners',
     round: 1,
     position: 1,
@@ -56,6 +62,7 @@ const goldZoneMatches = [
 const silverZoneMatches = [
   {
     matchId: 'silver-a-final',
+    matchNumber: 2,
     bracket: 'winners',
     round: 1,
     position: 1,
@@ -67,6 +74,7 @@ const silverZoneMatches = [
   },
   {
     matchId: 'silver-b-final',
+    matchNumber: 3,
     bracket: 'winners',
     round: 1,
     position: 2,
@@ -142,7 +150,7 @@ test('renders one bracket diagram per zone with a jump-list, real entrant data, 
   });
   await expect(goldNode).toHaveClass(/cl-bracket-stage__node--championship/);
   const silverNode = page.locator('.cl-bracket-stage__node', {
-    has: page.locator('[data-match="1"]', { hasText: 'Gimnasia' }),
+    has: page.locator('[data-match="2"]', { hasText: 'Gimnasia' }),
   });
   await expect(silverNode).not.toHaveClass(/cl-bracket-stage__node--championship/);
 
@@ -159,4 +167,26 @@ test('a single-zone stage renders exactly as before: no heading, no jump-list', 
   await expect(page.getByRole('button', { name: 'Highlight path for Talleres' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Copa de Oro' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Copa de Oro' })).toHaveCount(0);
+});
+
+test('gold and silver report-page links stay distinct despite sharing round 1 / position 1 (openspec 0249)', async ({
+  page,
+}) => {
+  await page.goto(MULTI_ZONE_ROUTE);
+
+  const hrefs = await page
+    .locator('.cl-bracket-stage a[href*="/matches/"]')
+    .evaluateAll((elements) => elements.map((element) => element.getAttribute('href')));
+
+  // Three real matches (gold's one, silver's two) — the bug this guards against built the same
+  // `/matches/1` link for gold and silver-a, since both are round 1/position 1 in their own zone.
+  expect(hrefs.length).toBeGreaterThanOrEqual(3);
+  expect(new Set(hrefs).size).toBe(hrefs.length);
+  expect(hrefs).toEqual(
+    expect.arrayContaining([
+      expect.stringContaining('/matches/1'),
+      expect.stringContaining('/matches/2'),
+      expect.stringContaining('/matches/3'),
+    ]),
+  );
 });
