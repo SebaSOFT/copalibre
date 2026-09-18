@@ -24,6 +24,8 @@ export interface DataTableColumn {
   readonly key: string;
   readonly header: unknown;
   readonly render: (row: unknown) => unknown;
+  /** Set only by a caller driving its own re-sort script; absent leaves the header a plain label. */
+  readonly ariaSort?: 'none' | 'ascending' | 'descending';
 }
 
 export interface Props {
@@ -32,14 +34,24 @@ export interface Props {
   readonly caption?: string;
   readonly emptyMessage?: string;
   readonly ariaLabel?: string;
+  /** Opt-in denser row padding (~44px rows) for a screen that wants more rows on screen. */
+  readonly compact?: boolean;
+  /** Opt-in `position: sticky` header, anchored while a tall table scrolls past it. */
+  readonly stickyHeader?: boolean;
 }
 
-const { columns, rows, caption, emptyMessage, ariaLabel } = Astro.props;
+const { columns, rows, caption, emptyMessage, ariaLabel, compact, stickyHeader } = Astro.props;
+const modifiers = [
+  compact ? 'cl-data-table--compact' : '',
+  stickyHeader ? 'cl-data-table--sticky' : '',
+]
+  .filter(Boolean)
+  .join(' ');
 ---
 
 <div
   aria-label={ariaLabel}
-  class="cl-data-table cl-card cl-chamfer cl-chamfer--control"
+  class={`cl-data-table cl-card cl-chamfer cl-chamfer--control ${modifiers}`.trim()}
   role="region"
   tabindex="0"
 >
@@ -47,7 +59,13 @@ const { columns, rows, caption, emptyMessage, ariaLabel } = Astro.props;
     {caption ? <caption class="cl-data-table__caption">{caption}</caption> : null}
     <thead>
       <tr>
-        {columns.map((column) => <th scope="col">{column.header}</th>)}
+        {
+          columns.map((column) => (
+            <th aria-sort={column.ariaSort} scope="col">
+              {column.header}
+            </th>
+          ))
+        }
       </tr>
     </thead>
     <tbody>

@@ -6,6 +6,7 @@ import type {
   TableRowResponseData,
 } from './lib/api-client.js';
 import {
+  ariaSortFor,
   comparatorChain,
   distributionBars,
   localizedText,
@@ -136,6 +137,31 @@ describe('nextSort', () => {
   it('starts a different column descending again, discarding the previous direction', () => {
     const onPoints = { columnCode: 'points', direction: 'asc' as const };
     expect(nextSort(onPoints, 'name')).toEqual({ columnCode: 'name', direction: 'desc' });
+  });
+
+  it('returns to none (undefined) on a third click, restoring original order', () => {
+    const onPoints = { columnCode: 'points', direction: 'asc' as const };
+    expect(nextSort(onPoints, 'points')).toBeUndefined();
+  });
+
+  it('sortRows(rows, undefined) leaves original order unchanged, matching the none state', () => {
+    const rows = [
+      { actorId: 'a', rank: 2, sharedRank: false, cells: {} },
+      { actorId: 'b', rank: 1, sharedRank: false, cells: {} },
+    ];
+    expect(sortRows(rows, undefined).map((r) => r.actorId)).toEqual(['a', 'b']);
+  });
+});
+
+describe('ariaSortFor', () => {
+  it('is none for a column that is not the active sort', () => {
+    expect(ariaSortFor(undefined, 'points')).toBe('none');
+    expect(ariaSortFor({ columnCode: 'name', direction: 'desc' }, 'points')).toBe('none');
+  });
+
+  it('maps the active column direction to the ARIA vocabulary', () => {
+    expect(ariaSortFor({ columnCode: 'points', direction: 'desc' }, 'points')).toBe('descending');
+    expect(ariaSortFor({ columnCode: 'points', direction: 'asc' }, 'points')).toBe('ascending');
   });
 });
 

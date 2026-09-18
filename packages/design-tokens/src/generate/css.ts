@@ -698,6 +698,18 @@ function components(): string {
     '.cl-data-table__empty { padding: var(--cl-space-4); color: var(--cl-text-muted); }',
     '@media (max-width: 767px) { .cl-data-table { -webkit-overflow-scrolling: touch; } }',
     '',
+    // Compact density: tighter padding, approximating `--cl-touch-target`
+    // (44px) per row instead of the default's roomier whitespace — opt-in,
+    // since most `DataTable`/`DataTable.astro` callers (roles, activity log)
+    // keep the default row height unchanged.
+    '.cl-data-table--compact .cl-data-table__table th, .cl-data-table--compact .cl-data-table__table td { padding: var(--cl-space-2) var(--cl-space-3); }',
+    '',
+    // Floating header: `position: sticky` against the table's own scroll
+    // container's nearest scrolling ancestor (typically the page), so column
+    // identity stays visible while a long table scrolls past it. Opt-in —
+    // most callers have no need to pin their header.
+    '.cl-data-table--sticky .cl-data-table__table thead th { position: sticky; top: 0; z-index: 1; background: var(--cl-surface-panel); box-shadow: 0 1px 0 var(--cl-border-muted); }',
+    '',
     '.cl-modal__overlay { position: fixed; inset: 0; }',
     '.cl-modal__content { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(480px, calc(100vw - var(--cl-space-8))); max-height: 85vh; overflow-y: auto; padding: var(--cl-space-4); }',
     // The title and the close control share a row, and a long compound title
@@ -877,6 +889,9 @@ function components(): string {
     // the match hero's — can reach a live or final treatment.
     '.cl-badge--live { background: color-mix(in srgb, var(--cl-primary) 15%, transparent); color: var(--cl-primary); border: 1px solid color-mix(in srgb, var(--cl-primary) 40%, transparent); }',
     '.cl-badge--final { background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent); color: var(--cl-state-positive); }',
+    // A confirmed/verified computed result — same positive role as `--final`,
+    // its own name because "final" already means a finished match.
+    '.cl-badge--verified { background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent); color: var(--cl-state-positive); border: 1px solid color-mix(in srgb, var(--cl-state-positive) 40%, transparent); }',
     '',
     '.cl-btn {',
     // A link wearing the button treatment is a button, underline included —
@@ -1453,6 +1468,58 @@ function compositions(): string {
     '  text-decoration: underline;',
     '  text-underline-offset: 3px;',
     '}',
+    '',
+    // Signed goal difference: the sign itself is the non-colour cue the
+    // identity doc's accessibility gate requires (0220 semantic.ts), so no
+    // icon is added on top of it — colour only reinforces what the digit
+    // already says.
+    '.cl-standings-panel__figure--positive { color: var(--cl-state-positive); }',
+    '.cl-standings-panel__figure--negative { color: var(--cl-state-destructive); }',
+    // The ranking metric a layout's `defaultSort[0]` scales (PTS for group
+    // standings, goals for a scorers table) — emphasised so it reads as the
+    // column the whole table is ordered by.
+    '.cl-standings-panel__figure--emphasis { color: var(--cl-primary); font-weight: var(--cl-weight-bold); }',
+    '',
+    '.cl-standings-panel__subtitle { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
+    '',
+    '.cl-standings-panel__footer-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--cl-space-3); }',
+    '.cl-standings-panel__audit-code { color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
+    '',
+    // The sortable header's own trigger: the whole cell is a button so its
+    // hit target is the header, not just the tooltip glyph beside the label.
+    '.cl-column-header { display: inline-flex; align-items: center; gap: var(--cl-space-1); background: transparent; border: none; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; padding: 0; cursor: pointer; }',
+    '.cl-column-header__indicator { font-size: var(--cl-font-size-xs); color: var(--cl-text-muted); }',
+    'th[aria-sort="ascending"] .cl-column-header__indicator, th[aria-sort="descending"] .cl-column-header__indicator { color: var(--cl-primary); }',
+    '',
+    // A description trigger beside a header label: a dotted underline is the
+    // "there is more here" affordance, the bubble itself only exists in the
+    // DOM (and only paints) while hovered or focused.
+    '.cl-column-header-tooltip { position: relative; display: inline-flex; }',
+    '.cl-column-header-tooltip__trigger { background: transparent; border: none; color: inherit; font: inherit; padding: 0; cursor: help; text-decoration: underline dotted; text-underline-offset: 3px; }',
+    '.cl-column-header-tooltip__bubble {',
+    '  position: absolute;',
+    '  bottom: calc(100% + var(--cl-space-2));',
+    '  left: 50%;',
+    '  transform: translateX(-50%);',
+    '  z-index: 20;',
+    '  width: max-content;',
+    '  max-width: 220px;',
+    '  padding: var(--cl-space-2) var(--cl-space-3);',
+    '  background: var(--cl-surface-chrome);',
+    '  border: 1px solid var(--cl-border-muted);',
+    '  color: var(--cl-text-primary);',
+    '  font-family: var(--cl-font-body);',
+    '  font-size: var(--cl-font-size-xs);',
+    '  text-transform: none;',
+    '  letter-spacing: normal;',
+    '  font-weight: normal;',
+    '  pointer-events: none;',
+    '  opacity: 0;',
+    '  visibility: hidden;',
+    '  transition: opacity var(--cl-motion-fast) var(--cl-motion-easing);',
+    '}',
+    '.cl-column-header-tooltip__trigger:hover + .cl-column-header-tooltip__bubble, .cl-column-header-tooltip__trigger:focus-visible + .cl-column-header-tooltip__bubble { opacity: 1; visibility: visible; }',
+    '@media (prefers-reduced-motion: reduce) { .cl-column-header-tooltip__bubble { transition: none; } }',
     '',
     /*
      * Numbered steps. The marker is a flex peer of the heading rather than a

@@ -243,7 +243,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/ProfileBuilderWizard.tsx', 3],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 4],
-  ['control/components/screens/StandingsTemplate.tsx', 5],
+  ['control/components/screens/StandingsTemplate.tsx', 4],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 4],
   ['control/components/TournamentSetupWizard.tsx', 10],
   // A stage is genuinely an ordered list; the layout primitives (Stack/
@@ -674,6 +674,15 @@ export const KNOWN_MULTI_ATOM_OWNERSHIP = new Map([
   // strip renders its own <button> per language tab, a shape none of the
   // other governed-element owners share (a tab, not a generic click target).
   ['control/components/ui/atoms/localized-field-tabs.tsx', 1],
+  // openspec 0248: `ColumnHeaderTooltip` is a table column header's own
+  // sort/description trigger — borderless, embedded in a `<th>`, a shape
+  // distinct from `Button.astro`'s CTA-styled anchor/button and unusable as
+  // one, since public-web's Astro atom cannot be imported into this React
+  // component (or vice versa: `Button.astro` cannot render inside a `.tsx`
+  // file StandingsTemplate.tsx, which needs the interactivity, actually
+  // imports).
+  ['components/ui/atoms/Button.astro', 1],
+  ['components/ui/atoms/ColumnHeaderTooltip.tsx', 1],
 ]);
 
 export function checkSingleAtomOwnership(nodes) {

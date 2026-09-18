@@ -174,3 +174,18 @@ separated from both.
 - **WHEN** the dashboard lists two tournaments
 - **THEN** each tournament's actions render within that tournament's own card, so no action sits
   between two cards where the tournament it applies to is ambiguous
+
+### Requirement: A tournament card offers a way to reach its stage list
+
+Each tournament card SHALL offer a way to reach that tournament's hub (its stage list), in addition
+to its existing title link to the tournament's matches view — a second entry point, not a
+replacement, since the two lead to different destinations an operator reaches for different
+reasons.
+
+#### Scenario: Reaching a tournament's stage list from its card
+- **WHEN** an operator activates a tournament card's stages action
+- **THEN** the control panel navigates to that tournament's hub
+
+#### Scenario: The card's existing title link is unchanged
+- **WHEN** an operator activates a tournament card's title
+- **THEN** the control panel still navigates to that tournament's matches view, exactly as before

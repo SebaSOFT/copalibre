@@ -167,13 +167,13 @@ Public spectator pages SHALL render standings and leaderboards according to the 
 ### Requirement: Per-match public report page
 
 The public site SHALL serve a per-match report page at
-`/{organization}/tournaments/{tournament}/stages/{stageNumber}/matches/{matchNumber}`, keyed by the
-stage number and match's stage-scoped sequential number, showing the match header
-(competition/stage/round identity, both entrants, current score,
-status, scheduled date/time and venue when a schedule exists), the officials assigned to it, each side's
-roster as recorded, and the full event timeline in match order. This page SHALL be rendered per request
-from current backend state, matching the existing overview page's "reachable without a site rebuild"
-guarantee.
+`/{organization}/tournaments/{tournament}/stages/{stageNumber}/matches/{matchNumber}`, where
+`matchNumber` is a genuinely stage-unique 1-based ordinal — never a value that can be shared by more
+than one fixture within the same stage — keyed by the stage number and that ordinal, showing the match
+header (competition/stage/round identity, both entrants, current score, status, scheduled date/time and
+venue when a schedule exists), the officials assigned to it, each side's roster as recorded, and the
+full event timeline in match order. This page SHALL be rendered per request from current backend state,
+matching the existing overview page's "reachable without a site rebuild" guarantee.
 
 #### Scenario: Visiting a finished match's report
 - **WHEN** an anonymous visitor requests the report page for a finalized match
@@ -196,6 +196,13 @@ guarantee.
   published
 - **THEN** the public site returns a not-found response, matching the existing overview page's
   unpublished-tournament behavior
+
+#### Scenario: A stage with more than one non-series fixture resolves the requested match, not an arbitrary one
+- **WHEN** an anonymous visitor requests the report page for one specific match in a stage that has more
+  than one fixture carrying the same per-fixture game index (true of every stage where not every
+  fixture is a multi-game series — the common case)
+- **THEN** the page renders that specific match's own data, never another fixture's data substituted
+  for it
 
 ### Requirement: Officials assigned to a fixture are shown on its match report
 
