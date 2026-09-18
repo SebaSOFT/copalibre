@@ -32,6 +32,13 @@ describe('the tournament profile builder wizard', () => {
     ).toBeDefined();
   });
 
+  it('shows the missing-English-name problem once — as the field error while English is active, in the checklist once it is not', () => {
+    render(withIntl(<ProfileBuilderWizard disciplines={DISCIPLINES} />));
+    expect(screen.getAllByText('An English name is required.')).toHaveLength(1);
+    fireEvent.click(screen.getAllByRole('tab', { name: 'Español' })[0] as HTMLButtonElement);
+    expect(screen.getAllByText('An English name is required.')).toHaveLength(1);
+  });
+
   it('only offers stage formats the chosen discipline declares', () => {
     render(withIntl(<ProfileBuilderWizard disciplines={DISCIPLINES} />));
     goToStagesStep();

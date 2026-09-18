@@ -176,7 +176,7 @@ const isPlayerRanking =
                       class="cl-table__sort"
                       data-table-sort-button
                       data-column-code={column.code}
-                      aria-label={header}
+                      aria-label={localizedText(column.shortHeader ?? column.header, intl.locale)}
                     >
                       {localizedText(column.shortHeader ?? column.header, intl.locale)}
                     </Button>

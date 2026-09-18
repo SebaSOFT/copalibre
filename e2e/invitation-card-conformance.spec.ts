@@ -45,8 +45,8 @@ test('the invitation card carries the chamfer geometry every Control-web card us
   expect(geometry.classes).toContain('cl-chamfer');
   expect(geometry.clipPath).toBe('none');
   if (geometry.supported) {
-    expect(geometry.topRightShape).toBe('bevel');
-    expect(geometry.bottomLeftShape).toBe('bevel');
+    expect(['bevel', 'superellipse(0)']).toContain(geometry.topRightShape);
+    expect(['bevel', 'superellipse(0)']).toContain(geometry.bottomLeftShape);
     expect(geometry.radii).toEqual(['0px', '8px', '0px', '8px']);
   } else {
     expect(geometry.radii).toEqual(['0px', '0px', '0px', '0px']);
