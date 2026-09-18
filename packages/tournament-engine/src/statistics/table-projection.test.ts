@@ -372,7 +372,13 @@ describe('projectTableLayout', () => {
     ];
 
     const actors: readonly TableProjectionActor[] = [
-      { actorId: 'p-1', name: 'Alice Striker', teamName: 'Atlas FC', entrantId: 'en-atlas' },
+      {
+        actorId: 'p-1',
+        name: 'Alice Striker',
+        teamName: 'Atlas FC',
+        entrantId: 'en-atlas',
+        nationality: 'AR',
+      },
       { actorId: 'p-2', name: 'Bob Forward', teamName: 'Boca Juniors', entrantId: 'en-boca' },
       { actorId: 'p-3', name: 'Charlie Winger', teamName: 'Colo Colo', entrantId: 'en-colo' },
     ];
@@ -385,6 +391,12 @@ describe('projectTableLayout', () => {
     expect(projection.rows[1]?.cells['goals']).toEqual({ raw: 5, formatted: '5' });
     expect(projection.rows[2]?.cells['goals']).toEqual({ raw: 2, formatted: '2' });
     expect(projection.rows[0]?.entrantId).toBe('en-atlas');
+    // A row's own headline identity survives regardless of granularity — this
+    // is the field a client reads instead of guessing which column code the
+    // discipline used for its display column (openspec 0247).
+    expect(projection.rows[0]?.actorName).toBe('Alice Striker');
+    expect(projection.rows[0]?.nationality).toBe('AR');
+    expect(projection.rows[1]?.nationality).toBeUndefined();
   });
 
   it('projects football cards layout sorting first by red cards then yellow cards', () => {

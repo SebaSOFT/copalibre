@@ -52,7 +52,9 @@ export interface TopPerformer {
   readonly rank: number;
   readonly name: string;
   readonly clubName?: string;
+  readonly clubAbbreviation?: string;
   readonly clubEmblemObjectId?: string;
+  readonly nationalityCode?: string;
   readonly statLabel: string;
   readonly statValue: string | number;
 }
@@ -122,15 +124,27 @@ export function deriveTopPerformers(
 
     return tableProjection.rows.slice(0, 5).map((row) => {
       const cell = row.cells[primaryCol];
-      const entrantName =
-        row.entrantName || fill(labels.unnamedActor, { reference: row.actorId.substring(0, 6) });
-      const clubMatch = clubs?.find((c) => c.name.toLowerCase() === entrantName.toLowerCase());
+      // `actorName` is the row's own identity (the performer, whatever the
+      // granularity); `entrantName` is its *affiliation* — the club a
+      // person played for, or a team row's own name again. Matching the
+      // club lookup against `entrantName` rather than the performer's own
+      // name is what makes it actually resolve for a person row
+      // (openspec 0247 — previously this read `row.entrantName` for both,
+      // which is never a person's own name, so a player's name always fell
+      // through to the "unnamed actor" placeholder and its club never matched).
+      const name =
+        row.actorName || fill(labels.unnamedActor, { reference: row.actorId.substring(0, 6) });
+      const clubMatch = clubs?.find(
+        (c) => row.entrantName !== undefined && c.name.toLowerCase() === row.entrantName.toLowerCase(),
+      );
       const rawVal = cell?.formatted || (cell?.raw !== undefined ? String(cell.raw) : '0');
       return {
         rank: row.rank,
-        name: entrantName,
+        name,
         clubName: row.entrantName,
+        clubAbbreviation: row.entrantAbbreviation,
         clubEmblemObjectId: clubMatch?.emblemObjectId,
+        nationalityCode: row.nationality,
         statLabel: statHeader,
         statValue: rawVal,
       };

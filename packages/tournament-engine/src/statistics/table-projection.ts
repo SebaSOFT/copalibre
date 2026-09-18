@@ -40,6 +40,8 @@ export interface TableProjectionActor {
   readonly teamName?: string;
   readonly roles?: readonly string[];
   readonly tags?: readonly string[];
+  /** Present only for a person-granularity actor whose roster entry recorded one. */
+  readonly nationality?: string;
 }
 
 export interface TableProjectionContext {
@@ -57,8 +59,17 @@ export interface TableCell {
 export interface TableRow {
   readonly actorId: string;
   readonly entrantId?: string;
+  /**
+   * The row's own headline identity — a team row's own name, or a person
+   * row's own name — regardless of which column code the discipline chose
+   * for its display column. Always present; unlike `entrantName`, this never
+   * describes an affiliation.
+   */
+  readonly actorName: string;
+  /** Resolved tournament-scoped labels for the row's *affiliated* entrant — its own identity for a team row, or the club it played for on a person row. */
   readonly entrantName?: string;
   readonly entrantAbbreviation?: string;
+  readonly nationality?: string;
   /** 1-based; rows sharing a rank were not separated by `defaultSort`. */
   readonly rank: number;
   readonly sharedRank: boolean;
@@ -283,10 +294,12 @@ function assignRanks(
     return {
       actorId: row.actor.actorId,
       entrantId: row.actor.entrantId,
+      actorName: row.actor.name,
       ...(row.actor.entrantName === undefined ? {} : { entrantName: row.actor.entrantName }),
       ...(row.actor.entrantAbbreviation === undefined
         ? {}
         : { entrantAbbreviation: row.actor.entrantAbbreviation }),
+      ...(row.actor.nationality === undefined ? {} : { nationality: row.actor.nationality }),
       rank,
       sharedRank: (rankCounts.get(rank) ?? 1) > 1,
       cells,

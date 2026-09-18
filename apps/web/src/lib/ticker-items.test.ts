@@ -38,6 +38,7 @@ const footballScorers: TableProjectionResponse = {
   rows: [
     {
       actorId: 'player-1',
+      actorName: 'Lionel Messi',
       entrantName: 'Lionel Messi',
       rank: 1,
       sharedRank: false,
@@ -64,6 +65,7 @@ const groupedStandings: TableProjectionResponse = {
       rows: [
         {
           actorId: 'entrant-1',
+          actorName: 'Vermilion Wolves',
           entrantName: 'Vermilion Wolves',
           rank: 1,
           sharedRank: false,
@@ -77,6 +79,7 @@ const groupedStandings: TableProjectionResponse = {
       rows: [
         {
           actorId: 'entrant-2',
+          actorName: 'Aurora Vanguard',
           entrantName: 'Aurora Vanguard',
           rank: 1,
           sharedRank: false,
@@ -158,6 +161,7 @@ describe('buildTickerItems', () => {
           rows: [
             {
               actorId: 'entrant-3',
+              actorName: 'Kinetic Apex',
               entrantName: 'Kinetic Apex',
               rank: 1,
               sharedRank: false,
@@ -213,7 +217,7 @@ describe('buildTickerItems', () => {
   it('falls back to a rank when the projection could not name the competitor', () => {
     const anonymous: TableProjectionResponse = {
       ...footballScorers,
-      rows: [{ actorId: 'player-9', rank: 4, sharedRank: false, cells: {} }],
+      rows: [{ actorId: 'player-9', actorName: '', rank: 4, sharedRank: false, cells: {} }],
     };
     const items = buildTickerItems({
       matches: [],

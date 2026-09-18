@@ -269,6 +269,12 @@ export function tableResponse(result: TableProjectionResult): TableProjectionRes
     rows: result.rows.map((row) => ({
       actorId: row.actorId,
       ...(row.entrantId === undefined ? {} : { entrantId: row.entrantId }),
+      actorName: row.actorName,
+      ...(row.entrantName === undefined ? {} : { entrantName: row.entrantName }),
+      ...(row.entrantAbbreviation === undefined
+        ? {}
+        : { entrantAbbreviation: row.entrantAbbreviation }),
+      ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
       rank: row.rank,
       sharedRank: row.sharedRank,
       cells: row.cells,
@@ -295,6 +301,12 @@ export function segmentedTableResponse(
       rows: segment.rows.map((row) => ({
         actorId: row.actorId,
         ...(row.entrantId === undefined ? {} : { entrantId: row.entrantId }),
+        actorName: row.actorName,
+        ...(row.entrantName === undefined ? {} : { entrantName: row.entrantName }),
+        ...(row.entrantAbbreviation === undefined
+          ? {}
+          : { entrantAbbreviation: row.entrantAbbreviation }),
+        ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
         rank: row.rank,
         sharedRank: row.sharedRank,
         cells: row.cells,

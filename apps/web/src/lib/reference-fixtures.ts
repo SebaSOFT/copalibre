@@ -843,6 +843,7 @@ export function referenceTableProjection(): TableProjectionResponse {
     rows: table.rows.map((row) => ({
       actorId: row.entrantId,
       entrantId: row.entrantId,
+      actorName: row.name,
       entrantName: row.name,
       entrantAbbreviation: row.abbreviation,
       rank: row.rank,

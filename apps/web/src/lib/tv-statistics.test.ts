@@ -40,7 +40,10 @@ describe('tv-statistics', () => {
         rows: [
           {
             actorId: 'player-1',
-            entrantName: 'Lionel Messi',
+            actorName: 'Lionel Messi',
+            entrantName: 'Inter Miami',
+            entrantAbbreviation: 'MIA',
+            nationality: 'AR',
             rank: 1,
             sharedRank: false,
             cells: {
@@ -49,7 +52,8 @@ describe('tv-statistics', () => {
           },
           {
             actorId: 'player-2',
-            entrantName: 'Julian Alvarez',
+            actorName: 'Julian Alvarez',
+            entrantName: 'Atletico Madrid',
             rank: 2,
             sharedRank: false,
             cells: {
@@ -59,12 +63,15 @@ describe('tv-statistics', () => {
         ],
       };
 
-      const clubs = [{ name: 'Lionel Messi', emblemObjectId: 'emblem-inter' }];
+      const clubs = [{ name: 'Inter Miami', emblemObjectId: 'emblem-inter' }];
 
       const performers = deriveTopPerformers(labels, 'en', projection, undefined, clubs);
       expect(performers).toHaveLength(2);
       expect(performers[0]?.name).toBe('Lionel Messi');
       expect(performers[0]?.statValue).toBe('12');
+      expect(performers[0]?.clubName).toBe('Inter Miami');
+      expect(performers[0]?.clubAbbreviation).toBe('MIA');
+      expect(performers[0]?.nationalityCode).toBe('AR');
       expect(performers[0]?.clubEmblemObjectId).toBe('emblem-inter');
       expect(performers[1]?.name).toBe('Julian Alvarez');
       expect(performers[1]?.statValue).toBe('8');
@@ -81,6 +88,7 @@ describe('tv-statistics', () => {
         rows: [
           {
             actorId: 'player-xyz',
+            actorName: '',
             rank: 1,
             sharedRank: false,
             cells: {
@@ -130,7 +138,7 @@ describe('tv-statistics', () => {
       rows: [
         {
           actorId: 'player-1',
-          entrantName: 'Lionel Messi',
+          actorName: 'Lionel Messi',
           rank: 1,
           sharedRank: false,
           cells: { rank: { formatted: '1', raw: 1 }, goals: { formatted: '12', raw: 12 } },
@@ -152,7 +160,7 @@ describe('tv-statistics', () => {
       rows: [
         {
           actorId: 'player-1',
-          entrantName: 'Lionel Messi',
+          actorName: 'Lionel Messi',
           rank: 1,
           sharedRank: false,
           cells: { goals: { formatted: '12', raw: 12 } },
