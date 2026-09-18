@@ -391,6 +391,20 @@ describe('stage creation routes (integration)', () => {
     },
   );
 
+  it('lists this tournament’s stages with each one’s seeded state', async () => {
+    const response = await request({ method: 'GET', url: base, token: 'organizer' });
+
+    expect(response.statusCode).toBe(200);
+    const stages = response.json() as Array<{ number: number; name: string; seeded: boolean }>;
+    expect(stages.length).toBeGreaterThanOrEqual(2);
+
+    const seededStage = stages.find((stage) => stage.name === 'Fase E2E');
+    expect(seededStage?.seeded).toBe(true);
+
+    const unseededStage = stages.find((stage) => stage.name !== 'Fase E2E');
+    expect(unseededStage?.seeded).toBe(false);
+  });
+
   it(
     'a stage with no accepted registrations still refuses seeding rather than fabricating an ' +
       'entrant pool',

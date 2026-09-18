@@ -112,6 +112,46 @@ export class StagesController {
 
   constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
 
+  @Get()
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({
+    summary: 'List a tournament’s stages',
+    description:
+      'Number, name and format for every stage, plus whether each already holds a generated ' +
+      'fixture — an organizer’s stage list carries no more sensitivity than its zone list.',
+  })
+  @ApiOkResponse({ type: StageResponse, isArray: true })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async list(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<readonly StageResponse[]> {
+    const { tournament } = await resolveTournament(this.db, {
+      organizationAlias,
+      tournamentAlias,
+      request,
+    });
+
+    const stages = await new CompetitionRepository(this.db).listStagesOfTournament(
+      tournament.tournamentId,
+    );
+    const stageReadModel = new StageReadModel(this.db);
+    return Promise.all(
+      stages.map(async (stage) => {
+        const record = await stageReadModel.stageRecord(stage.stageId);
+        return {
+          stageId: stage.stageId,
+          seasonId: stage.seasonId,
+          number: stage.number,
+          name: stage.name,
+          format: stage.format,
+          seeded: record?.hasGeneratedFixtures ?? false,
+        };
+      }),
+    );
+  }
+
   @Post()
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationCapability('org.manage-stages')

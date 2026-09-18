@@ -1238,7 +1238,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List a tournament’s stages
+         * @description Number, name and format for every stage, plus whether each already holds a generated fixture — an organizer’s stage list carries no more sensitivity than its zone list.
+         */
+        get: operations["StagesController_list"];
         put?: never;
         /**
          * Create a stage from the tournament’s accepted registrations
@@ -4290,27 +4294,6 @@ export interface components {
             /** @description True once the new seed order and fixture graph are durably persisted. Always true for a 200 response — a publish that could not persist refuses with 409 instead of returning a partial success. */
             persisted: boolean;
         };
-        CreateStageRequest: {
-            /**
-             * @description Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.
-             * @example 1
-             */
-            number?: number;
-            /**
-             * @description Defaults to "Stage {number}".
-             * @example Fase de grupos
-             */
-            name?: string;
-            /**
-             * @description Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.
-             * @example round-robin
-             */
-            format?: string;
-            /** @description Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross, requiring no further action. */
-            series?: components["schemas"]["SeriesDeclarationRequest"];
-            /** @description Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view. */
-            allocation?: components["schemas"]["StageAllocationRequest"];
-        };
         StageResponse: {
             /** Format: uuid */
             stageId: string;
@@ -4331,6 +4314,29 @@ export interface components {
             /** @description Absent when this stage declares no series. */
             series?: components["schemas"]["SeriesDeclarationRequest"];
             /** @description Absent when this stage declares no allocation. */
+            allocation?: components["schemas"]["StageAllocationRequest"];
+            /** @description Whether this stage already holds a generated fixture. Present on the list read only — `create`/`update`/`remove` do not compute it. */
+            seeded?: boolean;
+        };
+        CreateStageRequest: {
+            /**
+             * @description Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.
+             * @example 1
+             */
+            number?: number;
+            /**
+             * @description Defaults to "Stage {number}".
+             * @example Fase de grupos
+             */
+            name?: string;
+            /**
+             * @description Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.
+             * @example round-robin
+             */
+            format?: string;
+            /** @description Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross, requiring no further action. */
+            series?: components["schemas"]["SeriesDeclarationRequest"];
+            /** @description Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view. */
             allocation?: components["schemas"]["StageAllocationRequest"];
         };
         UpdateStageRequest: {
@@ -8582,6 +8588,36 @@ export interface operations {
                 };
             };
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    StagesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StageResponse"][];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
