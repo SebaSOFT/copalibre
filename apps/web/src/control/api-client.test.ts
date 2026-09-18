@@ -404,6 +404,37 @@ describe('the control API client', () => {
     ]);
   });
 
+  it("parses a stage's availableFormats/formatDescriptions through unresolved (openspec 0251 task 3.1)", async () => {
+    const client = createControlApiClient({
+      accessToken: () => 'token-admin',
+      fetch: async () =>
+        response([
+          {
+            stageId: '01890000-0000-7000-8000-000000000001',
+            seasonId: '01890000-0000-7000-8000-000000000002',
+            number: 1,
+            name: 'Fase de grupos',
+            format: 'round-robin',
+            seeded: false,
+            availableFormats: ['round-robin', 'single-elimination'],
+            formatDescriptions: {
+              'round-robin': 'Every entrant plays every other entrant once',
+              'single-elimination': { en: 'Single elimination bracket', es: 'Eliminación directa' },
+            },
+          },
+        ]),
+    });
+    if (!client.listStages) throw new Error('listStages must be available');
+
+    const stages = await client.listStages('liga-orbital', 'copa-verano');
+
+    expect(stages[0]?.availableFormats).toEqual(['round-robin', 'single-elimination']);
+    expect(stages[0]?.formatDescriptions).toEqual({
+      'round-robin': 'Every entrant plays every other entrant once',
+      'single-elimination': { en: 'Single elimination bracket', es: 'Eliminación directa' },
+    });
+  });
+
   it('calls the ruleset-override and stage-configuration editing endpoints (openspec 0169)', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({

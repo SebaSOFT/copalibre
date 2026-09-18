@@ -12,6 +12,8 @@ function stage(overrides: Partial<StageResponse> = {}): StageResponse {
     name: 'Fase de grupos',
     format: 'round-robin',
     seeded: false,
+    availableFormats: ['round-robin', 'single-elimination'],
+    formatDescriptions: { 'round-robin': 'Every entrant plays every other entrant once' },
     ...overrides,
   };
 }
@@ -204,6 +206,98 @@ describe('StageHubPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
 
     expect(await screen.findByText('The request could not be completed. Try again.')).toBeTruthy();
+  });
+
+  it('offers the format Select built from the stage’s own availableFormats (openspec 0251 task 4.1)', async () => {
+    render(
+      withIntl(
+        <StageHubPage
+          client={stubClient({
+            listStages: () =>
+              Promise.resolve([
+                stage({ availableFormats: ['round-robin', 'single-elimination', 'swiss'] }),
+              ]),
+          })}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    const select = (await waitFor(() => screen.getByLabelText('Format'))) as HTMLSelectElement;
+    const optionValues = Array.from(select.options).map((option) => option.value);
+    expect(optionValues).toEqual(['round-robin', 'single-elimination', 'swiss']);
+  });
+
+  it('shows a plain-string format description as the DecisionHint (openspec 0251 task 4.2)', async () => {
+    render(
+      withIntl(
+        <StageHubPage
+          client={stubClient({
+            listStages: () =>
+              Promise.resolve([
+                stage({
+                  formatDescriptions: {
+                    'round-robin': 'Every entrant plays every other entrant once',
+                  },
+                }),
+              ]),
+          })}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    expect(await screen.findByText('Every entrant plays every other entrant once')).toBeTruthy();
+  });
+
+  it('shows a LocalizedLabel format description resolved to the interface locale (openspec 0251 task 4.2)', async () => {
+    render(
+      withIntl(
+        <StageHubPage
+          client={stubClient({
+            listStages: () =>
+              Promise.resolve([
+                stage({
+                  formatDescriptions: {
+                    'round-robin': {
+                      en: 'Every team plays every other team once',
+                      es: 'Todos contra todos',
+                    },
+                  },
+                }),
+              ]),
+          })}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    expect(await screen.findByText('Every team plays every other team once')).toBeTruthy();
+    expect(screen.queryByText('Todos contra todos')).toBeNull();
+  });
+
+  it('renders no hint for a format the discipline declares no description for (openspec 0251 task 4.2)', async () => {
+    const { container } = render(
+      withIntl(
+        <StageHubPage
+          client={stubClient({
+            listStages: () => Promise.resolve([stage({ formatDescriptions: {} })]),
+          })}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByLabelText('Format'));
+    expect(container.querySelector('#stage-format-hint')).toBeNull();
   });
 
   it('links to seeding, zones and groups, standings and schedule', async () => {

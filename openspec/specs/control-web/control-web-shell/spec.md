@@ -298,3 +298,45 @@ The primary sidebar navigation SHALL remain fully reachable at mobile viewport w
 - **WHEN** the control panel is viewed at a mobile viewport width (≤430px)
 - **THEN** every primary sidebar section SHALL remain reachable through a collapse pattern (such as a
   hamburger menu or drawer), and no section SHALL be clipped off-screen with no way to reach it
+
+### Requirement: Composable Canonical Table Molecule
+The system SHALL provide a canonical table molecule conforming to the reference visual specification, supporting optional composable sub-widgets:
+1. Optional Header: Title, monospace descriptor subtitle (`Reglamento: [Discipline] (DisciplineDescriptor vX.Y.Z)`), and verification status badge (`• POSICIONES VERIFICADAS`).
+2. Table Core: Compact row height (~44px), floating sticky column headers, signed colored goal difference cells (`+` green, `-` red), highlighted cyan points, and optional `TIEBREAKER STATUS` badges.
+3. Optional Footer: Sequential tiebreaker pipeline flowchart with the triggered criterion highlighted in cyan, and an audit proof code (`Prueba de Auditoría #...`).
+
+#### Scenario: Table with full tiebreaker explainability
+- **WHEN** rendering verified group standings
+- **THEN** the table displays the header bar with descriptor version, verified badge, compact rows, tiebreaker status badges, and sequential pipeline flowchart footer.
+
+#### Scenario: Table without tiebreaker context (e.g. player rankings)
+- **WHEN** rendering a table that does not involve group tiebreakers (e.g. player goals)
+- **THEN** the table renders the canonical card frame, floating headers, and compact rows, cleanly omitting the tiebreaker status badges and flowchart footer.
+
+### Requirement: Interactive Column Headers with Descriptions and Tri-State Bidirectional Ordering
+Column headers in the canonical table molecule SHALL support:
+1. Column name / label.
+2. Descriptive tooltip explaining metric definitions or acronyms (e.g. "Partidos Jugados", "Diferencia de Gol") accessible on hover, focus, and via `aria-describedby`.
+3. Tri-state bidirectional ordering: `none` (original/natural standings order), `ascending`, and `descending`, communicating with the sorting algorithm and updating `aria-sort`.
+
+#### Scenario: Inspecting column description tooltip
+- **WHEN** an operator or spectator hovers over or focuses a column header with a description
+- **THEN** an accessible tooltip displays the full metric description without obscuring adjacent headers.
+
+#### Scenario: Tri-state column reordering
+- **WHEN** an operator or spectator repeatedly clicks a sortable column header
+- **THEN** the table row order cycles through primary direction, opposite direction, and returns to `none` (restoring the natural tiebreaker/original sequence), updating `aria-sort="none" | "ascending" | "descending"` accordingly.
+
+### Requirement: Floating Sticky Column Headers
+The table molecule SHALL enforce sticky column headers (`position: sticky; top: 0`) with dark high-contrast backdrop and box-shadow that remain anchored during vertical scroll.
+
+#### Scenario: Long table scroll
+- **WHEN** a table with many rows scrolls out of the viewport
+- **THEN** column headers remain fixed at the top of the container.
+
+### Requirement: Generic Multi-Zone and Multi-Group Topologies
+The table navigation shell SHALL dynamically support arbitrary tournament topologies consisting of $Z \ge 1$ zones and $G \ge 1$ groups per zone with variable team counts $P$.
+
+#### Scenario: Switching arbitrary groups
+- **WHEN** navigating between groups in any stage
+- **THEN** the active group name and participant count update in the table header, and rows strictly reflect that group.

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
+import { isSupportedLanguage } from '@copalibre/domain';
+import type { SupportedLanguage } from '../../../lib/language-preference.js';
 import type {
   ClubResponse,
   OrganizationMemberStatus,
@@ -13,8 +15,10 @@ import { Button } from '../ui/atoms/button.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
 import { Input } from '../ui/atoms/input.js';
 import { Select } from '../ui/atoms/select.js';
+import { DecisionHint } from '../ui/atoms/decision-hint.js';
 import { Form } from '../ui/atoms/form.js';
 import { Field } from '../ui/molecules/field.js';
+import { helpPageUrl } from '../../lib/control-navigation.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
 import { Modal } from '../ui/organisms/modal.js';
@@ -29,6 +33,31 @@ const ROLE_LABEL: Record<OrganizationRole, MessageDescriptor> = {
   broadcaster: messages.rolesRoleBroadcaster,
   viewer: messages.rolesRoleViewer,
 };
+
+/** Condensed from each role's own "What this role is for" help page (openspec 0251). */
+const ROLE_DESCRIPTION: Record<OrganizationRole, MessageDescriptor> = {
+  admin: messages.rolesDescriptionAdmin,
+  'club-admin': messages.rolesDescriptionClubAdmin,
+  'tournament-admin': messages.rolesDescriptionTournamentAdmin,
+  referee: messages.rolesDescriptionReferee,
+  broadcaster: messages.rolesDescriptionBroadcaster,
+  viewer: messages.rolesDescriptionViewer,
+};
+
+/** The "learn more" link beside a role `DecisionHint` — a plain `<a>`, not a `DecisionHint` prop (design.md - "Role hints link to the full manual page"): a real navigation to a separate Starlight route, the same reason `ControlShell.tsx`'s own help link opens this way. */
+function RoleLearnMoreLink({
+  role,
+  language,
+}: {
+  readonly role: OrganizationRole;
+  readonly language: SupportedLanguage;
+}): React.JSX.Element {
+  return (
+    <a href={helpPageUrl(language, `roles/${role}`)} rel="noopener noreferrer" target="_blank">
+      <FormattedMessage {...messages.rolesLearnMore} />
+    </a>
+  );
+}
 
 /** Every role this taxonomy declares, matching a super-admin's full grantable set. */
 const ALL_ROLES: readonly OrganizationRole[] = [
@@ -266,23 +295,30 @@ function RoleSelect({
   readonly onChange: (role: OrganizationRole) => void;
 }): React.JSX.Element {
   const intl = useIntl();
+  const language = isSupportedLanguage(intl.locale) ? intl.locale : 'en';
   const roles = assignableRoles.includes(row.role)
     ? assignableRoles
     : [row.role, ...assignableRoles];
+  const hintId = `role-hint-${row.assignmentId}`;
   return (
-    <Select
-      aria-label={intl.formatMessage(messages.rolesRoleOf, { email: row.email })}
-      disabled={disabled}
-      onValueChange={(val) => onChange(val as OrganizationRole)}
-      options={roles.map((role) => ({
-        value: role,
-        label: intl.formatMessage(ROLE_LABEL[role]),
-      }))}
-      title={
-        isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
-      }
-      value={row.role}
-    />
+    <>
+      <Select
+        aria-describedby={hintId}
+        aria-label={intl.formatMessage(messages.rolesRoleOf, { email: row.email })}
+        disabled={disabled}
+        onValueChange={(val) => onChange(val as OrganizationRole)}
+        options={roles.map((role) => ({
+          value: role,
+          label: intl.formatMessage(ROLE_LABEL[role]),
+        }))}
+        title={
+          isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
+        }
+        value={row.role}
+      />
+      <DecisionHint id={hintId} text={intl.formatMessage(ROLE_DESCRIPTION[row.role])} />
+      <RoleLearnMoreLink language={language} role={row.role} />
+    </>
   );
 }
 
@@ -373,6 +409,7 @@ export function InviteDialog({
   ) => Promise<void>;
 }): React.JSX.Element {
   const intl = useIntl();
+  const language = isSupportedLanguage(intl.locale) ? intl.locale : 'en';
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<OrganizationRole>(
     assignableRoles.includes('viewer') ? 'viewer' : (assignableRoles[0] ?? 'viewer'),
@@ -429,6 +466,7 @@ export function InviteDialog({
         </Field>
         <Field id="invite-role" label={intl.formatMessage(messages.rolesInviteDialogRole)}>
           <Select
+            aria-describedby="invite-role-hint"
             aria-label={intl.formatMessage(messages.rolesInviteDialogRoleAriaLabel)}
             id="invite-role"
             onValueChange={(val) => setRole(val as OrganizationRole)}
@@ -439,6 +477,8 @@ export function InviteDialog({
             value={role}
           />
         </Field>
+        <DecisionHint id="invite-role-hint" text={intl.formatMessage(ROLE_DESCRIPTION[role])} />
+        <RoleLearnMoreLink language={language} role={role} />
         {role === 'club-admin' && (
           <Field id="invite-club" label={intl.formatMessage(messages.rolesInviteDialogClub)}>
             <Select

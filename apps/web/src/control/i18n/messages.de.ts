@@ -369,6 +369,19 @@ export const messages: Record<string, string> = {
   'control.roles.role.referee': 'Schiedsrichter',
   'control.roles.role.broadcaster': 'Übertragung',
   'control.roles.role.viewer': 'Betrachter',
+  'control.roles.description.admin':
+    'Verwaltet alles, was die Organisation tut: erstellt und veröffentlicht Turniere, verwaltet jeden Benutzer, administriert jeden Verein und betreibt Spiele.',
+  'control.roles.description.clubAdmin':
+    'Verwaltet die Identität eines einzelnen Vereins (Name, Alias, Abkürzung und Emblem) ohne organisationsweiten Zugriff.',
+  'control.roles.description.tournamentAdmin':
+    'Leitet ein Turnier von Anfang bis Ende, ohne organisationsweite Reichweite.',
+  'control.roles.description.referee':
+    'Betreibt ein laufendes Spiel: erfasst Ereignisse, steuert die Uhr, löst Timer auf und wählt den Kader aus.',
+  'control.roles.description.broadcaster':
+    'Kennzeichnet jemanden, der eine Übertragung rund um ein Turnier produziert, statt es zu verwalten; gewährt heute keine operative Berechtigung.',
+  'control.roles.description.viewer':
+    'Die Organisationsrolle mit den wenigsten Rechten: gehört zur Organisation, ohne operative Berechtigungen zu gewähren.',
+  'control.roles.learnMore': 'Mehr erfahren',
   'control.roles.inviteDialog.close': 'Schließen',
   'control.registration.modalClose': 'Schließen',
   'control.shell.drawerClose': 'Menü schließen',

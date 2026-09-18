@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { isSupportedLanguage, resolveLabel, type LocalizedLabel } from '@copalibre/domain';
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
 import { Input } from '../ui/atoms/input.js';
+import { Select } from '../ui/atoms/select.js';
+import { DecisionHint } from '../ui/atoms/decision-hint.js';
 import { Field } from '../ui/molecules/field.js';
 import { messages } from '../../i18n/messages.en.js';
+import { resolveDecisionDescription } from '../../lib/wizard.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
 /**
@@ -14,11 +18,17 @@ import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
  * `SeedingBuilderPage.tsx`'s `StageSettingsSection` (openspec 0250, design.md
  * - "Relocation, not duplication"). The rename field now starts from the
  * stage's real current name instead of always blank, since `StageHubPage`
- * only mounts this once that name has actually loaded.
+ * only mounts this once that name has actually loaded. The format field is a
+ * guided `Select` sourced the same way `StageListEditor.tsx`'s is, with a
+ * `DecisionHint` resolving the selected format's own declared description —
+ * the first real caller of `formatDescriptions` anywhere in control-web
+ * (openspec 0251, design.md - "Stage hub format field").
  */
 function StageIdentitySection({
   currentName,
   currentFormat,
+  availableFormats,
+  formatDescriptions,
   seeded,
   onRename,
   onChangeFormat,
@@ -26,6 +36,8 @@ function StageIdentitySection({
 }: {
   readonly currentName: string;
   readonly currentFormat: string;
+  readonly availableFormats: readonly string[];
+  readonly formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
   readonly seeded: boolean;
   readonly onRename: (name: string) => Promise<void>;
   readonly onChangeFormat: (format: string) => Promise<void>;
@@ -34,6 +46,20 @@ function StageIdentitySection({
   const intl = useIntl();
   const [name, setName] = useState(currentName);
   const [format, setFormat] = useState(currentFormat);
+  const language = isSupportedLanguage(intl.locale) ? intl.locale : 'en';
+  const formatDescriptionValue = formatDescriptions?.[format];
+  const formatHintText = resolveDecisionDescription(
+    formatDescriptionValue === undefined
+      ? undefined
+      : resolveLabel(formatDescriptionValue, language),
+    undefined,
+  );
+  // The current format may not appear in the discipline's own declared list
+  // (e.g. a module downgrade after this stage was created) — offered anyway
+  // so the operator's existing selection is never silently dropped.
+  const formatOptions = availableFormats.includes(format)
+    ? availableFormats
+    : [format, ...availableFormats];
 
   return (
     <Card
@@ -59,13 +85,18 @@ function StageIdentitySection({
         </Button>
 
         <Field id="stage-format" label={intl.formatMessage(messages.stageFormatLabel)}>
-          <Input
+          <Select
+            aria-describedby={formatHintText === undefined ? undefined : 'stage-format-hint'}
             disabled={seeded}
             id="stage-format"
-            onChange={(event) => setFormat(event.target.value)}
+            onValueChange={setFormat}
+            options={formatOptions.map((value) => ({ value, label: value }))}
             value={format}
           />
         </Field>
+        {formatHintText !== undefined && (
+          <DecisionHint id="stage-format-hint" text={formatHintText} />
+        )}
         <Button
           disabled={seeded || format.trim() === ''}
           onClick={() => void onChangeFormat(format)}
@@ -104,6 +135,8 @@ export function StageHubTemplate({
   stageNumber,
   stageName,
   stageFormat,
+  availableFormats,
+  formatDescriptions,
   seeded,
   onRename,
   onChangeFormat,
@@ -114,6 +147,8 @@ export function StageHubTemplate({
   readonly stageNumber: number;
   readonly stageName: string;
   readonly stageFormat: string;
+  readonly availableFormats: readonly string[];
+  readonly formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
   readonly seeded: boolean;
   readonly onRename: (name: string) => Promise<void>;
   readonly onChangeFormat: (format: string) => Promise<void>;
@@ -142,8 +177,10 @@ export function StageHubTemplate({
   const listingNode = (
     <div className="cl-screen-sections">
       <StageIdentitySection
+        availableFormats={availableFormats}
         currentFormat={stageFormat}
         currentName={stageName}
+        formatDescriptions={formatDescriptions}
         onChangeFormat={onChangeFormat}
         onDelete={onDelete}
         onRename={onRename}

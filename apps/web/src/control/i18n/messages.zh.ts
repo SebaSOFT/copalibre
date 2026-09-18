@@ -358,6 +358,17 @@ export const messages: Record<string, string> = {
   'control.roles.role.referee': '裁判',
   'control.roles.role.broadcaster': '转播',
   'control.roles.role.viewer': '观察员',
+  'control.roles.description.admin':
+    '管理组织所做的一切：创建并发布赛事、管理每个用户、管理每个俱乐部并运营比赛。',
+  'control.roles.description.clubAdmin':
+    '管理单个俱乐部的身份（名称、别名、缩写和徽章），无需组织范围的访问权限。',
+  'control.roles.description.tournamentAdmin': '端到端运营一项赛事，不涉及组织的其他部分。',
+  'control.roles.description.referee':
+    '运营一场进行中的比赛：记录事件、控制时钟、处理计时器并选择名单。',
+  'control.roles.description.broadcaster':
+    '标识负责围绕赛事制作转播的人，而非管理赛事；目前不授予任何操作权限。',
+  'control.roles.description.viewer': '权限最低的组织角色：属于该组织，但不授予任何操作权限。',
+  'control.roles.learnMore': '了解更多',
   'control.roles.inviteDialog.close': '关闭',
   'control.registration.modalClose': '关闭',
   'control.shell.drawerClose': '关闭菜单',

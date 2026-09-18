@@ -1034,6 +1034,41 @@ export const messages = defineMessages({
   rolesRoleReferee: { id: 'control.roles.role.referee', defaultMessage: 'Referee' },
   rolesRoleBroadcaster: { id: 'control.roles.role.broadcaster', defaultMessage: 'Broadcast' },
   rolesRoleViewer: { id: 'control.roles.role.viewer', defaultMessage: 'Viewer' },
+  /**
+   * Condensed from each role's own "What this role is for" paragraph in
+   * apps/web/src/content/docs/help/roles/*.md — never claims authority that
+   * page does not (openspec 0251, control-web/roles-permissions spec).
+   */
+  rolesDescriptionAdmin: {
+    id: 'control.roles.description.admin',
+    defaultMessage:
+      'Runs everything the organization does — creating and publishing tournaments, managing every user, administering every club, and operating matches.',
+  },
+  rolesDescriptionClubAdmin: {
+    id: 'control.roles.description.clubAdmin',
+    defaultMessage:
+      "Manages one club's own identity — its name, alias, abbreviation and emblem — without organization-wide access.",
+  },
+  rolesDescriptionTournamentAdmin: {
+    id: 'control.roles.description.tournamentAdmin',
+    defaultMessage: 'Runs one tournament end to end, without organization-wide reach.',
+  },
+  rolesDescriptionReferee: {
+    id: 'control.roles.description.referee',
+    defaultMessage:
+      'Operates a live match — recording events, controlling the clock, resolving timers, and selecting a roster.',
+  },
+  rolesDescriptionBroadcaster: {
+    id: 'control.roles.description.broadcaster',
+    defaultMessage:
+      'Marks someone producing a broadcast around a tournament rather than administering it; grants no operator capability today.',
+  },
+  rolesDescriptionViewer: {
+    id: 'control.roles.description.viewer',
+    defaultMessage:
+      "The least-privileged organization role — belongs to the organization's taxonomy without granting any operator authority.",
+  },
+  rolesLearnMore: { id: 'control.roles.learnMore', defaultMessage: 'Learn more' },
   rolesInviteDialogClose: { id: 'control.roles.inviteDialog.close', defaultMessage: 'Close' },
   registrationModalClose: {
     id: 'control.registration.modalClose',

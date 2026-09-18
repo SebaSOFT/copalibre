@@ -4317,6 +4317,32 @@ export interface components {
             allocation?: components["schemas"]["StageAllocationRequest"];
             /** @description Whether this stage already holds a generated fixture. Present on the list read only — `create`/`update`/`remove` do not compute it. */
             seeded?: boolean;
+            /**
+             * @description The tournament's discipline-declared formats to choose from. Present on the list read only — `create`/`update`/`remove` do not compute it.
+             * @example [
+             *       "single-elimination",
+             *       "round-robin"
+             *     ]
+             */
+            availableFormats?: unknown[][];
+            /**
+             * @description The discipline's own explanation of a format it supports, keyed by format. Present on the list read only — `create`/`update`/`remove` do not compute it.
+             * @example {
+             *       "round-robin": "Every entrant plays every other entrant once"
+             *     }
+             */
+            formatDescriptions?: {
+                [key: string]: string | {
+                    en: string;
+                    es?: string;
+                    fr?: string;
+                    pt?: string;
+                    it?: string;
+                    de?: string;
+                    ru?: string;
+                    zh?: string;
+                };
+            };
         };
         CreateStageRequest: {
             /**

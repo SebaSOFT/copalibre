@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { jest } from '@jest/globals';
 import { RolesPermissionsTemplate } from './components/screens/RolesPermissionsTemplate.js';
 import { RolesPermissionsPage } from './components/pages/RolesPermissionsPage.js';
@@ -590,6 +590,127 @@ describe('roles and permissions control', () => {
 
     expect(rescindInvitation).toHaveBeenCalledWith('liga-mendocina', 'invite-1');
     await waitFor(() => expect(screen.queryByText('nuevo@example.test')).toBeNull());
+  });
+
+  it('shows the row’s role hint, changing once a different role is assigned (openspec 0251 task 7.1)', () => {
+    // RoleSelect is fully controlled by `row.role` (a change submits
+    // immediately, task 1's own test above proves that) — so "a different
+    // role selected" is exercised the same way the real app shows it: by the
+    // owning `rows` prop reflecting the newly-assigned role after the parent
+    // re-renders, not by firing a DOM change event this controlled Select
+    // would immediately revert.
+    const { rerender } = render(
+      withIntl(
+        <RolesPermissionsTemplate
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          organizationAlias="liga-mendocina"
+          rows={rows}
+        />,
+      ),
+    );
+
+    expect(
+      screen.getByText(
+        'Operates a live match — recording events, controlling the clock, resolving timers, and selecting a roster.',
+      ),
+    ).toBeTruthy();
+
+    rerender(
+      withIntl(
+        <RolesPermissionsTemplate
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          organizationAlias="liga-mendocina"
+          rows={[{ ...rows[0], role: 'viewer' }]}
+        />,
+      ),
+    );
+
+    expect(
+      screen.getByText(
+        "The least-privileged organization role — belongs to the organization's taxonomy without granting any operator authority.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.queryByText(
+        'Operates a live match — recording events, controlling the clock, resolving timers, and selecting a roster.',
+      ),
+    ).toBeNull();
+  });
+
+  it('links "learn more" to each role’s own help page, opening in a new tab (openspec 0251 task 7.2)', () => {
+    const rolesToPaths: Record<string, string> = {
+      admin: '/help/roles/admin',
+      'club-admin': '/help/roles/club-admin',
+      'tournament-admin': '/help/roles/tournament-admin',
+      referee: '/help/roles/referee',
+      broadcaster: '/help/roles/broadcaster',
+      viewer: '/help/roles/viewer',
+    };
+
+    for (const [role, path] of Object.entries(rolesToPaths)) {
+      const { unmount } = render(
+        withIntl(
+          <RolesPermissionsTemplate
+            loading={false}
+            onChange={async () => undefined}
+            onDelete={async () => undefined}
+            onInvite={async () => undefined}
+            organizationAlias="liga-mendocina"
+            rows={[{ ...rows[0], role: role as (typeof rows)[0]['role'] }]}
+          />,
+        ),
+      );
+
+      const link = screen.getByText('Learn more').closest('a') as HTMLAnchorElement;
+      expect(link.getAttribute('href')).toBe(path);
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+      unmount();
+    }
+  });
+
+  it('shows the invite dialog’s role hint and link, matching the selected role (openspec 0251 task 7.3)', () => {
+    render(
+      withIntl(
+        <RolesPermissionsTemplate
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          organizationAlias="liga-mendocina"
+          rows={rows}
+        />,
+      ),
+    );
+
+    fireEvent.click(screen.getByText('Add recipient'));
+    const dialog = within(screen.getByRole('dialog'));
+
+    expect(
+      dialog.getByText(
+        "The least-privileged organization role — belongs to the organization's taxonomy without granting any operator authority.",
+      ),
+    ).toBeTruthy();
+    expect(
+      (dialog.getByText('Learn more').closest('a') as HTMLAnchorElement).getAttribute('href'),
+    ).toBe('/help/roles/viewer');
+
+    fireEvent.change(screen.getByLabelText('Invitation role'), { target: { value: 'admin' } });
+
+    expect(
+      dialog.getByText(
+        'Runs everything the organization does — creating and publishing tournaments, managing every user, administering every club, and operating matches.',
+      ),
+    ).toBeTruthy();
+    expect(
+      (dialog.getByText('Learn more').closest('a') as HTMLAnchorElement).getAttribute('href'),
+    ).toBe('/help/roles/admin');
   });
 
   it('does not disable an admin row when a second active admin exists', () => {

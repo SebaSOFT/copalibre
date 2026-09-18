@@ -395,7 +395,13 @@ describe('stage creation routes (integration)', () => {
     const response = await request({ method: 'GET', url: base, token: 'organizer' });
 
     expect(response.statusCode).toBe(200);
-    const stages = response.json() as Array<{ number: number; name: string; seeded: boolean }>;
+    const stages = response.json() as Array<{
+      number: number;
+      name: string;
+      seeded: boolean;
+      availableFormats?: string[];
+      formatDescriptions?: Record<string, unknown>;
+    }>;
     expect(stages.length).toBeGreaterThanOrEqual(2);
 
     const seededStage = stages.find((stage) => stage.name === 'Fase E2E');
@@ -403,6 +409,72 @@ describe('stage creation routes (integration)', () => {
 
     const unseededStage = stages.find((stage) => stage.name !== 'Fase E2E');
     expect(unseededStage?.seeded).toBe(false);
+
+    // Task 2.1: `availableFormats` comes from the tournament's own discipline
+    // (`descriptor()` above declares no `formatDescriptions`, so that field
+    // stays absent — the "discipline declares none" half of the contract).
+    expect(unseededStage?.availableFormats).toEqual(
+      expect.arrayContaining(['round-robin', 'free-for-all', 'swiss', 'single-elimination']),
+    );
+    expect(unseededStage?.formatDescriptions).toBeUndefined();
+  });
+
+  it("exposes the tournament discipline's per-format descriptions, both plain string and localized (0251 task 2.1)", async () => {
+    const formatTournamentAlias = 'apertura-0066-formatos';
+    const discipline: DisciplineDescriptor = {
+      ...descriptor(),
+      descriptorId: '01890000-0000-7000-8000-0000000066a2',
+      version: '1.0.1',
+      formatDescriptions: {
+        'round-robin': 'Every entrant plays every other entrant once',
+        'single-elimination': { en: 'Single elimination bracket', es: 'Eliminación directa' },
+      },
+    } as unknown as DisciplineDescriptor;
+
+    await withTransaction(scratch.db, async (uow) => {
+      await new TournamentRepository(scratch.db).saveDescriptor(uow, discipline, {
+        organizationId,
+        ...AUDIT,
+      });
+      const tournament = await new TournamentRepository(scratch.db).create(uow, {
+        organizationId,
+        alias: formatTournamentAlias,
+        name: 'Apertura con formatos',
+        descriptor: discipline,
+        ...AUDIT,
+      });
+      await new TournamentRepository(scratch.db).createRuleset(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        descriptor: discipline,
+        overrides: { format: 'round-robin' },
+        ...AUDIT,
+      });
+    });
+
+    const formatBase = `/organizations/${organizationAlias}/tournaments/${formatTournamentAlias}/stages`;
+    const created = await request({
+      method: 'POST',
+      url: formatBase,
+      token: 'organizer',
+      payload: {},
+    });
+    expect(created.statusCode).toBe(201);
+
+    const response = await request({ method: 'GET', url: formatBase, token: 'organizer' });
+    expect(response.statusCode).toBe(200);
+    const [stage] = response.json() as Array<{
+      availableFormats?: string[];
+      formatDescriptions?: Record<string, unknown>;
+    }>;
+    expect(stage?.availableFormats).toEqual(
+      expect.arrayContaining(['round-robin', 'free-for-all', 'swiss', 'single-elimination']),
+    );
+    // Passed through byte-identical, unresolved — the API never picks a language.
+    expect(stage?.formatDescriptions).toEqual({
+      'round-robin': 'Every entrant plays every other entrant once',
+      'single-elimination': { en: 'Single elimination bracket', es: 'Eliminación directa' },
+    });
   });
 
   it(
