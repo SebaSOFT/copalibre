@@ -174,3 +174,25 @@ today, with no series indicator.
 - **WHEN** an operator views a bracket canvas node for a cross with no series declaration
 - **THEN** the node renders exactly as it does without this requirement, with no series indicator
 
+### Requirement: Bracket canvas renders one diagram per zone
+
+When a stage's fixtures declare more than one zone, the bracket canvas SHALL render one independent,
+correctly-scoped bracket diagram per zone, rather than one diagram assembled from every zone's fixtures
+combined. Seed order assignment and publishing operate on the stage's full entrant list unchanged —
+this requirement governs only how already-generated, zoned fixtures are displayed to the operator.
+
+#### Scenario: Viewing a multi-zone stage's canvas
+- **WHEN** an operator opens the bracket canvas for a stage whose fixtures declare $Z > 1$ zones
+- **THEN** the canvas renders $Z$ distinct bracket diagrams, each showing only that zone's own matches,
+  with real entrant/status data (not placeholders caused by another zone's fixture sharing the same
+  round and position)
+
+#### Scenario: A single-zone or un-zoned stage is unaffected
+- **WHEN** an operator opens the bracket canvas for a stage with exactly one zone or none declared
+- **THEN** the canvas renders exactly one bracket diagram, matching today's behavior
+
+#### Scenario: Seed editing remains scoped to the whole stage
+- **WHEN** an operator locks seeds, randomizes unlocked seeds, or publishes a seed order for a stage
+  whose canvas displays multiple zone diagrams
+- **THEN** the seed order interaction is unchanged — it still operates on the stage's one flat entrant
+  list, and publishing still regenerates one unzoned bracket, exactly as before this requirement

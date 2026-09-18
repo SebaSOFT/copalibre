@@ -24,13 +24,25 @@ export class TableRowResponse {
   @ApiPropertyOptional({ format: 'uuid', description: 'Present at team/entrant granularity' })
   entrantId?: string;
 
+  @ApiProperty({
+    description:
+      "The row's own headline identity — a team row's own name, or a person row's own name — regardless of which column code the discipline chose for its display column",
+  })
+  actorName!: string;
+
   @ApiPropertyOptional({
-    description: 'Resolved full entrant name for responsive team/entrant rows',
+    description:
+      "Resolved name of the row's affiliated entrant: its own identity for a team row, or the club it played for on a person row",
   })
   entrantName?: string;
 
   @ApiPropertyOptional({ description: 'Tournament-scoped entrant abbreviation, when resolved' })
   entrantAbbreviation?: string;
+
+  @ApiPropertyOptional({
+    description: 'ISO 3166-1 alpha-2 nationality code, present only at person granularity',
+  })
+  nationality?: string;
 
   @ApiProperty({ description: '1-based; rows sharing a rank were not separated by `defaultSort`' })
   rank!: number;

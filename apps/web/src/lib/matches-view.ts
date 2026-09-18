@@ -21,8 +21,12 @@ export interface MatchCardData {
   readonly awayScore?: number;
   readonly clockSeconds?: number;
   readonly venueName?: string;
-  /** Raw ISO instant. `scheduledAtLabel` is the already-localized display string. */
+  /**
+   * Raw ISO instant, rendered client-side via `ResponsiveTimestamp` so "today"
+   * is the viewer's calendar day, not the server's (openspec 0247).
+   */
   readonly scheduledAt?: string;
+  /** The full localized date/time, used only to fill the accessible label's `{time}` placeholder. */
   readonly scheduledAtLabel?: string;
   readonly latestEvent?: { readonly label: string; readonly occurredAt: string };
   readonly zoneName?: string;

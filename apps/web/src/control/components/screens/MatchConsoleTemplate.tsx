@@ -31,6 +31,7 @@ import { ClockRing } from '../ui/organisms/clock-ring.js';
 import { BracketCanvas } from '../BracketCanvas.js';
 import type { CanvasMatch } from '../../lib/bracket-canvas.js';
 import { EntrantName } from '../../../components/ui/atoms/EntrantName.js';
+import { ResponsiveTimestamp } from '../../../components/ui/atoms/ResponsiveTimestamp.js';
 import { JerseyGrid } from '../JerseyGrid.js';
 import { RosterSelectionStep } from '../RosterSelectionStep.js';
 import { MatchConsoleLayout } from '../ui/layouts/match-console-layout.js';
@@ -746,7 +747,7 @@ export function MatchConsoleTemplate({
                     ? null
                     : ` · ${formatClock(event.segmentElapsedSeconds)}`}
                 </strong>
-                <span>{new Date(event.occurredAt).toLocaleTimeString(intl.locale)}</span>
+                <ResponsiveTimestamp locale={intl.locale} timestamp={event.occurredAt} />
                 {event.notes ? <p className="cl-card__description">{event.notes}</p> : null}
               </li>
             ))}

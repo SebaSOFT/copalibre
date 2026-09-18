@@ -4,6 +4,7 @@
  * badge/scoreboard/venue header, unchanged in markup and styling.
  */
 import { Badge } from '../atoms/Badge.tsx';
+import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
 
 export interface Props {
@@ -38,7 +39,7 @@ const { model } = Astro.props;
   {
     model.scheduledAt ? (
       <p class="cl-match-venue">
-        <time datetime={model.scheduledAt}>{model.scheduledAt}</time>
+        <ResponsiveTimestamp client:load timestamp={model.scheduledAt} />
         {model.venueName ? ` · ${model.venueName}` : ''}
       </p>
     ) : model.status === 'upcoming' ? (

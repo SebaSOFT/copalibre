@@ -648,12 +648,15 @@ async function personActors(
   const nameOf = new Map<string, string>();
   const entrantOf = new Map<string, string>();
   const rolesOf = new Map<string, Set<string>>();
+  /** Snapshotted at roster-selection time alongside name/number/roles (openspec 0247). */
+  const nationalityOf = new Map<string, string>();
 
   for (const row of rows) {
     for (const member of row.roster_members) {
       if (!candidateIds.has(member.personId)) continue;
       nameOf.set(member.personId, member.name);
       entrantOf.set(member.personId, row.entrant_id);
+      if (member.nationality !== undefined) nationalityOf.set(member.personId, member.nationality);
       const roles = rolesOf.get(member.personId) ?? new Set<string>();
       for (const role of member.roles ?? []) roles.add(role);
       rolesOf.set(member.personId, roles);
@@ -665,14 +668,19 @@ async function personActors(
 
   return [...candidateIds].map((personId) => {
     const entrantId = entrantOf.get(personId);
-    const teamName = entrantId ? entrantNames.get(entrantId)?.name : undefined;
+    const entry = entrantId ? entrantNames.get(entrantId) : undefined;
     const roles = rolesOf.get(personId);
     return {
       actorId: personId,
       ...(entrantId === undefined ? {} : { entrantId }),
       name: nameOf.get(personId) ?? personId,
-      ...(teamName === undefined ? {} : { teamName }),
+      // `teamName` feeds the `team-name` column source; `entrantName`/
+      // `entrantAbbreviation` feed the row's own affiliation fields — both
+      // read off the same resolved entrant, for two different consumers.
+      ...(entry?.name === undefined ? {} : { teamName: entry.name, entrantName: entry.name }),
+      ...(entry?.abbreviation === undefined ? {} : { entrantAbbreviation: entry.abbreviation }),
       ...(roles && roles.size > 0 ? { roles: [...roles] } : {}),
+      ...(nationalityOf.has(personId) ? { nationality: nationalityOf.get(personId) } : {}),
     };
   });
 }

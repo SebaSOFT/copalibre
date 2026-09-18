@@ -14594,13 +14594,21 @@
             "format": "uuid",
             "description": "Present at team/entrant granularity"
           },
+          "actorName": {
+            "type": "string",
+            "description": "The row's own headline identity — a team row's own name, or a person row's own name — regardless of which column code the discipline chose for its display column"
+          },
           "entrantName": {
             "type": "string",
-            "description": "Resolved full entrant name for responsive team/entrant rows"
+            "description": "Resolved name of the row's affiliated entrant: its own identity for a team row, or the club it played for on a person row"
           },
           "entrantAbbreviation": {
             "type": "string",
             "description": "Tournament-scoped entrant abbreviation, when resolved"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 nationality code, present only at person granularity"
           },
           "rank": {
             "type": "number",
@@ -14621,6 +14629,7 @@
         },
         "required": [
           "actorId",
+          "actorName",
           "rank",
           "sharedRank",
           "cells"

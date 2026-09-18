@@ -1,5 +1,9 @@
 /**
  * Formatters for the administrative activity feed and audit trail.
+ *
+ * Relative-time formatting used to live here (`formatRelativeTime`); it now
+ * lives in `components/ui/atoms/ResponsiveTimestamp.tsx`'s `relative` format,
+ * which `ActivityLog.tsx` renders through directly (openspec 0247).
  */
 
 const ACTION_DESCRIPTIONS: Readonly<Record<string, { readonly es: string; readonly en: string }>> =
@@ -53,41 +57,4 @@ export function formatActivityAction(action: string, locale = 'es'): string {
   const suffix = action.includes('.') ? action.split('.').slice(1).join(' ') : action;
   const humanized = suffix.replace(/[-_]/g, ' ').trim();
   return humanized.charAt(0).toUpperCase() + humanized.slice(1);
-}
-
-/**
- * Formats an ISO date string into a relative time string using Intl.RelativeTimeFormat.
- */
-export function formatRelativeTime(
-  isoDate: string | Date,
-  now: number = Date.now(),
-  locale = 'es',
-): string {
-  const date = typeof isoDate === 'string' ? new Date(isoDate) : isoDate;
-  const elapsedSeconds = Math.round((date.getTime() - now) / 1000);
-  const absSeconds = Math.abs(elapsedSeconds);
-  const isSpanish = locale.toLowerCase().startsWith('es');
-
-  if (Number.isNaN(elapsedSeconds)) {
-    return String(isoDate);
-  }
-
-  if (absSeconds < 45) {
-    return isSpanish ? 'hace un momento' : 'just now';
-  }
-
-  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
-
-  if (absSeconds < 3600) {
-    const minutes = Math.round(elapsedSeconds / 60);
-    return formatter.format(minutes, 'minute');
-  }
-
-  if (absSeconds < 86400) {
-    const hours = Math.round(elapsedSeconds / 3600);
-    return formatter.format(hours, 'hour');
-  }
-
-  const days = Math.round(elapsedSeconds / 86400);
-  return formatter.format(days, 'day');
 }

@@ -10,6 +10,8 @@ import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
 import type { ClubView } from '../../../lib/overview.ts';
 import EmblemImage from '../atoms/EmblemImage.astro';
 import Button from '../atoms/Button.astro';
+import { EntrantName } from '../atoms/EntrantName.tsx';
+import { ResponsivePlayerName } from '../atoms/ResponsivePlayerName.tsx';
 
 interface Props {
   /** The declared layouts for building the tab strip. */
@@ -220,8 +222,22 @@ const isPlayerRanking =
                           data-player-id={row.actorId}
                           data-profile-url={apiProfileUrl}
                         >
-                          {cellFormatted}
+                          <ResponsivePlayerName
+                            client:load
+                            fullName={row.actorName ?? cellFormatted}
+                            nationalityCode={row.nationality}
+                          />
                         </a>
+                      ) : isPlayerNameCell ? (
+                        cellFormatted
+                      ) : column.code === 'name' ||
+                        column.code === 'entrant' ||
+                        column.code === 'team' ? (
+                        <EntrantName
+                          abbreviation={row.entrantAbbreviation}
+                          client:load
+                          fullName={row.entrantName ?? cellFormatted}
+                        />
                       ) : (
                         cellFormatted
                       )}
