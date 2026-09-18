@@ -113,4 +113,73 @@ describe('the StandingsPanel composition', () => {
     expect(container.querySelector('.cl-standings-panel__rank')).not.toBeNull();
     expect(container.querySelector('.cl-standings-panel__figure')).not.toBeNull();
   });
+
+  it('renders the header bar with no descriptor or verified badge when neither is given', () => {
+    const { container } = renderPanel();
+    expect(container.querySelector('.cl-standings-panel__subtitle')).toBeNull();
+    expect(container.querySelector('.cl-badge--verified')).toBeNull();
+  });
+
+  it('renders the descriptor subtitle and verified badge when both are given', () => {
+    renderPanel({
+      descriptorSubtitle: 'Reglamento: Football-Standard (DisciplineDescriptor v1.2.0)',
+      verifiedLabel: 'Standings verified',
+    });
+    expect(
+      screen.getByText('Reglamento: Football-Standard (DisciplineDescriptor v1.2.0)'),
+    ).not.toBeNull();
+    expect(screen.getByText('Standings verified')).not.toBeNull();
+  });
+
+  it('leaves row density and header position unchanged unless compact/stickyHeader are set', () => {
+    const { container } = renderPanel();
+    expect(container.querySelector('.cl-data-table--compact')).toBeNull();
+    expect(container.querySelector('.cl-data-table--sticky')).toBeNull();
+  });
+
+  it('opts a table into compact density and a sticky header on request', () => {
+    const { container } = renderPanel({ compact: true, stickyHeader: true });
+    expect(container.querySelector('.cl-data-table--compact')).not.toBeNull();
+    expect(container.querySelector('.cl-data-table--sticky')).not.toBeNull();
+  });
+
+  it('shows the tiebreaker title and the audit proof code on the same footer row', () => {
+    renderPanel({
+      auditProofCode: 'Audit Proof #TP-982',
+      tiebreakers: table.tiebreakerCodes.map((code, index) => ({
+        step: index + 1,
+        label: code,
+        triggered: code === table.decidingCode,
+      })),
+      tiebreakerTitle: 'Configured tiebreaker pipeline',
+    });
+    const heading = document.querySelector('.cl-standings-panel__footer-heading');
+    expect(heading?.textContent).toContain('Configured tiebreaker pipeline');
+    expect(heading?.textContent).toContain('Audit Proof #TP-982');
+  });
+
+  it('shows an audit proof code even where the format declares no tiebreaker chain', () => {
+    renderPanel({ auditProofCode: 'Audit Proof #TP-982' });
+    expect(screen.getByText('Audit Proof #TP-982')).not.toBeNull();
+  });
+});
+
+describe('StandingsFigure tone', () => {
+  it('carries no tone class by default', () => {
+    const { container } = render(<StandingsFigure>10</StandingsFigure>);
+    expect(container.querySelector('.cl-standings-panel__figure')?.className).toBe(
+      'cl-standings-panel__figure',
+    );
+  });
+
+  it('applies the positive/negative/emphasis modifier class the caller names', () => {
+    const { container: positive } = render(<StandingsFigure tone="positive">+6</StandingsFigure>);
+    expect(positive.querySelector('.cl-standings-panel__figure--positive')?.textContent).toBe('+6');
+
+    const { container: negative } = render(<StandingsFigure tone="negative">-6</StandingsFigure>);
+    expect(negative.querySelector('.cl-standings-panel__figure--negative')?.textContent).toBe('-6');
+
+    const { container: emphasis } = render(<StandingsFigure tone="emphasis">12</StandingsFigure>);
+    expect(emphasis.querySelector('.cl-standings-panel__figure--emphasis')?.textContent).toBe('12');
+  });
 });
