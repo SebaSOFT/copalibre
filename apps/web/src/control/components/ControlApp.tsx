@@ -21,8 +21,10 @@ import {
   RolesPermissionsControlRoute,
   ScheduleControlRoute,
   SeedingControlRoute,
+  StageHubControlRoute,
   StandingsControlRoute,
   TournamentAuthoringControlRoute,
+  TournamentHubControlRoute,
   TournamentsControlRoute,
   VenueManagementControlRoute,
   ZoneGroupControlRoute,
@@ -182,6 +184,19 @@ const ROUTE_COMPONENT_BY_SCREEN: ScreenComponents = {
       personId={route.personId}
     />
   ),
+  tournamentHub: (route) => (
+    <TournamentHubControlRoute
+      organizationAlias={route.organizationAlias}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
+  stageHub: (route) => (
+    <StageHubControlRoute
+      organizationAlias={route.organizationAlias}
+      stageNumber={route.stageNumber}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
   registrations: (route) => (
     <RegistrationReviewControlRoute
       // Sample-data literal from the replaced .astro file, preserved
@@ -312,6 +327,8 @@ const TITLE_BY_SCREEN: TitleByScreen = {
   clubs: (route) => `Clubs — ${route.organizationAlias}`,
   resources: (route) => `Venues and officials — ${route.organizationAlias}`,
   personProfile: (route) => `Person profile — ${route.organizationAlias}`,
+  tournamentHub: (route) => `Stages — ${route.tournamentAlias}`,
+  stageHub: (route) => `Stage ${route.stageNumber} — ${route.tournamentAlias}`,
   registrations: (route) => `Registrations — ${route.tournamentAlias}`,
   tournamentSettings: (route) => `Tournament settings — ${route.tournamentAlias}`,
   tournamentRuleset: (route) => `Tournament ruleset — ${route.tournamentAlias}`,

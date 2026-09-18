@@ -3,6 +3,7 @@ import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { BracketCanvas } from '../BracketCanvas.js';
 import { Button } from '../ui/atoms/button.js';
+import { controlLinkClick } from '../../lib/control-navigation.js';
 import type { CanvasMatch } from '../../lib/bracket-canvas.js';
 import { canRedo, canUndo, initHistory, push, redo, undo } from '../../lib/history.js';
 import { isDirty, randomizeUnlocked, toggleLock, type SeedAssignment } from '../../lib/seeding.js';
@@ -29,6 +30,7 @@ export function SeedingBuilderTemplate({
   organizationAlias,
   tournamentAlias,
   tournamentName,
+  stageNumber,
   seeds,
   zones,
   names = {},
@@ -44,6 +46,8 @@ export function SeedingBuilderTemplate({
    */
   readonly tournamentAlias?: string;
   readonly tournamentName: string;
+  /** Present when the caller knows it — used only to link the breadcrumb back to the stage hub. */
+  readonly stageNumber?: number;
   readonly seeds: readonly SeedAssignment[];
   /**
    * One entry per zone the stage's fixtures already declare — always exactly one entry, with no
@@ -68,9 +72,21 @@ export function SeedingBuilderTemplate({
 
   const apply = (next: readonly SeedAssignment[]): void => setHistory((state) => push(state, next));
 
+  const stageHubHref =
+    tournamentAlias !== undefined && stageNumber !== undefined
+      ? `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`
+      : undefined;
   const breadcrumbNode = (
     <span>
       {organizationAlias} &gt; {tournamentName}
+      {stageHubHref !== undefined && (
+        <>
+          {' · '}
+          <a className="cl-focusable" href={stageHubHref} onClick={controlLinkClick(stageHubHref)}>
+            <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
+          </a>
+        </>
+      )}
     </span>
   );
 

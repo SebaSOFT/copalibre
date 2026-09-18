@@ -19,6 +19,7 @@ import {
   type ActiveSort,
 } from '../../lib/table-projections.js';
 import { messages } from '../../i18n/messages.en.js';
+import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
@@ -44,6 +45,8 @@ export function StandingsTemplate({
   status,
   tournamentName,
   organizationAlias,
+  tournamentAlias,
+  stageNumber,
   onExpand,
   onExportCsv,
   groupSelector,
@@ -56,6 +59,9 @@ export function StandingsTemplate({
   readonly status?: string;
   readonly tournamentName: string;
   readonly organizationAlias: string;
+  /** Present when the caller knows it — used only to link the breadcrumb back to the stage hub. */
+  readonly tournamentAlias?: string;
+  readonly stageNumber?: number;
   /** Fetches one row's trace lines; called the first time a `group-phase` row is expanded. */
   readonly onExpand?: (entrantId: string) => Promise<readonly string[]>;
   readonly onExportCsv?: () => void;
@@ -179,6 +185,10 @@ export function StandingsTemplate({
     return baseCols;
   }, [projection, columns, sort, isGroupPhase, intl, decidingCode]);
 
+  const stageHubHref =
+    tournamentAlias !== undefined && stageNumber !== undefined
+      ? `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`
+      : undefined;
   const breadcrumbNode = (
     <span>
       {organizationAlias} &gt; {tournamentName}
@@ -188,6 +198,14 @@ export function StandingsTemplate({
           {intl.formatMessage(messages.standingsProjectionVersion, {
             version: projection.projectionVersion,
           })}
+        </>
+      )}
+      {stageHubHref !== undefined && (
+        <>
+          {' · '}
+          <a className="cl-focusable" href={stageHubHref} onClick={controlLinkClick(stageHubHref)}>
+            <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
+          </a>
         </>
       )}
     </span>

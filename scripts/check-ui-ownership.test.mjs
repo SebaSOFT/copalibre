@@ -422,13 +422,14 @@ test('the owned-class register ratchets down, naming its own register', () => {
 });
 
 test('the two registers ratchet independently on the same file', () => {
-  // control/components/pages/SeedingBuilderPage.tsx is recorded at 5 raw governed
-  // elements and 2 owned classes. Meeting one register while missing the other
-  // reports only the one missed.
+  // control/components/pages/SeedingBuilderPage.tsx is recorded at 3 raw governed
+  // elements and 1 owned class (openspec 0250 lowered both by relocating
+  // `StageSettingsSection`'s markup). Meeting one register exactly while
+  // under-supplying the other reports only the one that needs ratcheting down.
   const input = ['<input', '  type="text"', '/>'].join('\n');
   const violations = checkFileOwnership(
     'control/components/pages/SeedingBuilderPage.tsx',
-    [...Array(5).fill(input), '<div className="cl-card" />'].join('\n'),
+    Array(3).fill(input).join('\n'),
   );
   assert.equal(violations.length, 1);
   assert.match(violations[0].message, /KNOWN_HANDWRITTEN_CLASSES/);

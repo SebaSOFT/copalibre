@@ -5069,6 +5069,57 @@
       }
     },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages": {
+      "get": {
+        "description": "Number, name and format for every stage, plus whether each already holds a generated fixture — an organizer’s stage list carries no more sensitivity than its zone list.",
+        "operationId": "StagesController_list",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StageResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List a tournament’s stages",
+        "tags": [
+          "stages"
+        ]
+      },
       "post": {
         "description": "Number, name and format all default. Fixtures are not generated here — publish a seed order via POST .../stages/:stageNumber/seeding afterward.",
         "operationId": "StagesController_create",
@@ -14973,42 +15024,6 @@
           "persisted"
         ]
       },
-      "CreateStageRequest": {
-        "type": "object",
-        "properties": {
-          "number": {
-            "type": "number",
-            "description": "Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.",
-            "example": 1
-          },
-          "name": {
-            "type": "string",
-            "description": "Defaults to \"Stage {number}\".",
-            "example": "Fase de grupos"
-          },
-          "format": {
-            "type": "string",
-            "description": "Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.",
-            "example": "round-robin"
-          },
-          "series": {
-            "description": "Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross, requiring no further action.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SeriesDeclarationRequest"
-              }
-            ]
-          },
-          "allocation": {
-            "description": "Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/StageAllocationRequest"
-              }
-            ]
-          }
-        }
-      },
       "StageResponse": {
         "type": "object",
         "properties": {
@@ -15049,6 +15064,10 @@
                 "$ref": "#/components/schemas/StageAllocationRequest"
               }
             ]
+          },
+          "seeded": {
+            "type": "boolean",
+            "description": "Whether this stage already holds a generated fixture. Present on the list read only — `create`/`update`/`remove` do not compute it."
           }
         },
         "required": [
@@ -15058,6 +15077,42 @@
           "name",
           "format"
         ]
+      },
+      "CreateStageRequest": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Defaults to \"Stage {number}\".",
+            "example": "Fase de grupos"
+          },
+          "format": {
+            "type": "string",
+            "description": "Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.",
+            "example": "round-robin"
+          },
+          "series": {
+            "description": "Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross, requiring no further action.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
+          },
+          "allocation": {
+            "description": "Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageAllocationRequest"
+              }
+            ]
+          }
+        }
       },
       "UpdateStageRequest": {
         "type": "object",

@@ -829,6 +829,13 @@ export class StageResponse {
     description: 'Absent when this stage declares no allocation.',
   })
   allocation?: StageAllocationRequest;
+
+  @ApiPropertyOptional({
+    description:
+      'Whether this stage already holds a generated fixture. Present on the list read only — ' +
+      '`create`/`update`/`remove` do not compute it.',
+  })
+  seeded?: boolean;
 }
 
 /** A partial edit — rename is always permitted; a format change is refused once the stage holds a fixture. */

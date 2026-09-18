@@ -42,6 +42,27 @@ describe('SeedingBuilderTemplate', () => {
     expect(screen.getByText('Independiente Rivadavia')).toBeDefined();
   });
 
+  it('links its breadcrumb back to the stage hub when a tournament alias and stage number are supplied', async () => {
+    render(
+      withIntl(
+        <SeedingBuilderTemplate
+          hasRecordedResults={false}
+          zones={[]}
+          organizationAlias="liga-mendocina"
+          seeds={[]}
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+          tournamentName="Apertura 2026"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: /seeding/i }));
+    expect(screen.getByRole('link', { name: 'Stage 1' }).getAttribute('href')).toBe(
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
+    );
+  });
+
   it('links a resolved bracket node to its match console when a tournament alias is supplied', () => {
     render(
       withIntl(

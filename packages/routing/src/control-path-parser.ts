@@ -33,6 +33,12 @@ export type ControlRoute =
       readonly personId: string;
     }
   | {
+      /** The tournament hub: lists the tournament's stages (bare `/tournaments/{tournamentAlias}`). */
+      readonly screen: 'tournamentHub';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+    }
+  | {
       readonly screen: 'registrations';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
@@ -71,6 +77,13 @@ export type ControlRoute =
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
       readonly matchId: string;
+    }
+  | {
+      /** The stage hub: identity (rename/format/delete) plus links to this stage's own tools (bare `/stages/{stageNumber}`). */
+      readonly screen: 'stageHub';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+      readonly stageNumber: number;
     }
   | {
       readonly screen: 'seeding';
@@ -230,6 +243,14 @@ const TOURNAMENT_SCOPED_ROUTES: readonly {
   ) => ControlRoute | undefined;
 }[] = [
   {
+    matches: (rest) => rest.length === 2,
+    build: (organizationAlias, tournamentAlias) => ({
+      screen: 'tournamentHub',
+      organizationAlias,
+      tournamentAlias,
+    }),
+  },
+  {
     matches: (rest) => rest.length === 3 && rest[2] === 'registrations',
     build: (organizationAlias, tournamentAlias) => ({
       screen: 'registrations',
@@ -283,6 +304,14 @@ const TOURNAMENT_SCOPED_ROUTES: readonly {
       const matchId = rest[3];
       if (matchId === undefined) return undefined;
       return { screen: 'loadMatchData', organizationAlias, tournamentAlias, matchId };
+    },
+  },
+  {
+    matches: (rest) => rest.length === 4 && rest[2] === 'stages',
+    build: (organizationAlias, tournamentAlias, rest) => {
+      const stageNumber = Number(rest[3]);
+      if (!Number.isFinite(stageNumber)) return undefined;
+      return { screen: 'stageHub', organizationAlias, tournamentAlias, stageNumber };
     },
   },
   {
