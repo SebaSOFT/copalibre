@@ -1999,5 +1999,248 @@ describe('public projections routes', () => {
       );
       expect(otherGoldSlot.emblemObjectId).toBeUndefined();
     });
+
+    it('gives every zone a distinct, stage-wide matchNumber that matchReport() resolves back to the same match (openspec 0249)', async () => {
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/copa-multizona-bracket/stages/1/bracket`,
+      });
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      const goldZone = body.zones.find((z: { zoneName?: string }) => z.zoneName === 'Copa de Oro');
+      const silverZone = body.zones.find(
+        (z: { zoneName?: string }) => z.zoneName === 'Copa de Plata',
+      );
+
+      // Both zones' terminal round-1/position-1 node would carry the same
+      // synthesized number if it were still derived per zone (each zone's
+      // own graph restarts at round 1, position 1) — the fix is that the
+      // server now attaches a real, stage-wide ordinal instead.
+      const goldNumber = goldZone.matches[0].matchNumber;
+      const silverNumber = silverZone.matches[0].matchNumber;
+      expect(goldNumber).toEqual(expect.any(Number));
+      expect(silverNumber).toEqual(expect.any(Number));
+      expect(goldNumber).not.toBe(silverNumber);
+
+      const goldEntrantIds = goldZone.matches[0].slots.map(
+        (s: { entrantId?: string }) => s.entrantId,
+      );
+      const silverEntrantIds = silverZone.matches[0].slots.map(
+        (s: { entrantId?: string }) => s.entrantId,
+      );
+
+      const goldReport = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/copa-multizona-bracket/stages/1/matches/${goldNumber}`,
+      });
+      expect(goldReport.statusCode).toBe(200);
+      const goldReportBody = goldReport.json();
+      expect([goldReportBody.homeEntrantId, goldReportBody.awayEntrantId]).toEqual(
+        expect.arrayContaining(goldEntrantIds),
+      );
+
+      const silverReport = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/copa-multizona-bracket/stages/1/matches/${silverNumber}`,
+      });
+      expect(silverReport.statusCode).toBe(200);
+      const silverReportBody = silverReport.json();
+      expect([silverReportBody.homeEntrantId, silverReportBody.awayEntrantId]).toEqual(
+        expect.arrayContaining(silverEntrantIds),
+      );
+    });
+  });
+
+  describe('match report lookup (openspec 0249)', () => {
+    let tournamentAlias: string;
+    let groupAId: string;
+    let groupBId: string;
+
+    beforeAll(async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const competition = new CompetitionRepository(scratch.db);
+      const enrollments = new EnrollmentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+
+      const created = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-numeracion-ambigua',
+          name: 'Copa Numeración Ambigua',
+          descriptor,
+          ...audit,
+        }),
+      );
+      tournamentAlias = created.alias;
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.publish(uow, { tournamentId: created.tournamentId, organizationId, ...audit }),
+      );
+
+      await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        async function team(alias: string, name: string, abbreviation: string): Promise<string> {
+          const club = await enrollments.createClub(uow, {
+            organizationId,
+            alias: `club-${alias}`,
+            name: `Club ${name}`,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+          const registeredTeam = await enrollments.createTeam(uow, {
+            organizationId,
+            alias: `team-${alias}`,
+            name,
+            clubId: club.clubId,
+            ...audit,
+          });
+          const entrant = await enrollments.registerEntrant(uow, {
+            tournamentId: created.tournamentId,
+            organizationId,
+            entrantRef: { kind: 'team', teamId: registeredTeam.teamId },
+            abbreviation,
+            ...audit,
+          });
+          return entrant.entrantId;
+        }
+
+        const stage = await competition.createStageInTournament(uow, {
+          tournamentId: created.tournamentId,
+          number: 1,
+          name: 'Fase de grupos',
+          format: 'round-robin',
+          organizationId,
+          ...audit,
+        });
+
+        const zone = await competition.createZone(uow, {
+          stageId: stage.stageId,
+          number: 1,
+          name: 'Zona única',
+          organizationId,
+          ...audit,
+        });
+        const groupA = await competition.createGroup(uow, {
+          zoneId: zone.zoneId,
+          number: 1,
+          name: 'Grupo A',
+          organizationId,
+          ...audit,
+        });
+        const groupB = await competition.createGroup(uow, {
+          zoneId: zone.zoneId,
+          number: 2,
+          name: 'Grupo B',
+          organizationId,
+          ...audit,
+        });
+        groupAId = groupA.groupId;
+        groupBId = groupB.groupId;
+
+        const [a1, a2, a3, b1, b2] = await Promise.all([
+          team('amb-a1', 'Ambigua A1', 'AA1'),
+          team('amb-a2', 'Ambigua A2', 'AA2'),
+          team('amb-a3', 'Ambigua A3', 'AA3'),
+          team('amb-b1', 'Ambigua B1', 'AB1'),
+          team('amb-b2', 'Ambigua B2', 'AB2'),
+        ]);
+
+        // Every fixture here is a single, non-series game — `matches.number`
+        // is 1 for every one of them, the exact collision `matchReport()`
+        // used to resolve arbitrarily. Two fixtures share Grupo A so the
+        // group-filtered matches-view read has more than one row to check.
+        await competition.createFixtures(uow, {
+          stageId: stage.stageId,
+          fixtures: [
+            {
+              round: 1,
+              homeEntrantId: a1,
+              awayEntrantId: a2,
+              zoneId: zone.zoneId,
+              groupId: groupA.groupId,
+            },
+            {
+              round: 1,
+              homeEntrantId: a3,
+              awayEntrantId: a1,
+              zoneId: zone.zoneId,
+              groupId: groupA.groupId,
+            },
+            {
+              round: 1,
+              homeEntrantId: b1,
+              awayEntrantId: b2,
+              zoneId: zone.zoneId,
+              groupId: groupB.groupId,
+            },
+          ],
+          organizationId,
+          ...audit,
+        });
+      });
+    });
+
+    it('resolves a distinct match for every matchNumber in a stage where every fixture shares matches.number = 1', async () => {
+      const seen = new Map<string, { readonly home?: string; readonly away?: string }>();
+      for (const matchNumber of [1, 2, 3]) {
+        const response = await request({
+          method: 'GET',
+          url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/1/matches/${matchNumber}`,
+        });
+        expect(response.statusCode).toBe(200);
+        const body = response.json();
+        seen.set(String(matchNumber), { home: body.homeEntrantId, away: body.awayEntrantId });
+      }
+      // Three requested ordinals resolved three distinct matches, not the same row repeated.
+      const pairs = [...seen.values()].map((v) => `${v.home}:${v.away}`);
+      expect(new Set(pairs).size).toBe(3);
+
+      const notFound = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/1/matches/4`,
+      });
+      expect(notFound.statusCode).toBe(404);
+    });
+
+    it('reports the same matchNumber for a match whether the matches-view request is group-filtered or not', async () => {
+      const unfiltered = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/matches-view?stageNumber=1`,
+      });
+      expect(unfiltered.statusCode).toBe(200);
+      const unfilteredByMatchId = new Map<string, number>(
+        unfiltered
+          .json()
+          .matches.map((m: { matchId: string; matchNumber: number }) => [m.matchId, m.matchNumber]),
+      );
+
+      const filtered = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/matches-view?stageNumber=1&groupId=${groupAId}`,
+      });
+      expect(filtered.statusCode).toBe(200);
+      const filteredMatches = filtered.json().matches as { matchId: string; matchNumber: number }[];
+      expect(filteredMatches).toHaveLength(2);
+      for (const match of filteredMatches) {
+        expect(match.matchNumber).toBe(unfilteredByMatchId.get(match.matchId));
+      }
+
+      const otherGroupFiltered = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/matches-view?stageNumber=1&groupId=${groupBId}`,
+      });
+      expect(otherGroupFiltered.statusCode).toBe(200);
+      const otherGroupMatches = otherGroupFiltered.json().matches as {
+        matchId: string;
+        matchNumber: number;
+      }[];
+      expect(otherGroupMatches).toHaveLength(1);
+      for (const match of otherGroupMatches) {
+        expect(match.matchNumber).toBe(unfilteredByMatchId.get(match.matchId));
+      }
+
+      // No two matches across the whole stage share a matchNumber, group filter or not.
+      const allNumbers = [...filteredMatches, ...otherGroupMatches].map((m) => m.matchNumber);
+      expect(new Set(allNumbers).size).toBe(allNumbers.length);
+    });
   });
 });

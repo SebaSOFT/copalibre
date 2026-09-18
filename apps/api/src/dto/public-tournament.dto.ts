@@ -465,6 +465,14 @@ export class PublicBracketMatchResponse {
   @ApiPropertyOptional()
   format?: string;
 
+  @ApiPropertyOptional({
+    description:
+      "The match's stage-unique ordinal for the public report page's URL — present only when this " +
+      'graph node resolved to a real persisted match; a purely theoretical winner-of/loser-of ' +
+      'placeholder has none yet',
+  })
+  matchNumber?: number;
+
   @ApiProperty({ type: [PublicBracketSlotResponse] })
   slots!: PublicBracketSlotResponse[];
 

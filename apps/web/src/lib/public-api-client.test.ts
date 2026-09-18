@@ -652,6 +652,53 @@ describe('public-api-client', () => {
       expect(matches[0].scores).toEqual([1, 0, 0, undefined]);
     });
 
+    it('prefers the wire matchNumber (a real stage-wide ordinal) over the per-round position (openspec 0249)', () => {
+      const response = {
+        zones: [
+          {
+            matches: [
+              {
+                matchId: 'WB-R2-M1',
+                matchNumber: 17,
+                position: 1,
+                round: 2,
+                bracket: 'winners',
+                status: 'completed',
+                slots: [],
+              },
+            ],
+          },
+        ],
+      };
+      const result = mapBracketResponse(
+        response as unknown as Parameters<typeof mapBracketResponse>[0],
+      );
+      expect(zoneAt(result, 0).matches[0].matchNumber).toBe(17);
+    });
+
+    it('falls back to the per-round position when no persisted match resolved a wire matchNumber', () => {
+      const response = {
+        zones: [
+          {
+            matches: [
+              {
+                matchId: 'WB-R2-M1',
+                position: 1,
+                round: 2,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [],
+              },
+            ],
+          },
+        ],
+      };
+      const result = mapBracketResponse(
+        response as unknown as Parameters<typeof mapBracketResponse>[0],
+      );
+      expect(zoneAt(result, 0).matches[0].matchNumber).toBe(1);
+    });
+
     it('handles missing matchId for winner/loser', () => {
       const response = {
         zones: [
