@@ -380,6 +380,28 @@ describe('what the dashboard renders', () => {
     expect(screen.getByRole('link', { name: 'Open' }).getAttribute('href')).toBe(href);
   });
 
+  it('offers a second entry point to the tournament’s stage list, alongside its title', () => {
+    render(
+      withIntl(
+        <Card
+          card={card({ lifecycle: 'live' })}
+          onArchive={() => {}}
+          onExport={() => {}}
+          onExportConfiguration={() => {}}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    const titleHref = '/control/liga-mendocina/tournaments/apertura-2026/matches-view';
+    expect(screen.getByRole('link', { name: 'Torneo Apertura' }).getAttribute('href')).toBe(
+      titleHref,
+    );
+    expect(screen.getByRole('link', { name: 'Stages' }).getAttribute('href')).toBe(
+      '/control/liga-mendocina/tournaments/apertura-2026',
+    );
+  });
+
   it('sends a draft back into editing rather than into a match listing it has none of', () => {
     render(
       withIntl(

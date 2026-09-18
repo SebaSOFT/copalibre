@@ -71,6 +71,26 @@ describe('StandingsTemplate', () => {
     expect(screen.getByText('Shared position')).toBeTruthy();
   });
 
+  it('links its breadcrumb back to the stage hub when a tournament alias and stage number are supplied', () => {
+    render(
+      withIntl(
+        <StandingsTemplate
+          activeLayoutCode={groupPhaseLayout.code}
+          layouts={[groupPhaseLayout]}
+          organizationAlias="liga-mendocina"
+          projection={projection}
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+          tournamentName="Apertura"
+        />,
+      ),
+    );
+
+    expect(screen.getByRole('link', { name: 'Stage 1' }).getAttribute('href')).toBe(
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
+    );
+  });
+
   it('says so plainly on a row no comparator touched', async () => {
     render(
       withIntl(

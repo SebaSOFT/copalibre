@@ -68,6 +68,10 @@ export function TournamentSummaryCard({
   // A draft has nothing to open yet; its own requirement asks for a way back
   // into editing, which is its settings screen.
   const primaryHref = card.lifecycle === 'draft' ? `${base}/settings` : matchesHref;
+  // The Tournament hub (openspec 0250): a second entry point alongside the
+  // title, since it leads somewhere the title never has — the tournament's
+  // stage list, not its matches.
+  const stagesHref = base;
   const primaryLabel =
     card.lifecycle === 'draft'
       ? intl.formatMessage(messages.dashboardResumeEditing)
@@ -107,6 +111,13 @@ export function TournamentSummaryCard({
             onClick={controlLinkClick(primaryHref)}
           >
             {primaryLabel}
+          </a>
+          <a
+            className="cl-btn cl-btn--secondary cl-focusable"
+            href={stagesHref}
+            onClick={controlLinkClick(stagesHref)}
+          >
+            {intl.formatMessage(messages.dashboardStages)}
           </a>
           <DropdownMenu
             items={exports.map((one) => ({
