@@ -33,22 +33,26 @@ async function withTokenEndpoint(page: Page): Promise<void> {
   );
 }
 
-test('renames a stage from the seeding screen and sees the change immediately', async ({
-  page,
-}) => {
+test('renames a stage from the stage hub and sees the change immediately', async ({ page }) => {
+  // Stage identity (rename/format/delete) moved from the seeding screen to
+  // the stage hub (openspec 0250) — this exercises the same fact
+  // (a rename shows immediately) at its new location.
   await withTokenEndpoint(page);
   let stageName = 'Fase de grupos';
   await page.exposeFunction('__route', (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
-    if (url.endsWith(`/stages/1/seeding`) && method === 'GET') {
+    if (url.endsWith(`/tournaments/${TOURNAMENT_ALIAS}/stages`) && method === 'GET') {
       return {
-        body: {
-          stageId: 'stage-1',
-          format: 'round-robin',
-          seeds: [],
-          zones: [],
-          hasRecordedResults: false,
-        },
+        body: [
+          {
+            stageId: 'stage-1',
+            seasonId: 'season-1',
+            number: 1,
+            name: stageName,
+            format: 'round-robin',
+            seeded: false,
+          },
+        ],
       };
     }
     if (url.endsWith(`/stages/1`) && method === 'PATCH') {
@@ -67,7 +71,7 @@ test('renames a stage from the seeding screen and sees the change immediately', 
     return undefined;
   });
 
-  const target = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/stages/1/seeding`;
+  const target = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/stages/1`;
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
