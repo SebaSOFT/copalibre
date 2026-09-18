@@ -1107,6 +1107,10 @@ export interface StageResponse {
   readonly allocation?: StageAllocationDeclaration;
   /** Present on the list read only — whether this stage already holds a generated fixture. */
   readonly seeded?: boolean;
+  /** Present on the list read only — the tournament's discipline-declared formats. */
+  readonly availableFormats?: readonly string[];
+  /** Present on the list read only — the discipline's own per-format explanation, unresolved. */
+  readonly formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
 }
 
 export interface UpdateStageRequest {

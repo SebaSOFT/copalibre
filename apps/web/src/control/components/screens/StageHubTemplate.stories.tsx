@@ -11,6 +11,11 @@ const meta = {
     stageNumber: 1,
     stageName: 'Fase de grupos',
     stageFormat: 'round-robin',
+    availableFormats: ['round-robin', 'single-elimination', 'double-elimination'],
+    formatDescriptions: {
+      'round-robin': 'Every entrant plays every other entrant once',
+      'single-elimination': { en: 'Single elimination bracket', es: 'Eliminación directa' },
+    },
     seeded: false,
     onRename: async () => undefined,
     onChangeFormat: async () => undefined,

@@ -130,6 +130,8 @@ export function StageHubPage({
 
   return (
     <StageHubTemplate
+      availableFormats={stage.availableFormats ?? []}
+      formatDescriptions={stage.formatDescriptions}
       onChangeFormat={onChangeFormat}
       onDelete={onDelete}
       onRename={onRename}
