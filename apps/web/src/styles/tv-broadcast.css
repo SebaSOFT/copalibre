@@ -303,6 +303,16 @@
   height: clamp(14vmin, 18vmin, 22vmin);
 }
 
+/*
+ * The home side is the spotlight's visual anchor (openspec 0247): larger
+ * than the away side, and never smaller than 120px even on a cramped
+ * viewport where `vmin` alone would shrink below a legible size.
+ */
+.tv-match-spotlight__vs-grid .tv-team-side--anchor .tv-team-side__emblem-wrap {
+  width: max(120px, clamp(16vmin, 22vmin, 26vmin));
+  height: max(120px, clamp(16vmin, 22vmin, 26vmin));
+}
+
 .tv-team-side {
   display: flex;
   flex-direction: column;

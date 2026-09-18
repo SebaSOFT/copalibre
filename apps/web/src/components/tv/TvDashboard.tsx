@@ -367,8 +367,9 @@ export function TvDashboard({
                 Etapa {spotlightMatch.stageNumber} · Partido {spotlightMatch.matchNumber}
               </div>
               <div className="tv-match-spotlight__vs-grid">
-                {/* Home Side */}
+                {/* Home Side — the spotlight's visual anchor (openspec 0247) */}
                 <TvTeamSide
+                  anchor
                   clubs={clubs}
                   name={spotlightMatch.sides[0]?.name ?? 'Local'}
                   abbreviation={spotlightMatch.sides[0]?.abbreviation}
