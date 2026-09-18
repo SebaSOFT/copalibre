@@ -10,6 +10,7 @@ import {
   PersonRepository,
   withTransaction,
   StageReadModel,
+  stageMatchOrdinals,
   PublicOverviewReadModel,
 } from '@copalibre/persistence';
 import {
@@ -516,6 +517,17 @@ export class PublicProjectionsController {
         errorCode: 'public-projection-not-found',
       });
 
+    // `matches.number` is a per-fixture series-game index (always 1 for a
+    // non-series fixture) — never stage-unique, so this resolves the target
+    // match by indexing into the stage's own deterministic order instead of
+    // filtering by that column (openspec 0249).
+    const stageMatches = await new StageReadModel(this.db).matches(stage.stageId);
+    const targetRecord = stageMatches[matchNumber - 1];
+    if (!targetRecord)
+      throw new NotFoundException(`No match ${matchNumberValue} in stage ${stageNumberValue}`, {
+        errorCode: 'public-projection-not-found',
+      });
+
     const match = await this.db
       .selectFrom('matches')
       .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
@@ -529,8 +541,7 @@ export class PublicProjectionsController {
         'fixtures.home_entrant_id',
         'fixtures.away_entrant_id',
       ])
-      .where('fixtures.stage_id', '=', stage.stageId)
-      .where('matches.number', '=', matchNumber)
+      .where('fixtures.fixture_id', '=', targetRecord.fixtureId)
       .executeTakeFirst();
     if (!match)
       throw new NotFoundException(`No match ${matchNumberValue} in stage ${stageNumberValue}`, {
@@ -763,6 +774,11 @@ export class PublicProjectionsController {
     const enrollmentRepo = new EnrollmentRepository(this.db);
     const zones = await resolveStageZones(this.db, stage.stageId);
 
+    // Computed once, from every zone combined — a per-zone fetch below cannot
+    // reconstruct this on its own, since it has no visibility into how many
+    // matches other zones contribute ahead of it (openspec 0249).
+    const ordinalByMatchId = stageMatchOrdinals(await readModel.matches(stage.stageId));
+
     const zoneResponses = await Promise.all(
       zones.map(async (zone) => {
         const stageMatchesMapped = await readModel.matches(stage.stageId, undefined, zone.zoneId);
@@ -824,6 +840,9 @@ export class PublicProjectionsController {
               position: m.position,
               status: m.status,
               format: m.format,
+              ...(m.persistedMatchId === undefined
+                ? {}
+                : { matchNumber: ordinalByMatchId.get(m.persistedMatchId) }),
               slots: m.slots.map((s) => {
                 const detail = s.entrantId ? details.get(s.entrantId) : undefined;
                 return {

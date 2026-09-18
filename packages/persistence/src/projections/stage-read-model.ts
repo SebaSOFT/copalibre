@@ -248,3 +248,18 @@ function resultReasonsOf(
 ): readonly (ResultReason | undefined)[] {
   return sides.map((side) => side.resultReason);
 }
+
+/**
+ * A stage-unique, 1-based ordinal per match, derived from `StageReadModel.matches()`'s own
+ * deterministic order — never `matches.number`, which is a per-fixture series-game index (always `1`
+ * for a non-series fixture) and was never unique within a stage.
+ *
+ * Callers must pass the *unscoped* result of `matches(stageId)` (no `groupId`/`zoneId`) — the ordinal
+ * a group- or zone-filtered subset would assign does not agree with this one, since a filtered call
+ * cannot see how many matches it is missing ahead of a given row (openspec 0249).
+ */
+export function stageMatchOrdinals(
+  records: readonly StageMatchRecord[],
+): ReadonlyMap<string, number> {
+  return new Map(records.map((record, index) => [record.matchId, index + 1]));
+}

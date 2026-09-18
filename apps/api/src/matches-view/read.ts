@@ -4,6 +4,7 @@ import {
   CompetitionRepository,
   EnrollmentRepository,
   StageReadModel,
+  stageMatchOrdinals,
   TournamentRepository,
   type Database,
   type StageMatchRecord,
@@ -106,8 +107,19 @@ async function readStageMatchesView(
   onlyGroupId: string | undefined,
 ): Promise<readonly MatchesViewRow[]> {
   const competition = new CompetitionRepository(db);
-  const records = await new StageReadModel(db).matches(stage.stageId, onlyGroupId);
+  const readModel = new StageReadModel(db);
+  const records = await readModel.matches(stage.stageId, onlyGroupId);
   if (records.length === 0) return [];
+
+  // The ordinal must come from the stage's full, unscoped match list — a
+  // group-filtered `records` here would assign a different ordinal to the
+  // same real match than the unfiltered view and `matchReport()` do
+  // (openspec 0249). No extra query in the common, unfiltered case: `records`
+  // already is that list.
+  const matchOrdinals =
+    onlyGroupId === undefined
+      ? stageMatchOrdinals(records)
+      : stageMatchOrdinals(await readModel.matches(stage.stageId));
 
   const fixtureGroups = await db
     .selectFrom('fixtures')
@@ -184,7 +196,7 @@ async function readStageMatchesView(
       return {
         matchId: record.matchId,
         stageNumber: stage.number,
-        matchNumber: record.games[0]?.number ?? 1,
+        matchNumber: matchOrdinals.get(record.matchId) ?? 1,
         round: record.round,
         status,
         ...(record.homeEntrantId === undefined ? {} : { homeEntrantId: record.homeEntrantId }),

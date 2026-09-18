@@ -148,6 +148,7 @@ export {
 } from './projections/statistic-projection.js';
 export {
   StageReadModel,
+  stageMatchOrdinals,
   type StageRecord,
   type StageMatchRecord,
 } from './projections/stage-read-model.js';

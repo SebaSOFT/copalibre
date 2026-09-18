@@ -4949,6 +4949,8 @@ export interface components {
             position: number;
             status: string;
             format?: string;
+            /** @description The match's stage-unique ordinal for the public report page's URL — present only when this graph node resolved to a real persisted match; a purely theoretical winner-of/loser-of placeholder has none yet */
+            matchNumber?: number;
             slots: components["schemas"]["PublicBracketSlotResponse"][];
             /** @description Present only on a cross settled by a series */
             series?: components["schemas"]["PublicSeriesStateResponse"];

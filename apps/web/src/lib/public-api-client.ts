@@ -269,7 +269,12 @@ function mapBracketZoneMatches(
   };
   return matches.map((m) => ({
     matchId: m.matchId,
-    matchNumber: m.position,
+    // The stage-unique ordinal the server now computes across every zone
+    // (openspec 0249), so this match's report link resolves correctly. Falls
+    // back to the old per-round `position` only for a purely theoretical
+    // node with no persisted match yet — there's nothing better to give it,
+    // and it has no real report page to link to regardless.
+    matchNumber: m.matchNumber ?? m.position,
     roundNumber: m.round,
     branch: m.bracket,
     state: (m.status === 'finalized' || m.status === 'forfeited'
