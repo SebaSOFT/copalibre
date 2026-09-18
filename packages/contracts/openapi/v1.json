@@ -15068,6 +15068,73 @@
           "seeded": {
             "type": "boolean",
             "description": "Whether this stage already holds a generated fixture. Present on the list read only — `create`/`update`/`remove` do not compute it."
+          },
+          "availableFormats": {
+            "description": "The tournament's discipline-declared formats to choose from. Present on the list read only — `create`/`update`/`remove` do not compute it.",
+            "example": [
+              "single-elimination",
+              "round-robin"
+            ],
+            "type": "array",
+            "items": {
+              "type": "array"
+            }
+          },
+          "formatDescriptions": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "en"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "es": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "fr": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "pt": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "it": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "de": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "ru": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "zh": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "description": "The discipline's own explanation of a format it supports, keyed by format. Present on the list read only — `create`/`update`/`remove` do not compute it.",
+            "example": {
+              "round-robin": "Every entrant plays every other entrant once"
+            }
           }
         },
         "required": [

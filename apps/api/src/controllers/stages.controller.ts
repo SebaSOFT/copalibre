@@ -137,6 +137,17 @@ export class StagesController {
       tournament.tournamentId,
     );
     const stageReadModel = new StageReadModel(this.db);
+    const descriptor = await new TournamentRepository(this.db).findDescriptor(
+      tournament.disciplineRef.descriptorId,
+      tournament.disciplineRef.version,
+    );
+    // Optional/backward-compatible: an uninstalled discipline module leaves both
+    // fields absent rather than refusing a stage list that worked before.
+    const availableFormats = descriptor?.availableFormats.filter((format) =>
+      (SUPPORTED_FORMATS as readonly string[]).includes(format),
+    );
+    const formatDescriptions = descriptor?.formatDescriptions;
+
     return Promise.all(
       stages.map(async (stage) => {
         const record = await stageReadModel.stageRecord(stage.stageId);
@@ -147,6 +158,8 @@ export class StagesController {
           name: stage.name,
           format: stage.format,
           seeded: record?.hasGeneratedFixtures ?? false,
+          ...(availableFormats === undefined ? {} : { availableFormats }),
+          ...(formatDescriptions === undefined ? {} : { formatDescriptions }),
         };
       }),
     );
