@@ -40,7 +40,12 @@ export const AllFormats: Story = {
         {(['dynamic', 'time-only', 'date-only', 'full', 'relative'] as const).map((format) => (
           <div key={format}>
             <code>{format}</code>:{' '}
-            <ResponsiveTimestamp format={format} locale="en" referenceDate={REFERENCE} timestamp={timestamp} />
+            <ResponsiveTimestamp
+              format={format}
+              locale="en"
+              referenceDate={REFERENCE}
+              timestamp={timestamp}
+            />
           </div>
         ))}
       </div>

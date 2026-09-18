@@ -29,7 +29,11 @@ export const WidthDriven: Story = {
         {widths.map((width) => (
           <div
             key={width}
-            style={{ border: '1px solid var(--cl-border-muted)', padding: 'var(--cl-space-2)', width }}
+            style={{
+              border: '1px solid var(--cl-border-muted)',
+              padding: 'var(--cl-space-2)',
+              width,
+            }}
           >
             <ResponsivePlayerName fullName="Sebastian Dieguez" nationalityCode="AR" />
           </div>
