@@ -5,7 +5,7 @@ import { visibleSidenav } from '../lib/dashboard.js';
 import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
-import { controlLinkClick } from '../lib/control-navigation.js';
+import { controlLinkClick, helpPageUrl } from '../lib/control-navigation.js';
 import {
   createControlApiClient,
   organizationEmblemUrl,
@@ -106,9 +106,6 @@ function ControlShellChrome({
       cancelled = true;
     };
   }, [client, organizationAlias]);
-  // Same locale-prefix routing Starlight's own pages already use for every
-  // locale but the default: the root/English pages are unprefixed.
-  const helpLocalePrefix = locale === 'en' ? '' : `/${locale}`;
   const [drawerOpen, setDrawerOpen] = useState(false);
   const logout = (): void => {
     controlTokenStore.clear();
@@ -146,7 +143,7 @@ function ControlShellChrome({
       </div>
       <a
         className="cl-focusable"
-        href={`${helpLocalePrefix}/help/control/${helpPath}`}
+        href={helpPageUrl(locale, `control/${helpPath}`)}
         target="_blank"
         rel="noopener noreferrer"
         style={helpLinkStyle}

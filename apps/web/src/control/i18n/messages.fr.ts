@@ -368,6 +368,19 @@ export const messages: Record<string, string> = {
   'control.roles.role.referee': 'Arbitre',
   'control.roles.role.broadcaster': 'Diffusion',
   'control.roles.role.viewer': 'Observateur',
+  'control.roles.description.admin':
+    "Gère tout ce que fait l'organisation : crée et publie des tournois, gère chaque utilisateur, administre chaque club et exploite les matchs.",
+  'control.roles.description.clubAdmin':
+    "Gère l'identité d'un seul club (nom, alias, abréviation et emblème) sans accès à l'ensemble de l'organisation.",
+  'control.roles.description.tournamentAdmin':
+    "Dirige un tournoi de bout en bout, sans portée sur le reste de l'organisation.",
+  'control.roles.description.referee':
+    "Gère un match en direct : enregistre les événements, contrôle l'horloge, résout les chronomètres et sélectionne l'effectif.",
+  'control.roles.description.broadcaster':
+    "Désigne la personne qui produit une diffusion autour d'un tournoi plutôt que de l'administrer ; n'accorde aucune capacité opérationnelle aujourd'hui.",
+  'control.roles.description.viewer':
+    "Le rôle d'organisation le moins privilégié : appartient à l'organisation sans accorder aucune autorité opérationnelle.",
+  'control.roles.learnMore': 'En savoir plus',
   'control.roles.inviteDialog.close': 'Fermer',
   'control.registration.modalClose': 'Fermer',
   'control.shell.drawerClose': 'Fermer le menu',

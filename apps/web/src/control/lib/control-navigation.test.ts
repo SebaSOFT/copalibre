@@ -4,6 +4,7 @@ import type { MouseEvent } from 'react';
 import {
   controlLinkClick,
   emitNavigationVisibilityChanged,
+  helpPageUrl,
   loginRedirectUrl,
   navigateControl,
   useControlPath,
@@ -117,6 +118,20 @@ describe('loginRedirectUrl', () => {
     expect(loginRedirectUrl('/control/liga-mendocina?foo=bar')).toBe(
       '/control/login?returnTo=%2Fcontrol%2Fliga-mendocina%3Ffoo%3Dbar',
     );
+  });
+});
+
+describe('helpPageUrl (openspec 0251 task 6.1)', () => {
+  it('leaves English unprefixed', () => {
+    expect(helpPageUrl('en', 'control/seeding')).toBe('/help/control/seeding');
+  });
+
+  it('prefixes a non-English locale', () => {
+    expect(helpPageUrl('es', 'control/seeding')).toBe('/es/help/control/seeding');
+  });
+
+  it('builds a role help page path the same way', () => {
+    expect(helpPageUrl('fr', 'roles/admin')).toBe('/fr/help/roles/admin');
   });
 });
 

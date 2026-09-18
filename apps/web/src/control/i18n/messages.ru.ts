@@ -368,6 +368,19 @@ export const messages: Record<string, string> = {
   'control.roles.role.referee': 'Судья',
   'control.roles.role.broadcaster': 'Трансляция',
   'control.roles.role.viewer': 'Наблюдатель',
+  'control.roles.description.admin':
+    'Управляет всем, что делает организация: создаёт и публикует турниры, управляет каждым пользователем, администрирует каждый клуб и проводит матчи.',
+  'control.roles.description.clubAdmin':
+    'Управляет данными одного клуба (название, алиас, аббревиатура и эмблема) без доступа ко всей организации.',
+  'control.roles.description.tournamentAdmin':
+    'Ведёт один турнир от начала до конца, без охвата остальной части организации.',
+  'control.roles.description.referee':
+    'Управляет матчем в реальном времени: фиксирует события, управляет таймером матча, разрешает таймеры и выбирает состав.',
+  'control.roles.description.broadcaster':
+    'Обозначает того, кто занимается трансляцией турнира, а не его администрированием; сегодня не предоставляет никаких операционных прав.',
+  'control.roles.description.viewer':
+    'Роль организации с наименьшими правами: принадлежит организации, не предоставляя никаких операционных прав.',
+  'control.roles.learnMore': 'Подробнее',
   'control.roles.inviteDialog.close': 'Закрыть',
   'control.registration.modalClose': 'Закрыть',
   'control.shell.drawerClose': 'Закрыть меню',
