@@ -51,7 +51,9 @@ resource first.
 The stage hub SHALL let an operator rename the stage regardless of whether it holds a fixture, and
 change its format or remove it only while it holds no fixture, reusing the existing rename/format-
 change/removal behavior (`control-web/tournament-authoring`'s "An unseeded stage can be renamed,
-reformatted or removed") without altering it.
+reformatted or removed") without altering it. The format-change control SHALL offer the tournament's
+discipline-declared formats to choose from, naming the currently-selected format, rather than
+requiring the operator to type a format string from memory.
 
 #### Scenario: A published stage's name is corrected from its hub
 - **WHEN** an operator renames a stage that already holds generated fixtures, from that stage's hub
@@ -62,6 +64,15 @@ reformatted or removed") without altering it.
   stage's hub
 - **THEN** the hub shows the reason the API returns, naming that fixtures already exist, unchanged
   from what the API sent
+
+#### Scenario: An unseeded stage's format choices come from its own discipline
+- **WHEN** an operator opens an unseeded stage's hub
+- **THEN** the format control offers exactly the formats that tournament's discipline descriptor
+  declares, with the stage's current format shown as the selected one
+
+#### Scenario: Choosing a format shows what it means
+- **WHEN** an operator selects a different format in the stage hub's format control
+- **THEN** the hub shows that format's own description before the operator confirms the change
 
 ### Requirement: Stage hub links to that stage's other control-web tools
 

@@ -51,7 +51,9 @@ export function ProfileBuilderWizard({
   // moves them all together, so translating the pair means picking the
   // language once rather than clicking through each field's own tabs.
   const [activeLanguage, setActiveLanguage] = useState<SupportedLanguage>('en');
-  const problems = stepProblems(state, disciplines);
+  const problems = stepProblems(state, disciplines).filter(
+    (problem) => !(problem === messages.profileProblemNameEnglish && activeLanguage === 'en'),
+  );
   const aliasView = patternFieldView(
     state.alias,
     ALIAS_PATTERN,

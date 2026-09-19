@@ -29,6 +29,13 @@ describe('the discipline builder wizard', () => {
     );
   });
 
+  it('shows the missing-English-name problem once — as the field error while English is active, in the checklist once it is not', () => {
+    render(withIntl(<DescriptorBuilderWizard />));
+    expect(screen.getAllByText('An English name is required.')).toHaveLength(1);
+    fireEvent.click(screen.getAllByRole('tab', { name: 'Español' })[0] as HTMLButtonElement);
+    expect(screen.getAllByText('An English name is required.')).toHaveLength(1);
+  });
+
   it('refuses to continue past the name step without an English name', () => {
     render(withIntl(<DescriptorBuilderWizard />));
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'test-sport' } });
