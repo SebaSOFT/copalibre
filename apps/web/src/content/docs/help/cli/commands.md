@@ -248,6 +248,71 @@ request.
 - `--upstream <owner/repo>`: target repository (default: `SebaSOFT/copalibre-modules`)
 - `--base <branch>`: the pull request's base branch (default: `main`)
 
+## organization
+
+`copalibre organization get <alias>`
+
+Reads one organization by alias over the API and prints its identity. Requires a stored credential
+from [`login`](#login) — unlike `module`/`statistics-rebuild`/`backup`, this command never falls
+back to a direct database connection.
+
+### organization get
+
+`copalibre organization get <alias>`
+
+Prints the organization's `organizationId`, `alias`, `name`, `primaryLanguage`, and `timezone`.
+
+## tournament
+
+`copalibre tournament <list|get|create|publish>`
+
+Reads, creates, and publishes tournaments over the API — the CLI equivalent of the MCP server's
+tournament-operational tools. Requires a stored credential from [`login`](#login); never falls back
+to a direct database connection.
+
+### tournament list
+
+`copalibre tournament list --organization-alias <alias>`
+
+Lists the organization's active (non-archived) tournaments.
+
+- `--organization-alias <alias>`: organization to list within
+
+### tournament get
+
+`copalibre tournament get --organization-alias <alias> --tournament-alias <alias>`
+
+Reads one tournament by alias.
+
+- `--organization-alias <alias>`: organization the tournament belongs to
+- `--tournament-alias <alias>`: tournament to read
+
+### tournament create
+
+`copalibre tournament create --organization-alias <alias> --alias <alias> --name <name> --descriptor-id <id> --descriptor-version <version> --format <format> [--public-registration] [--requires-check-in]`
+
+Creates a tournament in draft status, pinned to a specific discipline and version, with a single
+stage in the given format. The tournament stays a draft, invisible to public surfaces, until
+[`tournament publish`](#tournament-publish) is run.
+
+- `--organization-alias <alias>`: organization to create the tournament in
+- `--alias <alias>`: alias, unique within the organization
+- `--name <name>`: display name
+- `--descriptor-id <id>`: DisciplineDescriptor identifier (UUID)
+- `--descriptor-version <version>`: pinned descriptor semver
+- `--format <format>`: stage format for the tournament's single stage
+- `--public-registration`: opens anonymous/public registration intake (default: false)
+- `--requires-check-in`: requires accepted entrants to check in (default: false)
+
+### tournament publish
+
+`copalibre tournament publish --organization-alias <alias> --tournament-alias <alias>`
+
+Publishes a draft tournament, making it visible and operable.
+
+- `--organization-alias <alias>`: organization the tournament belongs to
+- `--tournament-alias <alias>`: tournament to publish
+
 ## mcp
 
 `copalibre mcp`
