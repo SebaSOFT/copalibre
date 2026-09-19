@@ -278,7 +278,10 @@ test('release candidate evaluation truth table (Task 1.4 / 2.2)', () => {
 
 test('job selection plan across scope and release candidate status (Task 1.4 / 2.2)', () => {
   // Scenario 1: Develop PR with broad/workflow changes (non-release candidate)
-  // Even with full scope, release browser e2e and release images must be skipped
+  // Full scope is not backend-only, so e2eTests now runs (openspec 0257): a
+  // develop PR that can affect the web surface gets real Playwright coverage
+  // instead of relying on it accidentally targeting main. releaseBuild stays
+  // reserved for actual release candidates.
   const developFullScope = resolveJobPlan(
     { frontendOnly: false, backendOnly: false, cliOnly: false, docsOnly: false },
     false,
@@ -291,8 +294,23 @@ test('job selection plan across scope and release candidate status (Task 1.4 / 2
   assert.equal(developFullScope.publicWebBuild, true);
   assert.equal(developFullScope.helpDocsBuild, true);
   assert.equal(developFullScope.openapiContractLint, true);
-  assert.equal(developFullScope.e2eTests, false, 'Develop PR must skip e2eTests');
+  assert.equal(
+    developFullScope.e2eTests,
+    true,
+    'Develop PR with frontend-relevant scope runs e2eTests',
+  );
   assert.equal(developFullScope.releaseBuild, false, 'Develop PR must skip releaseBuild');
+
+  // Scenario 1b: Develop PR confined to backend-only paths still skips
+  // e2eTests entirely (openspec 0257) — nothing Playwright exercises changed.
+  const developBackendOnly = resolveJobPlan(
+    { frontendOnly: false, backendOnly: true, cliOnly: false, docsOnly: false },
+    false,
+    { eventName: 'pull_request', baseRef: 'develop' },
+  );
+  assert.equal(developBackendOnly.e2eTests, false, 'Backend-only develop PR still skips e2eTests');
+  assert.equal(developBackendOnly.releaseBuild, false);
+  assert.equal(developBackendOnly.integrationTests, true);
 
   // Scenario 2: Main PR with full scope (release candidate)
   const mainFullScope = resolveJobPlan(
