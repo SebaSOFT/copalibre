@@ -158,11 +158,15 @@ variant of every public page for each.
 
 ### Requirement: Public web surfaces render discipline-tailored table layouts
 
-Public spectator pages SHALL render standings and leaderboards according to the tournament's effective table layout definitions.
+Public spectator pages SHALL render standings and leaderboards according to the tournament's effective table layout definitions. Each sortable column header's control SHALL expose an accessible name that matches the text visually presented for it — a short column label displayed on screen SHALL NOT be exposed to assistive technology under a different, longer label.
 
 #### Scenario: Public spectator views stage standings
 - **WHEN** a public visitor opens a tournament's standings page
 - **THEN** the table displays the discipline's declared columns and pre-sorted ranking order, server-rendered from the effective table layout without client-side column filtering
+
+#### Scenario: A column header's accessible name matches its visible label
+- **WHEN** a table layout declares both a long header and a short header for a column, and the short header is what renders on screen
+- **THEN** the column header control's accessible name is that same short header, not the long one — a screen reader announces what a sighted visitor reads
 
 ### Requirement: Per-match public report page
 
