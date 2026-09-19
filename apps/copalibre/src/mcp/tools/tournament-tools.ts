@@ -1,4 +1,4 @@
-import { apiGet, apiPost, type ApiClientConfig } from '../api-client.js';
+import { apiGet, apiPost, type ApiClientConfig } from '../../api-client.js';
 import type { McpToolDefinition } from '../tool.js';
 
 /**
@@ -140,7 +140,12 @@ function createTournamentTool(config: ApiClientConfig): McpToolDefinition {
           name: stringArgument(args, 'name'),
           descriptorId: stringArgument(args, 'descriptor_id'),
           descriptorVersion: stringArgument(args, 'descriptor_version'),
-          format: stringArgument(args, 'format'),
+          // apps/api's CreateTournamentRequest takes a `stages` array (each
+          // stage carrying its own `format`), not a top-level `format` — this
+          // tool exposes the common single-stage case as a plain `format`
+          // argument and wraps it into the one-stage shape the API requires
+          // (openspec 0252; fixes a request the API always 400ed before).
+          stages: [{ format: stringArgument(args, 'format') }],
           publicRegistration: Boolean(args.public_registration),
           requiresCheckIn: Boolean(args.requires_check_in),
         },
