@@ -792,11 +792,15 @@ test.describe('B2: public tournament page', () => {
 
     // Switching the selector to another declared layout updates the URL and
     // renders that layout's own columns, without mixing in the previous
-    // layout's values.
+    // layout's values. "Assists" is a collector-kind stat, so it legitimately
+    // appears as a column header in both the tournament-total and
+    // match-by-match tables (0257) — scope to the total table specifically
+    // rather than the ambiguous whole-section text match.
     await page.getByRole('tab', { name: 'Discipline Drilldown' }).click();
     await page.waitForURL(/\?layout=discipline-drilldown/);
-    await expect(statsSection.getByText('Assists')).toBeVisible();
-    await expect(statsSection.getByText('3', { exact: true })).toBeVisible();
+    const totalTable = statsSection.getByRole('table').nth(0);
+    await expect(totalTable.getByRole('columnheader', { name: 'Assists' })).toBeVisible();
+    await expect(totalTable.getByRole('cell', { name: '3', exact: true })).toBeVisible();
     await expect(statsSection.getByText('Y/R Cards')).not.toBeVisible();
   });
 

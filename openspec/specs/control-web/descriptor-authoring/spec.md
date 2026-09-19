@@ -21,6 +21,10 @@ precisely the one who cannot answer an unexplained question.
 Authoring SHALL be installation-level authority: a discipline changes what every organization in the
 installation can run.
 
+An unresolved problem SHALL appear once, not duplicated between the builder's own summary of
+unresolved problems and an individual field's inline error for that same problem — a field already
+showing its own error for a problem SHALL NOT have that same problem repeated in the summary.
+
 #### Scenario: An administrator authors a discipline end to end
 - **WHEN** a super administrator completes the discipline builder for a sport not in the catalogue
 - **THEN** a descriptor document is produced that passes the same validation an installed module passes,
@@ -40,6 +44,11 @@ installation can run.
 #### Scenario: Authoring requires installation authority
 - **WHEN** an organization administrator without installation authority opens the discipline builder
 - **THEN** access is refused, because authoring a discipline changes what every organization can run
+
+#### Scenario: A field's own error is not repeated in the problems summary
+- **WHEN** a required field is invalid and already shows its own inline error for that reason
+- **THEN** the builder's summary of unresolved problems does not also list that same reason, though it
+  still lists any unresolved problem no visible field currently surfaces
 
 ### Requirement: A tournament profile can be authored against an installed discipline
 The control panel SHALL offer a guided surface that authors a tournament profile — its stages, each

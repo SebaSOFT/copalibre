@@ -245,7 +245,7 @@ export function resolveJobPlan(classification, isReleaseCandidate, eventContext 
     helpDocsBuild: true,
     publicWebBuild: !effectiveClassification.backendOnly,
     integrationTests: !effectiveClassification.frontendOnly,
-    e2eTests: !effectiveClassification.backendOnly && isReleaseCandidate,
+    e2eTests: !effectiveClassification.backendOnly,
     releaseBuild: !effectiveClassification.frontendOnly && isReleaseCandidate,
     openapiContractLint: !effectiveClassification.cliOnly && !effectiveClassification.docsOnly,
   };
