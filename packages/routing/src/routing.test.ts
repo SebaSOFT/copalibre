@@ -205,6 +205,10 @@ describe('parseControlPath', () => {
     ['/control/forgot-password', { screen: 'forgot-password' }],
     ['/control/reset-password', { screen: 'reset-password' }],
     ['/control/platform', { screen: 'platformAdministration' }],
+    [
+      '/control/platform/disciplines/orbital-frisbee',
+      { screen: 'disciplineDocument', disciplineAlias: 'orbital-frisbee' },
+    ],
     ['/control/liga-mendocina/roles', { screen: 'roles', organizationAlias: 'liga-mendocina' }],
     [
       '/control/liga-mendocina/audit-trail',
@@ -358,6 +362,7 @@ describe('parseControlPath', () => {
     ['/control/liga-mendocina/tournaments/apertura-2026/stages/1/unknown'],
     ['/control/liga-mendocina/tournaments/apertura-2026/matches'],
     ['/control/liga-mendocina/persons'],
+    ['/control/platform/disciplines'],
   ])('finds no match for %s', (pathname) => {
     expect(parseControlPath(pathname)).toBeUndefined();
   });

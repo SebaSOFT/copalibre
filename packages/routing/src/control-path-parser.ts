@@ -16,6 +16,11 @@ export type ControlRoute =
   | { readonly screen: 'forgot-password' }
   | { readonly screen: 'reset-password' }
   | { readonly screen: 'platformAdministration' }
+  | {
+      /** An installed discipline's plain-language document detail (openspec 0263). */
+      readonly screen: 'disciplineDocument';
+      readonly disciplineAlias: string;
+    }
   | { readonly screen: 'dashboard'; readonly organizationAlias: string }
   | { readonly screen: 'tournaments'; readonly organizationAlias: string }
   | { readonly screen: 'liveConsole'; readonly organizationAlias: string }
@@ -168,6 +173,15 @@ const ORG_SCOPED_ROUTES: readonly {
   {
     matches: (organizationAlias, rest) => organizationAlias === 'platform' && rest.length === 0,
     build: () => ({ screen: 'platformAdministration' }),
+  },
+  {
+    matches: (organizationAlias, rest) =>
+      organizationAlias === 'platform' && rest.length === 2 && rest[0] === 'disciplines',
+    build: (_organizationAlias, rest) => {
+      const disciplineAlias = rest[1];
+      if (disciplineAlias === undefined) return undefined;
+      return { screen: 'disciplineDocument', disciplineAlias };
+    },
   },
   {
     matches: (_organizationAlias, rest) => rest.length === 0,
