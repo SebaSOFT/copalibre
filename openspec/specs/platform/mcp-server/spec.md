@@ -156,3 +156,39 @@ NOT be able to produce a descriptor that this tool accepts and the installation 
 - **WHEN** `copalibre_descriptor_validate` accepts a candidate descriptor
 - **THEN** installing that descriptor as a module does not fail validation, because both apply the same
   rules
+
+### Requirement: Profile-authoring tools are always available
+
+`copalibre_profile_schema` and `copalibre_profile_validate` SHALL be registered on every
+`copalibre mcp` invocation, requiring no API token — they read the schema the installation already
+carries and validate a candidate locally, never calling `apps/api`, mirroring
+`copalibre_descriptor_schema`/`copalibre_descriptor_validate` for the tournament-profile module kind.
+
+`copalibre_profile_schema` SHALL return the machine-readable tournament-profile schema together
+with, for each field, what that field governs during a competition. `copalibre_profile_validate`
+SHALL accept a candidate tournament-profile document and return either acceptance or the validation
+errors, each naming the path within the document that caused it.
+
+Validation SHALL be the same validation the platform applies when a tournament-profile module is
+installed. An agent SHALL NOT be able to produce a tournament-profile document that this tool
+accepts and the installation later refuses.
+
+#### Scenario: Profile-authoring tools work without any token configured
+- **WHEN** `copalibre mcp` starts with no `COPALIBRE_MCP_TOKEN` configured
+- **THEN** `copalibre_profile_schema` and `copalibre_profile_validate` are listed and callable
+
+#### Scenario: The schema arrives with its meanings, not only its types
+- **WHEN** an agent calls `copalibre_profile_schema`
+- **THEN** the response carries each field's type constraints and an explanation of what the field
+  causes during a competition, so the agent can map a rule onto it rather than only satisfy the shape
+
+#### Scenario: A rejected candidate names where it is wrong
+- **WHEN** an agent submits a tournament-profile document declaring a tiebreak rule that does not
+  exist
+- **THEN** validation fails naming the path of the offending declaration, not only that the document
+  is invalid
+
+#### Scenario: Local acceptance predicts installation acceptance
+- **WHEN** `copalibre_profile_validate` accepts a candidate tournament-profile document
+- **THEN** installing that document as a module does not fail validation, because both apply the
+  same rules
