@@ -1,7 +1,8 @@
 ---
 title: Referencia de comandos
 description: Cada comando del CLI copalibre, su uso y sus flags.
-capabilities: []
+capabilities:
+  - platform/cli-tournament-operations
 roles:
   - super-admin
   - admin

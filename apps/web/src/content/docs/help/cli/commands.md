@@ -1,6 +1,8 @@
 ---
 title: Command reference
 description: Every copalibre CLI command, its usage, and its flags.
+capabilities:
+  - platform/cli-tournament-operations
 roles:
   - super-admin
   - admin

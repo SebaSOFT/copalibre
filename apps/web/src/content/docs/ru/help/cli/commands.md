@@ -1,7 +1,8 @@
 ---
 title: Справочник команд
 description: Каждая команда CLI copalibre, её использование и флаги.
-capabilities: []
+capabilities:
+  - platform/cli-tournament-operations
 roles:
   - super-admin
   - admin
