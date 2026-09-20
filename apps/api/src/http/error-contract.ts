@@ -18,13 +18,16 @@ import {
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import type { Kysely } from 'kysely';
-import type { AuditAction } from '@copalibre/domain';
+import { DomainError, type AuditAction } from '@copalibre/domain';
 import {
   recordAuditRefusal,
+  PersistenceError,
   SYSTEM_ORGANIZATION,
   type AuditRefusalEntry,
   type Database,
 } from '@copalibre/persistence';
+import { RulesError } from '@copalibre/rules';
+import { EngineError } from '@copalibre/tournament-engine';
 import { DATABASE } from '../database.token.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
 
@@ -211,9 +214,25 @@ function messageFrom(value: unknown, fallback: string): string | readonly string
   return fallback;
 }
 
+/**
+ * Only an actual instance of one of this project's four typed error base
+ * classes may surface its own `.code`/`.message` on the wire — never any
+ * object that merely happens to carry a string `.code` (a Node filesystem
+ * error, a `pg` driver error, a third-party library error). Every concrete
+ * subclass across all four already sets a hand-written, safe `.code` and
+ * constructs its own `.message` deliberately; this is the exact set the
+ * mechanism was designed for.
+ */
 function errorCodeFrom(error: unknown): string | undefined {
-  if (typeof error !== 'object' || error === null || !('code' in error)) return undefined;
-  return typeof error.code === 'string' ? toErrorCode(error.code) : undefined;
+  if (
+    error instanceof DomainError ||
+    error instanceof PersistenceError ||
+    error instanceof RulesError ||
+    error instanceof EngineError
+  ) {
+    return toErrorCode(error.code);
+  }
+  return undefined;
 }
 
 function codeFrom(options: DescriptionOrOptions | undefined, fallback: string): string {

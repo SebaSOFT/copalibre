@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 import { BadRequestException as NestBadRequestException } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import type { HttpAdapterHost } from '@nestjs/core';
+import { InvariantViolationError } from '@copalibre/persistence';
 import {
   ApiExceptionFilter,
   BadRequestException,
@@ -48,11 +49,7 @@ describe('API error contract', () => {
   });
 
   it('derives a code from an existing typed error class', () => {
-    class TypedError extends Error {
-      readonly code = 'DOMAIN_INVARIANT_VIOLATION';
-    }
-
-    expect(apiErrorResponse(new TypedError('Broken invariant'))).toMatchObject({
+    expect(apiErrorResponse(new InvariantViolationError('Broken invariant'))).toMatchObject({
       statusCode: 500,
       message: 'Broken invariant',
       errorCode: 'domain-invariant-violation',
@@ -61,6 +58,17 @@ describe('API error contract', () => {
 
   it('does not expose an untyped internal error message', () => {
     expect(apiErrorResponse(new Error('database password leaked here'))).toMatchObject({
+      statusCode: 500,
+      message: 'Internal server error',
+      errorCode: 'internal-server-error',
+    });
+  });
+
+  it('does not expose the message of an object that merely happens to carry a string .code', () => {
+    const nodeStyleError = new Error("ENOENT: no such file or directory, open '/etc/secret'");
+    (nodeStyleError as Error & { code: string }).code = 'ENOENT';
+
+    expect(apiErrorResponse(nodeStyleError)).toMatchObject({
       statusCode: 500,
       message: 'Internal server error',
       errorCode: 'internal-server-error',
