@@ -110,7 +110,10 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // openspec 0250 moved `StageSettingsSection`'s raw `<input>`s to
   // `StageHubTemplate.tsx`, lowering this file's count from 5 to 3.
   ['control/components/pages/SeedingBuilderPage.tsx', 3],
-  ['control/components/screens/TournamentRulesetTemplate.tsx', 3],
+  // openspec 0264 replaced the per-override-field raw JSON `<input>`s with
+  // `RulesetFieldControl` (typed, owned atoms); only the "add a new field by
+  // dot-path" name input remains raw.
+  ['control/components/screens/TournamentRulesetTemplate.tsx', 1],
   // Form-structure elements (task 2.4): `<form>`, `<label>`, `<fieldset>`,
   // `<legend>` and table parts outside the table owners, now governed by
   // `Form`, `Field`/`Label`, `FieldSet` and `DataTable` (tasks 2.2-2.3).
