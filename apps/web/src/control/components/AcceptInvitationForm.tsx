@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
+import { controlTokenStore } from '../session/token-store.js';
 import { Alert } from './ui/atoms/alert.js';
 import { Button } from './ui/atoms/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
@@ -133,8 +134,7 @@ export function AcceptInvitationForm({
       }
 
       const data = await response.json();
-      sessionStorage.setItem('copalibre_access_token', data.accessToken);
-      localStorage.setItem('copalibre_access_token', data.accessToken);
+      controlTokenStore.write(data.accessToken, Date.now() + data.expiresIn * 1000);
       setSuccess(true);
 
       setTimeout(() => {

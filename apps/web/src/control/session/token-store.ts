@@ -154,5 +154,6 @@ export const FORBIDDEN_STORAGE_KEYS: readonly string[] = [
   'access_token',
   'accessToken',
   'copalibre.token',
+  'copalibre_access_token',
   'refresh_token',
 ];
