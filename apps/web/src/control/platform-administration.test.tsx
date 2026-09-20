@@ -124,6 +124,10 @@ describe('platform administration console', () => {
     render(withIntl(<PlatformAdministrationPage client={client} />));
     await screen.findByText('CopaLibre');
 
+    expect(
+      (screen.getByRole('link', { name: 'View' }) as HTMLAnchorElement).getAttribute('href'),
+    ).toBe('/control/platform/disciplines/football');
+
     fireEvent.change(screen.getByLabelText('Module alias'), { target: { value: 'football' } });
     fireEvent.change(screen.getByLabelText('Alternate source (one use only)'), {
       target: { value: 'file:///modules/football' },

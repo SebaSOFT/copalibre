@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { CreateOrganizationRequest } from '@copalibre/contracts';
+import { controlLinkClick } from '../../lib/control-navigation.js';
 import type {
   AuthoredModuleRequest,
   AuthoredModuleValidationFailureResponse,
@@ -178,8 +179,18 @@ export function PlatformAdministrationTemplate({
         const result = verification.find(
           (entry) => entry.alias === module_.alias && entry.version === module_.version,
         );
+        const documentHref = `/control/platform/disciplines/${module_.alias}`;
         return (
           <div className="cl-role-status">
+            {module_.kind === 'discipline' && (
+              <a
+                className="cl-focusable"
+                href={documentHref}
+                onClick={controlLinkClick(documentHref)}
+              >
+                <FormattedMessage {...messages.platformViewDiscipline} />
+              </a>
+            )}
             <Button
               disabled={busy !== undefined}
               onClick={() => void onVerifyModule(module_.alias)}
