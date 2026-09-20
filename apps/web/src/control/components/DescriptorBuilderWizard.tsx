@@ -11,6 +11,7 @@ import { Inline } from './ui/atoms/layout/inline.js';
 import { Stack } from './ui/atoms/layout/stack.js';
 import { Field } from './ui/molecules/field.js';
 import { LocalizedField } from './ui/molecules/localized-field.js';
+import { DisciplineSummary } from './ui/organisms/discipline-summary.js';
 import { WizardShell } from './ui/organisms/wizard-shell.js';
 import {
   ACTOR_REQUIREMENTS,
@@ -32,6 +33,7 @@ import {
   requiredFieldView,
   stepProblems,
   toAuthoredModuleRequest,
+  toDisciplineSummaryData,
   withLocalizedValue,
   type DescriptorWizardState,
   type EventDefinitionDraft,
@@ -57,6 +59,10 @@ export function DescriptorBuilderWizard({
   // moves them all together, so translating the pair means picking the
   // language once rather than clicking through each field's own tabs.
   const [activeLanguage, setActiveLanguage] = useState<SupportedLanguage>('en');
+  // The plain-language summary is the default final-step view (openspec
+  // 0263); raw JSON stays one click away for an author who wants the
+  // literal document.
+  const [showRawJson, setShowRawJson] = useState(false);
   const problems = stepProblems(state).filter(
     (problem) => !(problem === messages.descriptorProblemNameEnglish && activeLanguage === 'en'),
   );
@@ -96,16 +102,35 @@ export function DescriptorBuilderWizard({
     <WizardShell
       afterFailures={
         isLastStep ? (
-          <TerminalBlock
-            code={authoredDocument}
-            codeRegionLabel={intl.formatMessage(messages.descriptorDocumentRegion)}
-            copiedLabel={intl.formatMessage(messages.descriptorDocumentCopied)}
-            copyFailedLabel={intl.formatMessage(messages.descriptorDocumentCopyFailed)}
-            copyLabel={intl.formatMessage(messages.descriptorDocumentCopy)}
-            language="json"
-            title={documentFilename}
-            variant="file"
-          />
+          <Stack gap="2">
+            <Inline justify="end">
+              <Button
+                onClick={() => setShowRawJson((current) => !current)}
+                type="button"
+                variant="secondary"
+              >
+                {intl.formatMessage(
+                  showRawJson
+                    ? messages.disciplineSummaryRawJsonToggleHide
+                    : messages.disciplineSummaryRawJsonToggleShow,
+                )}
+              </Button>
+            </Inline>
+            {showRawJson ? (
+              <TerminalBlock
+                code={authoredDocument}
+                codeRegionLabel={intl.formatMessage(messages.descriptorDocumentRegion)}
+                copiedLabel={intl.formatMessage(messages.descriptorDocumentCopied)}
+                copyFailedLabel={intl.formatMessage(messages.descriptorDocumentCopyFailed)}
+                copyLabel={intl.formatMessage(messages.descriptorDocumentCopy)}
+                language="json"
+                title={documentFilename}
+                variant="file"
+              />
+            ) : (
+              <DisciplineSummary data={toDisciplineSummaryData(state)} />
+            )}
+          </Stack>
         ) : undefined
       }
       ariaLabel={intl.formatMessage(messages.descriptorWizardTitle)}

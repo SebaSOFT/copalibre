@@ -6,7 +6,10 @@ import { Button } from '../ui/atoms/button.js';
 import { Form } from '../ui/atoms/form.js';
 import { Field } from '../ui/molecules/field.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { DisciplineSummary } from '../ui/organisms/discipline-summary.js';
+import { mergeOverrides } from '../../lib/discipline-summary.js';
 import type { MutationFieldPreview, RulesetOverridesRequest } from '../../lib/api-client.js';
+import type { ConfigFieldPolicies, RulesetConfig } from '@copalibre/domain';
 import { messages } from '../../i18n/messages.en.js';
 
 interface FieldDraft {
@@ -33,12 +36,17 @@ export function TournamentRulesetTemplate({
   organizationAlias,
   tournamentAlias,
   overrides,
+  fieldPolicies,
+  disciplineDefaults,
   onPreview,
   onSave,
 }: {
   readonly organizationAlias: string;
   readonly tournamentAlias: string;
   readonly overrides: Readonly<Record<string, unknown>>;
+  /** The installed discipline's field policies — explanatory context, not a second edit surface. */
+  readonly fieldPolicies?: ConfigFieldPolicies;
+  readonly disciplineDefaults?: RulesetConfig;
   readonly onPreview?: (
     request: RulesetOverridesRequest,
   ) => Promise<readonly MutationFieldPreview[]>;
@@ -103,6 +111,16 @@ export function TournamentRulesetTemplate({
           <a className="cl-focusable" href={settingsHref} onClick={controlLinkClick(settingsHref)}>
             <FormattedMessage {...messages.tournamentSettingsLink} />
           </a>
+
+          {fieldPolicies !== undefined && (
+            <DisciplineSummary
+              data={{
+                fieldPolicies,
+                defaults: mergeOverrides(disciplineDefaults ?? {}, overrides),
+              }}
+              sections={['rules']}
+            />
+          )}
 
           <ul aria-label={intl.formatMessage(messages.rulesetOverridesFields)}>
             {drafts.map((draft, index) => (

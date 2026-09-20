@@ -22,6 +22,11 @@ export interface ControlApiClient {
   readonly installModule?: (request: InstallModuleRequest) => Promise<InstallModuleResponse>;
   readonly removeModule?: (alias: string) => Promise<RemoveModuleResponse>;
   readonly verifyModules?: () => Promise<readonly ModuleVerifyResultResponse[]>;
+  /** An installed discipline's complete descriptor document, for plain-language display. */
+  readonly fetchInstalledDisciplineDocument?: (
+    alias: string,
+    version?: string,
+  ) => Promise<InstalledDisciplineDocumentResponse>;
   /** Validates an authored discipline/profile document without installing it. */
   readonly validateAuthoredModule?: (
     request: AuthoredModuleRequest,
@@ -619,6 +624,8 @@ export type InstallModuleRequest = components['schemas']['InstallModuleRequest']
 export type InstallModuleResponse = components['schemas']['InstallModuleResponse'];
 export type RemoveModuleResponse = components['schemas']['RemoveModuleResponse'];
 export type ModuleVerifyResultResponse = components['schemas']['ModuleVerifyResultResponse'];
+export type InstalledDisciplineDocumentResponse =
+  components['schemas']['InstalledDisciplineDocumentResponse'];
 export type AuthoredModuleRequest = components['schemas']['AuthoredModuleRequest'];
 export type AuthoredModuleValidationResponse =
   components['schemas']['AuthoredModuleValidationResponse'];
@@ -1134,6 +1141,10 @@ export type TournamentSettingsRequest = Partial<TournamentSettingsResponse>;
 /** Dot-path → value for a tournament ruleset's override fields (openspec 0169). */
 export interface RulesetOverridesResponse {
   readonly overrides: Readonly<Record<string, unknown>>;
+  /** The installed discipline's field policies — context for the plain-language summary (0263). */
+  readonly fieldPolicies: Readonly<Record<string, unknown>>;
+  /** The installed discipline's own default configuration tree, before any override. */
+  readonly disciplineDefaults: Readonly<Record<string, unknown>>;
 }
 
 export interface RulesetOverridesRequest {
@@ -1890,6 +1901,15 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/admin/modules/verify`,
         { method: 'POST', token: input.accessToken?.() },
+      ),
+
+    fetchInstalledDisciplineDocument: (alias, version) =>
+      requestJson<InstalledDisciplineDocumentResponse>(
+        input.fetch,
+        `${baseUrl}/admin/modules/${encodeURIComponent(alias)}/document${
+          version === undefined ? '' : `?version=${encodeURIComponent(version)}`
+        }`,
+        { token: input.accessToken?.() },
       ),
 
     validateAuthoredModule: (body) =>

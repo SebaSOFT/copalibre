@@ -10,6 +10,18 @@ function goToParticipantsStep(): void {
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 }
 
+function goToWinConditionStep(): void {
+  goToParticipantsStep();
+  fireEvent.click(screen.getByLabelText('team', { exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.change(screen.getByLabelText('Statistic code'), { target: { value: 'points' } });
+  fireEvent.change(screen.getByLabelText('Statistic label'), { target: { value: 'Points' } });
+  fireEvent.click(screen.getAllByRole('button', { name: 'Add' })[0] as HTMLButtonElement);
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByLabelText('single-elimination', { exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+}
+
 describe('the discipline builder wizard', () => {
   it('shows a persistent explanation for the alias decision, bound to the field', () => {
     render(withIntl(<DescriptorBuilderWizard />));
@@ -227,5 +239,22 @@ describe('the discipline builder wizard', () => {
     expect(
       request.document.winCondition.rules.flatMap((rule) => rule.actions.map((a) => a.type)),
     ).toEqual(['requireMargin', 'winSegment', 'winMatch']);
+  });
+
+  it('shows the plain-language summary by default on the final step, with raw JSON behind a toggle', () => {
+    render(withIntl(<DescriptorBuilderWizard />));
+    goToWinConditionStep();
+
+    expect(screen.getByText('Segments')).toBeDefined();
+    expect(screen.getByText('Rules')).toBeDefined();
+    expect(screen.getByText('Events')).toBeDefined();
+    expect(screen.queryByText(/"alias": "test-sport"/)).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show raw JSON' }));
+    expect(screen.getByText(/"alias": "test-sport"/)).toBeDefined();
+    expect(screen.queryByText('Segments')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide raw JSON' }));
+    expect(screen.getByText('Segments')).toBeDefined();
   });
 });

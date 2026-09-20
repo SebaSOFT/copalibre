@@ -9,6 +9,18 @@ const meta = {
     organizationAlias: ORG,
     tournamentAlias: TOURNAMENT,
     overrides: { 'scoring.pointsPerWin': 3 },
+    fieldPolicies: {
+      'scoring.pointsPerWin': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+        label: 'Points per win',
+      },
+      'scoring.pointsPerDraw': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+    },
+    disciplineDefaults: { scoring: { pointsPerWin: 2, pointsPerDraw: 1 } },
     onPreview: async () => [],
     onSave: async () => undefined,
   },
@@ -17,3 +29,6 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
 export const Empty: Story = { args: { overrides: {} } };
+export const NoDisciplineContext: Story = {
+  args: { fieldPolicies: undefined, disciplineDefaults: undefined },
+};

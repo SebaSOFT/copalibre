@@ -7,7 +7,17 @@ import type { ControlApiClient } from '../../lib/api-client.js';
 function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
     fetchRulesetOverrides: () =>
-      Promise.resolve({ overrides: { 'scoring.pointsPerWin': 3, 'scoring.pointsPerDraw': 1 } }),
+      Promise.resolve({
+        overrides: { 'scoring.pointsPerWin': 3, 'scoring.pointsPerDraw': 1 },
+        fieldPolicies: {
+          'scoring.pointsPerWin': {
+            permission: { kind: 'replaced' },
+            mutationClass: 'blocked_after_results',
+            label: 'Points per win',
+          },
+        },
+        disciplineDefaults: { scoring: { pointsPerWin: 2 } },
+      }),
     ...overrides,
   } as unknown as ControlApiClient;
 }
@@ -27,6 +37,25 @@ describe('TournamentRulesetPage', () => {
     expect(await screen.findByLabelText('scoring.pointsPerWin')).toBeDefined();
     expect((screen.getByLabelText('scoring.pointsPerWin') as HTMLInputElement).value).toBe('3');
     expect((screen.getByLabelText('scoring.pointsPerDraw') as HTMLInputElement).value).toBe('1');
+  });
+
+  it("shows the discipline's plain-language rule context alongside the edit fields", async () => {
+    render(
+      withIntl(
+        <TournamentRulesetPage
+          client={stubClient()}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    expect(await screen.findByText('Rules')).toBeDefined();
+    expect(screen.getByText('Points per win')).toBeDefined();
+    // The tournament's override (3) is shown, not the discipline default (2).
+    expect(screen.getByText('Current value: 3')).toBeDefined();
+    expect(screen.queryByText('Segments')).toBeNull();
+    expect(screen.queryByText('Events')).toBeNull();
   });
 
   it('shows a load-failure message when the ruleset fails to load', async () => {
@@ -79,7 +108,7 @@ describe('TournamentRulesetPage', () => {
 
   it('refuses to save once the preview reports a blocked field', async () => {
     const updateRulesetOverrides = jest.fn<NonNullable<ControlApiClient['updateRulesetOverrides']>>(
-      () => Promise.resolve({ overrides: {} }),
+      () => Promise.resolve({ overrides: {}, fieldPolicies: {}, disciplineDefaults: {} }),
     );
     render(
       withIntl(
@@ -117,6 +146,8 @@ describe('TournamentRulesetPage', () => {
       () =>
         Promise.resolve({
           overrides: { 'scoring.pointsPerWin': 3, 'scoring.pointsPerDraw': 1, winCondition: {} },
+          fieldPolicies: {},
+          disciplineDefaults: {},
         }),
     );
     render(
@@ -150,6 +181,8 @@ describe('TournamentRulesetPage', () => {
       () =>
         Promise.resolve({
           overrides: { 'scoring.pointsPerWin': 3, 'scoring.pointsPerDraw': 1, winCondition: {} },
+          fieldPolicies: {},
+          disciplineDefaults: {},
         }),
     );
     render(
@@ -220,7 +253,7 @@ describe('TournamentRulesetPage', () => {
 
   it('does nothing when saving with no changed fields', async () => {
     const updateRulesetOverrides = jest.fn<NonNullable<ControlApiClient['updateRulesetOverrides']>>(
-      () => Promise.resolve({ overrides: {} }),
+      () => Promise.resolve({ overrides: {}, fieldPolicies: {}, disciplineDefaults: {} }),
     );
     render(
       withIntl(

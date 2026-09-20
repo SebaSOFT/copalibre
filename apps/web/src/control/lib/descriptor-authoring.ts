@@ -1,5 +1,6 @@
 import {
   SUPPORTED_LANGUAGES,
+  type ConfigFieldPolicies,
   type LocalizedLabel,
   type SupportedLanguage,
 } from '@copalibre/domain';
@@ -9,6 +10,7 @@ import { LANGUAGE_NAMES } from '../i18n/LanguageSwitcher.js';
 import type { LocalizedFieldLanguage } from '../components/ui/atoms/localized-field-tabs.js';
 import type { AuthoredModuleRequest } from './api-client.js';
 import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
+import type { DisciplineSummaryData, EventSummaryData } from './discipline-summary.js';
 
 /**
  * The discipline builder wizard (openspec 0164).
@@ -468,7 +470,7 @@ export function buildWinCondition(state: DescriptorWizardState): Record<string, 
  * attached structurally, never asked as an authoring decision (the wizard's
  * documented scope cut: no per-field `fieldPolicies` authoring surface).
  */
-const STANDARD_FIELD_POLICIES: Record<string, unknown> = {
+const STANDARD_FIELD_POLICIES: ConfigFieldPolicies = {
   format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
   'registration.publicOpen': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
   'registration.requiresCheckIn': {
@@ -537,4 +539,37 @@ export function toAuthoredDocument(state: DescriptorWizardState): Record<string,
 
 export function toAuthoredModuleRequest(state: DescriptorWizardState): AuthoredModuleRequest {
   return { kind: 'discipline', document: toAuthoredDocument(state) };
+}
+
+/**
+ * Narrows the wizard's draft state to `DisciplineSummary`'s data contract —
+ * the plain-language review the final step shows before installing
+ * (openspec 0263). Mirrors `toAuthoredDocument`'s `segmentTypes`/
+ * `eventDefinitions` mapping exactly, so the summary always describes the
+ * same document the raw-JSON toggle would show, never a second derivation
+ * that could drift from it.
+ */
+export function toDisciplineSummaryData(state: DescriptorWizardState): DisciplineSummaryData {
+  return {
+    segmentTypes: state.segmentTypes,
+    eventDefinitions: state.eventDefinitions.map((event): EventSummaryData => ({
+      code: event.code,
+      label: event.label,
+      actorRequirement: event.actorRequirement,
+      ...(event.awardsStatisticCode === undefined
+        ? {}
+        : {
+            effects: [
+              {
+                kind: 'statistic',
+                statisticCode: event.awardsStatisticCode,
+                delta: event.awardsDelta,
+                awardTo: 'actor',
+              },
+            ],
+          }),
+    })),
+    defaults: {},
+    fieldPolicies: STANDARD_FIELD_POLICIES,
+  };
 }
