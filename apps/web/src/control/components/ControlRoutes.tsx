@@ -22,6 +22,7 @@ import { ClubManagementPage } from './pages/ClubManagementPage.js';
 import { VenueManagementPage } from './pages/VenueManagementPage.js';
 import { ScheduleBuilderPage } from './pages/ScheduleBuilderPage.js';
 import { PlatformAdministrationPage } from './pages/PlatformAdministrationPage.js';
+import { DisciplineDocumentPage } from './pages/DisciplineDocumentPage.js';
 import { LiveConsolePage } from './pages/LiveConsolePage.js';
 import { AnalyticsPage } from './pages/AnalyticsPage.js';
 import { DashboardPage } from './pages/DashboardPage.js';
@@ -94,6 +95,20 @@ export function PlatformAdministrationControlRoute({
   return (
     <ControlShell active="platform" helpPath="platform-administration">
       <PlatformAdministrationPage client={client} />
+    </ControlShell>
+  );
+}
+
+export function DisciplineDocumentControlRoute({
+  disciplineAlias,
+  client,
+}: {
+  readonly disciplineAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell active="platform" helpPath="platform-administration">
+      <DisciplineDocumentPage client={client} disciplineAlias={disciplineAlias} />
     </ControlShell>
   );
 }

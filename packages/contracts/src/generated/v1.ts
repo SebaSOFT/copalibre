@@ -2126,6 +2126,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/modules/{alias}/document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fetch an installed discipline module's complete descriptor document */
+        get: operations["AdminModulesController_document"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/modules/verify": {
         parameters: {
             query?: never;
@@ -3319,6 +3336,14 @@ export interface components {
         RulesetOverridesResponse: {
             /** @description The full override document after applying the edit, not only the changed fields. */
             overrides: Record<string, never>;
+            /** @description The installed discipline's field policies for every overridable field (permission, mutation class, and optional label/description) — context for explaining what each override field means and how changing it behaves, never a second override-application path. */
+            fieldPolicies: {
+                [key: string]: unknown;
+            };
+            /** @description The installed discipline's own default configuration tree, before any override. */
+            disciplineDefaults: {
+                [key: string]: unknown;
+            };
         };
         RulesetOverridesRequest: {
             /**
@@ -5266,6 +5291,18 @@ export interface components {
              * @example 1
              */
             removedCount: number;
+        };
+        InstalledDisciplineDocumentResponse: {
+            /** Format: uuid */
+            descriptorId: string;
+            /** @example orbital-frisbee */
+            alias: string;
+            /** @example 1.0.0 */
+            version: string;
+            /** @description The complete DisciplineDescriptor document (segment types, event definitions, statistics, rule defaults, field policies, win condition, and every other declared field) for this installed discipline. Same shape a `discipline` AuthoredModuleRequest.document accepts, plus the assigned descriptorId. */
+            document: {
+                [key: string]: unknown;
+            };
         };
         ModuleVerifyFailureResponse: {
             /** @example registry-reference */
@@ -10329,6 +10366,51 @@ export interface operations {
                 };
             };
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    AdminModulesController_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstalledDisciplineDocumentResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

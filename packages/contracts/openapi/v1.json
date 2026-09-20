@@ -8122,6 +8122,72 @@
         ]
       }
     },
+    "/admin/modules/{alias}/document": {
+      "get": {
+        "operationId": "AdminModulesController_document",
+        "parameters": [
+          {
+            "name": "alias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstalledDisciplineDocumentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Fetch an installed discipline module's complete descriptor document",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/admin/modules/verify": {
       "post": {
         "operationId": "AdminModulesController_verify",
@@ -12399,10 +12465,22 @@
           "overrides": {
             "type": "object",
             "description": "The full override document after applying the edit, not only the changed fields."
+          },
+          "fieldPolicies": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The installed discipline's field policies for every overridable field (permission, mutation class, and optional label/description) — context for explaining what each override field means and how changing it behaves, never a second override-application path."
+          },
+          "disciplineDefaults": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The installed discipline's own default configuration tree, before any override."
           }
         },
         "required": [
-          "overrides"
+          "overrides",
+          "fieldPolicies",
+          "disciplineDefaults"
         ]
       },
       "RulesetOverridesRequest": {
@@ -17709,6 +17787,34 @@
         "required": [
           "alias",
           "removedCount"
+        ]
+      },
+      "InstalledDisciplineDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "descriptorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "alias": {
+            "type": "string",
+            "example": "orbital-frisbee"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0.0"
+          },
+          "document": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The complete DisciplineDescriptor document (segment types, event definitions, statistics, rule defaults, field policies, win condition, and every other declared field) for this installed discipline. Same shape a `discipline` AuthoredModuleRequest.document accepts, plus the assigned descriptorId."
+          }
+        },
+        "required": [
+          "descriptorId",
+          "alias",
+          "version",
+          "document"
         ]
       },
       "ModuleVerifyFailureResponse": {

@@ -1172,4 +1172,33 @@ export const messages: Record<string, string> = {
   'control.auditLogPanel.latency': '{latencyMs}ms de latence',
   'control.tournament.completion': 'Achèvement du tournoi',
   'control.tournament.completionStage': 'Phase {stageNumber}',
+
+  'control.disciplineSummary.segmentsHeading': 'Segments',
+  'control.disciplineSummary.noSegments': 'Cette discipline ne déclare aucun segment.',
+  'control.disciplineSummary.segmentTimed':
+    '{name} utilise un chronomètre. Durée par défaut : {duration}.',
+  'control.disciplineSummary.segmentUntimed': "{name} n'a pas de chronomètre.",
+  'control.disciplineSummary.rulesHeading': 'Règles',
+  'control.disciplineSummary.noRules': 'Cette discipline ne déclare aucune règle configurable.',
+  'control.disciplineSummary.ruleCurrentValue': 'Valeur actuelle : {value}',
+  'control.disciplineSummary.permissionInherited':
+    'Utilise la valeur par défaut de la discipline, sauf si le tournoi la remplace.',
+  'control.disciplineSummary.permissionReplaced':
+    'Peut être remplacée par une valeur propre au tournoi.',
+  'control.disciplineSummary.permissionMerged':
+    'Peut être complétée par des valeurs propres au tournoi, en plus de celles de la discipline.',
+  'control.disciplineSummary.permissionForbidden': 'Ne peut pas être modifiée par tournoi.',
+  'control.disciplineSummary.eventsHeading': 'Événements',
+  'control.disciplineSummary.noEvents': 'Cette discipline ne déclare aucun événement.',
+  'control.disciplineSummary.eventAffectsResult': 'Modifie le résultat',
+  'control.disciplineSummary.eventActorSide': "S'applique à l'équipe.",
+  'control.disciplineSummary.eventActorPerson': "S'applique à un joueur.",
+  'control.disciplineSummary.eventActorPersonOrStaff':
+    "S'applique à un joueur ou à un membre du staff.",
+  'control.disciplineSummary.eventActorNone': "Ne s'applique à aucun membre précis de l'équipe.",
+  'control.disciplineSummary.rawJsonToggleShow': 'Afficher le JSON brut',
+  'control.disciplineSummary.rawJsonToggleHide': 'Masquer le JSON brut',
+  'control.disciplineDocument.loading': 'Chargement de la discipline…',
+  'control.disciplineDocument.loadFailed': 'Impossible de charger cette discipline.',
+  'control.platform.viewDiscipline': 'Afficher',
 };

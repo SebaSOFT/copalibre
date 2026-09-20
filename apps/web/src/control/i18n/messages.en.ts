@@ -3351,4 +3351,100 @@ export const messages = defineMessages({
     id: 'control.tournament.completionStage',
     defaultMessage: 'Stage {stageNumber}',
   },
+
+  // DisciplineSummary (ui/organisms/discipline-summary.tsx, openspec 0263) —
+  // translates a DisciplineDescriptor's segments/rules/events to plain
+  // language, in place of raw JSON.
+  disciplineSummarySegmentsHeading: {
+    id: 'control.disciplineSummary.segmentsHeading',
+    defaultMessage: 'Segments',
+  },
+  disciplineSummaryNoSegments: {
+    id: 'control.disciplineSummary.noSegments',
+    defaultMessage: 'This discipline declares no segments.',
+  },
+  disciplineSummarySegmentTimed: {
+    id: 'control.disciplineSummary.segmentTimed',
+    defaultMessage: '{name} runs a clock. Default duration: {duration}.',
+  },
+  disciplineSummarySegmentUntimed: {
+    id: 'control.disciplineSummary.segmentUntimed',
+    defaultMessage: '{name} has no clock.',
+  },
+  disciplineSummaryRulesHeading: {
+    id: 'control.disciplineSummary.rulesHeading',
+    defaultMessage: 'Rules',
+  },
+  disciplineSummaryNoRules: {
+    id: 'control.disciplineSummary.noRules',
+    defaultMessage: 'This discipline declares no configurable rules.',
+  },
+  disciplineSummaryRuleCurrentValue: {
+    id: 'control.disciplineSummary.ruleCurrentValue',
+    defaultMessage: 'Current value: {value}',
+  },
+  disciplineSummaryPermissionInherited: {
+    id: 'control.disciplineSummary.permissionInherited',
+    defaultMessage: "Uses the discipline's default unless the tournament replaces it.",
+  },
+  disciplineSummaryPermissionReplaced: {
+    id: 'control.disciplineSummary.permissionReplaced',
+    defaultMessage: 'Can be replaced with a tournament-specific value.',
+  },
+  disciplineSummaryPermissionMerged: {
+    id: 'control.disciplineSummary.permissionMerged',
+    defaultMessage: "Can be extended with the tournament's own values, on top of the discipline's.",
+  },
+  disciplineSummaryPermissionForbidden: {
+    id: 'control.disciplineSummary.permissionForbidden',
+    defaultMessage: 'Cannot be changed per tournament.',
+  },
+  disciplineSummaryEventsHeading: {
+    id: 'control.disciplineSummary.eventsHeading',
+    defaultMessage: 'Events',
+  },
+  disciplineSummaryNoEvents: {
+    id: 'control.disciplineSummary.noEvents',
+    defaultMessage: 'This discipline declares no events.',
+  },
+  disciplineSummaryEventAffectsResult: {
+    id: 'control.disciplineSummary.eventAffectsResult',
+    defaultMessage: 'Changes the result',
+  },
+  disciplineSummaryEventActorSide: {
+    id: 'control.disciplineSummary.eventActorSide',
+    defaultMessage: 'Applies to the team.',
+  },
+  disciplineSummaryEventActorPerson: {
+    id: 'control.disciplineSummary.eventActorPerson',
+    defaultMessage: 'Applies to a player.',
+  },
+  disciplineSummaryEventActorPersonOrStaff: {
+    id: 'control.disciplineSummary.eventActorPersonOrStaff',
+    defaultMessage: 'Applies to a player or staff member.',
+  },
+  disciplineSummaryEventActorNone: {
+    id: 'control.disciplineSummary.eventActorNone',
+    defaultMessage: 'Does not apply to a specific team member.',
+  },
+  disciplineSummaryRawJsonToggleShow: {
+    id: 'control.disciplineSummary.rawJsonToggleShow',
+    defaultMessage: 'Show raw JSON',
+  },
+  disciplineSummaryRawJsonToggleHide: {
+    id: 'control.disciplineSummary.rawJsonToggleHide',
+    defaultMessage: 'Hide raw JSON',
+  },
+  disciplineDocumentLoading: {
+    id: 'control.disciplineDocument.loading',
+    defaultMessage: 'Loading discipline…',
+  },
+  disciplineDocumentLoadFailed: {
+    id: 'control.disciplineDocument.loadFailed',
+    defaultMessage: 'Could not load this discipline.',
+  },
+  platformViewDiscipline: {
+    id: 'control.platform.viewDiscipline',
+    defaultMessage: 'View',
+  },
 });

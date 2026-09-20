@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (284/1005 after openspec 0260, growing as this change adds files)', () => {
+test('the graph resolves the current node/edge count (288/1031 after openspec 0263, growing as this change adds files)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 284);
-  assert.equal(graph.edges.length, 1005);
+  assert.equal(graph.nodes.size, 288);
+  assert.equal(graph.edges.length, 1031);
 });
 
 test('a type-only import is not counted as a render', () => {

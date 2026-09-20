@@ -5,6 +5,7 @@ import {
   AnalyticsControlRoute,
   AuditTrailControlRoute,
   ClubManagementControlRoute,
+  DisciplineDocumentControlRoute,
   LiveConsoleControlRoute,
   LoadMatchDataControlRoute,
   MatchConsoleControlRoute,
@@ -72,7 +73,7 @@ export function ControlApp(): React.JSX.Element | null {
     route?.screen === 'forgot-password' ||
     route?.screen === 'reset-password';
   const isUnauthorizedPlatformRoute =
-    route?.screen === 'platformAdministration' &&
+    (route?.screen === 'platformAdministration' || route?.screen === 'disciplineDocument') &&
     !accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
 
   // Guarded here, once, rather than per screen: ControlApp is every
@@ -165,6 +166,9 @@ const ROUTE_COMPONENT_BY_SCREEN: ScreenComponents = {
     </ControlIntl>
   ),
   platformAdministration: () => <PlatformAdministrationControlRoute />,
+  disciplineDocument: (route) => (
+    <DisciplineDocumentControlRoute disciplineAlias={route.disciplineAlias} />
+  ),
   dashboard: (route) => <DashboardPage organizationAlias={route.organizationAlias} />,
   tournaments: (route) => <TournamentsControlRoute organizationAlias={route.organizationAlias} />,
   liveConsole: (route) => <LiveConsoleControlRoute organizationAlias={route.organizationAlias} />,
@@ -345,6 +349,7 @@ const TITLE_BY_SCREEN: TitleByScreen = {
   'forgot-password': () => 'Recover password — CopaLibre',
   'reset-password': () => 'Reset password — CopaLibre',
   platformAdministration: () => 'Platform administration — CopaLibre',
+  disciplineDocument: (route) => `Discipline — ${route.disciplineAlias}`,
   preferences: () => 'Personal preferences — CopaLibre',
 };
 

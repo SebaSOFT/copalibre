@@ -1169,4 +1169,33 @@ export const messages: Record<string, string> = {
   'control.auditLogPanel.latency': '{latencyMs}ms di latenza',
   'control.tournament.completion': 'Completamento del torneo',
   'control.tournament.completionStage': 'Fase {stageNumber}',
+
+  'control.disciplineSummary.segmentsHeading': 'Segmenti',
+  'control.disciplineSummary.noSegments': 'Questa disciplina non dichiara segmenti.',
+  'control.disciplineSummary.segmentTimed':
+    '{name} utilizza un cronometro. Durata predefinita: {duration}.',
+  'control.disciplineSummary.segmentUntimed': '{name} non ha cronometro.',
+  'control.disciplineSummary.rulesHeading': 'Regole',
+  'control.disciplineSummary.noRules': 'Questa disciplina non dichiara regole configurabili.',
+  'control.disciplineSummary.ruleCurrentValue': 'Valore attuale: {value}',
+  'control.disciplineSummary.permissionInherited':
+    'Usa il valore predefinito della disciplina, salvo che il torneo lo sostituisca.',
+  'control.disciplineSummary.permissionReplaced':
+    'Può essere sostituito con un valore specifico del torneo.',
+  'control.disciplineSummary.permissionMerged':
+    'Può essere esteso con valori propri del torneo, in aggiunta a quelli della disciplina.',
+  'control.disciplineSummary.permissionForbidden': 'Non può essere modificato per torneo.',
+  'control.disciplineSummary.eventsHeading': 'Eventi',
+  'control.disciplineSummary.noEvents': 'Questa disciplina non dichiara eventi.',
+  'control.disciplineSummary.eventAffectsResult': 'Modifica il risultato',
+  'control.disciplineSummary.eventActorSide': 'Si applica alla squadra.',
+  'control.disciplineSummary.eventActorPerson': 'Si applica a un giocatore.',
+  'control.disciplineSummary.eventActorPersonOrStaff':
+    'Si applica a un giocatore o a un membro dello staff.',
+  'control.disciplineSummary.eventActorNone': 'Non si applica a un membro specifico della squadra.',
+  'control.disciplineSummary.rawJsonToggleShow': 'Mostra JSON grezzo',
+  'control.disciplineSummary.rawJsonToggleHide': 'Nascondi JSON grezzo',
+  'control.disciplineDocument.loading': 'Caricamento disciplina…',
+  'control.disciplineDocument.loadFailed': 'Impossibile caricare questa disciplina.',
+  'control.platform.viewDiscipline': 'Visualizza',
 };

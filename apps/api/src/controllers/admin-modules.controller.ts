@@ -22,6 +22,7 @@ import {
   ApiCreatedResponse,
   ApiExtraModels,
   ApiForbiddenResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -66,6 +67,7 @@ import { SharedThrottle } from '../auth/shared-throttle.decorator.js';
 import {
   InstallModuleRequest,
   InstallModuleResponse,
+  InstalledDisciplineDocumentResponse,
   InstalledModuleResponse,
   ModuleVerifyResultResponse,
   OutdatedModuleResponse,
@@ -265,6 +267,52 @@ export class AdminModulesController {
       );
     }
     return { alias, removedCount: installed.length };
+  }
+
+  @Get(':alias/document')
+  @SecurityPlaneTag('admin-control')
+  @RequireSuperAdmin()
+  @RequireScopes(SUPER_ADMIN_SCOPE)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Fetch an installed discipline module's complete descriptor document",
+  })
+  @ApiOkResponse({ type: InstalledDisciplineDocumentResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async document(
+    @Param('alias') alias: string,
+    @Query('version') version: string | undefined,
+  ): Promise<InstalledDisciplineDocumentResponse> {
+    const modules = new InstalledModuleRepository(this.db);
+    const installed = (await modules.findByAlias(alias)).filter(
+      (module_) => module_.kind === 'discipline',
+    );
+    const target = version
+      ? installed.find((module_) => module_.version === version)
+      : latestPerAlias(installed)[0];
+    if (!target)
+      throw new NotFoundException(`No installed discipline named "${alias}"`, {
+        errorCode: 'admin-module-not-found',
+      });
+
+    const descriptor = await new TournamentRepository(this.db).findDescriptor(
+      target.documentId,
+      target.version,
+    );
+    if (!descriptor)
+      throw new NotFoundException(`No installed discipline named "${alias}"`, {
+        errorCode: 'admin-module-not-found',
+      });
+
+    const {
+      descriptorId,
+      alias: descriptorAlias,
+      version: descriptorVersion,
+      ...document
+    } = descriptor;
+    return { descriptorId, alias: descriptorAlias, version: descriptorVersion, document };
   }
 
   @Post('verify')
