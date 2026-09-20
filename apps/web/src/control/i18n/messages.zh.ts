@@ -1134,4 +1134,8 @@ export const messages: Record<string, string> = {
   'control.disciplineDocument.loading': '正在加载项目…',
   'control.disciplineDocument.loadFailed': '无法加载该项目。',
   'control.platform.viewDiscipline': '查看',
+  'control.rulesetField.listAdd': '添加',
+  'control.rulesetField.inheritedHeading': '已包含：',
+  'control.rulesetField.unrecognized': '不受已知规则策略管理 —— 以原始 JSON 编辑。',
+  'control.rulesetField.unknownType': '该字段的值类型未知 —— 以原始 JSON 编辑。',
 };

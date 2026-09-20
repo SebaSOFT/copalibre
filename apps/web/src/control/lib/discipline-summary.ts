@@ -4,12 +4,13 @@
  * from the component so every branch here is testable without rendering —
  * the same split `wizard.ts`/`TournamentSetupWizard.tsx` already use.
  */
-import type {
-  ConfigFieldPolicies,
-  EventDefinition,
-  FieldPolicy,
-  RulesetConfig,
-  SegmentTypeDefinition,
+import {
+  mergeWithStrategy,
+  type ConfigFieldPolicies,
+  type EventDefinition,
+  type FieldPolicy,
+  type RulesetConfig,
+  type SegmentTypeDefinition,
 } from '@copalibre/domain';
 
 /**
@@ -77,28 +78,53 @@ export function fieldValueAt(defaults: RulesetConfig, dotPath: string): unknown 
   }, defaults);
 }
 
+function setAtPath(config: Record<string, unknown>, dotPath: string, value: unknown): void {
+  const segments = dotPath.split('.');
+  const last = segments.pop() as string;
+  let node = config;
+  for (const key of segments) {
+    const next = node[key];
+    if (typeof next !== 'object' || next === null) node[key] = {};
+    node = node[key] as Record<string, unknown>;
+  }
+  node[last] = value;
+}
+
 /**
  * Overlays dot-path override values onto a discipline's default configuration
  * tree, so a rule field's "current value" reflects what a tournament actually
  * has configured, not just the discipline's own baseline. Used by the
  * ruleset-override editor, the one consumer with a separate overrides
  * document to reconcile against defaults.
+ *
+ * A `replaced` field's stored override IS its final value — a plain overlay.
+ * A `merged` field's stored override is only the delta/patch the compiler
+ * applies on top of the inherited value (`mergeWithStrategy`, the same
+ * function `packages/domain`'s own compiler uses) — overlaying it directly,
+ * as this function once did, shows an operator the delta instead of the real
+ * effective value (e.g. only the tiebreaker just added, not the discipline's
+ * whole tiebreaker order plus the addition).
  */
 export function mergeOverrides(
   defaults: RulesetConfig,
   overrides: Readonly<Record<string, unknown>>,
+  fieldPolicies: ConfigFieldPolicies,
 ): RulesetConfig {
   const merged: Record<string, unknown> = structuredClone(defaults) as Record<string, unknown>;
   for (const [dotPath, value] of Object.entries(overrides)) {
-    const segments = dotPath.split('.');
-    let node = merged;
-    for (let i = 0; i < segments.length - 1; i++) {
-      const key = segments[i] as string;
-      const next = node[key];
-      if (typeof next !== 'object' || next === null) node[key] = {};
-      node = node[key] as Record<string, unknown>;
+    const policy = fieldPolicies[dotPath];
+    if (policy?.permission.kind === 'merged') {
+      const current = fieldValueAt(merged, dotPath);
+      const result = mergeWithStrategy(policy.permission.strategy, current, value, dotPath);
+      if (result.ok) {
+        setAtPath(merged, dotPath, result.value);
+        continue;
+      }
+      // A shape mismatch (e.g. stored data predates a strategy change) — this
+      // is a display path, not the compiler, so fall through to the plain
+      // overlay rather than throwing.
     }
-    node[segments[segments.length - 1] as string] = value;
+    setAtPath(merged, dotPath, value);
   }
   return merged;
 }
@@ -137,4 +163,58 @@ export function formatFieldValue(value: unknown): string {
   }
   if (Array.isArray(value)) return value.map((entry) => formatFieldValue(entry)).join(', ');
   return JSON.stringify(value);
+}
+
+/**
+ * A field's current value, for inferring what kind of control edits it — the
+ * tournament's own stored override first (it is sometimes the only place a
+ * value exists at all, e.g. `format`/`registration.*` on a wizard-authored
+ * discipline whose own `defaults` is `{}`), falling back to the discipline's
+ * default.
+ */
+export function observedFieldValue(
+  overrides: Readonly<Record<string, unknown>>,
+  disciplineDefaults: RulesetConfig,
+  dotPath: string,
+): unknown {
+  // `overrides` is flat, keyed by the literal dot-path string (as the
+  // RulesetOverrides wire shape stores it) — a direct lookup, never a
+  // nested-tree traversal like `fieldValueAt` performs on `defaults`.
+  const overridden = overrides[dotPath];
+  if (overridden !== undefined) return overridden;
+  return fieldValueAt(disciplineDefaults, dotPath);
+}
+
+/**
+ * Which control shape edits a field, derived from its declared policy and
+ * observed value — never a new per-field schema (design.md's Non-Goals).
+ * `undefined` means the field is not editable at all (`forbidden`/`inherited`).
+ */
+export type ControlKind =
+  'checkbox' | 'number' | 'text' | 'format-select' | 'add-to-list' | 'patch-object' | 'raw-json';
+
+export function chooseControlKind(
+  policy: FieldPolicy | undefined,
+  observedValue: unknown,
+  dotPath: string,
+): ControlKind | undefined {
+  if (policy === undefined) return 'raw-json';
+  if (policy.permission.kind === 'forbidden' || policy.permission.kind === 'inherited') {
+    return undefined;
+  }
+  if (policy.permission.kind === 'merged') {
+    return policy.permission.strategy === 'shallow-object' ? 'patch-object' : 'add-to-list';
+  }
+  // permission.kind === 'replaced'
+  if (dotPath === 'format') return 'format-select';
+  switch (typeof observedValue) {
+    case 'boolean':
+      return 'checkbox';
+    case 'number':
+      return 'number';
+    case 'string':
+      return 'text';
+    default:
+      return 'raw-json';
+  }
 }

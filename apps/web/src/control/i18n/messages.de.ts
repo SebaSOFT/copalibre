@@ -1207,4 +1207,10 @@ export const messages: Record<string, string> = {
   'control.disciplineDocument.loading': 'Disziplin wird geladen…',
   'control.disciplineDocument.loadFailed': 'Diese Disziplin konnte nicht geladen werden.',
   'control.platform.viewDiscipline': 'Ansehen',
+  'control.rulesetField.listAdd': 'Hinzufügen',
+  'control.rulesetField.inheritedHeading': 'Enthält bereits:',
+  'control.rulesetField.unrecognized':
+    'Nicht durch eine bekannte Regel-Policy geregelt — wird als rohes JSON bearbeitet.',
+  'control.rulesetField.unknownType':
+    'Der Werttyp dieses Felds ist unbekannt — wird als rohes JSON bearbeitet.',
 };

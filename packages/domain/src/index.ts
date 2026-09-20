@@ -374,7 +374,7 @@ export {
   type SeedDirection,
   type SeedPlacement,
 } from './rulesets/stage-allocation.js';
-export { compileEffectiveRuleset } from './rulesets/compiler.js';
+export { compileEffectiveRuleset, mergeWithStrategy } from './rulesets/compiler.js';
 export {
   evaluateMutation,
   evaluateCustomScriptsMutation,
