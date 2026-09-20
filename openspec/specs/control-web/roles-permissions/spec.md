@@ -410,3 +410,19 @@ condensed one.
 #### Scenario: The link follows the selected role, not the one shown a moment ago
 - **WHEN** an operator changes the selected role after the link has already rendered once
 - **THEN** the link now points to the newly-selected role's own help page
+
+### Requirement: Accepting an invitation stores the session token the same secure way every login does
+Accepting an invitation through the native `/auth/accept-invitation` flow SHALL establish the new
+administrator's session using the same token-storage mechanism every other control-panel
+authentication entry point uses, and SHALL NOT write the access token into `localStorage` or any
+storage that survives the browser tab closing.
+
+#### Scenario: Accepting an invitation establishes a real, working session
+- **WHEN** an operator submits a valid invitation token and a new password on the invitation
+  acceptance screen
+- **THEN** the resulting access token is stored the same way a successful login stores it, and the
+  operator's subsequent redirect into the control console finds a valid, working session
+
+#### Scenario: No access token is ever written to localStorage
+- **WHEN** an operator accepts an invitation successfully
+- **THEN** `localStorage` contains no access token, under any key
