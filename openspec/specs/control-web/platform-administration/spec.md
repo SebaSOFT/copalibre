@@ -91,3 +91,17 @@ The console SHALL offer a "create super-admin" action only to a caller who alrea
 - **WHEN** an organization `admin` who does not hold `super-admin` views the platform-administration
   console (if reachable at all)
 - **THEN** no create-super-admin action is rendered
+
+### Requirement: An installed discipline can be inspected in plain language
+The installed-modules list SHALL offer a way to open a detail view for an installed discipline
+module, showing that discipline's discipline-plain-language-summary. This view SHALL be reachable
+only to a super-admin scope holder, consistent with the rest of platform administration.
+
+#### Scenario: A super-admin opens an installed discipline's detail view
+- **WHEN** a super-admin selects an installed discipline module from the list
+- **THEN** the detail view renders that discipline's plain-language summary, fetched from its full
+  descriptor document
+
+#### Scenario: A non-super-admin cannot reach the detail view
+- **WHEN** a caller without `copalibre.super-admin` requests the discipline detail view
+- **THEN** the request is refused, consistent with every other platform-administration surface
