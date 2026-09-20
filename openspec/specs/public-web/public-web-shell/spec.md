@@ -867,3 +867,27 @@ winner-resolution behavior).
   have not yet finished
 - **THEN** that zone's bracket highlights its own champion, and every other zone's bracket renders
   unaffected by that zone's completion
+
+### Requirement: Structured-data injection is safe against script-breakout
+Any admin-set text (organization name, tournament name, or other free-text field) rendered inside a
+public page's JSON-LD structured-data `<script>` tag SHALL be escaped so it cannot terminate that
+`<script>` tag early, regardless of its content.
+
+#### Scenario: An organization name containing a script-closing sequence cannot execute
+- **WHEN** an organization's name contains the literal text `</script>` followed by markup
+- **THEN** that organization's public page renders the name as inert JSON-LD text data, and no
+  script derived from it executes in a visitor's browser
+
+#### Scenario: Ordinary organization and tournament names render unaffected
+- **WHEN** an organization or tournament name contains no script-breakout sequence
+- **THEN** the public page's structured data renders exactly as before, byte-for-byte equivalent for
+  any name that needed no escaping
+
+### Requirement: Public pages carry baseline security response headers
+Every response the public site serves SHALL include `X-Content-Type-Options: nosniff`,
+`X-Frame-Options: DENY`, and `Referrer-Policy: strict-origin-when-cross-origin`.
+
+#### Scenario: A visitor requests any public page
+- **WHEN** an anonymous visitor requests any public route, prerendered or server-rendered
+- **THEN** the response includes `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and
+  `Referrer-Policy: strict-origin-when-cross-origin`
