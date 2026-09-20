@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Covers every Yarn workspace under apps/*/packages/* through the single
+  # root yarn.lock — Dependabot's npm ecosystem already resolves a Yarn
+  # workspace root and every package.json it references, so one entry here
+  # is correct, not one per workspace.
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+
+  - package-ecosystem: 'docker'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
