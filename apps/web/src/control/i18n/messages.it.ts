@@ -1198,4 +1198,10 @@ export const messages: Record<string, string> = {
   'control.disciplineDocument.loading': 'Caricamento disciplina…',
   'control.disciplineDocument.loadFailed': 'Impossibile caricare questa disciplina.',
   'control.platform.viewDiscipline': 'Visualizza',
+  'control.rulesetField.listAdd': 'Aggiungi',
+  'control.rulesetField.inheritedHeading': 'Include già:',
+  'control.rulesetField.unrecognized':
+    'Non governato da una policy di regola nota — modificato come JSON grezzo.',
+  'control.rulesetField.unknownType':
+    'Il tipo di valore di questo campo è sconosciuto — modificato come JSON grezzo.',
 };

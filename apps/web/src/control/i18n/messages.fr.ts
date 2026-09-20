@@ -1201,4 +1201,10 @@ export const messages: Record<string, string> = {
   'control.disciplineDocument.loading': 'Chargement de la discipline…',
   'control.disciplineDocument.loadFailed': 'Impossible de charger cette discipline.',
   'control.platform.viewDiscipline': 'Afficher',
+  'control.rulesetField.listAdd': 'Ajouter',
+  'control.rulesetField.inheritedHeading': 'Inclut déjà :',
+  'control.rulesetField.unrecognized':
+    'Non régi par une politique de règle connue — modifié en JSON brut.',
+  'control.rulesetField.unknownType':
+    'Le type de valeur de ce champ est inconnu — modifié en JSON brut.',
 };

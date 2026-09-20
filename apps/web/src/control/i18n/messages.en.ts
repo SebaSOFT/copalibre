@@ -1802,6 +1802,21 @@ export const messages = defineMessages({
     defaultMessage: 'Value (JSON)',
   },
 
+  // RulesetFieldControl (ui/molecules/ruleset-field-control.tsx, openspec 0264)
+  rulesetFieldListAdd: { id: 'control.rulesetField.listAdd', defaultMessage: 'Add' },
+  rulesetFieldInheritedHeading: {
+    id: 'control.rulesetField.inheritedHeading',
+    defaultMessage: 'Already includes:',
+  },
+  rulesetFieldUnrecognized: {
+    id: 'control.rulesetField.unrecognized',
+    defaultMessage: 'Not governed by a known rule policy — edited as raw JSON.',
+  },
+  rulesetFieldUnknownType: {
+    id: 'control.rulesetField.unknownType',
+    defaultMessage: "This field's value type is unknown — edited as raw JSON.",
+  },
+
   // SeedingBuilderPage.tsx — stage rename/format-change/delete (openspec 0168)
   stageSettingsTitle: { id: 'control.stageSettings.title', defaultMessage: 'Stage settings' },
   stageRenameLabel: { id: 'control.stageSettings.renameLabel', defaultMessage: 'New stage name' },

@@ -1192,4 +1192,10 @@ export const messages: Record<string, string> = {
   'control.disciplineDocument.loading': 'Загрузка дисциплины…',
   'control.disciplineDocument.loadFailed': 'Не удалось загрузить эту дисциплину.',
   'control.platform.viewDiscipline': 'Просмотр',
+  'control.rulesetField.listAdd': 'Добавить',
+  'control.rulesetField.inheritedHeading': 'Уже включает:',
+  'control.rulesetField.unrecognized':
+    'Не регулируется известной политикой правил — редактируется как необработанный JSON.',
+  'control.rulesetField.unknownType':
+    'Тип значения этого поля неизвестен — редактируется как необработанный JSON.',
 };

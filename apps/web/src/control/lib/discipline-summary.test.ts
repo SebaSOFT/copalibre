@@ -1,14 +1,16 @@
 import {
+  chooseControlKind,
   eventActorMessageKey,
   eventAffectsResult,
   fieldValueAt,
   formatFieldValue,
   formatSegmentDuration,
   mergeOverrides,
+  observedFieldValue,
   ruleFieldSummaries,
   type DisciplineSummaryData,
 } from './discipline-summary.js';
-import type { EventDefinition } from '@copalibre/domain';
+import type { EventDefinition, FieldPolicy } from '@copalibre/domain';
 
 function event(overrides: Partial<EventDefinition>): EventDefinition {
   return {
@@ -131,29 +133,84 @@ describe('formatSegmentDuration', () => {
 });
 
 describe('mergeOverrides', () => {
-  it('overlays a top-level override onto the defaults', () => {
-    expect(mergeOverrides({ format: 'single-elimination' }, { format: 'round-robin' })).toEqual({
-      format: 'round-robin',
-    });
+  const REPLACED_FORMAT = {
+    format: { permission: { kind: 'replaced' as const }, mutationClass: 'safe' as const },
+  };
+
+  it('overlays a top-level override onto the defaults for a replaced field', () => {
+    expect(
+      mergeOverrides({ format: 'single-elimination' }, { format: 'round-robin' }, REPLACED_FORMAT),
+    ).toEqual({ format: 'round-robin' });
   });
 
   it('overlays a nested dot-path override without disturbing sibling fields', () => {
     const defaults = { scoring: { pointsPerWin: 3, pointsPerDraw: 1 } };
-    expect(mergeOverrides(defaults, { 'scoring.pointsPerWin': 4 })).toEqual({
+    const fieldPolicies = {
+      'scoring.pointsPerWin': {
+        permission: { kind: 'replaced' as const },
+        mutationClass: 'safe' as const,
+      },
+    };
+    expect(mergeOverrides(defaults, { 'scoring.pointsPerWin': 4 }, fieldPolicies)).toEqual({
       scoring: { pointsPerWin: 4, pointsPerDraw: 1 },
     });
   });
 
   it('creates intermediate objects for a dot-path absent from defaults', () => {
-    expect(mergeOverrides({}, { 'venuePolicy.neutralGround': true })).toEqual({
+    expect(mergeOverrides({}, { 'venuePolicy.neutralGround': true }, {})).toEqual({
       venuePolicy: { neutralGround: true },
     });
   });
 
   it('never mutates the defaults it was given', () => {
     const defaults = { scoring: { pointsPerWin: 3 } };
-    mergeOverrides(defaults, { 'scoring.pointsPerWin': 4 });
+    mergeOverrides(defaults, { 'scoring.pointsPerWin': 4 }, {});
     expect(defaults).toEqual({ scoring: { pointsPerWin: 3 } });
+  });
+
+  it('falls back to a plain overlay for a field with no declared policy', () => {
+    expect(mergeOverrides({ legacyField: 'old' }, { legacyField: 'new' }, {})).toEqual({
+      legacyField: 'new',
+    });
+  });
+
+  it("a union-list field's merged value includes both the inherited items and the added ones", () => {
+    const defaults = { tiebreakers: ['points', 'score-difference', 'goals-for'] };
+    const fieldPolicies = {
+      tiebreakers: {
+        permission: { kind: 'merged' as const, strategy: 'union-list' as const },
+        mutationClass: 'requires_rebuild' as const,
+      },
+    };
+    expect(mergeOverrides(defaults, { tiebreakers: ['goals-against'] }, fieldPolicies)).toEqual({
+      tiebreakers: ['points', 'score-difference', 'goals-for', 'goals-against'],
+    });
+  });
+
+  it("a shallow-object field's merged value includes untouched subkeys", () => {
+    const defaults = { segments: { regulationCount: 2, overtimeEnabled: false } };
+    const fieldPolicies = {
+      segments: {
+        permission: { kind: 'merged' as const, strategy: 'shallow-object' as const },
+        mutationClass: 'requires_rebuild' as const,
+      },
+    };
+    expect(
+      mergeOverrides(defaults, { segments: { overtimeEnabled: true } }, fieldPolicies),
+    ).toEqual({ segments: { regulationCount: 2, overtimeEnabled: true } });
+  });
+
+  it('falls back to a plain overlay when the stored shape cannot be merged', () => {
+    const defaults = { tiebreakers: 'not-an-array' };
+    const fieldPolicies = {
+      tiebreakers: {
+        permission: { kind: 'merged' as const, strategy: 'union-list' as const },
+        mutationClass: 'requires_rebuild' as const,
+      },
+    };
+    expect(mergeOverrides(defaults, { tiebreakers: ['points'] }, fieldPolicies)).toEqual({
+      tiebreakers: ['points'],
+    });
   });
 });
 
@@ -174,5 +231,98 @@ describe('ruleFieldSummaries', () => {
         value: 3,
       },
     ]);
+  });
+});
+
+describe('observedFieldValue', () => {
+  const defaults = { scoring: { pointsPerWin: 2 } };
+
+  it("prefers the tournament's own override over the discipline default", () => {
+    expect(
+      observedFieldValue({ 'scoring.pointsPerWin': 5 }, defaults, 'scoring.pointsPerWin'),
+    ).toBe(5);
+  });
+
+  it('falls back to the discipline default when there is no override', () => {
+    expect(observedFieldValue({}, defaults, 'scoring.pointsPerWin')).toBe(2);
+  });
+
+  it('is undefined when neither the override nor the default has the field', () => {
+    expect(observedFieldValue({}, defaults, 'winCondition')).toBeUndefined();
+  });
+});
+
+describe('chooseControlKind', () => {
+  const replaced = (): FieldPolicy => ({
+    permission: { kind: 'replaced' },
+    mutationClass: 'safe',
+  });
+
+  it('returns undefined (no control) for a forbidden field', () => {
+    expect(
+      chooseControlKind(
+        { permission: { kind: 'forbidden' }, mutationClass: 'safe' },
+        true,
+        'venuePolicy.neutralGround',
+      ),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined (no control) for an inherited field', () => {
+    expect(
+      chooseControlKind(
+        { permission: { kind: 'inherited' }, mutationClass: 'safe' },
+        true,
+        'venuePolicy.neutralGround',
+      ),
+    ).toBeUndefined();
+  });
+
+  it('falls back to raw-json for a dot-path with no declared policy', () => {
+    expect(chooseControlKind(undefined, 'anything', 'legacyField')).toBe('raw-json');
+  });
+
+  it('chooses checkbox for a replaced boolean field', () => {
+    expect(chooseControlKind(replaced(), true, 'venuePolicy.neutralGround')).toBe('checkbox');
+  });
+
+  it('chooses number for a replaced number field', () => {
+    expect(chooseControlKind(replaced(), 3, 'scoring.pointsPerWin')).toBe('number');
+  });
+
+  it('chooses text for a replaced string field', () => {
+    expect(chooseControlKind(replaced(), 'ORB-1', 'identityRules.federationCode')).toBe('text');
+  });
+
+  it('chooses format-select for the format field regardless of its value type', () => {
+    expect(chooseControlKind(replaced(), 'round-robin', 'format')).toBe('format-select');
+  });
+
+  it('falls back to raw-json for a replaced field with no observed value anywhere', () => {
+    expect(chooseControlKind(replaced(), undefined, 'someNeverConfiguredField')).toBe('raw-json');
+  });
+
+  it('chooses add-to-list for a union-list merged field', () => {
+    const policy: FieldPolicy = {
+      permission: { kind: 'merged', strategy: 'union-list' },
+      mutationClass: 'requires_rebuild',
+    };
+    expect(chooseControlKind(policy, ['points'], 'tiebreakers')).toBe('add-to-list');
+  });
+
+  it('chooses add-to-list for an append-list merged field', () => {
+    const policy: FieldPolicy = {
+      permission: { kind: 'merged', strategy: 'append-list' },
+      mutationClass: 'requires_rebuild',
+    };
+    expect(chooseControlKind(policy, [], 'noteTemplates')).toBe('add-to-list');
+  });
+
+  it('chooses patch-object for a shallow-object merged field', () => {
+    const policy: FieldPolicy = {
+      permission: { kind: 'merged', strategy: 'shallow-object' },
+      mutationClass: 'requires_rebuild',
+    };
+    expect(chooseControlKind(policy, { overtimeEnabled: false }, 'segments')).toBe('patch-object');
   });
 });
