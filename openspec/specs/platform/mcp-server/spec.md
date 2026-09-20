@@ -21,15 +21,50 @@ no HTTP/SSE transport SHALL be offered by this command.
 
 ### Requirement: Installation-action tools are always available
 
-`copalibre_doctor`, `copalibre_module_list`, and `copalibre_upgrade_check` SHALL be registered on
-every `copalibre mcp` invocation, requiring no API token, and SHALL execute the same logic as their
-corresponding CLI commands.
+`copalibre_doctor`, `copalibre_module_list`, `copalibre_upgrade_check`, `copalibre_module_add`,
+`copalibre_module_remove`, `copalibre_module_verify`, `copalibre_statistics_rebuild`, and
+`copalibre_backup` SHALL be registered on every `copalibre mcp` invocation, requiring no API token,
+and SHALL execute the same logic as their corresponding CLI commands' direct (non-HTTP) code path.
 
 #### Scenario: Installation tools work without any token configured
 
 - **WHEN** `copalibre mcp` starts with no `COPALIBRE_MCP_TOKEN` configured
-- **THEN** `copalibre_doctor`, `copalibre_module_list`, and `copalibre_upgrade_check` are listed and
-  callable
+- **THEN** `copalibre_doctor`, `copalibre_module_list`, `copalibre_upgrade_check`,
+  `copalibre_module_add`, `copalibre_module_remove`, `copalibre_module_verify`,
+  `copalibre_statistics_rebuild`, and `copalibre_backup` are all listed and callable
+
+#### Scenario: Installing a module through the MCP tool matches the CLI's direct path
+
+- **WHEN** `copalibre_module_add` is called with an alias, an optional version range, and an
+  optional source
+- **THEN** the module is installed the same way `copalibre module add` installs it when run with no
+  stored login credential, and the tool's response names the installed kind, alias, and version
+
+#### Scenario: Removing a module still refuses when a started tournament references it
+
+- **WHEN** `copalibre_module_remove` is called with the alias of a module a started tournament
+  still references
+- **THEN** the tool refuses, naming the referencing tournament alias(es), and removes nothing —
+  the same refusal `copalibre module remove` already gives
+
+#### Scenario: Verifying installed modules reports every failure, not just the first
+
+- **WHEN** `copalibre_module_verify` is called and more than one installed module fails
+  verification
+- **THEN** the response lists every failing module and, for each, every failure's stage and message
+
+#### Scenario: Statistics rebuild recomputes from source facts, not incrementally
+
+- **WHEN** `copalibre_statistics_rebuild` is called for an organization, optionally scoped to one
+  tournament
+- **THEN** every folded statistic total in scope is recomputed from source facts, the same
+  recomputation `copalibre statistics-rebuild` performs
+
+#### Scenario: Backup refuses in Kubernetes-managed installations
+
+- **WHEN** `copalibre_backup` is called in an installation configured for Kubernetes deployment
+- **THEN** the tool refuses with the same reason `copalibre backup` gives in that mode, and writes
+  no packet
 
 ### Requirement: Tournament-operational tools require an explicit token
 
