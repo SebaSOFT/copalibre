@@ -1,7 +1,8 @@
 ---
 title: Référence des commandes
 description: Chaque commande du CLI copalibre, son usage et ses options.
-capabilities: []
+capabilities:
+  - platform/cli-tournament-operations
 roles:
   - super-admin
   - admin
