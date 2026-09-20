@@ -209,6 +209,36 @@ describe('ruleset-override edit and preview (openspec 0169)', () => {
     });
   });
 
+  it("stores a union-list field's edit as exactly the delta submitted, never merged with the discipline default at write time (openspec 0264)", async () => {
+    const { tournamentAlias } = await seedTournament();
+
+    // football's own tiebreakers default is ['points', 'score-difference',
+    // 'goals-for'] (union-list) — submitting only the new addition, the way
+    // the typed editor's "add to list" control does, must store exactly
+    // that addition, not the union with the discipline default. The
+    // compiler (packages/domain) does that union later, at compile time.
+    const applied = await request({
+      method: 'PUT',
+      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
+      token: 'organizer-org1',
+      payload: { overrides: { tiebreakers: ['goals-against'] } },
+    });
+    expect(applied.statusCode).toBe(200);
+    expect(applied.json().overrides.tiebreakers).toEqual(['goals-against']);
+
+    const read = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/ruleset-overrides`,
+      token: 'organizer-org1',
+    });
+    expect(read.json().overrides.tiebreakers).toEqual(['goals-against']);
+    expect(read.json().disciplineDefaults.tiebreakers).toEqual([
+      'points',
+      'score-difference',
+      'goals-for',
+    ]);
+  });
+
   it('a preview never changes the stored ruleset', async () => {
     const { tournamentAlias } = await seedTournament();
     await request({

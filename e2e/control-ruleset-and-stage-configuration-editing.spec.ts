@@ -84,14 +84,76 @@ test('edits a ruleset override from the tournament ruleset screen and sees the c
   // The plain-language rule context (openspec 0263) shows alongside the
   // existing edit field, reflecting the tournament's current override.
   await expect(page.getByText('Reglas')).toBeVisible();
-  await expect(page.getByText('Points per win')).toBeVisible();
+  // Shown twice now: the read-only summary's label, and the editor field's own label.
+  await expect(page.getByText('Points per win').first()).toBeVisible();
   await expect(page.getByText('Valor actual: 3')).toBeVisible();
 
-  await expect(page.getByLabel('scoring.pointsPerWin')).toBeVisible();
-  await page.getByLabel('scoring.pointsPerWin').fill('4');
+  await expect(page.getByLabel('Points per win')).toBeVisible();
+  await page.getByLabel('Points per win').fill('4');
   await page.getByRole('button', { name: 'Guardar' }).click();
 
   await expect(page.getByText('Configuración guardada.')).toBeVisible();
+});
+
+test('renders typed controls for boolean/format/union-list fields, saves only the union-list delta, and updates the plain-language summary (openspec 0264)', async ({
+  page,
+}) => {
+  await withTokenEndpoint(page);
+  let overrides: Record<string, unknown> = {
+    format: 'round-robin',
+    'venuePolicy.neutralGround': false,
+    tiebreakers: [],
+  };
+  const fieldPolicies = {
+    format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+    'venuePolicy.neutralGround': {
+      permission: { kind: 'replaced' },
+      mutationClass: 'safe',
+      label: 'Neutral ground required',
+    },
+    tiebreakers: {
+      permission: { kind: 'merged', strategy: 'union-list' },
+      mutationClass: 'requires_rebuild',
+      label: 'Tiebreakers',
+    },
+  };
+  const disciplineDefaults = { tiebreakers: ['points', 'score-difference'] };
+  let lastPutOverrides: Record<string, unknown> | undefined;
+  await page.exposeFunction('__route', (url: string, init?: RequestInit) => {
+    const method = init?.method ?? 'GET';
+    if (url.endsWith('/ruleset-overrides') && method === 'GET') {
+      return { body: { overrides, fieldPolicies, disciplineDefaults } };
+    }
+    if (url.endsWith('/ruleset-overrides') && method === 'PUT') {
+      const body = JSON.parse(String(init?.body)) as { overrides: Record<string, unknown> };
+      lastPutOverrides = body.overrides;
+      overrides = { ...overrides, ...body.overrides };
+      return { body: { overrides, fieldPolicies, disciplineDefaults } };
+    }
+    return undefined;
+  });
+
+  const target = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/ruleset`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  // A boolean field is a real checkbox, never a JSON-text input.
+  await expect(page.getByRole('checkbox').first()).toBeVisible();
+  // A union-list field's "current value" already shows the inherited items.
+  await expect(page.getByText('Valor actual: points, score-difference')).toBeVisible();
+
+  // Adding one tiebreaker sends only that addition, not the inherited list.
+  const tiebreakersRow = page.getByRole('listitem').filter({ hasText: 'Tiebreakers' });
+  await tiebreakersRow.getByLabel('Tiebreakers').fill('goals-against');
+  await tiebreakersRow.getByRole('button', { name: 'Agregar' }).click();
+  await page.getByRole('button', { name: 'Guardar' }).click();
+
+  // The plain-language summary now reflects the real merged effective value.
+  await expect(
+    page.getByText('Valor actual: points, score-difference, goals-against'),
+  ).toBeVisible();
+  expect(lastPutOverrides).toEqual({ tiebreakers: ['goals-against'] });
 });
 
 test('refuses a blocked ruleset-override edit before the save request is sent', async ({
