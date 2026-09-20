@@ -1164,4 +1164,32 @@ export const messages: Record<string, string> = {
   'control.auditLogPanel.latency': 'Задержка {latencyMs}мс',
   'control.tournament.completion': 'Завершение турнира',
   'control.tournament.completionStage': 'Этап {stageNumber}',
+
+  'control.disciplineSummary.segmentsHeading': 'Сегменты',
+  'control.disciplineSummary.noSegments': 'Эта дисциплина не определяет сегменты.',
+  'control.disciplineSummary.segmentTimed':
+    '{name}: идёт отсчёт времени. Длительность по умолчанию: {duration}.',
+  'control.disciplineSummary.segmentUntimed': '{name}: без отсчёта времени.',
+  'control.disciplineSummary.rulesHeading': 'Правила',
+  'control.disciplineSummary.noRules': 'Эта дисциплина не определяет настраиваемые правила.',
+  'control.disciplineSummary.ruleCurrentValue': 'Текущее значение: {value}',
+  'control.disciplineSummary.permissionInherited':
+    'Использует значение дисциплины по умолчанию, если турнир его не заменяет.',
+  'control.disciplineSummary.permissionReplaced':
+    'Может быть заменено значением, специфичным для турнира.',
+  'control.disciplineSummary.permissionMerged':
+    'Может быть дополнено собственными значениями турнира, в дополнение к значениям дисциплины.',
+  'control.disciplineSummary.permissionForbidden': 'Нельзя изменить для отдельного турнира.',
+  'control.disciplineSummary.eventsHeading': 'События',
+  'control.disciplineSummary.noEvents': 'Эта дисциплина не определяет события.',
+  'control.disciplineSummary.eventAffectsResult': 'Меняет результат',
+  'control.disciplineSummary.eventActorSide': 'Относится к команде.',
+  'control.disciplineSummary.eventActorPerson': 'Относится к игроку.',
+  'control.disciplineSummary.eventActorPersonOrStaff': 'Относится к игроку или члену персонала.',
+  'control.disciplineSummary.eventActorNone': 'Не относится к конкретному участнику команды.',
+  'control.disciplineSummary.rawJsonToggleShow': 'Показать необработанный JSON',
+  'control.disciplineSummary.rawJsonToggleHide': 'Скрыть необработанный JSON',
+  'control.disciplineDocument.loading': 'Загрузка дисциплины…',
+  'control.disciplineDocument.loadFailed': 'Не удалось загрузить эту дисциплину.',
+  'control.platform.viewDiscipline': 'Просмотр',
 };

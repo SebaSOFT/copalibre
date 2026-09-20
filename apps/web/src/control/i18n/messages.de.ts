@@ -1179,4 +1179,32 @@ export const messages: Record<string, string> = {
   'control.auditLogPanel.latency': '{latencyMs}ms Latenz',
   'control.tournament.completion': 'Turnierabschluss',
   'control.tournament.completionStage': 'Phase {stageNumber}',
+
+  'control.disciplineSummary.segmentsHeading': 'Segmente',
+  'control.disciplineSummary.noSegments': 'Diese Disziplin definiert keine Segmente.',
+  'control.disciplineSummary.segmentTimed': '{name} läuft mit Uhr. Standarddauer: {duration}.',
+  'control.disciplineSummary.segmentUntimed': '{name} hat keine Uhr.',
+  'control.disciplineSummary.rulesHeading': 'Regeln',
+  'control.disciplineSummary.noRules': 'Diese Disziplin definiert keine konfigurierbaren Regeln.',
+  'control.disciplineSummary.ruleCurrentValue': 'Aktueller Wert: {value}',
+  'control.disciplineSummary.permissionInherited':
+    'Verwendet den Standardwert der Disziplin, sofern das Turnier ihn nicht ersetzt.',
+  'control.disciplineSummary.permissionReplaced':
+    'Kann durch einen turnierspezifischen Wert ersetzt werden.',
+  'control.disciplineSummary.permissionMerged':
+    'Kann um turniereigene Werte erweitert werden, zusätzlich zu denen der Disziplin.',
+  'control.disciplineSummary.permissionForbidden': 'Kann pro Turnier nicht geändert werden.',
+  'control.disciplineSummary.eventsHeading': 'Ereignisse',
+  'control.disciplineSummary.noEvents': 'Diese Disziplin definiert keine Ereignisse.',
+  'control.disciplineSummary.eventAffectsResult': 'Ändert das Ergebnis',
+  'control.disciplineSummary.eventActorSide': 'Betrifft das Team.',
+  'control.disciplineSummary.eventActorPerson': 'Betrifft einen Spieler.',
+  'control.disciplineSummary.eventActorPersonOrStaff':
+    'Betrifft einen Spieler oder ein Betreuungsmitglied.',
+  'control.disciplineSummary.eventActorNone': 'Betrifft kein bestimmtes Teammitglied.',
+  'control.disciplineSummary.rawJsonToggleShow': 'Rohes JSON anzeigen',
+  'control.disciplineSummary.rawJsonToggleHide': 'Rohes JSON ausblenden',
+  'control.disciplineDocument.loading': 'Disziplin wird geladen…',
+  'control.disciplineDocument.loadFailed': 'Diese Disziplin konnte nicht geladen werden.',
+  'control.platform.viewDiscipline': 'Ansehen',
 };

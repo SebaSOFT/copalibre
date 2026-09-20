@@ -1166,4 +1166,32 @@ export const messages: Record<string, string> = {
   'control.auditLogPanel.latency': '{latencyMs}ms de latencia',
   'control.tournament.completion': 'Finalización del torneo',
   'control.tournament.completionStage': 'Fase {stageNumber}',
+
+  'control.disciplineSummary.segmentsHeading': 'Segmentos',
+  'control.disciplineSummary.noSegments': 'Esta disciplina no declara segmentos.',
+  'control.disciplineSummary.segmentTimed':
+    '{name} corre con reloj. Duración predeterminada: {duration}.',
+  'control.disciplineSummary.segmentUntimed': '{name} no tiene reloj.',
+  'control.disciplineSummary.rulesHeading': 'Reglas',
+  'control.disciplineSummary.noRules': 'Esta disciplina no declara reglas configurables.',
+  'control.disciplineSummary.ruleCurrentValue': 'Valor actual: {value}',
+  'control.disciplineSummary.permissionInherited':
+    'Usa el valor predeterminado de la disciplina, salvo que el torneo lo reemplace.',
+  'control.disciplineSummary.permissionReplaced':
+    'Se puede reemplazar por un valor propio del torneo.',
+  'control.disciplineSummary.permissionMerged':
+    'Se puede extender con valores propios del torneo, sumados a los de la disciplina.',
+  'control.disciplineSummary.permissionForbidden': 'No se puede cambiar por torneo.',
+  'control.disciplineSummary.eventsHeading': 'Eventos',
+  'control.disciplineSummary.noEvents': 'Esta disciplina no declara eventos.',
+  'control.disciplineSummary.eventAffectsResult': 'Cambia el resultado',
+  'control.disciplineSummary.eventActorSide': 'Afecta al equipo.',
+  'control.disciplineSummary.eventActorPerson': 'Afecta a un jugador.',
+  'control.disciplineSummary.eventActorPersonOrStaff': 'Afecta a un jugador o miembro del staff.',
+  'control.disciplineSummary.eventActorNone': 'No afecta a un miembro específico del equipo.',
+  'control.disciplineSummary.rawJsonToggleShow': 'Mostrar JSON crudo',
+  'control.disciplineSummary.rawJsonToggleHide': 'Ocultar JSON crudo',
+  'control.disciplineDocument.loading': 'Cargando disciplina…',
+  'control.disciplineDocument.loadFailed': 'No se pudo cargar esta disciplina.',
+  'control.platform.viewDiscipline': 'Ver',
 };
