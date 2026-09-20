@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { COMMAND_HELP, MODULE_SUBCOMMAND_HELP } from './help-text.js';
+import { COMMAND_HELP, MODULE_SUBCOMMAND_HELP, TOURNAMENT_SUBCOMMAND_HELP } from './help-text.js';
 
 const SOURCE_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 
@@ -26,6 +26,13 @@ describe('the CLI command reference docs page stays in sync with COMMAND_HELP', 
     'commands.md mentions module subcommand "%s"',
     (name) => {
       expect(commandsPage).toContain(`module ${name}`);
+    },
+  );
+
+  it.each(TOURNAMENT_SUBCOMMAND_HELP.map((subcommand) => subcommand.name))(
+    'commands.md mentions tournament subcommand "%s"',
+    (name) => {
+      expect(commandsPage).toContain(`tournament ${name}`);
     },
   );
 });

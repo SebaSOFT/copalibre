@@ -15,10 +15,15 @@ import { ModuleScaffoldCommand } from './module-scaffold-command.js';
 import { ModuleSubmitCommand } from './module-submit-command.js';
 import { ModuleValidateLocalCommand } from './module-validate-local-command.js';
 import { ModuleVerifyCommand } from './module-verify-command.js';
+import { OrganizationGetCommand } from './organization-get-command.js';
 import { RestoreCommand } from './restore-command.js';
 import { RevokeLegacyPersonalAccessTokensCommand } from './revoke-legacy-personal-access-tokens-command.js';
 import { StartCommand } from './start-command.js';
 import { StatisticsRebuildCommand } from './statistics-rebuild-command.js';
+import { TournamentCreateCommand } from './tournament-create-command.js';
+import { TournamentGetCommand } from './tournament-get-command.js';
+import { TournamentListCommand } from './tournament-list-command.js';
+import { TournamentPublishCommand } from './tournament-publish-command.js';
 import { UpgradeCheckCommand } from './upgrade-check-command.js';
 
 /** Every clipanion `Command` class registered on the `copalibre` CLI. */
@@ -42,5 +47,10 @@ export const commandClasses: readonly CommandClass<CliContext>[] = [
   ModuleScaffoldCommand,
   ModuleValidateLocalCommand,
   ModuleSubmitCommand,
+  OrganizationGetCommand,
+  TournamentListCommand,
+  TournamentGetCommand,
+  TournamentCreateCommand,
+  TournamentPublishCommand,
   McpCommand,
 ];

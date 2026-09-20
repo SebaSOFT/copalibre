@@ -165,6 +165,16 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     usage: 'copalibre module <add|list|remove|verify|scaffold|validate-local|submit>',
   },
   {
+    name: 'organization',
+    summary: 'Read an organization by alias over the API (requires copalibre login)',
+    usage: 'copalibre organization get <alias>',
+  },
+  {
+    name: 'tournament',
+    summary: 'Read, create, and publish tournaments over the API (requires copalibre login)',
+    usage: 'copalibre tournament <list|get|create|publish>',
+  },
+  {
     name: 'mcp',
     summary: 'Start a local stdio Model Context Protocol server for AI agents',
     usage: 'copalibre mcp',
@@ -247,6 +257,74 @@ export const MODULE_SUBCOMMAND_HELP: readonly CommandHelp[] = [
   },
 ];
 
+/**
+ * `copalibre tournament <subcommand>` help table, mirroring
+ * `MODULE_SUBCOMMAND_HELP`'s shape — kept separate from `COMMAND_HELP`
+ * because these only exist under the `tournament` command. Each subcommand
+ * calls the exact same `apps/api` HTTP endpoint its MCP counterpart does
+ * (openspec 0252); flag names mirror the MCP tools' input schema field
+ * names translated to kebab-case.
+ */
+export const TOURNAMENT_SUBCOMMAND_HELP: readonly CommandHelp[] = [
+  {
+    name: 'list',
+    summary: 'List an organization’s active tournaments',
+    usage: 'copalibre tournament list --organization-alias <alias>',
+    flags: [{ flag: '--organization-alias <alias>', description: 'Organization to list within' }],
+  },
+  {
+    name: 'get',
+    summary: 'Read one tournament by alias',
+    usage: 'copalibre tournament get --organization-alias <alias> --tournament-alias <alias>',
+    flags: [
+      {
+        flag: '--organization-alias <alias>',
+        description: 'Organization the tournament belongs to',
+      },
+      { flag: '--tournament-alias <alias>', description: 'Tournament to read' },
+    ],
+  },
+  {
+    name: 'create',
+    summary: 'Create a tournament in draft status, pinned to a discipline and version',
+    usage:
+      'copalibre tournament create --organization-alias <alias> --alias <alias> --name <name> ' +
+      '--descriptor-id <id> --descriptor-version <version> --format <format> ' +
+      '[--public-registration] [--requires-check-in]',
+    flags: [
+      {
+        flag: '--organization-alias <alias>',
+        description: 'Organization to create the tournament in',
+      },
+      { flag: '--alias <alias>', description: 'Alias, unique within the organization' },
+      { flag: '--name <name>', description: 'Display name' },
+      { flag: '--descriptor-id <id>', description: 'DisciplineDescriptor identifier (UUID)' },
+      { flag: '--descriptor-version <version>', description: 'Pinned descriptor semver' },
+      { flag: '--format <format>', description: 'Stage format for the tournament’s single stage' },
+      {
+        flag: '--public-registration',
+        description: 'Open anonymous/public registration intake (default: false)',
+      },
+      {
+        flag: '--requires-check-in',
+        description: 'Require accepted entrants to check in (default: false)',
+      },
+    ],
+  },
+  {
+    name: 'publish',
+    summary: 'Publish a draft tournament, making it visible and operable',
+    usage: 'copalibre tournament publish --organization-alias <alias> --tournament-alias <alias>',
+    flags: [
+      {
+        flag: '--organization-alias <alias>',
+        description: 'Organization the tournament belongs to',
+      },
+      { flag: '--tournament-alias <alias>', description: 'Tournament to publish' },
+    ],
+  },
+];
+
 export function renderTopLevelHelp(): string {
   const lines = [
     'Usage: copalibre <command> [options]',
@@ -286,6 +364,20 @@ export function renderModuleHelp(): string {
     ),
     '',
     "Run 'copalibre module <subcommand> --help' for details on a specific subcommand.",
+  ];
+  return `${lines.join('\n')}\n`;
+}
+
+export function renderTournamentHelp(): string {
+  const lines = [
+    'Usage: copalibre tournament <subcommand> [options]',
+    '',
+    'Subcommands:',
+    ...TOURNAMENT_SUBCOMMAND_HELP.map(
+      (subcommand) => `  ${subcommand.name.padEnd(14)}${subcommand.summary}`,
+    ),
+    '',
+    "Run 'copalibre tournament <subcommand> --help' for details on a specific subcommand.",
   ];
   return `${lines.join('\n')}\n`;
 }

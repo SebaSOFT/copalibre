@@ -19,8 +19,9 @@ interface ProblemBody {
 }
 
 /**
- * Minimal fetch wrapper for the five tournament-operational MCP tools —
- * ~30 lines is well within this project's "trivial one-liners are fine to
+ * Minimal fetch wrapper shared by the five tournament-operational MCP tools
+ * and the CLI's `organization`/`tournament` commands (openspec 0252) — ~30
+ * lines is well within this project's "trivial one-liners are fine to
  * hand-roll" carve-out; a generated OpenAPI client is a larger investment
  * five endpoints don't justify (design.md).
  */
