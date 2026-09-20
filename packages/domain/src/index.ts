@@ -151,6 +151,7 @@ export {
   TOURNAMENT_PROFILE_SCHEMA,
   validateTournamentProfileDocument,
 } from './profiles/profile-schema.js';
+export { PROFILE_FIELD_EXPLANATIONS } from './profiles/profile-field-explanations.js';
 
 export {
   TOURNAMENT_CUSTOM_SCRIPT_HOOKS,

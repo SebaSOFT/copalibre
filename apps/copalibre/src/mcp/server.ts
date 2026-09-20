@@ -6,22 +6,24 @@ import { readCopalibreVersion } from '../banner.js';
 import { adminTools } from './tools/admin-tools.js';
 import { descriptorAuthoringTools } from './tools/descriptor-authoring-tools.js';
 import { moduleAuthoringTools } from './tools/module-authoring-tools.js';
+import { profileAuthoringTools } from './tools/profile-authoring-tools.js';
 import { tournamentTools } from './tools/tournament-tools.js';
 import type { McpToolDefinition } from './tool.js';
 
 /**
- * The eight admin tools, the three module-authoring tools, and the two
- * descriptor-authoring tools are always present; the five tournament-
- * operational tools are only added when both `COPALIBRE_MCP_TOKEN` and
- * `COPALIBRE_API_URL` are configured — a pure-installation MCP
- * session never sees them in `tools/list`, let alone attempts an
- * unauthenticated HTTP call.
+ * The eight admin tools, the three module-authoring tools, and the four
+ * descriptor/profile-authoring tools are always present; the five
+ * tournament-operational tools are only added when both
+ * `COPALIBRE_MCP_TOKEN` and `COPALIBRE_API_URL` are configured — a
+ * pure-installation MCP session never sees them in `tools/list`, let alone
+ * attempts an unauthenticated HTTP call.
  */
 export function buildTools(environment: NodeJS.ProcessEnv): readonly McpToolDefinition[] {
   const tools: McpToolDefinition[] = [
     ...adminTools(environment),
     ...moduleAuthoringTools(environment),
     ...descriptorAuthoringTools(),
+    ...profileAuthoringTools(),
   ];
   const token = environment.COPALIBRE_MCP_TOKEN;
   const baseUrl = environment.COPALIBRE_API_URL;
@@ -48,13 +50,14 @@ export const SERVER_INSTRUCTIONS =
   'use them to build a new discipline or tournament-profile module locally (starting from real, ' +
   'valid example content, not a blank schema), validate it, and submit it as a pull request to ' +
   'copalibre-modules. ' +
-  'Descriptor-authoring tools (copalibre_descriptor_schema, copalibre_descriptor_validate) also ' +
-  'always work and need no token — use copalibre_descriptor_schema to retrieve the discipline ' +
-  "descriptor's full shape with field-by-field explanations before drafting one from a sport's " +
-  'rulebook, and copalibre_descriptor_validate to check a candidate against the exact validator ' +
-  'the installation applies; the full authoring contract, with worked transcriptions of real ' +
-  'regulations, is published at /llms-authoring.txt on the help site. Tournament-operational ' +
-  'tools (copalibre_get_organization, copalibre_list_tournaments, copalibre_get_tournament, ' +
+  'Descriptor-authoring tools (copalibre_descriptor_schema, copalibre_descriptor_validate, ' +
+  'copalibre_profile_schema, copalibre_profile_validate) also always work and need no token — ' +
+  'use copalibre_descriptor_schema/copalibre_profile_schema to retrieve a discipline descriptor ' +
+  "or tournament profile's full shape with field-by-field explanations before drafting one, and " +
+  'copalibre_descriptor_validate/copalibre_profile_validate to check a candidate against the ' +
+  'exact validator the installation applies; the full discipline-authoring contract, with worked ' +
+  'transcriptions of real regulations, is published at /llms-authoring.txt on the help site. ' +
+  'Tournament-operational tools (copalibre_get_organization, copalibre_list_tournaments, copalibre_get_tournament, ' +
   'copalibre_create_tournament, copalibre_publish_tournament) act on a running installation over ' +
   'its HTTP API and only appear when COPALIBRE_MCP_TOKEN and COPALIBRE_API_URL are configured — ' +
   'an already-valid bearer token under CopaLibre’s existing OIDC/JWT auth contract; this server ' +
