@@ -156,10 +156,15 @@ describe('ruleset-override edit and preview (openspec 0169)', () => {
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
-    expect(response.json().overrides).toMatchObject({
+    const body = response.json();
+    expect(body.overrides).toMatchObject({
       'scoring.pointsPerWin': 3,
       'scoring.pointsPerDraw': 1,
     });
+    expect(body.fieldPolicies).toMatchObject({
+      'scoring.pointsPerWin': { permission: { kind: 'replaced' } },
+    });
+    expect(body.disciplineDefaults).toEqual(footballDescriptor().defaults);
   });
 
   it('applies a safe edit, and a subsequent read reflects it with every other field unchanged', async () => {
@@ -183,10 +188,14 @@ describe('ruleset-override edit and preview (openspec 0169)', () => {
       payload: { overrides: { tiebreakers: ['points', 'goals-for'] } },
     });
     expect(applied.statusCode).toBe(200);
-    expect(applied.json().overrides).toMatchObject({
+    const appliedBody = applied.json();
+    expect(appliedBody.overrides).toMatchObject({
       tiebreakers: ['points', 'goals-for'],
       'scoring.pointsPerWin': 3,
       'scoring.pointsPerDraw': 1,
+    });
+    expect(appliedBody.fieldPolicies).toMatchObject({
+      tiebreakers: { permission: { kind: 'merged' } },
     });
 
     const read = await request({

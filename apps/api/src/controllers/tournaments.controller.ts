@@ -965,7 +965,20 @@ export class TournamentsController {
         errorCode: 'tournament-not-found',
       });
     }
-    return { overrides: { ...ruleset.overrides } };
+    const descriptor = await tournaments.findDescriptor(
+      ruleset.descriptorRef.descriptorId,
+      ruleset.descriptorRef.version,
+    );
+    if (!descriptor) {
+      throw new NotFoundException('Tournament discipline descriptor is unavailable', {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    return {
+      overrides: { ...ruleset.overrides },
+      fieldPolicies: descriptor.fieldPolicies,
+      disciplineDefaults: descriptor.defaults,
+    };
   }
 
   @Post(':tournamentAlias/ruleset-overrides/preview')
@@ -1159,7 +1172,11 @@ export class TournamentsController {
             authorizationContext,
           });
         }
-        return { overrides: nextOverrides };
+        return {
+          overrides: nextOverrides,
+          fieldPolicies: descriptor.fieldPolicies,
+          disciplineDefaults: descriptor.defaults,
+        };
       });
     } catch (error) {
       if (error instanceof InvariantViolationError) {

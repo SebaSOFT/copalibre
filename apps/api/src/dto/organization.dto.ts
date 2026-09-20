@@ -395,6 +395,23 @@ export class RulesetOverridesResponse {
     description: 'The full override document after applying the edit, not only the changed fields.',
   })
   overrides!: Record<string, unknown>;
+
+  @ApiProperty({
+    type: Object,
+    additionalProperties: true,
+    description:
+      "The installed discipline's field policies for every overridable field (permission, " +
+      'mutation class, and optional label/description) — context for explaining what each override ' +
+      'field means and how changing it behaves, never a second override-application path.',
+  })
+  fieldPolicies!: Record<string, unknown>;
+
+  @ApiProperty({
+    type: Object,
+    additionalProperties: true,
+    description: "The installed discipline's own default configuration tree, before any override.",
+  })
+  disciplineDefaults!: Record<string, unknown>;
 }
 
 /** Same shape as `RulesetOverridesRequest`/`Response`, one layer down: a stage's own overrides. */
