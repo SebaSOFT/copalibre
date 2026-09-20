@@ -39,10 +39,24 @@ test('edits a ruleset override from the tournament ruleset screen and sees the c
 }) => {
   await withTokenEndpoint(page);
   let pointsPerWin = 3;
+  const fieldPolicies = {
+    'scoring.pointsPerWin': {
+      permission: { kind: 'replaced' },
+      mutationClass: 'blocked_after_results',
+      label: 'Points per win',
+    },
+  };
+  const disciplineDefaults = { scoring: { pointsPerWin: 2 } };
   await page.exposeFunction('__route', (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
     if (url.endsWith('/ruleset-overrides') && method === 'GET') {
-      return { body: { overrides: { 'scoring.pointsPerWin': pointsPerWin } } };
+      return {
+        body: {
+          overrides: { 'scoring.pointsPerWin': pointsPerWin },
+          fieldPolicies,
+          disciplineDefaults,
+        },
+      };
     }
     if (url.endsWith('/ruleset-overrides') && method === 'PUT') {
       const body = JSON.parse(String(init?.body)) as {
@@ -51,7 +65,13 @@ test('edits a ruleset override from the tournament ruleset screen and sees the c
       if (typeof body.overrides['scoring.pointsPerWin'] === 'number') {
         pointsPerWin = body.overrides['scoring.pointsPerWin'];
       }
-      return { body: { overrides: { 'scoring.pointsPerWin': pointsPerWin } } };
+      return {
+        body: {
+          overrides: { 'scoring.pointsPerWin': pointsPerWin },
+          fieldPolicies,
+          disciplineDefaults,
+        },
+      };
     }
     return undefined;
   });
@@ -60,6 +80,12 @@ test('edits a ruleset override from the tournament ruleset screen and sees the c
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
+
+  // The plain-language rule context (openspec 0263) shows alongside the
+  // existing edit field, reflecting the tournament's current override.
+  await expect(page.getByText('Reglas')).toBeVisible();
+  await expect(page.getByText('Points per win')).toBeVisible();
+  await expect(page.getByText('Valor actual: 3')).toBeVisible();
 
   await expect(page.getByLabel('scoring.pointsPerWin')).toBeVisible();
   await page.getByLabel('scoring.pointsPerWin').fill('4');

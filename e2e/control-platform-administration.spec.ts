@@ -136,6 +136,39 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
           modules = modules.filter((module_) => module_.alias !== alias);
           return Response.json({ alias, removedCount: 1 });
         }
+        if (url === '/admin/modules/football/document' && method === 'GET') {
+          return Response.json({
+            descriptorId: '01800000-0000-7000-8000-000000000001',
+            alias: 'football',
+            version: '1.0.0',
+            document: {
+              segmentTypes: [
+                {
+                  name: 'regulation',
+                  label: 'Regulation period',
+                  timed: true,
+                  defaultDurationSeconds: 2700,
+                },
+              ],
+              eventDefinitions: [
+                {
+                  code: 'scoring-play',
+                  label: 'Scoring play',
+                  actorRequirement: 'side',
+                  effects: [{ kind: 'score', awardTo: 'actor', delta: 1 }],
+                },
+              ],
+              defaults: { scoring: { pointsPerWin: 3 } },
+              fieldPolicies: {
+                'scoring.pointsPerWin': {
+                  permission: { kind: 'replaced' },
+                  mutationClass: 'blocked_after_results',
+                  label: 'Points per win',
+                },
+              },
+            },
+          });
+        }
         if (url === '/admin/modules') return Response.json(modules);
         return Response.json([]);
       };
@@ -211,6 +244,40 @@ test('super-admin manages installation super-admins and drills into an organizat
   await page.getByLabel('Alias de la organización').fill('liga-sur');
   await page.getByRole('button', { name: 'Gestionar usuarios' }).click();
   await expect(page.getByText('org-admin@example.test')).toBeVisible();
+});
+
+test("super-admin views an installed discipline's plain-language summary", async ({ page }) => {
+  await mockPlatformApi(page, 'copalibre.control copalibre.super-admin');
+  const target = '/control/platform';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByRole('link', { name: 'Ver' }).click();
+  await page.waitForURL('**/control/platform/disciplines/football');
+
+  await expect(page.getByText('Segmentos')).toBeVisible();
+  await expect(page.getByText('Reglas')).toBeVisible();
+  await expect(page.getByText('Eventos')).toBeVisible();
+  await expect(page.getByText('Points per win')).toBeVisible();
+  await expect(page.getByText('Cambia el resultado')).toBeVisible();
+});
+
+test('ordinary organization admin cannot reach an installed discipline document', async ({
+  page,
+}) => {
+  await mockPlatformApi(page, 'copalibre.control');
+  const target = '/control/liga-sur';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.evaluate(() => {
+    history.pushState({}, '', '/control/platform/disciplines/football');
+    dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await page.waitForURL('**/control/login');
+  await expect(page.getByText('Segmentos')).toHaveCount(0);
 });
 
 test('ordinary organization admin cannot discover or open platform administration', async ({

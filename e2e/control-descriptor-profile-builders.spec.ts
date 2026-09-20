@@ -162,6 +162,12 @@ test('authors a discipline with every decision explained, refuses an incomplete 
   await wizard.getByRole('button', { name: 'Continuar' }).click();
 
   await wizard.getByLabel('Estadística que decide el partido').fill('points');
+
+  // The final step shows the plain-language summary by default (openspec 0263).
+  await expect(wizard.getByRole('heading', { name: 'Segmentos' })).toBeVisible();
+  await expect(wizard.getByRole('heading', { name: 'Reglas' })).toBeVisible();
+  await expect(wizard.getByRole('heading', { name: 'Eventos' })).toBeVisible();
+
   await wizard.getByRole('button', { name: 'Crear e instalar' }).click();
 
   await expect(page.getByText('e2e-orbital-sport 0.1.0 instalado.')).toBeVisible();
@@ -262,6 +268,10 @@ test('shows the authored module document as a file, and reports a refused clipbo
   await wizard.getByRole('button', { name: 'Continuar' }).click();
   await wizard.getByLabel('round-robin', { exact: true }).check();
   await wizard.getByRole('button', { name: 'Continuar' }).click();
+
+  // The plain-language summary is the default final-step view (openspec
+  // 0263) — the raw-JSON file view is reached through its toggle.
+  await wizard.getByRole('button', { name: 'Mostrar JSON crudo' }).click();
 
   // The file variant: a filename header, no window dots, no prompt.
   const block = page.locator('.cl-terminal-block--file');
