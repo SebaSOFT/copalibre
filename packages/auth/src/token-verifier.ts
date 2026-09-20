@@ -59,6 +59,11 @@ export class TokenVerifier {
         issuer: this.config.issuer,
         audience: this.config.audience,
         clockTolerance: this.config.clockToleranceSeconds,
+        // jose only checks exp *when present*; without this, a token that
+        // omits exp entirely (a valid JWT per RFC 7519) would verify as
+        // valid indefinitely. classify()/classifyClaimFailure() already map
+        // a missing exp to the same 'expired' reason an expired one gets.
+        requiredClaims: ['exp'],
       });
       payload = result.payload;
     } catch (cause) {
