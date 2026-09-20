@@ -9,8 +9,8 @@ data-shape conventions.
 
 ### Requirement: JWT Bearer validation via JWKS
 The API SHALL validate every authenticated request's JWT against a controlled JWKS, rejecting any
-token with an invalid signature, disallowed algorithm, wrong issuer/audience, or expired/not-yet-
-valid timestamp.
+token with an invalid signature, disallowed algorithm, wrong issuer/audience, missing or
+expired/not-yet-valid timestamp.
 
 #### Scenario: Token signed with an unapproved algorithm is rejected
 - **WHEN** a request presents a JWT with `alg: none` or another unapproved algorithm
@@ -19,6 +19,11 @@ valid timestamp.
 #### Scenario: Expired token is rejected
 - **WHEN** a request presents a JWT whose `exp` claim is in the past
 - **THEN** the API rejects the request with 401
+
+#### Scenario: A token with no expiration claim is rejected
+- **WHEN** a request presents an otherwise validly-signed JWT that carries no `exp` claim at all
+- **THEN** the API rejects the request with 401, the same way it rejects an expired one — a token
+  is never treated as valid indefinitely
 
 #### Scenario: Wrong audience is rejected
 - **WHEN** a request presents a validly-signed JWT whose `aud` does not match this API's expected audience
