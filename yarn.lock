@@ -1627,6 +1627,7 @@ __metadata:
     "@copalibre/rules": "workspace:^"
     "@copalibre/statistics-refold": "workspace:^"
     "@copalibre/tournament-engine": "workspace:^"
+    "@fastify/helmet": "npm:^13.1.1"
     "@nestjs/common": "npm:^11.1.28"
     "@nestjs/core": "npm:^11.1.28"
     "@nestjs/platform-fastify": "npm:^11.1.29"
@@ -2841,6 +2842,16 @@ __metadata:
   version: 3.0.1
   resolution: "@fastify/forwarded@npm:3.0.1"
   checksum: 10c0/fad9f7fb7ff4bf2f8ba782f79d46de190469817ed1bd55dc789927c381a38e63b53ab8c127d9444d703a449c5393529533bea365a25f6eb85a5ecbc78460be2a
+  languageName: node
+  linkType: hard
+
+"@fastify/helmet@npm:^13.1.1":
+  version: 13.1.1
+  resolution: "@fastify/helmet@npm:13.1.1"
+  dependencies:
+    fastify-plugin: "npm:^6.0.0"
+    helmet: "npm:^8.0.0"
+  checksum: 10c0/8bf38479df630c0d026b0042bd8118201a726b5e80ea21e2ac9e113a74c795a49e446df6e31ad6b86b169aa24f8c4edab9e471685208b15496e1b2c071f75bfb
   languageName: node
   linkType: hard
 
@@ -11659,6 +11670,13 @@ __metadata:
     property-information: "npm:^7.0.0"
     space-separated-tokens: "npm:^2.0.0"
   checksum: 10c0/18dc8064e5c3a7a2ae862978e626b97a254e1c8a67ee9d0c9f06d373bba155ed805fc5b5ce21b990fb7bc174624889e5e1ce1cade264f1b1d58b48f994bc85ce
+  languageName: node
+  linkType: hard
+
+"helmet@npm:^8.0.0":
+  version: 8.3.0
+  resolution: "helmet@npm:8.3.0"
+  checksum: 10c0/69f33ca716ed3ce34f1f2f48ce8618846dfa9c89e3a15d6bccefc882541e8b028517448c6b0e7450792fd23e5580bfe6d410d4f22bedc2a94f6b1188817a059a
   languageName: node
   linkType: hard
 

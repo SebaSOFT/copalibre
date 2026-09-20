@@ -52,6 +52,24 @@ describe('CORS policy', () => {
   });
 });
 
+describe('baseline security response headers', () => {
+  it('carries the three baseline headers on a 2xx response', async () => {
+    const response = await request({ method: 'GET', url: '/organizations/liga-orbital' });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['x-frame-options']).toBe('DENY');
+    expect(response.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+  });
+
+  it('carries the three baseline headers on a 4xx response', async () => {
+    const response = await request({ method: 'GET', url: '/organizations/no-such-org' });
+    expect(response.statusCode).toBe(404);
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['x-frame-options']).toBe('DENY');
+    expect(response.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+  });
+});
+
 describe('public-read plane', () => {
   it('serves the liveness probe anonymously', async () => {
     const response = await request({ method: 'GET', url: '/health' });
