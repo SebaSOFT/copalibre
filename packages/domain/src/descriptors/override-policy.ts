@@ -5,6 +5,7 @@
  * forbidden to override. Unspecified deep merges are prohibited." and the
  * mutation classification "is a product contract, not merely UI guidance."
  */
+import type { LocalizedLabel } from '../i18n-label.js';
 
 /** Named merge strategies — the only merges the compiler will ever perform. */
 export type MergeStrategyName = 'append-list' | 'union-list' | 'shallow-object';
@@ -21,6 +22,10 @@ export type MutationClass = 'safe' | 'requires_rebuild' | 'blocked_after_results
 export interface FieldPolicy {
   readonly permission: OverridePermission;
   readonly mutationClass: MutationClass;
+  /** Human-readable field name for display. Absent: callers derive one from the dot-path. */
+  readonly label?: string | LocalizedLabel;
+  /** What this field controls, in plain language. Optional: absent renders no explanation. */
+  readonly description?: string | LocalizedLabel;
 }
 
 /** Dot-path (e.g. "scoring.pointsPerWin") → its policy. */

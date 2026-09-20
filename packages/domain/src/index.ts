@@ -56,6 +56,7 @@ export type {
   RulesetConfig,
   OverrideSet,
 } from './descriptors/override-policy.js';
+export { humanizeFieldPath, resolveFieldPolicyLabel } from './descriptors/field-policy-label.js';
 export type { Attribution } from './descriptors/attribution.js';
 export {
   CANONICAL_STATISTICS,
