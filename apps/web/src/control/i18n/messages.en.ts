@@ -1174,6 +1174,11 @@ export const messages = defineMessages({
   wizardStepName: { id: 'control.wizard.step.name', defaultMessage: 'Name' },
   wizardStepDiscipline: { id: 'control.wizard.step.discipline', defaultMessage: 'Discipline' },
   wizardStepFormat: { id: 'control.wizard.step.format', defaultMessage: 'Format' },
+  wizardStepRuleset: { id: 'control.wizard.step.ruleset', defaultMessage: 'Discipline rules' },
+  wizardRulesetEmpty: {
+    id: 'control.wizard.ruleset.empty',
+    defaultMessage: 'This discipline declares no additional rules to configure here.',
+  },
   wizardStepRules: { id: 'control.wizard.step.rules', defaultMessage: 'Event rules' },
   wizardStepWindow: { id: 'control.wizard.step.window', defaultMessage: 'Window' },
   wizardFormatPreviewTitle: {

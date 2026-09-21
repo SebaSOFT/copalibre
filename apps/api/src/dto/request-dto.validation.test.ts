@@ -169,6 +169,35 @@ describe('request-body DTO validation rules', () => {
     expect(clock).toHaveLength(0);
   });
 
+  it('validates CreateTournamentRequest.ruleOverrides as an optional object (openspec 0265)', async () => {
+    const base = {
+      alias: 'copa-verano',
+      name: 'Copa Verano',
+      descriptorId: '01890000-0000-7000-8000-00000000f001',
+      descriptorVersion: '1.0.0',
+      stages: [],
+      publicRegistration: true,
+      requiresCheckIn: false,
+      customScripts: [],
+    };
+
+    const absent = await validate(plainToInstance(CreateTournamentRequest, base));
+    expect(absent.some((error) => error.property === 'ruleOverrides')).toBe(false);
+
+    const present = await validate(
+      plainToInstance(CreateTournamentRequest, {
+        ...base,
+        ruleOverrides: { 'scoring.pointsPerWin': 4 },
+      }),
+    );
+    expect(present.some((error) => error.property === 'ruleOverrides')).toBe(false);
+
+    const invalid = await validate(
+      plainToInstance(CreateTournamentRequest, { ...base, ruleOverrides: 'not-an-object' }),
+    );
+    expect(invalid.some((error) => error.property === 'ruleOverrides')).toBe(true);
+  });
+
   it('rejects unexpected non-whitelisted properties on request DTOs when forbidNonWhitelisted is active', async () => {
     const loginErrors = await validate(
       plainToInstance(LoginRequest, {

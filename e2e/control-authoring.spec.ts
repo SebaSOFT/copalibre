@@ -38,6 +38,23 @@ const disciplineWithFieldPoliciesFixture = [
   },
 ];
 
+/** Declares a non-reserved field with a default (openspec 0265), for the ruleset step. */
+const disciplineWithRulesetFieldFixture = [
+  {
+    descriptorId: 'football.default',
+    version: '1.0.0',
+    name: 'Futbol',
+    supportedFormats: ['round-robin'],
+    defaults: { scoring: { pointsPerWin: 3 } },
+    fieldPolicies: {
+      'scoring.pointsPerWin': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+    },
+  },
+];
+
 const hookVocabularyFixture = {
   hooks: ['event.recorded'],
   entries: [
@@ -312,6 +329,7 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByLabel('Agregar regla para cada evento registrado').check();
   await page.getByLabel('Acción').selectOption('notify');
   await page.getByLabel('Notification title *').fill('Actualización del partido');
@@ -366,6 +384,44 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   await expect(page.getByText('Apertura Local')).toBeVisible();
 });
 
+test('sets a discipline-declared rule field during creation, beyond format/registration (openspec 0265)', async ({
+  page,
+}) => {
+  await mockControlApi(page, { disciplines: disciplineWithRulesetFieldFixture });
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Copa Reglas');
+  await page.getByLabel('Alias').fill('copa-reglas');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // The ruleset step reflects the discipline's own default until touched.
+  const pointsPerWinControl = page.getByLabel('Scoring › Points Per Win');
+  await expect(pointsPerWinControl).toHaveValue('3');
+  await pointsPerWinControl.fill('4');
+
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Crear torneo' }).click();
+
+  await expect(page.getByText('Torneo creado: copa-reglas')).toBeVisible();
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({
+        url: '/organizations/liga-mendocina/tournaments',
+        method: 'POST',
+        body: expect.objectContaining({
+          ruleOverrides: { 'scoring.pointsPerWin': 4 },
+        }),
+      }),
+    );
+});
+
 test('authors a three-stage tournament with a mix of allocation modes, and every declared stage is reachable afterward', async ({
   page,
 }) => {
@@ -398,6 +454,7 @@ test('authors a three-stage tournament with a mix of allocation modes, and every
   await page.getByLabel('Sembrado').nth(2).selectOption('weighted');
   await page.getByLabel('Atributo').fill('rating');
 
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Crear torneo' }).click();
@@ -514,6 +571,7 @@ test('instantiates a tournament from a profile, previewing its stages read-only 
 
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Crear torneo' }).click();
 
   await expect(page.getByText('Torneo creado: copa-desde-perfil')).toBeVisible();
@@ -564,11 +622,14 @@ test('completes tournament authoring via keyboard and without overflow at 375px'
   await expect(page.getByLabel('Formato de la fase')).toBeVisible();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Step 4 (rules)
+  // Step 4 (discipline rules)
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Step 5 (rules)
   await expect(page.getByLabel('Agregar regla para cada evento registrado')).toBeVisible();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Step 5 (window)
+  // Step 6 (window)
   await page.getByLabel('Región').fill('Mendoza');
   await page.getByLabel('Capacidad').fill('8');
   await page.getByRole('button', { name: 'Crear torneo' }).click();
@@ -618,6 +679,7 @@ test('explains every decision on every wizard step, reachable by keyboard with n
 
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
 
   // Window step: region and capacity each carry their own reachable hint.
   const regionInput = page.getByLabel('Región');
@@ -653,6 +715,7 @@ test('states a blocked_after_results decision cannot change after the first resu
 
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
 
   const capacityInput = page.getByLabel('Capacidad');
   const capacityHintId = await capacityInput.getAttribute('aria-describedby');
@@ -673,6 +736,7 @@ test('shows a named backend rule refusal without replacing it with a generic err
 
   await page.getByLabel('Nombre').fill('Copa Regla Inválida');
   await page.getByLabel('Alias').fill('copa-regla-invalida');
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
@@ -823,9 +887,11 @@ test('setting registration capacity updates preview entrant count and removes il
 
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
 
   await page.getByLabel('Capacidad').fill('4');
 
+  await page.getByRole('button', { name: 'Volver' }).click();
   await page.getByRole('button', { name: 'Volver' }).click();
   await page.getByRole('button', { name: 'Volver' }).click();
 

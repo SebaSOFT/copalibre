@@ -811,6 +811,7 @@ export class DisciplinesController {
         ? {}
         : { formatDescriptions: descriptor.document.formatDescriptions }),
       fieldPolicies: descriptor.document.fieldPolicies,
+      defaults: descriptor.document.defaults,
     }));
   }
 }

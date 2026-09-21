@@ -58,6 +58,7 @@ describe('the tournament setup wizard screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByLabelText('Add rule for every recorded event'));
 
     expect(screen.getByText(/fires for every recorded event/i)).toBeDefined();
@@ -103,6 +104,7 @@ describe('the tournament setup wizard screen', () => {
     expect(screen.getByLabelText('Stage format').textContent).toContain('single-elimination');
     expect(screen.getByLabelText('Stage format').textContent).not.toContain('placement');
 
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
@@ -159,6 +161,7 @@ describe('the tournament setup wizard screen', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'Cuyo' } });
     fireEvent.change(screen.getByLabelText('Capacity'), { target: { value: '16' } });
@@ -196,7 +199,7 @@ describe('the tournament setup wizard screen', () => {
     render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
 
     const progressTile = screen.getByTestId('wizard-progress');
-    expect(progressTile.textContent).toContain('20%');
+    expect(progressTile.textContent).toContain('17%');
 
     const nameInput = screen.getByLabelText('Name') as HTMLInputElement;
     const aliasInput = screen.getByLabelText('Alias') as HTMLInputElement;
@@ -214,11 +217,11 @@ describe('the tournament setup wizard screen', () => {
     expect(continueBtn.disabled).toBe(false);
 
     fireEvent.click(continueBtn);
-    expect(progressTile.textContent).toContain('40%');
+    expect(progressTile.textContent).toContain('33%');
     expect((screen.getByLabelText('Discipline') as HTMLSelectElement).id).toBe('wizard-discipline');
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(progressTile.textContent).toContain('20%');
+    expect(progressTile.textContent).toContain('17%');
     expect(screen.getByLabelText('Name')).toBeDefined();
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Liga San Rafael');
   });
@@ -269,6 +272,91 @@ describe('the tournament setup wizard screen', () => {
   });
 });
 
+describe('discipline rule overrides at creation (openspec 0265)', () => {
+  const DISCIPLINE_WITH_RULESET_FIELDS = [
+    {
+      descriptorId: 'd-ruleset',
+      version: '1.0.0',
+      name: 'Ruleset Discipline',
+      supportedFormats: ['round-robin'],
+      defaults: { scoring: { pointsPerWin: 3 }, venuePolicy: { neutralGround: false } },
+      fieldPolicies: {
+        format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+        'registration.capacity': {
+          permission: { kind: 'replaced' },
+          mutationClass: 'requires_rebuild',
+        },
+        'scoring.pointsPerWin': {
+          permission: { kind: 'replaced' },
+          mutationClass: 'blocked_after_results',
+        },
+        'venuePolicy.neutralGround': { permission: { kind: 'inherited' }, mutationClass: 'safe' },
+      },
+    },
+  ] as const;
+
+  it('offers a control per eligible discipline field, excluding the wizard’s own dedicated fields and forbidden/inherited ones', () => {
+    render(withIntl(<TournamentSetupWizard disciplines={DISCIPLINE_WITH_RULESET_FIELDS} />));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Reglas' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-reglas' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    // Eligible: not reserved by a dedicated control, and not forbidden/inherited.
+    const control = screen.getByLabelText('Scoring › Points Per Win') as HTMLInputElement;
+    expect(control.value).toBe('3'); // reflects the discipline default when untouched
+
+    // Reserved (dedicated FormatStep/WindowStep controls) and inherited fields offer no control here.
+    expect(screen.queryByLabelText('Format')).toBeNull();
+    expect(screen.queryByLabelText('Registration › Capacity')).toBeNull();
+    expect(screen.queryByLabelText('Venue Policy › Neutral Ground')).toBeNull();
+  });
+
+  it('folds a discipline field set on this step into the create request as ruleOverrides', () => {
+    const submitted: unknown[] = [];
+    render(
+      withIntl(
+        <TournamentSetupWizard
+          disciplines={DISCIPLINE_WITH_RULESET_FIELDS}
+          onSubmit={(request) => submitted.push(request)}
+        />,
+      ),
+    );
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Reglas' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-reglas' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    fireEvent.change(screen.getByLabelText('Scoring › Points Per Win'), {
+      target: { value: '4' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
+
+    expect(submitted).toHaveLength(1);
+    expect((submitted[0] as { ruleOverrides?: unknown }).ruleOverrides).toEqual({
+      'scoring.pointsPerWin': 4,
+    });
+  });
+
+  it('renders an empty-state message when the discipline declares no eligible fields', () => {
+    render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Simple' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-simple' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(
+      screen.getByText('This discipline declares no additional rules to configure here.'),
+    ).toBeDefined();
+  });
+});
+
 describe('decision descriptions (openspec 0161)', () => {
   const DISCIPLINE_WITH_DESCRIPTIONS = [
     {
@@ -310,6 +398,7 @@ describe('decision descriptions (openspec 0161)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     const capacityInput = screen.getByLabelText('Capacity') as HTMLInputElement;
     const hintId = capacityInput.getAttribute('aria-describedby');
@@ -336,7 +425,7 @@ describe('wizard state transitions and validators', () => {
     const disciplines = sampleDisciplines();
     let state = initialWizard();
     expect(state.step).toBe('name');
-    expect(progress(state)).toBe(20);
+    expect(progress(state)).toBe(17);
     expect(canContinue(state, disciplines)).toBe(false);
     expect(stepProblems(state, disciplines).length).toBeGreaterThan(0);
 
@@ -371,13 +460,18 @@ describe('wizard state transitions and validators', () => {
     expect(canContinue(state, disciplines)).toBe(true);
 
     const step4 = nextStep(state);
-    expect(step4).toBe('rules');
+    expect(step4).toBe('ruleset');
     state = { ...state, step: step4 };
     expect(canContinue(state, disciplines)).toBe(true);
 
     const step5 = nextStep(state);
-    expect(step5).toBe('window');
-    state = { ...state, step: step5, capacity: 1 };
+    expect(step5).toBe('rules');
+    state = { ...state, step: step5 };
+    expect(canContinue(state, disciplines)).toBe(true);
+
+    const step6 = nextStep(state);
+    expect(step6).toBe('window');
+    state = { ...state, step: step6, capacity: 1 };
     expect(stepProblems(state, disciplines).length).toBe(1);
 
     state = { ...state, capacity: 8 };
@@ -477,6 +571,7 @@ describe('TournamentAuthoringTemplate component', () => {
     await screen.findByLabelText('Name');
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Liga A' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'liga-a' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));

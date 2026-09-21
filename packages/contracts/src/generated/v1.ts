@@ -3267,6 +3267,15 @@ export interface components {
              * @default []
              */
             customScripts: components["schemas"]["HookScriptAttachmentRequest"][];
+            /**
+             * @description Dot-path → override value for any discipline-declared ruleset field beyond format/registration.* (already captured by their own dedicated fields above). Merged into the tournament's initial ruleset alongside those fixed fields; a value rejected by its field policy fails the entire creation.
+             * @example {
+             *       "scoring.pointsPerWin": 4
+             *     }
+             */
+            ruleOverrides?: {
+                [key: string]: unknown;
+            };
         };
         TournamentSettingsResponse: {
             /** @example Copa Verano */
@@ -3636,6 +3645,15 @@ export interface components {
              *     }
              */
             fieldPolicies?: {
+                [key: string]: unknown;
+            };
+            /**
+             * @description The discipline's own default configuration tree, before any override.
+             * @example {
+             *       "scoring.pointsPerWin": 3
+             *     }
+             */
+            defaults?: {
                 [key: string]: unknown;
             };
         };

@@ -8,6 +8,26 @@ const disciplineWithDoubleElimination: DisciplineOption = {
   supportedFormats: ['single-elimination', 'double-elimination', 'round-robin'],
 };
 
+const disciplineWithRulesetFields: DisciplineOption = {
+  ...discipline,
+  defaults: { scoring: { pointsPerWin: 3 }, tiebreakers: ['points', 'goals-for'] },
+  fieldPolicies: {
+    format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+    'registration.capacity': {
+      permission: { kind: 'replaced' },
+      mutationClass: 'requires_rebuild',
+    },
+    'scoring.pointsPerWin': {
+      permission: { kind: 'replaced' },
+      mutationClass: 'blocked_after_results',
+    },
+    tiebreakers: {
+      permission: { kind: 'merged', strategy: 'union-list' },
+      mutationClass: 'requires_rebuild',
+    },
+  },
+};
+
 const meta = {
   title: 'Admin/Screens/TournamentSetupWizard',
   component: TournamentSetupWizard,
@@ -75,6 +95,27 @@ export const FormatStepLaterStageNoPreview: Story = {
         { number: 1, name: 'Qualifiers', format: 'round-robin' },
         { number: 2, name: 'Finals', format: 'single-elimination' },
       ],
+    },
+  },
+};
+
+export const RulesetStepWithFields: Story = {
+  args: {
+    disciplines: [disciplineWithRulesetFields],
+    initialState: {
+      step: 'ruleset',
+      descriptorId: disciplineWithRulesetFields.descriptorId,
+      descriptorVersion: disciplineWithRulesetFields.version,
+    },
+  },
+};
+
+export const RulesetStepEmpty: Story = {
+  args: {
+    initialState: {
+      step: 'ruleset',
+      descriptorId: discipline.descriptorId,
+      descriptorVersion: discipline.version,
     },
   },
 };

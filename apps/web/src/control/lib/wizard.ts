@@ -1,4 +1,9 @@
-import type { ConfigFieldPolicies, LocalizedLabel, MutationClass } from '@copalibre/domain';
+import type {
+  ConfigFieldPolicies,
+  LocalizedLabel,
+  MutationClass,
+  RulesetConfig,
+} from '@copalibre/domain';
 import { Ajv } from 'ajv';
 import type { MessageDescriptor } from 'react-intl';
 import { messages } from '../i18n/messages.en.js';
@@ -50,7 +55,7 @@ export {
  * the operator has forgotten which screen the field was on.
  */
 
-export type WizardStepId = 'name' | 'discipline' | 'format' | 'rules' | 'window';
+export type WizardStepId = 'name' | 'discipline' | 'format' | 'ruleset' | 'rules' | 'window';
 
 export const WIZARD_STEPS: readonly {
   readonly id: WizardStepId;
@@ -59,6 +64,7 @@ export const WIZARD_STEPS: readonly {
   { id: 'name', label: messages.wizardStepName },
   { id: 'discipline', label: messages.wizardStepDiscipline },
   { id: 'format', label: messages.wizardStepFormat },
+  { id: 'ruleset', label: messages.wizardStepRuleset },
   { id: 'rules', label: messages.wizardStepRules },
   { id: 'window', label: messages.wizardStepWindow },
 ];
@@ -75,6 +81,8 @@ export interface DisciplineOption {
   readonly formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
   /** Read to warn an organizer before a hard-to-reverse decision; never enforced client-side. */
   readonly fieldPolicies?: ConfigFieldPolicies;
+  /** The discipline's own default configuration tree, before any override. */
+  readonly defaults?: RulesetConfig;
 }
 
 export interface ProfileStageOption {
@@ -115,6 +123,8 @@ export interface WizardState {
   readonly publicRegistration: boolean;
   readonly requiresCheckIn: boolean;
   readonly checkInClosesAt?: string;
+  /** Dot-path → value for a discipline-declared ruleset field beyond format/registration.*. */
+  readonly ruleOverrides: Readonly<Record<string, unknown>>;
   readonly customRuleEnabled: boolean;
   readonly customRuleConditionType?: string;
   readonly customRuleActionType?: string;
@@ -129,6 +139,7 @@ export function initialWizard(): WizardState {
     stages: initialStages(),
     publicRegistration: false,
     requiresCheckIn: false,
+    ruleOverrides: {},
     customRuleEnabled: false,
     customRuleValues: {},
     customRuleOptions: {},
@@ -221,6 +232,10 @@ export function stepProblems(
           : stageProblems(stage),
       );
     }
+    case 'ruleset':
+      // Optional per-field overrides; a rejected value fails at submission
+      // (the same validation the post-creation editor uses), not here.
+      return [];
     case 'rules': {
       if (!state.customRuleEnabled) return [];
       const hasDraft =
@@ -293,6 +308,7 @@ export function toCreateRequest(
     ...(state.capacity !== undefined ? { capacity: state.capacity } : {}),
     ...(state.profileId !== undefined ? { profileId: state.profileId } : {}),
     ...(state.profileVersion !== undefined ? { profileVersion: state.profileVersion } : {}),
+    ...(Object.keys(state.ruleOverrides).length > 0 ? { ruleOverrides: state.ruleOverrides } : {}),
     customScripts: customScriptsFrom(state, vocabulary),
   };
 }

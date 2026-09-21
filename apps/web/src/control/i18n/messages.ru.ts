@@ -418,6 +418,9 @@ export const messages: Record<string, string> = {
   'control.wizard.step.name': 'Название',
   'control.wizard.step.discipline': 'Дисциплина',
   'control.wizard.step.format': 'Формат',
+  'control.wizard.step.ruleset': 'Правила дисциплины',
+  'control.wizard.ruleset.empty':
+    'Эта дисциплина не объявляет дополнительных правил для настройки здесь.',
   'control.wizard.step.window': 'Окно',
   'control.wizard.formatPreview.title': 'Предварительный просмотр структуры',
   'control.wizard.formatPreview.illustrative': 'Иллюстративный просмотр (8 участников)',

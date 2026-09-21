@@ -12,6 +12,9 @@ import { Field } from './ui/molecules/field.js';
 import { StepHeading } from './ui/molecules/step-heading.js';
 import { WizardShell } from './ui/organisms/wizard-shell.js';
 import { StageListEditor } from './StageListEditor.js';
+import { RulesetFieldControl } from './ui/molecules/ruleset-field-control.js';
+import { fieldValueAt } from '../lib/discipline-summary.js';
+import { isSupportedLanguage, resolveFieldPolicyLabel } from '@copalibre/domain';
 import {
   WIZARD_STEPS,
   addCustomRule,
@@ -38,6 +41,16 @@ import { initialStages } from '../lib/stage-authoring.js';
 import type { HookScriptVocabulary, HookVocabularyEntry } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 import { localizedText } from '../../lib/localized-label.js';
+
+/** Fields the wizard's own dedicated steps already capture — excluded from the generic list. */
+const RESERVED_RULESET_FIELDS = new Set([
+  'format',
+  'registration.publicOpen',
+  'registration.requiresCheckIn',
+  'registration.checkInClosesAt',
+  'registration.region',
+  'registration.capacity',
+]);
 
 const EMPTY_PROFILES: readonly TournamentProfileOption[] = [];
 const EMPTY_VOCABULARY: HookScriptVocabulary = { hooks: [], entries: [] };
@@ -199,6 +212,15 @@ export function TournamentSetupWizard({
           intl={intl}
           patch={patch}
           profiles={profiles}
+          state={state}
+        />
+      )}
+
+      {state.step === 'ruleset' && (
+        <RulesetStep
+          intl={intl}
+          patch={patch}
+          selectedDiscipline={selectedDiscipline}
           state={state}
         />
       )}
@@ -398,6 +420,75 @@ function FormatStep({
           />
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * A typed control per discipline-declared ruleset field beyond format/
+ * registration.* (openspec 0265), reusing 0264's `RulesetFieldControl`
+ * unmodified. Distinct from `RulesStep` below: that step authors hook-script
+ * automation (condition/action pairs); this one sets `RulesetConfig` values
+ * the discipline itself declares (`scoring.pointsPerWin`, `tiebreakers`, …).
+ */
+function RulesetStep({
+  intl,
+  patch,
+  selectedDiscipline,
+  state,
+}: {
+  readonly intl: IntlShape;
+  readonly patch: (next: Partial<WizardState>) => void;
+  readonly selectedDiscipline: DisciplineOption | undefined;
+  readonly state: WizardState;
+}): React.JSX.Element {
+  const shortLocale = intl.locale.split('-')[0];
+  const language = isSupportedLanguage(shortLocale) ? shortLocale : 'en';
+  const fieldPolicies = selectedDiscipline?.fieldPolicies ?? {};
+  const defaults = selectedDiscipline?.defaults ?? {};
+  const eligibleFields = Object.keys(fieldPolicies).filter(
+    (dotPath) =>
+      !RESERVED_RULESET_FIELDS.has(dotPath) &&
+      fieldPolicies[dotPath]?.permission.kind !== 'forbidden' &&
+      fieldPolicies[dotPath]?.permission.kind !== 'inherited',
+  );
+
+  if (eligibleFields.length === 0) {
+    return (
+      <p>
+        <FormattedMessage {...messages.wizardRulesetEmpty} />
+      </p>
+    );
+  }
+
+  return (
+    <div className="cl-platform-form-grid">
+      {eligibleFields.map((dotPath) => {
+        const policy = fieldPolicies[dotPath];
+        const label =
+          policy !== undefined ? resolveFieldPolicyLabel(dotPath, policy, language) : dotPath;
+        return (
+          <Field id={`wizard-ruleset-${dotPath}`} key={dotPath} label={label}>
+            <RulesetFieldControl
+              addLabel={intl.formatMessage(messages.rulesetFieldListAdd)}
+              availableFormats={selectedDiscipline?.supportedFormats ?? []}
+              disciplineDefaultValue={fieldValueAt(defaults, dotPath)}
+              dotPath={dotPath}
+              id={`wizard-ruleset-${dotPath}`}
+              inheritedHeading={intl.formatMessage(messages.rulesetFieldInheritedHeading)}
+              label={label}
+              onChange={(value) =>
+                patch({ ruleOverrides: { ...state.ruleOverrides, [dotPath]: value } })
+              }
+              overrideValue={state.ruleOverrides[dotPath]}
+              policy={policy}
+              removeLabel={intl.formatMessage(messages.rulesetOverridesRemoveField)}
+              unknownTypeText={intl.formatMessage(messages.rulesetFieldUnknownType)}
+              unrecognizedText={intl.formatMessage(messages.rulesetFieldUnrecognized)}
+            />
+          </Field>
+        );
+      })}
     </div>
   );
 }

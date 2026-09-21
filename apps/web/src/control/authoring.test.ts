@@ -15,6 +15,7 @@ import {
   reversibilityMessageKey,
   stepProblems,
   toCreateRequest,
+  WIZARD_STEPS,
   type DisciplineOption,
   type WizardState,
 } from './lib/wizard.js';
@@ -159,7 +160,7 @@ describe('the wizard gates each step', () => {
     expect(previousStep(wizard({ step: 'discipline' }))).toBe('name');
     expect(previousStep(wizard())).toBe('name');
     expect(nextStep(wizard({ step: 'window' }))).toBe('window');
-    expect(progress(wizard())).toBe(20);
+    expect(progress(wizard())).toBe(17);
     expect(progress(wizard({ step: 'window' }))).toBe(100);
   });
 
@@ -235,6 +236,71 @@ describe('the wizard gates each step', () => {
 
   it('refuses to submit an incomplete wizard', () => {
     expect(() => toCreateRequest(wizard())).toThrow('not complete');
+  });
+
+  describe('discipline rule overrides at creation (openspec 0265)', () => {
+    it('positions the ruleset step between format and window, alongside the hook-script rules step', () => {
+      expect(WIZARD_STEPS.map((step) => step.id)).toEqual([
+        'name',
+        'discipline',
+        'format',
+        'ruleset',
+        'rules',
+        'window',
+      ]);
+    });
+
+    it('threads a discipline option`s defaults through unchanged', () => {
+      const disciplines: readonly DisciplineOption[] = [
+        {
+          descriptorId: 'd-football',
+          version: '1.2.0',
+          name: 'Fútbol 11',
+          supportedFormats: ['round-robin'],
+          defaults: { scoring: { pointsPerWin: 3 } },
+        },
+      ];
+
+      expect(disciplines[0]?.defaults).toEqual({ scoring: { pointsPerWin: 3 } });
+    });
+
+    it('defaults ruleOverrides to an empty object and raises no problem on the ruleset step', () => {
+      expect(initialWizard().ruleOverrides).toEqual({});
+      expect(stepProblems(wizard({ step: 'ruleset' }), DISCIPLINES)).toEqual([]);
+    });
+
+    it('omits ruleOverrides from the create request when empty', () => {
+      const request = toCreateRequest(
+        wizard({
+          alias: 'copa-verano',
+          name: 'Copa Verano',
+          descriptorId: 'd-football',
+          descriptorVersion: '1.2.0',
+          stages: [{ number: 1, name: '', format: 'round-robin' }],
+          publicRegistration: true,
+          requiresCheckIn: true,
+        }),
+      );
+
+      expect(request.ruleOverrides).toBeUndefined();
+    });
+
+    it('includes ruleOverrides in the create request when the operator set a discipline field', () => {
+      const request = toCreateRequest(
+        wizard({
+          alias: 'copa-verano',
+          name: 'Copa Verano',
+          descriptorId: 'd-football',
+          descriptorVersion: '1.2.0',
+          stages: [{ number: 1, name: '', format: 'round-robin' }],
+          publicRegistration: true,
+          requiresCheckIn: true,
+          ruleOverrides: { 'scoring.pointsPerWin': 4 },
+        }),
+      );
+
+      expect(request.ruleOverrides).toEqual({ 'scoring.pointsPerWin': 4 });
+    });
   });
 
   describe('series declaration (0159)', () => {
