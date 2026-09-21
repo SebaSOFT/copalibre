@@ -539,3 +539,28 @@ tournament, its stages, and its ruleset SHALL NOT be persisted in a partially-co
 - **WHEN** an organizer submits a tournament-creation request whose rule overrides include a field
   rejected by its declared policy
 - **THEN** the request fails and no tournament, stage, or ruleset record is created
+
+### Requirement: A configured custom rule is listed in plain language, not raw registry identifiers
+The wizard's list of already-configured custom rules SHALL render each rule's condition and action
+using their vocabulary entries' phrase templates, rendered against the values and options the
+operator chose for that rule, when both the condition's (or no condition's, for "always") and the
+action's phrase templates are available. A rule whose condition or action has no phrase template
+SHALL fall back to today's `type — description` rendering for that side of the rule, never a blank
+or broken row.
+
+#### Scenario: A configured rule reads as a sentence
+- **WHEN** an operator has configured a custom rule whose selected condition and action both declare
+  phrase templates
+- **THEN** the rule's row in the configured-rules list shows those templates rendered against the
+  values and options the operator chose, not the condition/action type identifiers
+
+#### Scenario: A rule with no declared condition still reads clearly
+- **WHEN** an operator has configured a custom rule with no condition selected ("always")
+- **THEN** the rule's row shows the existing "always" wording paired with the action's rendered
+  phrase template
+
+#### Scenario: A rule referencing an entry with no phrase template still renders
+- **WHEN** an operator has configured a custom rule whose condition or action has no phrase template
+  declared
+- **THEN** that side of the rule's row falls back to its type identifier and description, and the
+  row as a whole still renders
