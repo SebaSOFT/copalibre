@@ -11,6 +11,7 @@ import {
   previousStep,
   progress,
   removeCustomRule,
+  renderRulePhrase,
   resolveDecisionDescription,
   reversibilityMessageKey,
   stepProblems,
@@ -19,7 +20,7 @@ import {
   type DisciplineOption,
   type WizardState,
 } from './lib/wizard.js';
-import type { HookScriptVocabulary } from './lib/api-client.js';
+import type { HookScriptVocabulary, HookVocabularyEntry } from './lib/api-client.js';
 import {
   LOCK_EXPLANATION,
   initialReview,
@@ -570,6 +571,88 @@ describe('the wizard gates each step', () => {
       expect.arrayContaining([expect.objectContaining({ name: 'durationSeconds', value: 30 })]),
     );
     expect(rules?.[0]?.actions[0]?.params).toHaveLength(2);
+  });
+
+  describe('rendering a configured rule in plain language (openspec 0266)', () => {
+    const CONDITION_WITH_PHRASE: HookVocabularyEntry = {
+      kind: 'condition',
+      type: 'compare_two_numbers',
+      description: 'Compares two numbers',
+      phraseTemplate: '{{op1}} {{comp}} {{op2}}',
+      authoring: {
+        parameters: [
+          {
+            name: 'op1',
+            description: '',
+            required: true,
+            parameterTypes: ['simple_number'],
+            allowExpression: true,
+            valueSchema: {},
+          },
+          {
+            name: 'comp',
+            description: '',
+            required: true,
+            parameterTypes: ['comparator'],
+            allowExpression: false,
+            valueSchema: {},
+          },
+          {
+            name: 'op2',
+            description: '',
+            required: true,
+            parameterTypes: ['simple_number'],
+            allowExpression: true,
+            valueSchema: {},
+          },
+        ],
+      },
+    };
+    const ACTION_NO_PHRASE: HookVocabularyEntry = {
+      kind: 'action',
+      type: 'notify',
+      description: 'Declare notification',
+    };
+
+    it('renders a template with the operator-chosen values substituted', () => {
+      const draft = {
+        actionType: 'notify',
+        values: {
+          [parameterValueKey('condition', 'compare_two_numbers', 'op1')]: 'shots',
+          [parameterValueKey('condition', 'compare_two_numbers', 'comp')]: '>',
+          [parameterValueKey('condition', 'compare_two_numbers', 'op2')]: '5',
+        },
+        options: {},
+      };
+      expect(
+        renderRulePhrase('condition', 'compare_two_numbers', CONDITION_WITH_PHRASE, draft),
+      ).toBe('shots > 5');
+    });
+
+    it('leaves a missing value literal rather than blanking the row', () => {
+      const draft = {
+        actionType: 'notify',
+        values: {
+          [parameterValueKey('condition', 'compare_two_numbers', 'op1')]: 'shots',
+        },
+        options: {},
+      };
+      expect(
+        renderRulePhrase('condition', 'compare_two_numbers', CONDITION_WITH_PHRASE, draft),
+      ).toBe('shots {{comp}} {{op2}}');
+    });
+
+    it('falls back to type — description when the entry declares no phraseTemplate', () => {
+      const draft = { actionType: 'notify', values: {}, options: {} };
+      expect(renderRulePhrase('action', 'notify', ACTION_NO_PHRASE, draft)).toBe(
+        'notify — Declare notification',
+      );
+    });
+
+    it('falls back to the raw type identifier when no vocabulary entry resolves', () => {
+      const draft = { actionType: 'stale-action', values: {}, options: {} };
+      expect(renderRulePhrase('action', 'stale-action', undefined, draft)).toBe('stale-action');
+    });
   });
 });
 

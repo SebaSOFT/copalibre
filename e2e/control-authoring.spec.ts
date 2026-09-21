@@ -62,6 +62,9 @@ const hookVocabularyFixture = {
       kind: 'action',
       type: 'notify',
       description: 'Declare notification',
+      // Renders the configured-rules list as a sentence instead of a raw
+      // type identifier (openspec 0266).
+      phraseTemplate: 'Notify: {{title}}',
       authoring: {
         parameters: [
           {
@@ -334,6 +337,12 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   await page.getByLabel('Acción').selectOption('notify');
   await page.getByLabel('Notification title *').fill('Actualización del partido');
   await page.getByLabel('Notification message *').fill('{{ event.definitionCode }}');
+  await page.getByRole('button', { name: 'Añadir otra regla' }).click();
+
+  // Renders the phrase template (openspec 0266) against the operator's own
+  // values, not the raw condition/action type identifiers.
+  await expect(page.getByText('always → Notify: Actualización del partido')).toBeVisible();
+
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByLabel('Región').fill('Mendoza');
   await page.getByLabel('Capacidad').fill('16');

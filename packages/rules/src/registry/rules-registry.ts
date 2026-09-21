@@ -44,6 +44,14 @@ export interface RegistryEntry {
   readonly type: string;
   readonly description: string;
   readonly authoring?: RegistryAuthoringDefinition;
+  /**
+   * A `{{paramName}}`-placeholder sentence (`splitTemplate`/`renderTemplate`,
+   * `../expressions/expression.js`) naming this entry's own authored
+   * parameters, for rendering a configured rule in plain language. Optional:
+   * absent entries render as `type — description`, same as before this field
+   * existed.
+   */
+  readonly phraseTemplate?: string;
 }
 
 /** Neuron's documented built-ins, permitted out of the box. */
@@ -160,6 +168,7 @@ export class RulesRegistry {
     ctor: ConditionConstructor,
     description: string,
     authoring?: RegistryAuthoringDefinition,
+    phraseTemplate?: string,
   ): void {
     this.neuron.registerCondition(type, ctor);
     this.entries.set(keyOf('condition', type), {
@@ -167,6 +176,7 @@ export class RulesRegistry {
       type,
       description,
       ...(authoring ? { authoring } : {}),
+      ...(phraseTemplate ? { phraseTemplate } : {}),
     });
   }
 
@@ -175,6 +185,7 @@ export class RulesRegistry {
     ctor: ActionConstructor,
     description: string,
     authoring?: RegistryAuthoringDefinition,
+    phraseTemplate?: string,
   ): void {
     this.neuron.registerAction(type, ctor);
     this.entries.set(keyOf('action', type), {
@@ -182,6 +193,7 @@ export class RulesRegistry {
       type,
       description,
       ...(authoring ? { authoring } : {}),
+      ...(phraseTemplate ? { phraseTemplate } : {}),
     });
   }
 

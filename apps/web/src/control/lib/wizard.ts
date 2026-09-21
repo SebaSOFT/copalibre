@@ -5,6 +5,7 @@ import type {
   RulesetConfig,
 } from '@copalibre/domain';
 import { Ajv } from 'ajv';
+import { renderTemplate } from '@copalibre/rules';
 import type { MessageDescriptor } from 'react-intl';
 import { messages } from '../i18n/messages.en.js';
 import type {
@@ -346,6 +347,36 @@ export function parameterValueKey(
 
 export function elementOptionsKey(kind: 'condition' | 'action', type: string): string {
   return `${kind}:${type}:options`;
+}
+
+/**
+ * A configured rule's condition or action, rendered as a plain-language
+ * sentence via the entry's own `phraseTemplate` (openspec 0266) — never a
+ * second type-inference or merge implementation, just the shared
+ * `renderTemplate` (`@copalibre/rules`) fed this side's own parameter values
+ * and options, keyed the same way `scriptElement`/`invalidAuthoringInput`
+ * already extract them.
+ *
+ * Falls back to the raw type identifier when no vocabulary entry resolves
+ * (a stale reference), and to `type — description` when the entry resolves
+ * but declares no `phraseTemplate` yet — a row never renders blank.
+ */
+export function renderRulePhrase(
+  kind: 'condition' | 'action',
+  type: string,
+  entry: HookVocabularyEntry | undefined,
+  draft: WizardRuleDraft,
+): string {
+  if (entry === undefined) return type;
+  if (entry.phraseTemplate === undefined) return `${entry.type} — ${entry.description}`;
+  const values: Record<string, unknown> = {
+    ...optionsFrom(draft.options[elementOptionsKey(kind, entry.type)]),
+  };
+  for (const parameter of entry.authoring?.parameters ?? []) {
+    const raw = draft.values[parameterValueKey(kind, entry.type, parameter.name)];
+    if (raw !== undefined) values[parameter.name] = raw;
+  }
+  return renderTemplate(entry.phraseTemplate, values);
 }
 
 export function addCustomRule(state: WizardState, vocabulary?: HookScriptVocabulary): WizardState {

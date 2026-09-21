@@ -336,6 +336,7 @@ export function registerDeclaredEffectActions(registry: RulesRegistry): RulesReg
         ),
       ],
     },
+    'Notify: {{title}}',
   );
   registry.registerAction(
     StartTimerAction.TYPE,
@@ -356,6 +357,7 @@ export function registerDeclaredEffectActions(registry: RulesRegistry): RulesReg
         ),
       ],
     },
+    'Start timer {{timerId}} for {{durationSeconds}}s',
   );
   registry.registerAction(
     StopTimerAction.TYPE,
@@ -372,6 +374,7 @@ export function registerDeclaredEffectActions(registry: RulesRegistry): RulesReg
         ),
       ],
     },
+    'Stop timer {{timerId}}',
   );
   registry.registerAction(
     AdjustStatisticAction.TYPE,
@@ -410,6 +413,7 @@ export function registerDeclaredEffectActions(registry: RulesRegistry): RulesReg
         ),
       ],
     },
+    'Adjust {{collectorCode}} for {{actorGranularity}} {{actorId}} by {{delta}}',
   );
   registry.registerAction(
     ApplyTagAction.TYPE,
@@ -456,6 +460,7 @@ export function registerDeclaredEffectActions(registry: RulesRegistry): RulesReg
         ),
       ],
     },
+    'Apply tag {{code}} to {{actorGranularity}} {{actorId}}',
   );
   return registry;
 }

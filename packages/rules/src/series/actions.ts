@@ -69,6 +69,7 @@ export function registerSeriesResolutionVocabulary(registry: RulesRegistry): Rul
         },
       ],
     },
+    'Declare {{winner}} winner of the series ({{reason}})',
   );
   return registry;
 }
