@@ -42,6 +42,13 @@ export interface ClubView {
   readonly emblemObjectId?: string;
 }
 
+/** A ruleset field's effective value, its declared dot-path, and its resolved display label. */
+export interface RulesetFieldView {
+  readonly dotPath: string;
+  readonly label: string;
+  readonly value: string;
+}
+
 import type { PublicTournamentWinnerZoneResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 
 export interface OverviewModel {
@@ -57,7 +64,7 @@ export interface OverviewModel {
   /** Absent when the previewed stage declares no series at all. */
   readonly standingsGrain?: 'series' | 'match';
   readonly clubs?: readonly ClubView[];
-  readonly ruleset: readonly { readonly label: string; readonly value: string }[];
+  readonly ruleset: readonly RulesetFieldView[];
   readonly canonicalPath: string;
   readonly streamPath: string;
   readonly liveCount: number;
@@ -74,7 +81,7 @@ export interface OverviewInput extends RouteInput {
   readonly standings: readonly StandingsRowView[];
   readonly standingsGrain?: 'series' | 'match';
   readonly clubs?: readonly ClubView[];
-  readonly ruleset: readonly { readonly label: string; readonly value: string }[];
+  readonly ruleset: readonly RulesetFieldView[];
   readonly emblemObjectId?: string;
 }
 

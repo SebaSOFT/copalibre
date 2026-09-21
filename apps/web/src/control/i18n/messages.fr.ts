@@ -422,6 +422,7 @@ export const messages: Record<string, string> = {
   'control.wizard.ruleset.empty':
     'Cette discipline ne déclare aucune règle supplémentaire à configurer ici.',
   'control.wizard.step.window': 'Fenêtre',
+  'control.wizard.step.summary': 'Résumé',
   'control.wizard.formatPreview.title': 'Aperçu de la structure',
   'control.wizard.formatPreview.illustrative': 'Aperçu illustratif (8 participants)',
   'control.wizard.formatPreview.capacity':
@@ -1201,6 +1202,17 @@ export const messages: Record<string, string> = {
   'control.disciplineSummary.eventActorNone': "Ne s'applique à aucun membre précis de l'équipe.",
   'control.disciplineSummary.rawJsonToggleShow': 'Afficher le JSON brut',
   'control.disciplineSummary.rawJsonToggleHide': 'Masquer le JSON brut',
+  'control.tournamentSummary.factsHeading': '{name}',
+  'control.tournamentSummary.stagesHeading': 'Étapes',
+  'control.tournamentSummary.stageLine': '{name} : {format}',
+  'control.tournamentSummary.publicRegistrationOpen': "L'inscription publique est ouverte.",
+  'control.tournamentSummary.publicRegistrationClosed':
+    "L'inscription publique est fermée ; les participants sont ajoutés par l'organisateur.",
+  'control.tournamentSummary.checkInRequired': "L'enregistrement est requis.",
+  'control.tournamentSummary.checkInNotRequired': "L'enregistrement n'est pas requis.",
+  'control.tournamentSummary.checkInClosesAt': "L'enregistrement se termine à {closesAt}.",
+  'control.tournamentSummary.region': 'Région : {region}',
+  'control.tournamentSummary.capacity': 'Capacité : {capacity} participants',
   'control.disciplineDocument.loading': 'Chargement de la discipline…',
   'control.disciplineDocument.loadFailed': 'Impossible de charger cette discipline.',
   'control.platform.viewDiscipline': 'Afficher',

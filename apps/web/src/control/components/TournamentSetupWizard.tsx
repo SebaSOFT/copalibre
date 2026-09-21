@@ -13,7 +13,11 @@ import { StepHeading } from './ui/molecules/step-heading.js';
 import { WizardShell } from './ui/organisms/wizard-shell.js';
 import { StageListEditor } from './StageListEditor.js';
 import { RulesetFieldControl } from './ui/molecules/ruleset-field-control.js';
-import { fieldValueAt } from '../lib/discipline-summary.js';
+import {
+  TournamentSummary,
+  type TournamentSummaryFacts,
+} from './ui/organisms/tournament-summary.js';
+import { fieldValueAt, mergeOverrides } from '../lib/discipline-summary.js';
 import { isSupportedLanguage, resolveFieldPolicyLabel } from '@copalibre/domain';
 import {
   WIZARD_STEPS,
@@ -167,7 +171,7 @@ export function TournamentSetupWizard({
       currentStepId={state.step}
       onBack={() => patch({ step: previousStep(state) })}
       primaryAction={
-        state.step === 'window'
+        state.step === 'summary'
           ? {
               label: intl.formatMessage(messages.wizardCreate),
               disabled: !canContinue(state, disciplines, vocabulary),
@@ -242,6 +246,10 @@ export function TournamentSetupWizard({
           state={state}
           vocabulary={vocabulary}
         />
+      )}
+
+      {state.step === 'summary' && (
+        <SummaryStep selectedDiscipline={selectedDiscipline} state={state} />
       )}
     </WizardShell>
   );
@@ -787,6 +795,49 @@ function RulesStep({
         </>
       )}
     </Stack>
+  );
+}
+
+/**
+ * The wizard's final step: everything configured on every prior step,
+ * rendered in plain language via `TournamentSummary` (openspec 0267) — no
+ * new fetch, since every fact it needs is already in `state`/the selected
+ * `DisciplineOption`. Only the `rules` section is available here (the
+ * discipline's `defaults`/`fieldPolicies`, the wizard's own overlay via
+ * `mergeOverrides`) — `segmentTypes`/`eventDefinitions` are never part of a
+ * `DisciplineOption`, the same scope `TournamentRulesetTemplate` already
+ * renders with.
+ */
+function SummaryStep({
+  selectedDiscipline,
+  state,
+}: {
+  readonly selectedDiscipline: DisciplineOption | undefined;
+  readonly state: WizardState;
+}): React.JSX.Element {
+  const fieldPolicies = selectedDiscipline?.fieldPolicies ?? {};
+  const defaults = selectedDiscipline?.defaults ?? {};
+  const facts: TournamentSummaryFacts = {
+    name: state.name ?? '',
+    stages: state.stages.map((stage, index) => ({
+      name: stage.name.trim() === '' ? `${index + 1}` : stage.name,
+      format: stage.format,
+    })),
+    publicRegistration: state.publicRegistration,
+    requiresCheckIn: state.requiresCheckIn,
+    ...(state.checkInClosesAt !== undefined ? { checkInClosesAt: state.checkInClosesAt } : {}),
+    ...(state.region !== undefined && state.region.trim() !== '' ? { region: state.region } : {}),
+    ...(state.capacity !== undefined ? { capacity: state.capacity } : {}),
+  };
+  return (
+    <TournamentSummary
+      discipline={{
+        fieldPolicies,
+        defaults: mergeOverrides(defaults, state.ruleOverrides, fieldPolicies),
+      }}
+      facts={facts}
+      sections={['rules']}
+    />
   );
 }
 

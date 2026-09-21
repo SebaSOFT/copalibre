@@ -1181,6 +1181,7 @@ export const messages = defineMessages({
   },
   wizardStepRules: { id: 'control.wizard.step.rules', defaultMessage: 'Event rules' },
   wizardStepWindow: { id: 'control.wizard.step.window', defaultMessage: 'Window' },
+  wizardStepSummary: { id: 'control.wizard.step.summary', defaultMessage: 'Summary' },
   wizardFormatPreviewTitle: {
     id: 'control.wizard.formatPreview.title',
     defaultMessage: 'Structure preview',
@@ -3454,6 +3455,48 @@ export const messages = defineMessages({
   disciplineSummaryRawJsonToggleHide: {
     id: 'control.disciplineSummary.rawJsonToggleHide',
     defaultMessage: 'Hide raw JSON',
+  },
+  // TournamentSummary (ui/organisms/tournament-summary.tsx, openspec 0267) —
+  // the tournament-level facts block composed above DisciplineSummary.
+  tournamentSummaryFactsHeading: {
+    id: 'control.tournamentSummary.factsHeading',
+    defaultMessage: '{name}',
+  },
+  tournamentSummaryStagesHeading: {
+    id: 'control.tournamentSummary.stagesHeading',
+    defaultMessage: 'Stages',
+  },
+  tournamentSummaryStageLine: {
+    id: 'control.tournamentSummary.stageLine',
+    defaultMessage: '{name}: {format}',
+  },
+  tournamentSummaryPublicRegistrationOpen: {
+    id: 'control.tournamentSummary.publicRegistrationOpen',
+    defaultMessage: 'Public registration is open.',
+  },
+  tournamentSummaryPublicRegistrationClosed: {
+    id: 'control.tournamentSummary.publicRegistrationClosed',
+    defaultMessage: 'Public registration is closed; entrants are added by the organizer.',
+  },
+  tournamentSummaryCheckInRequired: {
+    id: 'control.tournamentSummary.checkInRequired',
+    defaultMessage: 'Check-in is required.',
+  },
+  tournamentSummaryCheckInNotRequired: {
+    id: 'control.tournamentSummary.checkInNotRequired',
+    defaultMessage: 'Check-in is not required.',
+  },
+  tournamentSummaryCheckInClosesAt: {
+    id: 'control.tournamentSummary.checkInClosesAt',
+    defaultMessage: 'Check-in closes at {closesAt}.',
+  },
+  tournamentSummaryRegion: {
+    id: 'control.tournamentSummary.region',
+    defaultMessage: 'Region: {region}',
+  },
+  tournamentSummaryCapacity: {
+    id: 'control.tournamentSummary.capacity',
+    defaultMessage: 'Capacity: {capacity} entrants',
   },
   disciplineDocumentLoading: {
     id: 'control.disciplineDocument.loading',

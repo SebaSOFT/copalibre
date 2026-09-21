@@ -128,6 +128,49 @@ describe('public projections routes', () => {
     expect(data.status).toBeDefined();
   });
 
+  it("shows a merged-strategy ruleset field's full effective value, not the raw override delta (openspec 0267)", async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = {
+      ...footballDescriptor(),
+      images: [{ key: 'modules/football/1.0.0/football-01.jpg' }],
+    };
+    const created = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-public-merged-ruleset',
+        name: 'Copa Public Merged Ruleset',
+        descriptor,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await tournaments.createRuleset(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        descriptor,
+        overrides: { tiebreakers: ['golden-goal'] },
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      return tournament;
+    });
+    const published = await withTransaction(scratch.db as Kysely<Database>, async (uow) =>
+      tournaments.publish(uow, {
+        tournamentId: created.tournamentId,
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const response = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${published.alias}/overview`,
+    });
+    expect(response.statusCode).toBe(200);
+    const data = JSON.parse(response.payload as string);
+    expect(data.ruleset.tiebreakers).toBe('points,score-difference,goals-for,golden-goal');
+  });
+
   it('returns an upcoming stage-scoped match report and 404s for unknown stage or match numbers', async () => {
     const competition = new CompetitionRepository(scratch.db);
     const { stage, match } = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {

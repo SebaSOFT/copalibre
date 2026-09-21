@@ -53,6 +53,7 @@ import {
   matchCardLabels,
   publicIntl,
   resultStateLabels,
+  rulesetBriefingRows,
   seriesStateBarLabels,
   tickerChromeLabels,
   tickerLabels,
@@ -341,7 +342,11 @@ const tournaments = referenceTournamentListing();
         <BroadcastStatusPanel model={overview} statusText="Connected — live updates streaming." />
       )
     }
-    {component === 'ruleset-briefing' && <RulesetBriefing heading="Ruleset" model={overview} />}
+    {
+      component === 'ruleset-briefing' && (
+        <RulesetBriefing heading="Ruleset" rows={rulesetBriefingRows(intl, overview)} />
+      )
+    }
     {
       /* Undecided at game four of five, so both the segment strip and the pending
          outcome text render — a decided series would hide the pending copy. */

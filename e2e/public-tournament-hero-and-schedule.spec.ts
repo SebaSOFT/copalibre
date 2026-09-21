@@ -31,7 +31,14 @@ const overviewWithBackground = {
   seasonName: 'Apertura 2026',
   matches: [],
   clubs: [],
-  ruleset: {},
+  // A declared label (openspec 0267) plus two fields with no declared label
+  // (humanized-dot-path fallback, English-based regardless of locale — the
+  // documented fallback, not a localization bug) and a boolean/format value
+  // to exercise `RulesetBriefing.astro`'s localized value formatting.
+  ruleset: { format: 'round-robin', 'venuePolicy.neutralGround': 'true' },
+  rulesetLabels: {
+    'venuePolicy.neutralGround': { en: 'Neutral ground required', es: 'Requiere cancha neutral' },
+  },
   disciplineImages: [{ key: 'modules/football/1.0.0/football-01.jpg' }],
 };
 
@@ -106,6 +113,29 @@ test('0245: the hero renders the discipline backdrop image behind its content', 
 
   // The hero's own content (title, live badge) stays above the backdrop.
   await expect(page.getByRole('heading', { name: 'Apertura 2026' })).toBeVisible();
+});
+
+test('0267: the ruleset section renders localized labels and values in a non-English locale', async ({
+  page,
+}) => {
+  await page.goto(`/es/${PUBLIC_TOURNAMENT_PATH.replace(/^\//, '')}`);
+
+  // A declared label resolves in the requested locale, not English.
+  await expect(page.getByText('Requiere cancha neutral')).toBeVisible();
+  // A boolean value is localized, not the raw "true"/"false" string.
+  await expect(page.getByText('Sí', { exact: true })).toBeVisible();
+  // A known format enum value is localized too.
+  await expect(page.getByText('Todos contra todos')).toBeVisible();
+});
+
+test('0267: the ruleset section falls back to English for a field with no declared label', async ({
+  page,
+}) => {
+  await page.goto(PUBLIC_TOURNAMENT_PATH);
+
+  await expect(page.getByText('Neutral ground required')).toBeVisible();
+  await expect(page.getByText('Yes', { exact: true })).toBeVisible();
+  await expect(page.getByText('Round Robin')).toBeVisible();
 });
 
 test('0245: the progress figure keeps a 24px gap from the hero above it', async ({ page }) => {

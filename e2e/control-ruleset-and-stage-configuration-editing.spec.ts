@@ -73,6 +73,9 @@ test('edits a ruleset override from the tournament ruleset screen and sees the c
         },
       };
     }
+    if (url.endsWith('/settings') && method === 'GET') {
+      return { body: { name: 'Apertura 2026', featured: false } };
+    }
     return undefined;
   });
 
@@ -82,8 +85,10 @@ test('edits a ruleset override from the tournament ruleset screen and sees the c
   await page.waitForURL(`**${target}`);
 
   // The plain-language rule context (openspec 0263) shows alongside the
-  // existing edit field, reflecting the tournament's current override.
+  // existing edit field, reflecting the tournament's current override, and
+  // its tournament-facts block shows the sibling settings fetch (0267).
   await expect(page.getByText('Reglas')).toBeVisible();
+  await expect(page.getByText('Apertura 2026')).toBeVisible();
   // Shown twice now: the read-only summary's label, and the editor field's own label.
   await expect(page.getByText('Points per win').first()).toBeVisible();
   await expect(page.getByText('Valor actual: 3')).toBeVisible();

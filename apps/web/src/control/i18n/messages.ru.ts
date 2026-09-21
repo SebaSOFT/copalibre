@@ -422,6 +422,7 @@ export const messages: Record<string, string> = {
   'control.wizard.ruleset.empty':
     'Эта дисциплина не объявляет дополнительных правил для настройки здесь.',
   'control.wizard.step.window': 'Окно',
+  'control.wizard.step.summary': 'Сводка',
   'control.wizard.formatPreview.title': 'Предварительный просмотр структуры',
   'control.wizard.formatPreview.illustrative': 'Иллюстративный просмотр (8 участников)',
   'control.wizard.formatPreview.capacity':
@@ -1192,6 +1193,17 @@ export const messages: Record<string, string> = {
   'control.disciplineSummary.eventActorNone': 'Не относится к конкретному участнику команды.',
   'control.disciplineSummary.rawJsonToggleShow': 'Показать необработанный JSON',
   'control.disciplineSummary.rawJsonToggleHide': 'Скрыть необработанный JSON',
+  'control.tournamentSummary.factsHeading': '{name}',
+  'control.tournamentSummary.stagesHeading': 'Этапы',
+  'control.tournamentSummary.stageLine': '{name}: {format}',
+  'control.tournamentSummary.publicRegistrationOpen': 'Публичная регистрация открыта.',
+  'control.tournamentSummary.publicRegistrationClosed':
+    'Публичная регистрация закрыта; участников добавляет организатор.',
+  'control.tournamentSummary.checkInRequired': 'Регистрация на месте обязательна.',
+  'control.tournamentSummary.checkInNotRequired': 'Регистрация на месте не обязательна.',
+  'control.tournamentSummary.checkInClosesAt': 'Регистрация на месте закрывается в {closesAt}.',
+  'control.tournamentSummary.region': 'Регион: {region}',
+  'control.tournamentSummary.capacity': 'Вместимость: {capacity} участников',
   'control.disciplineDocument.loading': 'Загрузка дисциплины…',
   'control.disciplineDocument.loadFailed': 'Не удалось загрузить эту дисциплину.',
   'control.platform.viewDiscipline': 'Просмотр',

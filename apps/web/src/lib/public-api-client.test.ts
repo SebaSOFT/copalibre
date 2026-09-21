@@ -501,7 +501,9 @@ describe('public-api-client', () => {
       );
       expect(result.organizationAlias).toBe('org');
       expect(result.emblemObjectId).toBe('emblem-123');
-      expect(result.ruleset).toEqual([{ label: 'pointsForWin', value: 3 }]);
+      expect(result.ruleset).toEqual([
+        { dotPath: 'pointsForWin', label: 'Points For Win', value: 3 },
+      ]);
       expect(result.matches[0].home.name).toBe('H');
       expect(result.standings[0].points).toBe(3);
     });

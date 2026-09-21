@@ -348,6 +348,16 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   await page.getByLabel('Capacidad').fill('16');
   await page.getByLabel('Registro público abierto').check();
   await page.getByLabel('Requiere check-in').check();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // The final step summarizes every choice made so far, in plain language,
+  // before the operator confirms creation (openspec 0267).
+  await expect(page.getByText('1: round-robin')).toBeVisible();
+  await expect(page.getByText('La inscripción pública está abierta.')).toBeVisible();
+  await expect(page.getByText('Se requiere check-in.')).toBeVisible();
+  await expect(page.getByText('Región: Mendoza')).toBeVisible();
+  await expect(page.getByText('Capacidad: 16 participantes')).toBeVisible();
+
   await page.getByRole('button', { name: 'Crear torneo' }).click();
 
   await expect(page.getByText('Torneo creado: apertura-local')).toBeVisible();
@@ -415,6 +425,7 @@ test('sets a discipline-declared rule field during creation, beyond format/regis
 
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Crear torneo' }).click();
 
   await expect(page.getByText('Torneo creado: copa-reglas')).toBeVisible();
@@ -463,6 +474,7 @@ test('authors a three-stage tournament with a mix of allocation modes, and every
   await page.getByLabel('Sembrado').nth(2).selectOption('weighted');
   await page.getByLabel('Atributo').fill('rating');
 
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
@@ -581,6 +593,7 @@ test('instantiates a tournament from a profile, previewing its stages read-only 
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Crear torneo' }).click();
 
   await expect(page.getByText('Torneo creado: copa-desde-perfil')).toBeVisible();
@@ -641,6 +654,9 @@ test('completes tournament authoring via keyboard and without overflow at 375px'
   // Step 6 (window)
   await page.getByLabel('Región').fill('Mendoza');
   await page.getByLabel('Capacidad').fill('8');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Step 7 (summary)
   await page.getByRole('button', { name: 'Crear torneo' }).click();
 
   await expect(page.getByText('Torneo creado: copa-teclado')).toBeVisible();
@@ -753,6 +769,7 @@ test('shows a named backend rule refusal without replacing it with a generic err
   await page.getByLabel('Acción').selectOption('notify');
   await page.getByLabel('Notification title *').fill('Actualización');
   await page.getByLabel('Notification message *').fill('Evento');
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Crear torneo' }).click();
 

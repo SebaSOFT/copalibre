@@ -16553,6 +16553,11 @@
               "type": "string"
             }
           },
+          "rulesetLabels": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Each `ruleset` key's declared display label, when the installed discipline's field policy declares one — absent keys fall back to a humanized dot-path client-side (openspec 0267)."
+          },
           "status": {
             "type": "string",
             "enum": [

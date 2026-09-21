@@ -158,6 +158,7 @@ describe('the tournament setup wizard screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
 
     expect(submitted).toEqual([
@@ -221,6 +222,7 @@ describe('the tournament setup wizard screen', () => {
       target: { value: '2026-09-01T12:00' },
     });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
 
     expect(submitted).toEqual([
@@ -250,7 +252,7 @@ describe('the tournament setup wizard screen', () => {
     render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
 
     const progressTile = screen.getByTestId('wizard-progress');
-    expect(progressTile.textContent).toContain('17%');
+    expect(progressTile.textContent).toContain('14%');
 
     const nameInput = screen.getByLabelText('Name') as HTMLInputElement;
     const aliasInput = screen.getByLabelText('Alias') as HTMLInputElement;
@@ -268,11 +270,11 @@ describe('the tournament setup wizard screen', () => {
     expect(continueBtn.disabled).toBe(false);
 
     fireEvent.click(continueBtn);
-    expect(progressTile.textContent).toContain('33%');
+    expect(progressTile.textContent).toContain('29%');
     expect((screen.getByLabelText('Discipline') as HTMLSelectElement).id).toBe('wizard-discipline');
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(progressTile.textContent).toContain('17%');
+    expect(progressTile.textContent).toContain('14%');
     expect(screen.getByLabelText('Name')).toBeDefined();
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Liga San Rafael');
   });
@@ -386,6 +388,7 @@ describe('discipline rule overrides at creation (openspec 0265)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
 
     expect(submitted).toHaveLength(1);
@@ -476,7 +479,7 @@ describe('wizard state transitions and validators', () => {
     const disciplines = sampleDisciplines();
     let state = initialWizard();
     expect(state.step).toBe('name');
-    expect(progress(state)).toBe(17);
+    expect(progress(state)).toBe(14);
     expect(canContinue(state, disciplines)).toBe(false);
     expect(stepProblems(state, disciplines).length).toBeGreaterThan(0);
 
@@ -527,9 +530,16 @@ describe('wizard state transitions and validators', () => {
 
     state = { ...state, capacity: 8 };
     expect(canContinue(state, disciplines)).toBe(true);
-    expect(progress(state)).toBe(100);
+    expect(progress(state)).toBe(86);
 
     expect(previousStep(state)).toBe('rules');
+
+    const step7 = nextStep(state);
+    expect(step7).toBe('summary');
+    state = { ...state, step: step7 };
+    expect(canContinue(state, disciplines)).toBe(true);
+    expect(progress(state)).toBe(100);
+    expect(nextStep(state)).toBe('summary');
 
     expect(() => toCreateRequest(initialWizard())).toThrow('The wizard is not complete');
 
@@ -622,6 +632,7 @@ describe('TournamentAuthoringTemplate component', () => {
     await screen.findByLabelText('Name');
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Liga A' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'liga-a' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));

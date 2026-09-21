@@ -11,6 +11,7 @@ capabilities:
   - tournament-engine/rules-engine
   - tournament-engine/scripting-hook-surface
   - tournament-engine/placement-stage-format
+  - control-web/tournament-plain-language-summary
 roles:
   - admin
 ---
@@ -29,6 +30,13 @@ data before any participant is registered.
   lowercase and hyphens; appears in the public URL and cannot be freely changed afterward.
 - **Format**: the competition format available for the chosen discipline (single elimination, round
   robin, and so on).
+
+## Reviewing before you create
+
+The wizard's final step summarizes everything configured so far — discipline, format, stages,
+registration settings, and any discipline ruleset field you touched — in plain language, before
+the "Create" action is available. The same summary appears alongside the editable forms on a
+created tournament's Settings and Ruleset screens, always reflecting the last saved state there.
 
 ## Lifecycle
 
