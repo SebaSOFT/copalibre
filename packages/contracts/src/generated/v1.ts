@@ -4900,6 +4900,10 @@ export interface components {
             ruleset: {
                 [key: string]: string;
             };
+            /** @description Each `ruleset` key's declared display label, when the installed discipline's field policy declares one — absent keys fall back to a humanized dot-path client-side (openspec 0267). */
+            rulesetLabels?: {
+                [key: string]: unknown;
+            };
             /** @enum {string} */
             status?: "upcoming" | "live" | "finished";
             winners?: components["schemas"]["PublicTournamentWinnerZoneResponse"][];

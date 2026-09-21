@@ -1,59 +1,21 @@
 ---
-import type { OverviewModel } from '../../../lib/overview.ts';
+import type { RulesetBriefingRow } from '../../../lib/i18n/public-intl.ts';
 
 interface Props {
-  readonly model: OverviewModel;
+  readonly rows: readonly RulesetBriefingRow[];
   readonly heading: string;
 }
-const { model, heading } = Astro.props;
-
-function formatRuleLabel(rawKey: string): string {
-  const clean = rawKey.replace(/^rules?\./i, '');
-  const words = clean
-    .split(/[._-]+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
-  return words.join(' ');
-}
-
-function formatRuleValue(value: string): string {
-  if (value === 'true') return 'Yes';
-  if (value === 'false') return 'No';
-  const formatMap: Record<string, string> = {
-    'single-elimination': 'Single Elimination',
-    'double-elimination': 'Double Elimination',
-    'round-robin': 'Round Robin',
-    'round-robin-single-leg': 'Round Robin (Single Leg)',
-    'round-robin-home-away': 'Round Robin (Home & Away)',
-    league: 'League',
-    swiss: 'Swiss',
-    gauntlet: 'Gauntlet',
-    'bracket-groups': 'Bracket Groups',
-    'custom-bracket': 'Custom Bracket',
-    'ffa-bracket': 'FFA Bracket',
-    'ffa-league': 'FFA League',
-  };
-  if (formatMap[value]) {
-    return formatMap[value];
-  }
-  if (/^[a-z]+([-_][a-z]+)+$/i.test(value)) {
-    return value
-      .split(/[-_]+/)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
-  }
-  return value;
-}
+const { rows, heading } = Astro.props;
 ---
 
 <section aria-labelledby="ruleset-heading" class="cl-ruleset-section">
   <h2 id="ruleset-heading">{heading}</h2>
   <dl class="cl-ruleset-grid">
     {
-      model.ruleset.map((entry) => (
+      rows.map((row) => (
         <div class="cl-rule-item">
-          <dt class="cl-rule-label">{formatRuleLabel(entry.label)}</dt>
-          <dd class="cl-rule-value">{formatRuleValue(entry.value)}</dd>
+          <dt class="cl-rule-label">{row.label}</dt>
+          <dd class="cl-rule-value">{row.value}</dd>
         </div>
       ))
     }

@@ -127,6 +127,16 @@ export class PublicOverviewResponse {
   @ApiProperty({ type: 'object', additionalProperties: { type: 'string' } })
   ruleset!: Record<string, string>;
 
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    description:
+      "Each `ruleset` key's declared display label, when the installed discipline's field " +
+      'policy declares one — absent keys fall back to a humanized dot-path client-side ' +
+      '(openspec 0267).',
+  })
+  rulesetLabels?: Record<string, string | LocalizedLabel>;
+
   @ApiPropertyOptional({ enum: ['upcoming', 'live', 'finished'] })
   status?: 'upcoming' | 'live' | 'finished';
 

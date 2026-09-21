@@ -16,7 +16,12 @@ import type {
   TableLayoutListResponse,
   TableProjectionResponse,
 } from '@copalibre/api/src/dto/table-projections.dto.js';
-import type { ResultReason } from '@copalibre/domain';
+import {
+  humanizeFieldPath,
+  resolveLabel,
+  type ResultReason,
+  type SupportedLanguage,
+} from '@copalibre/domain';
 import type { OverviewInput, MatchState } from './overview.js';
 import type { LiveDashboard } from './live-state.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -182,7 +187,18 @@ export async function fetchPlayerStatistics(
   return fetchOr404<PlayerStatisticsDrilldownResponse>(url);
 }
 
-export function mapOverviewResponse(response: PublicOverviewResponse): OverviewInput {
+/**
+ * `language` resolves each ruleset field's declared label (openspec 0267) —
+ * the field's own `FieldPolicy.label` when the descriptor declares one,
+ * humanized from its dot-path otherwise. Never English-only regardless of
+ * `language`: this is the same fallback `resolveFieldPolicyLabel` uses on
+ * `control-web`, ported here since the public overview has no `FieldPolicy`
+ * object to call that function with directly, only the label it carries.
+ */
+export function mapOverviewResponse(
+  response: PublicOverviewResponse,
+  language: SupportedLanguage = 'en',
+): OverviewInput {
   return {
     organizationAlias: response.organizationAlias,
     tournamentAlias: response.tournamentAlias,
@@ -192,7 +208,14 @@ export function mapOverviewResponse(response: PublicOverviewResponse): OverviewI
     status: response.status,
     winners: response.winners,
     ...(response.emblemObjectId === undefined ? {} : { emblemObjectId: response.emblemObjectId }),
-    ruleset: Object.entries(response.ruleset).map(([label, value]) => ({ label, value })),
+    ruleset: Object.entries(response.ruleset).map(([dotPath, value]) => {
+      const declaredLabel = response.rulesetLabels?.[dotPath];
+      const label =
+        declaredLabel === undefined
+          ? humanizeFieldPath(dotPath)
+          : resolveLabel(declaredLabel, language);
+      return { dotPath, label, value };
+    }),
     matches: response.matches.map((m: PublicOverviewMatchResponse) => ({
       matchNumber: m.matchNumber,
       stageNumber: m.stageNumber,

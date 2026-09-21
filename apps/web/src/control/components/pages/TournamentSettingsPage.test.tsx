@@ -627,6 +627,48 @@ describe('TournamentSettingsPage', () => {
     await waitFor(() => expect(deleteTournamentEmblem).toHaveBeenCalled());
   });
 
+  it('shows the plain-language summary once the sibling ruleset response resolves (openspec 0267)', async () => {
+    render(
+      withIntl(
+        <TournamentSettingsPage
+          client={stubClient({
+            fetchRulesetOverrides: () =>
+              Promise.resolve({
+                overrides: {},
+                fieldPolicies: {
+                  'scoring.pointsPerWin': {
+                    permission: { kind: 'replaced' },
+                    mutationClass: 'safe',
+                    label: 'Points per win',
+                  },
+                },
+                disciplineDefaults: { scoring: { pointsPerWin: 3 } },
+              }),
+          })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    expect(await screen.findByText('Points per win')).toBeDefined();
+  });
+
+  it('renders the summary from settings alone when the client offers no ruleset fetch', async () => {
+    render(
+      withIntl(
+        <TournamentSettingsPage
+          client={stubClient()}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    expect(await screen.findByDisplayValue('Copa Verano')).toBeDefined();
+    expect(screen.getByText('This discipline declares no configurable rules.')).toBeDefined();
+  });
+
   it('handles empty response from fresh settings after upload emblem', async () => {
     const uploadTournamentEmblem = jest.fn<NonNullable<ControlApiClient['uploadTournamentEmblem']>>(
       () => Promise.resolve({ objectId: 'emblem-new' }),

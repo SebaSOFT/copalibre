@@ -56,7 +56,8 @@ export {
  * the operator has forgotten which screen the field was on.
  */
 
-export type WizardStepId = 'name' | 'discipline' | 'format' | 'ruleset' | 'rules' | 'window';
+export type WizardStepId =
+  'name' | 'discipline' | 'format' | 'ruleset' | 'rules' | 'window' | 'summary';
 
 export const WIZARD_STEPS: readonly {
   readonly id: WizardStepId;
@@ -68,6 +69,7 @@ export const WIZARD_STEPS: readonly {
   { id: 'ruleset', label: messages.wizardStepRuleset },
   { id: 'rules', label: messages.wizardStepRules },
   { id: 'window', label: messages.wizardStepWindow },
+  { id: 'summary', label: messages.wizardStepSummary },
 ];
 
 export interface DisciplineOption {
@@ -252,6 +254,8 @@ export function stepProblems(
       return state.capacity !== undefined && state.capacity < 2
         ? [messages.wizardProblemMinParticipants]
         : [];
+    case 'summary':
+      return [];
   }
 }
 

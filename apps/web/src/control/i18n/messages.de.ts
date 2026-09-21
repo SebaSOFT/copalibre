@@ -423,6 +423,7 @@ export const messages: Record<string, string> = {
   'control.wizard.ruleset.empty':
     'Diese Disziplin deklariert hier keine zusätzlich konfigurierbaren Regeln.',
   'control.wizard.step.window': 'Zeitfenster',
+  'control.wizard.step.summary': 'Zusammenfassung',
   'control.wizard.formatPreview.title': 'Strukturvorschau',
   'control.wizard.formatPreview.illustrative': 'Illustrative Vorschau (8 Teilnehmer)',
   'control.wizard.formatPreview.capacity':
@@ -1207,6 +1208,17 @@ export const messages: Record<string, string> = {
   'control.disciplineSummary.eventActorNone': 'Betrifft kein bestimmtes Teammitglied.',
   'control.disciplineSummary.rawJsonToggleShow': 'Rohes JSON anzeigen',
   'control.disciplineSummary.rawJsonToggleHide': 'Rohes JSON ausblenden',
+  'control.tournamentSummary.factsHeading': '{name}',
+  'control.tournamentSummary.stagesHeading': 'Phasen',
+  'control.tournamentSummary.stageLine': '{name}: {format}',
+  'control.tournamentSummary.publicRegistrationOpen': 'Die öffentliche Anmeldung ist geöffnet.',
+  'control.tournamentSummary.publicRegistrationClosed':
+    'Die öffentliche Anmeldung ist geschlossen; Teilnehmer werden vom Organisator hinzugefügt.',
+  'control.tournamentSummary.checkInRequired': 'Check-in ist erforderlich.',
+  'control.tournamentSummary.checkInNotRequired': 'Check-in ist nicht erforderlich.',
+  'control.tournamentSummary.checkInClosesAt': 'Der Check-in endet um {closesAt}.',
+  'control.tournamentSummary.region': 'Region: {region}',
+  'control.tournamentSummary.capacity': 'Kapazität: {capacity} Teilnehmer',
   'control.disciplineDocument.loading': 'Disziplin wird geladen…',
   'control.disciplineDocument.loadFailed': 'Diese Disziplin konnte nicht geladen werden.',
   'control.platform.viewDiscipline': 'Ansehen',

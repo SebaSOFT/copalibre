@@ -5,6 +5,7 @@ import {
   createControlApiClient,
   type ControlApiClient,
   type RulesetOverridesResponse,
+  type TournamentSettingsResponse,
 } from '../../lib/api-client.js';
 import type { ConfigFieldPolicies } from '@copalibre/domain';
 import { controlTokenStore } from '../../session/token-store.js';
@@ -30,6 +31,7 @@ export function TournamentRulesetPage({
     [client],
   );
   const [ruleset, setRuleset] = useState<RulesetOverridesResponse | undefined>(undefined);
+  const [settings, setSettings] = useState<TournamentSettingsResponse | undefined>(undefined);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -42,6 +44,14 @@ export function TournamentRulesetPage({
       .catch(() => {
         if (live) setFailed(true);
       });
+    // Additive context for the plain-language summary (openspec 0267) —
+    // never gates loading/failed state, which stays keyed to `ruleset` only.
+    api
+      .fetchTournamentSettings?.(organizationAlias, tournamentAlias)
+      .then((loaded) => {
+        if (live) setSettings(loaded);
+      })
+      .catch(() => {});
     return () => {
       live = false;
     };
@@ -80,6 +90,7 @@ export function TournamentRulesetPage({
       }
       organizationAlias={organizationAlias}
       overrides={ruleset.overrides}
+      settings={settings}
       tournamentAlias={tournamentAlias}
     />
   );

@@ -163,6 +163,53 @@ test('refuses a capacity reduction below the current entrant count before the sa
   expect(updateCalled).toBe(false);
 });
 
+test('shows the plain-language summary on the settings screen and updates it after a save (openspec 0267)', async ({
+  page,
+}) => {
+  await withTokenEndpoint(page);
+  let settings = { name: 'Copa Alta', region: 'Cuyo', capacity: 16, featured: false };
+  await page.exposeFunction('__route', (url: string, init?: RequestInit) => {
+    const method = init?.method ?? 'GET';
+    if (url.endsWith('/settings') && method === 'GET') {
+      return { body: settings };
+    }
+    if (url.endsWith('/settings') && method === 'PUT') {
+      const body = JSON.parse(String(init?.body)) as Partial<typeof settings>;
+      settings = { ...settings, ...body };
+      return { body: settings };
+    }
+    if (url.endsWith('/ruleset-overrides') && method === 'GET') {
+      return {
+        body: {
+          overrides: {},
+          fieldPolicies: {
+            'scoring.pointsPerWin': {
+              permission: { kind: 'replaced' },
+              mutationClass: 'safe',
+              label: 'Points per win',
+            },
+          },
+          disciplineDefaults: { scoring: { pointsPerWin: 3 } },
+        },
+      };
+    }
+    return undefined;
+  });
+
+  const target = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/settings`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await expect(page.getByText('Región: Cuyo')).toBeVisible();
+  await expect(page.getByText('Points per win')).toBeVisible();
+
+  await page.getByLabel('Región').fill('Mendoza');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+
+  await expect(page.getByText('Región: Mendoza')).toBeVisible();
+});
+
 test('deletes an unreferenced upload from the storage-usage screen and the usage total drops', async ({
   page,
 }) => {

@@ -641,8 +641,8 @@ export function referenceOverview(): OverviewModel {
     standingsGrain: 'match',
     clubs: referenceClubs(),
     ruleset: [
-      { label: 'Format', value: 'Round Robin' },
-      { label: 'Legs', value: 'Single' },
+      { dotPath: 'format', label: 'Format', value: 'Round Robin' },
+      { dotPath: 'legs', label: 'Legs', value: 'Single' },
     ],
     // No `emblemObjectId`: the preview seam has no backend to serve an
     // object-storage asset from, so any URL built from one 404s and the

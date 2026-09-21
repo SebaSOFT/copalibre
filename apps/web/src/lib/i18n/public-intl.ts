@@ -373,6 +373,63 @@ export function tournamentHeroLabels(intl: IntlShape, model: OverviewModel): Tou
   };
 }
 
+export interface RulesetBriefingRow {
+  readonly label: string;
+  readonly value: string;
+}
+
+/**
+ * A finite, well-known enum of stage formats — every one of the bracket/
+ * round-robin family the tournament engine declares. A format a future
+ * discipline module adds and this map has not caught up with falls back to
+ * the generic word-split below, same as any other unrecognized enum value.
+ */
+const RULESET_FORMAT_MESSAGE: Record<string, (typeof messages)['rulesetFormatSingleElimination']> =
+  {
+    'single-elimination': messages.rulesetFormatSingleElimination,
+    'double-elimination': messages.rulesetFormatDoubleElimination,
+    'round-robin': messages.rulesetFormatRoundRobin,
+    'round-robin-single-leg': messages.rulesetFormatRoundRobinSingleLeg,
+    'round-robin-home-away': messages.rulesetFormatRoundRobinHomeAway,
+    league: messages.rulesetFormatLeague,
+    swiss: messages.rulesetFormatSwiss,
+    gauntlet: messages.rulesetFormatGauntlet,
+    'bracket-groups': messages.rulesetFormatBracketGroups,
+    'custom-bracket': messages.rulesetFormatCustomBracket,
+    'ffa-bracket': messages.rulesetFormatFfaBracket,
+    'ffa-league': messages.rulesetFormatFfaLeague,
+  };
+
+function rulesetValue(intl: IntlShape, value: string): string {
+  if (value === 'true') return intl.formatMessage(messages.rulesetValueYes);
+  if (value === 'false') return intl.formatMessage(messages.rulesetValueNo);
+  const formatMessage = RULESET_FORMAT_MESSAGE[value];
+  if (formatMessage) return intl.formatMessage(formatMessage);
+  if (/^[a-z]+([-_][a-z]+)+$/i.test(value)) {
+    return value
+      .split(/[-_]+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+  }
+  return value;
+}
+
+/**
+ * `RulesetBriefing.astro`'s rows, fully resolved — the field's label (already
+ * localized by `mapOverviewResponse`) paired with its localized display value
+ * (openspec 0267). i18n formatting stays at this organism-and-above tier
+ * (`check-atomic-composition.mjs` R6); the molecule only ever renders strings.
+ */
+export function rulesetBriefingRows(
+  intl: IntlShape,
+  model: OverviewModel,
+): readonly RulesetBriefingRow[] {
+  return model.ruleset.map((entry) => ({
+    label: entry.label,
+    value: rulesetValue(intl, entry.value),
+  }));
+}
+
 export interface CompletionFigureLabels {
   readonly heading: string;
   readonly summary: string;

@@ -7,10 +7,14 @@ import { Form } from '../ui/atoms/form.js';
 import { Field } from '../ui/molecules/field.js';
 import { RulesetFieldControl } from '../ui/molecules/ruleset-field-control.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
-import { DisciplineSummary } from '../ui/organisms/discipline-summary.js';
+import { TournamentSummary } from '../ui/organisms/tournament-summary.js';
 import { fieldValueAt, mergeOverrides, observedFieldValue } from '../../lib/discipline-summary.js';
 import { isSupportedLanguage, resolveFieldPolicyLabel } from '@copalibre/domain';
-import type { MutationFieldPreview, RulesetOverridesRequest } from '../../lib/api-client.js';
+import type {
+  MutationFieldPreview,
+  RulesetOverridesRequest,
+  TournamentSettingsResponse,
+} from '../../lib/api-client.js';
 import type { ConfigFieldPolicies, RulesetConfig } from '@copalibre/domain';
 import { messages } from '../../i18n/messages.en.js';
 
@@ -21,6 +25,10 @@ interface FieldDraft {
 
 function toDrafts(overrides: Readonly<Record<string, unknown>>): FieldDraft[] {
   return Object.entries(overrides).map(([field, value]) => ({ field, value }));
+}
+
+function asBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
 }
 
 /**
@@ -37,6 +45,7 @@ export function TournamentRulesetTemplate({
   fieldPolicies,
   disciplineDefaults,
   availableFormats = [],
+  settings,
   onPreview,
   onSave,
 }: {
@@ -47,6 +56,8 @@ export function TournamentRulesetTemplate({
   readonly disciplineDefaults?: RulesetConfig;
   /** Constrains the `format` field's control to the installed discipline's declared formats. */
   readonly availableFormats?: readonly string[];
+  /** Additive context for the plain-language summary below (openspec 0267). */
+  readonly settings?: TournamentSettingsResponse;
   readonly onPreview?: (
     request: RulesetOverridesRequest,
   ) => Promise<readonly MutationFieldPreview[]>;
@@ -110,10 +121,28 @@ export function TournamentRulesetTemplate({
           </a>
 
           {fieldPolicies !== undefined && (
-            <DisciplineSummary
-              data={{
+            <TournamentSummary
+              discipline={{
                 fieldPolicies,
                 defaults: mergeOverrides(resolvedDefaults, overrides, resolvedFieldPolicies),
+              }}
+              facts={{
+                name: settings?.name ?? tournamentAlias,
+                region: settings?.region,
+                capacity: settings?.capacity,
+                checkInClosesAt: settings?.checkInClosesAt,
+                publicRegistration: asBoolean(
+                  fieldValueAt(
+                    mergeOverrides(resolvedDefaults, overrides, resolvedFieldPolicies),
+                    'registration.publicOpen',
+                  ),
+                ),
+                requiresCheckIn: asBoolean(
+                  fieldValueAt(
+                    mergeOverrides(resolvedDefaults, overrides, resolvedFieldPolicies),
+                    'registration.requiresCheckIn',
+                  ),
+                ),
               }}
               sections={['rules']}
             />

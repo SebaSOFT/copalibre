@@ -372,6 +372,40 @@ describe('TournamentRulesetPage', () => {
     expect(await screen.findByText('preview down')).toBeDefined();
   });
 
+  it('folds the sibling tournament-settings fetch into the plain-language summary (openspec 0267)', async () => {
+    render(
+      withIntl(
+        <TournamentRulesetPage
+          client={stubClient({
+            fetchTournamentSettings: () =>
+              Promise.resolve({ name: 'Copa Orbital', region: 'South Sector', featured: false }),
+          })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    expect(await screen.findByText('Copa Orbital')).toBeDefined();
+    expect(screen.getByText('Region: South Sector')).toBeDefined();
+  });
+
+  it('renders the summary from the ruleset alone when the client offers no settings fetch', async () => {
+    render(
+      withIntl(
+        <TournamentRulesetPage
+          client={stubClient()}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    // Falls back to the tournament alias — the only name-like fact available
+    // without the sibling fetch.
+    expect(await screen.findByText('apertura-2026')).toBeDefined();
+  });
+
   it('links to the tournament settings screen', async () => {
     render(
       withIntl(

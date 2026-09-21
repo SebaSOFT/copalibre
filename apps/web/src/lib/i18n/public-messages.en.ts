@@ -72,6 +72,47 @@ export const messages = defineMessages({
 
   // RulesetBriefing.astro
   rulesetHeading: { id: 'publicWeb.ruleset.heading', defaultMessage: 'Rules' },
+  rulesetValueYes: { id: 'publicWeb.ruleset.valueYes', defaultMessage: 'Yes' },
+  rulesetValueNo: { id: 'publicWeb.ruleset.valueNo', defaultMessage: 'No' },
+  rulesetFormatSingleElimination: {
+    id: 'publicWeb.ruleset.format.singleElimination',
+    defaultMessage: 'Single Elimination',
+  },
+  rulesetFormatDoubleElimination: {
+    id: 'publicWeb.ruleset.format.doubleElimination',
+    defaultMessage: 'Double Elimination',
+  },
+  rulesetFormatRoundRobin: {
+    id: 'publicWeb.ruleset.format.roundRobin',
+    defaultMessage: 'Round Robin',
+  },
+  rulesetFormatRoundRobinSingleLeg: {
+    id: 'publicWeb.ruleset.format.roundRobinSingleLeg',
+    defaultMessage: 'Round Robin (Single Leg)',
+  },
+  rulesetFormatRoundRobinHomeAway: {
+    id: 'publicWeb.ruleset.format.roundRobinHomeAway',
+    defaultMessage: 'Round Robin (Home & Away)',
+  },
+  rulesetFormatLeague: { id: 'publicWeb.ruleset.format.league', defaultMessage: 'League' },
+  rulesetFormatSwiss: { id: 'publicWeb.ruleset.format.swiss', defaultMessage: 'Swiss' },
+  rulesetFormatGauntlet: { id: 'publicWeb.ruleset.format.gauntlet', defaultMessage: 'Gauntlet' },
+  rulesetFormatBracketGroups: {
+    id: 'publicWeb.ruleset.format.bracketGroups',
+    defaultMessage: 'Bracket Groups',
+  },
+  rulesetFormatCustomBracket: {
+    id: 'publicWeb.ruleset.format.customBracket',
+    defaultMessage: 'Custom Bracket',
+  },
+  rulesetFormatFfaBracket: {
+    id: 'publicWeb.ruleset.format.ffaBracket',
+    defaultMessage: 'FFA Bracket',
+  },
+  rulesetFormatFfaLeague: {
+    id: 'publicWeb.ruleset.format.ffaLeague',
+    defaultMessage: 'FFA League',
+  },
 
   // StandingsTable.astro
   standingsHeading: { id: 'publicWeb.standings.heading', defaultMessage: 'Standings' },

@@ -22,6 +22,7 @@ import {
   tickerLabels,
   tournamentHeroLabels,
   completionFigureLabels,
+  rulesetBriefingRows,
 } from '../../../../lib/i18n/public-intl.ts';
 import { buildTickerItems } from '../../../../lib/ticker-items.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
@@ -53,7 +54,7 @@ if (!overviewData) {
   return Astro.rewrite('/404');
 }
 
-const model = buildOverview(mapOverviewResponse(overviewData));
+const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
 
 const completionData = await fetchCompletion(organization!, tournament!);
 const completion = completionData ?? {
@@ -204,7 +205,10 @@ const structuredData = {
     organizationAlias={organization}
     tournamentAlias={tournament}
   />
-  <RulesetBriefing heading={intl.formatMessage(messages.rulesetHeading)} model={model} />
+  <RulesetBriefing
+    heading={intl.formatMessage(messages.rulesetHeading)}
+    rows={rulesetBriefingRows(intl, model)}
+  />
 </PublicLayout>
 
 <style>

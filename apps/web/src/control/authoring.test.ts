@@ -160,9 +160,10 @@ describe('the wizard gates each step', () => {
     expect(nextStep(wizard())).toBe('discipline');
     expect(previousStep(wizard({ step: 'discipline' }))).toBe('name');
     expect(previousStep(wizard())).toBe('name');
-    expect(nextStep(wizard({ step: 'window' }))).toBe('window');
-    expect(progress(wizard())).toBe(17);
-    expect(progress(wizard({ step: 'window' }))).toBe(100);
+    expect(nextStep(wizard({ step: 'window' }))).toBe('summary');
+    expect(nextStep(wizard({ step: 'summary' }))).toBe('summary');
+    expect(progress(wizard())).toBe(14);
+    expect(progress(wizard({ step: 'summary' }))).toBe(100);
   });
 
   it('submits the descriptor version, which the ruleset freezes', () => {
@@ -248,6 +249,7 @@ describe('the wizard gates each step', () => {
         'ruleset',
         'rules',
         'window',
+        'summary',
       ]);
     });
 

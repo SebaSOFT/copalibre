@@ -48,12 +48,22 @@ import {
   resolveLabel,
   ageAt,
   primaryScoreOf,
+  compileEffectiveRuleset,
   type DisciplineDescriptor,
   type StatisticCollector,
   type Tournament,
   type MatchResult,
+  type LocalizedLabel,
   deriveTournamentStatus,
 } from '@copalibre/domain';
+
+/** A dot-path's value in a compiled ruleset's nested config tree, `undefined` when absent. */
+function fieldValueAt(config: Record<string, unknown>, dotPath: string): unknown {
+  return dotPath.split('.').reduce<unknown>((node, key) => {
+    if (node === undefined || node === null || typeof node !== 'object') return undefined;
+    return (node as Record<string, unknown>)[key];
+  }, config);
+}
 
 @ApiTags('Public Projections')
 @Controller('organizations/:organizationAlias/public/tournaments')
@@ -391,9 +401,18 @@ export class PublicProjectionsController {
       tournament.disciplineRef.version,
     );
     const ruleset: Record<string, string> = {};
+    const rulesetLabels: Record<string, string | LocalizedLabel> = {};
     if (rulesetData) {
+      // The compiled *effective* value (discipline default merged with the
+      // tournament's overrides, per each field's merge strategy) — never the
+      // raw override delta, which for a `merged` field is only the addition
+      // (openspec 0267). Falls back to the raw delta if compilation fails or
+      // the descriptor is unavailable, so the public page never breaks.
+      const compiled = descriptor ? compileEffectiveRuleset(descriptor, rulesetData) : undefined;
       for (const [k, v] of Object.entries(rulesetData.overrides)) {
-        ruleset[k] = String(v);
+        ruleset[k] = compiled?.ok ? String(fieldValueAt(compiled.value.config, k)) : String(v);
+        const label = descriptor?.fieldPolicies[k]?.label;
+        if (label !== undefined) rulesetLabels[k] = label;
       }
     }
 
@@ -480,6 +499,7 @@ export class PublicProjectionsController {
         ...(c.emblemObjectId ? { emblemObjectId: c.emblemObjectId } : {}),
       })),
       ruleset,
+      ...(Object.keys(rulesetLabels).length > 0 ? { rulesetLabels } : {}),
     };
   }
 
