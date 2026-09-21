@@ -435,3 +435,71 @@ refused at submission by the same validation the domain already applies to alloc
   configuration
 - **THEN** the refusal is reported at submission with the domain's own reason, and the wizard does
   not pre-filter allocation choices while the operator is still authoring
+
+### Requirement: A ruleset override field renders a typed control, never raw JSON
+The ruleset-override editor SHALL render one typed control per configured field, chosen from the
+field's `FieldPolicy` and the runtime type of its value in the discipline's defaults, instead of a
+text input the operator fills with hand-typed JSON. A `boolean`-valued field SHALL render a checkbox;
+a `number`-valued field SHALL render a number input; a `string`-valued field SHALL render a text
+input, except `format`, which SHALL render a selection constrained to the installed discipline's
+declared `availableFormats`. A field whose override permission is `inherited` or `forbidden` SHALL
+NOT be offered a control at all.
+
+#### Scenario: A boolean field renders a checkbox
+- **WHEN** the editor renders a configured field whose current value is a boolean
+- **THEN** it shows a checkbox, not a text field expecting `true`/`false` as typed JSON
+
+#### Scenario: The format field only offers the discipline's declared formats
+- **WHEN** the editor renders the `format` field
+- **THEN** it offers a selection whose options are exactly the installed discipline's
+  `availableFormats`, and no other value can be entered
+
+#### Scenario: A forbidden or inherited field offers no control
+- **WHEN** the editor encounters a field whose override permission is `forbidden` or `inherited`
+- **THEN** it renders no editable control for that field
+
+### Requirement: A merged field's control edits the delta it actually submits, never the resolved value
+For a field whose override permission is `merged` with strategy `union-list` or `append-list`, the
+editor SHALL present a control for the items to add on top of the field's inherited value, showing
+the inherited value as non-editable context, and SHALL submit only the added items as the field's
+override — never the full resolved list. For a field whose override permission is `merged` with
+strategy `shallow-object`, the editor SHALL present one independent, optional control per subkey the
+inherited value declares, and SHALL submit only the subkeys an operator actually changed as the
+field's override — never the whole object.
+
+#### Scenario: A union-list field's control only submits the added items
+- **WHEN** an operator adds one item to a `union-list` field's control and saves
+- **THEN** the request's override for that field contains only the added item, not the field's full
+  inherited list plus the addition
+
+#### Scenario: A shallow-object field's control only submits the changed subkeys
+- **WHEN** an operator changes one subkey of a `shallow-object` field's control and saves, leaving
+  every other subkey's control untouched
+- **THEN** the request's override for that field contains only the changed subkey
+
+### Requirement: A field's shown current value reflects its real merge outcome
+Wherever a ruleset override field's current value is displayed — including the plain-language
+summary's rules section — it SHALL reflect the field's actual effective value after applying its
+declared merge strategy to the stored override and the discipline's default, never the raw stored
+override value alone for a `merged` field.
+
+#### Scenario: A union-list field's displayed value includes the inherited items
+- **WHEN** a `union-list` field's stored override adds one item to the discipline's inherited list
+- **THEN** the value shown for that field includes both the inherited items and the added item, not
+  only the added item
+
+#### Scenario: A shallow-object field's displayed value includes untouched subkeys
+- **WHEN** a `shallow-object` field's stored override changes only one subkey
+- **THEN** the value shown for that field includes every subkey's current value, not only the changed
+  one
+
+### Requirement: A field with no declared policy keeps a raw-text fallback
+A stored override whose dot-path names no field the installed discipline's `fieldPolicies` declares
+(for example, data from a prior descriptor version) SHALL remain editable as raw JSON text, marked as
+unrecognized, rather than being hidden or crashing the editor.
+
+#### Scenario: An undeclared field stays editable as text
+- **WHEN** a tournament's stored overrides include a dot-path absent from the installed discipline's
+  current `fieldPolicies`
+- **THEN** the editor still shows it, as a raw-text control, and marks it as not governed by a known
+  field policy

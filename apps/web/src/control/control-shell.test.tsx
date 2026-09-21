@@ -490,6 +490,7 @@ describe('the wizard beyond the first step', () => {
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
 
     fireEvent.change(screen.getByLabelText('Capacity'), { target: { value: '16' } });
     fireEvent.click(screen.getByLabelText(/Requires check-in/i));

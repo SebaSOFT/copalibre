@@ -738,6 +738,20 @@ export class CreateTournamentRequest {
     description: 'Organizer-authored scripts evaluated at supported tournament hooks.',
   })
   customScripts!: HookScriptAttachmentRequest[];
+
+  @IsOptional()
+  @IsObject()
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    description:
+      'Dot-path → override value for any discipline-declared ruleset field beyond format/' +
+      'registration.* (already captured by their own dedicated fields above). Merged into the ' +
+      "tournament's initial ruleset alongside those fixed fields; a value rejected by its field " +
+      'policy fails the entire creation.',
+    example: { 'scoring.pointsPerWin': 4 },
+  })
+  ruleOverrides?: Readonly<Record<string, unknown>>;
 }
 
 export class CreateStageRequest {
@@ -1144,6 +1158,14 @@ export class DisciplineSummaryResponse {
     },
   })
   fieldPolicies?: Readonly<Record<string, unknown>>;
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    description: "The discipline's own default configuration tree, before any override.",
+    example: { 'scoring.pointsPerWin': 3 },
+  })
+  defaults?: Readonly<Record<string, unknown>>;
 }
 
 export class ProfileStageSummaryResponse {

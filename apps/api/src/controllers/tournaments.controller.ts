@@ -531,6 +531,11 @@ export class TournamentsController {
           organizationId: organization.organizationId,
           descriptor,
           overrides: {
+            // Organizer-supplied overrides for any other discipline-declared field
+            // (openspec 0265) go first, so the wizard's own dedicated fields below —
+            // which already exclude these paths from their generic control list —
+            // still win if one somehow collides.
+            ...(body.ruleOverrides ?? {}),
             // A stage added later with no explicit format defaults to this — see
             // `StagesController.resolveFormat`. The first declared stage's format
             // is the closest analogue to the single top-level `format` this

@@ -785,6 +785,76 @@ describe('organization-scoped tournament routes', () => {
     });
   });
 
+  it('creates a tournament with a discipline-declared rule override beyond format/registration (openspec 0265)', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const response = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'copa-overrides',
+        name: 'Copa Overrides',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        stages: [{ format: 'round-robin' }],
+        publicRegistration: true,
+        requiresCheckIn: false,
+        customScripts: [],
+        ruleOverrides: { 'scoring.pointsPerWin': 4 },
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const created = JSON.parse(response.payload as string);
+
+    const ruleset = await tournaments.findLatestRuleset(created.tournamentId);
+    expect(ruleset?.overrides).toMatchObject({ 'scoring.pointsPerWin': 4 });
+  });
+
+  it('rejects tournament creation with a ruleOverrides entry that violates its field policy, performing no write (openspec 0265)', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const response = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'copa-rejected-override',
+        name: 'Copa Rejected Override',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        stages: [{ format: 'round-robin' }],
+        publicRegistration: true,
+        requiresCheckIn: false,
+        customScripts: [],
+        // `venuePolicy.neutralGround` is declared `inherited` — accepts no override.
+        ruleOverrides: { 'venuePolicy.neutralGround': true },
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+
+    const found = await tournaments.findByScopedAlias('liga-orbital', 'copa-rejected-override');
+    expect(found).toBeUndefined();
+  });
+
   it('creates an ad-hoc tournament declaring three stages in one pass, each with its own series and allocation', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const competition = new CompetitionRepository(scratch.db);

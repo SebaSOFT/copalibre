@@ -745,4 +745,25 @@ describe('disciplines listing (openspec 0161)', () => {
       mutationClass: 'requires_rebuild',
     });
   });
+
+  it("exposes each descriptor's own default configuration tree (openspec 0265), so the wizard can infer a starting value for a field with no override yet", async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const response = await request({ method: 'GET', url: '/disciplines' });
+    expect(response.statusCode).toBe(200);
+
+    const football = (
+      response.json() as readonly { alias?: string; defaults?: Record<string, unknown> }[]
+    ).find((entry) => entry.alias === descriptor.alias);
+
+    expect(football?.defaults).toEqual(descriptor.defaults);
+  });
 });

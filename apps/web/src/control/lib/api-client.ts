@@ -1294,6 +1294,8 @@ export interface CreateTournamentRequest {
   readonly capacity?: number;
   readonly profileId?: string;
   readonly profileVersion?: string;
+  /** Dot-path → override value for any discipline-declared ruleset field beyond format/registration.*. */
+  readonly ruleOverrides?: Readonly<Record<string, unknown>>;
   readonly customScripts: readonly HookScriptAttachment[];
 }
 

@@ -416,6 +416,9 @@ export const messages: Record<string, string> = {
   'control.wizard.step.name': 'Nome',
   'control.wizard.step.discipline': 'Modalidade',
   'control.wizard.step.format': 'Formato',
+  'control.wizard.step.ruleset': 'Regras da modalidade',
+  'control.wizard.ruleset.empty':
+    'Esta modalidade não declara regras adicionais para configurar aqui.',
   'control.wizard.step.window': 'Janela',
   'control.wizard.formatPreview.title': 'Pré-visualização da estrutura',
   'control.wizard.formatPreview.illustrative': 'Pré-visualização ilustrativa (8 participantes)',

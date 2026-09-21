@@ -406,6 +406,8 @@ export const messages: Record<string, string> = {
   'control.wizard.step.name': '名称',
   'control.wizard.step.discipline': '项目',
   'control.wizard.step.format': '赛制',
+  'control.wizard.step.ruleset': '项目规则',
+  'control.wizard.ruleset.empty': '该项目未声明可在此配置的其他规则。',
   'control.wizard.step.window': '时间窗口',
   'control.wizard.formatPreview.title': '结构预览',
   'control.wizard.formatPreview.illustrative': '示例预览（8名参赛者）',
