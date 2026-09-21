@@ -503,3 +503,39 @@ unrecognized, rather than being hidden or crashing the editor.
   current `fieldPolicies`
 - **THEN** the editor still shows it, as a raw-text control, and marks it as not governed by a known
   field policy
+
+### Requirement: The wizard offers a typed control for every discipline-declared ruleset field
+For every field the selected discipline declares an override policy for, the tournament-creation
+wizard SHALL offer a typed control chosen the same way the post-creation ruleset editor chooses one
+(by the field's override permission, merge strategy, and the runtime type of its default value) —
+except a field the wizard already captures through a dedicated control (`format` or a
+`registration.*` field), which SHALL NOT also be offered through this generic control, so no field
+is ever editable through two different wizard controls at once. A field whose override permission
+is `inherited` or `forbidden` SHALL NOT be offered a control.
+
+#### Scenario: A discipline-specific field is configurable during creation
+- **WHEN** an organizer selects a discipline that declares an override policy for a field beyond
+  `format`/`registration.*` (for example a scoring or venue-policy field)
+- **THEN** the wizard offers a typed control for that field before the tournament is created, and a
+  value set there reaches the created tournament's ruleset
+
+#### Scenario: A field with a dedicated wizard control is not offered twice
+- **WHEN** the wizard renders its generic per-field controls for the selected discipline
+- **THEN** `format` and every `registration.*` field already captured by the wizard's own dedicated
+  controls are excluded from the generic list
+
+#### Scenario: A forbidden or inherited field offers no control during creation
+- **WHEN** the wizard encounters a field whose override permission is `forbidden` or `inherited`
+- **THEN** it renders no editable control for that field, matching the post-creation editor's
+  behavior for the same policy
+
+### Requirement: A rejected creation-time rule override fails tournament creation atomically
+If a rule override submitted at tournament-creation time is rejected by the same validation the
+post-creation ruleset editor uses (an undeclared field, a `forbidden`/`inherited` permission, or a
+shape the field's merge strategy cannot apply), tournament creation SHALL fail entirely — the
+tournament, its stages, and its ruleset SHALL NOT be persisted in a partially-configured state.
+
+#### Scenario: An invalid rule override blocks the entire creation
+- **WHEN** an organizer submits a tournament-creation request whose rule overrides include a field
+  rejected by its declared policy
+- **THEN** the request fails and no tournament, stage, or ruleset record is created
