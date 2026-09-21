@@ -358,18 +358,33 @@ describe('organization-scoped tournament routes', () => {
     expect(response.statusCode).toBe(200);
     const vocabulary = response.json() as {
       hooks: string[];
-      entries: { kind: string; type: string; authoring?: unknown }[];
+      entries: { kind: string; type: string; authoring?: unknown; phraseTemplate?: string }[];
     };
     expect(vocabulary.hooks).toEqual(['event.recorded']);
     expect(vocabulary.entries).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ kind: 'condition', type: 'compare_two_numbers' }),
-        expect.objectContaining({ kind: 'action', type: 'notify' }),
+        expect.objectContaining({
+          kind: 'condition',
+          type: 'compare_two_numbers',
+          phraseTemplate: '{{op1}} {{comp}} {{op2}}',
+        }),
+        expect.objectContaining({
+          kind: 'action',
+          type: 'notify',
+          phraseTemplate: 'Notify: {{title}}',
+        }),
         expect.objectContaining({ kind: 'parameter', type: 'simple_string' }),
       ]),
     );
     expect(vocabulary.entries.every((entry) => entry.authoring !== undefined)).toBe(true);
     expect(vocabulary.entries.some((entry) => entry.type === 'set-guard-outcome')).toBe(false);
+    // Every condition/action carries a phrase template (openspec 0266); a bare
+    // vocabulary parameter entry is not rendered directly, so it carries none.
+    expect(
+      vocabulary.entries
+        .filter((entry) => entry.kind === 'condition' || entry.kind === 'action')
+        .every((entry) => Boolean(entry.phraseTemplate)),
+    ).toBe(true);
   });
 
   it('creates, reads, and safely versions valid custom scripts before results', async () => {

@@ -2849,6 +2849,11 @@ export interface components {
             type: string;
             description: string;
             authoring?: components["schemas"]["RegistryAuthoringDefinitionResponse"];
+            /**
+             * @description A `{{paramName}}`-placeholder sentence naming this entry's own authored parameters, for rendering a configured rule in plain language. Absent entries render as `type — description`.
+             * @example {{statistic}} crosses {{threshold}}
+             */
+            phraseTemplate?: string;
         };
         HookScriptVocabularyResponse: {
             hooks: "event.recorded"[];

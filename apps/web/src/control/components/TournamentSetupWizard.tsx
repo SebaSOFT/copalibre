@@ -29,6 +29,7 @@ import {
   previousStep,
   progress,
   removeCustomRule,
+  renderRulePhrase,
   resolveDecisionDescription,
   reversibilityMessageKey,
   stepProblems,
@@ -655,28 +656,44 @@ function RulesStep({
           </p>
           {state.customRules.length > 0 && (
             <ol style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
-              {state.customRules.map((rule, index) => (
-                <li
-                  key={`${rule.actionType}-${index}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 'var(--cl-space-3)',
-                  }}
-                >
-                  <span>
-                    {index + 1}. {rule.conditionType ?? 'always'} → {rule.actionType}
-                  </span>
-                  <Button
-                    onClick={() => setState((current) => removeCustomRule(current, index))}
-                    type="button"
-                    variant="secondary"
+              {state.customRules.map((rule, index) => {
+                const ruleCondition =
+                  rule.conditionType === undefined
+                    ? undefined
+                    : vocabulary.entries.find(
+                        (entry) => entry.kind === 'condition' && entry.type === rule.conditionType,
+                      );
+                const ruleAction = vocabulary.entries.find(
+                  (entry) => entry.kind === 'action' && entry.type === rule.actionType,
+                );
+                const conditionPhrase =
+                  rule.conditionType === undefined
+                    ? 'always'
+                    : renderRulePhrase('condition', rule.conditionType, ruleCondition, rule);
+                const actionPhrase = renderRulePhrase('action', rule.actionType, ruleAction, rule);
+                return (
+                  <li
+                    key={`${rule.actionType}-${index}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 'var(--cl-space-3)',
+                    }}
                   >
-                    <FormattedMessage {...messages.wizardRuleRemove} />
-                  </Button>
-                </li>
-              ))}
+                    <span>
+                      {index + 1}. {conditionPhrase} → {actionPhrase}
+                    </span>
+                    <Button
+                      onClick={() => setState((current) => removeCustomRule(current, index))}
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage {...messages.wizardRuleRemove} />
+                    </Button>
+                  </li>
+                );
+              })}
             </ol>
           )}
           <div className="cl-platform-form-grid">

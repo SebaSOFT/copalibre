@@ -504,6 +504,14 @@ export class RegistryEntryResponse {
 
   @ApiPropertyOptional({ type: RegistryAuthoringDefinitionResponse })
   authoring?: RegistryAuthoringDefinitionResponse;
+
+  @ApiPropertyOptional({
+    description:
+      "A `{{paramName}}`-placeholder sentence naming this entry's own authored parameters, for " +
+      'rendering a configured rule in plain language. Absent entries render as `type — description`.',
+    example: '{{statistic}} crosses {{threshold}}',
+  })
+  phraseTemplate?: string;
 }
 
 export class HookScriptVocabularyResponse {

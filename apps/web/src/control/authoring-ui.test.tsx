@@ -74,9 +74,60 @@ describe('the tournament setup wizard screen', () => {
     expect(add.disabled).toBe(false);
     fireEvent.click(add);
 
-    expect(screen.getByText(/always → notify/)).toBeDefined();
+    // The `notify` entry declares no phraseTemplate here, so the row falls
+    // back to `type — description` (openspec 0266) rather than the raw type.
+    expect(screen.getByText(/always → notify — Declare notification/)).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
-    expect(screen.queryByText(/always → notify/)).toBeNull();
+    expect(screen.queryByText(/always → notify — Declare notification/)).toBeNull();
+  });
+
+  it('renders a configured rule using its phrase template rendered against the operator’s own values (openspec 0266)', () => {
+    const vocabularyWithPhrase: HookScriptVocabulary = {
+      hooks: ['event.recorded'],
+      entries: [
+        {
+          kind: 'action',
+          type: 'notify',
+          description: 'Declare notification',
+          phraseTemplate: 'Notify: {{title}}',
+          authoring: {
+            parameters: [
+              {
+                name: 'title',
+                description: 'Notification title',
+                required: true,
+                parameterTypes: ['simple_string'],
+                allowExpression: true,
+                valueSchema: { type: 'string', minLength: 1 },
+              },
+            ],
+          },
+        },
+      ],
+    };
+    render(
+      withIntl(
+        <TournamentSetupWizard
+          disciplines={sampleDisciplines()}
+          vocabulary={vocabularyWithPhrase}
+        />,
+      ),
+    );
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Reglas' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-reglas' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByLabelText('Add rule for every recorded event'));
+    fireEvent.change(screen.getByLabelText('Action'), { target: { value: 'notify' } });
+    fireEvent.change(screen.getByLabelText('Notification title *'), {
+      target: { value: 'Match update' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add another rule' }));
+
+    expect(screen.getByText(/always → Notify: Match update/)).toBeDefined();
   });
 
   it('gates progression and submits the descriptor version', () => {

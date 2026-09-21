@@ -1355,6 +1355,8 @@ export interface HookVocabularyEntry {
     readonly valueSchema?: Readonly<Record<string, unknown>>;
     readonly allowExpression?: boolean;
   };
+  /** A `{{paramName}}`-placeholder sentence for rendering a configured rule in plain language. */
+  readonly phraseTemplate?: string;
 }
 
 export interface HookScriptVocabulary {

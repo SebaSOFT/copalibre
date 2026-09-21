@@ -318,6 +318,25 @@ export function splitTemplate(source: string): readonly TemplateSegment[] {
 }
 
 /**
+ * `{{key}}` substitution over a set of named values, split by the same
+ * splitter the expression parameters use so a message is not a second
+ * little language. A key nobody published keeps its placeholder, which is how
+ * a reader sees that a template names something the caller did not supply.
+ */
+export function renderTemplate(
+  template: string,
+  values: Readonly<Record<string, unknown>>,
+): string {
+  return splitTemplate(template)
+    .map((segment) => {
+      if (segment.kind === 'literal') return segment.text;
+      const key = segment.source;
+      return key in values ? String(values[key]) : `{{${key}}}`;
+    })
+    .join('');
+}
+
+/**
  * Resolves a field the way n8n does, which settles the string-versus-number
  * question without a second parameter type: a field that is *one* expression
  * and nothing else yields the typed value, straight into a comparison; a field
