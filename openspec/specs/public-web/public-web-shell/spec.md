@@ -891,3 +891,24 @@ Every response the public site serves SHALL include `X-Content-Type-Options: nos
 - **WHEN** an anonymous visitor requests any public route, prerendered or server-rendered
 - **THEN** the response includes `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and
   `Referrer-Policy: strict-origin-when-cross-origin`
+
+### Requirement: The public overview's ruleset section shows the tournament's effective configuration
+The tournament overview page's ruleset section SHALL show each field's effective value — the
+discipline's default combined with the tournament's overrides per the field's merge strategy —
+never the raw stored override delta.
+
+#### Scenario: A merged-strategy field's public display matches its effective value
+- **WHEN** the overview page renders a ruleset field whose override permission is `merged` and the
+  tournament has submitted an addition to it
+- **THEN** the displayed value is the discipline's inherited value combined with the addition, not
+  the addition alone
+
+### Requirement: The public overview's ruleset section is localized
+The tournament overview page's ruleset section SHALL render each field's label and value in the
+page's served locale, using the field's own declared label where one exists, rather than a
+hardcoded English-only formatting of the field's raw dot-path or stored value.
+
+#### Scenario: A non-English locale shows localized rule labels and values
+- **WHEN** the overview page is requested in a supported locale other than English
+- **THEN** the ruleset section's field labels and boolean/enum values are rendered in that locale,
+  not in English
