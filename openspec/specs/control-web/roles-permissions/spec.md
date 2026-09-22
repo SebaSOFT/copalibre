@@ -437,3 +437,15 @@ The audit trail screen SHALL resolve actor identifiers into human-readable user 
 #### Scenario: Actions and diffs render in plain language
 - **WHEN** an operator inspects an audit entry's action and state changes
 - **THEN** the action name and field transitions render in human-readable plain language matching the active locale
+
+### Requirement: Roles and permissions UI ownership and scope selection
+The roles and permissions screen SHALL compose owned design-system primitives without raw unstyled form tags. Scope selectors for club-admin and tournament-admin roles SHALL render localized placeholders rather than blank options.
+
+#### Scenario: Scope selectors present localized prompt
+- **WHEN** an operator selects club-admin or tournament-admin in the invite dialog
+- **THEN** the corresponding scope selector displays a localized placeholder prompting the operator to choose a club or tournament
+
+#### Scenario: Interactive toggles meet ownership contracts
+- **WHEN** an operator interacts with status toggles or checkboxes on the roles screen
+- **THEN** all controls are rendered using owned primitives with visible focus states and accessible labels
+
