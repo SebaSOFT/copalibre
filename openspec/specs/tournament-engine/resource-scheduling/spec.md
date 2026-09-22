@@ -226,3 +226,14 @@ different dates for one match.
 - **WHEN** a match has been generated but never placed in a slot
 - **THEN** every surface reports it as having no scheduled time, rather than one surface reporting a time
   from another store
+
+### Requirement: Resources management UI layout and owned controls
+The resources management screen SHALL compose owned design-system primitives without raw form tags and SHALL provide clear layout spacing between adjacent action buttons.
+
+#### Scenario: Schedule row actions have clear visual separation
+- **WHEN** an operator views the list of generated schedules
+- **THEN** adjacent action buttons (e.g. edit and delete) are separated with design token spacing rather than rendered in an unstyled block with zero gap
+
+#### Scenario: Selection controls use owned primitives
+- **WHEN** an operator selects venues for a schedule or assigns roles to an official
+- **THEN** all options are rendered using owned Checkbox primitives with visible focus states and accessible labels
