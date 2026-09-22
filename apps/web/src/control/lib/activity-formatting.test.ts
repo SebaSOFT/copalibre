@@ -56,6 +56,9 @@ describe('activity-formatting', () => {
       expect(formatActivityReason('Token is missing required scope: org.admin', 'es')).toBe(
         'El token no posee el permiso requerido',
       );
+      expect(formatActivityReason('Token is missing required scope: org.admin', 'en')).toBe(
+        'Token is missing required scope',
+      );
     });
 
     it('falls back to the raw string if unrecognized', () => {
