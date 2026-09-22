@@ -10,6 +10,26 @@ import { isDirty, randomizeUnlocked, toggleLock, type SeedAssignment } from '../
 import { mutationFeedback } from '../../lib/mutation-feedback.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { Card } from '../ui/atoms/card.js';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function resolveEntrantDisplayName(
+  entrantId: string,
+  names: Readonly<Record<string, string>>,
+  intl: ReturnType<typeof useIntl>,
+): string {
+  const resolved = names[entrantId];
+  if (resolved) {
+    return resolved;
+  }
+  if (UUID_PATTERN.test(entrantId)) {
+    return intl.formatMessage(messages.seedingUnresolvedEntrant, {
+      id: entrantId.slice(0, 8),
+    });
+  }
+  return entrantId;
+}
 
 /**
  * A6 — seed assignment beside the bracket it produces.
@@ -37,6 +57,7 @@ export function SeedingBuilderTemplate({
   hasRecordedResults,
   onPublish,
   random,
+  configurationSection,
 }: {
   readonly organizationAlias: string;
   /**
@@ -58,6 +79,7 @@ export function SeedingBuilderTemplate({
   readonly hasRecordedResults: boolean;
   readonly onPublish?: (seeds: readonly SeedAssignment[]) => Promise<void> | void;
   readonly random?: () => number;
+  readonly configurationSection?: React.ReactNode;
 }): React.JSX.Element {
   const intl = useIntl();
   const [history, setHistory] = useState(() => initHistory<readonly SeedAssignment[]>(seeds));
@@ -135,7 +157,10 @@ export function SeedingBuilderTemplate({
       )}
 
       <div className="cl-platform-form-grid">
-        <div className="cl-card cl-chamfer cl-chamfer--control">
+        <Card
+          aria-label={intl.formatMessage(messages.seedingOrder)}
+          className="cl-chamfer cl-chamfer--control"
+        >
           <header className="cl-card__header">
             <h2 className="cl-card__title">
               <FormattedMessage {...messages.seedingOrder} />
@@ -143,27 +168,30 @@ export function SeedingBuilderTemplate({
           </header>
           <div className="cl-card__content">
             <ol aria-label={intl.formatMessage(messages.seedingOrder)}>
-              {current.map((assignment) => (
-                <li key={assignment.seed} className="cl-role-user">
-                  <span className="cl-label">{assignment.seed}</span>
-                  <span>{names[assignment.entrantId] ?? assignment.entrantId}</span>
-                  <Button
-                    aria-label={intl.formatMessage(messages.seedingToggleLockAriaLabel, {
-                      locked: assignment.locked,
-                      seed: assignment.seed,
-                    })}
-                    aria-pressed={assignment.locked}
-                    disabled={blocked}
-                    onClick={() => apply(toggleLock(current, assignment.seed))}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage
-                      {...(assignment.locked ? messages.seedingLocked : messages.seedingUnlocked)}
-                    />
-                  </Button>
-                </li>
-              ))}
+              {current.map((assignment) => {
+                const displayName = resolveEntrantDisplayName(assignment.entrantId, names, intl);
+                return (
+                  <li key={assignment.seed} className="cl-role-user">
+                    <span className="cl-label">{assignment.seed}</span>
+                    <span>{displayName}</span>
+                    <Button
+                      aria-label={intl.formatMessage(messages.seedingToggleLockAriaLabel, {
+                        locked: assignment.locked,
+                        seed: assignment.seed,
+                      })}
+                      aria-pressed={assignment.locked}
+                      disabled={blocked}
+                      onClick={() => apply(toggleLock(current, assignment.seed))}
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage
+                        {...(assignment.locked ? messages.seedingLocked : messages.seedingUnlocked)}
+                      />
+                    </Button>
+                  </li>
+                );
+              })}
             </ol>
             {current.length === 0 && (
               <p className="cl-card__description">
@@ -171,9 +199,9 @@ export function SeedingBuilderTemplate({
               </p>
             )}
           </div>
-        </div>
+        </Card>
 
-        <div className="cl-card cl-chamfer cl-chamfer--control">
+        <Card className="cl-chamfer cl-chamfer--control">
           <header className="cl-card__header">
             <h2 className="cl-card__title">
               <FormattedMessage {...messages.seedingGeneratedBracket} />
@@ -204,8 +232,24 @@ export function SeedingBuilderTemplate({
               ),
             )}
           </div>
-        </div>
+        </Card>
       </div>
+
+      {configurationSection}
+
+      {stageNumber !== undefined && tournamentAlias !== undefined && (
+        <div>
+          <a
+            className="cl-focusable"
+            href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones`}
+            onClick={controlLinkClick(
+              `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones`,
+            )}
+          >
+            <FormattedMessage {...messages.stageHubZoneGroupsLink} />
+          </a>
+        </div>
+      )}
     </div>
   );
 

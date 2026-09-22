@@ -14,6 +14,28 @@ import { Badge } from './ui/atoms/badge.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function resolveSlotLabel(
+  slot: LaidOutMatch['slots'][number],
+  names: Readonly<Record<string, string>>,
+  intl: ReturnType<typeof useIntl>,
+): string {
+  if (slot.entrantId === undefined) {
+    return slot.label;
+  }
+  const resolved = names[slot.entrantId];
+  if (resolved) {
+    return resolved;
+  }
+  if (UUID_PATTERN.test(slot.entrantId)) {
+    return intl.formatMessage(messages.seedingUnresolvedEntrant, {
+      id: slot.entrantId.slice(0, 8),
+    });
+  }
+  return slot.label;
+}
+
 /**
  * A6 — the bracket canvas.
  *
@@ -228,7 +250,7 @@ function BracketNode({
               variant="secondary"
               className="cl-journey-name"
               aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
-                entrant: names[slot.entrantId] ?? slot.label,
+                entrant: resolveSlotLabel(slot, names, intl),
               })}
               aria-pressed={highlightEntrantId === slot.entrantId}
               onClick={() =>
@@ -237,12 +259,10 @@ function BracketNode({
                 )
               }
             >
-              {names[slot.entrantId] ?? slot.label}
+              {resolveSlotLabel(slot, names, intl)}
             </Button>
           ) : (
-            <span>
-              {slot.entrantId === undefined ? slot.label : (names[slot.entrantId] ?? slot.label)}
-            </span>
+            <span>{resolveSlotLabel(slot, names, intl)}</span>
           )}
           <span style={scoreStyle}>{slot.score ?? '—'}</span>
         </div>

@@ -380,6 +380,10 @@ export const messages = defineMessages({
     id: 'control.seeding.generatedBracket',
     defaultMessage: 'Generated bracket',
   },
+  seedingUnresolvedEntrant: {
+    id: 'control.seeding.unresolvedEntrant',
+    defaultMessage: 'Entrant {id}',
+  },
 
   // Reports/disputes (lib/reports.ts, ReportReviewPage.tsx)
   reportKindReport: { id: 'control.report.kind.report', defaultMessage: 'Proposed result' },

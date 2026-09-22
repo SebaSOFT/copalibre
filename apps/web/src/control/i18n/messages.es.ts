@@ -135,6 +135,7 @@ export const messages: Record<string, string> = {
   'control.seeding.unlocked': 'Libre',
   'control.seeding.noParticipants': 'Esta fase no tiene participantes.',
   'control.seeding.generatedBracket': 'Llave generada',
+  'control.seeding.unresolvedEntrant': 'Participante {id}',
 
   'control.report.kind.report': 'Resultado propuesto',
   'control.report.kind.dispute': 'Disputa',

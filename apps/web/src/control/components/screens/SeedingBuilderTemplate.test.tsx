@@ -98,4 +98,22 @@ describe('SeedingBuilderTemplate', () => {
 
     expect(screen.getByText('WB-R1-M1').closest('a')).toBeNull();
   });
+
+  it('renders graceful fallback for unresolved entrants missing from names dictionary', () => {
+    render(
+      withIntl(
+        <SeedingBuilderTemplate
+          hasRecordedResults={false}
+          zones={[]}
+          names={{}}
+          organizationAlias="liga-mendocina"
+          seeds={[{ seed: 1, entrantId: '01890000-0000-7000-8000-000000000001', locked: false }]}
+          tournamentName="Apertura 2026"
+        />,
+      ),
+    );
+
+    expect(screen.getByText('Entrant 01890000')).toBeDefined();
+    expect(screen.queryByText('01890000-0000-7000-8000-000000000001')).toBeNull();
+  });
 });

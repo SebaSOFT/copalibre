@@ -425,6 +425,14 @@ describe('standings and seeding routes (integration)', () => {
     // the zone-scoped `zones` display below.
     expect(body.seeds).toHaveLength(4);
     expect(body.zones).toHaveLength(2);
+    expect(body.names).toEqual(
+      expect.objectContaining({
+        [zoneEntrantIds[0] as string]: 'Zona Oro A',
+        [zoneEntrantIds[1] as string]: 'Zona Oro B',
+        [zoneEntrantIds[2] as string]: 'Zona Plata A',
+        [zoneEntrantIds[3] as string]: 'Zona Plata B',
+      }),
+    );
     for (const zone of body.zones) {
       expect(zone.matches).toHaveLength(1);
       for (const slot of zone.matches[0].slots) {

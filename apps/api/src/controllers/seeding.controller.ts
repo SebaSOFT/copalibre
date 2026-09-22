@@ -142,6 +142,13 @@ export class SeedingController {
         };
       }),
     );
+    const resolvedNamesMap = await new EnrollmentRepository(this.db).resolveEntrantNames(
+      record.entrantIds,
+    );
+    const names: Record<string, string> = {};
+    for (const [entrantId, entry] of resolvedNamesMap) {
+      names[entrantId] = entry.name;
+    }
 
     return {
       stageId,
@@ -149,6 +156,7 @@ export class SeedingController {
       seeds: seedOrder.map((entrantId, index) => ({ seed: index + 1, entrantId })),
       zones: zoneResponses,
       hasRecordedResults: record.hasRecordedResults,
+      names,
     };
   }
 

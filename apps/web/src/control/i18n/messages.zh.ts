@@ -129,6 +129,7 @@ export const messages: Record<string, string> = {
   'control.seeding.unlocked': '未锁定',
   'control.seeding.noParticipants': '此阶段没有参赛者。',
   'control.seeding.generatedBracket': '已生成对阵表',
+  'control.seeding.unresolvedEntrant': '参赛者 {id}',
 
   'control.report.kind.report': '提议结果',
   'control.report.kind.dispute': '争议',

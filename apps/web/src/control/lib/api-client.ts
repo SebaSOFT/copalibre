@@ -1071,6 +1071,7 @@ export interface SeedingResponse {
   readonly seeds: readonly { readonly seed: number; readonly entrantId: string }[];
   readonly zones: readonly SeedingZoneResponse[];
   readonly hasRecordedResults: boolean;
+  readonly names?: Readonly<Record<string, string>>;
 }
 
 export interface PublishSeedingRequest {

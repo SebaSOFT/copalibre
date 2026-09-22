@@ -273,10 +273,10 @@ describe('the CSS output', () => {
   it('offers the chamfer as a family, not a single cut', () => {
     // A composition that wants one corner cut should not have to take the pair.
     expect(css).toContain('border-radius: 0 var(--cl-chamfer-size) 0 0;');
-    expect(css).toContain('corner-shape: round bevel round round;');
+    expect(css).toContain('corner-shape: square bevel square square;');
     expect(css).toContain('border-radius: 0 0 0 var(--cl-chamfer-size);');
-    expect(css).toContain('corner-shape: round round round bevel;');
-    expect(css).toContain('corner-shape: round bevel round bevel;');
+    expect(css).toContain('corner-shape: square square square bevel;');
+    expect(css).toContain('corner-shape: square bevel square bevel;');
   });
 
   it('bevels for a browser that has only the per-corner longhands', () => {
