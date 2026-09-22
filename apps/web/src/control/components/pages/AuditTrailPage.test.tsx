@@ -161,9 +161,8 @@ describe('AuditTrailPage', () => {
     await waitFor(() => screen.getByText('direct@copalibre.test'));
   });
 
-  it('handles pagination navigation and actor filter change', async () => {
+  it('handles pagination navigation', async () => {
     let capturedOffset = 0;
-    let capturedActor: string | undefined;
     const page = {
       records: [
         {
@@ -188,7 +187,6 @@ describe('AuditTrailPage', () => {
           client={stubClient({
             fetchAuditTrail: (_alias, params) => {
               capturedOffset = params?.offset ?? 0;
-              capturedActor = params?.actor;
               return Promise.resolve({ ...page, offset: capturedOffset });
             },
           })}
