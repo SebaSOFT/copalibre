@@ -426,3 +426,14 @@ storage that survives the browser tab closing.
 #### Scenario: No access token is ever written to localStorage
 - **WHEN** an operator accepts an invitation successfully
 - **THEN** `localStorage` contains no access token, under any key
+
+### Requirement: Human-readable presentation of audit records and diffs
+The audit trail screen SHALL resolve actor identifiers into human-readable user identities and SHALL render action codes and state differences using localized, structured presentations rather than raw opaque UUIDs or serialized JSON syntax.
+
+#### Scenario: Actor resolves to member identity
+- **WHEN** an operator views the audit trail for an organization
+- **THEN** each entry's actor column displays the acting user's identifiable name or email rather than an unformatted UUID
+
+#### Scenario: Actions and diffs render in plain language
+- **WHEN** an operator inspects an audit entry's action and state changes
+- **THEN** the action name and field transitions render in human-readable plain language matching the active locale
