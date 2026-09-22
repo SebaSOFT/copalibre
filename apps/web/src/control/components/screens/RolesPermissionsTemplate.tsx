@@ -14,6 +14,7 @@ import { messages } from '../../i18n/messages.en.js';
 import { Button } from '../ui/atoms/button.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
 import { Input } from '../ui/atoms/input.js';
+import { Label } from '../ui/atoms/label.js';
 import { Select } from '../ui/atoms/select.js';
 import { DecisionHint } from '../ui/atoms/decision-hint.js';
 import { Form } from '../ui/atoms/form.js';
@@ -53,7 +54,12 @@ function RoleLearnMoreLink({
   readonly language: SupportedLanguage;
 }): React.JSX.Element {
   return (
-    <a href={helpPageUrl(language, `roles/${role}`)} rel="noopener noreferrer" target="_blank">
+    <a
+      className="cl-focusable"
+      href={helpPageUrl(language, `roles/${role}`)}
+      rel="noopener noreferrer"
+      target="_blank"
+    >
       <FormattedMessage {...messages.rolesLearnMore} />
     </a>
   );
@@ -335,7 +341,7 @@ function RoleStatusToggle({
 }): React.JSX.Element {
   const intl = useIntl();
   return (
-    <label className="cl-role-status">
+    <Label className="cl-role-status">
       <Checkbox
         aria-label={intl.formatMessage(messages.rolesStatusOf, { email: row.email })}
         checked={row.status === 'active'}
@@ -352,7 +358,7 @@ function RoleStatusToggle({
           ? intl.formatMessage(messages.rolesActive)
           : intl.formatMessage(messages.rolesInactive)}
       </span>
-    </label>
+    </Label>
   );
 }
 
@@ -486,7 +492,7 @@ export function InviteDialog({
               id="invite-club"
               onValueChange={(val) => setClubId(val)}
               options={[
-                { value: '', label: '' },
+                { value: '', label: intl.formatMessage(messages.rolesSelectClubPlaceholder) },
                 ...clubs.map((club) => ({
                   value: club.clubId,
                   label: club.name,
@@ -507,7 +513,10 @@ export function InviteDialog({
               id="invite-tournament"
               onValueChange={(val) => setTournamentId(val)}
               options={[
-                { value: '', label: '' },
+                {
+                  value: '',
+                  label: intl.formatMessage(messages.rolesSelectTournamentPlaceholder),
+                },
                 ...tournaments.map((tournament) => ({
                   value: tournament.tournamentId,
                   label: tournament.name,
@@ -518,12 +527,12 @@ export function InviteDialog({
             />
           </Field>
         )}
-        <label className="cl-toggle cl-focusable">
+        <Label className="cl-toggle cl-focusable">
           <Checkbox checked={active} onCheckedChange={(checked) => setActive(checked)} />
           <span>
             <FormattedMessage {...messages.rolesInviteDialogActiveOnAccept} />
           </span>
-        </label>
+        </Label>
       </Form>
     </Modal>
   );

@@ -110,7 +110,7 @@ describe('roles and permissions control', () => {
       Array.from(clubPicker.querySelectorAll('option'))
         .map((option) => option.textContent)
         .filter(Boolean),
-    ).toEqual(['Club Uno', 'Club Dos']);
+    ).toEqual(['Select club…', 'Club Uno', 'Club Dos']);
 
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'club@example.test' } });
     fireEvent.change(clubPicker, { target: { value: 'club-2' } });
@@ -160,7 +160,7 @@ describe('roles and permissions control', () => {
       Array.from(tournamentPicker.querySelectorAll('option'))
         .map((option) => option.textContent)
         .filter(Boolean),
-    ).toEqual(['Apertura', 'Clausura']);
+    ).toEqual(['Select tournament…', 'Apertura', 'Clausura']);
 
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'tournament@example.test' },
