@@ -1,4 +1,4 @@
-import { formatActivityAction } from './activity-formatting.js';
+import { formatActivityAction, formatActivityReason } from './activity-formatting.js';
 
 describe('activity-formatting', () => {
   describe('formatActivityAction', () => {
@@ -36,6 +36,34 @@ describe('activity-formatting', () => {
 
     it('uses the default locale when omitted', () => {
       expect(formatActivityAction('match.finalized')).toBe('Partido finalizado');
+    });
+  });
+
+  describe('formatActivityReason', () => {
+    it('translates known authorization refusal reasons to Spanish and English', () => {
+      expect(
+        formatActivityReason('Subject organization role is not authorized for this route', 'es'),
+      ).toBe('El rol en la organización no está autorizado para esta ruta');
+      expect(
+        formatActivityReason('Subject organization role is not authorized for this route', 'en'),
+      ).toBe('Subject organization role is not authorized for this route');
+      expect(formatActivityReason('Subject has no active organization role', 'es')).toBe(
+        'El usuario no tiene un rol activo en la organización',
+      );
+    });
+
+    it('translates parameterized prefix matches', () => {
+      expect(formatActivityReason('Token is missing required scope: org.admin', 'es')).toBe(
+        'El token no posee el permiso requerido',
+      );
+    });
+
+    it('falls back to the raw string if unrecognized', () => {
+      expect(formatActivityReason('Custom custom reason', 'es')).toBe('Custom custom reason');
+    });
+
+    it('returns empty string when reason is undefined', () => {
+      expect(formatActivityReason(undefined, 'es')).toBe('');
     });
   });
 });

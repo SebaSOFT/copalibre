@@ -252,7 +252,6 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/StageListEditor.tsx', 1],
   ['control/components/ui/molecules/callout-banner.tsx', 5],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 5],
-  ['control/components/ui/organisms/audit-log-panel.tsx', 10],
   ['control/components/ui/organisms/standings-panel.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 2],
   // The step-indicator <ol>/<li>/<span> is the same ordered-list exception
@@ -328,7 +327,6 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['control/components/TournamentSetupWizard.tsx', 1],
   ['control/components/ui/molecules/callout-banner.tsx', 2],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 2],
-  ['control/components/ui/organisms/audit-log-panel.tsx', 5],
   // The step-indicator grid's `minmax(8rem, 1fr)`/`minmax(min(100%, 6rem), 1fr)`
   // moved here from the three wizards' own hand-rolled chrome (openspec 0236)
   // rather than newly added.

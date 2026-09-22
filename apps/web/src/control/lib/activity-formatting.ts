@@ -41,7 +41,80 @@ const ACTION_DESCRIPTIONS: Readonly<Record<string, { readonly es: string; readon
     'official.created': { es: 'Oficial creado', en: 'Official created' },
     'organization.created': { es: 'Organización creada', en: 'Organization created' },
     'organization.settings_updated': { es: 'Configuración actualizada', en: 'Settings updated' },
+
+    // Segments and timing
+    'segment.clock-adjusted': { es: 'Reloj ajustado', en: 'Clock adjusted' },
+    'segment.completed': { es: 'Segmento completado', en: 'Segment completed' },
+    'segment.created': { es: 'Segmento creado', en: 'Segment created' },
+    'segment.active': { es: 'Segmento iniciado', en: 'Segment started' },
+    'segment.pending': { es: 'Segmento pendiente', en: 'Segment pending' },
+
+    // Authorization & mutations
+    'authorization.refused': { es: 'Autorización rechazada', en: 'Authorization refused' },
+    'mutation.refused': { es: 'Modificación rechazada', en: 'Mutation refused' },
+
+    // Results & corrections
+    SCORE_CORRECTION: { es: 'Corrección de marcador', en: 'Score correction' },
+    'match.score.recorded': { es: 'Marcador registrado', en: 'Score recorded' },
+    'match.result-superseded': { es: 'Resultado corregido', en: 'Result superseded' },
   };
+
+const REASON_DESCRIPTIONS: Readonly<Record<string, { readonly es: string; readonly en: string }>> =
+  {
+    'Subject organization role is not authorized for this route': {
+      es: 'El rol en la organización no está autorizado para esta ruta',
+      en: 'Subject organization role is not authorized for this route',
+    },
+    'Subject organization role is not authorized': {
+      es: 'El rol en la organización no está autorizado',
+      en: 'Subject organization role is not authorized',
+    },
+    'Subject has no active organization role': {
+      es: 'El usuario no tiene un rol activo en la organización',
+      en: 'Subject has no active organization role',
+    },
+    'Subject has no active organization admin role': {
+      es: 'El usuario no tiene un rol de administración activo en la organización',
+      en: 'Subject has no active organization admin role',
+    },
+    'Subject is not scoped to this organization': {
+      es: 'El usuario no pertenece a esta organización',
+      en: 'Subject is not scoped to this organization',
+    },
+    'Subject holds no match-control capability for this match': {
+      es: 'El usuario no posee permisos de control para este partido',
+      en: 'Subject holds no match-control capability for this match',
+    },
+    'Installation super-admin authority is required': {
+      es: 'Se requiere autoridad de superadministrador de la instalación',
+      en: 'Installation super-admin authority is required',
+    },
+    'Token is missing required scope': {
+      es: 'El token no posee el permiso requerido',
+      en: 'Token is missing required scope',
+    },
+  };
+
+/**
+ * Returns a human-readable, localized description of an audit refusal reason.
+ */
+export function formatActivityReason(reason: string | undefined, locale = 'es'): string {
+  if (!reason) return '';
+  const isSpanish = locale.toLowerCase().startsWith('es');
+  const exactMatch = REASON_DESCRIPTIONS[reason];
+  if (exactMatch) {
+    return isSpanish ? exactMatch.es : exactMatch.en;
+  }
+
+  // Prefix match for parameterized reasons (e.g. "Token is missing required scope: ...")
+  for (const [key, translation] of Object.entries(REASON_DESCRIPTIONS)) {
+    if (reason.startsWith(key)) {
+      return isSpanish ? translation.es : translation.en;
+    }
+  }
+
+  return reason;
+}
 
 /**
  * Returns a human-readable, localized description of an audit event action.
