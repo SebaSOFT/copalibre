@@ -3,12 +3,21 @@ import type { AuditRecordResponse } from '../../lib/api-client.js';
 import { messages } from '../../i18n/messages.en.js';
 import { Button } from '../ui/atoms/button.js';
 import { Input } from '../ui/atoms/input.js';
+import { Badge } from '../ui/atoms/badge.js';
 import { Field } from '../ui/molecules/field.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
 import { AuditLogPanel } from '../ui/organisms/audit-log-panel.js';
 import { toAuditLogItem } from '../../lib/audit-log.js';
 import { ResponsiveTimestamp } from '../../../components/ui/atoms/ResponsiveTimestamp.js';
+import { EntityIdentityCell } from '../ui/molecules/entity-identity-cell.js';
+import { formatActivityAction, formatActivityReason } from '../../lib/activity-formatting.js';
+
+export interface AuditActorProfile {
+  readonly email: string;
+  readonly role?: string;
+  readonly principalId?: string;
+}
 
 /**
  * Read-only by design: the audit trail is inspected, never edited — there is
@@ -18,6 +27,7 @@ import { ResponsiveTimestamp } from '../../../components/ui/atoms/ResponsiveTime
 export function AuditTrailTemplate({
   organizationAlias,
   records,
+  actors,
   loading,
   error,
   total,
@@ -30,6 +40,7 @@ export function AuditTrailTemplate({
 }: {
   readonly organizationAlias: string;
   readonly records: readonly AuditRecordResponse[];
+  readonly actors?: Readonly<Record<string, AuditActorProfile>>;
   readonly loading: boolean;
   readonly error?: string;
   readonly total: number;
@@ -51,12 +62,30 @@ export function AuditTrailTemplate({
     {
       key: 'actor',
       header: <FormattedMessage {...messages.auditTrailColumnActor} />,
-      render: (row) => row.actor,
+      render: (row) => {
+        const actorProfile = actors?.[row.actor];
+        if (actorProfile) {
+          return (
+            <EntityIdentityCell
+              email={actorProfile.email}
+              id={actorProfile.principalId ?? row.actor}
+            />
+          );
+        }
+        if (row.actor.includes('@')) {
+          return <EntityIdentityCell email={row.actor} id={row.actor} />;
+        }
+        return <span className="cl-role-user__id">{row.actor}</span>;
+      },
     },
     {
       key: 'action',
       header: <FormattedMessage {...messages.auditTrailColumnAction} />,
-      render: (row) => <code>{row.action}</code>,
+      render: (row) => (
+        <span title={row.action}>
+          <Badge label={formatActivityAction(row.action, intl.locale)} variant="section" />
+        </span>
+      ),
     },
     {
       key: 'outcome',
@@ -74,7 +103,7 @@ export function AuditTrailTemplate({
     {
       key: 'reason',
       header: <FormattedMessage {...messages.auditTrailColumnReason} />,
-      render: (row) => row.reason ?? '',
+      render: (row) => formatActivityReason(row.reason, intl.locale),
     },
   ];
 

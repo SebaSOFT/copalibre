@@ -8,11 +8,12 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 
 const organizationsPath = '/organizations?mine=true';
 const apiAuditTrailPath = '/organizations/liga-mendocina/audit-trail';
+const apiRolesPath = '/organizations/liga-mendocina/roles';
 const controlAuditTrailPath = '/control/liga-mendocina/audit-trail';
 
 async function mockAuditTrailApi(page: Page, role: string): Promise<void> {
   await page.addInitScript(
-    ({ organizationsPath, auditTrailPath, role, tokenEndpoint }) => {
+    ({ organizationsPath, auditTrailPath, rolesPath, role, tokenEndpoint }) => {
       window.fetch = async (input, init) => {
         const url = String(input);
         const method = init?.method ?? 'GET';
@@ -26,6 +27,24 @@ async function mockAuditTrailApi(page: Page, role: string): Promise<void> {
               organizationAlias: 'liga-mendocina',
               organizationName: 'Liga Mendocina',
               role,
+            },
+          ]);
+        }
+        if (url === rolesPath && method === 'GET') {
+          return Response.json([
+            {
+              assignmentId: 'assign-1',
+              principalId: 'user:alice',
+              email: 'alice@copalibre.test',
+              role: 'admin',
+              status: 'active',
+            },
+            {
+              assignmentId: 'assign-2',
+              principalId: 'user:bob',
+              email: 'bob@copalibre.test',
+              role: 'referee',
+              status: 'active',
             },
           ]);
         }
@@ -68,7 +87,13 @@ async function mockAuditTrailApi(page: Page, role: string): Promise<void> {
         return new Response('Not found', { status: 404 });
       };
     },
-    { organizationsPath, auditTrailPath: apiAuditTrailPath, role, tokenEndpoint: TOKEN_ENDPOINT },
+    {
+      organizationsPath,
+      auditTrailPath: apiAuditTrailPath,
+      rolesPath: apiRolesPath,
+      role,
+      tokenEndpoint: TOKEN_ENDPOINT,
+    },
   );
 }
 
@@ -84,12 +109,12 @@ test('an administrator opens the audit surface and sees applied and refused acti
   await page.getByRole('link', { name: 'Registro de auditoría', exact: true }).click();
   await page.waitForURL(`**${controlAuditTrailPath}`);
 
-  await expect(page.getByText('user:alice')).toBeVisible();
-  await expect(page.getByText('user:bob')).toBeVisible();
+  await expect(page.getByText('alice@copalibre.test')).toBeVisible();
+  await expect(page.getByText('bob@copalibre.test')).toBeVisible();
   await expect(page.getByText('Aplicado')).toBeVisible();
   await expect(page.getByText('Rechazado')).toBeVisible();
   await expect(
-    page.getByText('Subject organization role is not authorized for this route'),
+    page.getByText('El rol en la organización no está autorizado para esta ruta'),
   ).toBeVisible();
 });
 

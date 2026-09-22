@@ -81,4 +81,123 @@ describe('AuditTrailPage', () => {
 
     await waitFor(() => screen.getByText('network down'));
   });
+
+  it('resolves actor IDs to user profiles when listOrganizationRoles is available', async () => {
+    const roles = [
+      {
+        assignmentId: 'assign-alice',
+        principalId: '01800000-0000-7000-8000-000000000001',
+        email: 'alice@copalibre.test',
+        role: 'admin' as const,
+        status: 'active' as const,
+      },
+    ];
+    const pageWithUuid = {
+      records: [
+        {
+          auditId: 'audit-1',
+          entityType: 'organization',
+          entityId: 'org-1',
+          action: 'organization.settings_updated',
+          actor: '01800000-0000-7000-8000-000000000001',
+          authorizationContext: 'copalibre.control',
+          occurredAt: '2026-08-30T00:00:00.000Z',
+          outcome: 'applied' as const,
+        },
+      ],
+      total: 1,
+      limit: 25,
+      offset: 0,
+    };
+
+    render(
+      withIntl(
+        <AuditTrailPage
+          client={stubClient({
+            fetchAuditTrail: () => Promise.resolve(pageWithUuid),
+            listOrganizationRoles: () => Promise.resolve(roles),
+          })}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByText('alice@copalibre.test'));
+    expect(screen.getByText('ID 00000001')).toBeDefined();
+    expect(screen.getByText('Settings updated')).toBeDefined();
+  });
+
+  it('renders actor with email fallback when actor is an email string', async () => {
+    const pageWithEmail = {
+      records: [
+        {
+          auditId: 'audit-email',
+          entityType: 'organization',
+          entityId: 'org-1',
+          action: 'organization.settings_updated',
+          actor: 'direct@copalibre.test',
+          authorizationContext: 'copalibre.control',
+          occurredAt: '2026-08-30T00:00:00.000Z',
+          outcome: 'applied' as const,
+        },
+      ],
+      total: 1,
+      limit: 25,
+      offset: 0,
+    };
+
+    render(
+      withIntl(
+        <AuditTrailPage
+          client={stubClient({
+            fetchAuditTrail: () => Promise.resolve(pageWithEmail),
+            listOrganizationRoles: () => Promise.reject(new Error('roles failed')),
+          })}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByText('direct@copalibre.test'));
+  });
+
+  it('handles pagination navigation', async () => {
+    let capturedOffset = 0;
+    const page = {
+      records: [
+        {
+          auditId: 'audit-page',
+          entityType: 'organization',
+          entityId: 'org-1',
+          action: 'organization.settings_updated',
+          actor: 'user:charlie',
+          authorizationContext: '',
+          occurredAt: '2026-08-30T00:00:00.000Z',
+          outcome: 'applied' as const,
+        },
+      ],
+      total: 50,
+      limit: 25,
+      offset: 0,
+    };
+
+    const { getByRole } = render(
+      withIntl(
+        <AuditTrailPage
+          client={stubClient({
+            fetchAuditTrail: (_alias, params) => {
+              capturedOffset = params?.offset ?? 0;
+              return Promise.resolve({ ...page, offset: capturedOffset });
+            },
+          })}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByText('user:charlie'));
+    const nextBtn = getByRole('button', { name: /next/i });
+    nextBtn.click();
+    await waitFor(() => expect(capturedOffset).toBe(25));
+  });
 });
