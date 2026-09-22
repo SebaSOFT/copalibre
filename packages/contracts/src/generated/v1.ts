@@ -5725,6 +5725,13 @@ export interface components {
             number: number;
             /** @example Grupo 1 */
             name: string;
+            /**
+             * @description Entrant IDs assigned to the group, if any
+             * @example [
+             *       "01890000-0000-7000-8000-000000000001"
+             *     ]
+             */
+            entrantIds?: string[];
         };
         CreateGroupRequest: {
             /**

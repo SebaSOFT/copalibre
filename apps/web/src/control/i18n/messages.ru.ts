@@ -605,6 +605,7 @@ export const messages: Record<string, string> = {
   'control.zoneGroup.renameGroupLabel': 'Переименовать группу {name}',
   'control.zoneGroup.rename': 'Переименовать',
   'control.zoneGroup.delete': 'Удалить',
+  'control.zoneGroup.noEntrantsAssigned': 'Участники ещё не распределены',
   'control.settings.title': 'Настройки турнира',
   'control.settings.loading': 'Загрузка настроек…',
   'control.settings.loadFailed': 'Не удалось загрузить настройки турнира.',

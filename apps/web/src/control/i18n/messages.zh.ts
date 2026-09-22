@@ -580,6 +580,7 @@ export const messages: Record<string, string> = {
   'control.zoneGroup.renameGroupLabel': '重命名小组 {name}',
   'control.zoneGroup.rename': '重命名',
   'control.zoneGroup.delete': '删除',
+  'control.zoneGroup.noEntrantsAssigned': '尚未分配参赛者',
   'control.settings.title': '锦标赛设置',
   'control.settings.loading': '正在加载设置…',
   'control.settings.loadFailed': '无法加载锦标赛设置。',

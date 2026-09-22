@@ -1098,6 +1098,7 @@ export interface GroupResponse {
   readonly zoneId: string;
   readonly number: number;
   readonly name: string;
+  readonly entrantIds?: readonly string[];
 }
 
 /** Shared by a zone's and a group's rename action — the only field either edits. */

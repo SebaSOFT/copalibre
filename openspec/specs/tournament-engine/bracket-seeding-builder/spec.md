@@ -196,3 +196,18 @@ this requirement governs only how already-generated, zoned fixtures are displaye
   whose canvas displays multiple zone diagrams
 - **THEN** the seed order interaction is unchanged — it still operates on the stage's one flat entrant
   list, and publishing still regenerates one unzoned bracket, exactly as before this requirement
+
+### Requirement: Entrant name resolution in seeding and bracket views
+The seeding builder and bracket canvas SHALL resolve entrant identifiers into human-readable display names (team or participant name, and optional abbreviation) using the stage's resolved entrant names. A raw opaque identifier SHALL NOT be rendered as a substitute when a display name is available.
+
+#### Scenario: Seeding order renders resolved team names
+- **WHEN** an operator views the seeding order list for a stage with registered entrants
+- **THEN** each seed row renders the entrant's human-readable name rather than a raw UUID identifier
+
+#### Scenario: Bracket canvas nodes render resolved entrant names
+- **WHEN** an operator views the bracket canvas for a stage with seeded or advanced entrants
+- **THEN** match slots render the entrant's human-readable name rather than a raw UUID identifier
+
+#### Scenario: Fallback when entrant cannot be resolved
+- **WHEN** an entrant identifier cannot be resolved by the backend or local name mapping
+- **THEN** the builder displays an explicit fallback label rather than silently rendering an unformatted opaque UUID
