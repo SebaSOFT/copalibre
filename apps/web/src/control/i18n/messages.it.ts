@@ -607,6 +607,7 @@ export const messages: Record<string, string> = {
   'control.zoneGroup.renameGroupLabel': 'Rinomina girone {name}',
   'control.zoneGroup.rename': 'Rinomina',
   'control.zoneGroup.delete': 'Elimina',
+  'control.zoneGroup.noEntrantsAssigned': 'Nessun partecipante assegnato',
   'control.settings.title': 'Impostazioni torneo',
   'control.settings.loading': 'Caricamento impostazioni…',
   'control.settings.loadFailed': 'Impossibile caricare le impostazioni del torneo.',

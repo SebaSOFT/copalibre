@@ -1728,6 +1728,10 @@ export const messages = defineMessages({
   },
   zoneGroupRename: { id: 'control.zoneGroup.rename', defaultMessage: 'Rename' },
   zoneGroupDelete: { id: 'control.zoneGroup.delete', defaultMessage: 'Delete' },
+  zoneGroupNoEntrantsAssigned: {
+    id: 'control.zoneGroup.noEntrantsAssigned',
+    defaultMessage: 'No entrants assigned yet',
+  },
 
   // TournamentSettingsTemplate.tsx, TournamentSettingsPage.tsx (openspec 0168)
   settingsTitle: { id: 'control.settings.title', defaultMessage: 'Tournament settings' },

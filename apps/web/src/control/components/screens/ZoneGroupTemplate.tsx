@@ -10,7 +10,9 @@ import type {
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
+import { Badge } from '../ui/atoms/badge.js';
 import { Input } from '../ui/atoms/input.js';
+import { Label } from '../ui/atoms/label.js';
 import { RadioGroup, RadioGroupItem } from '../ui/atoms/radio.js';
 import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
@@ -242,18 +244,18 @@ export function ZoneGroupTemplate({
             onValueChange={(val) => setZoneMode(val as AssignMode)}
             value={zoneMode}
           >
-            <label className="cl-toggle cl-focusable">
+            <Label className="cl-toggle cl-focusable" htmlFor="zone-mode-draw">
               <RadioGroupItem id="zone-mode-draw" value="draw" />
               <span>
                 <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
               </span>
-            </label>
-            <label className="cl-toggle cl-focusable">
+            </Label>
+            <Label className="cl-toggle cl-focusable" htmlFor="zone-mode-manual">
               <RadioGroupItem id="zone-mode-manual" value="manual" />
               <span>
                 <FormattedMessage {...messages.zoneGroupManualPlacement} />
               </span>
-            </label>
+            </Label>
           </RadioGroup>
 
           {zoneMode === 'draw' ? (
@@ -352,6 +354,21 @@ export function ZoneGroupTemplate({
                 {groups.map((group) => (
                   <li key={group.number} className="cl-role-user">
                     <strong>{group.number}.</strong> {group.name}
+                    {group.entrantIds && group.entrantIds.length > 0 ? (
+                      <span className="cl-role-user">
+                        {group.entrantIds.map((entrantId) => (
+                          <Badge
+                            key={entrantId}
+                            label={entrantLabel(entrantId)}
+                            variant="section"
+                          />
+                        ))}
+                      </span>
+                    ) : (
+                      <small className="cl-role-user__id">
+                        <FormattedMessage {...messages.zoneGroupNoEntrantsAssigned} />
+                      </small>
+                    )}
                     {api.renameGroup && (
                       <>
                         <Input
@@ -424,18 +441,18 @@ export function ZoneGroupTemplate({
                 onValueChange={(val) => setGroupMode(val as AssignMode)}
                 value={groupMode}
               >
-                <label className="cl-toggle cl-focusable">
+                <Label className="cl-toggle cl-focusable" htmlFor="group-mode-draw">
                   <RadioGroupItem id="group-mode-draw" value="draw" />
                   <span>
                     <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
                   </span>
-                </label>
-                <label className="cl-toggle cl-focusable">
+                </Label>
+                <Label className="cl-toggle cl-focusable" htmlFor="group-mode-manual">
                   <RadioGroupItem id="group-mode-manual" value="manual" />
                   <span>
                     <FormattedMessage {...messages.zoneGroupManualPlacement} />
                   </span>
-                </label>
+                </Label>
               </RadioGroup>
 
               {groupMode === 'draw' ? (
@@ -514,7 +531,7 @@ export function ZoneGroupTemplate({
 
           {selectedZone && (
             <a
-              className="cl-focusable"
+              className="cl-link cl-focusable"
               href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones/${selectedZone.number}/promotion`}
               onClick={controlLinkClick(
                 `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones/${selectedZone.number}/promotion`,

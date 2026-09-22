@@ -223,7 +223,17 @@ export class ZonesGroupsController {
   ): Promise<readonly GroupResponse[]> {
     const { stage } = await this.publicStage(organizationAlias, tournamentAlias, stageNumber);
     const zone = await this.zone(stage.stageId, zoneNumber);
-    return new CompetitionRepository(this.db).listGroupsOfZone(zone.zoneId);
+    const competition = new CompetitionRepository(this.db);
+    const groups = await competition.listGroupsOfZone(zone.zoneId);
+    return Promise.all(
+      groups.map(async (group) => {
+        const entrantIds = await competition.listEntrantIdsOfGroup(group.groupId);
+        return {
+          ...group,
+          entrantIds,
+        };
+      }),
+    );
   }
 
   @Post('zones/:zoneNumber/groups')

@@ -609,6 +609,7 @@ export const messages: Record<string, string> = {
   'control.zoneGroup.renameGroupLabel': 'Gruppe {name} umbenennen',
   'control.zoneGroup.rename': 'Umbenennen',
   'control.zoneGroup.delete': 'Löschen',
+  'control.zoneGroup.noEntrantsAssigned': 'Noch keine Teilnehmer zugewiesen',
   'control.settings.title': 'Turniereinstellungen',
   'control.settings.loading': 'Einstellungen werden geladen…',
   'control.settings.loadFailed': 'Die Turniereinstellungen konnten nicht geladen werden.',

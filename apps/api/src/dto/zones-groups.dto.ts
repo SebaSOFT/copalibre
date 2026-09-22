@@ -38,6 +38,13 @@ export class GroupResponse {
 
   @ApiProperty({ example: 'Grupo 1' })
   name!: string;
+
+  @ApiPropertyOptional({
+    description: 'Entrant IDs assigned to the group, if any',
+    type: [String],
+    example: ['01890000-0000-7000-8000-000000000001'],
+  })
+  entrantIds?: readonly string[];
 }
 
 /** Shared by a zone's and a group's rename endpoint — the only field either edits. */

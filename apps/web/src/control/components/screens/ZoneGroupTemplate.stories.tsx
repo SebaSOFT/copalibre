@@ -64,3 +64,23 @@ export const WithZone: Story = {
     ],
   },
 };
+export const WithGroupEntrants: Story = {
+  args: {
+    groups: [
+      {
+        groupId: ids.match,
+        zoneId: ids.third,
+        number: 1,
+        name: 'A',
+        entrantIds: [ids.second, ids.third],
+      },
+      {
+        groupId: ids.matchTwo,
+        zoneId: ids.third,
+        number: 2,
+        name: 'B',
+        entrantIds: [],
+      },
+    ],
+  },
+};
