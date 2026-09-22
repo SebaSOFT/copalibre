@@ -57,6 +57,56 @@ describe('resolveTiebreak', () => {
     expectGolden('tiebreak-higher-wins', resolution);
   });
 
+  it('handles localized labels in parameter definitions', () => {
+    const localizedPipeline: TiebreakPipeline = {
+      id: 'localized-pipeline',
+      version: 1,
+      parameters: [
+        {
+          id: 'points-en',
+          label: { en: 'Points EN', es: 'Puntos' },
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+        {
+          id: 'points-es-only',
+          label: { es: 'Puntos Solo' } as unknown as LocalizedLabel,
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+        {
+          id: 'points-fallback',
+          label: null as unknown as LocalizedLabel,
+          valueType: 'number',
+          direction: 'higher_wins',
+          missingValue: 'treat-as-zero',
+          source: 'calculated',
+        },
+      ],
+    };
+    const res = resolveTiebreak(localizedPipeline, ['a', 'b'], {
+      a: { 'points-en': 10 },
+      b: { 'points-en': 5 },
+    });
+    expect(res.trace[0]?.label).toContain('Points EN');
+
+    const res2 = resolveTiebreak(localizedPipeline, ['a', 'b'], {
+      a: { 'points-en': 10, 'points-es-only': 5 },
+      b: { 'points-en': 10, 'points-es-only': 2 },
+    });
+    expect(res2.trace[1]?.label).toContain('Puntos Solo');
+
+    const res3 = resolveTiebreak(localizedPipeline, ['a', 'b'], {
+      a: { 'points-en': 10, 'points-es-only': 5, 'points-fallback': 1 },
+      b: { 'points-en': 10, 'points-es-only': 5, 'points-fallback': 1 },
+    });
+    expect(res3.trace[2]?.label).toContain('null');
+  });
+
   it('falls through to lower_wins when the first comparator ties', () => {
     const resolution = resolveTiebreak(pipeline, ['alfa', 'bravo'], {
       alfa: { points: 9, 'goals-conceded': 4 },

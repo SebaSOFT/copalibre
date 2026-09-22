@@ -12,6 +12,25 @@ import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { Card } from '../ui/atoms/card.js';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function resolveEntrantDisplayName(
+  entrantId: string,
+  names: Readonly<Record<string, string>>,
+  intl: ReturnType<typeof useIntl>,
+): string {
+  const resolved = names[entrantId];
+  if (resolved) {
+    return resolved;
+  }
+  if (UUID_PATTERN.test(entrantId)) {
+    return intl.formatMessage(messages.seedingUnresolvedEntrant, {
+      id: entrantId.slice(0, 8),
+    });
+  }
+  return entrantId;
+}
+
 /**
  * A6 — seed assignment beside the bracket it produces.
  *
@@ -38,6 +57,7 @@ export function SeedingBuilderTemplate({
   hasRecordedResults,
   onPublish,
   random,
+  configurationSection,
 }: {
   readonly organizationAlias: string;
   /**
@@ -59,6 +79,7 @@ export function SeedingBuilderTemplate({
   readonly hasRecordedResults: boolean;
   readonly onPublish?: (seeds: readonly SeedAssignment[]) => Promise<void> | void;
   readonly random?: () => number;
+  readonly configurationSection?: React.ReactNode;
 }): React.JSX.Element {
   const intl = useIntl();
   const [history, setHistory] = useState(() => initHistory<readonly SeedAssignment[]>(seeds));
@@ -148,11 +169,7 @@ export function SeedingBuilderTemplate({
           <div className="cl-card__content">
             <ol aria-label={intl.formatMessage(messages.seedingOrder)}>
               {current.map((assignment) => {
-                const displayName =
-                  names[assignment.entrantId] ??
-                  intl.formatMessage(messages.seedingUnresolvedEntrant, {
-                    id: assignment.entrantId.slice(0, 8),
-                  });
+                const displayName = resolveEntrantDisplayName(assignment.entrantId, names, intl);
                 return (
                   <li key={assignment.seed} className="cl-role-user">
                     <span className="cl-label">{assignment.seed}</span>
@@ -184,10 +201,7 @@ export function SeedingBuilderTemplate({
           </div>
         </Card>
 
-        <Card
-          aria-label={intl.formatMessage(messages.seedingGeneratedBracket)}
-          className="cl-chamfer cl-chamfer--control"
-        >
+        <Card className="cl-chamfer cl-chamfer--control">
           <header className="cl-card__header">
             <h2 className="cl-card__title">
               <FormattedMessage {...messages.seedingGeneratedBracket} />
@@ -220,6 +234,22 @@ export function SeedingBuilderTemplate({
           </div>
         </Card>
       </div>
+
+      {configurationSection}
+
+      {stageNumber !== undefined && tournamentAlias !== undefined && (
+        <div>
+          <a
+            className="cl-focusable"
+            href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones`}
+            onClick={controlLinkClick(
+              `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones`,
+            )}
+          >
+            <FormattedMessage {...messages.stageHubZoneGroupsLink} />
+          </a>
+        </div>
+      )}
     </div>
   );
 

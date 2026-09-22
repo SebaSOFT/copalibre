@@ -7,7 +7,6 @@ import {
   type SeedingResponse,
 } from '../../lib/api-client.js';
 import type { SeedAssignment } from '../../lib/seeding.js';
-import { controlLinkClick } from '../../lib/control-navigation.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { SeedingBuilderTemplate } from '../screens/SeedingBuilderTemplate.js';
 import { Button } from '../ui/atoms/button.js';
@@ -22,10 +21,6 @@ import { messages } from '../../i18n/messages.en.js';
 // on why a local `defineMessages` block, not the shared catalogue, is the
 // right home for an id with no locale translation yet.
 const pageMessages = defineMessages({
-  zonesAndGroupsLink: {
-    id: 'control.seedingBuilder.zonesAndGroupsLink',
-    defaultMessage: 'Zones and groups',
-  },
   loading: { id: 'control.seedingBuilder.loading', defaultMessage: 'Loading seeding…' },
   loadFailed: {
     id: 'control.seedingBuilder.loadFailed',
@@ -251,67 +246,58 @@ export function SeedingBuilderPage({
   }));
 
   return (
-    <>
-      <a
-        className="cl-focusable"
-        href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones`}
-        onClick={controlLinkClick(
-          `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones`,
-        )}
-      >
-        {intl.formatMessage(pageMessages.zonesAndGroupsLink)}
-      </a>
-      <StageConfigurationSection
-        onApply={(changed) =>
-          api
-            .updateStageConfiguration?.(organizationAlias, tournamentAlias, stageNumber, {
-              overrides: changed,
-            })
-            .then((updated) => {
-              if (!updated) return;
-              setStageOverrides(updated.overrides);
-              push({
-                severity: 'success',
-                message: intl.formatMessage(messages.stageConfigurationSaved),
-              });
-            })
-            .catch((error: unknown) => {
-              pushError(error);
-            }) ?? Promise.resolve()
-        }
-        overrides={stageOverrides}
-        seeded={seeding.zones.some((zone) => zone.matches.length > 0)}
-      />
-      <SeedingBuilderTemplate
-        hasRecordedResults={seeding.hasRecordedResults}
-        zones={seeding.zones}
-        names={seeding.names ?? {}}
-        onPublish={(seeds) =>
-          api
-            .publishSeeding(organizationAlias, tournamentAlias, stageNumber, {
-              seeds: seeds.map((seed) => ({ seed: seed.seed, entrantId: seed.entrantId })),
-            })
-            .then((result) => {
-              // `persisted` is the server's confirmation the new order and
-              // fixtures are durably saved, not only classified — re-fetch so
-              // the bracket canvas reflects what's actually on disk rather
-              // than trusting the classification response's own shape.
-              if (!result.persisted) return;
-              push({ severity: 'success', message: result.reason });
-              return api
-                .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
-                .then(setSeeding);
-            })
-            .catch((error: unknown) => {
-              pushError(error);
-            })
-        }
-        organizationAlias={organizationAlias}
-        seeds={assignments}
-        stageNumber={stageNumber}
-        tournamentAlias={tournamentAlias}
-        tournamentName={tournamentAlias}
-      />
-    </>
+    <SeedingBuilderTemplate
+      configurationSection={
+        <StageConfigurationSection
+          onApply={(changed) =>
+            api
+              .updateStageConfiguration?.(organizationAlias, tournamentAlias, stageNumber, {
+                overrides: changed,
+              })
+              .then((updated) => {
+                if (!updated) return;
+                setStageOverrides(updated.overrides);
+                push({
+                  severity: 'success',
+                  message: intl.formatMessage(messages.stageConfigurationSaved),
+                });
+              })
+              .catch((error: unknown) => {
+                pushError(error);
+              }) ?? Promise.resolve()
+          }
+          overrides={stageOverrides}
+          seeded={seeding.zones.some((zone) => zone.matches.length > 0)}
+        />
+      }
+      hasRecordedResults={seeding.hasRecordedResults}
+      zones={seeding.zones}
+      names={seeding.names ?? {}}
+      onPublish={(seeds) =>
+        api
+          .publishSeeding(organizationAlias, tournamentAlias, stageNumber, {
+            seeds: seeds.map((seed) => ({ seed: seed.seed, entrantId: seed.entrantId })),
+          })
+          .then((result) => {
+            // `persisted` is the server's confirmation the new order and
+            // fixtures are durably saved, not only classified — re-fetch so
+            // the bracket canvas reflects what's actually on disk rather
+            // than trusting the classification response's own shape.
+            if (!result.persisted) return;
+            push({ severity: 'success', message: result.reason });
+            return api
+              .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
+              .then(setSeeding);
+          })
+          .catch((error: unknown) => {
+            pushError(error);
+          })
+      }
+      organizationAlias={organizationAlias}
+      seeds={assignments}
+      stageNumber={stageNumber}
+      tournamentAlias={tournamentAlias}
+      tournamentName={tournamentAlias}
+    />
   );
 }
