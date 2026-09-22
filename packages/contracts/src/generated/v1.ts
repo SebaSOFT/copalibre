@@ -4327,6 +4327,15 @@ export interface components {
             zones: components["schemas"]["SeedingZoneResponse"][];
             /** @description True once any match in this stage has a recorded result */
             hasRecordedResults: boolean;
+            /**
+             * @description Resolved human-readable entrant display names keyed by entrant ID
+             * @example {
+             *       "01890000-0000-7000-8000-000000000001": "Club Atlético Huracán"
+             *     }
+             */
+            names?: {
+                [key: string]: string;
+            };
         };
         PublishSeedingRequest: {
             /** @description The full seed order, not a delta — a partial order is an ambiguous bracket */

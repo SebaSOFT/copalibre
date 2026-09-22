@@ -42,6 +42,30 @@ describe('SeedingBuilderPage', () => {
     await screen.findByText('Stage configuration');
     expect(screen.getByText('This stage has no participants.')).toBeDefined();
   });
+
+  it('passes resolved entrant names from fetchSeeding to the template and renders them', async () => {
+    render(
+      withIntl(
+        <SeedingBuilderPage
+          client={stubClient({
+            fetchSeeding: () =>
+              Promise.resolve(
+                seeding({
+                  seeds: [{ seed: 1, entrantId: 'entrant-1' }],
+                  names: { 'entrant-1': 'Club Atlético Huracán' },
+                }),
+              ),
+          })}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await screen.findByText('Stage configuration');
+    expect(await screen.findByText('Club Atlético Huracán')).toBeDefined();
+  });
 });
 
 describe('SeedingBuilderPage — stage configuration (openspec 0169)', () => {

@@ -11,6 +11,7 @@ import { controlLinkClick } from '../../lib/control-navigation.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { SeedingBuilderTemplate } from '../screens/SeedingBuilderTemplate.js';
 import { Button } from '../ui/atoms/button.js';
+import { Input } from '../ui/atoms/input.js';
 import { Field } from '../ui/molecules/field.js';
 import { useToast } from '../ToastProvider.js';
 import { messages } from '../../i18n/messages.en.js';
@@ -66,8 +67,7 @@ function StageConfigurationSection({
           {drafts.map((draft, index) => (
             <li key={draft.field}>
               <Field id={`stage-configuration-${index}`} label={draft.field}>
-                <input
-                  className="cl-input cl-input--default cl-focusable"
+                <Input
                   disabled={seeded}
                   id={`stage-configuration-${index}`}
                   onChange={(event) => {
@@ -89,8 +89,7 @@ function StageConfigurationSection({
           id="stage-configuration-new-field"
           label={intl.formatMessage(messages.stageConfigurationFieldLabel)}
         >
-          <input
-            className="cl-input cl-input--default cl-focusable"
+          <Input
             disabled={seeded}
             id="stage-configuration-new-field"
             onChange={(event) => setNewField(event.target.value)}
@@ -101,8 +100,7 @@ function StageConfigurationSection({
           id="stage-configuration-new-value"
           label={intl.formatMessage(messages.stageConfigurationValueLabel)}
         >
-          <input
-            className="cl-input cl-input--default cl-focusable"
+          <Input
             disabled={seeded}
             id="stage-configuration-new-value"
             onChange={(event) => setNewValue(event.target.value)}
@@ -287,6 +285,7 @@ export function SeedingBuilderPage({
       <SeedingBuilderTemplate
         hasRecordedResults={seeding.hasRecordedResults}
         zones={seeding.zones}
+        names={seeding.names ?? {}}
         onPublish={(seeds) =>
           api
             .publishSeeding(organizationAlias, tournamentAlias, stageNumber, {

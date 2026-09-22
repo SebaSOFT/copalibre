@@ -15064,6 +15064,16 @@
           "hasRecordedResults": {
             "type": "boolean",
             "description": "True once any match in this stage has a recorded result"
+          },
+          "names": {
+            "type": "object",
+            "description": "Resolved human-readable entrant display names keyed by entrant ID",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "01890000-0000-7000-8000-000000000001": "Club Atlético Huracán"
+            }
           }
         },
         "required": [

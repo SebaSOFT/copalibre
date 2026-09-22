@@ -10,6 +10,7 @@ import { isDirty, randomizeUnlocked, toggleLock, type SeedAssignment } from '../
 import { mutationFeedback } from '../../lib/mutation-feedback.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { Card } from '../ui/atoms/card.js';
 
 /**
  * A6 — seed assignment beside the bracket it produces.
@@ -135,7 +136,10 @@ export function SeedingBuilderTemplate({
       )}
 
       <div className="cl-platform-form-grid">
-        <div className="cl-card cl-chamfer cl-chamfer--control">
+        <Card
+          aria-label={intl.formatMessage(messages.seedingOrder)}
+          className="cl-chamfer cl-chamfer--control"
+        >
           <header className="cl-card__header">
             <h2 className="cl-card__title">
               <FormattedMessage {...messages.seedingOrder} />
@@ -143,27 +147,34 @@ export function SeedingBuilderTemplate({
           </header>
           <div className="cl-card__content">
             <ol aria-label={intl.formatMessage(messages.seedingOrder)}>
-              {current.map((assignment) => (
-                <li key={assignment.seed} className="cl-role-user">
-                  <span className="cl-label">{assignment.seed}</span>
-                  <span>{names[assignment.entrantId] ?? assignment.entrantId}</span>
-                  <Button
-                    aria-label={intl.formatMessage(messages.seedingToggleLockAriaLabel, {
-                      locked: assignment.locked,
-                      seed: assignment.seed,
-                    })}
-                    aria-pressed={assignment.locked}
-                    disabled={blocked}
-                    onClick={() => apply(toggleLock(current, assignment.seed))}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage
-                      {...(assignment.locked ? messages.seedingLocked : messages.seedingUnlocked)}
-                    />
-                  </Button>
-                </li>
-              ))}
+              {current.map((assignment) => {
+                const displayName =
+                  names[assignment.entrantId] ??
+                  intl.formatMessage(messages.seedingUnresolvedEntrant, {
+                    id: assignment.entrantId.slice(0, 8),
+                  });
+                return (
+                  <li key={assignment.seed} className="cl-role-user">
+                    <span className="cl-label">{assignment.seed}</span>
+                    <span>{displayName}</span>
+                    <Button
+                      aria-label={intl.formatMessage(messages.seedingToggleLockAriaLabel, {
+                        locked: assignment.locked,
+                        seed: assignment.seed,
+                      })}
+                      aria-pressed={assignment.locked}
+                      disabled={blocked}
+                      onClick={() => apply(toggleLock(current, assignment.seed))}
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage
+                        {...(assignment.locked ? messages.seedingLocked : messages.seedingUnlocked)}
+                      />
+                    </Button>
+                  </li>
+                );
+              })}
             </ol>
             {current.length === 0 && (
               <p className="cl-card__description">
@@ -171,9 +182,12 @@ export function SeedingBuilderTemplate({
               </p>
             )}
           </div>
-        </div>
+        </Card>
 
-        <div className="cl-card cl-chamfer cl-chamfer--control">
+        <Card
+          aria-label={intl.formatMessage(messages.seedingGeneratedBracket)}
+          className="cl-chamfer cl-chamfer--control"
+        >
           <header className="cl-card__header">
             <h2 className="cl-card__title">
               <FormattedMessage {...messages.seedingGeneratedBracket} />
@@ -204,7 +218,7 @@ export function SeedingBuilderTemplate({
               ),
             )}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

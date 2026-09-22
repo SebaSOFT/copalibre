@@ -106,10 +106,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // recorded alongside the other un-adopted `<form>`s below rather than
   // forced onto an atom built for a different shape.
   ['control/components/ui/layouts/form-screen-layout.tsx', 1],
-  // Operator surface — converted screens eliminated; only remaining items:
-  // openspec 0250 moved `StageSettingsSection`'s raw `<input>`s to
-  // `StageHubTemplate.tsx`, lowering this file's count from 5 to 3.
-  ['control/components/pages/SeedingBuilderPage.tsx', 3],
+  // openspec 0282 replaced raw `<input>`s with `<Input>` atom in SeedingBuilderPage.tsx.
   // openspec 0264 replaced the per-override-field raw JSON `<input>`s with
   // `RulesetFieldControl` (typed, owned atoms); only the "add a new field by
   // dot-path" name input remains raw.
@@ -234,7 +231,7 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   ['control/components/screens/LoadMatchDataTemplate.tsx', 1],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 2],
-  ['control/components/screens/SeedingBuilderTemplate.tsx', 2],
+  // openspec 0282 replaced cl-card with Card in SeedingBuilderTemplate.tsx.
   // openspec 0250 moved `StageSettingsSection`'s hand-written `cl-card` to
   // `StageHubTemplate.tsx`, lowering this file's count from 2 to 1.
   ['control/components/pages/SeedingBuilderPage.tsx', 1],

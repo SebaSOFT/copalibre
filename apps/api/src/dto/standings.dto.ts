@@ -200,6 +200,14 @@ export class SeedingResponse {
 
   @ApiProperty({ description: 'True once any match in this stage has a recorded result' })
   hasRecordedResults!: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Resolved human-readable entrant display names keyed by entrant ID',
+    type: 'object',
+    additionalProperties: { type: 'string' },
+    example: { '01890000-0000-7000-8000-000000000001': 'Club Atlético Huracán' },
+  })
+  names?: Record<string, string>;
 }
 
 export class PublishSeedingRequest {
