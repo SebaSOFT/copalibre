@@ -1,3 +1,4 @@
+import type { LocalizedLabel } from '@copalibre/domain';
 import { expectGolden } from '../test-support/golden.js';
 import {
   resolveTiebreak,
