@@ -132,7 +132,6 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   ['control/components/screens/LoadMatchDataTemplate.tsx', 3],
   ['control/components/NativeAuthRoutes.tsx', 3],
   ['control/components/screens/PreferencesTemplate.tsx', 1],
-  ['control/components/screens/RolesPermissionsTemplate.tsx', 2],
   ['control/components/RosterSelectionStep.tsx', 3],
   ['control/components/screens/ScheduleBuilderTemplate.tsx', 3],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 1],

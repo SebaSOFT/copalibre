@@ -395,6 +395,8 @@ export const messages: Record<string, string> = {
   'control.roles.inviteDialog.tournamentAriaLabel': 'Tournoi administré',
   'control.roles.inviteDialog.cancel': 'Annuler',
   'control.roles.inviteDialog.submit': 'Envoyer l’invitation',
+  'control.roles.selectClubPlaceholder': 'Sélectionner un club…',
+  'control.roles.selectTournamentPlaceholder': 'Sélectionner un tournoi…',
 
   'control.auditTrail.title': 'Journal d’audit',
   'control.auditTrail.description':

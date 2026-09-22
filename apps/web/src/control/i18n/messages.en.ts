@@ -1107,6 +1107,14 @@ export const messages = defineMessages({
     id: 'control.roles.inviteDialog.submit',
     defaultMessage: 'Send invitation',
   },
+  rolesSelectClubPlaceholder: {
+    id: 'control.roles.selectClubPlaceholder',
+    defaultMessage: 'Select club…',
+  },
+  rolesSelectTournamentPlaceholder: {
+    id: 'control.roles.selectTournamentPlaceholder',
+    defaultMessage: 'Select tournament…',
+  },
 
   // AuditTrailPage.tsx
   auditTrailTitle: { id: 'control.auditTrail.title', defaultMessage: 'Audit trail' },

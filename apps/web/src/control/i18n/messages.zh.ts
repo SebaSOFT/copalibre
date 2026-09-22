@@ -383,6 +383,8 @@ export const messages: Record<string, string> = {
   'control.roles.inviteDialog.tournamentAriaLabel': '所管理的赛事',
   'control.roles.inviteDialog.cancel': '取消',
   'control.roles.inviteDialog.submit': '发送邀请',
+  'control.roles.selectClubPlaceholder': '选择俱乐部…',
+  'control.roles.selectTournamentPlaceholder': '选择赛事…',
 
   'control.auditTrail.title': '审计记录',
   'control.auditTrail.description':
