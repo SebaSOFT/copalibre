@@ -48,7 +48,8 @@ describe('VenueManagementPage', () => {
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
-    await screen.findByText('Ana Gómez — Referee');
+    await screen.findByText('Ana Gómez');
+    await screen.findByText('Referee');
   });
 
   it('creates a venue with no details, then reloads the list', async () => {
@@ -268,7 +269,8 @@ describe('VenueManagementPage', () => {
     });
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
-    await screen.findByText('Ana Gómez — Referee');
+    await screen.findByText('Ana Gómez');
+    await screen.findByText('Referee');
     fireEvent.click(screen.getByText('Edit'));
     await screen.findByLabelText('Name');
     fireEvent.click(screen.getByLabelText('Observer'));
@@ -426,7 +428,8 @@ describe('VenueManagementPage', () => {
     });
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
-    await screen.findByText('Ana Gómez — Referee');
+    await screen.findByText('Ana Gómez');
+    await screen.findByText('Referee');
     fireEvent.click(screen.getByText('Edit'));
     await screen.findByLabelText('Name');
     await act(async () => {
@@ -477,7 +480,8 @@ describe('VenueManagementPage', () => {
     });
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
-    await screen.findByText('Ana Gómez — Referee');
+    await screen.findByText('Ana Gómez');
+    await screen.findByText('Referee');
     fireEvent.click(screen.getByText('Edit'));
     await screen.findByLabelText('Name');
     await act(async () => {
