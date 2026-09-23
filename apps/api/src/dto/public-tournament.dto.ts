@@ -686,6 +686,12 @@ export class PublicTournamentWinnerZoneResponse {
   @ApiProperty({ type: PublicTournamentEntrantPodiumResponse })
   champion!: PublicTournamentEntrantPodiumResponse;
 
+  @ApiPropertyOptional({
+    type: [PublicTournamentEntrantPodiumResponse],
+    description: 'Every champion in this zone, including multiple entrants for a shared title.',
+  })
+  champions?: PublicTournamentEntrantPodiumResponse[];
+
   @ApiPropertyOptional({ type: PublicTournamentEntrantPodiumResponse })
   runnerUp?: PublicTournamentEntrantPodiumResponse;
 }

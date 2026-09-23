@@ -1503,6 +1503,9 @@ describe('public projections routes', () => {
       expect(found.winners).toBeDefined();
       expect(found.winners.length).toBe(1);
       expect(found.winners[0].champion.entrantId).toBe(champEntrant.entrantId);
+      expect(found.winners[0].champions).toEqual([
+        expect.objectContaining({ entrantId: champEntrant.entrantId, name: 'Team Alpha' }),
+      ]);
       expect(found.winners[0].champion.name).toBe('Team Alpha');
       expect(found.winners[0].champion.abbreviation).toBe('ALP');
       expect(found.winners[0].runnerUp.entrantId).toBe(runnerEntrant.entrantId);
@@ -1510,12 +1513,11 @@ describe('public projections routes', () => {
       expect(found.winners[0].runnerUp.abbreviation).toBe('BET');
     });
 
-    it('resolves each zone independently, skipping only a zone whose terminal round is ambiguous (openspec 0245)', async () => {
+    it('reconstructs the generated final beside a same-round classification fixture, per zone (openspec 0273)', async () => {
       // Reproduces the panamericano-clubes-2025 shape that surfaced the bug:
-      // a multi-zone terminal stage where one zone's deepest round holds more
-      // than one finalized match (a real final alongside a classification
-      // match) — resolveTournamentWinners must skip only that zone, not the
-      // whole tournament.
+      // a multi-zone terminal stage where a generated championship final and
+      // a classification fixture share a round, plus one legacy-shaped zone
+      // whose outcome lineage uniquely identifies one deepest-round fixture.
       const tournaments = new TournamentRepository(scratch.db);
       const competition = new CompetitionRepository(scratch.db);
       const enrollments = new EnrollmentRepository(scratch.db);
@@ -1540,7 +1542,7 @@ describe('public projections routes', () => {
         .where('tournament_id', '=', created.tournamentId)
         .execute();
 
-      const { silverChamp, silverRunnerUp } = await withTransaction(
+      const { silverChamp, silverRunnerUp, bronzeA1, bronzeB1 } = await withTransaction(
         scratch.db as Kysely<Database>,
         async (uow) => {
           async function team(alias: string, name: string): Promise<{ entrantId: string }> {
@@ -1591,20 +1593,65 @@ describe('public projections routes', () => {
             organizationId,
             ...audit,
           });
+          const bronze = await competition.createZone(uow, {
+            stageId: stage.stageId,
+            number: 3,
+            name: 'Copa de Bronce',
+            organizationId,
+            ...audit,
+          });
+          const legacy = await competition.createZone(uow, {
+            stageId: stage.stageId,
+            number: 4,
+            name: 'Copa de Legado',
+            organizationId,
+            ...audit,
+          });
 
-          const [goldA1, goldA2, goldB1, goldB2, silverChamp, silverRunnerUp] = await Promise.all([
+          const [
+            goldA1,
+            goldA2,
+            goldB1,
+            goldB2,
+            silverChamp,
+            silverRunnerUp,
+            bronzeA1,
+            bronzeA2,
+            bronzeB1,
+            bronzeB2,
+            legacy1,
+            legacy2,
+            legacy3,
+            legacy4,
+            legacy5,
+            legacy6,
+            legacy7,
+            legacy8,
+          ] = await Promise.all([
             team('gold-a1', 'Gold Finalist A'),
             team('gold-a2', 'Gold Finalist B'),
-            team('gold-b1', 'Gold Classification A'),
-            team('gold-b2', 'Gold Classification B'),
+            team('gold-b1', 'Gold Finalist C'),
+            team('gold-b2', 'Gold Finalist D'),
             team('silver-1', 'Silver Champion'),
             team('silver-2', 'Silver Runner-up'),
+            team('bronze-a1', 'Bronze Semifinalist A'),
+            team('bronze-a2', 'Bronze Semifinalist B'),
+            team('bronze-b1', 'Bronze Semifinalist C'),
+            team('bronze-b2', 'Bronze Semifinalist D'),
+            team('legacy-1', 'Legacy Entrant 1'),
+            team('legacy-2', 'Legacy Entrant 2'),
+            team('legacy-3', 'Legacy Entrant 3'),
+            team('legacy-4', 'Legacy Entrant 4'),
+            team('legacy-5', 'Legacy Entrant 5'),
+            team('legacy-6', 'Legacy Entrant 6'),
+            team('legacy-7', 'Legacy Entrant 7'),
+            team('legacy-8', 'Legacy Entrant 8'),
           ]);
 
-          // Gold zone: terminal round has TWO finalized matches (final +
-          // classification) — ambiguous, must be skipped. Silver zone: a
-          // normal single-match terminal round — must still resolve correctly
-          // alongside the ambiguous gold zone.
+          // Gold zone has two semifinal fixtures, followed by a generated
+          // final and a classification fixture in the same round. The saved
+          // bracket graph and outcomes identify the final without a role field;
+          // Bronze also records a tied generated final and shares the title.
           const fixtures = await competition.createFixtures(uow, {
             stageId: stage.stageId,
             fixtures: [
@@ -1621,10 +1668,118 @@ describe('public projections routes', () => {
                 zoneId: gold.zoneId,
               },
               {
+                round: 2,
+                homeEntrantId: goldA1.entrantId,
+                awayEntrantId: goldB1.entrantId,
+                zoneId: gold.zoneId,
+              },
+              {
+                round: 2,
+                homeEntrantId: goldA2.entrantId,
+                awayEntrantId: goldB2.entrantId,
+                zoneId: gold.zoneId,
+              },
+              {
                 round: 1,
                 homeEntrantId: silverChamp.entrantId,
                 awayEntrantId: silverRunnerUp.entrantId,
                 zoneId: silver.zoneId,
+              },
+              {
+                round: 1,
+                homeEntrantId: bronzeA1.entrantId,
+                awayEntrantId: bronzeA2.entrantId,
+                zoneId: bronze.zoneId,
+              },
+              {
+                round: 1,
+                homeEntrantId: bronzeB1.entrantId,
+                awayEntrantId: bronzeB2.entrantId,
+                zoneId: bronze.zoneId,
+              },
+              {
+                round: 2,
+                homeEntrantId: bronzeA2.entrantId,
+                awayEntrantId: bronzeB2.entrantId,
+                zoneId: bronze.zoneId,
+              },
+              {
+                round: 1,
+                homeEntrantId: legacy1.entrantId,
+                awayEntrantId: legacy2.entrantId,
+                zoneId: legacy.zoneId,
+              },
+              {
+                round: 1,
+                homeEntrantId: legacy3.entrantId,
+                awayEntrantId: legacy4.entrantId,
+                zoneId: legacy.zoneId,
+              },
+              {
+                round: 2,
+                homeEntrantId: legacy2.entrantId,
+                awayEntrantId: legacy1.entrantId,
+                zoneId: legacy.zoneId,
+              },
+              {
+                round: 2,
+                homeEntrantId: legacy3.entrantId,
+                awayEntrantId: legacy4.entrantId,
+                zoneId: legacy.zoneId,
+              },
+              {
+                round: 2,
+                homeEntrantId: legacy5.entrantId,
+                awayEntrantId: legacy6.entrantId,
+                zoneId: legacy.zoneId,
+              },
+              {
+                round: 2,
+                homeEntrantId: legacy7.entrantId,
+                awayEntrantId: legacy8.entrantId,
+                zoneId: legacy.zoneId,
+              },
+              {
+                round: 2,
+                homeEntrantId: legacy1.entrantId,
+                awayEntrantId: legacy4.entrantId,
+                zoneId: legacy.zoneId,
+              },
+              {
+                round: 2,
+                homeEntrantId: legacy5.entrantId,
+                awayEntrantId: legacy7.entrantId,
+                zoneId: legacy.zoneId,
+              },
+              {
+                round: 3,
+                homeEntrantId: legacy2.entrantId,
+                awayEntrantId: legacy3.entrantId,
+                zoneId: legacy.zoneId,
+              },
+              {
+                round: 3,
+                homeEntrantId: legacy1.entrantId,
+                awayEntrantId: legacy4.entrantId,
+                zoneId: legacy.zoneId,
+              },
+              {
+                round: 3,
+                homeEntrantId: legacy5.entrantId,
+                awayEntrantId: legacy7.entrantId,
+                zoneId: legacy.zoneId,
+              },
+              {
+                round: 3,
+                homeEntrantId: legacy6.entrantId,
+                awayEntrantId: legacy8.entrantId,
+                zoneId: legacy.zoneId,
+              },
+              {
+                round: 2,
+                homeEntrantId: bronzeA1.entrantId,
+                awayEntrantId: bronzeB1.entrantId,
+                zoneId: bronze.zoneId,
               },
             ],
             organizationId,
@@ -1633,7 +1788,24 @@ describe('public projections routes', () => {
           for (const [fixture, winnerEntrantId] of [
             [fixtures[0], goldA1.entrantId],
             [fixtures[1], goldB1.entrantId],
-            [fixtures[2], silverChamp.entrantId],
+            [fixtures[2], goldA1.entrantId],
+            [fixtures[3], goldA2.entrantId],
+            [fixtures[4], silverChamp.entrantId],
+            [fixtures[5], bronzeA1.entrantId],
+            [fixtures[6], bronzeB1.entrantId],
+            [fixtures[7], bronzeA2.entrantId],
+            [fixtures[8], legacy1.entrantId],
+            [fixtures[9], legacy4.entrantId],
+            [fixtures[10], legacy2.entrantId],
+            [fixtures[11], legacy3.entrantId],
+            [fixtures[12], legacy5.entrantId],
+            [fixtures[13], legacy8.entrantId],
+            [fixtures[14], legacy1.entrantId],
+            [fixtures[15], legacy7.entrantId],
+            [fixtures[16], legacy2.entrantId],
+            [fixtures[17], legacy1.entrantId],
+            [fixtures[18], legacy5.entrantId],
+            [fixtures[19], legacy8.entrantId],
           ] as const) {
             if (!fixture) throw new Error('Expected fixture');
             const { homeEntrantId, awayEntrantId } = fixture;
@@ -1659,7 +1831,28 @@ describe('public projections routes', () => {
             });
           }
 
-          return { silverChamp, silverRunnerUp };
+          const bronzeFinal = fixtures[20];
+          if (!bronzeFinal) throw new Error('Expected tied Bronze final fixture');
+          const bronzeFinalMatch = await competition.createMatch(uow, {
+            fixtureId: bronzeFinal.fixtureId,
+            number: 1,
+            organizationId,
+            ...audit,
+          });
+          await competition.recordResult(uow, {
+            matchId: bronzeFinalMatch.matchId,
+            result: {
+              sides: [
+                { entrantId: bronzeA1.entrantId, statistics: { score: 4 } },
+                { entrantId: bronzeB1.entrantId, statistics: { score: 4 } },
+              ],
+              recordedAt: new Date().toISOString(),
+            },
+            organizationId,
+            ...audit,
+          });
+
+          return { silverChamp, silverRunnerUp, bronzeA1, bronzeB1 };
         },
       );
 
@@ -1682,15 +1875,36 @@ describe('public projections routes', () => {
       expect(found).toBeDefined();
       expect(found.winners).toBeDefined();
       const zoneNames = found.winners.map((zone: { zoneName?: string }) => zone.zoneName);
-      // The ambiguous gold zone is skipped entirely — not present, and its
-      // absence never prevents the silver zone from resolving.
-      expect(zoneNames).not.toContain('Copa de Oro');
+      expect(zoneNames).toContain('Copa de Oro');
       expect(zoneNames).toContain('Copa de Plata');
+      expect(zoneNames).toContain('Copa de Legado');
+      expect(zoneNames).toContain('Copa de Bronce');
+      const goldZone = found.winners.find(
+        (zone: { zoneName?: string }) => zone.zoneName === 'Copa de Oro',
+      );
+      expect(goldZone.champion.name).toBe('Gold Finalist A');
+      expect(goldZone.champions).toHaveLength(1);
+      expect(goldZone.runnerUp.name).toBe('Gold Finalist C');
       const silverZone = found.winners.find(
         (zone: { zoneName?: string }) => zone.zoneName === 'Copa de Plata',
       );
       expect(silverZone.champion.entrantId).toBe(silverChamp.entrantId);
+      expect(silverZone.champions).toHaveLength(1);
       expect(silverZone.runnerUp.entrantId).toBe(silverRunnerUp.entrantId);
+      const legacyZone = found.winners.find(
+        (zone: { zoneName?: string }) => zone.zoneName === 'Copa de Legado',
+      );
+      expect(legacyZone.champion.name).toBe('Legacy Entrant 2');
+      expect(legacyZone.champions).toHaveLength(1);
+      expect(legacyZone.runnerUp.name).toBe('Legacy Entrant 3');
+      const bronzeZone = found.winners.find(
+        (zone: { zoneName?: string }) => zone.zoneName === 'Copa de Bronce',
+      );
+      expect(
+        bronzeZone.champions.map((champion: { entrantId: string }) => champion.entrantId),
+      ).toEqual([bronzeA1.entrantId, bronzeB1.entrantId]);
+      expect(bronzeZone.champion.entrantId).toBe(bronzeA1.entrantId);
+      expect(bronzeZone.runnerUp).toBeUndefined();
     });
 
     it('resolves champions and runners-up for finished placement/round-robin tournaments', async () => {

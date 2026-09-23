@@ -16284,6 +16284,13 @@
           "champion": {
             "$ref": "#/components/schemas/PublicTournamentEntrantPodiumResponse"
           },
+          "champions": {
+            "description": "Every champion in this zone, including multiple entrants for a shared title.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicTournamentEntrantPodiumResponse"
+            }
+          },
           "runnerUp": {
             "$ref": "#/components/schemas/PublicTournamentEntrantPodiumResponse"
           }

@@ -4820,6 +4820,8 @@ export interface components {
             zoneId?: string;
             zoneName?: string;
             champion: components["schemas"]["PublicTournamentEntrantPodiumResponse"];
+            /** @description Every champion in this zone, including multiple entrants for a shared title. */
+            champions?: components["schemas"]["PublicTournamentEntrantPodiumResponse"][];
             runnerUp?: components["schemas"]["PublicTournamentEntrantPodiumResponse"];
         };
         PublicTournamentListingItemResponse: {

@@ -6,10 +6,6 @@
 
 web
 
-## Register
-
-product
-
 ## Users
 
 **Primary.** Tournament operators working a live match under time pressure, usually at the venue and
