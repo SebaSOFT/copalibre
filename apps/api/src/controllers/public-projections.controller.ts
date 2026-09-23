@@ -42,6 +42,7 @@ import {
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
 import { resolveStageZones } from './bracket-zones.js';
 import { readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
+import { reconstructChampionshipFixture } from './tournament-winner-resolution.js';
 import { segmentedTableResponse, tableResponse } from './table-projections.controller.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
 import {
@@ -52,7 +53,6 @@ import {
   type DisciplineDescriptor,
   type StatisticCollector,
   type Tournament,
-  type MatchResult,
   type LocalizedLabel,
   deriveTournamentStatus,
 } from '@copalibre/domain';
@@ -207,79 +207,67 @@ export async function resolveTournamentWinners(
         terminalStage.format === 'double-elimination';
 
       if (isDuel) {
-        let matchQuery = db
-          .selectFrom('matches')
-          .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-          .selectAll('matches')
-          .select('fixtures.round as terminalRound')
-          .where('fixtures.stage_id', '=', terminalStage.stageId)
-          .where('matches.status', '=', 'finalized');
+        const readModel = new StageReadModel(db);
+        const record = await readModel.stageRecord(terminalStage.stageId, undefined, zone.zoneId);
+        const fixtures = await readModel.matches(terminalStage.stageId, undefined, zone.zoneId);
+        const generated = generateFixtures({
+          format: terminalStage.format,
+          entrants: (record?.entrantIds ?? []).map((entrantId, index) => ({
+            entrantId,
+            seed: index + 1,
+          })),
+        });
+        const winnersByFixtureId = new Map(
+          (record?.outcomes ?? [])
+            .filter(
+              (outcome) => outcome.fixtureId !== undefined && outcome.winnerEntrantId !== undefined,
+            )
+            .map((outcome) => [outcome.fixtureId as string, outcome.winnerEntrantId as string]),
+        );
+        const resolved = generated.ok
+          ? reconstructChampionshipFixture({
+              graph: generated.value,
+              records: fixtures,
+              winnerByFixtureId: winnersByFixtureId,
+            })
+          : undefined;
 
-        if (zone.zoneId) {
-          matchQuery = matchQuery.where('fixtures.zone_id', '=', zone.zoneId);
-        }
+        if (resolved) {
+          const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails([
+            resolved.winnerEntrantId,
+            resolved.loserEntrantId,
+          ]);
+          const championDetails = podiumDetails.get(resolved.winnerEntrantId);
+          const runnerUpDetails = podiumDetails.get(resolved.loserEntrantId);
 
-        const matches = await matchQuery
-          .orderBy('fixtures.round', 'desc')
-          .orderBy('matches.number', 'desc')
-          .execute();
-
-        const finalMatch = matches[0];
-        if (finalMatch) {
-          const deepestRoundMatches = matches.filter(
-            (m) => m.terminalRound === finalMatch.terminalRound,
-          );
-          if (deepestRoundMatches.length > 1) {
-            // No fixture-role/lineage column exists to tell a real final
-            // apart from a concurrent classification/placement match in
-            // the same round (see design.md's Open Gates) — report,
-            // don't guess.
-            resolveTournamentWinnersLogger.warn(
-              `Ambiguous terminal round for zone ${zone.zoneId ?? '(default)'} of tournament ${
-                tournament.tournamentId
-              }: ${deepestRoundMatches.length} finalized matches share round ${finalMatch.terminalRound}; skipping this zone's champion`,
-            );
-          } else {
-            const result = (
-              typeof finalMatch.result === 'string'
-                ? JSON.parse(finalMatch.result)
-                : finalMatch.result
-            ) as MatchResult | null;
-
-            if (result?.winnerEntrantId) {
-              const championId = result.winnerEntrantId;
-              const runnerUpId = result.sides.find((s) => s.entrantId !== championId)?.entrantId;
-              const entrantIds = runnerUpId ? [championId, runnerUpId] : [championId];
-              const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails(entrantIds);
-              const championDetails = podiumDetails.get(championId);
-
-              if (championDetails) {
-                const runnerUpDetails = runnerUpId ? podiumDetails.get(runnerUpId) : undefined;
-                results.push({
-                  ...(zone.zoneId ? { zoneId: zone.zoneId } : {}),
-                  ...(zone.zoneName ? { zoneName: zone.zoneName } : {}),
-                  champion: {
-                    entrantId: championId,
-                    name: championDetails.name,
-                    abbreviation: championDetails.abbreviation,
-                    clubId: championDetails.clubId,
-                    emblemObjectId: championDetails.emblemObjectId,
-                  },
-                  ...(runnerUpDetails && runnerUpId
-                    ? {
-                        runnerUp: {
-                          entrantId: runnerUpId,
-                          name: runnerUpDetails.name,
-                          abbreviation: runnerUpDetails.abbreviation,
-                          clubId: runnerUpDetails.clubId,
-                          emblemObjectId: runnerUpDetails.emblemObjectId,
-                        },
-                      }
-                    : {}),
-                });
-              }
-            }
+          if (championDetails) {
+            results.push({
+              ...(zone.zoneId ? { zoneId: zone.zoneId } : {}),
+              ...(zone.zoneName ? { zoneName: zone.zoneName } : {}),
+              champion: {
+                entrantId: resolved.winnerEntrantId,
+                name: championDetails.name,
+                abbreviation: championDetails.abbreviation,
+                clubId: championDetails.clubId,
+                emblemObjectId: championDetails.emblemObjectId,
+              },
+              ...(runnerUpDetails
+                ? {
+                    runnerUp: {
+                      entrantId: resolved.loserEntrantId,
+                      name: runnerUpDetails.name,
+                      abbreviation: runnerUpDetails.abbreviation,
+                      clubId: runnerUpDetails.clubId,
+                      emblemObjectId: runnerUpDetails.emblemObjectId,
+                    },
+                  }
+                : {}),
+            });
           }
+        } else {
+          resolveTournamentWinnersLogger.warn(
+            `Could not uniquely reconstruct the championship fixture for zone ${zone.zoneId ?? '(default)'} of tournament ${tournament.tournamentId}; skipping this zone's champion`,
+          );
         }
       } else {
         const standings = await readStandings(db, tournament, terminalStage.number);
