@@ -14,8 +14,8 @@ type ResolvedSlot =
 
 export interface ChampionshipFixture {
   readonly fixture: StageMatchRecord;
-  readonly winnerEntrantId: string;
-  readonly loserEntrantId: string;
+  readonly championEntrantIds: readonly string[];
+  readonly runnerUpEntrantId?: string;
 }
 
 /** Reconstructs which persisted fixture occupies the generated championship path. */
@@ -44,7 +44,7 @@ export function reconstructChampionshipFixture(input: {
       // A mapped generated final is authoritative. Do not substitute a different
       // outcome-qualified match when its own recorded result is incomplete.
       if (finalId !== undefined && reconstructed.get(finalId)?.record !== undefined) {
-        return championshipFixtureOf(finalId, reconstructed);
+        return singleEliminationChampionshipFixtureOf(finalId, reconstructed);
       }
     }
   }
@@ -71,50 +71,62 @@ function singleEliminationOutcomeLineageFinal(
       continue;
     }
 
-    const winnerEntrantId = winnerByFixtureId.get(fixture.fixtureId);
-    if (winnerEntrantId !== fixture.homeEntrantId && winnerEntrantId !== fixture.awayEntrantId) {
-      continue;
-    }
+    const recordedWinnerEntrantId = winnerByFixtureId.get(fixture.fixtureId);
+    const hasRecordedWinner =
+      recordedWinnerEntrantId === fixture.homeEntrantId ||
+      recordedWinnerEntrantId === fixture.awayEntrantId;
+    const winnerEntrantId = hasRecordedWinner ? recordedWinnerEntrantId : undefined;
+    const isSharedFinal = recordedWinnerEntrantId === undefined && isTiedFinal(fixture);
+    if (!hasRecordedWinner && !isSharedFinal) continue;
 
-    const homePrior = latestPriorFinalizedMatch(records, fixture.homeEntrantId, fixture.round);
-    const awayPrior = latestPriorFinalizedMatch(records, fixture.awayEntrantId, fixture.round);
+    const homePrior = latestPriorFinalizedMatches(records, fixture.homeEntrantId, fixture.round);
+    const awayPrior = latestPriorFinalizedMatches(records, fixture.awayEntrantId, fixture.round);
     if (
-      !homePrior ||
-      !awayPrior ||
-      homePrior.fixtureId === awayPrior.fixtureId ||
-      winnerByFixtureId.get(homePrior.fixtureId) !== fixture.homeEntrantId ||
-      winnerByFixtureId.get(awayPrior.fixtureId) !== fixture.awayEntrantId
+      homePrior.length === 0 ||
+      awayPrior.length === 0 ||
+      homePrior.some((prior) => winnerByFixtureId.get(prior.fixtureId) !== fixture.homeEntrantId) ||
+      awayPrior.some((prior) => winnerByFixtureId.get(prior.fixtureId) !== fixture.awayEntrantId) ||
+      homePrior.some((homeMatch) =>
+        awayPrior.some((awayMatch) => awayMatch.fixtureId === homeMatch.fixtureId),
+      )
     ) {
       continue;
     }
 
-    candidates.push({
-      fixture,
-      winnerEntrantId,
-      loserEntrantId:
-        winnerEntrantId === fixture.homeEntrantId ? fixture.awayEntrantId : fixture.homeEntrantId,
-    });
+    if (hasRecordedWinner) {
+      if (winnerEntrantId === undefined) continue;
+      candidates.push({
+        fixture,
+        championEntrantIds: [winnerEntrantId],
+        runnerUpEntrantId:
+          winnerEntrantId === fixture.homeEntrantId ? fixture.awayEntrantId : fixture.homeEntrantId,
+      });
+    } else {
+      candidates.push({
+        fixture,
+        championEntrantIds: [fixture.homeEntrantId, fixture.awayEntrantId],
+      });
+    }
   }
 
   return candidates.length === 1 ? candidates[0] : undefined;
 }
 
-function latestPriorFinalizedMatch(
+function latestPriorFinalizedMatches(
   records: readonly StageMatchRecord[],
   entrantId: string,
   beforeRound: number,
-): StageMatchRecord | undefined {
+): readonly StageMatchRecord[] {
   const prior = records.filter(
     (record) =>
       record.status === 'finalized' &&
       record.round < beforeRound &&
       (record.homeEntrantId === entrantId || record.awayEntrantId === entrantId),
   );
-  if (prior.length === 0) return undefined;
+  if (prior.length === 0) return [];
 
   const latestRound = Math.max(...prior.map((record) => record.round));
-  const latest = prior.filter((record) => record.round === latestRound);
-  return latest.length === 1 ? latest[0] : undefined;
+  return prior.filter((record) => record.round === latestRound);
 }
 
 function reconstructMatches(input: {
@@ -283,9 +295,39 @@ function championshipFixtureOf(
   }
   return {
     fixture: match.record,
-    winnerEntrantId: match.winnerEntrantId,
-    loserEntrantId: match.loserEntrantId,
+    championEntrantIds: [match.winnerEntrantId],
+    runnerUpEntrantId: match.loserEntrantId,
   };
+}
+
+function singleEliminationChampionshipFixtureOf(
+  matchId: string | undefined,
+  reconstructed: ReadonlyMap<string, ReconstructedMatch>,
+): ChampionshipFixture | undefined {
+  const decided = championshipFixtureOf(matchId, reconstructed);
+  if (decided) return decided;
+
+  if (matchId === undefined) return undefined;
+  const match = reconstructed.get(matchId);
+  if (!match?.record || match.entrants[1] === undefined || !isTiedFinal(match.record)) {
+    return undefined;
+  }
+
+  return {
+    fixture: match.record,
+    championEntrantIds: [match.entrants[0], match.entrants[1]],
+  };
+}
+
+function isTiedFinal(record: StageMatchRecord): boolean {
+  const homeScore = record.scores?.[0];
+  const awayScore = record.scores?.[1];
+  return (
+    record.status === 'finalized' &&
+    homeScore !== undefined &&
+    awayScore !== undefined &&
+    homeScore === awayScore
+  );
 }
 
 function samePair(left: readonly [string, string], right: readonly [string, string]): boolean {

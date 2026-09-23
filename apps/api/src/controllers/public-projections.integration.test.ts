@@ -1503,6 +1503,9 @@ describe('public projections routes', () => {
       expect(found.winners).toBeDefined();
       expect(found.winners.length).toBe(1);
       expect(found.winners[0].champion.entrantId).toBe(champEntrant.entrantId);
+      expect(found.winners[0].champions).toEqual([
+        expect.objectContaining({ entrantId: champEntrant.entrantId, name: 'Team Alpha' }),
+      ]);
       expect(found.winners[0].champion.name).toBe('Team Alpha');
       expect(found.winners[0].champion.abbreviation).toBe('ALP');
       expect(found.winners[0].runnerUp.entrantId).toBe(runnerEntrant.entrantId);
@@ -1539,7 +1542,7 @@ describe('public projections routes', () => {
         .where('tournament_id', '=', created.tournamentId)
         .execute();
 
-      const { silverChamp, silverRunnerUp } = await withTransaction(
+      const { silverChamp, silverRunnerUp, bronzeA1, bronzeB1 } = await withTransaction(
         scratch.db as Kysely<Database>,
         async (uow) => {
           async function team(alias: string, name: string): Promise<{ entrantId: string }> {
@@ -1647,7 +1650,8 @@ describe('public projections routes', () => {
 
           // Gold zone has two semifinal fixtures, followed by a generated
           // final and a classification fixture in the same round. The saved
-          // bracket graph and outcomes identify the final without a role field.
+          // bracket graph and outcomes identify the final without a role field;
+          // Bronze also records a tied generated final and shares the title.
           const fixtures = await competition.createFixtures(uow, {
             stageId: stage.stageId,
             fixtures: [
@@ -1771,6 +1775,12 @@ describe('public projections routes', () => {
                 awayEntrantId: legacy8.entrantId,
                 zoneId: legacy.zoneId,
               },
+              {
+                round: 2,
+                homeEntrantId: bronzeA1.entrantId,
+                awayEntrantId: bronzeB1.entrantId,
+                zoneId: bronze.zoneId,
+              },
             ],
             organizationId,
             ...audit,
@@ -1821,7 +1831,28 @@ describe('public projections routes', () => {
             });
           }
 
-          return { silverChamp, silverRunnerUp };
+          const bronzeFinal = fixtures[20];
+          if (!bronzeFinal) throw new Error('Expected tied Bronze final fixture');
+          const bronzeFinalMatch = await competition.createMatch(uow, {
+            fixtureId: bronzeFinal.fixtureId,
+            number: 1,
+            organizationId,
+            ...audit,
+          });
+          await competition.recordResult(uow, {
+            matchId: bronzeFinalMatch.matchId,
+            result: {
+              sides: [
+                { entrantId: bronzeA1.entrantId, statistics: { score: 4 } },
+                { entrantId: bronzeB1.entrantId, statistics: { score: 4 } },
+              ],
+              recordedAt: new Date().toISOString(),
+            },
+            organizationId,
+            ...audit,
+          });
+
+          return { silverChamp, silverRunnerUp, bronzeA1, bronzeB1 };
         },
       );
 
@@ -1847,22 +1878,33 @@ describe('public projections routes', () => {
       expect(zoneNames).toContain('Copa de Oro');
       expect(zoneNames).toContain('Copa de Plata');
       expect(zoneNames).toContain('Copa de Legado');
-      expect(zoneNames).not.toContain('Copa de Bronce');
+      expect(zoneNames).toContain('Copa de Bronce');
       const goldZone = found.winners.find(
         (zone: { zoneName?: string }) => zone.zoneName === 'Copa de Oro',
       );
       expect(goldZone.champion.name).toBe('Gold Finalist A');
+      expect(goldZone.champions).toHaveLength(1);
       expect(goldZone.runnerUp.name).toBe('Gold Finalist C');
       const silverZone = found.winners.find(
         (zone: { zoneName?: string }) => zone.zoneName === 'Copa de Plata',
       );
       expect(silverZone.champion.entrantId).toBe(silverChamp.entrantId);
+      expect(silverZone.champions).toHaveLength(1);
       expect(silverZone.runnerUp.entrantId).toBe(silverRunnerUp.entrantId);
       const legacyZone = found.winners.find(
         (zone: { zoneName?: string }) => zone.zoneName === 'Copa de Legado',
       );
       expect(legacyZone.champion.name).toBe('Legacy Entrant 2');
+      expect(legacyZone.champions).toHaveLength(1);
       expect(legacyZone.runnerUp.name).toBe('Legacy Entrant 3');
+      const bronzeZone = found.winners.find(
+        (zone: { zoneName?: string }) => zone.zoneName === 'Copa de Bronce',
+      );
+      expect(
+        bronzeZone.champions.map((champion: { entrantId: string }) => champion.entrantId),
+      ).toEqual([bronzeA1.entrantId, bronzeB1.entrantId]);
+      expect(bronzeZone.champion.entrantId).toBe(bronzeA1.entrantId);
+      expect(bronzeZone.runnerUp).toBeUndefined();
     });
 
     it('resolves champions and runners-up for finished placement/round-robin tournaments', async () => {

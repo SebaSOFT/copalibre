@@ -22,6 +22,7 @@ describe('reconstructChampionshipFixture', () => {
       status: 'finalized',
       homeEntrantId: 'entrant-3',
       awayEntrantId: 'entrant-4',
+      scores: [2, 2],
       games: [],
     };
     const result = reconstructChampionshipFixture({
@@ -31,8 +32,8 @@ describe('reconstructChampionshipFixture', () => {
     });
 
     expect(result?.fixture.fixtureId).toBe(final?.id);
-    expect(result?.winnerEntrantId).toBe('entrant-1');
-    expect(result?.loserEntrantId).toBe('entrant-2');
+    expect(result?.championEntrantIds).toEqual(['entrant-1']);
+    expect(result?.runnerUpEntrantId).toBe('entrant-2');
   });
 
   it('uses the bracket reset result when losers-bracket champion wins first grand final', () => {
@@ -56,7 +57,7 @@ describe('reconstructChampionshipFixture', () => {
     expect(firstFinalWinner).toBeDefined();
     expect(resetWinner).toBeDefined();
     expect(result?.fixture.fixtureId).toBe(reset?.id);
-    expect(result?.winnerEntrantId).toBe(resetWinner);
+    expect(result?.championEntrantIds).toEqual([resetWinner]);
   });
 
   it('leaves a championship unresolved when saved results cannot map uniquely', () => {
@@ -75,7 +76,7 @@ describe('reconstructChampionshipFixture', () => {
     ).toBeUndefined();
   });
 
-  it('resolves one legacy deepest-round fixture from uniquely winning prior results', () => {
+  it('resolves a legacy final when both entrants won every latest-round prior fixture', () => {
     const graph = graphOf('single-elimination', 8);
     const data = legacyBracket();
 
@@ -86,8 +87,56 @@ describe('reconstructChampionshipFixture', () => {
     });
 
     expect(result?.fixture.fixtureId).toBe('legacy-final');
-    expect(result?.winnerEntrantId).toBe('entrant-2');
-    expect(result?.loserEntrantId).toBe('entrant-3');
+    expect(result?.championEntrantIds).toEqual(['entrant-2']);
+    expect(result?.runnerUpEntrantId).toBe('entrant-3');
+  });
+
+  it('resolves the mocked Plata 12-fixture history with multiple latest-round wins', () => {
+    const graph = graphOf('single-elimination', 8);
+    const data = legacyBracket();
+    expect(data.records).toHaveLength(12);
+    const records = data.records.map((record) => {
+      if (record.fixtureId === 'legacy-r2-3') {
+        return { ...record, homeEntrantId: 'entrant-2', awayEntrantId: 'entrant-6' };
+      }
+      if (record.fixtureId === 'legacy-r2-6') {
+        return { ...record, homeEntrantId: 'entrant-3', awayEntrantId: 'entrant-7' };
+      }
+      if (record.fixtureId === 'legacy-final') return { ...record, scores: [5, 4] };
+      return record;
+    });
+    const winners = new Map(data.winners);
+    winners.set('legacy-r2-3', 'entrant-2');
+    winners.set('legacy-r2-6', 'entrant-3');
+    winners.set('legacy-final', 'entrant-3');
+
+    const result = reconstructChampionshipFixture({
+      graph,
+      records,
+      winnerByFixtureId: winners,
+    });
+
+    expect(result?.fixture.fixtureId).toBe('legacy-final');
+    expect(result?.championEntrantIds).toEqual(['entrant-3']);
+    expect(result?.runnerUpEntrantId).toBe('entrant-2');
+  });
+
+  it('reports both entrants as champions for a tied generated single-elimination final', () => {
+    const graph = graphOf('single-elimination');
+    const data = finalizedBracket(graph);
+    const final = graph.matches.filter(isDuelMatch).find((match) => match.round === 2);
+    if (!final) throw new Error('Expected generated final');
+    const records = data.records.map((record) =>
+      record.fixtureId === final.id ? { ...record, scores: [4, 4] } : record,
+    );
+    const winners = new Map(data.winners);
+    winners.delete(final.id);
+
+    const result = reconstructChampionshipFixture({ graph, records, winnerByFixtureId: winners });
+
+    expect(result?.fixture.fixtureId).toBe(final.id);
+    expect(result?.championEntrantIds).toEqual(['entrant-1', 'entrant-2']);
+    expect(result?.runnerUpEntrantId).toBeUndefined();
   });
 
   it('leaves legacy deepest-round fixtures unresolved when more than one qualifies', () => {
@@ -137,7 +186,7 @@ describe('reconstructChampionshipFixture', () => {
       reconstructChampionshipFixture({
         graph,
         records: [...data.records, ambiguousPrior],
-        winnerByFixtureId: new Map([...data.winners, [ambiguousPrior.fixtureId, 'entrant-2']]),
+        winnerByFixtureId: new Map([...data.winners, [ambiguousPrior.fixtureId, 'entrant-8']]),
       }),
     ).toBeUndefined();
   });

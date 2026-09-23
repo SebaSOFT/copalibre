@@ -234,27 +234,39 @@ export async function resolveTournamentWinners(
 
         if (resolved) {
           const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails([
-            resolved.winnerEntrantId,
-            resolved.loserEntrantId,
+            ...resolved.championEntrantIds,
+            ...(resolved.runnerUpEntrantId ? [resolved.runnerUpEntrantId] : []),
           ]);
-          const championDetails = podiumDetails.get(resolved.winnerEntrantId);
-          const runnerUpDetails = podiumDetails.get(resolved.loserEntrantId);
+          const champions = resolved.championEntrantIds.flatMap((entrantId) => {
+            const details = podiumDetails.get(entrantId);
+            return details
+              ? [
+                  {
+                    entrantId,
+                    name: details.name,
+                    abbreviation: details.abbreviation,
+                    clubId: details.clubId,
+                    emblemObjectId: details.emblemObjectId,
+                  },
+                ]
+              : [];
+          });
+          const championDetails = champions[0];
+          const runnerUpEntrantId = resolved.runnerUpEntrantId;
+          const runnerUpDetails = runnerUpEntrantId
+            ? podiumDetails.get(runnerUpEntrantId)
+            : undefined;
 
-          if (championDetails) {
+          if (championDetails && champions.length === resolved.championEntrantIds.length) {
             results.push({
               ...(zone.zoneId ? { zoneId: zone.zoneId } : {}),
               ...(zone.zoneName ? { zoneName: zone.zoneName } : {}),
-              champion: {
-                entrantId: resolved.winnerEntrantId,
-                name: championDetails.name,
-                abbreviation: championDetails.abbreviation,
-                clubId: championDetails.clubId,
-                emblemObjectId: championDetails.emblemObjectId,
-              },
-              ...(runnerUpDetails
+              champion: championDetails,
+              champions,
+              ...(runnerUpDetails && runnerUpEntrantId
                 ? {
                     runnerUp: {
-                      entrantId: resolved.loserEntrantId,
+                      entrantId: runnerUpEntrantId,
                       name: runnerUpDetails.name,
                       abbreviation: runnerUpDetails.abbreviation,
                       clubId: runnerUpDetails.clubId,
@@ -293,6 +305,15 @@ export async function resolveTournamentWinners(
                   clubId: championDetails.clubId,
                   emblemObjectId: championDetails.emblemObjectId,
                 },
+                champions: [
+                  {
+                    entrantId: rank1.entrantId,
+                    name: championDetails.name,
+                    abbreviation: championDetails.abbreviation,
+                    clubId: championDetails.clubId,
+                    emblemObjectId: championDetails.emblemObjectId,
+                  },
+                ],
                 ...(runnerUpDetails && rank2
                   ? {
                       runnerUp: {
