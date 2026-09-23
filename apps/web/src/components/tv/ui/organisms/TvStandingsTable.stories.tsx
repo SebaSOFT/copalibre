@@ -1,23 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { publicIntl, tvDashboardLabels } from '../../../../lib/i18n/public-intl.js';
 import { TvStandingsTable } from './TvStandingsTable.js';
 
 const meta = {
   title: 'TV/TvStandingsTable',
   component: TvStandingsTable,
   args: {
-    dashboardLabels: {
-      noMatchesScheduled: 'Sin partidos programados',
-      standingsUnavailable: 'Tabla no disponible',
-      clubColumn: 'Club',
-      playedColumn: 'PJ',
-      noTopPerformers: 'Sin figuras destacadas',
-      focalPanelLabel: 'Panel principal',
-      statsAndTablesLabel: 'Estadísticas y tablas',
-      sidebarSectionsLabel: 'Secciones',
-      standingsTab: 'Tabla',
-      performersTab: 'Figuras',
-      statisticsTab: 'Estadísticas',
-    },
+    dashboardLabels: tvDashboardLabels(publicIntl('es')),
     pointsShortLabel: 'Pts',
     standings: [
       {

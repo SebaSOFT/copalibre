@@ -115,6 +115,11 @@ describe('publicIntl formats real translated text, not an English fallback', () 
   it('resolves every result-state label at once', () => {
     const labels = resultStateLabels(publicIntl('es'));
     expect(labels.live).toBe('EN VIVO');
+    expect(labels.upcoming).toBe('PROGRAMADO');
+    expect(labels.final).toBe('FINAL');
+    expect(labels.disputed).toBe('EN DISPUTA');
+    expect(labels.winner).toBe('GANÓ');
+    expect(labels.loser).toBe('PERDIÓ');
     expect(labels.tbd).toBe('A DEFINIR');
     expect(labels.cancelled).toBe('CANCELADO');
   });

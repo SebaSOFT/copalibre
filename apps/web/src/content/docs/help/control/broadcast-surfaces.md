@@ -5,6 +5,7 @@ capabilities:
   - live-operations/broadcast-tv-surfaces
   - live-operations/public-live-surfaces
   - public-web/public-web-shell
+  - public-web/tournament-winner-resolution
   - design-system/operational-surface-parity
 roles:
   - broadcaster
@@ -29,7 +30,8 @@ The public site (no login) shows a tournament's standings, bracket, and match re
 published, at the same organization/tournament address the control panel and the `/tv/**` surfaces use. A
 [series](/help/control/series) in progress shows its running score and which side is ahead on the public
 bracket the same way it does in the control panel, and a match not yet scheduled is shown as such, never
-guessed at.
+guessed at. Completed elimination tournaments identify champions from the championship fixture even
+when classification fixtures share its final round; a tied championship can show both co-champions.
 
 ## What you cannot do here
 
