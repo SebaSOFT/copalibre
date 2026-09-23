@@ -3,7 +3,7 @@ import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-proje
 import type { SupportedLanguage } from '@copalibre/domain';
 import { RealtimeClient } from '@copalibre/realtime';
 import { applyEvent, markConnected, type LiveDashboard } from '../../lib/live-state.js';
-import { presentState, type ResultStateLabels } from '../../lib/result-state.js';
+import { presentState } from '../../lib/result-state.js';
 import { resolveTvBranding, tvStateColor, type TvBranding } from '../../lib/tv-branding.js';
 import type { StandingsRowView } from '../../lib/overview.js';
 import {
@@ -70,17 +70,6 @@ export interface TvDashboardProps {
   readonly language: SupportedLanguage;
   readonly pollIntervalMs?: number;
 }
-
-const TV_RESULT_STATE_LABELS: ResultStateLabels = {
-  live: 'EN VIVO',
-  upcoming: 'PROGRAMADO',
-  final: 'FINAL',
-  disputed: 'EN DISPUTA',
-  winner: 'GANÓ',
-  loser: 'PERDIÓ',
-  tbd: 'A DEFINIR',
-  cancelled: 'CANCELADO',
-};
 
 export function TvDashboard({
   initial,
@@ -231,11 +220,11 @@ export function TvDashboard({
   const facts: readonly TournamentFact[] = deriveTournamentFacts(labels, matches);
 
   // Status Badge Determination
-  const statusBadge = isLive
-    ? { label: 'EN VIVO', type: 'live' }
-    : allFinal
-      ? { label: 'FINAL', type: 'final' }
-      : { label: 'PROGRAMADO', type: 'upcoming' };
+  const statusBadgeState = isLive ? 'live' : allFinal ? 'final' : 'upcoming';
+  const statusBadge = {
+    label: dashboardLabels.resultState[statusBadgeState],
+    type: statusBadgeState,
+  };
 
   // Spotlight Match (pinned match or active live match or first match)
   const spotlightMatch = pinnedMatch ?? liveMatches[0] ?? matches[0];
@@ -392,7 +381,7 @@ export function TvDashboard({
                       textTransform: 'uppercase',
                     }}
                   >
-                    {presentState(spotlightMatch.state, TV_RESULT_STATE_LABELS).label}
+                    {presentState(spotlightMatch.state, dashboardLabels.resultState).label}
                   </div>
                 </div>
 

@@ -145,6 +145,7 @@ export function tvStatisticsLabels(intl: IntlShape) {
 /** `TvDashboard.tsx`'s own chrome — separate from `tvStatisticsLabels`'s derived-stat labels. */
 export function tvDashboardLabels(intl: IntlShape) {
   return {
+    resultState: resultStateLabels(intl),
     noMatchesScheduled: intl.formatMessage(messages.tvDashboardNoMatchesScheduled),
     standingsUnavailable: intl.formatMessage(messages.tvDashboardStandingsUnavailable),
     clubColumn: intl.formatMessage(messages.tvDashboardClubColumn),

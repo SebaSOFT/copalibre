@@ -7,6 +7,16 @@ import { publicIntl, tvDashboardLabels, tvStatisticsLabels } from '../../lib/i18
 
 const tvLabels = tvStatisticsLabels(publicIntl('en'));
 const dashboardLabels = tvDashboardLabels(publicIntl('en'));
+const FRENCH_RESULT_STATE_LABELS = [
+  { state: 'live', label: 'EN DIRECT' },
+  { state: 'upcoming', label: 'À VENIR' },
+  { state: 'final', label: 'FINAL' },
+  { state: 'disputed', label: 'EN LITIGE' },
+  { state: 'winner', label: 'GAGNÉ' },
+  { state: 'loser', label: 'PERDU' },
+  { state: 'tbd', label: 'À DÉFINIR' },
+  { state: 'cancelled', label: 'ANNULÉ' },
+] as const;
 
 describe('TvDashboard', () => {
   const sampleInitial: LiveDashboard = {
@@ -164,8 +174,37 @@ describe('TvDashboard', () => {
     const spotlight = screen.getByTestId('tv-match-spotlight');
     expect(spotlight).toBeDefined();
     expect(screen.getByText('2 : 1')).toBeDefined();
-    expect(screen.getAllByText('EN VIVO').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(dashboardLabels.resultState.live).length).toBeGreaterThan(0);
   });
+
+  it.each(FRENCH_RESULT_STATE_LABELS)(
+    'renders the French $state result-state label',
+    ({ state, label }) => {
+      const localizedDashboard: LiveDashboard = {
+        ...sampleInitial,
+        matches: sampleInitial.matches.map((match) => ({
+          ...match,
+          state,
+          sides: match.sides.map((side) => ({ ...side, state })),
+        })),
+      };
+      const frenchDashboardLabels = tvDashboardLabels(publicIntl('fr'));
+
+      render(
+        <TvDashboard
+          dashboardLabels={frenchDashboardLabels}
+          labels={tvStatisticsLabels(publicIntl('fr'))}
+          language="fr"
+          initial={localizedDashboard}
+          streamPath="/events/liga-argentina/tournaments/apertura-2026"
+          pollIntervalMs={0}
+        />,
+      );
+
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+      expect(screen.queryByText('EN VIVO')).toBeNull();
+    },
+  );
 
   it('allows user to toggle through rotating rail tabs (Standings, Top performers, Statistics)', () => {
     render(
