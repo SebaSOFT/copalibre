@@ -22,26 +22,27 @@ const { winners, intl, prominent = false } = Astro.props;
         <div class="cl-zone-podium">
           {zone.zoneName && <div class="cl-zone-title">{zone.zoneName}</div>}
           <div class="cl-podium-grid">
-            {/* Champion */}
-            <div class="cl-podium-spot cl-champion-spot" data-entrant-id={zone.champion.entrantId}>
-              <div class="cl-medal-badge cl-gold-medal" aria-hidden="true">
-                1
+            {(zone.champions?.length ? zone.champions : [zone.champion]).map((champion) => (
+              <div class="cl-podium-spot cl-champion-spot" data-entrant-id={champion.entrantId}>
+                <div class="cl-medal-badge cl-gold-medal" aria-hidden="true">
+                  1
+                </div>
+                <div class="cl-entrant-info">
+                  <span class="cl-podium-label">
+                    {intl.formatMessage(messages.tournamentsChampion)}
+                  </span>
+                  <span class="cl-entrant-name" title={champion.name}>
+                    {champion.name}
+                    {champion.abbreviation && (
+                      <span class="cl-entrant-abbr" title={champion.name}>
+                        {' '}
+                        ({champion.abbreviation})
+                      </span>
+                    )}
+                  </span>
+                </div>
               </div>
-              <div class="cl-entrant-info">
-                <span class="cl-podium-label">
-                  {intl.formatMessage(messages.tournamentsChampion)}
-                </span>
-                <span class="cl-entrant-name" title={zone.champion.name}>
-                  {zone.champion.name}
-                  {zone.champion.abbreviation && (
-                    <span class="cl-entrant-abbr" title={zone.champion.name}>
-                      {' '}
-                      ({zone.champion.abbreviation})
-                    </span>
-                  )}
-                </span>
-              </div>
-            </div>
+            ))}
 
             {/* Runner-Up */}
             {zone.runnerUp && (

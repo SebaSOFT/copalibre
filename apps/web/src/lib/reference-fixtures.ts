@@ -563,9 +563,9 @@ export function referenceStandingsTable(): ReferenceStandingsTable {
   };
 }
 
-/** Two zones, one with a runner-up and one settled by a walkover with none. */
+/** Two zones: one decisive final and one shared title, to exercise public podium rendering. */
 export function referenceWinnerZones(): PublicTournamentWinnerZoneResponse[] {
-  const [meridian, ironclad, obsidian] = REFERENCE_ENTRANTS;
+  const [meridian, ironclad, obsidian, echo] = REFERENCE_ENTRANTS;
   return [
     {
       zoneId: '01936f4a-2001-7000-8000-000000000001',
@@ -589,6 +589,11 @@ export function referenceWinnerZones(): PublicTournamentWinnerZoneResponse[] {
         name: obsidian.name,
         abbreviation: obsidian.abbreviation,
       },
+      champions: [obsidian, echo].map((entrant) => ({
+        entrantId: entrant.id,
+        name: entrant.name,
+        abbreviation: entrant.abbreviation,
+      })),
     },
   ];
 }
