@@ -23,7 +23,7 @@ draft, with a distinct visual treatment per state.
 - **THEN** its card renders with the draft visual treatment (muted styling) and a resume-editing action, distinct from live and upcoming cards
 
 ### Requirement: Recent activity feed shows audited operational events
-The dashboard SHALL display recent organization audit events when activity records exist, rather than rendering an empty placeholder state.
+The dashboard SHALL display recent organization audit events when activity records exist, rather than rendering an empty placeholder state, with action names localized according to the operator's active locale and actor identifiers presented using the owned badge atom.
 
 #### Scenario: Audit event appears in the feed
 - **WHEN** an operator approves a registration
@@ -36,6 +36,25 @@ The dashboard SHALL display recent organization audit events when activity recor
 #### Scenario: Empty state for brand new organization
 - **WHEN** an organizer views a newly created organization with zero audit records
 - **THEN** the "Actividad reciente" section SHALL display the empty state message
+
+#### Scenario: Operational and match clock audit events are localized
+- **WHEN** an audit record with action `segment.clock-adjusted`, `segment.completed`, `segment.created`, `player.enlisted`, `module.installed`, `fixtures.generated`, or `ruleset.compiled` is displayed in the recent activity feed
+- **THEN** its primary action description SHALL be localized into the active language (e.g. Spanish "Reloj de segmento ajustado", "Segmento completado") rather than falling back to unlocalized English text.
+
+#### Scenario: Actor identifier composes the owned badge atom
+- **WHEN** an audit event row renders the actor identifier
+- **THEN** it SHALL compose the owned `<Badge>` primitive atom with neutral/muted styling instead of raw element markup with handwritten CSS classes.
+
+### Requirement: TV devices panel reports heartbeat status
+The dashboard SHALL render a TV devices panel reporting the heartbeat status of paired kiosk displays, with status markers composing the owned `<Badge>` atom and unprovisioned states presented using design-token empty state styling.
+
+#### Scenario: Status marker composes the owned badge atom
+- **WHEN** a TV display's heartbeat status is rendered
+- **THEN** it SHALL compose the owned `<Badge>` atom with the semantic color corresponding to its connection status.
+
+#### Scenario: Unprovisioned TV devices empty state
+- **WHEN** no TV displays or kiosks are provisioned for the organization
+- **THEN** the empty state SHALL be presented in a styled container consistent with dashboard section empty states.
 
 ### Requirement: Dashboard is scoped to the authenticated organizer's organization
 The dashboard SHALL only display tournaments and activity belonging to organizations the
