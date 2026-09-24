@@ -207,3 +207,21 @@ override under a differently-named field-policy key.
 - **WHEN** an organizer explicitly configures a stage-level tiebreak override
 - **THEN** the standings pipeline SHALL apply the organizer's override instead of the discipline's
   declared default, using the same field-policy key the descriptor schema itself documents
+
+### Requirement: Tiebreak comparator trace labels resolve localized descriptors cleanly
+When a tiebreak pipeline parameter defines its label as a `LocalizedLabel` object, the resulting
+explanation trace nodes and deciding factor labels SHALL resolve the localized string value, and SHALL
+NOT stringify the object into `"[object Object]"`.
+
+#### Scenario: Localized tiebreak parameter label in explanation trace
+- **WHEN** a tiebreak pipeline evaluates a parameter whose `label` is a `LocalizedLabel` object (e.g.
+  `{ en: 'Goal difference', es: 'Diferencia de goles' }`)
+- **THEN** the generated `TraceNode.label` contains the resolved text (e.g. `"Rule 3 (Goal
+  difference)"`)
+- **AND** the label contains no `"[object Object]"` substring
+
+#### Scenario: Deciding factor label in matches view
+- **WHEN** a match's deciding factor is derived from an explanation trace with localized parameter
+  labels
+- **THEN** `decidingFactorLabel` returns a human-readable rule description containing the parameter's
+  text name rather than a raw object stringification

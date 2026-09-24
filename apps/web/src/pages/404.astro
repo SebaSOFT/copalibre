@@ -1,6 +1,8 @@
 ---
 import { ControlOrNotFound } from '../control/components/ControlOrNotFound.tsx';
-import '@copalibre/design-tokens/generated/copalibre.css';
+import PublicLayout from '../layouts/PublicLayout.astro';
+import { Card } from '../components/ui/atoms/Card.tsx';
+import Button from '../components/ui/atoms/Button.astro';
 import { resolvePathLocale, getLocaleHomePath } from '../lib/locale.ts';
 import { publicIntl } from '../lib/i18n/public-intl.ts';
 import { messages } from '../lib/i18n/public-messages.en.ts';
@@ -13,20 +15,60 @@ const intl = publicIntl(locale);
 const homeUrl = getLocaleHomePath(locale);
 ---
 
-<!doctype html>
-<html lang={locale}>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
-    <title>{intl.formatMessage(messages.notFoundPageTitle)}</title>
-  </head>
-  <body>
-    <main id="static-not-found">
-      <h1>{intl.formatMessage(messages.notFoundHeading)}</h1>
-      <p>{intl.formatMessage(messages.notFoundBody)}</p>
-      <p><a href={homeUrl}>{intl.formatMessage(messages.notFoundHomeLink)}</a></p>
-    </main>
-    <ControlOrNotFound client:only="react" />
-  </body>
-</html>
+<PublicLayout
+  title={intl.formatMessage(messages.notFoundPageTitle)}
+  canonicalPath="/404"
+  noindex={true}
+  intl={intl}
+>
+  <div id="static-not-found" class="cl-not-found">
+    <Card as="section" className="cl-not-found__card">
+      <p class="cl-not-found__numeral" aria-hidden="true">404</p>
+      <h1 class="cl-not-found__heading">{intl.formatMessage(messages.notFoundHeading)}</h1>
+      <p class="cl-not-found__body">{intl.formatMessage(messages.notFoundBody)}</p>
+      <Button href={homeUrl}>{intl.formatMessage(messages.notFoundHomeLink)}</Button>
+    </Card>
+  </div>
+  <ControlOrNotFound client:only="react" />
+</PublicLayout>
+
+<style>
+  .cl-not-found {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: var(--cl-space-6);
+  }
+
+  .cl-not-found__card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--cl-space-4);
+    max-width: 32rem;
+    padding: var(--cl-space-10) var(--cl-space-8);
+    text-align: center;
+  }
+
+  .cl-not-found__numeral {
+    margin: 0;
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-3xl);
+    font-weight: 700;
+    color: var(--cl-primary);
+    letter-spacing: 0.05em;
+  }
+
+  .cl-not-found__heading {
+    margin: 0;
+    font-family: var(--cl-font-display);
+    font-size: var(--cl-font-size-2xl);
+    color: var(--cl-text-primary);
+  }
+
+  .cl-not-found__body {
+    margin: 0;
+    color: var(--cl-text-muted);
+  }
+</style>
