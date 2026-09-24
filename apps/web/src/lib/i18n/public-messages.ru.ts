@@ -88,6 +88,10 @@ export const messages: Record<string, string> = {
   'publicWeb.tournamentPage.description': 'Результаты, турнирная таблица и регламент {tournament}.',
 
   'publicWeb.livePage.title': 'В эфире',
+  'publicWeb.livePage.breadcrumb': 'Навигационная цепочка',
+  'publicWeb.livePage.noMatches': 'Сейчас нет матчей в эфире',
+  'publicWeb.livePage.nextKickoff': 'Следующий запланированный матч',
+  'publicWeb.livePage.noUpcoming': 'Предстоящих матчей нет.',
   'publicWeb.livePage.seriesHeading': 'Серия',
   'publicWeb.livePage.upcomingHeading': 'Предстоящие',
   'publicWeb.livePage.leadersHeading': 'Лидеры',

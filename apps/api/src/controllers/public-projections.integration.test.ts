@@ -128,6 +128,67 @@ describe('public projections routes', () => {
     expect(data.status).toBeDefined();
   });
 
+  it('includes persisted in-progress matches on the public live route', async () => {
+    const competition = new CompetitionRepository(scratch.db);
+    const { liveMatchId, scheduledMatchId } = await withTransaction(
+      scratch.db as Kysely<Database>,
+      async (uow) => {
+        const stage = await competition.createStageInTournament(uow, {
+          tournamentId: publishedTournament.tournamentId,
+          number: 98,
+          name: 'Live read stage',
+          format: 'single-elimination',
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const fixtures = await competition.createFixtures(uow, {
+          stageId: stage.stageId,
+          fixtures: [{ round: 1 }, { round: 1 }],
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const liveFixture = fixtures[0];
+        const scheduledFixture = fixtures[1];
+        if (!liveFixture || !scheduledFixture) throw new Error('Expected two fixtures');
+        const liveMatch = await competition.createMatch(uow, {
+          fixtureId: liveFixture.fixtureId,
+          number: 1,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const scheduledMatch = await competition.createMatch(uow, {
+          fixtureId: scheduledFixture.fixtureId,
+          number: 2,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        await uow.tx
+          .updateTable('matches')
+          .set({ status: 'in-progress' })
+          .where('match_id', '=', liveMatch.matchId)
+          .execute();
+        return { liveMatchId: liveMatch.matchId, scheduledMatchId: scheduledMatch.matchId };
+      },
+    );
+
+    const response = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/live`,
+    });
+    expect(response.statusCode).toBe(200);
+    const data = JSON.parse(response.payload as string) as {
+      matches: { matchId: string; state: string }[];
+    };
+    expect(data.matches).toContainEqual(
+      expect.objectContaining({ matchId: liveMatchId, state: 'live' }),
+    );
+    expect(data.matches.map((match) => match.matchId)).not.toContain(scheduledMatchId);
+  });
+
   it("shows a merged-strategy ruleset field's full effective value, not the raw override delta (openspec 0267)", async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = {
