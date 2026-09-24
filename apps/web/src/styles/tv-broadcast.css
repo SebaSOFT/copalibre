@@ -378,6 +378,59 @@
   color: var(--cl-text-primary);
 }
 
+/* 3C. Pinned-Match Event Ticker (openspec 0270) */
+.tv-event-ticker {
+  display: flex;
+  flex-direction: column;
+  gap: 1vmin;
+  max-height: 22vmin;
+  overflow-y: auto;
+  margin: 0;
+  padding: 1.5vmin 2vmin;
+  background: var(--tv-bg-elevated);
+  border: 1px solid var(--tv-border);
+  border-radius: 4px;
+  list-style: none;
+}
+
+.tv-event-ticker__item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1vmin;
+  font-size: clamp(0.75rem, 1.3vmin, 0.95rem);
+}
+
+.tv-event-ticker__time {
+  font-family: var(--cl-font-mono);
+  color: var(--tv-live-cyan);
+  flex-shrink: 0;
+}
+
+.tv-event-ticker__side {
+  font-family: var(--cl-font-mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.tv-event-ticker__side--home {
+  color: var(--tv-text-primary);
+}
+
+.tv-event-ticker__side--away {
+  color: var(--tv-text-secondary);
+}
+
+.tv-event-ticker__label {
+  color: var(--tv-text-primary);
+  flex: 1;
+}
+
+.tv-event-ticker__actor {
+  color: var(--tv-text-secondary);
+}
+
 /* 4. Secondary Rotating Rail (Companion Panel) */
 .tv-rail-panel {
   display: flex;

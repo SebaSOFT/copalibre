@@ -195,10 +195,24 @@ export async function fetchPlayerStatistics(
  * `control-web`, ported here since the public overview has no `FieldPolicy`
  * object to call that function with directly, only the label it carries.
  */
+/**
+ * `forfeited` and `not-required` both count as resolved, matching the platform's existing
+ * "resolved = finalized + forfeited" definition (`stage-completion.ts`) — a `not-required` game
+ * never needed playing (its series already decided), so it is equally closed, not pending. Mapping
+ * both to `'final'` keeps every `matches.every((m) => m.state === 'final')` check (TV's own
+ * `allFinal`, `deriveTournamentStatus`) from treating a tournament decided partly by forfeit as
+ * still in progress (openspec 0270).
+ */
 function publicMatchState(status: string): MatchState {
   if (status === 'scheduled') return 'upcoming';
   if (status === 'in-progress' || status === 'in_progress') return 'live';
-  if (status === 'completed' || status === 'finalized') return 'final';
+  if (
+    status === 'completed' ||
+    status === 'finalized' ||
+    status === 'forfeited' ||
+    status === 'not-required'
+  )
+    return 'final';
   return status as MatchState;
 }
 

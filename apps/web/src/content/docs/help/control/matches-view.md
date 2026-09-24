@@ -4,6 +4,7 @@ description: A scannable card list of a tournament's matches — venue, clock, l
 capabilities:
   - public-web/matches-view
   - control-web/matches-view
+  - public-web/match-report
 roles:
   - admin
   - viewer
@@ -55,6 +56,13 @@ authority over this tournament's internal standings (an admin, or a tournament-a
 sees the **full** comparator trace instead, on the control-panel version of this same card, exactly as
 the internal standings screen's own trace expander shows it. Nobody sees a version in between: a
 viewer either sees the one-line summary or the complete trace, never a partially redacted one.
+
+## The match report page
+
+Opening a card leads to that match's own report page — officials, rosters, and the event timeline.
+Every heading and empty-state message on it renders in the spectator's active language, the same as
+this screen, and every timestamp it shows (a recorded event's time, a scheduled kickoff) renders
+humanized and localized, never as a raw machine timestamp.
 
 ## What this screen does NOT do
 

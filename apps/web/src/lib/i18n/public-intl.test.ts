@@ -116,7 +116,7 @@ describe('publicIntl formats real translated text, not an English fallback', () 
     const labels = resultStateLabels(publicIntl('es'));
     expect(labels.live).toBe('EN VIVO');
     expect(labels.upcoming).toBe('PROGRAMADO');
-    expect(labels.final).toBe('FINAL');
+    expect(labels.final).toBe('FINALIZADO');
     expect(labels.disputed).toBe('EN DISPUTA');
     expect(labels.winner).toBe('GANÓ');
     expect(labels.loser).toBe('PERDIÓ');
@@ -145,7 +145,7 @@ describe('publicIntl formats real translated text, not an English fallback', () 
     expect(labels.decidedBy).toBe('Decidido por: {factor}');
     expect(labels.seriesAriaLabel).toBe('Serie al mejor de {bestOf}: {home} a {away}');
     expect(labels.filters.live).toBe('En vivo');
-    expect(labels.state.final).toBe('FINAL');
+    expect(labels.state.final).toBe('FINALIZADO');
   });
 });
 

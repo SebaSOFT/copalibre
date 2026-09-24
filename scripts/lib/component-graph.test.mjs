@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (291/1074 after 0269 localizes MatchTimeline/MatchOfficials/MatchRosters and routes their timestamps through ResponsiveTimestamp)', () => {
+test('the graph resolves the current node/edge count (293/1080 after 0270 adds the TV pinned-match event ticker)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 291);
-  assert.equal(graph.edges.length, 1074);
+  assert.equal(graph.nodes.size, 293);
+  assert.equal(graph.edges.length, 1080);
 });
 
 test('a type-only import is not counted as a render', () => {
