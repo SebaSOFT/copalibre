@@ -750,7 +750,12 @@ export const KNOWN_LITERAL_TEXT = new Map([
   // this register's other `DataTable`/`AstroPreview.astro` column configs
   // were never counted here — R10 finds literal text nodes in a template,
   // not string literals in frontmatter.
-  ['components/ui/organisms/StandingsTable.astro', 9],
+  // `StandingsTable.astro`'s entry is gone (openspec 0271): every counted
+  // template-node literal, plus the competition-history modal's
+  // script-template-literal strings this register's own comment above says
+  // R10 cannot see, now resolve through the message catalogue via a
+  // `data-player-dialog-labels` JSON island (the same mechanism
+  // `BracketView.astro` already uses for `data-journey-matches`).
   // `AcceptInvitationForm.tsx`'s entry is gone (openspec 0225 task 8.3,
   // found by /impeccable critique): every literal moved through
   // `useIntl`/`FormattedMessage`, the same fix applied across this task.
