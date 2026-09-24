@@ -201,3 +201,18 @@ the page's URL query string so a filtered view is linkable and server-renders wi
 - **WHEN** matches are scheduled across distinct rounds
 - **THEN** matches are grouped under round section headers, each match showing its own venue and
   localized kickoff time
+
+### Requirement: Match timestamps render identically on server and client
+Every timestamp `MatchCard` renders SHALL resolve its locale from the page's active locale — the same
+value already used to render every other localized string on that page — never from a client-only or
+environment-guessed source. The server-rendered markup and the client-hydrated markup SHALL be
+identical for the same request, producing no hydration mismatch.
+
+#### Scenario: Match card timestamp matches the page's locale on first paint
+- **WHEN** a spectator requests a matches-view page in a given locale
+- **THEN** every match card's timestamp renders in that same locale in the initial server response,
+  with no client-side re-render changing its text or `title` attribute
+
+#### Scenario: No hydration mismatch is reported for a match card timestamp
+- **WHEN** a matches-view page hydrates in the browser
+- **THEN** no hydration-mismatch error or warning is raised for any match card's timestamp
