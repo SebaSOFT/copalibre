@@ -224,6 +224,7 @@ export function mapOverviewResponse(
       return { dotPath, label, value };
     }),
     matches: response.matches.map((m: PublicOverviewMatchResponse) => ({
+      matchId: m.matchId,
       matchNumber: m.matchNumber,
       stageNumber: m.stageNumber,
       home: {

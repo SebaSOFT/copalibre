@@ -221,7 +221,7 @@ test.describe('OpenSpec 0192 Public Web & Broadcast Polish', () => {
     await expect(page.locator('.cl-bracket')).toHaveCount(0);
   });
 
-  test('5.3 a finished tournament overview and organization home visibly presents its champion', async ({
+  test('5.3 organization home presents its champion while single-zone overview omits the podium', async ({
     page,
   }) => {
     // 1. Check organization home presents champion
@@ -234,15 +234,11 @@ test.describe('OpenSpec 0192 Public Web & Broadcast Polish', () => {
     await expect(cardPodium).toContainText('Club Andes');
     await expect(cardPodium).toContainText('Champion');
 
-    // 2. Check tournament overview page prominently presents champion
+    // 0268 keeps the dedicated overview podium for multi-zone tournaments only.
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
     const overviewPodium = page.locator('.cl-podium-container.cl-podium-prominent');
-    await expect(overviewPodium).toBeVisible();
-    await expect(overviewPodium.locator('.cl-champion-spot')).toBeVisible();
-    await expect(overviewPodium).toContainText('Club Andes');
-    await expect(overviewPodium).toContainText('Champion');
-    await expect(overviewPodium).toContainText('Deportivo Sur');
-    await expect(overviewPodium).toContainText(/runner-up/i);
+    await expect(overviewPodium).toHaveCount(0);
+    await expect(page.locator('.cl-match-card').first()).toContainText('Club Andes');
   });
 
   test('5.4 player profile page shows non-empty career statistics and uses design token palette', async ({

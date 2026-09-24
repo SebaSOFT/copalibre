@@ -145,4 +145,22 @@ describe('MatchCard', () => {
       '/liga/tournaments/x/stages/1/matches/1',
     );
   });
+
+  it('shows a labelled state badge and a localized timestamp', () => {
+    const instant = '2025-05-18T15:30:00.000Z';
+    const { container } = render(
+      <MatchCard
+        match={baseMatch({ state: 'final', scheduledAt: instant })}
+        labels={labels}
+        locale="es-AR"
+      />,
+    );
+
+    expect(
+      screen.getByText('FINAL').closest('.cl-badge')?.classList.contains('cl-state--positive'),
+    ).toBe(true);
+    const timestamp = container.querySelector('time.cl-responsive-timestamp');
+    expect(timestamp?.getAttribute('datetime')).toBe(instant);
+    expect(timestamp?.textContent).not.toContain('2025-05-18T');
+  });
 });

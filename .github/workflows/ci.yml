@@ -805,16 +805,20 @@ jobs:
           docker run -d --name minio --network host \
             -e MINIO_ROOT_USER=copalibre_dev_only \
             -e MINIO_ROOT_PASSWORD=copalibre_dev_only \
-            quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z server /data --console-address :9001
+            cgr.dev/chainguard/minio@sha256:bd014394a80898e68c149f2311fdf8d5a2c2f3bb2c33b9327ae6d02b4b065ae1 server /data --console-address :9001
       - name: Wait for MinIO and create its bucket
         run: |
-          docker run --rm --network host --entrypoint /bin/sh quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z -c '
-            for i in $(seq 1 30); do
-              mc alias set local http://localhost:9000 copalibre_dev_only copalibre_dev_only && break
-              sleep 2
-            done
-            mc mb --ignore-existing local/copalibre-dev
-          '
+          for i in $(seq 1 30); do
+            if docker run --rm --network host \
+              -e MC_HOST_local=http://copalibre_dev_only:copalibre_dev_only@localhost:9000 \
+              cgr.dev/chainguard/minio-client@sha256:b8b144ab34694ecea25aa352c4be9de4c26ee2a02701521dce02ee5593c57338 \
+              mb --ignore-existing local/copalibre-dev; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs minio
+          exit 1
       - run: yarn workspace @copalibre/migrate run start
       - run: yarn workspace @copalibre/object-storage test:integration
       - run: yarn workspace @copalibre/worker test:integration

@@ -123,6 +123,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tournamentsPage.empty': 'No se encontraron torneos publicados.',
   'publicWeb.tournamentsPage.champion': 'Campeón',
   'publicWeb.tournamentsPage.runnerUp': 'Subcampeón',
+  'publicWeb.tournamentsPage.thirdPlace': 'Tercer puesto',
   'publicWeb.tournamentsPage.viewDetails': 'Ver torneo',
   'publicWeb.orgPage.featuredHeading': 'Destacado',
   'publicWeb.orgPage.clubsHeading': 'Clubes',

@@ -23,8 +23,7 @@ export const Playground: Story = {
 };
 
 /**
- * Everything the design system actually defines for a badge: the base, and the
- * `--rank` modifier, which is a tabular-numeral treatment rather than a colour.
+ * Base shape, rank treatment, and operational chrome variants.
  */
 export const Matrix: Story = {
   args: { label: '' },
@@ -46,20 +45,8 @@ export const Matrix: Story = {
   },
 };
 
-/**
- * The tone modifiers the product writes but the design system does not define.
- *
- * `cl-badge--live`, `--final`, `--upcoming`, `--stage`, `--muted` and
- * `--positive` are all written by components and Astro pages; the generated
- * stylesheet defines none of them. The only place any of them is styled is a
- * page-local `<style>` block on the single match page, so the same class means
- * "red" on that one page and nothing anywhere else.
- *
- * They render here exactly as they render everywhere but that page — identical
- * to the base badge — which is the point of showing them. Giving the tones an
- * owned home is `0214`'s work; this story is the evidence.
- */
-export const UndefinedTones: Story = {
+/** All six product tones resolve through generated badge tokens (0268). */
+export const Tones: Story = {
   args: { label: '' },
   render: function Render() {
     const intl = useIntl();

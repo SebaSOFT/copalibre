@@ -8,7 +8,7 @@ import StandingsTable from '../../../../components/ui/organisms/StandingsTable.a
 import BroadcastStatusPanel from '../../../../components/ui/molecules/BroadcastStatusPanel.astro';
 import RulesetBriefing from '../../../../components/ui/molecules/RulesetBriefing.astro';
 import { CompletionFigure } from '../../../../components/ui/molecules/CompletionFigure.tsx';
-import { buildOverview, displayName } from '../../../../lib/overview.ts';
+import { buildOverview, displayName, shouldShowChampionPodium } from '../../../../lib/overview.ts';
 import {
   fetchOverview,
   fetchCompletion,
@@ -34,9 +34,6 @@ import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
  * Everything a spectator needs is server-rendered. The SSE stream from 0018 is
  * an improvement on this page, never a requirement for it: a venue on hotel
  * Wi-Fi still gets the score.
- *
- * The data is sample data until 0021 wires the read models; the shape is the
- * one the repositories already return.
  *
  * `[[locale]]` is an optional Astro route segment: English, the
  * primary locale, is generated with `locale: undefined` (no URL segment);
@@ -176,7 +173,7 @@ const structuredData = {
     labels={completionLabels}
   />
   {
-    model.status === 'finished' && model.winners && model.winners.length > 0 && (
+    shouldShowChampionPodium(model) && model.winners && (
       <ChampionPodium winners={model.winners} intl={intl} prominent={true} />
     )
   }

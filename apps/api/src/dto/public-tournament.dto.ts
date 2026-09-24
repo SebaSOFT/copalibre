@@ -694,6 +694,12 @@ export class PublicTournamentWinnerZoneResponse {
 
   @ApiPropertyOptional({ type: PublicTournamentEntrantPodiumResponse })
   runnerUp?: PublicTournamentEntrantPodiumResponse;
+
+  @ApiPropertyOptional({
+    type: PublicTournamentEntrantPodiumResponse,
+    description: 'Rank three only when a completed ranked stage explicitly resolves one entrant.',
+  })
+  thirdPlace?: PublicTournamentEntrantPodiumResponse;
 }
 
 export class PublicTournamentDisciplineSummaryResponse {

@@ -18,11 +18,12 @@ import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 export interface MatchCardProps {
   readonly match: MatchCardData;
   readonly labels: MatchCardLabels;
+  readonly locale?: string;
   /** Wraps the card in a link when present — the public site's report page. */
   readonly reportUrl?: string;
 }
 
-export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.JSX.Element {
+export function MatchCard({ match, labels, locale, reportUrl }: MatchCardProps): React.JSX.Element {
   const badge = presentState(match.state, labels.state);
   const scopeLine = [match.zoneName, match.groupName]
     .filter((part) => part !== undefined)
@@ -34,7 +35,7 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
   const body = (
     <Card as="article" className="cl-match-card" data-match={match.matchId}>
       <div className="cl-match-card__header">
-        <Badge>
+        <Badge className={badge.className}>
           <span aria-hidden="true">{badge.icon}</span>
           <span>{badge.label}</span>
         </Badge>
@@ -94,7 +95,7 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
                   : undefined
               }
             >
-              <ResponsiveTimestamp timestamp={match.scheduledAt} />
+              <ResponsiveTimestamp timestamp={match.scheduledAt} locale={locale} />
             </span>
           )}
           {match.venueName !== undefined && match.scheduledAt !== undefined && ' · '}

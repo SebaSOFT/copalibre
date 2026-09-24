@@ -1968,7 +1968,7 @@ describe('public projections routes', () => {
       expect(bronzeZone.runnerUp).toBeUndefined();
     });
 
-    it('resolves champions and runners-up for finished placement/round-robin tournaments', async () => {
+    it('resolves an explicit third place for a finished ranked tournament', async () => {
       const tournaments = new TournamentRepository(scratch.db);
       const competition = new CompetitionRepository(scratch.db);
       const enrollments = new EnrollmentRepository(scratch.db);
@@ -1998,7 +1998,7 @@ describe('public projections routes', () => {
         .where('tournament_id', '=', created.tournamentId)
         .execute();
 
-      const { rank1Entrant, rank2Entrant } = await withTransaction(
+      const { rank1Entrant, rank2Entrant, rank3Entrant } = await withTransaction(
         scratch.db as Kysely<Database>,
         async (uow) => {
           const teamA = await enrollments.createTeam(uow, {
@@ -2012,6 +2012,13 @@ describe('public projections routes', () => {
             organizationId,
             alias: 'team-placement-b',
             name: 'Placement B',
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+          const teamC = await enrollments.createTeam(uow, {
+            organizationId,
+            alias: 'team-placement-c',
+            name: 'Placement C',
             actor: 'user:seed',
             authorizationContext: 'seed',
           });
@@ -2030,6 +2037,13 @@ describe('public projections routes', () => {
             actor: 'user:seed',
             authorizationContext: 'seed',
           });
+          const entrantC = await enrollments.registerEntrant(uow, {
+            tournamentId: created.tournamentId,
+            organizationId,
+            entrantRef: { kind: 'team', teamId: teamC.teamId },
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
 
           const stage = await competition.createStageInTournament(uow, {
             tournamentId: created.tournamentId,
@@ -2045,38 +2059,48 @@ describe('public projections routes', () => {
             stageId: stage.stageId,
             fixtures: [
               { round: 1, homeEntrantId: entrantA.entrantId, awayEntrantId: entrantB.entrantId },
+              { round: 2, homeEntrantId: entrantA.entrantId, awayEntrantId: entrantC.entrantId },
+              { round: 3, homeEntrantId: entrantB.entrantId, awayEntrantId: entrantC.entrantId },
             ],
             organizationId,
             actor: 'user:seed',
             authorizationContext: 'seed',
           });
-          const fixture = fixtures[0];
-          if (!fixture) throw new Error('Expected fixture');
+          for (const [index, fixture] of fixtures.entries()) {
+            if (!fixture) throw new Error('Expected fixture');
+            const result = (
+              [
+                [entrantA.entrantId, entrantB.entrantId, 3],
+                [entrantA.entrantId, entrantC.entrantId, 2],
+                [entrantB.entrantId, entrantC.entrantId, 1],
+              ] as const
+            )[index];
+            if (!result) throw new Error('Expected result');
+            const [home, away, homeGoals] = result;
+            const match = await competition.createMatch(uow, {
+              fixtureId: fixture.fixtureId,
+              number: 1,
+              organizationId,
+              actor: 'user:seed',
+              authorizationContext: 'seed',
+            });
+            await competition.recordResult(uow, {
+              matchId: match.matchId,
+              result: {
+                sides: [
+                  { entrantId: home, statistics: { goals: homeGoals } },
+                  { entrantId: away, statistics: { goals: 0 } },
+                ],
+                winnerEntrantId: home,
+                recordedAt: new Date().toISOString(),
+              },
+              organizationId,
+              actor: 'user:seed',
+              authorizationContext: 'seed',
+            });
+          }
 
-          const match = await competition.createMatch(uow, {
-            fixtureId: fixture.fixtureId,
-            number: 1,
-            organizationId,
-            actor: 'user:seed',
-            authorizationContext: 'seed',
-          });
-
-          await competition.recordResult(uow, {
-            matchId: match.matchId,
-            result: {
-              sides: [
-                { entrantId: entrantA.entrantId, statistics: { goals: 2 } },
-                { entrantId: entrantB.entrantId, statistics: { goals: 0 } },
-              ],
-              winnerEntrantId: entrantA.entrantId,
-              recordedAt: new Date().toISOString(),
-            },
-            organizationId,
-            actor: 'user:seed',
-            authorizationContext: 'seed',
-          });
-
-          return { rank1Entrant: entrantA, rank2Entrant: entrantB };
+          return { rank1Entrant: entrantA, rank2Entrant: entrantB, rank3Entrant: entrantC };
         },
       );
 
@@ -2104,6 +2128,8 @@ describe('public projections routes', () => {
       expect(found.winners[0].champion.name).toBe('Placement A');
       expect(found.winners[0].runnerUp.entrantId).toBe(rank2Entrant.entrantId);
       expect(found.winners[0].runnerUp.name).toBe('Placement B');
+      expect(found.winners[0].thirdPlace.entrantId).toBe(rank3Entrant.entrantId);
+      expect(found.winners[0].thirdPlace.name).toBe('Placement C');
     });
 
     it('returns no winners on unfinished tournaments', async () => {

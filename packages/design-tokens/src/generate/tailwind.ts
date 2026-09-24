@@ -10,6 +10,7 @@ import {
   TYPOGRAPHY,
 } from '../primitives.js';
 import { SEMANTIC_COLORS } from '../semantic.js';
+import { BADGE_TONES } from '../components.js';
 
 /**
  * The same values as a Tailwind theme, for the React control app.
@@ -39,6 +40,8 @@ export function generateTailwindTheme(): TailwindTheme {
   const colors: Record<string, string> = {};
   for (const [name, value] of Object.entries(COLOR_PRIMITIVES)) colors[`cl-${name}`] = value;
   for (const name of Object.keys(SEMANTIC_COLORS)) colors[name] = `var(--cl-${name})`;
+  for (const name of Object.keys(BADGE_TONES))
+    colors[`badge-${name}`] = `var(--cl-badge-${name}-color)`;
 
   return {
     colors,

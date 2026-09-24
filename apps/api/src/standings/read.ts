@@ -25,6 +25,7 @@ export async function readStandings(
   },
   stageNumber: number,
   groupId?: string,
+  zoneId?: string,
 ) {
   const stages = await new CompetitionRepository(db).listStagesOfTournament(
     tournament.tournamentId,
@@ -45,10 +46,20 @@ export async function readStandings(
     if (!group) throw new NotFoundException(`No group ${groupId} in stage ${stageNumber}`);
   }
 
+  if (zoneId !== undefined) {
+    const zone = await db
+      .selectFrom('zones')
+      .select('zone_id')
+      .where('zone_id', '=', zoneId)
+      .where('stage_id', '=', stageId)
+      .executeTakeFirst();
+    if (!zone) throw new NotFoundException(`No zone ${zoneId} in stage ${stageNumber}`);
+  }
+
   // Historical snapshots predate group scoping. A scoped request always computes
   // from its own fixtures rather than risking a stage-wide snapshot leakage.
   const stored =
-    groupId === undefined
+    groupId === undefined && zoneId === undefined
       ? await new CompetitionRecordRepository(db).latestStandings(stageId)
       : undefined;
   const version = await new ProjectionStore(db).versionOf('standings', stageId);
@@ -76,7 +87,7 @@ export async function readStandings(
     };
   }
 
-  const record = await new StageReadModel(db).stageRecord(stageId, groupId);
+  const record = await new StageReadModel(db).stageRecord(stageId, groupId, zoneId);
   if (!record) throw new NotFoundException(`No stage ${stageNumber} in tournament`);
 
   const descriptor = await new TournamentRepository(db).findDescriptor(

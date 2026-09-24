@@ -454,6 +454,10 @@ export const messages = defineMessages({
   },
   tournamentsChampion: { id: 'publicWeb.tournamentsPage.champion', defaultMessage: 'Champion' },
   tournamentsRunnerUp: { id: 'publicWeb.tournamentsPage.runnerUp', defaultMessage: 'Runner-up' },
+  tournamentsThirdPlace: {
+    id: 'publicWeb.tournamentsPage.thirdPlace',
+    defaultMessage: 'Third place',
+  },
   tournamentsViewDetails: {
     id: 'publicWeb.tournamentsPage.viewDetails',
     defaultMessage: 'View tournament',

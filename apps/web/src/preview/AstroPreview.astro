@@ -110,6 +110,8 @@ const PREVIEWABLE = new Set([
   'series-state-bar',
   'tournament-hero',
   'champion-podium',
+  'champion-podium-shared-title',
+  'champion-podium-empty',
   'data-table',
   'match-card-grid',
   'match-hero',
@@ -358,6 +360,12 @@ const tournaments = referenceTournamentListing();
         <ChampionPodium intl={intl} winners={referenceWinnerZones()} />
       )
     }
+    {
+      component === 'champion-podium-shared-title' && (
+        <ChampionPodium intl={intl} winners={referenceWinnerZones().slice(1)} />
+      )
+    }
+    {component === 'champion-podium-empty' && <ChampionPodium intl={intl} winners={[]} />}
     {
       component === 'data-table' && (
         <DataTable

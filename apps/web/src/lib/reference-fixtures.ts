@@ -565,7 +565,7 @@ export function referenceStandingsTable(): ReferenceStandingsTable {
 
 /** Two zones: one decisive final and one shared title, to exercise public podium rendering. */
 export function referenceWinnerZones(): PublicTournamentWinnerZoneResponse[] {
-  const [meridian, ironclad, obsidian, echo] = REFERENCE_ENTRANTS;
+  const [meridian, ironclad, obsidian, echo, vermilion] = REFERENCE_ENTRANTS;
   return [
     {
       zoneId: '01936f4a-2001-7000-8000-000000000001',
@@ -579,6 +579,11 @@ export function referenceWinnerZones(): PublicTournamentWinnerZoneResponse[] {
         entrantId: ironclad.id,
         name: ironclad.name,
         abbreviation: ironclad.abbreviation,
+      },
+      thirdPlace: {
+        entrantId: vermilion.id,
+        name: vermilion.name,
+        abbreviation: vermilion.abbreviation,
       },
     },
     {

@@ -41,6 +41,19 @@ export const ResultLegendSpanish: Story = {
   args: { component: 'result-legend', locale: 'es', height: 220 },
 };
 
+/** The production podium with an explicit third place and a shared title. */
+export const ChampionPodiumLoaded: Story = {
+  args: { component: 'champion-podium', height: 420 },
+};
+
+export const ChampionPodiumSharedTitle: Story = {
+  args: { component: 'champion-podium-shared-title', height: 260 },
+};
+
+export const ChampionPodiumEmpty: Story = {
+  args: { component: 'champion-podium-empty', height: 220 },
+};
+
 /** The ticker over the canonical group results. */
 export const ScoreTicker: Story = {
   args: { component: 'score-ticker', height: 140 },
