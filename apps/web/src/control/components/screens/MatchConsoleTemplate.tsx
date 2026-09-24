@@ -122,6 +122,18 @@ export function MatchConsoleTemplate({
   // react-intl's own IntlShape types it as a bare `string` — narrow it here,
   // once, rather than at every resolveLabel call site.
   const language = isSupportedLanguage(intl.locale) ? intl.locale : 'en';
+  // `typeLabel` is discipline-declared (openspec 0281) — falls back to the raw
+  // slug only for a descriptor that hasn't set one, never a hardcoded guess.
+  const segmentTypeText = (segment: ConsoleSegment): string =>
+    resolveLabel(segment.typeLabel ?? segment.type, language);
+  const segmentStateText = (state: ConsoleSegment['state']): string =>
+    intl.formatMessage(
+      state === 'active'
+        ? messages.matchConsoleSegmentStateActive
+        : state === 'completed'
+          ? messages.matchConsoleSegmentStateCompleted
+          : messages.matchConsoleSegmentStatePending,
+    );
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
   // Explicit, and separate from selectedSide: selectedSide is JerseyGrid's
   // event-attribution field, reset by every jersey tap for a completely
@@ -373,7 +385,7 @@ export function MatchConsoleTemplate({
               onValueChange={setSelectedSegmentId}
               options={projection.segments.map((segment) => ({
                 value: segment.segmentId,
-                label: `${segment.type} ${segment.number} · ${segment.state}`,
+                label: `${segmentTypeText(segment)} ${segment.number} · ${segmentStateText(segment.state)}`,
               }))}
               value={selectedSegmentId}
             />
@@ -729,7 +741,15 @@ export function MatchConsoleTemplate({
                 type="button"
                 variant="secondary"
               >
-                {category === 'all' ? intl.formatMessage(messages.matchConsoleAll) : category}
+                {intl.formatMessage(
+                  category === 'all'
+                    ? messages.matchConsoleAll
+                    : category === 'positive'
+                      ? messages.matchConsoleCategoryPositive
+                      : category === 'negative'
+                        ? messages.matchConsoleCategoryNegative
+                        : messages.matchConsoleCategoryNeutral,
+                )}
               </Button>
             ))}
           </div>
@@ -742,6 +762,7 @@ export function MatchConsoleTemplate({
                     projection,
                     event.segmentId,
                     intl.formatMessage(messages.matchConsoleUnknownSegment),
+                    segmentTypeText,
                   )}
                   {event.segmentElapsedSeconds === undefined
                     ? null

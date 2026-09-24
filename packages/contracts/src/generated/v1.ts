@@ -3758,7 +3758,10 @@ export interface components {
         ConsoleSegmentResponse: {
             /** Format: uuid */
             segmentId: string;
+            /** @description Descriptor-declared segment type slug, e.g. "half" */
             type: string;
+            /** @description The bound discipline's declared display label for this segment type */
+            typeLabel?: Record<string, never>;
             number: number;
             /** @enum {string} */
             state: "pending" | "active" | "completed";

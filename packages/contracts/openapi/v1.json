@@ -13548,7 +13548,12 @@
             "format": "uuid"
           },
           "type": {
-            "type": "string"
+            "type": "string",
+            "description": "Descriptor-declared segment type slug, e.g. \"half\""
+          },
+          "typeLabel": {
+            "type": "object",
+            "description": "The bound discipline's declared display label for this segment type"
           },
           "number": {
             "type": "number"

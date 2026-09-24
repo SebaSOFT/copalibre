@@ -94,6 +94,13 @@ async function openDashboard(page: Page): Promise<void> {
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
   await expect(page.getByTestId('activeTournaments')).toBeVisible();
+  // `TYPOGRAPHY` loads Barlow/Barlow Condensed from Google Fonts with
+  // `display=swap` (packages/design-tokens/src/primitives.ts): text renders
+  // in the fallback stack first, then reflows once the real font swaps in.
+  // Several tests in this file measure flex-wrap boundaries (row counts at a
+  // specific viewport width), which is exactly what that reflow can tip over
+  // — waiting here, once, keeps every layout assertion below from racing it.
+  await page.evaluate(() => document.fonts.ready);
 }
 
 test('4.1: summary tiles sit in a row on desktop, stack on mobile, and keep a page gutter', async ({

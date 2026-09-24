@@ -1611,6 +1611,8 @@ export type MatchCapability =
 export interface ConsoleSegment {
   readonly segmentId: string;
   readonly type: string;
+  /** The bound discipline's declared display label for `type`, when the descriptor provides one. */
+  readonly typeLabel?: string | LocalizedLabel;
   readonly number: number;
   readonly state: 'pending' | 'active' | 'completed';
   readonly elapsedSeconds: number;

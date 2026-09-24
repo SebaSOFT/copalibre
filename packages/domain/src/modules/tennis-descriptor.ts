@@ -33,8 +33,34 @@ export function tennisDescriptor(overrides?: Partial<DisciplineDescriptor>): Dis
     // A team here is a doubles pair; singles is one player.
     rosterConstraints: { minPlayers: 1, maxPlayers: 2 },
     segmentTypes: [
-      { name: 'set', label: 'Set', timed: false },
-      { name: 'tiebreak', label: 'Tiebreak', timed: false },
+      {
+        name: 'set',
+        label: {
+          en: 'Set',
+          es: 'Set',
+          fr: 'Set',
+          de: 'Satz',
+          it: 'Set',
+          pt: 'Set',
+          ru: 'Сет',
+          zh: '盘',
+        },
+        timed: false,
+      },
+      {
+        name: 'tiebreak',
+        label: {
+          en: 'Tiebreak',
+          es: 'Muerte súbita',
+          fr: 'Jeu décisif',
+          de: 'Tiebreak',
+          it: 'Tiebreak',
+          pt: 'Tiebreak',
+          ru: 'Тай-брейк',
+          zh: '抢七',
+        },
+        timed: false,
+      },
     ],
     eventDefinitions: [
       {
