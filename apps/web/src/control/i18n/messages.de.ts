@@ -1232,4 +1232,21 @@ export const messages: Record<string, string> = {
     'Nicht durch eine bekannte Regel-Policy geregelt — wird als rohes JSON bearbeitet.',
   'control.rulesetField.unknownType':
     'Der Werttyp dieses Felds ist unbekannt — wird als rohes JSON bearbeitet.',
+
+  // invitation.* (AcceptInvitationForm.tsx / accept.astro)
+  'invitation.missingToken': 'Das Einladungstoken wurde im Link nicht gefunden.',
+  'invitation.passwordTooShort': 'Das Passwort muss mindestens 8 Zeichen lang sein.',
+  'invitation.passwordMismatch': 'Die Passwörter stimmen nicht überein.',
+  'invitation.acceptFailed': 'Die Einladung konnte nicht angenommen werden ({status}).',
+  'invitation.unexpectedError': 'Unerwarteter Fehler beim Annehmen der Einladung.',
+  'invitation.title': 'Einladung annehmen',
+  'invitation.subtitle': 'Richte dein CopaLibre-Administratorkonto ein',
+  'invitation.successHeading': 'Konto eingerichtet!',
+  'invitation.successBody': 'Weiterleitung zur Steuerungskonsole…',
+  'invitation.nameLabel': 'Vollständiger Name (optional)',
+  'invitation.namePlaceholder': 'Z. B. Ana Pérez',
+  'invitation.passwordLabel': 'Passwort (mindestens 8 Zeichen)',
+  'invitation.confirmPasswordLabel': 'Passwort bestätigen',
+  'invitation.submitLoading': 'Konto wird eingerichtet…',
+  'invitation.submit': 'Annehmen und starten',
 };

@@ -765,7 +765,9 @@ export const KNOWN_LITERAL_TEXT = new Map([
   ['pages/control/app.astro', 1],
   ['pages/help/api-reference.astro', 1],
   ['pages/index.astro', 3],
-  ['pages/invitations/accept.astro', 1],
+  // pages/invitations/accept.astro's hardcoded "CopaLibre · Aceptar
+  // invitación" title is now resolved through the message catalogue
+  // (openspec 0278) — zero violations, entry removed per the ratchet rule.
 ]);
 
 export function checkLiteralTextNodes(nodes) {

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { controlTokenStore } from '../session/token-store.js';
 import { Alert } from './ui/atoms/alert.js';
 import { Button } from './ui/atoms/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
 import { Field } from './ui/molecules/field.js';
+import { messages as catalog } from '../i18n/messages.en.js';
 
 /**
  * Invitation acceptance: the one unauthenticated screen that built its own
@@ -15,56 +16,28 @@ import { Field } from './ui/molecules/field.js';
  * sibling auth screens already use, inside the shared auth template.
  *
  * Every string here was hardcoded Spanish (found by `/impeccable critique`,
- * openspec 0225 task 8.3) — the exact `auth.*` namespace gap task 2.6
- * already restated in English elsewhere in this file's sibling screens.
- * `invitation.*` has no locale catalogue anywhere either, so every locale
- * currently falls back to the English `defaultMessage`; a real per-locale
- * catalogue for this namespace is separate work.
+ * openspec 0225 task 8.3). `invitation.*` now has a real per-locale
+ * catalogue (openspec 0278) — its descriptors live in the central
+ * `messages.en.ts`, like every other Control-web screen's, rather than in a
+ * local `defineMessages` block only this file could see.
  */
-const messages = defineMessages({
-  missingToken: {
-    id: 'invitation.missingToken',
-    defaultMessage: 'The invitation token was not found in the link.',
-  },
-  passwordTooShort: {
-    id: 'invitation.passwordTooShort',
-    defaultMessage: 'The password must be at least 8 characters.',
-  },
-  passwordMismatch: {
-    id: 'invitation.passwordMismatch',
-    defaultMessage: 'Passwords do not match.',
-  },
-  acceptFailed: {
-    id: 'invitation.acceptFailed',
-    defaultMessage: 'Failed to accept the invitation ({status}).',
-  },
-  unexpectedError: {
-    id: 'invitation.unexpectedError',
-    defaultMessage: 'Unexpected error accepting the invitation.',
-  },
-  title: { id: 'invitation.title', defaultMessage: 'Accept invitation' },
-  subtitle: {
-    id: 'invitation.subtitle',
-    defaultMessage: 'Set up your CopaLibre administrator account',
-  },
-  successHeading: { id: 'invitation.successHeading', defaultMessage: 'Account set up!' },
-  successBody: {
-    id: 'invitation.successBody',
-    defaultMessage: 'Redirecting to the control console…',
-  },
-  nameLabel: { id: 'invitation.nameLabel', defaultMessage: 'Full name (optional)' },
-  namePlaceholder: { id: 'invitation.namePlaceholder', defaultMessage: 'E.g. Ana Pérez' },
-  passwordLabel: {
-    id: 'invitation.passwordLabel',
-    defaultMessage: 'Password (minimum 8 characters)',
-  },
-  confirmPasswordLabel: {
-    id: 'invitation.confirmPasswordLabel',
-    defaultMessage: 'Confirm password',
-  },
-  submitLoading: { id: 'invitation.submitLoading', defaultMessage: 'Setting up account…' },
-  submit: { id: 'invitation.submit', defaultMessage: 'Accept and start' },
-});
+const messages = {
+  missingToken: catalog.invitationMissingToken,
+  passwordTooShort: catalog.invitationPasswordTooShort,
+  passwordMismatch: catalog.invitationPasswordMismatch,
+  acceptFailed: catalog.invitationAcceptFailed,
+  unexpectedError: catalog.invitationUnexpectedError,
+  title: catalog.invitationTitle,
+  subtitle: catalog.invitationSubtitle,
+  successHeading: catalog.invitationSuccessHeading,
+  successBody: catalog.invitationSuccessBody,
+  nameLabel: catalog.invitationNameLabel,
+  namePlaceholder: catalog.invitationNamePlaceholder,
+  passwordLabel: catalog.invitationPasswordLabel,
+  confirmPasswordLabel: catalog.invitationConfirmPasswordLabel,
+  submitLoading: catalog.invitationSubmitLoading,
+  submit: catalog.invitationSubmit,
+};
 
 export function AcceptInvitationForm({
   initialToken,

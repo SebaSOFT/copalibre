@@ -767,7 +767,12 @@ function components(): string {
     // the shipped login/forgot/reset screens carry it. A Card composed inside
     // this panel sits 24px inboard of it, so the two read as a rail plus a
     // card rather than a doubled border.
-    '.cl-auth-screen__panel { width: min(100%, 560px); min-width: 0; max-width: 100%; box-sizing: border-box; align-self: center; margin-block: var(--cl-space-8); display: grid; gap: var(--cl-space-5); border-left: 4px solid var(--cl-state-live); padding: var(--cl-space-6) 0 var(--cl-space-6) var(--cl-space-6); }',
+    // `.cl-auth-screen` is a single-column grid, so `align-self: center` alone
+    // only centers the panel vertically (the block axis); without
+    // `justify-self: center` (the inline axis) the panel's constrained width
+    // left it flush to the grid track's start edge instead of centered
+    // (openspec 0278).
+    '.cl-auth-screen__panel { width: min(100%, 560px); min-width: 0; max-width: 100%; box-sizing: border-box; align-self: center; justify-self: center; margin-block: var(--cl-space-8); display: grid; gap: var(--cl-space-5); border-left: 4px solid var(--cl-state-live); padding: var(--cl-space-6) 0 var(--cl-space-6) var(--cl-space-6); }',
     '',
     '.cl-match-console-screen__header { display: flex; justify-content: space-between; align-items: start; gap: var(--cl-space-4); flex-wrap: wrap; min-width: 0; }',
     '.cl-match-console-screen__header > * { min-width: 0; }',
