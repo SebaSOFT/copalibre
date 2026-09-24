@@ -82,6 +82,31 @@ SHALL NOT define a color-only state representation.
 - **WHEN** the badge component token/contract is used without a text label
 - **THEN** the build fails or the component renders a visible validation error, never a color-only badge
 
+### Requirement: Badge state tones are defined tokens
+The token set SHALL define a generated token, and corresponding CSS custom property, for each named
+badge tone the product writes: `live`, `final`, `upcoming`, `stage`, `muted`, and `positive`. Each tone
+SHALL resolve consistently everywhere its class is used, independent of any page-local stylesheet, and
+SHALL follow the same color-plus-label pairing this capability already requires of every badge state
+(see "State badges pair color with text").
+
+The already generated `live` and `final` styles SHALL keep their appearance when promoted to declared
+tokens. Pages SHALL NOT define an overriding badge tone in a page-local stylesheet.
+
+#### Scenario: A badge tone renders identically on every surface that uses it
+- **WHEN** a component applies the `live`, `final`, `upcoming`, `stage`, `muted`, or `positive` badge
+  tone on any page
+- **THEN** it resolves to the same generated token's color and typography treatment as every other
+  surface using that same tone
+
+#### Scenario: Existing badge tones keep their appearance
+- **WHEN** `live` and `final` use the declared token-backed rules
+- **THEN** their color, background and border treatments match the previous generated rules
+
+#### Scenario: An undefined tone is not silently accepted
+- **WHEN** a component requests a badge tone outside the defined set
+- **THEN** the build fails or falls back to the default badge treatment, never to an unstyled or
+  browser-default appearance
+
 ### Requirement: Chamfered-corner motif with progressive enhancement
 The token set SHALL define one shared chamfer size, and a smaller control size, applied exclusively
 through `corner-shape` and `border-radius` without any `clip-path` fallback.
