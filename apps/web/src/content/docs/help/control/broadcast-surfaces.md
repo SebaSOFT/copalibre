@@ -6,6 +6,7 @@ capabilities:
   - live-operations/public-live-surfaces
   - public-web/public-web-shell
   - public-web/tournament-winner-resolution
+  - public-web/tournament-overview
   - design-system/operational-surface-parity
 roles:
   - broadcaster
@@ -32,6 +33,12 @@ published, at the same organization/tournament address the control panel and the
 bracket the same way it does in the control panel, and a match not yet scheduled is shown as such, never
 guessed at. Completed elimination tournaments identify champions from the championship fixture even
 when classification fixtures share its final round; a tied championship can show both co-champions.
+
+A tournament whose playoff stage resolved more than one final zone — a Gold/Silver bracket split, for
+example — shows a champions podium on its overview page once finished: one entry per resolved zone,
+naming every declared champion and any explicitly resolved runner-up and third place. The page never
+invents a rank a zone did not explicitly resolve, and shows no podium at all for a single-zone
+tournament or one that has not finished yet.
 
 ## What you cannot do here
 
