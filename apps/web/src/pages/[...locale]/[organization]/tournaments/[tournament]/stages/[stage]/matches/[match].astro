@@ -89,14 +89,15 @@ const structuredData = {
     }
 
     <div class="cl-match-details">
-      <MatchOfficials model={model} />
+      <MatchOfficials model={model} intl={intl} />
       <MatchRosters
         model={model}
+        intl={intl}
         locale={locale}
         organization={organization!}
         tournament={tournament!}
       />
-      <MatchTimeline model={model} />
+      <MatchTimeline model={model} intl={intl} />
     </div>
   </article>
 </PublicLayout>

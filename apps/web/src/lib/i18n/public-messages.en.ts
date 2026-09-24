@@ -629,4 +629,64 @@ export const messages = defineMessages({
     id: 'publicWeb.completion.unmeasured',
     defaultMessage: 'No matches scheduled',
   },
+
+  // Match report sections (openspec 0269): MatchTimeline.astro, MatchOfficials.astro,
+  // MatchRosters.astro. Each component gets its own namespace rather than a shared
+  // "match report" bucket, so a future change to one section's copy touches only it.
+  matchTimelineHeading: {
+    id: 'publicWeb.matchTimeline.heading',
+    defaultMessage: 'Event timeline',
+  },
+  matchTimelineEmpty: {
+    id: 'publicWeb.matchTimeline.empty',
+    defaultMessage: 'Events are not yet available.',
+  },
+  matchOfficialsHeading: {
+    id: 'publicWeb.matchOfficials.heading',
+    defaultMessage: 'Officials',
+  },
+  matchOfficialsScheduleNotPublished: {
+    id: 'publicWeb.matchOfficials.scheduleNotPublished',
+    defaultMessage: 'Schedule has not yet been published.',
+  },
+  matchOfficialsNoneAssigned: {
+    id: 'publicWeb.matchOfficials.noneAssigned',
+    defaultMessage: 'No officials assigned.',
+  },
+  matchRostersHeading: {
+    id: 'publicWeb.matchRosters.heading',
+    defaultMessage: 'Rosters',
+  },
+  matchRostersEmpty: {
+    id: 'publicWeb.matchRosters.empty',
+    defaultMessage: 'Rosters are not yet available.',
+  },
+  matchRostersTeamEmpty: {
+    id: 'publicWeb.matchRosters.teamEmpty',
+    defaultMessage: 'Roster not yet available.',
+  },
+  matchRostersColumnNumber: {
+    id: 'publicWeb.matchRosters.columnNumber',
+    defaultMessage: 'No.',
+  },
+  matchRostersColumnPlayer: {
+    id: 'publicWeb.matchRosters.columnPlayer',
+    defaultMessage: 'Player',
+  },
+  matchRostersColumnRoles: {
+    id: 'publicWeb.matchRosters.columnRoles',
+    defaultMessage: 'Roles',
+  },
+  matchRostersColumnOnField: {
+    id: 'publicWeb.matchRosters.columnOnField',
+    defaultMessage: 'On field',
+  },
+  matchRostersOnFieldYes: {
+    id: 'publicWeb.matchRosters.onFieldYes',
+    defaultMessage: 'Yes',
+  },
+  matchRostersOnFieldNo: {
+    id: 'publicWeb.matchRosters.onFieldNo',
+    defaultMessage: 'No',
+  },
 });

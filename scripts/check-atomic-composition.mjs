@@ -741,9 +741,9 @@ export const KNOWN_LITERAL_TEXT = new Map([
   // did not name, recorded rather than silently exempted, same as the rest
   // of this register.
   ['components/ui/organisms/MatchHero.astro', 1],
-  ['components/ui/organisms/MatchOfficials.astro', 3],
-  ['components/ui/organisms/MatchRosters.astro', 5],
-  ['components/ui/organisms/MatchTimeline.astro', 2],
+  // `MatchOfficials.astro`, `MatchRosters.astro` and `MatchTimeline.astro`'s
+  // entries are gone (openspec 0269): every literal moved into the message
+  // catalogue, and every timestamp now renders through `ResponsiveTimestamp`.
   // `PlayerProfileView.astro`'s entry is gone (openspec 0225 task 8.1): its
   // three column headers moved into `DataTable`'s `columns` config as plain
   // JS string literals when the file adopted the owned table, the same way
