@@ -1,4 +1,4 @@
-import { buildOverview, displayName, shortLabel } from './overview.js';
+import { buildOverview, displayName, shortLabel, shouldShowChampionPodium } from './overview.js';
 import { PUBLIC_ROUTES } from './public-routes.js';
 import { sampleOverview } from './sample-data.js';
 
@@ -26,6 +26,20 @@ describe('the overview model', () => {
 
   it('counts what is live, so the badge carries a number and not just a colour', () => {
     expect(model.liveCount).toBe(1);
+  });
+
+  it('shows the podium only for a finished overview with multiple resolved zones', () => {
+    const champion = { entrantId: '01936f4a-2001-7000-8000-000000000001', name: 'Club A' };
+    const zone = { zoneName: 'Gold', champion };
+    expect(
+      shouldShowChampionPodium({
+        status: 'finished',
+        winners: [zone, { ...zone, zoneName: 'Silver' }],
+      }),
+    ).toBe(true);
+    expect(shouldShowChampionPodium({ status: 'finished', winners: [zone] })).toBe(false);
+    expect(shouldShowChampionPodium({ status: 'live', winners: [zone, zone] })).toBe(false);
+    expect(shouldShowChampionPodium({ status: 'finished', winners: [] })).toBe(false);
   });
 
   it('shows the abbreviation when there is one and the name when there is not', () => {

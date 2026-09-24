@@ -10,6 +10,7 @@ import {
 import { CONTRAST_GATES, contrastRatio } from './contrast.js';
 import { PROTECTED_TOKENS, SEMANTIC_COLORS, isProtected, resolveSemantic } from './semantic.js';
 import {
+  BADGE_TONES,
   BUTTON_VARIANTS,
   CHECKBOX_TOKENS,
   RADIO_TOKENS,
@@ -156,6 +157,22 @@ describe('the Control-web data-density spacing subset', () => {
 });
 
 describe('the badge contract', () => {
+  it('defines every used tone with a semantic color, weight and non-color cue', () => {
+    expect(Object.keys(BADGE_TONES)).toEqual([
+      'live',
+      'final',
+      'upcoming',
+      'stage',
+      'muted',
+      'positive',
+    ]);
+    for (const tone of Object.values(BADGE_TONES)) {
+      expect(SEMANTIC_COLORS[tone.color]).toBeDefined();
+      expect(tone.nonColourCue).not.toBe('');
+      expect(assertBadge({ state: tone.color, label: tone.nonColourCue })).toBeDefined();
+    }
+  });
+
   it('accepts a badge with a label', () => {
     expect(assertBadge({ state: 'state-live', label: 'EN VIVO' }).label).toBe('EN VIVO');
   });
@@ -167,6 +184,14 @@ describe('the badge contract', () => {
 
 describe('the CSS output', () => {
   const css = generateCss();
+
+  it('generates a token-backed rule for every badge tone', () => {
+    for (const [name, tone] of Object.entries(BADGE_TONES)) {
+      expect(css).toContain(`--cl-badge-${name}-color: var(--cl-${tone.color});`);
+      expect(css).toContain(`.cl-badge--${name} {`);
+      expect(css).toContain(`color: var(--cl-badge-${name}-color);`);
+    }
+  });
 
   it('declares every primitive and every semantic token', () => {
     for (const name of Object.keys(COLOR_PRIMITIVES)) expect(css).toContain(`--cl-color-${name}:`);

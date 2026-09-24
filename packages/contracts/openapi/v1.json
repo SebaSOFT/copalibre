@@ -16293,6 +16293,14 @@
           },
           "runnerUp": {
             "$ref": "#/components/schemas/PublicTournamentEntrantPodiumResponse"
+          },
+          "thirdPlace": {
+            "description": "Rank three only when a completed ranked stage explicitly resolves one entrant.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicTournamentEntrantPodiumResponse"
+              }
+            ]
           }
         },
         "required": [

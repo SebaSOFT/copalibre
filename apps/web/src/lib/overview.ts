@@ -11,6 +11,8 @@ import { IMPLICIT_SEASON_NAME } from '@copalibre/domain';
 export type MatchState = 'live' | 'upcoming' | 'final' | 'disputed';
 
 export interface OverviewMatch {
+  /** Absent in synthetic fixtures that have not yet been persisted as matches. */
+  readonly matchId?: string;
   /** Absent while a generated fixture has not become a persisted match. */
   readonly matchNumber?: number;
   readonly stageNumber: number;
@@ -106,6 +108,13 @@ export function buildOverview(input: OverviewInput): OverviewModel {
     streamPath: publicStreamPath(input),
     liveCount: input.matches.filter((match) => match.state === 'live').length,
   };
+}
+
+/** A resolved multi-zone finish has enough independent outcomes to warrant a podium section. */
+export function shouldShowChampionPodium(
+  model: Pick<OverviewModel, 'status' | 'winners'>,
+): boolean {
+  return model.status === 'finished' && (model.winners?.length ?? 0) > 1;
 }
 
 /**

@@ -282,38 +282,52 @@ export async function resolveTournamentWinners(
           );
         }
       } else {
-        const standings = await readStandings(db, tournament, terminalStage.number);
+        const standings = await readStandings(
+          db,
+          tournament,
+          terminalStage.number,
+          undefined,
+          zone.zoneId,
+        );
         if (standings.rows.length > 0) {
-          const rank1 = standings.rows.find((r) => r.rank === 1) ?? standings.rows[0];
-          const rank2 =
-            standings.rows.find((r) => r.rank === 2) ??
-            (standings.rows.length > 1 ? standings.rows[1] : undefined);
-          if (rank1) {
-            const entrantIds = rank2 ? [rank1.entrantId, rank2.entrantId] : [rank1.entrantId];
+          const rankOneRows = standings.rows.filter((row) => row.rank === 1);
+          const rankTwoRows = standings.rows.filter((row) => row.rank === 2);
+          const rank2 = rankTwoRows.length === 1 ? rankTwoRows[0] : undefined;
+          const rankThreeRows = standings.fullyResolved
+            ? standings.rows.filter((row) => row.rank === 3)
+            : [];
+          const rank3 = rankThreeRows.length === 1 ? rankThreeRows[0] : undefined;
+          if (rankOneRows.length > 0) {
+            const entrantIds = [
+              ...rankOneRows.map((row) => row.entrantId),
+              rank2?.entrantId,
+              rank3?.entrantId,
+            ].filter((entrantId): entrantId is string => entrantId !== undefined);
             const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails(entrantIds);
-            const championDetails = podiumDetails.get(rank1.entrantId);
+            const champions = rankOneRows.flatMap((row) => {
+              const details = podiumDetails.get(row.entrantId);
+              return details
+                ? [
+                    {
+                      entrantId: row.entrantId,
+                      name: details.name,
+                      abbreviation: details.abbreviation,
+                      clubId: details.clubId,
+                      emblemObjectId: details.emblemObjectId,
+                    },
+                  ]
+                : [];
+            });
 
-            if (championDetails) {
+            const primaryChampion = champions[0];
+            if (primaryChampion && champions.length === rankOneRows.length) {
               const runnerUpDetails = rank2 ? podiumDetails.get(rank2.entrantId) : undefined;
+              const thirdPlaceDetails = rank3 ? podiumDetails.get(rank3.entrantId) : undefined;
               results.push({
                 ...(zone.zoneId ? { zoneId: zone.zoneId } : {}),
                 ...(zone.zoneName ? { zoneName: zone.zoneName } : {}),
-                champion: {
-                  entrantId: rank1.entrantId,
-                  name: championDetails.name,
-                  abbreviation: championDetails.abbreviation,
-                  clubId: championDetails.clubId,
-                  emblemObjectId: championDetails.emblemObjectId,
-                },
-                champions: [
-                  {
-                    entrantId: rank1.entrantId,
-                    name: championDetails.name,
-                    abbreviation: championDetails.abbreviation,
-                    clubId: championDetails.clubId,
-                    emblemObjectId: championDetails.emblemObjectId,
-                  },
-                ],
+                champion: primaryChampion,
+                champions,
                 ...(runnerUpDetails && rank2
                   ? {
                       runnerUp: {
@@ -322,6 +336,17 @@ export async function resolveTournamentWinners(
                         abbreviation: runnerUpDetails.abbreviation,
                         clubId: runnerUpDetails.clubId,
                         emblemObjectId: runnerUpDetails.emblemObjectId,
+                      },
+                    }
+                  : {}),
+                ...(thirdPlaceDetails && rank3
+                  ? {
+                      thirdPlace: {
+                        entrantId: rank3.entrantId,
+                        name: thirdPlaceDetails.name,
+                        abbreviation: thirdPlaceDetails.abbreviation,
+                        clubId: thirdPlaceDetails.clubId,
+                        emblemObjectId: thirdPlaceDetails.emblemObjectId,
                       },
                     }
                   : {}),

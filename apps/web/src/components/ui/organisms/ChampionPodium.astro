@@ -19,7 +19,7 @@ const { winners, intl, prominent = false } = Astro.props;
       aria-label={intl.formatMessage(messages.tournamentsFinishedHeading)}
     >
       {winners.map((zone) => (
-        <div class="cl-zone-podium">
+        <div class="cl-zone-podium cl-chamfer">
           {zone.zoneName && <div class="cl-zone-title">{zone.zoneName}</div>}
           <div class="cl-podium-grid">
             {(zone.champions?.length ? zone.champions : [zone.champion]).map((champion) => (
@@ -66,6 +66,27 @@ const { winners, intl, prominent = false } = Astro.props;
                 </div>
               </div>
             )}
+            {zone.thirdPlace && (
+              <div class="cl-podium-spot" data-entrant-id={zone.thirdPlace.entrantId}>
+                <div class="cl-medal-badge cl-bronze-medal" aria-hidden="true">
+                  3
+                </div>
+                <div class="cl-entrant-info">
+                  <span class="cl-podium-label">
+                    {intl.formatMessage(messages.tournamentsThirdPlace)}
+                  </span>
+                  <span class="cl-entrant-name" title={zone.thirdPlace.name}>
+                    {zone.thirdPlace.name}
+                    {zone.thirdPlace.abbreviation && (
+                      <span class="cl-entrant-abbr" title={zone.thirdPlace.name}>
+                        {' '}
+                        ({zone.thirdPlace.abbreviation})
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ))}
@@ -75,97 +96,86 @@ const { winners, intl, prominent = false } = Astro.props;
 
 <style>
   .cl-podium-container {
-    background-color: color-mix(in srgb, var(--cl-color-ink-950) 25%, transparent);
-    border: 1px solid color-mix(in srgb, var(--cl-text-primary) 7%, transparent);
-    border-radius: 8px;
-    padding: 0.85rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    display: grid;
+    gap: var(--cl-space-4);
   }
 
   .cl-podium-prominent {
-    background: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--cl-state-upcoming) 8%, transparent),
-      color-mix(in srgb, var(--cl-color-ink-950) 40%, transparent)
-    );
-    border: 1px solid color-mix(in srgb, var(--cl-state-upcoming) 30%, transparent);
-    border-radius: var(--cl-radius-lg);
-    padding: 1.25rem 1.5rem;
-    margin: 1rem 0;
-  }
-
-  .cl-podium-prominent .cl-champion-spot {
-    background-color: color-mix(in srgb, var(--cl-state-upcoming) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--cl-state-upcoming) 25%, transparent);
-    padding: 0.75rem 1rem;
-  }
-
-  .cl-podium-prominent .cl-entrant-name {
-    font-size: var(--cl-font-size-md);
-    font-weight: 700;
-  }
-
-  .cl-podium-prominent .cl-medal-badge {
-    width: 32px;
-    height: 32px;
-    font-size: var(--cl-font-size-sm);
+    margin-block: var(--cl-space-4);
   }
 
   .cl-zone-title {
-    font-size: var(--cl-font-size-sm);
-    font-weight: 700;
+    font-family: var(--cl-font-display);
+    font-size: var(--cl-font-size-md);
+    font-weight: var(--cl-weight-bold);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--cl-state-upcoming);
-    margin-bottom: 0.35rem;
+    letter-spacing: var(--cl-tracking-wider);
+    color: var(--cl-text-primary);
+  }
+
+  .cl-zone-podium {
+    background: var(--cl-surface-base);
+    border: 1px solid var(--cl-border-muted);
+    padding: var(--cl-space-4);
+    display: grid;
+    gap: var(--cl-space-3);
+    min-width: 0;
   }
 
   .cl-podium-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 0.6rem;
+    gap: var(--cl-space-2);
   }
 
-  @media (min-width: 480px) {
+  @media (min-width: 768px) {
     .cl-podium-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 
   .cl-podium-spot {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    padding: 0.5rem;
-    border-radius: var(--cl-radius-md);
-    background-color: color-mix(in srgb, var(--cl-text-primary) 3%, transparent);
+    gap: var(--cl-space-2);
+    padding: var(--cl-space-3);
+    border-top: 1px solid var(--cl-border-muted);
     min-width: 0;
   }
 
+  @media (max-width: 240px) {
+    .cl-podium-spot {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+
   .cl-medal-badge {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: var(--cl-space-8);
+    height: var(--cl-space-8);
+    display: grid;
+    place-items: center;
+    font-family: var(--cl-font-mono);
+    font-variant-numeric: tabular-nums;
     font-size: var(--cl-font-size-xs);
-    font-weight: 800;
+    font-weight: var(--cl-weight-bold);
     flex-shrink: 0;
   }
 
   .cl-gold-medal {
-    background: linear-gradient(135deg, var(--cl-state-upcoming), var(--cl-color-amber-800));
-    color: var(--cl-color-ink-950);
-    box-shadow: 0 0 8px color-mix(in srgb, var(--cl-state-upcoming) 40%, transparent);
+    background: var(--cl-state-upcoming);
+    color: var(--cl-surface-base);
   }
 
   .cl-silver-medal {
-    background: linear-gradient(135deg, var(--cl-text-secondary), var(--cl-text-muted));
+    background: var(--cl-text-secondary);
     color: var(--cl-surface-base);
-    box-shadow: 0 0 6px color-mix(in srgb, var(--cl-text-secondary) 30%, transparent);
+  }
+
+  .cl-bronze-medal {
+    background: var(--cl-surface-chrome);
+    color: var(--cl-text-primary);
+    border: 1px solid var(--cl-border-strong);
   }
 
   .cl-entrant-info {
@@ -176,9 +186,9 @@ const { winners, intl, prominent = false } = Astro.props;
 
   .cl-podium-label {
     font-size: var(--cl-font-size-xs);
-    font-weight: 600;
+    font-weight: var(--cl-weight-semibold);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: var(--cl-tracking-wider);
     color: var(--cl-text-muted);
     /* A longer translated label (German "Zweitplatzierter") can otherwise
        push this flex column past a narrow viewport (openspec 0225 task 7.4). */
@@ -187,16 +197,14 @@ const { winners, intl, prominent = false } = Astro.props;
 
   .cl-entrant-name {
     font-size: var(--cl-font-size-sm);
-    font-weight: 600;
+    font-weight: var(--cl-weight-semibold);
     color: var(--cl-text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
   }
 
   .cl-entrant-abbr {
     color: var(--cl-text-muted);
     font-weight: normal;
-    margin-left: 0.25rem;
+    margin-inline-start: var(--cl-space-1);
   }
 </style>

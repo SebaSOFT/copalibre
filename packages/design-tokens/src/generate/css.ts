@@ -13,6 +13,7 @@ import {
   TYPOGRAPHY,
 } from '../primitives.js';
 import {
+  BADGE_TONES,
   BUTTON_VARIANTS,
   CARD_STATES,
   CHECKBOX_TOKENS,
@@ -56,6 +57,10 @@ export function generateCss(): string {
     ...Object.entries(SEMANTIC_COLORS).map(
       ([name, token]) => `  --cl-${name}: var(--cl-color-${token.primitive});`,
     ),
+    ...Object.entries(BADGE_TONES).flatMap(([name, tone]) => [
+      `  --cl-badge-${name}-color: var(--cl-${tone.color});`,
+      `  --cl-badge-${name}-weight: var(--cl-weight-${tone.weight});`,
+    ]),
     '',
     `  --cl-font-display: ${TYPOGRAPHY.display};`,
     `  --cl-font-body: ${TYPOGRAPHY.body};`,
@@ -883,12 +888,10 @@ function components(): string {
     '  }',
     '}',
     '',
-    // Promoted from `MatchHero.astro`'s own scoped styles (openspec 0225
-    // task 8.1): a state variant belongs to the shared badge, not to one
-    // organism's private copy of it, so every future `<Badge>` — not only
-    // the match hero's — can reach a live or final treatment.
-    '.cl-badge--live { background: color-mix(in srgb, var(--cl-primary) 15%, transparent); color: var(--cl-primary); border: 1px solid color-mix(in srgb, var(--cl-primary) 40%, transparent); }',
-    '.cl-badge--final { background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent); color: var(--cl-state-positive); }',
+    ...Object.entries(BADGE_TONES).map(
+      ([name, tone]) =>
+        `.cl-badge--${name} { background: color-mix(in srgb, var(--cl-badge-${name}-color) 15%, transparent); color: var(--cl-badge-${name}-color); ${tone.border ? `border: 1px solid color-mix(in srgb, var(--cl-badge-${name}-color) 40%, transparent); ` : ''}font-weight: var(--cl-badge-${name}-weight); }`,
+    ),
     // A confirmed/verified computed result — same positive role as `--final`,
     // its own name because "final" already means a finished match.
     '.cl-badge--verified { background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent); color: var(--cl-state-positive); border: 1px solid color-mix(in srgb, var(--cl-state-positive) 40%, transparent); }',

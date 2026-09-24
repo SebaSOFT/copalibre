@@ -4823,6 +4823,8 @@ export interface components {
             /** @description Every champion in this zone, including multiple entrants for a shared title. */
             champions?: components["schemas"]["PublicTournamentEntrantPodiumResponse"][];
             runnerUp?: components["schemas"]["PublicTournamentEntrantPodiumResponse"];
+            /** @description Rank three only when a completed ranked stage explicitly resolves one entrant. */
+            thirdPlace?: components["schemas"]["PublicTournamentEntrantPodiumResponse"];
         };
         PublicTournamentListingItemResponse: {
             /** Format: uuid */

@@ -93,7 +93,7 @@ export class StageReadModel {
       }
     }
 
-    const outcomes = await this.outcomes(stageId, groupId);
+    const outcomes = await this.outcomes(stageId, groupId, zoneId);
     return {
       stageId: stage.stage_id,
       format: stage.format as TournamentFormat,
@@ -183,7 +183,11 @@ export class StageReadModel {
   }
 
   /** Finalized results as the accounting engine reads them. */
-  async outcomes(stageId: string, groupId?: string): Promise<readonly RecordedOutcome[]> {
+  async outcomes(
+    stageId: string,
+    groupId?: string,
+    zoneId?: string,
+  ): Promise<readonly RecordedOutcome[]> {
     let query = this.db
       .selectFrom('matches')
       .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
@@ -191,6 +195,7 @@ export class StageReadModel {
       .where('fixtures.stage_id', '=', stageId)
       .where('matches.result', 'is not', null);
     if (groupId !== undefined) query = query.where('fixtures.group_id', '=', groupId);
+    if (zoneId !== undefined) query = query.where('fixtures.zone_id', '=', zoneId);
     const rows = await query.orderBy('matches.number').execute();
 
     return rows.flatMap((row) => {

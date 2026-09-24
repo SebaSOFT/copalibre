@@ -121,6 +121,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tournamentsPage.empty': '未找到已发布的赛事。',
   'publicWeb.tournamentsPage.champion': '冠军',
   'publicWeb.tournamentsPage.runnerUp': '亚军',
+  'publicWeb.tournamentsPage.thirdPlace': '季军',
   'publicWeb.tournamentsPage.viewDetails': '查看赛事',
   'publicWeb.orgPage.featuredHeading': '精选',
   'publicWeb.orgPage.clubsHeading': '俱乐部',

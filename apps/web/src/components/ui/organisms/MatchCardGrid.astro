@@ -1,11 +1,10 @@
 ---
 import type { IntlShape } from 'react-intl';
-import { Badge } from '../atoms/Badge.tsx';
-import { Card } from '../atoms/Card.tsx';
-import { EntrantName } from '../atoms/EntrantName.tsx';
+import { MatchCard } from './MatchCard.tsx';
 import type { OverviewModel } from '../../../lib/overview.ts';
+import type { MatchCardData } from '../../../lib/matches-view.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
-import { resultStateLabels } from '../../../lib/i18n/public-intl.ts';
+import { matchCardLabels } from '../../../lib/i18n/public-intl.ts';
 
 interface Props {
   readonly model: OverviewModel;
@@ -14,7 +13,11 @@ interface Props {
   readonly localePrefix?: string;
 }
 const { model, intl, localePrefix = '' } = Astro.props;
-const labels = resultStateLabels(intl);
+const labels = matchCardLabels(intl);
+const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
 ---
 
 {
@@ -28,39 +31,27 @@ const labels = resultStateLabels(intl);
   {model.matches.length === 0 && <p>{intl.formatMessage(messages.matchGridEmpty)}</p>}
   <ul class="cl-match-card-grid">
     {
-      model.matches.map((match) => {
+      model.matches.map((match, index) => {
+        const cardMatch: MatchCardData = {
+          matchId: match.matchId ?? `${match.stageNumber}-${index}`,
+          matchNumber: match.matchNumber ?? 0,
+          stageNumber: match.stageNumber,
+          state: match.state,
+          homeName: match.home.name,
+          homeAbbreviation: match.home.abbreviation,
+          homeScore: match.home.score,
+          awayName: match.away.name,
+          awayAbbreviation: match.away.abbreviation,
+          awayScore: match.away.score,
+          ...(match.startsAt
+            ? {
+                scheduledAt: match.startsAt,
+                scheduledAtLabel: kickoffFormatter.format(new Date(match.startsAt)),
+              }
+            : {}),
+        };
         const cardContent = (
-          <Card
-            as="article"
-            className={`cl-match-card cl-card--${match.state === 'final' ? 'positive' : match.state === 'disputed' ? 'destructive' : match.state}`}
-          >
-            <div class="cl-match-card__header">
-              <Badge>{labels[match.state]}</Badge>
-              {match.startsAt && (
-                <time datetime={match.startsAt} class="cl-match-card__clock">
-                  {match.startsAt}
-                </time>
-              )}
-            </div>
-            <ol class="cl-match-card__sides">
-              <li class="cl-match-card__side">
-                <EntrantName
-                  abbreviation={match.home.abbreviation}
-                  client:load
-                  fullName={match.home.name}
-                />
-                <span class="cl-stat-tile__value">{match.home.score ?? '—'}</span>
-              </li>
-              <li class="cl-match-card__side">
-                <EntrantName
-                  abbreviation={match.away.abbreviation}
-                  client:load
-                  fullName={match.away.name}
-                />
-                <span class="cl-stat-tile__value">{match.away.score ?? '—'}</span>
-              </li>
-            </ol>
-          </Card>
+          <MatchCard client:load match={cardMatch} labels={labels} locale={intl.locale} />
         );
 
         return (
