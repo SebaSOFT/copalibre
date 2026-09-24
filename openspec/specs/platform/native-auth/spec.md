@@ -100,3 +100,18 @@ When a principal is created via native registration or local bootstrap (`copalib
 #### Scenario: Role assignment check for native principal
 - **WHEN** an authenticated route checks permissions for a native principal
 - **THEN** `IdentityPrincipalRepository.findByOidcSubject` returns the matching principal record and its associated permissions.
+
+### Requirement: Invitation acceptance screen is fully localized and centered
+The administrator invitation acceptance screen (`/invitations/accept`) SHALL resolve its document
+language, page title, and form vocabulary through the active locale's message catalogue across all
+supported languages, and SHALL render its authentication card with balanced viewport centering.
+
+#### Scenario: Sighted visitor accepts invitation in non-English locale
+- **WHEN** an administrator opens an invitation link with a non-English language preference
+- **THEN** the document language attribute, document title, and all form labels and validation
+  messages appear in that configured language
+
+#### Scenario: Authentication layout centers on wide viewports
+- **WHEN** an administrator views the invitation acceptance screen on a desktop viewport
+- **THEN** the authentication card is horizontally centered or balanced within the main content area
+  rather than pinned against the left edge
