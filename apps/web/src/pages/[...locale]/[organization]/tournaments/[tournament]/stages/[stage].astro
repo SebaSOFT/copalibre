@@ -152,6 +152,7 @@ const structuredData = {
         {stageMatches.map((match) => (
           <MatchCard
             client:load
+            locale={intl.locale}
             match={match}
             labels={labels}
             reportUrl={matchReportUrl({

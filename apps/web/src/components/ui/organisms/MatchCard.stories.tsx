@@ -35,7 +35,7 @@ const BASE: MatchCardData = {
 const meta = {
   title: 'Public/MatchCard',
   component: MatchCard,
-  args: { match: BASE, labels: labelsFor('en') },
+  args: { match: BASE, labels: labelsFor('en'), locale: 'en' },
   /*
    * Rendered in the grid it actually ships inside.
    *
@@ -59,7 +59,11 @@ type Story = StoryObj<typeof meta>;
 
 export const Live: Story = {
   render: (_args, context) => (
-    <MatchCard labels={labelsFor(context.globals.locale as SupportedLanguage)} match={BASE} />
+    <MatchCard
+      labels={labelsFor(context.globals.locale as SupportedLanguage)}
+      locale={context.globals.locale as SupportedLanguage}
+      match={BASE}
+    />
   ),
 };
 
@@ -67,6 +71,7 @@ export const Upcoming: Story = {
   render: (_args, context) => (
     <MatchCard
       labels={labelsFor(context.globals.locale as SupportedLanguage)}
+      locale={context.globals.locale as SupportedLanguage}
       match={{
         ...BASE,
         state: 'upcoming',
@@ -82,6 +87,7 @@ export const Final: Story = {
   render: (_args, context) => (
     <MatchCard
       labels={labelsFor(context.globals.locale as SupportedLanguage)}
+      locale={context.globals.locale as SupportedLanguage}
       match={{ ...BASE, state: 'final', clockSeconds: undefined, homePosition: 1, awayPosition: 4 }}
     />
   ),
@@ -92,6 +98,7 @@ export const WithDecidingFactor: Story = {
   render: (_args, context) => (
     <MatchCard
       labels={labelsFor(context.globals.locale as SupportedLanguage)}
+      locale={context.globals.locale as SupportedLanguage}
       match={{
         ...BASE,
         state: 'final',
@@ -109,6 +116,7 @@ export const WithSeries: Story = {
   render: (_args, context) => (
     <MatchCard
       labels={labelsFor(context.globals.locale as SupportedLanguage)}
+      locale={context.globals.locale as SupportedLanguage}
       match={{
         ...BASE,
         state: 'live',
@@ -138,6 +146,7 @@ export const ToBeDecided: Story = {
   render: (_args, context) => (
     <MatchCard
       labels={labelsFor(context.globals.locale as SupportedLanguage)}
+      locale={context.globals.locale as SupportedLanguage}
       match={{
         matchId: 'm-2',
         stageNumber: 2,

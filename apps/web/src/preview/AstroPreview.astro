@@ -382,7 +382,7 @@ const tournaments = referenceTournamentListing();
         <MatchCardGrid intl={intl} localePrefix="" model={overview} />
       )
     }
-    {component === 'match-hero' && <MatchHero model={matchReport} />}
+    {component === 'match-hero' && <MatchHero locale={intl.locale} model={matchReport} />}
     {
       component === 'match-node' && (
         <MatchNode

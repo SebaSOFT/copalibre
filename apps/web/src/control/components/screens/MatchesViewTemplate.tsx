@@ -97,7 +97,7 @@ export function MatchesViewTemplate({
       {matches.length > 0 && (
         <div className="cl-matches-view__grid">
           {matches.map((match) => (
-            <MatchCard key={match.matchId} match={match} labels={labels} />
+            <MatchCard key={match.matchId} locale={intl.locale} match={match} labels={labels} />
           ))}
         </div>
       )}

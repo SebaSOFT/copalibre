@@ -18,7 +18,8 @@ import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 export interface MatchCardProps {
   readonly match: MatchCardData;
   readonly labels: MatchCardLabels;
-  readonly locale?: string;
+  /** Required (openspec 0272): threaded straight into `ResponsiveTimestamp`, which no longer guesses one. */
+  readonly locale: string;
   /** Wraps the card in a link when present — the public site's report page. */
   readonly reportUrl?: string;
 }

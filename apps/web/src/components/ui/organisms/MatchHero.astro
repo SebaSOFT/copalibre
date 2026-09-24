@@ -9,9 +9,10 @@ import type { MatchReportModel } from '../../../lib/match-report.ts';
 
 export interface Props {
   readonly model: MatchReportModel;
+  readonly locale: string;
 }
 
-const { model } = Astro.props;
+const { model, locale } = Astro.props;
 ---
 
 <header class="cl-match-hero">
@@ -39,7 +40,7 @@ const { model } = Astro.props;
   {
     model.scheduledAt ? (
       <p class="cl-match-venue">
-        <ResponsiveTimestamp client:load timestamp={model.scheduledAt} />
+        <ResponsiveTimestamp locale={locale} timestamp={model.scheduledAt} />
         {model.venueName ? ` · ${model.venueName}` : ''}
       </p>
     ) : model.status === 'upcoming' ? (
