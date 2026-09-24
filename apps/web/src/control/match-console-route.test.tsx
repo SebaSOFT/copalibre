@@ -1070,7 +1070,7 @@ describe('MatchConsolePage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Apply clock' }));
       fireEvent.click(screen.getByRole('button', { name: 'Resolve' }));
     });
-    fireEvent.click(screen.getByRole('button', { name: 'negative' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Negative' }));
 
     await waitFor(() => expect(requests).toEqual(['clock', 'timer']));
     expect(screen.queryByText('goal · half 1')).toBeNull();

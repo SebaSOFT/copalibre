@@ -639,6 +639,30 @@ export const messages = defineMessages({
     defaultMessage: 'Event ledger',
   },
   matchConsoleAll: { id: 'control.matchConsole.all', defaultMessage: 'All' },
+  matchConsoleCategoryPositive: {
+    id: 'control.matchConsole.categoryPositive',
+    defaultMessage: 'Positive',
+  },
+  matchConsoleCategoryNegative: {
+    id: 'control.matchConsole.categoryNegative',
+    defaultMessage: 'Negative',
+  },
+  matchConsoleCategoryNeutral: {
+    id: 'control.matchConsole.categoryNeutral',
+    defaultMessage: 'Neutral',
+  },
+  matchConsoleSegmentStatePending: {
+    id: 'control.matchConsole.segmentStatePending',
+    defaultMessage: 'pending',
+  },
+  matchConsoleSegmentStateActive: {
+    id: 'control.matchConsole.segmentStateActive',
+    defaultMessage: 'active',
+  },
+  matchConsoleSegmentStateCompleted: {
+    id: 'control.matchConsole.segmentStateCompleted',
+    defaultMessage: 'completed',
+  },
   matchConsoleUnknownSegment: {
     id: 'control.matchConsole.unknownSegment',
     defaultMessage: 'Unknown segment',

@@ -2136,6 +2136,7 @@ export class MatchControlController {
         state: segment.state,
         elapsedSeconds: elapsedSecondsOf(segment, Date.now()),
         ...durationFor(descriptor, segment.type),
+        ...typeLabelFor(descriptor, segment.type),
       })),
       runningTimers: runningTimers(
         events,
@@ -2474,6 +2475,16 @@ function durationFor(
     (segment) => segment.name === segmentType,
   )?.defaultDurationSeconds;
   return durationSeconds === undefined ? {} : { durationSeconds };
+}
+
+function typeLabelFor(
+  descriptor: DisciplineDescriptor,
+  segmentType: string,
+): { readonly typeLabel?: string | LocalizedLabel } {
+  const typeLabel = descriptor.segmentTypes.find(
+    (segment) => segment.name === segmentType,
+  )?.label;
+  return typeLabel === undefined ? {} : { typeLabel };
 }
 
 function toTimerDto(timer: RunningTimer) {
