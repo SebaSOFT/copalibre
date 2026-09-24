@@ -177,6 +177,96 @@ describe('TvDashboard', () => {
     expect(screen.getAllByText(dashboardLabels.resultState.live).length).toBeGreaterThan(0);
   });
 
+  describe('pinned-match event ticker (openspec 0270)', () => {
+    // Not all-final, unlike `sampleInitial` — an all-final dashboard renders the champion
+    // presentation instead of the match spotlight the ticker sits inside.
+    const pinnedDashboard: LiveDashboard = {
+      matches: [
+        {
+          matchId: 'm-pinned',
+          stageNumber: 1,
+          matchNumber: 1,
+          state: 'live',
+          projectionVersion: 1,
+          sides: [
+            { entrantId: 'e1', name: 'Boca Juniors', score: 2, state: 'live' },
+            { entrantId: 'e2', name: 'River Plate', score: 1, state: 'live' },
+          ],
+        },
+      ],
+      standingsVersion: 1,
+      usingLastKnown: true,
+    };
+
+    it('renders recorded events on the pinned-match route', () => {
+      render(
+        <TvDashboard
+          dashboardLabels={dashboardLabels}
+          labels={tvLabels}
+          language="en"
+          initial={pinnedDashboard}
+          streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+          pinnedMatchNumber={1}
+          matchEvents={[
+            {
+              eventId: 'ev-1',
+              label: 'Goal',
+              occurredAt: '2026-01-01T18:12:00.000Z',
+              side: 'home',
+            },
+            {
+              eventId: 'ev-2',
+              label: 'Yellow card',
+              occurredAt: '2026-01-01T18:34:00.000Z',
+              side: 'away',
+            },
+          ]}
+          standings={sampleStandings}
+          pollIntervalMs={0}
+        />,
+      );
+
+      const ticker = screen.getByRole('list', { name: dashboardLabels.matchEventsLabel });
+      expect(ticker).toBeDefined();
+      expect(screen.getByText('Goal')).toBeDefined();
+      expect(screen.getByText('Yellow card')).toBeDefined();
+    });
+
+    it('renders no ticker section for a match with no recorded events', () => {
+      render(
+        <TvDashboard
+          dashboardLabels={dashboardLabels}
+          labels={tvLabels}
+          language="en"
+          initial={pinnedDashboard}
+          streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+          pinnedMatchNumber={1}
+          matchEvents={[]}
+          standings={sampleStandings}
+          pollIntervalMs={0}
+        />,
+      );
+
+      expect(screen.queryByRole('list', { name: dashboardLabels.matchEventsLabel })).toBeNull();
+    });
+
+    it('renders no ticker section when matchEvents is unset (the full-rotation route)', () => {
+      render(
+        <TvDashboard
+          dashboardLabels={dashboardLabels}
+          labels={tvLabels}
+          language="en"
+          initial={pinnedDashboard}
+          streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+          standings={sampleStandings}
+          pollIntervalMs={0}
+        />,
+      );
+
+      expect(screen.queryByRole('list', { name: dashboardLabels.matchEventsLabel })).toBeNull();
+    });
+  });
+
   it.each(FRENCH_RESULT_STATE_LABELS)(
     'renders the French $state result-state label',
     ({ state, label }) => {

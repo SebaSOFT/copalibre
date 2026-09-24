@@ -212,6 +212,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.playedColumn': 'PG',
   'publicWeb.tvDashboard.noTopPerformers': 'Nessun protagonista registrato',
   'publicWeb.tvDashboard.focalPanelLabel': 'Pannello principale della trasmissione',
+  'publicWeb.tvDashboard.matchEventsLabel': 'Eventi della partita',
   'publicWeb.tvDashboard.statsAndTablesLabel': 'Statistiche e tabelle del torneo',
   'publicWeb.tvDashboard.sidebarSectionsLabel': 'Sezioni laterali',
   'publicWeb.tvDashboard.standingsTab': 'Classifica',

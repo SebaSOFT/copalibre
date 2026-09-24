@@ -210,6 +210,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.playedColumn': '场次',
   'publicWeb.tvDashboard.noTopPerformers': '暂无最佳球员记录',
   'publicWeb.tvDashboard.focalPanelLabel': '主转播面板',
+  'publicWeb.tvDashboard.matchEventsLabel': '比赛事件',
   'publicWeb.tvDashboard.statsAndTablesLabel': '赛事统计与数据表',
   'publicWeb.tvDashboard.sidebarSectionsLabel': '侧边栏区域',
   'publicWeb.tvDashboard.standingsTab': '积分榜',

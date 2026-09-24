@@ -589,6 +589,11 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.focalPanelLabel',
     defaultMessage: 'Main broadcast panel',
   },
+  // Pinned-match compact event ticker (openspec 0270).
+  tvDashboardMatchEventsLabel: {
+    id: 'publicWeb.tvDashboard.matchEventsLabel',
+    defaultMessage: 'Match events',
+  },
   tvDashboardStatsAndTablesLabel: {
     id: 'publicWeb.tvDashboard.statsAndTablesLabel',
     defaultMessage: 'Tournament statistics and tables',

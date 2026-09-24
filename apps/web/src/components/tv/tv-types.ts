@@ -18,6 +18,7 @@ export interface TvDashboardLabels {
   readonly playedColumn: string;
   readonly noTopPerformers: string;
   readonly focalPanelLabel: string;
+  readonly matchEventsLabel: string;
   readonly statsAndTablesLabel: string;
   readonly sidebarSectionsLabel: string;
   readonly standingsTab: string;

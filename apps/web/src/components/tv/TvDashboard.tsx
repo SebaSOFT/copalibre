@@ -19,8 +19,10 @@ import { TvTeamSide } from './TvTeamSide.js';
 import { TvPerformersView } from './TvPerformersView.js';
 import { TvFactsView } from './TvFactsView.js';
 import { TvStandingsTable } from './ui/organisms/TvStandingsTable.js';
+import { TvEventTicker } from './ui/organisms/TvEventTicker.js';
 import { TvRailTab } from './ui/atoms/TvRailTab.js';
 import type { TvClubItem, TvDashboardLabels } from './tv-types.js';
+import type { TvMatchEvent } from '../../lib/tv-match-events.js';
 
 export type { TvClubItem, TvDashboardLabels } from './tv-types.js';
 
@@ -42,6 +44,12 @@ export interface TvDashboardProps {
   readonly presentation?: TvPresentation;
   /** Set on the pinned-match route; the full-rotation route leaves this unset. */
   readonly pinnedMatchNumber?: number;
+  /**
+   * The pinned match's own recorded events (goals, cards), set only on the pinned-match route
+   * (openspec 0270) — the full-rotation route leaves this unset, same as `pinnedMatchNumber`.
+   * Empty or unset renders no ticker section at all, rather than an empty-state placeholder.
+   */
+  readonly matchEvents?: readonly TvMatchEvent[];
   readonly branding?: TvBranding;
   readonly tournamentName?: string;
   readonly organizationName?: string;
@@ -76,6 +84,7 @@ export function TvDashboard({
   streamPath,
   presentation = 'kiosk',
   pinnedMatchNumber,
+  matchEvents,
   branding,
   tournamentName,
   organizationName,
@@ -392,6 +401,16 @@ export function TvDashboard({
                   abbreviation={spotlightMatch.sides[1]?.abbreviation}
                 />
               </div>
+
+              {matchEvents && matchEvents.length > 0 ? (
+                <TvEventTicker
+                  ariaLabel={dashboardLabels.matchEventsLabel}
+                  awayLabel={labels.awaySide}
+                  events={matchEvents}
+                  homeLabel={labels.homeSide}
+                  language={language}
+                />
+              ) : null}
             </div>
           ) : (
             <div className="tv-champion">

@@ -212,6 +212,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.playedColumn': 'И',
   'publicWeb.tvDashboard.noTopPerformers': 'Нет отмеченных лучших игроков',
   'publicWeb.tvDashboard.focalPanelLabel': 'Основная панель трансляции',
+  'publicWeb.tvDashboard.matchEventsLabel': 'События матча',
   'publicWeb.tvDashboard.statsAndTablesLabel': 'Статистика и таблицы турнира',
   'publicWeb.tvDashboard.sidebarSectionsLabel': 'Боковые разделы',
   'publicWeb.tvDashboard.standingsTab': 'Турнирная таблица',

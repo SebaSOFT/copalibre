@@ -152,6 +152,7 @@ export function tvDashboardLabels(intl: IntlShape) {
     playedColumn: intl.formatMessage(messages.tvDashboardPlayedColumn),
     noTopPerformers: intl.formatMessage(messages.tvDashboardNoTopPerformers),
     focalPanelLabel: intl.formatMessage(messages.tvDashboardFocalPanelLabel),
+    matchEventsLabel: intl.formatMessage(messages.tvDashboardMatchEventsLabel),
     statsAndTablesLabel: intl.formatMessage(messages.tvDashboardStatsAndTablesLabel),
     sidebarSectionsLabel: intl.formatMessage(messages.tvDashboardSidebarSectionsLabel),
     standingsTab: intl.formatMessage(messages.tvDashboardStandingsTab),
