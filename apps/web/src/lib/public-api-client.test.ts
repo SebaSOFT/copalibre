@@ -514,18 +514,23 @@ describe('public-api-client', () => {
       ['in_progress', 'live'],
       ['finalized', 'final'],
       ['completed', 'final'],
-    ])('maps persisted %s status to %s', (status, state) => {
-      const result = mapOverviewResponse({
-        organizationAlias: 'org',
-        tournamentAlias: 'cup',
-        organizationName: 'Org',
-        tournamentName: 'Cup',
-        seasonName: '2026',
-        ruleset: {},
-        matches: [{ stageNumber: 1, status, homeName: 'A', awayName: 'B' }],
-      } as Parameters<typeof mapOverviewResponse>[0]);
-      expect(result.matches[0].state).toBe(state);
-    });
+      ['forfeited', 'final'],
+      ['not-required', 'final'],
+    ])(
+      'maps persisted %s status to %s (openspec 0270 for forfeited/not-required)',
+      (status, state) => {
+        const result = mapOverviewResponse({
+          organizationAlias: 'org',
+          tournamentAlias: 'cup',
+          organizationName: 'Org',
+          tournamentName: 'Cup',
+          seasonName: '2026',
+          ruleset: {},
+          matches: [{ stageNumber: 1, status, homeName: 'A', awayName: 'B' }],
+        } as Parameters<typeof mapOverviewResponse>[0]);
+        expect(result.matches[0].state).toBe(state);
+      },
+    );
 
     it('handles missing fields gracefully', () => {
       const response = {

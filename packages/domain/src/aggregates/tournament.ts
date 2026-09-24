@@ -97,6 +97,12 @@ export type PublicTournamentStatus = 'upcoming' | 'live' | 'finished';
  * Derives a tournament's public-facing status from its lifecycle state
  * and recorded match statuses. A tournament where every match is finalized
  * is classified as 'finished', consistent across organization home and tournament overview.
+ *
+ * `forfeited` counts as resolved alongside `finalized`, matching the platform's existing
+ * "resolved = finalized + forfeited" definition (`stage-completion.ts`). A `not-required` match — a
+ * series game never played because the series already decided — never blocks "finished": it is
+ * excluded from the check entirely, the same way it is excluded from a completion summary's total
+ * (openspec 0270).
  */
 export function deriveTournamentStatus(
   status: TournamentStatus | string,
@@ -105,9 +111,16 @@ export function deriveTournamentStatus(
   if (status === 'finished' || status === 'archived') {
     return 'finished';
   }
+  const resolvable = matches.filter((m) => m.status !== 'not-required');
   if (
-    matches.length > 0 &&
-    matches.every((m) => m.status === 'finalized' || m.status === 'finished' || m.state === 'final')
+    resolvable.length > 0 &&
+    resolvable.every(
+      (m) =>
+        m.status === 'finalized' ||
+        m.status === 'finished' ||
+        m.status === 'forfeited' ||
+        m.state === 'final',
+    )
   ) {
     return 'finished';
   }
@@ -119,6 +132,7 @@ export function deriveTournamentStatus(
         m.status === 'live' ||
         m.state === 'live' ||
         m.status === 'finalized' ||
+        m.status === 'forfeited' ||
         m.state === 'final',
     )
   ) {
