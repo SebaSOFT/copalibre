@@ -395,10 +395,11 @@ const tournaments = referenceTournamentListing();
         />
       )
     }
-    {component === 'match-officials' && <MatchOfficials model={matchReport} />}
+    {component === 'match-officials' && <MatchOfficials intl={intl} model={matchReport} />}
     {
       component === 'match-rosters' && (
         <MatchRosters
+          intl={intl}
           locale={locale}
           model={matchReport}
           organization="reference-league"
@@ -429,7 +430,7 @@ const tournaments = referenceTournamentListing();
         />
       )
     }
-    {component === 'match-timeline' && <MatchTimeline model={matchReport} />}
+    {component === 'match-timeline' && <MatchTimeline intl={intl} model={matchReport} />}
     {
       component === 'modal' && (
         <Modal

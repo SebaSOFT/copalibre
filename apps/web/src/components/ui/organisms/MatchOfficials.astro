@@ -1,24 +1,29 @@
 ---
 /**
  * Extracted from the match report page (openspec 0225 task 7.2), unchanged
- * in markup and styling.
+ * in markup and styling except for localization (openspec 0269).
  */
+import type { IntlShape } from 'react-intl';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
 
 export interface Props {
   readonly model: MatchReportModel;
+  readonly intl: IntlShape;
 }
 
-const { model } = Astro.props;
+const { model, intl } = Astro.props;
 ---
 
 <section class="cl-section-card" aria-labelledby="officials-heading">
-  <h2 id="officials-heading" class="cl-section-title">Officials</h2>
+  <h2 id="officials-heading" class="cl-section-title">
+    {intl.formatMessage(messages.matchOfficialsHeading)}
+  </h2>
   {
     !model.schedulePublished && model.status === 'upcoming' ? (
-      <p class="cl-text-muted">Schedule has not yet been published.</p>
+      <p class="cl-text-muted">{intl.formatMessage(messages.matchOfficialsScheduleNotPublished)}</p>
     ) : model.officials.length === 0 ? (
-      <p class="cl-text-muted">No officials assigned.</p>
+      <p class="cl-text-muted">{intl.formatMessage(messages.matchOfficialsNoneAssigned)}</p>
     ) : (
       <ul class="cl-officials-list">
         {model.officials.map((official) => (
