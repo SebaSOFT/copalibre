@@ -44,6 +44,25 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
               ],
           trace: [],
         }),
+      listRegistrations: () =>
+        read(
+          empty
+            ? []
+            : [
+                {
+                  entrantId: ids.first,
+                  tournamentId: ids.stage,
+                  status: 'accepted' as const,
+                  displayName: 'Club Atlético',
+                },
+                {
+                  entrantId: ids.second,
+                  tournamentId: ids.stage,
+                  status: 'accepted' as const,
+                  displayName: 'Deportivo Cuyo',
+                },
+              ],
+        ),
     });
   }, [mode, intl]);
   return (

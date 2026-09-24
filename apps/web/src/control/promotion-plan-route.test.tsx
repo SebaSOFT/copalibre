@@ -77,11 +77,111 @@ describe('PromotionPlanPage', () => {
       ),
     );
 
+    // `role="status"` (openspec 0284): an unconfigured plan is an expected
+    // state, not a destructive failure — see PromotionPlanPage's
+    // classifyPreviewError and the Alert atom's tone-to-role mapping.
     await waitFor(() =>
-      expect(screen.getByRole('alert').textContent).toContain(
+      expect(screen.getByRole('status').textContent).toContain(
         'No promotion plan saved for this zone yet.',
       ),
     );
+  });
+
+  it('localizes the real server 404 the backend sends for an unconfigured plan (openspec 0284)', async () => {
+    // The bug this change fixes: the backend really does throw a
+    // `ControlApiError` for this case (`promotion-plan-not-found`,
+    // apps/api/src/controllers/zones-groups.controller.ts) — every other test
+    // here reaches the same UI copy only through the generic-Error fallback
+    // branch, which was never the buggy path.
+    const client = stubClient({
+      listZones: () => Promise.resolve([zone]),
+      fetchPromotionPreview: () =>
+        Promise.reject(
+          new ControlApiError(404, 'No promotion plan for zone 1', 'promotion-plan-not-found'),
+        ),
+    });
+    render(
+      withIntl(
+        <PromotionPlanPage
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+          zoneNumber={1}
+        />,
+      ),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toContain(
+        'No promotion plan saved for this zone yet.',
+      ),
+    );
+    expect(screen.getByRole('status').textContent).not.toContain('No promotion plan for zone 1');
+  });
+
+  it('treats a genuinely missing zone as a destructive error, not an unconfigured plan (openspec 0284)', async () => {
+    // `zone-group-not-found` is the SAME error code the controller's stage/zone
+    // lookups throw for this endpoint — a real 404 for a different reason must
+    // not be swallowed into the benign "not configured yet" reading.
+    const client = stubClient({
+      listZones: () => Promise.resolve([zone]),
+      fetchPromotionPreview: () =>
+        Promise.reject(new ControlApiError(404, 'No zone 5', 'zone-group-not-found')),
+    });
+    render(
+      withIntl(
+        <PromotionPlanPage
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+          zoneNumber={1}
+        />,
+      ),
+    );
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('No zone 5');
+  });
+
+  it('renders resolved entrant display names instead of raw id tails (openspec 0284)', async () => {
+    const client = stubClient({
+      listZones: () => Promise.resolve([zone]),
+      fetchPromotionPreview: () => Promise.resolve(preview),
+      listRegistrations: () =>
+        Promise.resolve([
+          {
+            entrantId: 'entrant1',
+            tournamentId: 'tournament-1',
+            status: 'accepted',
+            displayName: 'Club Atlético',
+          },
+          {
+            entrantId: 'entrant2',
+            tournamentId: 'tournament-1',
+            status: 'accepted',
+            displayName: 'Deportivo Cuyo',
+          },
+        ]),
+    });
+    render(
+      withIntl(
+        <PromotionPlanPage
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+          zoneNumber={1}
+        />,
+      ),
+    );
+
+    await screen.findByText((_, element) => element?.textContent === '1. Club Atlético');
+    expect(
+      screen.getByText((_, element) => element?.textContent === '2. Deportivo Cuyo'),
+    ).toBeTruthy();
+    expect(screen.queryByText(/entrant1/)).toBeNull();
   });
 
   it('saves a plan with a group-order combination and reloads the preview', async () => {
