@@ -103,6 +103,25 @@ const isPlayerRanking =
   layout?.target === 'player-ranking' ||
   layout?.entityGranularity === 'person' ||
   layout?.entityGranularity === 'player';
+
+// The player quick-view dialog's body is built by the inline `<script>` below,
+// client-side, after a fetch this SSR pass cannot await — so its localized
+// strings are resolved here and handed across as a JSON data island (the same
+// mechanism BracketView.astro uses for `data-journey-matches`), not called as
+// `intl.formatMessage` from within the script itself.
+const playerDialogLabels = {
+  fallbackTitle: intl.formatMessage(messages.playerProfileHeading),
+  loadingPlaceholder: intl.formatMessage(messages.standingsPlayerDialogLoadingPlaceholder),
+  loadingFetch: intl.formatMessage(messages.standingsPlayerDialogLoadingFetch),
+  careerStatisticsHeading: intl.formatMessage(messages.playerProfileCareerStatsHeading),
+  competitionHistoryHeading: intl.formatMessage(messages.playerProfileHistoryHeading),
+  columnTournament: intl.formatMessage(messages.standingsPlayerDialogColumnTournament),
+  columnTeam: intl.formatMessage(messages.standingsPlayerDialogColumnTeam),
+  columnRole: intl.formatMessage(messages.standingsPlayerDialogColumnRole),
+  noCareerStatistics: intl.formatMessage(messages.playerProfileNoStats),
+  noCompetitionHistory: intl.formatMessage(messages.playerProfileNoHistory),
+  loadError: intl.formatMessage(messages.standingsPlayerDialogLoadError),
+};
 ---
 
 <section aria-labelledby="standings-heading" class="cl-standings-section">
@@ -302,7 +321,9 @@ const isPlayerRanking =
   <dialog id="cl-player-dialog" class="cl-player-dialog" aria-labelledby="cl-player-dialog-title">
     <div class="cl-player-dialog__content">
       <div class="cl-player-dialog__header">
-        <h3 id="cl-player-dialog-title" class="cl-player-dialog__title">Player Profile</h3>
+        <h3 id="cl-player-dialog-title" class="cl-player-dialog__title">
+          {intl.formatMessage(messages.playerProfileHeading)}
+        </h3>
         <button
           type="button"
           class="cl-player-dialog__close"
@@ -311,10 +332,18 @@ const isPlayerRanking =
         >
       </div>
       <div id="cl-player-dialog-body" class="cl-player-dialog__body" aria-live="polite">
-        <p class="cl-player-dialog__loading">Loading player details...</p>
+        <p class="cl-player-dialog__loading">
+          {intl.formatMessage(messages.standingsPlayerDialogLoadingPlaceholder)}
+        </p>
       </div>
     </div>
   </dialog>
+  <script
+    is:inline
+    type="application/json"
+    data-player-dialog-labels
+    set:html={JSON.stringify(playerDialogLabels).replace(/</g, '\\u003c')}
+  />
 </section>
 
 <script>
@@ -371,10 +400,48 @@ const isPlayerRanking =
     });
   }
 
+  interface PlayerDialogLabels {
+    fallbackTitle: string;
+    loadingPlaceholder: string;
+    loadingFetch: string;
+    careerStatisticsHeading: string;
+    competitionHistoryHeading: string;
+    columnTournament: string;
+    columnTeam: string;
+    columnRole: string;
+    noCareerStatistics: string;
+    noCompetitionHistory: string;
+    loadError: string;
+  }
+
+  function readPlayerDialogLabels(): PlayerDialogLabels {
+    const fallback: PlayerDialogLabels = {
+      fallbackTitle: 'Player Profile',
+      loadingPlaceholder: 'Loading player details...',
+      loadingFetch: 'Loading...',
+      careerStatisticsHeading: 'Career Statistics',
+      competitionHistoryHeading: 'Competition History',
+      columnTournament: 'Tournament',
+      columnTeam: 'Team',
+      columnRole: 'Role',
+      noCareerStatistics: 'No career statistics recorded.',
+      noCompetitionHistory: 'No competition history recorded.',
+      loadError: 'Unable to load player details.',
+    };
+    const payload = document.querySelector('[data-player-dialog-labels]');
+    if (!payload?.textContent) return fallback;
+    try {
+      return { ...fallback, ...(JSON.parse(payload.textContent) as Partial<PlayerDialogLabels>) };
+    } catch {
+      return fallback;
+    }
+  }
+
   function initPlayerDialog() {
     const dialog = document.getElementById('cl-player-dialog') as HTMLDialogElement | null;
     if (!dialog) return;
 
+    const labels = readPlayerDialogLabels();
     const body = document.getElementById('cl-player-dialog-body');
     const title = document.getElementById('cl-player-dialog-title');
     const closeBtn = dialog.querySelector('[data-close-dialog]');
@@ -388,7 +455,8 @@ const isPlayerRanking =
       link.addEventListener('click', async (e) => {
         e.preventDefault();
         const profileUrl = link.dataset.profileUrl || link.href;
-        if (body) body.innerHTML = '<p class="cl-player-dialog__loading">Loading...</p>';
+        if (body)
+          body.innerHTML = `<p class="cl-player-dialog__loading">${labels.loadingFetch}</p>`;
         if (typeof dialog.showModal === 'function') {
           dialog.showModal();
         }
@@ -418,7 +486,7 @@ const isPlayerRanking =
           const res = await fetch(profileUrl);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data: ProfileData = await res.json();
-          if (title) title.textContent = data.displayName || 'Player Profile';
+          if (title) title.textContent = data.displayName || labels.fallbackTitle;
           if (body) {
             const metaTags = [
               data.nationality
@@ -463,16 +531,16 @@ const isPlayerRanking =
             body.innerHTML = `
               <div class="cl-modal-profile">
                 ${metaTags ? `<div class="cl-modal-meta">${metaTags}</div>` : ''}
-                <h4 class="cl-modal-section-title">Career Statistics</h4>
-                ${statsItems ? `<div class="cl-modal-stats-grid">${statsItems}</div>` : '<p class="cl-modal-empty">No career statistics recorded.</p>'}
-                <h4 class="cl-modal-section-title">Competition History</h4>
-                ${historyRows ? `<table class="cl-modal-history-table"><thead><tr><th>Tournament</th><th>Team</th><th>Role</th></tr></thead><tbody>${historyRows}</tbody></table>` : '<p class="cl-modal-empty">No competition history recorded.</p>'}
+                <h4 class="cl-modal-section-title">${labels.careerStatisticsHeading}</h4>
+                ${statsItems ? `<div class="cl-modal-stats-grid">${statsItems}</div>` : `<p class="cl-modal-empty">${labels.noCareerStatistics}</p>`}
+                <h4 class="cl-modal-section-title">${labels.competitionHistoryHeading}</h4>
+                ${historyRows ? `<table class="cl-modal-history-table"><thead><tr><th>${labels.columnTournament}</th><th>${labels.columnTeam}</th><th>${labels.columnRole}</th></tr></thead><tbody>${historyRows}</tbody></table>` : `<p class="cl-modal-empty">${labels.noCompetitionHistory}</p>`}
               </div>
             `;
           }
         } catch {
           if (body) {
-            body.innerHTML = '<p class="cl-inline-alert">Unable to load player details.</p>';
+            body.innerHTML = `<p class="cl-inline-alert">${labels.loadError}</p>`;
           }
         }
       });

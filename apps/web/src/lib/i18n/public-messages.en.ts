@@ -159,6 +159,34 @@ export const messages = defineMessages({
     id: 'publicWeb.standings.column.series.shortLabel',
     defaultMessage: 'S',
   },
+  // StandingsTable.astro's player quick-view dialog (openspec 0271) — its
+  // fallback title, career-stats/history headings, and empty states reuse
+  // PlayerProfileView.astro's own playerProfile* messages below, since both
+  // present the same profile content.
+  standingsPlayerDialogLoadingPlaceholder: {
+    id: 'publicWeb.standings.playerDialog.loadingPlaceholder',
+    defaultMessage: 'Loading player details...',
+  },
+  standingsPlayerDialogLoadingFetch: {
+    id: 'publicWeb.standings.playerDialog.loadingFetch',
+    defaultMessage: 'Loading...',
+  },
+  standingsPlayerDialogColumnTournament: {
+    id: 'publicWeb.standings.playerDialog.columnTournament',
+    defaultMessage: 'Tournament',
+  },
+  standingsPlayerDialogColumnTeam: {
+    id: 'publicWeb.standings.playerDialog.columnTeam',
+    defaultMessage: 'Team',
+  },
+  standingsPlayerDialogColumnRole: {
+    id: 'publicWeb.standings.playerDialog.columnRole',
+    defaultMessage: 'Role',
+  },
+  standingsPlayerDialogLoadError: {
+    id: 'publicWeb.standings.playerDialog.loadError',
+    defaultMessage: 'Unable to load player details.',
+  },
 
   // TournamentHero.astro
   heroLiveCount: { id: 'publicWeb.hero.liveCount', defaultMessage: '{count} LIVE' },
@@ -399,6 +427,10 @@ export const messages = defineMessages({
     defaultMessage: 'No career statistics recorded.',
   },
   playerProfileClose: { id: 'publicWeb.playerProfile.close', defaultMessage: 'Close' },
+  playerProfileBackTo: {
+    id: 'publicWeb.playerProfile.backTo',
+    defaultMessage: '← Back to {name}',
+  },
   playerProfilePhotoAlt: {
     id: 'publicWeb.playerProfile.photoAlt',
     defaultMessage: '{name}',

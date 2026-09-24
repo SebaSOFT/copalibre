@@ -250,3 +250,33 @@ The TV broadcast match spotlight SHALL render high-contrast, prominent team embl
 #### Scenario: Match spotlight layout
 - **WHEN** a featured match is displayed on the TV broadcast kiosk
 - **THEN** the left home emblem renders with minimum dimensions of 120x120px.
+
+### Requirement: Pinned-match kiosk shows recorded match events
+The pinned-match kiosk route (`/tv/{organization}/tournaments/{tournament}/stages/{stage}/matches/{match}`)
+SHALL show the match's recorded goal and card events — at minimum the scoring/carded entrant, the
+player, and the minute — alongside the score, whenever the match has recorded events. A match with no
+recorded events SHALL show no ticker, rather than an empty or placeholder one.
+
+#### Scenario: Pinned match with recorded events shows a ticker
+- **WHEN** the pinned-match kiosk route renders a match that has recorded goal or card events
+- **THEN** the screen shows those events (entrant, player, minute) alongside the score
+
+#### Scenario: Pinned match with no recorded events shows no ticker
+- **WHEN** the pinned-match kiosk route renders a match with no recorded events
+- **THEN** the screen shows the score without an empty or placeholder ticker section
+
+### Requirement: Kiosk and overlay routes report a finished tournament's actual state
+Any `/tv/**` route variant (kiosk, pinned-match, or either overlay mode) rendering a tournament whose
+every match is either finalized or forfeited (a `not-required` match, if any, does not block this)
+SHALL show that tournament's status badge and match ticker consistent with that finished state, never
+the scheduled/upcoming default a route falls back to when its match data is unexpectedly empty.
+
+#### Scenario: A finished tournament's overlay does not show a scheduled badge
+- **WHEN** any `/tv/**` route variant renders a tournament whose matches are all finalized
+- **THEN** its status badge reflects the finished state, not the scheduled/upcoming default
+
+#### Scenario: A tournament decided partly by forfeit still shows as finished
+- **WHEN** any `/tv/**` route variant renders a tournament where every match is finalized or forfeited,
+  with at least one forfeited
+- **THEN** its status badge and match ticker reflect the finished state, not the scheduled/upcoming
+  default

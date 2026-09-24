@@ -54,3 +54,14 @@ place. The page SHALL NOT invent a missing rank.
   than one final zone
 - **THEN** the page shows no podium section, since the existing standings table already states the
   single outcome
+
+### Requirement: A tournament decided partly by forfeit is classified finished
+The public tournament overview's "finished" status SHALL account for a forfeited match as resolved,
+the same as a finalized one, and SHALL NOT let a `not-required` match block a "finished"
+classification. A tournament is finished only once every match that is not `not-required` is either
+`finalized` or `forfeited`.
+
+#### Scenario: A tournament decided partly by forfeit shows as finished
+- **WHEN** a spectator opens the overview of a tournament where every match is finalized or forfeited,
+  with at least one forfeited
+- **THEN** the page shows the tournament's finished state, not a live or upcoming default

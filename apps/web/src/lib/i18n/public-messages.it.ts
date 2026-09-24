@@ -58,6 +58,13 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.grain.match': 'Questa tabella conta un risultato per partita giocata.',
   'publicWeb.standings.column.series.label': 'Serie',
   'publicWeb.standings.column.series.shortLabel': 'S',
+  'publicWeb.standings.playerDialog.loadingPlaceholder':
+    'Caricamento dei dettagli del giocatore...',
+  'publicWeb.standings.playerDialog.loadingFetch': 'Caricamento...',
+  'publicWeb.standings.playerDialog.columnTournament': 'Torneo',
+  'publicWeb.standings.playerDialog.columnTeam': 'Squadra',
+  'publicWeb.standings.playerDialog.columnRole': 'Ruolo',
+  'publicWeb.standings.playerDialog.loadError': 'Impossibile caricare i dettagli del giocatore.',
 
   'publicWeb.hero.liveCount': '{count} IN DIRETTA',
   'publicWeb.hero.noLiveMatches': 'NESSUNA PARTITA IN DIRETTA',
@@ -106,6 +113,7 @@ export const messages: Record<string, string> = {
   'publicWeb.playerProfile.noHistory': 'Nessun storico competizioni registrato.',
   'publicWeb.playerProfile.noStats': 'Nessuna statistica in carriera registrata.',
   'publicWeb.playerProfile.close': 'Chiudi',
+  'publicWeb.playerProfile.backTo': '← Torna a {name}',
   'publicWeb.playerProfile.photoAlt': '{name}',
   'publicWeb.playerProfile.photoPlaceholderAlt': 'Nessuna foto caricata',
   'publicWeb.playerProfile.tournamentStatsHeading': 'Statistiche del Torneo',

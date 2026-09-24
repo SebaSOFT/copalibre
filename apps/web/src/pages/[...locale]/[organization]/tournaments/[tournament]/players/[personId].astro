@@ -61,7 +61,7 @@ const canonicalPath = `${tournamentCanonicalPath}/players/${personId}`;
   <main class="cl-player-profile-page">
     <nav class="cl-player-profile-page__back">
       <a href={tournamentCanonicalPath}>
-        ← Back to {displayName(model)}
+        {intl.formatMessage(messages.playerProfileBackTo, { name: displayName(model) })}
       </a>
     </nav>
     <div class="cl-card">
