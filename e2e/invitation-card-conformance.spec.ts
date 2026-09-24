@@ -12,7 +12,12 @@ const DESKTOP = { width: 1440, height: 900 } as const;
 
 async function openInvitation(page: Page): Promise<void> {
   await page.goto(ACCEPT_PATH);
-  await expect(page.getByRole('heading', { name: 'Accept invitation' })).toBeVisible();
+  // `ControlIntl` resolves via `activeControlLanguage()`, whose placeholder
+  // organization language ('es') wins over browser detection with no stored
+  // preference — so this screen renders Spanish by default, and does so
+  // genuinely now that `invitation.*` has a real catalogue (openspec 0278),
+  // not an English fallback for a missing translation.
+  await expect(page.getByRole('heading', { name: 'Aceptar invitación' })).toBeVisible();
 }
 
 test('the invitation card carries the chamfer geometry every Control-web card uses', async ({
@@ -93,5 +98,5 @@ test('the form is built from the owned field and button atoms', async ({ page })
   await expect(page.locator('.cl-form-field')).toHaveCount(3);
   await expect(page.locator('input.cl-input')).toHaveCount(3);
   await expect(page.locator('button.cl-btn')).toHaveCount(1);
-  await expect(page.getByRole('button', { name: 'Accept and start' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Aceptar y comenzar' })).toBeVisible();
 });

@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (293/1083 after 0277 composes PublicLayout/Card/Button into 404.astro)', () => {
+test('the graph resolves the current node/edge count (293/1087 after 0278 wires accept.astro/AcceptInvitationForm.tsx into the shared i18n catalogue)', () => {
   const graph = buildGraph(webSrc);
   assert.equal(graph.nodes.size, 293);
-  assert.equal(graph.edges.length, 1083);
+  assert.equal(graph.edges.length, 1087);
 });
 
 test('a type-only import is not counted as a render', () => {

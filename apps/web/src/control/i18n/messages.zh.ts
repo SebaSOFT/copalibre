@@ -1155,4 +1155,21 @@ export const messages: Record<string, string> = {
   'control.rulesetField.inheritedHeading': '已包含：',
   'control.rulesetField.unrecognized': '不受已知规则策略管理 —— 以原始 JSON 编辑。',
   'control.rulesetField.unknownType': '该字段的值类型未知 —— 以原始 JSON 编辑。',
+
+  // invitation.* (AcceptInvitationForm.tsx / accept.astro)
+  'invitation.missingToken': '链接中未找到邀请令牌。',
+  'invitation.passwordTooShort': '密码至少需要8个字符。',
+  'invitation.passwordMismatch': '两次输入的密码不一致。',
+  'invitation.acceptFailed': '接受邀请失败（{status}）。',
+  'invitation.unexpectedError': '接受邀请时发生意外错误。',
+  'invitation.title': '接受邀请',
+  'invitation.subtitle': '设置您的 CopaLibre 管理员账户',
+  'invitation.successHeading': '账户设置完成！',
+  'invitation.successBody': '正在跳转到控制台…',
+  'invitation.nameLabel': '全名（可选）',
+  'invitation.namePlaceholder': '例如：Ana Pérez',
+  'invitation.passwordLabel': '密码（至少8个字符）',
+  'invitation.confirmPasswordLabel': '确认密码',
+  'invitation.submitLoading': '正在设置账户…',
+  'invitation.submit': '接受并开始',
 };

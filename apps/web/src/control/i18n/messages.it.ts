@@ -1223,4 +1223,21 @@ export const messages: Record<string, string> = {
     'Non governato da una policy di regola nota — modificato come JSON grezzo.',
   'control.rulesetField.unknownType':
     'Il tipo di valore di questo campo è sconosciuto — modificato come JSON grezzo.',
+
+  // invitation.* (AcceptInvitationForm.tsx / accept.astro)
+  'invitation.missingToken': 'Il token di invito non è stato trovato nel link.',
+  'invitation.passwordTooShort': 'La password deve contenere almeno 8 caratteri.',
+  'invitation.passwordMismatch': 'Le password non coincidono.',
+  'invitation.acceptFailed': "Impossibile accettare l'invito ({status}).",
+  'invitation.unexpectedError': "Errore imprevisto durante l'accettazione dell'invito.",
+  'invitation.title': "Accetta l'invito",
+  'invitation.subtitle': 'Configura il tuo account amministratore di CopaLibre',
+  'invitation.successHeading': 'Account configurato!',
+  'invitation.successBody': 'Reindirizzamento alla console di controllo…',
+  'invitation.nameLabel': 'Nome completo (opzionale)',
+  'invitation.namePlaceholder': 'Es. Ana Pérez',
+  'invitation.passwordLabel': 'Password (minimo 8 caratteri)',
+  'invitation.confirmPasswordLabel': 'Conferma password',
+  'invitation.submitLoading': 'Configurazione account…',
+  'invitation.submit': 'Accetta e inizia',
 };

@@ -1217,4 +1217,21 @@ export const messages: Record<string, string> = {
     'Не регулируется известной политикой правил — редактируется как необработанный JSON.',
   'control.rulesetField.unknownType':
     'Тип значения этого поля неизвестен — редактируется как необработанный JSON.',
+
+  // invitation.* (AcceptInvitationForm.tsx / accept.astro)
+  'invitation.missingToken': 'Токен приглашения не найден в ссылке.',
+  'invitation.passwordTooShort': 'Пароль должен содержать не менее 8 символов.',
+  'invitation.passwordMismatch': 'Пароли не совпадают.',
+  'invitation.acceptFailed': 'Не удалось принять приглашение ({status}).',
+  'invitation.unexpectedError': 'Непредвиденная ошибка при принятии приглашения.',
+  'invitation.title': 'Принять приглашение',
+  'invitation.subtitle': 'Настройте свою учётную запись администратора CopaLibre',
+  'invitation.successHeading': 'Учётная запись настроена!',
+  'invitation.successBody': 'Перенаправление в панель управления…',
+  'invitation.nameLabel': 'Полное имя (необязательно)',
+  'invitation.namePlaceholder': 'Напр. Ana Pérez',
+  'invitation.passwordLabel': 'Пароль (минимум 8 символов)',
+  'invitation.confirmPasswordLabel': 'Подтвердите пароль',
+  'invitation.submitLoading': 'Настройка учётной записи…',
+  'invitation.submit': 'Принять и начать',
 };

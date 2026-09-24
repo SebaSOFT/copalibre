@@ -3526,4 +3526,60 @@ export const messages = defineMessages({
     id: 'control.platform.viewDiscipline',
     defaultMessage: 'View',
   },
+
+  // Invitation acceptance (AcceptInvitationForm.tsx / accept.astro)
+  invitationMissingToken: {
+    id: 'invitation.missingToken',
+    defaultMessage: 'The invitation token was not found in the link.',
+  },
+  invitationPasswordTooShort: {
+    id: 'invitation.passwordTooShort',
+    defaultMessage: 'The password must be at least 8 characters.',
+  },
+  invitationPasswordMismatch: {
+    id: 'invitation.passwordMismatch',
+    defaultMessage: 'Passwords do not match.',
+  },
+  invitationAcceptFailed: {
+    id: 'invitation.acceptFailed',
+    defaultMessage: 'Failed to accept the invitation ({status}).',
+  },
+  invitationUnexpectedError: {
+    id: 'invitation.unexpectedError',
+    defaultMessage: 'Unexpected error accepting the invitation.',
+  },
+  invitationTitle: { id: 'invitation.title', defaultMessage: 'Accept invitation' },
+  invitationSubtitle: {
+    id: 'invitation.subtitle',
+    defaultMessage: 'Set up your CopaLibre administrator account',
+  },
+  invitationSuccessHeading: {
+    id: 'invitation.successHeading',
+    defaultMessage: 'Account set up!',
+  },
+  invitationSuccessBody: {
+    id: 'invitation.successBody',
+    defaultMessage: 'Redirecting to the control console…',
+  },
+  invitationNameLabel: {
+    id: 'invitation.nameLabel',
+    defaultMessage: 'Full name (optional)',
+  },
+  invitationNamePlaceholder: {
+    id: 'invitation.namePlaceholder',
+    defaultMessage: 'E.g. Ana Pérez',
+  },
+  invitationPasswordLabel: {
+    id: 'invitation.passwordLabel',
+    defaultMessage: 'Password (minimum 8 characters)',
+  },
+  invitationConfirmPasswordLabel: {
+    id: 'invitation.confirmPasswordLabel',
+    defaultMessage: 'Confirm password',
+  },
+  invitationSubmitLoading: {
+    id: 'invitation.submitLoading',
+    defaultMessage: 'Setting up account…',
+  },
+  invitationSubmit: { id: 'invitation.submit', defaultMessage: 'Accept and start' },
 });
