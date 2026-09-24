@@ -87,6 +87,10 @@ export const messages: Record<string, string> = {
   'publicWeb.tournamentPage.description': '{tournament} 的结果、排名和规则。',
 
   'publicWeb.livePage.title': '实时',
+  'publicWeb.livePage.breadcrumb': '面包屑导航',
+  'publicWeb.livePage.noMatches': '当前没有正在进行的比赛',
+  'publicWeb.livePage.nextKickoff': '下一场已安排的比赛',
+  'publicWeb.livePage.noUpcoming': '暂无即将进行的比赛。',
   'publicWeb.livePage.seriesHeading': '系列赛',
   'publicWeb.livePage.upcomingHeading': '即将开始',
   'publicWeb.livePage.leadersHeading': '领先者',

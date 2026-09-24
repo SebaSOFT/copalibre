@@ -508,6 +508,25 @@ describe('public-api-client', () => {
       expect(result.standings[0].points).toBe(3);
     });
 
+    it.each([
+      ['scheduled', 'upcoming'],
+      ['in-progress', 'live'],
+      ['in_progress', 'live'],
+      ['finalized', 'final'],
+      ['completed', 'final'],
+    ])('maps persisted %s status to %s', (status, state) => {
+      const result = mapOverviewResponse({
+        organizationAlias: 'org',
+        tournamentAlias: 'cup',
+        organizationName: 'Org',
+        tournamentName: 'Cup',
+        seasonName: '2026',
+        ruleset: {},
+        matches: [{ stageNumber: 1, status, homeName: 'A', awayName: 'B' }],
+      } as Parameters<typeof mapOverviewResponse>[0]);
+      expect(result.matches[0].state).toBe(state);
+    });
+
     it('handles missing fields gracefully', () => {
       const response = {
         organizationAlias: 'org',
@@ -566,13 +585,13 @@ describe('public-api-client', () => {
   });
 
   describe('mapLiveResponse', () => {
-    it('maps correctly', () => {
+    it.each(['in_progress', 'in-progress'])('maps %s to the public live state', (state) => {
       const response = {
         matches: [
           {
             matchId: 'm1',
             matchNumber: 1,
-            state: 'in-progress',
+            state,
             projectionVersion: 2,
             sides: [{ entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 }],
           },
@@ -582,7 +601,8 @@ describe('public-api-client', () => {
       expect(result.usingLastKnown).toBe(true);
       expect(result.matches[0].matchId).toBe('m1');
       expect(result.matches[0].sides[0].entrantId).toBe('e1');
-      expect(result.matches[0].sides[0].state).toBe('in-progress');
+      expect(result.matches[0].state).toBe('live');
+      expect(result.matches[0].sides[0].state).toBe('live');
     });
   });
 

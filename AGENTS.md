@@ -265,6 +265,8 @@ Crucially, if you modify **any** infrastructure or deployment file, you MUST exp
 
 Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes. Git ignore rules are authoritative: never force-add anything under `openspec/changes/`, whether active or archived. Commit only accepted specification deltas under `openspec/specs/`. Never commit `.env` files, credentials, or production connection strings.
 
+Before every commit, run `node --test scripts/lib/component-graph.test.mjs`. When a change alters the web component graph, update the asserted node and edge counts and baseline description in that same commit; keep the zero-unresolved-import assertion passing.
+
 ## Tooling Reference
 
 Concrete usage notes for the tools this project's workflow depends on. See `.claude/skills/*/SKILL.md`

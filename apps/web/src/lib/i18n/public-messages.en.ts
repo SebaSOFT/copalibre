@@ -355,6 +355,19 @@ export const messages = defineMessages({
 
   // pages/[organization]/tournaments/[tournament]/live.astro
   livePageTitle: { id: 'publicWeb.livePage.title', defaultMessage: 'Live' },
+  livePageBreadcrumb: { id: 'publicWeb.livePage.breadcrumb', defaultMessage: 'Breadcrumb' },
+  livePageNoMatches: {
+    id: 'publicWeb.livePage.noMatches',
+    defaultMessage: 'No live matches in progress',
+  },
+  livePageNextKickoff: {
+    id: 'publicWeb.livePage.nextKickoff',
+    defaultMessage: 'Next scheduled match',
+  },
+  livePageNoUpcoming: {
+    id: 'publicWeb.livePage.noUpcoming',
+    defaultMessage: 'No upcoming matches scheduled.',
+  },
   livePageSeriesHeading: { id: 'publicWeb.livePage.seriesHeading', defaultMessage: 'Series' },
   livePageUpcomingHeading: { id: 'publicWeb.livePage.upcomingHeading', defaultMessage: 'Upcoming' },
   livePageLeadersHeading: { id: 'publicWeb.livePage.leadersHeading', defaultMessage: 'Leaders' },

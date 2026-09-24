@@ -3,11 +3,13 @@ import type { IntlShape } from 'react-intl';
 import type {
   TableLayoutSummaryResponse,
   TableProjectionResponse,
+  TableColumnResponse,
+  TableRowResponse,
 } from '@copalibre/api/src/dto/table-projections.dto.js';
 import { localizedText } from '../../../lib/localized-label.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
-import type { ClubView } from '../../../lib/overview.ts';
+import type { ClubView, StandingsRowView } from '../../../lib/overview.ts';
 import EmblemImage from '../atoms/EmblemImage.astro';
 import Button from '../atoms/Button.astro';
 import { EntrantName } from '../atoms/EntrantName.tsx';
@@ -19,6 +21,10 @@ interface Props {
   /** The declared layout this projection came from — its own label replaces the generic heading. */
   readonly layout?: TableLayoutSummaryResponse;
   readonly projection?: TableProjectionResponse;
+  /** The tournament overview's compact rows, before a table projection exists. */
+  readonly previewRows?: readonly StandingsRowView[];
+  readonly previewGrain?: 'series' | 'match';
+  readonly headingText?: string;
   readonly activeLayoutCode?: string;
   readonly activeClubId?: string;
   readonly clubs?: readonly ClubView[];
@@ -31,6 +37,9 @@ const {
   layouts = [],
   layout,
   projection,
+  previewRows,
+  previewGrain,
+  headingText,
   activeLayoutCode,
   activeClubId,
   clubs = [],
@@ -41,11 +50,41 @@ const {
 } = Astro.props;
 
 const effectiveLayoutCode = activeLayoutCode ?? layout?.code;
-const heading = layout
-  ? localizedText(layout.label, intl.locale)
-  : intl.formatMessage(messages.standingsHeading);
-const rawColumns = projection?.columns ?? [];
-const rows = projection?.rows ?? [];
+const heading =
+  headingText ??
+  (layout
+    ? localizedText(layout.label, intl.locale)
+    : intl.formatMessage(messages.standingsHeading));
+const rawColumns: readonly TableColumnResponse[] =
+  previewRows === undefined
+    ? (projection?.columns ?? [])
+    : [
+        { code: 'rank', header: '#', format: 'number' },
+        { code: 'name', header: intl.formatMessage(messages.standingsTeam), format: 'text' },
+        {
+          code: 'points',
+          header: intl.formatMessage(messages.standingsPoints),
+          format: 'number',
+        },
+      ];
+type DisplayRow = Pick<TableRowResponse, 'actorName' | 'cells'> &
+  Partial<
+    Pick<TableRowResponse, 'actorId' | 'entrantName' | 'entrantAbbreviation' | 'nationality'>
+  >;
+const rows: readonly DisplayRow[] =
+  previewRows === undefined
+    ? (projection?.rows ?? [])
+    : previewRows.map((row) => ({
+        actorName: row.name,
+        entrantName: row.name,
+        entrantAbbreviation: row.abbreviation,
+        cells: {
+          rank: { raw: row.position, formatted: String(row.position) },
+          name: { formatted: row.name },
+          points: { raw: row.points, formatted: String(row.points) },
+        },
+      }));
+const grain = projection?.grain ?? previewGrain;
 // Relabelled only under series grain — match grain keeps the discipline's own
 // wording for the column, which already reads as counting matches.
 const columns =
@@ -70,12 +109,10 @@ const isPlayerRanking =
   <h2 id="standings-heading">{heading}</h2>
 
   {
-    projection?.grain !== undefined && (
+    grain !== undefined && (
       <p class="cl-standings-grain">
         {intl.formatMessage(
-          projection.grain === 'series'
-            ? messages.standingsGrainSeries
-            : messages.standingsGrainMatch,
+          grain === 'series' ? messages.standingsGrainSeries : messages.standingsGrainMatch,
         )}
       </p>
     )
@@ -164,30 +201,38 @@ const isPlayerRanking =
     {rows.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
     {
       rows.length > 0 && (
-        <table class="cl-table" data-sortable-table>
+        <table class="cl-table" data-sortable-table={previewRows === undefined ? true : undefined}>
           <thead>
             <tr>
               {columns.map((column) => {
                 const header = localizedText(column.header, intl.locale);
                 return (
                   <th scope="col" title={header} aria-sort="none">
-                    <Button
-                      type="button"
-                      class="cl-table__sort"
-                      data-table-sort-button
-                      data-column-code={column.code}
-                      aria-label={localizedText(column.shortHeader ?? column.header, intl.locale)}
-                    >
-                      {localizedText(column.shortHeader ?? column.header, intl.locale)}
-                    </Button>
+                    {previewRows === undefined ? (
+                      <Button
+                        type="button"
+                        class="cl-table__sort"
+                        data-table-sort-button
+                        data-column-code={column.code}
+                        aria-label={localizedText(column.shortHeader ?? column.header, intl.locale)}
+                      >
+                        {localizedText(column.shortHeader ?? column.header, intl.locale)}
+                      </Button>
+                    ) : (
+                      localizedText(column.shortHeader ?? column.header, intl.locale)
+                    )}
                   </th>
                 );
               })}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr>
+            {rows.map((row, index) => (
+              <tr
+                class={
+                  previewRows === undefined ? undefined : index % 2 === 0 ? 'cl-row' : 'cl-row--alt'
+                }
+              >
                 {columns.map((column) => {
                   const isPlayerNameCell =
                     isPlayerRanking &&
@@ -195,6 +240,8 @@ const isPlayerRanking =
                       column.code === 'player' ||
                       column.code === 'entrant' ||
                       column.code === 'name');
+                  const isNameCell =
+                    column.code === 'name' || column.code === 'entrant' || column.code === 'team';
                   const cellFormatted = row.cells[column.code]?.formatted ?? '—';
                   const cellRaw = row.cells[column.code]?.raw;
                   const cellMissing = cellRaw === undefined;
@@ -210,7 +257,7 @@ const isPlayerRanking =
 
                   return (
                     <td
-                      class={isPlayerNameCell ? undefined : 'cl-table__num'}
+                      class={isPlayerNameCell || isNameCell ? undefined : 'cl-table__num'}
                       data-sort-value={cellMissing ? undefined : String(cellRaw)}
                       data-sort-type={typeof cellRaw === 'number' ? 'number' : 'text'}
                       data-sort-missing={cellMissing ? 'true' : undefined}

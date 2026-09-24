@@ -195,6 +195,13 @@ export async function fetchPlayerStatistics(
  * `control-web`, ported here since the public overview has no `FieldPolicy`
  * object to call that function with directly, only the label it carries.
  */
+function publicMatchState(status: string): MatchState {
+  if (status === 'scheduled') return 'upcoming';
+  if (status === 'in-progress' || status === 'in_progress') return 'live';
+  if (status === 'completed' || status === 'finalized') return 'final';
+  return status as MatchState;
+}
+
 export function mapOverviewResponse(
   response: PublicOverviewResponse,
   language: SupportedLanguage = 'en',
@@ -229,7 +236,7 @@ export function mapOverviewResponse(
         abbreviation: m.awayAbbreviation,
         score: m.awayScore,
       },
-      state: m.status as MatchState,
+      state: publicMatchState(m.status),
       startsAt: m.scheduledAt ?? '',
     })),
     standings: (response.standingsPreview ?? []).map((s: PublicStandingsRowResponse) => ({
@@ -253,20 +260,23 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
   return {
     standingsVersion: 0,
     usingLastKnown: true,
-    matches: response.matches.map((m) => ({
-      matchId: m.matchId,
-      stageNumber: m.stageNumber,
-      matchNumber: m.matchNumber,
-      state: m.state as MatchState,
-      projectionVersion: m.projectionVersion,
-      sides: m.sides.map((s) => ({
-        entrantId: s.entrantId,
-        name: s.name,
-        abbreviation: s.abbreviation,
-        score: s.score,
-        state: m.state as MatchState,
-      })),
-    })),
+    matches: response.matches.map((m) => {
+      const state = publicMatchState(m.state);
+      return {
+        matchId: m.matchId,
+        stageNumber: m.stageNumber,
+        matchNumber: m.matchNumber,
+        state,
+        projectionVersion: m.projectionVersion,
+        sides: m.sides.map((s) => ({
+          entrantId: s.entrantId,
+          name: s.name,
+          abbreviation: s.abbreviation,
+          score: s.score,
+          state,
+        })),
+      };
+    }),
   } as LiveDashboard;
 }
 

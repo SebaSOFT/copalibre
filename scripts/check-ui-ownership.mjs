@@ -85,7 +85,6 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // private sub-components and its table/button ownership moved into their
   // own files, `TvStandingsTable.tsx` and `TvRailTab.tsx`, both named in
   // `TABLE_OWNER_FILES` above as the TV surface's genuine table owner.
-  ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 11],
   // A close control with no name a screen reader can announce is unusable
   // (Decision 5's own reasoning for building `Modal` on Radix Dialog in the
   // first place), but the `Button` atom's filled, chamfered pill is a CTA
@@ -256,7 +255,6 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // there. Repointing was therefore not the fix (openspec 0225 task 1.5);
   // deleting them was, since the violation these entries recorded no longer
   // exists for the scanner to find.
-  ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 1],
   ['pages/[...locale]/[organization]/tournaments/[tournament]/players/[personId].astro', 1],
   ['pages/index.astro', 1],
   // The control-panel CTA: an `<a href="/control/">` styled as a button, the

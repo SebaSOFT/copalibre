@@ -727,7 +727,7 @@ export class PublicProjectionsController {
     const matches = await new PublicOverviewReadModel(this.db).matchesForTournament(
       tournament.tournamentId,
     );
-    const liveMatches = matches.filter((m) => m.status === 'in_progress');
+    const liveMatches = matches.filter((m) => m.status === 'in-progress');
 
     const entrantIds = new Set<string>();
     for (const match of liveMatches) {
@@ -743,7 +743,7 @@ export class PublicProjectionsController {
         matchId: m.matchId,
         stageNumber: m.stageNumber,
         matchNumber: m.matchNumber ?? m.round,
-        state: 'in_progress',
+        state: 'live',
         projectionVersion: 1,
         sides: [
           ...(m.homeEntrantId
