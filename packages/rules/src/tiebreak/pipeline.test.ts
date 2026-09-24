@@ -106,6 +106,11 @@ describe('resolveTiebreak', () => {
       b: { 'points-en': 10, 'points-es-only': 5, 'points-fallback': 1 },
     });
     expect(res3.trace[2]?.label).toContain('null');
+
+    for (const node of [...res.trace, ...res2.trace, ...res3.trace]) {
+      expect(node.label).not.toContain('[object Object]');
+      expect(node.detail).not.toContain('[object Object]');
+    }
   });
 
   it('falls through to lower_wins when the first comparator ties', () => {

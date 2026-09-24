@@ -1,4 +1,4 @@
-import type { LocalizedLabel } from '@copalibre/domain';
+import { resolveLabel, isLocalizedLabel, type LocalizedLabel } from '@copalibre/domain';
 import type { TraceNode } from '../trace/explanation-trace.js';
 
 /**
@@ -19,10 +19,22 @@ export function deterministicTiebreakHash(
   return hash >>> 0;
 }
 
+/**
+ * Trace labels are deterministic text (`trace/render.ts`'s contract: "no
+ * locale formatting... a trace archived today and re-rendered next year must
+ * read the same, on any machine"), so this always resolves to English via the
+ * platform's canonical `resolveLabel` (openspec 0276) rather than a request
+ * locale. Falls back gracefully — never throwing or leaking `[object Object]`
+ * — for a `label` that doesn't actually satisfy `LocalizedLabel` at runtime
+ * (descriptor data is author-provided JSON, not guaranteed by the type
+ * checker): a malformed object still yields its first string value, and a
+ * non-object still stringifies.
+ */
 function parameterLabelText(label: string | LocalizedLabel): string {
   if (typeof label === 'string') return label;
-  if (typeof label === 'object' && label !== null) {
-    return label.en ?? (Object.values(label)[0] as string) ?? '';
+  if (isLocalizedLabel(label)) return resolveLabel(label, 'en');
+  if (label && typeof label === 'object') {
+    return (Object.values(label).find((value) => typeof value === 'string') as string) ?? '';
   }
   return String(label);
 }

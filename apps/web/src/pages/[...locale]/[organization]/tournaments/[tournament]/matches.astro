@@ -158,7 +158,9 @@ const structuredData = {
 
   {
     matchesWithLabels.length === 0 ? (
-      <p>{labels.empty}</p>
+      <div class="cl-empty-state">
+        <p>{labels.empty}</p>
+      </div>
     ) : (
       roundGroups.map((group) => (
         <section class="cl-matches-view__round">
@@ -197,5 +199,13 @@ const structuredData = {
     font-weight: 600;
     color: var(--cl-text-primary);
     margin: 0 0 var(--cl-space-3) 0;
+  }
+  .cl-empty-state {
+    padding: 3rem 1rem;
+    text-align: center;
+    background-color: var(--cl-surface-panel);
+    border-radius: 12px;
+    border: 1px dashed var(--cl-border-muted);
+    color: var(--cl-text-muted);
   }
 </style>
