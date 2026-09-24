@@ -703,6 +703,15 @@ function components(): string {
     '.cl-data-table__empty { padding: var(--cl-space-4); color: var(--cl-text-muted); }',
     '@media (max-width: 767px) { .cl-data-table { -webkit-overflow-scrolling: touch; } }',
     '',
+    // A muted-text utility, and the structured "nothing here yet" card every
+    // list-shaped surface not backed by DataTable needs (openspec 0280) —
+    // the same visual language public-web's own per-file `.cl-empty-state`
+    // rule already uses, centralized here since design-tokens' generator is
+    // the one place a class shared across Control-web and public-web lives
+    // (see `.cl-auth-screen__panel`'s own history, openspec 0278).
+    '.cl-text-muted { color: var(--cl-text-muted); }',
+    '.cl-empty-state { padding: var(--cl-space-8) var(--cl-space-4); text-align: center; background-color: var(--cl-surface-panel); border-radius: 12px; border: 1px dashed var(--cl-border-muted); color: var(--cl-text-muted); }',
+    '',
     // Compact density: tighter padding, approximating `--cl-touch-target`
     // (44px) per row instead of the default's roomier whitespace — opt-in,
     // since most `DataTable`/`DataTable.astro` callers (roles, activity log)

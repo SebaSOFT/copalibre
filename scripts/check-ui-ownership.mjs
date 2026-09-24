@@ -220,9 +220,9 @@ const OWNED_CLASS_RULES = [
  */
 export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // Operator surface — an owned atom exists for every one of these.
-  ['control/components/ActivityLog.tsx', 1],
+  // openspec 0280 moved ActivityLog.tsx's and DeviceHeartbeat.tsx's raw
+  // cl-badge spans onto the Badge atom — both entries removed at zero.
   ['control/components/BracketCanvas.tsx', 2],
-  ['control/components/DeviceHeartbeat.tsx', 1],
   ['control/components/screens/LiveConsoleTemplate.tsx', 3],
   ['control/components/screens/LoadMatchDataTemplate.tsx', 1],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],

@@ -638,6 +638,14 @@ describe('what the dashboard renders', () => {
     expect(screen.getByText(/last signal/i)).toBeDefined();
   });
 
+  it('elevates the no-devices state to a structured empty-state card (openspec 0280)', () => {
+    const { container } = render(withIntl(<DeviceHeartbeat devices={[]} now={Date.now()} />));
+
+    const emptyState = container.querySelector('.cl-empty-state');
+    expect(emptyState).not.toBeNull();
+    expect(emptyState?.textContent).toContain('No TV devices provisioned yet.');
+  });
+
   it('shows no archive action for a tournament that has not finished', () => {
     render(
       <Dashboard
