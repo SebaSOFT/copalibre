@@ -4,7 +4,16 @@ export interface ResponsiveTimestampProps {
   readonly timestamp: string | number | Date;
   /** Defaults to the moment this renders. A fixed value keeps a "5 minutes ago" from drifting mid-render, and keeps tests deterministic. */
   readonly referenceDate?: Date | number;
-  readonly locale?: string;
+  /**
+   * Required rather than guessed (openspec 0272): resolving a default from
+   * `navigator` inside this component disagreed between Node's SSR pass
+   * (where a minimal global `navigator.language` is `undefined`, silently
+   * falling back to the process's own ICU locale) and the real browser
+   * client — a hydration mismatch on every render. Every caller already has
+   * its own active locale in scope (the same value it resolved for its own
+   * `intl`/`publicIntl()`); it must pass that value here explicitly.
+   */
+  readonly locale: string;
   readonly format?: ResponsiveTimestampFormat;
   readonly className?: string;
 }
@@ -104,7 +113,6 @@ export function ResponsiveTimestamp({
 }: ResponsiveTimestampProps): React.JSX.Element {
   const date = toDate(timestamp);
   const reference = referenceDate === undefined ? new Date() : toDate(referenceDate);
-  const resolvedLocale = locale ?? (typeof navigator === 'undefined' ? 'es' : navigator.language);
 
   // A malformed value has no ISO instant to carry in `dateTime` — render it
   // verbatim rather than throwing out of `toISOString()`, matching the
@@ -121,9 +129,9 @@ export function ResponsiveTimestamp({
     <time
       className={`cl-responsive-timestamp ${className ?? ''}`.trim()}
       dateTime={date.toISOString()}
-      title={fullDateTime(date, resolvedLocale)}
+      title={fullDateTime(date, locale)}
     >
-      {textFor(format, date, reference, resolvedLocale)}
+      {textFor(format, date, reference, locale)}
     </time>
   );
 }

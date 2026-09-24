@@ -46,21 +46,25 @@ function baseMatch(overrides: Partial<MatchCardData> = {}): MatchCardData {
 describe('MatchCard', () => {
   it('shows a clock only while live', () => {
     const { rerender } = render(
-      <MatchCard match={baseMatch({ state: 'live', clockSeconds: 4726 })} labels={labels} />,
+      <MatchCard
+        match={baseMatch({ state: 'live', clockSeconds: 4726 })}
+        labels={labels}
+        locale="en"
+      />,
     );
     expect(screen.getByTitle('Elapsed time: 78:46').textContent).toBe('78:46');
 
-    rerender(<MatchCard match={baseMatch({ state: 'upcoming' })} labels={labels} />);
+    rerender(<MatchCard match={baseMatch({ state: 'upcoming' })} labels={labels} locale="en" />);
     expect(screen.queryByTitle(/Elapsed time/)).toBeNull();
   });
 
   it('omits the venue line when no venue is assigned', () => {
     const { rerender } = render(
-      <MatchCard match={baseMatch({ venueName: 'Cancha 1' })} labels={labels} />,
+      <MatchCard match={baseMatch({ venueName: 'Cancha 1' })} labels={labels} locale="en" />,
     );
     expect(screen.getByTitle('Venue: Cancha 1').textContent).toBe('Cancha 1');
 
-    rerender(<MatchCard match={baseMatch()} labels={labels} />);
+    rerender(<MatchCard match={baseMatch()} labels={labels} locale="en" />);
     expect(screen.queryByTitle(/^Venue:/)).toBeNull();
   });
 
@@ -69,6 +73,7 @@ describe('MatchCard', () => {
       <MatchCard
         match={baseMatch({ zoneName: 'Group B', homePosition: 1, awayPosition: 2 })}
         labels={labels}
+        locale="en"
       />,
     );
     expect(screen.getByTitle('Zone/group: Group B').textContent).toBe('Group B');
@@ -91,6 +96,7 @@ describe('MatchCard', () => {
           },
         })}
         labels={labels}
+        locale="en"
       />,
     );
     expect(screen.getByText('Series undecided at 1–0')).toBeDefined();
@@ -103,16 +109,17 @@ describe('MatchCard', () => {
       <MatchCard
         match={baseMatch({ state: 'final', decidingFactor: 'Rule 2 (Head-to-head)' })}
         labels={labels}
+        locale="en"
       />,
     );
     expect(screen.getByText('Decided by: Rule 2 (Head-to-head)')).toBeDefined();
 
-    rerender(<MatchCard match={baseMatch({ state: 'final' })} labels={labels} />);
+    rerender(<MatchCard match={baseMatch({ state: 'final' })} labels={labels} locale="en" />);
     expect(screen.queryByText(/^Decided by:/)).toBeNull();
   });
 
   it('never renders a trace panel when the response carries no trace (the public shape)', () => {
-    render(<MatchCard match={baseMatch({ state: 'final' })} labels={labels} />);
+    render(<MatchCard match={baseMatch({ state: 'final' })} labels={labels} locale="en" />);
     expect(screen.queryByText('Full standings comparator trace')).toBeNull();
   });
 
@@ -127,6 +134,7 @@ describe('MatchCard', () => {
           ],
         })}
         labels={labels}
+        locale="en"
       />,
     );
     expect(screen.getByText('Full standings comparator trace')).toBeDefined();
@@ -138,6 +146,7 @@ describe('MatchCard', () => {
       <MatchCard
         match={baseMatch()}
         labels={labels}
+        locale="en"
         reportUrl="/liga/tournaments/x/stages/1/matches/1"
       />,
     );
@@ -162,5 +171,17 @@ describe('MatchCard', () => {
     const timestamp = container.querySelector('time.cl-responsive-timestamp');
     expect(timestamp?.getAttribute('datetime')).toBe(instant);
     expect(timestamp?.textContent).not.toContain('2025-05-18T');
+  });
+
+  it('renders the scheduled timestamp in the locale it is given, not a fixed one (openspec 0272)', () => {
+    const instant = '2025-05-18T15:30:00.000Z';
+    const { container } = render(
+      <MatchCard match={baseMatch({ scheduledAt: instant })} labels={labels} locale="es-AR" />,
+    );
+    const expectedMonth = new Intl.DateTimeFormat('es-AR', { month: 'short' }).format(
+      new Date(instant),
+    );
+    const timestamp = container.querySelector('time.cl-responsive-timestamp');
+    expect(timestamp?.textContent).toContain(expectedMonth);
   });
 });

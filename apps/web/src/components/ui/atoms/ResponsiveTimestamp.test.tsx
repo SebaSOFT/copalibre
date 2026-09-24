@@ -141,7 +141,7 @@ describe('ResponsiveTimestamp', () => {
   });
 
   it('renders a malformed value verbatim instead of throwing', () => {
-    render(<ResponsiveTimestamp timestamp="not-a-date" />);
+    render(<ResponsiveTimestamp locale="en" timestamp="not-a-date" />);
     expect(screen.getByText('not-a-date')).toBeTruthy();
   });
 });

@@ -169,6 +169,7 @@ const structuredData = {
             {group.matches.map((match) => (
               <MatchCard
                 client:load
+                locale={intl.locale}
                 match={match}
                 labels={labels}
                 reportUrl={matchReportUrl({
