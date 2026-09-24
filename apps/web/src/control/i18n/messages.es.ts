@@ -1115,7 +1115,7 @@ export const messages: Record<string, string> = {
   'control.matchesView.fullTraceHeading': 'Traza completa del comparador de posiciones',
   'control.matchesView.resultState.live': 'EN VIVO',
   'control.matchesView.resultState.upcoming': 'PROGRAMADO',
-  'control.matchesView.resultState.final': 'FINAL',
+  'control.matchesView.resultState.final': 'FINALIZADO',
   'control.matchesView.resultState.disputed': 'EN DISPUTA',
   'control.matchesView.resultState.winner': 'GANÓ',
   'control.matchesView.resultState.loser': 'PERDIÓ',

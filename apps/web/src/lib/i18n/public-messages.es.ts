@@ -13,7 +13,7 @@ export const messages: Record<string, string> = {
 
   'publicWeb.resultState.live': 'EN VIVO',
   'publicWeb.resultState.upcoming': 'PROGRAMADO',
-  'publicWeb.resultState.final': 'FINAL',
+  'publicWeb.resultState.final': 'FINALIZADO',
   'publicWeb.resultState.disputed': 'EN DISPUTA',
   'publicWeb.resultState.winner': 'GANÓ',
   'publicWeb.resultState.loser': 'PERDIÓ',
