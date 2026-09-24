@@ -912,3 +912,20 @@ hardcoded English-only formatting of the field's raw dot-path or stored value.
 - **WHEN** the overview page is requested in a supported locale other than English
 - **THEN** the ruleset section's field labels and boolean/enum values are rendered in that locale,
   not in English
+
+### Requirement: Not found error page adheres to design tokens and provides return navigation
+The public 404 Page Not Found error page SHALL resolve its presentation through declared CopaLibre
+design tokens, rendering on a dark ink background (`#0A0E1A`) with an instrument-grade chamfered
+card, clear localized error copy, and an accessible call-to-action control linking back to the home
+directory. It SHALL NOT render as an unstyled, pure-white browser document.
+
+#### Scenario: Sighted visitor navigates to non-existent route
+- **WHEN** a visitor navigates to an unmatched public route
+- **THEN** the rendered 404 page presents the dark surface palette, brand header, centered chamfered
+  error panel, and a primary return button
+- **AND** the document background is not pure white `#ffffff`
+
+#### Scenario: Control SPA routing fallback remains intact
+- **WHEN** a visitor directly accesses a `/control/**` deep link on a static host serving `404.html`
+- **THEN** `ControlOrNotFound` hides the static error card and mounts the control application
+  seamlessly
