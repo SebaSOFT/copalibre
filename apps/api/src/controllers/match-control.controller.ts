@@ -2481,9 +2481,7 @@ function typeLabelFor(
   descriptor: DisciplineDescriptor,
   segmentType: string,
 ): { readonly typeLabel?: string | LocalizedLabel } {
-  const typeLabel = descriptor.segmentTypes.find(
-    (segment) => segment.name === segmentType,
-  )?.label;
+  const typeLabel = descriptor.segmentTypes.find((segment) => segment.name === segmentType)?.label;
   return typeLabel === undefined ? {} : { typeLabel };
 }
 
