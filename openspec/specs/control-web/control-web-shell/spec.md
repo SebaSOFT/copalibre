@@ -340,3 +340,19 @@ The table navigation shell SHALL dynamically support arbitrary tournament topolo
 #### Scenario: Switching arbitrary groups
 - **WHEN** navigating between groups in any stage
 - **THEN** the active group name and participant count update in the table header, and rows strictly reflect that group.
+
+### Requirement: Control application bundle is browser-isomorphic without Node built-in dependencies
+The client-side bundle for the operator control application (`ControlApp.tsx`) and its imported
+domain/rules packages SHALL NOT depend on native Node.js built-ins (including `node:crypto`) that cannot
+execute in standard browser environments. All hashing, string manipulation, and tiebreak pipelines SHALL
+be implemented isomorphically.
+
+#### Scenario: Operator accesses control login in browser
+- **WHEN** an operator navigates to `/control/login` or any `/control/**` route
+- **THEN** `ControlApp` mounts and hydrates without externalized module runtime exceptions
+- **AND** the authentication form is fully visible and interactive
+
+#### Scenario: Tiebreak hash executes identically across Node and browser
+- **WHEN** `deterministicTiebreakHash` evaluates the same tournament, stage, and entrant IDs
+- **THEN** it produces the identical integer value in both server-side Node execution and client-side
+  browser execution

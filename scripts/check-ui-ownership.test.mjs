@@ -404,17 +404,26 @@ test("a BEM child of an owned class is that component's own structure, not a byp
 
 test('the owned-class register admits its recorded count and nothing beyond it', () => {
   const badge = '<span className="cl-badge" />';
-  // ActivityLog.tsx is recorded at 1.
-  assert.equal(checkFileOwnership('control/components/ActivityLog.tsx', badge).length, 0);
+  // control/components/pages/SeedingBuilderPage.tsx is recorded at 1, and
+  // only in this register — unlike screens recorded in both registers, a
+  // zero-content fixture here trips exactly one violation, not two.
   assert.equal(
-    checkFileOwnership('control/components/ActivityLog.tsx', `${badge}\n${badge}`).length,
+    checkFileOwnership('control/components/pages/SeedingBuilderPage.tsx', badge).length,
+    0,
+  );
+  assert.equal(
+    checkFileOwnership('control/components/pages/SeedingBuilderPage.tsx', `${badge}\n${badge}`)
+      .length,
     1,
   );
   assert.equal(checkFileOwnership('NotListed.tsx', badge).length, 1);
 });
 
 test('the owned-class register ratchets down, naming its own register', () => {
-  const violations = checkFileOwnership('control/components/ActivityLog.tsx', 'const nothing = 1;');
+  const violations = checkFileOwnership(
+    'control/components/pages/SeedingBuilderPage.tsx',
+    'const nothing = 1;',
+  );
   assert.equal(violations.length, 1);
   assert.match(violations[0].message, /fewer than the 1 recorded in KNOWN_HANDWRITTEN_CLASSES/);
 });

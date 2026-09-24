@@ -37,6 +37,31 @@ describe('activity-formatting', () => {
     it('uses the default locale when omitted', () => {
       expect(formatActivityAction('match.finalized')).toBe('Partido finalizado');
     });
+
+    it('maps every newly registered domain action across all 8 supported languages', () => {
+      expect(formatActivityAction('match.created', 'en')).toBe('Match created');
+      expect(formatActivityAction('match.created', 'es')).toBe('Partido creado');
+      expect(formatActivityAction('player.enlisted', 'en')).toBe('Player enlisted');
+      expect(formatActivityAction('player.enlisted', 'fr')).toBe('Joueur inscrit');
+      expect(formatActivityAction('module.installed', 'pt')).toBe('Módulo instalado');
+      expect(formatActivityAction('fixtures.generated', 'it')).toBe('Calendario generato');
+      expect(formatActivityAction('fixtures.regenerated', 'de')).toBe('Spielplan neu erstellt');
+      expect(formatActivityAction('ruleset.compiled', 'ru')).toBe('Регламент скомпилирован');
+      expect(formatActivityAction('ruleset.versioned', 'zh')).toBe('已创建新版本规则集');
+      expect(formatActivityAction('zone.created', 'es')).toBe('Zona creada');
+      expect(formatActivityAction('group.created', 'en')).toBe('Group created');
+      expect(formatActivityAction('season.created', 'es')).toBe('Temporada creada');
+    });
+
+    it('localizes a pre-existing action into a non-es/en language (openspec 0280)', () => {
+      // Before openspec 0280, every locale other than es/en silently rendered
+      // the English defaultMessage — this asserts the previously-blind
+      // languages now genuinely resolve their own translation.
+      expect(formatActivityAction('segment.completed', 'fr')).toBe('Segment terminé');
+      expect(formatActivityAction('tournament.published', 'de')).toBe('Turnier veröffentlicht');
+      expect(formatActivityAction('entrant.accepted', 'ru')).toBe('Регистрация одобрена');
+      expect(formatActivityAction('club.created', 'zh')).toBe('俱乐部已创建');
+    });
   });
 
   describe('formatActivityReason', () => {
@@ -67,6 +92,15 @@ describe('activity-formatting', () => {
 
     it('returns empty string when reason is undefined', () => {
       expect(formatActivityReason(undefined, 'es')).toBe('');
+    });
+
+    it('localizes a refusal reason into a non-es/en language (openspec 0280)', () => {
+      expect(formatActivityReason('Subject is not scoped to this organization', 'fr')).toBe(
+        "L'utilisateur n'appartient pas à cette organisation",
+      );
+      expect(formatActivityReason('Token is missing required scope: org.admin', 'zh')).toBe(
+        '令牌缺少所需的权限范围',
+      );
     });
   });
 });
