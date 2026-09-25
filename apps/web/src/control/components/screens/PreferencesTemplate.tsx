@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
-import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import {
   organizationEmblemUrl,
   type ControlApiClient,
@@ -15,6 +15,7 @@ import { ClubEmblemPlaceholder } from '../placeholders.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
+import { Form } from '../ui/atoms/form.js';
 import { filePickerLabels } from '../../lib/file-picker-labels.js';
 import { Input } from '../ui/atoms/input.js';
 import { Inline } from '../ui/atoms/layout/inline.js';
@@ -27,45 +28,6 @@ import {
   type PatResponse,
 } from '../pages/PreferencesPage.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
-
-const messages = defineMessages({
-  title: {
-    id: 'preferences.title',
-    defaultMessage: 'Personal Preferences',
-  },
-  patTitle: {
-    id: 'preferences.patTitle',
-    defaultMessage: 'Personal Access Tokens',
-  },
-  patDescription: {
-    id: 'preferences.patDescription',
-    defaultMessage: 'Generate tokens to access the API directly. Tokens are only shown once.',
-  },
-  createPat: {
-    id: 'preferences.createPat',
-    defaultMessage: 'Generate Token',
-  },
-  patLabel: {
-    id: 'preferences.patLabel',
-    defaultMessage: 'Token Label',
-  },
-  patExpiresIn: {
-    id: 'preferences.patExpiresIn',
-    defaultMessage: 'Expires in (days)',
-  },
-  patCreated: {
-    id: 'preferences.patCreated',
-    defaultMessage: 'Token created. Copy it now:',
-  },
-  revokePat: {
-    id: 'preferences.revokePat',
-    defaultMessage: 'Revoke',
-  },
-  noTokens: {
-    id: 'preferences.noTokens',
-    defaultMessage: 'No active personal access tokens.',
-  },
-});
 
 const preferencesSectionPadding = 'clamp(var(--cl-space-3), 4vw, var(--cl-space-6))';
 
@@ -153,47 +115,47 @@ export function PreferencesTemplate({
         }}
       >
         <h2>
-          <FormattedMessage {...messages.patTitle} />
+          <FormattedMessage {...controlMessages.preferencesPatTitle} />
         </h2>
         <p>
-          <FormattedMessage {...messages.patDescription} />
+          <FormattedMessage {...controlMessages.preferencesPatDescription} />
         </p>
 
-        <form
+        <Form
+          aria-label={intl.formatMessage(controlMessages.preferencesPatTitle)}
+          className="cl-preferences-pat-form"
           onSubmit={handleCreate}
-          style={{
-            display: 'flex',
-            gap: '1rem',
-            marginTop: '1rem',
-            alignItems: 'flex-end',
-            flexWrap: 'wrap',
-          }}
         >
-          <Field id="pat-label" label={intl.formatMessage(messages.patLabel)}>
-            <Input
-              id="pat-label"
-              onChange={(e) => setLabel(e.target.value)}
-              required
-              type="text"
-              value={label}
-            />
-          </Field>
-          <Field id="pat-expires" label={intl.formatMessage(messages.patExpiresIn)}>
-            <Input
+          <Inline align="end" gap="4" wrap>
+            <Field id="pat-label" label={intl.formatMessage(controlMessages.preferencesPatLabel)}>
+              <Input
+                id="pat-label"
+                onChange={(e) => setLabel(e.target.value)}
+                required
+                type="text"
+                value={label}
+              />
+            </Field>
+            <Field
               id="pat-expires"
-              max={365}
-              min={1}
-              onChange={(e) => setExpiresInDays(parseInt(e.target.value))}
-              required
-              style={{ width: '80px' }}
-              type="number"
-              value={expiresInDays}
-            />
-          </Field>
-          <Button disabled={!label.trim()} type="submit">
-            <FormattedMessage {...messages.createPat} />
-          </Button>
-        </form>
+              label={intl.formatMessage(controlMessages.preferencesPatExpiresIn)}
+            >
+              <Input
+                id="pat-expires"
+                max={365}
+                min={1}
+                onChange={(e) => setExpiresInDays(parseInt(e.target.value))}
+                required
+                style={{ width: '80px' }}
+                type="number"
+                value={expiresInDays}
+              />
+            </Field>
+            <Button disabled={!label.trim()} type="submit">
+              <FormattedMessage {...controlMessages.preferencesPatCreate} />
+            </Button>
+          </Inline>
+        </Form>
 
         {newToken && (
           <div
@@ -205,7 +167,7 @@ export function PreferencesTemplate({
             }}
           >
             <strong>
-              <FormattedMessage {...messages.patCreated} />
+              <FormattedMessage {...controlMessages.preferencesPatCreated} />
             </strong>
             <code
               style={{
@@ -229,7 +191,7 @@ export function PreferencesTemplate({
             </p>
           ) : tokens.length === 0 ? (
             <p>
-              <FormattedMessage {...messages.noTokens} />
+              <FormattedMessage {...controlMessages.preferencesPatEmpty} />
             </p>
           ) : (
             <ul style={{ listStyle: 'none', padding: 0 }}>
@@ -254,7 +216,12 @@ export function PreferencesTemplate({
                           marginTop: '0.25rem',
                         }}
                       >
-                        Expira: {new Date(token.expiresAt).toLocaleDateString()}
+                        <FormattedMessage
+                          {...controlMessages.preferencesPatExpiresAt}
+                          values={{
+                            date: new Date(token.expiresAt).toLocaleDateString(intl.locale),
+                          }}
+                        />
                       </div>
                     </div>
                     <Button
@@ -262,7 +229,7 @@ export function PreferencesTemplate({
                       type="button"
                       variant="destructive-outline"
                     >
-                      <FormattedMessage {...messages.revokePat} />
+                      <FormattedMessage {...controlMessages.preferencesPatRevoke} />
                     </Button>
                   </li>
                 ))}
@@ -490,5 +457,10 @@ export function PreferencesTemplate({
     </div>
   );
 
-  return <ListScreenLayout listing={listingNode} title={intl.formatMessage(messages.title)} />;
+  return (
+    <ListScreenLayout
+      listing={listingNode}
+      title={intl.formatMessage(controlMessages.preferencesTitle)}
+    />
+  );
 }

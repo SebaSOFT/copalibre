@@ -121,16 +121,13 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // `<form className="cl-platform-form-grid" …>` (`PlatformAdministrationPage.tsx`,
   // `TournamentRulesetTemplate.tsx`, `TournamentSettingsTemplate.tsx` — that
   // class's own `gap` already equals `Form`'s, so the two compose without a
-  // visual change). `AcceptInvitationForm.tsx`, `NativeAuthRoutes.tsx` and
-  // `PreferencesTemplate.tsx` were not: each `<form>` there carries its own
-  // inline layout style, and reconciling that with `Form`'s `cl-form` grid
-  // is task 5.1's inline-style paydown, not this task's naming/composition
-  // concern — left as recorded debt rather than done here.
+  // visual change). `PreferencesTemplate.tsx` now composes `Form` with its
+  // `Inline` layout atom; `AcceptInvitationForm.tsx` and `NativeAuthRoutes.tsx`
+  // remain recorded because their inline layouts need a separate migration.
   ['control/components/AcceptInvitationForm.tsx', 1],
   ['control/components/DescriptorBuilderWizard.tsx', 5],
   ['control/components/screens/LoadMatchDataTemplate.tsx', 3],
   ['control/components/NativeAuthRoutes.tsx', 3],
-  ['control/components/screens/PreferencesTemplate.tsx', 1],
   ['control/components/RosterSelectionStep.tsx', 3],
   ['control/components/screens/ScheduleBuilderTemplate.tsx', 3],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 1],

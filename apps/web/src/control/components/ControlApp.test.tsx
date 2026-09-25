@@ -196,14 +196,14 @@ describe('ControlApp', () => {
     [
       '/control/liga-mendocina/preferences',
       'Personal preferences — CopaLibre',
-      'Personal Preferences',
+      'Preferencias personales',
     ],
     ['/control/liga-mendocina/tournaments', 'Tournaments — liga-mendocina', 'Torneo'],
     ['/control/liga-mendocina/live', 'Live console — liga-mendocina', 'Consola'],
     [
       '/control/liga-mendocina/organization',
       'Organization — liga-mendocina',
-      'Personal Preferences',
+      'Preferencias personales',
     ],
     ['/control/liga-mendocina/analytics', 'Analytics — liga-mendocina', 'Analítica'],
   ])('renders the right screen and title for %s', async (path, title, content) => {
