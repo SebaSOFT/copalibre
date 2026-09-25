@@ -232,7 +232,6 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['components/tv/ui/organisms/TvStandingsTable.tsx', 1],
   ['components/ui/AstroPreview.tsx', 1],
   ['components/ui/organisms/MatchCard.tsx', 1],
-  ['control/components/screens/AnalyticsTemplate.tsx', 5],
   ['control/components/BracketCanvas.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
   ['control/components/DescriptorBuilderWizard.tsx', 9],
@@ -318,7 +317,6 @@ function withoutVarCalls(text) {
 export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['components/tv/TvDashboard.tsx', 1],
   ['components/ui/AstroPreview.tsx', 1],
-  ['control/components/screens/AnalyticsTemplate.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/screens/PreferencesTemplate.tsx', 13],

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { TournamentCompletionResponse } from '@copalibre/contracts';
 import {
   createControlApiClient,
   type ControlApiClient,
@@ -31,6 +32,9 @@ export function AnalyticsPage({
   );
 
   const [tournaments, setTournaments] = useState<readonly TournamentResponse[]>([]);
+  const [completionByTournament, setCompletionByTournament] = useState<
+    Readonly<Record<string, TournamentCompletionResponse | undefined>>
+  >({});
   const [storage, setStorage] = useState<OrganizationStorageUsageResponse | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
@@ -38,6 +42,7 @@ export function AnalyticsPage({
     let active = true;
     const listTournaments = api.listActiveTournaments;
     const getStorage = api.getStorageUsage;
+    const fetchCompletion = api.fetchCompletion;
 
     Promise.all([
       listTournaments ? listTournaments(organizationAlias) : Promise.resolve([]),
@@ -47,9 +52,23 @@ export function AnalyticsPage({
     ])
       .then(([loadedTournaments, loadedStorage]) => {
         if (!active) return;
+        setCompletionByTournament({});
         setTournaments(loadedTournaments);
         setStorage(loadedStorage);
         setLoading(false);
+        if (fetchCompletion) {
+          for (const tournament of loadedTournaments) {
+            void fetchCompletion(organizationAlias, tournament.alias)
+              .then((completion) => {
+                if (!active) return;
+                setCompletionByTournament((current) => ({
+                  ...current,
+                  [tournament.alias]: completion,
+                }));
+              })
+              .catch(() => undefined);
+          }
+        }
       })
       .catch(() => {
         if (active) setLoading(false);
@@ -60,5 +79,13 @@ export function AnalyticsPage({
     };
   }, [api, organizationAlias]);
 
-  return <AnalyticsTemplate loading={loading} storage={storage} tournaments={tournaments} />;
+  return (
+    <AnalyticsTemplate
+      completionByTournament={completionByTournament}
+      loading={loading}
+      organizationAlias={organizationAlias}
+      storage={storage}
+      tournaments={tournaments}
+    />
+  );
 }

@@ -7,8 +7,20 @@ const meta = {
   component: AnalyticsTemplate,
   args: {
     loading: false,
+    organizationAlias: 'liga-san-juan',
     storage: undefined,
     tournaments: [tournament],
+    completionByTournament: {
+      [tournament.alias]: {
+        totalMatches: 8,
+        resolvedMatches: 5,
+        liveMatches: 1,
+        scheduledMatches: 2,
+        finalizedMatches: 5,
+        forfeitedMatches: 0,
+        stages: [],
+      },
+    },
   },
 } satisfies Meta<typeof AnalyticsTemplate>;
 export default meta;

@@ -3435,6 +3435,37 @@ export const messages = defineMessages({
     defaultMessage: '{count} media files',
   },
   analyticsNoData: { id: 'control.analytics.noData', defaultMessage: 'No data' },
+  analyticsTournamentOverview: {
+    id: 'control.analytics.tournamentOverview',
+    defaultMessage: 'Tournament overview',
+  },
+  analyticsNoTournaments: {
+    id: 'control.analytics.noTournaments',
+    defaultMessage: 'No tournaments found.',
+  },
+  analyticsColumnTournament: {
+    id: 'control.analytics.column.tournament',
+    defaultMessage: 'Tournament',
+  },
+  analyticsColumnStatus: { id: 'control.analytics.column.status', defaultMessage: 'Status' },
+  analyticsColumnProgress: {
+    id: 'control.analytics.column.progress',
+    defaultMessage: 'Match progress',
+  },
+  analyticsColumnLiveMatches: {
+    id: 'control.analytics.column.liveMatches',
+    defaultMessage: 'Live matches',
+  },
+  analyticsMatchProgress: {
+    id: 'control.analytics.matchProgress',
+    defaultMessage: '{resolved} / {total} matches',
+  },
+  analyticsStatusDraft: { id: 'control.analytics.status.draft', defaultMessage: 'Draft' },
+  analyticsStatusUpcoming: { id: 'control.analytics.status.upcoming', defaultMessage: 'Upcoming' },
+  analyticsStatusLive: { id: 'control.analytics.status.live', defaultMessage: 'Live' },
+  analyticsStatusFinished: { id: 'control.analytics.status.finished', defaultMessage: 'Finished' },
+  analyticsStatusArchived: { id: 'control.analytics.status.archived', defaultMessage: 'Archived' },
+  analyticsStatusUnknown: { id: 'control.analytics.status.unknown', defaultMessage: 'Unknown' },
 
   // Roster role selector (openspec 0225 task 2.6). `rosterRole*` replace
   // ROSTER_ROLE_LABELS, previously a plain Spanish-only lookup object
