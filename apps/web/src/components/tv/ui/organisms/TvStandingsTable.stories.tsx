@@ -3,7 +3,7 @@ import { publicIntl, tvDashboardLabels } from '../../../../lib/i18n/public-intl.
 import { TvStandingsTable } from './TvStandingsTable.js';
 
 const meta = {
-  title: 'TV/TvStandingsTable',
+  title: 'TV/Kiosk & Full-Frame Widget/TvStandingsTable',
   component: TvStandingsTable,
   args: {
     dashboardLabels: tvDashboardLabels(publicIntl('es')),

@@ -28,6 +28,13 @@ export interface LiveMatch {
   /** What the last applied event said; a lower one is stale and ignored. */
   readonly projectionVersion: number;
   readonly clockSeconds?: number;
+  /** Present only when a public projection explicitly supplies a participating side. */
+  readonly possessionEntrantId?: string;
+  readonly activePenalties?: readonly {
+    readonly timerId: string;
+    readonly entrantId: string;
+    readonly remainingSeconds: number;
+  }[];
 }
 
 export interface LiveDashboard {

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TvFactsView } from './TvFactsView.js';
 
 const meta = {
-  title: 'TV/TvFactsView',
+  title: 'TV/Kiosk & Full-Frame Widget/TvFactsView',
   component: TvFactsView,
   args: {
     facts: [

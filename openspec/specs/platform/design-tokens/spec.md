@@ -560,3 +560,16 @@ The image crop dialog MUST encapsulate the active cropping viewport in the owned
 - Given an operator initiates an emblem or avatar upload
 - When `ImageCropModal` opens
 - Then the crop viewport uses the `.cl-image-frame` treatment with a 4:5 aspect ratio and opaque chrome fill, while the enclosing dialog retains its suspended drop-shadow.
+
+### Requirement: Public Tournament Numeric Tabular Alignment
+All public server-rendered tournament standings and match result tables MUST enforce tabular numerals to prevent layout shifting across variable screen widths. Nested match-summary cards MUST alternate opaque `panel` and `base` surface bands so adjacent content remains visually distinct.
+
+#### Scenario: Numeric column tabular layout
+- Given a visitor views a public tournament overview page
+- When viewing standings points, goals, or score summaries
+- Then every numeric cell renders with `font-variant-numeric: tabular-nums`.
+
+#### Scenario: Alternating match-summary bands
+- Given a visitor views nested match-summary cards on a public tournament page
+- When adjacent cards render over the page surface
+- Then their opaque backgrounds alternate between `panel` and `base` bands.

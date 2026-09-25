@@ -36,3 +36,18 @@ alongside their existing editable content for an already-created tournament.
 #### Scenario: An already-created tournament's summary reflects saved changes
 - **WHEN** an operator saves a change on `TournamentSettingsPage` or `TournamentRulesetPage`
 - **THEN** the summary on that screen updates to reflect the saved state, not the pre-save draft
+
+### Requirement: Effective rule values and file controls render in localized plain language
+Every effective ruleset field value in the tournament summary SHALL render in human-readable plain language rather than serialized JSON syntax, literal `null`, or raw booleans. File upload controls SHALL render prompt copy, format constraints, and file counts in the active language.
+
+#### Scenario: Rule value formatting avoids raw JSON
+- **WHEN** a ruleset field contains a compound object value (such as segment duration or overtime configuration)
+- **THEN** the summary renders the value as a readable descriptive sentence rather than raw serialized JSON
+
+#### Scenario: Null and boolean values are localized
+- **WHEN** a ruleset field has a boolean or null value
+- **THEN** the summary renders localized affirmative/negative terms or a missing-value dash, never raw code tokens like `"null"` or `"false"`
+
+#### Scenario: File uploader strings match the operator's locale
+- **WHEN** an operator views a file upload area (such as the tournament emblem picker)
+- **THEN** the drag-and-drop prompts, constraint explanations, and button actions render in the active language

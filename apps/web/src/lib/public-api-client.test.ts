@@ -609,6 +609,96 @@ describe('public-api-client', () => {
       expect(result.matches[0].state).toBe('live');
       expect(result.matches[0].sides[0].state).toBe('live');
     });
+
+    it('keeps a projected possession entrant that participates in the match', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            matchNumber: 1,
+            state: 'in-progress',
+            projectionVersion: 2,
+            possessionEntrantId: 'e1',
+            sides: [
+              { entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 },
+              { entrantId: 'e2', name: 'B', abbreviation: 'B', score: 0 },
+            ],
+          },
+        ],
+      };
+      const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
+      expect(result.matches[0].possessionEntrantId).toBe('e1');
+    });
+
+    it('drops a projected possession entrant that names nobody on the match', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            matchNumber: 1,
+            state: 'in-progress',
+            projectionVersion: 2,
+            possessionEntrantId: 'someone-else',
+            sides: [
+              { entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 },
+              { entrantId: 'e2', name: 'B', abbreviation: 'B', score: 0 },
+            ],
+          },
+        ],
+      };
+      const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
+      expect(result.matches[0]).not.toHaveProperty('possessionEntrantId');
+    });
+
+    it('omits possession entirely when the projection supplies none', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            matchNumber: 1,
+            state: 'in-progress',
+            projectionVersion: 2,
+            sides: [{ entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 }],
+          },
+        ],
+      };
+      const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
+      expect(result.matches[0]).not.toHaveProperty('possessionEntrantId');
+    });
+
+    it('passes active timed penalties through unchanged', () => {
+      const activePenalties = [{ timerId: 't1', entrantId: 'e1', remainingSeconds: 42 }];
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            matchNumber: 1,
+            state: 'in-progress',
+            projectionVersion: 2,
+            activePenalties,
+            sides: [{ entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 }],
+          },
+        ],
+      };
+      const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
+      expect(result.matches[0].activePenalties).toEqual(activePenalties);
+    });
+
+    it('omits activePenalties when the projection has none', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            matchNumber: 1,
+            state: 'in-progress',
+            projectionVersion: 2,
+            sides: [{ entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 }],
+          },
+        ],
+      };
+      const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
+      expect(result.matches[0]).not.toHaveProperty('activePenalties');
+    });
   });
 
   describe('mapBracketResponse', () => {
