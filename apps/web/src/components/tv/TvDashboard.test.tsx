@@ -444,4 +444,39 @@ describe('scorebug clock (openspec 0225 task 2.7)', () => {
 
     spy.mockRestore();
   });
+
+  it('renders match clock formatted when spotlightMatch has clockSeconds', () => {
+    const liveMatchWithClock: LiveDashboard = {
+      standingsVersion: 0,
+      usingLastKnown: true,
+      matches: [
+        {
+          matchId: 'm1',
+          stageNumber: 1,
+          matchNumber: 1,
+          state: 'live',
+          projectionVersion: 1,
+          clockSeconds: 2045, // 34:05
+          sides: [
+            { entrantId: 'h', name: 'Talleres', abbreviation: 'TAL', score: 2, state: 'live' },
+            { entrantId: 'a', name: 'Club Andes', abbreviation: 'AND', score: 1, state: 'live' },
+          ],
+        },
+      ],
+    };
+
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={liveMatchWithClock}
+        streamPath="/stream"
+        presentation="lower"
+      />,
+    );
+
+    const clockBug = document.querySelector('.tv-lower-third__clock');
+    expect(clockBug?.getAttribute('data-time')).toBe('34:05');
+  });
 });

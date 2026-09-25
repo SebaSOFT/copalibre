@@ -4,6 +4,7 @@ import type { SupportedLanguage } from '@copalibre/domain';
 import { RealtimeClient } from '@copalibre/realtime';
 import { applyEvent, markConnected, type LiveDashboard } from '../../lib/live-state.js';
 import { presentState } from '../../lib/result-state.js';
+import { formatClock } from '../../lib/matches-view.js';
 import { resolveTvBranding, tvStateColor, type TvBranding } from '../../lib/tv-branding.js';
 import type { StandingsRowView } from '../../lib/overview.js';
 import {
@@ -183,7 +184,10 @@ export function TvDashboard({
 
     void client.connect({
       onOpen: () => setDashboard((current) => markConnected(current)),
-      onEvent: (event) => setDashboard((current) => applyEvent(current, event)),
+      onEvent: (event) => {
+        setDashboard((current) => applyEvent(current, event));
+        void refreshProjection();
+      },
       // DO NOT RELOAD PAGE ON PROJECTION REQUIRED. Refresh in-memory projection instead
       onProjectionRequired: () => {
         void refreshProjection();
@@ -237,6 +241,10 @@ export function TvDashboard({
 
   // Spotlight Match (pinned match or active live match or first match)
   const spotlightMatch = pinnedMatch ?? liveMatches[0] ?? matches[0];
+  const displayedClock =
+    spotlightMatch?.clockSeconds !== undefined
+      ? formatClock(spotlightMatch.clockSeconds)
+      : currentTime;
 
   /*
    * A lower third is a strip, not a scene: it names the two sides, their score
@@ -266,11 +274,11 @@ export function TvDashboard({
                 spotlightMatch.sides[1]?.name ??
                 'Visitante'}
             </span>
-            {currentTime && (
+            {displayedClock && (
               <span
                 className="tv-lower-third__clock"
-                data-time={currentTime}
-                aria-label={currentTime}
+                data-time={displayedClock}
+                aria-label={displayedClock}
               />
             )}
           </div>
@@ -314,11 +322,11 @@ export function TvDashboard({
               <span className="tv-scorebug__dot" />
               <span>{statusBadge.label}</span>
             </div>
-            {currentTime && (
+            {displayedClock && (
               <span
                 className="tv-scorebug__clock"
-                data-time={currentTime}
-                aria-label={currentTime}
+                data-time={displayedClock}
+                aria-label={displayedClock}
               />
             )}
           </div>
