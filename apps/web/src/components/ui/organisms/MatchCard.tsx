@@ -22,9 +22,17 @@ export interface MatchCardProps {
   readonly locale: string;
   /** Wraps the card in a link when present — the public site's report page. */
   readonly reportUrl?: string;
+  /** Opaque band assigned by a public list; other surfaces retain their default card surface. */
+  readonly band?: 'panel' | 'base';
 }
 
-export function MatchCard({ match, labels, locale, reportUrl }: MatchCardProps): React.JSX.Element {
+export function MatchCard({
+  match,
+  labels,
+  locale,
+  reportUrl,
+  band,
+}: MatchCardProps): React.JSX.Element {
   const badge = presentState(match.state, labels.state);
   const scopeLine = [match.zoneName, match.groupName]
     .filter((part) => part !== undefined)
@@ -34,7 +42,11 @@ export function MatchCard({ match, labels, locale, reportUrl }: MatchCardProps):
     (match.awayTrace !== undefined && match.awayTrace.length > 0);
 
   const body = (
-    <Card as="article" className="cl-match-card" data-match={match.matchId}>
+    <Card
+      as="article"
+      className={`cl-match-card${band === undefined ? '' : band === 'base' ? ' cl-band--base' : ' cl-band'}`}
+      data-match={match.matchId}
+    >
       <div className="cl-match-card__header">
         <Badge className={badge.className}>
           <span aria-hidden="true">{badge.icon}</span>
@@ -61,7 +73,7 @@ export function MatchCard({ match, labels, locale, reportUrl }: MatchCardProps):
               #{match.homePosition}
             </Badge>
           )}
-          <span className="cl-stat-tile__value">{match.homeScore ?? '—'}</span>
+          <span className="cl-stat-tile__value cl-tabular-nums">{match.homeScore ?? '—'}</span>
         </li>
         <li className="cl-match-card__side">
           <EntrantName fullName={match.awayName ?? 'TBD'} abbreviation={match.awayAbbreviation} />
@@ -73,7 +85,7 @@ export function MatchCard({ match, labels, locale, reportUrl }: MatchCardProps):
               #{match.awayPosition}
             </Badge>
           )}
-          <span className="cl-stat-tile__value">{match.awayScore ?? '—'}</span>
+          <span className="cl-stat-tile__value cl-tabular-nums">{match.awayScore ?? '—'}</span>
         </li>
       </ol>
 
@@ -175,7 +187,7 @@ function SeriesSummary({
   return (
     <div className="cl-match-card__series">
       <p
-        className="cl-series__score"
+        className="cl-series__score cl-tabular-nums"
         aria-label={applyTemplate(labels.seriesAriaLabel, {
           bestOf: input.bestOf,
           home: score.home,
@@ -341,7 +353,7 @@ export function ChampionshipMatchCard({
 
             {participant.score !== undefined && (
               <span
-                className={`cl-championship-card__score ${participant.winner ? 'cl-championship-card__score--winner' : ''}`.trim()}
+                className={`cl-championship-card__score cl-tabular-nums ${participant.winner ? 'cl-championship-card__score--winner' : ''}`.trim()}
               >
                 {participant.score}
               </span>
@@ -432,7 +444,7 @@ export function LiveMatchScorecard({
         </div>
 
         {/* Central Monospace Score Box */}
-        <div className="cl-scorecard__score-box">
+        <div className="cl-scorecard__score-box cl-tabular-nums">
           [ {homeTeam.score} : {awayTeam.score} ]
         </div>
 

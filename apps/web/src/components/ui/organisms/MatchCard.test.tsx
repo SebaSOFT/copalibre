@@ -44,6 +44,30 @@ function baseMatch(overrides: Partial<MatchCardData> = {}): MatchCardData {
 }
 
 describe('MatchCard', () => {
+  it('uses the requested opaque surface band while leaving other cards at their default', () => {
+    const { container } = render(
+      <>
+        <MatchCard
+          match={baseMatch({ matchId: 'panel' })}
+          labels={labels}
+          locale="en"
+          band="panel"
+        />
+        <MatchCard match={baseMatch({ matchId: 'base' })} labels={labels} locale="en" band="base" />
+        <MatchCard match={baseMatch({ matchId: 'default' })} labels={labels} locale="en" />
+      </>,
+    );
+    expect(container.querySelector('[data-match="panel"]')?.classList.contains('cl-band')).toBe(
+      true,
+    );
+    expect(
+      container.querySelector('[data-match="base"]')?.classList.contains('cl-band--base'),
+    ).toBe(true);
+    expect(container.querySelector('[data-match="default"]')?.classList.contains('cl-band')).toBe(
+      false,
+    );
+  });
+
   it('shows a clock only while live', () => {
     const { rerender } = render(
       <MatchCard
@@ -56,6 +80,17 @@ describe('MatchCard', () => {
 
     rerender(<MatchCard match={baseMatch({ state: 'upcoming' })} labels={labels} locale="en" />);
     expect(screen.queryByTitle(/Elapsed time/)).toBeNull();
+  });
+
+  it('marks both fixture scores for tabular figures', () => {
+    const { container } = render(
+      <MatchCard match={baseMatch({ homeScore: 10, awayScore: 8 })} labels={labels} locale="en" />,
+    );
+    expect(
+      [...container.querySelectorAll('.cl-match-card__side .cl-tabular-nums')].map(
+        (score) => score.textContent,
+      ),
+    ).toEqual(['10', '8']);
   });
 
   it('omits the venue line when no venue is assigned', () => {

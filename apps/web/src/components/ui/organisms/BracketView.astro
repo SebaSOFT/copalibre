@@ -157,7 +157,7 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
                         <span>{describeSlot(slot)}</span>
                       )}
                       {match.scores?.[index] !== undefined && (
-                        <span class="cl-row__figure"> {match.scores[index]}</span>
+                        <span class="cl-row__figure cl-tabular-nums"> {match.scores[index]}</span>
                       )}
                       {outcomes[index] !== undefined && (
                         <span> ({outcomeLabels[outcomes[index]!]})</span>

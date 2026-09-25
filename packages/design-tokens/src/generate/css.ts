@@ -996,6 +996,7 @@ function components(): string {
     '}',
     '/* Numeric columns read right-aligned against the figure above them. */',
     '.cl-table__num { text-align: right; }',
+    '.cl-tabular-nums { font-variant-numeric: tabular-nums; }',
     '.cl-table tbody tr:last-child th,',
     '.cl-table tbody tr:last-child td { border-block-end: none; }',
     '',

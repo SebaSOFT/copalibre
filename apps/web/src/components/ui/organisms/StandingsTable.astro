@@ -276,7 +276,13 @@ const playerDialogLabels = {
 
                   return (
                     <td
-                      class={isPlayerNameCell || isNameCell ? undefined : 'cl-table__num'}
+                      class={
+                        isPlayerNameCell || isNameCell
+                          ? undefined
+                          : column.format === 'text'
+                            ? 'cl-table__num'
+                            : 'cl-table__num cl-tabular-nums'
+                      }
                       data-sort-value={cellMissing ? undefined : String(cellRaw)}
                       data-sort-type={typeof cellRaw === 'number' ? 'number' : 'text'}
                       data-sort-missing={cellMissing ? 'true' : undefined}

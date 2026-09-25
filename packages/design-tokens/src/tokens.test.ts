@@ -643,6 +643,7 @@ describe('public table and pill treatments (openspec 0199)', () => {
 
   it('gives every table a header treatment and tabular figures', () => {
     expect(css).toMatch(/\.cl-table \{[^}]*font-variant-numeric: tabular-nums/);
+    expect(css).toContain('.cl-tabular-nums { font-variant-numeric: tabular-nums; }');
     expect(css).toMatch(/\.cl-table thead th \{[^}]*var\(--cl-surface-chrome\)/);
     expect(css).toMatch(/\.cl-table thead th \{[^}]*text-transform: uppercase/);
   });
