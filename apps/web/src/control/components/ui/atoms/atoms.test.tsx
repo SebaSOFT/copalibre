@@ -289,6 +289,23 @@ describe('form-control atoms', () => {
     }
   });
 
+  it('shows the active option badge on the styled trigger (openspec 0295 task 1.2/1.7)', () => {
+    const { container } = render(
+      <Select
+        aria-label="Language"
+        onValueChange={() => {}}
+        options={[
+          { value: 'en', label: 'English', badge: 'EN' },
+          { value: 'es', label: 'Español', badge: 'ES' },
+        ]}
+        value="en"
+      />,
+    );
+    const trigger = container.querySelector('button.cl-select');
+    expect(trigger).not.toBeNull();
+    expect(within(trigger as HTMLElement).getByText('EN')).toBeDefined();
+  });
+
   it('exercises Select DOM interop shims for innerHTML, querySelectorAll, and option change', () => {
     const onValueChange = jest.fn();
     render(

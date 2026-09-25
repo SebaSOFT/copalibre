@@ -596,18 +596,32 @@ function components(): string {
     '    border-radius: var(--cl-radius-md);',
     '  }',
     '}',
-    '.cl-select__icon { margin-inline-start: var(--cl-space-2); }',
+    '.cl-select { font-family: var(--cl-font-mono); }',
+    '.cl-select__icon { margin-inline-start: var(--cl-space-2); transition: transform 0.15s ease; }',
+    '.cl-select[data-state="open"] .cl-select__icon { transform: rotate(180deg); }',
+    '.cl-select__badge { margin-inline-start: var(--cl-space-2); font-size: 10px; font-family: var(--cl-font-mono); text-transform: uppercase; letter-spacing: var(--cl-tracking-wider); color: var(--cl-text-muted); }',
     // `popper` positioning exposes the trigger's width, so the panel lines up
     // with the box it belongs to rather than sizing itself to its longest
     // option. `max-height` is the space Radix measured to the viewport edge.
-    '.cl-select__content { padding: var(--cl-space-1); min-width: var(--radix-select-trigger-width); max-height: var(--radix-select-content-available-height); overflow-y: auto; }',
-    '.cl-select__item { padding: var(--cl-space-2) var(--cl-space-3); cursor: pointer; }',
-    // The visible Radix trigger and a fully transparent native `<select>`
-    // stacked on top of it (openspec 0225 task 5.7): the native element is
-    // the one a form, autofill, or assistive technology actually addresses.
+    // `.cl-chamfer--control` cuts the same top-right/bottom-left corners as
+    // the trigger it drops from (openspec 0295 task 1.4).
+    '.cl-select__content { padding-block: var(--cl-space-1); min-width: max(10rem, var(--radix-select-trigger-width)); max-height: var(--radix-select-content-available-height); overflow-y: auto; font-family: var(--cl-font-mono); }',
+    '.cl-select__item { display: flex; align-items: center; justify-content: space-between; gap: var(--cl-space-3); padding: var(--cl-space-2) var(--cl-space-3); border-inline-start: 2px solid transparent; cursor: pointer; }',
+    // The keyboard-navigated/hovered option reads as active the same way a
+    // live indicator does elsewhere: the signal-cyan leading rail and text.
+    '.cl-select__item[data-highlighted] { background: var(--cl-surface-raised); border-inline-start-color: var(--cl-state-live); color: var(--cl-state-live); font-weight: var(--cl-weight-bold); outline: none; }',
+    '.cl-select__item[data-highlighted] .cl-select__badge { color: var(--cl-state-live); }',
+    // The native `<select>` is still the element a form, autofill, or
+    // assistive technology actually addresses (its accessible name and
+    // keyboard/native-select semantics are unchanged), but it no longer
+    // stacks a full-size invisible copy on top of the Radix trigger to catch
+    // pointer clicks — that overlay opened the browser's own native picker
+    // instead of the styled `.cl-select__content` popover underneath. It is
+    // sized off-screen instead, so a mouse click lands on the visible,
+    // styled trigger while Tab/keyboard/AT users still reach it directly
+    // (openspec 0295 task 1.1, replacing the openspec 0225 task 5.7 overlay).
     '.cl-select-wrapper { position: relative; display: inline-block; width: 100%; }',
-    '.cl-select-native { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }',
-    '.cl-select-native.cl-select--disabled { cursor: not-allowed; }',
+    '.cl-select-native { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; pointer-events: none; }',
     '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); }',
     '',
     '.cl-form-field { display: grid; gap: var(--cl-space-1); min-width: 0; }',

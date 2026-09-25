@@ -573,3 +573,14 @@ All public server-rendered tournament standings and match result tables MUST enf
 - Given a visitor views nested match-summary cards on a public tournament page
 - When adjacent cards render over the page surface
 - Then their opaque backgrounds alternate between `panel` and `base` bands.
+
+### Requirement: TV Broadcast Scorebug Indicator Contrast
+The TV broadcast scorebug MUST place visible possession and timed-penalty markers in opaque `ink-950` backing wells, with textual meaning and foreground contrast of at least 4.5:1. TV bracket matchup cards MUST use the established control chamfer treatment with a square fallback.
+
+#### Scenario: Visible indicator over arbitrary broadcast background
+- **WHEN** an active penalty or recorded possession marker is displayed over a kiosk, video overlay, or chroma background
+- **THEN** its foreground meets 4.5:1 contrast against the opaque well and its meaning remains available without color
+
+#### Scenario: TV bracket matchup card
+- **WHEN** an elimination matchup is shown in the full-frame TV bracket section
+- **THEN** the card has the control chamfer treatment, including its square fallback where corner shaping is unsupported

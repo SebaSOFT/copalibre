@@ -8,6 +8,8 @@ import * as React from 'react';
 export interface SelectOption {
   readonly value: string;
   readonly label: string;
+  /** A short uppercase tag rendered beside the label — e.g. a language code. */
+  readonly badge?: string;
   readonly disabled?: boolean;
 }
 
@@ -50,6 +52,7 @@ export function Select({
 }: SelectProps): React.JSX.Element {
   const state = disabled ? 'disabled' : invalid ? 'error' : 'default';
   const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const activeBadge = options.find((option) => option.value === value)?.badge;
 
   React.useLayoutEffect(() => {
     const el = triggerRef.current;
@@ -130,11 +133,12 @@ export function Select({
         >
           {icon}
           <RadixSelect.Value />
+          {activeBadge ? <span className="cl-select__badge">{activeBadge}</span> : null}
           <RadixSelect.Icon className="cl-select__icon">▾</RadixSelect.Icon>
         </RadixSelect.Trigger>
         <RadixSelect.Portal>
           <RadixSelect.Content
-            className="cl-select__content cl-dialog-surface"
+            className="cl-select__content cl-dialog-surface cl-chamfer--control"
             position="popper"
             sideOffset={4}
           >
@@ -147,6 +151,7 @@ export function Select({
                   value={option.value}
                 >
                   <RadixSelect.ItemText>{option.label}</RadixSelect.ItemText>
+                  {option.badge ? <span className="cl-select__badge">{option.badge}</span> : null}
                 </RadixSelect.Item>
               ))}
             </RadixSelect.Viewport>

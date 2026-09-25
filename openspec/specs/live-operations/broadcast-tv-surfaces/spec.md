@@ -280,3 +280,29 @@ the scheduled/upcoming default a route falls back to when its match data is unex
   with at least one forfeited
 - **THEN** its status badge and match ticker reflect the finished state, not the scheduled/upcoming
   default
+
+### Requirement: TV match indicators reflect recorded discipline facts
+A TV scorebug SHALL show possession only when the public live projection explicitly supplies a participating side, and each active timed penalty declared by that discipline. It SHALL not infer either marker from score, event names, or unrelated actions. Timed-penalty indicators SHALL update after event recording, manual timer resolution, and timer expiry without requiring a person to reload the display.
+
+#### Scenario: Explicit possession is projected
+- **WHEN** a live match projection explicitly identifies a participating entrant as holding possession
+- **THEN** the TV scorebug identifies that entrant without claiming a possession percentage
+
+#### Scenario: Timed penalty starts and ends
+- **WHEN** a discipline-declared timed penalty is recorded for an entrant
+- **THEN** the TV scorebug shows that entrant and the remaining time while the penalty is active, and removes the marker after expiry or authorized manual resolution
+
+#### Scenario: No indicator facts exist
+- **WHEN** the live projection omits possession or the match has no active timed penalty
+- **THEN** the TV scorebug omits the corresponding indicator rather than showing a default or guessed value
+
+### Requirement: Full-frame TV bracket presents published elimination matches
+The full-frame TV kiosk and full overlay SHALL show a bracket section for an elimination stage using the published stage graph. It SHALL retain zone and round context, named pending sources, scores when published, and match state. Lower-third overlays and stages without an elimination bracket SHALL not show bracket cards.
+
+#### Scenario: Published bracket with unresolved slots
+- **WHEN** the featured stage is an elimination stage with published bracket matches
+- **THEN** the TV section displays matchup cards grouped by zone and round, with unresolved entrants identified by their source matches rather than blank or invented names
+
+#### Scenario: Non-elimination stage or unavailable bracket
+- **WHEN** the featured stage is round robin or its bracket projection is unavailable
+- **THEN** the TV keeps its other score and statistics sections without an empty bracket section or sample matchup cards
