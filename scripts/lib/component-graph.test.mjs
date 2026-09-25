@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (293/1089 after 0280 composes Badge into ActivityLog.tsx/DeviceHeartbeat.tsx)', () => {
+test('the graph resolves the current node/edge count (293/1090 after TvDashboard imports formatClock from matches-view)', () => {
   const graph = buildGraph(webSrc);
   assert.equal(graph.nodes.size, 293);
-  assert.equal(graph.edges.length, 1089);
+  assert.equal(graph.edges.length, 1090);
 });
 
 test('a type-only import is not counted as a render', () => {
