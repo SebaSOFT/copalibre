@@ -113,7 +113,9 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
 
   await expect(dialog).toBeHidden();
   await expect(page.getByText('Emblem uploaded.')).toBeVisible();
-  await expect(page.locator('.cl-image-frame img')).toBeVisible();
+  const emblem = page.locator('.cl-image-frame img');
+  await expect(emblem).toBeVisible();
+  await expect(emblem).toHaveJSProperty('naturalWidth', 1);
 });
 
 test('cancelling the crop modal leaves the placeholder in place and uploads nothing', async ({
@@ -201,6 +203,7 @@ test('club emblem renders as visible image in control panel clubs list', async (
 
   const emblemImg = page.locator('.cl-role-user .cl-image-frame img');
   await expect(emblemImg).toBeVisible();
+  await expect(emblemImg).toHaveJSProperty('naturalWidth', 1);
   await expect(emblemImg).toHaveAttribute(
     'src',
     '/organizations/liga-mendocina/clubs/club-1/emblem',
@@ -245,6 +248,10 @@ test('uploading tournament emblem in control panel renders in tournament setting
           tournamentEmblemId = 'tourn-emblem-obj';
           return Response.json({ objectId: tournamentEmblemId }, { status: 201 });
         }
+        if (url.endsWith('/tournaments/apertura-2026/emblem') && method === 'DELETE') {
+          tournamentEmblemId = undefined;
+          return Response.json({ success: true });
+        }
         return Response.json([]);
       };
     },
@@ -283,10 +290,15 @@ test('uploading tournament emblem in control panel renders in tournament setting
   await expect(page.getByText('Tournament emblem uploaded.')).toBeVisible();
   const emblemImg = page.locator('.cl-tournament-settings__emblem-section .cl-image-frame img');
   await expect(emblemImg).toBeVisible();
+  await expect(emblemImg).toHaveJSProperty('naturalWidth', 1);
   await expect(emblemImg).toHaveAttribute(
     'src',
     '/organizations/liga-mendocina/tournaments/apertura-2026/emblem',
   );
+
+  await page.getByRole('button', { name: 'Remove emblem' }).click();
+  await expect(page.getByText('Tournament emblem removed.')).toBeVisible();
+  await expect(page.getByRole('img', { name: 'No tournament emblem uploaded' })).toBeVisible();
 });
 
 test('focusing FilePicker and choosing a file displays the chosen filename and clear control', async ({
