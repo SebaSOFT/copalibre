@@ -193,6 +193,29 @@ describe('form-control atoms', () => {
     expect(input.getAttribute('aria-describedby')).toContain('avatar-error');
   });
 
+  it('renders localized copy when a caller passes it, never a hardcoded English fallback (openspec 0285)', () => {
+    render(
+      <FilePicker
+        id="avatar-es"
+        label="Imagen de perfil"
+        accept=".png,.jpg"
+        maxSizeBytes={1024 * 1024}
+        promptText="Elegí un archivo o arrastralo aquí"
+        promptDraggingText="Soltá el archivo aquí"
+        acceptedFormatsLabel="Formatos aceptados: .png,.jpg"
+        maxSizeLabel="Tamaño máximo: 1 MB"
+        clearButtonText="Borrar"
+        formatFilesSelected={(count) => `${count} archivos seleccionados`}
+        onChange={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Elegí un archivo o arrastralo aquí')).toBeDefined();
+    expect(screen.getByText('Formatos aceptados: .png,.jpg • Tamaño máximo: 1 MB')).toBeDefined();
+    expect(screen.queryByText('Choose a file or drag here')).toBeNull();
+    expect(screen.queryByText(/Accepted formats/)).toBeNull();
+  });
+
   it('handles keyboard activation on FilePicker drop zone', () => {
     render(<FilePicker id="keyboard-file" label="Upload document" />);
     const input = screen.getByLabelText('Upload document') as HTMLInputElement;

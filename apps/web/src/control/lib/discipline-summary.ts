@@ -4,6 +4,7 @@
  * from the component so every branch here is testable without rendering —
  * the same split `wizard.ts`/`TournamentSetupWizard.tsx` already use.
  */
+import type { IntlShape } from 'react-intl';
 import {
   mergeWithStrategy,
   type ConfigFieldPolicies,
@@ -12,6 +13,7 @@ import {
   type RulesetConfig,
   type SegmentTypeDefinition,
 } from '@copalibre/domain';
+import { messages } from '../i18n/messages.en.js';
 
 /**
  * Only the `EventDefinition` fields the summary renders — never the full
@@ -155,14 +157,45 @@ export function formatSegmentDuration(seconds: number): string {
   return `${seconds} sec`;
 }
 
-/** Renders a scalar/array configured value as short display text; an object renders as JSON. */
-export function formatFieldValue(value: unknown): string {
-  if (value === undefined) return '—';
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    return String(value);
+/** True for the `{ overtimeEnabled, regulationCount }` shape a `segments` field configures. */
+function isSegmentsFieldValue(
+  value: unknown,
+): value is { overtimeEnabled: boolean; regulationCount: number } {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.overtimeEnabled === 'boolean' && typeof record.regulationCount === 'number';
+}
+
+/** `pointsPerWin` -> `Points Per Win`, for an object's own keys — never a dot-path (that's `humanizeFieldPath`, in `@copalibre/domain`, for a different input shape). */
+function humanizeKey(key: string): string {
+  const spaced = key.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/**
+ * Renders a configured field value as localized display text, in the
+ * operator's active language — never raw JSON syntax, a literal `"null"`, or
+ * an untranslated `"true"`/`"false"` (openspec 0285). `null` and `undefined`
+ * both mean "not set", the same dash either way; a `segments`-shaped object
+ * gets its own plain-language sentence; any other object falls back to
+ * readable `Key: value` pairs rather than `JSON.stringify`.
+ */
+export function formatFieldValue(value: unknown, intl: IntlShape): string {
+  if (value === undefined || value === null) return '—';
+  if (typeof value === 'boolean') {
+    return intl.formatMessage(value ? messages.booleanYes : messages.booleanNo);
   }
-  if (Array.isArray(value)) return value.map((entry) => formatFieldValue(entry)).join(', ');
-  return JSON.stringify(value);
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  if (Array.isArray(value)) return value.map((entry) => formatFieldValue(entry, intl)).join(', ');
+  if (isSegmentsFieldValue(value)) {
+    return intl.formatMessage(messages.disciplineSummarySegmentsFieldValue, {
+      count: value.regulationCount,
+      overtime: String(value.overtimeEnabled),
+    });
+  }
+  return Object.entries(value as Record<string, unknown>)
+    .map(([key, entry]) => `${humanizeKey(key)}: ${formatFieldValue(entry, intl)}`)
+    .join(', ');
 }
 
 /**

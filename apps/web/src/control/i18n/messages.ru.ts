@@ -1240,4 +1240,16 @@ export const messages: Record<string, string> = {
   'invitation.confirmPasswordLabel': 'Подтвердите пароль',
   'invitation.submitLoading': 'Настройка учётной записи…',
   'invitation.submit': 'Принять и начать',
+
+  'control.disciplineSummary.segmentsFieldValue':
+    '{count, plural, one {# основной период} few {# основных периода} many {# основных периодов} other {# основного периода}} ({overtime, select, true {с овертаймом} other {без овертайма}})',
+  'control.booleanYes': 'Да',
+  'control.booleanNo': 'Нет',
+  'control.filePicker.prompt': 'Выберите файл или перетащите его сюда',
+  'control.filePicker.promptDragging': 'Отпустите файл здесь',
+  'control.filePicker.acceptedFormats': 'Допустимые форматы: {formats}',
+  'control.filePicker.maxSize': 'Максимальный размер: {size}',
+  'control.filePicker.clear': 'Очистить',
+  'control.filePicker.filesSelected':
+    '{count, plural, one {# файл выбран} few {# файла выбрано} many {# файлов выбрано} other {# файла выбрано}}',
 };

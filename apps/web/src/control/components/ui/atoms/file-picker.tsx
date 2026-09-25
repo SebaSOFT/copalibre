@@ -18,12 +18,51 @@ export interface FilePickerProps {
   readonly value?: File | FileList | readonly File[] | null;
   readonly onChange?: (files: FileList | null) => void;
   readonly onClear?: () => void;
+  /**
+   * Localized copy this atom itself may not resolve (R6: no react-intl call
+   * in an atom/molecule) — every caller builds this via `filePickerLabels(intl)`
+   * and passes it down, the same way `matchCardLabels`/`seriesStateBarLabels`
+   * pre-resolve a shared component's copy for its consumer (openspec 0285).
+   * English defaults keep every existing call site working unchanged.
+   */
+  readonly promptText?: string;
+  readonly promptDraggingText?: string;
+  readonly acceptedFormatsLabel?: string;
+  readonly maxSizeLabel?: string;
+  readonly clearButtonText?: string;
+  /** Formats the visible "N files selected" text for the current count — a function, not a pre-resolved string, since the count is only known once files are chosen. */
+  readonly formatFilesSelected?: (count: number) => string;
 }
 
-function formatFileSize(bytes: number): string {
+/** Exported so `filePickerLabels(intl)` can embed a locale-agnostic size figure into its localized "Max size" template. */
+export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1).replace(/\.0$/, '')} MB`;
+}
+
+/**
+ * Extracted from `FilePicker` itself (openspec 0285) so this logic's own
+ * branches score separately rather than adding to that component's already
+ * substantial complexity — the same remediation this file's own CRAP-score
+ * register already applies elsewhere in this codebase.
+ */
+function resolveConstraintsText(options: {
+  readonly accept?: string;
+  readonly maxSizeBytes?: number;
+  readonly acceptedFormatsLabel?: string;
+  readonly maxSizeLabel?: string;
+}): string {
+  return [
+    options.accept
+      ? (options.acceptedFormatsLabel ?? `Accepted formats: ${options.accept}`)
+      : undefined,
+    options.maxSizeBytes
+      ? (options.maxSizeLabel ?? `Max size: ${formatFileSize(options.maxSizeBytes)}`)
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join(' • ');
 }
 
 export function FilePicker({
@@ -43,6 +82,12 @@ export function FilePicker({
   value,
   onChange,
   onClear,
+  promptText = 'Choose a file or drag here',
+  promptDraggingText = 'Drop file here',
+  acceptedFormatsLabel,
+  maxSizeLabel,
+  clearButtonText = 'Clear',
+  formatFilesSelected = (count) => `${count} files selected`,
 }: FilePickerProps): React.JSX.Element {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -125,12 +170,12 @@ export function FilePicker({
     }
   };
 
-  const constraintsText = [
-    accept ? `Accepted formats: ${accept}` : undefined,
-    maxSizeBytes ? `Max size: ${formatFileSize(maxSizeBytes)}` : undefined,
-  ]
-    .filter(Boolean)
-    .join(' • ');
+  const constraintsText = resolveConstraintsText({
+    accept,
+    maxSizeBytes,
+    acceptedFormatsLabel,
+    maxSizeLabel,
+  });
 
   return (
     <div className={`cl-file-picker cl-file-picker--${state} ${className}`}>
@@ -165,7 +210,7 @@ export function FilePicker({
         {fileCount > 0 ? (
           <div className="cl-file-picker__selection">
             <span className="cl-file-picker__filename">
-              {fileCount === 1 ? firstFileName : `${fileCount} files selected`}
+              {fileCount === 1 ? firstFileName : formatFilesSelected(fileCount)}
             </span>
             {!disabled && (
               <button
@@ -174,14 +219,14 @@ export function FilePicker({
                 onClick={handleClear}
                 aria-label={clearLabel}
               >
-                Clear
+                {clearButtonText}
               </button>
             )}
           </div>
         ) : (
           <div className="cl-file-picker__prompt">
             <span className="cl-file-picker__trigger-text">
-              {isDragging ? 'Drop file here' : 'Choose a file or drag here'}
+              {isDragging ? promptDraggingText : promptText}
             </span>
             {constraintsText && (
               <span className="cl-file-picker__constraints" id={hintId}>

@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (293/1089 after 0280 composes Badge into ActivityLog.tsx/DeviceHeartbeat.tsx)', () => {
+test('the graph resolves the current node/edge count (294/1098 after 0285 adds file-picker-labels.ts, consumed by FilePicker and its 7 callers)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 293);
-  assert.equal(graph.edges.length, 1089);
+  assert.equal(graph.nodes.size, 294);
+  assert.equal(graph.edges.length, 1098);
 });
 
 test('a type-only import is not counted as a render', () => {

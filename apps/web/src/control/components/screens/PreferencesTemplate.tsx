@@ -15,6 +15,7 @@ import { ClubEmblemPlaceholder } from '../placeholders.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
+import { filePickerLabels } from '../../lib/file-picker-labels.js';
 import { Input } from '../ui/atoms/input.js';
 import { Inline } from '../ui/atoms/layout/inline.js';
 import { Stack } from '../ui/atoms/layout/stack.js';
@@ -318,6 +319,7 @@ export function PreferencesTemplate({
                     const file = files?.[0];
                     if (file) setEmblemCropSrc(URL.createObjectURL(file));
                   }}
+                  {...filePickerLabels(intl, { accept: 'image/*' })}
                 />
               )}
 

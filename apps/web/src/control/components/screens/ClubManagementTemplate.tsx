@@ -7,6 +7,7 @@ import { ClubEmblemPlaceholder } from '../placeholders.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
+import { filePickerLabels } from '../../lib/file-picker-labels.js';
 import { Input } from '../ui/atoms/input.js';
 import { Field } from '../ui/molecules/field.js';
 import { messages } from '../../i18n/messages.en.js';
@@ -205,6 +206,7 @@ export function ClubManagementTemplate({
                   const file = files?.[0];
                   if (file) setEmblemCropSrc(URL.createObjectURL(file));
                 }}
+                {...filePickerLabels(intl, { accept: 'image/*' })}
               />
             )}
 
