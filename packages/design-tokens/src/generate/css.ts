@@ -270,6 +270,7 @@ function imageFrame(): string {
   return [
     '.cl-image-frame {',
     `  --cl-chamfer-size: ${RADIUS['image-frame']};`,
+    '  position: relative;',
     '  aspect-ratio: 4 / 5;',
     '  max-height: 512px;',
     '  border: 1px solid var(--cl-border-muted);',

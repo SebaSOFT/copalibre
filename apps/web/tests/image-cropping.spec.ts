@@ -87,6 +87,22 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
   const dialog = page.getByRole('dialog', { name: 'Adjust image' });
   await expect(dialog).toBeVisible();
 
+  const cropFrame = dialog.locator('.cl-image-frame');
+  const frameBounds = await cropFrame.boundingBox();
+  if (!frameBounds) throw new Error('The image crop frame has no rendered bounds');
+  expect(Math.abs(frameBounds.width / frameBounds.height - 0.8)).toBeLessThan(0.02);
+  expect(
+    await cropFrame.evaluate((frame) => {
+      const channels = getComputedStyle(frame)
+        .backgroundColor.match(/rgba?\(([^)]+)\)/)?.[1]
+        .split(',');
+      return channels?.length !== 4 || Number(channels[3]) === 1;
+    }),
+  ).toBe(true);
+  expect(await dialog.evaluate((surface) => getComputedStyle(surface).boxShadow)).toContain(
+    '24px 48px -12px',
+  );
+
   // Pan/zoom/rotate the real crop UI before confirming.
   await dialog.getByLabel('Zoom').fill('1.5');
   await dialog.getByLabel('Rotation').fill('15');
