@@ -15,6 +15,12 @@ export interface BandRow {
   readonly count: string;
 }
 
+/** `tone` distinguishes "nothing configured yet" (info) from a genuine failure (destructive). */
+export interface PreviewError {
+  readonly message: string;
+  readonly tone: 'info' | 'destructive';
+}
+
 let bandKeySequence = 0;
 function nextKey(): string {
   bandKeySequence += 1;
@@ -62,6 +68,7 @@ function initialFormState(zone: ZoneResponse | undefined): {
  * `onSave` is the only call back to the page.
  */
 export function PromotionPlanTemplate({
+  entrantLabel,
   onSave,
   preview,
   previewError,
@@ -69,13 +76,14 @@ export function PromotionPlanTemplate({
   zone,
   zoneNumber,
 }: {
+  readonly entrantLabel: (entrantId: string) => string;
   readonly onSave: (
     nextStageNumber: string,
     perGroupAdvance: string,
     bands: readonly BandRow[],
   ) => Promise<void>;
   readonly preview: PromotionPreviewResponse | undefined;
-  readonly previewError: string | undefined;
+  readonly previewError: PreviewError | undefined;
   readonly tournamentAlias: string;
   readonly zone: ZoneResponse | undefined;
   readonly zoneNumber: number;
@@ -202,12 +210,12 @@ export function PromotionPlanTemplate({
           </h2>
         </header>
         <div className="cl-card__content">
-          {previewError && <Alert tone="destructive">{previewError}</Alert>}
+          {previewError && <Alert tone={previewError.tone}>{previewError.message}</Alert>}
           {preview && !previewError && (
             <ol className="cl-platform-update-list">
               {preview.combined.map((entrant, index) => (
                 <li key={entrant.entrantId}>
-                  <strong>{index + 1}.</strong> {entrant.entrantId.slice(-8)}
+                  <strong>{index + 1}.</strong> {entrantLabel(entrant.entrantId)}
                 </li>
               ))}
             </ol>
