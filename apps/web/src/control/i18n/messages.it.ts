@@ -1246,4 +1246,16 @@ export const messages: Record<string, string> = {
   'invitation.confirmPasswordLabel': 'Conferma password',
   'invitation.submitLoading': 'Configurazione account…',
   'invitation.submit': 'Accetta e inizia',
+
+  'control.disciplineSummary.segmentsFieldValue':
+    '{count, plural, one {# tempo regolamentare} other {# tempi regolamentari}} ({overtime, select, true {con supplementari} other {senza supplementari}})',
+  'control.booleanYes': 'Sì',
+  'control.booleanNo': 'No',
+  'control.filePicker.prompt': 'Scegli un file o trascinalo qui',
+  'control.filePicker.promptDragging': 'Rilascia il file qui',
+  'control.filePicker.acceptedFormats': 'Formati accettati: {formats}',
+  'control.filePicker.maxSize': 'Dimensione massima: {size}',
+  'control.filePicker.clear': 'Cancella',
+  'control.filePicker.filesSelected':
+    '{count, plural, one {# file selezionato} other {# file selezionati}}',
 };

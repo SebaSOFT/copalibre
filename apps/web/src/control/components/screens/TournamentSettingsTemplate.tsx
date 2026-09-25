@@ -5,6 +5,7 @@ import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
+import { filePickerLabels } from '../../lib/file-picker-labels.js';
 import { Input } from '../ui/atoms/input.js';
 import { Form } from '../ui/atoms/form.js';
 import { Field } from '../ui/molecules/field.js';
@@ -200,6 +201,7 @@ export function TournamentSettingsTemplate({
                         const file = files?.[0];
                         if (file) setEmblemCropSrc(URL.createObjectURL(file));
                       }}
+                      {...filePickerLabels(intl, { accept: 'image/*' })}
                     />
                   )}
                   {settings.emblemObjectId !== undefined && onDeleteEmblem && (

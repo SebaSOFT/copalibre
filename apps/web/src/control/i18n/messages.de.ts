@@ -1255,4 +1255,16 @@ export const messages: Record<string, string> = {
   'invitation.confirmPasswordLabel': 'Passwort bestätigen',
   'invitation.submitLoading': 'Konto wird eingerichtet…',
   'invitation.submit': 'Annehmen und starten',
+
+  'control.disciplineSummary.segmentsFieldValue':
+    '{count, plural, one {# reguläre Spielzeit} other {# reguläre Spielzeiten}} ({overtime, select, true {mit Verlängerung} other {ohne Verlängerung}})',
+  'control.booleanYes': 'Ja',
+  'control.booleanNo': 'Nein',
+  'control.filePicker.prompt': 'Datei auswählen oder hierher ziehen',
+  'control.filePicker.promptDragging': 'Datei hier ablegen',
+  'control.filePicker.acceptedFormats': 'Zulässige Formate: {formats}',
+  'control.filePicker.maxSize': 'Maximale Größe: {size}',
+  'control.filePicker.clear': 'Entfernen',
+  'control.filePicker.filesSelected':
+    '{count, plural, one {# Datei ausgewählt} other {# Dateien ausgewählt}}',
 };

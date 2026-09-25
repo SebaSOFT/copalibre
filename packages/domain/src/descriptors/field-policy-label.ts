@@ -3,6 +3,22 @@ import type { FieldPolicy } from './override-policy.js';
 import type { SupportedLanguage } from '../i18n.js';
 
 /**
+ * Display names for dot-paths common enough to appear across many
+ * disciplines' own field policies, so an operator sees a translated name
+ * instead of a humanized-but-still-English dot-path the moment a specific
+ * discipline declares no `label` of its own (openspec 0285). A humanized
+ * fallback is still correct for anything discipline-specific this catalogue
+ * doesn't name — this is a plain-language upgrade for the handful of
+ * genuinely standard paths, not a replacement for `humanizeFieldPath`.
+ */
+const STANDARD_FIELD_LABELS: Readonly<Record<string, LocalizedLabel>> = {
+  format: { en: 'Format', es: 'Formato' },
+  segments: { en: 'Segments', es: 'Segmentos' },
+  'registration.capacity': { en: 'Registration Capacity', es: 'Cupo de Inscripción' },
+  'scoring.pointsPerWin': { en: 'Points Per Win', es: 'Puntos Por Victoria' },
+};
+
+/**
  * Turns a configuration dot-path into a readable name when the field's own
  * `FieldPolicy` declares no `label` — e.g. `"scoring.pointsPerWin"` becomes
  * `"Scoring › Points Per Win"`. Never applied when a label is present: an
@@ -27,12 +43,20 @@ function titleCaseWord(segment: string): string {
     .join(' ');
 }
 
-/** Resolves a field's display name: its declared `label`, or a humanized dot-path fallback. */
+/**
+ * Resolves a field's display name: its declared `label`, this platform's own
+ * localized name for a standard dot-path, or a humanized dot-path fallback,
+ * in that order — an author-declared label always wins, since it is the
+ * more specific source.
+ */
 export function resolveFieldPolicyLabel(
   dotPath: string,
   policy: FieldPolicy,
   language: SupportedLanguage,
 ): string {
-  if (policy.label === undefined) return humanizeFieldPath(dotPath);
-  return resolveLabel(policy.label as string | LocalizedLabel, language);
+  if (policy.label !== undefined)
+    return resolveLabel(policy.label as string | LocalizedLabel, language);
+  const standardLabel = STANDARD_FIELD_LABELS[dotPath];
+  if (standardLabel !== undefined) return resolveLabel(standardLabel, language);
+  return humanizeFieldPath(dotPath);
 }

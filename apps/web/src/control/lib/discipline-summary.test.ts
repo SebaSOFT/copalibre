@@ -1,3 +1,4 @@
+import { createIntl, createIntlCache } from 'react-intl';
 import {
   chooseControlKind,
   eventActorMessageKey,
@@ -10,7 +11,18 @@ import {
   ruleFieldSummaries,
   type DisciplineSummaryData,
 } from './discipline-summary.js';
+import { messages } from '../i18n/messages.en.js';
 import type { EventDefinition, FieldPolicy } from '@copalibre/domain';
+
+const intl = createIntl(
+  {
+    locale: 'en',
+    messages: Object.fromEntries(
+      Object.values(messages).map((descriptor) => [descriptor.id, descriptor.defaultMessage]),
+    ),
+  },
+  createIntlCache(),
+);
 
 function event(overrides: Partial<EventDefinition>): EventDefinition {
   return {
@@ -104,21 +116,35 @@ describe('fieldValueAt', () => {
 
 describe('formatFieldValue', () => {
   it('renders scalars as-is', () => {
-    expect(formatFieldValue(3)).toBe('3');
-    expect(formatFieldValue(true)).toBe('true');
-    expect(formatFieldValue('x')).toBe('x');
+    expect(formatFieldValue(3, intl)).toBe('3');
+    expect(formatFieldValue('x', intl)).toBe('x');
+  });
+
+  it('renders booleans as localized Yes/No, not the raw word (openspec 0285)', () => {
+    expect(formatFieldValue(true, intl)).toBe('Yes');
+    expect(formatFieldValue(false, intl)).toBe('No');
   });
 
   it('renders an array as a comma-joined list', () => {
-    expect(formatFieldValue(['points', 'score-difference'])).toBe('points, score-difference');
+    expect(formatFieldValue(['points', 'score-difference'], intl)).toBe('points, score-difference');
   });
 
-  it('renders undefined as an em dash', () => {
-    expect(formatFieldValue(undefined)).toBe('—');
+  it('renders undefined and null as the same em dash, not the literal word "null" (openspec 0285)', () => {
+    expect(formatFieldValue(undefined, intl)).toBe('—');
+    expect(formatFieldValue(null, intl)).toBe('—');
   });
 
-  it('renders a plain object as JSON', () => {
-    expect(formatFieldValue({ neutralGround: false })).toBe('{"neutralGround":false}');
+  it('renders a segments-shaped object as a plain-language sentence, not JSON (openspec 0285)', () => {
+    expect(formatFieldValue({ overtimeEnabled: false, regulationCount: 2 }, intl)).toBe(
+      '2 regulation segments (without overtime)',
+    );
+    expect(formatFieldValue({ overtimeEnabled: true, regulationCount: 1 }, intl)).toBe(
+      '1 regulation segment (with overtime)',
+    );
+  });
+
+  it('renders an arbitrary object as readable key-value pairs, not JSON (openspec 0285)', () => {
+    expect(formatFieldValue({ neutralGround: false }, intl)).toBe('Neutral Ground: No');
   });
 });
 

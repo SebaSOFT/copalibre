@@ -1824,6 +1824,34 @@ export const messages = defineMessages({
     defaultMessage: 'Tournament emblem removed.',
   },
 
+  // file-picker.tsx (openspec 0285) — the atom itself may not call react-intl
+  // (R6), so every caller resolves these via `filePickerLabels(intl)` and
+  // passes the result down as props.
+  filePickerPrompt: {
+    id: 'control.filePicker.prompt',
+    defaultMessage: 'Choose a file or drag here',
+  },
+  filePickerPromptDragging: {
+    id: 'control.filePicker.promptDragging',
+    defaultMessage: 'Drop file here',
+  },
+  filePickerAcceptedFormats: {
+    id: 'control.filePicker.acceptedFormats',
+    defaultMessage: 'Accepted formats: {formats}',
+  },
+  filePickerMaxSize: {
+    id: 'control.filePicker.maxSize',
+    defaultMessage: 'Max size: {size}',
+  },
+  filePickerClear: {
+    id: 'control.filePicker.clear',
+    defaultMessage: 'Clear',
+  },
+  filePickerFilesSelected: {
+    id: 'control.filePicker.filesSelected',
+    defaultMessage: '{count, plural, one {# file selected} other {# files selected}}',
+  },
+
   // TournamentRulesetTemplate.tsx, TournamentRulesetPage.tsx (openspec 0169)
   rulesetOverridesTitle: { id: 'control.rulesetOverrides.title', defaultMessage: 'Ruleset' },
   rulesetOverridesLink: { id: 'control.rulesetOverrides.link', defaultMessage: 'Ruleset' },
@@ -3443,6 +3471,19 @@ export const messages = defineMessages({
   disciplineSummaryRuleCurrentValue: {
     id: 'control.disciplineSummary.ruleCurrentValue',
     defaultMessage: 'Current value: {value}',
+  },
+  disciplineSummarySegmentsFieldValue: {
+    id: 'control.disciplineSummary.segmentsFieldValue',
+    defaultMessage:
+      '{count, plural, one {# regulation segment} other {# regulation segments}} ({overtime, select, true {with overtime} other {without overtime}})',
+  },
+  booleanYes: {
+    id: 'control.booleanYes',
+    defaultMessage: 'Yes',
+  },
+  booleanNo: {
+    id: 'control.booleanNo',
+    defaultMessage: 'No',
   },
   disciplineSummaryPermissionInherited: {
     id: 'control.disciplineSummary.permissionInherited',

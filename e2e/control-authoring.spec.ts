@@ -419,7 +419,10 @@ test('sets a discipline-declared rule field during creation, beyond format/regis
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   // The ruleset step reflects the discipline's own default until touched.
-  const pointsPerWinControl = page.getByLabel('Scoring › Points Per Win');
+  // This label now resolves through the platform's own standard-field-name
+  // catalogue in the active (Spanish) locale, not the always-English
+  // humanized dot-path the pre-0285 fallback rendered regardless of language.
+  const pointsPerWinControl = page.getByLabel('Puntos Por Victoria');
   await expect(pointsPerWinControl).toHaveValue('3');
   await pointsPerWinControl.fill('4');
 

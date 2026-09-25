@@ -357,7 +357,7 @@ describe('discipline rule overrides at creation (openspec 0265)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     // Eligible: not reserved by a dedicated control, and not forbidden/inherited.
-    const control = screen.getByLabelText('Scoring › Points Per Win') as HTMLInputElement;
+    const control = screen.getByLabelText('Points Per Win') as HTMLInputElement;
     expect(control.value).toBe('3'); // reflects the discipline default when untouched
 
     // Reserved (dedicated FormatStep/WindowStep controls) and inherited fields offer no control here.
@@ -382,7 +382,7 @@ describe('discipline rule overrides at creation (openspec 0265)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
-    fireEvent.change(screen.getByLabelText('Scoring › Points Per Win'), {
+    fireEvent.change(screen.getByLabelText('Points Per Win'), {
       target: { value: '4' },
     });
 

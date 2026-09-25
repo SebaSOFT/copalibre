@@ -1178,4 +1178,15 @@ export const messages: Record<string, string> = {
   'invitation.confirmPasswordLabel': '确认密码',
   'invitation.submitLoading': '正在设置账户…',
   'invitation.submit': '接受并开始',
+
+  'control.disciplineSummary.segmentsFieldValue':
+    '{count, plural, other {# 个规定赛段}}（{overtime, select, true {含加时} other {不含加时}}）',
+  'control.booleanYes': '是',
+  'control.booleanNo': '否',
+  'control.filePicker.prompt': '选择文件或拖放到此处',
+  'control.filePicker.promptDragging': '将文件拖放到此处',
+  'control.filePicker.acceptedFormats': '接受的格式：{formats}',
+  'control.filePicker.maxSize': '最大大小：{size}',
+  'control.filePicker.clear': '清除',
+  'control.filePicker.filesSelected': '{count, plural, other {已选择 # 个文件}}',
 };
