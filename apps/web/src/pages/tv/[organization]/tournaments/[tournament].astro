@@ -7,8 +7,10 @@ import { sampleDashboard } from '../../../../lib/live-sample.ts';
 import {
   fetchLive,
   fetchOverview,
+  fetchBracket,
   mapLiveResponse,
   mapOverviewResponse,
+  mapBracketResponse,
   tournamentEmblemUrl,
 } from '../../../../lib/public-api-client.ts';
 import type { PublicObjectReference } from '../../../../lib/discipline-background.ts';
@@ -31,6 +33,8 @@ import {
   fetchPublicTableProjection,
 } from '../../../../lib/public-api-client.ts';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
+import { selectStageLayout } from '../../../../lib/bracket.ts';
+import type { BracketZone } from '../../../../lib/bracket-projection.ts';
 
 export const prerender = false;
 
@@ -181,6 +185,24 @@ const overlayMode =
 const chromaKey = Astro.url.searchParams.get('chroma') ?? undefined;
 const presentation = overlayMode ?? 'kiosk';
 
+let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
+const featuredStage = dashboard.matches.find((match) => match.state === 'live')?.stageNumber
+  ?? dashboard.matches[0]?.stageNumber;
+if (presentation !== 'lower' && featuredStage !== undefined) {
+  try {
+    const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, featuredStage);
+    if (rawBracket) {
+      const mapped = mapBracketResponse(rawBracket);
+      const zones = mapped.zones.filter((zone) => zone.matches.length > 0);
+      if (selectStageLayout(mapped.format) === 'bracket' && zones.length > 0) {
+        initialBracket = { stageNumber: featuredStage, zones };
+      }
+    }
+  } catch {
+    // A bracket outage does not replace the scorebug with sample data.
+  }
+}
+
 /*
   The overlay presentations exist to leave the frame clear for the footage they
   are composited over, so the rail is a kiosk-only fixture.
@@ -217,6 +239,7 @@ const tickerItems =
     client:load
     presentation={presentation}
     initial={dashboard}
+    initialBracket={initialBracket}
     streamPath={streamPath}
     branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
     tournamentName={tournamentName}

@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (294/1103 after 0291 composes wizard steps with Badge)', () => {
+test('the graph resolves the current node/edge count (297/1119 after 0294 adds TV bracket and match indicators)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 294);
-  assert.equal(graph.edges.length, 1103);
+  assert.equal(graph.nodes.size, 297);
+  assert.equal(graph.edges.length, 1119);
 });
 
 test('a type-only import is not counted as a render', () => {

@@ -646,6 +646,26 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.statisticsTab',
     defaultMessage: 'Statistics',
   },
+  tvDashboardBracketTab: {
+    id: 'publicWeb.tvDashboard.bracketTab',
+    defaultMessage: 'Bracket',
+  },
+  tvDashboardBracketRound: {
+    id: 'publicWeb.tvDashboard.bracketRound',
+    defaultMessage: 'Round',
+  },
+  tvDashboardBracketMatch: {
+    id: 'publicWeb.tvDashboard.bracketMatch',
+    defaultMessage: 'Match',
+  },
+  tvDashboardPossession: {
+    id: 'publicWeb.tvDashboard.possession',
+    defaultMessage: 'Possession',
+  },
+  tvDashboardPenalty: {
+    id: 'publicWeb.tvDashboard.penalty',
+    defaultMessage: 'Penalty',
+  },
   completionHeading: {
     id: 'publicWeb.completion.heading',
     defaultMessage: 'Tournament Progress',
