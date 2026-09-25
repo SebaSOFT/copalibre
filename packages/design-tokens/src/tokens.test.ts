@@ -516,6 +516,27 @@ describe('the CSS output', () => {
       expect(css).toContain(`--cl-density-${name}:`);
     }
   });
+
+  it('gives the custom select popover the control chamfer, mono typography, and a cyan active cue (openspec 0295)', () => {
+    expect(css).toContain('.cl-select { font-family: var(--cl-font-mono); }');
+    expect(css).toContain('.cl-select__content {');
+    expect(css).toContain('font-family: var(--cl-font-mono)');
+    expect(css).toContain(
+      '.cl-select__item[data-highlighted] { background: var(--cl-surface-raised); border-inline-start-color: var(--cl-state-live); color: var(--cl-state-live); font-weight: var(--cl-weight-bold); outline: none; }',
+    );
+    expect(css).toContain(
+      '.cl-select[data-state="open"] .cl-select__icon { transform: rotate(180deg); }',
+    );
+    expect(css).toContain('font-size: 10px');
+  });
+
+  it('stops the native select shim from intercepting pointer events (openspec 0295 task 1.1)', () => {
+    const nativeSelectRule = css.slice(css.indexOf('.cl-select-native {'));
+    expect(nativeSelectRule).toContain('pointer-events: none');
+    expect(nativeSelectRule.slice(0, nativeSelectRule.indexOf('}'))).not.toContain(
+      'cursor: pointer',
+    );
+  });
 });
 
 describe('the Tailwind output', () => {
