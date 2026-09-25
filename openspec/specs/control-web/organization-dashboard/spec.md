@@ -208,3 +208,14 @@ reasons.
 #### Scenario: The card's existing title link is unchanged
 - **WHEN** an operator activates a tournament card's title
 - **THEN** the control panel still navigates to that tournament's matches view, exactly as before
+
+### Requirement: Analytics dashboard layout and tournament overview
+The analytics dashboard SHALL compose owned layout and card primitives without inline style definitions and SHALL present a summary matrix of the organization's tournaments alongside high-level KPI cards.
+
+#### Scenario: Analytics cards comply with atomic composition
+- **WHEN** an operator views the analytics screen
+- **THEN** all metric cards and layout grids are rendered using owned layout primitives and token values, with zero inline CSS style attributes
+
+#### Scenario: Tournaments matrix provides operational status overview
+- **WHEN** an operator views the analytics screen for an organization with active or concluded tournaments
+- **THEN** a tabular overview lists each tournament with its lifecycle status and operational progress
