@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (294/1098 after 0285 adds file-picker-labels.ts, consumed by FilePicker and its 7 callers)', () => {
+test('the graph resolves the current node/edge count (294/1099 after TvDashboard imports formatClock from matches-view, and 0285 adds file-picker-labels.ts, consumed by FilePicker and its 7 callers)', () => {
   const graph = buildGraph(webSrc);
   assert.equal(graph.nodes.size, 294);
-  assert.equal(graph.edges.length, 1098);
+  assert.equal(graph.edges.length, 1099);
 });
 
 test('a type-only import is not counted as a render', () => {

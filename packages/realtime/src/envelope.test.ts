@@ -65,4 +65,32 @@ describe('what a public stream may say', () => {
   it.each(Object.keys(PUBLIC_EVENT_FIELDS))('publishes %s', (eventType) => {
     expect(sanitiseForPublic(toEnvelope({ ...row, eventType }))).toBeDefined();
   });
+
+  it('preserves scores and clockSeconds on public match.event-recorded', () => {
+    const publicised = sanitiseForPublic(
+      toEnvelope({
+        ...row,
+        eventType: 'match.event-recorded',
+        payload: {
+          matchId: 'm-1',
+          definitionCode: 'goal',
+          side: 'home',
+          occurredAt: 1234567,
+          scores: { 'en-1': 1, 'en-2': 0 },
+          clockSeconds: 345,
+          privateOfficialId: 'secret-123',
+        },
+      }),
+    );
+
+    expect(publicised?.payload).toEqual({
+      matchId: 'm-1',
+      definitionCode: 'goal',
+      side: 'home',
+      occurredAt: 1234567,
+      scores: { 'en-1': 1, 'en-2': 0 },
+      clockSeconds: 345,
+    });
+    expect(publicised?.payload).not.toHaveProperty('privateOfficialId');
+  });
 });
