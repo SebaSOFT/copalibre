@@ -261,13 +261,19 @@ describe('the tournament setup wizard screen', () => {
 
     const continueBtn = screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement;
     expect(continueBtn.disabled).toBe(true);
+    expect(continueBtn.getAttribute('aria-describedby')).toBe('wizard-problems');
+    expect(document.getElementById('wizard-problems')?.textContent).toContain(
+      'The name is missing',
+    );
 
     fireEvent.change(nameInput, { target: { value: 'Liga San Rafael' } });
     fireEvent.change(aliasInput, { target: { value: 'INVALID ALIAS' } });
     expect(continueBtn.disabled).toBe(true);
+    expect(document.getElementById('wizard-problems')?.textContent).toContain('lowercase letters');
 
     fireEvent.change(aliasInput, { target: { value: 'liga-san-rafael' } });
     expect(continueBtn.disabled).toBe(false);
+    expect(continueBtn.hasAttribute('aria-describedby')).toBe(false);
 
     fireEvent.click(continueBtn);
     expect(progressTile.textContent).toContain('29%');

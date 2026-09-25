@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (294/1102 after 0290 composes analytics with MetricStrip and DataTable)', () => {
+test('the graph resolves the current node/edge count (294/1103 after 0291 composes wizard steps with Badge)', () => {
   const graph = buildGraph(webSrc);
   assert.equal(graph.nodes.size, 294);
-  assert.equal(graph.edges.length, 1102);
+  assert.equal(graph.edges.length, 1103);
 });
 
 test('a type-only import is not counted as a render', () => {

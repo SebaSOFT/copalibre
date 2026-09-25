@@ -48,4 +48,9 @@ describe('the Astro preview route', () => {
   it('keeps itself out of search results', () => {
     expect(route).toContain('noindex');
   });
+
+  it('proxies tournament authoring catalog reads to the API in development', () => {
+    expect(config).toMatch(/['"]\/disciplines['"]:\s*['"]http:\/\/localhost:3001['"]/);
+    expect(config).toMatch(/['"]\/tournament-profiles['"]:\s*['"]http:\/\/localhost:3001['"]/);
+  });
 });

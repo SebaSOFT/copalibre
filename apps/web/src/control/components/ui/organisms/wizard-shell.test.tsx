@@ -42,6 +42,28 @@ describe('WizardShell', () => {
     expect(other).toBeNull();
   });
 
+  it('uses the owned badge atom shape for active, completed and upcoming steps', () => {
+    const { container } = render(
+      <WizardShell
+        {...baseProps({
+          stepIndicatorVariant: 'badge',
+          currentStepId: 'rules',
+          steps: [...steps, { id: 'summary', label: 'Summary' }],
+        })}
+      />,
+    );
+    const badges = container.querySelectorAll('.cl-badge');
+
+    expect(badges).toHaveLength(3);
+    expect(badges[0]?.getAttribute('data-state')).toBe('completed');
+    expect(badges[0]?.classList.contains('cl-badge--positive')).toBe(true);
+    expect(badges[1]?.getAttribute('data-state')).toBe('active');
+    expect(badges[1]?.classList.contains('cl-badge--live')).toBe(true);
+    expect(badges[1]?.getAttribute('aria-current')).toBe('step');
+    expect(badges[2]?.getAttribute('data-state')).toBe('upcoming');
+    expect(badges[2]?.classList.contains('cl-badge--muted')).toBe(true);
+  });
+
   it('renders no breadcrumb or progress caption by default', () => {
     render(<WizardShell {...baseProps()} />);
     expect(document.querySelector('.cl-form-screen__breadcrumb')).toBeNull();
@@ -127,5 +149,23 @@ describe('WizardShell', () => {
       />,
     );
     expect(screen.getByRole('button', { name: 'Create' }).hasAttribute('disabled')).toBe(true);
+  });
+
+  it('associates a disabled primary action with the visible step problems', () => {
+    render(
+      <WizardShell
+        {...baseProps({
+          problems: ['The name is missing'],
+          primaryAction: { label: 'Continue', disabled: true, onClick: jest.fn() },
+        })}
+      />,
+    );
+    const button = screen.getByRole('button', { name: 'Continue' });
+    const descriptionId = button.getAttribute('aria-describedby');
+
+    expect(descriptionId).toBe('wizard-problems');
+    expect(document.getElementById(descriptionId ?? '')?.textContent).toContain(
+      'The name is missing',
+    );
   });
 });

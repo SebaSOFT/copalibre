@@ -617,6 +617,35 @@ test('instantiates a tournament from a profile, previewing its stages read-only 
     );
 });
 
+test('shows step badge states and explains blocked tournament wizard progression', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const continueButton = page.getByRole('button', { name: 'Continuar' });
+  await expect(continueButton).toBeDisabled();
+  await expect(continueButton).toHaveAttribute('aria-describedby', 'wizard-problems');
+  await expect(page.locator('#wizard-problems')).toContainText('nombre');
+  const buttonBox = await continueButton.boundingBox();
+  expect(buttonBox?.height).toBeGreaterThanOrEqual(44);
+
+  const activeStep = page.locator('.cl-badge[data-state="active"]');
+  await expect(activeStep).toHaveText('1');
+  await expect(activeStep).toHaveAttribute('aria-current', 'step');
+
+  await page.getByLabel('Nombre').fill('Copa Progreso');
+  await page.getByLabel('Alias').fill('copa-progreso');
+  await expect(continueButton).toBeEnabled();
+  await continueButton.click();
+
+  await expect(page.locator('.cl-badge[data-state="completed"]')).toHaveText('1');
+  await expect(page.locator('.cl-badge[data-state="active"]')).toHaveText('2');
+});
+
 test('completes tournament authoring via keyboard and without overflow at 375px', async ({
   page,
 }) => {

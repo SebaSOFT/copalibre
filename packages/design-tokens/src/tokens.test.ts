@@ -320,6 +320,12 @@ describe('the CSS output', () => {
     expect(css).not.toMatch(/\.cl-badge\s*\{[^}]*clip-path/);
   });
 
+  it('adds leading inset for the chamfer without changing trailing inset', () => {
+    expect(css).toContain(
+      'padding: var(--cl-space-1) var(--cl-space-2) var(--cl-space-1) var(--cl-space-3);',
+    );
+  });
+
   it('assigns a surface level from what a container is, not how deep it sits', () => {
     // Content alternates against its band; the same card is lighter on a dark
     // band and darker on a light one.
