@@ -402,3 +402,26 @@ application servers without manual intervention, when all infrastructure contain
   provisioning) completes and exits with status 0
 - **THEN** `copalibre dev --hybrid` SHALL treat the infrastructure profile as ready and proceed to
   migrations and application servers, rather than treating the exited container as a failure
+
+### Requirement: Browser-facing media paths reach the API in every deployment mode
+The application SHALL keep emblem and discipline-background URLs on the browser's application origin and route their requests to the API in local development and supported self-hosted proxy topologies. The proxy SHALL preserve the API's status, response bytes, and content type rather than serving a web fallback document.
+
+#### Scenario: Local development serves emblems and discipline backgrounds
+- **WHEN** a browser requests emblem upload, supported deletion, or read under `/organizations/*`, or requests a discipline background through `/objects/discipline-background-image`
+- **THEN** the local Astro development proxy forwards each request to the API and preserves its authorization, status, response bytes, and content type
+
+#### Scenario: Local development uses a configured loopback hostname
+- **WHEN** `COPALIBRE_SITE` names a hostname mapped to `127.0.0.1`
+- **THEN** the development web server accepts that hostname while retaining localhost as its default, and the same-origin emblem and discipline-background paths continue to use the local API proxy
+
+#### Scenario: Self-hosted gateway serves all media operations
+- **WHEN** a browser requests emblem upload, supported deletion, or read under `/organizations/*`, or a discipline background under `/objects/*` on the single-origin gateway
+- **THEN** the gateway forwards the request to the API and preserves its authorization, status, response bytes, and content type
+
+#### Scenario: Self-hosted web edge serves all media operations
+- **WHEN** the browser requests emblem upload, supported deletion, or read under `/organizations/*`, or a discipline background under `/objects/*` through the self-hosted web edge
+- **THEN** the request reaches the API before static or SSR fallback and preserves its authorization, status, response bytes, and content type
+
+#### Scenario: Kubernetes web edge resolves the release-scoped API service
+- **WHEN** the Helm chart deploys the web edge with its default values
+- **THEN** Caddy sends browser-facing media requests to that release's API service and not to a fixed Compose-only hostname
