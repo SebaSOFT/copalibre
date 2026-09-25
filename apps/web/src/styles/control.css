@@ -13,6 +13,10 @@ body {
   grid-template-columns: minmax(0, 1fr) minmax(0, 4fr) 3rem;
 }
 
+.cl-preferences-pat-form {
+  margin-top: var(--cl-space-4);
+}
+
 @media (max-width: 374px) {
   .cl-standings-distribution-row {
     grid-template-columns: minmax(0, 1fr) auto;

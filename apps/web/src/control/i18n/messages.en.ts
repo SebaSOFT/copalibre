@@ -3384,6 +3384,25 @@ export const messages = defineMessages({
     id: 'control.preferences.tokensLoading',
     defaultMessage: 'Loading…',
   },
+  preferencesTitle: { id: 'preferences.title', defaultMessage: 'Personal Preferences' },
+  preferencesPatTitle: { id: 'preferences.patTitle', defaultMessage: 'Personal Access Tokens' },
+  preferencesPatDescription: {
+    id: 'preferences.patDescription',
+    defaultMessage: 'Generate tokens to access the API directly. Tokens are only shown once.',
+  },
+  preferencesPatCreate: { id: 'preferences.createPat', defaultMessage: 'Generate Token' },
+  preferencesPatLabel: { id: 'preferences.patLabel', defaultMessage: 'Token Label' },
+  preferencesPatExpiresIn: { id: 'preferences.patExpiresIn', defaultMessage: 'Expires in (days)' },
+  preferencesPatCreated: {
+    id: 'preferences.patCreated',
+    defaultMessage: 'Token created. Copy it now:',
+  },
+  preferencesPatRevoke: { id: 'preferences.revokePat', defaultMessage: 'Revoke' },
+  preferencesPatEmpty: {
+    id: 'preferences.noTokens',
+    defaultMessage: 'No active personal access tokens.',
+  },
+  preferencesPatExpiresAt: { id: 'preferences.patExpiresAt', defaultMessage: 'Expires: {date}' },
 
   // Analytics route (openspec 0225 task 2.6).
   analyticsSubtitle: {

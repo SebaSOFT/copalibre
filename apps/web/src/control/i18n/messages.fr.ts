@@ -1165,6 +1165,17 @@ export const messages: Record<string, string> = {
   'control.liveConsole.noActiveTournaments': 'Aucun tournoi actif dans cette organisation.',
   'control.liveConsole.createTournament': 'Créer un tournoi',
   'control.preferences.tokensLoading': 'Chargement…',
+  'preferences.title': 'Préférences personnelles',
+  'preferences.patTitle': 'Jetons d’accès personnels',
+  'preferences.patDescription':
+    'Générez des jetons pour accéder directement à l’API. Ils ne sont affichés qu’une seule fois.',
+  'preferences.createPat': 'Générer un jeton',
+  'preferences.patLabel': 'Libellé du jeton',
+  'preferences.patExpiresIn': 'Expiration (jours)',
+  'preferences.patCreated': 'Jeton créé. Copiez-le maintenant :',
+  'preferences.revokePat': 'Révoquer',
+  'preferences.noTokens': 'Aucun jeton d’accès personnel actif.',
+  'preferences.patExpiresAt': 'Expire le : {date}',
   'control.analytics.subtitle':
     "Indicateurs de performance et de volume opérationnel de l'organisation.",
   'control.analytics.loading': 'Chargement des analyses…',
