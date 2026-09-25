@@ -164,6 +164,17 @@ export class PublicLiveMatchSideResponse {
   score!: number;
 }
 
+export class PublicLivePenaltyResponse {
+  @ApiProperty({ format: 'uuid' })
+  timerId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  entrantId!: string;
+
+  @ApiProperty({ description: 'Seconds remaining at response time' })
+  remainingSeconds!: number;
+}
+
 export class PublicLiveMatchResponse {
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
@@ -182,6 +193,15 @@ export class PublicLiveMatchResponse {
 
   @ApiProperty({ type: [PublicLiveMatchSideResponse] })
   sides!: PublicLiveMatchSideResponse[];
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Explicitly projected possession side; omitted when unavailable',
+  })
+  possessionEntrantId?: string;
+
+  @ApiPropertyOptional({ type: [PublicLivePenaltyResponse] })
+  activePenalties?: PublicLivePenaltyResponse[];
 }
 
 export class PublicLiveResponse {

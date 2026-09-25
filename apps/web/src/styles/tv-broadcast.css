@@ -81,6 +81,42 @@
   display: flex;
   align-items: center;
   gap: 2vmin;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tv-match-indicators {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--cl-space-2);
+}
+
+.tv-match-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cl-space-2);
+  padding: var(--cl-space-2) var(--cl-space-3);
+  background-color: var(--cl-color-ink-950);
+  border: 1px solid currentColor;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-xs), 1.5vmin, var(--cl-font-size-base));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tv-match-indicator--possession {
+  color: var(--cl-state-positive);
+}
+
+.tv-match-indicator--penalty {
+  color: var(--cl-state-upcoming);
+}
+
+.tv-match-indicator__label {
+  text-transform: uppercase;
 }
 
 .tv-scorebug__badge {
@@ -481,6 +517,66 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+
+.tv-bracket {
+  display: grid;
+  align-content: start;
+  gap: var(--cl-space-4);
+}
+
+.tv-bracket__zone,
+.tv-bracket__round,
+.tv-bracket__matches {
+  display: grid;
+  gap: var(--cl-space-2);
+}
+
+.tv-bracket__zone-name,
+.tv-bracket__round-name {
+  margin: 0;
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-sm);
+  text-transform: uppercase;
+}
+
+.tv-bracket-card {
+  min-width: 0;
+  padding: var(--cl-space-3);
+  background: var(--cl-surface-chrome);
+  border: 1px solid var(--tv-border);
+  font-family: var(--cl-font-mono);
+}
+
+.tv-bracket-card__header,
+.tv-bracket-card__slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-2);
+}
+
+.tv-bracket-card__header {
+  color: var(--tv-text-secondary);
+  font-size: var(--cl-font-size-xs);
+  text-transform: uppercase;
+}
+
+.tv-bracket-card__slot {
+  min-width: 0;
+  margin-block-start: var(--cl-space-2);
+  font-size: var(--cl-font-size-sm);
+}
+
+.tv-bracket-card__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tv-bracket-card__score {
+  color: var(--tv-text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 /* 4A. Standings Table */

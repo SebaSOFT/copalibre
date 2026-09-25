@@ -7,7 +7,7 @@ import {
 import { TvEventTicker } from './TvEventTicker.js';
 
 const meta = {
-  title: 'TV/TvEventTicker',
+  title: 'TV/Kiosk & Full-Frame Widget/TvEventTicker',
   component: TvEventTicker,
   args: {
     ariaLabel: tvDashboardLabels(publicIntl('es')).matchEventsLabel,

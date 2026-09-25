@@ -13,8 +13,10 @@ import {
   fetchLive,
   fetchMatchReport,
   fetchOverview,
+  fetchBracket,
   mapLiveResponse,
   mapOverviewResponse,
+  mapBracketResponse,
   tournamentEmblemUrl,
 } from '../../../../../../../../lib/public-api-client.ts';
 import {
@@ -25,6 +27,8 @@ import type { PublicObjectReference } from '../../../../../../../../lib/discipli
 import type { LiveDashboard } from '../../../../../../../../lib/live-state.ts';
 import type { ResultState } from '../../../../../../../../lib/result-state.ts';
 import type { StandingsRowView } from '../../../../../../../../lib/overview.ts';
+import { selectStageLayout } from '../../../../../../../../lib/bracket.ts';
+import type { BracketZone } from '../../../../../../../../lib/bracket-projection.ts';
 
 export const prerender = false;
 
@@ -143,6 +147,22 @@ const overlayMode =
 const chromaKey = Astro.url.searchParams.get('chroma') ?? undefined;
 const presentation = overlayMode ?? 'kiosk';
 
+let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
+if (presentation !== 'lower') {
+  try {
+    const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, stageNumber);
+    if (rawBracket) {
+      const mapped = mapBracketResponse(rawBracket);
+      const zones = mapped.zones.filter((zone) => zone.matches.length > 0);
+      if (selectStageLayout(mapped.format) === 'bracket' && zones.length > 0) {
+        initialBracket = { stageNumber, zones };
+      }
+    }
+  } catch {
+    // A bracket outage does not affect the pinned match or event ticker.
+  }
+}
+
 /* Same query-param language the tournament kiosk takes; TV routes carry no locale segment. */
 const langParam = Astro.url.searchParams.get('lang');
 const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
@@ -161,6 +181,7 @@ const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam :
     client:load
     presentation={presentation}
     initial={dashboard}
+    initialBracket={initialBracket}
     streamPath={streamPath}
     branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
     pinnedMatchNumber={matchNumber}

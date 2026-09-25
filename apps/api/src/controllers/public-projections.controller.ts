@@ -55,6 +55,7 @@ import {
   type Tournament,
   type LocalizedLabel,
   deriveTournamentStatus,
+  runningTimers,
 } from '@copalibre/domain';
 
 /** A dot-path's value in a compiled ruleset's nested config tree, `undefined` when absent. */
@@ -762,9 +763,47 @@ export class PublicProjectionsController {
     const names = await new EnrollmentRepository(this.db).resolveEntrantNames(
       Array.from(entrantIds),
     );
+    const descriptor = await new TournamentRepository(this.db).findDescriptor(
+      tournament.disciplineRef.descriptorId,
+      tournament.disciplineRef.version,
+    );
+    const timerStarts = Object.fromEntries(
+      (descriptor?.eventDefinitions ?? []).flatMap((definition) =>
+        (definition.effects ?? [])
+          .filter((effect) => effect.kind === 'timed-penalty')
+          .map((effect) => [definition.code, effect.durationSeconds]),
+      ),
+    );
+    const competition = new CompetitionRepository(this.db);
+    const penaltiesByMatch = await Promise.all(
+      liveMatches.map(async (match) => {
+        const [events, resolvedTimerIds] = await Promise.all([
+          competition.listEvents(match.matchId),
+          competition.resolvedTimerIds(match.matchId),
+        ]);
+        const participants = new Set(
+          [match.homeEntrantId, match.awayEntrantId].filter((id): id is string => !!id),
+        );
+        return runningTimers(
+          events,
+          { starts: timerStarts, stops: [] },
+          Date.now(),
+          resolvedTimerIds,
+        ).flatMap((timer) => {
+          if (timer.side === undefined || !participants.has(timer.side)) return [];
+          return [
+            {
+              timerId: timer.timerId,
+              entrantId: timer.side,
+              remainingSeconds: timer.remainingSeconds,
+            },
+          ];
+        });
+      }),
+    );
 
     return {
-      matches: liveMatches.map((m) => ({
+      matches: liveMatches.map((m, index) => ({
         matchId: m.matchId,
         stageNumber: m.stageNumber,
         matchNumber: m.matchNumber ?? m.round,
@@ -792,6 +831,7 @@ export class PublicProjectionsController {
               ]
             : []),
         ],
+        ...(penaltiesByMatch[index]?.length ? { activePenalties: penaltiesByMatch[index] } : {}),
       })),
     };
   }

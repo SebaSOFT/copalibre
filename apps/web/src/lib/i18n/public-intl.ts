@@ -158,6 +158,11 @@ export function tvDashboardLabels(intl: IntlShape) {
     standingsTab: intl.formatMessage(messages.tvDashboardStandingsTab),
     performersTab: intl.formatMessage(messages.tvDashboardPerformersTab),
     statisticsTab: intl.formatMessage(messages.tvDashboardStatisticsTab),
+    bracketTab: intl.formatMessage(messages.tvDashboardBracketTab),
+    bracketRound: intl.formatMessage(messages.tvDashboardBracketRound),
+    bracketMatch: intl.formatMessage(messages.tvDashboardBracketMatch),
+    possession: intl.formatMessage(messages.tvDashboardPossession),
+    penalty: intl.formatMessage(messages.tvDashboardPenalty),
   };
 }
 

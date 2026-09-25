@@ -16880,6 +16880,28 @@
           "score"
         ]
       },
+      "PublicLivePenaltyResponse": {
+        "type": "object",
+        "properties": {
+          "timerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "remainingSeconds": {
+            "type": "number",
+            "description": "Seconds remaining at response time"
+          }
+        },
+        "required": [
+          "timerId",
+          "entrantId",
+          "remainingSeconds"
+        ]
+      },
       "PublicLiveMatchResponse": {
         "type": "object",
         "properties": {
@@ -16903,6 +16925,17 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PublicLiveMatchSideResponse"
+            }
+          },
+          "possessionEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Explicitly projected possession side; omitted when unavailable"
+          },
+          "activePenalties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicLivePenaltyResponse"
             }
           }
         },

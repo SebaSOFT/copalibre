@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TvPerformersView } from './TvPerformersView.js';
 
 const meta = {
-  title: 'TV/TvPerformersView',
+  title: 'TV/Kiosk & Full-Frame Widget/TvPerformersView',
   component: TvPerformersView,
   args: {
     noTopPerformersLabel: 'No hay figuras destacadas todavía.',

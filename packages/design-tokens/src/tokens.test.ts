@@ -276,6 +276,22 @@ describe('the CSS output', () => {
     }
   });
 
+  it('keeps TV possession and timed-penalty text readable on their opaque ink-950 well', () => {
+    // The TV scorebug and lower third render each marker as `state-positive` or
+    // `state-upcoming` text over an opaque `ink-950` background (openspec 0294)
+    // — never a translucent scrim, since that inherits unpredictable video
+    // color behind it. Both must clear normal-text AA on their own, not just
+    // the non-text gate, since the marker's text is the fact being broadcast.
+    const well = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-base'].primitive];
+    expect(SEMANTIC_COLORS['surface-base'].primitive).toBe('ink-950');
+    expect(
+      contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['state-positive'].primitive], well),
+    ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+    expect(
+      contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['state-upcoming'].primitive], well),
+    ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+  });
+
   it('separates actual selection fills from neutral chrome without tinting ordinary controls', () => {
     const selected = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-raised'].primitive];
     const chrome = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-chrome'].primitive];

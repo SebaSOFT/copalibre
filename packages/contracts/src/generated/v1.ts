@@ -5002,6 +5002,14 @@ export interface components {
             abbreviation?: string;
             score: number;
         };
+        PublicLivePenaltyResponse: {
+            /** Format: uuid */
+            timerId: string;
+            /** Format: uuid */
+            entrantId: string;
+            /** @description Seconds remaining at response time */
+            remainingSeconds: number;
+        };
         PublicLiveMatchResponse: {
             /** Format: uuid */
             matchId: string;
@@ -5010,6 +5018,12 @@ export interface components {
             state: string;
             projectionVersion: number;
             sides: components["schemas"]["PublicLiveMatchSideResponse"][];
+            /**
+             * Format: uuid
+             * @description Explicitly projected possession side; omitted when unavailable
+             */
+            possessionEntrantId?: string;
+            activePenalties?: components["schemas"]["PublicLivePenaltyResponse"][];
         };
         PublicLiveResponse: {
             matches: components["schemas"]["PublicLiveMatchResponse"][];
