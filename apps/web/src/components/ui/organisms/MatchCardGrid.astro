@@ -51,7 +51,13 @@ const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
             : {}),
         };
         const cardContent = (
-          <MatchCard client:load match={cardMatch} labels={labels} locale={intl.locale} />
+          <MatchCard
+            client:load
+            match={cardMatch}
+            labels={labels}
+            locale={intl.locale}
+            band={index % 2 === 0 ? 'panel' : 'base'}
+          />
         );
 
         return (

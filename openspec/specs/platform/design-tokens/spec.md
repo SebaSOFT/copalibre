@@ -552,3 +552,11 @@ The multi-step tournament authoring wizard MUST use the design system's badge sh
 - Given the web application is running with Astro's development server
 - When the wizard requests disciplines or tournament profiles
 - Then the development server forwards those paths to the API service.
+
+### Requirement: Profile Image Crop Modal Framing
+The image crop dialog MUST encapsulate the active cropping viewport in the owned `.cl-image-frame` primitive, avoiding raw inline layout styles, using its 4:5 opaque chrome frame, and maintaining the suspended modal drop-shadow on the dialog.
+
+#### Scenario: Image crop container styling
+- Given an operator initiates an emblem or avatar upload
+- When `ImageCropModal` opens
+- Then the crop viewport uses the `.cl-image-frame` treatment with a 4:5 aspect ratio and opaque chrome fill, while the enclosing dialog retains its suspended drop-shadow.
