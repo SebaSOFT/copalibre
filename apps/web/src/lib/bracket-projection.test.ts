@@ -19,8 +19,20 @@ describe('mapBracketResponse', () => {
               status: 'finalized',
               matchNumber: 1,
               slots: [
-                { kind: 'entrant', entrantId: 'e1', name: 'Boca Juniors', abbreviation: 'BOC', score: 2 },
-                { kind: 'entrant', entrantId: 'e2', name: 'River Plate', abbreviation: 'RIV', score: 1 },
+                {
+                  kind: 'entrant',
+                  entrantId: 'e1',
+                  name: 'Boca Juniors',
+                  abbreviation: 'BOC',
+                  score: 2,
+                },
+                {
+                  kind: 'entrant',
+                  entrantId: 'e2',
+                  name: 'River Plate',
+                  abbreviation: 'RIV',
+                  score: 1,
+                },
               ],
             },
           ],
@@ -37,7 +49,11 @@ describe('mapBracketResponse', () => {
     const [match] = zone?.matches ?? [];
     expect(match?.state).toBe('final');
     expect(match?.scores).toEqual([2, 1]);
-    expect(match?.slots[0]).toMatchObject({ kind: 'entrant', name: 'Boca Juniors', entrantId: 'e1' });
+    expect(match?.slots[0]).toMatchObject({
+      kind: 'entrant',
+      name: 'Boca Juniors',
+      entrantId: 'e1',
+    });
   });
 
   it('resolves a winner-of source to its zone-scoped match position, not a cross-zone one', () => {
@@ -89,7 +105,11 @@ describe('mapBracketResponse', () => {
 
     const mapped = mapBracketResponse(response);
     const dependentSlot = mapped.zones[0]?.matches[1]?.slots[0];
-    expect(dependentSlot).toMatchObject({ kind: 'winner-of', matchId: 'match-a-1', matchNumber: 1 });
+    expect(dependentSlot).toMatchObject({
+      kind: 'winner-of',
+      matchId: 'match-a-1',
+      matchNumber: 1,
+    });
   });
 
   it('maps an unresolved slot without a position or numeric matchId to an undefined matchNumber', () => {

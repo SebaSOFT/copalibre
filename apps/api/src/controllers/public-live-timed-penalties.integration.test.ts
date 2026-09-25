@@ -47,12 +47,7 @@ describe('public live projection timed penalties (integration)', () => {
   const consoleBase = () => `/organizations/liga-prueba/tournaments/apertura/matches/${matchId}`;
   const publicLiveUrl = () => `/organizations/liga-prueba/tournaments/apertura/live`;
 
-  async function request(
-    method: 'GET' | 'POST',
-    url: string,
-    token?: string,
-    payload?: unknown,
-  ) {
+  async function request(method: 'GET' | 'POST', url: string, token?: string, payload?: unknown) {
     return (app as NestFastifyApplication).inject({
       method,
       url,
@@ -61,7 +56,11 @@ describe('public live projection timed penalties (integration)', () => {
     });
   }
 
-  async function seedRole(subjectId: string, role: 'admin' | 'referee', status: 'active' | 'inactive') {
+  async function seedRole(
+    subjectId: string,
+    role: 'admin' | 'referee',
+    status: 'active' | 'inactive',
+  ) {
     const principalId = newId();
     await scratch.db
       .insertInto('identity_principals')
@@ -314,9 +313,9 @@ describe('public live projection timed penalties (integration)', () => {
     const dataAfterResolution = liveAfterResolution.json() as {
       matches: { matchId: string; activePenalties?: unknown }[];
     };
-    expect(
-      dataAfterResolution.matches.find((m) => m.matchId === matchId),
-    ).not.toHaveProperty('activePenalties');
+    expect(dataAfterResolution.matches.find((m) => m.matchId === matchId)).not.toHaveProperty(
+      'activePenalties',
+    );
   });
 
   it('drops a penalty from the public live projection once its declared duration expires, with no manual resolution', async () => {

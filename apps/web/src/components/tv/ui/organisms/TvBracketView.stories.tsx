@@ -33,7 +33,7 @@ const ZONES: readonly BracketZone[] = [
 ];
 
 const meta = {
-  title: 'TV/TvBracketView',
+  title: 'TV/Kiosk & Full-Frame Widget/TvBracketView',
   component: TvBracketView,
   args: {
     labels: tvDashboardLabels(publicIntl('es')),

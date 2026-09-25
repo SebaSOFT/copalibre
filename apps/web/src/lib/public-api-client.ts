@@ -16,17 +16,14 @@ import type {
   TableLayoutListResponse,
   TableProjectionResponse,
 } from '@copalibre/api/src/dto/table-projections.dto.js';
-import {
-  humanizeFieldPath,
-  resolveLabel,
-  type SupportedLanguage,
-} from '@copalibre/domain';
-import type { OverviewInput } from './overview.js';
+import { humanizeFieldPath, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
+import type { OverviewInput, MatchState } from './overview.js';
 import type { LiveDashboard } from './live-state.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 export { mapBracketResponse } from './bracket-projection.js';
 export type { BracketZone } from './bracket-projection.js';
 import type { MatchCardData } from './matches-view.js';
+import type { PublicSeriesState } from './series.js';
 
 export const requestApiStorage = new AsyncLocalStorage<{ apiBaseUrl?: string }>();
 

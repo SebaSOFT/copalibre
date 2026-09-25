@@ -93,9 +93,7 @@ export function TvMatchIndicators({
   readonly penaltyLabel: string;
 }): React.JSX.Element | null {
   const penalties = match?.activePenalties ?? [];
-  const possessionSide = match?.sides.find(
-    (side) => side.entrantId === match.possessionEntrantId,
-  );
+  const possessionSide = match?.sides.find((side) => side.entrantId === match.possessionEntrantId);
 
   if (penalties.length === 0) {
     if (!possessionSide) return null;

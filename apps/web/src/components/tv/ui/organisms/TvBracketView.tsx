@@ -35,7 +35,10 @@ export function TvBracketView({
                         <span>{node.badge.label}</span>
                       </div>
                       {node.slots.map((slot, index) => (
-                        <div className="tv-bracket-card__slot" key={`${index}-${slot.entrantId ?? slot.label}`}>
+                        <div
+                          className="tv-bracket-card__slot"
+                          key={`${index}-${slot.entrantId ?? slot.label}`}
+                        >
                           <span className="tv-bracket-card__name" title={slot.label}>
                             {slot.abbreviation ?? slot.label}
                           </span>

@@ -9,18 +9,45 @@ const MATCH: LiveMatch = {
   state: 'live',
   projectionVersion: 1,
   sides: [
-    { entrantId: 'e-1', name: 'Club Atlético Independiente', abbreviation: 'CAI', score: 2, state: 'live' },
+    {
+      entrantId: 'e-1',
+      name: 'Club Atlético Independiente',
+      abbreviation: 'CAI',
+      score: 2,
+      state: 'live',
+    },
     { entrantId: 'e-2', name: 'Deportivo San Juan', abbreviation: 'DSJ', score: 1, state: 'live' },
   ],
 };
 
+/**
+ * Rendered inside the venue kiosk's own persistent scorebug header
+ * (`.tv-scorebug`, `TvDashboard.tsx`) — see "TV/Stream Widgets/TvMatchIndicators"
+ * for the same component inside the lower-third overlay bug instead. The
+ * component's own markup never changes between the two; only its host does.
+ */
+function KioskScorebug({ children }: { readonly children: React.ReactNode }): React.JSX.Element {
+  return (
+    <header className="tv-scorebug cl-chamfer" style={{ justifyContent: 'flex-end' }}>
+      <div className="tv-scorebug__right">{children}</div>
+    </header>
+  );
+}
+
 const meta = {
-  title: 'TV/TvMatchIndicators',
+  title: 'TV/Kiosk Monitor/TvMatchIndicators',
   component: TvMatchIndicators,
   args: {
     possessionLabel: 'Posesión',
     penaltyLabel: 'Sanción',
   },
+  decorators: [
+    (Story) => (
+      <KioskScorebug>
+        <Story />
+      </KioskScorebug>
+    ),
+  ],
   parameters: { layout: 'padded' },
 } satisfies Meta<typeof TvMatchIndicators>;
 export default meta;
@@ -32,7 +59,10 @@ export const Possession: Story = {
 
 export const TimedPenalty: Story = {
   args: {
-    match: { ...MATCH, activePenalties: [{ timerId: 't-1', entrantId: 'e-2', remainingSeconds: 125 }] },
+    match: {
+      ...MATCH,
+      activePenalties: [{ timerId: 't-1', entrantId: 'e-2', remainingSeconds: 125 }],
+    },
   },
 };
 

@@ -186,8 +186,9 @@ const chromaKey = Astro.url.searchParams.get('chroma') ?? undefined;
 const presentation = overlayMode ?? 'kiosk';
 
 let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
-const featuredStage = dashboard.matches.find((match) => match.state === 'live')?.stageNumber
-  ?? dashboard.matches[0]?.stageNumber;
+const featuredStage =
+  dashboard.matches.find((match) => match.state === 'live')?.stageNumber ??
+  dashboard.matches[0]?.stageNumber;
 if (presentation !== 'lower' && featuredStage !== undefined) {
   try {
     const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, featuredStage);

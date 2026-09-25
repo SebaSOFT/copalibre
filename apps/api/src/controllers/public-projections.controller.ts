@@ -792,7 +792,11 @@ export class PublicProjectionsController {
         ).flatMap((timer) => {
           if (timer.side === undefined || !participants.has(timer.side)) return [];
           return [
-            { timerId: timer.timerId, entrantId: timer.side, remainingSeconds: timer.remainingSeconds },
+            {
+              timerId: timer.timerId,
+              entrantId: timer.side,
+              remainingSeconds: timer.remainingSeconds,
+            },
           ];
         });
       }),
