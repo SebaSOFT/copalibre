@@ -2,6 +2,7 @@
 # docker-compose.yml's own service name, so Compose needs no variable at all;
 # Kubernetes overrides it, because the chart's Service is release-scoped
 # ({release}-web-ssr) and no hostname baked into this image could name it.
+# COPALIBRE_WEB_API_UPSTREAM follows the same pattern for browser media routes.
 :4321 {
 	root * /srv
 
@@ -44,12 +45,21 @@
 		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
 	}
 
-	# Emblem and photo assets streamed on demand by web-ssr
-	@ssrOrganizations {
+	# Browser-facing organization APIs include emblem upload/read/delete paths.
+	# Keep them on the app origin, but send them to the API before SSR/static fallback.
+	@organizationMedia {
 		path /organizations /organizations/*
 	}
-	handle @ssrOrganizations {
-		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
+	handle @organizationMedia {
+		reverse_proxy {$COPALIBRE_WEB_API_UPSTREAM:api:3001}
+	}
+
+	# Discipline background URLs are public API assets, not static web files.
+	@disciplineMedia {
+		path /objects /objects/*
+	}
+	handle @disciplineMedia {
+		reverse_proxy {$COPALIBRE_WEB_API_UPSTREAM:api:3001}
 	}
 
 	@ssrTv {

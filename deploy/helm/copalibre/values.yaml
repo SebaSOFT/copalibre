@@ -81,6 +81,9 @@ web:
   # `env` mirrors docker-compose.yml's web service key-for-key, and Compose
   # needs no such variable (the Caddyfile's default is Compose's own hostname).
   ssrUpstream: ''
+  # API routes served through the app origin (emblems and discipline images).
+  # Empty means the release-scoped API Service this chart creates.
+  apiUpstream: ''
   env:
     COPALIBRE_JWT_ISSUER: ''
     COPALIBRE_OIDC_CLIENT_ID: ''

@@ -12,6 +12,8 @@ const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
 const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const PUBLIC_TOURNAMENT_PATH = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const ONE_PIXEL_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
 const sampleCompletion = {
   totalMatches: 4,
@@ -102,14 +104,22 @@ test.afterAll(async () => {
 test('0245: the hero renders the discipline backdrop image behind its content', async ({
   page,
 }) => {
+  await page.route(/\/objects\/discipline-background-image\?key=/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+    }),
+  );
   await page.goto(PUBLIC_TOURNAMENT_PATH);
 
   const backdrop = page.locator('img.cl-tournament-hero__backdrop');
-  await expect(backdrop).toBeAttached();
+  await expect(backdrop).toBeVisible();
   await expect(backdrop).toHaveAttribute(
     'src',
     /\/objects\/discipline-background-image\?key=modules%2Ffootball%2F1\.0\.0%2Ffootball-01\.jpg/,
   );
+  await expect(backdrop).toHaveJSProperty('naturalWidth', 1);
 
   // The hero's own content (title, live badge) stays above the backdrop.
   await expect(page.getByRole('heading', { name: 'Apertura 2026' })).toBeVisible();

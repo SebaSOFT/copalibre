@@ -53,4 +53,9 @@ describe('the Astro preview route', () => {
     expect(config).toMatch(/['"]\/disciplines['"]:\s*['"]http:\/\/localhost:3001['"]/);
     expect(config).toMatch(/['"]\/tournament-profiles['"]:\s*['"]http:\/\/localhost:3001['"]/);
   });
+
+  it('proxies emblem and discipline-image requests to the API in development', () => {
+    expect(config).toMatch(/['"]\/organizations['"]:\s*['"]http:\/\/localhost:3001['"]/);
+    expect(config).toMatch(/['"]\/objects['"]:\s*['"]http:\/\/localhost:3001['"]/);
+  });
 });

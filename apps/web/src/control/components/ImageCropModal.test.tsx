@@ -22,6 +22,18 @@ describe('ImageCropModal', () => {
     expect(screen.getByRole('button', { name: 'Close' })).toBeDefined();
   });
 
+  it('frames the cropper and keeps the elevated dialog surface', () => {
+    render(
+      withIntl(
+        <ImageCropModal imageSrc="blob:source" onCancel={jest.fn()} onConfirm={jest.fn()} />,
+      ),
+    );
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.classList.contains('cl-dialog-surface')).toBe(true);
+    expect(dialog.querySelector('.cl-image-frame')).not.toBeNull();
+  });
+
   it('calls onCancel and never onConfirm when Cancel is clicked', () => {
     const onCancel = jest.fn();
     const onConfirm = jest.fn();

@@ -6,10 +6,16 @@ import starlightLlmsTxt from 'starlight-llms-txt';
 
 import node from '@astrojs/node';
 
+const site = process.env.COPALIBRE_SITE ?? 'http://localhost:4321';
+const siteHostname = new URL(site).hostname;
+
 // React is wired now but only used from /control/** routes starting at
 // Control-web shell and organization dashboard (see openspec/changes/README.md).
 export default defineConfig({
-  site: process.env.COPALIBRE_SITE ?? 'http://localhost:4321',
+  site,
+  // A hosts-file alias pointing at 127.0.0.1 needs an IPv4 listener. Keep
+  // Astro's localhost binding when no custom site is configured.
+  server: { host: siteHostname === 'localhost' ? 'localhost' : '127.0.0.1' },
   adapter: node({ mode: 'standalone' }),
   // Starlight otherwise enables Astro prefetch globally, adding JavaScript to
   // public broadcast pages that must remain useful without it. ClientRouter
@@ -215,6 +221,9 @@ export default defineConfig({
   ],
   vite: {
     server: {
+      // Vite already allows localhost and IP addresses. Allow the one custom
+      // hostname configured for this local site without accepting every host.
+      allowedHosts: [siteHostname],
       proxy: {
         '/auth': 'http://localhost:3001',
         '/organizations': 'http://localhost:3001',

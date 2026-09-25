@@ -36,6 +36,10 @@ spec:
             # release-scoped. Always set, never left to the image's default.
             - name: COPALIBRE_WEB_SSR_UPSTREAM
               value: {{ .Values.web.ssrUpstream | default (printf "%s-web-ssr:%v" (include "copalibre.fullname" .) (index .Values.roles "web-ssr").port) | quote }}
+            # Compose uses the Caddyfile's `api:3001` default; the chart's
+            # Service includes the release name, so set that cluster target.
+            - name: COPALIBRE_WEB_API_UPSTREAM
+              value: {{ .Values.web.apiUpstream | default (printf "%s-api:%v" (include "copalibre.fullname" .) (index .Values.roles "api").port) | quote }}
           lifecycle:
             preStop:
               # Same reasoning as templates/deployment.yaml: give kube-proxy

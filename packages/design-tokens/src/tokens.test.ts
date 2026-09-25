@@ -312,6 +312,14 @@ describe('the CSS output', () => {
     expect(css).toContain('corner-bottom-left-shape: bevel;');
   });
 
+  it('provides a positioned, opaque 4:5 image frame for the crop viewport', () => {
+    const imageFrameRule = /\.cl-image-frame \{([^}]+)\}/.exec(css)?.[1] ?? '';
+
+    expect(imageFrameRule).toContain('position: relative;');
+    expect(imageFrameRule).toContain('aspect-ratio: 4 / 5;');
+    expect(imageFrameRule).toContain('background: var(--cl-surface-chrome);');
+  });
+
   it('cuts a badge on its left pair, never with clip-path', () => {
     // A deliberate divergence from the reference project, which paints badges
     // square: the inherited diagonal pair reads as a skewed box at this size.
@@ -464,6 +472,7 @@ describe('the CSS output', () => {
   it('emits the dialog backdrop and surface rules', () => {
     expect(css).toContain('.cl-dialog-backdrop {');
     expect(css).toContain('.cl-dialog-surface {');
+    expect(css).toContain(`box-shadow: ${DIALOG_TOKENS.elevation};`);
   });
 
   it('emits template layout rules including match console', () => {

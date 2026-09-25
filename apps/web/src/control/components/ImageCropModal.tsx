@@ -74,7 +74,7 @@ export function ImageCropModal({
       open
       title={intl.formatMessage(messages.imageCropModalTitle)}
     >
-      <div style={cropAreaStyle}>
+      <div className="cl-image-frame">
         <Cropper
           aspect={4 / 5}
           crop={crop}
@@ -121,14 +121,6 @@ export function ImageCropModal({
     </Modal>
   );
 }
-
-const cropAreaStyle: CSSProperties = {
-  position: 'relative',
-  width: '100%',
-  aspectRatio: '4 / 5',
-  maxHeight: '60vh',
-  background: 'var(--cl-surface-chrome)',
-};
 
 const controlsStyle: CSSProperties = {
   display: 'flex',
