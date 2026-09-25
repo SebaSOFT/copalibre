@@ -882,7 +882,7 @@ function components(): string {
     '  font-family: var(--cl-font-display);',
     '  font-weight: var(--cl-weight-semibold);',
     '  text-transform: uppercase;',
-    '  padding: var(--cl-space-1) var(--cl-space-2);',
+    '  padding: var(--cl-space-1) var(--cl-space-2) var(--cl-space-1) var(--cl-space-3);',
     '}',
     '',
     '@supports (corner-top-left-shape: bevel) or (corner-shape: bevel) {',
