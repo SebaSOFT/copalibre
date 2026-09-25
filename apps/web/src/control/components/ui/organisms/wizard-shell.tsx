@@ -11,6 +11,7 @@
  */
 import type { ReactNode } from 'react';
 import { Alert } from '../atoms/alert.js';
+import { Badge } from '../atoms/badge.js';
 import { Button } from '../atoms/button.js';
 import { Card } from '../atoms/card.js';
 
@@ -49,10 +50,9 @@ export interface WizardShellProps {
   readonly steps: readonly WizardShellStep[];
   readonly currentStepId: string;
   /**
-   * `TournamentSetupWizard`'s step indicator draws a bordered numbered badge
-   * in a fixed-column grid; `ProfileBuilderWizard`/`DescriptorBuilderWizard`
-   * draw a plain number in an auto-fit grid. Both are existing, unchanged
-   * visual treatments — the shell reproduces each rather than picking one.
+   * `TournamentSetupWizard`'s step indicator uses the owned badge atom in a
+   * fixed-column grid; `ProfileBuilderWizard`/`DescriptorBuilderWizard` draw a
+   * plain number in an auto-fit grid.
    */
   readonly stepIndicatorVariant: 'badge' | 'plain';
   readonly problems: readonly string[];
@@ -92,6 +92,7 @@ export function WizardShell({
   children,
 }: WizardShellProps): React.JSX.Element {
   const badge = stepIndicatorVariant === 'badge';
+  const currentStepIndex = steps.findIndex((step) => step.id === currentStepId);
 
   return (
     <section aria-label={ariaLabel} className="cl-form-screen">
@@ -148,23 +149,24 @@ export function WizardShell({
               }
             >
               {badge ? (
-                <span
+                <Badge
                   aria-current={step.id === currentStepId ? 'step' : undefined}
-                  style={{
-                    display: 'grid',
-                    placeItems: 'center',
-                    width: 32,
-                    height: 32,
-                    borderWidth: 2,
-                    borderStyle: 'solid',
-                    borderColor:
-                      step.id === currentStepId ? 'var(--cl-state-live)' : 'var(--cl-border-muted)',
-                    background: step.id === currentStepId ? 'var(--cl-state-live)' : 'transparent',
-                    color: step.id === currentStepId ? 'var(--cl-surface-base)' : 'inherit',
-                  }}
-                >
-                  {index + 1}
-                </span>
+                  className={`cl-badge--${
+                    step.id === currentStepId
+                      ? 'live'
+                      : index < currentStepIndex
+                        ? 'positive'
+                        : 'muted'
+                  }`}
+                  data-state={
+                    step.id === currentStepId
+                      ? 'active'
+                      : index < currentStepIndex
+                        ? 'completed'
+                        : 'upcoming'
+                  }
+                  label={String(index + 1)}
+                />
               ) : (
                 <span aria-current={step.id === currentStepId ? 'step' : undefined}>
                   {index + 1}
@@ -181,7 +183,7 @@ export function WizardShell({
 
         {problems.length > 0 && (
           <Alert block className="cl-inline-alert--spaced" tone="destructive">
-            <ul>
+            <ul id="wizard-problems">
               {problems.map((problem) => (
                 <li key={problem}>{problem}</li>
               ))}
@@ -217,7 +219,14 @@ export function WizardShell({
           <Button onClick={onBack} type="button" variant="secondary">
             {backLabel}
           </Button>
-          <Button disabled={primaryAction.disabled} onClick={primaryAction.onClick} type="button">
+          <Button
+            aria-describedby={
+              primaryAction.disabled && problems.length > 0 ? 'wizard-problems' : undefined
+            }
+            disabled={primaryAction.disabled}
+            onClick={primaryAction.onClick}
+            type="button"
+          >
             {primaryAction.label}
           </Button>
         </footer>

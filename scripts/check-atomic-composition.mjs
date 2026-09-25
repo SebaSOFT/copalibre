@@ -256,7 +256,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   // The step-indicator <ol>/<li>/<span> is the same ordered-list exception
   // StageListEditor.tsx's entry above documents, moved here from the three
   // wizards' own hand-rolled chrome (openspec 0236) rather than newly added.
-  ['control/components/ui/organisms/wizard-shell.tsx', 3],
+  ['control/components/ui/organisms/wizard-shell.tsx', 2],
 ]);
 
 export function checkInlineLayout(nodes) {
