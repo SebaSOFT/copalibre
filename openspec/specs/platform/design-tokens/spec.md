@@ -534,3 +534,21 @@ change branch, without a direct push to the protected integration branch.
 
 - **WHEN** concurrent changes modify the same verified token
 - **THEN** conflicts are resolved against the integrated source and verification runs again before merge
+
+### Requirement: Tournament Creation Wizard Step Precision
+The multi-step tournament authoring wizard MUST use the design system's badge shape for active and completed step badges, meet the minimum interactive target for its primary progression action, explain blocked progression when required fields are invalid, and configure the Astro development server to forward `/disciplines` and `/tournament-profiles` to the API service.
+
+#### Scenario: Step badge shape
+- Given an operator is authoring a tournament in `/control/[organization]/tournaments/new`
+- When the wizard renders step indicators
+- Then active and completed step badges use the established badge shape with square right corners and a vertical chamfer on the left.
+
+#### Scenario: Blocked wizard progression
+- Given required tournament fields are invalid or incomplete
+- When the operator reaches the primary progression action
+- Then the action meets the 44px minimum target and its disabled state explains what must be completed.
+
+#### Scenario: Development API proxy
+- Given the web application is running with Astro's development server
+- When the wizard requests disciplines or tournament profiles
+- Then the development server forwards those paths to the API service.
