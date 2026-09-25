@@ -188,6 +188,14 @@ export const AUDIT_ACTIONS = [
   'object.scan-failed',
   'object.deleted',
 
+  // Data-integrity repair (openspec 0296) — a correction `copalibre doctor
+  // --fix` applies to a record found structurally inconsistent (a
+  // non-canonical status, for instance), never a normal business
+  // transition. One generic action; the specific anomaly and the value
+  // change live in the entry's `previousState`/`resultingState`/`reason`,
+  // the same way `mutation.refused` covers every refusal reason below.
+  'data-integrity.repaired',
+
   // Refused attempts (openspec 0166) — recorded centrally by the API
   // exception filter (or, for a classification consulted but never thrown,
   // at the point of classification), covering every refusal uniformly

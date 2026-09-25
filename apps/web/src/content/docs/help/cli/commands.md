@@ -45,12 +45,20 @@ including bootstrapping the first administrator as a one-shot Helm Job:
 
 ## doctor
 
-`copalibre doctor [--check-proxy] [--proxy-url <url>]`
+`copalibre doctor [--check-proxy] [--proxy-url <url>] [--fix | --interactive]`
 
-Validates configuration and dependencies before starting.
+Validates configuration and dependencies before starting. When `DATABASE_URL` is
+configured, it also reports tournaments holding a non-canonical status (for
+example, one left over from an old import script) as an informational finding
+— never as a reason to fail the check or block startup.
 
 - `--check-proxy`: also verifies the reverse-proxy configuration
 - `--proxy-url <url>`: public URL to test when `--check-proxy` is used
+- `--fix`, `--interactive`: after reporting, walk any non-canonical tournament
+  status through an interactive prompt (choose the correct status, confirm,
+  apply). Requires a TTY; run it from an interactive shell, not a script or CI
+  job. Repairs are transactional and recorded in the audit trail — `copalibre
+doctor` never rewrites data without explicit confirmation.
 
 ## dev
 
