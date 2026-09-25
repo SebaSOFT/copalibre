@@ -13,3 +13,7 @@ roles:
 ## Zweck dieses Bildschirms
 
 Der Analytik-Bildschirm visualisiert zentrale Leistungskennzahlen und operative Volumina der Organisation.
+
+## Turnierübersicht
+
+Die Übersicht listet jedes nicht archivierte Turnier mit Status, gelösten Spielen im Verhältnis zur Gesamtzahl und laufenden Spielen. Wenn der Spielfortschritt eines Turniers nicht verfügbar ist, bleibt der Rest des Dashboards sichtbar.

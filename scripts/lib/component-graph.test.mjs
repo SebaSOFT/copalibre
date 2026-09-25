@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (294/1100 after 0288 composes the Preferences form with Form and Inline)', () => {
+test('the graph resolves the current node/edge count (294/1102 after 0290 composes analytics with MetricStrip and DataTable)', () => {
   const graph = buildGraph(webSrc);
   assert.equal(graph.nodes.size, 294);
-  assert.equal(graph.edges.length, 1100);
+  assert.equal(graph.edges.length, 1102);
 });
 
 test('a type-only import is not counted as a render', () => {

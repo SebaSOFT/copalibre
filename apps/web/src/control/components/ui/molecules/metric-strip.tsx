@@ -6,14 +6,16 @@
  * stack on a phone, and one accessible name for the group so a reader is told
  * what the figures are measuring before hearing four of them in a row.
  */
+import type { ReactNode } from 'react';
 import { StatTile } from '../atoms/stat-tile.js';
 
 export interface MetricStripEntry {
   readonly key: string;
   readonly label: string;
   /** Absent means unmeasured. `0` is a measurement. */
-  readonly value?: React.ReactNode;
+  readonly value?: ReactNode;
   readonly unavailableLabel?: string;
+  readonly description?: ReactNode;
   readonly demonstrationLabel?: string;
 }
 
@@ -39,6 +41,7 @@ export function MetricStrip({
           {...(metric.unavailableLabel === undefined
             ? {}
             : { unavailableLabel: metric.unavailableLabel })}
+          {...(metric.description === undefined ? {} : { description: metric.description })}
           {...(metric.demonstrationLabel === undefined
             ? {}
             : { demonstrationLabel: metric.demonstrationLabel })}

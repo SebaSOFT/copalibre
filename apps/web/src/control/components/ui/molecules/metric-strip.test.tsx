@@ -34,6 +34,16 @@ describe('the MetricStrip composition', () => {
     expect(container.querySelectorAll('.cl-stat-tile')).toHaveLength(1);
   });
 
+  it('renders supporting copy with the metric it describes', () => {
+    render(
+      <MetricStrip
+        ariaLabel="Summary"
+        metrics={[{ key: 'a', label: 'Tournaments', value: 4, description: '2 live · 2 finished' }]}
+      />,
+    );
+    expect(screen.getByText('2 live · 2 finished')).not.toBeNull();
+  });
+
   it('names the group so the figures are heard with their subject', () => {
     render(
       <MetricStrip ariaLabel="Tournament summary" metrics={[{ key: 'a', label: 'X', value: 1 }]} />,
