@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
 import { DashboardPage } from '../pages/DashboardPage.js';
 import type {
@@ -223,6 +223,107 @@ describe('DashboardPage', () => {
     });
     await waitFor(() => expect(screen.getByRole('link', { name: 'Roles' })).toBeDefined());
   });
+  it('renders the "Create tournament" action with the wizard href in a populated dashboard', async () => {
+    await act(async () => {
+      render(
+        <DashboardPage
+          client={client({ listActiveTournaments: async () => [tournament()] })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
+    });
+
+    await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
+    const link = screen.getByRole('link', { name: 'Crear torneo' });
+    expect(link.getAttribute('href')).toBe('/control/liga-mendocina/tournaments/new');
+  });
+
+  it('renders an actionable empty-state "Create tournament" CTA with the wizard href', async () => {
+    await act(async () => {
+      render(
+        <DashboardPage
+          client={client({ listActiveTournaments: async () => [] })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
+    });
+
+    await waitFor(() => expect(screen.getByText(/no tiene torneos/)).toBeDefined());
+    const cta = screen.getByRole('link', { name: 'Creá tu primer torneo' });
+    expect(cta.getAttribute('href')).toBe('/control/liga-mendocina/tournaments/new');
+    // The header action stays present too — the empty state adds a second
+    // entry point, it does not replace the first.
+    expect(screen.getByRole('link', { name: 'Crear torneo' })).toBeDefined();
+  });
+
+  it('activating "Create tournament" navigates client-side via controlLinkClick, not a full page load', async () => {
+    window.history.pushState({}, '', '/control/liga-mendocina');
+    await act(async () => {
+      render(
+        <DashboardPage
+          client={client({ listActiveTournaments: async () => [tournament()] })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
+    });
+
+    await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
+    const link = screen.getByRole('link', { name: 'Crear torneo' });
+    fireEvent.click(link, { button: 0 });
+
+    expect(window.location.pathname).toBe('/control/liga-mendocina/tournaments/new');
+  });
+
+  it('omits the "Create tournament" action for a role lacking org.create-tournaments', async () => {
+    const memberships = [
+      {
+        organizationId: 'org-1',
+        organizationAlias: 'liga-mendocina',
+        organizationName: 'Liga Mendocina',
+        role: 'viewer' as const,
+      },
+    ];
+    await act(async () => {
+      render(
+        <DashboardPage
+          client={client({
+            listMyOrganizations: async () => memberships,
+            listActiveTournaments: async () => [tournament()],
+          })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
+    });
+
+    await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
+    expect(screen.queryByRole('link', { name: 'Crear torneo' })).toBeNull();
+  });
+
+  it('keeps the "Create tournament" action for a role holding org.create-tournaments', async () => {
+    const memberships = [
+      {
+        organizationId: 'org-1',
+        organizationAlias: 'liga-mendocina',
+        organizationName: 'Liga Mendocina',
+        role: 'admin' as const,
+      },
+    ];
+    await act(async () => {
+      render(
+        <DashboardPage
+          client={client({
+            listMyOrganizations: async () => memberships,
+            listActiveTournaments: async () => [tournament()],
+          })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
+    });
+
+    await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
+    expect(screen.getByRole('link', { name: 'Crear torneo' })).toBeDefined();
+  });
+
   it('renders real audit events in the recent activity feed', async () => {
     await act(async () => {
       render(

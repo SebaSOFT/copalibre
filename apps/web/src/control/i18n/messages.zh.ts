@@ -86,6 +86,8 @@ export const messages: Record<string, string> = {
   'control.dashboard.noActivityYet': '暂无活动。',
   'control.dashboard.tournaments': '赛事',
   'control.dashboard.noTournaments': '该组织尚无任何赛事。',
+  'control.dashboard.createTournament': '创建锦标赛',
+  'control.dashboard.noTournamentsCta': '创建您的第一个锦标赛',
   'control.dashboard.participantsCsv': '参赛者 CSV',
   'control.dashboard.resultsCsv': '结果 CSV',
   'control.dashboard.standingsCsv': '排名 CSV',

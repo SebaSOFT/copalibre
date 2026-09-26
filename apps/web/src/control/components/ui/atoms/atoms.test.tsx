@@ -17,6 +17,7 @@ import {
   CardTitle,
 } from './card.js';
 import { Button } from './button.js';
+import { LinkButton } from './link-button.js';
 import { RadioGroup, RadioGroupItem } from './radio.js';
 import { FilePicker } from './file-picker.js';
 import { Form } from './form.js';
@@ -470,5 +471,40 @@ describe('Button atom CTA treatments (openspec 0198)', () => {
     const className = screen.getByRole('button', { name: 'Publish' }).className;
     expect(className).toContain('cl-btn--primary');
     expect(className).toContain('cl-focusable');
+  });
+});
+
+describe('LinkButton atom (openspec 0298): Button styling on a real anchor', () => {
+  const VARIANTS = ['primary', 'secondary', 'destructive', 'destructive-outline'] as const;
+
+  it.each(VARIANTS)('renders the %s variant class on an <a>', (variant) => {
+    render(
+      <LinkButton href="/somewhere" variant={variant}>
+        Go
+      </LinkButton>,
+    );
+    const link = screen.getByRole('link', { name: 'Go' });
+    expect(link.className).toContain(`cl-btn--${variant}`);
+    expect(link.getAttribute('href')).toBe('/somewhere');
+  });
+
+  it('defaults to the primary variant, carries the chamfered geometry, and stays keyboard-focusable', () => {
+    render(<LinkButton href="/somewhere">Go</LinkButton>);
+    const className = screen.getByRole('link', { name: 'Go' }).className;
+    expect(className).toContain('cl-btn--primary');
+    expect(className).toContain('cl-chamfer');
+    expect(className).toContain('cl-chamfer--control');
+    expect(className).toContain('cl-focusable');
+  });
+
+  it('does not double-apply chamfer when the caller supplies its own', () => {
+    render(
+      <LinkButton className="cl-chamfer cl-chamfer--tr" href="/somewhere">
+        Go
+      </LinkButton>,
+    );
+    const className = screen.getByRole('link', { name: 'Go' }).className;
+    expect(className.match(/cl-chamfer(?![\w-])/g)).toHaveLength(1);
+    expect(className).toContain('cl-chamfer--tr');
   });
 });

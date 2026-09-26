@@ -467,7 +467,7 @@ describe('what the dashboard renders', () => {
       tournaments: [card()],
       activity: [entry({ reason: 'Documentación completa' })],
     });
-    render(<Dashboard model={model} organizationAlias="liga-mendocina" />);
+    render(<Dashboard canCreateTournament model={model} organizationAlias="liga-mendocina" />);
 
     expect(screen.getByRole('link', { name: 'Torneos' })).toBeDefined();
     expect(screen.getByText('Torneo Apertura')).toBeDefined();
@@ -480,6 +480,7 @@ describe('what the dashboard renders', () => {
   it('says so when there is nothing yet, rather than showing an empty frame', () => {
     render(
       <Dashboard
+        canCreateTournament
         model={buildDashboard({ organizationId: 'org-1', tournaments: [], activity: [] })}
         organizationAlias="liga-mendocina"
       />,
@@ -524,6 +525,7 @@ describe('what the dashboard renders', () => {
     try {
       render(
         <Dashboard
+          canCreateTournament
           model={buildDashboard({ organizationId: 'org-1', tournaments: [card()], activity: [] })}
           organizationAlias="liga-mendocina"
         />,
@@ -586,6 +588,7 @@ describe('what the dashboard renders', () => {
 
     render(
       <Dashboard
+        canCreateTournament
         model={buildDashboard({
           organizationId: 'org-1',
           tournaments: [card({ lifecycle: 'finished' })],
@@ -649,6 +652,7 @@ describe('what the dashboard renders', () => {
   it('shows no archive action for a tournament that has not finished', () => {
     render(
       <Dashboard
+        canCreateTournament
         model={buildDashboard({ organizationId: 'org-1', tournaments: [card()], activity: [] })}
         organizationAlias="liga-mendocina"
       />,

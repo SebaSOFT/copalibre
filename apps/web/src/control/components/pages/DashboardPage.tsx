@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RealtimeClient } from '@copalibre/realtime';
+import { capabilitiesForRole, type OrganizationRole } from '@copalibre/domain';
 import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import {
@@ -36,6 +37,33 @@ export function DashboardPage({
   const [organizationId, setOrganizationId] = useState('');
   const [activity, setActivity] = useState<readonly ActivityEntry[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [role, setRole] = useState<OrganizationRole | undefined>(undefined);
+
+  useEffect(() => {
+    let live = true;
+    api
+      .listMyOrganizations()
+      .then((organizations) => {
+        if (!live) return;
+        const mine = organizations.find((one) => one.organizationAlias === organizationAlias);
+        setRole(mine?.role);
+      })
+      .catch(() => {
+        // Same presentation-guard fallback as ControlShellChrome's own
+        // lookup: a failed role read leaves the action visible rather than
+        // blocking the dashboard from rendering.
+      });
+    return () => {
+      live = false;
+    };
+  }, [api, organizationAlias]);
+
+  // Client-side guard only (design.md Decision 4) — `role === undefined`
+  // (not yet resolved) defaults to visible, matching `visibleSidenav`'s own
+  // "unknown role sees everything" convention; the wizard route stays
+  // server-enforced regardless.
+  const canCreateTournament =
+    role === undefined || capabilitiesForRole(role).includes('org.create-tournaments');
 
   const reload = useCallback(() => {
     setRefreshKey((k) => k + 1);
@@ -124,5 +152,12 @@ export function DashboardPage({
   }, [api, organizationAlias, reload]);
 
   const model = buildDashboard({ organizationId, tournaments, activity });
-  return <Dashboard client={api} model={model} organizationAlias={organizationAlias} />;
+  return (
+    <Dashboard
+      canCreateTournament={canCreateTournament}
+      client={api}
+      model={model}
+      organizationAlias={organizationAlias}
+    />
+  );
 }
