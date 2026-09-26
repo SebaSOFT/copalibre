@@ -115,6 +115,12 @@ env:
   COPALIBRE_OBJECT_STORAGE_ACCESS_KEY: ''
   COPALIBRE_OBJECT_STORAGE_SECRET_KEY: ''
   COPALIBRE_OBJECT_STORAGE_BUCKET: ''
+  # Required alongside the above when the endpoint is a self-hosted Garage
+  # instance ("garage", matching its configured s3_region) — Garage rejects
+  # every request with AuthorizationHeaderMalformed if the region doesn't
+  # match. Leave blank for AWS S3 (defaults to us-east-1) or set to your
+  # provider's region for Cloudflare R2/Backblaze B2.
+  COPALIBRE_OBJECT_STORAGE_REGION: ''
   COPALIBRE_DATA_DIR: /var/lib/copalibre
   COPALIBRE_IN_CONTAINER: 'true'
 

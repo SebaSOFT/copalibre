@@ -116,7 +116,7 @@ keine erfordert einen Template-Fork:
   `COPALIBRE_OBJECT_STORAGE_*`-Zugangsdaten usw. aus Ihrem echten Secret-Store statt aus einem
   einfachen `Secret`-Manifest.
 
-Verwaltetes PostgreSQL, S3-kompatibler Objektspeicher (AWS S3, MinIO, R2, B2), oder ein verwalteter
+Verwaltetes PostgreSQL, S3-kompatibler Objektspeicher (AWS S3, Garage, R2, B2), oder ein verwalteter
 VM-Pfad (Kamal, `docs/deployment/kamal.md`) sind alles Konfiguration, keine Codeänderungen —
 `packages/persistence` zielt bereits generisch darauf ab. Validieren Sie jede Chart-Änderung lokal an
 einem Wegwerf-Multi-Node-Cluster, bevor Sie einen echten anfassen:

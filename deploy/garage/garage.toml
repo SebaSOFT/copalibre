@@ -1,0 +1,26 @@
+# Single-node Garage configuration for CopaLibre's optional self-hosted
+# S3-compatible object-storage service (docker-compose.yml's and
+# docker-compose.dev.yml's `object-storage` service). See
+# docs/self-hosting.md for enabling the service and provisioning a bucket.
+#
+# The RPC secret is never stored here: it is supplied per-installation via
+# the GARAGE_RPC_SECRET environment variable (a 64-character hex string,
+# `openssl rand -hex 32`), which Garage reads directly, keeping this file
+# free of secrets and identical across every installation.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+replication_factor = 1
+
+rpc_bind_addr = "0.0.0.0:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "0.0.0.0:3900"
+root_domain = ".s3.garage.localhost"
+
+[admin]
+# Bound to loopback only: administration happens via `docker compose exec
+# object-storage /garage ...` (CLI over the RPC port), never over HTTP, so
+# the admin API never needs to be reachable from other containers or hosts.
+api_bind_addr = "127.0.0.1:3903"

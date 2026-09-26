@@ -6,7 +6,7 @@ import { describeObjectStorageAdapterContract } from './test-support/adapter-con
  * keyed on `${Bucket}/${Key}`, driven by `instanceof` on the same Command
  * classes `s3-profile.ts` constructs, so this exercises the real command
  * shape the adapter builds rather than a hand-waved stub. The real endpoint
- * is exercised separately, against real MinIO, in the integration suite.
+ * is exercised separately, against real Garage, in the integration suite.
  */
 const store = new Map<string, { body: Uint8Array; contentType?: string }>();
 
@@ -83,7 +83,7 @@ const BASE_CONFIG = {
 describe('createS3Adapter', () => {
   describeObjectStorageAdapterContract('s3', () => createS3Adapter(BASE_CONFIG));
 
-  it('configures the client with path-style addressing, required by MinIO', () => {
+  it('configures the client with path-style addressing, required by Garage and most S3-compatible stores', () => {
     createS3Adapter(BASE_CONFIG);
     expect(lastClientConfig).toMatchObject({
       endpoint: 'http://localhost:9000',

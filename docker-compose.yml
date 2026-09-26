@@ -23,6 +23,7 @@ x-application-environment: &application-environment
   COPALIBRE_OBJECT_STORAGE_ACCESS_KEY: ${COPALIBRE_OBJECT_STORAGE_ACCESS_KEY:-}
   COPALIBRE_OBJECT_STORAGE_SECRET_KEY: ${COPALIBRE_OBJECT_STORAGE_SECRET_KEY:-}
   COPALIBRE_OBJECT_STORAGE_BUCKET: ${COPALIBRE_OBJECT_STORAGE_BUCKET:-}
+  COPALIBRE_OBJECT_STORAGE_REGION: ${COPALIBRE_OBJECT_STORAGE_REGION:-}
   COPALIBRE_DATA_DIR: /var/lib/copalibre
   COPALIBRE_IN_CONTAINER: 'true'
   HOST: '0.0.0.0'
@@ -250,20 +251,21 @@ services:
       - redis-data:/data
 
   object-storage:
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
-    entrypoint: ['/bin/sh', '-ec']
-    command: |
-      test -n "$${MINIO_ROOT_USER}" || { echo 'MINIO_ROOT_USER is required when object-storage is enabled' >&2; exit 1; }
-      test -n "$${MINIO_ROOT_PASSWORD}" || { echo 'MINIO_ROOT_PASSWORD is required when object-storage is enabled' >&2; exit 1; }
-      exec minio server /data --console-address ':9001'
+    image: dxflrs/garage:v1.1.0
     profiles: ['optional-adapters']
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?Set GARAGE_RPC_SECRET in .env (openssl rand -hex 32) when object-storage is enabled}
     volumes:
-      - object-storage-data:/data
+      - ./deploy/garage/garage.toml:/etc/garage.toml:ro
+      - object-storage-meta:/var/lib/garage/meta
+      - object-storage-data:/var/lib/garage/data
     ports:
-      - '9001:9001'
+      - '9000:3900'
+    healthcheck:
+      test: ['CMD', '/garage', 'status']
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   # Async media processing's malware scanner — only started when a
   # capability that opts into scanning (participant-reporting's evidence
@@ -281,5 +283,6 @@ volumes:
   copalibre-data:
   postgres-data:
   redis-data:
+  object-storage-meta:
   object-storage-data:
   clamav-data:

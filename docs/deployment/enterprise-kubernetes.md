@@ -162,8 +162,12 @@ don't infer Redis is deployed or required by installing this chart.
 Set `env.COPALIBRE_OBJECT_STORAGE_URL`, `_ACCESS_KEY`, `_SECRET_KEY`, and
 `_BUCKET` to the managed provider's endpoint and credentials — consumed by
 `packages/persistence/src/object-storage.ts`'s `ObjectStorageAdapter`
-(AWS SDK `S3Client`, so any S3-compatible endpoint works: AWS S3, MinIO,
-Cloudflare R2, Backblaze B2, etc.). `_ACCESS_KEY` and `_SECRET_KEY` are both
+(AWS SDK `S3Client`, so any S3-compatible endpoint works: AWS S3, Cloudflare
+R2, Backblaze B2, a self-hosted Garage instance, etc.). Also set
+`_REGION` when the endpoint enforces its own region (a self-hosted Garage
+instance rejects every request with `AuthorizationHeaderMalformed` unless
+`_REGION` matches its configured `s3_region`; AWS S3 defaults to
+`us-east-1` when left blank). `_ACCESS_KEY` and `_SECRET_KEY` are both
 in `secretKeys`, so they're covered by `externalSecrets` the same as
 `DATABASE_URL`.
 

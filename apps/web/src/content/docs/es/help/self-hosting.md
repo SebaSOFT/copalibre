@@ -115,7 +115,7 @@ ninguno requiere un fork de los templates:
   `DATABASE_URL`, `COPALIBRE_OBJECT_STORAGE_*`, etc. desde su almacén de secretos real en lugar de
   un manifiesto `Secret` plano.
 
-PostgreSQL gestionado, almacenamiento de objetos compatible con S3 (AWS S3, MinIO, R2, B2), o una
+PostgreSQL gestionado, almacenamiento de objetos compatible con S3 (AWS S3, Garage, R2, B2), o una
 ruta de VM gestionada (Kamal, `docs/deployment/kamal.md`) son todos configuración, no cambios de
 código — `packages/persistence` ya los apunta genéricamente. Valide cualquier cambio de chart
 localmente contra un clúster multi-nodo descartable antes de tocar uno real:
