@@ -18,7 +18,7 @@ per object pointing at its storage location rather than the object's bytes livin
   is written into a PostgreSQL column
 
 #### Scenario: The adapter works against any S3-compatible endpoint
-- **WHEN** the adapter is configured against MinIO, AWS S3, or another S3-compatible provider
+- **WHEN** the adapter is configured against Garage, AWS S3, Cloudflare R2, Backblaze B2, or another S3-compatible provider
 - **THEN** put/get/delete behave identically, with no code path that only works against one provider
 
 ### Requirement: Single-node filesystem fallback
