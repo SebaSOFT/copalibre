@@ -115,7 +115,7 @@ necessità — nessuno richiede un fork del template:
   `COPALIBRE_OBJECT_STORAGE_*`, ecc. dal tuo vero secret store invece che da un semplice manifesto
   `Secret`.
 
-PostgreSQL gestito, storage a oggetti compatibile S3 (AWS S3, MinIO, R2, B2), o un percorso VM gestita
+PostgreSQL gestito, storage a oggetti compatibile S3 (AWS S3, Garage, R2, B2), o un percorso VM gestita
 (Kamal, `docs/deployment/kamal.md`) sono tutte configurazioni, non modifiche al codice —
 `packages/persistence` li supporta già genericamente. Valida qualsiasi modifica al chart localmente su
 un cluster multi-nodo usa e getta prima di toccarne uno reale:

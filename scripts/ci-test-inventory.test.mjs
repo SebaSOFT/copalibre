@@ -80,8 +80,8 @@ describe('ci-test-inventory', () => {
     }
   });
 
-  it('confirms integration service isolation: Group 1 uses only postgres, Group 2 uses minio/clamd', () => {
+  it('confirms integration service isolation: Group 1 uses only postgres, Group 2 uses garage/clamd', () => {
     assert.deepEqual(INTEGRATION_GROUPS[1].services, ['postgres']);
-    assert.deepEqual(INTEGRATION_GROUPS[2].services, ['postgres', 'minio', 'clamd']);
+    assert.deepEqual(INTEGRATION_GROUPS[2].services, ['postgres', 'garage', 'clamd']);
   });
 });

@@ -62,8 +62,8 @@ export const INTEGRATION_GROUPS = {
     ],
   },
   2: {
-    name: 'Integration Group 2 (Storage, Worker, Scheduler, Events, CLI - Postgres + MinIO + ClamAV)',
-    services: ['postgres', 'minio', 'clamd'],
+    name: 'Integration Group 2 (Storage, Worker, Scheduler, Events, CLI - Postgres + Garage + ClamAV)',
+    services: ['postgres', 'garage', 'clamd'],
     workspaces: [
       {
         workspace: '@copalibre/object-storage',

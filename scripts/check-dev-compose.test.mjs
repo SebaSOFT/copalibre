@@ -6,16 +6,19 @@ import { validateDevCompose } from './check-dev-compose.mjs';
 const VALID_FIXTURE = `
 services:
   object-storage-init:
-    image: minio/mc:latest
+    build:
+      dockerfile_inline: |
+        FROM dxflrs/garage:v1.1.0 AS garage
+        FROM alpine:3.21
+        COPY --from=garage /garage /usr/local/bin/garage
     profiles:
       - infrastructure
     command: >
       /bin/sh -c "
-      mc alias set local http://object-storage:9000 minioadmin minioadmin &&
-      mc mb --ignore-existing local/copalibre-dev &&
+      garage bucket create copalibre-dev &&
       tail -f /dev/null"
     healthcheck:
-      test: ["CMD-SHELL", "mc ls local/copalibre-dev || exit 1"]
+      test: ["CMD", "garage", "bucket", "info", "copalibre-dev"]
       interval: 2s
       timeout: 2s
       retries: 10
@@ -42,7 +45,7 @@ test('object-storage-init missing infrastructure profile fails validation', () =
   const yaml = `
 services:
   object-storage-init:
-    image: minio/mc:latest
+    image: dxflrs/garage:v1.1.0
     command: tail -f /dev/null
     healthcheck:
       test: ["CMD", "true"]
@@ -58,7 +61,7 @@ services:
   object-storage-init:
     profiles:
       - infrastructure
-    command: /bin/sh -c "mc mb local/bucket"
+    command: /bin/sh -c "garage bucket create copalibre-dev"
     healthcheck:
       test: ["CMD", "true"]
 `;
@@ -86,4 +89,12 @@ test('actual docker-compose.dev.yml passes validation', () => {
   const result = validateDevCompose(content);
   assert.equal(result.ok, true);
   assert.deepEqual(result.errors, []);
+});
+
+test('actual docker-compose.dev.yml uses Garage and no longer references MinIO or mc', () => {
+  const filePath = new URL('../docker-compose.dev.yml', import.meta.url);
+  const content = readFileSync(filePath, 'utf8');
+  assert.match(content, /dxflrs\/garage:v1\.1\.0/);
+  assert.doesNotMatch(content, /quay\.io\/minio/);
+  assert.doesNotMatch(content, /image:\s*minio/i);
 });

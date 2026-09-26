@@ -15,14 +15,14 @@ export interface S3StorageConfig {
   readonly region?: string;
 }
 
-/** Works against MinIO or any S3-compatible endpoint via the official SDK — never a hand-rolled request signer. */
+/** Works against Garage or any S3-compatible endpoint via the official SDK — never a hand-rolled request signer. */
 export function createS3Adapter(config: S3StorageConfig): ObjectStorageAdapter {
   const client = new S3Client({
     endpoint: config.endpoint,
     region: config.region ?? 'us-east-1',
     credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
-    // MinIO (and most self-hosted S3-compatible stores) expect the bucket in
-    // the path, not as a virtual-hosted subdomain.
+    // Garage (and most self-hosted S3-compatible stores) expect the bucket
+    // in the path, not as a virtual-hosted subdomain.
     forcePathStyle: true,
   });
 

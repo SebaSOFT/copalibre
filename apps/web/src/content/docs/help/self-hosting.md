@@ -110,7 +110,7 @@ fork:
   `COPALIBRE_OBJECT_STORAGE_*` credentials, etc. from your actual secret store instead of a plain
   `Secret` manifest.
 
-Managed PostgreSQL, S3-compatible object storage (AWS S3, MinIO, R2, B2), or a managed VM path
+Managed PostgreSQL, S3-compatible object storage (AWS S3, Garage, R2, B2), or a managed VM path
 (Kamal, `docs/deployment/kamal.md`) are all configuration, not code changes — `packages/persistence`
 already targets them generically. Validate any chart change locally against a throwaway multi-node
 cluster before touching a real one:
