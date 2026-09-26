@@ -708,6 +708,42 @@ describe('public table and pill treatments (openspec 0199)', () => {
   });
 });
 
+describe('compact match card (openspec 0299)', () => {
+  const css = generateCss();
+
+  it('lays the compact card out as a dense flex row, not the full card grid', () => {
+    expect(css).toMatch(/\.cl-match-card--compact \{[^}]*display: inline-flex/);
+    expect(css).toMatch(/\.cl-match-card--compact \{[^}]*align-items: center/);
+  });
+
+  it('sizes the compact grids denser than the full-card grids', () => {
+    expect(css).toMatch(/\.cl-matches-view__grid--compact \{[^}]*minmax\(min\(100%, 220px\)/);
+    expect(css).toMatch(/\.cl-match-card-grid--compact \{[^}]*minmax\(min\(100%, 220px\)/);
+  });
+
+  it('colors the state dot per semantic state, never leaving it uncolored', () => {
+    expect(css).toMatch(
+      /\.cl-match-card__compact-dot\.cl-state--live \{[^}]*var\(--cl-state-live\)/,
+    );
+    expect(css).toMatch(
+      /\.cl-match-card__compact-dot\.cl-state--upcoming \{[^}]*var\(--cl-state-upcoming\)/,
+    );
+    expect(css).toMatch(
+      /\.cl-match-card__compact-dot\.cl-state--positive \{[^}]*var\(--cl-state-positive\)/,
+    );
+    expect(css).toMatch(
+      /\.cl-match-card__compact-dot\.cl-state--destructive \{[^}]*var\(--cl-state-destructive\)/,
+    );
+  });
+
+  it('pulses only the live dot, and stops under reduced motion', () => {
+    expect(css).toMatch(/\.cl-match-card__compact-dot\.cl-state--live \{[^}]*cl-badge-pulse/);
+    expect(css).toMatch(
+      /prefers-reduced-motion: reduce\) \{ \.cl-match-card__compact-dot\.cl-state--live \{ animation: none/,
+    );
+  });
+});
+
 /**
  * The generated stylesheet is `.gitignore`d, so it is only ever as fresh as the
  * last `build:tokens`. Every page in `apps/web` imports it directly, which means

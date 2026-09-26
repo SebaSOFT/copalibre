@@ -162,6 +162,10 @@ export const messages: Record<string, string> = {
     'Решающий фактор между позициями с равными показателями. Полное объяснение доступно уполномоченному организатору в панели управления.',
   'publicWeb.matchesView.fullTraceHeading': 'Полная трассировка компаратора турнирной таблицы',
   'publicWeb.matchesView.seeAll': 'Смотреть все матчи',
+  'publicWeb.matchesView.versus': 'vs',
+  'publicWeb.matchesView.densityToggleAriaLabel': 'Переключить плотность отображения',
+  'publicWeb.matchesView.detailedToggle': 'Подробно',
+  'publicWeb.matchesView.compactToggle': 'Компактно',
 
   'publicWeb.notFound.pageTitle': 'Страница не найдена — CopaLibre',
   'publicWeb.notFound.heading': 'Страница не найдена',

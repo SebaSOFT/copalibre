@@ -11,8 +11,10 @@ interface Props {
   readonly intl: IntlShape;
   /** Optional non-default locale segment from the enclosing public route. */
   readonly localePrefix?: string;
+  /** Single-line ticker presentation (openspec 0299); defaults to the full detailed card. */
+  readonly compact?: boolean;
 }
-const { model, intl, localePrefix = '' } = Astro.props;
+const { model, intl, localePrefix = '', compact = false } = Astro.props;
 const labels = matchCardLabels(intl);
 const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
   dateStyle: 'medium',
@@ -29,7 +31,7 @@ const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
 <section aria-labelledby="match-grid-heading">
   <h2 id="match-grid-heading">{intl.formatMessage(messages.matchGridHeading)}</h2>
   {model.matches.length === 0 && <p>{intl.formatMessage(messages.matchGridEmpty)}</p>}
-  <ul class="cl-match-card-grid">
+  <ul class={compact ? 'cl-match-card-grid cl-match-card-grid--compact' : 'cl-match-card-grid'}>
     {
       model.matches.map((match, index) => {
         const cardMatch: MatchCardData = {
@@ -53,6 +55,7 @@ const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
         const cardContent = (
           <MatchCard
             client:load
+            compact={compact}
             match={cardMatch}
             labels={labels}
             locale={intl.locale}

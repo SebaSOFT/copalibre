@@ -213,6 +213,8 @@ export interface MatchCardLabels {
   readonly seriesPending: string;
   readonly seriesDecided: string;
   readonly seriesAggregate: string;
+  /** The compact ticker's separator (openspec 0299), e.g. "CPC 4 vs 3 UVT". Absent means `MatchCard` falls back to the literal `vs`. */
+  readonly versus?: string;
 }
 
 export function matchCardLabels(intl: IntlShape): MatchCardLabels {
@@ -262,6 +264,7 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
       home: '{home}',
       away: '{away}',
     }),
+    versus: intl.formatMessage(messages.matchesViewVersus),
   };
 }
 

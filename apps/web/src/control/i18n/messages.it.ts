@@ -1125,6 +1125,7 @@ export const messages: Record<string, string> = {
   'control.matchesView.decidedByAriaLabel':
     'Il fattore decisivo tra posizioni in classifica a pari merito.',
   'control.matchesView.fullTraceHeading': 'Traccia completa del comparatore di classifica',
+  'control.matchesView.versus': 'vs',
   'control.matchesView.resultState.live': 'IN DIRETTA',
   'control.matchesView.resultState.upcoming': 'PROGRAMMATO',
   'control.matchesView.resultState.final': 'FINALE',

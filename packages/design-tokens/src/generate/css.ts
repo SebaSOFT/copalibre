@@ -1243,6 +1243,27 @@ function components(): string {
     '.cl-matches-view__completion { margin-bottom: var(--cl-space-6); }',
     '.cl-matches-view__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--cl-space-4); }',
     '',
+    // The compact ticker card (openspec 0299) — a dense single-line row, not
+    // a smaller version of the full card: `.cl-match-card--compact` overrides
+    // the base card's grid layout with a flex row, and neither its grid
+    // variant selects `.cl-match-card__sides`, `__header`, etc., since the
+    // compact branch never renders them.
+    '.cl-matches-view__grid--compact { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: var(--cl-space-2); }',
+    '.cl-match-card-grid--compact { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: var(--cl-space-2); }',
+    '.cl-match-card--compact { display: inline-flex; align-items: center; gap: var(--cl-space-2); padding: var(--cl-space-1) var(--cl-space-3); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); min-width: 0; max-width: 100%; }',
+    '.cl-match-card__compact-dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--cl-border-muted); }',
+    // Each `presentState()` class fills the dot with its own semantic token —
+    // color is never the sole cue (the visually-hidden label beside it says
+    // the same thing), but the dot still has to actually be that color.
+    '.cl-match-card__compact-dot.cl-state--live { background: var(--cl-state-live); animation: cl-badge-pulse var(--cl-motion-slow) ease-in-out infinite alternate; }',
+    '.cl-match-card__compact-dot.cl-state--upcoming { background: var(--cl-state-upcoming); }',
+    '.cl-match-card__compact-dot.cl-state--positive { background: var(--cl-state-positive); }',
+    '.cl-match-card__compact-dot.cl-state--destructive { background: var(--cl-state-destructive); }',
+    '.cl-match-card__compact-dot.cl-state--muted { background: var(--cl-border-muted); }',
+    '.cl-match-card__compact-dot.cl-state--pending { background: var(--cl-text-muted); }',
+    '@media (prefers-reduced-motion: reduce) { .cl-match-card__compact-dot.cl-state--live { animation: none; opacity: 1; } }',
+    '.cl-match-card__compact-content { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }',
+    '',
     // The grand-final spotlight (openspec 0225 task 4.3/5.2) — a MatchCard
     // variant, not MatchCardData's shape: a seed and a per-participant winner
     // flag have no place there. No `box-shadow` here: an `isLive`-only resting

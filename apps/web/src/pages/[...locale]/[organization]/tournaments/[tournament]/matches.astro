@@ -58,6 +58,7 @@ const stageParam = Astro.url.searchParams.get('stageNumber');
 const stageNumber = stageParam ? Number(stageParam) : undefined;
 const zoneParam = Astro.url.searchParams.get('zone') ?? undefined;
 const groupParam = Astro.url.searchParams.get('group') ?? undefined;
+const compact = Astro.url.searchParams.get('compact') === 'true';
 
 const matchesData = await fetchMatchesView(organization!, tournament!, {
   ...(stageNumber === undefined ? {} : { stageNumber }),
@@ -99,6 +100,7 @@ function buildUrl(
     zone: string | undefined;
     group: string | undefined;
     state: MatchScheduleState;
+    compact: boolean;
   }>,
 ): string {
   const params = new URLSearchParams(Astro.url.search);
@@ -107,6 +109,7 @@ function buildUrl(
     zone: zoneParam,
     group: groupParam,
     state,
+    compact,
     ...overrides,
   };
   if (next.stageNumber === undefined) params.delete('stageNumber');
@@ -117,6 +120,8 @@ function buildUrl(
   else params.set('group', next.group);
   if (next.state === 'all') params.delete('state');
   else params.set('state', next.state);
+  if (next.compact) params.set('compact', 'true');
+  else params.delete('compact');
   const query = params.toString();
   return `${localePrefix}${model.canonicalPath}/matches${query ? `?${query}` : ''}`;
 }
@@ -156,6 +161,26 @@ const structuredData = {
     buildUrl={buildUrl}
   />
 
+  <nav
+    class="cl-pill-group"
+    aria-label={intl.formatMessage(messages.matchesViewDensityToggleAriaLabel)}
+  >
+    <a
+      class="cl-pill cl-focusable"
+      href={buildUrl({ compact: false })}
+      aria-current={compact ? undefined : 'true'}
+    >
+      {intl.formatMessage(messages.matchesViewDetailedToggle)}
+    </a>
+    <a
+      class="cl-pill cl-focusable"
+      href={buildUrl({ compact: true })}
+      aria-current={compact ? 'true' : undefined}
+    >
+      {intl.formatMessage(messages.matchesViewCompactToggle)}
+    </a>
+  </nav>
+
   {
     matchesWithLabels.length === 0 ? (
       <div class="cl-empty-state">
@@ -167,10 +192,17 @@ const structuredData = {
           <h2 class="cl-matches-view__round-heading">
             {intl.formatMessage(messages.bracketRoundHeading, { round: group.round })}
           </h2>
-          <div class="cl-matches-view__grid">
+          <div
+            class={
+              compact
+                ? 'cl-matches-view__grid cl-matches-view__grid--compact'
+                : 'cl-matches-view__grid'
+            }
+          >
             {group.matches.map((match) => (
               <MatchCard
                 client:load
+                compact={compact}
                 locale={intl.locale}
                 match={match}
                 labels={labels}

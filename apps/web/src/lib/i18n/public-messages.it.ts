@@ -163,6 +163,10 @@ export const messages: Record<string, string> = {
     'Il fattore decisivo tra posizioni in classifica a pari merito. Un organizzatore autorizzato può vedere la spiegazione completa nel pannello di controllo.',
   'publicWeb.matchesView.fullTraceHeading': 'Traccia completa del comparatore di classifica',
   'publicWeb.matchesView.seeAll': 'Vedi tutte le partite',
+  'publicWeb.matchesView.versus': 'vs',
+  'publicWeb.matchesView.densityToggleAriaLabel': 'Cambia densità di visualizzazione',
+  'publicWeb.matchesView.detailedToggle': 'Dettagliato',
+  'publicWeb.matchesView.compactToggle': 'Compatto',
 
   'publicWeb.notFound.pageTitle': 'Pagina non trovata — CopaLibre',
   'publicWeb.notFound.heading': 'Pagina non trovata',

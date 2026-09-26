@@ -333,6 +333,19 @@ export const messages = defineMessages({
     id: 'publicWeb.matchesView.seeAll',
     defaultMessage: 'See every match',
   },
+  matchesViewVersus: { id: 'publicWeb.matchesView.versus', defaultMessage: 'vs' },
+  matchesViewDensityToggleAriaLabel: {
+    id: 'publicWeb.matchesView.densityToggleAriaLabel',
+    defaultMessage: 'Switch view density',
+  },
+  matchesViewDetailedToggle: {
+    id: 'publicWeb.matchesView.detailedToggle',
+    defaultMessage: 'Detailed',
+  },
+  matchesViewCompactToggle: {
+    id: 'publicWeb.matchesView.compactToggle',
+    defaultMessage: 'Compact',
+  },
 
   // SeriesStateBar.astro
   seriesAriaLabel: {

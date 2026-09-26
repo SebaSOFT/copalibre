@@ -162,6 +162,10 @@ export const messages: Record<string, string> = {
     'El factor decisivo entre posiciones empatadas. Un organizador autorizado puede ver la explicación completa en el panel de control.',
   'publicWeb.matchesView.fullTraceHeading': 'Traza completa del comparador de posiciones',
   'publicWeb.matchesView.seeAll': 'Ver todos los partidos',
+  'publicWeb.matchesView.versus': 'vs',
+  'publicWeb.matchesView.densityToggleAriaLabel': 'Cambiar densidad de vista',
+  'publicWeb.matchesView.detailedToggle': 'Detallado',
+  'publicWeb.matchesView.compactToggle': 'Compacto',
 
   'publicWeb.notFound.pageTitle': 'Página no encontrada — CopaLibre',
   'publicWeb.notFound.heading': 'Página no encontrada',
