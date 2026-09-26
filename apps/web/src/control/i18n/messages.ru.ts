@@ -1118,6 +1118,7 @@ export const messages: Record<string, string> = {
   'control.matchesView.decidedByAriaLabel':
     'Решающий фактор между позициями с равными показателями.',
   'control.matchesView.fullTraceHeading': 'Полная трассировка компаратора турнирной таблицы',
+  'control.matchesView.versus': 'vs',
   'control.matchesView.resultState.live': 'В ЭФИРЕ',
   'control.matchesView.resultState.upcoming': 'ЗАПЛАНИРОВАНО',
   'control.matchesView.resultState.final': 'ИТОГ',

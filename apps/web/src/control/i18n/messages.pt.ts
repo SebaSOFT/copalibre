@@ -1118,6 +1118,7 @@ export const messages: Record<string, string> = {
   'control.matchesView.decidedBy': 'Decidido por: {factor}',
   'control.matchesView.decidedByAriaLabel': 'O fator decisivo entre posições empatadas.',
   'control.matchesView.fullTraceHeading': 'Rastro completo do comparador de classificação',
+  'control.matchesView.versus': 'vs',
   'control.matchesView.resultState.live': 'AO VIVO',
   'control.matchesView.resultState.upcoming': 'PROGRAMADO',
   'control.matchesView.resultState.final': 'FINAL',

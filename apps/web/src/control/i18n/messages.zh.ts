@@ -1065,6 +1065,7 @@ export const messages: Record<string, string> = {
   'control.matchesView.decidedBy': '决定因素：{factor}',
   'control.matchesView.decidedByAriaLabel': '并列名次之间的决定因素。',
   'control.matchesView.fullTraceHeading': '完整的排名比较器追踪记录',
+  'control.matchesView.versus': 'vs',
   'control.matchesView.resultState.live': '进行中',
   'control.matchesView.resultState.upcoming': '即将开始',
   'control.matchesView.resultState.final': '已结束',

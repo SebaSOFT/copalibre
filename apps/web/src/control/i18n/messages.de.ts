@@ -1135,6 +1135,7 @@ export const messages: Record<string, string> = {
   'control.matchesView.decidedByAriaLabel':
     'Der entscheidende Faktor zwischen gleichstehenden Tabellenplätzen.',
   'control.matchesView.fullTraceHeading': 'Vollständige Spur des Tabellenvergleichs',
+  'control.matchesView.versus': 'vs',
   'control.matchesView.resultState.live': 'LIVE',
   'control.matchesView.resultState.upcoming': 'GEPLANT',
   'control.matchesView.resultState.final': 'ENDSTAND',

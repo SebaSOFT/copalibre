@@ -3310,6 +3310,7 @@ export const messages = defineMessages({
     id: 'control.matchesView.fullTraceHeading',
     defaultMessage: 'Full standings comparator trace',
   },
+  matchesViewVersus: { id: 'control.matchesView.versus', defaultMessage: 'vs' },
   matchesViewResultStateLive: {
     id: 'control.matchesView.resultState.live',
     defaultMessage: 'LIVE',

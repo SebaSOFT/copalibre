@@ -162,6 +162,10 @@ export const messages: Record<string, string> = {
     'Le facteur décisif entre des positions à égalité. Un organisateur autorisé peut voir l’explication complète dans le panneau de contrôle.',
   'publicWeb.matchesView.fullTraceHeading': 'Trace complète du comparateur de classement',
   'publicWeb.matchesView.seeAll': 'Voir tous les matchs',
+  'publicWeb.matchesView.versus': 'vs',
+  'publicWeb.matchesView.densityToggleAriaLabel': "Changer la densité d'affichage",
+  'publicWeb.matchesView.detailedToggle': 'Détaillé',
+  'publicWeb.matchesView.compactToggle': 'Compact',
 
   'publicWeb.notFound.pageTitle': 'Page introuvable — CopaLibre',
   'publicWeb.notFound.heading': 'Page introuvable',

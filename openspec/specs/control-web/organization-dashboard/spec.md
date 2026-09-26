@@ -65,10 +65,11 @@ authenticated user has a role in.
 - **THEN** no tournament or activity data belonging to organization B is present in the response
 
 ### Requirement: The dashboard lists the organization's real tournaments
-
 The control panel dashboard SHALL list the tournaments actually belonging to the signed-in organizer's
 organization, read from current backend state. It SHALL NOT render sample or fabricated tournaments
-under any condition, including when the organization has none.
+under any condition, including when the organization has none. When the organization has no tournaments,
+the dashboard SHALL render an actionable empty state providing clear guidance and a direct call-to-action
+button to create the organization's first tournament.
 
 #### Scenario: An organizer sees their own tournaments
 - **WHEN** an authorized organizer opens the dashboard
@@ -76,7 +77,7 @@ under any condition, including when the organization has none.
 
 #### Scenario: An organization with no tournaments shows an empty state
 - **WHEN** an organization has no tournaments
-- **THEN** the dashboard states that there are none, rather than showing sample data
+- **THEN** the dashboard states that there are none rather than showing sample data, and renders a primary call-to-action button linking to `/control/<organization>/tournaments/new`
 
 ### Requirement: An authorized organizer can trigger a statistics rebuild and see its outcome
 
@@ -219,3 +220,19 @@ The analytics dashboard SHALL compose owned layout and card primitives without i
 #### Scenario: Tournaments matrix provides operational status overview
 - **WHEN** an operator views the analytics screen for an organization with active or concluded tournaments
 - **THEN** a tabular overview lists each tournament with its lifecycle status and operational progress
+
+### Requirement: Dashboard offers an explicit tournament creation action
+The organization dashboard and tournaments view SHALL render a prominent, accessible primary action button
+allowing authorized operators to navigate directly to the tournament setup wizard.
+
+#### Scenario: Primary create tournament button is visible in tournament section
+- **WHEN** an organizer with tournament creation capabilities views the dashboard or tournaments list
+- **THEN** the tournament section renders a primary action button labeled "Create tournament" (localized) linking to `/control/<organization>/tournaments/new`
+
+#### Scenario: Activating the create tournament button navigates client-side
+- **WHEN** an organizer clicks the "Create tournament" button
+- **THEN** the control panel initiates client-side navigation to the tournament creation wizard at `/control/<organization>/tournaments/new` without full page reload
+
+#### Scenario: Operators lacking tournament management permissions do not see the creation action
+- **WHEN** a user whose role lacks tournament management capabilities views the dashboard
+- **THEN** the tournament creation action button is omitted or hidden

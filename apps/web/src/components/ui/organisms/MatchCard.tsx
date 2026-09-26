@@ -24,6 +24,27 @@ export interface MatchCardProps {
   readonly reportUrl?: string;
   /** Opaque band assigned by a public list; other surfaces retain their default card surface. */
   readonly band?: 'panel' | 'base';
+  /** Single-line ticker presentation (openspec 0299) — a dense listing's own row shape, not a smaller version of the full card. */
+  readonly compact?: boolean;
+}
+
+/**
+ * The compact ticker's entrant text (openspec 0299): a persisted abbreviation
+ * always wins — this never overrides an organizer's own choice, the same
+ * rule `EntrantName` follows for its overflow fallback. Absent one, it
+ * derives dotted initials from a multi-word name ("San Juan" -> "S.J.") or
+ * the first 5 characters of a single word ("River" -> "RIVER"), and falls
+ * back to "TBD" with no name at all — deterministic, so the same match
+ * always tickers the same way regardless of viewport.
+ */
+export function resolveCompactEntrant(abbreviation?: string, fullName?: string): string {
+  if (abbreviation !== undefined && abbreviation.trim() !== '') return abbreviation.trim();
+  if (fullName === undefined || fullName.trim() === '') return 'TBD';
+  const words = fullName.trim().split(/\s+/);
+  if (words.length > 1) {
+    return `${words.map((word) => word[0]?.toUpperCase()).join('.')}.`;
+  }
+  return (words[0] ?? '').slice(0, 5).toUpperCase();
 }
 
 export function MatchCard({
@@ -32,6 +53,7 @@ export function MatchCard({
   locale,
   reportUrl,
   band,
+  compact = false,
 }: MatchCardProps): React.JSX.Element {
   const badge = presentState(match.state, labels.state);
   const scopeLine = [match.zoneName, match.groupName]
@@ -40,6 +62,40 @@ export function MatchCard({
   const hasFullTrace =
     (match.homeTrace !== undefined && match.homeTrace.length > 0) ||
     (match.awayTrace !== undefined && match.awayTrace.length > 0);
+
+  if (compact) {
+    const versus = labels.versus ?? 'vs';
+    const homeAbbr = resolveCompactEntrant(match.homeAbbreviation, match.homeName);
+    const awayAbbr = resolveCompactEntrant(match.awayAbbreviation, match.awayName);
+    const hasScores = match.homeScore !== undefined && match.awayScore !== undefined;
+    const timeStr =
+      !hasScores && match.scheduledAt !== undefined
+        ? ` ${new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(new Date(match.scheduledAt))}`
+        : '';
+    const content = hasScores
+      ? `${homeAbbr} ${match.homeScore} ${versus} ${match.awayScore} ${awayAbbr}`
+      : `${homeAbbr} ${versus} ${awayAbbr}${timeStr}`;
+
+    const compactBody = (
+      <Card
+        as="article"
+        className="cl-match-card cl-match-card--compact"
+        data-match={match.matchId}
+      >
+        <span
+          aria-label={badge.label}
+          className={`cl-match-card__compact-dot ${badge.className}`.trim()}
+          role="img"
+          title={badge.label}
+        >
+          <span className="cl-visually-hidden">{badge.label}</span>
+        </span>
+        <span className="cl-match-card__compact-content">{content}</span>
+      </Card>
+    );
+
+    return reportUrl === undefined ? compactBody : <a href={reportUrl}>{compactBody}</a>;
+  }
 
   const body = (
     <Card

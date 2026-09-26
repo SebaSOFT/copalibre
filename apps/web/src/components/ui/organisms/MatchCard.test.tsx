@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { MatchCard } from './MatchCard.js';
+import { MatchCard, resolveCompactEntrant } from './MatchCard.js';
 import type { MatchCardData } from '../../../lib/matches-view.js';
 import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 
@@ -218,5 +218,123 @@ describe('MatchCard', () => {
     );
     const timestamp = container.querySelector('time.cl-responsive-timestamp');
     expect(timestamp?.textContent).toContain(expectedMonth);
+  });
+});
+
+describe('resolveCompactEntrant', () => {
+  it('prefers a persisted abbreviation, trimmed, over any derivation', () => {
+    expect(resolveCompactEntrant('  CAI  ', 'Club Atlético Independiente')).toBe('CAI');
+  });
+
+  it('derives dotted initials from a multi-word name', () => {
+    expect(resolveCompactEntrant(undefined, 'San Juan')).toBe('S.J.');
+    expect(resolveCompactEntrant(undefined, 'Club Atlético Independiente')).toBe('C.A.I.');
+  });
+
+  it('takes the first 5 uppercased characters of a single-word name', () => {
+    expect(resolveCompactEntrant(undefined, 'River')).toBe('RIVER');
+    expect(resolveCompactEntrant(undefined, 'Huracán')).toBe('HURAC');
+  });
+
+  it('falls back to TBD with neither an abbreviation nor a name', () => {
+    expect(resolveCompactEntrant(undefined, undefined)).toBe('TBD');
+    expect(resolveCompactEntrant('', '')).toBe('TBD');
+  });
+});
+
+describe('MatchCard compact presentation (openspec 0299)', () => {
+  it('renders a color-coded state dot, abbreviations, and the score in ticker order while live', () => {
+    const { container } = render(
+      <MatchCard
+        compact
+        match={baseMatch({
+          state: 'live',
+          homeName: 'Club Atlético Independiente',
+          homeScore: 4,
+          awayName: 'Unión Vecinal Talcahuano',
+          awayScore: 3,
+        })}
+        labels={labels}
+        locale="en"
+      />,
+    );
+
+    expect(container.querySelector('.cl-match-card--compact')).not.toBeNull();
+    const dot = container.querySelector('.cl-match-card__compact-dot');
+    expect(dot?.classList.contains('cl-state--live')).toBe(true);
+    expect(dot?.getAttribute('title')).toBe('LIVE');
+    expect(screen.getByText('LIVE', { selector: '.cl-visually-hidden' })).toBeDefined();
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(
+      'C.A.I. 4 vs 3 U.V.T.',
+    );
+  });
+
+  it('renders entrant abbreviations, versus, and the scheduled time for an upcoming match', () => {
+    const { container } = render(
+      <MatchCard
+        compact
+        match={baseMatch({
+          state: 'upcoming',
+          homeName: 'Norte',
+          awayName: 'Sur',
+          scheduledAt: '2026-08-01T18:30:00.000Z',
+        })}
+        labels={labels}
+        locale="en-GB"
+      />,
+    );
+
+    const expectedTime = new Intl.DateTimeFormat('en-GB', { timeStyle: 'short' }).format(
+      new Date('2026-08-01T18:30:00.000Z'),
+    );
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(
+      `NORTE vs SUR ${expectedTime}`,
+    );
+  });
+
+  it('renders the decided score with a positive-state dot for a final match', () => {
+    const { container } = render(
+      <MatchCard
+        compact
+        match={baseMatch({
+          state: 'final',
+          homeName: 'Norte',
+          awayName: 'Sur',
+          homeScore: 2,
+          awayScore: 1,
+        })}
+        labels={labels}
+        locale="en"
+      />,
+    );
+
+    const dot = container.querySelector('.cl-match-card__compact-dot');
+    expect(dot?.classList.contains('cl-state--positive')).toBe(true);
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(
+      'NORTE 2 vs 1 SUR',
+    );
+  });
+
+  it('wraps the compact card in a link when reportUrl is given', () => {
+    render(
+      <MatchCard
+        compact
+        match={baseMatch()}
+        labels={labels}
+        locale="en"
+        reportUrl="/liga/tournaments/x/stages/1/matches/1"
+      />,
+    );
+    expect(screen.getByRole('link').getAttribute('href')).toBe(
+      '/liga/tournaments/x/stages/1/matches/1',
+    );
+  });
+
+  it('never renders the full card structure while compact', () => {
+    const { container } = render(
+      <MatchCard compact match={baseMatch()} labels={labels} locale="en" />,
+    );
+    expect(container.querySelector('.cl-match-card__sides')).toBeNull();
+    expect(container.querySelector('.cl-match-card__header')).toBeNull();
   });
 });
