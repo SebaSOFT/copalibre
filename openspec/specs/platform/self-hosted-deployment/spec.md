@@ -39,7 +39,9 @@ integrated edge reverse proxy service that unifies network ingress under a singl
 and `/installation/*` to the `api` service (port 3001), `/events/*` to the `events` service (port 3002,
 preserving SSE streaming), and all other requests (static assets, control panel shell, SSR public pages,
 TV kiosks) to the `web` service (port 4321). Individual microservices (`api`, `events`, `web`, `web-ssr`)
-SHALL NOT require external port exposure in production mode.
+SHALL NOT require external port exposure in production mode. When the optional object storage adapter
+is enabled, it SHALL be provided by a lightweight Garage container (`dxflrs/garage:v1.1.0`), and SHALL NOT
+require secondary auxiliary containers for bucket provisioning.
 
 #### Scenario: One-command install
 - **WHEN** an operator with Docker installed runs the documented Compose-up command against a fresh
@@ -62,6 +64,10 @@ SHALL NOT require external port exposure in production mode.
 #### Scenario: Automatic Compose override discovery
 - **WHEN** an operator creates `docker-compose.override.yml` in the installation directory
 - **THEN** Docker Compose automatically applies the override without requiring manual editing of `COMPOSE_FILE` in `.env`.
+
+#### Scenario: S3-compatible storage via lightweight Garage engine
+- **WHEN** an operator enables the optional `object-storage` service in Docker Compose or development profiles
+- **THEN** Garage provides the S3 endpoint without requiring auxiliary container sidecars for bucket initialization.
 
 ### Requirement: copalibre administrative CLI
 The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev --hybrid`, `start`,

@@ -280,6 +280,14 @@ export const messages = defineMessages({
     id: 'control.dashboard.noTournaments',
     defaultMessage: 'This organization has no tournaments yet.',
   },
+  dashboardCreateTournament: {
+    id: 'control.dashboard.createTournament',
+    defaultMessage: 'Create tournament',
+  },
+  dashboardNoTournamentsCta: {
+    id: 'control.dashboard.noTournamentsCta',
+    defaultMessage: 'Create your first tournament',
+  },
   dashboardParticipantsCsv: {
     id: 'control.dashboard.participantsCsv',
     defaultMessage: 'Participants CSV',

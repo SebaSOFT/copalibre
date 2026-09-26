@@ -92,6 +92,8 @@ export const messages: Record<string, string> = {
   'control.dashboard.noActivityYet': 'Активности пока нет.',
   'control.dashboard.tournaments': 'Турниры',
   'control.dashboard.noTournaments': 'У этой организации пока нет турниров.',
+  'control.dashboard.createTournament': 'Создать турнир',
+  'control.dashboard.noTournamentsCta': 'Создайте свой первый турнир',
   'control.dashboard.participantsCsv': 'CSV участников',
   'control.dashboard.resultsCsv': 'CSV результатов',
   'control.dashboard.standingsCsv': 'CSV турнирной таблицы',

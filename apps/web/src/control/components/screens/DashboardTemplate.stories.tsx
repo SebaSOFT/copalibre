@@ -23,6 +23,7 @@ const meta = {
   title: 'Admin/Screens/DashboardTemplate',
   component: DashboardTemplate,
   args: {
+    canCreateTournament: true,
     devices: [],
     model,
     now: Date.now(),
@@ -37,6 +38,13 @@ type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
 export const Empty: Story = {
   args: {
+    model: buildDashboard({ organizationId: ids.organization, tournaments: [], activity: [] }),
+  },
+};
+/** An operator whose role lacks `org.create-tournaments` (design.md Decision 4): the action is omitted from both the section header and the empty state. */
+export const EmptyNoCreatePermission: Story = {
+  args: {
+    canCreateTournament: false,
     model: buildDashboard({ organizationId: ids.organization, tournaments: [], activity: [] }),
   },
 };

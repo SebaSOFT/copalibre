@@ -341,6 +341,16 @@ describe('the control routes', () => {
     expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeDefined();
   });
 
+  it('renders the dashboard/tournaments route with the tournament authoring entry point (openspec 0298)', async () => {
+    const client: ControlApiClient = minimalControlClient({
+      listActiveTournaments: async () => [],
+    });
+    render(<TournamentsControlRoute client={client} organizationAlias="liga-mendocina" />);
+
+    const link = await screen.findByRole('link', { name: 'Crear torneo' });
+    expect(link.getAttribute('href')).toBe('/control/liga-mendocina/tournaments/new');
+  });
+
   it('renders the live console route inside the shell', async () => {
     const client: ControlApiClient = minimalControlClient({
       listActiveTournaments: async () => [],

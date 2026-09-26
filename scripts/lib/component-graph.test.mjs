@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (298/1126 after 0294 adds the TV dashboard story fixtures module)', () => {
+test('the graph resolves the current node/edge count (299/1132 after 0298 adds the LinkButton atom)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 298);
-  assert.equal(graph.edges.length, 1126);
+  assert.equal(graph.nodes.size, 299);
+  assert.equal(graph.edges.length, 1132);
 });
 
 test('a type-only import is not counted as a render', () => {
