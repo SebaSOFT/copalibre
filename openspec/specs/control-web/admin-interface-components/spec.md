@@ -631,6 +631,21 @@ cue in addition to its colour.
 - **WHEN** an option is selected
 - **THEN** its selected state is conveyed by a mark or shape in addition to colour
 
+### Requirement: Select atom opens its own styled popover, not the native picker
+The `<Select>` atom SHALL render its options in the styled Radix popover (`.cl-select__content`), and no invisible native `<select>` overlay SHALL intercept a pointer click meant for that popover. The native `<select>` SHALL remain in the DOM, sized off-screen and non-interactive to the pointer, so it keeps carrying the control's accessible name and its own keyboard/assistive-technology semantics unchanged.
+
+The popover panel SHALL use the same dark surface, border, and elevation as the Modal/Dialog organism (`.cl-dialog-surface`), with `.cl-chamfer--control` Top-Right and Bottom-Left beveled corners, `padding-block: var(--cl-space-1)`, and a minimum width of 10rem (never narrower than the trigger). Trigger and popover text SHALL render in `var(--cl-font-mono)`. An option MAY carry a short `badge` string, rendered trailing the label in 10px uppercase muted monospace, and shown beside the active value in the trigger. The keyboard-highlighted option SHALL render with a 2px leading `--cl-state-live` border, `--cl-surface-raised` background, and bold `--cl-state-live` text. The trigger's chevron SHALL rotate 180 degrees while the popover is open.
+
+#### Scenario: A mouse click opens the styled popover, not the native picker
+- **WHEN** an operator clicks the visible `<Select>` trigger
+- **THEN** `.cl-select__content` opens over the page
+- **AND** the browser's native OS `<select>` picker does NOT open
+
+#### Scenario: An option shows a badge, and the active one shows it in the trigger
+- **WHEN** a `<Select>` option carries a `badge` (such as a language code in `LanguageSwitcher`)
+- **THEN** the popover row renders the badge trailing its label
+- **AND** the trigger renders the active option's badge beside its value
+
 ### Requirement: A composed container is visually distinct without a call-site decision
 A card or section composed inside another SHALL render at a distinguishable surface level without the
 composing screen applying a variant, modifier, or prop to say so, with its level following what the

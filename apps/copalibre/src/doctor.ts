@@ -11,6 +11,8 @@ import {
 } from '@copalibre/persistence';
 import { sql } from 'kysely';
 import { createRemoteJWKSet, customFetch, type FetchImplementation } from 'jose';
+import { evaluateDataIntegrity, type DataIntegritySnapshot } from './doctor-data.js';
+import { probeDataIntegrity } from './doctor-data-probe.js';
 
 export type DoctorCheckStatus = 'pass' | 'fail' | 'skip';
 
@@ -39,6 +41,8 @@ export interface DoctorDependencies {
   readonly retirableModules: (connectionString: string) => Promise<readonly RetirableModule[]>;
   /** Puts, reads back, and deletes a small probe object against the configured profile. */
   readonly objectStorageRoundTrip: (environment: NodeJS.ProcessEnv) => Promise<void>;
+  /** Structural data-integrity snapshot for `evaluateDataIntegrity` (openspec 0296). */
+  readonly probeDataIntegrity: (connectionString: string) => Promise<DataIntegritySnapshot>;
 }
 
 export interface DoctorOptions {
@@ -62,6 +66,7 @@ export async function runDoctor(
   checks.push(...(await validateJwksContent(environment, dependencies)));
   checks.push(...(await validateDatabase(environment, dependencies)));
   checks.push(await validateRetirableModules(environment, dependencies));
+  checks.push(...(await validateDataIntegrity(environment, dependencies)));
   checks.push(await validateObjectStorage(environment, dependencies));
   checks.push(...(await validatePersistentPath(environment, dependencies)));
   if (options.checkProxy) checks.push(await validateReverseProxy(options, dependencies));
@@ -216,6 +221,36 @@ export async function validateRetirableModules(
     // exactly what caught it — the schema doesn't exist yet at that point),
     // and this check is purely informational, not a readiness gate.
     return skip('retirable-modules', `Could not compute retirable modules: ${errorMessage(error)}`);
+  }
+}
+
+/**
+ * Structural data diagnostics (openspec 0296) — non-canonical tournament
+ * statuses. Always `pass` when the probe itself succeeds (see
+ * `evaluateDataIntegrity`'s doc comment for why, and for the further checks
+ * the proposal named that turned out to have no sound, false-positive-free
+ * signal against this domain's real rules); `skip` only when the database is
+ * unconfigured or the probe query fails — the same "never block startup on
+ * this" treatment `validateRetirableModules` gives a clean, unmigrated host.
+ */
+export async function validateDataIntegrity(
+  environment: NodeJS.ProcessEnv,
+  dependencies: Pick<DoctorDependencies, 'probeDataIntegrity'>,
+): Promise<readonly DoctorCheck[]> {
+  const connectionString = environment.DATABASE_URL;
+  if (!connectionString) {
+    return [skip('data:tournament-status', 'DATABASE_URL is not configured')];
+  }
+  try {
+    const snapshot = await dependencies.probeDataIntegrity(connectionString);
+    return evaluateDataIntegrity(snapshot);
+  } catch (error) {
+    return [
+      skip(
+        'data:tournament-status',
+        `Could not run data integrity diagnostics: ${errorMessage(error)}`,
+      ),
+    ];
   }
 }
 
@@ -388,6 +423,14 @@ function systemDoctorDependencies(): DoctorDependencies {
             version: row.version,
           }))
           .filter((row): row is RetirableModule => row.alias !== undefined);
+      } finally {
+        await database.destroy();
+      }
+    },
+    probeDataIntegrity: async (connectionString) => {
+      const database = createDatabase({ connectionString, maxConnections: 1 });
+      try {
+        return await probeDataIntegrity(database);
       } finally {
         await database.destroy();
       }

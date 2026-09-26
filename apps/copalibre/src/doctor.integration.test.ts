@@ -63,18 +63,42 @@ describe('copalibre doctor command (integration)', () => {
       await rm(dataDirectory, { force: true, recursive: true });
     }
   });
+
+  /**
+   * `--fix` piped through a child process's stdout/stderr has no TTY —
+   * exactly the "operator ran this from a script or CI job" case
+   * design.md's Non-Goals rule out ever mutating data for (openspec 0296,
+   * task 4.1). The real `DATABASE_URL` is required to reach the repair step
+   * at all; without it `--fix` is a silent no-op, which is not what this
+   * test is verifying.
+   */
+  it('reports that --fix requires a TTY and applies nothing when stdin is piped', async () => {
+    const dataDirectory = await mkdtemp(resolve(tmpdir(), 'copalibre-doctor-'));
+    try {
+      const result = await runDoctorProcess(
+        dataDirectory,
+        { DATABASE_URL: process.env.DATABASE_URL },
+        ['doctor', '--fix'],
+      );
+      expect(result.stdout).toContain('--fix requires an interactive terminal (TTY)');
+      expect(result.stdout).toContain('no repairs were applied');
+    } finally {
+      await rm(dataDirectory, { force: true, recursive: true });
+    }
+  });
 });
 
 function runDoctorProcess(
   dataDirectory: string,
   extraEnvironment: NodeJS.ProcessEnv = {},
+  args: readonly string[] = ['doctor'],
 ): Promise<{
   readonly code: number | null;
   readonly stdout: string;
   readonly stderr: string;
 }> {
   return new Promise((resolveResult, reject) => {
-    const child = spawn(process.execPath, [CLI_EXECUTABLE, 'doctor'], {
+    const child = spawn(process.execPath, [CLI_EXECUTABLE, ...args], {
       cwd: REPOSITORY_ROOT,
       env: {
         ...process.env,

@@ -49,10 +49,15 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'doctor',
     summary: 'Validate configuration and dependencies before starting',
-    usage: 'copalibre doctor [--check-proxy] [--proxy-url <url>]',
+    usage: 'copalibre doctor [--check-proxy] [--proxy-url <url>] [--fix | --interactive]',
     flags: [
       { flag: '--check-proxy', description: 'Also verify the reverse-proxy configuration' },
       { flag: '--proxy-url <url>', description: 'Public URL to probe when --check-proxy is set' },
+      {
+        flag: '--fix, --interactive',
+        description:
+          'Also review data-integrity anomalies and prompt to repair them (requires a TTY)',
+      },
     ],
   },
   {

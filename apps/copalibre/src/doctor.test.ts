@@ -31,6 +31,7 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
     probeDatabase: jest.fn(async () => undefined),
     ensureWritable: jest.fn(async () => undefined),
     retirableModules: jest.fn(async () => []),
+    probeDataIntegrity: jest.fn(async () => ({ invalidStatusTournaments: [] })),
     objectStorageRoundTrip: jest.fn(async () => undefined),
     fetch: jest.fn(async (input: string | URL | Request) => {
       // The JWKS content check and the SSE proxy-conformance check share this
