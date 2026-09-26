@@ -792,6 +792,10 @@ jobs:
           - 3310:3310
     env:
       DATABASE_URL: postgres://copalibre:copalibre_ci_only@localhost:5432/copalibre
+      # --network host means no port mapping: Garage's S3 API is directly
+      # on 3900 (unlike MinIO's own default of 9000), so the object-storage
+      # integration suite's endpoint fallback must be overridden here.
+      COPALIBRE_OBJECT_STORAGE_URL: http://localhost:3900
     steps:
       - uses: actions/checkout@v7
       - run: corepack enable
