@@ -46,23 +46,24 @@ services:
     profiles: ['infrastructure', 'containerized']
 
   # Real S3-compatible endpoint for local object-storage integration tests
-  # — the production docker-compose.yml's own object-storage service
-  # only exposes the admin console (9001); this dev profile exposes the S3
-  # API port (9000) too, so `yarn workspace @copalibre/object-storage run
-  # test:integration` can reach it directly from the host.
+  # — the production docker-compose.yml's own object-storage service only
+  # publishes 9000 when an operator opts in; this dev profile always
+  # publishes it, so `yarn workspace @copalibre/object-storage run
+  # test:integration` can reach it directly from the host. Port 3900 is
+  # mapped to host 9000 so existing `COPALIBRE_OBJECT_STORAGE_URL=http://
+  # localhost:9000` settings keep working unchanged.
   object-storage:
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
-    command: ['server', '/data', '--console-address', ':9001']
+    image: dxflrs/garage:v1.1.0
     environment:
-      MINIO_ROOT_USER: copalibre_dev_only
-      MINIO_ROOT_PASSWORD: copalibre_dev_only
+      GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
     ports:
-      - '9000:9000'
-      - '9001:9001'
+      - '9000:3900'
     volumes:
-      - object-storage-dev-data:/data
+      - ./deploy/garage/garage.toml:/etc/garage.toml:ro
+      - object-storage-dev-meta:/var/lib/garage/meta
+      - object-storage-dev-data:/var/lib/garage/data
     healthcheck:
-      test: ['CMD', 'mc', 'ready', 'local']
+      test: ['CMD', '/garage', 'status']
       interval: 5s
       timeout: 3s
       retries: 20
@@ -76,24 +77,56 @@ services:
       - clamav-dev-data:/var/lib/clamav
     profiles: ['infrastructure', 'containerized']
 
-  # Provisions the MinIO bucket the object-storage integration suite (and
-  # this dev profile generally) expects. Keeps running idle with a healthcheck
-  # so `docker compose --wait` reliably succeeds rather than failing when a
-  # one-shot container exits.
+  # Provisions the dev bucket and access key the object-storage integration
+  # suite (and this dev profile generally) expects. Garage's own image is a
+  # single static binary with no shell, so this build stage just copies that
+  # same pinned binary onto Alpine to sequence the bootstrap commands; no
+  # separate object-storage tool (MinIO's `mc`, etc.) is pulled. It shares
+  # object-storage's network namespace so the `garage` CLI can talk to it
+  # over 127.0.0.1 exactly as it would via `docker compose exec
+  # object-storage`, and shares its (read-only) metadata volume so the CLI
+  # recognizes it as the same node. The access key ID/secret below are
+  # fixed, non-secret, dev-only values (Garage requires its own `GK<24 hex>`
+  # ID / 64-hex-char secret format, so they can't literally be
+  # `copalibre_dev_only` the way MinIO's could — see
+  # packages/object-storage/src/s3-profile.integration.test.ts for the
+  # matching fallback). It re-runs idempotently on every `docker compose up`
+  # and exits once provisioning is confirmed.
   object-storage-init:
-    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM dxflrs/garage:v1.1.0 AS garage
+        FROM alpine:3.21
+        COPY --from=garage /garage /usr/local/bin/garage
+    network_mode: 'service:object-storage'
     depends_on:
       object-storage:
         condition: service_healthy
-    entrypoint: ['/bin/sh']
+    environment:
+      GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
+    volumes:
+      - ./deploy/garage/garage.toml:/etc/garage.toml:ro
+      - object-storage-dev-meta:/var/lib/garage/meta:ro
+    entrypoint: ['/bin/sh', '-c']
     command:
-      - -c
       - |
-        mc alias set local http://object-storage:9000 copalibre_dev_only copalibre_dev_only &&
-        mc mb --ignore-existing local/copalibre-dev &&
+        set -eu
+        if garage status | grep -q 'NO ROLE ASSIGNED'; then
+          node_id=$$(garage status | awk '/NO ROLE ASSIGNED/{print $$1; exit}')
+          garage layout assign -z dc1 -c 1G "$$node_id"
+          garage layout apply --version 1
+        fi
+        garage bucket create copalibre-dev 2>&1 | grep -qv 'Error' || true
+        if ! garage key info copalibre-dev-key >/dev/null 2>&1; then
+          garage key import --yes GK636f70616c69627265646576 \
+            636f70616c696272655f6465765f6f6e6c795f6f626a6563745f73746f726521 \
+            -n copalibre-dev-key
+        fi
+        garage bucket allow --read --write --owner copalibre-dev --key copalibre-dev-key
         tail -f /dev/null
     healthcheck:
-      test: ['CMD', 'mc', 'ls', 'local/copalibre-dev']
+      test: ['CMD', 'garage', 'bucket', 'info', 'copalibre-dev']
       interval: 2s
       timeout: 2s
       retries: 20
@@ -220,5 +253,6 @@ services:
 
 volumes:
   postgres-dev-data:
+  object-storage-dev-meta:
   object-storage-dev-data:
   clamav-dev-data:

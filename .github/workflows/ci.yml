@@ -766,7 +766,7 @@ jobs:
       - run: yarn workspace @copalibre/tournament-engine test:integration
       - run: yarn workspace @copalibre/statistics-refold test:integration
 
-  # Group 2: Storage, Worker, Scheduler, Events, CLI (PostgreSQL + MinIO + ClamAV).
+  # Group 2: Storage, Worker, Scheduler, Events, CLI (PostgreSQL + Garage + ClamAV).
   integration-tests-g2:
     name: Integration tests (group 2)
     runs-on: ubuntu-latest
@@ -792,6 +792,10 @@ jobs:
           - 3310:3310
     env:
       DATABASE_URL: postgres://copalibre:copalibre_ci_only@localhost:5432/copalibre
+      # --network host means no port mapping: Garage's S3 API is directly
+      # on 3900 (unlike MinIO's own default of 9000), so the object-storage
+      # integration suite's endpoint fallback must be overridden here.
+      COPALIBRE_OBJECT_STORAGE_URL: http://localhost:3900
     steps:
       - uses: actions/checkout@v7
       - run: corepack enable
@@ -800,25 +804,32 @@ jobs:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
-      - name: Start MinIO
+      - name: Start Garage
         run: |
-          docker run -d --name minio --network host \
-            -e MINIO_ROOT_USER=copalibre_dev_only \
-            -e MINIO_ROOT_PASSWORD=copalibre_dev_only \
-            cgr.dev/chainguard/minio@sha256:bd014394a80898e68c149f2311fdf8d5a2c2f3bb2c33b9327ae6d02b4b065ae1 server /data --console-address :9001
-      - name: Wait for MinIO and create its bucket
+          docker run -d --name garage --network host \
+            -e GARAGE_RPC_SECRET=c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e \
+            -v "$(pwd)/deploy/garage/garage.toml:/etc/garage.toml:ro" \
+            dxflrs/garage:v1.1.0
+      - name: Wait for Garage and provision its bucket and key
         run: |
           for i in $(seq 1 30); do
-            if docker run --rm --network host \
-              -e MC_HOST_local=http://copalibre_dev_only:copalibre_dev_only@localhost:9000 \
-              cgr.dev/chainguard/minio-client@sha256:b8b144ab34694ecea25aa352c4be9de4c26ee2a02701521dce02ee5593c57338 \
-              mb --ignore-existing local/copalibre-dev; then
-              exit 0
+            if docker exec garage /garage status >/dev/null 2>&1; then
+              break
             fi
-            sleep 2
+            sleep 1
           done
-          docker logs minio
-          exit 1
+          node_id="$(docker exec garage /garage status | awk '/NO ROLE ASSIGNED/{print $1; exit}')"
+          if [ -n "${node_id}" ]; then
+            docker exec garage /garage layout assign -z dc1 -c 1G "${node_id}"
+            docker exec garage /garage layout apply --version 1
+          fi
+          docker exec garage /garage bucket create copalibre-dev
+          docker exec garage /garage key import --yes \
+            GK636f70616c69627265646576 \
+            636f70616c696272655f6465765f6f6e6c795f6f626a6563745f73746f726521 \
+            -n copalibre-dev-key
+          docker exec garage /garage bucket allow --read --write --owner copalibre-dev --key copalibre-dev-key
+          docker logs garage
       - run: yarn workspace @copalibre/migrate run start
       - run: yarn workspace @copalibre/object-storage test:integration
       - run: yarn workspace @copalibre/worker test:integration

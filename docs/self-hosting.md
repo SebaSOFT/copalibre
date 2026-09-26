@@ -80,11 +80,49 @@ The client IP is resolved honoring `X-Forwarded-For` (the bundled reverse proxy 
 trusted), so users behind one shared office/NAT address share the unauthenticated limits between
 them.
 
+## Object Storage
+
+Participant evidence, club/organization emblems, person photos, and module assets are stored
+through an S3-compatible adapter (`packages/object-storage`), configured with
+`COPALIBRE_OBJECT_STORAGE_URL`, `_ACCESS_KEY`, `_SECRET_KEY`, `_BUCKET`, and optionally `_REGION`
+in `.env`. Point these at AWS S3, Cloudflare R2, Backblaze B2, or any other S3-compatible provider;
+leaving `COPALIBRE_OBJECT_STORAGE_URL` unset falls back to storing objects on the local filesystem
+under `COPALIBRE_DATA_DIR`, with no separate object-storage service required for a single-host
+install.
+
+To use the bundled lightweight [Garage](https://garagehq.deuxfleurs.fr/) container instead of an
+external provider, enable the `optional-adapters` Compose profile and set `GARAGE_RPC_SECRET`
+(`openssl rand -hex 32`) plus the matching `COPALIBRE_OBJECT_STORAGE_*` values in `.env`:
+
+```bash
+GARAGE_RPC_SECRET=<openssl rand -hex 32>
+COPALIBRE_OBJECT_STORAGE_URL=http://object-storage:3900
+COPALIBRE_OBJECT_STORAGE_REGION=garage
+COPALIBRE_OBJECT_STORAGE_BUCKET=copalibre
+```
+
+Garage has no bundled web console (unlike MinIO): create the bucket and an access key once, from
+the host, after the service is up —
+
+```bash
+docker compose --profile optional-adapters up --detach object-storage
+docker compose exec object-storage /garage status                       # note the node ID (first column)
+docker compose exec object-storage /garage layout assign -z dc1 -c 1G <node-id>
+docker compose exec object-storage /garage layout apply --version 1
+docker compose exec object-storage /garage bucket create copalibre
+docker compose exec object-storage /garage key create copalibre-key     # note the printed Key ID and Secret key
+docker compose exec object-storage /garage bucket allow --read --write --owner copalibre --key copalibre-key
+```
+
+Set `COPALIBRE_OBJECT_STORAGE_ACCESS_KEY`/`_SECRET_KEY` in `.env` to the printed Key ID/Secret key,
+then restart the application services so they pick up the new values.
+
 ## Persistent Data And Backups
 
 `postgres-data` contains authoritative tournament, participant, result, audit, outbox, identity,
-and configuration records. `object-storage-data` exists only with the `optional-adapters` profile
-and holds uploaded objects; back it up with PostgreSQL when it is enabled. `redis-data` is
+and configuration records. `object-storage-meta` and `object-storage-data` exist only with the
+`optional-adapters` profile (Garage's metadata and object bytes respectively) and hold uploaded
+objects; back them up with PostgreSQL when the profile is enabled. `redis-data` is
 non-authoritative and does not replace database or object backups.
 
 Create a backup with `./copalibre backup`. It writes a compressed packet (`.tar.gz`, PostgreSQL dump

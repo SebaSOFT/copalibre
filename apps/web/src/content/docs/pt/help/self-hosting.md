@@ -115,7 +115,7 @@ nenhum exige um fork do template:
   `COPALIBRE_OBJECT_STORAGE_*`, etc. do seu cofre de segredos real em vez de um manifesto `Secret`
   simples.
 
-PostgreSQL gerenciado, armazenamento de objetos compatível com S3 (AWS S3, MinIO, R2, B2), ou um
+PostgreSQL gerenciado, armazenamento de objetos compatível com S3 (AWS S3, Garage, R2, B2), ou um
 caminho de VM gerenciada (Kamal, `docs/deployment/kamal.md`) são todos configuração, não mudanças de
 código — `packages/persistence` já os atende de forma genérica. Valide qualquer alteração de chart
 localmente em um cluster multi-nó descartável antes de tocar em um real:

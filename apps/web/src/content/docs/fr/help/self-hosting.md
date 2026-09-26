@@ -114,7 +114,7 @@ nécessite de fork du template :
   les identifiants `COPALIBRE_OBJECT_STORAGE_*`, etc. depuis votre véritable coffre-fort de secrets
   plutôt qu'un simple manifeste `Secret`.
 
-PostgreSQL géré, stockage d'objets compatible S3 (AWS S3, MinIO, R2, B2), ou un chemin de VM géré
+PostgreSQL géré, stockage d'objets compatible S3 (AWS S3, Garage, R2, B2), ou un chemin de VM géré
 (Kamal, `docs/deployment/kamal.md`) sont tous de la configuration, pas des changements de code —
 `packages/persistence` les cible déjà génériquement. Validez tout changement de chart localement sur
 un cluster multi-nœuds jetable avant de toucher un cluster réel :

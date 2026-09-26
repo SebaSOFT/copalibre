@@ -101,7 +101,7 @@ helm install my-copalibre deploy/helm/copalibre/ \
 - **`externalSecrets`**——需要 External Secrets Operator；从您真实的密钥库而非简单的 `Secret`
   清单中获取 `DATABASE_URL`、`COPALIBRE_OBJECT_STORAGE_*` 凭据等。
 
-托管 PostgreSQL、兼容 S3 的对象存储（AWS S3、MinIO、R2、B2），或托管虚拟机路径（Kamal，
+托管 PostgreSQL、兼容 S3 的对象存储（AWS S3、Garage、R2、B2），或托管虚拟机路径（Kamal，
 `docs/deployment/kamal.md`）都属于配置，而非代码更改——`packages/persistence` 已经通用地支持这些
 目标。在触及真实集群之前，先在一次性的多节点集群上本地验证任何 chart 更改：
 

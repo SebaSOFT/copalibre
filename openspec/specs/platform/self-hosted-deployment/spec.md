@@ -68,7 +68,14 @@ The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev -
 `migrate`, `create-admin`, `login`, `statistics-rebuild`, `backup`, `restore`, `upgrade-check`, and
 `mcp` subcommands, distributed both as a standalone executable (downloadable via a documented install
 script, one per supported OS/architecture) and as source runnable from a checkout — the two SHALL
-behave identically for every subcommand. Every invocation SHALL print a startup banner identifying the product, its version, and
+behave identically for every subcommand. In addition to environment and service configuration checks,
+`copalibre doctor` SHALL inspect PostgreSQL database data structure integrity when the database is
+reachable, reporting detected discrepancies as a diagnostic check item (`data:tournament-status`) —
+informational, never a reason to fail the check or block `copalibre start`.
+When invoked with `--fix` or `--interactive` on an interactive terminal, `copalibre doctor` SHALL
+initiate an interactive decision-support prompt workflow allowing an operator to repair a detected
+anomaly non-destructively; without a TTY, it SHALL report that repair requires one and apply nothing.
+Every invocation SHALL print a startup banner identifying the product, its version, and
 its license before running the requested subcommand, and that banner SHALL be written to a stream that
 never mixes with a subcommand's own stdout output. Running `copalibre --help`/`-h` with no subcommand
 SHALL list every subcommand with a one-line summary, and running `copalibre <subcommand> --help`/`-h`
@@ -218,6 +225,18 @@ SHALL operate over a direct database connection.
 #### Scenario: Standalone CLI doctor execution on fresh host
 - **WHEN** an operator runs `copalibre doctor` using the standalone SEA binary in a directory initialized with `copalibre init`
 - **THEN** the CLI loads the local `.env` and passes all environmental checks without crashing or missing API URL errors.
+
+#### Scenario: doctor runs data diagnostics by default
+- **WHEN** an operator runs `copalibre doctor` against an operational database containing a tournament with non-canonical status `'completed'`
+- **THEN** `doctor` reports `PASS data:tournament-status`, naming the affected tournament and expected domain statuses (`draft`, `published`, `started`, `finished`, `archived`), without mutating database records and without failing the check
+
+#### Scenario: doctor --fix prompts for interactive repair
+- **WHEN** an operator runs `copalibre doctor --fix` in an interactive terminal against a database holding a tournament with a non-canonical status
+- **THEN** `doctor` presents an interactive choice of the five canonical statuses for that tournament, asks for confirmation, and commits the approved change transactionally with an audit entry
+
+#### Scenario: doctor --fix without a TTY applies nothing
+- **WHEN** an operator runs `copalibre doctor --fix` with stdin piped or redirected (no TTY)
+- **THEN** `doctor` reports that repair requires an interactive terminal and applies no changes
 
 ### Requirement: Kubernetes instance mode
 
@@ -425,3 +444,40 @@ The application SHALL keep emblem and discipline-background URLs on the browser'
 #### Scenario: Kubernetes web edge resolves the release-scoped API service
 - **WHEN** the Helm chart deploys the web edge with its default values
 - **THEN** Caddy sends browser-facing media requests to that release's API service and not to a fixed Compose-only hostname
+
+### Requirement: Tournament status data-integrity diagnostic and repair
+`copalibre doctor` SHALL detect a tournament whose `status` column does not match one of the domain's
+canonical `TournamentStatus` values (`draft`, `published`, `started`, `finished`, `archived`) — a state
+reachable only through an out-of-band write, since the domain layer never produces one — and report it
+as an informational `data:tournament-status` check, naming the affected tournament(s) and their current
+status. This never fails the check or blocks `copalibre start`: it is information for the operator, and
+`copalibre doctor --fix` is the separate, explicit path that acts on it.
+
+When invoked with `--fix` or `--interactive` on an interactive terminal, `copalibre doctor` SHALL
+present each affected tournament, offer the five canonical statuses as resolution choices, and — once
+the operator selects one and confirms — update the `tournaments.status` column and record an
+`audit_log` entry (`data-integrity.repaired`, actor `operator:copalibre-doctor`, authorization context
+`doctor-repair`) inside one transaction. Declining either the selection or the confirmation prompt SHALL
+skip that tournament without any write. Without a TTY, `--fix`/`--interactive` SHALL report that repair
+requires an interactive terminal and apply nothing.
+
+#### Scenario: A non-canonical status is reported without failing doctor
+- **WHEN** a tournament's `status` column holds `'completed'`, left over from an old import script
+- **THEN** `copalibre doctor` reports it under `data:tournament-status` as `PASS` (informational),
+  naming the tournament and pointing to `copalibre doctor --fix`
+
+#### Scenario: An operator repairs the status interactively
+- **WHEN** an operator runs `copalibre doctor --fix` from an interactive terminal, selects `finished`
+  for a tournament reported with status `'completed'`, and confirms
+- **THEN** the tournament's `status` column becomes `finished`, an audit entry records the previous and
+  resulting status and the reason, and a subsequent `copalibre doctor` run reports no anomaly for it
+
+#### Scenario: Declining a repair prompt leaves the record untouched
+- **WHEN** an operator runs `copalibre doctor --fix`, and either declines to select a status or declines
+  the confirmation prompt for an affected tournament
+- **THEN** that tournament's `status` column is not modified and no audit entry is written for it
+
+#### Scenario: --fix without a TTY never mutates data
+- **WHEN** `copalibre doctor --fix` runs with stdin piped or redirected, such as from a script or CI job
+- **THEN** it reports that interactive repair requires a TTY and applies no changes, regardless of how
+  many anomalies were detected
