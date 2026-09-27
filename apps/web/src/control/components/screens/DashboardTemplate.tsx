@@ -26,6 +26,7 @@ interface DeviceEntry {
  */
 export function DashboardTemplate({
   canCreateTournament,
+  canManageDisplayTokens,
   devices,
   model,
   now,
@@ -36,6 +37,8 @@ export function DashboardTemplate({
 }: {
   /** Client-side presentation guard only (design.md Decision 4) — the wizard route itself stays server-enforced regardless. Absent while the operator's role has not resolved yet defaults to visible, matching `visibleSidenav`'s own "unknown role sees everything" convention. */
   readonly canCreateTournament: boolean;
+  /** Same guard, gating each tournament card's Broadcaster Studio link (openspec 0300). */
+  readonly canManageDisplayTokens: boolean;
   readonly devices: readonly DeviceEntry[];
   readonly model: DashboardModel;
   readonly now: number;
@@ -81,6 +84,7 @@ export function DashboardTemplate({
           <div className="cl-entity-card-grid">
             {model.tournaments.map((card) => (
               <TournamentSummaryCard
+                canManageDisplayTokens={canManageDisplayTokens}
                 card={card}
                 key={card.tournamentId}
                 onArchive={onArchive}

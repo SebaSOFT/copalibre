@@ -1,6 +1,11 @@
 import { describe, expect, it } from '@jest/globals';
 import type { PublicMatchReportResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
-import { buildTvMatchEvents } from './tv-match-events.js';
+import {
+  buildActorDirectory,
+  buildEventLabelDirectory,
+  buildTvMatchEvents,
+  resolveLiveTvMatchEvent,
+} from './tv-match-events.js';
 
 const report = (): PublicMatchReportResponse => ({
   organizationAlias: 'liga-orbital',
@@ -63,6 +68,7 @@ describe('buildTvMatchEvents (openspec 0270)', () => {
     expect(events).toEqual([
       {
         eventId: 'event-1',
+        definitionCode: 'goal',
         label: 'Goal',
         occurredAt: '2026-08-19T12:00:00.000Z',
         side: 'home',
@@ -70,6 +76,7 @@ describe('buildTvMatchEvents (openspec 0270)', () => {
       },
       {
         eventId: 'event-2',
+        definitionCode: 'card',
         label: 'Yellow card',
         occurredAt: '2026-08-19T12:10:00.000Z',
         side: 'away',
@@ -77,6 +84,7 @@ describe('buildTvMatchEvents (openspec 0270)', () => {
       },
       {
         eventId: 'event-3',
+        definitionCode: 'kickoff',
         label: 'Kickoff',
         occurredAt: '2026-08-19T11:00:00.000Z',
       },
@@ -123,5 +131,96 @@ describe('buildTvMatchEvents (openspec 0270)', () => {
     };
 
     expect(buildTvMatchEvents(withUnknownPerson)[0]?.actor).toBeUndefined();
+  });
+});
+
+describe('buildActorDirectory (openspec 0300)', () => {
+  it('keys display text by personId, across both rosters', () => {
+    expect(buildActorDirectory(report().rosters)).toEqual({
+      'person-1': '#9 Ada',
+      'person-2': 'Blue',
+    });
+  });
+
+  it('returns an empty object for a match with no rostered persons', () => {
+    expect(buildActorDirectory({ home: [], away: [] })).toEqual({});
+  });
+});
+
+describe('buildEventLabelDirectory (openspec 0300)', () => {
+  it('keys each label by its definitionCode, from the initial timeline', () => {
+    expect(buildEventLabelDirectory(report())).toEqual({
+      goal: 'Goal',
+      card: 'Yellow card',
+      kickoff: 'Kickoff',
+    });
+  });
+});
+
+describe('resolveLiveTvMatchEvent (openspec 0300)', () => {
+  const context = {
+    homeEntrantId: 'entrant-home',
+    awayEntrantId: 'entrant-away',
+    actors: buildActorDirectory(report().rosters),
+    labelsByCode: buildEventLabelDirectory(report()),
+  };
+
+  it('resolves a live event the same way the initial timeline does', () => {
+    const resolved = resolveLiveTvMatchEvent(
+      {
+        eventId: 'event-live-1',
+        payload: {
+          matchId: 'match-1',
+          definitionCode: 'goal',
+          side: 'entrant-away',
+          personId: 'person-2',
+          occurredAt: '2026-08-19T12:20:00.000Z',
+        },
+      },
+      context,
+    );
+
+    expect(resolved).toEqual({
+      eventId: 'event-live-1',
+      definitionCode: 'goal',
+      label: 'Goal',
+      occurredAt: '2026-08-19T12:20:00.000Z',
+      side: 'away',
+      actor: 'Blue',
+    });
+  });
+
+  it('falls back to the bare definitionCode for a code not yet in the label directory', () => {
+    const resolved = resolveLiveTvMatchEvent(
+      {
+        eventId: 'event-live-2',
+        payload: { definitionCode: 'own-goal', occurredAt: '2026-08-19T12:25:00.000Z' },
+      },
+      context,
+    );
+
+    expect(resolved?.label).toBe('own-goal');
+  });
+
+  it('returns undefined for a payload missing a definitionCode or occurredAt', () => {
+    expect(
+      resolveLiveTvMatchEvent({ eventId: 'e', payload: { occurredAt: 'x' } }, context),
+    ).toBeUndefined();
+    expect(
+      resolveLiveTvMatchEvent({ eventId: 'e', payload: { definitionCode: 'goal' } }, context),
+    ).toBeUndefined();
+  });
+
+  it('leaves side and actor unset when the payload names neither', () => {
+    const resolved = resolveLiveTvMatchEvent(
+      {
+        eventId: 'e',
+        payload: { definitionCode: 'kickoff', occurredAt: '2026-08-19T11:00:00.000Z' },
+      },
+      context,
+    );
+
+    expect(resolved?.side).toBeUndefined();
+    expect(resolved?.actor).toBeUndefined();
   });
 });

@@ -669,6 +669,7 @@ export const messages: Record<string, string> = {
   'control.stageHub.notFound': 'Não há fase {number} neste torneio.',
   'control.stageHub.breadcrumbLink': 'Fase {stageNumber}',
   'control.dashboard.stages': 'Fases',
+  'control.dashboard.broadcasterStudio': 'Estúdio do transmissor',
   'control.stageConfiguration.title': 'Configuração da fase',
   'control.stageConfiguration.fieldLabel': 'Campo (caminho)',
   'control.stageConfiguration.valueLabel': 'Valor (JSON)',
@@ -1278,4 +1279,25 @@ export const messages: Record<string, string> = {
   'control.filePicker.clear': 'Limpar',
   'control.filePicker.filesSelected':
     '{count, plural, one {# arquivo selecionado} other {# arquivos selecionados}}',
+
+  'broadcasterStudio.title': 'Estúdio do transmissor',
+  'broadcasterStudio.intro':
+    'Gere um link de sobreposição pronto para transmissão para o OBS Studio ou qualquer outro software compatível com Browser Source — sem precisar de um administrador.',
+  'broadcasterStudio.loading': 'Gerando seu link de transmissão…',
+  'broadcasterStudio.loadError':
+    'Não foi possível gerar um link de transmissão. Tente recarregar esta página.',
+  'broadcasterStudio.modeLabel': 'Modo de sobreposição',
+  'broadcasterStudio.modeLower': 'Faixa inferior (sobre sua câmera)',
+  'broadcasterStudio.modeFull': 'Tela cheia (sem câmera)',
+  'broadcasterStudio.chromaLabel': 'Fundo de pré-visualização',
+  'broadcasterStudio.chromaTransparent': 'Transparente',
+  'broadcasterStudio.chromaGreen': 'Tela verde',
+  'broadcasterStudio.chromaMagenta': 'Tela magenta',
+  'broadcasterStudio.chromaDark': 'Estádio escuro',
+  'broadcasterStudio.urlLabel': 'URL do OBS Browser Source',
+  'broadcasterStudio.copyButton': 'Copiar URL do OBS Browser Source',
+  'broadcasterStudio.copySuccess': 'URL copiada para a área de transferência',
+  'broadcasterStudio.copyFailure': 'Não foi possível copiar — copie a URL manualmente',
+  'broadcasterStudio.resolutionHeading': 'Configurações recomendadas para o OBS Browser Source',
+  'broadcasterStudio.previewLabel': 'Pré-visualização ao vivo',
 };

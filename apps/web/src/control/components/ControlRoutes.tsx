@@ -26,6 +26,7 @@ import { DisciplineDocumentPage } from './pages/DisciplineDocumentPage.js';
 import { LiveConsolePage } from './pages/LiveConsolePage.js';
 import { AnalyticsPage } from './pages/AnalyticsPage.js';
 import { DashboardPage } from './pages/DashboardPage.js';
+import { BroadcasterStudioPage } from './pages/BroadcasterStudioPage.js';
 
 export function TournamentsControlRoute({
   organizationAlias,
@@ -302,6 +303,26 @@ export function MatchesViewControlRoute({
   return (
     <ControlShell helpPath="matches-view" organizationAlias={organizationAlias}>
       <MatchesViewPage
+        client={client}
+        organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
+      />
+    </ControlShell>
+  );
+}
+
+export function BroadcasterStudioControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="broadcast-surfaces" organizationAlias={organizationAlias}>
+      <BroadcasterStudioPage
         client={client}
         organizationAlias={organizationAlias}
         tournamentAlias={tournamentAlias}

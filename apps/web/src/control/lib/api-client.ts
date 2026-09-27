@@ -466,6 +466,22 @@ export interface ControlApiClient {
     organizationAlias: string,
     tournamentAlias: string,
   ) => Promise<readonly DisplayTokenResponse[]>;
+  /**
+   * Issues a device-scoped `/tv/**` token (openspec 0300's Broadcaster
+   * Studio, but not exclusive to it — a kiosk device uses the same call).
+   * The raw token and its ready-to-use launch URL are returned once; neither
+   * is retrievable again afterward.
+   */
+  readonly issueDisplayToken?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    request: IssueDisplayTokenRequest,
+  ) => Promise<DisplayTokenIssuedResponse>;
+  readonly revokeDisplayToken?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    displayTokenId: string,
+  ) => Promise<DisplayTokenResponse>;
   /** The pending participant reports/disputes queue. */
   readonly listPendingReports?: (
     organizationAlias: string,
@@ -869,6 +885,22 @@ export interface DisplayTokenResponse {
   readonly revoked: boolean;
   readonly lastSeenAt?: string;
   readonly createdAt: string;
+}
+
+export interface IssueDisplayTokenRequest {
+  /** Pins the device to one match, not the full tournament rotation. */
+  readonly matchId?: string;
+  /** Operator-facing device label, e.g. "Cancha 1 - TV entrada". */
+  readonly label?: string;
+}
+
+export interface DisplayTokenIssuedResponse {
+  readonly displayTokenId: string;
+  /** Shown once. Provision the device with it; it is never stored raw. */
+  readonly token: string;
+  /** The `/tv/**` launch URL to configure on the device. */
+  readonly url: string;
+  readonly label?: string;
 }
 
 export interface ParticipantReportResponse {
@@ -2569,6 +2601,20 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/display-tokens`,
         { token: input.accessToken?.() },
+      ),
+
+    issueDisplayToken: (organizationAlias, tournamentAlias, body) =>
+      requestJson<DisplayTokenIssuedResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/display-tokens`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    revokeDisplayToken: (organizationAlias, tournamentAlias, displayTokenId) =>
+      requestJson<DisplayTokenResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/display-tokens/${encodeURIComponent(displayTokenId)}`,
+        { method: 'DELETE', token: input.accessToken?.() },
       ),
 
     listPendingReports: (organizationAlias, tournamentAlias) =>

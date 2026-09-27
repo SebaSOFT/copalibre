@@ -1961,6 +1961,10 @@ export const messages = defineMessages({
     defaultMessage: 'Stage {stageNumber}',
   },
   dashboardStages: { id: 'control.dashboard.stages', defaultMessage: 'Stages' },
+  dashboardBroadcasterStudio: {
+    id: 'control.dashboard.broadcasterStudio',
+    defaultMessage: 'Broadcaster Studio',
+  },
 
   // SeedingBuilderPage.tsx — stage-configuration override editing (openspec 0169)
   stageConfigurationTitle: {
@@ -3706,4 +3710,76 @@ export const messages = defineMessages({
     defaultMessage: 'Setting up account…',
   },
   invitationSubmit: { id: 'invitation.submit', defaultMessage: 'Accept and start' },
+
+  // Broadcaster Studio (openspec 0300)
+  broadcasterStudioTitle: { id: 'broadcasterStudio.title', defaultMessage: 'Broadcaster Studio' },
+  broadcasterStudioIntro: {
+    id: 'broadcasterStudio.intro',
+    defaultMessage:
+      'Generate a streaming-ready overlay link for OBS Studio or any other browser-source capable software — no administrator required.',
+  },
+  broadcasterStudioLoading: {
+    id: 'broadcasterStudio.loading',
+    defaultMessage: 'Generating your streaming link…',
+  },
+  broadcasterStudioLoadError: {
+    id: 'broadcasterStudio.loadError',
+    defaultMessage: 'Could not generate a streaming link. Try reloading this page.',
+  },
+  broadcasterStudioModeLabel: {
+    id: 'broadcasterStudio.modeLabel',
+    defaultMessage: 'Overlay mode',
+  },
+  broadcasterStudioModeLower: {
+    id: 'broadcasterStudio.modeLower',
+    defaultMessage: 'Lower third (over your camera)',
+  },
+  broadcasterStudioModeFull: {
+    id: 'broadcasterStudio.modeFull',
+    defaultMessage: 'Full screen (no camera needed)',
+  },
+  broadcasterStudioChromaLabel: {
+    id: 'broadcasterStudio.chromaLabel',
+    defaultMessage: 'Preview background',
+  },
+  broadcasterStudioChromaTransparent: {
+    id: 'broadcasterStudio.chromaTransparent',
+    defaultMessage: 'Transparent',
+  },
+  broadcasterStudioChromaGreen: {
+    id: 'broadcasterStudio.chromaGreen',
+    defaultMessage: 'Green screen',
+  },
+  broadcasterStudioChromaMagenta: {
+    id: 'broadcasterStudio.chromaMagenta',
+    defaultMessage: 'Magenta screen',
+  },
+  broadcasterStudioChromaDark: {
+    id: 'broadcasterStudio.chromaDark',
+    defaultMessage: 'Dark stadium',
+  },
+  broadcasterStudioUrlLabel: {
+    id: 'broadcasterStudio.urlLabel',
+    defaultMessage: 'OBS Browser Source URL',
+  },
+  broadcasterStudioCopyButton: {
+    id: 'broadcasterStudio.copyButton',
+    defaultMessage: 'Copy OBS Browser Source URL',
+  },
+  broadcasterStudioCopySuccess: {
+    id: 'broadcasterStudio.copySuccess',
+    defaultMessage: 'URL copied to clipboard',
+  },
+  broadcasterStudioCopyFailure: {
+    id: 'broadcasterStudio.copyFailure',
+    defaultMessage: 'Could not copy — copy the URL manually',
+  },
+  broadcasterStudioResolutionHeading: {
+    id: 'broadcasterStudio.resolutionHeading',
+    defaultMessage: 'Recommended OBS Browser Source settings',
+  },
+  broadcasterStudioPreviewLabel: {
+    id: 'broadcasterStudio.previewLabel',
+    defaultMessage: 'Live preview',
+  },
 });

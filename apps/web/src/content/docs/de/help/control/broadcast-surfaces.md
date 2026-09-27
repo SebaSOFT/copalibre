@@ -24,6 +24,19 @@ einen Stromausfall, ohne erneut Anmeldedaten einzugeben, und erholt sich still v
 Verbindungsunterbrechung oder nicht verfügbaren Daten — eine `/tv/**`-Oberfläche zeigt nie einen Fehler,
 den eine Person schließen müsste.
 
+## Broadcaster-Studio
+
+`/control/<organization>/tournaments/<tournament>/broadcaster` ist eine
+Selbstbedienungskonsole für einen Streamer oder Medienbetreiber: Sie stellt automatisch ein
+eigenes geräte-gebundenes Anzeige-Token aus, lässt Sie den Overlay-Modus wählen (ein unterer
+Balken über Ihrer Kamera oder eine Vollbildszene ohne Kamera) sowie einen Vorschauhintergrund
+(transparent, Grünbildschirm, Magentabildschirm oder ein dunkler Stadionhintergrund), und liefert
+Ihnen eine einsatzbereite OBS-Browser-Source-URL mit Live-Vorschau — kein Administrator muss
+Ihnen ein Token geben oder die eigene Sitzung teilen. Während dieses Overlay geöffnet ist, zeigt
+ein live erfasstes Tor, ein Punkt oder eine Karte einen animierten Hinweis mit Mannschaft und
+Spieler an und blendet sich danach automatisch aus — niemand vor Ort muss ihn auslösen oder
+schließen.
+
 ## Was ein Zuschauer auf der öffentlichen Website sieht
 
 Die öffentliche Website (ohne Anmeldung) zeigt Tabellen, Turnierbaum und Spielberichte eines Turniers so,

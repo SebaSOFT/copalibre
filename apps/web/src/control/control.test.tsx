@@ -348,6 +348,7 @@ describe('what the dashboard renders', () => {
     render(
       withIntl(
         <Card
+          canManageDisplayTokens
           card={card({ lifecycle })}
           onArchive={() => {}}
           onExport={() => {}}
@@ -366,6 +367,7 @@ describe('what the dashboard renders', () => {
     render(
       withIntl(
         <Card
+          canManageDisplayTokens
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
@@ -384,6 +386,7 @@ describe('what the dashboard renders', () => {
     render(
       withIntl(
         <Card
+          canManageDisplayTokens
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
@@ -406,6 +409,7 @@ describe('what the dashboard renders', () => {
     render(
       withIntl(
         <Card
+          canManageDisplayTokens
           card={card({ lifecycle: 'draft' })}
           onArchive={() => {}}
           onExport={() => {}}
@@ -422,6 +426,7 @@ describe('what the dashboard renders', () => {
 
   it('offers archiving only on a finished tournament', () => {
     const props = {
+      canManageDisplayTokens: true,
       onArchive: () => {},
       onExport: () => {},
       onExportConfiguration: () => {},
@@ -439,6 +444,7 @@ describe('what the dashboard renders', () => {
     render(
       withIntl(
         <Card
+          canManageDisplayTokens
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
@@ -461,13 +467,59 @@ describe('what the dashboard renders', () => {
     expect(screen.getByRole('button', { name: 'Export' })).toBeDefined();
   });
 
+  it('offers Broadcaster Studio inside the same export menu when the operator can manage display tokens, never as its own button (openspec 0300)', async () => {
+    render(
+      withIntl(
+        <Card
+          canManageDisplayTokens
+          card={card({ lifecycle: 'live' })}
+          onArchive={() => {}}
+          onExport={() => {}}
+          onExportConfiguration={() => {}}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    expect(screen.queryByRole('link', { name: 'Broadcaster Studio' })).toBeNull();
+    const trigger = screen.getByRole('button', { name: 'Export' });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { code: 'Enter', key: 'Enter' });
+    expect(await screen.findByRole('menuitem', { name: 'Broadcaster Studio' })).toBeDefined();
+  });
+
+  it('omits Broadcaster Studio entirely when the operator cannot manage display tokens', () => {
+    render(
+      withIntl(
+        <Card
+          canManageDisplayTokens={false}
+          card={card({ lifecycle: 'live' })}
+          onArchive={() => {}}
+          onExport={() => {}}
+          onExportConfiguration={() => {}}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    expect(screen.queryByRole('menuitem', { name: 'Broadcaster Studio' })).toBeNull();
+  });
+
   it('renders the sidenav, the cards and the activity log', () => {
     const model = buildDashboard({
       organizationId: 'org-1',
       tournaments: [card()],
       activity: [entry({ reason: 'Documentación completa' })],
     });
-    render(<Dashboard canCreateTournament model={model} organizationAlias="liga-mendocina" />);
+    render(
+      <Dashboard
+        canCreateTournament
+        canManageDisplayTokens
+        model={model}
+        organizationAlias="liga-mendocina"
+      />,
+    );
 
     expect(screen.getByRole('link', { name: 'Torneos' })).toBeDefined();
     expect(screen.getByText('Torneo Apertura')).toBeDefined();
@@ -481,6 +533,7 @@ describe('what the dashboard renders', () => {
     render(
       <Dashboard
         canCreateTournament
+        canManageDisplayTokens
         model={buildDashboard({ organizationId: 'org-1', tournaments: [], activity: [] })}
         organizationAlias="liga-mendocina"
       />,
@@ -526,6 +579,7 @@ describe('what the dashboard renders', () => {
       render(
         <Dashboard
           canCreateTournament
+          canManageDisplayTokens
           model={buildDashboard({ organizationId: 'org-1', tournaments: [card()], activity: [] })}
           organizationAlias="liga-mendocina"
         />,
@@ -589,6 +643,7 @@ describe('what the dashboard renders', () => {
     render(
       <Dashboard
         canCreateTournament
+        canManageDisplayTokens
         model={buildDashboard({
           organizationId: 'org-1',
           tournaments: [card({ lifecycle: 'finished' })],
@@ -653,6 +708,7 @@ describe('what the dashboard renders', () => {
     render(
       <Dashboard
         canCreateTournament
+        canManageDisplayTokens
         model={buildDashboard({ organizationId: 'org-1', tournaments: [card()], activity: [] })}
         organizationAlias="liga-mendocina"
       />,

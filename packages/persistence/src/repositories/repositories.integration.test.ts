@@ -340,6 +340,23 @@ describe('repositories (integration)', () => {
     // Each append published an outbox event in the same commit.
     const outboxCount = await new OutboxReader(scratch.db).countFor(matchId);
     expect(outboxCount).toBeGreaterThanOrEqual(3);
+
+    // openspec 0300: the outbox payload carries matchId/side/personId/occurredAt
+    // alongside eventId/definitionCode — every field `PUBLIC_EVENT_FIELDS`
+    // allowlists for `match.event-recorded`, previously inert because the
+    // payload never actually carried them.
+    const pending = await new OutboxReader(scratch.db).pending();
+    const published = pending.filter(
+      (event) => event.entityId === matchId && event.eventType === 'match.event-recorded',
+    );
+    expect(published).toHaveLength(3);
+    for (const event of published) {
+      expect(event.payload.matchId).toBe(matchId);
+      expect(event.payload.definitionCode).toBe('strike');
+      expect(event.payload.side).toBe('entrant-atlas');
+      expect(event.payload.personId).toBe(personId);
+      expect(typeof event.payload.occurredAt).toBe('string');
+    }
   });
 
   it('audits entrant status transitions with previous and resulting state', async () => {

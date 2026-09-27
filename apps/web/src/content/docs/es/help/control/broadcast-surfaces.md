@@ -24,6 +24,18 @@ corte de energía sin volver a pedir credenciales, y se recupera en silencio de 
 datos no disponibles — una superficie `/tv/**` nunca muestra un error que una persona tendría que
 cerrar.
 
+## Estudio de transmisión
+
+`/control/<organization>/tournaments/<tournament>/broadcaster` es una consola de autoservicio para
+un streamer u operador de medios: emite tu propio token de display automáticamente, te deja elegir
+el modo de superposición (una franja inferior sobre tu cámara, o una escena de pantalla completa
+sin cámara) y un fondo de vista previa (transparente, croma verde, croma magenta o un fondo oscuro
+de estadio), y te da una URL lista para pegar en OBS Browser Source con vista previa en vivo —
+ningún administrador tiene que darte un token ni compartir su propia sesión. Mientras esa
+superposición está abierta, un gol, punto o tarjeta registrado en vivo muestra un aviso animado con
+el nombre del equipo y el jugador, y se cierra solo — nunca necesita que alguien en la sede lo
+dispare o lo cierre.
+
 ## Qué ve un espectador en el sitio público
 
 El sitio público (sin login) muestra las posiciones, la llave y los reportes de partido de un torneo tal

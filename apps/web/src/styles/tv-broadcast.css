@@ -995,3 +995,113 @@
     opacity: 0.25;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Animated live event alert banner (openspec 0300) — the "Broadcast Command
+ * Precision" callout for a `match.event-recorded` moment: chamfered, high-
+ * contrast dark ink, bold display type. `--scoring`/`--notable` are the only
+ * two kinds `BroadcastAlertBanner.tsx` ever asks for — generic across every
+ * installed discipline's own event vocabulary, never a hardcoded goal/card
+ * split. Fixed-positioned so it composites over whichever presentation
+ * (`kiosk`/`lower`/`full`) is already on screen, matching an OBS browser
+ * source's own transparent-canvas expectation.
+ * ------------------------------------------------------------------------- */
+.tv-broadcast-alert {
+  position: fixed;
+  top: 12vmin;
+  left: 50%;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 1.2vmin;
+  padding: 1.4vmin 2.4vmin;
+  background: color-mix(in srgb, var(--tv-bg-elevated) 95%, black);
+  border: 1px solid var(--tv-border-active);
+  font-family: var(--cl-font-display);
+  font-size: clamp(var(--cl-font-size-base), 2.4vmin, var(--cl-font-size-xl));
+  font-weight: var(--cl-weight-bold);
+  color: var(--tv-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.tv-broadcast-alert--scoring {
+  border-color: var(--tv-live-cyan);
+  box-shadow: 0 0 3vmin color-mix(in srgb, var(--tv-live-cyan) 35%, transparent);
+}
+
+.tv-broadcast-alert--notable {
+  border-color: var(--tv-gold);
+  box-shadow: 0 0 3vmin var(--tv-gold-glow);
+}
+
+.tv-broadcast-alert__side {
+  color: var(--tv-live-cyan);
+}
+
+.tv-broadcast-alert__actor {
+  color: var(--tv-text-secondary);
+  font-weight: var(--cl-weight-semibold);
+  text-transform: none;
+}
+
+.tv-broadcast-alert--entering {
+  animation: tvBroadcastAlertEnter 0.4s ease-out forwards;
+}
+
+.tv-broadcast-alert--exiting {
+  animation: tvBroadcastAlertExit 0.3s ease-in forwards;
+}
+
+@keyframes tvBroadcastAlertEnter {
+  from {
+    transform: translate(-50%, -1.5vmin) scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes tvBroadcastAlertExit {
+  from {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -1.5vmin) scale(0.96);
+    opacity: 0;
+  }
+}
+
+/* The information is in the words and the accent border, never the motion — reduced motion keeps both fully legible and drops only the movement, the same accommodation `.tv-scorebug__badge--live .tv-scorebug__dot` and `.tv-champion__glow` already make. */
+.tv-broadcast-alert[data-reduced-motion] {
+  transform: translateX(-50%);
+}
+
+.tv-broadcast-alert[data-reduced-motion].tv-broadcast-alert--entering {
+  animation: tvBroadcastAlertFade 0.4s ease-out forwards;
+}
+
+.tv-broadcast-alert[data-reduced-motion].tv-broadcast-alert--exiting {
+  animation: tvBroadcastAlertFade 0.3s ease-in reverse forwards;
+}
+
+@keyframes tvBroadcastAlertFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-broadcast-alert.tv-broadcast-alert--entering,
+  .tv-broadcast-alert.tv-broadcast-alert--exiting {
+    animation: tvBroadcastAlertFade 0.3s ease forwards;
+    transform: translateX(-50%);
+  }
+}

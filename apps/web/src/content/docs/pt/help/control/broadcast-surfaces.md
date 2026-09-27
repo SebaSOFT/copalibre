@@ -24,6 +24,18 @@ sobrevive a um corte de energia sem pedir credenciais novamente, e se recupera s
 conexão perdida ou dados indisponíveis — uma superfície `/tv/**` nunca mostra um erro que uma pessoa
 precisaria fechar.
 
+## Estúdio do transmissor
+
+`/control/<organization>/tournaments/<tournament>/broadcaster` é um console de autoatendimento
+para um streamer ou operador de mídia: ele emite automaticamente seu próprio token de exibição,
+permite escolher o modo de sobreposição (uma faixa inferior sobre sua câmera, ou uma cena em tela
+cheia sem câmera) e um fundo de pré-visualização (transparente, tela verde, tela magenta ou um
+fundo escuro de estádio), e fornece uma URL de OBS Browser Source pronta para colar com
+pré-visualização ao vivo — nenhum administrador precisa te dar um token nem compartilhar o próprio
+login. Enquanto essa sobreposição estiver aberta, um gol, ponto ou cartão registrado ao vivo exibe
+um aviso animado com o nome do time e do jogador, e se fecha sozinho — nunca precisa que alguém no
+local o acione ou feche.
+
 ## O que um espectador vê no site público
 
 O site público (sem login) mostra a classificação, a chave e os relatórios de partida de um torneio

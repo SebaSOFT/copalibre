@@ -1,8 +1,18 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import type { SupportedLanguage } from '@copalibre/domain';
 import { RealtimeClient } from '@copalibre/realtime';
-import { applyEvent, markConnected, type LiveDashboard } from '../../lib/live-state.js';
+import {
+  applyEvent,
+  markConnected,
+  type LiveDashboard,
+  type LiveMatch,
+} from '../../lib/live-state.js';
+import {
+  BroadcastAlertBanner,
+  type BroadcastAlertItem,
+} from './ui/organisms/BroadcastAlertBanner.js';
+import { resolveLiveTvMatchEvent } from '../../lib/tv-match-events.js';
 import { presentState } from '../../lib/result-state.js';
 import { formatClock } from '../../lib/matches-view.js';
 import { resolveTvBranding, tvStateColor, type TvBranding } from '../../lib/tv-branding.js';
@@ -57,6 +67,14 @@ export interface TvDashboardProps {
    * Empty or unset renders no ticker section at all, rather than an empty-state placeholder.
    */
   readonly matchEvents?: readonly TvMatchEvent[];
+  /**
+   * `personId -> display text`, from the pinned match's own rosters
+   * (openspec 0300) — set only alongside `matchEvents`, on the pinned-match
+   * route. Resolves a live alert's actor the same way the initial
+   * `matchEvents` ticker already resolves one; a `Map` would not survive
+   * this island's own JSON prop serialization.
+   */
+  readonly rosterActors?: Readonly<Record<string, string>>;
   readonly initialBracket?: {
     readonly stageNumber: number;
     readonly zones: readonly BracketZone[];
@@ -96,6 +114,7 @@ export function TvDashboard({
   presentation = 'kiosk',
   pinnedMatchNumber,
   matchEvents,
+  rosterActors,
   initialBracket,
   branding,
   tournamentName,
@@ -124,7 +143,18 @@ export function TvDashboard({
     return false;
   });
   const isOverlay = presentation === 'lower';
+  const showBroadcastAlerts = presentation === 'lower' || presentation === 'full';
   const resolvedBranding = resolveTvBranding(branding ?? {});
+  const [alertQueue, setAlertQueue] = useState<readonly BroadcastAlertItem[]>([]);
+  const dashboardRef = useRef(dashboard);
+  useEffect(() => {
+    dashboardRef.current = dashboard;
+  }, [dashboard]);
+  const eventLabelsByCode = useMemo(
+    () =>
+      Object.fromEntries((matchEvents ?? []).map((event) => [event.definitionCode, event.label])),
+    [matchEvents],
+  );
 
   // 1. Digital Clock (JetBrains Mono formatting)
   useEffect(() => {
@@ -153,8 +183,11 @@ export function TvDashboard({
   }, []);
 
   // 3. Polling Refresh Handler (Fallback when tokenless or projection out of sync)
-  const refreshProjection = useCallback(async () => {
-    if (!organizationAlias || !tournamentAlias) return;
+  // Returns the freshly-fetched matches (openspec 0300's alert banner diffs
+  // scores against this return value directly, rather than racing React's
+  // own state-update timing) — every existing caller already discards it.
+  const refreshProjection = useCallback(async (): Promise<readonly LiveMatch[] | undefined> => {
+    if (!organizationAlias || !tournamentAlias) return undefined;
     try {
       const res = await fetch(
         `/api/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/live`,
@@ -166,11 +199,13 @@ export function TvDashboard({
             ...current,
             matches: liveData.matches,
           }));
+          return liveData.matches as readonly LiveMatch[];
         }
       }
     } catch {
       // Degrade silently; do not reload page
     }
+    return undefined;
   }, [organizationAlias, tournamentAlias]);
 
   useEffect(() => {
@@ -200,7 +235,45 @@ export function TvDashboard({
       onOpen: () => setDashboard((current) => markConnected(current)),
       onEvent: (event) => {
         setDashboard((current) => applyEvent(current, event));
-        void refreshProjection();
+        const before =
+          pinnedMatchNumber === undefined
+            ? undefined
+            : dashboardRef.current.matches.find((m) => m.matchNumber === pinnedMatchNumber);
+        void refreshProjection().then((updated) => {
+          if (
+            !showBroadcastAlerts ||
+            event.eventType !== 'match.event-recorded' ||
+            !before ||
+            !updated
+          ) {
+            return;
+          }
+          const after = updated.find((m) => m.matchId === before.matchId);
+          if (
+            !after ||
+            typeof event.payload.matchId !== 'string' ||
+            event.payload.matchId !== before.matchId
+          ) {
+            return;
+          }
+          const resolved = resolveLiveTvMatchEvent(
+            { eventId: event.eventId, payload: event.payload },
+            {
+              homeEntrantId: after.sides[0]?.entrantId,
+              awayEntrantId: after.sides[1]?.entrantId,
+              actors: rosterActors ?? {},
+              labelsByCode: eventLabelsByCode,
+            },
+          );
+          if (!resolved) return;
+          const scoring = after.sides.some(
+            (side, index) => side.score !== before.sides[index]?.score,
+          );
+          setAlertQueue((current) => [
+            ...current,
+            { event: resolved, kind: scoring ? 'scoring' : 'notable' },
+          ]);
+        });
       },
       // DO NOT RELOAD PAGE ON PROJECTION REQUIRED. Refresh in-memory projection instead
       onProjectionRequired: () => {
@@ -213,6 +286,7 @@ export function TvDashboard({
     });
 
     return () => client.close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reconnecting SSE on every render of a prop that changes is worse than a stale closure here: pinnedMatchNumber/rosterActors/showBroadcastAlerts are server-supplied once at mount (same treatment matchEvents itself already gets), and eventLabelsByCode only grows from the same static matchEvents.
   }, [streamPath, refreshProjection]);
 
   // 5. Automatic Carousel Rotation (respects prefers-reduced-motion)
@@ -293,9 +367,23 @@ export function TvDashboard({
    * rail, the standings, the champion recap — belongs to a full-frame
    * presentation, not over someone's camera.
    */
+  const onAlertConsumed = (eventId: string): void => {
+    setAlertQueue((current) => current.filter((item) => item.event.eventId !== eventId));
+  };
+  const broadcastAlertBanner = showBroadcastAlerts ? (
+    <BroadcastAlertBanner
+      awayLabel={labels.awaySide}
+      homeLabel={labels.homeSide}
+      onConsumed={onAlertConsumed}
+      prefersReducedMotion={prefersReducedMotion}
+      queue={alertQueue}
+    />
+  ) : null;
+
   if (presentation === 'lower') {
     return (
       <div className="tv-root-container tv-lower-third" data-testid="tv-lower-third">
+        {broadcastAlertBanner}
         {spotlightMatch ? (
           <div className="tv-lower-third__bug cl-chamfer">
             <span className={`tv-lower-third__state tv-lower-third__state--${statusBadge.type}`}>
@@ -334,6 +422,7 @@ export function TvDashboard({
 
   return (
     <div className="tv-root-container">
+      {broadcastAlertBanner}
       {/* 1. Persistent Score-Bug / Status Bar */}
       {!isOverlay && (
         <header className="tv-scorebug cl-chamfer">

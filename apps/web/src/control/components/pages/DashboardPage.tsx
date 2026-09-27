@@ -64,6 +64,11 @@ export function DashboardPage({
   // server-enforced regardless.
   const canCreateTournament =
     role === undefined || capabilitiesForRole(role).includes('org.create-tournaments');
+  // Same guard, same capability the Broadcaster Studio's own backend
+  // endpoints already require (openspec 0300) — gates the dashboard's
+  // per-tournament entry point into it.
+  const canManageDisplayTokens =
+    role === undefined || capabilitiesForRole(role).includes('org.manage-display-tokens');
 
   const reload = useCallback(() => {
     setRefreshKey((k) => k + 1);
@@ -155,6 +160,7 @@ export function DashboardPage({
   return (
     <Dashboard
       canCreateTournament={canCreateTournament}
+      canManageDisplayTokens={canManageDisplayTokens}
       client={api}
       model={model}
       organizationAlias={organizationAlias}

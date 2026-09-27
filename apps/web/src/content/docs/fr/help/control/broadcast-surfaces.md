@@ -24,6 +24,18 @@ survit à une coupure de courant sans redemander d'identifiants, et se rétablit
 connexion perdue ou de données indisponibles — une surface `/tv/**` n'affiche jamais d'erreur qu'une
 personne devrait fermer.
 
+## Studio du diffuseur
+
+`/control/<organization>/tournaments/<tournament>/broadcaster` est une console en libre-service
+pour un streamer ou un opérateur média : elle émet automatiquement votre propre jeton d'affichage,
+vous laisse choisir le mode de superposition (une bande en incrustation basse sur votre caméra, ou
+une scène plein écran sans caméra) et un fond d'aperçu (transparent, fond vert, fond magenta ou un
+décor de stade sombre), et vous fournit une URL Browser Source OBS prête à coller avec aperçu en
+direct — aucun administrateur n'a besoin de vous donner un jeton ni de partager sa propre session.
+Pendant que cette superposition est ouverte, un but, un point ou un carton enregistré en direct
+affiche une bannière animée nommant l'équipe et le joueur, puis se referme automatiquement —
+personne sur place n'a besoin de la déclencher ou de la fermer.
+
 ## Ce que voit un spectateur sur le site public
 
 Le site public (sans connexion) affiche les classements, le tableau et les rapports de match d'un

@@ -134,6 +134,12 @@ export type ControlRoute =
       readonly screen: 'matchesView';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
+    }
+  | {
+      /** The streamer self-service console (openspec 0300): OBS URL generation, chroma preview. */
+      readonly screen: 'broadcaster';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
     };
 
 /**
@@ -300,6 +306,14 @@ const TOURNAMENT_SCOPED_ROUTES: readonly {
     matches: (rest) => rest.length === 3 && rest[2] === 'matches-view',
     build: (organizationAlias, tournamentAlias) => ({
       screen: 'matchesView',
+      organizationAlias,
+      tournamentAlias,
+    }),
+  },
+  {
+    matches: (rest) => rest.length === 3 && rest[2] === 'broadcaster',
+    build: (organizationAlias, tournamentAlias) => ({
+      screen: 'broadcaster',
       organizationAlias,
       tournamentAlias,
     }),

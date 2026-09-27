@@ -24,6 +24,18 @@ Sopravvive a uno spegnimento improvviso senza dover reinserire le credenziali, e
 da una connessione persa o da dati non disponibili — una superficie `/tv/**` non mostra mai un errore che
 una persona dovrebbe chiudere.
 
+## Studio del trasmettitore
+
+`/control/<organization>/tournaments/<tournament>/broadcaster` è una console self-service per uno
+streamer o un operatore media: emette automaticamente un proprio token di visualizzazione, ti
+permette di scegliere la modalità overlay (una fascia inferiore sopra la tua telecamera, o una
+scena a schermo intero senza telecamera) e uno sfondo di anteprima (trasparente, schermo verde,
+schermo magenta o uno sfondo scuro da stadio), e ti fornisce un URL OBS Browser Source pronto da
+incollare con anteprima dal vivo — nessun amministratore deve darti un token né condividere il
+proprio accesso. Mentre quell'overlay è aperto, un gol, un punto o un cartellino registrato dal
+vivo mostra un avviso animato con il nome della squadra e del giocatore, per poi chiudersi da solo
+— non serve mai che qualcuno sul posto lo attivi o lo chiuda.
+
 ## Cosa vede uno spettatore sul sito pubblico
 
 Il sito pubblico (senza accesso) mostra le classifiche, il tabellone e i report partita di un torneo

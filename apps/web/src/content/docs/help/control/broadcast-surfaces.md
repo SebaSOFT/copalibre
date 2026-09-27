@@ -25,6 +25,17 @@ A device holding a valid token needs no person present to keep working. It survi
 re-entering credentials, and recovers silently from a lost connection or unavailable data — a `/tv/**`
 surface never shows an error a person would need to dismiss.
 
+## Broadcaster Studio
+
+`/control/<organization>/tournaments/<tournament>/broadcaster` is a self-service console for a
+streamer or media operator: it issues your own device-scoped display token automatically, lets you
+pick the overlay mode (a lower-third strip over your camera, or a full-screen scene with no camera
+needed) and a preview background (transparent, green screen, magenta screen, or a dark stadium
+backdrop), and gives you a ready-to-paste OBS Browser Source URL with a live preview — no
+administrator has to hand you a token or share their own login. While that overlay is open, a goal,
+point, or card recorded live pops an animated callout naming the entrant and player, then dismisses
+itself automatically; it never needs anyone at the venue to trigger or clear it.
+
 ## What a spectator sees on the public site
 
 The public site (no login) shows a tournament's standings, bracket, and match reports as they are

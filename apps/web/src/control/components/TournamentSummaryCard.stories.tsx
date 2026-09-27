@@ -19,6 +19,7 @@ const meta = {
     onExport: () => undefined,
     onExportConfiguration: () => undefined,
     onArchive: () => undefined,
+    canManageDisplayTokens: true,
   },
 } satisfies Meta<typeof TournamentSummaryCard>;
 export default meta;
