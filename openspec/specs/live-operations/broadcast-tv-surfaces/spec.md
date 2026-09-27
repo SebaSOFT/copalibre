@@ -306,3 +306,31 @@ The full-frame TV kiosk and full overlay SHALL show a bracket section for an eli
 #### Scenario: Non-elimination stage or unavailable bracket
 - **WHEN** the featured stage is round robin or its bracket projection is unavailable
 - **THEN** the TV keeps its other score and statistics sections without an empty bracket section or sample matchup cards
+
+### Requirement: Broadcaster self-service portal
+The system SHALL provide a dedicated self-service interface (`/control/tournaments/:id/broadcaster`) allowing authorized streamers and media operators to generate scoped broadcast display tokens and copy ready-to-use OBS Browser Source URLs without super-admin assistance.
+
+#### Scenario: Streamer copies OBS overlay URL
+- **WHEN** a streamer visits the broadcaster studio page for an active tournament or match
+- **THEN** the system generates a scoped display token and provides a one-click button to copy the full OBS Browser Source URL with recommended resolution (1920x1080) and FPS settings (60fps)
+
+#### Scenario: Overlay live preview
+- **WHEN** a streamer configures their overlay on the broadcaster studio page
+- **THEN** an embedded iframe renders the live overlay with a background picker (transparent, green chroma `#00FF00`, magenta `#FF00FF`, dark stadium) to preview layout before going live
+
+### Requirement: Animated live event alerts in overlay mode
+When rendered in overlay mode (`?mode=overlay-lower` or `?mode=overlay-full`), the broadcast surface SHALL dynamically render animated alert callouts for critical match events (such as goals, points, yellow/red cards, or penalties) received via real-time SSE stream.
+
+#### Scenario: Goal or scoring event triggers animated banner
+- **WHEN** a `match.event-recorded` event with a score-altering or highlight action is received by an active overlay
+- **THEN** the overlay displays an animated banner showing the scoring team crest, scorer player name, minute/clock, and new score line
+- **AND** the banner automatically dismisses after 6 seconds without operator intervention
+
+#### Scenario: Disciplinary card event triggers alert
+- **WHEN** a card event (yellow card, red card) is recorded during the match
+- **THEN** the overlay displays a graphic callout with the card color, player name, minute, and club emblem
+- **AND** auto-dismisses after 5 seconds
+
+#### Scenario: Reduced motion preference
+- **WHEN** the browser environment or operating system specifies `prefers-reduced-motion: reduce`
+- **THEN** event alert banners transition with simple opacity fading rather than sliding or bouncing keyframe animations
