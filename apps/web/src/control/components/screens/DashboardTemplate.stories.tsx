@@ -24,6 +24,7 @@ const meta = {
   component: DashboardTemplate,
   args: {
     canCreateTournament: true,
+    canManageDisplayTokens: true,
     devices: [],
     model,
     now: Date.now(),

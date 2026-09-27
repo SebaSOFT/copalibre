@@ -35,7 +35,13 @@ const model = buildDashboard({
 const meta = {
   title: 'Admin/Screens/Dashboard',
   component: Dashboard,
-  args: { canCreateTournament: true, model, organizationAlias: ORG, client },
+  args: {
+    canCreateTournament: true,
+    canManageDisplayTokens: true,
+    model,
+    organizationAlias: ORG,
+    client,
+  },
   render: function Render(args) {
     const intl = useIntl();
     if (isSupportedLanguage(intl.locale)) writeStoredLanguagePreference(intl.locale);

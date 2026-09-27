@@ -676,6 +676,7 @@ export const messages: Record<string, string> = {
   'control.stageHub.notFound': 'Aucune phase {number} dans ce tournoi.',
   'control.stageHub.breadcrumbLink': 'Phase {stageNumber}',
   'control.dashboard.stages': 'Phases',
+  'control.dashboard.broadcasterStudio': 'Studio du diffuseur',
   'control.stageConfiguration.title': 'Configuration de la phase',
   'control.stageConfiguration.fieldLabel': 'Champ (chemin)',
   'control.stageConfiguration.valueLabel': 'Valeur (JSON)',
@@ -1288,4 +1289,25 @@ export const messages: Record<string, string> = {
   'control.filePicker.clear': 'Effacer',
   'control.filePicker.filesSelected':
     '{count, plural, one {# fichier sélectionné} other {# fichiers sélectionnés}}',
+
+  'broadcasterStudio.title': 'Studio du diffuseur',
+  'broadcasterStudio.intro':
+    'Générez un lien de superposition prêt pour la diffusion pour OBS Studio ou tout autre logiciel compatible Browser Source — sans administrateur.',
+  'broadcasterStudio.loading': 'Génération de votre lien de diffusion…',
+  'broadcasterStudio.loadError':
+    'Impossible de générer un lien de diffusion. Essayez de recharger cette page.',
+  'broadcasterStudio.modeLabel': 'Mode de superposition',
+  'broadcasterStudio.modeLower': 'Bande basse (sur votre caméra)',
+  'broadcasterStudio.modeFull': 'Plein écran (sans caméra)',
+  'broadcasterStudio.chromaLabel': "Fond d'aperçu",
+  'broadcasterStudio.chromaTransparent': 'Transparent',
+  'broadcasterStudio.chromaGreen': 'Fond vert',
+  'broadcasterStudio.chromaMagenta': 'Fond magenta',
+  'broadcasterStudio.chromaDark': 'Stade sombre',
+  'broadcasterStudio.urlLabel': 'URL Browser Source OBS',
+  'broadcasterStudio.copyButton': "Copier l'URL Browser Source OBS",
+  'broadcasterStudio.copySuccess': 'URL copiée dans le presse-papiers',
+  'broadcasterStudio.copyFailure': "Impossible de copier — copiez l'URL manuellement",
+  'broadcasterStudio.resolutionHeading': 'Paramètres OBS Browser Source recommandés',
+  'broadcasterStudio.previewLabel': 'Aperçu en direct',
 };

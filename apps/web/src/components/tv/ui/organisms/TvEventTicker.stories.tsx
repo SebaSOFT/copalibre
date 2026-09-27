@@ -17,6 +17,7 @@ const meta = {
     events: [
       {
         eventId: 'event-1',
+        definitionCode: 'goal',
         label: 'Gol',
         occurredAt: '2026-09-24T18:12:00.000Z',
         side: 'home',
@@ -24,6 +25,7 @@ const meta = {
       },
       {
         eventId: 'event-2',
+        definitionCode: 'yellow-card',
         label: 'Tarjeta amarilla',
         occurredAt: '2026-09-24T18:34:00.000Z',
         side: 'away',
@@ -31,6 +33,7 @@ const meta = {
       },
       {
         eventId: 'event-3',
+        definitionCode: 'goal',
         label: 'Gol',
         occurredAt: '2026-09-24T18:41:00.000Z',
         side: 'home',

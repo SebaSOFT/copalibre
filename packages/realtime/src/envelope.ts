@@ -69,6 +69,7 @@ export const PUBLIC_EVENT_FIELDS: Readonly<Record<string, readonly string[]>> = 
     'matchId',
     'definitionCode',
     'side',
+    'personId',
     'occurredAt',
     'scores',
     'clockSeconds',

@@ -672,6 +672,7 @@ export const messages: Record<string, string> = {
   'control.stageHub.notFound': 'No hay fase {number} en este torneo.',
   'control.stageHub.breadcrumbLink': 'Fase {stageNumber}',
   'control.dashboard.stages': 'Fases',
+  'control.dashboard.broadcasterStudio': 'Estudio de transmisión',
   'control.stageConfiguration.title': 'Configuración personalizada de la fase',
   'control.stageConfiguration.fieldLabel': 'Campo (ruta con puntos)',
   'control.stageConfiguration.valueLabel': 'Valor (JSON)',
@@ -1281,4 +1282,25 @@ export const messages: Record<string, string> = {
   'control.filePicker.clear': 'Borrar',
   'control.filePicker.filesSelected':
     '{count, plural, one {# archivo seleccionado} other {# archivos seleccionados}}',
+
+  'broadcasterStudio.title': 'Estudio de transmisión',
+  'broadcasterStudio.intro':
+    'Generá un enlace de superposición listo para transmitir para OBS Studio o cualquier otro software compatible con fuentes de navegador — sin necesidad de un administrador.',
+  'broadcasterStudio.loading': 'Generando tu enlace de transmisión…',
+  'broadcasterStudio.loadError':
+    'No se pudo generar un enlace de transmisión. Intentá recargar esta página.',
+  'broadcasterStudio.modeLabel': 'Modo de superposición',
+  'broadcasterStudio.modeLower': 'Franja inferior (sobre tu cámara)',
+  'broadcasterStudio.modeFull': 'Pantalla completa (sin cámara)',
+  'broadcasterStudio.chromaLabel': 'Fondo de vista previa',
+  'broadcasterStudio.chromaTransparent': 'Transparente',
+  'broadcasterStudio.chromaGreen': 'Croma verde',
+  'broadcasterStudio.chromaMagenta': 'Croma magenta',
+  'broadcasterStudio.chromaDark': 'Estadio oscuro',
+  'broadcasterStudio.urlLabel': 'URL de OBS Browser Source',
+  'broadcasterStudio.copyButton': 'Copiar URL de OBS Browser Source',
+  'broadcasterStudio.copySuccess': 'URL copiada al portapapeles',
+  'broadcasterStudio.copyFailure': 'No se pudo copiar — copiá la URL manualmente',
+  'broadcasterStudio.resolutionHeading': 'Configuración recomendada para OBS Browser Source',
+  'broadcasterStudio.previewLabel': 'Vista previa en vivo',
 };

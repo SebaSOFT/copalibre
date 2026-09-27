@@ -17,11 +17,13 @@ interface DeviceEntry {
 /** A1, the organization dashboard. */
 export function Dashboard({
   canCreateTournament,
+  canManageDisplayTokens,
   model,
   organizationAlias,
   client,
 }: {
   readonly canCreateTournament: boolean;
+  readonly canManageDisplayTokens: boolean;
   readonly client?: ControlApiClient;
   readonly model: DashboardModel;
   readonly organizationAlias: string;
@@ -35,6 +37,7 @@ export function Dashboard({
     >
       <DashboardContent
         canCreateTournament={canCreateTournament}
+        canManageDisplayTokens={canManageDisplayTokens}
         client={client}
         model={model}
         organizationAlias={organizationAlias}
@@ -51,11 +54,13 @@ export function Dashboard({
  */
 function DashboardContent({
   canCreateTournament,
+  canManageDisplayTokens,
   model,
   organizationAlias,
   client,
 }: {
   readonly canCreateTournament: boolean;
+  readonly canManageDisplayTokens: boolean;
   readonly client?: ControlApiClient;
   readonly model: DashboardModel;
   readonly organizationAlias: string;
@@ -131,6 +136,7 @@ function DashboardContent({
   return (
     <DashboardTemplate
       canCreateTournament={canCreateTournament}
+      canManageDisplayTokens={canManageDisplayTokens}
       devices={devices}
       model={visibleModel}
       now={now}

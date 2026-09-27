@@ -1,7 +1,8 @@
 import { jest } from '@jest/globals';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
+import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
 import { TvDashboard } from './TvDashboard.js';
-import type { LiveDashboard } from '../../lib/live-state.js';
+import type { LiveDashboard, LiveMatch } from '../../lib/live-state.js';
 import type { StandingsRowView } from '../../lib/overview.js';
 import { publicIntl, tvDashboardLabels, tvStatisticsLabels } from '../../lib/i18n/public-intl.js';
 
@@ -210,12 +211,14 @@ describe('TvDashboard', () => {
           matchEvents={[
             {
               eventId: 'ev-1',
+              definitionCode: 'goal',
               label: 'Goal',
               occurredAt: '2026-01-01T18:12:00.000Z',
               side: 'home',
             },
             {
               eventId: 'ev-2',
+              definitionCode: 'yellow-card',
               label: 'Yellow card',
               occurredAt: '2026-01-01T18:34:00.000Z',
               side: 'away',
@@ -478,5 +481,285 @@ describe('scorebug clock (openspec 0225 task 2.7)', () => {
 
     const clockBug = document.querySelector('.tv-lower-third__clock');
     expect(clockBug?.getAttribute('data-time')).toBe('34:05');
+  });
+});
+
+describe('TvDashboard broadcast alert dispatch (openspec 0300)', () => {
+  const pinnedMatch: LiveMatch = {
+    matchId: 'm-pinned',
+    stageNumber: 1,
+    matchNumber: 1,
+    state: 'live',
+    projectionVersion: 1,
+    sides: [
+      { entrantId: 'entrant-home', name: 'Boca Juniors', score: 1, state: 'live' },
+      { entrantId: 'entrant-away', name: 'River Plate', score: 1, state: 'live' },
+    ],
+  };
+  const pinnedDashboard: LiveDashboard = {
+    matches: [pinnedMatch],
+    standingsVersion: 1,
+    usingLastKnown: true,
+  };
+
+  let originalFetch: typeof fetch;
+  let connectSpy: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    window.history.pushState({}, '', '/?token=streamer-token');
+    originalFetch = globalThis.fetch;
+  });
+
+  afterEach(() => {
+    connectSpy?.mockRestore();
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
+    window.history.pushState({}, '', '/');
+    jest.useRealTimers();
+  });
+
+  function mockRefreshResponse(matches: LiveDashboard['matches']): void {
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async () =>
+        new Response(JSON.stringify({ matches }), {
+          headers: { 'content-type': 'application/json' },
+        }),
+    });
+  }
+
+  it('enqueues a scoring alert, with the resolved actor, when a live event changes the score', async () => {
+    let capturedHandlers: RealtimeHandlers | undefined;
+    connectSpy = jest
+      .spyOn(RealtimeClient.prototype, 'connect')
+      .mockImplementation(async (handlers) => {
+        capturedHandlers = handlers;
+        return { attempts: 1, stopped: 'aborted' as const };
+      });
+    mockRefreshResponse([
+      {
+        ...pinnedMatch,
+        sides: [
+          { entrantId: 'entrant-home', name: 'Boca Juniors', score: 2, state: 'live' },
+          { entrantId: 'entrant-away', name: 'River Plate', score: 1, state: 'live' },
+        ],
+      },
+    ]);
+
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={pinnedDashboard}
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        organizationAlias="liga-argentina"
+        tournamentAlias="apertura-2026"
+        presentation="lower"
+        pinnedMatchNumber={1}
+        matchEvents={[
+          {
+            eventId: 'ev-0',
+            definitionCode: 'goal',
+            label: 'Goal',
+            occurredAt: '2026-01-01T18:00:00.000Z',
+          },
+        ]}
+        rosterActors={{ 'person-1': '#9 Ada' }}
+        pollIntervalMs={0}
+      />,
+    );
+
+    expect(capturedHandlers).toBeDefined();
+    await act(async () => {
+      capturedHandlers?.onEvent({
+        eventId: 'ev-live-1',
+        organizationId: 'org-1',
+        stream: 'match:m-pinned',
+        entityId: 'm-pinned',
+        eventType: 'match.event-recorded',
+        projectionVersion: 2,
+        createdAt: '2026-01-01T18:20:00.000Z',
+        payload: {
+          matchId: 'm-pinned',
+          definitionCode: 'goal',
+          side: 'entrant-home',
+          personId: 'person-1',
+          occurredAt: '2026-01-01T18:20:00.000Z',
+        },
+      });
+      // Flushes refreshProjection()'s awaited fetch and its `.then()` continuation.
+      await jest.advanceTimersByTimeAsync(0);
+    });
+    act(() => jest.advanceTimersByTime(0)); // banner: idle -> entering
+
+    const alert = screen.getByRole('status');
+    expect(alert.className).toContain('tv-broadcast-alert--scoring');
+    expect(screen.getByText('Goal')).toBeDefined();
+    expect(screen.getByText('#9 Ada')).toBeDefined();
+  });
+
+  it('classifies a non-scoring live event as notable, with no actor when personId is unrostered', async () => {
+    let capturedHandlers: RealtimeHandlers | undefined;
+    connectSpy = jest
+      .spyOn(RealtimeClient.prototype, 'connect')
+      .mockImplementation(async (handlers) => {
+        capturedHandlers = handlers;
+        return { attempts: 1, stopped: 'aborted' as const };
+      });
+    // Same score before and after: this event did not change it.
+    mockRefreshResponse([pinnedMatch]);
+
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={pinnedDashboard}
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        organizationAlias="liga-argentina"
+        tournamentAlias="apertura-2026"
+        presentation="lower"
+        pinnedMatchNumber={1}
+        matchEvents={[
+          {
+            eventId: 'ev-0',
+            definitionCode: 'yellow-card',
+            label: 'Yellow card',
+            occurredAt: '2026-01-01T18:00:00.000Z',
+          },
+        ]}
+        pollIntervalMs={0}
+      />,
+    );
+
+    await act(async () => {
+      capturedHandlers?.onEvent({
+        eventId: 'ev-live-2',
+        organizationId: 'org-1',
+        stream: 'match:m-pinned',
+        entityId: 'm-pinned',
+        eventType: 'match.event-recorded',
+        projectionVersion: 2,
+        createdAt: '2026-01-01T18:25:00.000Z',
+        payload: {
+          matchId: 'm-pinned',
+          definitionCode: 'yellow-card',
+          side: 'entrant-away',
+          personId: 'person-unrostered',
+          occurredAt: '2026-01-01T18:25:00.000Z',
+        },
+      });
+      await jest.advanceTimersByTimeAsync(0);
+    });
+    act(() => jest.advanceTimersByTime(0));
+
+    const alert = screen.getByRole('status');
+    expect(alert.className).toContain('tv-broadcast-alert--notable');
+    expect(screen.getByText('Yellow card')).toBeDefined();
+    expect(alert.querySelector('.tv-broadcast-alert__actor')).toBeNull();
+  });
+
+  it('does not enqueue an alert for an event on a different match', async () => {
+    let capturedHandlers: RealtimeHandlers | undefined;
+    connectSpy = jest
+      .spyOn(RealtimeClient.prototype, 'connect')
+      .mockImplementation(async (handlers) => {
+        capturedHandlers = handlers;
+        return { attempts: 1, stopped: 'aborted' as const };
+      });
+    mockRefreshResponse([pinnedMatch]);
+
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={pinnedDashboard}
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        organizationAlias="liga-argentina"
+        tournamentAlias="apertura-2026"
+        presentation="lower"
+        pinnedMatchNumber={1}
+        matchEvents={[]}
+        pollIntervalMs={0}
+      />,
+    );
+
+    await act(async () => {
+      capturedHandlers?.onEvent({
+        eventId: 'ev-live-3',
+        organizationId: 'org-1',
+        stream: 'match:m-other',
+        entityId: 'm-other',
+        eventType: 'match.event-recorded',
+        projectionVersion: 2,
+        createdAt: '2026-01-01T18:30:00.000Z',
+        payload: {
+          matchId: 'm-other',
+          definitionCode: 'goal',
+          occurredAt: '2026-01-01T18:30:00.000Z',
+        },
+      });
+      await jest.advanceTimersByTimeAsync(0);
+    });
+    act(() => jest.advanceTimersByTime(0));
+
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('never renders the alert banner in kiosk presentation', async () => {
+    let capturedHandlers: RealtimeHandlers | undefined;
+    connectSpy = jest
+      .spyOn(RealtimeClient.prototype, 'connect')
+      .mockImplementation(async (handlers) => {
+        capturedHandlers = handlers;
+        return { attempts: 1, stopped: 'aborted' as const };
+      });
+    mockRefreshResponse([
+      {
+        ...pinnedMatch,
+        sides: [
+          { entrantId: 'entrant-home', name: 'Boca Juniors', score: 2, state: 'live' },
+          { entrantId: 'entrant-away', name: 'River Plate', score: 1, state: 'live' },
+        ],
+      },
+    ]);
+
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={pinnedDashboard}
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        organizationAlias="liga-argentina"
+        tournamentAlias="apertura-2026"
+        pinnedMatchNumber={1}
+        matchEvents={[]}
+        pollIntervalMs={0}
+      />,
+    );
+
+    await act(async () => {
+      capturedHandlers?.onEvent({
+        eventId: 'ev-live-4',
+        organizationId: 'org-1',
+        stream: 'match:m-pinned',
+        entityId: 'm-pinned',
+        eventType: 'match.event-recorded',
+        projectionVersion: 2,
+        createdAt: '2026-01-01T18:35:00.000Z',
+        payload: {
+          matchId: 'm-pinned',
+          definitionCode: 'goal',
+          occurredAt: '2026-01-01T18:35:00.000Z',
+        },
+      });
+      await jest.advanceTimersByTimeAsync(0);
+    });
+    act(() => jest.advanceTimersByTime(0));
+
+    expect(screen.queryByRole('status')).toBeNull();
   });
 });

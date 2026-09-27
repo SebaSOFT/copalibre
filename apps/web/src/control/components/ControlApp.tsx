@@ -4,6 +4,7 @@ import { parseControlPath, type ControlRoute } from '@copalibre/routing';
 import {
   AnalyticsControlRoute,
   AuditTrailControlRoute,
+  BroadcasterStudioControlRoute,
   ClubManagementControlRoute,
   DisciplineDocumentControlRoute,
   LiveConsoleControlRoute,
@@ -234,6 +235,12 @@ const ROUTE_COMPONENT_BY_SCREEN: ScreenComponents = {
       tournamentAlias={route.tournamentAlias}
     />
   ),
+  broadcaster: (route) => (
+    <BroadcasterStudioControlRoute
+      organizationAlias={route.organizationAlias}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
   matchConsole: (route) => (
     <MatchConsoleControlRoute
       matchId={route.matchId}
@@ -338,6 +345,7 @@ const TITLE_BY_SCREEN: TitleByScreen = {
   tournamentRuleset: (route) => `Tournament ruleset — ${route.tournamentAlias}`,
   reports: (route) => `Reports and disputes — ${route.tournamentAlias}`,
   matchesView: (route) => `Matches — ${route.tournamentAlias}`,
+  broadcaster: (route) => `Broadcaster Studio — ${route.tournamentAlias}`,
   matchConsole: (route) => `Operate match — ${route.tournamentAlias}`,
   loadMatchData: (route) => `Load match data — ${route.tournamentAlias}`,
   seeding: (route) => `Seeding — ${route.tournamentAlias}`,

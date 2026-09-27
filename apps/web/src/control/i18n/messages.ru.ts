@@ -671,6 +671,7 @@ export const messages: Record<string, string> = {
   'control.stageHub.notFound': 'Нет этапа {number} в этом турнире.',
   'control.stageHub.breadcrumbLink': 'Этап {stageNumber}',
   'control.dashboard.stages': 'Этапы',
+  'control.dashboard.broadcasterStudio': 'Студия трансляции',
   'control.stageConfiguration.title': 'Конфигурация этапа',
   'control.stageConfiguration.fieldLabel': 'Поле (путь)',
   'control.stageConfiguration.valueLabel': 'Значение (JSON)',
@@ -1279,4 +1280,25 @@ export const messages: Record<string, string> = {
   'control.filePicker.clear': 'Очистить',
   'control.filePicker.filesSelected':
     '{count, plural, one {# файл выбран} few {# файла выбрано} many {# файлов выбрано} other {# файла выбрано}}',
+
+  'broadcasterStudio.title': 'Студия трансляции',
+  'broadcasterStudio.intro':
+    'Создайте готовую для трансляции ссылку наложения для OBS Studio или любого другого ПО с поддержкой Browser Source — без участия администратора.',
+  'broadcasterStudio.loading': 'Создание ссылки для трансляции…',
+  'broadcasterStudio.loadError':
+    'Не удалось создать ссылку для трансляции. Попробуйте перезагрузить страницу.',
+  'broadcasterStudio.modeLabel': 'Режим наложения',
+  'broadcasterStudio.modeLower': 'Нижняя полоса (поверх камеры)',
+  'broadcasterStudio.modeFull': 'Полный экран (без камеры)',
+  'broadcasterStudio.chromaLabel': 'Фон предпросмотра',
+  'broadcasterStudio.chromaTransparent': 'Прозрачный',
+  'broadcasterStudio.chromaGreen': 'Зелёный хромакей',
+  'broadcasterStudio.chromaMagenta': 'Пурпурный хромакей',
+  'broadcasterStudio.chromaDark': 'Тёмный стадион',
+  'broadcasterStudio.urlLabel': 'URL-адрес OBS Browser Source',
+  'broadcasterStudio.copyButton': 'Скопировать URL-адрес OBS Browser Source',
+  'broadcasterStudio.copySuccess': 'Ссылка скопирована в буфер обмена',
+  'broadcasterStudio.copyFailure': 'Не удалось скопировать — скопируйте ссылку вручную',
+  'broadcasterStudio.resolutionHeading': 'Рекомендуемые настройки OBS Browser Source',
+  'broadcasterStudio.previewLabel': 'Предпросмотр в реальном времени',
 };

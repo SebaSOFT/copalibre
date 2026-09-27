@@ -1264,6 +1264,11 @@ function components(): string {
     '@media (prefers-reduced-motion: reduce) { .cl-match-card__compact-dot.cl-state--live { animation: none; opacity: 1; } }',
     '.cl-match-card__compact-content { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }',
     '',
+    // The Broadcaster Studio's live preview (openspec 0300): a real `<iframe>`
+    // has no intrinsic size, so it renders at the UA default (300×150) with no
+    // explicit dimensions — every property here exists to give it one.
+    '.cl-broadcaster-studio__preview { display: block; width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--cl-border-muted); background: var(--cl-surface-chrome); }',
+    '',
     // The grand-final spotlight (openspec 0225 task 4.3/5.2) — a MatchCard
     // variant, not MatchCardData's shape: a seed and a per-participant winner
     // flag have no place there. No `box-shadow` here: an `isLive`-only resting

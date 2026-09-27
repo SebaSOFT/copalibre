@@ -673,6 +673,7 @@ export const messages: Record<string, string> = {
   'control.stageHub.notFound': 'Nessuna fase {number} in questo torneo.',
   'control.stageHub.breadcrumbLink': 'Fase {stageNumber}',
   'control.dashboard.stages': 'Fasi',
+  'control.dashboard.broadcasterStudio': 'Studio del trasmettitore',
   'control.stageConfiguration.title': 'Configurazione della fase',
   'control.stageConfiguration.fieldLabel': 'Campo (percorso)',
   'control.stageConfiguration.valueLabel': 'Valore (JSON)',
@@ -1285,4 +1286,25 @@ export const messages: Record<string, string> = {
   'control.filePicker.clear': 'Cancella',
   'control.filePicker.filesSelected':
     '{count, plural, one {# file selezionato} other {# file selezionati}}',
+
+  'broadcasterStudio.title': 'Studio del trasmettitore',
+  'broadcasterStudio.intro':
+    'Genera un link overlay pronto per lo streaming per OBS Studio o qualsiasi altro software compatibile con Browser Source — nessun amministratore necessario.',
+  'broadcasterStudio.loading': 'Generazione del link di streaming…',
+  'broadcasterStudio.loadError':
+    'Impossibile generare un link di streaming. Prova a ricaricare questa pagina.',
+  'broadcasterStudio.modeLabel': 'Modalità overlay',
+  'broadcasterStudio.modeLower': 'Fascia inferiore (sopra la tua telecamera)',
+  'broadcasterStudio.modeFull': 'Schermo intero (senza telecamera)',
+  'broadcasterStudio.chromaLabel': 'Sfondo di anteprima',
+  'broadcasterStudio.chromaTransparent': 'Trasparente',
+  'broadcasterStudio.chromaGreen': 'Schermo verde',
+  'broadcasterStudio.chromaMagenta': 'Schermo magenta',
+  'broadcasterStudio.chromaDark': 'Stadio scuro',
+  'broadcasterStudio.urlLabel': 'URL OBS Browser Source',
+  'broadcasterStudio.copyButton': 'Copia URL OBS Browser Source',
+  'broadcasterStudio.copySuccess': 'URL copiato negli appunti',
+  'broadcasterStudio.copyFailure': "Impossibile copiare — copia l'URL manualmente",
+  'broadcasterStudio.resolutionHeading': 'Impostazioni consigliate per OBS Browser Source',
+  'broadcasterStudio.previewLabel': 'Anteprima dal vivo',
 };

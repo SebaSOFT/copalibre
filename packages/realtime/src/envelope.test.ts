@@ -66,7 +66,7 @@ describe('what a public stream may say', () => {
     expect(sanitiseForPublic(toEnvelope({ ...row, eventType }))).toBeDefined();
   });
 
-  it('preserves scores and clockSeconds on public match.event-recorded', () => {
+  it('preserves scores, clockSeconds, and personId on public match.event-recorded', () => {
     const publicised = sanitiseForPublic(
       toEnvelope({
         ...row,
@@ -75,6 +75,11 @@ describe('what a public stream may say', () => {
           matchId: 'm-1',
           definitionCode: 'goal',
           side: 'home',
+          // The same field already public via PublicMatchReportResponse.timeline[].personId
+          // (apps/api/src/controllers/public-projections.controller.ts) — openspec 0300
+          // exposes it here too, so the live channel can name an actor the REST snapshot
+          // already names, not a new disclosure.
+          personId: 'person-7',
           occurredAt: 1234567,
           scores: { 'en-1': 1, 'en-2': 0 },
           clockSeconds: 345,
@@ -87,6 +92,7 @@ describe('what a public stream may say', () => {
       matchId: 'm-1',
       definitionCode: 'goal',
       side: 'home',
+      personId: 'person-7',
       occurredAt: 1234567,
       scores: { 'en-1': 1, 'en-2': 0 },
       clockSeconds: 345,

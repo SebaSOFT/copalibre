@@ -235,3 +235,33 @@ owned empty-state component clearly communicating the absence of matches for the
 - **WHEN** a spectator selects stage, zone, or status filters that match zero fixtures
 - **THEN** the view displays an owned empty-state container with explanatory text rather than a bare
   unstyled paragraph
+
+### Requirement: Compact card presentation
+When `compact=true` is requested, `MatchCard` SHALL render a single-line, condensed chamfered card presenting match state via a color-coded indicator dot, entrant abbreviations or algorithmic short names, and either score figures or upcoming kickoff time.
+
+#### Scenario: Live or finalized match in compact mode
+- **WHEN** `compact` is `true` and the match has recorded scores
+- **THEN** `MatchCard` renders the color-coded state indicator dot, followed by home abbreviation, home score, versus separator, away score, and away abbreviation (e.g. `* CPC 4 vs 3 UVT`)
+
+#### Scenario: Upcoming match in compact mode
+- **WHEN** `compact` is `true` and the match has not started (scores are undefined)
+- **THEN** `MatchCard` renders the color-coded state indicator dot, followed by home abbreviation, versus separator, away abbreviation, and scheduled kickoff time if present (e.g. `* CPC vs UVT 18:30`)
+
+#### Scenario: Fallback abbreviation derivation
+- **WHEN** an entrant abbreviation is absent from match data
+- **THEN** `MatchCard` derives an abbreviation by taking the dotted initials of multi-word names (e.g. "San Juan" -> "S.J.") or the first 5 characters of a single-word name, with fallback to "TBD" if name is absent
+
+#### Scenario: State indicator accessibility
+- **WHEN** the color-coded dot is rendered in compact mode
+- **THEN** it includes an accessible state label via `title` attribute and visually hidden text (`.cl-visually-hidden`) so non-color channels remain fully perceivable
+
+### Requirement: Public matches view density toggle
+The public matches view (`matches.astro`) SHALL support a `compact` query parameter (`?compact=true`) and provide a server-rendered density toggle allowing spectators to switch between detailed and compact card listings without client-side JavaScript.
+
+#### Scenario: Selecting compact view
+- **WHEN** an anonymous spectator navigates to the matches view with `?compact=true`
+- **THEN** the matches view renders all match rows using compact `MatchCard` components within a dense grid container (`.cl-matches-view__grid--compact`)
+
+#### Scenario: Preserving filter parameters across density changes
+- **WHEN** a spectator toggles between detailed and compact views while filtering by stage, zone, group, or match state
+- **THEN** all active filter parameters are preserved in the resulting URL

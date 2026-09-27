@@ -675,6 +675,7 @@ export const messages: Record<string, string> = {
   'control.stageHub.notFound': 'Keine Phase {number} in diesem Turnier.',
   'control.stageHub.breadcrumbLink': 'Phase {stageNumber}',
   'control.dashboard.stages': 'Phasen',
+  'control.dashboard.broadcasterStudio': 'Broadcaster-Studio',
   'control.stageConfiguration.title': 'Phasenkonfiguration',
   'control.stageConfiguration.fieldLabel': 'Feld (Pfad)',
   'control.stageConfiguration.valueLabel': 'Wert (JSON)',
@@ -1294,4 +1295,25 @@ export const messages: Record<string, string> = {
   'control.filePicker.clear': 'Entfernen',
   'control.filePicker.filesSelected':
     '{count, plural, one {# Datei ausgewählt} other {# Dateien ausgewählt}}',
+
+  'broadcasterStudio.title': 'Broadcaster-Studio',
+  'broadcasterStudio.intro':
+    'Erstellen Sie einen streamingfertigen Overlay-Link für OBS Studio oder jede andere Software mit Browser-Source-Unterstützung — kein Administrator erforderlich.',
+  'broadcasterStudio.loading': 'Ihr Streaming-Link wird erstellt…',
+  'broadcasterStudio.loadError':
+    'Streaming-Link konnte nicht erstellt werden. Laden Sie diese Seite erneut.',
+  'broadcasterStudio.modeLabel': 'Overlay-Modus',
+  'broadcasterStudio.modeLower': 'Unterer Balken (über Ihrer Kamera)',
+  'broadcasterStudio.modeFull': 'Vollbild (keine Kamera nötig)',
+  'broadcasterStudio.chromaLabel': 'Vorschauhintergrund',
+  'broadcasterStudio.chromaTransparent': 'Transparent',
+  'broadcasterStudio.chromaGreen': 'Grünbildschirm',
+  'broadcasterStudio.chromaMagenta': 'Magentabildschirm',
+  'broadcasterStudio.chromaDark': 'Dunkles Stadion',
+  'broadcasterStudio.urlLabel': 'OBS-Browser-Source-URL',
+  'broadcasterStudio.copyButton': 'OBS-Browser-Source-URL kopieren',
+  'broadcasterStudio.copySuccess': 'URL in die Zwischenablage kopiert',
+  'broadcasterStudio.copyFailure': 'Kopieren fehlgeschlagen — URL manuell kopieren',
+  'broadcasterStudio.resolutionHeading': 'Empfohlene OBS-Browser-Source-Einstellungen',
+  'broadcasterStudio.previewLabel': 'Live-Vorschau',
 };

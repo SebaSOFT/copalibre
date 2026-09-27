@@ -2023,7 +2023,14 @@ export class CompetitionRepository {
       entityId: recorded.matchId,
       eventType: 'match.event-recorded',
       projectionVersion: recorded.sequence,
-      payload: { eventId: recorded.eventId, definitionCode: recorded.definitionCode },
+      payload: {
+        eventId: recorded.eventId,
+        matchId: recorded.matchId,
+        definitionCode: recorded.definitionCode,
+        occurredAt: recorded.occurredAt,
+        ...(recorded.side === undefined ? {} : { side: recorded.side }),
+        ...(recorded.personId === undefined ? {} : { personId: recorded.personId }),
+      },
     });
 
     return recorded;

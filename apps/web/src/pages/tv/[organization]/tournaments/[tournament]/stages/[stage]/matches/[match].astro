@@ -20,6 +20,7 @@ import {
   tournamentEmblemUrl,
 } from '../../../../../../../../lib/public-api-client.ts';
 import {
+  buildActorDirectory,
   buildTvMatchEvents,
   type TvMatchEvent,
 } from '../../../../../../../../lib/tv-match-events.ts';
@@ -44,6 +45,7 @@ const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
 // reasoning as the ticker/standings fetch on the general kiosk route: a failure here must cost
 // only the event ticker, never replace the whole live dashboard with sample data.
 let matchEvents: readonly TvMatchEvent[] = [];
+let rosterActors: Readonly<Record<string, string>> = {};
 try {
   const report = await fetchMatchReport(
     organizationAlias,
@@ -51,7 +53,12 @@ try {
     stageNumber,
     matchNumber,
   );
-  if (report) matchEvents = buildTvMatchEvents(report);
+  if (report) {
+    matchEvents = buildTvMatchEvents(report);
+    // openspec 0300: resolves a *live* event's actor the same way the initial
+    // timeline above already resolves one, for `BroadcastAlertBanner`.
+    rosterActors = buildActorDirectory(report.rosters);
+  }
 } catch {
   matchEvents = [];
 }
@@ -186,6 +193,7 @@ const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam :
     branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
     pinnedMatchNumber={matchNumber}
     matchEvents={matchEvents}
+    rosterActors={rosterActors}
     tournamentName={tournamentName}
     organizationName={organizationName}
     organizationAlias={organizationAlias}
