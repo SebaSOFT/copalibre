@@ -26,6 +26,20 @@ class FakeGetObjectCommand {
 class FakeDeleteObjectCommand {
   constructor(readonly input: FakeCommandInput) {}
 }
+class FakeHeadBucketCommand {
+  constructor(readonly input: { Bucket: string }) {}
+}
+class FakeListObjectsV2Command {
+  constructor(readonly input: { Bucket: string; ContinuationToken?: string }) {}
+}
+
+let inventoryPages: {
+  Contents?: { Size?: number }[];
+  IsTruncated?: boolean;
+  NextContinuationToken?: string;
+}[] = [];
+let inventoryError: Error | undefined;
+const inventoryCursors: (string | undefined)[] = [];
 
 let lastClientConfig: unknown;
 
@@ -34,7 +48,24 @@ class FakeS3Client {
     lastClientConfig = config;
   }
 
-  async send(command: FakePutObjectCommand | FakeGetObjectCommand | FakeDeleteObjectCommand) {
+  async send(
+    command:
+      | FakePutObjectCommand
+      | FakeGetObjectCommand
+      | FakeDeleteObjectCommand
+      | FakeHeadBucketCommand
+      | FakeListObjectsV2Command,
+    options?: { abortSignal?: AbortSignal },
+  ) {
+    options?.abortSignal?.throwIfAborted();
+    if (command instanceof FakeHeadBucketCommand) {
+      if (inventoryError) throw inventoryError;
+      return {};
+    }
+    if (command instanceof FakeListObjectsV2Command) {
+      inventoryCursors.push(command.input.ContinuationToken);
+      return inventoryPages.shift() ?? {};
+    }
     const key = `${command.input.Bucket}/${command.input.Key}`;
     if (command instanceof FakePutObjectCommand) {
       store.set(key, {
@@ -68,6 +99,8 @@ await jest.unstable_mockModule('@aws-sdk/client-s3', () => ({
   PutObjectCommand: FakePutObjectCommand,
   GetObjectCommand: FakeGetObjectCommand,
   DeleteObjectCommand: FakeDeleteObjectCommand,
+  HeadBucketCommand: FakeHeadBucketCommand,
+  ListObjectsV2Command: FakeListObjectsV2Command,
 }));
 
 const { createS3Adapter } = await import('./s3-profile.js');
@@ -81,6 +114,11 @@ const BASE_CONFIG = {
 };
 
 describe('createS3Adapter', () => {
+  beforeEach(() => {
+    inventoryPages = [];
+    inventoryError = undefined;
+    inventoryCursors.length = 0;
+  });
   describeObjectStorageAdapterContract('s3', () => createS3Adapter(BASE_CONFIG));
 
   it('configures the client with path-style addressing, required by Garage and most S3-compatible stores', () => {
@@ -107,5 +145,51 @@ describe('createS3Adapter', () => {
     const stored = await adapter.get({ key: 'no-body-in-response.txt' });
     expect(stored.body).toEqual(new Uint8Array());
     expect(stored.contentType).toBeUndefined();
+  });
+
+  function inspectOf(adapter: ReturnType<typeof createS3Adapter>) {
+    const inspect = adapter.inspect;
+    if (!inspect) throw new Error('inspect required');
+    return inspect;
+  }
+
+  it('counts every inventory page without exposing object keys', async () => {
+    inventoryPages = [
+      { Contents: [{ Size: 3 }, { Size: 5 }], IsTruncated: true, NextContinuationToken: 'next' },
+      { Contents: [{ Size: 7 }, {}], IsTruncated: false },
+    ];
+    await expect(
+      inspectOf(createS3Adapter(BASE_CONFIG))(new AbortController().signal),
+    ).resolves.toEqual({
+      totalObjects: 4,
+      totalBytes: 15,
+      bucketName: 'test-bucket',
+    });
+    expect(inventoryCursors).toEqual([undefined, 'next']);
+  });
+
+  it('reports an empty accessible bucket', async () => {
+    await expect(
+      inspectOf(createS3Adapter(BASE_CONFIG))(new AbortController().signal),
+    ).resolves.toMatchObject({
+      totalObjects: 0,
+      totalBytes: 0,
+    });
+  });
+
+  it('propagates unreachable bucket and incomplete inventory failures', async () => {
+    inventoryError = new Error('bucket unavailable');
+    await expect(
+      inspectOf(createS3Adapter(BASE_CONFIG))(new AbortController().signal),
+    ).rejects.toThrow('bucket unavailable');
+    inventoryError = undefined;
+    inventoryPages = [{ IsTruncated: true }];
+    await expect(
+      inspectOf(createS3Adapter(BASE_CONFIG))(new AbortController().signal),
+    ).rejects.toThrow('incomplete page');
+  });
+
+  it('honors an aborted inspection deadline', async () => {
+    await expect(inspectOf(createS3Adapter(BASE_CONFIG))(AbortSignal.abort())).rejects.toThrow();
   });
 });

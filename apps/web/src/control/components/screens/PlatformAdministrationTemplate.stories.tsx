@@ -49,3 +49,42 @@ export const WithModules: Story = {
     ],
   },
 };
+
+export const DiagnosticsTab: Story = {
+  args: {
+    activeTab: 'diagnostics',
+    diagnosticsSummary: {
+      status: 'healthy',
+      version: '0.306.0',
+      uptimeSeconds: 7200,
+      sampledAt: '2026-09-28T12:00:00.000Z',
+      database: { connected: true, latencyMs: 3.5, poolActive: 2, poolIdle: 8, poolWaiting: 0 },
+      outbox: {
+        available: true,
+        pending: 5,
+        processed24h: 12000,
+        failed: 1,
+        recentFailures: [
+          {
+            eventId: '019927d0-0000-7000-8000-000000000101',
+            eventType: 'match.score_updated',
+            attempts: 6,
+            error: 'Endpoint unreachable',
+            failedAt: '2026-09-28T11:59:00.000Z',
+          },
+        ],
+      },
+      storage: { connected: true, profile: 'filesystem', totalObjects: 50, totalBytes: 2048000 },
+      realtime: {
+        available: true,
+        totalConnections: 12,
+        tvKiosks: 4,
+        overlays: 2,
+        publicSpectators: 5,
+        controlConnections: 1,
+        activeReplicas: 1,
+        staleReplicas: 0,
+      },
+    },
+  },
+};

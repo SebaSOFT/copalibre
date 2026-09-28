@@ -30,6 +30,7 @@ export const AUDIT_ACTIONS = [
   'installation.super-admin-created',
   'installation.super-admin-status-changed',
   'installation.super-admin-deleted',
+  'outbox.re-enqueued',
 
   // Clubs and teams
   'club.created',

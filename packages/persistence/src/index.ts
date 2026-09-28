@@ -6,7 +6,17 @@
  */
 
 export type { Database } from './schema.js';
-export { createDatabase, databaseConfigFromEnv, type DatabaseConfig } from './database.js';
+export {
+  createDatabase,
+  databaseConfigFromEnv,
+  databasePoolMetrics,
+  type DatabaseConfig,
+} from './database.js';
+export {
+  RealtimeReplicaRepository,
+  type RealtimeCounts,
+  type RealtimeSummary,
+} from './realtime-replicas.js';
 export { newId } from './ids.js';
 
 export {

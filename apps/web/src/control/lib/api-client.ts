@@ -1,7 +1,10 @@
 import type { LocalizedLabel } from '@copalibre/domain';
 import type {
   CreateOrganizationRequest,
+  DiagnosticsSummary,
   OrganizationResponse as ContractOrganizationResponse,
+  RetryOutboxRequest,
+  RetryOutboxResponse,
   TournamentCompletionResponse,
   components,
 } from '@copalibre/contracts';
@@ -20,6 +23,8 @@ export interface ControlApiClient {
   ) => Promise<ContractOrganizationResponse>;
   readonly listInstalledModules?: () => Promise<readonly InstalledModuleResponse[]>;
   readonly listOutdatedModules?: () => Promise<readonly OutdatedModuleResponse[]>;
+  readonly getDiagnosticsSummary?: () => Promise<DiagnosticsSummary>;
+  readonly retryOutboxEvents?: (request: RetryOutboxRequest) => Promise<RetryOutboxResponse>;
   readonly installModule?: (request: InstallModuleRequest) => Promise<InstallModuleResponse>;
   readonly removeModule?: (alias: string) => Promise<RemoveModuleResponse>;
   readonly verifyModules?: () => Promise<readonly ModuleVerifyResultResponse[]>;
@@ -2002,6 +2007,18 @@ export function createControlApiClient(input: {
         `${baseUrl}/admin/modules?outdated=true`,
         { token: input.accessToken?.() },
       ),
+
+    getDiagnosticsSummary: () =>
+      requestJson<DiagnosticsSummary>(input.fetch, `${baseUrl}/admin/diagnostics/summary`, {
+        token: input.accessToken?.(),
+      }),
+
+    retryOutboxEvents: (body: RetryOutboxRequest) =>
+      requestJson<RetryOutboxResponse>(input.fetch, `${baseUrl}/admin/diagnostics/outbox/retry`, {
+        method: 'POST',
+        body,
+        token: input.accessToken?.(),
+      }),
 
     installModule: (body) =>
       requestJson<InstallModuleResponse>(input.fetch, `${baseUrl}/admin/modules`, {

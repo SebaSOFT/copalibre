@@ -50,6 +50,70 @@
         ]
       }
     },
+    "/admin/diagnostics/summary": {
+      "get": {
+        "operationId": "DiagnosticsController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticsSummary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Inspect installation health and aggregate telemetry",
+        "tags": [
+          "platform-diagnostics"
+        ]
+      }
+    },
+    "/admin/diagnostics/outbox/retry": {
+      "post": {
+        "operationId": "DiagnosticsController_retry",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetryOutboxRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryOutboxResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Manually re-enqueue selected dead letters with an atomic audit record",
+        "tags": [
+          "platform-diagnostics"
+        ]
+      }
+    },
     "/organizations": {
       "get": {
         "description": "When called without filters, returns public organizations with at least one published tournament. When called with \"?mine=true\", returns organizations the authenticated caller belongs to.",
@@ -11553,6 +11617,245 @@
           "role",
           "version",
           "schemaVersion"
+        ]
+      },
+      "DiagnosticsDatabase": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "latencyMs": {
+            "type": "number",
+            "description": "Round-trip time of the database probe in milliseconds"
+          },
+          "poolActive": {
+            "type": "number",
+            "description": "Active connections in the serving API process pool"
+          },
+          "poolIdle": {
+            "type": "number"
+          },
+          "poolWaiting": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "connected",
+          "latencyMs"
+        ]
+      },
+      "DiagnosticsFailure": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "attempts": {
+            "type": "number"
+          },
+          "error": {
+            "type": "string"
+          },
+          "failedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "eventId",
+          "eventType",
+          "attempts",
+          "error",
+          "failedAt"
+        ]
+      },
+      "DiagnosticsOutbox": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "pending": {
+            "type": "number"
+          },
+          "processed24h": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "number"
+          },
+          "oldestPendingAgeSeconds": {
+            "type": "number"
+          },
+          "inFlight": {
+            "type": "number"
+          },
+          "recentFailures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiagnosticsFailure"
+            }
+          }
+        },
+        "required": [
+          "available",
+          "recentFailures"
+        ]
+      },
+      "DiagnosticsStorage": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "profile": {
+            "type": "string",
+            "enum": [
+              "filesystem",
+              "s3"
+            ]
+          },
+          "bucketName": {
+            "type": "string"
+          },
+          "totalObjects": {
+            "type": "number"
+          },
+          "totalBytes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "connected",
+          "profile"
+        ]
+      },
+      "DiagnosticsRealtime": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "totalConnections": {
+            "type": "number"
+          },
+          "tvKiosks": {
+            "type": "number"
+          },
+          "overlays": {
+            "type": "number"
+          },
+          "publicSpectators": {
+            "type": "number"
+          },
+          "controlConnections": {
+            "type": "number"
+          },
+          "unclassified": {
+            "type": "number"
+          },
+          "activeReplicas": {
+            "type": "number"
+          },
+          "staleReplicas": {
+            "type": "number"
+          },
+          "reportedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "available"
+        ]
+      },
+      "DiagnosticsSummary": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "degraded",
+              "critical"
+            ]
+          },
+          "version": {
+            "type": "string"
+          },
+          "uptimeSeconds": {
+            "type": "number"
+          },
+          "sampledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DiagnosticsDatabase"
+          },
+          "outbox": {
+            "$ref": "#/components/schemas/DiagnosticsOutbox"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/DiagnosticsStorage"
+          },
+          "realtime": {
+            "$ref": "#/components/schemas/DiagnosticsRealtime"
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "uptimeSeconds",
+          "sampledAt",
+          "database",
+          "outbox",
+          "storage",
+          "realtime"
+        ]
+      },
+      "RetryOutboxRequest": {
+        "type": "object",
+        "properties": {
+          "eventIds": {
+            "minItems": 1,
+            "maxItems": 50,
+            "description": "Explicitly selected dead-letter event UUIDv7 identifiers",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "eventIds"
+        ]
+      },
+      "RetryOutboxResponse": {
+        "type": "object",
+        "properties": {
+          "retried": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "skipped": {
+            "description": "Events no longer eligible, including already retried events",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "retried",
+          "skipped"
         ]
       },
       "OrganizationResponse": {

@@ -2,6 +2,16 @@ import { Kysely, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
 import type { Database } from './schema.js';
 
+const pools = new WeakMap<Kysely<Database>, Pool>();
+
+/** Counters belong to this database handle's process, never to the whole installation. */
+export function databasePoolMetrics(db: Kysely<Database>) {
+  const pool = pools.get(db);
+  return pool
+    ? { active: pool.totalCount - pool.idleCount, idle: pool.idleCount, waiting: pool.waitingCount }
+    : undefined;
+}
+
 export interface DatabaseConfig {
   /** postgres://user:pass@host:port/db — always via env, never hardcoded. */
   readonly connectionString: string;
@@ -28,9 +38,11 @@ export function createDatabase(config: DatabaseConfig): Kysely<Database> {
     }
   });
 
-  return new Kysely<Database>({
+  const db = new Kysely<Database>({
     dialect: new PostgresDialect({ pool }),
   });
+  pools.set(db, pool);
+  return db;
 }
 
 export function databaseConfigFromEnv(env: NodeJS.ProcessEnv = process.env): DatabaseConfig {

@@ -100,7 +100,9 @@ export function TvMultiCourtGrid({
   }, []);
 
   useEffect(() => {
-    const client = new RealtimeClient({ url: streamPath });
+    const streamUrl = new URL(streamPath, window.location.origin);
+    streamUrl.searchParams.set('surface', 'kiosk');
+    const client = new RealtimeClient({ url: streamUrl.pathname + streamUrl.search });
     void client.connect({
       onOpen: () => setDashboard((current) => markConnected(current)),
       onEvent: (event) => {

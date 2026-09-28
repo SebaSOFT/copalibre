@@ -204,6 +204,18 @@ describe('migrations (integration)', () => {
     expect(afterUpTables.find((table) => table.name === 'stage_configurations')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'allocation' })]),
     );
+    expect(afterUp).toContain('realtime_replicas');
+
+    const realtimeReplicasDown = await migrateDownOneStep(scratch.db);
+    expect(realtimeReplicasDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0037-person-club-affiliation',
+    );
+    const afterRealtimeReplicasDownTables = await scratch.db.introspection.getTables();
+    expect(afterRealtimeReplicasDownTables.map((t) => t.name)).not.toContain('realtime_replicas');
+    expect(
+      afterRealtimeReplicasDownTables.find((table) => table.name === 'persons')?.columns,
+    ).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'club_id' })]));
 
     const personClubAffiliationDown = await migrateDownOneStep(scratch.db);
     expect(personClubAffiliationDown.error).toBeUndefined();

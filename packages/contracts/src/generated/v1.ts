@@ -44,6 +44,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/diagnostics/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect installation health and aggregate telemetry */
+        get: operations["DiagnosticsController_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/diagnostics/outbox/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Manually re-enqueue selected dead letters with an atomic audit record */
+        post: operations["DiagnosticsController_retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations": {
         parameters: {
             query?: never;
@@ -2844,6 +2878,75 @@ export interface components {
              * @example 0001-initial-schema
              */
             schemaVersion: string;
+        };
+        DiagnosticsDatabase: {
+            connected: boolean;
+            /** @description Round-trip time of the database probe in milliseconds */
+            latencyMs: number;
+            /** @description Active connections in the serving API process pool */
+            poolActive?: number;
+            poolIdle?: number;
+            poolWaiting?: number;
+        };
+        DiagnosticsFailure: {
+            /** Format: uuid */
+            eventId: string;
+            eventType: string;
+            attempts: number;
+            error: string;
+            /** Format: date-time */
+            failedAt: string;
+        };
+        DiagnosticsOutbox: {
+            available: boolean;
+            pending?: number;
+            processed24h?: number;
+            failed?: number;
+            oldestPendingAgeSeconds?: number;
+            inFlight?: number;
+            recentFailures: components["schemas"]["DiagnosticsFailure"][];
+        };
+        DiagnosticsStorage: {
+            connected: boolean;
+            /** @enum {string} */
+            profile: "filesystem" | "s3";
+            bucketName?: string;
+            totalObjects?: number;
+            totalBytes?: number;
+        };
+        DiagnosticsRealtime: {
+            available: boolean;
+            totalConnections?: number;
+            tvKiosks?: number;
+            overlays?: number;
+            publicSpectators?: number;
+            controlConnections?: number;
+            unclassified?: number;
+            activeReplicas?: number;
+            staleReplicas?: number;
+            /** Format: date-time */
+            reportedAt?: string;
+        };
+        DiagnosticsSummary: {
+            /** @enum {string} */
+            status: "healthy" | "degraded" | "critical";
+            version: string;
+            uptimeSeconds: number;
+            /** Format: date-time */
+            sampledAt: string;
+            database: components["schemas"]["DiagnosticsDatabase"];
+            outbox: components["schemas"]["DiagnosticsOutbox"];
+            storage: components["schemas"]["DiagnosticsStorage"];
+            realtime: components["schemas"]["DiagnosticsRealtime"];
+        };
+        RetryOutboxRequest: {
+            /** @description Explicitly selected dead-letter event UUIDv7 identifiers */
+            eventIds: string[];
+        };
+        RetryOutboxResponse: {
+            retried: string[];
+            /** @description Events no longer eligible, including already retried events */
+            skipped: string[];
         };
         OrganizationResponse: {
             /**
@@ -6130,6 +6233,48 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    DiagnosticsController_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiagnosticsSummary"];
+                };
+            };
+        };
+    };
+    DiagnosticsController_retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetryOutboxRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetryOutboxResponse"];
+                };
             };
         };
     };

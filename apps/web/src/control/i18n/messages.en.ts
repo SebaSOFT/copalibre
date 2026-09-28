@@ -3895,4 +3895,203 @@ export const messages = defineMessages({
     id: 'broadcasterStudio.previewLabel',
     defaultMessage: 'Live preview',
   },
+  platformTabOverview: {
+    id: 'control.platform.tab.overview',
+    defaultMessage: 'Overview',
+  },
+  platformTabDiagnostics: {
+    id: 'control.platform.tab.diagnostics',
+    defaultMessage: 'System Diagnostics',
+  },
+  platformDiagnosticsHeading: {
+    id: 'control.platform.diagnostics.heading',
+    defaultMessage: 'System Health & Diagnostics',
+  },
+  platformDiagnosticsDescription: {
+    id: 'control.platform.diagnostics.description',
+    defaultMessage: 'Live telemetry, process health, and dead-letter queue remediation.',
+  },
+  platformDiagnosticsRefresh: {
+    id: 'control.platform.diagnostics.refresh',
+    defaultMessage: 'Refresh',
+  },
+  platformDiagnosticsAutoPoll: {
+    id: 'control.platform.diagnostics.autoPoll',
+    defaultMessage: 'Auto-refresh (30s)',
+  },
+  platformDiagnosticsStatus: {
+    id: 'control.platform.diagnostics.status',
+    defaultMessage: 'System status',
+  },
+  platformDiagnosticsHealthy: {
+    id: 'control.platform.diagnostics.status.healthy',
+    defaultMessage: 'Healthy',
+  },
+  platformDiagnosticsDegraded: {
+    id: 'control.platform.diagnostics.status.degraded',
+    defaultMessage: 'Degraded',
+  },
+  platformDiagnosticsCritical: {
+    id: 'control.platform.diagnostics.status.critical',
+    defaultMessage: 'Critical',
+  },
+  platformDiagnosticsDatabase: {
+    id: 'control.platform.diagnostics.database',
+    defaultMessage: 'Database',
+  },
+  platformDiagnosticsDbConnected: {
+    id: 'control.platform.diagnostics.db.connected',
+    defaultMessage: 'Connected',
+  },
+  platformDiagnosticsDbDisconnected: {
+    id: 'control.platform.diagnostics.db.disconnected',
+    defaultMessage: 'Disconnected',
+  },
+  platformDiagnosticsDbLatency: {
+    id: 'control.platform.diagnostics.db.latency',
+    defaultMessage: '{ms} ms probe',
+  },
+  platformDiagnosticsDbPool: {
+    id: 'control.platform.diagnostics.db.pool',
+    defaultMessage: 'Pool: {active} active, {idle} idle, {waiting} waiting',
+  },
+  platformDiagnosticsStorage: {
+    id: 'control.platform.diagnostics.storage',
+    defaultMessage: 'Object Storage',
+  },
+  platformDiagnosticsStorageConnected: {
+    id: 'control.platform.diagnostics.storage.connected',
+    defaultMessage: 'Connected ({profile})',
+  },
+  platformDiagnosticsStorageDisconnected: {
+    id: 'control.platform.diagnostics.storage.disconnected',
+    defaultMessage: 'Disconnected ({profile})',
+  },
+  platformDiagnosticsStorageObjects: {
+    id: 'control.platform.diagnostics.storage.objects',
+    defaultMessage: '{count} objects',
+  },
+  platformDiagnosticsStorageBytes: {
+    id: 'control.platform.diagnostics.storage.bytes',
+    defaultMessage: '{bytes} stored',
+  },
+  platformDiagnosticsOutbox: {
+    id: 'control.platform.diagnostics.outbox',
+    defaultMessage: 'Transactional Outbox',
+  },
+  platformDiagnosticsOutboxPending: {
+    id: 'control.platform.diagnostics.outbox.pending',
+    defaultMessage: 'Pending: {count}',
+  },
+  platformDiagnosticsOutboxProcessed: {
+    id: 'control.platform.diagnostics.outbox.processed',
+    defaultMessage: 'Processed 24h: {count}',
+  },
+  platformDiagnosticsOutboxFailed: {
+    id: 'control.platform.diagnostics.outbox.failed',
+    defaultMessage: 'Dead letters: {count}',
+  },
+  platformDiagnosticsRealtime: {
+    id: 'control.platform.diagnostics.realtime',
+    defaultMessage: 'Realtime Streams',
+  },
+  platformDiagnosticsRealtimeActive: {
+    id: 'control.platform.diagnostics.realtime.active',
+    defaultMessage: '{count} subscribers',
+  },
+  platformDiagnosticsRealtimeBreakdown: {
+    id: 'control.platform.diagnostics.realtime.breakdown',
+    defaultMessage: '{kiosks} kiosks, {overlays} overlays, {spectators} public, {control} control',
+  },
+  platformDiagnosticsRealtimeReplicas: {
+    id: 'control.platform.diagnostics.realtime.replicas',
+    defaultMessage: '{active} reporting replicas ({stale} stale)',
+  },
+  platformDiagnosticsRealtimeUnavailable: {
+    id: 'control.platform.diagnostics.realtime.unavailable',
+    defaultMessage: 'No reporting replicas',
+  },
+  platformDiagnosticsFailuresHeading: {
+    id: 'control.platform.diagnostics.failures.heading',
+    defaultMessage: 'Dead-Lettered Outbox Events',
+  },
+  platformDiagnosticsFailuresDescription: {
+    id: 'control.platform.diagnostics.failures.description',
+    defaultMessage:
+      'Events that exhausted retry attempts. Select events to re-enqueue for delivery.',
+  },
+  platformDiagnosticsNoFailures: {
+    id: 'control.platform.diagnostics.failures.empty',
+    defaultMessage: 'No dead-lettered events in the outbox queue.',
+  },
+  platformDiagnosticsRetrySelected: {
+    id: 'control.platform.diagnostics.retry.selected',
+    defaultMessage: 'Retry selected events',
+  },
+  platformDiagnosticsRetryModalTitle: {
+    id: 'control.platform.diagnostics.retryModal.title',
+    defaultMessage: 'Retry dead-lettered events',
+  },
+  platformDiagnosticsRetryModalDescription: {
+    id: 'control.platform.diagnostics.retryModal.description',
+    defaultMessage:
+      'Re-enqueuing {count, plural, one {1 dead letter} other {# dead letters}} will reset their attempt counter to 0 and make them immediately eligible for outbox relay. An audit ledger record will be written atomically.',
+  },
+  platformDiagnosticsRetryConfirm: {
+    id: 'control.platform.diagnostics.retryModal.confirm',
+    defaultMessage: 'Confirm re-enqueue',
+  },
+  platformDiagnosticsRetryCancel: {
+    id: 'control.platform.diagnostics.retryModal.cancel',
+    defaultMessage: 'Cancel',
+  },
+  platformDiagnosticsRetrySuccess: {
+    id: 'control.platform.diagnostics.retry.success',
+    defaultMessage:
+      'Re-enqueued {count, plural, one {1 event} other {# events}} ({skipped} skipped).',
+  },
+  platformDiagnosticsRetryModalClose: {
+    id: 'control.platform.diagnostics.retryModal.close',
+    defaultMessage: 'Close retry dialog',
+  },
+  platformDiagnosticsColEventId: {
+    id: 'control.platform.diagnostics.col.eventId',
+    defaultMessage: 'Event ID',
+  },
+  platformDiagnosticsColEventType: {
+    id: 'control.platform.diagnostics.col.eventType',
+    defaultMessage: 'Type',
+  },
+  platformDiagnosticsColAttempts: {
+    id: 'control.platform.diagnostics.col.attempts',
+    defaultMessage: 'Attempts',
+  },
+  platformDiagnosticsColError: {
+    id: 'control.platform.diagnostics.col.error',
+    defaultMessage: 'Error message',
+  },
+  platformDiagnosticsColFailedAt: {
+    id: 'control.platform.diagnostics.col.failedAt',
+    defaultMessage: 'Dead-lettered at',
+  },
+  platformDiagnosticsSelectEvent: {
+    id: 'control.platform.diagnostics.selectEvent',
+    defaultMessage: 'Select event {id}',
+  },
+  platformDiagnosticsSelectAllEvents: {
+    id: 'control.platform.diagnostics.selectAllEvents',
+    defaultMessage: 'Select all dead-lettered events',
+  },
+  platformDiagnosticsUptime: {
+    id: 'control.platform.diagnostics.uptime',
+    defaultMessage: 'Uptime: {hours}h {minutes}m',
+  },
+  platformDiagnosticsVersion: {
+    id: 'control.platform.diagnostics.version',
+    defaultMessage: 'Version {version}',
+  },
+  platformDiagnosticsLoading: {
+    id: 'control.platform.diagnostics.loading',
+    defaultMessage: 'Loading platform diagnostics…',
+  },
 });

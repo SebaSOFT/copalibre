@@ -65,3 +65,24 @@ classification. A tournament is finished only once every match that is not `not-
 - **WHEN** a spectator opens the overview of a tournament where every match is finalized or forfeited,
   with at least one forfeited
 - **THEN** the page shows the tournament's finished state, not a live or upcoming default
+
+### Requirement: Real-time public score ticker reactivity
+The public tournament overview page's score ticker SHALL live-patch its match entries from the
+tournament's public Server-Sent Events stream, reactively updating scores and live/final status
+without requiring a manual page reload, while remaining fully correct and complete without JavaScript.
+
+#### Scenario: Live goal updates ticker reactively
+- **WHEN** a spectator is viewing the public tournament overview page and a goal is scored in an
+  active match shown on the ticker
+- **THEN** that match's score figure updates immediately with a brief pulse highlight, without
+  reloading the page, and no other ticker entry changes
+
+#### Scenario: No JavaScript fallback preserves full server-rendered ticker
+- **WHEN** a visitor navigates to the tournament overview with JavaScript disabled or blocked
+- **THEN** the server-rendered score ticker displays the match scores recorded at request time with no
+  empty state or missing elements
+
+#### Scenario: Background tab reconnection and catch-up
+- **WHEN** a spectator leaves the tournament tab in the background for 10 minutes and then returns
+- **THEN** the score ticker reconnects to the SSE stream and resynchronizes the latest match states
+  immediately

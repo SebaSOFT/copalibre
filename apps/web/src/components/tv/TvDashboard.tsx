@@ -225,8 +225,10 @@ export function TvDashboard({
     }
 
     // Case B: Token is present. Layer SSE client on top
+    const streamUrl = new URL(streamPath, window.location.origin);
+    streamUrl.searchParams.set('surface', presentation === 'kiosk' ? 'kiosk' : 'overlay');
     const client = new RealtimeClient({
-      url: streamPath,
+      url: streamUrl.pathname + streamUrl.search,
       accessToken: () => token,
       heartbeatTimeoutMs: 30_000,
     });
@@ -287,7 +289,7 @@ export function TvDashboard({
 
     return () => client.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reconnecting SSE on every render of a prop that changes is worse than a stale closure here: pinnedMatchNumber/rosterActors/showBroadcastAlerts are server-supplied once at mount (same treatment matchEvents itself already gets), and eventLabelsByCode only grows from the same static matchEvents.
-  }, [streamPath, refreshProjection]);
+  }, [streamPath, refreshProjection, presentation]);
 
   // 5. Automatic Carousel Rotation (respects prefers-reduced-motion)
   useEffect(() => {
