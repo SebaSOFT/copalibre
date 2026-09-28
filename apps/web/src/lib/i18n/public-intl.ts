@@ -166,6 +166,15 @@ export function tvDashboardLabels(intl: IntlShape) {
   };
 }
 
+/** `TvMultiCourtGrid.tsx`'s own chrome — reuses `resultStateLabels` rather than its own state dictionary. */
+export function tvMultiCourtGridLabels(intl: IntlShape) {
+  return {
+    resultState: resultStateLabels(intl),
+    noMatches: intl.formatMessage(messages.tvMultiCourtGridNoMatches),
+    ariaLabel: intl.formatMessage(messages.tvMultiCourtGridAriaLabel),
+  };
+}
+
 /** Resolves every non-`played` result-reason label once. */
 export function resultReasonLabels(intl: IntlShape): ResultReasonLabels {
   return {

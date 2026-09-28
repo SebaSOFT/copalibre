@@ -235,6 +235,8 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.bracketMatch': 'Partita',
   'publicWeb.tvDashboard.possession': 'Possesso',
   'publicWeb.tvDashboard.penalty': 'Penalità',
+  'publicWeb.tvMultiCourtGrid.noMatches': 'Nessuna partita in diretta al momento',
+  'publicWeb.tvMultiCourtGrid.ariaLabel': 'Partite in diretta, vista multi-campo',
   'publicWeb.completion.heading': 'Progresso del torneo',
   'publicWeb.completion.summary': '{resolved} su {total} partite giocate',
   'publicWeb.completion.complete': 'Completato',
