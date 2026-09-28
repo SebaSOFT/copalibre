@@ -140,6 +140,19 @@ export type ControlRoute =
       readonly screen: 'broadcaster';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
+    }
+  | {
+      /** The Club Portal member directory (openspec 0301): a club-admin's own scoped person registry. */
+      readonly screen: 'clubPortalMembers';
+      readonly organizationAlias: string;
+      readonly clubId: string;
+    }
+  | {
+      /** The Club Portal roster-submission wizard (openspec 0301). */
+      readonly screen: 'clubPortalRoster';
+      readonly organizationAlias: string;
+      readonly clubId: string;
+      readonly tournamentAlias: string;
     };
 
 /**
@@ -224,6 +237,29 @@ const ORG_SCOPED_ROUTES: readonly {
   {
     matches: (_organizationAlias, rest) => rest.length === 1 && rest[0] === 'clubs',
     build: (organizationAlias) => ({ screen: 'clubs', organizationAlias }),
+  },
+  {
+    matches: (_organizationAlias, rest) =>
+      rest.length === 4 && rest[0] === 'clubs' && rest[2] === 'portal' && rest[3] === 'members',
+    build: (organizationAlias, rest) => {
+      const clubId = rest[1];
+      if (clubId === undefined) return undefined;
+      return { screen: 'clubPortalMembers', organizationAlias, clubId };
+    },
+  },
+  {
+    matches: (_organizationAlias, rest) =>
+      rest.length === 6 &&
+      rest[0] === 'clubs' &&
+      rest[2] === 'portal' &&
+      rest[3] === 'tournaments' &&
+      rest[5] === 'roster',
+    build: (organizationAlias, rest) => {
+      const clubId = rest[1];
+      const tournamentAlias = rest[4];
+      if (clubId === undefined || tournamentAlias === undefined) return undefined;
+      return { screen: 'clubPortalRoster', organizationAlias, clubId, tournamentAlias };
+    },
   },
   {
     matches: (_organizationAlias, rest) => rest.length === 1 && rest[0] === 'resources',

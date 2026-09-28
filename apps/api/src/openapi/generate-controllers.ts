@@ -22,6 +22,7 @@ import { TournamentsController } from '../controllers/tournaments.controller.js'
 import { TournamentProfilesController } from '../controllers/tournament-profiles.controller.js';
 import { ZonesGroupsController } from '../controllers/zones-groups.controller.js';
 import { ClubsController } from '../controllers/clubs.controller.js';
+import { ClubPortalController } from '../controllers/club-portal.controller.js';
 import { ResourcesController } from '../controllers/resources.controller.js';
 import { AuditTrailController } from '../controllers/audit-trail.controller.js';
 import {
@@ -101,6 +102,7 @@ export const OPENAPI_CONTROLLERS = [
   ClubMediaController,
   OrganizationMediaController,
   ClubsController,
+  ClubPortalController,
   ResourcesController,
   AuditTrailController,
   ZonesGroupsController,

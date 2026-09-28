@@ -8888,6 +8888,329 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/clubs/{clubId}/members": {
+      "get": {
+        "operationId": "ClubPortalController_listMembers",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClubMemberResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List a club's own member directory",
+        "tags": [
+          "club-portal"
+        ]
+      },
+      "post": {
+        "operationId": "ClubPortalController_createMember",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClubMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubMemberResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a new person to the club member directory",
+        "tags": [
+          "club-portal"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/clubs/{clubId}/members/{personId}": {
+      "patch": {
+        "operationId": "ClubPortalController_updateMember",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClubMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubMemberResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit a club member's display name or alias",
+        "tags": [
+          "club-portal"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/clubs/{clubId}/teams": {
+      "get": {
+        "operationId": "ClubPortalController_listTeams",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClubTeamResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the club's own teams",
+        "tags": [
+          "club-portal"
+        ]
+      },
+      "post": {
+        "operationId": "ClubPortalController_createTeam",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClubTeamRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubTeamResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a team owned by this club",
+        "tags": [
+          "club-portal"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/clubs/{clubId}/tournaments/{tournamentAlias}/registrations": {
+      "post": {
+        "description": "Registers the named team as a pending entrant (organizer review, unchanged, decides the rest) and applies the submitted squad in the same transaction. Every named person must already be one of the club's own members.",
+        "operationId": "ClubPortalController_submitRegistration",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitClubRegistrationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubRegistrationResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit the club's team as a pending tournament registration with its squad",
+        "tags": [
+          "club-portal"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/venues": {
       "get": {
         "operationId": "ResourcesController_listVenues",
@@ -18216,6 +18539,160 @@
             "example": "C I"
           }
         }
+      },
+      "ClubMemberResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Elías Salomón"
+          },
+          "alias": {
+            "type": "string"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2001-05-14"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code",
+            "example": "AR"
+          },
+          "photoObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "object_metadata.object_id of the photo"
+          }
+        },
+        "required": [
+          "personId",
+          "displayName"
+        ]
+      },
+      "CreateClubMemberRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "example": "Elías Salomón"
+          },
+          "alias": {
+            "type": "string",
+            "description": "Suggested from displayName when omitted."
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2001-05-14"
+          }
+        },
+        "required": [
+          "displayName"
+        ]
+      },
+      "UpdateClubMemberRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          }
+        }
+      },
+      "ClubTeamResponse": {
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "teamId",
+          "name"
+        ]
+      },
+      "CreateClubTeamRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Talleres"
+          },
+          "alias": {
+            "type": "string",
+            "description": "Suggested from name when omitted."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "SubmitClubRegistrationRequest": {
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamMembershipMemberInput"
+            }
+          }
+        },
+        "required": [
+          "teamId",
+          "members"
+        ]
+      },
+      "ClubRegistrationResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "refused",
+              "withdrawn",
+              "checked-in"
+            ]
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "entrantId",
+          "tournamentId",
+          "status",
+          "teamId"
+        ]
       },
       "VenueResponse": {
         "type": "object",

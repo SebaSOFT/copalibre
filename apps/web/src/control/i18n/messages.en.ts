@@ -2315,6 +2315,119 @@ export const messages = defineMessages({
     defaultMessage: 'Emblem uploaded.',
   },
 
+  // Club Portal (openspec 0301) — a club-admin's own scoped member directory
+  // and tournament roster submission.
+  clubPortalMembersTitle: { id: 'control.clubPortal.membersTitle', defaultMessage: 'Club members' },
+  clubPortalMembersLoading: { id: 'control.clubPortal.membersLoading', defaultMessage: 'Loading…' },
+  clubPortalMembersLoadFailed: {
+    id: 'control.clubPortal.membersLoadFailed',
+    defaultMessage: 'Could not load members.',
+  },
+  clubPortalMembersEmpty: {
+    id: 'control.clubPortal.membersEmpty',
+    defaultMessage: 'This club has no members yet.',
+  },
+  clubPortalMembersEdit: { id: 'control.clubPortal.membersEdit', defaultMessage: 'Edit' },
+  clubPortalMembersNewMemberName: {
+    id: 'control.clubPortal.newMemberName',
+    defaultMessage: 'New member name',
+  },
+  clubPortalMembersNewMemberAlias: {
+    id: 'control.clubPortal.newMemberAlias',
+    defaultMessage: 'Alias (optional)',
+  },
+  clubPortalMembersNewMemberBirthDate: {
+    id: 'control.clubPortal.newMemberBirthDate',
+    defaultMessage: 'Birth date (optional)',
+  },
+  clubPortalMembersAddMember: {
+    id: 'control.clubPortal.addMember',
+    defaultMessage: 'Add member',
+  },
+  clubPortalMembersEditHeading: {
+    id: 'control.clubPortal.membersEditHeading',
+    defaultMessage: 'Edit member',
+  },
+  clubPortalMembersName: { id: 'control.clubPortal.membersName', defaultMessage: 'Name' },
+  clubPortalMembersAlias: { id: 'control.clubPortal.membersAlias', defaultMessage: 'Alias' },
+  clubPortalMembersSaveChanges: {
+    id: 'control.clubPortal.membersSaveChanges',
+    defaultMessage: 'Save changes',
+  },
+  clubPortalMembersSaved: {
+    id: 'control.clubPortal.membersSaved',
+    defaultMessage: 'Changes saved.',
+  },
+  clubPortalMembersCreated: {
+    id: 'control.clubPortal.membersCreated',
+    defaultMessage: 'Member added.',
+  },
+  clubPortalRosterTitle: {
+    id: 'control.clubPortal.rosterTitle',
+    defaultMessage: 'Submit tournament roster',
+  },
+  clubPortalRosterLoading: { id: 'control.clubPortal.rosterLoading', defaultMessage: 'Loading…' },
+  clubPortalRosterLoadFailed: {
+    id: 'control.clubPortal.rosterLoadFailed',
+    defaultMessage: "Could not load the club's members and teams.",
+  },
+  clubPortalRosterSubmitted: {
+    id: 'control.clubPortal.rosterSubmitted',
+    defaultMessage: 'Registration submitted for review.',
+  },
+  clubPortalRosterTeamHeading: {
+    id: 'control.clubPortal.rosterTeamHeading',
+    defaultMessage: 'Team',
+  },
+  clubPortalRosterTeamSelect: {
+    id: 'control.clubPortal.rosterTeamSelect',
+    defaultMessage: 'Select a team',
+  },
+  clubPortalRosterNewTeamName: {
+    id: 'control.clubPortal.rosterNewTeamName',
+    defaultMessage: 'New team name',
+  },
+  clubPortalRosterCreateTeam: {
+    id: 'control.clubPortal.rosterCreateTeam',
+    defaultMessage: 'Create team',
+  },
+  clubPortalRosterSquadHeading: {
+    id: 'control.clubPortal.rosterSquadHeading',
+    defaultMessage: 'Squad',
+  },
+  clubPortalRosterRolePlayer: {
+    id: 'control.clubPortal.rosterRolePlayer',
+    defaultMessage: 'Player',
+  },
+  clubPortalRosterRoleSubstitute: {
+    id: 'control.clubPortal.rosterRoleSubstitute',
+    defaultMessage: 'Substitute',
+  },
+  clubPortalRosterRoleCoach: {
+    id: 'control.clubPortal.rosterRoleCoach',
+    defaultMessage: 'Coach',
+  },
+  clubPortalRosterRoleStaff: {
+    id: 'control.clubPortal.rosterRoleStaff',
+    defaultMessage: 'Staff',
+  },
+  clubPortalRosterRoleLabel: {
+    id: 'control.clubPortal.rosterRoleLabel',
+    defaultMessage: "{name}'s role",
+  },
+  clubPortalRosterNoMembers: {
+    id: 'control.clubPortal.rosterNoMembers',
+    defaultMessage: 'This club has no members yet.',
+  },
+  clubPortalRosterSubmit: {
+    id: 'control.clubPortal.rosterSubmit',
+    defaultMessage: 'Submit registration',
+  },
+  dashboardClubPortal: {
+    id: 'control.clubPortal.dashboardLink',
+    defaultMessage: 'Club Portal',
+  },
+
   // Venue/official management — the resource pool a schedule assigns from.
   resourceManagementSectionLabel: {
     id: 'control.resourceManagement.sectionLabel',

@@ -42,6 +42,7 @@ export class PersonRepository {
       readonly alias?: string;
       readonly naturalKey?: NaturalKey;
       readonly birthDate?: string;
+      readonly clubId?: string;
     } & AuditContext,
   ): Promise<{ readonly person: Person; readonly recognised: boolean }> {
     if (input.naturalKey) {
@@ -74,6 +75,7 @@ export class PersonRepository {
       alias,
       ...(input.naturalKey === undefined ? {} : { naturalKey: input.naturalKey }),
       ...(input.birthDate === undefined ? {} : { birthDate: input.birthDate }),
+      ...(input.clubId === undefined ? {} : { clubId: input.clubId }),
     };
 
     const valid = validatePerson(person);
@@ -94,6 +96,7 @@ export class PersonRepository {
         nationality: null,
         birth_date: person.birthDate ?? null,
         photo_object_id: null,
+        club_id: person.clubId ?? null,
         created_at: new Date(),
       })
       .execute();
@@ -657,6 +660,18 @@ export class PersonRepository {
     return rows.map(toPlayer);
   }
 
+  /** Every person affiliated with one club — the Club Portal member directory (openspec 0301). */
+  async listByClub(organizationId: string, clubId: string): Promise<readonly Person[]> {
+    const rows = await this.db
+      .selectFrom('persons')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .where('club_id', '=', clubId)
+      .orderBy('display_name')
+      .execute();
+    return rows.map(toPerson);
+  }
+
   /** Bulk lookup, for resolving a submitted set of person ids in one query. */
   async findPersons(personIds: readonly string[]): Promise<readonly Person[]> {
     if (personIds.length === 0) return [];
@@ -844,6 +859,7 @@ interface PersonRow {
   readonly nationality?: string | null;
   readonly birth_date?: string | Date | null;
   readonly photo_object_id?: string | null;
+  readonly club_id?: string | null;
 }
 
 function toPerson(row: PersonRow): Person {
@@ -870,6 +886,7 @@ function toPerson(row: PersonRow): Person {
     ...(row.photo_object_id === null || row.photo_object_id === undefined
       ? {}
       : { photoObjectId: row.photo_object_id }),
+    ...(row.club_id === null || row.club_id === undefined ? {} : { clubId: row.club_id }),
   };
 }
 

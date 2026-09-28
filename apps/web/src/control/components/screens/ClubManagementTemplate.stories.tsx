@@ -14,6 +14,7 @@ const meta = {
   component: ClubManagementTemplate,
   args: {
     api: client,
+    canManageClubMembers: true,
     clubs: [],
     onCreateClub: async () => true,
     onSaveClub: async () => undefined,

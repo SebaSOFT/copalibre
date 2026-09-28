@@ -1134,6 +1134,69 @@ describe('repositories (integration)', () => {
       competition.listEntrantIdsOfGroup(result.manualGroups.entities[1]?.groupId as string),
     ).resolves.toEqual([result.entrantIds[3]]);
   });
+
+  it("affiliates a person with a club and lists only that club's members (openspec 0301)", async () => {
+    const people = new PersonRepository(scratch.db);
+    const club = await withTransaction(scratch.db, (uow) =>
+      participants.createClub(uow, { organizationId, name: 'Club Portal FC', ...AUDIT }),
+    );
+    const otherClub = await withTransaction(scratch.db, (uow) =>
+      participants.createClub(uow, { organizationId, name: 'Other Club FC', ...AUDIT }),
+    );
+
+    const { person: own } = await withTransaction(scratch.db, (uow) =>
+      people.register(uow, {
+        organizationId,
+        displayName: 'Own Member',
+        clubId: club.clubId,
+        ...AUDIT,
+      }),
+    );
+    await withTransaction(scratch.db, (uow) =>
+      people.register(uow, {
+        organizationId,
+        displayName: 'Other Club Member',
+        clubId: otherClub.clubId,
+        ...AUDIT,
+      }),
+    );
+    await withTransaction(scratch.db, (uow) =>
+      people.register(uow, { organizationId, displayName: 'No Club Member', ...AUDIT }),
+    );
+
+    const members = await people.listByClub(organizationId, club.clubId);
+    expect(members.map((person) => person.personId)).toEqual([own.personId]);
+    expect(members[0]?.clubId).toBe(club.clubId);
+  });
+
+  it('lists only the teams belonging to one club (openspec 0301)', async () => {
+    const club = await withTransaction(scratch.db, (uow) =>
+      participants.createClub(uow, { organizationId, name: 'Roster Club FC', ...AUDIT }),
+    );
+    const otherClub = await withTransaction(scratch.db, (uow) =>
+      participants.createClub(uow, { organizationId, name: 'Another Roster Club', ...AUDIT }),
+    );
+
+    const ownTeam = await withTransaction(scratch.db, (uow) =>
+      participants.createTeam(uow, {
+        organizationId,
+        clubId: club.clubId,
+        name: 'Roster Club First Team',
+        ...AUDIT,
+      }),
+    );
+    await withTransaction(scratch.db, (uow) =>
+      participants.createTeam(uow, {
+        organizationId,
+        clubId: otherClub.clubId,
+        name: 'Another Roster Club Team',
+        ...AUDIT,
+      }),
+    );
+
+    const teams = await participants.listTeamsByClub(organizationId, club.clubId);
+    expect(teams.map((team) => team.teamId)).toEqual([ownTeam.teamId]);
+  });
 });
 
 describe('entrant attributes (integration)', () => {

@@ -363,6 +363,18 @@ export class EnrollmentRepository {
     return row ? toTeam(row) : undefined;
   }
 
+  /** Every team belonging to one club — the Club Portal's team picker (openspec 0301). */
+  async listTeamsByClub(organizationId: string, clubId: string): Promise<readonly Team[]> {
+    const rows = await this.db
+      .selectFrom('teams')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .where('club_id', '=', clubId)
+      .orderBy('name')
+      .execute();
+    return rows.map(toTeam);
+  }
+
   async replaceTeamByAlias(
     uow: UnitOfWork,
     input: {

@@ -6,6 +6,8 @@ import {
   AuditTrailControlRoute,
   BroadcasterStudioControlRoute,
   ClubManagementControlRoute,
+  ClubPortalMembersControlRoute,
+  ClubPortalRosterControlRoute,
   DisciplineDocumentControlRoute,
   LiveConsoleControlRoute,
   LoadMatchDataControlRoute,
@@ -241,6 +243,19 @@ const ROUTE_COMPONENT_BY_SCREEN: ScreenComponents = {
       tournamentAlias={route.tournamentAlias}
     />
   ),
+  clubPortalMembers: (route) => (
+    <ClubPortalMembersControlRoute
+      clubId={route.clubId}
+      organizationAlias={route.organizationAlias}
+    />
+  ),
+  clubPortalRoster: (route) => (
+    <ClubPortalRosterControlRoute
+      clubId={route.clubId}
+      organizationAlias={route.organizationAlias}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
   matchConsole: (route) => (
     <MatchConsoleControlRoute
       matchId={route.matchId}
@@ -346,6 +361,8 @@ const TITLE_BY_SCREEN: TitleByScreen = {
   reports: (route) => `Reports and disputes — ${route.tournamentAlias}`,
   matchesView: (route) => `Matches — ${route.tournamentAlias}`,
   broadcaster: (route) => `Broadcaster Studio — ${route.tournamentAlias}`,
+  clubPortalMembers: (route) => `Club Portal members — ${route.clubId}`,
+  clubPortalRoster: (route) => `Club Portal roster — ${route.tournamentAlias}`,
   matchConsole: (route) => `Operate match — ${route.tournamentAlias}`,
   loadMatchData: (route) => `Load match data — ${route.tournamentAlias}`,
   seeding: (route) => `Seeding — ${route.tournamentAlias}`,

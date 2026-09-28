@@ -563,6 +563,40 @@ export interface ControlApiClient {
     clubId: string,
     request: UploadImageRequest,
   ) => Promise<{ readonly objectId: string }>;
+  /**
+   * The Club Portal (openspec 0301): a club-admin's own scoped member
+   * directory, team list, and tournament roster submission.
+   */
+  readonly listClubMembers?: (
+    organizationAlias: string,
+    clubId: string,
+  ) => Promise<readonly ClubMemberResponse[]>;
+  readonly createClubMember?: (
+    organizationAlias: string,
+    clubId: string,
+    request: CreateClubMemberRequest,
+  ) => Promise<ClubMemberResponse>;
+  readonly updateClubMember?: (
+    organizationAlias: string,
+    clubId: string,
+    personId: string,
+    request: UpdateClubMemberRequest,
+  ) => Promise<ClubMemberResponse>;
+  readonly listClubTeams?: (
+    organizationAlias: string,
+    clubId: string,
+  ) => Promise<readonly ClubTeamResponse[]>;
+  readonly createClubTeam?: (
+    organizationAlias: string,
+    clubId: string,
+    request: CreateClubTeamRequest,
+  ) => Promise<ClubTeamResponse>;
+  readonly submitClubRegistration?: (
+    organizationAlias: string,
+    clubId: string,
+    tournamentAlias: string,
+    request: SubmitClubRegistrationRequest,
+  ) => Promise<ClubRegistrationResponse>;
   /** An organization's venues and officials — the resource pool a schedule assigns from. */
   readonly listVenues?: (organizationAlias: string) => Promise<readonly VenueResponse[]>;
   readonly createVenue?: (
@@ -703,6 +737,52 @@ export interface UpdateClubRequest {
   readonly name?: string;
   readonly alias?: string;
   readonly abbreviation?: string;
+}
+
+export interface ClubMemberResponse {
+  readonly personId: string;
+  readonly displayName: string;
+  readonly alias?: string;
+  readonly birthDate?: string;
+  readonly nationality?: string;
+  readonly photoObjectId?: string;
+}
+
+export interface CreateClubMemberRequest {
+  readonly displayName: string;
+  readonly alias?: string;
+  readonly birthDate?: string;
+}
+
+export interface UpdateClubMemberRequest {
+  readonly displayName?: string;
+  readonly alias?: string;
+}
+
+export interface ClubTeamResponse {
+  readonly teamId: string;
+  readonly name: string;
+  readonly alias?: string;
+}
+
+export interface CreateClubTeamRequest {
+  readonly name: string;
+  readonly alias?: string;
+}
+
+export interface SubmitClubRegistrationRequest {
+  readonly teamId: string;
+  readonly members: readonly {
+    readonly personId: string;
+    readonly role?: 'player' | 'substitute' | 'coach' | 'staff';
+  }[];
+}
+
+export interface ClubRegistrationResponse {
+  readonly entrantId: string;
+  readonly tournamentId: string;
+  readonly status: 'pending' | 'accepted' | 'refused' | 'withdrawn' | 'checked-in';
+  readonly teamId: string;
 }
 
 export interface UploadImageRequest {
@@ -2845,6 +2925,48 @@ export function createControlApiClient(input: {
       requestJson(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    listClubMembers: (organizationAlias, clubId) =>
+      requestJson<readonly ClubMemberResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/members`,
+        { token: input.accessToken?.() },
+      ),
+
+    createClubMember: (organizationAlias, clubId, body) =>
+      requestJson<ClubMemberResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/members`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    updateClubMember: (organizationAlias, clubId, personId, body) =>
+      requestJson<ClubMemberResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/members/${encodeURIComponent(personId)}`,
+        { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    listClubTeams: (organizationAlias, clubId) =>
+      requestJson<readonly ClubTeamResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/teams`,
+        { token: input.accessToken?.() },
+      ),
+
+    createClubTeam: (organizationAlias, clubId, body) =>
+      requestJson<ClubTeamResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/teams`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    submitClubRegistration: (organizationAlias, clubId, tournamentAlias, body) =>
+      requestJson<ClubRegistrationResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/tournaments/${encodeURIComponent(tournamentAlias)}/registrations`,
         { method: 'POST', body, token: input.accessToken?.() },
       ),
 

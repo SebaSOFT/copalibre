@@ -27,6 +27,8 @@ import { LiveConsolePage } from './pages/LiveConsolePage.js';
 import { AnalyticsPage } from './pages/AnalyticsPage.js';
 import { DashboardPage } from './pages/DashboardPage.js';
 import { BroadcasterStudioPage } from './pages/BroadcasterStudioPage.js';
+import { ClubPortalMembersPage } from './pages/ClubPortalMembersPage.js';
+import { ClubPortalRosterPage } from './pages/ClubPortalRosterPage.js';
 
 export function TournamentsControlRoute({
   organizationAlias,
@@ -324,6 +326,49 @@ export function BroadcasterStudioControlRoute({
     <ControlShell helpPath="broadcast-surfaces" organizationAlias={organizationAlias}>
       <BroadcasterStudioPage
         client={client}
+        organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
+      />
+    </ControlShell>
+  );
+}
+
+export function ClubPortalMembersControlRoute({
+  organizationAlias,
+  clubId,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly clubId: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="club-portal" organizationAlias={organizationAlias}>
+      <ClubPortalMembersPage
+        client={client}
+        clubId={clubId}
+        organizationAlias={organizationAlias}
+      />
+    </ControlShell>
+  );
+}
+
+export function ClubPortalRosterControlRoute({
+  organizationAlias,
+  clubId,
+  tournamentAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly clubId: string;
+  readonly tournamentAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="club-portal" organizationAlias={organizationAlias}>
+      <ClubPortalRosterPage
+        client={client}
+        clubId={clubId}
         organizationAlias={organizationAlias}
         tournamentAlias={tournamentAlias}
       />
