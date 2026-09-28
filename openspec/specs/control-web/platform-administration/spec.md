@@ -105,3 +105,29 @@ only to a super-admin scope holder, consistent with the rest of platform adminis
 #### Scenario: A non-super-admin cannot reach the detail view
 - **WHEN** a caller without `copalibre.super-admin` requests the discipline detail view
 - **THEN** the request is refused, consistent with every other platform-administration surface
+
+### Requirement: Platform diagnostics and health telemetry
+The platform-administration console SHALL provide a diagnostics view accessible only to callers with `copalibre.super-admin` scope, displaying real-time metrics for database connectivity, transactional outbox status, object storage health, and active SSE stream connections.
+
+#### Scenario: Inspecting outbox queue metrics
+- **WHEN** a super-admin opens the diagnostics view
+- **THEN** the console displays the total number of pending, processed, and failed outbox events along with processing lag
+- **AND** provides an audited action to retry failed events
+
+#### Scenario: Explicit manual retry preserves failure history
+- **WHEN** a super-admin confirms retrying selected dead-lettered events
+- **THEN** their attempt budgets reset using the established manual re-enqueue behavior, preserving prior failures
+- **AND** the retry and its actor-attributed audit record commit atomically
+
+#### Scenario: Object storage health check
+- **WHEN** a super-admin inspects storage diagnostics
+- **THEN** the console indicates whether the configured object storage engine (Garage / MinIO / S3) is reachable and reports total stored asset count
+
+#### Scenario: SSE real-time connection counters
+- **WHEN** a super-admin views real-time telemetry
+- **THEN** the console shows the number of active subscriber connections partitioned by surface type (venue TV, broadcaster overlay, public spectator)
+- **AND** totals aggregate fresh reports from all events replicas, with unclassified and control connections shown separately
+
+#### Scenario: Events replica stops reporting
+- **WHEN** an events replica's report expires or no replicas have reported
+- **THEN** its counts are excluded from live totals and the console reports stale or unavailable telemetry rather than presenting missing reports as healthy zero connections
