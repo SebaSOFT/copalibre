@@ -25,6 +25,7 @@ function descriptor(): DisciplineDescriptor {
       { code: 'played', label: 'Partidos', aggregation: 'count' },
       { code: 'points', label: 'Puntos', aggregation: 'sum' },
       { code: 'goals-for', label: 'A favor', aggregation: 'sum' },
+      { code: 'goals-against', label: 'En contra', aggregation: 'sum' },
     ],
     scoringInputs: [],
     availableFormats: ['round-robin', 'single-elimination'],
@@ -50,7 +51,23 @@ describe('readStandings (integration)', () => {
 
   it('computes standings matching both live and materialized paths', async () => {
     const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' } as const;
-    const disciplineDescriptor = descriptor();
+    const disciplineDescriptor = {
+      ...descriptor(),
+      defaults: {
+        tiebreakers: [
+          'points',
+          {
+            statisticCode: 'goal-average',
+            label: { en: 'Goal Average', es: 'Promedio de goles' },
+            ratio: {
+              numerator: 'goals-for',
+              denominator: 'goals-against',
+              zeroDenominator: 'numerator-only',
+            },
+          },
+        ],
+      },
+    } as DisciplineDescriptor;
     const tournamentAlias = 'read-test';
 
     const {
@@ -146,11 +163,11 @@ describe('readStandings (integration)', () => {
           sides: [
             {
               entrantId: homeEntrant.entrantId,
-              statistics: { points: 3, 'goals-for': 2, played: 1 },
+              statistics: { points: 3, 'goals-for': 2, 'goals-against': 1, played: 1 },
             },
             {
               entrantId: awayEntrant.entrantId,
-              statistics: { points: 0, 'goals-for': 1, played: 1 },
+              statistics: { points: 0, 'goals-for': 1, 'goals-against': 2, played: 1 },
             },
           ],
           winnerEntrantId: homeEntrant.entrantId,

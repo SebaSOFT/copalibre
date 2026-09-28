@@ -22,26 +22,44 @@ siehe unten zur Aktualisierung des Frameworks und seiner Module.
 
 ## Das Framework aktualisieren
 
-Empfohlene, nicht destruktive Reihenfolge:
+Behalten Sie die zu `.copalibre/installation.json` passende CLI. Ein Binärtausch aktualisiert weder Marker noch Compose oder Image-Versionen. Sichern Sie PostgreSQL, Objekte, Konfiguration und Signaturschlüssel; behalten Sie die bisherigen Image-Versionen.
 
-1. **Sichern Sie**, bevor Sie irgendetwas anfassen: `./copalibre backup --file backups/pre-upgrade.dump`.
-2. **Aktualisieren** Sie den Checkout oder die Image-Referenz auf die neue Version (starten Sie die
-   Dienste noch nicht neu). Wurde diese Installation mit `copalibre init` erstellt (kein Checkout,
-   siehe die [Befehlsreferenz](/de/help/cli/commands/)), bleibt ihr Verzeichnis an die CLI-Version
-   gebunden, mit der es erstellt wurde — `migrate`/`upgrade-check` verweigern bei einer
-   Versionsabweichung mit einer klaren Meldung, also aktualisieren Sie, indem Sie das CLI der neuen
-   Version gegen dasselbe Verzeichnis ausführen, statt CLI-Versionen zu mischen.
-3. **Prüfen Sie die Kompatibilität** mit der neuen Version, ohne etwas neu zu starten:
-   ```bash
-   ./copalibre upgrade-check --target-version <neue-version>
-   ```
-   Meldet, ob ein installiertes Modul mit dieser Version nicht mehr kompatibel wäre (dieselbe
-   Prüfung, die `module verify` gegen die laufende Version verwendet, aber gegen die Zielversion),
-   und listet ausstehende Datenbankmigrationen — ohne eine davon anzuwenden. Endet mit einem Exit-
-   Code ungleich null, wenn ein Modul inkompatibel würde; beheben Sie dies, bevor Sie fortfahren.
-4. **Starten Sie neu** mit der neuen Version (`./copalibre start` oder `docker compose up --detach
---wait`). Ausstehende Migrationen werden automatisch und der Reihe nach angewendet, bevor eine
-   Prozessrolle beginnt, Datenverkehr zu bedienen — kein separater manueller Schritt.
+```bash
+copalibre backup --file backups/pre-upgrade.tar.gz
+```
+
+Prüfen Sie im bestehenden Installationsverzeichnis die Compose-/Konfigurationsänderungen der Zielversion und ändern Sie beide Image-Referenzen in `.env`. Behalten Sie Compose-Projekt und Volumes. Laden und prüfen Sie das Zielimage ohne Abhängigkeiten zu starten oder Migrationen anzuwenden:
+
+```dotenv
+COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.0
+COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.0
+```
+
+```bash
+docker compose pull
+docker compose run --rm --no-deps upgrade-check --target-version 1.2.0
+```
+
+Planen Sie nach erfolgreicher Prüfung eine Unterbrechung, stoppen Sie Anwendungsprozesse und erstellen Sie ein abschließendes Backup. Migrieren und starten Sie danach neu; bei fehlgeschlagener Migration nicht neu starten:
+
+```bash
+docker compose stop gateway web web-ssr api events worker scheduler
+copalibre backup --file backups/pre-upgrade.tar.gz
+docker compose run --rm migrate && docker compose up --detach --wait
+docker compose run --rm doctor
+```
+
+Löschen oder ändern Sie den Marker nicht zur Umgehung der Versionsprüfung. Verwenden Sie für Schemaoperationen zwischen Versionen die expliziten Compose-Dienste oben; die neue CLI verweigert `migrate` und `upgrade-check` mit dem alten Marker. Ein neues `init`-Verzeichnis ist eine separate Installation, kein direktes Upgrade.
+
+Nach einer Datenbankmigration ist die Auswahl älterer Images kein sicherer Rollback. Lassen Sie Schreibprozesse gestoppt und stellen Sie PostgreSQL-, Objekt- und Konfigurationsbackups in einer isolierten Installation der vorherigen Version wieder her. Prüfen Sie die Wiederherstellung vor der Verkehrsumstellung; Schreibvorgänge nach dem Backup gehen verloren.
+
+## Upgrade nach Bereitstellungsart
+
+Bei Compose hinter NGINX oder Caddy bleiben Proxy und Zertifikate bestehen. Nutzen Sie während der Migration Wartungsrouting und validieren/laden Sie nur geänderte Proxy-Konfiguration neu. Unter Kubernetes verwenden Sie den Zielchart mit geprüften Werten und beiden Images, führen zuerst einen Kompatibilitäts-Job aus und prüfen Migrations-/Doctor-Jobs sowie Ingress vor der Verkehrsfreigabe. Helm rollback macht Datenbankmigrationen nicht rückgängig. Detaillierte Befehle:
+
+- [Caddy](https://github.com/SebaSOFT/copalibre/blob/main/docs/deployment/reverse-proxy/caddy.md#upgrading-copalibre-behind-caddy)
+- [NGINX](https://github.com/SebaSOFT/copalibre/blob/main/docs/deployment/reverse-proxy/nginx.md#upgrading-copalibre-behind-nginx)
+- [Kubernetes / Helm](https://github.com/SebaSOFT/copalibre/blob/main/docs/deployment/enterprise-kubernetes.md#upgrading-an-existing-helm-release-safely)
 
 ## Module aktualisieren
 
@@ -49,14 +67,14 @@ Jede installierte Disziplin oder jedes Turnierprofil ist ein Modul, das unabhän
 versioniert wird.
 
 ```bash
-./copalibre module list --outdated
+copalibre module list --outdated
 ```
 
 Listet nur die installierten Module auf, die eine neuere veröffentlichte Version als die
 installierte haben.
 
 ```bash
-./copalibre module add <alias>@<bereich>
+copalibre module add <alias>@<bereich>
 ```
 
 Installiert eine bestimmte Version oder einen Bereich (zum Beispiel `@^2.0.0`) eines bereits

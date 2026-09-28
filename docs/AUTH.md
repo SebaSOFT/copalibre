@@ -25,7 +25,14 @@ For machine-to-machine integrations (like MCP), operators can generate PATs from
 - At runtime, the API guard detects the `clpat_` prefix and validates it statefully via a database lookup, allowing immediate revocation.
 
 **Native Local JWTs**
-The native login flow (`/auth/login`) issues short-lived JWTs using `HS256` signed by `COPALIBRE_JWT_SECRET`. These are verified just like OIDC tokens but using the symmetric key.
+The native login flow (`/auth/login`) issues one-hour JWTs using **RS256**. The API reads the
+private key and matching public JWKS from `COPALIBRE_JWT_PRIVATE_KEY_FILE` and
+`COPALIBRE_JWKS_FILE`, or from `jwt-private.pem`/`jwks.json` in its working directory or
+`/var/lib/copalibre`. `copalibre init` creates these files on the host; ensure the API container
+can read the matching pair through your deployment mounts. If absent, the API generates temporary
+in-memory keys, so restarts invalidate existing tokens and replicas cannot reliably share identity.
+The public keys are served at `/.well-known/jwks.json` and `/auth/jwks.json`. Native tokens use the
+same asymmetric verifier as OIDC tokens; `COPALIBRE_JWT_SECRET` is not a supported signing setting.
 
 Key fetching, caching, and rotation are handled by `jose`'s `createRemoteJWKSet`, which re-fetches on
 an unknown `kid` — that is the key-rotation overlap the design requires, and it means a transient
@@ -62,31 +69,33 @@ Fine-grained permissions live in the policy layer, never in token claims — per
 
 ## Browser flow
 
-Browsers use **Authorization Code + PKCE** and hold the access token **in memory only**. Never
-`localStorage`: a long-lived access token in web storage is readable by any successful XSS.
+OIDC browsers use **Authorization Code + PKCE**. The current control panel keeps its access token
+in memory and tab-scoped `sessionStorage`, so a reload can recover an unexpired session; it does not
+persist access tokens in `localStorage`.
 
-Two modes are documented in the architecture doc. This release ships the first:
+Native login, invitation acceptance and refresh issue a rotating opaque refresh cookie,
+`copalibre_refresh_token`, scoped to `/auth`, with `HttpOnly`, `SameSite=Strict`, a 30-day lifetime,
+and `Secure` in production. `POST /auth/refresh` consumes the stored hashed refresh credential and
+issues a new cookie/access token; `POST /auth/logout` revokes the presented refresh credential and
+clears the cookie. Browser code cannot read the refresh cookie. Serve `/auth/*` through the application
+origin and HTTPS in production so the cookie reaches the intended API.
 
-1. **Strict stateless (default, implemented).** Short access token in memory, no persistent refresh
-   credential. A reload reauthenticates, and there is no immediate revocation before expiry.
-2. **Pragmatic persistent (deferred).** Adds rotating refresh credentials with reuse detection and a
-   small shared refresh-session record. Its storage, rotation, theft and revocation model needs its
-   own threat-model decision, so it is intentionally not bundled here.
-
-The known trade-off: strict mode forces reauthentication on reload, which may frustrate operators in
-long live-match-console sessions (phase `0017`). Mode 2 is the documented escape hatch, gated on that
-separate review.
+OIDC renewal uses the identity provider's silent authorization flow (`prompt=none`) with PKCE;
+it does not use CopaLibre's native refresh cookie. Register `/control/silent-renew-callback` alongside
+the ordinary callback at the provider. If silent renewal cannot complete, the operator must sign in
+again. The server continues to authorize every request independently of browser session storage.
 
 ## Environment
 
-| Variable                                | Required    | Purpose                                         |
-| --------------------------------------- | ----------- | ----------------------------------------------- |
-| `COPALIBRE_JWKS_URI`                    | conditional | Provider JWKS endpoint (required if using OIDC) |
-| `COPALIBRE_JWT_ISSUER`                  | yes         | Exact expected `iss`                            |
-| `COPALIBRE_JWT_AUDIENCE`                | yes         | Exact expected `aud`                            |
-| `COPALIBRE_JWT_SECRET`                  | conditional | Symmetric key for native local JWTs             |
-| `COPALIBRE_JWKS_CACHE_MAX_AGE_MS`       | no (600000) | Key cache lifetime / rotation overlap           |
-| `COPALIBRE_JWT_CLOCK_TOLERANCE_SECONDS` | no (5)      | Clock-skew tolerance                            |
+| Variable                                | Required           | Purpose                                       |
+| --------------------------------------- | ------------------ | --------------------------------------------- |
+| `COPALIBRE_JWKS_URI`                    | yes                | JWKS endpoint for native or external identity |
+| `COPALIBRE_JWT_ISSUER`                  | yes                | Exact expected `iss`                          |
+| `COPALIBRE_JWT_AUDIENCE`                | yes                | Exact expected `aud`                          |
+| `COPALIBRE_JWT_PRIVATE_KEY_FILE`        | native deployments | Persistent RS256 private key file             |
+| `COPALIBRE_JWKS_FILE`                   | native deployments | Matching persistent public JWKS file          |
+| `COPALIBRE_JWKS_CACHE_MAX_AGE_MS`       | no (600000)        | Key cache lifetime / rotation overlap         |
+| `COPALIBRE_JWT_CLOCK_TOLERANCE_SECONDS` | no (5)             | Clock-skew tolerance                          |
 
 ## The OpenAPI artifact
 

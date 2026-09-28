@@ -1,4 +1,4 @@
-import type { DisciplineDescriptor } from '@copalibre/domain';
+import type { DisciplineDescriptor, LocalizedLabel } from '@copalibre/domain';
 import type { TiebreakParameterDefinition, TiebreakPipeline } from '@copalibre/rules';
 
 /**
@@ -17,9 +17,14 @@ import type { TiebreakParameterDefinition, TiebreakPipeline } from '@copalibre/r
 /** A comparator as a stage configuration declares it. */
 export interface DeclaredTiebreak {
   readonly statisticCode: string;
-  readonly label?: string;
+  readonly label?: string | LocalizedLabel;
   readonly direction?: 'higher_wins' | 'lower_wins';
   readonly missingValue?: 'treat-as-worst' | 'treat-as-zero' | 'invalid';
+  readonly ratio?: {
+    readonly numerator: string;
+    readonly denominator: string;
+    readonly zeroDenominator: 'numerator-only' | 'treat-as-worst';
+  };
 }
 
 /** The statistic code the engine's own win/draw/loss accounting writes. */
@@ -111,19 +116,49 @@ function parameterOf(
   index: number,
 ): TiebreakParameterDefinition {
   const declared = descriptor.statistics.find((stat) => stat.code === entry.statisticCode);
+  const ratioConfigured = entry.ratio !== undefined;
+  const ratio = ratioConfigured ? ratioFor(descriptor, entry.ratio) : undefined;
+  const bound = ratioConfigured ? ratio !== undefined : declared !== undefined;
 
   return {
     id: entry.statisticCode,
     label: entry.label ?? declared?.label ?? entry.statisticCode,
     valueType: 'number',
     direction: entry.direction ?? 'higher_wins',
-    missingValue: entry.missingValue ?? 'treat-as-zero',
+    missingValue:
+      entry.missingValue ??
+      (ratio?.zeroDenominator === 'treat-as-worst' ? 'treat-as-worst' : 'treat-as-zero'),
     source: 'calculated',
+    ...(ratio ? { ratio } : {}),
     // A comparator naming a statistic the bound discipline never declares reads
-    // nothing. Annotating it makes the trace say so, instead of showing an
-    // operator a rule that silently discriminated nobody.
-    ...(declared === undefined
-      ? { unboundCapability: `${entry.statisticCode} (comparator ${index + 1})` }
-      : {}),
+    // nothing. Ratio comparators bind only when both operands are declared. In
+    // either case, the trace must not imply an invalid comparator was evaluated.
+    ...(!bound ? { unboundCapability: `${entry.statisticCode} (comparator ${index + 1})` } : {}),
+  };
+}
+
+function ratioFor(
+  descriptor: DisciplineDescriptor,
+  ratio: DeclaredTiebreak['ratio'],
+): TiebreakParameterDefinition['ratio'] | undefined {
+  if (
+    ratio === undefined ||
+    typeof ratio !== 'object' ||
+    ratio === null ||
+    typeof ratio.numerator !== 'string' ||
+    typeof ratio.denominator !== 'string' ||
+    (ratio.zeroDenominator !== 'numerator-only' && ratio.zeroDenominator !== 'treat-as-worst')
+  ) {
+    return undefined;
+  }
+
+  const declaredCodes = new Set(descriptor.statistics.map((statistic) => statistic.code));
+  if (!declaredCodes.has(ratio.numerator) || !declaredCodes.has(ratio.denominator))
+    return undefined;
+
+  return {
+    numerator: ratio.numerator,
+    denominator: ratio.denominator,
+    zeroDenominator: ratio.zeroDenominator,
   };
 }

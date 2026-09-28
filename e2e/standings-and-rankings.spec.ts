@@ -52,6 +52,7 @@ const groupStandingsFixture = {
     { code: 'gf', header: 'GF', format: 'number' },
     { code: 'ga', header: 'GA', shortHeader: 'GC', format: 'number' },
     { code: 'gd', header: 'GD', shortHeader: 'Dif', format: 'number' },
+    { code: 'goal-average', header: 'Avg', format: 'decimal-2' },
   ],
   defaultSort: [{ columnCode: 'gd', direction: 'desc' }],
   rows: [
@@ -65,6 +66,7 @@ const groupStandingsFixture = {
         gf: { raw: 12, formatted: '12' },
         ga: { raw: 3, formatted: '3' },
         gd: { raw: 9, formatted: '9' },
+        'goal-average': { raw: 4, formatted: '4.00' },
       },
     },
     {
@@ -77,6 +79,7 @@ const groupStandingsFixture = {
         gf: { raw: 6, formatted: '6' },
         ga: { raw: 5, formatted: '5' },
         gd: { raw: 1, formatted: '1' },
+        'goal-average': { raw: 1.2, formatted: '1.20' },
       },
     },
   ],
@@ -243,9 +246,12 @@ async function mockControlApi(page: Page): Promise<void> {
         if (url === `${stage}/tables/group-standings-default`) return Response.json(groupStandings);
         if (url === `${tournament}/tables/top-scorers`) return Response.json(topScorers);
         if (url === `${stage}/tables/group-standings-default/csv`) {
-          return new Response('name,gf,ga,gd\nTalleres,12,3,9\nIndependiente,6,5,1\n', {
-            headers: { 'content-type': 'text/csv; charset=utf-8' },
-          });
+          return new Response(
+            'name,gf,ga,gd,goal-average\nTalleres,12,3,9,4.00\nIndependiente,6,5,1,1.20\n',
+            {
+              headers: { 'content-type': 'text/csv; charset=utf-8' },
+            },
+          );
         }
         if (url === `${tournament}/tables/top-scorers/csv`) {
           return new Response('player,goals,cards\nGoleador Uno,9,4/5\n', {
@@ -267,7 +273,7 @@ async function mockControlApi(page: Page): Promise<void> {
   );
 }
 
-test('A5: renders the discipline’s own GF/GC/Dif columns, switches to a fraction-cell layout, and exports CSV', async ({
+test('A5: renders the discipline’s own GF/GC/Dif/Avg columns, switches to a fraction-cell layout, and exports CSV', async ({
   page,
 }) => {
   await mockControlApi(page);
@@ -281,11 +287,13 @@ test('A5: renders the discipline’s own GF/GC/Dif columns, switches to a fracti
   await expect(page.getByRole('button', { name: 'GF' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'GC' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Dif' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Avg' })).toBeVisible();
   // Table cells specifically — the distribution chart above repeats the
   // same leader's name and value as its own bar label.
   const table = page.locator('.cl-chamfer--control');
   await expect(table.getByText('Talleres')).toBeVisible();
   await expect(table.getByText('9', { exact: true })).toBeVisible();
+  await expect(table.getByText('4.00', { exact: true })).toBeVisible();
 
   // Switching tabs reads a different declared layout, including a composite
   // fraction cell no group-standings column ever produces.
@@ -549,14 +557,16 @@ test.describe('B2: public tournament page', () => {
     await new Promise<void>((resolve) => apiServer.close(() => resolve()));
   });
 
-  test('renders the discipline’s own GF/GC/Dif columns for a spectator', async ({ page }) => {
+  test('renders the discipline’s own GF/GC/Dif/Avg columns for a spectator', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
 
     await expect(page.getByRole('heading', { name: 'Group Standings' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'GF' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'GC' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Dif' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Avg' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Talleres' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: '4.00' })).toBeVisible();
   });
 
   for (const path of [

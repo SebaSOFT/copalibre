@@ -17,14 +17,19 @@ unter Rosetta) und Windows (x86_64).
 
 ## Schritte
 
+Führen Sie diese Befehle in Bash aus (unter Windows WSL2 oder Git Bash). Der PATH-Export aktiviert das Installationsverzeichnis in der aktuellen Shell. Für eine bestimmte veröffentlichte Version leiten Sie das Skript an `VERSION=1.2.0 bash` weiter; diese Version muss bereits veröffentlicht sein.
+
 ```bash
 curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
+export PATH="$HOME/.copalibre/bin:$PATH"
 mkdir meine-liga && cd meine-liga
 copalibre init      # schreibt nicht geheime Standardwerte in .env
 ```
 
 Bearbeiten Sie `.env`: das PostgreSQL-Passwort, `COPALIBRE_BOOTSTRAP_TOKEN`, OIDC
 JWKS/Issuer/Audience, die Browser-Client-ID und einen E-Mail-Anbieter.
+
+Setzen Sie vor dem Start `GARAGE_RPC_SECRET` in `.env` auf einen mit `openssl rand -hex 32` erzeugten Wert; Compose benötigt ihn auch ohne optionalen Speicher.
 
 ```bash
 copalibre doctor    # validiert die Konfiguration, bevor irgendetwas gestartet wird

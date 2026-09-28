@@ -20,32 +20,57 @@ curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/instal
 
 ## 更新框架
 
-推荐的非破坏性顺序：
+保留与 `.copalibre/installation.json` 匹配的 CLI。替换二进制文件不会更新标记、Compose 文件或镜像版本。升级前备份 PostgreSQL、对象、配置和签名密钥，并保留旧镜像版本。
 
-1. **备份**：在动手之前先执行 `./copalibre backup --file backups/pre-upgrade.dump`。
-2. **更新**：将检出内容或镜像引用更新到新版本（暂不重启服务）。若该安装实例是通过 `copalibre
-init` 创建的（无需检出，参见[命令参考](/zh/help/cli/commands/)），其目录会固定绑定到创建它的
-   CLI 版本——版本不匹配时，`migrate`/`upgrade-check` 会给出明确提示并拒绝执行，因此应通过针对同
-   一目录运行新版本的 CLI 来完成更新，而不要混用不同版本的 CLI。
-3. **检查兼容性**：在不重启任何内容的情况下针对新版本进行检查：
-   ```bash
-   ./copalibre upgrade-check --target-version <new-version>
-   ```
-   报告是否有已安装的模块将与该版本不再兼容（与 `module verify` 针对运行版本执行的检查相同，但这里针对的是目标版本），并列出待应用的数据库迁移——但不会实际应用任何迁移。如果有任何模块将变得不兼容，则以非零状态退出；请先解决该问题再继续。
-4. **重启**：使用新版本重启（`./copalibre start` 或 `docker compose up --detach --wait`）。待应用的迁移会在任何进程角色开始提供服务之前自动按顺序应用——而非单独的手动步骤。
+```bash
+copalibre backup --file backups/pre-upgrade.tar.gz
+```
+
+在现有安装目录中审查目标版本的 Compose 和配置变更，然后修改 `.env` 中的两个镜像引用。保留原有 Compose 项目和卷。拉取并检查目标镜像，不启动依赖，也不执行迁移：
+
+```dotenv
+COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.0
+COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.0
+```
+
+```bash
+docker compose pull
+docker compose run --rm --no-deps upgrade-check --target-version 1.2.0
+```
+
+检查成功后安排停机，停止应用进程并执行最终备份，再迁移和重启。迁移失败时不要重启应用：
+
+```bash
+docker compose stop gateway web web-ssr api events worker scheduler
+copalibre backup --file backups/pre-upgrade.tar.gz
+docker compose run --rm migrate && docker compose up --detach --wait
+docker compose run --rm doctor
+```
+
+不要删除或改写标记来绕过版本检查。跨版本执行数据库操作时使用上面的显式 Compose 服务；新版 CLI 无法对旧标记运行 `migrate` 或 `upgrade-check`。新的 `init` 目录是另一套安装，并非原地升级。
+
+数据库迁移后，仅选择旧镜像不能安全回滚。保持写入进程停止，在运行旧版本的隔离安装中恢复升级前的 PostgreSQL、对象及配置备份。验证恢复后再切换流量；备份之后的写入无法恢复。
+
+## 按部署方式升级
+
+Compose 位于 NGINX 或 Caddy 后方时，保留代理和证书，在迁移期间使用维护路由，仅在代理配置更改时验证并重载。Kubernetes 使用目标 chart、已审查的 values 和两个镜像版本，先运行兼容性 Job，再验证迁移/doctor Job 与 ingress 后恢复流量。Helm rollback 不会撤销数据库迁移。详细命令：
+
+- [Caddy](https://github.com/SebaSOFT/copalibre/blob/main/docs/deployment/reverse-proxy/caddy.md#upgrading-copalibre-behind-caddy)
+- [NGINX](https://github.com/SebaSOFT/copalibre/blob/main/docs/deployment/reverse-proxy/nginx.md#upgrading-copalibre-behind-nginx)
+- [Kubernetes / Helm](https://github.com/SebaSOFT/copalibre/blob/main/docs/deployment/enterprise-kubernetes.md#upgrading-an-existing-helm-release-safely)
 
 ## 更新模块
 
 每个已安装的项目或赛事配置文件都是独立于框架进行版本管理的模块。
 
 ```bash
-./copalibre module list --outdated
+copalibre module list --outdated
 ```
 
 仅列出已安装、且存在比当前安装版本更新的已发布版本的模块。
 
 ```bash
-./copalibre module add <alias>@<range>
+copalibre module add <alias>@<range>
 ```
 
 安装某个已安装模块的特定版本或版本范围（例如 `@^2.0.0`）——以不同版本重新安装即为更新模块的方式。已在进行中的赛事会继续引用其创建时所用的版本；更新模块绝不会追溯性地更改已在进行中的赛事。

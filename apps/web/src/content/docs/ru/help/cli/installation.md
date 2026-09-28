@@ -17,14 +17,19 @@ Rosetta) и Windows (x86_64).
 
 ## Шаги
 
+Выполняйте команды в Bash (WSL2 или Git Bash в Windows). Экспорт PATH добавляет каталог бинарного файла в текущую оболочку. Для выбора опубликованной версии передайте скрипт в `VERSION=1.2.0 bash`; эта версия должна быть уже опубликована.
+
 ```bash
 curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
+export PATH="$HOME/.copalibre/bin:$PATH"
 mkdir moya-liga && cd moya-liga
 copalibre init      # записывает несекретные значения по умолчанию в .env
 ```
 
 Отредактируйте `.env`: пароль PostgreSQL, `COPALIBRE_BOOTSTRAP_TOKEN`, JWKS/issuer/audience OIDC,
 ID клиента браузера и провайдера электронной почты.
+
+Перед запуском задайте `GARAGE_RPC_SECRET` в `.env` значением из `openssl rand -hex 32`: Compose требует его даже без дополнительного хранилища.
 
 ```bash
 copalibre doctor    # проверяет конфигурацию перед запуском чего-либо

@@ -14,9 +14,7 @@ roles:
 
 ## 1. Требования по платформам
 
-Каждая роль поставляется как один многофункциональный образ Docker, собираемый прямо из этого
-репозитория — отдельного этапа «продакшн-сборки» нет. Вам нужны Docker, Docker Compose v2 и Git;
-больше ничего на хосте не запускается.
+Нужны Docker, Docker Compose v2 и Git. Обёртке из исходного кода также нужны Node.js 24 и Corepack на хосте. Отдельному бинарному CLI Node.js не нужен; см. [Установка](/ru/help/cli/installation/).
 
 **Linux** — установите Docker Engine и плагин Compose из менеджера пакетов вашего дистрибутива или
 [собственного репозитория Docker](https://docs.docker.com/engine/install/) (`docker-ce`,
@@ -37,54 +35,36 @@ POSIX-скрипт `sh`; WSL2 даёт ему настоящую оболочк�
 
 ## 2. Запуск из исходного кода
 
+Соберите оба образа из корня репозитория, затем создайте установку в пустом каталоге:
+
 ```bash
 git clone https://github.com/SebaSOFT/copalibre.git
 cd copalibre
-./copalibre init      # записывает несекретные значения по умолчанию в .env, перечисляет нужные секреты
+docker build --target runtime -t copalibre:local .
+docker build --target web -t copalibre-web:local .
+mkdir my-league && cd my-league
+../copalibre init
 ```
 
-Отредактируйте `.env`: надёжный пароль PostgreSQL, непрозрачный `COPALIBRE_BOOTSTRAP_TOKEN`, ваши
-значения OIDC JWKS/issuer/audience (либо встроенный провайдер идентификации email/пароль — см.
-[Роли и права](/help/control/roles-permissions/)), публичный ID клиента браузера и один из
-поддерживаемых поставщиков email.
+Перед запуском измените `.env`: задайте `COPALIBRE_IMAGE=copalibre:local` и `COPALIBRE_WEB_IMAGE=copalibre-web:local` для этих сборок. Иначе `init` выбирает опубликованные образы версии CLI. Замените пароли разработки и bootstrap-токен; настройте идентификацию, почту и публичные URL. Задайте `GARAGE_RPC_SECRET` через `openssl rand -hex 32`: Compose подставляет это обязательное значение даже при отключённом дополнительном хранилище.
 
 ```bash
-./copalibre doctor    # проверяет конфигурацию перед тем, как что-либо запустится
-./copalibre start     # docker compose up --detach --wait — собирает образы локально
-./copalibre create-admin --organization-alias my-league --organization-name "My League" \
-  --email admin@example.com
+../copalibre doctor
+../copalibre start
+../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
 
-По умолчанию `./copalibre start` собирает `copalibre:local` и `copalibre-web:local` из этого
-чекаута — именно эта сборка и есть «запуск из исходного кода». Вместо этого укажите
-`COPALIBRE_IMAGE`/`COPALIBRE_WEB_IMAGE` на опубликованный тег, если предпочитаете скачать релиз, а не
-собирать его.
-
-На этом этапе стек работает, но недоступен извне хоста: `docker-compose.yml` намеренно никогда сам не
-завершает TLS и не открывает публичный порт. Выберите одну из двух топологий ниже, чтобы реально
-выставить его перед пользователями.
+Шлюз публикует HTTP на `http://localhost:8080` (`COPALIBRE_PORT`). Compose также публикует порты сервисов; ограничьте доступ на уровне хоста и сети. TLS завершается на внешнем прокси.
 
 ## 3. Выберите, как его открыть
 
 ### Вариант A — один хост, обратный прокси на границе
 
-Простейшая поддерживаемая топология: один Docker-хост, выполняющий Compose, с Caddy или NGINX
-впереди, которые завершают TLS и маршрутизируют к внутренним сервисам. Именно для этого по умолчанию
-и предназначен `./copalibre start` на всех трёх платформах выше.
+Направьте домен приложения на `gateway:80` в сети Compose или `127.0.0.1:8080`, если прокси работает на хосте. Шлюз маршрутизирует API, аутентификацию, SSE и web на одном origin; web-контейнер передаёт динамические страницы в `web-ssr`. Используйте `deploy/proxy/Caddyfile` или `deploy/proxy/nginx.conf`, настройте TLS и публичные URL, отключите буферизацию SSE. Отдельные домены API/events необязательны при едином origin.
 
-1. Задайте `COPALIBRE_APP_HOST`, `COPALIBRE_API_HOST` и `COPALIBRE_EVENTS_HOST` вашими публичными
-   именами хостов, а также `ACME_EMAIL`, чтобы прокси мог автоматически запрашивать сертификаты.
-2. Направьте обычный API-трафик на `api:3001`, SSE-трафик на `events:3002`, публичные SSR-маршруты на
-   `web-ssr:3005`, а статический control/public веб-трафик на `web:4321`. Примеры конфигураций:
-   [`deploy/proxy/Caddyfile`](https://github.com/SebaSOFT/copalibre/blob/main/deploy/proxy/Caddyfile)
-   и [`deploy/proxy/nginx.conf`](https://github.com/SebaSOFT/copalibre/blob/main/deploy/proxy/nginx.conf).
-   Прокси должен сохранять заголовки переадресации, держать SSE небуферизованным и давать
-   бездействующим потокам переживать heartbeat-сигналы — именно поэтому пример Caddy задаёт
-   `flush_interval -1`.
-3. Проверьте это: `./copalibre doctor --check-proxy --proxy-url https://events.example/events/proxy-check`.
-
-Это работает одинаково на Linux, macOS и Windows (WSL2) — прокси — это просто ещё один контейнер (или
-процесс на том же хосте) перед тем же стеком Compose.
+```bash
+../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
+```
 
 ### Вариант B — Kubernetes (от K3s до корпоративных кластеров)
 
@@ -93,9 +73,17 @@ cd copalibre
 процесс миграции, что и установка через Compose — установка со значениями по умолчанию ведёт себя
 идентично одному базовому чарту.
 
+Запускайте Helm из корня репозитория после настройки `my-values.yaml`: база данных, идентификация, почта и публичные URL. Для обоих образов используйте опубликованную версию; 1.2.0 станет доступна после публикации.
+
 ```bash
-helm install my-copalibre deploy/helm/copalibre/ \
-  --set image.tag=<version> --set web.image.tag=<version>
+cd ..
+helm show values deploy/helm/copalibre/ > my-values.yaml
+```
+
+```bash
+helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.0
 ```
 
 Накладывайте эти аддитивные, отключённые по умолчанию группы `values.yaml` по мере необходимости — ни
