@@ -45,6 +45,13 @@ These steps upgrade an existing release; they do not install a second copy. Exam
 chart from the target release checkout and published runtime/web images. Preserve database and
 object-store endpoints, secret references, public hostnames and signing keys.
 
+The quiesced procedure below can exceed two minutes: it stops all application deployments and
+waits for migrations and rollout. For a hard two-minute maximum, rehearse with production-sized data
+and require measured margin below the limit. Keep ingress on the old release during preflight; use a
+rolling cutover only after verifying the migration works with both old and new application versions.
+If that compatibility or timing is not proven for the target release, this procedure does not meet
+the downtime limit. Do not scale everything to zero and expect the limit to hold.
+
 ### 1. Capture configuration and recovery evidence
 
 Store values in a private directory: Helm values can contain credentials. Record the current Helm

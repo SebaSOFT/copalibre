@@ -20,6 +20,13 @@ this edge and set the installation's public URLs to match it.
 
 ## Upgrading CopaLibre behind Caddy
 
+The maintenance-backend procedure below can exceed two minutes. If two minutes is a hard maximum,
+rehearse the complete release cutover with production-sized data and require measured margin below
+that limit before scheduling it. Keep traffic on the old release during preflight; proceed with a
+rolling cutover only when the release migration is verified compatible with both old and new
+application versions. If rehearsal cannot meet the limit, this upgrade plan is not suitable for that
+window. Do not reopen traffic to a partially upgraded stack.
+
 1. Save the active proxy configuration, TLS configuration and current application image versions.
    Follow [Self-hosting → Upgrading](../../self-hosting.md#upgrading) for the PostgreSQL/object
    backups, target-image compatibility check and migration sequence. Keep the current installation

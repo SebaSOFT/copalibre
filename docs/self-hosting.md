@@ -171,6 +171,13 @@ not an upgrade. Retain the CLI matching `.copalibre/installation.json`: replacin
 update that marker, the installed Compose files or image references. A mismatched CLI refuses
 `migrate` and `upgrade-check`; do not delete or rewrite the marker to bypass this check.
 
+This stop-the-world procedure does not guarantee a two-minute outage. For a two-minute maximum,
+rehearse the full cutover with the same release, configuration and production-sized data, including
+migration and post-upgrade health checks. Proceed only when the measured interruption has margin
+under two minutes and the migration is verified compatible with the old and new application versions;
+otherwise this upgrade plan does not meet that downtime limit. Do not skip migration or reopen traffic
+against a partially upgraded database to fit the budget.
+
 1. Record current image versions. Back up PostgreSQL with
    `copalibre backup --file backups/pre-upgrade.tar.gz`, and separately back up object storage,
    `.env`, signing keys, Compose files and gateway configuration. Verify recovery before cutover.
