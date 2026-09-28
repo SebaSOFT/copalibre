@@ -241,13 +241,17 @@ networkPolicy:
 
 # TLS ingress for the public-facing roles (web/api/events), layered on top of
 # the Service templates above, not replacing them. Annotations default to
-# cert-manager's ClusterIssuer convention; override for a different ingress
+# cert-manager's ClusterIssuer convention and nginx-ingress's proxy-buffering
+# guarantee (Compose's edge gateway and the example reverse-proxy configs
+# already disable SSE buffering; this keeps the Kubernetes Ingress in parity
+# for the default nginx controller); override either for a different ingress
 # controller/cert issuer. A host left empty ('') is not routed.
 ingress:
   enabled: false
   className: nginx
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-buffering: 'off'
   tls:
     enabled: true
     secretName: copalibre-tls

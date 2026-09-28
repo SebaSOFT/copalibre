@@ -123,7 +123,10 @@ nothing in this chart installs them.
   `ingress.tls.enabled` is true (the default annotation targets a
   cert-manager `ClusterIssuer`).
 - **An ingress controller** (e.g. ingress-nginx), required by
-  `ingress.enabled`.
+  `ingress.enabled`. The chart's default annotations also disable nginx
+  response buffering (`nginx.ingress.kubernetes.io/proxy-buffering: "off"`),
+  so the `events` host's SSE streams aren't delayed; override
+  `ingress.annotations` for a different controller.
 - **External Secrets Operator**, required by `externalSecrets.enabled`.
 
 ## Managed external dependencies
