@@ -24,6 +24,16 @@ interface Props {
   readonly emptyLabel?: string;
   readonly pauseLabel?: string;
   readonly resumeLabel?: string;
+  /**
+   * Only a caller wiring live patching (openspec 0305) supplies this — it
+   * surfaces as `data-label-*` attributes so `ticker-live.ts` can relabel a
+   * badge on a live/upcoming/final transition without importing `react-intl`.
+   */
+  readonly liveBadgeLabels?: {
+    readonly live: string;
+    readonly upcoming: string;
+    readonly final: string;
+  };
 }
 const {
   items,
@@ -34,6 +44,7 @@ const {
   emptyLabel,
   pauseLabel,
   resumeLabel,
+  liveBadgeLabels,
 } = Astro.props;
 
 /*
@@ -49,6 +60,9 @@ const {
   class:list={['cl-ticker', `cl-ticker--${scale}`]}
   data-ticker
   data-stale={stale ? 'true' : undefined}
+  data-label-live={liveBadgeLabels?.live}
+  data-label-upcoming={liveBadgeLabels?.upcoming}
+  data-label-final={liveBadgeLabels?.final}
   aria-label={label}
   role="region"
 >
@@ -65,7 +79,16 @@ const {
         <div class="cl-ticker__track" data-ticker-track>
           {[0, 1].map((copy) =>
             items.map((item) => (
-              <div class="cl-ticker__item" aria-hidden={copy === 1 ? 'true' : undefined}>
+              <div
+                class="cl-ticker__item"
+                aria-hidden={copy === 1 ? 'true' : undefined}
+                data-match-id={item.matchId}
+                data-home-entrant-id={item.homeEntrantId}
+                data-away-entrant-id={item.awayEntrantId}
+                data-home-score={item.homeScore}
+                data-away-score={item.awayScore}
+                data-match-state={item.matchState}
+              >
                 <Badge className={`cl-badge--${item.tone}`}>{item.badge}</Badge>
                 <span class="cl-ticker__subject">{item.subject}</span>
                 <span class="cl-ticker__figure">{item.figure}</span>
@@ -241,6 +264,17 @@ const {
     background: var(--cl-color-ink-900);
     border: 1px solid var(--cl-color-ink-700);
     color: var(--cl-primary);
+  }
+
+  /*
+    A live-patched score change (openspec 0305), not a keyframe declared
+    here — `cl-badge-pulse` already exists globally in `packages/design-tokens`
+    and already honours the design-tokens reduced-motion rule, so this only
+    references it for the brief window `ticker-live.ts` adds and removes the
+    class.
+  */
+  .cl-ticker__figure--pulse {
+    animation: cl-badge-pulse var(--cl-motion-fast) ease-in-out 4 alternate;
   }
 
   /* A period the discipline declared, not a clock that ran long. */

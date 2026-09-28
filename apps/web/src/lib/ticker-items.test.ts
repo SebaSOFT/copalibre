@@ -257,6 +257,37 @@ describe('buildTickerItems', () => {
     const items = buildTickerItems({ matches, labels, language: 'en' });
     expect(items.some((item) => item.kind === 'leader')).toBe(false);
   });
+
+  it('carries live-correlation fields when a match has a persisted id and both entrants', () => {
+    const items = buildTickerItems({
+      matches: [
+        {
+          matchId: 'match-1',
+          stageNumber: 1,
+          matchNumber: 1,
+          state: 'live',
+          startsAt: '20:30',
+          home: { name: 'Meridian Seven', score: 3, entrantId: 'entrant-home' },
+          away: { name: 'Ironclad Five', score: 1, entrantId: 'entrant-away' },
+        },
+      ],
+      labels,
+      language: 'en',
+    });
+    expect(items[0]?.matchId).toBe('match-1');
+    expect(items[0]?.homeEntrantId).toBe('entrant-home');
+    expect(items[0]?.awayEntrantId).toBe('entrant-away');
+    expect(items[0]?.homeScore).toBe(3);
+    expect(items[0]?.awayScore).toBe(1);
+    expect(items[0]?.matchState).toBe('live');
+  });
+
+  it('omits live-correlation fields for a synthetic fixture with no persisted match or entrant', () => {
+    const items = buildTickerItems({ matches, labels, language: 'en' });
+    expect(items[0]?.matchId).toBeUndefined();
+    expect(items[0]?.homeEntrantId).toBeUndefined();
+    expect(items[0]?.awayEntrantId).toBeUndefined();
+  });
 });
 
 describe('the configured-only overtime label', () => {

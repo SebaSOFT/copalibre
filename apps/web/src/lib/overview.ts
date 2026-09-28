@@ -27,6 +27,8 @@ export interface SideView {
   /** The short label; absent when nobody chose one. */
   readonly abbreviation?: string;
   readonly score?: number;
+  /** Absent for a synthetic fixture with no persisted entrant yet; needed to correlate live events. */
+  readonly entrantId?: string;
 }
 
 export interface StandingsRowView {

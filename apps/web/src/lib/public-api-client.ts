@@ -241,11 +241,13 @@ export function mapOverviewResponse(
         name: m.homeName ?? 'TBD',
         abbreviation: m.homeAbbreviation,
         score: m.homeScore,
+        entrantId: m.homeEntrantId,
       },
       away: {
         name: m.awayName ?? 'TBD',
         abbreviation: m.awayAbbreviation,
         score: m.awayScore,
+        entrantId: m.awayEntrantId,
       },
       state: publicMatchState(m.status),
       startsAt: m.scheduledAt ?? '',
