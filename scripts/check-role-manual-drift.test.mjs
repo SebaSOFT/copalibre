@@ -8,18 +8,25 @@ import { capabilityDrift, findAllDrift } from './check-role-manual-drift.mjs';
 import { roleManualPages } from './generate-role-manuals.mjs';
 
 test('reports nothing when the documented set exactly equals the granted set', () => {
-  const { undocumented, overclaimed } = capabilityDrift('club-admin', ['org.manage-clubs']);
+  const { undocumented, overclaimed } = capabilityDrift('club-admin', [
+    'org.manage-club-members',
+    'org.manage-clubs',
+  ]);
   assert.deepEqual(undocumented, []);
   assert.deepEqual(overclaimed, []);
 });
 
 test('an undocumented grant fails, naming the capability', () => {
-  const { undocumented } = capabilityDrift('club-admin', []);
-  assert.deepEqual(undocumented, ['org.manage-clubs']);
+  const { undocumented } = capabilityDrift('club-admin', ['org.manage-clubs']);
+  assert.deepEqual(undocumented, ['org.manage-club-members']);
 });
 
 test('a documented capability the mapping does not grant fails, naming the claim', () => {
-  const { overclaimed } = capabilityDrift('club-admin', ['org.manage-clubs', 'org.manage-users']);
+  const { overclaimed } = capabilityDrift('club-admin', [
+    'org.manage-club-members',
+    'org.manage-clubs',
+    'org.manage-users',
+  ]);
   assert.deepEqual(overclaimed, ['org.manage-users']);
 });
 

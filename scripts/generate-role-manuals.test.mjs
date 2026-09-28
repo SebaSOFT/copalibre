@@ -61,7 +61,8 @@ test('refuses a page with no marker pair', () => {
 test('parses back exactly the capability ids the block lists', () => {
   const block = generatedCapabilityBlock('admin');
   const ids = documentedCapabilities(block);
-  assert.equal(ids.length, 22);
+  // openspec 0301 added org.manage-club-members to admin (via club-admin inheritance).
+  assert.equal(ids.length, 23);
   assert.ok(ids.includes('org.manage-clubs'));
 });
 
