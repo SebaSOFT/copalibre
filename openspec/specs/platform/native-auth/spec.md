@@ -115,3 +115,61 @@ supported languages, and SHALL render its authentication card with balanced view
 - **WHEN** an administrator views the invitation acceptance screen on a desktop viewport
 - **THEN** the authentication card is horizontally centered or balanced within the main content area
   rather than pinned against the left edge
+
+### Requirement: Native session silent renewal
+The API SHALL provide `POST /auth/refresh`, which accepts a native session's `HttpOnly`
+`copalibre_refresh_token` cookie, validates it as unexpired and unconsumed, issues a fresh
+short-lived access JWT, and rotates the refresh cookie (the presented token can never be presented
+again). The refresh token SHALL be transported only via that `HttpOnly`, `SameSite=Strict` cookie —
+never in a JSON response body, and never written to any browser storage a script can read.
+
+#### Scenario: Successful native session renewal
+- **WHEN** a client sends `POST /auth/refresh` with a valid, unexpired, unconsumed refresh cookie
+- **THEN** the API returns a new access JWT in the response body
+- **AND** sets a new refresh cookie, rotated
+- **AND** the previously-presented refresh token can no longer be used
+
+#### Scenario: A missing, expired, or already-consumed refresh token is rejected
+- **WHEN** a client sends `POST /auth/refresh` with no cookie, an expired one, or one already
+  consumed by an earlier refresh
+- **THEN** the API rejects the request with 401 Unauthorized and issues no new token
+
+### Requirement: Native session logout revokes the refresh cookie
+The API SHALL provide `POST /auth/logout`, which revokes the presented refresh token (if any) and
+clears the refresh cookie, regardless of whether a cookie was presented.
+
+#### Scenario: Logout revokes an active refresh token
+- **WHEN** a client sends `POST /auth/logout` with a valid refresh cookie
+- **THEN** the API revokes that token, so a later `POST /auth/refresh` with it fails
+- **AND** the response clears the refresh cookie
+
+#### Scenario: Logout with no cookie still succeeds
+- **WHEN** a client sends `POST /auth/logout` with no refresh cookie present
+- **THEN** the API returns success rather than an error
+
+### Requirement: OIDC session silent renewal
+An OIDC-authenticated control-web session SHALL renew itself with no stored refresh token and no
+operator interaction, by requesting a fresh authorization code from the identity provider with
+`prompt=none` in a hidden iframe. This is the only session mechanism this requirement applies to —
+a native session renews per the requirements above instead, never via this path.
+
+#### Scenario: The identity provider still has an active session
+- **WHEN** an OIDC session's access token is within 120 seconds of its own expiry
+- **AND** the identity provider's own session is still active
+- **THEN** the client obtains a fresh access token with no visible interruption to the operator
+
+#### Scenario: The identity provider has no active session
+- **WHEN** a silent renewal attempt's hidden iframe receives an error (or times out with no
+  response) from the identity provider
+- **THEN** the client clears the local session and redirects to
+  `/control/login?returnTo=<path>&reason=session_expired`
+
+### Requirement: Silent renewal is opt-in per deployment
+A deployment SHALL enable silent renewal (of either mechanism) only when `runtime-config.json`
+declares `sessionMode: "pragmatic-persistent"`. Absent or any other value SHALL leave today's
+behavior unchanged: no background renewal, and a page reload requires reauthentication.
+
+#### Scenario: A deployment that says nothing about session mode gets no silent renewal
+- **WHEN** `runtime-config.json` has no `sessionMode` field, or a value other than
+  `"pragmatic-persistent"`
+- **THEN** the client schedules no background renewal timer and attempts no renewal on a 401
