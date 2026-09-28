@@ -480,9 +480,11 @@ describe('public-api-client', () => {
             homeName: 'H',
             homeAbbreviation: 'H',
             homeScore: 1,
+            homeEntrantId: 'entrant-home',
             awayName: 'A',
             awayAbbreviation: 'A',
             awayScore: 0,
+            awayEntrantId: 'entrant-away',
             status: 'completed',
             scheduledAt: '2020',
           },
@@ -505,6 +507,8 @@ describe('public-api-client', () => {
         { dotPath: 'pointsForWin', label: 'Points For Win', value: 3 },
       ]);
       expect(result.matches[0].home.name).toBe('H');
+      expect(result.matches[0].home.entrantId).toBe('entrant-home');
+      expect(result.matches[0].away.entrantId).toBe('entrant-away');
       expect(result.standings[0].points).toBe(3);
     });
 

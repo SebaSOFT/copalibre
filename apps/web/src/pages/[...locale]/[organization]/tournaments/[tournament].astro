@@ -157,6 +157,7 @@ const structuredData = {
     emptyLabel={tickerChrome.empty}
     items={tickerItems}
     label={intl.formatMessage(messages.tickerLabel)}
+    liveBadgeLabels={tickerLabels(intl)}
     pauseLabel={tickerChrome.pause}
     resumeLabel={tickerChrome.resume}
     staleLabel={tickerChrome.stale}
@@ -207,6 +208,16 @@ const structuredData = {
     rows={rulesetBriefingRows(intl, model)}
   />
 </PublicLayout>
+
+<script>
+  // Page tier (openspec 0305): the only place on this page allowed to own a
+  // RealtimeClient subscription — see check-atomic-composition.mjs's
+  // data-access-at-page-tier rule. Patches ScoreTicker's own rendered DOM;
+  // never a requirement for the page's content, only an enhancement of it.
+  import { mountLiveTicker } from '../../../../lib/ticker-live.ts';
+
+  mountLiveTicker();
+</script>
 
 <style>
   /* Guarantees clear separation from the hero banner above (openspec 0245). */
