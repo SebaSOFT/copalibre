@@ -25,6 +25,14 @@ export type CreateTournamentRequest = components['schemas']['CreateTournamentReq
 export type ProblemResponse = components['schemas']['ProblemResponse'];
 export type HealthResponse = components['schemas']['HealthResponse'];
 export type ReadinessResponse = components['schemas']['ReadinessResponse'];
+export type DiagnosticsSummary = components['schemas']['DiagnosticsSummary'];
+export type DiagnosticsFailure = components['schemas']['DiagnosticsFailure'];
+export type DiagnosticsDatabase = components['schemas']['DiagnosticsDatabase'];
+export type DiagnosticsOutbox = components['schemas']['DiagnosticsOutbox'];
+export type DiagnosticsStorage = components['schemas']['DiagnosticsStorage'];
+export type DiagnosticsRealtime = components['schemas']['DiagnosticsRealtime'];
+export type RetryOutboxRequest = components['schemas']['RetryOutboxRequest'];
+export type RetryOutboxResponse = components['schemas']['RetryOutboxResponse'];
 
 /** Every path the API exposes, as a literal union — useful for typed clients. */
 export type ApiPath = keyof paths;

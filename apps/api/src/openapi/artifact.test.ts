@@ -12,6 +12,9 @@ import { buildOpenApiDocument } from './document.js';
 import { collectRoutePlanes } from './collect-planes.js';
 import { lintOpenApiContract } from './contract-lint.js';
 
+import { DiagnosticsService } from '../modules/admin/diagnostics.service.js';
+import { OutboxInspectorService } from '../modules/admin/outbox-inspector.service.js';
+
 // One source for the generator, its guard and this test: three lists drifting
 // apart is how a served route goes missing from the published contract.
 const CONTROLLERS = OPENAPI_CONTROLLERS;
@@ -34,6 +37,8 @@ describe('OpenAPI artifact', () => {
         { provide: DATABASE, useValue: {} },
         { provide: TokenVerifier, useValue: {} },
         { provide: OBJECT_STORAGE, useValue: undefined },
+        { provide: DiagnosticsService, useValue: {} },
+        { provide: OutboxInspectorService, useValue: {} },
       ],
     })
     class OpenApiTestModule {}

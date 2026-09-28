@@ -899,6 +899,16 @@ export interface ObjectMetadataTable {
 }
 
 export interface Database {
+  realtime_replicas: {
+    replica_id: string;
+    tv_kiosks: number;
+    overlays: number;
+    public_spectators: number;
+    control_connections: number;
+    unclassified: number;
+    reported_at: Timestamp;
+    expires_at: Timestamp;
+  };
   organizations: OrganizationsTable;
   identity_principals: IdentityPrincipalsTable;
   organization_role_assignments: OrganizationRoleAssignmentsTable;

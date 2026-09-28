@@ -1,6 +1,8 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadBucketCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -28,6 +30,29 @@ export function createS3Adapter(config: S3StorageConfig): ObjectStorageAdapter {
 
   return {
     profile: 's3',
+
+    async inspect(signal) {
+      await client.send(new HeadBucketCommand({ Bucket: config.bucket }), { abortSignal: signal });
+      let totalObjects = 0;
+      let totalBytes = 0;
+      let continuationToken: string | undefined;
+      do {
+        signal.throwIfAborted();
+        const page = await client.send(
+          new ListObjectsV2Command({ Bucket: config.bucket, ContinuationToken: continuationToken }),
+          { abortSignal: signal },
+        );
+        for (const object of page.Contents ?? []) {
+          totalObjects += 1;
+          totalBytes += object.Size ?? 0;
+        }
+        continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+        if (page.IsTruncated && !continuationToken) {
+          throw new Error('Storage inventory returned an incomplete page without a cursor');
+        }
+      } while (continuationToken);
+      return { totalObjects, totalBytes, bucketName: config.bucket };
+    },
 
     async put(key, body, contentType) {
       await client.send(

@@ -1,4 +1,5 @@
 import { HealthController } from '../health.controller.js';
+import { DiagnosticsController } from '../modules/admin/diagnostics.controller.js';
 import { AdminModulesController } from '../controllers/admin-modules.controller.js';
 import { AdminStatisticsController } from '../controllers/admin-statistics.controller.js';
 import { AuthoredModulesController } from '../controllers/authored-modules.controller.js';
@@ -65,6 +66,7 @@ import { PublicObjectsController } from '../controllers/public-objects.controlle
  */
 export const OPENAPI_CONTROLLERS = [
   HealthController,
+  DiagnosticsController,
   OrganizationsController,
   TournamentsController,
   TournamentProfilesController,

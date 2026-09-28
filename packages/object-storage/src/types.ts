@@ -24,6 +24,12 @@ export interface StoredObject {
 
 export interface ObjectStorageAdapter {
   readonly profile: StorageProfile;
+  /** Optional for custom adapters; built-in profiles inspect the actual storage backend. */
+  inspect?(signal: AbortSignal): Promise<{
+    readonly totalObjects: number;
+    readonly totalBytes: number;
+    readonly bucketName?: string;
+  }>;
   put(key: string, body: Uint8Array, contentType: string): Promise<ObjectReference>;
   get(reference: ObjectReference): Promise<StoredObject>;
   delete(reference: ObjectReference): Promise<void>;

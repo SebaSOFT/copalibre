@@ -7,6 +7,7 @@ import { EventsController, LongPollController } from './events.controller.js';
 import { HealthController } from './health.controller.js';
 import { DisplayTokenAuthGuard } from './stream/display-token-auth.guard.js';
 import { StreamAuthGuard } from './stream/stream-auth.guard.js';
+import { RealtimeTelemetry } from './stream/realtime-telemetry.js';
 
 /**
  * The events process. The database and the verifier are behind tokens so
@@ -24,6 +25,7 @@ const providers: Provider[] = [
   },
   StreamAuthGuard,
   DisplayTokenAuthGuard,
+  RealtimeTelemetry,
 ];
 
 @Module({

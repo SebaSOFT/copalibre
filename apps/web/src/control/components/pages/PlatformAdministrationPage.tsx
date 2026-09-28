@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
-import type { CreateOrganizationRequest } from '@copalibre/contracts';
+import type { CreateOrganizationRequest, DiagnosticsSummary } from '@copalibre/contracts';
 import {
   createControlApiClient,
   type AuthoredModuleRequest,
@@ -44,6 +44,25 @@ export function PlatformAdministrationPage({
   );
   const intl = useIntl();
   const toast = useToast();
+  const [activeTab, setActiveTab] = useState<'overview' | 'diagnostics'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'diagnostics') return 'diagnostics';
+    }
+    return 'overview';
+  });
+  const [diagnosticsSummary, setDiagnosticsSummary] = useState<DiagnosticsSummary | undefined>();
+  const [diagnosticsLoading, setDiagnosticsLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('tab') === 'diagnostics';
+    }
+    return false;
+  });
+  const [diagnosticsError, setDiagnosticsError] = useState<string | undefined>();
+  const [autoPoll, setAutoPoll] = useState(false);
+  const [retryingOutbox, setRetryingOutbox] = useState(false);
+
   const [modules, setModules] = useState<readonly InstalledModuleResponse[]>([]);
   const [outdated, setOutdated] = useState<readonly OutdatedModuleResponse[]>([]);
   const [verification, setVerification] = useState<readonly ModuleVerifyResultResponse[]>([]);
@@ -354,12 +373,120 @@ export function PlatformAdministrationPage({
     }
   };
 
+  const loadDiagnostics = useCallback(async () => {
+    if (!api.getDiagnosticsSummary) return;
+    setDiagnosticsLoading(true);
+    setDiagnosticsError(undefined);
+    try {
+      const summary = await api.getDiagnosticsSummary();
+      setDiagnosticsSummary(summary);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      setDiagnosticsError(message);
+      pushVerbatimError(toast, cause);
+    } finally {
+      setDiagnosticsLoading(false);
+    }
+  }, [api, toast]);
+
+  useEffect(() => {
+    const updateTab = () => {
+      const params = new URLSearchParams(window.location.search);
+      const isDiag = params.get('tab') === 'diagnostics';
+      if (isDiag) setDiagnosticsLoading(true);
+      setActiveTab(isDiag ? 'diagnostics' : 'overview');
+    };
+    window.addEventListener('popstate', updateTab);
+    window.addEventListener('copalibre:control-navigated', updateTab);
+    return () => {
+      window.removeEventListener('popstate', updateTab);
+      window.removeEventListener('copalibre:control-navigated', updateTab);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'diagnostics' || !api.getDiagnosticsSummary) return;
+    let live = true;
+    api
+      .getDiagnosticsSummary()
+      .then((summary) => {
+        if (!live) return;
+        setDiagnosticsSummary(summary);
+        setDiagnosticsError(undefined);
+      })
+      .catch((cause: unknown) => {
+        if (!live) return;
+        const message = cause instanceof Error ? cause.message : String(cause);
+        setDiagnosticsError(message);
+        pushVerbatimError(toast, cause);
+      })
+      .finally(() => {
+        if (!live) return;
+        setDiagnosticsLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [activeTab, api, toast]);
+
+  useEffect(() => {
+    if (!autoPoll || activeTab !== 'diagnostics') return;
+    const interval = setInterval(() => {
+      void loadDiagnostics();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [autoPoll, activeTab, loadDiagnostics]);
+
+  const selectTab = useCallback((tab: 'overview' | 'diagnostics') => {
+    if (tab === 'diagnostics') {
+      setDiagnosticsLoading(true);
+    }
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (tab === 'diagnostics') {
+        url.searchParams.set('tab', 'diagnostics');
+      } else {
+        url.searchParams.delete('tab');
+      }
+      window.history.pushState({}, '', url.pathname + url.search);
+    }
+  }, []);
+
+  const retryOutboxEvents = useCallback(
+    async (eventIds: readonly string[]) => {
+      setRetryingOutbox(true);
+      try {
+        const retryFn = requireApi(api.retryOutboxEvents, 'retryOutboxEvents');
+        const response = await retryFn({ eventIds: [...eventIds] });
+        toast.push({
+          severity: 'success',
+          message: intl.formatMessage(messages.platformDiagnosticsRetrySuccess, {
+            count: response.retried.length,
+            skipped: response.skipped.length,
+          }),
+        });
+        await loadDiagnostics();
+      } catch (cause) {
+        pushVerbatimError(toast, cause);
+      } finally {
+        setRetryingOutbox(false);
+      }
+    },
+    [api, intl, loadDiagnostics, toast],
+  );
+
   return (
     <PlatformAdministrationTemplate
+      activeTab={activeTab}
       api={api}
       authoringBusy={authoringBusy}
       authoringFailures={authoringFailures}
+      autoPoll={autoPoll}
       busy={busy}
+      diagnosticsError={diagnosticsError}
+      diagnosticsLoading={diagnosticsLoading}
+      diagnosticsSummary={diagnosticsSummary}
       disciplineOptions={disciplineOptions}
       loadingModules={loadingModules}
       loadingSuperAdmins={loadingSuperAdmins}
@@ -371,10 +498,15 @@ export function PlatformAdministrationPage({
       onCreateSuperAdmin={createSuperAdmin}
       onInstallModule={installModule}
       onInviteAdmin={inviteOrganizationAdmin}
+      onRefreshDiagnostics={loadDiagnostics}
       onRemoveModule={removeModule}
       onRemoveSuperAdmin={removeSuperAdmin}
+      onRetryOutboxEvents={retryOutboxEvents}
+      onSelectTab={selectTab}
+      onToggleAutoPoll={setAutoPoll}
       onVerifyModule={verifyModule}
       outdated={outdated}
+      retryingOutbox={retryingOutbox}
       superAdmins={superAdmins}
       verification={verification}
     />
