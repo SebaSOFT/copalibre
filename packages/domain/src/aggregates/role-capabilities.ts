@@ -25,6 +25,8 @@ export const ORGANIZATION_CAPABILITIES = [
   'org.manage-settings',
   /** Club records and their emblems, unscoped for admin, scoped to the club administered for club-admin. */
   'org.manage-clubs',
+  /** The Club Portal: a club-admin's own member directory, teams, and tournament roster submissions, scoped to the club administered. */
+  'org.manage-club-members',
   /** Person records: photo, nationality, and linking an installation identity to one. */
   'org.manage-persons',
   /** Venues, officials, and the resource-scheduling records shared across the organization's tournaments. */
@@ -117,7 +119,10 @@ const ADMIN_DIRECT_CAPABILITIES: readonly OrganizationCapability[] = [
   'org.view-audit-trail',
   ...TOURNAMENT_OPERATIONAL_CAPABILITIES,
 ];
-const CLUB_ADMIN_DIRECT_CAPABILITIES: readonly OrganizationCapability[] = ['org.manage-clubs'];
+const CLUB_ADMIN_DIRECT_CAPABILITIES: readonly OrganizationCapability[] = [
+  'org.manage-clubs',
+  'org.manage-club-members',
+];
 const REFEREE_DIRECT_CAPABILITIES: readonly OrganizationCapability[] = ['org.operate-match'];
 // Grantable roles the current route surface admits nowhere — reproducing
 // today's access means declaring them, honestly, as holding nothing yet.

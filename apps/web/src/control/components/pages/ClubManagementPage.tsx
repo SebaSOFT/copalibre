@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
 import { useIntl } from 'react-intl';
+import { capabilitiesForRole, type OrganizationRole } from '@copalibre/domain';
 import {
   createControlApiClient,
   type ClubResponse,
@@ -44,6 +45,32 @@ export function ClubManagementPage({
   const [clubs, setClubs] = useState<readonly ClubResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string>();
+  const [role, setRole] = useState<OrganizationRole | undefined>(undefined);
+
+  useEffect(() => {
+    let live = true;
+    api
+      .listMyOrganizations()
+      .then((organizations) => {
+        if (!live) return;
+        const mine = organizations.find((one) => one.organizationAlias === organizationAlias);
+        setRole(mine?.role);
+      })
+      .catch(() => {
+        // Same presentation-guard fallback as DashboardPage's own lookup: a
+        // failed role read leaves the action visible rather than blocking
+        // the screen from rendering.
+      });
+    return () => {
+      live = false;
+    };
+  }, [api, organizationAlias]);
+
+  // Client-side guard only, same "unknown role sees everything" convention
+  // as DashboardPage's own capability guards (openspec 0301) — the Club
+  // Portal's own backend routes stay server-enforced regardless.
+  const canManageClubMembers =
+    role === undefined || capabilitiesForRole(role).includes('org.manage-club-members');
 
   const reload = useCallback(async (): Promise<void> => {
     try {
@@ -151,6 +178,7 @@ export function ClubManagementPage({
   return (
     <ClubManagementTemplate
       api={api}
+      canManageClubMembers={canManageClubMembers}
       clubs={clubs}
       onCreateClub={createClub}
       onSaveClub={saveClub}

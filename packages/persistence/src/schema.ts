@@ -273,6 +273,8 @@ export interface PersonsTable {
   birth_date: string | null;
   /** FK into `object_metadata.object_id`; null until a photo is uploaded. */
   photo_object_id: string | null;
+  /** The club this person is affiliated with; null for a person with no club affiliation. */
+  club_id: string | null;
   created_at: Timestamp;
 }
 

@@ -224,6 +224,23 @@ describe('parseControlPath', () => {
     ],
     ['/control/liga-mendocina/clubs', { screen: 'clubs', organizationAlias: 'liga-mendocina' }],
     [
+      '/control/liga-mendocina/clubs/00000000-0000-7000-8000-000000000002/portal/members',
+      {
+        screen: 'clubPortalMembers',
+        organizationAlias: 'liga-mendocina',
+        clubId: '00000000-0000-7000-8000-000000000002',
+      },
+    ],
+    [
+      '/control/liga-mendocina/clubs/00000000-0000-7000-8000-000000000002/portal/tournaments/apertura-2026/roster',
+      {
+        screen: 'clubPortalRoster',
+        organizationAlias: 'liga-mendocina',
+        clubId: '00000000-0000-7000-8000-000000000002',
+        tournamentAlias: 'apertura-2026',
+      },
+    ],
+    [
       '/control/liga-mendocina/resources',
       { screen: 'resources', organizationAlias: 'liga-mendocina' },
     ],

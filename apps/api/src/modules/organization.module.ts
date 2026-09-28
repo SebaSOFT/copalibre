@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { OrganizationsController } from '../controllers/organizations.controller.js';
 import { OrganizationMediaController } from '../controllers/identity-media.controller.js';
 import { ClubsController } from '../controllers/clubs.controller.js';
+import { ClubPortalController } from '../controllers/club-portal.controller.js';
 import { ResourcesController } from '../controllers/resources.controller.js';
 import { AuditTrailController } from '../controllers/audit-trail.controller.js';
 import { CoreModule } from './core.module.js';
@@ -12,6 +13,7 @@ import { CoreModule } from './core.module.js';
     OrganizationsController,
     OrganizationMediaController,
     ClubsController,
+    ClubPortalController,
     ResourcesController,
     AuditTrailController,
   ],

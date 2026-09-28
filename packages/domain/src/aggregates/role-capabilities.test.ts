@@ -55,6 +55,7 @@ describe('organization capabilities', () => {
       'org.manage-users',
       'org.manage-settings',
       'org.manage-clubs',
+      'org.manage-club-members',
       'org.manage-persons',
       'org.manage-resources',
       'org.create-tournaments',
@@ -108,6 +109,14 @@ describe('organization capabilities', () => {
         expect.arrayContaining(['admin', 'club-admin']),
       );
       expect(rolesForCapability('org.manage-clubs')).not.toContain('tournament-admin');
+    });
+
+    it('finds both the direct and the inheriting role for org.manage-club-members', () => {
+      expect(rolesForCapability('org.manage-club-members')).toEqual(
+        expect.arrayContaining(['admin', 'club-admin']),
+      );
+      expect(rolesForCapability('org.manage-club-members')).not.toContain('tournament-admin');
+      expect(rolesForCapability('org.manage-club-members')).not.toContain('referee');
     });
 
     it('finds admin and tournament-admin, but no one else, for a tournament-operational capability', () => {

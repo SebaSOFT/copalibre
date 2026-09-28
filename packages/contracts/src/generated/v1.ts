@@ -2334,6 +2334,79 @@ export interface paths {
         patch: operations["ClubsController_update"];
         trace?: never;
     };
+    "/organizations/{organizationAlias}/clubs/{clubId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a club's own member directory */
+        get: operations["ClubPortalController_listMembers"];
+        put?: never;
+        /** Add a new person to the club member directory */
+        post: operations["ClubPortalController_createMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/clubs/{clubId}/members/{personId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a club member's display name or alias */
+        patch: operations["ClubPortalController_updateMember"];
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/clubs/{clubId}/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the club's own teams */
+        get: operations["ClubPortalController_listTeams"];
+        put?: never;
+        /** Create a team owned by this club */
+        post: operations["ClubPortalController_createTeam"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/clubs/{clubId}/tournaments/{tournamentAlias}/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit the club's team as a pending tournament registration with its squad
+         * @description Registers the named team as a pending entrant (organizer review, unchanged, decides the rest) and applies the submitted squad in the same transaction. Every named person must already be one of the club's own members.
+         */
+        post: operations["ClubPortalController_submitRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/venues": {
         parameters: {
             query?: never;
@@ -5498,6 +5571,70 @@ export interface components {
             alias?: string;
             /** @example C I */
             abbreviation?: string;
+        };
+        ClubMemberResponse: {
+            /** Format: uuid */
+            personId: string;
+            /** @example Elías Salomón */
+            displayName: string;
+            alias?: string;
+            /**
+             * Format: date
+             * @example 2001-05-14
+             */
+            birthDate?: string;
+            /**
+             * @description ISO 3166-1 alpha-2 country code
+             * @example AR
+             */
+            nationality?: string;
+            /**
+             * Format: uuid
+             * @description object_metadata.object_id of the photo
+             */
+            photoObjectId?: string;
+        };
+        CreateClubMemberRequest: {
+            /** @example Elías Salomón */
+            displayName: string;
+            /** @description Suggested from displayName when omitted. */
+            alias?: string;
+            /**
+             * Format: date
+             * @example 2001-05-14
+             */
+            birthDate?: string;
+        };
+        UpdateClubMemberRequest: {
+            displayName?: string;
+            alias?: string;
+        };
+        ClubTeamResponse: {
+            /** Format: uuid */
+            teamId: string;
+            name: string;
+            alias?: string;
+        };
+        CreateClubTeamRequest: {
+            /** @example Talleres */
+            name: string;
+            /** @description Suggested from name when omitted. */
+            alias?: string;
+        };
+        SubmitClubRegistrationRequest: {
+            /** Format: uuid */
+            teamId: string;
+            members: components["schemas"]["TeamMembershipMemberInput"][];
+        };
+        ClubRegistrationResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            /** Format: uuid */
+            tournamentId: string;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "refused" | "withdrawn" | "checked-in";
+            /** Format: uuid */
+            teamId: string;
         };
         VenueResponse: {
             /** Format: uuid */
@@ -10895,6 +11032,156 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClubResponse"];
+                };
+            };
+        };
+    };
+    ClubPortalController_listMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubMemberResponse"][];
+                };
+            };
+        };
+    };
+    ClubPortalController_createMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateClubMemberRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubMemberResponse"];
+                };
+            };
+        };
+    };
+    ClubPortalController_updateMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateClubMemberRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubMemberResponse"];
+                };
+            };
+        };
+    };
+    ClubPortalController_listTeams: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubTeamResponse"][];
+                };
+            };
+        };
+    };
+    ClubPortalController_createTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateClubTeamRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubTeamResponse"];
+                };
+            };
+        };
+    };
+    ClubPortalController_submitRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitClubRegistrationRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubRegistrationResponse"];
                 };
             };
         };
