@@ -8,8 +8,12 @@ Object.defineProperty(globalThis, 'TextDecoder', { value: TextDecoder, configura
 import { createPkcePair, authorizationUrl, verifyCallbackState } from './session/pkce.js';
 import {
   FORBIDDEN_STORAGE_KEYS,
+  accessTokenExpiresAtMs,
   accessTokenHasScope,
+  clearAuthMethod,
   createTokenStore,
+  readAuthMethod,
+  recordAuthMethod,
   reloadBehaviour,
 } from './session/token-store.js';
 import {
@@ -99,6 +103,40 @@ describe('the access token is never written down', () => {
   it('reloads differently per mode, decided in one place', () => {
     expect(reloadBehaviour('strict-stateless')).toBe('reauthenticate');
     expect(reloadBehaviour('pragmatic-persistent')).toBe('silent-renew');
+  });
+
+  it('reads the exp claim in milliseconds, for scheduling silent renewal', () => {
+    const payload = btoa(JSON.stringify({ exp: 1_800_000_000 }))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+    expect(accessTokenExpiresAtMs(`header.${payload}.signature`)).toBe(1_800_000_000_000);
+    expect(accessTokenExpiresAtMs('opaque-test-token')).toBeUndefined();
+    expect(accessTokenExpiresAtMs(undefined)).toBeUndefined();
+    // Malformed base64 in the payload segment: atob/JSON.parse throw, not treated as a valid expiry.
+    expect(accessTokenExpiresAtMs('header.not-valid-base64!!!.signature')).toBeUndefined();
+  });
+
+  it('remembers which login mechanism established the session, and forgets it on clear', () => {
+    expect(readAuthMethod(undefined)).toBeUndefined();
+    recordAuthMethod('native', undefined);
+    expect(readAuthMethod(undefined)).toBe('native');
+    clearAuthMethod(undefined);
+    expect(readAuthMethod(undefined)).toBeUndefined();
+  });
+
+  it('treats a storage that throws on read the same as no stored auth method', () => {
+    const throwingStorage: Storage = {
+      getItem: () => {
+        throw new Error('storage unavailable');
+      },
+      setItem: () => {},
+      removeItem: () => {},
+      clear: () => {},
+      key: () => null,
+      length: 0,
+    };
+    expect(readAuthMethod(throwingStorage)).toBeUndefined();
   });
 
   it('restores unexpired session from sessionStorage across reloads when storage is configured', () => {

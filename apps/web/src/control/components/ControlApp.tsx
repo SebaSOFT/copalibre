@@ -45,7 +45,15 @@ import {
 import { createControlApiClient, type MyOrganizationResponse } from '../lib/api-client.js';
 import { completeOidcLogin } from '../session/oidc-callback.js';
 import { DEFAULT_RETURN_TO } from '../session/oidc-login.js';
-import { accessTokenHasScope, controlTokenStore } from '../session/token-store.js';
+import { postSilentRenewResult } from '../session/oidc-silent-renew.js';
+import { readRuntimeConfig, resolveSessionMode } from '../session/runtime-config.js';
+import { cancelScheduledRenewal, scheduleSilentRenewal } from '../session/silent-renewal.js';
+import {
+  accessTokenExpiresAtMs,
+  accessTokenHasScope,
+  controlTokenStore,
+  recordAuthMethod,
+} from '../session/token-store.js';
 import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { messages } from '../i18n/messages.en.js';
 import type { SupportedLanguage } from '../../lib/language-preference.js';
@@ -72,6 +80,7 @@ export function ControlApp(): React.JSX.Element | null {
 
   const isPublicRoute =
     route?.screen === 'callback' ||
+    route?.screen === 'silent-renew-callback' ||
     route?.screen === 'login' ||
     route?.screen === 'forgot-password' ||
     route?.screen === 'reset-password';
@@ -97,6 +106,40 @@ export function ControlApp(): React.JSX.Element | null {
     window.location.assign('/control/login');
   }, [isUnauthorizedPlatformRoute]);
 
+  // Schedules background silent renewal, once, for whichever session is
+  // already established when an authenticated screen mounts — covers both a
+  // fresh login (CompletingLogin/LoginRoute navigate straight into one of
+  // these) and a reload that restored the token from storage. A deployment
+  // that opts out (or says nothing) via runtime-config gets no timer at all,
+  // matching 'strict-stateless's already-documented reload behaviour.
+  useEffect(() => {
+    if (route === undefined || isPublicRoute) return;
+    const token = controlTokenStore.read();
+    if (token === undefined) return;
+
+    let cancelled = false;
+    readRuntimeConfig()
+      .then((config) => {
+        if (cancelled || resolveSessionMode(config) !== 'pragmatic-persistent') return;
+        const expiresAtMs = accessTokenExpiresAtMs(controlTokenStore.read());
+        if (expiresAtMs !== undefined) scheduleSilentRenewal(expiresAtMs);
+      })
+      .catch(() => {
+        // No runtime-config reachable: treated the same as an explicit
+        // strict-stateless deployment — no silent renewal, reload
+        // reauthenticates as it already does today.
+      });
+
+    return () => {
+      cancelled = true;
+      cancelScheduledRenewal();
+    };
+    // Runs once per authenticated mount; re-derives everything it needs from
+    // the token store and runtime-config rather than reacting to route
+    // changes, since a screen-to-screen navigation never starts a new session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPublicRoute]);
+
   if (route === undefined)
     return (
       <ControlIntl locale={activeControlLanguage()}>
@@ -109,6 +152,7 @@ export function ControlApp(): React.JSX.Element | null {
         <CompletingLogin />
       </ControlIntl>
     );
+  if (route.screen === 'silent-renew-callback') return <SilentRenewCallback />;
   if (route.screen === 'login')
     return (
       <ControlIntl locale={activeControlLanguage()}>
@@ -150,7 +194,7 @@ export function ControlApp(): React.JSX.Element | null {
  */
 type RenderableScreen = Exclude<
   ControlRoute['screen'],
-  'callback' | 'login' | 'forgot-password' | 'reset-password'
+  'callback' | 'silent-renew-callback' | 'login' | 'forgot-password' | 'reset-password'
 >;
 
 /**
@@ -342,6 +386,7 @@ type TitleByScreen = {
 const TITLE_BY_SCREEN: TitleByScreen = {
   root: () => 'Control panel — CopaLibre',
   callback: () => 'Completing sign-in — CopaLibre',
+  'silent-renew-callback': () => 'Renewing session — CopaLibre',
   dashboard: (route) => `Dashboard — ${route.organizationAlias}`,
   tournaments: (route) => `Tournaments — ${route.organizationAlias}`,
   liveConsole: (route) => `Live console — ${route.organizationAlias}`,
@@ -485,6 +530,7 @@ function CompletingLogin(): React.JSX.Element {
     completeOidcLogin()
       .then(async (result) => {
         controlTokenStore.write(result.accessToken, result.expiresAtMs);
+        recordAuthMethod('oidc');
         if (result.returnTo !== DEFAULT_RETURN_TO) {
           navigateControl(result.returnTo);
           return;
@@ -538,6 +584,20 @@ function CompletingLogin(): React.JSX.Element {
       </p>
     </main>
   );
+}
+
+/**
+ * The `/control/silent-renew-callback` screen: the hidden-iframe landing
+ * `renewOidcSessionSilently` uses for its `prompt=none` redirect. Posts its
+ * own query string back to the parent frame and renders nothing — an
+ * operator never sees this, by construction (it only ever loads inside an
+ * `display: none` iframe).
+ */
+function SilentRenewCallback(): null {
+  useEffect(() => {
+    postSilentRenewResult();
+  }, []);
+  return null;
 }
 
 /**

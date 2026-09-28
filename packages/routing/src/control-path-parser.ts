@@ -12,6 +12,7 @@
 export type ControlRoute =
   | { readonly screen: 'root' }
   | { readonly screen: 'callback' }
+  | { readonly screen: 'silent-renew-callback' }
   | { readonly screen: 'login' }
   | { readonly screen: 'forgot-password' }
   | { readonly screen: 'reset-password' }
@@ -174,6 +175,14 @@ const ORG_SCOPED_ROUTES: readonly {
   {
     matches: (organizationAlias, rest) => organizationAlias === 'callback' && rest.length === 0,
     build: () => ({ screen: 'callback' }),
+  },
+  // The hidden-iframe target for OIDC silent renewal (openspec 0302): same
+  // reserved-alias shape as `callback`, since it is the same PKCE redirect
+  // landing, just posted back to a parent frame instead of navigated to.
+  {
+    matches: (organizationAlias, rest) =>
+      organizationAlias === 'silent-renew-callback' && rest.length === 0,
+    build: () => ({ screen: 'silent-renew-callback' }),
   },
   {
     matches: (organizationAlias, rest) => organizationAlias === 'login' && rest.length === 0,

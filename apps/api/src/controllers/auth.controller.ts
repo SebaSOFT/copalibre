@@ -3,13 +3,26 @@ import { createHash, createPublicKey, generateKeyPairSync } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { importPKCS8, SignJWT } from 'jose';
-import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Inject,
+  Param,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
   UnauthorizedException,
 } from '../http/error-contract.js';
+import { NotFoundError } from '@copalibre/persistence';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -59,6 +72,40 @@ export const AUTH_THROTTLE_LIMIT = 5;
 export const AUTH_THROTTLE_TTL_MS = 60_000;
 
 /**
+ * Native-login session refresh (openspec 0302). Only native (email/password)
+ * sessions get this cookie — an OIDC session's token is issued and refreshed
+ * by the external identity provider, never by this API, so it never carries
+ * this cookie. `HttpOnly` keeps it out of every browser-storage surface
+ * `token-store.ts`'s `FORBIDDEN_STORAGE_KEYS` already forbids; hand-rolled
+ * rather than a `@fastify/cookie` dependency, since one cookie with fixed
+ * attributes is a few lines, not a plugin's worth of surface.
+ */
+export const REFRESH_COOKIE_NAME = 'copalibre_refresh_token';
+const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+function serializeRefreshCookie(value: string, maxAgeSeconds: number): string {
+  const attributes = [
+    `${REFRESH_COOKIE_NAME}=${value}`,
+    'Path=/auth',
+    'HttpOnly',
+    'SameSite=Strict',
+    `Max-Age=${maxAgeSeconds}`,
+  ];
+  if (process.env.NODE_ENV === 'production') attributes.push('Secure');
+  return attributes.join('; ');
+}
+
+function readRefreshCookie(req: FastifyRequest): string | undefined {
+  const header = req.headers.cookie;
+  if (!header) return undefined;
+  for (const part of header.split(';')) {
+    const [rawName, ...rawValue] = part.trim().split('=');
+    if (rawName === REFRESH_COOKIE_NAME) return rawValue.join('=');
+  }
+  return undefined;
+}
+
+/**
  * Native authentication endpoints: local email/password login, forgot
  * password, and password reset. These are public-read endpoints — they
  * do not require a pre-existing JWT.
@@ -75,7 +122,10 @@ export class NativeAuthController {
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'Authenticate with email and password' })
   @ApiOkResponse({ type: LoginResponse })
-  async login(@Body() body: LoginRequest): Promise<LoginResponse> {
+  async login(
+    @Body() body: LoginRequest,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ): Promise<LoginResponse> {
     // Check if principal exists
     const principal = await this.db
       .selectFrom('identity_principals')
@@ -97,7 +147,23 @@ export class NativeAuthController {
     }
 
     const accessToken = await issueLocalJwt(this.db, principal.principal_id, principal.email);
+    await this.issueRefreshCookie(res, principal.principal_id);
     return { accessToken, expiresIn: 3600 };
+  }
+
+  /** Shared by `login`, `acceptInvitation` and `refresh` — every point a native session begins or renews. */
+  private async issueRefreshCookie(res: FastifyReply, principalId: string): Promise<void> {
+    const { rawToken } = await withTransaction(this.db, (uow) =>
+      new AuthVerificationTokenRepository(this.db).create(uow, {
+        principalId,
+        kind: 'session-refresh',
+        ttlMs: REFRESH_TOKEN_TTL_MS,
+      }),
+    );
+    res.header(
+      'Set-Cookie',
+      serializeRefreshCookie(rawToken, Math.floor(REFRESH_TOKEN_TTL_MS / 1000)),
+    );
   }
 
   @Get('jwks.json')
@@ -115,7 +181,10 @@ export class NativeAuthController {
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'Accept invitation and set password for administrator' })
   @ApiOkResponse({ type: LoginResponse })
-  async acceptInvitation(@Body() body: NativeAcceptInvitationRequest): Promise<LoginResponse> {
+  async acceptInvitation(
+    @Body() body: NativeAcceptInvitationRequest,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ): Promise<LoginResponse> {
     if (!body.password || body.password.length < 8) {
       throw new BadRequestException('Password must be at least 8 characters', {
         errorCode: 'auth-bad-request',
@@ -185,7 +254,89 @@ export class NativeAuthController {
       email,
       invitation.organization_id,
     );
+    await this.issueRefreshCookie(res, principal.principalId);
     return { accessToken, expiresIn: 3600 };
+  }
+
+  @Post('refresh')
+  @HttpCode(200)
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
+  @SharedThrottle()
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: 'Silently renew a native session from its refresh cookie' })
+  @ApiOkResponse({ type: LoginResponse })
+  async refresh(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ): Promise<LoginResponse> {
+    const rawToken = readRefreshCookie(req);
+    if (!rawToken) {
+      throw new UnauthorizedException('No refresh session present', {
+        errorCode: 'auth-unauthorized',
+      });
+    }
+
+    let principalId: string;
+    try {
+      const consumed = await withTransaction(this.db, (uow) =>
+        new AuthVerificationTokenRepository(this.db).consume(uow, rawToken),
+      );
+      if (consumed.kind !== 'session-refresh') {
+        throw new UnauthorizedException('Invalid refresh session', {
+          errorCode: 'auth-unauthorized',
+        });
+      }
+      principalId = consumed.principalId;
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        // Reuse of an already-consumed (or expired, or never-issued) token —
+        // the same signal a stolen-and-replayed token would produce.
+        throw new UnauthorizedException('Refresh session is invalid or expired', {
+          errorCode: 'auth-unauthorized',
+        });
+      }
+      throw error;
+    }
+
+    const principal = await new IdentityPrincipalRepository(this.db).findByOidcSubject(principalId);
+    if (!principal) {
+      throw new UnauthorizedException('Principal no longer exists', {
+        errorCode: 'auth-unauthorized',
+      });
+    }
+
+    const accessToken = await issueLocalJwt(this.db, principal.principalId, principal.email);
+    // Rotates: the just-consumed token can never be presented again, and this
+    // fresh one is the only one now valid — replaying an old one always 401s.
+    await this.issueRefreshCookie(res, principal.principalId);
+    return { accessToken, expiresIn: 3600 };
+  }
+
+  @Post('logout')
+  @HttpCode(200)
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
+  @SharedThrottle()
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: 'End a native session, revoking its refresh cookie' })
+  @ApiOkResponse({ type: AuthSuccessResponse })
+  async logout(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ): Promise<AuthSuccessResponse> {
+    const rawToken = readRefreshCookie(req);
+    if (rawToken) {
+      try {
+        await withTransaction(this.db, (uow) =>
+          new AuthVerificationTokenRepository(this.db).consume(uow, rawToken),
+        );
+      } catch (error) {
+        // Already consumed, expired, or unknown — logout still clears the
+        // cookie either way, so this is not a failure worth surfacing.
+        if (!(error instanceof NotFoundError)) throw error;
+      }
+    }
+    res.header('Set-Cookie', serializeRefreshCookie('', 0));
+    return { message: 'Logged out.' };
   }
 
   @Post('forgot-password')

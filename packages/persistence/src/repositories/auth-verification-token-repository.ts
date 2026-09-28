@@ -7,12 +7,19 @@ import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 
 /**
- * Single-use, expiring verification tokens for password resets and email
- * changes. The raw token exists only in the email link; the database stores
- * only its SHA-256 hash.
+ * Single-use, expiring verification tokens for password resets, email
+ * changes, and native-login session refresh. The raw token exists only in
+ * the email link (or, for `session-refresh`, an `HttpOnly` cookie); the
+ * database stores only its SHA-256 hash.
+ *
+ * `session-refresh` reuses this table rather than a bespoke
+ * `auth_refresh_tokens` one (openspec 0302): `consume()`'s single-use,
+ * mark-on-consume semantics already give replay protection — presenting an
+ * already-consumed token throws the same `NotFoundError` a stolen-and-reused
+ * password-reset token would.
  */
 
-export type VerificationKind = 'password-reset' | 'email-change';
+export type VerificationKind = 'password-reset' | 'email-change' | 'session-refresh';
 
 export interface AuthVerificationToken {
   readonly verificationId: string;

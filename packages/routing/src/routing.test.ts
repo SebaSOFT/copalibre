@@ -181,6 +181,7 @@ describe('parseControlPath', () => {
     ['/control', { screen: 'root' }],
     ['/control/', { screen: 'root' }],
     ['/control/callback', { screen: 'callback' }],
+    ['/control/silent-renew-callback', { screen: 'silent-renew-callback' }],
     // A real organization alias that merely starts with the reserved word
     // stays an ordinary dashboard, not the callback screen.
     ['/control/callback-league', { screen: 'dashboard', organizationAlias: 'callback-league' }],

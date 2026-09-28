@@ -10,6 +10,7 @@ import type { RegistrationStatus } from './review.js';
 import type { StandingsData } from './standings.js';
 import type { DisciplineOption, TournamentProfileOption } from './wizard.js';
 import type { MatchCardData } from '../../lib/matches-view.js';
+import { renewSessionOnce } from '../session/silent-renewal.js';
 
 export interface ControlApiClient {
   /** Every organization the authenticated caller belongs to, with their role. */
@@ -3182,16 +3183,29 @@ async function requestJson<T>(
     readonly idempotencyKey?: string;
   } = {},
 ): Promise<T> {
-  const headers = new Headers();
-  if (options.body !== undefined) headers.set('content-type', 'application/json');
-  if (options.token !== undefined) headers.set('authorization', `Bearer ${options.token}`);
-  if (options.idempotencyKey !== undefined) headers.set('idempotency-key', options.idempotencyKey);
+  const attempt = (token: string | undefined): Promise<Response> => {
+    const headers = new Headers();
+    if (options.body !== undefined) headers.set('content-type', 'application/json');
+    if (token !== undefined) headers.set('authorization', `Bearer ${token}`);
+    if (options.idempotencyKey !== undefined)
+      headers.set('idempotency-key', options.idempotencyKey);
 
-  const response = await fetcher(url, {
-    method: options.method ?? 'GET',
-    headers,
-    ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
-  });
+    return fetcher(url, {
+      method: options.method ?? 'GET',
+      headers,
+      ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
+    });
+  };
+
+  let response = await attempt(options.token);
+
+  // Only a call that carried a token in the first place is a session that
+  // silent renewal could actually save — a public, unauthenticated request's
+  // own 401 (e.g. a bad native login) is never this.
+  if (response.status === 401 && options.token !== undefined) {
+    const outcome = await renewSessionOnce();
+    if (outcome !== undefined) response = await attempt(outcome.accessToken);
+  }
 
   if (!response.ok) {
     // The status is the least useful part. A 409 here carries "check-in has

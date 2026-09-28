@@ -22,7 +22,12 @@ import {
 import { mutationFeedback } from './lib/mutation-feedback.js';
 import { TournamentSetupWizard } from './components/TournamentSetupWizard.js';
 import { withIntl } from './i18n/test-support.js';
-import { controlTokenStore } from './session/token-store.js';
+import {
+  clearAuthMethod,
+  controlTokenStore,
+  readAuthMethod,
+  recordAuthMethod,
+} from './session/token-store.js';
 
 /**
  * The shell, the routes and the wizard's later steps.
@@ -154,6 +159,27 @@ describe('the control shell', () => {
       localStorage.removeItem('copalibre.language');
     }
   });
+
+  it.each(['native', 'oidc'] as const)(
+    'logout clears the session and its recorded auth method for a %s session (openspec 0302)',
+    (method) => {
+      recordAuthMethod(method);
+      controlTokenStore.write('a-token', Date.now() + 60_000);
+
+      const { unmount } = render(
+        <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
+          <p>contenido</p>
+        </ControlShell>,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+
+      expect(controlTokenStore.read()).toBeUndefined();
+      expect(readAuthMethod()).toBeUndefined();
+      unmount();
+      clearAuthMethod();
+    },
+  );
 
   it('opens mobile navigation drawer on hamburger button click', () => {
     render(

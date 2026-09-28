@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LoginRoute, ForgotPasswordRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
 import { ControlIntl as BaseControlIntl } from '../i18n/ControlIntl.js';
-import { controlTokenStore } from '../session/token-store.js';
+import { clearAuthMethod, controlTokenStore, readAuthMethod } from '../session/token-store.js';
 import { ToastProvider } from './ToastProvider.js';
 
 function ControlIntl(props: React.ComponentProps<typeof BaseControlIntl>): React.JSX.Element {
@@ -18,6 +18,8 @@ function ControlIntl(props: React.ComponentProps<typeof BaseControlIntl>): React
 describe('NativeAuthRoutes', () => {
   beforeEach(() => {
     controlTokenStore.clear();
+    clearAuthMethod();
+    window.history.pushState({}, '', '/control/login');
     globalThis.fetch = jest.fn() as any;
   });
 
@@ -48,6 +50,35 @@ describe('NativeAuthRoutes', () => {
     fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    // openspec 0302: a successful native login records which mechanism
+    // established the session, so a later silent renewal knows which one to use.
+    expect(readAuthMethod()).toBe('native');
+  });
+
+  it('shows an info toast when reached after a session-expired redirect (openspec 0302)', () => {
+    window.history.pushState(
+      {},
+      '',
+      '/control/login?returnTo=%2Fcontrol%2Fliga&reason=session_expired',
+    );
+
+    render(
+      <ControlIntl locale="en">
+        <LoginRoute />
+      </ControlIntl>,
+    );
+
+    expect(screen.getByText('Your session expired. Please sign in again.')).toBeTruthy();
+  });
+
+  it('shows no toast on an ordinary visit with no reason on the query string', () => {
+    render(
+      <ControlIntl locale="en">
+        <LoginRoute />
+      </ControlIntl>,
+    );
+
+    expect(screen.queryByText('Your session expired. Please sign in again.')).toBeNull();
   });
 
   it('renders ForgotPasswordRoute and handles success', async () => {

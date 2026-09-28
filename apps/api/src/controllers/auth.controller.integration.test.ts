@@ -97,12 +97,18 @@ describe('Auth Controllers', () => {
     method: 'GET' | 'POST' | 'DELETE';
     url: string;
     token?: string;
+    cookie?: string;
+    ip?: string;
     payload?: unknown;
   }) {
     return (app as NestFastifyApplication).inject({
       method: options.method,
       url: options.url,
-      headers: options.token ? { authorization: `Bearer ${options.token}` } : {},
+      headers: {
+        ...(options.token ? { authorization: `Bearer ${options.token}` } : {}),
+        ...(options.cookie ? { cookie: options.cookie } : {}),
+        ...(options.ip ? { 'x-forwarded-for': options.ip } : {}),
+      },
       payload: options.payload as never,
     });
   }
@@ -251,6 +257,120 @@ describe('Auth Controllers', () => {
       expect(principal?.password_hash).toBeDefined();
       const valid = await argon2.verify(principal?.password_hash ?? '', 'new-secret-password');
       expect(valid).toBe(true);
+    });
+  });
+
+  describe('native session silent renewal (openspec 0302)', () => {
+    const email = 'refresh-target@example.com';
+    const password = 'my-secret-password';
+
+    beforeAll(async () => {
+      const passwordHash = await argon2.hash(password);
+      await (scratch.db as Kysely<Database>)
+        .insertInto('identity_principals')
+        .values({
+          principal_id: newId(),
+          email,
+          password_hash: passwordHash,
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .execute();
+    });
+
+    function refreshCookieFrom(response: { headers: Record<string, unknown> }): string {
+      const setCookie = response.headers['set-cookie'];
+      const raw = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+      if (typeof raw !== 'string') throw new Error('Response carried no Set-Cookie header');
+      const cookiePair = raw.split(';')[0];
+      if (!cookiePair) throw new Error('Set-Cookie header was empty');
+      return cookiePair;
+    }
+
+    it('POST /auth/login sets an HttpOnly, SameSite=Strict refresh cookie alongside the access token', async () => {
+      const ip = '10.9.1.1';
+      const response = await request({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email, password },
+        ip,
+      });
+      expect(response.statusCode).toBe(200);
+      const setCookie = response.headers['set-cookie'];
+      const raw = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+      expect(raw).toContain('copalibre_refresh_token=');
+      expect(raw).toContain('HttpOnly');
+      expect(raw).toContain('SameSite=Strict');
+      expect(raw).toContain('Path=/auth');
+    });
+
+    it('POST /auth/refresh with a valid cookie returns a fresh access token and rotates the cookie', async () => {
+      const ip = '10.9.1.2';
+      const login = await request({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email, password },
+        ip,
+      });
+      const cookie = refreshCookieFrom(login);
+
+      const refreshed = await request({ method: 'POST', url: '/auth/refresh', cookie, ip });
+      expect(refreshed.statusCode).toBe(200);
+      expect(JSON.parse(refreshed.payload).accessToken).toBeDefined();
+      const rotatedCookie = refreshCookieFrom(refreshed);
+      expect(rotatedCookie).not.toBe(cookie);
+    });
+
+    it('POST /auth/refresh with no cookie returns 401', async () => {
+      const response = await request({ method: 'POST', url: '/auth/refresh', ip: '10.9.1.3' });
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('POST /auth/refresh rejects a replayed (already-consumed) refresh token', async () => {
+      const ip = '10.9.1.4';
+      const login = await request({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email, password },
+        ip,
+      });
+      const cookie = refreshCookieFrom(login);
+
+      const first = await request({ method: 'POST', url: '/auth/refresh', cookie, ip });
+      expect(first.statusCode).toBe(200);
+
+      const replay = await request({ method: 'POST', url: '/auth/refresh', cookie, ip });
+      expect(replay.statusCode).toBe(401);
+    });
+
+    it('POST /auth/logout revokes the refresh cookie so a later refresh with it fails', async () => {
+      const ip = '10.9.1.5';
+      const login = await request({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email, password },
+        ip,
+      });
+      const cookie = refreshCookieFrom(login);
+
+      const logout = await request({ method: 'POST', url: '/auth/logout', cookie, ip });
+      expect(logout.statusCode).toBe(200);
+      const clearedCookie = logout.headers['set-cookie'];
+      const raw = Array.isArray(clearedCookie) ? clearedCookie[0] : clearedCookie;
+      expect(raw).toContain('Max-Age=0');
+
+      const refreshAfterLogout = await request({
+        method: 'POST',
+        url: '/auth/refresh',
+        cookie,
+        ip,
+      });
+      expect(refreshAfterLogout.statusCode).toBe(401);
+    });
+
+    it('POST /auth/logout with no cookie still returns 200', async () => {
+      const response = await request({ method: 'POST', url: '/auth/logout', ip: '10.9.1.6' });
+      expect(response.statusCode).toBe(200);
     });
   });
 
