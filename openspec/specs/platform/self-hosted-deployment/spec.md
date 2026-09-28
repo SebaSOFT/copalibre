@@ -388,7 +388,8 @@ installation expects before reporting success.
 The release SHALL document and test at least one reverse-proxy configuration (Caddy or NGINX)
 preserving original scheme/host/client-address forwarding, disabling buffering/caching on SSE routes,
 providing sufficiently long idle timeouts with heartbeat support, and restricting trusted client-IP
-resolution to an explicit, operator-scoped allowlist of proxy addresses.
+resolution to an explicit, operator-scoped allowlist of proxy addresses. The Kubernetes Helm chart's
+Ingress SHALL default to the same unbuffered-SSE guarantee for its default ingress controller.
 
 #### Scenario: Proxy conformance test detects SSE buffering
 - **WHEN** the conformance test suite runs against a reverse-proxy configuration that buffers
@@ -400,6 +401,12 @@ resolution to an explicit, operator-scoped allowlist of proxy addresses.
 - **THEN** it contains an explicit trusted-proxy allowlist directive (not a default that trusts
   every upstream) and documentation directing the operator to scope it to their actual proxy
   network
+
+#### Scenario: Kubernetes Ingress disables SSE response buffering by default
+- **WHEN** the Helm chart renders its Ingress with default values under the default `nginx` ingress
+  class
+- **THEN** the rendered Ingress carries an annotation disabling proxy response buffering, so real-time
+  score events reaching the `events` host are not delayed by controller-side buffering
 
 ### Requirement: Continuous integration builds and smoke-tests the release image
 The CI pipeline SHALL build the release Docker image and start a full Compose profile as an
