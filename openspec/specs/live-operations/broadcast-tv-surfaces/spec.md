@@ -334,3 +334,18 @@ When rendered in overlay mode (`?mode=overlay-lower` or `?mode=overlay-full`), t
 #### Scenario: Reduced motion preference
 - **WHEN** the browser environment or operating system specifies `prefers-reduced-motion: reduce`
 - **THEN** event alert banners transition with simple opacity fading rather than sliding or bouncing keyframe animations
+
+### Requirement: Multi-court TV kiosk presentation mode
+The system SHALL support a multi-court grid presentation mode (`?layout=multicourt` or `?grid=auto|2|4|6`) on tournament TV routes (`/tv/{organization}/tournaments/{tournament}`) to display multiple simultaneous matches on venue screens.
+
+#### Scenario: Displaying 4 simultaneous matches in a 2x2 grid
+- **WHEN** a TV route is loaded with `?layout=multicourt` and 4 matches are currently active
+- **THEN** the screen renders a balanced 2x2 grid where each quadrant represents one court with its assigned court/pitch name, team emblems, score line, and running match clock
+
+#### Scenario: Real-time score update on a specific court
+- **WHEN** a score change occurs on Court 2 via SSE event
+- **THEN** the Court 2 match card updates its score figures and pulses its indicator dot immediately without disrupting or re-rendering other court cards
+
+#### Scenario: Multi-page rotation for large venues
+- **WHEN** more active live matches exist than the selected grid display limit
+- **THEN** the multi-court presentation rotates through groups of matches on a 20-second interval, respecting `prefers-reduced-motion` settings
