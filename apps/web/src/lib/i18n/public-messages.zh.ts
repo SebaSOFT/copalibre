@@ -232,6 +232,8 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.bracketMatch': '比赛',
   'publicWeb.tvDashboard.possession': '控球',
   'publicWeb.tvDashboard.penalty': '处罚',
+  'publicWeb.tvMultiCourtGrid.noMatches': '当前没有进行中的比赛',
+  'publicWeb.tvMultiCourtGrid.ariaLabel': '实时比赛，多场地视图',
   'publicWeb.completion.heading': '赛事进度',
   'publicWeb.completion.summary': '已进行 {resolved} / {total} 场比赛',
   'publicWeb.completion.complete': '已完成',

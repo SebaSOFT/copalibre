@@ -2,14 +2,17 @@
 import TvLayout from '../../../../layouts/TvLayout.astro';
 import ScoreTicker from '../../../../components/ui/organisms/ScoreTicker.astro';
 import { TvDashboard } from '../../../../components/tv/TvDashboard.tsx';
+import { TvMultiCourtGrid } from '../../../../components/tv/TvMultiCourtGrid.tsx';
 import { tvStreamPath } from '@copalibre/routing';
 import { sampleDashboard } from '../../../../lib/live-sample.ts';
 import {
   fetchLive,
   fetchOverview,
   fetchBracket,
+  fetchMatchesView,
   mapLiveResponse,
   mapOverviewResponse,
+  mapMatchesViewResponse,
   mapBracketResponse,
   tournamentEmblemUrl,
 } from '../../../../lib/public-api-client.ts';
@@ -24,6 +27,7 @@ import {
   tickerChromeLabels,
   tickerLabels,
   tvDashboardLabels,
+  tvMultiCourtGridLabels,
   tvStatisticsLabels,
 } from '../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
@@ -185,6 +189,42 @@ const overlayMode =
 const chromaKey = Astro.url.searchParams.get('chroma') ?? undefined;
 const presentation = overlayMode ?? 'kiosk';
 
+/*
+  Multi-court grid mode (openspec 0303): only meaningful for a real venue
+  screen, never an OBS overlay composited over live footage, so it is only
+  ever considered when `presentation` is 'kiosk'.
+*/
+const layoutParam = Astro.url.searchParams.get('layout');
+const gridParam = Astro.url.searchParams.get('grid');
+const showMultiCourtGrid = presentation === 'kiosk' && layoutParam === 'multicourt';
+const gridSize: 2 | 4 | 6 | 'auto' =
+  gridParam === '2' ? 2 : gridParam === '4' ? 4 : gridParam === '6' ? 6 : 'auto';
+
+/*
+  Court/venue names are not present on the live/SSE projection — the
+  matches-view endpoint already carries them (the public schedule listing
+  needs the same field), fetched once here rather than adding it to the live
+  projection's own contract.
+*/
+let venueNameByMatchId: Record<string, string> = {};
+if (showMultiCourtGrid) {
+  try {
+    const matchesView = await fetchMatchesView(organizationAlias, tournamentAlias, {
+      state: 'live',
+    });
+    if (matchesView) {
+      const { matches } = mapMatchesViewResponse(matchesView);
+      venueNameByMatchId = Object.fromEntries(
+        matches
+          .filter((match) => match.venueName !== undefined)
+          .map((match) => [match.matchId, match.venueName as string]),
+      );
+    }
+  } catch {
+    // No court names is a degraded grid, not a broken one.
+  }
+}
+
 let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
 const featuredStage =
   dashboard.matches.find((match) => match.state === 'live')?.stageNumber ??
@@ -236,23 +276,38 @@ const tickerItems =
     scale="tv"
     staleLabel={tickerChrome.stale}
   />
-  <TvDashboard
-    client:load
-    presentation={presentation}
-    initial={dashboard}
-    initialBracket={initialBracket}
-    streamPath={streamPath}
-    branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
-    tournamentName={tournamentName}
-    organizationName={organizationName}
-    organizationAlias={organizationAlias}
-    tournamentAlias={tournamentAlias}
-    clubs={clubs}
-    standings={standings}
-    topPerformers={topPerformers}
-    performerProjection={performerProjection}
-    labels={tvStatisticsLabels(intl)}
-    dashboardLabels={tvDashboardLabels(intl)}
-    language={language}
-  />
+  {
+    showMultiCourtGrid ? (
+      <TvMultiCourtGrid
+        client:load
+        initial={dashboard}
+        streamPath={streamPath}
+        venueNameByMatchId={venueNameByMatchId}
+        gridSize={gridSize}
+        resultStateLabels={tvMultiCourtGridLabels(intl).resultState}
+        noMatchesLabel={tvMultiCourtGridLabels(intl).noMatches}
+        ariaLabel={tvMultiCourtGridLabels(intl).ariaLabel}
+      />
+    ) : (
+      <TvDashboard
+        client:load
+        presentation={presentation}
+        initial={dashboard}
+        initialBracket={initialBracket}
+        streamPath={streamPath}
+        branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
+        tournamentName={tournamentName}
+        organizationName={organizationName}
+        organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
+        clubs={clubs}
+        standings={standings}
+        topPerformers={topPerformers}
+        performerProjection={performerProjection}
+        labels={tvStatisticsLabels(intl)}
+        dashboardLabels={tvDashboardLabels(intl)}
+        language={language}
+      />
+    )
+  }
 </TvLayout>

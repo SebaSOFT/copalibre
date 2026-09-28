@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (312/1197 after 0302 adds the session-renewal modules)', () => {
+test('the graph resolves the current node/edge count (313/1201 after 0303 adds TvMultiCourtGrid)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 312);
-  assert.equal(graph.edges.length, 1197);
+  assert.equal(graph.nodes.size, 313);
+  assert.equal(graph.edges.length, 1201);
 });
 
 test('a type-only import is not counted as a render', () => {

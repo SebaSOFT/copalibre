@@ -679,6 +679,14 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.penalty',
     defaultMessage: 'Penalty',
   },
+  tvMultiCourtGridNoMatches: {
+    id: 'publicWeb.tvMultiCourtGrid.noMatches',
+    defaultMessage: 'No matches currently live',
+  },
+  tvMultiCourtGridAriaLabel: {
+    id: 'publicWeb.tvMultiCourtGrid.ariaLabel',
+    defaultMessage: 'Live matches, multi-court view',
+  },
   completionHeading: {
     id: 'publicWeb.completion.heading',
     defaultMessage: 'Tournament Progress',

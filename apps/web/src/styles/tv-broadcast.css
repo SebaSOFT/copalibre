@@ -1105,3 +1105,120 @@
     transform: translateX(-50%);
   }
 }
+
+/* Multi-court grid (openspec 0303) */
+.tv-multicourt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: var(--cl-space-4);
+  width: 100%;
+  height: 100%;
+}
+
+.tv-multicourt-grid--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.tv-multicourt-grid--4 {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+.tv-multicourt-grid--6 {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+.tv-multicourt-grid--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(1.2rem, 2.4vmin, 2rem);
+  color: var(--tv-text-secondary);
+}
+
+.tv-court-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-3);
+  min-height: 0;
+  padding: 2vmin;
+  background: var(--tv-bg-surface);
+  border: 1px solid var(--tv-border);
+  overflow: hidden;
+}
+
+.tv-court-card__venue {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.9rem, 2vmin, 1.4rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tv-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-court-card__score {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-2);
+  flex: 1;
+  justify-content: center;
+}
+
+.tv-court-card__score--pulse {
+  animation: tvCourtScorePulse 1.2s ease-out;
+}
+
+.tv-court-card__side {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-3);
+}
+
+.tv-court-card__name {
+  font-family: var(--cl-font-display);
+  font-size: clamp(1rem, 2.6vmin, 1.8rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--tv-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-court-card__value {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(2.2rem, 7vmin, 4.5rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--tv-text-primary);
+}
+
+.tv-court-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-3);
+}
+
+.tv-court-card__clock {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.9rem, 1.8vmin, 1.3rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--tv-text-secondary);
+}
+
+@keyframes tvCourtScorePulse {
+  0% {
+    background: color-mix(in srgb, var(--cl-primary) 30%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}
