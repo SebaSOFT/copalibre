@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (314/1203 after 0305 adds ticker-live.ts)', () => {
+test('the graph resolves the current node/edge count (315/1214 after 0306 adds PlatformDiagnosticsScreen)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 314);
-  assert.equal(graph.edges.length, 1203);
+  assert.equal(graph.nodes.size, 315);
+  assert.equal(graph.edges.length, 1214);
 });
 
 test('a type-only import is not counted as a render', () => {
