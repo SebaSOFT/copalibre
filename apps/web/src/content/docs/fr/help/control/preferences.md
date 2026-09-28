@@ -27,4 +27,4 @@ serveur MCP de CopaLibre sans utiliser votre nom d'utilisateur et votre mot de p
 - **Révoquer un jeton** : si un jeton est compromis ou n'est plus nécessaire, vous pouvez le révoquer
   à tout moment.
 
-Ces jetons sont sans état et vérifient votre identité à chaque requête.
+Ces jetons sont vérifiés dans les identifiants stockés à chaque requête ; leur révocation prend effet immédiatement.

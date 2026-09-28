@@ -11,6 +11,46 @@ Example config: [`deploy/proxy/nginx.conf`](../../../deploy/proxy/nginx.conf).
 3. Copy the config into `conf.d/` (or wherever your NGINX installation includes site configs) and
    reload NGINX.
 
+The sample runs on the Compose network: the application hostname forwards to `gateway:80`,
+which dispatches same-origin API, authentication, SSE and web requests. The separate API and events
+hostnames remain available. A proxy running directly on the host must instead use the published
+addresses (for example `127.0.0.1:8080` for the gateway, `127.0.0.1:3001` for API and
+`127.0.0.1:3002` for events); Docker service names do not resolve on the host. Configure TLS at
+this edge and set the installation's public URLs to match it.
+
+## Upgrading CopaLibre behind NGINX
+
+1. Save the active proxy configuration, TLS configuration and current application image versions.
+   Follow [Self-hosting → Upgrading](../../self-hosting.md#upgrading) for the PostgreSQL/object
+   backups, target-image compatibility check and migration sequence. Keep the current installation
+   directory and Compose volumes; do not run a second `init` or delete volumes.
+2. Put the edge on your maintenance backend during the application stop/migration interval. Drain
+   active operations and SSE connections; do not expose requests to a partially upgraded stack.
+   The proxy can stay running. Updating CopaLibre does not require updating the proxy image or
+   certificates unless the target release changes that requirement.
+3. Apply the application upgrade from the existing installation directory, with both runtime and
+   web image pins changed together. Inspect migration and doctor results before reopening traffic.
+4. If the release changes routes, compare the new proxy sample with your deployed configuration and
+   retain your real hostnames, TLS settings and trusted-proxy allowlist. Use `gateway:80` only for
+   a proxy on the Compose network; a host process uses the published gateway address. Do not copy
+   a sample over a production config without preserving those settings.
+5. Validate and reload **only if the proxy configuration changed**. Run inside the proxy container
+   or on the host where that proxy actually runs, adapting the configuration path:
+   ```bash
+   nginx -t && nginx -s reload
+   ```
+6. Verify the public HTTPS origin, login/refresh, a dynamic tournament page, and live updates.
+   From the installation directory, check SSE through the application hostname too:
+   ```bash
+   copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
+   ```
+   Then remove maintenance routing. The expected SSE response is `text/event-stream`, with
+   heartbeats arriving without buffering. Keep normal API/authentication routes on the app origin.
+
+If only the proxy reload fails, keep its previous known-good configuration and diagnose the error.
+If the application upgrade fails after migration, use the documented backup recovery procedure;
+reverting proxy routes or old container tags does not roll back the database.
+
 ## SSE conformance
 
 The `events.copalibre.example` block sets `proxy_buffering off`, `proxy_cache off`, and

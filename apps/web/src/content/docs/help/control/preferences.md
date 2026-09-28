@@ -24,4 +24,4 @@ You can generate Personal Access Tokens (PATs) to authenticate with the CopaLibr
 - **Generate a token**: Enter a label and an expiration duration, then click "Generate". Be sure to copy the token immediately, as it cannot be viewed again.
 - **Revoke a token**: If a token is compromised or no longer needed, you can revoke it at any time.
 
-These tokens are stateless and verify your identity on each request.
+These tokens are checked against stored credentials on each request; revocation takes effect immediately.

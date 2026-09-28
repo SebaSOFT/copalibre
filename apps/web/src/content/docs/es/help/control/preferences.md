@@ -27,4 +27,4 @@ CopaLibre sin usar tu usuario y contraseña.
 - **Revocar un token**: si un token se compromete o ya no se necesita, podés revocarlo en cualquier
   momento.
 
-Estos tokens no tienen estado y verifican tu identidad en cada solicitud.
+Estos tokens se validan contra las credenciales almacenadas en cada solicitud; su revocación tiene efecto inmediato.

@@ -25,7 +25,7 @@ repo's single `Dockerfile`:
   `scheduler`/`migrate`/`doctor`/`web`), role selected at container start via the
   `PRODUCT_ROLE` environment variable, exactly as `deploy/helm/copalibre`'s
   `image.repository`/`image.tag` values reference it.
-- `web` target: Caddy serving the built Astro static site and reverse-proxying the three SSR routes (overview, live, bracket) to the `web` role, exactly as
+- `web` target: Caddy serving the built Astro static site and reverse-proxying the dynamic public, TV, invitation and player-profile routes to the `web` role, exactly as
   `deploy/helm/copalibre`'s `web.image.repository`/`web.image.tag` values
   reference it.
 

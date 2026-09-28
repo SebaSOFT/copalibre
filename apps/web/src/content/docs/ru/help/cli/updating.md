@@ -22,25 +22,44 @@ curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/instal
 
 ## Обновление фреймворка
 
-Рекомендуемая неразрушающая последовательность:
+Сохраните CLI, соответствующий `.copalibre/installation.json`. Замена бинарного файла не обновляет маркер, Compose и версии образов. Сохраните резервные копии PostgreSQL, объектов, конфигурации и ключей подписи, а также прежние версии образов.
 
-1. **Сделайте резервную копию**, прежде чем что-либо трогать: `./copalibre backup --file backups/pre-upgrade.dump`.
-2. **Обновите** checkout или ссылку на образ до новой версии (пока не перезапускайте службы). Если
-   эта установка была создана с помощью `copalibre init` (без checkout, см.
-   [справочник команд](/ru/help/cli/commands/)), её каталог закреплён за версией CLI, которая её
-   создала — `migrate`/`upgrade-check` отказываются с понятным сообщением при несовпадении версий,
-   поэтому обновляйте, запуская CLI новой версии для того же каталога, а не смешивая версии CLI.
-3. **Проверьте совместимость** с новой версией, ничего не перезапуская:
-   ```bash
-   ./copalibre upgrade-check --target-version <новая-версия>
-   ```
-   Сообщает, перестанет ли какой-либо установленный модуль быть совместимым с этой версией (та же
-   проверка, что `module verify` использует против запущенной версии, но против целевой версии), и
-   перечисляет ожидающие миграции базы данных — не применяя ни одной из них. Завершается с ненулевым
-   кодом выхода, если какой-либо модуль станет несовместимым; исправьте это перед продолжением.
-4. **Перезапустите** с новой версией (`./copalibre start` или `docker compose up --detach --wait`).
-   Ожидающие миграции применяются автоматически, по порядку, прежде чем какая-либо роль процесса
-   начнёт обслуживать трафик — это не отдельный ручной шаг.
+```bash
+copalibre backup --file backups/pre-upgrade.tar.gz
+```
+
+В существующем каталоге установки проверьте изменения Compose и конфигурации целевой версии, затем измените оба образа в `.env`. Сохраните проект Compose и тома. Загрузите и проверьте целевой образ без запуска зависимостей и применения миграций:
+
+```dotenv
+COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.0
+COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.0
+```
+
+```bash
+docker compose pull
+docker compose run --rm --no-deps upgrade-check --target-version 1.2.0
+```
+
+После успешной проверки запланируйте перерыв, остановите процессы приложения и создайте окончательную резервную копию; затем выполните миграцию и запуск. Не запускайте приложение при ошибке миграции:
+
+```bash
+docker compose stop gateway web web-ssr api events worker scheduler
+copalibre backup --file backups/pre-upgrade.tar.gz
+docker compose run --rm migrate && docker compose up --detach --wait
+docker compose run --rm doctor
+```
+
+Не удаляйте и не переписывайте маркер для обхода проверки версии. Для операций со схемой между версиями используйте указанные сервисы Compose: новый CLI откажет в `migrate` и `upgrade-check` со старым маркером. Новый каталог `init` — отдельная установка, а не обновление существующей.
+
+После миграции базы выбор старых образов не является безопасным откатом. Оставьте процессы записи остановленными и восстановите PostgreSQL, объекты и конфигурацию в изолированной установке прежней версии. Проверьте восстановление до переключения трафика; записи после резервной копии будут потеряны.
+
+## Обновление по типу развёртывания
+
+Для Compose за NGINX или Caddy сохраните прокси и сертификаты, включите обслуживание на время миграции и проверяйте/перезагружайте только изменённую конфигурацию. В Kubernetes используйте целевой chart с проверенными значениями и обоими образами, сначала запустите Job проверки совместимости, затем проверьте Job миграции/doctor и ingress до открытия трафика. Helm rollback не отменяет миграции базы. Подробные команды:
+
+- [Caddy](https://github.com/SebaSOFT/copalibre/blob/main/docs/deployment/reverse-proxy/caddy.md#upgrading-copalibre-behind-caddy)
+- [NGINX](https://github.com/SebaSOFT/copalibre/blob/main/docs/deployment/reverse-proxy/nginx.md#upgrading-copalibre-behind-nginx)
+- [Kubernetes / Helm](https://github.com/SebaSOFT/copalibre/blob/main/docs/deployment/enterprise-kubernetes.md#upgrading-an-existing-helm-release-safely)
 
 ## Обновление модулей
 
@@ -48,13 +67,13 @@ curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/instal
 фреймворка.
 
 ```bash
-./copalibre module list --outdated
+copalibre module list --outdated
 ```
 
 Показывает только установленные модули, у которых опубликованная версия новее установленной.
 
 ```bash
-./copalibre module add <alias>@<диапазон>
+copalibre module add <alias>@<диапазон>
 ```
 
 Устанавливает конкретную версию или диапазон (например, `@^2.0.0`) уже установленного модуля —
