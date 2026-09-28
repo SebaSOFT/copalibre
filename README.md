@@ -132,10 +132,13 @@ Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosti
   one-document JSON export of a tournament's full configuration (never results or personal data).
 - **Public coverage** — schedules, live outcomes, brackets, and standings, separate from operator
   controls.
-- **Platform administration** — an installation-wide super-admin console creates organizations and
-  installs, verifies, and removes modules; organization admins see their own storage usage.
+- **Platform administration** — an installation-wide super-admin console creates organizations,
+  inspects live platform health/diagnostics (database latency, transactional outbox status, SSE telemetry,
+  object storage), and installs, verifies, and removes modules; organization admins see their own storage usage.
+- **Club administration & self-service** — club representatives manage member directories, affiliations,
+  and submit tournament rosters directly without organizer intervention.
 - **Self-hosted deployment** — one Docker image runs every process role; the `copalibre` CLI
-  handles init, health checks (`doctor`), start, admin bootstrap, and verified backup/restore.
+  handles init, health checks (`doctor`), start, admin bootstrap, data diagnostics/repair, and verified backup/restore.
 
 ## Disciplines and formats
 
