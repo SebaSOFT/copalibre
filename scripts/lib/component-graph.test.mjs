@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (307/1182 after 0301 adds the Club Portal screens)', () => {
+test('the graph resolves the current node/edge count (312/1197 after 0302 adds the session-renewal modules)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 307);
-  assert.equal(graph.edges.length, 1182);
+  assert.equal(graph.nodes.size, 312);
+  assert.equal(graph.edges.length, 1197);
 });
 
 test('a type-only import is not counted as a render', () => {
