@@ -980,6 +980,8 @@ jobs:
       COPALIBRE_IMAGE: copalibre:ci
       COPALIBRE_WEB_IMAGE: copalibre-web:ci
       POSTGRES_PASSWORD: copalibre_e2e_only
+      # Compose interpolates this even when the optional object-storage profile is not started.
+      GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
       COPALIBRE_APP_URL: http://localhost:4321
       COPALIBRE_API_URL: http://localhost:3001
       COPALIBRE_BOOTSTRAP_TOKEN: copalibre_e2e_bootstrap_only
@@ -1050,6 +1052,8 @@ jobs:
       COPALIBRE_IMAGE: copalibre:ci
       COPALIBRE_WEB_IMAGE: copalibre-web:ci
       POSTGRES_PASSWORD: copalibre_ci_only
+      # Compose interpolates this even when the optional object-storage profile is not started.
+      GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
       COPALIBRE_APP_URL: http://web:4321
       COPALIBRE_API_URL: http://api:3001
       COPALIBRE_BOOTSTRAP_TOKEN: copalibre_ci_bootstrap_only
