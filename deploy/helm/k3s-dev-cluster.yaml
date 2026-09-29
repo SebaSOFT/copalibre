@@ -13,10 +13,4 @@ options:
   k3d:
     wait: true
     timeout: '120s'
-  k3s:
-    extraArgs:
-      # No ingress needed — the validation script reaches services via
-      # `kubectl port-forward`, not an external route.
-      - arg: --disable=traefik
-        nodeFilters:
-          - server:*
+  k3s: {}

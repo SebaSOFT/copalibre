@@ -1,6 +1,20 @@
 ---
-const returnTo = Astro.url.searchParams.get('returnTo');
-const target = new URL('/control/login', Astro.url);
-if (returnTo) target.searchParams.set('returnTo', returnTo);
-return Astro.redirect(target.toString(), 302);
+
 ---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>Redirecting to control panel</title>
+    <script is:inline>
+      const target = new URL('/control/login', window.location.origin);
+      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+      if (returnTo !== null) target.searchParams.set('returnTo', returnTo);
+      window.location.replace(`${target.pathname}${target.search}`);
+    </script>
+    <meta http-equiv="refresh" content="0;url=/control/login" />
+  </head>
+  <body></body>
+</html>

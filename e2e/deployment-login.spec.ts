@@ -2,6 +2,29 @@ import { expect, test } from '@playwright/test';
 
 const issuer = 'http://jwks-stub';
 
+test('Compose /control redirect stays on the serving origin and preserves returnTo', async ({
+  page,
+}) => {
+  const returnTo = '/control/liga-mendocina?tab=emblems&filter=two clubs#staff';
+
+  for (const origin of ['http://localhost:4321', 'http://localhost:8080']) {
+    await page.goto(`${origin}/control/`);
+    await page.waitForURL((url) => url.origin === origin && url.pathname === '/control/login');
+    expect(new URL(page.url()).origin).toBe(origin);
+    expect(new URL(page.url()).pathname).toBe('/control/login');
+    expect(new URL(page.url()).search).toBe('');
+
+    await page.goto(`${origin}/control/?returnTo=${encodeURIComponent(returnTo)}`);
+    await page.waitForURL(
+      (url) => url.origin === origin && url.pathname === '/control/login' && url.search !== '',
+    );
+    const destination = new URL(page.url());
+    expect(destination.origin).toBe(origin);
+    expect(destination.pathname).toBe('/control/login');
+    expect(destination.searchParams.get('returnTo')).toBe(returnTo);
+  }
+});
+
 test('fresh Compose installation exposes generic OIDC PKCE login', async ({ page }) => {
   await page.route(`${issuer}/.well-known/openid-configuration`, async (route) => {
     await route.fulfill({
@@ -16,13 +39,7 @@ test('fresh Compose installation exposes generic OIDC PKCE login', async ({ page
     await route.fulfill({ contentType: 'text/html', body: '<title>Identity provider</title>' });
   });
 
-  // Absolute, not relative to Playwright's own baseURL (127.0.0.1): the app
-  // always resolves /control/ against its own configured canonical origin
-  // (COPALIBRE_APP_URL / astro.config.mjs's `site`, http://localhost:4321
-  // here) when building the /control/login redirect target, regardless of
-  // which host the request actually arrived on — confirmed against the real
-  // Compose deployment, not assumed. Both navigations must land on that same
-  // origin for the second one to see the sessionStorage the first one wrote.
+  // The deployment's served origin owns the control sessionStorage.
   await page.goto('http://localhost:4321/control/');
   await expect(page).toHaveTitle('Sign in — CopaLibre');
   await expect(page.getByRole('heading', { name: 'Sign in to operate' })).toBeVisible();
@@ -39,8 +56,7 @@ test('fresh Compose installation exposes generic OIDC PKCE login', async ({ page
   expect(authorization.searchParams.get('code_challenge')).toBeTruthy();
   expect(authorization.searchParams.get('state')).toBeTruthy();
 
-  // Same canonical-origin navigation as above — sessionStorage is
-  // per-origin, so this must land on the same origin that stored it.
+  // Same serving-origin navigation as above — sessionStorage is per-origin.
   await page.goto('http://localhost:4321/control/');
   const stored = await page.evaluate(() => ({
     transaction: sessionStorage.getItem('copalibre.oidc.transaction'),
