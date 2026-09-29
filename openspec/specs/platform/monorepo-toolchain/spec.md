@@ -402,3 +402,41 @@ its exit code, or its debt register.
 - **WHEN** a workspace has not yet produced an Istanbul `coverage-final.json` for this run
 - **THEN** that workspace contributes no entries to the report, consistent with the existing gate's
   skip-with-warning behavior for the same condition
+
+### Requirement: Patched floors cover newly identified transitive advisories
+The toolchain SHALL pin supported stable major lines of packages with known advisories to patched versions, and its dependency security guard SHALL fail when any locked instance falls below its patched floor or introduces an unreviewed major line.
+
+#### Scenario: Locked brace-expansion instances meet patched floors
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** every locked `brace-expansion` 1.x instance resolves to `1.1.18` or greater, every 2.x instance resolves to `2.1.4` or greater, and every 5.x instance resolves to `5.0.9` or greater
+
+#### Scenario: The pinned js-yaml 4.x instance is patched
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** the locked `js-yaml` instance selected by the exact `4.2.0` descriptor resolves to `4.3.2` or greater
+
+#### Scenario: Locked nanoid 3.x instances meet the patched floor
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** every locked `nanoid` 3.x instance resolves to `3.3.18` or greater
+
+#### Scenario: A vulnerable duplicate or unreviewed major fails the dependency guard
+- **WHEN** a supported package has any locked instance below its patched floor or a locked instance on a major line without a declared floor
+- **THEN** the dependency security guard fails and identifies the package and locked descriptor
+
+### Requirement: Continuous integration audits the full dependency graph
+Continuous integration SHALL check direct and transitive dependencies from every workspace against current package registry security advisories. Any reported security advisory SHALL fail the check, while package deprecation notices alone SHALL NOT count as security advisories.
+
+#### Scenario: Pull request dependency graph has no security advisories
+- **WHEN** CI installs dependencies for a pull request
+- **THEN** it audits every workspace's direct and transitive dependencies, including development dependencies, and the check passes only when no security advisories are reported
+
+#### Scenario: A newly disclosed advisory blocks CI
+- **WHEN** the current registry reports a security advisory for any locked direct or transitive dependency
+- **THEN** CI fails the dependency audit check, even if the advisory was not present when the branch was created
+
+#### Scenario: An advisory in a package without a manual floor blocks CI
+- **WHEN** the current registry reports a security advisory for a package that has no entry in the dependency security guard's patched-floor table
+- **THEN** the all-workspace dependency audit still fails CI for that package
+
+#### Scenario: Deprecation notices do not fail the vulnerability gate
+- **WHEN** the registry reports only package deprecation notices and no security advisories
+- **THEN** the dependency audit check passes
