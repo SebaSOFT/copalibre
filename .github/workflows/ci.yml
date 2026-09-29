@@ -109,6 +109,8 @@ jobs:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
+      - name: Audit all workspace dependencies
+        run: yarn npm audit --all --recursive --no-deprecations
       - run: node --test scripts/dependency-security.test.mjs
       - run: node --test apps/copalibre/scripts/build-binary.test.mjs
       - run: node --test apps/web/scripts/serve-with-security-headers.test.mjs

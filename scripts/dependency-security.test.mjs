@@ -10,15 +10,18 @@ const lock = parse(readFileSync(new URL('yarn.lock', root), 'utf8'));
 // Supported stable major lines only. A new major needs its own advisory review;
 // a numerically larger prerelease is not evidence that a security fix is present.
 const patchedFloors = {
+  'brace-expansion': { 1: '1.1.18', 2: '2.1.4', 5: '5.0.9' },
   'fast-uri': { 3: '3.1.8', 4: '4.2.1' },
   qs: { 6: '6.16.0' },
   '@ai-sdk/provider-utils': { 4: '4.0.33' },
+  'js-yaml': { 3: '3.15.2', 4: '4.3.2', 5: '5.2.2' },
   svgo: { 4: '4.1.0' },
   nodemailer: { 10: '10.0.2' },
   astro: { 7: '7.2.8' },
   hono: { 4: '4.13.5' },
   'ip-address': { 10: '10.5.1' },
   undici: { 6: '6.28.1', 8: '8.10.2' },
+  nanoid: { 3: '3.3.18', 5: '5.1.16' },
 };
 
 function assertPatched(name, version, label) {
@@ -52,10 +55,16 @@ for (const name of Object.keys(patchedFloors)) {
 }
 
 for (const [selector, name] of [
+  ['brace-expansion@npm:^1.1.7', 'brace-expansion'],
+  ['brace-expansion@npm:^2.0.1', 'brace-expansion'],
+  ['brace-expansion@npm:^2.0.2', 'brace-expansion'],
+  ['brace-expansion@npm:^5.0.8', 'brace-expansion'],
   ['fast-uri@npm:^3.0.0', 'fast-uri'],
   ['fast-uri@npm:^3.0.1', 'fast-uri'],
   ['fast-uri@npm:^4.0.0', 'fast-uri'],
   ['@ai-sdk/provider-utils@npm:4.0.5', '@ai-sdk/provider-utils'],
+  ['js-yaml@npm:4.2.0', 'js-yaml'],
+  ['nanoid@npm:^3.3.16', 'nanoid'],
   ['ip-address', 'ip-address'],
   ['undici@npm:^6.25.0', 'undici'],
   ['undici@npm:^8.4.1', 'undici'],
