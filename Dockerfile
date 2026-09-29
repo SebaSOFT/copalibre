@@ -51,7 +51,7 @@ USER node
 
 ENTRYPOINT ["node", "apps/copalibre/dist/container-entrypoint.js"]
 
-FROM caddy:2.10-alpine AS web
+FROM caddy:2.11-alpine AS web
 
 COPY --from=build /app/apps/web/dist/client /srv
 COPY deploy/web/Caddyfile /etc/caddy/Caddyfile
