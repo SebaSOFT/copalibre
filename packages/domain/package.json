@@ -24,7 +24,7 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/semver": "^7.7.1",
-    "jest": "^30.4.2",
+    "jest": "^30.5.2",
     "ts-jest": "^29.4.12"
   },
   "dependencies": {
