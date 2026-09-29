@@ -193,20 +193,53 @@ The system SHALL support manual tiebreak point assignments and deterministic see
 - **AND** recomputing standings produces the exact same rank and audit trace
 
 ### Requirement: Discipline-declared tiebreak application
+
 A discipline descriptor's declared `defaults.tiebreakers` order SHALL be applied by the standings
 pipeline for that discipline without requiring an organizer to separately configure a stage-level
-override under a differently-named field-policy key.
+override under a differently-named field-policy key. A declared comparator MAY use a compound ratio
+of two statistic codes declared by that discipline. The pipeline SHALL evaluate each operand from the
+entrant's accumulated stage totals, honor the declared direction and zero-denominator policy, and
+include the ratio comparator in the engine's explanation trace at its configured position.
 
 #### Scenario: A community discipline with no operator-configured standings override
+
 - **WHEN** a stage's discipline descriptor declares `defaults.tiebreakers: ["wins", "points-for",
   "points-against"]` and no organizer has set any stage-level standings override
 - **THEN** the stage's standings SHALL rank entrants using that declared tiebreak order, and entrants
   with different win/loss/point records SHALL NOT all tie at rank 1
 
 #### Scenario: An organizer-configured override still takes precedence
+
 - **WHEN** an organizer explicitly configures a stage-level tiebreak override
 - **THEN** the standings pipeline SHALL apply the organizer's override instead of the discipline's
   declared default, using the same field-policy key the descriptor schema itself documents
+
+#### Scenario: A community discipline declares a ratio comparator
+
+- **WHEN** a discipline declares a tiebreak entry with a stable `statisticCode`, a ratio numerator and
+  denominator that name its declared statistics, and no stage override is configured
+- **THEN** the standings pipeline SHALL compare the accumulated numerator divided by the accumulated
+  denominator at that entry's position in `defaults.tiebreakers`
+- **AND** SHALL retain later declared comparators for entrants still tied
+
+#### Scenario: A ratio comparator honors its zero-denominator policy
+
+- **WHEN** an entrant's accumulated denominator is zero
+- **THEN** the ratio comparator SHALL apply its declared zero-denominator policy without producing
+  `NaN` or an unbounded numeric value
+
+#### Scenario: A compound tiebreak is explained
+
+- **WHEN** a ratio comparator separates entrants
+- **THEN** the engine trace SHALL identify the comparator by its stable code and localized label, and
+  show the values used to resolve the tie
+
+#### Scenario: An undeclared ratio operand is inert and visible in the trace
+
+- **WHEN** a ratio comparator names a numerator or denominator absent from the discipline's declared
+  statistics
+- **THEN** the pipeline SHALL mark that comparator unbound instead of silently reading a missing
+  value as a valid ratio
 
 ### Requirement: Tiebreak comparator trace labels resolve localized descriptors cleanly
 When a tiebreak pipeline parameter defines its label as a `LocalizedLabel` object, the resulting

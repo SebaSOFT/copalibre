@@ -81,3 +81,13 @@ The release workflow `.github/workflows/release.yml` SHALL produce multi-archite
 #### Scenario: Running release image on ARM64 / Apple Silicon
 - **WHEN** an operator pulls `ghcr.io/sebasoft/copalibre:1.2.0` on an Apple Silicon or ARM64 Linux host
 - **THEN** Docker selects the native `linux/arm64` manifest without platform mismatch warnings or missing image errors.
+
+### Requirement: Release documentation consistency
+Release preparation SHALL review the changelog, product version references, installation and upgrade commands, deployment examples and translated help against the shipping implementation.
+
+#### Scenario: Preparing a release branch
+- **WHEN** a maintainer prepares a new product version from develop
+- **THEN** all product manifests and deployment release pins agree
+- **AND** the changelog covers changes since the preceding release
+- **AND** source and binary installation procedures declare their actual prerequisites and working directories
+- **AND** translated upgrade procedures preserve persistent data and honor installation version checks
