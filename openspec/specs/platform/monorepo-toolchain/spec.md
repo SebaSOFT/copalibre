@@ -135,7 +135,7 @@ The repository SHALL remediate known unmitigated Dependabot alerts with availabl
 
 #### Scenario: Transitive fast-uri instances resolve to patched release
 - **WHEN** dependencies are installed via `yarn install --immutable`
-- **THEN** both direct and transitive instances of `fast-uri` resolve to version `3.1.6` or greater (for the v3 line) and `4.1.3` or greater (for the v4 line), remediating CVE-2026-75931, CVE-2026-75899, CVE-2026-76172, and CVE-2026-75975
+- **THEN** both direct and transitive instances of `fast-uri` resolve to version `3.1.8` or greater (for the v3 line) and `4.2.1` or greater (for the v4 line), remediating authority injection and host confusion vulnerabilities (CVE-2026-75975, GHSA-f65p-4m7j-42xc)
 
 #### Scenario: Transitive qs instances resolve to patched release
 - **WHEN** dependencies are installed via `yarn install --immutable`
@@ -155,7 +155,7 @@ The repository SHALL remediate known unmitigated Dependabot alerts with availabl
 
 #### Scenario: Direct mail delivery dependency resolves to patched release
 - **WHEN** dependencies are installed via `yarn install --immutable`
-- **THEN** the worker's Nodemailer instance resolves to version `9.1.1` or greater, remediating GHSA-8m3c-c648-2xjj, GHSA-2x7j-588g-ccc2, GHSA-wmmp-3585-3rmp, and GHSA-cc9r-2j5m-2m83
+- **THEN** the worker's Nodemailer instance resolves to version `10.0.2` or greater, remediating TLS servername DNS cache disclosure across transports
 
 #### Scenario: Public and help build dependency resolves to patched release
 - **WHEN** dependencies are installed via `yarn install --immutable`
@@ -176,6 +176,45 @@ The repository SHALL remediate known unmitigated Dependabot alerts with availabl
 #### Scenario: Closure follows release rather than manual dismissal
 - **WHEN** remediation is merged to the integration branch while the default branch still has vulnerable versions
 - **THEN** release tracking identifies the patched versions and pending default-branch closure, without claiming GitHub alerts are already fixed
+
+#### Scenario: Transitive ip-address dependency resolves to patched release
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** all locked instances of `ip-address` resolve to version `10.5.1` or greater, remediating link-local and NAT64 classification SSRF bypasses
+
+#### Scenario: Web undici dependency resolves to patched release
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** all locked `undici` 8.x instances used by `apps/web`, including transitive instances, resolve to version `8.10.2` or greater, remediating WebSocket permessage-deflate decompression DoS
+
+#### Scenario: Every locked undici major line meets its patched floor
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** every locked `undici` 6.x instance resolves to version `6.28.1` or greater, including the Node tooling dependency path whose Dependabot alert was auto-dismissed
+
+#### Scenario: Open Dependabot PR dependency updates typecheck
+- **WHEN** the branch includes Jest `30.5.2` and `react-intl` `12.1.3`
+- **AND** the monorepo typecheck runs
+- **THEN** Jest fetch mocks and descriptor-based message catalogs typecheck without weakening runtime behavior
+
+#### Scenario: Dependabot PR audit coverage is explicit
+- **WHEN** the change's dependency audit is reviewed against its base branch
+- **THEN** every open Dependabot PR is implemented in this change or already present in `develop`
+- **AND** every active alert and every auto-dismissed alert with a vulnerable lock entry is checked against a patched floor
+
+### Requirement: Node 26 runtime and container bootstrap
+The toolchain and container images SHALL target Node 26 as the active supported runtime. Because Node 26 removes Corepack from the core distribution, container build stages SHALL explicitly install Corepack globally before invoking Yarn commands.
+
+#### Scenario: Engine enforcement accepts Node 26
+- **WHEN** `node -v` reports a Node.js 26.x release
+- **AND** `yarn install --immutable` or `yarn typecheck` is run
+- **THEN** the root `package.json` engine constraint does not error or reject the runtime
+
+#### Scenario: Container image builds succeed on Node 26
+- **WHEN** the production Docker image is built using `node:26-bookworm-slim`
+- **THEN** the build stage installs Corepack via npm before `corepack enable`
+- **AND** the compilation, type-check, and web build finish cleanly
+
+#### Scenario: QEMU GitHub Action is unified to v4
+- **WHEN** release and verification workflows invoke `docker/setup-qemu-action`
+- **THEN** all workflows use `@v4` consistently
 
 ### Requirement: Conditional verification accounts for affected consumers
 
