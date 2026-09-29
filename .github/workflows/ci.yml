@@ -74,7 +74,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
       - id: classify
         run: |
           if [ "${{ github.event_name }}" != "pull_request" ]; then
@@ -102,10 +102,11 @@ jobs:
       - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
+      - run: npm install -g corepack@latest
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - run: node --test scripts/dependency-security.test.mjs
@@ -123,7 +124,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - run: yarn lint
@@ -140,7 +141,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - run: yarn typecheck
@@ -156,7 +157,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       # role-capabilities (openspec 0165): the declared capability vocabulary
@@ -183,7 +184,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - run: yarn license:check
@@ -214,7 +215,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - run: node --test scripts/check-enterprise-readiness-docs.test.mjs
@@ -283,7 +284,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - name: Unit test execution (Group 1 - Domain & Engines)
@@ -404,7 +405,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
       - name: Verify aggregate unit test status
         run: |
           node scripts/evaluate-ci-aggregate.mjs \
@@ -426,7 +427,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
       - uses: actions/download-artifact@v8
         continue-on-error: true
         with:
@@ -480,7 +481,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - run: yarn workspace @copalibre/domain build
@@ -520,7 +521,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - uses: actions/download-artifact@v8
@@ -554,7 +555,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - uses: actions/download-artifact@v8
@@ -594,7 +595,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - uses: actions/download-artifact@v8
@@ -637,7 +638,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - name: Verify aggregate E2E shard status
@@ -698,7 +699,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       # Calls the real packages/rules trace renderer and the real A5 component
@@ -718,7 +719,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - run: yarn workspace @copalibre/design-tokens scan:forbidden
@@ -756,7 +757,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - run: yarn workspace @copalibre/migrate run start
@@ -801,7 +802,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - name: Start Garage
@@ -852,7 +853,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
       - name: Verify aggregate integration test status
         run: |
           node scripts/evaluate-ci-aggregate.mjs \
@@ -880,7 +881,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       # Contract-lint and breaking-change checks run inside this script; it exits
@@ -1000,7 +1001,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - uses: actions/cache@v6

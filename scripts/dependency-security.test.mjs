@@ -10,13 +10,15 @@ const lock = parse(readFileSync(new URL('yarn.lock', root), 'utf8'));
 // Supported stable major lines only. A new major needs its own advisory review;
 // a numerically larger prerelease is not evidence that a security fix is present.
 const patchedFloors = {
-  'fast-uri': { 3: '3.1.6', 4: '4.1.3' },
+  'fast-uri': { 3: '3.1.8', 4: '4.2.1' },
   qs: { 6: '6.16.0' },
   '@ai-sdk/provider-utils': { 4: '4.0.33' },
   svgo: { 4: '4.1.0' },
-  nodemailer: { 9: '9.1.1' },
+  nodemailer: { 10: '10.0.2' },
   astro: { 7: '7.2.8' },
   hono: { 4: '4.13.5' },
+  'ip-address': { 10: '10.5.1' },
+  undici: { 8: '8.10.2' },
 };
 
 function assertPatched(name, version, label) {
@@ -35,7 +37,17 @@ for (const name of Object.keys(patchedFloors)) {
       entry.resolution?.startsWith(`${name}@npm:`),
     );
     assert.ok(entries.length > 0, `No locked instances of ${name}; review this guard`);
-    for (const entry of entries) assertPatched(name, entry.version, entry.resolution);
+    if (name === 'undici') {
+      assert.ok(
+        entries.every((entry) => ['6', '8'].includes(entry.version.split('.')[0])),
+        'undici: review security advisories for a new major line',
+      );
+      for (const entry of entries.filter((entry) => entry.version.startsWith('8.'))) {
+        assertPatched(name, entry.version, entry.resolution);
+      }
+    } else {
+      for (const entry of entries) assertPatched(name, entry.version, entry.resolution);
+    }
   });
 }
 
@@ -43,10 +55,10 @@ for (const [selector, name] of [
   ['fast-uri@npm:^3.0.0', 'fast-uri'],
   ['fast-uri@npm:^3.0.1', 'fast-uri'],
   ['fast-uri@npm:^4.0.0', 'fast-uri'],
-  ['qs', 'qs'],
   ['@ai-sdk/provider-utils@npm:4.0.5', '@ai-sdk/provider-utils'],
-  ['svgo@npm:^4.0.1', 'svgo'],
-  ['hono@npm:^4.11.4', 'hono'],
+  ['ip-address', 'ip-address'],
+  ['undici@npm:^8.4.1', 'undici'],
+  ['undici@npm:^8.9.0', 'undici'],
 ]) {
   test(`${selector}: resolution stays patched and present in the lockfile`, () => {
     const version = manifest.resolutions[selector];
