@@ -1,4 +1,4 @@
-import { defineMessages } from 'react-intl';
+import { defineMessages } from '../../lib/i18n/define-messages.ts';
 
 /**
  * Every control-panel interface string, keyed by a stable ID. English is the
