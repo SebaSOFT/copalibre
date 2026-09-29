@@ -1,26 +1,53 @@
 ---
+import { createIntl, createIntlCache } from 'react-intl';
 import '@copalibre/design-tokens/generated/copalibre.css';
 import '../../styles/control.css';
 import { AcceptInvitationScreen } from '../../control/components/AcceptInvitationScreen.tsx';
+import { CATALOGS } from '../../control/i18n/ControlIntl.tsx';
+import { messages } from '../../control/i18n/messages.en.ts';
+import { resolveLanguage } from '../../lib/language-preference.ts';
 
 export const prerender = false;
 const token = Astro.url.searchParams.get('token') ?? '';
+
+/**
+ * Control-web has no cookie/query-param locale mechanism (openspec 0278
+ * design.md) — its one persisted signal, `localStorage`, is unreachable from
+ * this SSR pass. `Accept-Language` is the only server-visible signal, so it
+ * stands in for `resolveLanguage`'s `browserLanguages` input; a q-value-aware
+ * parse is unnecessary precision for a document `lang`/`title` that a
+ * client-side language switch or a stored preference (both already handled
+ * by `ControlIntl`, once `AcceptInvitationScreen` hydrates) can immediately
+ * override.
+ */
+const acceptLanguageHeader = Astro.request.headers.get('accept-language') ?? '';
+const browserLanguages = acceptLanguageHeader
+  .split(',')
+  .map((tag) => tag.split(';')[0]?.trim())
+  .filter((tag): tag is string => Boolean(tag));
+const resolvedLocale = resolveLanguage({ storedPreference: null, browserLanguages });
+
+const cache = createIntlCache();
+const intl = createIntl(
+  { locale: resolvedLocale, defaultLocale: 'en', messages: CATALOGS[resolvedLocale] },
+  cache,
+);
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang={resolvedLocale}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
-    <title>CopaLibre · Aceptar invitación</title>
+    <title>CopaLibre · {intl.formatMessage(messages.invitationTitle)}</title>
   </head>
   <!--
     The screen's layout is the auth template's, the same one login,
-    forgot-password and reset-password use: this body only supplies the
-    surface colour every control page shares.
+    forgot-password and reset-password use: `html, body`'s shared background
+    and color already come from control.css, loaded above.
   -->
-  <body style="margin: 0; background: var(--cl-surface-base); color: var(--cl-text-primary);">
+  <body>
     <AcceptInvitationScreen client:load initialToken={token} />
   </body>
 </html>

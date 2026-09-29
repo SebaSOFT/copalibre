@@ -63,10 +63,42 @@ describe('ZoneGroupPage', () => {
 
     await screen.findAllByText('Zone 1');
     await screen.findByText('Group 1');
+    expect(screen.getByText('No entrants assigned yet')).toBeTruthy();
 
     fireEvent.click(within(zoneAssignRegion()).getByText('Manual placement'));
     expect(screen.getByText('Team A')).toBeTruthy();
     expect(screen.getByText('Team B')).toBeTruthy();
+  });
+
+  it('renders assigned entrant badges under groups when present', async () => {
+    const groupWithEntrants: readonly GroupResponse[] = [
+      {
+        groupId: 'group-1',
+        zoneId: 'zone-1',
+        number: 1,
+        name: 'Group 1',
+        entrantIds: ['entrant-1'],
+      },
+    ];
+    const client = stubClient({
+      listZones: () => Promise.resolve(oneZone),
+      listGroups: () => Promise.resolve(groupWithEntrants),
+      listRegistrations: () => Promise.resolve(entrants),
+    });
+    render(
+      withIntl(
+        <ZoneGroupPage
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findAllByText('Zone 1');
+    await screen.findByText('Group 1');
+    expect(screen.getByText('Team A')).toBeTruthy();
   });
 
   it('creates a second zone and reloads the zone list', async () => {

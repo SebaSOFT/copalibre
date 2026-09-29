@@ -91,6 +91,7 @@ export class TournamentProfilesController {
         number: stage.number,
         name: stage.name,
         format: stage.format,
+        ...(stage.allocation === undefined ? {} : { allocation: stage.allocation }),
       })),
     }));
   }

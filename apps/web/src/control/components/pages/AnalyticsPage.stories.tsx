@@ -19,6 +19,16 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
     return storyClient<ControlApiClient>({
       listActiveTournaments: () => read(empty ? [] : [tournament]),
       getStorageUsage: undefined,
+      fetchCompletion: () =>
+        read({
+          totalMatches: 8,
+          resolvedMatches: 5,
+          liveMatches: 1,
+          scheduledMatches: 2,
+          finalizedMatches: 5,
+          forfeitedMatches: 0,
+          stages: [],
+        }),
     });
   }, [mode, intl]);
   return <AnalyticsPage organizationAlias={ORG} client={client} />;

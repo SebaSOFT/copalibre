@@ -139,6 +139,7 @@ describe('migrations (integration)', () => {
         expect.objectContaining({ name: 'nationality' }),
         expect.objectContaining({ name: 'birth_date' }),
         expect.objectContaining({ name: 'photo_object_id' }),
+        expect.objectContaining({ name: 'club_id' }),
       ]),
     );
     expect(afterUpTables.find((table) => table.name === 'clubs')?.columns).toEqual(
@@ -200,6 +201,46 @@ describe('migrations (integration)', () => {
     expect(afterUpTables.find((table) => table.name === 'tournaments')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'featured' })]),
     );
+    expect(afterUpTables.find((table) => table.name === 'stage_configurations')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'allocation' })]),
+    );
+    expect(afterUp).toContain('realtime_replicas');
+
+    const realtimeReplicasDown = await migrateDownOneStep(scratch.db);
+    expect(realtimeReplicasDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0037-person-club-affiliation',
+    );
+    const afterRealtimeReplicasDownTables = await scratch.db.introspection.getTables();
+    expect(afterRealtimeReplicasDownTables.map((t) => t.name)).not.toContain('realtime_replicas');
+    expect(
+      afterRealtimeReplicasDownTables.find((table) => table.name === 'persons')?.columns,
+    ).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'club_id' })]));
+
+    const personClubAffiliationDown = await migrateDownOneStep(scratch.db);
+    expect(personClubAffiliationDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0036-stage-allocation');
+    const afterPersonClubAffiliationDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterPersonClubAffiliationDownTables.find((table) => table.name === 'persons')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'club_id' })]));
+    // The column beneath it survives the step down.
+    expect(
+      afterPersonClubAffiliationDownTables.find((table) => table.name === 'persons')?.columns,
+    ).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'photo_object_id' })]));
+
+    const stageAllocationDown = await migrateDownOneStep(scratch.db);
+    expect(stageAllocationDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0035-tournament-featured');
+    const afterStageAllocationDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterStageAllocationDownTables.find((table) => table.name === 'stage_configurations')
+        ?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'allocation' })]));
+    // The column beneath it survives the step down.
+    expect(
+      afterStageAllocationDownTables.find((table) => table.name === 'tournaments')?.columns,
+    ).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'featured' })]));
 
     const tournamentFeaturedDown = await migrateDownOneStep(scratch.db);
     expect(tournamentFeaturedDown.error).toBeUndefined();

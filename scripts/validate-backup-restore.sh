@@ -10,10 +10,15 @@ set -euo pipefail
 # seed/snapshot, the same script .github/workflows/backup-restore-drill.yml
 # runs). PostgreSQL backup/restore uses the same pg_dump/pg_restore
 # `./copalibre backup`/`restore` shell out to; object-storage backup/restore
-# uses the MinIO client (mc) directly against the bucket — this repo has no
-# object-storage backup CLI of its own yet (that's 0041's job), and none is
-# needed here: mirroring a bucket with standard S3 tooling is deployment
-# tooling, not new application code, matching design.md's non-goals.
+# provisions its bucket/key with Garage's own CLI (`kubectl exec` runs a
+# single `/garage ...` invocation at a time directly against the pod's
+# distroless image — no shell needed there since each call is independent)
+# and mirrors object data with the MinIO client (mc), which still works
+# against Garage as an ordinary S3-compatible data-plane client (0297) —
+# this repo has no object-storage backup CLI of its own yet (that's 0041's
+# job), and none is needed here: mirroring a bucket with standard S3 tooling
+# is deployment tooling, not new application code, matching design.md's
+# non-goals.
 # Always tears the cluster down on exit — this is a validation environment,
 # never a production target.
 
@@ -26,6 +31,12 @@ EVIDENCE_FILE="${EVIDENCE_DIR}/backup-restore-$(date -u +%Y%m%dT%H%M%SZ).md"
 PG_DUMP_FILE=/tmp/copalibre-backup-restore.dump
 OBJECT_BACKUP_DIR=/tmp/copalibre-backup-restore-objects
 TEST_OBJECT_KEY=backup-drill/evidence.txt
+# Fixed, non-secret, validation-only RPC secret (must be 64 hex chars; Garage
+# rejects anything else) — this cluster is torn down on every run.
+GARAGE_RPC_SECRET=c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
+# Garage requires every S3 request's region to match its configured
+# s3_region ("garage" here); mc reads this from MC_REGION.
+export MC_REGION=garage
 
 cleanup() {
   echo "==> Tearing down cluster ${CLUSTER_NAME}"
@@ -107,8 +118,11 @@ EOF
 }
 
 deploy_object_storage() {
-  log "Deploying MinIO (object storage)"
-  kubectl apply -f - <<'EOF'
+  log "Deploying Garage (object storage)"
+  kubectl create configmap garage-config \
+    --from-file=garage.toml="${ROOT_DIR}/deploy/garage/garage.toml" \
+    --dry-run=client -o yaml | kubectl apply -f -
+  kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -123,17 +137,20 @@ spec:
     spec:
       containers:
         - name: object-storage
-          image: minio/minio:RELEASE.2025-09-07T16-13-09Z
-          args: ['server', '/data', '--console-address', ':9001']
+          image: dxflrs/garage:v1.1.0
           env:
-            - { name: MINIO_ROOT_USER, value: copalibre_backup_restore }
-            - { name: MINIO_ROOT_PASSWORD, value: copalibre_backup_restore_only }
+            - { name: GARAGE_RPC_SECRET, value: ${GARAGE_RPC_SECRET} }
           ports:
-            - containerPort: 9000
-            - containerPort: 9001
+            - containerPort: 3900
+            - containerPort: 3901
+          volumeMounts:
+            - { name: config, mountPath: /etc/garage.toml, subPath: garage.toml }
           readinessProbe:
-            httpGet: { path: /minio/health/ready, port: 9000 }
+            exec: { command: ['/garage', 'status'] }
             periodSeconds: 2
+      volumes:
+        - name: config
+          configMap: { name: garage-config }
 ---
 apiVersion: v1
 kind: Service
@@ -142,12 +159,39 @@ metadata:
 spec:
   selector: { app: object-storage }
   ports:
-    - name: api
+    - name: s3-api
       port: 9000
-    - name: console
-      port: 9001
+      targetPort: 3900
 EOF
   kubectl wait --for=condition=available --timeout=120s deployment/object-storage
+}
+
+# Provisions the layout/bucket/key Garage needs before it will serve S3
+# requests — a single `kubectl exec ... -- /garage ...` per step, since each
+# is one independent invocation of the pod's distroless single-binary image
+# (no shell available inside it to sequence several in one call, unlike
+# docker-compose.dev.yml's dockerfile_inline init service, which needed one
+# because Compose has no `kubectl exec`-equivalent primitive). Idempotent:
+# safe to call again after `deploy_object_storage` recreates the pod.
+provision_object_storage() {
+  log "Provisioning Garage layout, bucket, and key"
+  local pod
+  pod=$(kubectl get pods -l app=object-storage -o jsonpath='{.items[0].metadata.name}')
+  if kubectl exec "${pod}" -- /garage status | grep -q 'NO ROLE ASSIGNED'; then
+    local node_id
+    node_id=$(kubectl exec "${pod}" -- /garage status | awk '/NO ROLE ASSIGNED/{print $1; exit}')
+    kubectl exec "${pod}" -- /garage layout assign -z dc1 -c 1G "${node_id}"
+    kubectl exec "${pod}" -- /garage layout apply --version 1
+  fi
+  kubectl exec "${pod}" -- /garage bucket create copalibre >/dev/null 2>&1 || true
+  if ! kubectl exec "${pod}" -- /garage key info copalibre-backup-restore-key >/dev/null 2>&1; then
+    kubectl exec "${pod}" -- /garage key import --yes \
+      GK636f70616c69627265626b75 \
+      636f70616c696272655f6261636b75705f726573746f72655f6f6e6c79212121 \
+      -n copalibre-backup-restore-key
+  fi
+  kubectl exec "${pod}" -- /garage bucket allow --read --write --owner copalibre \
+    --key copalibre-backup-restore-key
 }
 
 helm_values_file() {
@@ -175,9 +219,10 @@ env:
   COPALIBRE_EMAIL_FROM: backup-restore@copalibre.invalid
   COPALIBRE_SMTP_URL: smtp://smtp.invalid:25
   COPALIBRE_OBJECT_STORAGE_URL: http://object-storage:9000
-  COPALIBRE_OBJECT_STORAGE_ACCESS_KEY: copalibre_backup_restore
-  COPALIBRE_OBJECT_STORAGE_SECRET_KEY: copalibre_backup_restore_only
+  COPALIBRE_OBJECT_STORAGE_ACCESS_KEY: GK636f70616c69627265626b75
+  COPALIBRE_OBJECT_STORAGE_SECRET_KEY: 636f70616c696272655f6261636b75705f726573746f72655f6f6e6c79212121
   COPALIBRE_OBJECT_STORAGE_BUCKET: copalibre
+  COPALIBRE_OBJECT_STORAGE_REGION: garage
 EOF
 }
 
@@ -189,7 +234,8 @@ install_chart() {
 }
 
 configure_mc() {
-  mc alias set copalibre-backup-restore http://127.0.0.1:9000 copalibre_backup_restore copalibre_backup_restore_only >/dev/null
+  mc alias set copalibre-backup-restore http://127.0.0.1:9000 \
+    GK636f70616c69627265626b75 636f70616c696272655f6261636b75705f726573746f72655f6f6e6c79212121 >/dev/null
 }
 
 main() {
@@ -197,6 +243,7 @@ main() {
   create_cluster
   deploy_postgres
   deploy_object_storage
+  provision_object_storage
   install_chart
 
   log "6.2 seeding authoritative source data"
@@ -231,6 +278,7 @@ main() {
   kubectl delete deployment postgres object-storage >/dev/null
   deploy_postgres
   deploy_object_storage
+  provision_object_storage
 
   log "Restoring PostgreSQL (pg_restore) and object storage (mc mirror) into the clean installation"
   kubectl port-forward svc/postgres 5432:5432 >/tmp/copalibre-backup-restore-pg-portforward-2.log 2>&1 &

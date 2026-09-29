@@ -2,12 +2,14 @@ import { useMemo, useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { EntrantName } from '../../../components/ui/atoms/EntrantName.js';
+import { ColumnHeaderTooltip } from '../../../components/ui/atoms/ColumnHeaderTooltip.js';
 import type {
   TableLayoutSummaryResponse,
   TableProjectionResponseData,
   TableRowResponseData,
 } from '../../lib/api-client.js';
 import {
+  ariaSortFor,
   comparatorChain,
   distributionBars,
   localizedText,
@@ -19,6 +21,7 @@ import {
   type ActiveSort,
 } from '../../lib/table-projections.js';
 import { messages } from '../../i18n/messages.en.js';
+import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
@@ -44,6 +47,8 @@ export function StandingsTemplate({
   status,
   tournamentName,
   organizationAlias,
+  tournamentAlias,
+  stageNumber,
   onExpand,
   onExportCsv,
   groupSelector,
@@ -56,6 +61,9 @@ export function StandingsTemplate({
   readonly status?: string;
   readonly tournamentName: string;
   readonly organizationAlias: string;
+  /** Present when the caller knows it — used only to link the breadcrumb back to the stage hub. */
+  readonly tournamentAlias?: string;
+  readonly stageNumber?: number;
   /** Fetches one row's trace lines; called the first time a `group-phase` row is expanded. */
   readonly onExpand?: (entrantId: string) => Promise<readonly string[]>;
   readonly onExportCsv?: () => void;
@@ -100,6 +108,10 @@ export function StandingsTemplate({
   const isGroupPhase = projection?.target === 'group-phase';
   const chain = useMemo(() => comparatorChain(projection, columns), [projection, columns]);
   const decidingCode = chain.find((rule) => rule.triggered)?.columnCode;
+  // The layout's own primary ranking metric (PTS for group standings, goals
+  // for a scorers table, …) — never guessed from a column's code or label,
+  // which would assume one discipline's naming applies to every other's.
+  const primaryMetricCode = projection?.defaultSort[0]?.columnCode;
 
   const expand = (actorId: string): void => {
     if (traces[actorId] !== undefined || pending.includes(actorId)) return;
@@ -119,24 +131,20 @@ export function StandingsTemplate({
     if (!projection) return [];
     const baseCols: DataTableColumn<TableRowResponseData>[] = columns.map((column) => ({
       key: column.code,
+      ariaSort: ariaSortFor(sort, column.code),
       header: (
-        <button
-          className="cl-focusable"
+        <ColumnHeaderTooltip
+          description={column.label === column.shortLabel ? undefined : column.label}
+          indicator={
+            sort?.columnCode === column.code ? (
+              <span aria-hidden="true" className="cl-column-header__indicator">
+                {sort.direction === 'desc' ? '▾' : '▴'}
+              </span>
+            ) : undefined
+          }
+          label={column.shortLabel}
           onClick={() => setSort(nextSort(sort, column.code))}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'inherit',
-            font: 'inherit',
-            padding: 0,
-            cursor: 'pointer',
-          }}
-          title={column.label}
-          type="button"
-        >
-          {column.shortLabel}
-          {sort?.columnCode === column.code ? (sort.direction === 'desc' ? ' ▾' : ' ▴') : ''}
-        </button>
+        />
       ),
       render: (row: TableRowResponseData) => {
         const cell = row.cells[column.code];
@@ -151,6 +159,7 @@ export function StandingsTemplate({
           <StandingsFigure
             deciding={column.code === decidingCode && tiebreakIndicator(row).kind !== 'none'}
             decidingLabel={intl.formatMessage(messages.standingsPanelDecidedBy)}
+            tone={column.code === primaryMetricCode ? 'emphasis' : undefined}
           >
             {cell?.formatted ?? '—'}
           </StandingsFigure>
@@ -177,8 +186,12 @@ export function StandingsTemplate({
     }
 
     return baseCols;
-  }, [projection, columns, sort, isGroupPhase, intl, decidingCode]);
+  }, [projection, columns, sort, isGroupPhase, intl, decidingCode, primaryMetricCode]);
 
+  const stageHubHref =
+    tournamentAlias !== undefined && stageNumber !== undefined
+      ? `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`
+      : undefined;
   const breadcrumbNode = (
     <span>
       {organizationAlias} &gt; {tournamentName}
@@ -188,6 +201,14 @@ export function StandingsTemplate({
           {intl.formatMessage(messages.standingsProjectionVersion, {
             version: projection.projectionVersion,
           })}
+        </>
+      )}
+      {stageHubHref !== undefined && (
+        <>
+          {' · '}
+          <a className="cl-focusable" href={stageHubHref} onClick={controlLinkClick(stageHubHref)}>
+            <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
+          </a>
         </>
       )}
     </span>
@@ -271,8 +292,10 @@ export function StandingsTemplate({
           */}
           <StandingsPanel
             columns={dataTableColumns}
+            compact
             emptyMessage={intl.formatMessage(messages.standingsNoResultsYet)}
             eyebrow={localizedText(projection.label, intl.locale)}
+            stickyHeader
             tableAriaLabel={intl.formatMessage(messages.standingsSectionLabel)}
             tiebreakerTitle={intl.formatMessage(messages.standingsTiebreakerSequenceTitle)}
             tiebreakers={chain.map((rule) => ({

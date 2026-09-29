@@ -18,6 +18,7 @@ import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
+import { filePickerLabels } from '../../lib/file-picker-labels.js';
 import { Input } from '../ui/atoms/input.js';
 import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
@@ -624,6 +625,7 @@ export function LoadMatchDataTemplate({
                 const file = files?.[0];
                 if (file) loadCsv(file);
               }}
+              {...filePickerLabels(intl, { accept: '.csv,text/csv' })}
             />
             <Button onClick={() => downloadCsvTemplate()} type="button" variant="secondary">
               <FormattedMessage {...messages.loadMatchDataCsvDownloadTemplate} />

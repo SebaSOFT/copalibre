@@ -136,6 +136,96 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
           modules = modules.filter((module_) => module_.alias !== alias);
           return Response.json({ alias, removedCount: 1 });
         }
+        if (url === '/admin/modules/football/document' && method === 'GET') {
+          return Response.json({
+            descriptorId: '01800000-0000-7000-8000-000000000001',
+            alias: 'football',
+            version: '1.0.0',
+            document: {
+              segmentTypes: [
+                {
+                  name: 'regulation',
+                  label: 'Regulation period',
+                  timed: true,
+                  defaultDurationSeconds: 2700,
+                },
+              ],
+              eventDefinitions: [
+                {
+                  code: 'scoring-play',
+                  label: 'Scoring play',
+                  actorRequirement: 'side',
+                  effects: [{ kind: 'score', awardTo: 'actor', delta: 1 }],
+                },
+              ],
+              defaults: { scoring: { pointsPerWin: 3 } },
+              fieldPolicies: {
+                'scoring.pointsPerWin': {
+                  permission: { kind: 'replaced' },
+                  mutationClass: 'blocked_after_results',
+                  label: 'Points per win',
+                },
+              },
+            },
+          });
+        }
+        if (url === '/admin/diagnostics/summary' && method === 'GET') {
+          return Response.json({
+            status: 'degraded',
+            version: '1.1.0',
+            uptimeSeconds: 7200,
+            sampledAt: new Date().toISOString(),
+            database: {
+              connected: true,
+              latencyMs: 1.5,
+              poolActive: 2,
+              poolIdle: 8,
+              poolWaiting: 0,
+            },
+            outbox: {
+              available: true,
+              pending: 5,
+              processed24h: 120,
+              failed: 1,
+              oldestPendingAgeSeconds: 120,
+              inFlight: 0,
+              recentFailures: [
+                {
+                  eventId: '01800000-0000-7000-8000-000000000099',
+                  eventType: 'match.scored',
+                  attempts: 5,
+                  error: 'HTTP 503 Service Unavailable',
+                  failedAt: '2026-09-28T12:00:00.000Z',
+                },
+              ],
+            },
+            storage: {
+              connected: true,
+              profile: 'filesystem',
+              totalObjects: 142,
+              totalBytes: 1048576,
+            },
+            realtime: {
+              available: true,
+              totalConnections: 15,
+              tvKiosks: 10,
+              overlays: 5,
+              publicSpectators: 0,
+              controlConnections: 0,
+              unclassified: 0,
+              activeReplicas: 2,
+              staleReplicas: 0,
+              reportedAt: new Date().toISOString(),
+            },
+          });
+        }
+        if (url === '/admin/diagnostics/outbox/retry' && method === 'POST') {
+          const body = JSON.parse(String(init?.body));
+          return Response.json({
+            retried: body.eventIds ?? ['01800000-0000-7000-8000-000000000099'],
+            skipped: [],
+          });
+        }
         if (url === '/admin/modules') return Response.json(modules);
         return Response.json([]);
       };
@@ -213,6 +303,40 @@ test('super-admin manages installation super-admins and drills into an organizat
   await expect(page.getByText('org-admin@example.test')).toBeVisible();
 });
 
+test("super-admin views an installed discipline's plain-language summary", async ({ page }) => {
+  await mockPlatformApi(page, 'copalibre.control copalibre.super-admin');
+  const target = '/control/platform';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByRole('link', { name: 'Ver' }).click();
+  await page.waitForURL('**/control/platform/disciplines/football');
+
+  await expect(page.getByText('Segmentos')).toBeVisible();
+  await expect(page.getByText('Reglas')).toBeVisible();
+  await expect(page.getByText('Eventos')).toBeVisible();
+  await expect(page.getByText('Points per win')).toBeVisible();
+  await expect(page.getByText('Cambia el resultado')).toBeVisible();
+});
+
+test('ordinary organization admin cannot reach an installed discipline document', async ({
+  page,
+}) => {
+  await mockPlatformApi(page, 'copalibre.control');
+  const target = '/control/liga-sur';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.evaluate(() => {
+    history.pushState({}, '', '/control/platform/disciplines/football');
+    dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await page.waitForURL('**/control/login');
+  await expect(page.getByText('Segmentos')).toHaveCount(0);
+});
+
 test('ordinary organization admin cannot discover or open platform administration', async ({
   page,
 }) => {
@@ -229,4 +353,51 @@ test('ordinary organization admin cannot discover or open platform administratio
   });
   await page.waitForURL('**/control/login');
   await expect(page.getByRole('heading', { name: 'Administración de plataforma' })).toHaveCount(0);
+
+  await page.evaluate(() => {
+    history.pushState({}, '', '/control/platform?tab=diagnostics');
+    dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await page.waitForURL('**/control/login');
+  await expect(page.getByRole('heading', { name: 'Administración de plataforma' })).toHaveCount(0);
+});
+
+test('super-admin inspects platform diagnostics, views telemetry cards, and retries dead-lettered events', async ({
+  page,
+}) => {
+  await mockPlatformApi(page, 'copalibre.control copalibre.super-admin');
+  const target = '/control/platform';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByRole('tab', { name: 'Diagnósticos del sistema' }).click();
+  await expect(page).toHaveURL(/tab=diagnostics/);
+
+  await expect(
+    page.getByRole('heading', { name: 'Estado y diagnósticos del sistema' }),
+  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Base de datos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Almacenamiento de objetos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Bandeja outbox transaccional' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Transmisiones en tiempo real' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Eventos outbox fallidos' })).toBeVisible();
+
+  await expect(page.getByText('match.scored')).toBeVisible();
+  await expect(page.getByText('HTTP 503 Service Unavailable')).toBeVisible();
+
+  const checkbox = page.getByRole('checkbox', {
+    name: 'Seleccionar evento 01800000-0000-7000-8000-000000000099',
+  });
+  await checkbox.check();
+  await expect(checkbox).toBeChecked();
+
+  const retryButton = page.getByRole('button', { name: 'Reintentar eventos seleccionados' });
+  await expect(retryButton).toBeEnabled();
+  await retryButton.click();
+
+  await expect(page.getByRole('heading', { name: 'Reintentar eventos fallidos' })).toBeVisible();
+  await page.getByRole('button', { name: 'Confirmar reencolado' }).click();
+
+  await expect(page.getByText(/Se reencolaron 1 evento/)).toBeVisible();
 });

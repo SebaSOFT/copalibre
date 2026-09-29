@@ -5,14 +5,21 @@ import { visibleSidenav } from '../lib/dashboard.js';
 import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
-import { controlLinkClick } from '../lib/control-navigation.js';
+import { controlLinkClick, helpPageUrl } from '../lib/control-navigation.js';
 import {
   createControlApiClient,
   organizationEmblemUrl,
   type MyOrganizationResponse,
   type ControlApiClient,
 } from '../lib/api-client.js';
-import { accessTokenHasScope, controlTokenStore } from '../session/token-store.js';
+import { logoutNativeSession } from '../session/native-refresh.js';
+import { cancelScheduledRenewal } from '../session/silent-renewal.js';
+import {
+  accessTokenHasScope,
+  clearAuthMethod,
+  controlTokenStore,
+  readAuthMethod,
+} from '../session/token-store.js';
 import {
   writeStoredLanguagePreference,
   type SupportedLanguage,
@@ -106,12 +113,15 @@ function ControlShellChrome({
       cancelled = true;
     };
   }, [client, organizationAlias]);
-  // Same locale-prefix routing Starlight's own pages already use for every
-  // locale but the default: the root/English pages are unprefixed.
-  const helpLocalePrefix = locale === 'en' ? '' : `/${locale}`;
   const [drawerOpen, setDrawerOpen] = useState(false);
   const logout = (): void => {
+    // Only a native session has anything server-side to revoke; an OIDC
+    // session's refresh mechanism belongs to the identity provider, not this
+    // API — nothing here is capable of revoking that.
+    if (readAuthMethod() === 'native') void logoutNativeSession();
+    cancelScheduledRenewal();
     controlTokenStore.clear();
+    clearAuthMethod();
     // A real navigation: /control/ (login) is a separate page from this
     // shell, same boundary as the unauthenticated-visit guard.
     window.location.assign('/control/');
@@ -146,7 +156,7 @@ function ControlShellChrome({
       </div>
       <a
         className="cl-focusable"
-        href={`${helpLocalePrefix}/help/control/${helpPath}`}
+        href={helpPageUrl(locale, `control/${helpPath}`)}
         target="_blank"
         rel="noopener noreferrer"
         style={helpLinkStyle}

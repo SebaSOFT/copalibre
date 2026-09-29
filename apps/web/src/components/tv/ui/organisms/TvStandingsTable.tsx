@@ -1,4 +1,5 @@
 import type { StandingsRowView } from '../../../../lib/overview.js';
+import { EntrantName } from '../../../ui/atoms/EntrantName.js';
 import type { TvClubItem, TvDashboardLabels } from '../../tv-types.js';
 
 /**
@@ -59,7 +60,7 @@ export function TvStandingsTable({
                       {row.abbreviation ?? row.name.substring(0, 2).toUpperCase()}
                     </span>
                   )}
-                  <span>{row.name}</span>
+                  <EntrantName abbreviation={row.abbreviation} fullName={row.name} />
                 </div>
               </td>
               <td>{row.played}</td>

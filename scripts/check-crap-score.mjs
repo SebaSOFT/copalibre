@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
@@ -220,16 +220,21 @@ const NON_SOURCE = /\.(test|stories)\./;
 /**
  * @param {string} workspaceName - e.g. "@copalibre/worker"
  * @param {string} workspaceDir - absolute path to the workspace directory
- * @returns {{ offenders: object[], warning?: string }}
+ * @returns {{ offenders: object[], scored: object[], warning?: string }}
  */
 export function checkWorkspace(workspaceName, workspaceDir) {
   const coveragePath = join(workspaceDir, 'coverage', 'coverage-final.json');
   if (!existsSync(coveragePath)) {
-    return { offenders: [], warning: `${workspaceName}: no coverage-final.json yet, skipping` };
+    return {
+      offenders: [],
+      scored: [],
+      warning: `${workspaceName}: no coverage-final.json yet, skipping`,
+    };
   }
 
   const coverage = JSON.parse(readFileSync(coveragePath, 'utf8'));
   const offenders = [];
+  const scored = [];
 
   for (const [absolutePath, entry] of Object.entries(coverage)) {
     if (NON_SOURCE.test(absolutePath) || !existsSync(absolutePath)) continue;
@@ -250,6 +255,7 @@ export function checkWorkspace(workspaceName, workspaceDir) {
       const score = Math.round(crapScore(fn.complexity, coverageRatio) * 100) / 100;
       const key = `${workspaceName}/${relativePath}#${fn.identity}`;
       const recorded = KNOWN_CRAP.get(key);
+      scored.push({ key, score, complexity: fn.complexity, coverage: coverageRatio });
 
       if (recorded === undefined) {
         if (score > THRESHOLD) {
@@ -273,7 +279,7 @@ export function checkWorkspace(workspaceName, workspaceDir) {
     }
   }
 
-  return { offenders };
+  return { offenders, scored };
 }
 
 export function findWorkspaces(repoRoot) {
@@ -295,18 +301,31 @@ export function findWorkspaces(repoRoot) {
 
 export function runCheck(repoRoot) {
   const offenders = [];
+  const scored = [];
   const warnings = [];
   for (const { name, dir } of findWorkspaces(repoRoot)) {
     const result = checkWorkspace(name, dir);
     offenders.push(...result.offenders);
+    scored.push(...result.scored);
     if (result.warning) warnings.push(result.warning);
   }
-  return { offenders, warnings };
+  return { offenders, scored, warnings };
+}
+
+/** Writes every scored function, sorted by score descending, as JSON to `reportPath`. */
+export function writeReport(scored, reportPath) {
+  const sorted = [...scored].sort((a, b) => b.score - a.score);
+  writeFileSync(reportPath, JSON.stringify(sorted, null, 2));
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const repoRoot = fileURLToPath(new URL('../', import.meta.url));
-  const { offenders, warnings } = runCheck(repoRoot);
+  const { offenders, scored, warnings } = runCheck(repoRoot);
+
+  const reportFlag = process.argv.find((arg) => arg.startsWith('--report='));
+  if (reportFlag) {
+    writeReport(scored, reportFlag.slice('--report='.length));
+  }
 
   for (const warning of warnings) {
     process.stdout.write(`[33m[WARN][0m ${warning}\n`);

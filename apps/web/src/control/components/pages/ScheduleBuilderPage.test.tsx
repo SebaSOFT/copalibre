@@ -169,6 +169,24 @@ describe('ScheduleBuilderPage', () => {
     expect(screen.getAllByText(/Independiente Rivadavia/i).length).toBeGreaterThan(0);
   });
 
+  it('links its breadcrumb back to the stage hub', async () => {
+    render(
+      withIntl(
+        <ScheduleBuilderPage
+          client={stubClient()}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: /schedule/i }));
+    expect(screen.getByRole('link', { name: 'Stage 1' }).getAttribute('href')).toBe(
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
+    );
+  });
+
   it('renders one row per game of a series, numbered in play order, grouped under one cross (2.1, 2.2)', async () => {
     render(
       withIntl(

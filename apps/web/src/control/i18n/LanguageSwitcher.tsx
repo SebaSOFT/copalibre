@@ -20,6 +20,18 @@ export const LANGUAGE_NAMES: Readonly<Record<SupportedLanguage, string>> = {
   zh: '中文',
 };
 
+/** The compact code shown as each option's badge and the trigger's active tag. */
+const LANGUAGE_CODES: Readonly<Record<SupportedLanguage, string>> = {
+  en: 'EN',
+  es: 'ES',
+  fr: 'FR',
+  pt: 'PT',
+  it: 'IT',
+  de: 'DE',
+  ru: 'RU',
+  zh: 'ZH',
+};
+
 /**
  * Writes the chosen language to the caller's stored-preference mechanism and
  * re-renders — the caller (`ControlShell`/`Dashboard.tsx`) owns the actual
@@ -56,6 +68,7 @@ export function LanguageSwitcher({
       options={SUPPORTED_LANGUAGES.map((language) => ({
         value: language,
         label: LANGUAGE_NAMES[language],
+        badge: LANGUAGE_CODES[language],
       }))}
       value={value}
     />

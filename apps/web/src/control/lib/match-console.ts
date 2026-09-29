@@ -41,16 +41,18 @@ export function descriptionFor(
 /**
  * `unknownSegmentLabel` is caller-supplied (rather than a fixed fallback
  * string here) so this stays a plain, `intl`-free function testable without
- * a React context — the caller resolves the translated fallback via
- * `useIntl().formatMessage()`.
+ * a React context — the caller resolves the translated fallback, and the
+ * per-segment `typeText`, via `useIntl()`/`resolveLabel()`.
  */
 export function segmentLabel(
   projection: MatchConsoleResponse,
   segmentId: string,
   unknownSegmentLabel: string,
+  typeText?: (segment: MatchConsoleResponse['segments'][number]) => string,
 ): string {
   const segment = projection.segments.find((candidate) => candidate.segmentId === segmentId);
-  return segment ? `${segment.type} ${segment.number}` : unknownSegmentLabel;
+  if (!segment) return unknownSegmentLabel;
+  return `${typeText ? typeText(segment) : segment.type} ${segment.number}`;
 }
 
 /**

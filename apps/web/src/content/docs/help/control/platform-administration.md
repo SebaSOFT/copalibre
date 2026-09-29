@@ -4,6 +4,7 @@ description: Create organizations, manage installation super-admins, and install
 capabilities:
   - control-web/platform-administration
   - control-web/descriptor-authoring
+  - control-web/discipline-plain-language-summary
   - platform/default-module-catalogue
 roles:
   - super-admin
@@ -37,6 +38,10 @@ Discipline and tournament-profile modules are installed here by alias, an option
 optional alternate source for a module not in the default catalogue. Installed modules are listed with
 their kind, version, and source, and can be verified or removed. Checking for updates compares installed
 versions against what each module's source currently publishes, without installing anything until asked.
+
+An installed discipline's "View" link opens its segments, rules, and events in plain language instead
+of the raw document — including which events can change a match's result and who each event applies to,
+the same summary the authoring wizard's final review step and a tournament's ruleset editor also show.
 
 ## Authoring a discipline or tournament profile
 

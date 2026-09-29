@@ -6,7 +6,7 @@ import {
   type ControlApiClient,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
-import { AuditTrailTemplate } from '../screens/AuditTrailTemplate.js';
+import { AuditTrailTemplate, type AuditActorProfile } from '../screens/AuditTrailTemplate.js';
 import { messages } from '../../i18n/messages.en.js';
 
 const PAGE_SIZE = 25;
@@ -29,11 +29,41 @@ export function AuditTrailPage({
     [client],
   );
   const [records, setRecords] = useState<readonly AuditRecordResponse[]>([]);
+  const [actors, setActors] = useState<Readonly<Record<string, AuditActorProfile>>>({});
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [actorFilter, setActorFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
+
+  useEffect(() => {
+    if (!api.listOrganizationRoles) return;
+    let current = true;
+    void api
+      .listOrganizationRoles(organizationAlias)
+      .then((roles) => {
+        if (!current) return;
+        const map: Record<string, AuditActorProfile> = {};
+        for (const r of roles) {
+          const profile: AuditActorProfile = {
+            email: r.email,
+            role: r.role,
+            principalId: r.principalId,
+          };
+          map[r.principalId] = profile;
+          map[`user:${r.principalId}`] = profile;
+          map[r.email] = profile;
+          map[`user:${r.email}`] = profile;
+        }
+        setActors(map);
+      })
+      .catch(() => {
+        // Fall back gracefully to raw actor string if roles cannot be fetched
+      });
+    return () => {
+      current = false;
+    };
+  }, [api, organizationAlias]);
 
   useEffect(() => {
     if (!api.fetchAuditTrail) return;
@@ -70,6 +100,7 @@ export function AuditTrailPage({
     <AuditTrailTemplate
       organizationAlias={organizationAlias}
       records={records}
+      actors={actors}
       loading={loading}
       error={error}
       total={total}

@@ -34,6 +34,12 @@ const layoutsFixture = {
       label: 'Top Scorers',
       entityGranularity: 'person',
     },
+    {
+      code: 'discipline-drilldown',
+      target: 'player-ranking',
+      label: 'Discipline Drilldown',
+      entityGranularity: 'person',
+    },
   ],
 };
 
@@ -46,6 +52,7 @@ const groupStandingsFixture = {
     { code: 'gf', header: 'GF', format: 'number' },
     { code: 'ga', header: 'GA', shortHeader: 'GC', format: 'number' },
     { code: 'gd', header: 'GD', shortHeader: 'Dif', format: 'number' },
+    { code: 'goal-average', header: 'Avg', format: 'decimal-2' },
   ],
   defaultSort: [{ columnCode: 'gd', direction: 'desc' }],
   rows: [
@@ -59,6 +66,7 @@ const groupStandingsFixture = {
         gf: { raw: 12, formatted: '12' },
         ga: { raw: 3, formatted: '3' },
         gd: { raw: 9, formatted: '9' },
+        'goal-average': { raw: 4, formatted: '4.00' },
       },
     },
     {
@@ -71,6 +79,7 @@ const groupStandingsFixture = {
         gf: { raw: 6, formatted: '6' },
         ga: { raw: 5, formatted: '5' },
         gd: { raw: 1, formatted: '1' },
+        'goal-average': { raw: 1.2, formatted: '1.20' },
       },
     },
   ],
@@ -161,6 +170,53 @@ const playerProfileFixtureNoStats = {
   careerStatistics: [],
 };
 
+// 0244: tournament-scoped drilldown for the "top-scorers" layout — the
+// tournament total keeps the composite `cards` (Y/R Cards) column, but each
+// match row carries only the collector-kind `goals` cell, never `cards`.
+const topScorersStatisticsFixture = {
+  layoutCode: 'top-scorers',
+  label: 'Top Scorers',
+  columns: [
+    { code: 'player', header: 'Player', format: 'text' },
+    { code: 'goals', header: 'Goals', format: 'number' },
+    { code: 'cards', header: 'Y/R Cards', format: 'fraction' },
+  ],
+  tournamentTotal: {
+    player: { formatted: 'Goleador Uno' },
+    goals: { raw: 9, formatted: '9' },
+    cards: { formatted: '4/5', numerator: 4, denominator: 5 },
+  },
+  matches: [
+    { stageNumber: 1, matchNumber: 1, cells: { goals: { raw: 5, formatted: '5' } } },
+    { stageNumber: 1, matchNumber: 2, cells: { goals: { raw: 4, formatted: '4' } } },
+  ],
+};
+
+// A second declared person-granularity layout, for the layout-selector test.
+const disciplineDrilldownStatisticsFixture = {
+  layoutCode: 'discipline-drilldown',
+  label: 'Discipline Drilldown',
+  columns: [
+    { code: 'player', header: 'Player', format: 'text' },
+    { code: 'assists', header: 'Assists', format: 'number' },
+  ],
+  tournamentTotal: { player: { formatted: 'Goleador Uno' }, assists: { raw: 3, formatted: '3' } },
+  matches: [{ stageNumber: 1, matchNumber: 1, cells: { assists: { raw: 3, formatted: '3' } } }],
+};
+
+// p-2 has no recorded roster appearance in this tournament: no tournament
+// total, no inferred zero-valued match rows.
+const playerStatisticsFixtureNoStats = {
+  layoutCode: 'top-scorers',
+  label: 'Top Scorers',
+  columns: [
+    { code: 'player', header: 'Player', format: 'text' },
+    { code: 'goals', header: 'Goals', format: 'number' },
+    { code: 'cards', header: 'Y/R Cards', format: 'fraction' },
+  ],
+  matches: [],
+};
+
 const liveFixture = {
   matches: [
     {
@@ -190,9 +246,12 @@ async function mockControlApi(page: Page): Promise<void> {
         if (url === `${stage}/tables/group-standings-default`) return Response.json(groupStandings);
         if (url === `${tournament}/tables/top-scorers`) return Response.json(topScorers);
         if (url === `${stage}/tables/group-standings-default/csv`) {
-          return new Response('name,gf,ga,gd\nTalleres,12,3,9\nIndependiente,6,5,1\n', {
-            headers: { 'content-type': 'text/csv; charset=utf-8' },
-          });
+          return new Response(
+            'name,gf,ga,gd,goal-average\nTalleres,12,3,9,4.00\nIndependiente,6,5,1,1.20\n',
+            {
+              headers: { 'content-type': 'text/csv; charset=utf-8' },
+            },
+          );
         }
         if (url === `${tournament}/tables/top-scorers/csv`) {
           return new Response('player,goals,cards\nGoleador Uno,9,4/5\n', {
@@ -214,7 +273,7 @@ async function mockControlApi(page: Page): Promise<void> {
   );
 }
 
-test('A5: renders the discipline’s own GF/GC/Dif columns, switches to a fraction-cell layout, and exports CSV', async ({
+test('A5: renders the discipline’s own GF/GC/Dif/Avg columns, switches to a fraction-cell layout, and exports CSV', async ({
   page,
 }) => {
   await mockControlApi(page);
@@ -228,11 +287,13 @@ test('A5: renders the discipline’s own GF/GC/Dif columns, switches to a fracti
   await expect(page.getByRole('button', { name: 'GF' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'GC' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Dif' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Avg' })).toBeVisible();
   // Table cells specifically — the distribution chart above repeats the
   // same leader's name and value as its own bar label.
   const table = page.locator('.cl-chamfer--control');
   await expect(table.getByText('Talleres')).toBeVisible();
   await expect(table.getByText('9', { exact: true })).toBeVisible();
+  await expect(table.getByText('4.00', { exact: true })).toBeVisible();
 
   // Switching tabs reads a different declared layout, including a composite
   // fraction cell no group-standings column ever produces.
@@ -455,7 +516,7 @@ test.describe('B2: public tournament page', () => {
         return;
       }
       if (req.url === `${STAGE}/bracket`) {
-        res.end(JSON.stringify(bracketFixture));
+        res.end(JSON.stringify({ zones: [{ matches: bracketFixture.matches }] }));
         return;
       }
       if (req.url === `${STAGE}/matches/1`) {
@@ -474,6 +535,18 @@ test.describe('B2: public tournament page', () => {
         res.end(JSON.stringify(playerProfileFixtureNoStats));
         return;
       }
+      if (req.url === `${TOURNAMENT}/persons/p-1/public/statistics?layout=top-scorers`) {
+        res.end(JSON.stringify(topScorersStatisticsFixture));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/persons/p-1/public/statistics?layout=discipline-drilldown`) {
+        res.end(JSON.stringify(disciplineDrilldownStatisticsFixture));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/persons/p-2/public/statistics?layout=top-scorers`) {
+        res.end(JSON.stringify(playerStatisticsFixtureNoStats));
+        return;
+      }
       res.statusCode = 404;
       res.end(JSON.stringify({ message: 'not found' }));
     });
@@ -484,14 +557,16 @@ test.describe('B2: public tournament page', () => {
     await new Promise<void>((resolve) => apiServer.close(() => resolve()));
   });
 
-  test('renders the discipline’s own GF/GC/Dif columns for a spectator', async ({ page }) => {
+  test('renders the discipline’s own GF/GC/Dif/Avg columns for a spectator', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
 
     await expect(page.getByRole('heading', { name: 'Group Standings' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'GF' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'GC' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Dif' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Avg' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Talleres' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: '4.00' })).toBeVisible();
   });
 
   for (const path of [
@@ -569,13 +644,13 @@ test.describe('B2: public tournament page', () => {
 
     // The played match (position 1, matchNumber 1) links to the report
     // already asserted above (same fixture, same header).
-    await page.locator('a:has(article[data-match="1"])').click();
+    await page.locator('article[data-match="1"] a[href$="/matches/1"]').click();
     await expect(page.getByRole('heading', { name: /TAL.*2.*1.*IND/ })).toBeVisible();
 
     // Still linked though its own slots are winner-of placeholders: the
     // report page renders correctly for a not-yet-played match.
     await page.goBack();
-    await page.locator('a:has(article[data-match="2"])').click();
+    await page.locator('article[data-match="2"] a[href$="/matches/2"]').click();
     await page.waitForURL(`**/stages/1/matches/2`);
   });
 
@@ -706,6 +781,39 @@ test.describe('B2: public tournament page', () => {
     await expect(page.locator('.cl-image-frame img')).toBeVisible();
   });
 
+  test('0244: shows tournament-total and match-by-match statistics, excluding composite columns from match rows, and switches declared layouts', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1`);
+
+    const statsSection = page.getByRole('heading', { name: 'Tournament Statistics' }).locator('..');
+
+    // Tournament total: every declared column, composite included.
+    await expect(statsSection.getByText('Y/R Cards')).toBeVisible();
+    await expect(statsSection.getByText('4/5')).toBeVisible();
+
+    // Match-by-match table: only the collector-kind `goals` column, one row
+    // per finalized match — never the composite `cards`/"Y/R Cards" column.
+    const matchTable = statsSection.getByRole('table').nth(1);
+    await expect(matchTable.getByRole('columnheader', { name: 'Goals' })).toBeVisible();
+    await expect(matchTable.getByRole('columnheader', { name: 'Y/R Cards' })).not.toBeVisible();
+    await expect(matchTable.getByRole('cell', { name: '5', exact: true })).toBeVisible();
+    await expect(matchTable.getByRole('cell', { name: '4', exact: true })).toBeVisible();
+
+    // Switching the selector to another declared layout updates the URL and
+    // renders that layout's own columns, without mixing in the previous
+    // layout's values. "Assists" is a collector-kind stat, so it legitimately
+    // appears as a column header in both the tournament-total and
+    // match-by-match tables (0257) — scope to the total table specifically
+    // rather than the ambiguous whole-section text match.
+    await page.getByRole('tab', { name: 'Discipline Drilldown' }).click();
+    await page.waitForURL(/\?layout=discipline-drilldown/);
+    const totalTable = statsSection.getByRole('table').nth(0);
+    await expect(totalTable.getByRole('columnheader', { name: 'Assists' })).toBeVisible();
+    await expect(totalTable.getByRole('cell', { name: '3', exact: true })).toBeVisible();
+    await expect(statsSection.getByText('Y/R Cards')).not.toBeVisible();
+  });
+
   test('states an absence, not zeroes, for a player with no roster history', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
 
@@ -728,6 +836,10 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('heading', { name: 'Goleador Dos' })).toBeVisible();
     await expect(page.getByText('No career statistics recorded.')).toBeVisible();
     await expect(page.getByText('No competition history recorded.')).toBeVisible();
+    // 0244: no inferred tournament-total or zero-valued match rows either.
+    await expect(
+      page.getByText('No tournament statistics recorded for this player.'),
+    ).toBeVisible();
 
     // No photo was uploaded for this player: the frame
     // renders the placeholder, not a broken image or an empty gap.

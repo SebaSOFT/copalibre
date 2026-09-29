@@ -30,3 +30,7 @@ Beschränkungen.
 Die Auslosung kann neu gemacht werden, solange die Phase nicht begonnen hat. Sobald die Phase
 läuft, würde eine erneute Auslosung mit bereits gespielten Partien keinen Sinn mehr ergeben — der
 Bildschirm erlaubt dies zu diesem Zeitpunkt nicht.
+
+## Einen Teilnehmer verfolgen
+
+Wählen Sie im öffentlichen Turnierbaum oder in der Setzansicht einen Teilnehmer, um seine Spiele und seinen möglichen Weg bei weiteren Siegen hervorzuheben. Eine erste Niederlage führt in die Verliererrunde, wenn der Spielplan diesen Weg vorsieht. Erneut auswählen oder Escape drücken, um die Markierung aufzuheben. Spielberichte bleiben separat verlinkt. Öffentliche Ergebnisse sind auch ohne JavaScript lesbar.

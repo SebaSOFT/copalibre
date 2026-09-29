@@ -13,6 +13,7 @@ import {
   type NotificationRule,
 } from './notifications/notification-rules.js';
 import { RulesRegistry, type RuleScript } from './registry/rules-registry.js';
+import { createHookScriptRegistry } from './index.js';
 import { resolveTiebreak } from './tiebreak/pipeline.js';
 
 function freshRegistry(): RulesRegistry {
@@ -169,6 +170,16 @@ describe('registry rule/condition registration', () => {
     const registry = new RulesRegistry();
     registry.registerCondition(NoopCondition.TYPE, NoopCondition, 'Always true');
     expect(registry.has('condition', 'noop-condition')).toBe(true);
+  });
+
+  it('gives every hook-script condition/action a non-empty phraseTemplate (openspec 0266)', () => {
+    const registry = createHookScriptRegistry();
+    const offenders = registry
+      .list()
+      .filter((entry) => entry.kind === 'condition' || entry.kind === 'action')
+      .filter((entry) => !entry.phraseTemplate || entry.phraseTemplate.trim() === '')
+      .map((entry) => `${entry.kind}:${entry.type}`);
+    expect(offenders).toEqual([]);
   });
 });
 

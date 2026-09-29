@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createFilesystemAdapter, UnsafeObjectKeyError } from './filesystem-profile.js';
@@ -58,5 +58,31 @@ describe('createFilesystemAdapter', () => {
     const adapter = createFilesystemAdapter({ profile: 'filesystem', rootDirectory });
 
     await expect(adapter.delete({ key: 'never-stored.txt' })).resolves.toBeUndefined();
+  });
+
+  it('inspects nested stored objects without following symlinks outside storage', async () => {
+    const rootDirectory = await makeRoot();
+    const adapter = createFilesystemAdapter({ profile: 'filesystem', rootDirectory });
+    const inspect = adapter.inspect;
+    if (!inspect) throw new Error('inspect required');
+    await adapter.put('a/b/one', new Uint8Array(3), 'application/octet-stream');
+    await adapter.put('two', new Uint8Array(5), 'application/octet-stream');
+    await symlink(tmpdir(), join(rootDirectory, 'outside'));
+    await expect(inspect(new AbortController().signal)).resolves.toEqual({
+      totalObjects: 2,
+      totalBytes: 8,
+    });
+  });
+
+  it('initializes an empty storage root and honors cancellation', async () => {
+    const rootDirectory = join(await makeRoot(), 'new');
+    const adapter = createFilesystemAdapter({ profile: 'filesystem', rootDirectory });
+    const inspect = adapter.inspect;
+    if (!inspect) throw new Error('inspect required');
+    await expect(inspect(new AbortController().signal)).resolves.toEqual({
+      totalObjects: 0,
+      totalBytes: 0,
+    });
+    await expect(inspect(AbortSignal.abort())).rejects.toThrow();
   });
 });

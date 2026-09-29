@@ -4,13 +4,15 @@
  * badge/scoreboard/venue header, unchanged in markup and styling.
  */
 import { Badge } from '../atoms/Badge.tsx';
+import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
 
 export interface Props {
   readonly model: MatchReportModel;
+  readonly locale: string;
 }
 
-const { model } = Astro.props;
+const { model, locale } = Astro.props;
 ---
 
 <header class="cl-match-hero">
@@ -38,7 +40,7 @@ const { model } = Astro.props;
   {
     model.scheduledAt ? (
       <p class="cl-match-venue">
-        <time datetime={model.scheduledAt}>{model.scheduledAt}</time>
+        <ResponsiveTimestamp locale={locale} timestamp={model.scheduledAt} />
         {model.venueName ? ` · ${model.venueName}` : ''}
       </p>
     ) : model.status === 'upcoming' ? (

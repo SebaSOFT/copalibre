@@ -22,7 +22,12 @@ import {
 import { mutationFeedback } from './lib/mutation-feedback.js';
 import { TournamentSetupWizard } from './components/TournamentSetupWizard.js';
 import { withIntl } from './i18n/test-support.js';
-import { controlTokenStore } from './session/token-store.js';
+import {
+  clearAuthMethod,
+  controlTokenStore,
+  readAuthMethod,
+  recordAuthMethod,
+} from './session/token-store.js';
 
 /**
  * The shell, the routes and the wizard's later steps.
@@ -154,6 +159,27 @@ describe('the control shell', () => {
       localStorage.removeItem('copalibre.language');
     }
   });
+
+  it.each(['native', 'oidc'] as const)(
+    'logout clears the session and its recorded auth method for a %s session (openspec 0302)',
+    (method) => {
+      recordAuthMethod(method);
+      controlTokenStore.write('a-token', Date.now() + 60_000);
+
+      const { unmount } = render(
+        <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
+          <p>contenido</p>
+        </ControlShell>,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+
+      expect(controlTokenStore.read()).toBeUndefined();
+      expect(readAuthMethod()).toBeUndefined();
+      unmount();
+      clearAuthMethod();
+    },
+  );
 
   it('opens mobile navigation drawer on hamburger button click', () => {
     render(
@@ -341,6 +367,16 @@ describe('the control routes', () => {
     expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeDefined();
   });
 
+  it('renders the dashboard/tournaments route with the tournament authoring entry point (openspec 0298)', async () => {
+    const client: ControlApiClient = minimalControlClient({
+      listActiveTournaments: async () => [],
+    });
+    render(<TournamentsControlRoute client={client} organizationAlias="liga-mendocina" />);
+
+    const link = await screen.findByRole('link', { name: 'Crear torneo' });
+    expect(link.getAttribute('href')).toBe('/control/liga-mendocina/tournaments/new');
+  });
+
   it('renders the live console route inside the shell', async () => {
     const client: ControlApiClient = minimalControlClient({
       listActiveTournaments: async () => [],
@@ -427,7 +463,7 @@ function minimalControlClient(overrides: Partial<ControlApiClient>): ControlApiC
       stageId: 'stage',
       format: 'single-elimination',
       seeds: [],
-      matches: [],
+      zones: [],
       hasRecordedResults: false,
     }),
     publishSeeding: async () => ({
@@ -459,7 +495,7 @@ describe('the wizard beyond the first step', () => {
 
     // Changing the discipline must not carry the previous discipline's format
     // through — the API rejects it, and the operator would not know why.
-    expect(screen.getByLabelText('Format')).toHaveProperty('value', 'placement');
+    expect(screen.getByLabelText('Stage format')).toHaveProperty('value', 'placement');
   });
 
   it('goes back without losing what was typed', () => {
@@ -490,9 +526,11 @@ describe('the wizard beyond the first step', () => {
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
 
     fireEvent.change(screen.getByLabelText('Capacity'), { target: { value: '16' } });
     fireEvent.click(screen.getByLabelText(/Requires check-in/i));
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
     fireEvent.click(screen.getByRole('button', { name: /Create/i }));
 
     await waitFor(() => expect(submitted).toHaveLength(1));
@@ -586,13 +624,16 @@ describe('the API client', () => {
       name: 'Copa',
       descriptorId: 'd-1',
       descriptorVersion: '1.0.0',
-      format: 'round-robin',
+      stages: [{ number: 1, format: 'round-robin' }],
       publicRegistration: true,
       requiresCheckIn: false,
       customScripts: [],
     });
 
-    expect(bodies[0]).toMatchObject({ descriptorVersion: '1.0.0', format: 'round-robin' });
+    expect(bodies[0]).toMatchObject({
+      descriptorVersion: '1.0.0',
+      stages: [{ number: 1, format: 'round-robin' }],
+    });
   });
 
   it('reviews one registration through its own endpoint', async () => {

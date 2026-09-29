@@ -14,15 +14,21 @@ import { AuditTrailPage } from './pages/AuditTrailPage.js';
 import { MatchConsolePage } from './pages/MatchConsolePage.js';
 import { LoadMatchDataPage } from './pages/LoadMatchDataPage.js';
 import { ZoneGroupPage } from './pages/ZoneGroupPage.js';
+import { TournamentHubPage } from './pages/TournamentHubPage.js';
+import { StageHubPage } from './pages/StageHubPage.js';
 import { PromotionPlanPage } from './pages/PromotionPlanPage.js';
 import { PreferencesPage } from './pages/PreferencesPage.js';
 import { ClubManagementPage } from './pages/ClubManagementPage.js';
 import { VenueManagementPage } from './pages/VenueManagementPage.js';
 import { ScheduleBuilderPage } from './pages/ScheduleBuilderPage.js';
 import { PlatformAdministrationPage } from './pages/PlatformAdministrationPage.js';
+import { DisciplineDocumentPage } from './pages/DisciplineDocumentPage.js';
 import { LiveConsolePage } from './pages/LiveConsolePage.js';
 import { AnalyticsPage } from './pages/AnalyticsPage.js';
 import { DashboardPage } from './pages/DashboardPage.js';
+import { BroadcasterStudioPage } from './pages/BroadcasterStudioPage.js';
+import { ClubPortalMembersPage } from './pages/ClubPortalMembersPage.js';
+import { ClubPortalRosterPage } from './pages/ClubPortalRosterPage.js';
 
 export function TournamentsControlRoute({
   organizationAlias,
@@ -92,6 +98,20 @@ export function PlatformAdministrationControlRoute({
   return (
     <ControlShell active="platform" helpPath="platform-administration">
       <PlatformAdministrationPage client={client} />
+    </ControlShell>
+  );
+}
+
+export function DisciplineDocumentControlRoute({
+  disciplineAlias,
+  client,
+}: {
+  readonly disciplineAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell active="platform" helpPath="platform-administration">
+      <DisciplineDocumentPage client={client} disciplineAlias={disciplineAlias} />
     </ControlShell>
   );
 }
@@ -293,6 +313,69 @@ export function MatchesViewControlRoute({
   );
 }
 
+export function BroadcasterStudioControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="broadcast-surfaces" organizationAlias={organizationAlias}>
+      <BroadcasterStudioPage
+        client={client}
+        organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
+      />
+    </ControlShell>
+  );
+}
+
+export function ClubPortalMembersControlRoute({
+  organizationAlias,
+  clubId,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly clubId: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="club-portal" organizationAlias={organizationAlias}>
+      <ClubPortalMembersPage
+        client={client}
+        clubId={clubId}
+        organizationAlias={organizationAlias}
+      />
+    </ControlShell>
+  );
+}
+
+export function ClubPortalRosterControlRoute({
+  organizationAlias,
+  clubId,
+  tournamentAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly clubId: string;
+  readonly tournamentAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="club-portal" organizationAlias={organizationAlias}>
+      <ClubPortalRosterPage
+        client={client}
+        clubId={clubId}
+        organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
+      />
+    </ControlShell>
+  );
+}
+
 export function StandingsControlRoute({
   organizationAlias,
   tournamentAlias,
@@ -412,6 +495,49 @@ export function LoadMatchDataControlRoute({
         client={client}
         matchId={matchId}
         organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
+      />
+    </ControlShell>
+  );
+}
+
+export function TournamentHubControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="tournament-hub" organizationAlias={organizationAlias}>
+      <TournamentHubPage
+        client={client}
+        organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
+      />
+    </ControlShell>
+  );
+}
+
+export function StageHubControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="stage-hub" organizationAlias={organizationAlias}>
+      <StageHubPage
+        client={client}
+        organizationAlias={organizationAlias}
+        stageNumber={stageNumber}
         tournamentAlias={tournamentAlias}
       />
     </ControlShell>

@@ -14,9 +14,7 @@ dos formas admitidas de exponerla a tráfico real. Referencia de comandos CLI:
 
 ## 1. Requisitos previos, por plataforma
 
-Cada rol se distribuye como una única imagen Docker multirol, compilada directamente desde este
-repositorio — no existe un paso de "build de producción" separado. Necesita Docker, Docker Compose
-v2 y Git; nada más se ejecuta en el host.
+Se necesitan Docker, Docker Compose v2 y Git. El wrapper del código fuente también requiere Node.js 24 y Corepack en el host. El binario independiente no necesita Node.js; vea [Instalación](/es/help/cli/installation/).
 
 **Linux** — instale Docker Engine y el plugin de Compose desde el gestor de paquetes de su
 distribución o desde el [repositorio propio de Docker](https://docs.docker.com/engine/install/)
@@ -37,55 +35,36 @@ prefiéralo para cualquier cosa más allá de una prueba local rápida.
 
 ## 2. Ejecutarlo desde el código fuente
 
+Compile ambas imágenes desde la raíz del repositorio e inicialice un directorio de instalación vacío:
+
 ```bash
 git clone https://github.com/SebaSOFT/copalibre.git
 cd copalibre
-./copalibre init      # escribe valores por defecto no secretos en .env, lista los secretos requeridos
+docker build --target runtime -t copalibre:local .
+docker build --target web -t copalibre-web:local .
+mkdir my-league && cd my-league
+../copalibre init
 ```
 
-Edite `.env`: una contraseña fuerte para PostgreSQL, un `COPALIBRE_BOOTSTRAP_TOKEN` opaco, sus
-valores JWKS/issuer/audience de OIDC (o el proveedor de identidad nativo por email/contraseña — vea
-[Roles y permisos](/es/help/control/roles-permissions/)), el ID de cliente público del navegador, y un
-proveedor de email admitido.
+Antes de iniciar, edite `.env`: configure `COPALIBRE_IMAGE=copalibre:local` y `COPALIBRE_WEB_IMAGE=copalibre-web:local` para usar estas compilaciones. De lo contrario, `init` selecciona imágenes publicadas de la versión del CLI. Reemplace las contraseñas de desarrollo y el token de bootstrap, configure identidad, correo y URL públicas. Configure `GARAGE_RPC_SECRET` con `openssl rand -hex 32`; Compose interpola este valor obligatorio incluso si el almacenamiento opcional está desactivado.
 
 ```bash
-./copalibre doctor    # valida la configuración antes de iniciar cualquier cosa
-./copalibre start     # docker compose up --detach --wait — compila las imágenes localmente
-./copalibre create-admin --organization-alias mi-liga --organization-name "Mi Liga" \
-  --email admin@ejemplo.com
+../copalibre doctor
+../copalibre start
+../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
 
-`./copalibre start` compila `copalibre:local` y `copalibre-web:local` desde esta copia local por
-defecto — esa compilación **es** "ejecutar desde el código fuente". Apunte
-`COPALIBRE_IMAGE`/`COPALIBRE_WEB_IMAGE` a una etiqueta publicada si prefiere descargar una versión en
-lugar de compilarla.
-
-En este punto la pila está en ejecución pero no es alcanzable desde fuera del host:
-`docker-compose.yml` deliberadamente nunca termina TLS ni expone un puerto público propio. Elija una
-de las dos topologías abajo para exponerla realmente a usuarios.
+El gateway publica HTTP en `http://localhost:8080` (`COPALIBRE_PORT`). Compose también publica puertos de servicios; limite su exposición en el host y la red. TLS se configura en el proxy de borde.
 
 ## 3. Elegir cómo exponerla
 
 ### Opción A — un solo host, proxy inverso en el borde
 
-La topología más simple admitida: un host Docker ejecutando Compose, con Caddy o NGINX al frente
-terminando TLS y enrutando a los servicios internos. Esto es para lo que `./copalibre start` está
-pensado de fábrica, en cualquiera de las tres plataformas anteriores.
+Enrute el host de la aplicación a `gateway:80` dentro de la red Compose, o a `127.0.0.1:8080` si el proxy corre en el host. El gateway distribuye API, autenticación, SSE y web en el mismo origen; el contenedor web reenvía las páginas dinámicas a `web-ssr`. Use `deploy/proxy/Caddyfile` o `deploy/proxy/nginx.conf`, configure TLS y URL públicas, y mantenga SSE sin buffer. Los hosts API/events separados son opcionales cuando se usa un solo origen.
 
-1. Configure `COPALIBRE_APP_HOST`, `COPALIBRE_API_HOST` y `COPALIBRE_EVENTS_HOST` con sus nombres de
-   host públicos, y `ACME_EMAIL` para que el proxy pueda solicitar certificados automáticamente.
-2. Enrute el tráfico API ordinario a `api:3001`, el tráfico SSE a `events:3002`, las rutas SSR
-   públicas a `web-ssr:3005`, y el tráfico web estático de control/público a `web:4321`. Configs de
-   ejemplo:
-   [`deploy/proxy/Caddyfile`](https://github.com/SebaSOFT/copalibre/blob/main/deploy/proxy/Caddyfile)
-   y [`deploy/proxy/nginx.conf`](https://github.com/SebaSOFT/copalibre/blob/main/deploy/proxy/nginx.conf).
-   El proxy debe preservar los headers de reenvío, mantener SSE sin buffer, y dejar que los streams
-   inactivos sobrevivan a los heartbeats — el ejemplo de Caddy configura `flush_interval -1`
-   exactamente por esta razón.
-3. Verifíquelo: `./copalibre doctor --check-proxy --proxy-url https://events.ejemplo/events/proxy-check`.
-
-Esto funciona igual en Linux, macOS y Windows (WSL2) — el proxy es solo otro contenedor (o un
-proceso en el mismo host) delante de la misma pila Compose.
+```bash
+../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
+```
 
 ### Opción B — Kubernetes (de K3s a clústeres empresariales)
 
@@ -94,9 +73,17 @@ Helm (`deploy/helm/copalibre/`) despliega las mismas imágenes, contrato de ento
 proceso de migración que la instalación con Compose — instalarlo con los valores por defecto se
 comporta idéntico al chart base solo.
 
+Ejecute Helm desde la raíz del repositorio después de crear y configurar `my-values.yaml` con base de datos, identidad, correo y URL públicas. Use una versión ya publicada para ambas imágenes; 1.2.0 estará disponible después de su publicación.
+
 ```bash
-helm install my-copalibre deploy/helm/copalibre/ \
-  --set image.tag=<version> --set web.image.tag=<version>
+cd ..
+helm show values deploy/helm/copalibre/ > my-values.yaml
+```
+
+```bash
+helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.0
 ```
 
 Agregue estos grupos aditivos de `values.yaml`, desactivados por defecto, según se necesite —
@@ -115,7 +102,7 @@ ninguno requiere un fork de los templates:
   `DATABASE_URL`, `COPALIBRE_OBJECT_STORAGE_*`, etc. desde su almacén de secretos real en lugar de
   un manifiesto `Secret` plano.
 
-PostgreSQL gestionado, almacenamiento de objetos compatible con S3 (AWS S3, MinIO, R2, B2), o una
+PostgreSQL gestionado, almacenamiento de objetos compatible con S3 (AWS S3, Garage, R2, B2), o una
 ruta de VM gestionada (Kamal, `docs/deployment/kamal.md`) son todos configuración, no cambios de
 código — `packages/persistence` ya los apunta genéricamente. Valide cualquier cambio de chart
 localmente contra un clúster multi-nodo descartable antes de tocar uno real:

@@ -72,6 +72,19 @@ async function setupMockApi(page: Page): Promise<void> {
         if (url.includes('/registrations') || url.includes('/display-tokens')) {
           return Response.json([]);
         }
+        if (url === '/disciplines' && method === 'GET') {
+          return Response.json([
+            {
+              descriptorId: 'football.default',
+              version: '1.0.0',
+              name: 'Futbol',
+              supportedFormats: ['round-robin'],
+            },
+          ]);
+        }
+        if (url === `/organizations/${orgAlias}/tournaments/custom-script-vocabulary`) {
+          return Response.json({ hooks: [], entries: [] });
+        }
         if (url === `/events/control/${orgAlias}`) {
           return new Response('', { status: 403 });
         }
@@ -94,6 +107,13 @@ async function openDashboard(page: Page): Promise<void> {
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
   await expect(page.getByTestId('activeTournaments')).toBeVisible();
+  // `TYPOGRAPHY` loads Barlow/Barlow Condensed from Google Fonts with
+  // `display=swap` (packages/design-tokens/src/primitives.ts): text renders
+  // in the fallback stack first, then reflows once the real font swaps in.
+  // Several tests in this file measure flex-wrap boundaries (row counts at a
+  // specific viewport width), which is exactly what that reflow can tip over
+  // — waiting here, once, keeps every layout assertion below from racing it.
+  await page.evaluate(() => document.fonts.ready);
 }
 
 test('4.1: summary tiles sit in a row on desktop, stack on mobile, and keep a page gutter', async ({
@@ -247,4 +267,16 @@ test('0211: a card title opens that tournament’s matches view', async ({ page 
   expect(new URL(page.url()).pathname).toBe(
     `/control/${ORG_ALIAS}/tournaments/torneo-1/matches-view`,
   );
+});
+
+test('0298: clicking "Crear torneo" from the dashboard arrives at the tournament setup wizard', async ({
+  page,
+}) => {
+  await openDashboard(page);
+
+  await page.getByRole('link', { name: 'Crear torneo' }).click();
+
+  await page.waitForURL(`**/control/${ORG_ALIAS}/tournaments/new`);
+  expect(new URL(page.url()).pathname).toBe(`/control/${ORG_ALIAS}/tournaments/new`);
+  await expect(page.getByLabel('Nombre')).toBeVisible();
 });

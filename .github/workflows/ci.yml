@@ -110,6 +110,7 @@ jobs:
       - run: yarn install --immutable
       - run: node --test scripts/dependency-security.test.mjs
       - run: node --test apps/copalibre/scripts/build-binary.test.mjs
+      - run: node --test apps/web/scripts/serve-with-security-headers.test.mjs
 
   lint:
     name: Lint (zero warnings)
@@ -294,6 +295,7 @@ jobs:
           node --test scripts/ci-test-inventory.test.mjs
           node --test scripts/build-identity.test.mjs
           node --test scripts/evaluate-ci-aggregate.test.mjs
+          node --test scripts/classify-ci-paths.test.mjs
           yarn workspace @copalibre/domain test:coverage --maxWorkers=2
           yarn workspace @copalibre/rules test:coverage --maxWorkers=2
           yarn workspace @copalibre/tournament-engine test:coverage --maxWorkers=2
@@ -305,8 +307,10 @@ jobs:
           node --test scripts/tv-soak-test.test.mjs
           # Change-risk (CRAP) score (openspec 0227): reads this leg's just-produced
           # coverage-final.json files; a workspace this leg doesn't cover is skipped
-          # with a warning, not a failure.
-          yarn crap:check
+          # with a warning, not a failure. --report (openspec 0234) additionally
+          # dumps every scored function (not just gate offenders) for the
+          # cross-leg summary rendered by the crap-report job below.
+          yarn crap:check --report=crap-report-group-1.json
       - name: Unit test execution (Group 2 - Services, Web & SQLite)
         if: matrix.group == 2
         run: |
@@ -324,8 +328,10 @@ jobs:
           yarn workspace @copalibre/web test:coverage --maxWorkers=2
           # Change-risk (CRAP) score (openspec 0227): reads this leg's just-produced
           # coverage-final.json files; a workspace this leg doesn't cover is skipped
-          # with a warning, not a failure.
-          yarn crap:check
+          # with a warning, not a failure. --report (openspec 0234) additionally
+          # dumps every scored function (not just gate offenders) for the
+          # cross-leg summary rendered by the crap-report job below.
+          yarn crap:check --report=crap-report-group-2.json
       - uses: actions/upload-artifact@v7
         if: always() && matrix.group == 1
         with:
@@ -374,6 +380,18 @@ jobs:
           name: coverage-events
           path: apps/events/coverage
           retention-days: 14
+      - uses: actions/upload-artifact@v7
+        if: always() && matrix.group == 1
+        with:
+          name: crap-report-group-1
+          path: crap-report-group-1.json
+          retention-days: 14
+      - uses: actions/upload-artifact@v7
+        if: always() && matrix.group == 2
+        with:
+          name: crap-report-group-2
+          path: crap-report-group-2.json
+          retention-days: 14
 
   # Aggregate required gate preserving the stable check name 'Unit tests'.
   unit-tests:
@@ -393,6 +411,36 @@ jobs:
             --check="Unit tests" \
             --required="1,2" \
             --results='{"1":"${{ needs.unit-tests-group.result == 'success' && 'success' || needs.unit-tests-group.result }}","2":"${{ needs.unit-tests-group.result == 'success' && 'success' || needs.unit-tests-group.result }}"}'
+
+  # Change-risk (CRAP) score report (openspec 0234): merges both matrix legs'
+  # full per-function scores (not just gate offenders) into one repo-wide
+  # top-N ranking, visible in the run's Job Summary even when the gate above
+  # fails. Presentation only — never changes unit-tests-group's exit code.
+  crap-report:
+    name: Change-risk (CRAP) score report
+    runs-on: ubuntu-latest
+    needs: [install, unit-tests-group]
+    if: always()
+    steps:
+      - uses: actions/checkout@v7
+      - run: corepack enable
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: crap-report-group-1
+          path: crap-reports
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: crap-report-group-2
+          path: crap-reports
+      - name: Render change-risk (CRAP) score report
+        run: |
+          node scripts/render-crap-report.mjs crap-reports --top=15 --expect=2 \
+            >> "$GITHUB_STEP_SUMMARY"
 
   # The reusable module-validation.yml workflow (which the curated
   # copalibre-modules repository also calls on its own pull requests) run
@@ -438,6 +486,7 @@ jobs:
       - run: yarn workspace @copalibre/domain build
       - run: yarn workspace @copalibre/routing build
       - run: yarn workspace @copalibre/realtime build
+      - run: yarn workspace @copalibre/tournament-engine build
       - run: yarn workspace @copalibre/design-tokens build:tokens
       - run: yarn workspace @copalibre/web build
       - name: Tag build identity
@@ -528,14 +577,13 @@ jobs:
 
   # Operator flows are client-side islands backed by the control API.
   # Playwright runs against the single verified web build through two independent shards.
+  # Covers standings, seeding builder series progress, and operator console flows.
   # Fixture servers dynamically allocate unique ports via workerIndex (3001 + workerIndex).
   e2e-tests-shard:
     name: E2E tests (shard ${{ matrix.shard }})
     runs-on: ubuntu-latest
     needs: [install, detect-changes, web-build-producer]
-    if: |
-      needs.detect-changes.outputs.backend_only != 'true' &&
-      needs.detect-changes.outputs.release_candidate == 'true'
+    if: needs.detect-changes.outputs.backend_only != 'true'
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -574,7 +622,8 @@ jobs:
         run: PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --shard=${{ matrix.shard }}
 
   # Aggregate required gate preserving the stable check name 'E2E tests'.
-  # Validates all shards passed and executes the accelerated TV soak-test proxy once.
+  # Validates all shards passed; the accelerated TV soak-test proxy step runs
+  # once per job but only on a release candidate (see its own step-level if:).
   e2e-tests:
     name: E2E tests
     runs-on: ubuntu-latest
@@ -582,8 +631,7 @@ jobs:
     if: |
       always() &&
       needs.install.result == 'success' &&
-      needs.detect-changes.outputs.backend_only != 'true' &&
-      needs.detect-changes.outputs.release_candidate == 'true'
+      needs.detect-changes.outputs.backend_only != 'true'
     steps:
       - uses: actions/checkout@v7
       - run: corepack enable
@@ -611,10 +659,14 @@ jobs:
             --config="production"
       # tv-soak-test.mjs drives a real headless Chromium via Playwright — this
       # job is a fresh runner from e2e-tests-shard's, so its browser install
-      # doesn't carry over. Only ever exercised on a release-candidate
-      # (main-targeting) PR, which is why this was never caught before.
+      # doesn't carry over. Deliberately kept release-candidate-only (0257):
+      # it's a second browser install plus a live `preview` server on top of
+      # the shard tests above, and its bug-catching value came specifically
+      # from running rarely — see openspec change 0257's design.md.
       - run: yarn playwright install --with-deps chromium
+        if: needs.detect-changes.outputs.release_candidate == 'true'
       - name: TV soak-test (accelerated proxy)
+        if: needs.detect-changes.outputs.release_candidate == 'true'
         run: |
           yarn workspace @copalibre/web run preview &
           for i in $(seq 1 30); do
@@ -627,7 +679,7 @@ jobs:
             --growth-threshold=0.25 \
             --report=tv-soak-report.json
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && needs.detect-changes.outputs.release_candidate == 'true'
         with:
           name: tv-soak-report
           path: tv-soak-report.json
@@ -714,7 +766,7 @@ jobs:
       - run: yarn workspace @copalibre/tournament-engine test:integration
       - run: yarn workspace @copalibre/statistics-refold test:integration
 
-  # Group 2: Storage, Worker, Scheduler, Events, CLI (PostgreSQL + MinIO + ClamAV).
+  # Group 2: Storage, Worker, Scheduler, Events, CLI (PostgreSQL + Garage + ClamAV).
   integration-tests-g2:
     name: Integration tests (group 2)
     runs-on: ubuntu-latest
@@ -740,6 +792,10 @@ jobs:
           - 3310:3310
     env:
       DATABASE_URL: postgres://copalibre:copalibre_ci_only@localhost:5432/copalibre
+      # --network host means no port mapping: Garage's S3 API is directly
+      # on 3900 (unlike MinIO's own default of 9000), so the object-storage
+      # integration suite's endpoint fallback must be overridden here.
+      COPALIBRE_OBJECT_STORAGE_URL: http://localhost:3900
     steps:
       - uses: actions/checkout@v7
       - run: corepack enable
@@ -748,21 +804,32 @@ jobs:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
-      - name: Start MinIO
+      - name: Start Garage
         run: |
-          docker run -d --name minio --network host \
-            -e MINIO_ROOT_USER=copalibre_dev_only \
-            -e MINIO_ROOT_PASSWORD=copalibre_dev_only \
-            quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z server /data --console-address :9001
-      - name: Wait for MinIO and create its bucket
+          docker run -d --name garage --network host \
+            -e GARAGE_RPC_SECRET=c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e \
+            -v "$(pwd)/deploy/garage/garage.toml:/etc/garage.toml:ro" \
+            dxflrs/garage:v1.1.0
+      - name: Wait for Garage and provision its bucket and key
         run: |
-          docker run --rm --network host --entrypoint /bin/sh quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z -c '
-            for i in $(seq 1 30); do
-              mc alias set local http://localhost:9000 copalibre_dev_only copalibre_dev_only && break
-              sleep 2
-            done
-            mc mb --ignore-existing local/copalibre-dev
-          '
+          for i in $(seq 1 30); do
+            if docker exec garage /garage status >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          node_id="$(docker exec garage /garage status | awk '/NO ROLE ASSIGNED/{print $1; exit}')"
+          if [ -n "${node_id}" ]; then
+            docker exec garage /garage layout assign -z dc1 -c 1G "${node_id}"
+            docker exec garage /garage layout apply --version 1
+          fi
+          docker exec garage /garage bucket create copalibre-dev
+          docker exec garage /garage key import --yes \
+            GK636f70616c69627265646576 \
+            636f70616c696272655f6465765f6f6e6c795f6f626a6563745f73746f726521 \
+            -n copalibre-dev-key
+          docker exec garage /garage bucket allow --read --write --owner copalibre-dev --key copalibre-dev-key
+          docker logs garage
       - run: yarn workspace @copalibre/migrate run start
       - run: yarn workspace @copalibre/object-storage test:integration
       - run: yarn workspace @copalibre/worker test:integration
@@ -913,6 +980,8 @@ jobs:
       COPALIBRE_IMAGE: copalibre:ci
       COPALIBRE_WEB_IMAGE: copalibre-web:ci
       POSTGRES_PASSWORD: copalibre_e2e_only
+      # Compose interpolates this even when the optional object-storage profile is not started.
+      GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
       COPALIBRE_APP_URL: http://localhost:4321
       COPALIBRE_API_URL: http://localhost:3001
       COPALIBRE_BOOTSTRAP_TOKEN: copalibre_e2e_bootstrap_only
@@ -983,6 +1052,8 @@ jobs:
       COPALIBRE_IMAGE: copalibre:ci
       COPALIBRE_WEB_IMAGE: copalibre-web:ci
       POSTGRES_PASSWORD: copalibre_ci_only
+      # Compose interpolates this even when the optional object-storage profile is not started.
+      GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
       COPALIBRE_APP_URL: http://web:4321
       COPALIBRE_API_URL: http://api:3001
       COPALIBRE_BOOTSTRAP_TOKEN: copalibre_ci_bootstrap_only

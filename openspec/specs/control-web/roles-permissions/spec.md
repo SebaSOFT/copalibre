@@ -379,3 +379,73 @@ was rescinded rather than returning the generic not-found response an unrecogniz
   it
 - **THEN** acceptance is refused with an explanation that the invitation was rescinded, and no role
   assignment is created
+
+### Requirement: Role selection explains what the selected role can do, with a path to the full manual
+
+Wherever an operator chooses an organization role for a person — assigning a role to an existing
+member or setting the role on a pending invitation — the control SHALL show a short description of
+what the currently-selected role can do, alongside the role picker, the same way every other
+multi-option decision in control-web (discipline authoring, tournament setup, stage authoring) pairs
+its choice with a description of the selected option. The short description SHALL be accompanied by
+a link to that role's own help page, for an operator who wants the full explanation rather than the
+condensed one.
+
+#### Scenario: Changing a member's role shows what that role can do
+- **WHEN** an operator selects a different role for an existing organization member
+- **THEN** a short description of that role's authority is shown beside the role picker
+
+#### Scenario: Inviting a new member shows what the chosen role can do
+- **WHEN** an operator selects a role while creating an invitation
+- **THEN** a short description of that role's authority is shown beside the role picker
+
+#### Scenario: The description matches the role manual, condensed
+- **WHEN** the description shown for a role is compared to that role's own manual page
+- **THEN** it states the same authority the manual page states, in fewer words, and never claims an
+  authority the manual page does not
+
+#### Scenario: The short description links to that role's own manual page
+- **WHEN** an operator activates the "learn more" link beside a role's short description
+- **THEN** the control panel opens that specific role's own help page, not the role-manual index
+
+#### Scenario: The link follows the selected role, not the one shown a moment ago
+- **WHEN** an operator changes the selected role after the link has already rendered once
+- **THEN** the link now points to the newly-selected role's own help page
+
+### Requirement: Accepting an invitation stores the session token the same secure way every login does
+Accepting an invitation through the native `/auth/accept-invitation` flow SHALL establish the new
+administrator's session using the same token-storage mechanism every other control-panel
+authentication entry point uses, and SHALL NOT write the access token into `localStorage` or any
+storage that survives the browser tab closing.
+
+#### Scenario: Accepting an invitation establishes a real, working session
+- **WHEN** an operator submits a valid invitation token and a new password on the invitation
+  acceptance screen
+- **THEN** the resulting access token is stored the same way a successful login stores it, and the
+  operator's subsequent redirect into the control console finds a valid, working session
+
+#### Scenario: No access token is ever written to localStorage
+- **WHEN** an operator accepts an invitation successfully
+- **THEN** `localStorage` contains no access token, under any key
+
+### Requirement: Human-readable presentation of audit records and diffs
+The audit trail screen SHALL resolve actor identifiers into human-readable user identities and SHALL render action codes and state differences using localized, structured presentations rather than raw opaque UUIDs or serialized JSON syntax.
+
+#### Scenario: Actor resolves to member identity
+- **WHEN** an operator views the audit trail for an organization
+- **THEN** each entry's actor column displays the acting user's identifiable name or email rather than an unformatted UUID
+
+#### Scenario: Actions and diffs render in plain language
+- **WHEN** an operator inspects an audit entry's action and state changes
+- **THEN** the action name and field transitions render in human-readable plain language matching the active locale
+
+### Requirement: Roles and permissions UI ownership and scope selection
+The roles and permissions screen SHALL compose owned design-system primitives without raw unstyled form tags. Scope selectors for club-admin and tournament-admin roles SHALL render localized placeholders rather than blank options.
+
+#### Scenario: Scope selectors present localized prompt
+- **WHEN** an operator selects club-admin or tournament-admin in the invite dialog
+- **THEN** the corresponding scope selector displays a localized placeholder prompting the operator to choose a club or tournament
+
+#### Scenario: Interactive toggles meet ownership contracts
+- **WHEN** an operator interacts with status toggles or checkboxes on the roles screen
+- **THEN** all controls are rendered using owned primitives with visible focus states and accessible labels
+

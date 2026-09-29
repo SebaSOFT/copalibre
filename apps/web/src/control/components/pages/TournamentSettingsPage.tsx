@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage } from 'react-intl';
-import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
+import {
+  createControlApiClient,
+  type ControlApiClient,
+  type RulesetOverridesResponse,
+} from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { TournamentSettingsTemplate } from '../screens/TournamentSettingsTemplate.js';
 import { messages } from '../../i18n/messages.en.js';
@@ -27,6 +31,7 @@ export function TournamentSettingsPage({
   const [settings, setSettings] = useState<
     Awaited<ReturnType<NonNullable<ControlApiClient['fetchTournamentSettings']>>> | undefined
   >(undefined);
+  const [ruleset, setRuleset] = useState<RulesetOverridesResponse | undefined>(undefined);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -39,6 +44,14 @@ export function TournamentSettingsPage({
       .catch(() => {
         if (live) setFailed(true);
       });
+    // Additive context for the plain-language summary (openspec 0267) —
+    // never gates loading/failed state, which stays keyed to `settings` only.
+    api
+      .fetchRulesetOverrides?.(organizationAlias, tournamentAlias)
+      .then((loaded) => {
+        if (live) setRuleset(loaded);
+      })
+      .catch(() => {});
     return () => {
       live = false;
     };
@@ -94,6 +107,7 @@ export function TournamentSettingsPage({
         ) ?? Promise.resolve()
       }
       organizationAlias={organizationAlias}
+      ruleset={ruleset}
       settings={settings}
       tournamentAlias={tournamentAlias}
     />

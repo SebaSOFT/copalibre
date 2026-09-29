@@ -117,3 +117,25 @@ losing the assignment silently.
 #### Scenario: The same rule applies to a group
 - **WHEN** an operator attempts to remove a group that already has an entrant assigned into it
 - **THEN** the removal is refused on the same terms a zone's removal would be
+
+### Requirement: Assigned entrant roster visibility within groups
+When viewing groups in a zone, the screen SHALL render the list of entrants currently assigned to each group.
+
+#### Scenario: Viewing a group with assigned entrants
+- **WHEN** an operator views a zone whose groups have entrants assigned via draw or manual placement
+- **THEN** each group card displays the human-readable names of its assigned entrants
+
+#### Scenario: Viewing a group with no entrants assigned
+- **WHEN** an operator views a group into which no entrants have yet been placed
+- **THEN** the group displays an explicit empty state indicating no entrants are assigned
+
+### Requirement: Promotion plan preview localization and candidate presentation
+When reviewing a computed promotion plan, the candidate list SHALL render human-readable participant names rather than truncated identifiers. An unconfigured promotion plan SHALL render with an informative message in the active locale rather than a raw server error.
+
+#### Scenario: Unconfigured promotion plan renders localized informational state
+- **WHEN** an operator views the promotion plan screen for a zone without a saved promotion plan
+- **THEN** the candidate review card renders an informational message in the active locale (e.g. "No hay un plan de promoción guardado para esta zona todavía") rather than an English API error string or a destructive alert
+
+#### Scenario: Candidate list renders resolved participant names
+- **WHEN** an operator views the computed promotion plan review list
+- **THEN** each candidate entry renders the participant's full display name rather than a raw hex identifier slice

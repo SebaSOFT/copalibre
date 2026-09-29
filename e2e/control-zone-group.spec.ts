@@ -314,7 +314,7 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
             stageId: 'stage-2',
             format: 'single-elimination',
             seeds: [],
-            matches: [],
+            zones: [],
             hasRecordedResults: false,
           });
         }

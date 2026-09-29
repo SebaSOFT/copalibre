@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
+import type { TournamentCompletionResponse } from '@copalibre/contracts';
 import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import type { MatchCardData } from '../../../lib/matches-view.js';
@@ -58,6 +59,23 @@ export function MatchesViewPage({
   const [state, setState] = useState<StateFilter>('all');
   const [matches, setMatches] = useState<readonly MatchCardData[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [completion, setCompletion] = useState<TournamentCompletionResponse | undefined>(undefined);
+
+  useEffect(() => {
+    let live = true;
+    api
+      .fetchCompletion?.(organizationAlias, tournamentAlias)
+      .then((response) => {
+        if (!live) return;
+        setCompletion(response);
+      })
+      .catch(() => {
+        // Completion metadata load failure leaves it undefined (unrendered)
+      });
+    return () => {
+      live = false;
+    };
+  }, [api, organizationAlias, tournamentAlias]);
 
   useEffect(() => {
     let live = true;
@@ -78,6 +96,7 @@ export function MatchesViewPage({
 
   return (
     <MatchesViewTemplate
+      completion={completion}
       labels={labels}
       matches={matches}
       onSelectState={setState}

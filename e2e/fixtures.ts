@@ -10,7 +10,7 @@ export const test = base.extend<Record<string, never>, WorkerPortFixture>({
   workerPort: [
     // eslint-disable-next-line no-empty-pattern
     async ({}, use, workerInfo) => {
-      const port = 3001 + workerInfo.workerIndex;
+      const port = Number(process.env.COPALIBRE_E2E_API_PORT_BASE ?? 3001) + workerInfo.workerIndex;
       await use(port);
     },
     { scope: 'worker' },

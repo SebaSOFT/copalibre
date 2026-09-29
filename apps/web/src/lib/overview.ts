@@ -11,6 +11,8 @@ import { IMPLICIT_SEASON_NAME } from '@copalibre/domain';
 export type MatchState = 'live' | 'upcoming' | 'final' | 'disputed';
 
 export interface OverviewMatch {
+  /** Absent in synthetic fixtures that have not yet been persisted as matches. */
+  readonly matchId?: string;
   /** Absent while a generated fixture has not become a persisted match. */
   readonly matchNumber?: number;
   readonly stageNumber: number;
@@ -25,6 +27,8 @@ export interface SideView {
   /** The short label; absent when nobody chose one. */
   readonly abbreviation?: string;
   readonly score?: number;
+  /** Absent for a synthetic fixture with no persisted entrant yet; needed to correlate live events. */
+  readonly entrantId?: string;
 }
 
 export interface StandingsRowView {
@@ -42,6 +46,13 @@ export interface ClubView {
   readonly emblemObjectId?: string;
 }
 
+/** A ruleset field's effective value, its declared dot-path, and its resolved display label. */
+export interface RulesetFieldView {
+  readonly dotPath: string;
+  readonly label: string;
+  readonly value: string;
+}
+
 import type { PublicTournamentWinnerZoneResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 
 export interface OverviewModel {
@@ -57,7 +68,7 @@ export interface OverviewModel {
   /** Absent when the previewed stage declares no series at all. */
   readonly standingsGrain?: 'series' | 'match';
   readonly clubs?: readonly ClubView[];
-  readonly ruleset: readonly { readonly label: string; readonly value: string }[];
+  readonly ruleset: readonly RulesetFieldView[];
   readonly canonicalPath: string;
   readonly streamPath: string;
   readonly liveCount: number;
@@ -74,7 +85,7 @@ export interface OverviewInput extends RouteInput {
   readonly standings: readonly StandingsRowView[];
   readonly standingsGrain?: 'series' | 'match';
   readonly clubs?: readonly ClubView[];
-  readonly ruleset: readonly { readonly label: string; readonly value: string }[];
+  readonly ruleset: readonly RulesetFieldView[];
   readonly emblemObjectId?: string;
 }
 
@@ -99,6 +110,13 @@ export function buildOverview(input: OverviewInput): OverviewModel {
     streamPath: publicStreamPath(input),
     liveCount: input.matches.filter((match) => match.state === 'live').length,
   };
+}
+
+/** A resolved multi-zone finish has enough independent outcomes to warrant a podium section. */
+export function shouldShowChampionPodium(
+  model: Pick<OverviewModel, 'status' | 'winners'>,
+): boolean {
+  return model.status === 'finished' && (model.winners?.length ?? 0) > 1;
 }
 
 /**

@@ -96,3 +96,122 @@ export function validateNextStage(
 
   return failures.length > 0 ? err(new StageNotReadyError(failures)) : ok(true);
 }
+
+export interface RawStageStatusCount {
+  readonly stageId: string;
+  readonly stageNumber: number;
+  readonly stageName: string;
+  readonly status: string | null;
+  readonly count: number;
+}
+
+export interface StageCompletionSummary {
+  readonly stageId: string;
+  readonly stageNumber: number;
+  readonly stageName: string;
+  readonly totalMatches: number;
+  readonly resolvedMatches: number;
+  readonly liveMatches: number;
+  readonly scheduledMatches: number;
+  readonly finalizedMatches: number;
+  readonly forfeitedMatches: number;
+}
+
+export interface TournamentCompletionSummary {
+  readonly totalMatches: number;
+  readonly resolvedMatches: number;
+  readonly liveMatches: number;
+  readonly scheduledMatches: number;
+  readonly finalizedMatches: number;
+  readonly forfeitedMatches: number;
+  readonly stages: readonly StageCompletionSummary[];
+}
+
+/**
+ * Folds grouped match-status rows into per-stage completion counts and a tournament-wide rollup.
+ * Reuses the platform definition: resolved = finalized + forfeited.
+ * Not-required matches (anulled series games) are omitted from total and active counts.
+ */
+export function foldTournamentCompletion(
+  stageCounts: readonly RawStageStatusCount[],
+): TournamentCompletionSummary {
+  const stageMap = new Map<
+    string,
+    {
+      stageId: string;
+      stageNumber: number;
+      stageName: string;
+      totalMatches: number;
+      resolvedMatches: number;
+      liveMatches: number;
+      scheduledMatches: number;
+      finalizedMatches: number;
+      forfeitedMatches: number;
+    }
+  >();
+
+  for (const row of stageCounts) {
+    let entry = stageMap.get(row.stageId);
+    if (!entry) {
+      entry = {
+        stageId: row.stageId,
+        stageNumber: row.stageNumber,
+        stageName: row.stageName,
+        totalMatches: 0,
+        resolvedMatches: 0,
+        liveMatches: 0,
+        scheduledMatches: 0,
+        finalizedMatches: 0,
+        forfeitedMatches: 0,
+      };
+      stageMap.set(row.stageId, entry);
+    }
+
+    const cnt = Math.max(0, row.count);
+    if (cnt > 0 && row.status) {
+      if (row.status === 'finalized') {
+        entry.finalizedMatches += cnt;
+        entry.resolvedMatches += cnt;
+        entry.totalMatches += cnt;
+      } else if (row.status === 'forfeited') {
+        entry.forfeitedMatches += cnt;
+        entry.resolvedMatches += cnt;
+        entry.totalMatches += cnt;
+      } else if (row.status === 'live' || row.status === 'in-progress') {
+        entry.liveMatches += cnt;
+        entry.totalMatches += cnt;
+      } else if (row.status === 'scheduled') {
+        entry.scheduledMatches += cnt;
+        entry.totalMatches += cnt;
+      }
+    }
+  }
+
+  const stages = Array.from(stageMap.values()).sort((a, b) => a.stageNumber - b.stageNumber);
+
+  let totalMatches = 0;
+  let resolvedMatches = 0;
+  let liveMatches = 0;
+  let scheduledMatches = 0;
+  let finalizedMatches = 0;
+  let forfeitedMatches = 0;
+
+  for (const s of stages) {
+    totalMatches += s.totalMatches;
+    resolvedMatches += s.resolvedMatches;
+    liveMatches += s.liveMatches;
+    scheduledMatches += s.scheduledMatches;
+    finalizedMatches += s.finalizedMatches;
+    forfeitedMatches += s.forfeitedMatches;
+  }
+
+  return {
+    totalMatches,
+    resolvedMatches,
+    liveMatches,
+    scheduledMatches,
+    finalizedMatches,
+    forfeitedMatches,
+    stages,
+  };
+}

@@ -7,9 +7,11 @@ import ScoreTicker from '../../../../components/ui/organisms/ScoreTicker.astro';
 import StandingsTable from '../../../../components/ui/organisms/StandingsTable.astro';
 import BroadcastStatusPanel from '../../../../components/ui/molecules/BroadcastStatusPanel.astro';
 import RulesetBriefing from '../../../../components/ui/molecules/RulesetBriefing.astro';
-import { buildOverview, displayName } from '../../../../lib/overview.ts';
+import { CompletionFigure } from '../../../../components/ui/molecules/CompletionFigure.tsx';
+import { buildOverview, displayName, shouldShowChampionPodium } from '../../../../lib/overview.ts';
 import {
   fetchOverview,
+  fetchCompletion,
   fetchPublicTableLayouts,
   fetchPublicTableProjection,
   mapOverviewResponse,
@@ -19,6 +21,8 @@ import {
   tickerChromeLabels,
   tickerLabels,
   tournamentHeroLabels,
+  completionFigureLabels,
+  rulesetBriefingRows,
 } from '../../../../lib/i18n/public-intl.ts';
 import { buildTickerItems } from '../../../../lib/ticker-items.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
@@ -30,9 +34,6 @@ import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
  * Everything a spectator needs is server-rendered. The SSE stream from 0018 is
  * an improvement on this page, never a requirement for it: a venue on hotel
  * Wi-Fi still gets the score.
- *
- * The data is sample data until 0021 wires the read models; the shape is the
- * one the repositories already return.
  *
  * `[[locale]]` is an optional Astro route segment: English, the
  * primary locale, is generated with `locale: undefined` (no URL segment);
@@ -50,7 +51,19 @@ if (!overviewData) {
   return Astro.rewrite('/404');
 }
 
-const model = buildOverview(mapOverviewResponse(overviewData));
+const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+
+const completionData = await fetchCompletion(organization!, tournament!);
+const completion = completionData ?? {
+  totalMatches: 0,
+  resolvedMatches: 0,
+  liveMatches: 0,
+  scheduledMatches: 0,
+  finalizedMatches: 0,
+  forfeitedMatches: 0,
+  stages: [],
+};
+const completionLabels = completionFigureLabels(intl, completion);
 
 // The default table shown on the tournament landing page — the earliest
 // stage's own group-phase layout, matching what a spectator lands here
@@ -144,13 +157,24 @@ const structuredData = {
     emptyLabel={tickerChrome.empty}
     items={tickerItems}
     label={intl.formatMessage(messages.tickerLabel)}
+    liveBadgeLabels={tickerLabels(intl)}
     pauseLabel={tickerChrome.pause}
     resumeLabel={tickerChrome.resume}
     staleLabel={tickerChrome.stale}
   />
-  <TournamentHero labels={tournamentHeroLabels(intl, model)} model={model} />
+  <TournamentHero
+    disciplineImages={overviewData.disciplineImages}
+    labels={tournamentHeroLabels(intl, model)}
+    model={model}
+  />
+  <CompletionFigure
+    totalMatches={completion.totalMatches}
+    resolvedMatches={completion.resolvedMatches}
+    stages={completion.stages}
+    labels={completionLabels}
+  />
   {
-    model.status === 'finished' && model.winners && model.winners.length > 0 && (
+    shouldShowChampionPodium(model) && model.winners && (
       <ChampionPodium winners={model.winners} intl={intl} prominent={true} />
     )
   }
@@ -179,5 +203,25 @@ const structuredData = {
     organizationAlias={organization}
     tournamentAlias={tournament}
   />
-  <RulesetBriefing heading={intl.formatMessage(messages.rulesetHeading)} model={model} />
+  <RulesetBriefing
+    heading={intl.formatMessage(messages.rulesetHeading)}
+    rows={rulesetBriefingRows(intl, model)}
+  />
 </PublicLayout>
+
+<script>
+  // Page tier (openspec 0305): the only place on this page allowed to own a
+  // RealtimeClient subscription — see check-atomic-composition.mjs's
+  // data-access-at-page-tier rule. Patches ScoreTicker's own rendered DOM;
+  // never a requirement for the page's content, only an enhancement of it.
+  import { mountLiveTicker } from '../../../../lib/ticker-live.ts';
+
+  mountLiveTicker();
+</script>
+
+<style>
+  /* Guarantees clear separation from the hero banner above (openspec 0245). */
+  :global(.cl-completion-figure) {
+    margin-top: var(--cl-space-6);
+  }
+</style>

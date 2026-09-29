@@ -17,36 +17,38 @@ const { src, alt, placeholderAlt, size = 96 } = Astro.props;
 
 <div class="cl-image-frame cl-person-photo-frame" style={`width: ${size}px`}>
   {
-    src ? (
-      <img src={src} alt={alt} />
-    ) : (
-      <svg
-        class="cl-person-photo-placeholder"
-        role="img"
-        viewBox="0 0 96 96"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <title>{placeholderAlt}</title>
-        <rect
-          fill="none"
-          height="92"
-          rx="4"
-          stroke="currentColor"
-          stroke-width="2"
-          width="92"
-          x="2"
-          y="2"
-        />
-        <circle cx="48" cy="38" fill="none" r="16" stroke="currentColor" stroke-width="2" />
-        <path
-          d="M16 86c0-17.673 14.327-30 32-30s32 12.327 32 30"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        />
-      </svg>
+    src && (
+      <img
+        src={src}
+        alt={alt}
+        onerror="this.style.display = 'none'; this.nextElementSibling.style.display = '';"
+      />
     )
   }
+  <svg
+    class="cl-person-photo-placeholder"
+    role="img"
+    viewBox="0 0 96 96"
+    xmlns="http://www.w3.org/2000/svg"
+    style={src ? 'display: none' : undefined}
+  >
+    <title>{placeholderAlt}</title>
+    <rect
+      fill="none"
+      height="92"
+      rx="4"
+      stroke="currentColor"
+      stroke-width="2"
+      width="92"
+      x="2"
+      y="2"></rect>
+    <circle cx="48" cy="38" fill="none" r="16" stroke="currentColor" stroke-width="2"></circle>
+    <path
+      d="M16 86c0-17.673 14.327-30 32-30s32 12.327 32 30"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"></path>
+  </svg>
 </div>
 
 <style>

@@ -215,7 +215,7 @@ describe('zone and group draw routes (integration)', () => {
     });
     expect(publicGroups.statusCode).toBe(200);
     expect(publicGroups.json()).toEqual([
-      expect.objectContaining({ number: 1, name: 'Grupo manual' }),
+      expect.objectContaining({ number: 1, name: 'Grupo manual', entrantIds: [] }),
     ]);
   });
 
@@ -270,6 +270,19 @@ describe('zone and group draw routes (integration)', () => {
       ),
     );
     expect(groupEntrants.flat().sort()).toEqual([...firstZoneEntrants].sort());
+
+    const listedGroupsWithEntrants = await harness.request({
+      method: 'GET',
+      url: `${base}/zones/1/groups`,
+    });
+    expect(listedGroupsWithEntrants.statusCode).toBe(200);
+    const listedGroupsJson = listedGroupsWithEntrants.json();
+    expect(listedGroupsJson).toHaveLength(groups.length);
+    for (const [groupIndex, group] of groups.entries()) {
+      const match = listedGroupsJson.find((g: { groupId: string }) => g.groupId === group.groupId);
+      expect(match).toBeDefined();
+      expect([...match.entrantIds].sort()).toEqual([...(groupEntrants[groupIndex] ?? [])].sort());
+    }
 
     await withTransaction(harness.scratch.db, async (uow) => {
       const competition = new CompetitionRepository(harness.scratch.db);

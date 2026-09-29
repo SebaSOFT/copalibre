@@ -15,6 +15,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
           groups: [],
         },
       ]),
+    listRegistrations: () => Promise.resolve([]),
     fetchPromotionPreview: () =>
       Promise.resolve({
         zoneNumber: 1,

@@ -1,11 +1,16 @@
 import {
   SUPPORTED_LANGUAGES,
+  type ConfigFieldPolicies,
   type LocalizedLabel,
   type SupportedLanguage,
 } from '@copalibre/domain';
 import type { MessageDescriptor } from 'react-intl';
 import { messages } from '../i18n/messages.en.js';
+import { LANGUAGE_NAMES } from '../i18n/LanguageSwitcher.js';
+import type { LocalizedFieldLanguage } from '../components/ui/atoms/localized-field-tabs.js';
 import type { AuthoredModuleRequest } from './api-client.js';
+import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
+import type { DisciplineSummaryData, EventSummaryData } from './discipline-summary.js';
 
 /**
  * The discipline builder wizard (openspec 0164).
@@ -95,6 +100,90 @@ export const TRANSLATABLE_LANGUAGES: readonly SupportedLanguage[] = SUPPORTED_LA
   (language) => language !== 'en',
 );
 
+/** This draft's own value for one language — `en` lives on the draft directly, the rest in `translations`. */
+export function localizedDraftValue(draft: LocalizedDraft, language: SupportedLanguage): string {
+  return language === 'en' ? draft.en : (draft.translations[language] ?? '');
+}
+
+/** A copy of `draft` with `language`'s value replaced, keeping every other language untouched. */
+export function withLocalizedValue(
+  draft: LocalizedDraft,
+  language: SupportedLanguage,
+  value: string,
+): LocalizedDraft {
+  return language === 'en'
+    ? { ...draft, en: value }
+    : { ...draft, translations: { ...draft.translations, [language]: value } };
+}
+
+/** Every supported language, each tagged with its display name and whether this draft already has content for it — feeds `LocalizedInput`/`LocalizedTextarea`'s `languages` prop. */
+export function localizedFieldLanguages(draft: LocalizedDraft): readonly LocalizedFieldLanguage[] {
+  return SUPPORTED_LANGUAGES.map((code) => ({
+    code,
+    label: LANGUAGE_NAMES[code],
+    filled: localizedDraftValue(draft, code).trim() !== '',
+  }));
+}
+
+/**
+ * Per-field validation view for a wizard's `Field`/`LocalizedField` slot —
+ * `invalid`, a formatted `errorText` when invalid, and (for a plain `Field`)
+ * the `aria-describedby` value covering both its decision hint and its own
+ * error paragraph. Shared by `ProfileBuilderWizard.tsx` and
+ * `DescriptorBuilderWizard.tsx` so neither one repeats the same ternaries
+ * inline in JSX (each repetition is a branch the wizard's own CRAP score
+ * pays for).
+ */
+export interface FieldValidationView {
+  readonly invalid: boolean;
+  readonly errorText?: string;
+  readonly describedBy?: string;
+}
+
+type FormatMessage = (descriptor: MessageDescriptor) => string;
+
+/** For a field whose format a regex decides (e.g. an alias). */
+export function patternFieldView(
+  value: string,
+  pattern: RegExp,
+  ids: { readonly hintId: string; readonly errorId: string },
+  formatMessage: FormatMessage,
+  message: MessageDescriptor,
+): FieldValidationView {
+  const invalid = !pattern.test(value);
+  return {
+    invalid,
+    errorText: invalid ? formatMessage(message) : undefined,
+    describedBy: invalid ? `${ids.hintId} ${ids.errorId}` : ids.hintId,
+  };
+}
+
+/** For a field that only needs a non-empty value (e.g. a version string). */
+export function requiredFieldView(
+  value: string,
+  errorId: string,
+  formatMessage: FormatMessage,
+  message: MessageDescriptor,
+): FieldValidationView {
+  const invalid = value.trim() === '';
+  return {
+    invalid,
+    errorText: invalid ? formatMessage(message) : undefined,
+    describedBy: invalid ? errorId : undefined,
+  };
+}
+
+/** For a `LocalizedField`'s required English value — invalid only while the English tab is active and empty, per `stepProblems`. */
+export function localizedNameFieldView(
+  activeLanguage: string,
+  englishValue: string,
+  formatMessage: FormatMessage,
+  message: MessageDescriptor,
+): Pick<FieldValidationView, 'invalid' | 'errorText'> {
+  const invalid = activeLanguage === 'en' && englishValue.trim() === '';
+  return { invalid, errorText: invalid ? formatMessage(message) : undefined };
+}
+
 export interface SegmentTypeDraft {
   readonly name: string;
   readonly label: string;
@@ -181,21 +270,18 @@ export function initialDescriptorWizard(): DescriptorWizardState {
   };
 }
 
-const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export function nextStep(state: DescriptorWizardState): DescriptorStepId {
-  const index = DESCRIPTOR_STEPS.findIndex((step) => step.id === state.step);
-  return DESCRIPTOR_STEPS[Math.min(index + 1, DESCRIPTOR_STEPS.length - 1)]?.id ?? state.step;
+  return nextStepId(DESCRIPTOR_STEPS, state.step);
 }
 
 export function previousStep(state: DescriptorWizardState): DescriptorStepId {
-  const index = DESCRIPTOR_STEPS.findIndex((step) => step.id === state.step);
-  return DESCRIPTOR_STEPS[Math.max(index - 1, 0)]?.id ?? state.step;
+  return previousStepId(DESCRIPTOR_STEPS, state.step);
 }
 
 export function progress(state: DescriptorWizardState): number {
-  const index = DESCRIPTOR_STEPS.findIndex((step) => step.id === state.step);
-  return Math.round(((index + 1) / DESCRIPTOR_STEPS.length) * 100);
+  return stepProgress(DESCRIPTOR_STEPS, state.step);
 }
 
 /** What is missing on this step — every one refused in the surface, before submission. */
@@ -384,7 +470,7 @@ export function buildWinCondition(state: DescriptorWizardState): Record<string, 
  * attached structurally, never asked as an authoring decision (the wizard's
  * documented scope cut: no per-field `fieldPolicies` authoring surface).
  */
-const STANDARD_FIELD_POLICIES: Record<string, unknown> = {
+const STANDARD_FIELD_POLICIES: ConfigFieldPolicies = {
   format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
   'registration.publicOpen': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
   'registration.requiresCheckIn': {
@@ -453,4 +539,37 @@ export function toAuthoredDocument(state: DescriptorWizardState): Record<string,
 
 export function toAuthoredModuleRequest(state: DescriptorWizardState): AuthoredModuleRequest {
   return { kind: 'discipline', document: toAuthoredDocument(state) };
+}
+
+/**
+ * Narrows the wizard's draft state to `DisciplineSummary`'s data contract —
+ * the plain-language review the final step shows before installing
+ * (openspec 0263). Mirrors `toAuthoredDocument`'s `segmentTypes`/
+ * `eventDefinitions` mapping exactly, so the summary always describes the
+ * same document the raw-JSON toggle would show, never a second derivation
+ * that could drift from it.
+ */
+export function toDisciplineSummaryData(state: DescriptorWizardState): DisciplineSummaryData {
+  return {
+    segmentTypes: state.segmentTypes,
+    eventDefinitions: state.eventDefinitions.map((event): EventSummaryData => ({
+      code: event.code,
+      label: event.label,
+      actorRequirement: event.actorRequirement,
+      ...(event.awardsStatisticCode === undefined
+        ? {}
+        : {
+            effects: [
+              {
+                kind: 'statistic',
+                statisticCode: event.awardsStatisticCode,
+                delta: event.awardsDelta,
+                awardTo: 'actor',
+              },
+            ],
+          }),
+    })),
+    defaults: {},
+    fieldPolicies: STANDARD_FIELD_POLICIES,
+  };
 }

@@ -210,7 +210,9 @@ export function StandingsPage({
             }
           : undefined
       }
+      stageNumber={stageNumber}
       status={status}
+      tournamentAlias={tournamentAlias}
       tournamentName={tournamentAlias}
     />
   );

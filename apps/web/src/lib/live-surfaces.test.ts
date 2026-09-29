@@ -440,6 +440,34 @@ describe('live events patch what the server rendered', () => {
 
     expect(next.matches[0]?.sides.map((side) => side.score)).toEqual([2, 1]);
   });
+
+  it('updates live scores and clockSeconds from match.event-recorded without waiting for finalization', () => {
+    const base = sampleDashboard();
+    const matchId = base.matches[0]?.matchId;
+    const homeEntrantId = base.matches[0]?.sides[0]?.entrantId;
+    const awayEntrantId = base.matches[0]?.sides[1]?.entrantId;
+
+    const next = applyEvent(
+      base,
+      event({
+        eventType: 'match.event-recorded',
+        projectionVersion: 10,
+        payload: {
+          matchId,
+          clockSeconds: 1540,
+          scores: {
+            [homeEntrantId as string]: 3,
+            [awayEntrantId as string]: 2,
+          },
+        },
+      }),
+    );
+
+    expect(next.matches[0]?.clockSeconds).toBe(1540);
+    expect(next.matches[0]?.sides.map((side) => side.score)).toEqual([3, 2]);
+    // Still in current state (live/whatever it was), not forced to final
+    expect(next.matches[0]?.state).toBe(base.matches[0]?.state);
+  });
 });
 
 describe('when the stream never connects', () => {

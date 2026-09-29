@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import { beginOidcLogin } from '../session/oidc-login.js';
 import { navigateControl } from '../lib/control-navigation.js';
 import { controlApiErrorFromResponse } from '../lib/api-client.js';
-import { controlTokenStore } from '../session/token-store.js';
+import { controlTokenStore, recordAuthMethod } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
 import { Input } from './ui/atoms/input.js';
 import { Field } from './ui/molecules/field.js';
@@ -41,14 +41,28 @@ const messages = defineMessages({
     id: 'auth.forgotLinkSent',
     defaultMessage: 'If the email exists, a link has been sent.',
   },
+  sessionExpired: {
+    id: 'auth.sessionExpired',
+    defaultMessage: 'Your session expired. Please sign in again.',
+  },
 });
 
 export function LoginRoute(): React.JSX.Element {
   const intl = useIntl();
-  const { pushError } = useToast();
+  const { push, pushError } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // A failed silent renewal (openspec 0302) redirects here with this reason
+  // — surfaced once, on the query string this screen was actually reached
+  // with, never re-triggered by anything the operator does on this screen.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('reason') === 'session_expired') {
+      push({ severity: 'info', message: intl.formatMessage(messages.sessionExpired) });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +81,7 @@ export function LoginRoute(): React.JSX.Element {
 
       const data = await res.json();
       controlTokenStore.write(data.accessToken, Date.now() + data.expiresIn * 1000);
+      recordAuthMethod('native');
 
       const searchParams = new URLSearchParams(window.location.search);
       const returnTo = searchParams.get('returnTo') || '/control/';

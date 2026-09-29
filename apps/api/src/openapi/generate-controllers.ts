@@ -1,4 +1,5 @@
 import { HealthController } from '../health.controller.js';
+import { DiagnosticsController } from '../modules/admin/diagnostics.controller.js';
 import { AdminModulesController } from '../controllers/admin-modules.controller.js';
 import { AdminStatisticsController } from '../controllers/admin-statistics.controller.js';
 import { AuthoredModulesController } from '../controllers/authored-modules.controller.js';
@@ -22,6 +23,7 @@ import { TournamentsController } from '../controllers/tournaments.controller.js'
 import { TournamentProfilesController } from '../controllers/tournament-profiles.controller.js';
 import { ZonesGroupsController } from '../controllers/zones-groups.controller.js';
 import { ClubsController } from '../controllers/clubs.controller.js';
+import { ClubPortalController } from '../controllers/club-portal.controller.js';
 import { ResourcesController } from '../controllers/resources.controller.js';
 import { AuditTrailController } from '../controllers/audit-trail.controller.js';
 import {
@@ -64,6 +66,7 @@ import { PublicObjectsController } from '../controllers/public-objects.controlle
  */
 export const OPENAPI_CONTROLLERS = [
   HealthController,
+  DiagnosticsController,
   OrganizationsController,
   TournamentsController,
   TournamentProfilesController,
@@ -101,6 +104,7 @@ export const OPENAPI_CONTROLLERS = [
   ClubMediaController,
   OrganizationMediaController,
   ClubsController,
+  ClubPortalController,
   ResourcesController,
   AuditTrailController,
   ZonesGroupsController,

@@ -49,7 +49,8 @@ Manual clock adjustment, explicit segment Start/Pause/End, segment selection, an
 SHALL be explicit server-validated commands. Each SHALL require its independently granted match
 capability, record actor, timestamp, prior state, and resulting state, and accept only timer-resolution
 behavior declared for the active discipline. Start, Pause, and End SHALL be authorized by the same
-`match.control-clock` capability as manual elapsed-time adjustment.
+`match.control-clock` capability as manual elapsed-time adjustment. The segment selector SHALL present
+segment types and states in the operator's active language.
 
 #### Scenario: Referee adjusts the active period
 - **WHEN** an official with the clock-control capability changes the active segment or elapsed time
@@ -80,6 +81,11 @@ behavior declared for the active discipline. Start, Pause, and End SHALL be auth
 - **WHEN** an official attempts to resolve a timer without its required capability or through a path
   not declared for that timer
 - **THEN** the system rejects the operation without changing the timer state
+
+#### Scenario: Segment selection options render localized types and states
+- **WHEN** an operator opens the segment selector
+- **THEN** segment options display localized segment types and states (e.g. "Tiempo 1 · completado"
+  instead of "half 1 · completed") according to the active language.
 
 ### Requirement: Active timers are visible authorized objects
 Every active timer SHALL be displayed as a visible object with its type, affected team or participant,
@@ -404,7 +410,8 @@ instead show a clearly labeled placeholder (e.g. "Unnamed entrant") rather than 
 ### Requirement: The event ledger is collapsible without hiding the most recent events
 The console's event ledger SHALL support a collapsed state showing at least the most recently recorded
 2-3 events, and an expanded state showing full match history. Collapsing the ledger SHALL NOT hide an
-event from the operator who just recorded it.
+event from the operator who just recorded it. Category filter controls and ledger headings SHALL be
+localized according to the operator's active locale.
 
 #### Scenario: A collapsed ledger still shows the latest events
 - **WHEN** the event ledger is collapsed
@@ -413,6 +420,12 @@ event from the operator who just recorded it.
 #### Scenario: Expanding the ledger reveals full history
 - **WHEN** an operator expands a collapsed ledger
 - **THEN** the full recorded event history for the match becomes visible
+
+#### Scenario: Category filter buttons display localized labels
+- **WHEN** an operator views the event ledger filter controls in any supported language
+- **THEN** each category button (`all`, `positive`, `negative`, `neutral`) SHALL display a localized
+  label (e.g. in Spanish: "Todos", "Positivos", "Negativos", "Neutros") rather than raw English
+  identifiers.
 
 ### Requirement: Person-payload-field prompts render a localized label
 

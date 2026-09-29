@@ -631,6 +631,21 @@ cue in addition to its colour.
 - **WHEN** an option is selected
 - **THEN** its selected state is conveyed by a mark or shape in addition to colour
 
+### Requirement: Select atom opens its own styled popover, not the native picker
+The `<Select>` atom SHALL render its options in the styled Radix popover (`.cl-select__content`), and no invisible native `<select>` overlay SHALL intercept a pointer click meant for that popover. The native `<select>` SHALL remain in the DOM, sized off-screen and non-interactive to the pointer, so it keeps carrying the control's accessible name and its own keyboard/assistive-technology semantics unchanged.
+
+The popover panel SHALL use the same dark surface, border, and elevation as the Modal/Dialog organism (`.cl-dialog-surface`), with `.cl-chamfer--control` Top-Right and Bottom-Left beveled corners, `padding-block: var(--cl-space-1)`, and a minimum width of 10rem (never narrower than the trigger). Trigger and popover text SHALL render in `var(--cl-font-mono)`. An option MAY carry a short `badge` string, rendered trailing the label in 10px uppercase muted monospace, and shown beside the active value in the trigger. The keyboard-highlighted option SHALL render with a 2px leading `--cl-state-live` border, `--cl-surface-raised` background, and bold `--cl-state-live` text. The trigger's chevron SHALL rotate 180 degrees while the popover is open.
+
+#### Scenario: A mouse click opens the styled popover, not the native picker
+- **WHEN** an operator clicks the visible `<Select>` trigger
+- **THEN** `.cl-select__content` opens over the page
+- **AND** the browser's native OS `<select>` picker does NOT open
+
+#### Scenario: An option shows a badge, and the active one shows it in the trigger
+- **WHEN** a `<Select>` option carries a `badge` (such as a language code in `LanguageSwitcher`)
+- **THEN** the popover row renders the badge trailing its label
+- **AND** the trigger renders the active option's badge beside its value
+
 ### Requirement: A composed container is visually distinct without a call-site decision
 A card or section composed inside another SHALL render at a distinguishable surface level without the
 composing screen applying a variant, modifier, or prop to say so, with its level following what the
@@ -734,3 +749,35 @@ state colour or introduce production chroma configuration.
 #### Scenario: An opaque TV panel is previewed
 - **WHEN** a sport backdrop is selected for an opaque kiosk or panel presentation
 - **THEN** its real opaque surfaces remain intact rather than becoming transparent to expose the image
+
+### Requirement: Owned atom for a multi-language display-string field
+The component library SHALL provide an owned single-line-input and an owned multi-line-textarea
+atom for editing one display string across the platform's supported languages, each showing one
+field at a time for whichever language is currently selected via a shared language-tab control,
+rather than one always-visible field per language.
+
+#### Scenario: A language already holding text is marked distinctly from one that is empty
+- **WHEN** the localized-input atom renders its language tabs
+- **THEN** every tab whose language currently has non-empty text carries a visible fill
+  indicator that no empty-language tab carries
+
+#### Scenario: Each language tab shows an abbreviation, not the full language name
+- **WHEN** the localized-input atom renders its language tabs
+- **THEN** each tab's visible label is a short code (e.g. the language's ISO 639-1 code), not
+  the language's full written name
+
+#### Scenario: Selecting a language tab swaps the field to that language's own text
+- **WHEN** an operator selects a different language tab
+- **THEN** the text field displays that language's own current value, and further edits apply
+  to that language only
+
+#### Scenario: The atom carries no language list or i18n logic of its own
+- **WHEN** either atom is inspected
+- **THEN** it receives its set of languages, which are filled, and which is active entirely
+  through props, with no supported-language list, translation lookup, or i18n string embedded
+  in the atom itself
+
+#### Scenario: Every supported language fits without wrapping the tab strip onto a second row
+- **WHEN** all eight of the platform's supported languages are passed to the language-tab
+  control
+- **THEN** the tabs render on a single row, shrinking to their content rather than wrapping

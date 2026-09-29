@@ -1,9 +1,20 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import type { SupportedLanguage } from '@copalibre/domain';
 import { RealtimeClient } from '@copalibre/realtime';
-import { applyEvent, markConnected, type LiveDashboard } from '../../lib/live-state.js';
-import { presentState, type ResultStateLabels } from '../../lib/result-state.js';
+import {
+  applyEvent,
+  markConnected,
+  type LiveDashboard,
+  type LiveMatch,
+} from '../../lib/live-state.js';
+import {
+  BroadcastAlertBanner,
+  type BroadcastAlertItem,
+} from './ui/organisms/BroadcastAlertBanner.js';
+import { resolveLiveTvMatchEvent } from '../../lib/tv-match-events.js';
+import { presentState } from '../../lib/result-state.js';
+import { formatClock } from '../../lib/matches-view.js';
 import { resolveTvBranding, tvStateColor, type TvBranding } from '../../lib/tv-branding.js';
 import type { StandingsRowView } from '../../lib/overview.js';
 import {
@@ -19,8 +30,16 @@ import { TvTeamSide } from './TvTeamSide.js';
 import { TvPerformersView } from './TvPerformersView.js';
 import { TvFactsView } from './TvFactsView.js';
 import { TvStandingsTable } from './ui/organisms/TvStandingsTable.js';
+import { TvEventTicker } from './ui/organisms/TvEventTicker.js';
 import { TvRailTab } from './ui/atoms/TvRailTab.js';
 import type { TvClubItem, TvDashboardLabels } from './tv-types.js';
+import type { TvMatchEvent } from '../../lib/tv-match-events.js';
+import { mapBracketResponse } from '../../lib/bracket-projection.js';
+import type { BracketZone } from '../../lib/bracket-projection.js';
+import { selectStageLayout } from '../../lib/bracket.js';
+import type { PublicBracketResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import { TvMatchIndicators } from './ui/organisms/TvMatchIndicators.js';
+import { TvBracketView } from './ui/organisms/TvBracketView.js';
 
 export type { TvClubItem, TvDashboardLabels } from './tv-types.js';
 
@@ -42,6 +61,24 @@ export interface TvDashboardProps {
   readonly presentation?: TvPresentation;
   /** Set on the pinned-match route; the full-rotation route leaves this unset. */
   readonly pinnedMatchNumber?: number;
+  /**
+   * The pinned match's own recorded events (goals, cards), set only on the pinned-match route
+   * (openspec 0270) — the full-rotation route leaves this unset, same as `pinnedMatchNumber`.
+   * Empty or unset renders no ticker section at all, rather than an empty-state placeholder.
+   */
+  readonly matchEvents?: readonly TvMatchEvent[];
+  /**
+   * `personId -> display text`, from the pinned match's own rosters
+   * (openspec 0300) — set only alongside `matchEvents`, on the pinned-match
+   * route. Resolves a live alert's actor the same way the initial
+   * `matchEvents` ticker already resolves one; a `Map` would not survive
+   * this island's own JSON prop serialization.
+   */
+  readonly rosterActors?: Readonly<Record<string, string>>;
+  readonly initialBracket?: {
+    readonly stageNumber: number;
+    readonly zones: readonly BracketZone[];
+  };
   readonly branding?: TvBranding;
   readonly tournamentName?: string;
   readonly organizationName?: string;
@@ -71,22 +108,14 @@ export interface TvDashboardProps {
   readonly pollIntervalMs?: number;
 }
 
-const TV_RESULT_STATE_LABELS: ResultStateLabels = {
-  live: 'EN VIVO',
-  upcoming: 'PROGRAMADO',
-  final: 'FINAL',
-  disputed: 'EN DISPUTA',
-  winner: 'GANÓ',
-  loser: 'PERDIÓ',
-  tbd: 'A DEFINIR',
-  cancelled: 'CANCELADO',
-};
-
 export function TvDashboard({
   initial,
   streamPath,
   presentation = 'kiosk',
   pinnedMatchNumber,
+  matchEvents,
+  rosterActors,
+  initialBracket,
   branding,
   tournamentName,
   organizationName,
@@ -102,7 +131,10 @@ export function TvDashboard({
   pollIntervalMs = 15_000,
 }: TvDashboardProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState<LiveDashboard>(initial);
-  const [activeTab, setActiveTab] = useState<'standings' | 'performers' | 'facts'>('standings');
+  const [activeTab, setActiveTab] = useState<'standings' | 'performers' | 'facts' | 'bracket'>(
+    'standings',
+  );
+  const [bracketData, setBracketData] = useState(initialBracket);
   const [currentTime, setCurrentTime] = useState<string>('');
   const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(() => {
     if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
@@ -111,7 +143,18 @@ export function TvDashboard({
     return false;
   });
   const isOverlay = presentation === 'lower';
+  const showBroadcastAlerts = presentation === 'lower' || presentation === 'full';
   const resolvedBranding = resolveTvBranding(branding ?? {});
+  const [alertQueue, setAlertQueue] = useState<readonly BroadcastAlertItem[]>([]);
+  const dashboardRef = useRef(dashboard);
+  useEffect(() => {
+    dashboardRef.current = dashboard;
+  }, [dashboard]);
+  const eventLabelsByCode = useMemo(
+    () =>
+      Object.fromEntries((matchEvents ?? []).map((event) => [event.definitionCode, event.label])),
+    [matchEvents],
+  );
 
   // 1. Digital Clock (JetBrains Mono formatting)
   useEffect(() => {
@@ -140,8 +183,11 @@ export function TvDashboard({
   }, []);
 
   // 3. Polling Refresh Handler (Fallback when tokenless or projection out of sync)
-  const refreshProjection = useCallback(async () => {
-    if (!organizationAlias || !tournamentAlias) return;
+  // Returns the freshly-fetched matches (openspec 0300's alert banner diffs
+  // scores against this return value directly, rather than racing React's
+  // own state-update timing) — every existing caller already discards it.
+  const refreshProjection = useCallback(async (): Promise<readonly LiveMatch[] | undefined> => {
+    if (!organizationAlias || !tournamentAlias) return undefined;
     try {
       const res = await fetch(
         `/api/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/live`,
@@ -153,12 +199,20 @@ export function TvDashboard({
             ...current,
             matches: liveData.matches,
           }));
+          return liveData.matches as readonly LiveMatch[];
         }
       }
     } catch {
       // Degrade silently; do not reload page
     }
+    return undefined;
   }, [organizationAlias, tournamentAlias]);
+
+  useEffect(() => {
+    if (pollIntervalMs <= 0) return;
+    const pollTimer = window.setInterval(() => void refreshProjection(), pollIntervalMs);
+    return () => window.clearInterval(pollTimer);
+  }, [pollIntervalMs, refreshProjection]);
 
   // 4. Realtime SSE Connection with Graceful Degradation
   useEffect(() => {
@@ -167,25 +221,62 @@ export function TvDashboard({
 
     // Case A: No token present in URL. Run polling fallback only, NEVER call RealtimeClient to avoid 401 loop
     if (!token) {
-      if (pollIntervalMs > 0) {
-        const pollTimer = setInterval(() => {
-          void refreshProjection();
-        }, pollIntervalMs);
-        return () => clearInterval(pollTimer);
-      }
       return;
     }
 
     // Case B: Token is present. Layer SSE client on top
+    const streamUrl = new URL(streamPath, window.location.origin);
+    streamUrl.searchParams.set('surface', presentation === 'kiosk' ? 'kiosk' : 'overlay');
     const client = new RealtimeClient({
-      url: streamPath,
+      url: streamUrl.pathname + streamUrl.search,
       accessToken: () => token,
       heartbeatTimeoutMs: 30_000,
     });
 
     void client.connect({
       onOpen: () => setDashboard((current) => markConnected(current)),
-      onEvent: (event) => setDashboard((current) => applyEvent(current, event)),
+      onEvent: (event) => {
+        setDashboard((current) => applyEvent(current, event));
+        const before =
+          pinnedMatchNumber === undefined
+            ? undefined
+            : dashboardRef.current.matches.find((m) => m.matchNumber === pinnedMatchNumber);
+        void refreshProjection().then((updated) => {
+          if (
+            !showBroadcastAlerts ||
+            event.eventType !== 'match.event-recorded' ||
+            !before ||
+            !updated
+          ) {
+            return;
+          }
+          const after = updated.find((m) => m.matchId === before.matchId);
+          if (
+            !after ||
+            typeof event.payload.matchId !== 'string' ||
+            event.payload.matchId !== before.matchId
+          ) {
+            return;
+          }
+          const resolved = resolveLiveTvMatchEvent(
+            { eventId: event.eventId, payload: event.payload },
+            {
+              homeEntrantId: after.sides[0]?.entrantId,
+              awayEntrantId: after.sides[1]?.entrantId,
+              actors: rosterActors ?? {},
+              labelsByCode: eventLabelsByCode,
+            },
+          );
+          if (!resolved) return;
+          const scoring = after.sides.some(
+            (side, index) => side.score !== before.sides[index]?.score,
+          );
+          setAlertQueue((current) => [
+            ...current,
+            { event: resolved, kind: scoring ? 'scoring' : 'notable' },
+          ]);
+        });
+      },
       // DO NOT RELOAD PAGE ON PROJECTION REQUIRED. Refresh in-memory projection instead
       onProjectionRequired: () => {
         void refreshProjection();
@@ -197,7 +288,8 @@ export function TvDashboard({
     });
 
     return () => client.close();
-  }, [streamPath, refreshProjection, pollIntervalMs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reconnecting SSE on every render of a prop that changes is worse than a stale closure here: pinnedMatchNumber/rosterActors/showBroadcastAlerts are server-supplied once at mount (same treatment matchEvents itself already gets), and eventLabelsByCode only grows from the same static matchEvents.
+  }, [streamPath, refreshProjection, presentation]);
 
   // 5. Automatic Carousel Rotation (respects prefers-reduced-motion)
   useEffect(() => {
@@ -206,11 +298,12 @@ export function TvDashboard({
       setActiveTab((current) => {
         if (current === 'standings') return 'performers';
         if (current === 'performers') return 'facts';
+        if (current === 'facts' && bracketData) return 'bracket';
         return 'standings';
       });
     }, 10_000);
     return () => clearInterval(interval);
-  }, [prefersReducedMotion]);
+  }, [prefersReducedMotion, bracketData]);
 
   // 6. Data Computations
   const matches = dashboard.matches;
@@ -231,14 +324,43 @@ export function TvDashboard({
   const facts: readonly TournamentFact[] = deriveTournamentFacts(labels, matches);
 
   // Status Badge Determination
-  const statusBadge = isLive
-    ? { label: 'EN VIVO', type: 'live' }
-    : allFinal
-      ? { label: 'FINAL', type: 'final' }
-      : { label: 'PROGRAMADO', type: 'upcoming' };
+  const statusBadgeState = isLive ? 'live' : allFinal ? 'final' : 'upcoming';
+  const statusBadge = {
+    label: dashboardLabels.resultState[statusBadgeState],
+    type: statusBadgeState,
+  };
 
   // Spotlight Match (pinned match or active live match or first match)
   const spotlightMatch = pinnedMatch ?? liveMatches[0] ?? matches[0];
+  const bracketStage = spotlightMatch?.stageNumber;
+  useEffect(() => {
+    if (presentation === 'lower' || !organizationAlias || !tournamentAlias || !bracketStage) return;
+    const refreshBracket = async () => {
+      try {
+        const response = await fetch(
+          `/api/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${bracketStage}/bracket`,
+        );
+        if (!response.ok) return;
+        const mapped = mapBracketResponse((await response.json()) as PublicBracketResponse);
+        if (selectStageLayout(mapped.format) !== 'bracket') {
+          setBracketData(undefined);
+          return;
+        }
+        const zones = mapped.zones.filter((zone) => zone.matches.length > 0);
+        setBracketData(zones.length > 0 ? { stageNumber: bracketStage, zones } : undefined);
+      } catch {
+        // The other TV sections retain their last-known projection.
+      }
+    };
+    void refreshBracket();
+    const timer = window.setInterval(() => void refreshBracket(), Math.max(pollIntervalMs, 15_000));
+    return () => window.clearInterval(timer);
+  }, [organizationAlias, tournamentAlias, bracketStage, presentation, pollIntervalMs]);
+  const visibleBracket = bracketData?.stageNumber === bracketStage ? bracketData : undefined;
+  const displayedClock =
+    spotlightMatch?.clockSeconds !== undefined
+      ? formatClock(spotlightMatch.clockSeconds)
+      : currentTime;
 
   /*
    * A lower third is a strip, not a scene: it names the two sides, their score
@@ -247,9 +369,23 @@ export function TvDashboard({
    * rail, the standings, the champion recap — belongs to a full-frame
    * presentation, not over someone's camera.
    */
+  const onAlertConsumed = (eventId: string): void => {
+    setAlertQueue((current) => current.filter((item) => item.event.eventId !== eventId));
+  };
+  const broadcastAlertBanner = showBroadcastAlerts ? (
+    <BroadcastAlertBanner
+      awayLabel={labels.awaySide}
+      homeLabel={labels.homeSide}
+      onConsumed={onAlertConsumed}
+      prefersReducedMotion={prefersReducedMotion}
+      queue={alertQueue}
+    />
+  ) : null;
+
   if (presentation === 'lower') {
     return (
       <div className="tv-root-container tv-lower-third" data-testid="tv-lower-third">
+        {broadcastAlertBanner}
         {spotlightMatch ? (
           <div className="tv-lower-third__bug cl-chamfer">
             <span className={`tv-lower-third__state tv-lower-third__state--${statusBadge.type}`}>
@@ -268,13 +404,18 @@ export function TvDashboard({
                 spotlightMatch.sides[1]?.name ??
                 'Visitante'}
             </span>
-            {currentTime && (
+            {displayedClock && (
               <span
                 className="tv-lower-third__clock"
-                data-time={currentTime}
-                aria-label={currentTime}
+                data-time={displayedClock}
+                aria-label={displayedClock}
               />
             )}
+            <TvMatchIndicators
+              match={spotlightMatch}
+              possessionLabel={dashboardLabels.possession}
+              penaltyLabel={dashboardLabels.penalty}
+            />
           </div>
         ) : null}
       </div>
@@ -283,6 +424,7 @@ export function TvDashboard({
 
   return (
     <div className="tv-root-container">
+      {broadcastAlertBanner}
       {/* 1. Persistent Score-Bug / Status Bar */}
       {!isOverlay && (
         <header className="tv-scorebug cl-chamfer">
@@ -310,17 +452,22 @@ export function TvDashboard({
           </div>
 
           <div className="tv-scorebug__right">
+            <TvMatchIndicators
+              match={spotlightMatch}
+              possessionLabel={dashboardLabels.possession}
+              penaltyLabel={dashboardLabels.penalty}
+            />
             <div
               className={`tv-scorebug__badge tv-scorebug__badge--${statusBadge.type} cl-chamfer`}
             >
               <span className="tv-scorebug__dot" />
               <span>{statusBadge.label}</span>
             </div>
-            {currentTime && (
+            {displayedClock && (
               <span
                 className="tv-scorebug__clock"
-                data-time={currentTime}
-                aria-label={currentTime}
+                data-time={displayedClock}
+                aria-label={displayedClock}
               />
             )}
           </div>
@@ -367,8 +514,9 @@ export function TvDashboard({
                 Etapa {spotlightMatch.stageNumber} · Partido {spotlightMatch.matchNumber}
               </div>
               <div className="tv-match-spotlight__vs-grid">
-                {/* Home Side */}
+                {/* Home Side — the spotlight's visual anchor (openspec 0247) */}
                 <TvTeamSide
+                  anchor
                   clubs={clubs}
                   name={spotlightMatch.sides[0]?.name ?? 'Local'}
                   abbreviation={spotlightMatch.sides[0]?.abbreviation}
@@ -391,7 +539,7 @@ export function TvDashboard({
                       textTransform: 'uppercase',
                     }}
                   >
-                    {presentState(spotlightMatch.state, TV_RESULT_STATE_LABELS).label}
+                    {presentState(spotlightMatch.state, dashboardLabels.resultState).label}
                   </div>
                 </div>
 
@@ -402,6 +550,16 @@ export function TvDashboard({
                   abbreviation={spotlightMatch.sides[1]?.abbreviation}
                 />
               </div>
+
+              {matchEvents && matchEvents.length > 0 ? (
+                <TvEventTicker
+                  ariaLabel={dashboardLabels.matchEventsLabel}
+                  awayLabel={labels.awaySide}
+                  events={matchEvents}
+                  homeLabel={labels.homeSide}
+                  language={language}
+                />
+              ) : null}
             </div>
           ) : (
             <div className="tv-champion">
@@ -434,6 +592,13 @@ export function TvDashboard({
                 label={dashboardLabels.statisticsTab}
                 onClick={() => setActiveTab('facts')}
               />
+              {visibleBracket && (
+                <TvRailTab
+                  active={activeTab === 'bracket'}
+                  label={dashboardLabels.bracketTab}
+                  onClick={() => setActiveTab('bracket')}
+                />
+              )}
             </nav>
 
             {/* Tab Content */}
@@ -455,6 +620,9 @@ export function TvDashboard({
               )}
 
               {activeTab === 'facts' && <TvFactsView facts={facts} />}
+              {activeTab === 'bracket' && visibleBracket && (
+                <TvBracketView labels={dashboardLabels} zones={visibleBracket.zones} />
+              )}
             </div>
           </aside>
         )}

@@ -1,6 +1,8 @@
 ---
 title: Command reference
 description: Every copalibre CLI command, its usage, and its flags.
+capabilities:
+  - platform/cli-tournament-operations
 roles:
   - super-admin
   - admin
@@ -43,12 +45,20 @@ including bootstrapping the first administrator as a one-shot Helm Job:
 
 ## doctor
 
-`copalibre doctor [--check-proxy] [--proxy-url <url>]`
+`copalibre doctor [--check-proxy] [--proxy-url <url>] [--fix | --interactive]`
 
-Validates configuration and dependencies before starting.
+Validates configuration and dependencies before starting. When `DATABASE_URL` is
+configured, it also reports tournaments holding a non-canonical status (for
+example, one left over from an old import script) as an informational finding
+— never as a reason to fail the check or block startup.
 
 - `--check-proxy`: also verifies the reverse-proxy configuration
 - `--proxy-url <url>`: public URL to test when `--check-proxy` is used
+- `--fix`, `--interactive`: after reporting, walk any non-canonical tournament
+  status through an interactive prompt (choose the correct status, confirm,
+  apply). Requires a TTY; run it from an interactive shell, not a script or CI
+  job. Repairs are transactional and recorded in the audit trail — `copalibre
+doctor` never rewrites data without explicit confirmation.
 
 ## dev
 
@@ -247,6 +257,71 @@ request.
 
 - `--upstream <owner/repo>`: target repository (default: `SebaSOFT/copalibre-modules`)
 - `--base <branch>`: the pull request's base branch (default: `main`)
+
+## organization
+
+`copalibre organization get <alias>`
+
+Reads one organization by alias over the API and prints its identity. Requires a stored credential
+from [`login`](#login) — unlike `module`/`statistics-rebuild`/`backup`, this command never falls
+back to a direct database connection.
+
+### organization get
+
+`copalibre organization get <alias>`
+
+Prints the organization's `organizationId`, `alias`, `name`, `primaryLanguage`, and `timezone`.
+
+## tournament
+
+`copalibre tournament <list|get|create|publish>`
+
+Reads, creates, and publishes tournaments over the API — the CLI equivalent of the MCP server's
+tournament-operational tools. Requires a stored credential from [`login`](#login); never falls back
+to a direct database connection.
+
+### tournament list
+
+`copalibre tournament list --organization-alias <alias>`
+
+Lists the organization's active (non-archived) tournaments.
+
+- `--organization-alias <alias>`: organization to list within
+
+### tournament get
+
+`copalibre tournament get --organization-alias <alias> --tournament-alias <alias>`
+
+Reads one tournament by alias.
+
+- `--organization-alias <alias>`: organization the tournament belongs to
+- `--tournament-alias <alias>`: tournament to read
+
+### tournament create
+
+`copalibre tournament create --organization-alias <alias> --alias <alias> --name <name> --descriptor-id <id> --descriptor-version <version> --format <format> [--public-registration] [--requires-check-in]`
+
+Creates a tournament in draft status, pinned to a specific discipline and version, with a single
+stage in the given format. The tournament stays a draft, invisible to public surfaces, until
+[`tournament publish`](#tournament-publish) is run.
+
+- `--organization-alias <alias>`: organization to create the tournament in
+- `--alias <alias>`: alias, unique within the organization
+- `--name <name>`: display name
+- `--descriptor-id <id>`: DisciplineDescriptor identifier (UUID)
+- `--descriptor-version <version>`: pinned descriptor semver
+- `--format <format>`: stage format for the tournament's single stage
+- `--public-registration`: opens anonymous/public registration intake (default: false)
+- `--requires-check-in`: requires accepted entrants to check in (default: false)
+
+### tournament publish
+
+`copalibre tournament publish --organization-alias <alias> --tournament-alias <alias>`
+
+Publishes a draft tournament, making it visible and operable.
+
+- `--organization-alias <alias>`: organization the tournament belongs to
+- `--tournament-alias <alias>`: tournament to publish
 
 ## mcp
 

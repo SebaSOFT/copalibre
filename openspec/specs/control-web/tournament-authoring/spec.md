@@ -100,7 +100,11 @@ not have.
 When the selected discipline and format combination has one or more compatible `TournamentProfile`
 entries in the installed catalogue, the wizard SHALL let the organizer select one explicitly (or
 proceed without one), and a selected profile's declared stages SHALL be pre-created on the resulting
-tournament.
+tournament. Selecting a profile SHALL show the operator a read-only preview of that profile's
+declared stages, each stage's format, and each stage's declared default allocation, before the
+tournament is created. The preview SHALL NOT be editable from the wizard; an operator wanting a
+different stage list or allocation for this one tournament proceeds without selecting a profile, or
+edits the tournament's stages after creation through the existing stage-management surface.
 
 #### Scenario: A multi-stage profile is offered and instantiated
 - **WHEN** an organizer selects a discipline and format for which an installed `TournamentProfile`
@@ -112,6 +116,17 @@ tournament.
 - **WHEN** no installed `TournamentProfile` is compatible with the selected discipline and format
 - **THEN** the wizard proceeds without offering a profile selection, producing a single-stage tournament
   as it does today
+
+#### Scenario: Selecting a profile previews its stages and seeding read-only
+- **WHEN** an organizer selects an installed profile declaring three stages, each with its own
+  allocation default
+- **THEN** the wizard shows all three stages, their formats, and their declared allocation defaults,
+  with no control to edit any of them from this screen
+
+#### Scenario: An operator who wants a different structure proceeds without a profile
+- **WHEN** an organizer wants a stage structure that differs from every installed profile
+- **THEN** the organizer proceeds without selecting a profile and authors the stage list directly,
+  rather than being offered an in-place edit of a profile's preview
 
 ### Requirement: The wizard offers a per-event rule-authoring step
 The tournament setup wizard SHALL offer a step where an organizer may define zero or more custom
@@ -365,3 +380,187 @@ alongside the existing public-registration and check-in toggles. Setting it SHAL
 #### Scenario: A non-admin cannot set the Featured toggle
 - **WHEN** a user without the organization-admin role attempts to change the Featured toggle
 - **THEN** the request is rejected and the tournament's `featured` value is unchanged
+
+### Requirement: Wizard authors every stage of a tournament in one pass
+The tournament setup wizard SHALL let an operator declare the tournament's full stage list —
+add, remove, or append a stage — rather than a single implicit stage, before creating the
+tournament. Each stage SHALL carry its own format, chosen from the formats the selected
+discipline supports. The list SHALL have no maximum stage count and a minimum of one stage.
+Stages SHALL NOT be reorderable in this pass; an operator wanting a different order removes and
+re-adds stages. Each stage's position SHALL be renumbered to a contiguous 1-based sequence after
+any add or remove, with no gap and no duplicate.
+
+#### Scenario: An operator declares a three-stage tournament
+- **WHEN** an operator adds a round-robin stage, then a single-elimination stage, then a second
+  single-elimination stage, and completes the wizard
+- **THEN** the created tournament has all three stages pre-created in that order, each with its
+  declared format
+
+#### Scenario: Removing a middle stage renumbers the remainder
+- **WHEN** an operator has declared three stages and removes the second
+- **THEN** the remaining two stages are numbered 1 and 2, with no gap
+
+#### Scenario: A single-stage tournament is unaffected
+- **WHEN** an operator declares exactly one stage and completes the wizard
+- **THEN** the created tournament has one stage, identical to what a tournament created before
+  this capability existed would have
+
+### Requirement: Each authored stage declares its own seeding/allocation mode
+Each stage declared in the wizard SHALL let the operator choose how that stage's entrants and
+seed order will be filled: automatic (the prior stage's qualification cut), manual (the operator
+places entrants), or weighted (a numeric entrant attribute, with a direction stating whether
+higher or lower values seed first). Weighted mode's attribute SHALL be chosen from a list of the
+tournament's known entrant-attribute keys, not free text. A stage's allocation mode SHALL NOT be
+validated against its own or a prior stage's format in the wizard; an incompatible combination is
+refused at submission by the same validation the domain already applies to allocation.
+
+#### Scenario: An operator declares automatic allocation for a knockout stage following a group stage
+- **WHEN** an operator declares a knockout stage's allocation as automatic
+- **THEN** the created stage's configuration records automatic allocation, and once the prior
+  stage completes its entrants and seed order come from that stage's qualification cut
+
+#### Scenario: An operator declares weighted allocation by a known attribute
+- **WHEN** an operator declares a stage's allocation as weighted by an attribute already recorded
+  on this tournament's entrants, with direction "higher-first"
+- **THEN** the created stage's configuration records weighted allocation on that attribute and
+  direction
+
+#### Scenario: A stage left undeclared defaults to manual
+- **WHEN** an operator completes the wizard without choosing an allocation mode for a stage
+- **THEN** the stage's configuration declares no allocation, which the seeding surface treats as
+  it does today — the operator supplies the order
+
+#### Scenario: An incompatible allocation is refused at submission, not mid-authoring
+- **WHEN** an operator submits the wizard with an allocation the domain refuses for that stage's
+  configuration
+- **THEN** the refusal is reported at submission with the domain's own reason, and the wizard does
+  not pre-filter allocation choices while the operator is still authoring
+
+### Requirement: A ruleset override field renders a typed control, never raw JSON
+The ruleset-override editor SHALL render one typed control per configured field, chosen from the
+field's `FieldPolicy` and the runtime type of its value in the discipline's defaults, instead of a
+text input the operator fills with hand-typed JSON. A `boolean`-valued field SHALL render a checkbox;
+a `number`-valued field SHALL render a number input; a `string`-valued field SHALL render a text
+input, except `format`, which SHALL render a selection constrained to the installed discipline's
+declared `availableFormats`. A field whose override permission is `inherited` or `forbidden` SHALL
+NOT be offered a control at all.
+
+#### Scenario: A boolean field renders a checkbox
+- **WHEN** the editor renders a configured field whose current value is a boolean
+- **THEN** it shows a checkbox, not a text field expecting `true`/`false` as typed JSON
+
+#### Scenario: The format field only offers the discipline's declared formats
+- **WHEN** the editor renders the `format` field
+- **THEN** it offers a selection whose options are exactly the installed discipline's
+  `availableFormats`, and no other value can be entered
+
+#### Scenario: A forbidden or inherited field offers no control
+- **WHEN** the editor encounters a field whose override permission is `forbidden` or `inherited`
+- **THEN** it renders no editable control for that field
+
+### Requirement: A merged field's control edits the delta it actually submits, never the resolved value
+For a field whose override permission is `merged` with strategy `union-list` or `append-list`, the
+editor SHALL present a control for the items to add on top of the field's inherited value, showing
+the inherited value as non-editable context, and SHALL submit only the added items as the field's
+override — never the full resolved list. For a field whose override permission is `merged` with
+strategy `shallow-object`, the editor SHALL present one independent, optional control per subkey the
+inherited value declares, and SHALL submit only the subkeys an operator actually changed as the
+field's override — never the whole object.
+
+#### Scenario: A union-list field's control only submits the added items
+- **WHEN** an operator adds one item to a `union-list` field's control and saves
+- **THEN** the request's override for that field contains only the added item, not the field's full
+  inherited list plus the addition
+
+#### Scenario: A shallow-object field's control only submits the changed subkeys
+- **WHEN** an operator changes one subkey of a `shallow-object` field's control and saves, leaving
+  every other subkey's control untouched
+- **THEN** the request's override for that field contains only the changed subkey
+
+### Requirement: A field's shown current value reflects its real merge outcome
+Wherever a ruleset override field's current value is displayed — including the plain-language
+summary's rules section — it SHALL reflect the field's actual effective value after applying its
+declared merge strategy to the stored override and the discipline's default, never the raw stored
+override value alone for a `merged` field.
+
+#### Scenario: A union-list field's displayed value includes the inherited items
+- **WHEN** a `union-list` field's stored override adds one item to the discipline's inherited list
+- **THEN** the value shown for that field includes both the inherited items and the added item, not
+  only the added item
+
+#### Scenario: A shallow-object field's displayed value includes untouched subkeys
+- **WHEN** a `shallow-object` field's stored override changes only one subkey
+- **THEN** the value shown for that field includes every subkey's current value, not only the changed
+  one
+
+### Requirement: A field with no declared policy keeps a raw-text fallback
+A stored override whose dot-path names no field the installed discipline's `fieldPolicies` declares
+(for example, data from a prior descriptor version) SHALL remain editable as raw JSON text, marked as
+unrecognized, rather than being hidden or crashing the editor.
+
+#### Scenario: An undeclared field stays editable as text
+- **WHEN** a tournament's stored overrides include a dot-path absent from the installed discipline's
+  current `fieldPolicies`
+- **THEN** the editor still shows it, as a raw-text control, and marks it as not governed by a known
+  field policy
+
+### Requirement: The wizard offers a typed control for every discipline-declared ruleset field
+For every field the selected discipline declares an override policy for, the tournament-creation
+wizard SHALL offer a typed control chosen the same way the post-creation ruleset editor chooses one
+(by the field's override permission, merge strategy, and the runtime type of its default value) —
+except a field the wizard already captures through a dedicated control (`format` or a
+`registration.*` field), which SHALL NOT also be offered through this generic control, so no field
+is ever editable through two different wizard controls at once. A field whose override permission
+is `inherited` or `forbidden` SHALL NOT be offered a control.
+
+#### Scenario: A discipline-specific field is configurable during creation
+- **WHEN** an organizer selects a discipline that declares an override policy for a field beyond
+  `format`/`registration.*` (for example a scoring or venue-policy field)
+- **THEN** the wizard offers a typed control for that field before the tournament is created, and a
+  value set there reaches the created tournament's ruleset
+
+#### Scenario: A field with a dedicated wizard control is not offered twice
+- **WHEN** the wizard renders its generic per-field controls for the selected discipline
+- **THEN** `format` and every `registration.*` field already captured by the wizard's own dedicated
+  controls are excluded from the generic list
+
+#### Scenario: A forbidden or inherited field offers no control during creation
+- **WHEN** the wizard encounters a field whose override permission is `forbidden` or `inherited`
+- **THEN** it renders no editable control for that field, matching the post-creation editor's
+  behavior for the same policy
+
+### Requirement: A rejected creation-time rule override fails tournament creation atomically
+If a rule override submitted at tournament-creation time is rejected by the same validation the
+post-creation ruleset editor uses (an undeclared field, a `forbidden`/`inherited` permission, or a
+shape the field's merge strategy cannot apply), tournament creation SHALL fail entirely — the
+tournament, its stages, and its ruleset SHALL NOT be persisted in a partially-configured state.
+
+#### Scenario: An invalid rule override blocks the entire creation
+- **WHEN** an organizer submits a tournament-creation request whose rule overrides include a field
+  rejected by its declared policy
+- **THEN** the request fails and no tournament, stage, or ruleset record is created
+
+### Requirement: A configured custom rule is listed in plain language, not raw registry identifiers
+The wizard's list of already-configured custom rules SHALL render each rule's condition and action
+using their vocabulary entries' phrase templates, rendered against the values and options the
+operator chose for that rule, when both the condition's (or no condition's, for "always") and the
+action's phrase templates are available. A rule whose condition or action has no phrase template
+SHALL fall back to today's `type — description` rendering for that side of the rule, never a blank
+or broken row.
+
+#### Scenario: A configured rule reads as a sentence
+- **WHEN** an operator has configured a custom rule whose selected condition and action both declare
+  phrase templates
+- **THEN** the rule's row in the configured-rules list shows those templates rendered against the
+  values and options the operator chose, not the condition/action type identifiers
+
+#### Scenario: A rule with no declared condition still reads clearly
+- **WHEN** an operator has configured a custom rule with no condition selected ("always")
+- **THEN** the rule's row shows the existing "always" wording paired with the action's rendered
+  phrase template
+
+#### Scenario: A rule referencing an entry with no phrase template still renders
+- **WHEN** an operator has configured a custom rule whose condition or action has no phrase template
+  declared
+- **THEN** that side of the rule's row falls back to its type identifier and description, and the
+  row as a whole still renders

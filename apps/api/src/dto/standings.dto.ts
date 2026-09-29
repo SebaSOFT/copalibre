@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsArray, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { PublicSeriesStateResponse } from './public-tournament.dto.js';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 
@@ -152,6 +153,28 @@ export class BracketMatchResponse {
 
   @ApiProperty({ type: BracketSlotResponse, isArray: true })
   slots!: BracketSlotResponse[];
+
+  @ApiPropertyOptional({
+    type: () => PublicSeriesStateResponse,
+    description: 'Present only on a cross settled by a series',
+  })
+  series?: PublicSeriesStateResponse;
+}
+
+/**
+ * One zone's own independent bracket in the seeding canvas — or the stage's only bracket, for an
+ * un-zoned stage, which always comes back as exactly one zone entry with no
+ * `zoneId`/`zoneName` (openspec 0246, mirroring `PublicBracketZoneResponse`).
+ */
+export class SeedingZoneResponse {
+  @ApiPropertyOptional({ format: 'uuid', description: 'Absent for an un-zoned stage' })
+  zoneId?: string;
+
+  @ApiPropertyOptional({ description: 'Absent for an un-zoned stage' })
+  zoneName?: string;
+
+  @ApiProperty({ type: BracketMatchResponse, isArray: true })
+  matches!: BracketMatchResponse[];
 }
 
 export class SeedingResponse {
@@ -161,14 +184,30 @@ export class SeedingResponse {
   @ApiProperty({ enum: ['single-elimination', 'double-elimination', 'round-robin', 'league'] })
   format!: string;
 
-  @ApiProperty({ type: SeedAssignmentResponse, isArray: true })
+  @ApiProperty({
+    type: SeedAssignmentResponse,
+    isArray: true,
+    description: 'The stage’s one flat seed order, across every zone — unaffected by `zones` below',
+  })
   seeds!: SeedAssignmentResponse[];
 
-  @ApiProperty({ type: BracketMatchResponse, isArray: true })
-  matches!: BracketMatchResponse[];
+  @ApiProperty({
+    type: SeedingZoneResponse,
+    isArray: true,
+    description: 'Display only: one entry per zone the stage’s fixtures already declare',
+  })
+  zones!: SeedingZoneResponse[];
 
   @ApiProperty({ description: 'True once any match in this stage has a recorded result' })
   hasRecordedResults!: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Resolved human-readable entrant display names keyed by entrant ID',
+    type: 'object',
+    additionalProperties: { type: 'string' },
+    example: { '01890000-0000-7000-8000-000000000001': 'Club Atlético Huracán' },
+  })
+  names?: Record<string, string>;
 }
 
 export class PublishSeedingRequest {

@@ -22,6 +22,8 @@ export interface StatTileProps {
   readonly value?: ReactNode;
   /** Names the absence. Required in practice wherever a value can be missing. */
   readonly unavailableLabel?: string;
+  /** Supporting copy for a measured value. */
+  readonly description?: ReactNode;
   /**
    * Marks a figure as a demonstration. The workbench sets this; a production
    * surface never does, which is what keeps fixture numbers from being read as
@@ -35,6 +37,7 @@ export function StatTile({
   label,
   value,
   unavailableLabel,
+  description,
   demonstrationLabel,
   className = '',
 }: StatTileProps): React.JSX.Element {
@@ -47,6 +50,7 @@ export function StatTile({
         <div className="cl-metric-strip__unavailable">{unavailableLabel}</div>
       )}
       <div className="cl-metric-strip__label">{label}</div>
+      {description !== undefined && <p className="cl-card__description">{description}</p>}
       {demonstrationLabel !== undefined && (
         <span className="cl-metric-strip__demonstration">{demonstrationLabel}</span>
       )}

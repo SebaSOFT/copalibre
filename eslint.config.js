@@ -87,6 +87,31 @@ export default tseslint.config(
     },
   },
 
+  // packages/rules must stay strictly browser-isomorphic (openspec 0279):
+  // ControlApp.tsx and other client:* islands import @copalibre/rules
+  // directly, so a Node-only built-in import doesn't fail the build — it
+  // fatally crashes hydration in the browser with "has been externalized
+  // for browser compatibility" instead. Test-only files never ship to a
+  // browser bundle, so they're exempt.
+  {
+    files: ['packages/rules/src/**/*.ts'],
+    ignores: ['packages/rules/src/**/*.test.ts', 'packages/rules/src/test-support/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['node:*'],
+              message:
+                '@copalibre/rules must stay browser-isomorphic (openspec 0279) — a Node built-in here crashes every client:* island that imports this package at hydration, instead of failing the build.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Config files run in Node (CommonJS) without type info.
   {
     files: ['**/*.config.js', '**/*.config.mjs', '**/*.cjs', 'jest.*.js', '**/scripts/**/*.mjs'],

@@ -16,6 +16,11 @@ const disciplineFixture = [
   },
 ];
 
+/** The same discipline, also declaring single-elimination — for multi-stage tests. */
+const disciplineWithBothFormatsFixture = [
+  { ...disciplineFixture[0], supportedFormats: ['round-robin', 'single-elimination'] },
+];
+
 /** Declares a field policy (openspec 0161) so the wizard can render the reversibility sentence. */
 const disciplineWithFieldPoliciesFixture = [
   {
@@ -33,6 +38,23 @@ const disciplineWithFieldPoliciesFixture = [
   },
 ];
 
+/** Declares a non-reserved field with a default (openspec 0265), for the ruleset step. */
+const disciplineWithRulesetFieldFixture = [
+  {
+    descriptorId: 'football.default',
+    version: '1.0.0',
+    name: 'Futbol',
+    supportedFormats: ['round-robin'],
+    defaults: { scoring: { pointsPerWin: 3 } },
+    fieldPolicies: {
+      'scoring.pointsPerWin': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+    },
+  },
+];
+
 const hookVocabularyFixture = {
   hooks: ['event.recorded'],
   entries: [
@@ -40,6 +62,9 @@ const hookVocabularyFixture = {
       kind: 'action',
       type: 'notify',
       description: 'Declare notification',
+      // Renders the configured-rules list as a sentence instead of a raw
+      // type identifier (openspec 0266).
+      phraseTemplate: 'Notify: {{title}}',
       authoring: {
         parameters: [
           {
@@ -86,6 +111,7 @@ async function mockControlApi(
     readonly updateRefusal?: string;
     readonly seedTournament?: boolean;
     readonly disciplines?: typeof disciplineFixture;
+    readonly profiles?: readonly unknown[];
   } = {},
 ): Promise<void> {
   await page.addInitScript(
@@ -97,6 +123,7 @@ async function mockControlApi(
       createRefusal,
       updateRefusal,
       seedTournament,
+      profiles,
     }) => {
       const captured: CapturedRequest[] = [];
       Object.assign(window, { __controlRequests: captured });
@@ -131,6 +158,10 @@ async function mockControlApi(
 
         if (url === '/organizations/liga-mendocina/tournaments/custom-script-vocabulary') {
           return Response.json(hookVocabulary);
+        }
+
+        if (url.startsWith('/tournament-profiles/compatible')) {
+          return Response.json(profiles ?? []);
         }
 
         if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
@@ -216,6 +247,32 @@ async function mockControlApi(
           });
         }
 
+        // Proves a stage the wizard declared is a real stage, reachable through
+        // the existing per-stage stage-management surface — not just a claim in
+        // the POST body.
+        const stagesUrlMatch =
+          /\/organizations\/liga-mendocina\/tournaments\/([^/]+)\/stages\/(\d+)\/(seeding|configuration|promotion-plans)$/.exec(
+            url,
+          );
+        if (stagesUrlMatch && method === 'GET') {
+          if (stagesUrlMatch[3] === 'seeding') {
+            return Response.json({
+              stageId: `stage-${stagesUrlMatch[2]}`,
+              format: 'round-robin',
+              seeds: [
+                { seed: 1, entrantId: 'Deportivo Norte' },
+                { seed: 2, entrantId: 'Atlético Sur' },
+              ],
+              zones: [],
+              hasRecordedResults: false,
+            });
+          }
+          if (stagesUrlMatch[3] === 'configuration') {
+            return Response.json({ overrides: {} });
+          }
+          return Response.json([]);
+        }
+
         return new Response('Not found', { status: 404 });
       };
     },
@@ -227,6 +284,7 @@ async function mockControlApi(
       createRefusal: options.createRefusal,
       updateRefusal: options.updateRefusal,
       seedTournament: options.seedTournament,
+      profiles: options.profiles ?? [],
     },
   );
 }
@@ -274,15 +332,32 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByLabel('Agregar regla para cada evento registrado').check();
   await page.getByLabel('Acción').selectOption('notify');
   await page.getByLabel('Notification title *').fill('Actualización del partido');
   await page.getByLabel('Notification message *').fill('{{ event.definitionCode }}');
+  await page.getByRole('button', { name: 'Añadir otra regla' }).click();
+
+  // Renders the phrase template (openspec 0266) against the operator's own
+  // values, not the raw condition/action type identifiers.
+  await expect(page.getByText('always → Notify: Actualización del partido')).toBeVisible();
+
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByLabel('Región').fill('Mendoza');
   await page.getByLabel('Capacidad').fill('16');
   await page.getByLabel('Registro público abierto').check();
   await page.getByLabel('Requiere check-in').check();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // The final step summarizes every choice made so far, in plain language,
+  // before the operator confirms creation (openspec 0267).
+  await expect(page.getByText('1: round-robin')).toBeVisible();
+  await expect(page.getByText('La inscripción pública está abierta.')).toBeVisible();
+  await expect(page.getByText('Se requiere check-in.')).toBeVisible();
+  await expect(page.getByText('Región: Mendoza')).toBeVisible();
+  await expect(page.getByText('Capacidad: 16 participantes')).toBeVisible();
+
   await page.getByRole('button', { name: 'Crear torneo' }).click();
 
   await expect(page.getByText('Torneo creado: apertura-local')).toBeVisible();
@@ -297,7 +372,7 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
           name: 'Apertura Local',
           descriptorId: 'football.default',
           descriptorVersion: '1.0.0',
-          format: 'round-robin',
+          stages: [expect.objectContaining({ number: 1, format: 'round-robin' })],
           publicRegistration: true,
           requiresCheckIn: true,
           region: 'Mendoza',
@@ -328,6 +403,249 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   await expect(page.getByText('Apertura Local')).toBeVisible();
 });
 
+test('sets a discipline-declared rule field during creation, beyond format/registration (openspec 0265)', async ({
+  page,
+}) => {
+  await mockControlApi(page, { disciplines: disciplineWithRulesetFieldFixture });
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Copa Reglas');
+  await page.getByLabel('Alias').fill('copa-reglas');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // The ruleset step reflects the discipline's own default until touched.
+  // This label now resolves through the platform's own standard-field-name
+  // catalogue in the active (Spanish) locale, not the always-English
+  // humanized dot-path the pre-0285 fallback rendered regardless of language.
+  const pointsPerWinControl = page.getByLabel('Puntos Por Victoria');
+  await expect(pointsPerWinControl).toHaveValue('3');
+  await pointsPerWinControl.fill('4');
+
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Crear torneo' }).click();
+
+  await expect(page.getByText('Torneo creado: copa-reglas')).toBeVisible();
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({
+        url: '/organizations/liga-mendocina/tournaments',
+        method: 'POST',
+        body: expect.objectContaining({
+          ruleOverrides: { 'scoring.pointsPerWin': 4 },
+        }),
+      }),
+    );
+});
+
+test('authors a three-stage tournament with a mix of allocation modes, and every declared stage is reachable afterward', async ({
+  page,
+}) => {
+  await mockControlApi(page, {
+    disciplines: disciplineWithBothFormatsFixture,
+  });
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Copa Multi Fase');
+  await page.getByLabel('Alias').fill('copa-multi-fase');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Stage 1 (declared by default): automatic seeding, round-robin.
+  await page.getByLabel('Sembrado').selectOption('automatic');
+
+  // Stage 2: manual seeding, single-elimination.
+  await page.getByRole('button', { name: 'Agregar fase' }).click();
+  await page.getByLabel('Nombre de la fase').nth(1).fill('Playoffs');
+  await page.getByLabel('Formato de la fase').nth(1).selectOption('single-elimination');
+  await page.getByLabel('Sembrado').nth(1).selectOption('manual');
+
+  // Stage 3: weighted seeding on an entrant attribute.
+  await page.getByRole('button', { name: 'Agregar fase' }).click();
+  await page.getByLabel('Nombre de la fase').nth(2).fill('Gran Final');
+  await page.getByLabel('Formato de la fase').nth(2).selectOption('single-elimination');
+  await page.getByLabel('Sembrado').nth(2).selectOption('weighted');
+  await page.getByLabel('Atributo').fill('rating');
+
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Crear torneo' }).click();
+
+  await expect(page.getByText('Torneo creado: copa-multi-fase')).toBeVisible();
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({
+        url: '/organizations/liga-mendocina/tournaments',
+        method: 'POST',
+        body: expect.objectContaining({
+          stages: [
+            expect.objectContaining({
+              number: 1,
+              format: 'round-robin',
+              allocation: { mode: 'automatic' },
+            }),
+            expect.objectContaining({
+              number: 2,
+              name: 'Playoffs',
+              format: 'single-elimination',
+              allocation: { mode: 'manual' },
+            }),
+            expect.objectContaining({
+              number: 3,
+              name: 'Gran Final',
+              format: 'single-elimination',
+              allocation: expect.objectContaining({ mode: 'weighted', attributeKey: 'rating' }),
+            }),
+          ],
+        }),
+      }),
+    );
+
+  // Each declared stage is a real stage, reachable through the existing
+  // per-stage stage-management surface (SeedingBuilderPage) — not just a
+  // claim in the create request. A fresh login transaction is required: the
+  // access token lives only in the page's in-memory session, not storage
+  // that survives a full navigation.
+  const stage2Target = '/control/liga-mendocina/tournaments/copa-multi-fase/stages/2/seeding';
+  await seedLoginTransaction(page, stage2Target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${stage2Target}`);
+  await expect(page.getByRole('list', { name: 'Orden de siembra' })).toBeVisible();
+
+  const stage3Target = '/control/liga-mendocina/tournaments/copa-multi-fase/stages/3/seeding';
+  await seedLoginTransaction(page, stage3Target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${stage3Target}`);
+  await expect(page.getByRole('list', { name: 'Orden de siembra' })).toBeVisible();
+});
+
+/**
+ * Instantiates a tournament from a profile carrying per-stage allocation
+ * defaults (task 5.2's `profile-builder-wizard.test.tsx` proves the other
+ * half of this journey — declaring an allocation default and having it land
+ * in the authored document — directly against `ProfileBuilderWizard`; this
+ * test proves the receiving side, `TournamentSetupWizard`'s read-only
+ * preview and verbatim submission, through the real route).
+ */
+test('instantiates a tournament from a profile, previewing its stages read-only and submitting them verbatim', async ({
+  page,
+}) => {
+  const compatibleProfile = {
+    profileId: 'profile-001',
+    alias: 'grupos-y-final',
+    version: '1.0.0',
+    name: 'Grupos y Final',
+    stages: [
+      { number: 1, name: 'Grupos', format: 'round-robin', allocation: { mode: 'automatic' } },
+      {
+        number: 2,
+        name: 'Final',
+        format: 'single-elimination',
+        allocation: { mode: 'weighted', attributeKey: 'rating', direction: 'higher-first' },
+      },
+    ],
+  };
+  await mockControlApi(page, {
+    disciplines: disciplineWithBothFormatsFixture,
+    profiles: [compatibleProfile],
+  });
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Copa Desde Perfil');
+  await page.getByLabel('Alias').fill('copa-desde-perfil');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  await page.getByLabel('Perfil de competición').selectOption('profile-001');
+
+  // Read-only preview: both of the profile's own stages are shown, but not editable.
+  const stageNames = page.getByLabel('Nombre de la fase');
+  await expect(stageNames).toHaveCount(2);
+  await expect(stageNames.nth(0)).toHaveValue('Grupos');
+  await expect(stageNames.nth(0)).toBeDisabled();
+  await expect(stageNames.nth(1)).toHaveValue('Final');
+  await expect(stageNames.nth(1)).toBeDisabled();
+  await expect(page.getByLabel('Sembrado').nth(0)).toHaveValue('automatic');
+  await expect(page.getByLabel('Sembrado').nth(0)).toBeDisabled();
+  await expect(page.getByLabel('Sembrado').nth(1)).toHaveValue('weighted');
+
+  // Clearing the profile restores the single editable default stage.
+  await page.getByLabel('Perfil de competición').selectOption('');
+  await expect(page.getByLabel('Nombre de la fase')).toHaveCount(1);
+  await expect(page.getByLabel('Nombre de la fase')).toBeEnabled();
+
+  // Re-select it for submission.
+  await page.getByLabel('Perfil de competición').selectOption('profile-001');
+
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Crear torneo' }).click();
+
+  await expect(page.getByText('Torneo creado: copa-desde-perfil')).toBeVisible();
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({
+        url: '/organizations/liga-mendocina/tournaments',
+        method: 'POST',
+        body: expect.objectContaining({
+          profileId: 'profile-001',
+          profileVersion: '1.0.0',
+          // The wizard submits the profile's own declared stages verbatim —
+          // the read-only preview and the request never disagree.
+          stages: compatibleProfile.stages,
+        }),
+      }),
+    );
+});
+
+test('shows step badge states and explains blocked tournament wizard progression', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const continueButton = page.getByRole('button', { name: 'Continuar' });
+  await expect(continueButton).toBeDisabled();
+  await expect(continueButton).toHaveAttribute('aria-describedby', 'wizard-problems');
+  await expect(page.locator('#wizard-problems')).toContainText('nombre');
+  const buttonBox = await continueButton.boundingBox();
+  expect(buttonBox?.height).toBeGreaterThanOrEqual(44);
+
+  const activeStep = page.locator('.cl-badge[data-state="active"]');
+  await expect(activeStep).toHaveText('1');
+  await expect(activeStep).toHaveAttribute('aria-current', 'step');
+
+  await page.getByLabel('Nombre').fill('Copa Progreso');
+  await page.getByLabel('Alias').fill('copa-progreso');
+  await expect(continueButton).toBeEnabled();
+  await continueButton.click();
+
+  await expect(page.locator('.cl-badge[data-state="completed"]')).toHaveText('1');
+  await expect(page.locator('.cl-badge[data-state="active"]')).toHaveText('2');
+});
+
 test('completes tournament authoring via keyboard and without overflow at 375px', async ({
   page,
 }) => {
@@ -355,16 +673,22 @@ test('completes tournament authoring via keyboard and without overflow at 375px'
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   // Step 3 (format & profile)
-  await expect(page.getByLabel('Formato')).toBeVisible();
+  await expect(page.getByLabel('Formato de la fase')).toBeVisible();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Step 4 (rules)
+  // Step 4 (discipline rules)
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Step 5 (rules)
   await expect(page.getByLabel('Agregar regla para cada evento registrado')).toBeVisible();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Step 5 (window)
+  // Step 6 (window)
   await page.getByLabel('Región').fill('Mendoza');
   await page.getByLabel('Capacidad').fill('8');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Step 7 (summary)
   await page.getByRole('button', { name: 'Crear torneo' }).click();
 
   await expect(page.getByText('Torneo creado: copa-teclado')).toBeVisible();
@@ -403,13 +727,14 @@ test('explains every decision on every wizard step, reachable by keyboard with n
 
   // Format step: the field-level hint and the reversibility-free (safe by
   // default here) explanation are both present without opening the select.
-  const formatSelect = page.getByLabel('Formato');
+  const formatSelect = page.getByLabel('Formato de la fase');
   const formatHintId = await formatSelect.getAttribute('aria-describedby');
   expect(formatHintId).toBeTruthy();
   await expect(page.locator(`#${formatHintId}`)).toContainText(
     'Decide cómo se generan los cruces y cómo avanzan los participantes.',
   );
 
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
@@ -439,12 +764,13 @@ test('states a blocked_after_results decision cannot change after the first resu
 
   // The organizer has not chosen a format yet — the wizard states the
   // consequence up front, before the field is even touched.
-  const formatSelect = page.getByLabel('Formato');
+  const formatSelect = page.getByLabel('Formato de la fase');
   const formatHintId = await formatSelect.getAttribute('aria-describedby');
   await expect(page.locator(`#${formatHintId}`)).toContainText(
     'Esto no se puede cambiar una vez que existe un resultado; usá el flujo de corrección auditado en su lugar.',
   );
 
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
 
@@ -470,10 +796,12 @@ test('shows a named backend rule refusal without replacing it with a generic err
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByLabel('Agregar regla para cada evento registrado').check();
   await page.getByLabel('Acción').selectOption('notify');
   await page.getByLabel('Notification title *').fill('Actualización');
   await page.getByLabel('Notification message *').fill('Evento');
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Crear torneo' }).click();
 
@@ -566,4 +894,71 @@ test('revokes an expanded registration from the review queue', async ({ page }) 
         },
       }),
     );
+});
+
+test('previews first stage structure on the format step and updates on format change without reload', async ({
+  page,
+}) => {
+  await mockControlApi(page, { disciplines: disciplineWithBothFormatsFixture });
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Apertura Preview Test');
+  await page.getByLabel('Alias').fill('apertura-preview-test');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  const preview = page.getByTestId('stage-structure-preview');
+  await expect(preview).toBeVisible();
+  await expect(preview.getByText('Vista previa de la estructura')).toBeVisible();
+
+  const illustrative = page.getByTestId('wizard-preview-demonstration');
+  await expect(illustrative).toBeVisible();
+  await expect(illustrative).toHaveText('Vista previa ilustrativa (8 participantes)');
+  await expect(page.getByText('RR-R1-M1')).toBeVisible();
+
+  await page.locator('#stage-1-format').selectOption('single-elimination');
+
+  await expect(page.getByText('SE-R3-M1')).toBeVisible();
+  await expect(page.getByText('RR-R1-M1')).not.toBeVisible();
+});
+
+test('setting registration capacity updates preview entrant count and removes illustrative label', async ({
+  page,
+}) => {
+  await mockControlApi(page, { disciplines: disciplineWithBothFormatsFixture });
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Apertura Capacity Test');
+  await page.getByLabel('Alias').fill('apertura-capacity-test');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  await page.locator('#stage-1-format').selectOption('single-elimination');
+  await expect(page.getByTestId('wizard-preview-demonstration')).toBeVisible();
+  await expect(page.getByText('SE-R3-M1')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  await page.getByLabel('Capacidad').fill('4');
+
+  await page.getByRole('button', { name: 'Volver' }).click();
+  await page.getByRole('button', { name: 'Volver' }).click();
+  await page.getByRole('button', { name: 'Volver' }).click();
+
+  await expect(page.getByTestId('wizard-preview-demonstration')).not.toBeVisible();
+
+  const capacityLabel = page.getByTestId('wizard-preview-capacity');
+  await expect(capacityLabel).toBeVisible();
+  await expect(capacityLabel).toHaveText('4 participantes');
+
+  await expect(page.getByText('SE-R2-M1')).toBeVisible();
+  await expect(page.getByText('SE-R3-M1')).not.toBeVisible();
 });

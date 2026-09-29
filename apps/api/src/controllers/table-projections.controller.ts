@@ -262,12 +262,19 @@ export function tableResponse(result: TableProjectionResult): TableProjectionRes
       code: column.code,
       header: column.header,
       ...(column.shortHeader === undefined ? {} : { shortHeader: column.shortHeader }),
+      ...(column.zeroDisplay === undefined ? {} : { zeroDisplay: column.zeroDisplay }),
       format: column.format,
     })),
     defaultSort: result.layout.defaultSort.map((rule) => ({ ...rule })),
     rows: result.rows.map((row) => ({
       actorId: row.actorId,
       ...(row.entrantId === undefined ? {} : { entrantId: row.entrantId }),
+      actorName: row.actorName,
+      ...(row.entrantName === undefined ? {} : { entrantName: row.entrantName }),
+      ...(row.entrantAbbreviation === undefined
+        ? {}
+        : { entrantAbbreviation: row.entrantAbbreviation }),
+      ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
       rank: row.rank,
       sharedRank: row.sharedRank,
       cells: row.cells,
@@ -294,6 +301,12 @@ export function segmentedTableResponse(
       rows: segment.rows.map((row) => ({
         actorId: row.actorId,
         ...(row.entrantId === undefined ? {} : { entrantId: row.entrantId }),
+        actorName: row.actorName,
+        ...(row.entrantName === undefined ? {} : { entrantName: row.entrantName }),
+        ...(row.entrantAbbreviation === undefined
+          ? {}
+          : { entrantAbbreviation: row.entrantAbbreviation }),
+        ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
         rank: row.rank,
         sharedRank: row.sharedRank,
         cells: row.cells,

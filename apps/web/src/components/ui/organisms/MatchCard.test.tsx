@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { MatchCard } from './MatchCard.js';
+import { MatchCard, resolveCompactEntrant } from './MatchCard.js';
 import type { MatchCardData } from '../../../lib/matches-view.js';
 import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 
@@ -44,23 +44,62 @@ function baseMatch(overrides: Partial<MatchCardData> = {}): MatchCardData {
 }
 
 describe('MatchCard', () => {
+  it('uses the requested opaque surface band while leaving other cards at their default', () => {
+    const { container } = render(
+      <>
+        <MatchCard
+          match={baseMatch({ matchId: 'panel' })}
+          labels={labels}
+          locale="en"
+          band="panel"
+        />
+        <MatchCard match={baseMatch({ matchId: 'base' })} labels={labels} locale="en" band="base" />
+        <MatchCard match={baseMatch({ matchId: 'default' })} labels={labels} locale="en" />
+      </>,
+    );
+    expect(container.querySelector('[data-match="panel"]')?.classList.contains('cl-band')).toBe(
+      true,
+    );
+    expect(
+      container.querySelector('[data-match="base"]')?.classList.contains('cl-band--base'),
+    ).toBe(true);
+    expect(container.querySelector('[data-match="default"]')?.classList.contains('cl-band')).toBe(
+      false,
+    );
+  });
+
   it('shows a clock only while live', () => {
     const { rerender } = render(
-      <MatchCard match={baseMatch({ state: 'live', clockSeconds: 4726 })} labels={labels} />,
+      <MatchCard
+        match={baseMatch({ state: 'live', clockSeconds: 4726 })}
+        labels={labels}
+        locale="en"
+      />,
     );
     expect(screen.getByTitle('Elapsed time: 78:46').textContent).toBe('78:46');
 
-    rerender(<MatchCard match={baseMatch({ state: 'upcoming' })} labels={labels} />);
+    rerender(<MatchCard match={baseMatch({ state: 'upcoming' })} labels={labels} locale="en" />);
     expect(screen.queryByTitle(/Elapsed time/)).toBeNull();
+  });
+
+  it('marks both fixture scores for tabular figures', () => {
+    const { container } = render(
+      <MatchCard match={baseMatch({ homeScore: 10, awayScore: 8 })} labels={labels} locale="en" />,
+    );
+    expect(
+      [...container.querySelectorAll('.cl-match-card__side .cl-tabular-nums')].map(
+        (score) => score.textContent,
+      ),
+    ).toEqual(['10', '8']);
   });
 
   it('omits the venue line when no venue is assigned', () => {
     const { rerender } = render(
-      <MatchCard match={baseMatch({ venueName: 'Cancha 1' })} labels={labels} />,
+      <MatchCard match={baseMatch({ venueName: 'Cancha 1' })} labels={labels} locale="en" />,
     );
     expect(screen.getByTitle('Venue: Cancha 1').textContent).toBe('Cancha 1');
 
-    rerender(<MatchCard match={baseMatch()} labels={labels} />);
+    rerender(<MatchCard match={baseMatch()} labels={labels} locale="en" />);
     expect(screen.queryByTitle(/^Venue:/)).toBeNull();
   });
 
@@ -69,6 +108,7 @@ describe('MatchCard', () => {
       <MatchCard
         match={baseMatch({ zoneName: 'Group B', homePosition: 1, awayPosition: 2 })}
         labels={labels}
+        locale="en"
       />,
     );
     expect(screen.getByTitle('Zone/group: Group B').textContent).toBe('Group B');
@@ -91,6 +131,7 @@ describe('MatchCard', () => {
           },
         })}
         labels={labels}
+        locale="en"
       />,
     );
     expect(screen.getByText('Series undecided at 1–0')).toBeDefined();
@@ -103,16 +144,17 @@ describe('MatchCard', () => {
       <MatchCard
         match={baseMatch({ state: 'final', decidingFactor: 'Rule 2 (Head-to-head)' })}
         labels={labels}
+        locale="en"
       />,
     );
     expect(screen.getByText('Decided by: Rule 2 (Head-to-head)')).toBeDefined();
 
-    rerender(<MatchCard match={baseMatch({ state: 'final' })} labels={labels} />);
+    rerender(<MatchCard match={baseMatch({ state: 'final' })} labels={labels} locale="en" />);
     expect(screen.queryByText(/^Decided by:/)).toBeNull();
   });
 
   it('never renders a trace panel when the response carries no trace (the public shape)', () => {
-    render(<MatchCard match={baseMatch({ state: 'final' })} labels={labels} />);
+    render(<MatchCard match={baseMatch({ state: 'final' })} labels={labels} locale="en" />);
     expect(screen.queryByText('Full standings comparator trace')).toBeNull();
   });
 
@@ -127,6 +169,7 @@ describe('MatchCard', () => {
           ],
         })}
         labels={labels}
+        locale="en"
       />,
     );
     expect(screen.getByText('Full standings comparator trace')).toBeDefined();
@@ -138,11 +181,160 @@ describe('MatchCard', () => {
       <MatchCard
         match={baseMatch()}
         labels={labels}
+        locale="en"
         reportUrl="/liga/tournaments/x/stages/1/matches/1"
       />,
     );
     expect(screen.getByRole('link').getAttribute('href')).toBe(
       '/liga/tournaments/x/stages/1/matches/1',
     );
+  });
+
+  it('shows a labelled state badge and a localized timestamp', () => {
+    const instant = '2025-05-18T15:30:00.000Z';
+    const { container } = render(
+      <MatchCard
+        match={baseMatch({ state: 'final', scheduledAt: instant })}
+        labels={labels}
+        locale="es-AR"
+      />,
+    );
+
+    expect(
+      screen.getByText('FINAL').closest('.cl-badge')?.classList.contains('cl-state--positive'),
+    ).toBe(true);
+    const timestamp = container.querySelector('time.cl-responsive-timestamp');
+    expect(timestamp?.getAttribute('datetime')).toBe(instant);
+    expect(timestamp?.textContent).not.toContain('2025-05-18T');
+  });
+
+  it('renders the scheduled timestamp in the locale it is given, not a fixed one (openspec 0272)', () => {
+    const instant = '2025-05-18T15:30:00.000Z';
+    const { container } = render(
+      <MatchCard match={baseMatch({ scheduledAt: instant })} labels={labels} locale="es-AR" />,
+    );
+    const expectedMonth = new Intl.DateTimeFormat('es-AR', { month: 'short' }).format(
+      new Date(instant),
+    );
+    const timestamp = container.querySelector('time.cl-responsive-timestamp');
+    expect(timestamp?.textContent).toContain(expectedMonth);
+  });
+});
+
+describe('resolveCompactEntrant', () => {
+  it('prefers a persisted abbreviation, trimmed, over any derivation', () => {
+    expect(resolveCompactEntrant('  CAI  ', 'Club Atlético Independiente')).toBe('CAI');
+  });
+
+  it('derives dotted initials from a multi-word name', () => {
+    expect(resolveCompactEntrant(undefined, 'San Juan')).toBe('S.J.');
+    expect(resolveCompactEntrant(undefined, 'Club Atlético Independiente')).toBe('C.A.I.');
+  });
+
+  it('takes the first 5 uppercased characters of a single-word name', () => {
+    expect(resolveCompactEntrant(undefined, 'River')).toBe('RIVER');
+    expect(resolveCompactEntrant(undefined, 'Huracán')).toBe('HURAC');
+  });
+
+  it('falls back to TBD with neither an abbreviation nor a name', () => {
+    expect(resolveCompactEntrant(undefined, undefined)).toBe('TBD');
+    expect(resolveCompactEntrant('', '')).toBe('TBD');
+  });
+});
+
+describe('MatchCard compact presentation (openspec 0299)', () => {
+  it('renders a color-coded state dot, abbreviations, and the score in ticker order while live', () => {
+    const { container } = render(
+      <MatchCard
+        compact
+        match={baseMatch({
+          state: 'live',
+          homeName: 'Club Atlético Independiente',
+          homeScore: 4,
+          awayName: 'Unión Vecinal Talcahuano',
+          awayScore: 3,
+        })}
+        labels={labels}
+        locale="en"
+      />,
+    );
+
+    expect(container.querySelector('.cl-match-card--compact')).not.toBeNull();
+    const dot = container.querySelector('.cl-match-card__compact-dot');
+    expect(dot?.classList.contains('cl-state--live')).toBe(true);
+    expect(dot?.getAttribute('title')).toBe('LIVE');
+    expect(screen.getByText('LIVE', { selector: '.cl-visually-hidden' })).toBeDefined();
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(
+      'C.A.I. 4 vs 3 U.V.T.',
+    );
+  });
+
+  it('renders entrant abbreviations, versus, and the scheduled time for an upcoming match', () => {
+    const { container } = render(
+      <MatchCard
+        compact
+        match={baseMatch({
+          state: 'upcoming',
+          homeName: 'Norte',
+          awayName: 'Sur',
+          scheduledAt: '2026-08-01T18:30:00.000Z',
+        })}
+        labels={labels}
+        locale="en-GB"
+      />,
+    );
+
+    const expectedTime = new Intl.DateTimeFormat('en-GB', { timeStyle: 'short' }).format(
+      new Date('2026-08-01T18:30:00.000Z'),
+    );
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(
+      `NORTE vs SUR ${expectedTime}`,
+    );
+  });
+
+  it('renders the decided score with a positive-state dot for a final match', () => {
+    const { container } = render(
+      <MatchCard
+        compact
+        match={baseMatch({
+          state: 'final',
+          homeName: 'Norte',
+          awayName: 'Sur',
+          homeScore: 2,
+          awayScore: 1,
+        })}
+        labels={labels}
+        locale="en"
+      />,
+    );
+
+    const dot = container.querySelector('.cl-match-card__compact-dot');
+    expect(dot?.classList.contains('cl-state--positive')).toBe(true);
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(
+      'NORTE 2 vs 1 SUR',
+    );
+  });
+
+  it('wraps the compact card in a link when reportUrl is given', () => {
+    render(
+      <MatchCard
+        compact
+        match={baseMatch()}
+        labels={labels}
+        locale="en"
+        reportUrl="/liga/tournaments/x/stages/1/matches/1"
+      />,
+    );
+    expect(screen.getByRole('link').getAttribute('href')).toBe(
+      '/liga/tournaments/x/stages/1/matches/1',
+    );
+  });
+
+  it('never renders the full card structure while compact', () => {
+    const { container } = render(
+      <MatchCard compact match={baseMatch()} labels={labels} locale="en" />,
+    );
+    expect(container.querySelector('.cl-match-card__sides')).toBeNull();
+    expect(container.querySelector('.cl-match-card__header')).toBeNull();
   });
 });

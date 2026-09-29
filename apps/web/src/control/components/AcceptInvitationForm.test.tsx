@@ -3,6 +3,7 @@ import { jest } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AcceptInvitationForm } from './AcceptInvitationForm.js';
 import { withIntl } from '../i18n/test-support.js';
+import { controlTokenStore } from '../session/token-store.js';
 
 describe('AcceptInvitationForm', () => {
   let navigateMock: jest.Mock<any>;
@@ -58,7 +59,7 @@ describe('AcceptInvitationForm', () => {
   it('handles successful invitation acceptance and redirect', async () => {
     (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ accessToken: 'sample-jwt-token' }),
+      json: async () => ({ accessToken: 'sample-jwt-token', expiresIn: 3600 }),
     } as any);
 
     render(withIntl(<AcceptInvitationForm initialToken="valid-token" navigate={navigateMock} />));
@@ -89,6 +90,12 @@ describe('AcceptInvitationForm', () => {
     });
 
     expect(await screen.findByText('Account set up!')).toBeTruthy();
+
+    // The access token establishes a real session via controlTokenStore —
+    // never a raw, readable-by-any-script localStorage/sessionStorage write.
+    expect(localStorage.getItem('copalibre_access_token')).toBeNull();
+    expect(sessionStorage.getItem('copalibre_access_token')).toBeNull();
+    expect(controlTokenStore.read()).toBe('sample-jwt-token');
 
     await waitFor(
       () => {

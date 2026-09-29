@@ -228,6 +228,7 @@ export interface StageConfigurationsTable {
   version: number;
   ruleset_id: string;
   overrides: JSONColumnType<Record<string, unknown>>;
+  allocation: JSONColumnType<Record<string, unknown>> | null;
   created_at: Timestamp;
 }
 
@@ -272,6 +273,8 @@ export interface PersonsTable {
   birth_date: string | null;
   /** FK into `object_metadata.object_id`; null until a photo is uploaded. */
   photo_object_id: string | null;
+  /** The club this person is affiliated with; null for a person with no club affiliation. */
+  club_id: string | null;
   created_at: Timestamp;
 }
 
@@ -896,6 +899,16 @@ export interface ObjectMetadataTable {
 }
 
 export interface Database {
+  realtime_replicas: {
+    replica_id: string;
+    tv_kiosks: number;
+    overlays: number;
+    public_spectators: number;
+    control_connections: number;
+    unclassified: number;
+    reported_at: Timestamp;
+    expires_at: Timestamp;
+  };
   organizations: OrganizationsTable;
   identity_principals: IdentityPrincipalsTable;
   organization_role_assignments: OrganizationRoleAssignmentsTable;

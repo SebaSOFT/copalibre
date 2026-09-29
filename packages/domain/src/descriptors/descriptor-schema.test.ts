@@ -243,6 +243,33 @@ describe('discipline descriptor schema', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('rejects an empty table-column zero display token', () => {
+    const result = validateDisciplineDescriptorDocument(
+      asDocument({
+        tableLayouts: [
+          {
+            code: 'player-ranking',
+            target: 'player-ranking',
+            label: { en: 'Player ranking' },
+            entityGranularity: 'person',
+            defaultSort: [{ columnCode: 'cards-per-match', direction: 'desc' }],
+            columns: [
+              {
+                code: 'cards-per-match',
+                header: { en: 'Cards per match' },
+                source: { kind: 'collector', code: 'points' },
+                format: 'decimal-2',
+                zeroDisplay: '',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+  });
+
   describe('winCondition as a rule script', () => {
     it('rejects the previous enumerated string', () => {
       const result = validateDisciplineDescriptorDocument(

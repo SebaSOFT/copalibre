@@ -41,8 +41,8 @@ export function sampleOverview(organizationAlias: string, tournamentAlias: strin
       { position: 2, name: 'Casa de Italia', abbreviation: 'C I', played: 3, points: 4 },
     ],
     ruleset: [
-      { label: 'Formato', value: 'Todos contra todos' },
-      { label: 'Puntos', value: '3 por victoria, 1 por empate' },
+      { dotPath: 'format', label: 'Formato', value: 'Todos contra todos' },
+      { dotPath: 'scoring', label: 'Puntos', value: '3 por victoria, 1 por empate' },
     ],
   };
 }

@@ -1,0 +1,160 @@
+---
+/**
+ * Consolidated hierarchical match-schedule filter bar (openspec 0245):
+ * stage tabs -> zone pills (only when the active stage has >1 zone) ->
+ * group pills (only when the active zone has >1 group) -> state pills.
+ * Replaces the page's former flat state-only pills + raw `groupId` param.
+ * Every selection is a plain link built from `buildUrl`, so every filtered
+ * view is server-rendered and works with scripting off.
+ */
+export interface MatchScheduleStageOption {
+  readonly stageNumber: number;
+  readonly stageName: string;
+}
+
+export type MatchScheduleState = 'all' | 'live' | 'upcoming' | 'final';
+
+export interface MatchScheduleFiltersLabels {
+  readonly stageFilterAriaLabel: string;
+  readonly zoneFilterAriaLabel: string;
+  readonly groupFilterAriaLabel: string;
+  readonly stateFilterAriaLabel: string;
+  readonly filters: {
+    readonly all: string;
+    readonly live: string;
+    readonly upcoming: string;
+    readonly final: string;
+  };
+}
+
+interface Props {
+  readonly stages: readonly MatchScheduleStageOption[];
+  readonly activeStageNumber?: number;
+  readonly zones: readonly string[];
+  readonly activeZone?: string;
+  readonly groups: readonly string[];
+  readonly activeGroup?: string;
+  readonly state: MatchScheduleState;
+  readonly labels: MatchScheduleFiltersLabels;
+  readonly buildUrl: (
+    overrides: Partial<{
+      stageNumber: number | undefined;
+      zone: string | undefined;
+      group: string | undefined;
+      state: MatchScheduleState;
+    }>,
+  ) => string;
+}
+
+const {
+  stages,
+  activeStageNumber,
+  zones,
+  activeZone,
+  groups,
+  activeGroup,
+  state,
+  labels,
+  buildUrl,
+} = Astro.props;
+---
+
+{
+  stages.length > 1 && (
+    <nav class="cl-pill-group" aria-label={labels.stageFilterAriaLabel}>
+      <a
+        class="cl-pill cl-focusable"
+        href={buildUrl({ stageNumber: undefined, zone: undefined, group: undefined })}
+        aria-current={activeStageNumber === undefined ? 'true' : undefined}
+      >
+        {labels.filters.all}
+      </a>
+      {stages.map((stage) => (
+        <a
+          class="cl-pill cl-focusable"
+          href={buildUrl({ stageNumber: stage.stageNumber, zone: undefined, group: undefined })}
+          aria-current={activeStageNumber === stage.stageNumber ? 'true' : undefined}
+        >
+          {stage.stageName}
+        </a>
+      ))}
+    </nav>
+  )
+}
+
+{
+  zones.length > 1 && (
+    <nav class="cl-pill-group" aria-label={labels.zoneFilterAriaLabel}>
+      <a
+        class="cl-pill cl-focusable"
+        href={buildUrl({ zone: undefined, group: undefined })}
+        aria-current={activeZone === undefined ? 'true' : undefined}
+      >
+        {labels.filters.all}
+      </a>
+      {zones.map((zone) => (
+        <a
+          class="cl-pill cl-focusable"
+          href={buildUrl({ zone, group: undefined })}
+          aria-current={activeZone === zone ? 'true' : undefined}
+        >
+          {zone}
+        </a>
+      ))}
+    </nav>
+  )
+}
+
+{
+  groups.length > 1 && (
+    <nav class="cl-pill-group" aria-label={labels.groupFilterAriaLabel}>
+      <a
+        class="cl-pill cl-focusable"
+        href={buildUrl({ group: undefined })}
+        aria-current={activeGroup === undefined ? 'true' : undefined}
+      >
+        {labels.filters.all}
+      </a>
+      {groups.map((group) => (
+        <a
+          class="cl-pill cl-focusable"
+          href={buildUrl({ group })}
+          aria-current={activeGroup === group ? 'true' : undefined}
+        >
+          {group}
+        </a>
+      ))}
+    </nav>
+  )
+}
+
+<nav class="cl-pill-group" aria-label={labels.stateFilterAriaLabel}>
+  <a
+    class="cl-pill cl-focusable"
+    href={buildUrl({ state: 'all' })}
+    aria-current={state === 'all' ? 'true' : undefined}
+  >
+    {labels.filters.all}
+  </a>
+  <a
+    class="cl-pill cl-focusable"
+    href={buildUrl({ state: 'live' })}
+    aria-current={state === 'live' ? 'true' : undefined}
+  >
+    {labels.filters.live}
+  </a>
+  <a
+    class="cl-pill cl-focusable"
+    href={buildUrl({ state: 'upcoming' })}
+    aria-current={state === 'upcoming' ? 'true' : undefined}
+  >
+    {labels.filters.upcoming}
+  </a>
+  <a
+    class="cl-pill cl-focusable"
+    href={buildUrl({ state: 'final' })}
+    aria-current={state === 'final' ? 'true' : undefined}
+  >
+    {labels.filters.final}
+  </a>
+</nav>

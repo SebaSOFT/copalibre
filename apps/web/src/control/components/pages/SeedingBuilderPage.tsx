@@ -7,10 +7,10 @@ import {
   type SeedingResponse,
 } from '../../lib/api-client.js';
 import type { SeedAssignment } from '../../lib/seeding.js';
-import { controlLinkClick } from '../../lib/control-navigation.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { SeedingBuilderTemplate } from '../screens/SeedingBuilderTemplate.js';
 import { Button } from '../ui/atoms/button.js';
+import { Input } from '../ui/atoms/input.js';
 import { Field } from '../ui/molecules/field.js';
 import { useToast } from '../ToastProvider.js';
 import { messages } from '../../i18n/messages.en.js';
@@ -21,102 +21,12 @@ import { messages } from '../../i18n/messages.en.js';
 // on why a local `defineMessages` block, not the shared catalogue, is the
 // right home for an id with no locale translation yet.
 const pageMessages = defineMessages({
-  zonesAndGroupsLink: {
-    id: 'control.seedingBuilder.zonesAndGroupsLink',
-    defaultMessage: 'Zones and groups',
-  },
   loading: { id: 'control.seedingBuilder.loading', defaultMessage: 'Loading seeding…' },
   loadFailed: {
     id: 'control.seedingBuilder.loadFailed',
     defaultMessage: 'Could not load the seeding.',
   },
-  stageDeleted: { id: 'control.seedingBuilder.stageDeleted', defaultMessage: 'Stage deleted.' },
-  stageRenamed: { id: 'control.seedingBuilder.stageRenamed', defaultMessage: 'Stage renamed.' },
 });
-
-/**
- * Rename/format-change/delete for the stage this builder is on (task 2.3).
- * A rename always applies; format-change and delete are disabled once the
- * stage is seeded — `seeded` names why in the same place the button lives,
- * not only in a toast after the fact.
- */
-function StageSettingsSection({
-  currentFormat,
-  seeded,
-  onRename,
-  onChangeFormat,
-  onDelete,
-}: {
-  readonly currentFormat: string;
-  readonly seeded: boolean;
-  readonly onRename: (name: string) => Promise<void>;
-  readonly onChangeFormat: (format: string) => Promise<void>;
-  readonly onDelete: () => Promise<void>;
-}): React.JSX.Element {
-  const intl = useIntl();
-  const [name, setName] = useState('');
-  const [format, setFormat] = useState(currentFormat);
-
-  return (
-    <div className="cl-card cl-chamfer cl-chamfer--control">
-      <header className="cl-card__header">
-        <h2 className="cl-card__title">
-          <FormattedMessage {...messages.stageSettingsTitle} />
-        </h2>
-      </header>
-      <div className="cl-card__content">
-        <Field id="stage-rename" label={intl.formatMessage(messages.stageRenameLabel)}>
-          <input
-            className="cl-input cl-input--default cl-focusable"
-            id="stage-rename"
-            onChange={(event) => setName(event.target.value)}
-            value={name}
-          />
-        </Field>
-        <Button
-          disabled={name.trim() === ''}
-          onClick={() => void onRename(name).then(() => setName(''))}
-          type="button"
-          variant="secondary"
-        >
-          <FormattedMessage {...messages.stageRenameSubmit} />
-        </Button>
-
-        <Field id="stage-format" label={intl.formatMessage(messages.stageFormatLabel)}>
-          <input
-            className="cl-input cl-input--default cl-focusable"
-            disabled={seeded}
-            id="stage-format"
-            onChange={(event) => setFormat(event.target.value)}
-            value={format}
-          />
-        </Field>
-        <Button
-          disabled={seeded || format.trim() === ''}
-          onClick={() => void onChangeFormat(format)}
-          type="button"
-          variant="secondary"
-        >
-          <FormattedMessage {...messages.stageFormatSubmit} />
-        </Button>
-
-        <Button
-          disabled={seeded}
-          onClick={() => void onDelete()}
-          type="button"
-          variant="destructive-outline"
-        >
-          <FormattedMessage {...messages.stageDelete} />
-        </Button>
-        {seeded && (
-          <Alert tone="info">
-            <FormattedMessage {...messages.stageSeededExplanation} />
-          </Alert>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /**
  * A stage's configuration override fields — the same dot-path-editing shape
@@ -152,8 +62,7 @@ function StageConfigurationSection({
           {drafts.map((draft, index) => (
             <li key={draft.field}>
               <Field id={`stage-configuration-${index}`} label={draft.field}>
-                <input
-                  className="cl-input cl-input--default cl-focusable"
+                <Input
                   disabled={seeded}
                   id={`stage-configuration-${index}`}
                   onChange={(event) => {
@@ -175,8 +84,7 @@ function StageConfigurationSection({
           id="stage-configuration-new-field"
           label={intl.formatMessage(messages.stageConfigurationFieldLabel)}
         >
-          <input
-            className="cl-input cl-input--default cl-focusable"
+          <Input
             disabled={seeded}
             id="stage-configuration-new-field"
             onChange={(event) => setNewField(event.target.value)}
@@ -187,8 +95,7 @@ function StageConfigurationSection({
           id="stage-configuration-new-value"
           label={intl.formatMessage(messages.stageConfigurationValueLabel)}
         >
-          <input
-            className="cl-input cl-input--default cl-focusable"
+          <Input
             disabled={seeded}
             id="stage-configuration-new-value"
             onChange={(event) => setNewValue(event.target.value)}
@@ -339,104 +246,58 @@ export function SeedingBuilderPage({
   }));
 
   return (
-    <>
-      <a
-        className="cl-focusable"
-        href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones`}
-        onClick={controlLinkClick(
-          `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones`,
-        )}
-      >
-        {intl.formatMessage(pageMessages.zonesAndGroupsLink)}
-      </a>
-      <StageSettingsSection
-        currentFormat={seeding.format}
-        onChangeFormat={(format) =>
-          api
-            .updateStage?.(organizationAlias, tournamentAlias, stageNumber, { format })
-            .then(() => api.fetchSeeding(organizationAlias, tournamentAlias, stageNumber))
-            .then((next) => next && setSeeding(next))
-            .catch((error: unknown) => {
-              pushError(error);
-            }) ?? Promise.resolve()
-        }
-        onDelete={() =>
-          api
-            .deleteStage?.(organizationAlias, tournamentAlias, stageNumber)
-            .then(() => {
-              push({
-                severity: 'success',
-                message: intl.formatMessage(pageMessages.stageDeleted),
-              });
-            })
-            .catch((error: unknown) => {
-              pushError(error);
-            }) ?? Promise.resolve()
-        }
-        onRename={(name) =>
-          api
-            .updateStage?.(organizationAlias, tournamentAlias, stageNumber, { name })
-            .then(() => {
-              push({
-                severity: 'success',
-                message: intl.formatMessage(pageMessages.stageRenamed),
-              });
-            })
-            .catch((error: unknown) => {
-              pushError(error);
-            }) ?? Promise.resolve()
-        }
-        seeded={seeding.matches.length > 0}
-      />
-      <StageConfigurationSection
-        onApply={(changed) =>
-          api
-            .updateStageConfiguration?.(organizationAlias, tournamentAlias, stageNumber, {
-              overrides: changed,
-            })
-            .then((updated) => {
-              if (!updated) return;
-              setStageOverrides(updated.overrides);
-              push({
-                severity: 'success',
-                message: intl.formatMessage(messages.stageConfigurationSaved),
-              });
-            })
-            .catch((error: unknown) => {
-              pushError(error);
-            }) ?? Promise.resolve()
-        }
-        overrides={stageOverrides}
-        seeded={seeding.matches.length > 0}
-      />
-      <SeedingBuilderTemplate
-        hasRecordedResults={seeding.hasRecordedResults}
-        matches={seeding.matches}
-        onPublish={(seeds) =>
-          api
-            .publishSeeding(organizationAlias, tournamentAlias, stageNumber, {
-              seeds: seeds.map((seed) => ({ seed: seed.seed, entrantId: seed.entrantId })),
-            })
-            .then((result) => {
-              // `persisted` is the server's confirmation the new order and
-              // fixtures are durably saved, not only classified — re-fetch so
-              // the bracket canvas reflects what's actually on disk rather
-              // than trusting the classification response's own shape.
-              if (!result.persisted) return;
-              push({ severity: 'success', message: result.reason });
-              return api
-                .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
-                .then(setSeeding);
-            })
-            .catch((error: unknown) => {
-              pushError(error);
-            })
-        }
-        organizationAlias={organizationAlias}
-        seeds={assignments}
-        tournamentAlias={tournamentAlias}
-        tournamentName={tournamentAlias}
-      />
-    </>
+    <SeedingBuilderTemplate
+      configurationSection={
+        <StageConfigurationSection
+          onApply={(changed) =>
+            api
+              .updateStageConfiguration?.(organizationAlias, tournamentAlias, stageNumber, {
+                overrides: changed,
+              })
+              .then((updated) => {
+                if (!updated) return;
+                setStageOverrides(updated.overrides);
+                push({
+                  severity: 'success',
+                  message: intl.formatMessage(messages.stageConfigurationSaved),
+                });
+              })
+              .catch((error: unknown) => {
+                pushError(error);
+              }) ?? Promise.resolve()
+          }
+          overrides={stageOverrides}
+          seeded={seeding.zones.some((zone) => zone.matches.length > 0)}
+        />
+      }
+      hasRecordedResults={seeding.hasRecordedResults}
+      zones={seeding.zones}
+      names={seeding.names ?? {}}
+      onPublish={(seeds) =>
+        api
+          .publishSeeding(organizationAlias, tournamentAlias, stageNumber, {
+            seeds: seeds.map((seed) => ({ seed: seed.seed, entrantId: seed.entrantId })),
+          })
+          .then((result) => {
+            // `persisted` is the server's confirmation the new order and
+            // fixtures are durably saved, not only classified — re-fetch so
+            // the bracket canvas reflects what's actually on disk rather
+            // than trusting the classification response's own shape.
+            if (!result.persisted) return;
+            push({ severity: 'success', message: result.reason });
+            return api
+              .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
+              .then(setSeeding);
+          })
+          .catch((error: unknown) => {
+            pushError(error);
+          })
+      }
+      organizationAlias={organizationAlias}
+      seeds={assignments}
+      stageNumber={stageNumber}
+      tournamentAlias={tournamentAlias}
+      tournamentName={tournamentAlias}
+    />
   );
 }

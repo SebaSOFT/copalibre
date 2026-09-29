@@ -5,6 +5,8 @@ capabilities:
   - live-operations/broadcast-tv-surfaces
   - live-operations/public-live-surfaces
   - public-web/public-web-shell
+  - public-web/tournament-winner-resolution
+  - public-web/tournament-overview
   - design-system/operational-surface-parity
 roles:
   - broadcaster
@@ -23,13 +25,31 @@ A device holding a valid token needs no person present to keep working. It survi
 re-entering credentials, and recovers silently from a lost connection or unavailable data — a `/tv/**`
 surface never shows an error a person would need to dismiss.
 
+## Broadcaster Studio
+
+`/control/<organization>/tournaments/<tournament>/broadcaster` is a self-service console for a
+streamer or media operator: it issues your own device-scoped display token automatically, lets you
+pick the overlay mode (a lower-third strip over your camera, or a full-screen scene with no camera
+needed) and a preview background (transparent, green screen, magenta screen, or a dark stadium
+backdrop), and gives you a ready-to-paste OBS Browser Source URL with a live preview — no
+administrator has to hand you a token or share their own login. While that overlay is open, a goal,
+point, or card recorded live pops an animated callout naming the entrant and player, then dismisses
+itself automatically; it never needs anyone at the venue to trigger or clear it.
+
 ## What a spectator sees on the public site
 
 The public site (no login) shows a tournament's standings, bracket, and match reports as they are
 published, at the same organization/tournament address the control panel and the `/tv/**` surfaces use. A
 [series](/help/control/series) in progress shows its running score and which side is ahead on the public
 bracket the same way it does in the control panel, and a match not yet scheduled is shown as such, never
-guessed at.
+guessed at. Completed elimination tournaments identify champions from the championship fixture even
+when classification fixtures share its final round; a tied championship can show both co-champions.
+
+A tournament whose playoff stage resolved more than one final zone — a Gold/Silver bracket split, for
+example — shows a champions podium on its overview page once finished: one entry per resolved zone,
+naming every declared champion and any explicitly resolved runner-up and third place. The page never
+invents a rank a zone did not explicitly resolve, and shows no podium at all for a single-zone
+tournament or one that has not finished yet.
 
 ## What you cannot do here
 

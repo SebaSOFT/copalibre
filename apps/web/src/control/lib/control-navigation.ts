@@ -1,5 +1,6 @@
 import type { MouseEvent } from 'react';
 import { useSyncExternalStore } from 'react';
+import type { SupportedLanguage } from '../../lib/language-preference.js';
 
 /**
  * Client-side navigation between control-panel screens.
@@ -36,6 +37,18 @@ export function navigateControl(path: string): void {
   if (path === window.location.pathname) return;
   window.history.pushState({}, '', path);
   window.dispatchEvent(new Event(NAVIGATED_EVENT));
+}
+
+/**
+ * A Starlight help page's URL for a given interface locale — the same
+ * locale-prefix computation `ControlShell.tsx` used to do inline for its own
+ * `/help/control/{helpPath}` link (openspec 0251, design.md - "Role hints
+ * link to the full manual page"). English pages are unprefixed, matching
+ * Starlight's own routing for every locale but the default.
+ */
+export function helpPageUrl(locale: SupportedLanguage, path: string): string {
+  const localePrefix = locale === 'en' ? '' : `/${locale}`;
+  return `${localePrefix}/help/${path}`;
 }
 
 /**

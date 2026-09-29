@@ -1,4 +1,4 @@
-import { TOUCH_TARGET } from './primitives.js';
+import { FONT_WEIGHTS, TOUCH_TARGET } from './primitives.js';
 import type { SemanticColor } from './semantic.js';
 
 /**
@@ -15,6 +15,39 @@ export interface BadgeSpec {
   readonly label: string;
   readonly icon?: string;
 }
+
+/** Product badge tones resolve through existing semantic colors. Labels remain mandatory. */
+export const BADGE_TONES = {
+  live: { color: 'state-live', weight: 'semibold', border: true, nonColourCue: 'Live label' },
+  final: {
+    color: 'state-positive',
+    weight: 'semibold',
+    border: false,
+    nonColourCue: 'Final label',
+  },
+  upcoming: {
+    color: 'state-upcoming',
+    weight: 'semibold',
+    border: true,
+    nonColourCue: 'Scheduled label',
+  },
+  stage: { color: 'text-secondary', weight: 'semibold', border: true, nonColourCue: 'Stage label' },
+  muted: { color: 'text-muted', weight: 'medium', border: true, nonColourCue: 'Status label' },
+  positive: {
+    color: 'state-positive',
+    weight: 'semibold',
+    border: true,
+    nonColourCue: 'Result label',
+  },
+} as const satisfies Record<
+  string,
+  {
+    readonly color: SemanticColor;
+    readonly weight: keyof typeof FONT_WEIGHTS;
+    readonly border: boolean;
+    readonly nonColourCue: string;
+  }
+>;
 
 export class BadgeContractError extends Error {}
 

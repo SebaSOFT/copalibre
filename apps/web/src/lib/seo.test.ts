@@ -64,6 +64,27 @@ describe('SEO and structured data utilities', () => {
         logo: 'https://copalibre.example/organizations/liga-orbital/emblem',
       });
     });
+
+    it('escapes a script-breakout attempt in the name so no literal < survives', () => {
+      const json = serializeJsonLd({
+        '@type': 'SportsOrganization',
+        name: '</script><script>alert(1)</script>',
+        url: 'https://copalibre.example/malicious-org',
+      });
+      expect(json).not.toContain('<');
+      const parsed = JSON.parse(json);
+      expect(parsed.name).toBe('</script><script>alert(1)</script>');
+    });
+
+    it('leaves an ordinary name with no special characters byte-for-byte unchanged', () => {
+      const data = {
+        '@type': 'SportsOrganization' as const,
+        name: 'Liga Orbital',
+        url: 'https://copalibre.example/liga-orbital',
+      };
+      const json = serializeJsonLd(data);
+      expect(json).toBe(JSON.stringify({ '@context': 'https://schema.org', ...data }));
+    });
   });
 
   describe('discipline background & og:image resolution', () => {

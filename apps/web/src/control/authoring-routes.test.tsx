@@ -38,7 +38,7 @@ function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
       stageId: 's-1',
       format: 'round-robin',
       seeds: [],
-      matches: [],
+      zones: [],
       hasRecordedResults: false,
     }),
     publishSeeding: async () => ({
@@ -96,12 +96,17 @@ describe('the tournament authoring route container', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
     });
 
     expect(requests).toHaveLength(1);
-    expect(requests[0]).toMatchObject({ descriptorVersion: '1.0.0', format: 'round-robin' });
+    expect(requests[0]).toMatchObject({
+      descriptorVersion: '1.0.0',
+      stages: [{ number: 1, format: 'round-robin' }],
+    });
   });
 
   it('surfaces backend custom-script refusal verbatim', async () => {
@@ -125,6 +130,8 @@ describe('the tournament authoring route container', () => {
     await screen.findByLabelText('Name');
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Inválida' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-invalida' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));

@@ -104,12 +104,28 @@ function compareCells(a: TableCellResponse | undefined, b: TableCellResponse | u
   return String(av).localeCompare(String(bv));
 }
 
-/** Toggles direction on a repeat click of the same header; a new column starts descending. */
-export function nextSort(current: ActiveSort | undefined, columnCode: string): ActiveSort {
-  if (current?.columnCode === columnCode) {
-    return { columnCode, direction: current.direction === 'desc' ? 'asc' : 'desc' };
-  }
-  return { columnCode, direction: 'desc' };
+/**
+ * Tri-state cycle on a repeat click of the same header: descending, then
+ * ascending, then `undefined` ("none") — which restores the layout's own
+ * `rank` order, since `sortRows(rows, undefined)` already returns `rows`
+ * unchanged. A newly clicked column always starts descending.
+ */
+export function nextSort(
+  current: ActiveSort | undefined,
+  columnCode: string,
+): ActiveSort | undefined {
+  if (current?.columnCode !== columnCode) return { columnCode, direction: 'desc' };
+  if (current.direction === 'desc') return { columnCode, direction: 'asc' };
+  return undefined;
+}
+
+/** The `aria-sort` value for a header, given the table's current (possibly absent) sort. */
+export function ariaSortFor(
+  sort: ActiveSort | undefined,
+  columnCode: string,
+): 'none' | 'ascending' | 'descending' {
+  if (sort?.columnCode !== columnCode) return 'none';
+  return sort.direction === 'asc' ? 'ascending' : 'descending';
 }
 
 export interface DistributionBar {

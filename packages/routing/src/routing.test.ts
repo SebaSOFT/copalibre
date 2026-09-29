@@ -181,6 +181,7 @@ describe('parseControlPath', () => {
     ['/control', { screen: 'root' }],
     ['/control/', { screen: 'root' }],
     ['/control/callback', { screen: 'callback' }],
+    ['/control/silent-renew-callback', { screen: 'silent-renew-callback' }],
     // A real organization alias that merely starts with the reserved word
     // stays an ordinary dashboard, not the callback screen.
     ['/control/callback-league', { screen: 'dashboard', organizationAlias: 'callback-league' }],
@@ -205,6 +206,10 @@ describe('parseControlPath', () => {
     ['/control/forgot-password', { screen: 'forgot-password' }],
     ['/control/reset-password', { screen: 'reset-password' }],
     ['/control/platform', { screen: 'platformAdministration' }],
+    [
+      '/control/platform/disciplines/orbital-frisbee',
+      { screen: 'disciplineDocument', disciplineAlias: 'orbital-frisbee' },
+    ],
     ['/control/liga-mendocina/roles', { screen: 'roles', organizationAlias: 'liga-mendocina' }],
     [
       '/control/liga-mendocina/audit-trail',
@@ -220,6 +225,23 @@ describe('parseControlPath', () => {
     ],
     ['/control/liga-mendocina/clubs', { screen: 'clubs', organizationAlias: 'liga-mendocina' }],
     [
+      '/control/liga-mendocina/clubs/00000000-0000-7000-8000-000000000002/portal/members',
+      {
+        screen: 'clubPortalMembers',
+        organizationAlias: 'liga-mendocina',
+        clubId: '00000000-0000-7000-8000-000000000002',
+      },
+    ],
+    [
+      '/control/liga-mendocina/clubs/00000000-0000-7000-8000-000000000002/portal/tournaments/apertura-2026/roster',
+      {
+        screen: 'clubPortalRoster',
+        organizationAlias: 'liga-mendocina',
+        clubId: '00000000-0000-7000-8000-000000000002',
+        tournamentAlias: 'apertura-2026',
+      },
+    ],
+    [
       '/control/liga-mendocina/resources',
       { screen: 'resources', organizationAlias: 'liga-mendocina' },
     ],
@@ -229,6 +251,14 @@ describe('parseControlPath', () => {
         screen: 'personProfile',
         organizationAlias: 'liga-mendocina',
         personId: '00000000-0000-7000-8000-000000000001',
+      },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026',
+      {
+        screen: 'tournamentHub',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
       },
     ],
     [
@@ -268,6 +298,14 @@ describe('parseControlPath', () => {
       },
     ],
     [
+      '/control/liga-mendocina/tournaments/apertura-2026/broadcaster',
+      {
+        screen: 'broadcaster',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+      },
+    ],
+    [
       '/control/liga-mendocina/tournaments/apertura-2026/matches/00000000-0000-7000-8000-000000000001',
       {
         screen: 'matchConsole',
@@ -283,6 +321,15 @@ describe('parseControlPath', () => {
         organizationAlias: 'liga-mendocina',
         tournamentAlias: 'apertura-2026',
         matchId: '00000000-0000-7000-8000-000000000001',
+      },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
+      {
+        screen: 'stageHub',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
       },
     ],
     [
@@ -338,11 +385,10 @@ describe('parseControlPath', () => {
   it.each([
     ['/'],
     ['/liga-mendocina'],
-    ['/control/liga-mendocina/tournaments/apertura-2026'],
-    ['/control/liga-mendocina/tournaments/apertura-2026/stages/1'],
     ['/control/liga-mendocina/tournaments/apertura-2026/stages/1/unknown'],
     ['/control/liga-mendocina/tournaments/apertura-2026/matches'],
     ['/control/liga-mendocina/persons'],
+    ['/control/platform/disciplines'],
   ])('finds no match for %s', (pathname) => {
     expect(parseControlPath(pathname)).toBeUndefined();
   });

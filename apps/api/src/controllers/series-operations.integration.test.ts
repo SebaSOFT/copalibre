@@ -435,7 +435,7 @@ describe('series operations (integration)', () => {
     expect(bracket.statusCode).toBe(200);
     const cross = bracket
       .json()
-      .matches.find((match: { series?: unknown }) => match.series !== undefined);
+      .zones[0].matches.find((match: { series?: unknown }) => match.series !== undefined);
     expect(cross).toBeDefined();
 
     // Games one to three were finalized first, then game three was corrected, then game four.

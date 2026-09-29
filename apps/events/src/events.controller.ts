@@ -4,6 +4,7 @@ import {
   Headers,
   Inject,
   NotFoundException,
+  Optional,
   Param,
   Query,
   Req,
@@ -20,6 +21,7 @@ import type { RequestWithSubject } from '@copalibre/auth';
 import type { Kysely } from 'kysely';
 import { DATABASE } from './database.token.js';
 import { ConnectionLimiter } from './stream/connection-limits.js';
+import { RealtimeTelemetry, type StreamSurface } from './stream/realtime-telemetry.js';
 import {
   DisplayTokenAuthGuard,
   type DisplayTokenRequest,
@@ -49,6 +51,7 @@ interface RawReply {
 
 interface ClosableRequest extends RequestWithSubject {
   readonly ip?: string;
+  readonly query?: Record<string, unknown>;
   readonly raw?: { on(event: 'close', listener: () => void): void };
 }
 
@@ -59,7 +62,10 @@ export class EventsController {
   private readonly subscriptions: SubscriptionService;
   private readonly limiter = new ConnectionLimiter();
 
-  constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {
+  constructor(
+    @Inject(DATABASE) private readonly db: Kysely<Database>,
+    @Optional() @Inject(RealtimeTelemetry) private readonly telemetry?: RealtimeTelemetry,
+  ) {
     this.subscriptions = SubscriptionService.fromDatabase(this.db);
   }
 
@@ -99,12 +105,22 @@ export class EventsController {
     @Res() reply: RawReply,
   ): Promise<void> {
     const organizationId = await this.organizationIdOf(organizationAlias);
-    await this.stream(request, reply, `${organizationId}:${tournamentId}`, {
-      organizationId,
-      tournamentId,
-      visibility: 'public',
-      ...(lastEventId === undefined ? {} : { afterEventId: lastEventId }),
-    });
+    await this.stream(
+      request,
+      reply,
+      `${organizationId}:${tournamentId}`,
+      {
+        organizationId,
+        tournamentId,
+        visibility: 'public',
+        ...(lastEventId === undefined ? {} : { afterEventId: lastEventId }),
+      },
+      request.query?.surface === 'kiosk'
+        ? 'tvKiosks'
+        : request.query?.surface === 'overlay'
+          ? 'overlays'
+          : 'publicSpectators',
+    );
   }
 
   /**
@@ -123,11 +139,17 @@ export class EventsController {
     @Res() reply: RawReply,
   ): Promise<void> {
     const organizationId = await this.organizationIdOf(organizationAlias);
-    await this.stream(request, reply, organizationId, {
+    await this.stream(
+      request,
+      reply,
       organizationId,
-      visibility: 'control',
-      ...(lastEventId === undefined ? {} : { afterEventId: lastEventId }),
-    });
+      {
+        organizationId,
+        visibility: 'control',
+        ...(lastEventId === undefined ? {} : { afterEventId: lastEventId }),
+      },
+      'controlConnections',
+    );
   }
 
   /**
@@ -164,12 +186,19 @@ export class EventsController {
     if (tournamentId === undefined) {
       throw new Error('DisplayTokenAuthGuard did not resolve a tournament id');
     }
-    await this.stream(request, reply, `${organizationId}:${tournamentId}`, {
-      organizationId,
-      tournamentId,
-      visibility: 'public',
-      ...(lastEventId === undefined ? {} : { afterEventId: lastEventId }),
-    });
+    const surface = request.query?.surface;
+    await this.stream(
+      request,
+      reply,
+      `${organizationId}:${tournamentId}`,
+      {
+        organizationId,
+        tournamentId,
+        visibility: 'public',
+        ...(lastEventId === undefined ? {} : { afterEventId: lastEventId }),
+      },
+      surface === 'kiosk' ? 'tvKiosks' : surface === 'overlay' ? 'overlays' : 'unclassified',
+    );
   }
 
   private async organizationIdOf(alias: string): Promise<string> {
@@ -183,6 +212,7 @@ export class EventsController {
     reply: RawReply,
     resource: string,
     query: SubscriptionQuery,
+    surface: StreamSurface,
   ): Promise<void> {
     const admission = this.limiter.admit(request.ip ?? 'unknown', resource);
     if (!admission.admitted) {
@@ -191,30 +221,35 @@ export class EventsController {
       throw new ServiceUnavailableException(admission.reason);
     }
 
-    reply.raw.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      // `no-transform` matters as much as `no-cache`: a proxy that "optimises"
-      // the body is a proxy that buffers it, and a buffered stream is a stream
-      // that arrives in bursts after the match ended.
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
-      'X-Accel-Buffering': 'no',
-    });
-
-    let open = true;
-    const close = (): void => void (open = false);
-    request.raw?.on('close', close);
-
-    const sink: StreamSink = {
-      write: (chunk) => {
-        if (!reply.raw.writableEnded) reply.raw.write(chunk);
-      },
-      isOpen: () => open && !reply.raw.writableEnded,
-    };
-
+    const releaseTelemetry = this.telemetry?.connect(surface);
     try {
+      reply.raw.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        // `no-transform` matters as much as `no-cache`: a proxy that "optimises"
+        // the body is a proxy that buffers it, and a buffered stream is a stream
+        // that arrives in bursts after the match ended.
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      });
+
+      let open = true;
+      const close = (): void => {
+        open = false;
+        releaseTelemetry?.();
+      };
+      request.raw?.on('close', close);
+
+      const sink: StreamSink = {
+        write: (chunk) => {
+          if (!reply.raw.writableEnded) reply.raw.write(chunk);
+        },
+        isOpen: () => open && !reply.raw.writableEnded,
+      };
+
       await streamEvents(this.subscriptions, sink, query);
     } finally {
+      releaseTelemetry?.();
       admission.release();
       if (!reply.raw.writableEnded) reply.raw.end();
     }

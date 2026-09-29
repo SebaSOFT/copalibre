@@ -1,3 +1,4 @@
+import helmet from '@fastify/helmet';
 import { Module, type Provider, type Type } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -111,6 +112,11 @@ export async function buildTestApp(
   const app = moduleRef.createNestApplication<NestFastifyApplication>(
     new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES }),
   );
+  await app.register(helmet, {
+    contentSecurityPolicy: false,
+    xFrameOptions: { action: 'deny' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  });
   app.enableCors({ origin: 'https://app.example.com' });
   app.useGlobalPipes(createApiValidationPipe());
   await app.init();

@@ -8,7 +8,7 @@ const meta = {
   args: {
     organizationAlias: ORG,
     tournamentName: TITLE,
-    matches: bracket,
+    zones: [{ matches: bracket }],
     names,
     hasRecordedResults: false,
     random: () => 0.25,
@@ -22,7 +22,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
-export const Empty: Story = { args: { seeds: [], matches: [] } };
+export const Empty: Story = { args: { seeds: [], zones: [] } };
 export const LockedAfterResults: Story = { args: { hasRecordedResults: true } };
 export const PartiallyAssigned: Story = {
   args: { seeds: [{ seed: 1, entrantId: ids.first, locked: false }] },

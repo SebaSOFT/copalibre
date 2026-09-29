@@ -177,3 +177,55 @@ test('7.4: the grain statement is legible with color disabled', async ({ page })
   // statement is attached and readable exactly as forced-colors leaves it.
   await expect(page.getByText('This table counts one result per series.')).toBeVisible();
 });
+
+test('0293: public standings figures and adjacent match cards keep their numeric and surface treatments without JavaScript', async ({
+  browser,
+}) => {
+  overview = {
+    ...DEFAULT_OVERVIEW,
+    matches: [
+      ...oneMatch,
+      { ...oneMatch[0], homeName: 'Norte', awayName: 'Sur', homeScore: 10, awayScore: 8 },
+    ],
+  };
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto(overviewPath);
+
+  const figures = page.locator('.cl-standings-section tbody td.cl-tabular-nums');
+  await expect(figures).toHaveCount(2);
+  for (const figure of await figures.all()) {
+    await expect(figure).toHaveCSS('font-variant-numeric', 'tabular-nums');
+  }
+  await expect(page.locator('.cl-standings-section tbody td').first()).not.toHaveClass(
+    /cl-tabular-nums/,
+  );
+
+  const cards = page.locator('.cl-match-card-grid .cl-match-card');
+  await expect(cards).toHaveCount(2);
+  const scores = cards.locator('.cl-match-card__side .cl-tabular-nums');
+  await expect(scores).toHaveCount(4);
+  for (const score of await scores.all()) {
+    await expect(score).toHaveCSS('font-variant-numeric', 'tabular-nums');
+  }
+  const bands = await cards.evaluateAll((elements) => {
+    const reference = document.createElement('div');
+    document.body.append(reference);
+    const resolve = (token: string) => {
+      reference.style.backgroundColor = `var(${token})`;
+      return getComputedStyle(reference).backgroundColor;
+    };
+    const panel = resolve('--cl-surface-panel');
+    const base = resolve('--cl-surface-base');
+    reference.remove();
+    return {
+      expected: [panel, base],
+      actual: elements.map((element) => getComputedStyle(element).backgroundColor),
+    };
+  });
+  expect(bands.expected[0]).not.toBe(bands.expected[1]);
+  expect(bands.actual).toEqual(bands.expected);
+  expect(bands.actual.every((color) => /^rgb\(/.test(color))).toBe(true);
+
+  await context.close();
+});

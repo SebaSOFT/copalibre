@@ -1,6 +1,7 @@
 import { Badge } from '../atoms/Badge.js';
 import { Card } from '../atoms/Card.js';
 import { EntrantName } from '../atoms/EntrantName.js';
+import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.js';
 import { presentState } from '../../../lib/result-state.js';
 import { seriesScore, seriesSegments, seriesPending, toSeriesInput } from '../../../lib/series.js';
 import { applyTemplate, formatClock, type MatchCardData } from '../../../lib/matches-view.js';
@@ -17,11 +18,43 @@ import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 export interface MatchCardProps {
   readonly match: MatchCardData;
   readonly labels: MatchCardLabels;
+  /** Required (openspec 0272): threaded straight into `ResponsiveTimestamp`, which no longer guesses one. */
+  readonly locale: string;
   /** Wraps the card in a link when present — the public site's report page. */
   readonly reportUrl?: string;
+  /** Opaque band assigned by a public list; other surfaces retain their default card surface. */
+  readonly band?: 'panel' | 'base';
+  /** Single-line ticker presentation (openspec 0299) — a dense listing's own row shape, not a smaller version of the full card. */
+  readonly compact?: boolean;
 }
 
-export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.JSX.Element {
+/**
+ * The compact ticker's entrant text (openspec 0299): a persisted abbreviation
+ * always wins — this never overrides an organizer's own choice, the same
+ * rule `EntrantName` follows for its overflow fallback. Absent one, it
+ * derives dotted initials from a multi-word name ("San Juan" -> "S.J.") or
+ * the first 5 characters of a single word ("River" -> "RIVER"), and falls
+ * back to "TBD" with no name at all — deterministic, so the same match
+ * always tickers the same way regardless of viewport.
+ */
+export function resolveCompactEntrant(abbreviation?: string, fullName?: string): string {
+  if (abbreviation !== undefined && abbreviation.trim() !== '') return abbreviation.trim();
+  if (fullName === undefined || fullName.trim() === '') return 'TBD';
+  const words = fullName.trim().split(/\s+/);
+  if (words.length > 1) {
+    return `${words.map((word) => word[0]?.toUpperCase()).join('.')}.`;
+  }
+  return (words[0] ?? '').slice(0, 5).toUpperCase();
+}
+
+export function MatchCard({
+  match,
+  labels,
+  locale,
+  reportUrl,
+  band,
+  compact = false,
+}: MatchCardProps): React.JSX.Element {
   const badge = presentState(match.state, labels.state);
   const scopeLine = [match.zoneName, match.groupName]
     .filter((part) => part !== undefined)
@@ -30,10 +63,48 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
     (match.homeTrace !== undefined && match.homeTrace.length > 0) ||
     (match.awayTrace !== undefined && match.awayTrace.length > 0);
 
+  if (compact) {
+    const versus = labels.versus ?? 'vs';
+    const homeAbbr = resolveCompactEntrant(match.homeAbbreviation, match.homeName);
+    const awayAbbr = resolveCompactEntrant(match.awayAbbreviation, match.awayName);
+    const hasScores = match.homeScore !== undefined && match.awayScore !== undefined;
+    const timeStr =
+      !hasScores && match.scheduledAt !== undefined
+        ? ` ${new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(new Date(match.scheduledAt))}`
+        : '';
+    const content = hasScores
+      ? `${homeAbbr} ${match.homeScore} ${versus} ${match.awayScore} ${awayAbbr}`
+      : `${homeAbbr} ${versus} ${awayAbbr}${timeStr}`;
+
+    const compactBody = (
+      <Card
+        as="article"
+        className="cl-match-card cl-match-card--compact"
+        data-match={match.matchId}
+      >
+        <span
+          aria-label={badge.label}
+          className={`cl-match-card__compact-dot ${badge.className}`.trim()}
+          role="img"
+          title={badge.label}
+        >
+          <span className="cl-visually-hidden">{badge.label}</span>
+        </span>
+        <span className="cl-match-card__compact-content">{content}</span>
+      </Card>
+    );
+
+    return reportUrl === undefined ? compactBody : <a href={reportUrl}>{compactBody}</a>;
+  }
+
   const body = (
-    <Card as="article" className="cl-match-card" data-match={match.matchId}>
+    <Card
+      as="article"
+      className={`cl-match-card${band === undefined ? '' : band === 'base' ? ' cl-band--base' : ' cl-band'}`}
+      data-match={match.matchId}
+    >
       <div className="cl-match-card__header">
-        <Badge>
+        <Badge className={badge.className}>
           <span aria-hidden="true">{badge.icon}</span>
           <span>{badge.label}</span>
         </Badge>
@@ -58,7 +129,7 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
               #{match.homePosition}
             </Badge>
           )}
-          <span className="cl-stat-tile__value">{match.homeScore ?? '—'}</span>
+          <span className="cl-stat-tile__value cl-tabular-nums">{match.homeScore ?? '—'}</span>
         </li>
         <li className="cl-match-card__side">
           <EntrantName fullName={match.awayName ?? 'TBD'} abbreviation={match.awayAbbreviation} />
@@ -70,7 +141,7 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
               #{match.awayPosition}
             </Badge>
           )}
-          <span className="cl-stat-tile__value">{match.awayScore ?? '—'}</span>
+          <span className="cl-stat-tile__value cl-tabular-nums">{match.awayScore ?? '—'}</span>
         </li>
       </ol>
 
@@ -83,12 +154,25 @@ export function MatchCard({ match, labels, reportUrl }: MatchCardProps): React.J
         </p>
       )}
 
-      {match.venueName !== undefined && (
-        <p
-          className="cl-match-card__venue"
-          title={applyTemplate(labels.venueAriaLabel, { venue: match.venueName })}
-        >
-          {match.venueName}
+      {(match.venueName !== undefined || match.scheduledAt !== undefined) && (
+        <p className="cl-match-card__venue">
+          {match.scheduledAt !== undefined && (
+            <span
+              aria-label={
+                labels.scheduledAtAriaLabel && match.scheduledAtLabel !== undefined
+                  ? applyTemplate(labels.scheduledAtAriaLabel, { time: match.scheduledAtLabel })
+                  : undefined
+              }
+            >
+              <ResponsiveTimestamp timestamp={match.scheduledAt} locale={locale} />
+            </span>
+          )}
+          {match.venueName !== undefined && match.scheduledAt !== undefined && ' · '}
+          {match.venueName !== undefined && (
+            <span title={applyTemplate(labels.venueAriaLabel, { venue: match.venueName })}>
+              {match.venueName}
+            </span>
+          )}
         </p>
       )}
 
@@ -159,7 +243,7 @@ function SeriesSummary({
   return (
     <div className="cl-match-card__series">
       <p
-        className="cl-series__score"
+        className="cl-series__score cl-tabular-nums"
         aria-label={applyTemplate(labels.seriesAriaLabel, {
           bestOf: input.bestOf,
           home: score.home,
@@ -325,7 +409,7 @@ export function ChampionshipMatchCard({
 
             {participant.score !== undefined && (
               <span
-                className={`cl-championship-card__score ${participant.winner ? 'cl-championship-card__score--winner' : ''}`.trim()}
+                className={`cl-championship-card__score cl-tabular-nums ${participant.winner ? 'cl-championship-card__score--winner' : ''}`.trim()}
               >
                 {participant.score}
               </span>
@@ -416,7 +500,7 @@ export function LiveMatchScorecard({
         </div>
 
         {/* Central Monospace Score Box */}
-        <div className="cl-scorecard__score-box">
+        <div className="cl-scorecard__score-box cl-tabular-nums">
           [ {homeTeam.score} : {awayTeam.score} ]
         </div>
 

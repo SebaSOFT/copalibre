@@ -3,12 +3,17 @@ import type { IntlShape } from 'react-intl';
 import type {
   TableLayoutSummaryResponse,
   TableProjectionResponse,
+  TableColumnResponse,
+  TableRowResponse,
 } from '@copalibre/api/src/dto/table-projections.dto.js';
 import { localizedText } from '../../../lib/localized-label.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
-import type { ClubView } from '../../../lib/overview.ts';
+import type { ClubView, StandingsRowView } from '../../../lib/overview.ts';
 import EmblemImage from '../atoms/EmblemImage.astro';
+import Button from '../atoms/Button.astro';
+import { EntrantName } from '../atoms/EntrantName.tsx';
+import { ResponsivePlayerName } from '../atoms/ResponsivePlayerName.tsx';
 
 interface Props {
   /** The declared layouts for building the tab strip. */
@@ -16,6 +21,10 @@ interface Props {
   /** The declared layout this projection came from — its own label replaces the generic heading. */
   readonly layout?: TableLayoutSummaryResponse;
   readonly projection?: TableProjectionResponse;
+  /** The tournament overview's compact rows, before a table projection exists. */
+  readonly previewRows?: readonly StandingsRowView[];
+  readonly previewGrain?: 'series' | 'match';
+  readonly headingText?: string;
   readonly activeLayoutCode?: string;
   readonly activeClubId?: string;
   readonly clubs?: readonly ClubView[];
@@ -28,6 +37,9 @@ const {
   layouts = [],
   layout,
   projection,
+  previewRows,
+  previewGrain,
+  headingText,
   activeLayoutCode,
   activeClubId,
   clubs = [],
@@ -38,11 +50,41 @@ const {
 } = Astro.props;
 
 const effectiveLayoutCode = activeLayoutCode ?? layout?.code;
-const heading = layout
-  ? localizedText(layout.label, intl.locale)
-  : intl.formatMessage(messages.standingsHeading);
-const rawColumns = projection?.columns ?? [];
-const rows = projection?.rows ?? [];
+const heading =
+  headingText ??
+  (layout
+    ? localizedText(layout.label, intl.locale)
+    : intl.formatMessage(messages.standingsHeading));
+const rawColumns: readonly TableColumnResponse[] =
+  previewRows === undefined
+    ? (projection?.columns ?? [])
+    : [
+        { code: 'rank', header: '#', format: 'number' },
+        { code: 'name', header: intl.formatMessage(messages.standingsTeam), format: 'text' },
+        {
+          code: 'points',
+          header: intl.formatMessage(messages.standingsPoints),
+          format: 'number',
+        },
+      ];
+type DisplayRow = Pick<TableRowResponse, 'actorName' | 'cells'> &
+  Partial<
+    Pick<TableRowResponse, 'actorId' | 'entrantName' | 'entrantAbbreviation' | 'nationality'>
+  >;
+const rows: readonly DisplayRow[] =
+  previewRows === undefined
+    ? (projection?.rows ?? [])
+    : previewRows.map((row) => ({
+        actorName: row.name,
+        entrantName: row.name,
+        entrantAbbreviation: row.abbreviation,
+        cells: {
+          rank: { raw: row.position, formatted: String(row.position) },
+          name: { formatted: row.name },
+          points: { raw: row.points, formatted: String(row.points) },
+        },
+      }));
+const grain = projection?.grain ?? previewGrain;
 // Relabelled only under series grain — match grain keeps the discipline's own
 // wording for the column, which already reads as counting matches.
 const columns =
@@ -61,18 +103,35 @@ const isPlayerRanking =
   layout?.target === 'player-ranking' ||
   layout?.entityGranularity === 'person' ||
   layout?.entityGranularity === 'player';
+
+// The player quick-view dialog's body is built by the inline `<script>` below,
+// client-side, after a fetch this SSR pass cannot await — so its localized
+// strings are resolved here and handed across as a JSON data island (the same
+// mechanism BracketView.astro uses for `data-journey-matches`), not called as
+// `intl.formatMessage` from within the script itself.
+const playerDialogLabels = {
+  fallbackTitle: intl.formatMessage(messages.playerProfileHeading),
+  loadingPlaceholder: intl.formatMessage(messages.standingsPlayerDialogLoadingPlaceholder),
+  loadingFetch: intl.formatMessage(messages.standingsPlayerDialogLoadingFetch),
+  careerStatisticsHeading: intl.formatMessage(messages.playerProfileCareerStatsHeading),
+  competitionHistoryHeading: intl.formatMessage(messages.playerProfileHistoryHeading),
+  columnTournament: intl.formatMessage(messages.standingsPlayerDialogColumnTournament),
+  columnTeam: intl.formatMessage(messages.standingsPlayerDialogColumnTeam),
+  columnRole: intl.formatMessage(messages.standingsPlayerDialogColumnRole),
+  noCareerStatistics: intl.formatMessage(messages.playerProfileNoStats),
+  noCompetitionHistory: intl.formatMessage(messages.playerProfileNoHistory),
+  loadError: intl.formatMessage(messages.standingsPlayerDialogLoadError),
+};
 ---
 
 <section aria-labelledby="standings-heading" class="cl-standings-section">
   <h2 id="standings-heading">{heading}</h2>
 
   {
-    projection?.grain !== undefined && (
+    grain !== undefined && (
       <p class="cl-standings-grain">
         {intl.formatMessage(
-          projection.grain === 'series'
-            ? messages.standingsGrainSeries
-            : messages.standingsGrainMatch,
+          grain === 'series' ? messages.standingsGrainSeries : messages.standingsGrainMatch,
         )}
       </p>
     )
@@ -161,19 +220,38 @@ const isPlayerRanking =
     {rows.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
     {
       rows.length > 0 && (
-        <table class="cl-table">
+        <table class="cl-table" data-sortable-table={previewRows === undefined ? true : undefined}>
           <thead>
             <tr>
-              {columns.map((column) => (
-                <th scope="col" title={localizedText(column.header, intl.locale)}>
-                  {localizedText(column.shortHeader ?? column.header, intl.locale)}
-                </th>
-              ))}
+              {columns.map((column) => {
+                const header = localizedText(column.header, intl.locale);
+                return (
+                  <th scope="col" title={header} aria-sort="none">
+                    {previewRows === undefined ? (
+                      <Button
+                        type="button"
+                        class="cl-table__sort"
+                        data-table-sort-button
+                        data-column-code={column.code}
+                        aria-label={localizedText(column.shortHeader ?? column.header, intl.locale)}
+                      >
+                        {localizedText(column.shortHeader ?? column.header, intl.locale)}
+                      </Button>
+                    ) : (
+                      localizedText(column.shortHeader ?? column.header, intl.locale)
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr>
+            {rows.map((row, index) => (
+              <tr
+                class={
+                  previewRows === undefined ? undefined : index % 2 === 0 ? 'cl-row' : 'cl-row--alt'
+                }
+              >
                 {columns.map((column) => {
                   const isPlayerNameCell =
                     isPlayerRanking &&
@@ -181,15 +259,34 @@ const isPlayerRanking =
                       column.code === 'player' ||
                       column.code === 'entrant' ||
                       column.code === 'name');
+                  const isNameCell =
+                    column.code === 'name' || column.code === 'entrant' || column.code === 'team';
                   const cellFormatted = row.cells[column.code]?.formatted ?? '—';
-                  const playerPageUrl = `${canonicalPath}/players/${row.actorId}`;
+                  const cellRaw = row.cells[column.code]?.raw;
+                  const cellMissing = cellRaw === undefined;
+                  const playerPageUrl = `${canonicalPath}/players/${row.actorId}${
+                    isPlayerRanking && effectiveLayoutCode
+                      ? `?layout=${encodeURIComponent(effectiveLayoutCode)}`
+                      : ''
+                  }`;
                   const apiProfileUrl =
                     organizationAlias && tournamentAlias && row.actorId
                       ? `/api/player-profile?organization=${encodeURIComponent(organizationAlias)}&tournament=${encodeURIComponent(tournamentAlias)}&personId=${encodeURIComponent(row.actorId)}`
                       : playerPageUrl;
 
                   return (
-                    <td class={isPlayerNameCell ? undefined : 'cl-table__num'}>
+                    <td
+                      class={
+                        isPlayerNameCell || isNameCell
+                          ? undefined
+                          : column.format === 'text'
+                            ? 'cl-table__num'
+                            : 'cl-table__num cl-tabular-nums'
+                      }
+                      data-sort-value={cellMissing ? undefined : String(cellRaw)}
+                      data-sort-type={typeof cellRaw === 'number' ? 'number' : 'text'}
+                      data-sort-missing={cellMissing ? 'true' : undefined}
+                    >
                       {isPlayerNameCell && row.actorId ? (
                         <a
                           href={playerPageUrl}
@@ -197,8 +294,22 @@ const isPlayerRanking =
                           data-player-id={row.actorId}
                           data-profile-url={apiProfileUrl}
                         >
-                          {cellFormatted}
+                          <ResponsivePlayerName
+                            client:load
+                            fullName={row.actorName ?? cellFormatted}
+                            nationalityCode={row.nationality}
+                          />
                         </a>
+                      ) : isPlayerNameCell ? (
+                        cellFormatted
+                      ) : column.code === 'name' ||
+                        column.code === 'entrant' ||
+                        column.code === 'team' ? (
+                        <EntrantName
+                          abbreviation={row.entrantAbbreviation}
+                          client:load
+                          fullName={row.entrantName ?? cellFormatted}
+                        />
                       ) : (
                         cellFormatted
                       )}
@@ -216,7 +327,9 @@ const isPlayerRanking =
   <dialog id="cl-player-dialog" class="cl-player-dialog" aria-labelledby="cl-player-dialog-title">
     <div class="cl-player-dialog__content">
       <div class="cl-player-dialog__header">
-        <h3 id="cl-player-dialog-title" class="cl-player-dialog__title">Player Profile</h3>
+        <h3 id="cl-player-dialog-title" class="cl-player-dialog__title">
+          {intl.formatMessage(messages.playerProfileHeading)}
+        </h3>
         <button
           type="button"
           class="cl-player-dialog__close"
@@ -225,17 +338,116 @@ const isPlayerRanking =
         >
       </div>
       <div id="cl-player-dialog-body" class="cl-player-dialog__body" aria-live="polite">
-        <p class="cl-player-dialog__loading">Loading player details...</p>
+        <p class="cl-player-dialog__loading">
+          {intl.formatMessage(messages.standingsPlayerDialogLoadingPlaceholder)}
+        </p>
       </div>
     </div>
   </dialog>
+  <script
+    is:inline
+    type="application/json"
+    data-player-dialog-labels
+    set:html={JSON.stringify(playerDialogLabels).replace(/</g, '\\u003c')}
+  />
 </section>
 
 <script>
+  function initTableSorting() {
+    document.querySelectorAll<HTMLTableElement>('[data-sortable-table]').forEach((table) => {
+      const body = table.tBodies.item(0);
+      if (!body) return;
+
+      let activeColumn: string | undefined;
+      let direction: 'ascending' | 'descending' = 'ascending';
+      const headers = Array.from(table.querySelectorAll<HTMLTableCellElement>('thead th'));
+
+      for (const button of table.querySelectorAll<HTMLButtonElement>('[data-table-sort-button]')) {
+        button.addEventListener('click', () => {
+          const columnCode = button.dataset.columnCode;
+          if (!columnCode) return;
+          direction =
+            activeColumn === columnCode && direction === 'ascending' ? 'descending' : 'ascending';
+          activeColumn = columnCode;
+
+          const columnIndex = headers.findIndex(
+            (header) =>
+              header.querySelector<HTMLButtonElement>('[data-table-sort-button]')?.dataset
+                .columnCode === columnCode,
+          );
+          if (columnIndex < 0) return;
+
+          const rows = Array.from(body.rows);
+          rows.sort((left, right) => {
+            const leftCell = left.cells.item(columnIndex);
+            const rightCell = right.cells.item(columnIndex);
+            const leftMissing = leftCell?.dataset.sortMissing === 'true';
+            const rightMissing = rightCell?.dataset.sortMissing === 'true';
+            if (leftMissing && rightMissing) return 0;
+            if (leftMissing) return 1;
+            if (rightMissing) return -1;
+
+            const leftValue = leftCell?.dataset.sortValue ?? '';
+            const rightValue = rightCell?.dataset.sortValue ?? '';
+            const numeric =
+              leftCell?.dataset.sortType === 'number' && rightCell?.dataset.sortType === 'number';
+            const comparison = numeric
+              ? Number(leftValue) - Number(rightValue)
+              : leftValue.localeCompare(rightValue);
+            return direction === 'ascending' ? comparison : -comparison;
+          });
+          body.append(...rows);
+
+          headers.forEach((header, index) => {
+            header.setAttribute('aria-sort', index === columnIndex ? direction : 'none');
+          });
+        });
+      }
+    });
+  }
+
+  interface PlayerDialogLabels {
+    fallbackTitle: string;
+    loadingPlaceholder: string;
+    loadingFetch: string;
+    careerStatisticsHeading: string;
+    competitionHistoryHeading: string;
+    columnTournament: string;
+    columnTeam: string;
+    columnRole: string;
+    noCareerStatistics: string;
+    noCompetitionHistory: string;
+    loadError: string;
+  }
+
+  function readPlayerDialogLabels(): PlayerDialogLabels {
+    const fallback: PlayerDialogLabels = {
+      fallbackTitle: 'Player Profile',
+      loadingPlaceholder: 'Loading player details...',
+      loadingFetch: 'Loading...',
+      careerStatisticsHeading: 'Career Statistics',
+      competitionHistoryHeading: 'Competition History',
+      columnTournament: 'Tournament',
+      columnTeam: 'Team',
+      columnRole: 'Role',
+      noCareerStatistics: 'No career statistics recorded.',
+      noCompetitionHistory: 'No competition history recorded.',
+      loadError: 'Unable to load player details.',
+    };
+    const payload = document.querySelector('[data-player-dialog-labels]');
+    if (!payload?.textContent) return fallback;
+    try {
+      return { ...fallback, ...(JSON.parse(payload.textContent) as Partial<PlayerDialogLabels>) };
+    } catch {
+      return fallback;
+    }
+  }
+
   function initPlayerDialog() {
     const dialog = document.getElementById('cl-player-dialog') as HTMLDialogElement | null;
     if (!dialog) return;
 
+    const labels = readPlayerDialogLabels();
     const body = document.getElementById('cl-player-dialog-body');
     const title = document.getElementById('cl-player-dialog-title');
     const closeBtn = dialog.querySelector('[data-close-dialog]');
@@ -249,7 +461,8 @@ const isPlayerRanking =
       link.addEventListener('click', async (e) => {
         e.preventDefault();
         const profileUrl = link.dataset.profileUrl || link.href;
-        if (body) body.innerHTML = '<p class="cl-player-dialog__loading">Loading...</p>';
+        if (body)
+          body.innerHTML = `<p class="cl-player-dialog__loading">${labels.loadingFetch}</p>`;
         if (typeof dialog.showModal === 'function') {
           dialog.showModal();
         }
@@ -279,7 +492,7 @@ const isPlayerRanking =
           const res = await fetch(profileUrl);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data: ProfileData = await res.json();
-          if (title) title.textContent = data.displayName || 'Player Profile';
+          if (title) title.textContent = data.displayName || labels.fallbackTitle;
           if (body) {
             const metaTags = [
               data.nationality
@@ -324,16 +537,16 @@ const isPlayerRanking =
             body.innerHTML = `
               <div class="cl-modal-profile">
                 ${metaTags ? `<div class="cl-modal-meta">${metaTags}</div>` : ''}
-                <h4 class="cl-modal-section-title">Career Statistics</h4>
-                ${statsItems ? `<div class="cl-modal-stats-grid">${statsItems}</div>` : '<p class="cl-modal-empty">No career statistics recorded.</p>'}
-                <h4 class="cl-modal-section-title">Competition History</h4>
-                ${historyRows ? `<table class="cl-modal-history-table"><thead><tr><th>Tournament</th><th>Team</th><th>Role</th></tr></thead><tbody>${historyRows}</tbody></table>` : '<p class="cl-modal-empty">No competition history recorded.</p>'}
+                <h4 class="cl-modal-section-title">${labels.careerStatisticsHeading}</h4>
+                ${statsItems ? `<div class="cl-modal-stats-grid">${statsItems}</div>` : `<p class="cl-modal-empty">${labels.noCareerStatistics}</p>`}
+                <h4 class="cl-modal-section-title">${labels.competitionHistoryHeading}</h4>
+                ${historyRows ? `<table class="cl-modal-history-table"><thead><tr><th>${labels.columnTournament}</th><th>${labels.columnTeam}</th><th>${labels.columnRole}</th></tr></thead><tbody>${historyRows}</tbody></table>` : `<p class="cl-modal-empty">${labels.noCompetitionHistory}</p>`}
               </div>
             `;
           }
         } catch {
           if (body) {
-            body.innerHTML = '<p class="cl-inline-alert">Unable to load player details.</p>';
+            body.innerHTML = `<p class="cl-inline-alert">${labels.loadError}</p>`;
           }
         }
       });
@@ -341,8 +554,12 @@ const isPlayerRanking =
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPlayerDialog);
+    document.addEventListener('DOMContentLoaded', () => {
+      initTableSorting();
+      initPlayerDialog();
+    });
   } else {
+    initTableSorting();
     initPlayerDialog();
   }
 </script>
@@ -393,6 +610,19 @@ const isPlayerRanking =
   }
   .cl-player-link:hover {
     text-decoration: underline;
+  }
+  .cl-table__sort {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+  }
+  .cl-table__sort:focus-visible {
+    outline: 2px solid var(--cl-focus-ring);
+    outline-offset: 2px;
   }
   .cl-player-dialog {
     border: 1px solid var(--cl-border-muted);

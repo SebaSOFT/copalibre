@@ -17,7 +17,22 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
       return Promise.resolve(value);
     }
     return storyClient<ControlApiClient>({
-      fetchRulesetOverrides: () => read({ overrides: empty ? {} : { 'scoring.pointsPerWin': 3 } }),
+      fetchRulesetOverrides: () =>
+        read({
+          overrides: empty ? {} : { 'scoring.pointsPerWin': 3 },
+          fieldPolicies: {
+            'scoring.pointsPerWin': {
+              permission: { kind: 'replaced' },
+              mutationClass: 'blocked_after_results',
+              label: 'Points per win',
+            },
+            'scoring.pointsPerDraw': {
+              permission: { kind: 'replaced' },
+              mutationClass: 'blocked_after_results',
+            },
+          },
+          disciplineDefaults: { scoring: { pointsPerWin: 2, pointsPerDraw: 1 } },
+        }),
     });
   }, [mode, intl]);
   return (

@@ -64,4 +64,43 @@ describe('tournament profile schema', () => {
     if (result.ok) return;
     expect(result.error.details?.field).toBe('winConditionOverride');
   });
+
+  it('accepts a stage with no declared allocation', () => {
+    const result = validateTournamentProfileDocument(
+      asDocument({ stages: [{ number: 1, name: 'League', format: 'round-robin' }] }),
+    );
+
+    expect(result.ok).toBe(true);
+  });
+
+  it.each([
+    ['automatic', { mode: 'automatic' }],
+    ['manual', { mode: 'manual' }],
+    ['weighted', { mode: 'weighted', attributeKey: 'rating', direction: 'higher-first' }],
+  ])('accepts a stage declaring %s allocation', (_mode, allocation) => {
+    const result = validateTournamentProfileDocument(
+      asDocument({
+        stages: [{ number: 1, name: 'League', format: 'round-robin', allocation }],
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects a weighted allocation missing its attribute key', () => {
+    const result = validateTournamentProfileDocument(
+      asDocument({
+        stages: [
+          {
+            number: 1,
+            name: 'League',
+            format: 'round-robin',
+            allocation: { mode: 'weighted', direction: 'higher-first' },
+          },
+        ],
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+  });
 });

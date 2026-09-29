@@ -8,8 +8,12 @@ Object.defineProperty(globalThis, 'TextDecoder', { value: TextDecoder, configura
 import { createPkcePair, authorizationUrl, verifyCallbackState } from './session/pkce.js';
 import {
   FORBIDDEN_STORAGE_KEYS,
+  accessTokenExpiresAtMs,
   accessTokenHasScope,
+  clearAuthMethod,
   createTokenStore,
+  readAuthMethod,
+  recordAuthMethod,
   reloadBehaviour,
 } from './session/token-store.js';
 import {
@@ -99,6 +103,40 @@ describe('the access token is never written down', () => {
   it('reloads differently per mode, decided in one place', () => {
     expect(reloadBehaviour('strict-stateless')).toBe('reauthenticate');
     expect(reloadBehaviour('pragmatic-persistent')).toBe('silent-renew');
+  });
+
+  it('reads the exp claim in milliseconds, for scheduling silent renewal', () => {
+    const payload = btoa(JSON.stringify({ exp: 1_800_000_000 }))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+    expect(accessTokenExpiresAtMs(`header.${payload}.signature`)).toBe(1_800_000_000_000);
+    expect(accessTokenExpiresAtMs('opaque-test-token')).toBeUndefined();
+    expect(accessTokenExpiresAtMs(undefined)).toBeUndefined();
+    // Malformed base64 in the payload segment: atob/JSON.parse throw, not treated as a valid expiry.
+    expect(accessTokenExpiresAtMs('header.not-valid-base64!!!.signature')).toBeUndefined();
+  });
+
+  it('remembers which login mechanism established the session, and forgets it on clear', () => {
+    expect(readAuthMethod(undefined)).toBeUndefined();
+    recordAuthMethod('native', undefined);
+    expect(readAuthMethod(undefined)).toBe('native');
+    clearAuthMethod(undefined);
+    expect(readAuthMethod(undefined)).toBeUndefined();
+  });
+
+  it('treats a storage that throws on read the same as no stored auth method', () => {
+    const throwingStorage: Storage = {
+      getItem: () => {
+        throw new Error('storage unavailable');
+      },
+      setItem: () => {},
+      removeItem: () => {},
+      clear: () => {},
+      key: () => null,
+      length: 0,
+    };
+    expect(readAuthMethod(throwingStorage)).toBeUndefined();
   });
 
   it('restores unexpired session from sessionStorage across reloads when storage is configured', () => {
@@ -348,6 +386,7 @@ describe('what the dashboard renders', () => {
     render(
       withIntl(
         <Card
+          canManageDisplayTokens
           card={card({ lifecycle })}
           onArchive={() => {}}
           onExport={() => {}}
@@ -366,6 +405,7 @@ describe('what the dashboard renders', () => {
     render(
       withIntl(
         <Card
+          canManageDisplayTokens
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
@@ -380,10 +420,34 @@ describe('what the dashboard renders', () => {
     expect(screen.getByRole('link', { name: 'Open' }).getAttribute('href')).toBe(href);
   });
 
+  it('offers a second entry point to the tournament’s stage list, alongside its title', () => {
+    render(
+      withIntl(
+        <Card
+          canManageDisplayTokens
+          card={card({ lifecycle: 'live' })}
+          onArchive={() => {}}
+          onExport={() => {}}
+          onExportConfiguration={() => {}}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    const titleHref = '/control/liga-mendocina/tournaments/apertura-2026/matches-view';
+    expect(screen.getByRole('link', { name: 'Torneo Apertura' }).getAttribute('href')).toBe(
+      titleHref,
+    );
+    expect(screen.getByRole('link', { name: 'Stages' }).getAttribute('href')).toBe(
+      '/control/liga-mendocina/tournaments/apertura-2026',
+    );
+  });
+
   it('sends a draft back into editing rather than into a match listing it has none of', () => {
     render(
       withIntl(
         <Card
+          canManageDisplayTokens
           card={card({ lifecycle: 'draft' })}
           onArchive={() => {}}
           onExport={() => {}}
@@ -400,6 +464,7 @@ describe('what the dashboard renders', () => {
 
   it('offers archiving only on a finished tournament', () => {
     const props = {
+      canManageDisplayTokens: true,
       onArchive: () => {},
       onExport: () => {},
       onExportConfiguration: () => {},
@@ -417,6 +482,7 @@ describe('what the dashboard renders', () => {
     render(
       withIntl(
         <Card
+          canManageDisplayTokens
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
@@ -439,13 +505,59 @@ describe('what the dashboard renders', () => {
     expect(screen.getByRole('button', { name: 'Export' })).toBeDefined();
   });
 
+  it('offers Broadcaster Studio inside the same export menu when the operator can manage display tokens, never as its own button (openspec 0300)', async () => {
+    render(
+      withIntl(
+        <Card
+          canManageDisplayTokens
+          card={card({ lifecycle: 'live' })}
+          onArchive={() => {}}
+          onExport={() => {}}
+          onExportConfiguration={() => {}}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    expect(screen.queryByRole('link', { name: 'Broadcaster Studio' })).toBeNull();
+    const trigger = screen.getByRole('button', { name: 'Export' });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { code: 'Enter', key: 'Enter' });
+    expect(await screen.findByRole('menuitem', { name: 'Broadcaster Studio' })).toBeDefined();
+  });
+
+  it('omits Broadcaster Studio entirely when the operator cannot manage display tokens', () => {
+    render(
+      withIntl(
+        <Card
+          canManageDisplayTokens={false}
+          card={card({ lifecycle: 'live' })}
+          onArchive={() => {}}
+          onExport={() => {}}
+          onExportConfiguration={() => {}}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    expect(screen.queryByRole('menuitem', { name: 'Broadcaster Studio' })).toBeNull();
+  });
+
   it('renders the sidenav, the cards and the activity log', () => {
     const model = buildDashboard({
       organizationId: 'org-1',
       tournaments: [card()],
       activity: [entry({ reason: 'Documentación completa' })],
     });
-    render(<Dashboard model={model} organizationAlias="liga-mendocina" />);
+    render(
+      <Dashboard
+        canCreateTournament
+        canManageDisplayTokens
+        model={model}
+        organizationAlias="liga-mendocina"
+      />,
+    );
 
     expect(screen.getByRole('link', { name: 'Torneos' })).toBeDefined();
     expect(screen.getByText('Torneo Apertura')).toBeDefined();
@@ -458,6 +570,8 @@ describe('what the dashboard renders', () => {
   it('says so when there is nothing yet, rather than showing an empty frame', () => {
     render(
       <Dashboard
+        canCreateTournament
+        canManageDisplayTokens
         model={buildDashboard({ organizationId: 'org-1', tournaments: [], activity: [] })}
         organizationAlias="liga-mendocina"
       />,
@@ -502,6 +616,8 @@ describe('what the dashboard renders', () => {
     try {
       render(
         <Dashboard
+          canCreateTournament
+          canManageDisplayTokens
           model={buildDashboard({ organizationId: 'org-1', tournaments: [card()], activity: [] })}
           organizationAlias="liga-mendocina"
         />,
@@ -564,6 +680,8 @@ describe('what the dashboard renders', () => {
 
     render(
       <Dashboard
+        canCreateTournament
+        canManageDisplayTokens
         model={buildDashboard({
           organizationId: 'org-1',
           tournaments: [card({ lifecycle: 'finished' })],
@@ -616,9 +734,19 @@ describe('what the dashboard renders', () => {
     expect(screen.getByText(/last signal/i)).toBeDefined();
   });
 
+  it('elevates the no-devices state to a structured empty-state card (openspec 0280)', () => {
+    const { container } = render(withIntl(<DeviceHeartbeat devices={[]} now={Date.now()} />));
+
+    const emptyState = container.querySelector('.cl-empty-state');
+    expect(emptyState).not.toBeNull();
+    expect(emptyState?.textContent).toContain('No TV devices provisioned yet.');
+  });
+
   it('shows no archive action for a tournament that has not finished', () => {
     render(
       <Dashboard
+        canCreateTournament
+        canManageDisplayTokens
         model={buildDashboard({ organizationId: 'org-1', tournaments: [card()], activity: [] })}
         organizationAlias="liga-mendocina"
       />,

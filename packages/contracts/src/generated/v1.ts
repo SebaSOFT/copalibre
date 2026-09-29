@@ -44,6 +44,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/diagnostics/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect installation health and aggregate telemetry */
+        get: operations["DiagnosticsController_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/diagnostics/outbox/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Manually re-enqueue selected dead letters with an atomic audit record */
+        post: operations["DiagnosticsController_retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations": {
         parameters: {
             query?: never;
@@ -205,6 +239,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/completion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tournament completion overview with per-stage and tournament-wide rollups
+         * @description Available publicly for published tournaments, and with organization-scoped authorization for unpublished tournaments.
+         */
+        get: operations["TournamentsController_completion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/export": {
         parameters: {
             query?: never;
@@ -231,6 +285,23 @@ export interface paths {
         };
         /** A tournament's matches, with the full comparator trace where relevant */
         get: operations["TournamentsController_matchesView"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrant-attribute-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A tournament's distinct recorded entrant-attribute keys */
+        get: operations["TournamentsController_entrantAttributeKeys"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1201,7 +1272,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List a tournament’s stages
+         * @description Number, name and format for every stage, plus whether each already holds a generated fixture — an organizer’s stage list carries no more sensitivity than its zone list.
+         */
+        get: operations["StagesController_list"];
         put?: never;
         /**
          * Create a stage from the tournament’s accepted registrations
@@ -1859,6 +1934,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/statistics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A person's tournament-total and match-by-match declared statistics */
+        get: operations["PublicProjectionsController_playerStatistics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/objects/discipline-background-image": {
         parameters: {
             query?: never;
@@ -1921,6 +2013,40 @@ export interface paths {
         put?: never;
         /** Accept invitation and set password for administrator */
         post: operations["NativeAuthController_acceptInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Silently renew a native session from its refresh cookie */
+        post: operations["NativeAuthController_refresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End a native session, revoking its refresh cookie */
+        post: operations["NativeAuthController_logout"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2063,6 +2189,23 @@ export interface paths {
         post?: never;
         /** Remove an installed module that no started tournament references */
         delete: operations["AdminModulesController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/modules/{alias}/document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fetch an installed discipline module's complete descriptor document */
+        get: operations["AdminModulesController_document"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2257,6 +2400,79 @@ export interface paths {
         head?: never;
         /** Edit a club's name, alias, or abbreviation */
         patch: operations["ClubsController_update"];
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/clubs/{clubId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a club's own member directory */
+        get: operations["ClubPortalController_listMembers"];
+        put?: never;
+        /** Add a new person to the club member directory */
+        post: operations["ClubPortalController_createMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/clubs/{clubId}/members/{personId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a club member's display name or alias */
+        patch: operations["ClubPortalController_updateMember"];
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/clubs/{clubId}/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the club's own teams */
+        get: operations["ClubPortalController_listTeams"];
+        put?: never;
+        /** Create a team owned by this club */
+        post: operations["ClubPortalController_createTeam"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/clubs/{clubId}/tournaments/{tournamentAlias}/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit the club's team as a pending tournament registration with its squad
+         * @description Registers the named team as a pending entrant (organizer review, unchanged, decides the rest) and applies the submitted squad in the same transaction. Every named person must already be one of the club's own members.
+         */
+        post: operations["ClubPortalController_submitRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/organizations/{organizationAlias}/venues": {
@@ -2663,6 +2879,75 @@ export interface components {
              */
             schemaVersion: string;
         };
+        DiagnosticsDatabase: {
+            connected: boolean;
+            /** @description Round-trip time of the database probe in milliseconds */
+            latencyMs: number;
+            /** @description Active connections in the serving API process pool */
+            poolActive?: number;
+            poolIdle?: number;
+            poolWaiting?: number;
+        };
+        DiagnosticsFailure: {
+            /** Format: uuid */
+            eventId: string;
+            eventType: string;
+            attempts: number;
+            error: string;
+            /** Format: date-time */
+            failedAt: string;
+        };
+        DiagnosticsOutbox: {
+            available: boolean;
+            pending?: number;
+            processed24h?: number;
+            failed?: number;
+            oldestPendingAgeSeconds?: number;
+            inFlight?: number;
+            recentFailures: components["schemas"]["DiagnosticsFailure"][];
+        };
+        DiagnosticsStorage: {
+            connected: boolean;
+            /** @enum {string} */
+            profile: "filesystem" | "s3";
+            bucketName?: string;
+            totalObjects?: number;
+            totalBytes?: number;
+        };
+        DiagnosticsRealtime: {
+            available: boolean;
+            totalConnections?: number;
+            tvKiosks?: number;
+            overlays?: number;
+            publicSpectators?: number;
+            controlConnections?: number;
+            unclassified?: number;
+            activeReplicas?: number;
+            staleReplicas?: number;
+            /** Format: date-time */
+            reportedAt?: string;
+        };
+        DiagnosticsSummary: {
+            /** @enum {string} */
+            status: "healthy" | "degraded" | "critical";
+            version: string;
+            uptimeSeconds: number;
+            /** Format: date-time */
+            sampledAt: string;
+            database: components["schemas"]["DiagnosticsDatabase"];
+            outbox: components["schemas"]["DiagnosticsOutbox"];
+            storage: components["schemas"]["DiagnosticsStorage"];
+            realtime: components["schemas"]["DiagnosticsRealtime"];
+        };
+        RetryOutboxRequest: {
+            /** @description Explicitly selected dead-letter event UUIDv7 identifiers */
+            eventIds: string[];
+        };
+        RetryOutboxResponse: {
+            retried: string[];
+            /** @description Events no longer eligible, including already retried events */
+            skipped: string[];
+        };
         OrganizationResponse: {
             /**
              * Format: uuid
@@ -2774,6 +3059,11 @@ export interface components {
             type: string;
             description: string;
             authoring?: components["schemas"]["RegistryAuthoringDefinitionResponse"];
+            /**
+             * @description A `{{paramName}}`-placeholder sentence naming this entry's own authored parameters, for rendering a configured rule in plain language. Absent entries render as `type — description`.
+             * @example {{statistic}} crosses {{threshold}}
+             */
+            phraseTemplate?: string;
         };
         HookScriptVocabularyResponse: {
             hooks: "event.recorded"[];
@@ -2824,6 +3114,87 @@ export interface components {
              * @description Object storage ID of the tournament emblem, when one has been uploaded.
              */
             emblemObjectId?: string;
+        };
+        StageCompletionResponse: {
+            /**
+             * Format: uuid
+             * @description UUIDv7 identifier
+             */
+            stageId: string;
+            /**
+             * @description 1-based stage order in the tournament
+             * @example 1
+             */
+            stageNumber: number;
+            /**
+             * @description Stage name
+             * @example Group Stage
+             */
+            stageName: string;
+            /**
+             * @description Total matches in the stage, excluding cancelled/not-required
+             * @example 12
+             */
+            totalMatches: number;
+            /**
+             * @description Resolved matches (finalized + forfeited)
+             * @example 8
+             */
+            resolvedMatches: number;
+            /**
+             * @description Live / in-progress matches
+             * @example 1
+             */
+            liveMatches: number;
+            /**
+             * @description Scheduled matches not yet played
+             * @example 3
+             */
+            scheduledMatches: number;
+            /**
+             * @description Finalized matches
+             * @example 7
+             */
+            finalizedMatches: number;
+            /**
+             * @description Forfeited matches
+             * @example 1
+             */
+            forfeitedMatches: number;
+        };
+        TournamentCompletionResponse: {
+            /**
+             * @description Total matches across all stages, excluding cancelled/not-required
+             * @example 32
+             */
+            totalMatches: number;
+            /**
+             * @description Total resolved matches across all stages (finalized + forfeited)
+             * @example 18
+             */
+            resolvedMatches: number;
+            /**
+             * @description Total live matches across all stages
+             * @example 2
+             */
+            liveMatches: number;
+            /**
+             * @description Total scheduled matches across all stages
+             * @example 12
+             */
+            scheduledMatches: number;
+            /**
+             * @description Total finalized matches across all stages
+             * @example 17
+             */
+            finalizedMatches: number;
+            /**
+             * @description Total forfeited matches across all stages
+             * @example 1
+             */
+            forfeitedMatches: number;
+            /** @description Per-stage breakdown ordered by stage number */
+            stages: components["schemas"]["StageCompletionResponse"][];
         };
         TournamentConfigurationDescriptorRefResponse: {
             /** Format: uuid */
@@ -2969,6 +3340,8 @@ export interface components {
             /** @description Present only while the match is in progress */
             clockSeconds?: number;
             venueName?: string;
+            /** Format: date-time */
+            scheduledAt?: string;
             latestEvent?: components["schemas"]["PublicMatchesViewEventResponse"];
             /** @description Absent for the implicit, single zone/group every stage defaults to */
             zoneName?: string;
@@ -2989,6 +3362,16 @@ export interface components {
         };
         ControlMatchesViewResponse: {
             matches: components["schemas"]["ControlMatchesViewMatchResponse"][];
+        };
+        EntrantAttributeKeysResponse: {
+            /**
+             * @description Distinct entrant-attribute keys recorded anywhere in this tournament, sorted. Empty when no entrant carries any attribute yet.
+             * @example [
+             *       "rating",
+             *       "seed-rank"
+             *     ]
+             */
+            keys: string[];
         };
         SeriesDeclarationRequest: {
             /**
@@ -3011,6 +3394,43 @@ export interface components {
              */
             standingsAccounting?: "series" | "match";
         };
+        StageAllocationRequest: {
+            /**
+             * @description Where this stage’s seed order comes from: the prior stage’s qualification cut (automatic), an operator’s explicit placement (manual), or a numeric entrant attribute (weighted).
+             * @example automatic
+             * @enum {string}
+             */
+            mode: "automatic" | "manual" | "weighted";
+            /**
+             * @description Required when mode is "weighted": the entrant attribute key to rank on.
+             * @example rating
+             */
+            attributeKey?: string;
+            /**
+             * @description Required when mode is "weighted": never inferred from the attribute’s values.
+             * @example higher-first
+             * @enum {string}
+             */
+            direction?: "higher-first" | "lower-first";
+        };
+        CreateTournamentStageRequest: {
+            /**
+             * @description Defaults to this stage’s 1-based position within `stages`.
+             * @example 1
+             */
+            number?: number;
+            /**
+             * @description Defaults to "Stage {number}".
+             * @example Fase de grupos
+             */
+            name?: string;
+            /** @example round-robin */
+            format: string;
+            /** @description Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross. */
+            series?: components["schemas"]["SeriesDeclarationRequest"];
+            /** @description Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view. */
+            allocation?: components["schemas"]["StageAllocationRequest"];
+        };
         CreateTournamentRequest: {
             /** @example copa-verano */
             alias: string;
@@ -3026,8 +3446,8 @@ export interface components {
              * @example 1.2.0
              */
             descriptorVersion: string;
-            /** @example round-robin */
-            format: string;
+            /** @description Every stage of the tournament, in order. At least one is required — a tournament with one stage is the common case, declared the same way as a multi-stage one. */
+            stages: components["schemas"]["CreateTournamentStageRequest"][];
             /** @description Whether anonymous/public registration intake is open for this tournament. */
             publicRegistration: boolean;
             /** @description Whether accepted entrants must check in before eligibility is locked. */
@@ -3062,8 +3482,15 @@ export interface components {
              * @default []
              */
             customScripts: components["schemas"]["HookScriptAttachmentRequest"][];
-            /** @description Declares this tournament’s crosses as multi-match series by default. Absent stays the default: no series, a single match per cross, requiring no further action. */
-            series?: components["schemas"]["SeriesDeclarationRequest"];
+            /**
+             * @description Dot-path → override value for any discipline-declared ruleset field beyond format/registration.* (already captured by their own dedicated fields above). Merged into the tournament's initial ruleset alongside those fixed fields; a value rejected by its field policy fails the entire creation.
+             * @example {
+             *       "scoring.pointsPerWin": 4
+             *     }
+             */
+            ruleOverrides?: {
+                [key: string]: unknown;
+            };
         };
         TournamentSettingsResponse: {
             /** @example Copa Verano */
@@ -3133,6 +3560,14 @@ export interface components {
         RulesetOverridesResponse: {
             /** @description The full override document after applying the edit, not only the changed fields. */
             overrides: Record<string, never>;
+            /** @description The installed discipline's field policies for every overridable field (permission, mutation class, and optional label/description) — context for explaining what each override field means and how changing it behaves, never a second override-application path. */
+            fieldPolicies: {
+                [key: string]: unknown;
+            };
+            /** @description The installed discipline's own default configuration tree, before any override. */
+            disciplineDefaults: {
+                [key: string]: unknown;
+            };
         };
         RulesetOverridesRequest: {
             /**
@@ -3153,6 +3588,8 @@ export interface components {
             name: string;
             /** @example round-robin */
             format: string;
+            /** @description The profile’s declared default seeding for this stage, if any. */
+            allocation?: components["schemas"]["StageAllocationRequest"];
         };
         TournamentProfileSummaryResponse: {
             /** Format: uuid */
@@ -3425,6 +3862,15 @@ export interface components {
             fieldPolicies?: {
                 [key: string]: unknown;
             };
+            /**
+             * @description The discipline's own default configuration tree, before any override.
+             * @example {
+             *       "scoring.pointsPerWin": 3
+             *     }
+             */
+            defaults?: {
+                [key: string]: unknown;
+            };
         };
         TimeWindowDto: {
             /**
@@ -3522,7 +3968,10 @@ export interface components {
         ConsoleSegmentResponse: {
             /** Format: uuid */
             segmentId: string;
+            /** @description Descriptor-declared segment type slug, e.g. "half" */
             type: string;
+            /** @description The bound discipline's declared display label for this segment type */
+            typeLabel?: Record<string, never>;
             number: number;
             /** @enum {string} */
             state: "pending" | "active" | "completed";
@@ -3941,6 +4390,8 @@ export interface components {
             code: string;
             header: Record<string, never>;
             shortHeader?: Record<string, never>;
+            /** @description Displayed text when the numeric value is exactly zero */
+            zeroDisplay?: string;
             /** @enum {string} */
             format: "text" | "number" | "decimal-1" | "decimal-2" | "percentage" | "fraction";
         };
@@ -3967,10 +4418,14 @@ export interface components {
              * @description Present at team/entrant granularity
              */
             entrantId?: string;
-            /** @description Resolved full entrant name for responsive team/entrant rows */
+            /** @description The row's own headline identity — a team row's own name, or a person row's own name — regardless of which column code the discipline chose for its display column */
+            actorName: string;
+            /** @description Resolved name of the row's affiliated entrant: its own identity for a team row, or the club it played for on a person row */
             entrantName?: string;
             /** @description Tournament-scoped entrant abbreviation, when resolved */
             entrantAbbreviation?: string;
+            /** @description ISO 3166-1 alpha-2 nationality code, present only at person granularity */
+            nationality?: string;
             /** @description 1-based; rows sharing a rank were not separated by `defaultSort` */
             rank: number;
             /** @description True when another row holds the same rank */
@@ -4061,16 +4516,39 @@ export interface components {
              */
             format?: string;
             slots: components["schemas"]["BracketSlotResponse"][];
+            /** @description Present only on a cross settled by a series */
+            series?: components["schemas"]["PublicSeriesStateResponse"];
+        };
+        SeedingZoneResponse: {
+            /**
+             * Format: uuid
+             * @description Absent for an un-zoned stage
+             */
+            zoneId?: string;
+            /** @description Absent for an un-zoned stage */
+            zoneName?: string;
+            matches: components["schemas"]["BracketMatchResponse"][];
         };
         SeedingResponse: {
             /** Format: uuid */
             stageId: string;
             /** @enum {string} */
             format: "single-elimination" | "double-elimination" | "round-robin" | "league";
+            /** @description The stage’s one flat seed order, across every zone — unaffected by `zones` below */
             seeds: components["schemas"]["SeedAssignmentResponse"][];
-            matches: components["schemas"]["BracketMatchResponse"][];
+            /** @description Display only: one entry per zone the stage’s fixtures already declare */
+            zones: components["schemas"]["SeedingZoneResponse"][];
             /** @description True once any match in this stage has a recorded result */
             hasRecordedResults: boolean;
+            /**
+             * @description Resolved human-readable entrant display names keyed by entrant ID
+             * @example {
+             *       "01890000-0000-7000-8000-000000000001": "Club Atlético Huracán"
+             *     }
+             */
+            names?: {
+                [key: string]: string;
+            };
         };
         PublishSeedingRequest: {
             /** @description The full seed order, not a delta — a partial order is an ambiguous bracket */
@@ -4085,25 +4563,6 @@ export interface components {
             invalidates: string[];
             /** @description True once the new seed order and fixture graph are durably persisted. Always true for a 200 response — a publish that could not persist refuses with 409 instead of returning a partial success. */
             persisted: boolean;
-        };
-        CreateStageRequest: {
-            /**
-             * @description Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.
-             * @example 1
-             */
-            number?: number;
-            /**
-             * @description Defaults to "Stage {number}".
-             * @example Fase de grupos
-             */
-            name?: string;
-            /**
-             * @description Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.
-             * @example round-robin
-             */
-            format?: string;
-            /** @description Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross, requiring no further action. */
-            series?: components["schemas"]["SeriesDeclarationRequest"];
         };
         StageResponse: {
             /** Format: uuid */
@@ -4124,6 +4583,57 @@ export interface components {
             format: string;
             /** @description Absent when this stage declares no series. */
             series?: components["schemas"]["SeriesDeclarationRequest"];
+            /** @description Absent when this stage declares no allocation. */
+            allocation?: components["schemas"]["StageAllocationRequest"];
+            /** @description Whether this stage already holds a generated fixture. Present on the list read only — `create`/`update`/`remove` do not compute it. */
+            seeded?: boolean;
+            /**
+             * @description The tournament's discipline-declared formats to choose from. Present on the list read only — `create`/`update`/`remove` do not compute it.
+             * @example [
+             *       "single-elimination",
+             *       "round-robin"
+             *     ]
+             */
+            availableFormats?: unknown[][];
+            /**
+             * @description The discipline's own explanation of a format it supports, keyed by format. Present on the list read only — `create`/`update`/`remove` do not compute it.
+             * @example {
+             *       "round-robin": "Every entrant plays every other entrant once"
+             *     }
+             */
+            formatDescriptions?: {
+                [key: string]: string | {
+                    en: string;
+                    es?: string;
+                    fr?: string;
+                    pt?: string;
+                    it?: string;
+                    de?: string;
+                    ru?: string;
+                    zh?: string;
+                };
+            };
+        };
+        CreateStageRequest: {
+            /**
+             * @description Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.
+             * @example 1
+             */
+            number?: number;
+            /**
+             * @description Defaults to "Stage {number}".
+             * @example Fase de grupos
+             */
+            name?: string;
+            /**
+             * @description Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.
+             * @example round-robin
+             */
+            format?: string;
+            /** @description Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross, requiring no further action. */
+            series?: components["schemas"]["SeriesDeclarationRequest"];
+            /** @description Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view. */
+            allocation?: components["schemas"]["StageAllocationRequest"];
         };
         UpdateStageRequest: {
             /** @example Fase de grupos (corregida) */
@@ -4133,6 +4643,8 @@ export interface components {
              * @example round-robin
              */
             format?: string;
+            /** @description Replaces this stage’s declared allocation. Absent leaves it unchanged; there is no way to clear a declared allocation back to none through this endpoint. */
+            allocation?: components["schemas"]["StageAllocationRequest"];
         };
         StageConfigurationResponse: {
             /** @description The full stage-configuration override document, not only the changed fields. */
@@ -4521,7 +5033,11 @@ export interface components {
             zoneId?: string;
             zoneName?: string;
             champion: components["schemas"]["PublicTournamentEntrantPodiumResponse"];
+            /** @description Every champion in this zone, including multiple entrants for a shared title. */
+            champions?: components["schemas"]["PublicTournamentEntrantPodiumResponse"][];
             runnerUp?: components["schemas"]["PublicTournamentEntrantPodiumResponse"];
+            /** @description Rank three only when a completed ranked stage explicitly resolves one entrant. */
+            thirdPlace?: components["schemas"]["PublicTournamentEntrantPodiumResponse"];
         };
         PublicTournamentListingItemResponse: {
             /** Format: uuid */
@@ -4610,6 +5126,10 @@ export interface components {
             ruleset: {
                 [key: string]: string;
             };
+            /** @description Each `ruleset` key's declared display label, when the installed discipline's field policy declares one — absent keys fall back to a humanized dot-path client-side (openspec 0267). */
+            rulesetLabels?: {
+                [key: string]: unknown;
+            };
             /** @enum {string} */
             status?: "upcoming" | "live" | "finished";
             winners?: components["schemas"]["PublicTournamentWinnerZoneResponse"][];
@@ -4692,6 +5212,14 @@ export interface components {
             abbreviation?: string;
             score: number;
         };
+        PublicLivePenaltyResponse: {
+            /** Format: uuid */
+            timerId: string;
+            /** Format: uuid */
+            entrantId: string;
+            /** @description Seconds remaining at response time */
+            remainingSeconds: number;
+        };
         PublicLiveMatchResponse: {
             /** Format: uuid */
             matchId: string;
@@ -4700,6 +5228,12 @@ export interface components {
             state: string;
             projectionVersion: number;
             sides: components["schemas"]["PublicLiveMatchSideResponse"][];
+            /**
+             * Format: uuid
+             * @description Explicitly projected possession side; omitted when unavailable
+             */
+            possessionEntrantId?: string;
+            activePenalties?: components["schemas"]["PublicLivePenaltyResponse"][];
         };
         PublicLiveResponse: {
             matches: components["schemas"]["PublicLiveMatchResponse"][];
@@ -4714,6 +5248,13 @@ export interface components {
             entrantId?: string;
             name?: string;
             abbreviation?: string;
+            /**
+             * Format: uuid
+             * @description The entrant's club, when it belongs to one
+             */
+            clubId?: string;
+            /** @description The club's emblem object id, when one is on record */
+            emblemObjectId?: string;
             /** @description Match this slot sources its participant from */
             matchId?: string;
             /** @description Score recorded for this side, when the match is finalized */
@@ -4732,14 +5273,26 @@ export interface components {
             position: number;
             status: string;
             format?: string;
+            /** @description The match's stage-unique ordinal for the public report page's URL — present only when this graph node resolved to a real persisted match; a purely theoretical winner-of/loser-of placeholder has none yet */
+            matchNumber?: number;
             slots: components["schemas"]["PublicBracketSlotResponse"][];
             /** @description Present only on a cross settled by a series */
             series?: components["schemas"]["PublicSeriesStateResponse"];
         };
+        PublicBracketZoneResponse: {
+            /**
+             * Format: uuid
+             * @description Absent for an un-zoned stage
+             */
+            zoneId?: string;
+            /** @description Absent for an un-zoned stage */
+            zoneName?: string;
+            matches: components["schemas"]["PublicBracketMatchResponse"][];
+        };
         PublicBracketResponse: {
             /** @description The competition format of the stage */
             format?: string;
-            matches: components["schemas"]["PublicBracketMatchResponse"][];
+            zones: components["schemas"]["PublicBracketZoneResponse"][];
         };
         PublicMatchesViewMatchResponse: {
             /** Format: uuid */
@@ -4762,6 +5315,8 @@ export interface components {
             /** @description Present only while the match is in progress */
             clockSeconds?: number;
             venueName?: string;
+            /** Format: date-time */
+            scheduledAt?: string;
             latestEvent?: components["schemas"]["PublicMatchesViewEventResponse"];
             /** @description Absent for the implicit, single zone/group every stage defaults to */
             zoneName?: string;
@@ -4822,6 +5377,24 @@ export interface components {
             competitionHistory: components["schemas"]["PublicPersonCompetitionHistoryResponse"][];
             careerStatistics: components["schemas"]["PublicPersonCareerDisciplineTotalsResponse"][];
         };
+        PlayerStatisticsMatchRowResponse: {
+            /** @description Public stage number, for linking to this match’s public report */
+            stageNumber: number;
+            /** @description Public match number within its stage, for linking to this match’s public report */
+            matchNumber: number;
+            /** @description One cell per collector-kind declared column, keyed by column code — composite and computed columns are aggregate ratios/expressions that do not apply to a single match, so they never appear here */
+            cells: components["schemas"]["TableCellResponse"];
+        };
+        PlayerStatisticsDrilldownResponse: {
+            layoutCode: string;
+            label: Record<string, never>;
+            /** @description Every non-rank declared column — collector, composite, and computed */
+            columns: components["schemas"]["TableColumnResponse"][];
+            /** @description One cell per column in `columns`, keyed by column code — the same values as this player’s own leaderboard row. Absent when the player has no recorded roster appearance anywhere in the tournament. */
+            tournamentTotal?: components["schemas"]["TableCellResponse"];
+            /** @description One row per finalized match the player is rostered in, ordered by stage then match number */
+            matches: components["schemas"]["PlayerStatisticsMatchRowResponse"][];
+        };
         LoginRequest: {
             /** Format: email */
             email: string;
@@ -4852,13 +5425,13 @@ export interface components {
             /** @description Display name for the administrator */
             name?: string;
         };
-        ForgotPasswordRequest: {
-            /** Format: email */
-            email: string;
-        };
         AuthSuccessResponse: {
             /** @description Status message */
             message: string;
+        };
+        ForgotPasswordRequest: {
+            /** Format: email */
+            email: string;
         };
         ResetPasswordRequest: {
             /** @description The reset token from the email link */
@@ -4985,6 +5558,18 @@ export interface components {
              * @example 1
              */
             removedCount: number;
+        };
+        InstalledDisciplineDocumentResponse: {
+            /** Format: uuid */
+            descriptorId: string;
+            /** @example orbital-frisbee */
+            alias: string;
+            /** @example 1.0.0 */
+            version: string;
+            /** @description The complete DisciplineDescriptor document (segment types, event definitions, statistics, rule defaults, field policies, win condition, and every other declared field) for this installed discipline. Same shape a `discipline` AuthoredModuleRequest.document accepts, plus the assigned descriptorId. */
+            document: {
+                [key: string]: unknown;
+            };
         };
         ModuleVerifyFailureResponse: {
             /** @example registry-reference */
@@ -5123,6 +5708,70 @@ export interface components {
             alias?: string;
             /** @example C I */
             abbreviation?: string;
+        };
+        ClubMemberResponse: {
+            /** Format: uuid */
+            personId: string;
+            /** @example Elías Salomón */
+            displayName: string;
+            alias?: string;
+            /**
+             * Format: date
+             * @example 2001-05-14
+             */
+            birthDate?: string;
+            /**
+             * @description ISO 3166-1 alpha-2 country code
+             * @example AR
+             */
+            nationality?: string;
+            /**
+             * Format: uuid
+             * @description object_metadata.object_id of the photo
+             */
+            photoObjectId?: string;
+        };
+        CreateClubMemberRequest: {
+            /** @example Elías Salomón */
+            displayName: string;
+            /** @description Suggested from displayName when omitted. */
+            alias?: string;
+            /**
+             * Format: date
+             * @example 2001-05-14
+             */
+            birthDate?: string;
+        };
+        UpdateClubMemberRequest: {
+            displayName?: string;
+            alias?: string;
+        };
+        ClubTeamResponse: {
+            /** Format: uuid */
+            teamId: string;
+            name: string;
+            alias?: string;
+        };
+        CreateClubTeamRequest: {
+            /** @example Talleres */
+            name: string;
+            /** @description Suggested from name when omitted. */
+            alias?: string;
+        };
+        SubmitClubRegistrationRequest: {
+            /** Format: uuid */
+            teamId: string;
+            members: components["schemas"]["TeamMembershipMemberInput"][];
+        };
+        ClubRegistrationResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            /** Format: uuid */
+            tournamentId: string;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "refused" | "withdrawn" | "checked-in";
+            /** Format: uuid */
+            teamId: string;
         };
         VenueResponse: {
             /** Format: uuid */
@@ -5371,6 +6020,13 @@ export interface components {
             number: number;
             /** @example Grupo 1 */
             name: string;
+            /**
+             * @description Entrant IDs assigned to the group, if any
+             * @example [
+             *       "01890000-0000-7000-8000-000000000001"
+             *     ]
+             */
+            entrantIds?: string[];
         };
         CreateGroupRequest: {
             /**
@@ -5577,6 +6233,48 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    DiagnosticsController_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiagnosticsSummary"];
+                };
+            };
+        };
+    };
+    DiagnosticsController_retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetryOutboxRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetryOutboxResponse"];
+                };
             };
         };
     };
@@ -5893,6 +6591,28 @@ export interface operations {
             };
         };
     };
+    TournamentsController_completion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentCompletionResponse"];
+                };
+            };
+        };
+    };
     TournamentsController_exportConfiguration: {
         parameters: {
             query?: never;
@@ -5960,6 +6680,52 @@ export interface operations {
                 };
             };
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TournamentsController_entrantAttributeKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntrantAttributeKeysResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8274,6 +9040,36 @@ export interface operations {
             };
         };
     };
+    StagesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StageResponse"][];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
     StagesController_create: {
         parameters: {
             query?: never;
@@ -9566,6 +10362,31 @@ export interface operations {
             };
         };
     };
+    PublicProjectionsController_playerStatistics: {
+        parameters: {
+            query: {
+                layout: string;
+            };
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerStatisticsDrilldownResponse"];
+                };
+            };
+        };
+    };
     PublicObjectsController_disciplineBackgroundImage: {
         parameters: {
             query: {
@@ -9649,6 +10470,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+        };
+    };
+    NativeAuthController_refresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+        };
+    };
+    NativeAuthController_logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthSuccessResponse"];
                 };
             };
         };
@@ -9925,6 +10784,51 @@ export interface operations {
                 };
             };
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    AdminModulesController_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstalledDisciplineDocumentResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10345,6 +11249,156 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClubResponse"];
+                };
+            };
+        };
+    };
+    ClubPortalController_listMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubMemberResponse"][];
+                };
+            };
+        };
+    };
+    ClubPortalController_createMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateClubMemberRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubMemberResponse"];
+                };
+            };
+        };
+    };
+    ClubPortalController_updateMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateClubMemberRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubMemberResponse"];
+                };
+            };
+        };
+    };
+    ClubPortalController_listTeams: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubTeamResponse"][];
+                };
+            };
+        };
+    };
+    ClubPortalController_createTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateClubTeamRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubTeamResponse"];
+                };
+            };
+        };
+    };
+    ClubPortalController_submitRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitClubRegistrationRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubRegistrationResponse"];
                 };
             };
         };

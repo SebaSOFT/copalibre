@@ -44,6 +44,26 @@ export const Playground: Story = {
   },
 };
 
+/** A select whose options carry a compact code badge (e.g. a language switcher). */
+export const WithBadges: Story = {
+  args: { value: 'en' },
+  render: function Render() {
+    const [value, setValue] = useState('en');
+    return (
+      <Select
+        aria-label="Language"
+        onValueChange={setValue}
+        options={[
+          { value: 'en', label: 'English', badge: 'EN' },
+          { value: 'es', label: 'Español', badge: 'ES' },
+          { value: 'fr', label: 'Français', badge: 'FR' },
+        ]}
+        value={value}
+      />
+    );
+  },
+};
+
 export const Matrix: Story = {
   args: { value: 'tournaments' },
   render: function Render() {

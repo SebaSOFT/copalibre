@@ -111,4 +111,27 @@ describe('deriveTournamentStatus', () => {
       deriveTournamentStatus('published', [{ status: 'scheduled' }, { status: 'scheduled' }]),
     ).toBe('upcoming');
   });
+
+  it('classifies a tournament decided partly by forfeit as finished (openspec 0270)', () => {
+    expect(
+      deriveTournamentStatus('started', [{ status: 'finalized' }, { status: 'forfeited' }]),
+    ).toBe('finished');
+    expect(deriveTournamentStatus('published', [{ status: 'forfeited' }])).toBe('finished');
+  });
+
+  it('excludes not-required matches from the finished check (openspec 0270)', () => {
+    expect(
+      deriveTournamentStatus('started', [{ status: 'finalized' }, { status: 'not-required' }]),
+    ).toBe('finished');
+    // Every real match is still just scheduled — a not-required game alone never finishes it.
+    expect(
+      deriveTournamentStatus('published', [{ status: 'not-required' }, { status: 'scheduled' }]),
+    ).toBe('upcoming');
+  });
+
+  it('classifies a mix of forfeited and remaining matches as live', () => {
+    expect(
+      deriveTournamentStatus('published', [{ status: 'forfeited' }, { status: 'scheduled' }]),
+    ).toBe('live');
+  });
 });

@@ -13,8 +13,7 @@ roles:
 
 ## 1. 各平台的先决条件
 
-每个角色都以一个直接从本仓库构建的多角色 Docker 镜像发布——不存在单独的"生产构建"步骤。您需要
-Docker、Docker Compose v2 和 Git；主机上无需运行其他任何东西。
+需要 Docker、Docker Compose v2 和 Git。源码包装脚本还需要主机安装 Node.js 24 和 Corepack。独立 CLI 二进制文件不需要 Node.js；请参阅[安装](/zh/help/cli/installation/)。
 
 **Linux**——从您所用发行版的包管理器或 [Docker 官方仓库](https://docs.docker.com/engine/install/)
 安装 Docker Engine 和 Compose 插件（`docker-ce`、`docker-compose-plugin`）。将您的用户添加到
@@ -33,49 +32,36 @@ PowerShell 或 `cmd.exe` 运行。`./copalibre` 是一个 POSIX `sh` 脚本；WS
 
 ## 2. 从源代码运行
 
+在仓库根目录构建两个镜像，然后在空目录中初始化安装：
+
 ```bash
 git clone https://github.com/SebaSOFT/copalibre.git
 cd copalibre
-./copalibre init      # 将非敏感默认值写入 .env，并列出所需的敏感信息
+docker build --target runtime -t copalibre:local .
+docker build --target web -t copalibre-web:local .
+mkdir my-league && cd my-league
+../copalibre init
 ```
 
-编辑 `.env`：一个强 PostgreSQL 密码、一个不透明的 `COPALIBRE_BOOTSTRAP_TOKEN`、您的 OIDC
-JWKS/issuer/audience 值（或原生的邮箱/密码身份提供方——见[角色与权限](/help/control/roles-permissions/)）、
-公开浏览器客户端 ID，以及一个受支持的邮件提供商。
+启动前编辑 `.env`：设置 `COPALIBRE_IMAGE=copalibre:local` 和 `COPALIBRE_WEB_IMAGE=copalibre-web:local` 以使用本地构建。否则 `init` 会选择与 CLI 版本对应的已发布镜像。替换开发密码和 bootstrap 令牌，配置身份认证、邮件和公开 URL。使用 `openssl rand -hex 32` 生成 `GARAGE_RPC_SECRET`；即使可选存储服务未启用，Compose 也会展开此必填值。
 
 ```bash
-./copalibre doctor    # 在任何服务启动前校验配置
-./copalibre start     # docker compose up --detach --wait —— 在本地构建镜像
-./copalibre create-admin --organization-alias my-league --organization-name "My League" \
-  --email admin@example.com
+../copalibre doctor
+../copalibre start
+../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
 
-默认情况下，`./copalibre start` 会从此检出目录构建 `copalibre:local` 和 `copalibre-web:local`——
-该构建**就是**"从源代码运行"。如果您更愿意拉取一个发布版本而非自行构建，可将
-`COPALIBRE_IMAGE`/`COPALIBRE_WEB_IMAGE` 改为指向已发布的标签。
-
-此时，整套服务已在运行，但尚无法从主机外部访问：`docker-compose.yml` 有意从不自行终止 TLS 或暴露
-公共端口。请从下面两种拓扑中选择一种，以真正将其面向用户开放。
+网关在 `http://localhost:8080`（`COPALIBRE_PORT`）提供 HTTP。Compose 也会发布服务端口；请在主机和网络层限制访问。TLS 由边缘代理终止。
 
 ## 3. 选择如何对外暴露
 
 ### 方案 A——单主机，边缘反向代理
 
-最简单的受支持拓扑：一台运行 Compose 的 Docker 主机，前面由 Caddy 或 NGINX 终止 TLS 并将流量路由
-到内部服务。上述三个平台上，`./copalibre start` 默认就是为此而构建的。
+将应用域名转发到 Compose 网络内的 `gateway:80`；若代理运行在主机上，则使用 `127.0.0.1:8080`。网关处理同源 API、认证、SSE 和网页路由；web 容器将动态页面转发到 `web-ssr`。使用 `deploy/proxy/Caddyfile` 或 `deploy/proxy/nginx.conf`，配置 TLS 和公开 URL，并关闭 SSE 缓冲。同源部署不必使用独立的 API/events 域名。
 
-1. 将 `COPALIBRE_APP_HOST`、`COPALIBRE_API_HOST` 和 `COPALIBRE_EVENTS_HOST` 设置为您的公开主机
-   名，并设置 `ACME_EMAIL`，以便代理可以自动申请证书。
-2. 将普通 API 流量路由到 `api:3001`，SSE 流量路由到 `events:3002`，公开 SSR 路由到 `web-ssr:3005`，
-   静态 control/public web 流量路由到 `web:4321`。示例配置：
-   [`deploy/proxy/Caddyfile`](https://github.com/SebaSOFT/copalibre/blob/main/deploy/proxy/Caddyfile)
-   和 [`deploy/proxy/nginx.conf`](https://github.com/SebaSOFT/copalibre/blob/main/deploy/proxy/nginx.conf)。
-   代理必须保留转发头、保持 SSE 不被缓冲，并让空闲流能挺过心跳——Caddy 示例正是为此设置了
-   `flush_interval -1`。
-3. 验证：`./copalibre doctor --check-proxy --proxy-url https://events.example/events/proxy-check`。
-
-这在 Linux、macOS 和 Windows（WSL2）上表现一致——代理只是同一个 Compose 服务栈前面的另一个容器
-（或同一主机上的一个进程）。
+```bash
+../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
+```
 
 ### 方案 B——Kubernetes（从 K3s 到企业级集群）
 
@@ -83,9 +69,17 @@ JWKS/issuer/audience 值（或原生的邮箱/密码身份提供方——见[角
 Compose 安装相同的镜像、环境约定、健康检查和迁移流程——使用默认值安装它的行为与仅使用基础 chart
 完全一致。
 
+在仓库根目录运行 Helm，事先在 `my-values.yaml` 中配置数据库、身份认证、邮件和公开 URL。两个镜像都必须使用已发布版本；1.2.0 在发布后才可用。
+
 ```bash
-helm install my-copalibre deploy/helm/copalibre/ \
-  --set image.tag=<version> --set web.image.tag=<version>
+cd ..
+helm show values deploy/helm/copalibre/ > my-values.yaml
+```
+
+```bash
+helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.0
 ```
 
 按需叠加以下这些默认关闭的可加性 `values.yaml` 分组——都无需 fork 模板：
@@ -101,7 +95,7 @@ helm install my-copalibre deploy/helm/copalibre/ \
 - **`externalSecrets`**——需要 External Secrets Operator；从您真实的密钥库而非简单的 `Secret`
   清单中获取 `DATABASE_URL`、`COPALIBRE_OBJECT_STORAGE_*` 凭据等。
 
-托管 PostgreSQL、兼容 S3 的对象存储（AWS S3、MinIO、R2、B2），或托管虚拟机路径（Kamal，
+托管 PostgreSQL、兼容 S3 的对象存储（AWS S3、Garage、R2、B2），或托管虚拟机路径（Kamal，
 `docs/deployment/kamal.md`）都属于配置，而非代码更改——`packages/persistence` 已经通用地支持这些
 目标。在触及真实集群之前，先在一次性的多节点集群上本地验证任何 chart 更改：
 

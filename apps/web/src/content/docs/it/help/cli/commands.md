@@ -1,7 +1,8 @@
 ---
 title: Riferimento comandi
 description: Ogni comando del CLI copalibre, il suo uso e le sue opzioni.
-capabilities: []
+capabilities:
+  - platform/cli-tournament-operations
 roles:
   - super-admin
   - admin

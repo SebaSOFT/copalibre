@@ -17,6 +17,7 @@ import {
   CardTitle,
 } from './card.js';
 import { Button } from './button.js';
+import { LinkButton } from './link-button.js';
 import { RadioGroup, RadioGroupItem } from './radio.js';
 import { FilePicker } from './file-picker.js';
 import { Form } from './form.js';
@@ -193,6 +194,29 @@ describe('form-control atoms', () => {
     expect(input.getAttribute('aria-describedby')).toContain('avatar-error');
   });
 
+  it('renders localized copy when a caller passes it, never a hardcoded English fallback (openspec 0285)', () => {
+    render(
+      <FilePicker
+        id="avatar-es"
+        label="Imagen de perfil"
+        accept=".png,.jpg"
+        maxSizeBytes={1024 * 1024}
+        promptText="Elegí un archivo o arrastralo aquí"
+        promptDraggingText="Soltá el archivo aquí"
+        acceptedFormatsLabel="Formatos aceptados: .png,.jpg"
+        maxSizeLabel="Tamaño máximo: 1 MB"
+        clearButtonText="Borrar"
+        formatFilesSelected={(count) => `${count} archivos seleccionados`}
+        onChange={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Elegí un archivo o arrastralo aquí')).toBeDefined();
+    expect(screen.getByText('Formatos aceptados: .png,.jpg • Tamaño máximo: 1 MB')).toBeDefined();
+    expect(screen.queryByText('Choose a file or drag here')).toBeNull();
+    expect(screen.queryByText(/Accepted formats/)).toBeNull();
+  });
+
   it('handles keyboard activation on FilePicker drop zone', () => {
     render(<FilePicker id="keyboard-file" label="Upload document" />);
     const input = screen.getByLabelText('Upload document') as HTMLInputElement;
@@ -264,6 +288,23 @@ describe('form-control atoms', () => {
       fireEvent.dragOver(zone, { dataTransfer: { files: [] } });
       fireEvent.drop(zone, { dataTransfer: { files: [file] } });
     }
+  });
+
+  it('shows the active option badge on the styled trigger (openspec 0295 task 1.2/1.7)', () => {
+    const { container } = render(
+      <Select
+        aria-label="Language"
+        onValueChange={() => {}}
+        options={[
+          { value: 'en', label: 'English', badge: 'EN' },
+          { value: 'es', label: 'Español', badge: 'ES' },
+        ]}
+        value="en"
+      />,
+    );
+    const trigger = container.querySelector('button.cl-select');
+    expect(trigger).not.toBeNull();
+    expect(within(trigger as HTMLElement).getByText('EN')).toBeDefined();
   });
 
   it('exercises Select DOM interop shims for innerHTML, querySelectorAll, and option change', () => {
@@ -430,5 +471,40 @@ describe('Button atom CTA treatments (openspec 0198)', () => {
     const className = screen.getByRole('button', { name: 'Publish' }).className;
     expect(className).toContain('cl-btn--primary');
     expect(className).toContain('cl-focusable');
+  });
+});
+
+describe('LinkButton atom (openspec 0298): Button styling on a real anchor', () => {
+  const VARIANTS = ['primary', 'secondary', 'destructive', 'destructive-outline'] as const;
+
+  it.each(VARIANTS)('renders the %s variant class on an <a>', (variant) => {
+    render(
+      <LinkButton href="/somewhere" variant={variant}>
+        Go
+      </LinkButton>,
+    );
+    const link = screen.getByRole('link', { name: 'Go' });
+    expect(link.className).toContain(`cl-btn--${variant}`);
+    expect(link.getAttribute('href')).toBe('/somewhere');
+  });
+
+  it('defaults to the primary variant, carries the chamfered geometry, and stays keyboard-focusable', () => {
+    render(<LinkButton href="/somewhere">Go</LinkButton>);
+    const className = screen.getByRole('link', { name: 'Go' }).className;
+    expect(className).toContain('cl-btn--primary');
+    expect(className).toContain('cl-chamfer');
+    expect(className).toContain('cl-chamfer--control');
+    expect(className).toContain('cl-focusable');
+  });
+
+  it('does not double-apply chamfer when the caller supplies its own', () => {
+    render(
+      <LinkButton className="cl-chamfer cl-chamfer--tr" href="/somewhere">
+        Go
+      </LinkButton>,
+    );
+    const className = screen.getByRole('link', { name: 'Go' }).className;
+    expect(className.match(/cl-chamfer(?![\w-])/g)).toHaveLength(1);
+    expect(className).toContain('cl-chamfer--tr');
   });
 });

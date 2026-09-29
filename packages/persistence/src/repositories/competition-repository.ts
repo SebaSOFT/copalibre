@@ -6,6 +6,7 @@ import {
   validateGroup,
   validateSeason,
   validateZone,
+  foldTournamentCompletion,
 } from '@copalibre/domain';
 import type {
   Fixture,
@@ -22,6 +23,8 @@ import type {
   Stage,
   TournamentFormat,
   Zone,
+  RawStageStatusCount,
+  TournamentCompletionSummary,
 } from '@copalibre/domain';
 import type { Kysely, Transaction } from 'kysely';
 import { InvariantViolationError, NotFoundError } from '../errors.js';
@@ -2020,7 +2023,14 @@ export class CompetitionRepository {
       entityId: recorded.matchId,
       eventType: 'match.event-recorded',
       projectionVersion: recorded.sequence,
-      payload: { eventId: recorded.eventId, definitionCode: recorded.definitionCode },
+      payload: {
+        eventId: recorded.eventId,
+        matchId: recorded.matchId,
+        definitionCode: recorded.definitionCode,
+        occurredAt: recorded.occurredAt,
+        ...(recorded.side === undefined ? {} : { side: recorded.side }),
+        ...(recorded.personId === undefined ? {} : { personId: recorded.personId }),
+      },
     });
 
     return recorded;
@@ -2219,5 +2229,48 @@ export class CompetitionRepository {
 
     const rows = await query.orderBy('matches.created_at').orderBy('matches.match_id').execute();
     return rows.map((row) => row.match_id);
+  }
+
+  /**
+   * Per-stage match counts grouped by status for a tournament.
+   * Uses a single GROUP BY query across stages, fixtures, and matches.
+   * Stages with zero fixtures/matches return a single row with status = null and count = 0.
+   */
+  async countTournamentMatchesByStatus(
+    tournamentId: string,
+  ): Promise<readonly RawStageStatusCount[]> {
+    const rows = await this.db
+      .selectFrom('stages')
+      .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
+      .leftJoin('fixtures', 'fixtures.stage_id', 'stages.stage_id')
+      .leftJoin('matches', 'matches.fixture_id', 'fixtures.fixture_id')
+      .select([
+        'stages.stage_id as stageId',
+        'stages.number as stageNumber',
+        'stages.name as stageName',
+        'matches.status as status',
+        this.db.fn.count<string>('matches.match_id').as('count'),
+      ])
+      .where('seasons.tournament_id', '=', tournamentId)
+      .groupBy(['stages.stage_id', 'stages.number', 'stages.name', 'matches.status'])
+      .orderBy('stages.number', 'asc')
+      .execute();
+
+    return rows.map((r) => ({
+      stageId: r.stageId,
+      stageNumber: r.stageNumber,
+      stageName: r.stageName,
+      status: r.status,
+      count: parseInt(String(r.count), 10) || 0,
+    }));
+  }
+
+  /**
+   * Tournament-wide completion summary rolled up across every stage.
+   * Reuses the platform definition: resolved = finalized + forfeited.
+   */
+  async getTournamentCompletion(tournamentId: string): Promise<TournamentCompletionSummary> {
+    const counts = await this.countTournamentMatchesByStatus(tournamentId);
+    return foldTournamentCompletion(counts);
   }
 }

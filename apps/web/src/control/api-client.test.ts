@@ -113,7 +113,7 @@ describe('the control API client', () => {
       name: 'Copa Verano',
       descriptorId: 'd-1',
       descriptorVersion: '1.0.0',
-      format: 'round-robin',
+      stages: [{ number: 1, format: 'round-robin' }],
       publicRegistration: true,
       requiresCheckIn: true,
       customScripts: [],
@@ -122,7 +122,7 @@ describe('the control API client', () => {
     expect(authorization).toBe('Bearer token-1');
     expect(JSON.parse(body)).toMatchObject({
       descriptorVersion: '1.0.0',
-      format: 'round-robin',
+      stages: [{ number: 1, format: 'round-robin' }],
       publicRegistration: true,
       requiresCheckIn: true,
     });
@@ -321,6 +321,7 @@ describe('the control API client', () => {
       !client.fetchTournamentSettings ||
       !client.previewTournamentSettings ||
       !client.updateTournamentSettings ||
+      !client.listStages ||
       !client.updateStage ||
       !client.deleteStage ||
       !client.renameZone ||
@@ -336,6 +337,7 @@ describe('the control API client', () => {
     await client.fetchTournamentSettings('liga-orbital', 'copa-verano');
     await client.previewTournamentSettings('liga-orbital', 'copa-verano', { region: 'Europe' });
     await client.updateTournamentSettings('liga-orbital', 'copa-verano', { region: 'Europe' });
+    await client.listStages('liga-orbital', 'copa-verano');
     await client.updateStage('liga-orbital', 'copa-verano', 1, { name: 'Fase 1' });
     await client.deleteStage('liga-orbital', 'copa-verano', 1);
     await client.renameZone('liga-orbital', 'copa-verano', 1, 1, { name: 'Zona 1' });
@@ -359,6 +361,10 @@ describe('the control API client', () => {
         url: '/organizations/liga-orbital/tournaments/copa-verano/settings',
         method: 'PUT',
         body: { region: 'Europe' },
+      },
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/stages',
+        method: 'GET',
       },
       {
         url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1',
@@ -396,6 +402,37 @@ describe('the control API client', () => {
         method: 'DELETE',
       },
     ]);
+  });
+
+  it("parses a stage's availableFormats/formatDescriptions through unresolved (openspec 0251 task 3.1)", async () => {
+    const client = createControlApiClient({
+      accessToken: () => 'token-admin',
+      fetch: async () =>
+        response([
+          {
+            stageId: '01890000-0000-7000-8000-000000000001',
+            seasonId: '01890000-0000-7000-8000-000000000002',
+            number: 1,
+            name: 'Fase de grupos',
+            format: 'round-robin',
+            seeded: false,
+            availableFormats: ['round-robin', 'single-elimination'],
+            formatDescriptions: {
+              'round-robin': 'Every entrant plays every other entrant once',
+              'single-elimination': { en: 'Single elimination bracket', es: 'Eliminación directa' },
+            },
+          },
+        ]),
+    });
+    if (!client.listStages) throw new Error('listStages must be available');
+
+    const stages = await client.listStages('liga-orbital', 'copa-verano');
+
+    expect(stages[0]?.availableFormats).toEqual(['round-robin', 'single-elimination']);
+    expect(stages[0]?.formatDescriptions).toEqual({
+      'round-robin': 'Every entrant plays every other entrant once',
+      'single-elimination': { en: 'Single elimination bracket', es: 'Eliminación directa' },
+    });
   });
 
   it('calls the ruleset-override and stage-configuration editing endpoints (openspec 0169)', async () => {
@@ -607,5 +644,44 @@ describe('the control API client', () => {
     expect(tournamentEmblemUrl('liga-orbital', 'copa-verano', 'https://api.copalibre.test')).toBe(
       'https://api.copalibre.test/organizations/liga-orbital/tournaments/copa-verano/emblem',
     );
+  });
+
+  it('fetches tournament completion with authorization token', async () => {
+    const calls: Array<{ url: string; method: string; token?: string }> = [];
+    const client = createControlApiClient({
+      accessToken: () => 'control-token',
+      fetch: async (input, init) => {
+        const headers =
+          init?.headers instanceof Headers ? init.headers : new Headers(init?.headers);
+        calls.push({
+          url: String(input),
+          method: init?.method ?? 'GET',
+          token: headers.get('authorization') ?? undefined,
+        });
+        return response({
+          totalMatches: 10,
+          resolvedMatches: 6,
+          liveMatches: 2,
+          scheduledMatches: 2,
+          stages: [],
+        });
+      },
+    });
+
+    const completion = await client.fetchCompletion?.('liga-orbital', 'copa-verano');
+    expect(completion).toEqual({
+      totalMatches: 10,
+      resolvedMatches: 6,
+      liveMatches: 2,
+      scheduledMatches: 2,
+      stages: [],
+    });
+    expect(calls).toEqual([
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/completion',
+        method: 'GET',
+        token: 'Bearer control-token',
+      },
+    ]);
   });
 });

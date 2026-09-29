@@ -155,3 +155,101 @@ cue alongside colour after relocation.
 #### Scenario: A public live card is reused
 - **WHEN** a public live card, badge, or ticker appears on more than one page
 - **THEN** pages compose the owned public component rather than redefining its colour and layout rules
+
+### Requirement: A match report shows the match's position in its stage
+A public match report page for a match belonging to a bracket-format stage SHALL show a compact view
+of that stage's structure with the current match emphasized, so a visitor can see where the match sits
+without leaving the page. The panel SHALL resolve its presentation through declared tokens and SHALL
+NOT distinguish the emphasized match by colour alone, consistent with the existing "Public live
+presentation resolves through declared tokens" requirement.
+
+#### Scenario: A match report shows its bracket context
+- **WHEN** a visitor opens the report page for a match in a bracket-format stage
+- **THEN** the page shows a condensed rendering of that stage's bracket with the current match visually
+  emphasized among the other matches
+
+#### Scenario: A non-bracket stage shows no bracket context panel
+- **WHEN** a visitor opens the report page for a match in a stage whose format is not bracket-shaped
+  (round robin, league, placement)
+- **THEN** the page shows no bracket-context panel rather than a misleading or empty one
+
+#### Scenario: The context panel is read-only orientation, not a duplicate bracket page
+- **WHEN** a visitor interacts with the bracket-context panel on a match report page
+- **THEN** the panel offers a way to reach the stage's full bracket page rather than replicating its
+  full interactive structure inline
+
+### Requirement: A spectator can highlight one entrant's path through the bracket
+The public bracket view SHALL let a visitor activate one entrant named in it and, on activation, SHALL
+visually emphasize every match on that entrant's path (every match it occupies a slot in, plus, only
+while it remains alive, its potential winning chain of not-yet-resolved matches) while every other match
+renders at reduced emphasis. The distinction SHALL NOT rely on reduced emphasis alone: a path match
+SHALL carry an explicit marker in addition to full presentation. The bracket SHALL remain fully correct
+and complete with no entrant highlighted and with JavaScript unavailable, identically to its behavior
+before this requirement existed.
+
+#### Scenario: Activating an entrant highlights its path
+- **WHEN** a visitor activates an entrant named in the bracket
+- **THEN** every match that entrant has played, and — while still alive — its next not-yet-resolved
+  match, renders with full presentation and an explicit path marker, and every other match renders at
+  reduced emphasis
+
+#### Scenario: An eliminated entrant's path stops at elimination
+- **WHEN** a visitor activates an entrant that a resolved match has already eliminated
+- **THEN** the highlighted path includes every match that entrant played and ends there, with no
+  hypothetical future match included
+
+#### Scenario: The bracket works with no entrant activated and no JavaScript
+- **WHEN** a visitor with JavaScript unavailable views the bracket
+- **THEN** every match, slot, and outcome renders completely and correctly, with no entrant activation
+  control appearing to offer functionality that cannot work
+
+#### Scenario: Path marking is not colour-dependent
+- **WHEN** an entrant's path is highlighted
+- **THEN** a path match is distinguishable from a non-path match by more than colour or opacity alone
+
+#### Scenario: A first loss continues into the losers' bracket
+- **WHEN** the selected entrant lost a resolved match with a declared `loser-of` continuation
+- **THEN** the path follows that continuation and does not classify the first loss as elimination
+
+#### Scenario: Graph identity survives repeated round positions
+- **WHEN** multiple matches have the same position in different rounds or branches
+- **THEN** highlighting follows exact structural match/source ids without confusing those nodes
+
+#### Scenario: Highlighting can be cleared with a keyboard
+- **WHEN** the visitor activates the selected entrant again or presses Escape within the bracket
+- **THEN** all matches return to normal emphasis and activation buttons expose their pressed state
+
+### Requirement: Public live dashboard renders unified match hero without duplicate cards
+The public live dashboard SHALL render active live matches through a single unified presentation tier, ensuring each in-progress match is displayed once with its state, score, and entrant names. An elapsed clock SHALL appear when the live projection supplies one. It SHALL NOT render a duplicate static card section alongside the interactive real-time island.
+
+#### Scenario: Live matches are active
+- **WHEN** a tournament has one or more matches in state `live`
+- **THEN** each live match is rendered exactly once within the live match grid with live scores, state, entrant names, and elapsed time when supplied
+
+#### Scenario: Persisted active match reaches the public live view
+- **WHEN** a published tournament has a persisted match with status `in-progress`
+- **THEN** the public live response includes that match with public state `live`
+
+#### Scenario: Server render and client island agree
+- **WHEN** the live dashboard renders server-side and hydrates the client island
+- **THEN** the initial server markup is adopted by the real-time client without re-rendering duplicate elements or shifting card positions
+
+### Requirement: Public live dashboard displays structured empty state when no matches are active
+When the requested tournament has no matches currently in state `live`, the public live dashboard SHALL display an explicit empty-state notification card explaining that no matches are currently in progress, rather than an empty void or an isolated last-known-state alert at the page footer.
+
+#### Scenario: No matches currently in progress
+- **WHEN** a tournament has zero matches in state `live`
+- **THEN** the dashboard renders an empty-state container informing the user that no matches are currently live, positioned at the top of the live section
+- **AND** the next scheduled kickoff appears when one is available
+- **AND** the dislocated footer alert is not rendered in isolation
+
+### Requirement: Public live dashboard composes owned standings and timestamp primitives
+The public live dashboard SHALL compose owned UI library components for standings tables and scheduled kickoff timestamps, avoiding raw `<table>` elements and unformatted ISO timestamp strings.
+
+#### Scenario: Leaders standings table renders with owned tokens
+- **WHEN** the live dashboard displays tournament leaders or standings
+- **THEN** the table renders using alternating row ink tokens, right-aligned tabular numeric stats, and owned table primitives rather than unstyled raw HTML elements
+
+#### Scenario: Upcoming matches display localized kickoff times
+- **WHEN** the live dashboard lists upcoming fixtures
+- **THEN** each scheduled time is formatted using the visitor's resolved locale and localized message descriptors, never a raw ISO 8601 string or hardcoded English separators

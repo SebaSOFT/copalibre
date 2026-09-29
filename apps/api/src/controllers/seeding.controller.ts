@@ -25,6 +25,8 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
+  AllocationError,
+  allocateSeeds,
   classifyEngineMutation,
   generateFixtures,
   isDuelMatch,
@@ -37,6 +39,7 @@ import {
   EnrollmentRepository,
   InvariantViolationError,
   StageReadModel,
+  TournamentRepository,
   withTransaction,
   type Database,
   type StageMatchRecord,
@@ -53,7 +56,9 @@ import {
   SeedingResponse,
 } from '../dto/standings.dto.js';
 import { resolveTournament } from './standings.controller.js';
-import { readStageSeries } from './stage-series.js';
+import { resolveStageZones } from './bracket-zones.js';
+import { readStageSeries, readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
+import { PublicSeriesStateResponse } from '../dto/public-tournament.dto.js';
 import { DATABASE } from '../database.token.js';
 
 /**
@@ -90,28 +95,110 @@ export class SeedingController {
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
     @Req() request: RequestWithSubject,
   ): Promise<SeedingResponse> {
-    const { record, stageId } = await this.stage(
+    const { record, stageId, tournamentId } = await this.stage(
       organizationAlias,
       tournamentAlias,
       stageNumber,
       request,
     );
 
-    const graph = this.graphOf(record.format, record.entrantIds);
-    const persisted = await new StageReadModel(this.db).matches(stageId);
-
-    const ambiguousPositions = ambiguousRoundPositions(graph.matches);
+    const seedOrder = await this.seedOrderFor(stageId, record.entrantIds, tournamentId);
     const matchFormat = matchFormatOf(record.overrides);
+    const readModel = new StageReadModel(this.db);
+
+    // Seed order/publish stay scoped to the stage's one flat entrant list — only the canvas
+    // *display* below is broken out per zone, matching design.md 0246 Decision 3b: this display
+    // fix does not touch how a stage is seeded or reseeded.
+    const zones = await resolveStageZones(this.db, stageId);
+    const zoneResponses = await Promise.all(
+      zones.map(async (zone) => {
+        // The implicit (un-zoned) case reuses `record` as-is: it already carries `this.stage()`'s
+        // no-fixtures-yet substitution (accepted registrations in registration order), which a
+        // fresh `StageReadModel.stageRecord` call here would not. A real declared zone always has
+        // fixtures already generated for it, so no such substitution applies there.
+        const zoneRecord =
+          zone.zoneId === undefined
+            ? record
+            : await readModel.stageRecord(stageId, undefined, zone.zoneId);
+        const persisted = await readModel.matches(stageId, undefined, zone.zoneId);
+        const graph = this.graphOf(record.format, zoneRecord?.entrantIds ?? []);
+        const ambiguousPositions = ambiguousRoundPositions(graph.matches);
+        const seriesByPosition = await readStageSeriesByPosition(this.db, {
+          tournamentId,
+          stageId,
+          records: persisted,
+        });
+
+        return {
+          ...zone,
+          matches: graph.matches.map((match) => {
+            const series = seriesByPosition.get(roundPositionKey(match));
+            return toBracketMatch(match, persisted, {
+              ambiguousPositions,
+              matchFormat,
+              ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
+            });
+          }),
+        };
+      }),
+    );
+    const resolvedNamesMap = await new EnrollmentRepository(this.db).resolveEntrantNames(
+      record.entrantIds,
+    );
+    const names: Record<string, string> = {};
+    for (const [entrantId, entry] of resolvedNamesMap) {
+      names[entrantId] = entry.name;
+    }
 
     return {
       stageId,
       format: record.format,
-      seeds: record.entrantIds.map((entrantId, index) => ({ seed: index + 1, entrantId })),
-      matches: graph.matches.map((match) =>
-        toBracketMatch(match, persisted, { ambiguousPositions, matchFormat }),
-      ),
+      seeds: seedOrder.map((entrantId, index) => ({ seed: index + 1, entrantId })),
+      zones: zoneResponses,
       hasRecordedResults: record.hasRecordedResults,
+      names,
     };
+  }
+
+  /**
+   * Pre-fills the seed order from the stage's declared `StageAllocation` when
+   * one exists and can be resolved without operator input (`automatic`,
+   * `weighted`). `manual` and an undeclared allocation both keep today's
+   * behavior: the entrants in `entrantIds` order, left for the operator to
+   * reorder by hand. A resolution failure (e.g. a weighted attribute missing
+   * on an entrant) falls back the same way rather than failing this read.
+   */
+  private async seedOrderFor(
+    stageId: string,
+    entrantIds: readonly string[],
+    tournamentId: string,
+  ): Promise<readonly string[]> {
+    const configuration = await new TournamentRepository(this.db).findLatestStageConfiguration(
+      stageId,
+    );
+    const allocation = configuration?.allocation;
+    if (allocation === undefined || allocation.mode === 'manual') return entrantIds;
+
+    try {
+      const attributesByEntrant =
+        allocation.mode === 'weighted'
+          ? await new EnrollmentRepository(this.db).listTournamentAttributes(tournamentId)
+          : undefined;
+
+      const outcome = allocateSeeds({
+        allocation,
+        entrants: entrantIds.map((entrantId) => ({
+          entrantId,
+          attributes: attributesByEntrant?.get(entrantId),
+        })),
+        qualified: entrantIds,
+        slots: entrantIds.length,
+      });
+      return outcome.seeds.map((seed) => seed.entrantId);
+    } catch (error) {
+      if (error instanceof AllocationError) return entrantIds;
+      throw error;
+    }
   }
 
   @Post('seeding')
@@ -312,6 +399,7 @@ export function toBracketMatch(
   options: {
     readonly ambiguousPositions?: ReadonlySet<string>;
     readonly matchFormat?: string;
+    readonly series?: PublicSeriesStateResponse;
   } = {},
 ): BracketMatchResponse {
   const key = roundPositionKey(match);
@@ -351,6 +439,7 @@ export function toBracketMatch(
           : { resultReason: recorded.resultReasons[index] }),
       };
     }),
+    ...(options.series === undefined ? {} : { series: options.series }),
   };
 }
 

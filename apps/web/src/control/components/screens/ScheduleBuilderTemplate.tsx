@@ -168,9 +168,13 @@ export function ScheduleBuilderTemplate({
     );
   }
 
+  const stageHubHref = `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`;
   const breadcrumbNode = (
     <span>
-      {organizationAlias} / {tournamentAlias} / Stage {stageNumber}
+      {organizationAlias} / {tournamentAlias} /{' '}
+      <a className="cl-focusable" href={stageHubHref} onClick={controlLinkClick(stageHubHref)}>
+        <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
+      </a>
     </span>
   );
 

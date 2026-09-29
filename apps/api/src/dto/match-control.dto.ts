@@ -59,8 +59,13 @@ export class ConsoleSegmentResponse {
   @ApiProperty({ format: 'uuid' })
   segmentId!: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Descriptor-declared segment type slug, e.g. "half"' })
   type!: string;
+
+  @ApiPropertyOptional({
+    description: "The bound discipline's declared display label for this segment type",
+  })
+  typeLabel?: string | LocalizedLabel;
 
   @ApiProperty()
   number!: number;

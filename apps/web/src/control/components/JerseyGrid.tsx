@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { isSupportedLanguage, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
 import { EntrantName } from '../../components/ui/atoms/EntrantName.js';
+import { ResponsivePlayerName } from '../../components/ui/atoms/ResponsivePlayerName.js';
 import {
   clubEmblemUrl,
   type ConsoleRoster,
@@ -9,7 +10,6 @@ import {
   type ConsoleRosterRole,
   type ConsoleSecondaryActorField,
 } from '../lib/api-client.js';
-import { countryFlag } from '../lib/country.js';
 import { memberByNumber } from '../lib/match-console.js';
 import { Badge } from './ui/atoms/badge.js';
 import { FramedImage } from './FramedImage.js';
@@ -261,12 +261,11 @@ function JerseyButton({
       type="button"
     >
       <span style={jerseyNumberStyle}>{member.number ?? '—'}</span>
-      <span style={jerseyNameStyle}>
-        {member.nationality !== undefined && (
-          <span aria-hidden="true">{countryFlag(member.nationality)} </span>
-        )}
-        {member.name}
-      </span>
+      <ResponsivePlayerName
+        fullName={member.name}
+        nationalityCode={member.nationality}
+        style={jerseyNameStyle}
+      />
       {member.roles && member.roles.length > 0 && (
         <span style={badgeRowStyle}>
           {member.roles.map((code) => {

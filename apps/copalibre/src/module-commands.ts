@@ -36,6 +36,8 @@ import {
   listModulesOverHttp,
   removeModuleOverHttp,
   verifyModulesOverHttp,
+  type ModuleVerifyResult,
+  type RemoveModuleReport,
 } from './module-commands-http.js';
 
 export { allowListedSources, resolveSource, runningCopalibreVersion };
@@ -129,7 +131,7 @@ export async function moduleAdd(
   }
 }
 
-async function moduleAddDirect(
+export async function moduleAddDirect(
   alias: string,
   range: string | undefined,
   source: ModuleSource,
@@ -260,6 +262,20 @@ export async function moduleRemove(
     }
   }
 
+  try {
+    const report = await moduleRemoveDirect(alias, environment);
+    process.stdout.write(`Removed "${report.alias}" (${report.removedCount} version(s))\n`);
+    return 0;
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    return 1;
+  }
+}
+
+export async function moduleRemoveDirect(
+  alias: string,
+  environment: NodeJS.ProcessEnv,
+): Promise<RemoveModuleReport> {
   const db = openDatabase(environment);
   const storage = openStorage(environment);
   try {
@@ -267,8 +283,7 @@ export async function moduleRemove(
     const tournaments = new TournamentRepository(db);
     const installed = await modules.findByAlias(alias);
     if (installed.length === 0) {
-      process.stderr.write(`No installed module named "${alias}"\n`);
-      return 1;
+      throw new Error(`No installed module named "${alias}"`);
     }
 
     const referencing = new Set<string>();
@@ -286,10 +301,9 @@ export async function moduleRemove(
       for (const tournamentAlias of aliases) referencing.add(tournamentAlias);
     }
     if (referencing.size > 0) {
-      process.stderr.write(
-        `Cannot remove "${alias}": referenced by started tournament(s): ${[...referencing].join(', ')}\n`,
+      throw new Error(
+        `Cannot remove "${alias}": referenced by started tournament(s): ${[...referencing].join(', ')}`,
       );
-      return 1;
     }
 
     const actor = environment.USER ?? 'copalibre-cli';
@@ -305,8 +319,7 @@ export async function moduleRemove(
         }),
       );
     }
-    process.stdout.write(`Removed "${alias}" (${installed.length} version(s))\n`);
-    return 0;
+    return { alias, removedCount: installed.length };
   } finally {
     await db.destroy();
   }
@@ -318,36 +331,42 @@ export async function moduleVerify(
   environment: NodeJS.ProcessEnv,
 ): Promise<number> {
   const credential = await credentialFor();
-  if (credential) {
-    const results = await verifyModulesOverHttp(credential.apiUrl, credential.token);
-    let ok = true;
-    for (const result of results) {
-      if (result.ok) {
-        process.stdout.write(`PASS ${result.alias}@${result.version}\n`);
-        continue;
-      }
-      ok = false;
-      process.stdout.write(`FAIL ${result.alias}@${result.version}\n`);
-      for (const failure of result.failures) {
-        process.stdout.write(`  [${failure.stage}] ${failure.message}\n`);
-      }
+  const results = credential
+    ? await verifyModulesOverHttp(credential.apiUrl, credential.token)
+    : await moduleVerifyDirect(environment);
+  let ok = true;
+  for (const result of results) {
+    if (result.ok) {
+      process.stdout.write(`PASS ${result.alias}@${result.version}\n`);
+      continue;
     }
-    return ok ? 0 : 1;
+    ok = false;
+    process.stdout.write(`FAIL ${result.alias}@${result.version}\n`);
+    for (const failure of result.failures) {
+      process.stdout.write(`  [${failure.stage}] ${failure.message}\n`);
+    }
   }
+  return ok ? 0 : 1;
+}
 
+export async function moduleVerifyDirect(
+  environment: NodeJS.ProcessEnv,
+): Promise<readonly ModuleVerifyResult[]> {
   const db = openDatabase(environment);
   const storage = openStorage(environment);
   try {
     const modules = new InstalledModuleRepository(db);
     const installed = await modules.list();
-    let ok = true;
+    const results: ModuleVerifyResult[] = [];
     for (const module_ of installed) {
       const document = await documentFor(db, module_);
       if (!document) {
-        process.stdout.write(
-          `FAIL ${module_.alias}@${module_.version}: installed document is missing\n`,
-        );
-        ok = false;
+        results.push({
+          alias: module_.alias,
+          version: module_.version,
+          ok: false,
+          failures: [{ stage: 'installed-document', message: 'installed document is missing' }],
+        });
         continue;
       }
       const assets = await modules.findAssetsByModuleId(module_.moduleId);
@@ -358,17 +377,14 @@ export async function moduleVerify(
         document,
         assets,
       );
-      if (failures.length === 0) {
-        process.stdout.write(`PASS ${module_.alias}@${module_.version}\n`);
-      } else {
-        ok = false;
-        process.stdout.write(`FAIL ${module_.alias}@${module_.version}\n`);
-        for (const failure of failures) {
-          process.stdout.write(`  [${failure.stage}] ${failure.message}\n`);
-        }
-      }
+      results.push({
+        alias: module_.alias,
+        version: module_.version,
+        ok: failures.length === 0,
+        failures: failures.map((failure) => ({ stage: failure.stage, message: failure.message })),
+      });
     }
-    return ok ? 0 : 1;
+    return results;
   } finally {
     await db.destroy();
   }

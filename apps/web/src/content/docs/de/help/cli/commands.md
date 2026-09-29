@@ -1,7 +1,8 @@
 ---
 title: Befehlsreferenz
 description: Jeder Befehl des copalibre-CLI, seine Verwendung und seine Optionen.
-capabilities: []
+capabilities:
+  - platform/cli-tournament-operations
 roles:
   - super-admin
   - admin

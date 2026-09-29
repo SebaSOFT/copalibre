@@ -34,7 +34,9 @@ import {
   evaluateMutation,
   isPlacementFormat,
   SUPPORTED_FORMATS,
+  validateAllocation,
   validateSeriesDeclaration,
+  type StageAllocation,
   type TournamentFormat,
   type TournamentRuleset,
 } from '@copalibre/domain';
@@ -73,6 +75,28 @@ import { guaranteedMatchCount, readStageSeries, resolveFixtureSeries } from './s
 import { DATABASE } from '../database.token.js';
 
 /**
+ * `StageAllocationRequest.attributeKey`/`direction` are optional on the DTO (only `manual` and
+ * `automatic` need neither), so a weighted declaration missing either would reach domain
+ * `validateAllocation` with `attributeKey` `undefined` and throw a raw `TypeError` instead of the
+ * intended 400 — this closes that structural gap before the domain check runs.
+ */
+export function assertAllocationRequestComplete(allocation: {
+  readonly mode: string;
+  readonly attributeKey?: string;
+  readonly direction?: string;
+}): void {
+  if (
+    allocation.mode === 'weighted' &&
+    (allocation.attributeKey === undefined || allocation.direction === undefined)
+  ) {
+    throw new BadRequestException(
+      'Weighted allocation requires both an attribute key and a direction',
+      { errorCode: 'stage-bad-request' },
+    );
+  }
+}
+
+/**
  * Stage creation.
  *
  * The step between "accepted registrations exist" and "a stage exists, ready to be seeded" — the
@@ -87,6 +111,59 @@ export class StagesController {
   private readonly logger = new Logger(StagesController.name);
 
   constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
+
+  @Get()
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({
+    summary: 'List a tournament’s stages',
+    description:
+      'Number, name and format for every stage, plus whether each already holds a generated ' +
+      'fixture — an organizer’s stage list carries no more sensitivity than its zone list.',
+  })
+  @ApiOkResponse({ type: StageResponse, isArray: true })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async list(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<readonly StageResponse[]> {
+    const { tournament } = await resolveTournament(this.db, {
+      organizationAlias,
+      tournamentAlias,
+      request,
+    });
+
+    const stages = await new CompetitionRepository(this.db).listStagesOfTournament(
+      tournament.tournamentId,
+    );
+    const stageReadModel = new StageReadModel(this.db);
+    const descriptor = await new TournamentRepository(this.db).findDescriptor(
+      tournament.disciplineRef.descriptorId,
+      tournament.disciplineRef.version,
+    );
+    // Optional/backward-compatible: an uninstalled discipline module leaves both
+    // fields absent rather than refusing a stage list that worked before.
+    const availableFormats = descriptor?.availableFormats.filter((format) =>
+      (SUPPORTED_FORMATS as readonly string[]).includes(format),
+    );
+    const formatDescriptions = descriptor?.formatDescriptions;
+
+    return Promise.all(
+      stages.map(async (stage) => {
+        const record = await stageReadModel.stageRecord(stage.stageId);
+        return {
+          stageId: stage.stageId,
+          seasonId: stage.seasonId,
+          number: stage.number,
+          name: stage.name,
+          format: stage.format,
+          seeded: record?.hasGeneratedFixtures ?? false,
+          ...(availableFormats === undefined ? {} : { availableFormats }),
+          ...(formatDescriptions === undefined ? {} : { formatDescriptions }),
+        };
+      }),
+    );
+  }
 
   @Post()
   @SecurityPlaneTag('admin-control')
@@ -128,6 +205,14 @@ export class StagesController {
 
     const format = await this.resolveFormat(tournament.tournamentId, descriptor, body.format);
 
+    if (body.allocation !== undefined) {
+      assertAllocationRequestComplete(body.allocation);
+      const validated = validateAllocation(body.allocation as StageAllocation);
+      if (!validated.ok) {
+        throw new BadRequestException(validated.error.message, { errorCode: 'stage-bad-request' });
+      }
+    }
+
     let ruleset: TournamentRuleset | undefined;
     if (body.series !== undefined) {
       // A placement format produces an ordering, not two sides that could
@@ -143,12 +228,15 @@ export class StagesController {
       if (!validated.ok) {
         throw new BadRequestException(validated.error.message, { errorCode: 'stage-bad-request' });
       }
+    }
+
+    if (body.series !== undefined || body.allocation !== undefined) {
       const found = await new TournamentRepository(this.db).findLatestRuleset(
         tournament.tournamentId,
       );
       if (!found) {
         throw new BadRequestException(
-          'This tournament has no configured ruleset to attach a stage series declaration to',
+          'This tournament has no configured ruleset to attach a stage series or allocation declaration to',
           { errorCode: 'stage-bad-request' },
         );
       }
@@ -177,23 +265,29 @@ export class StagesController {
           authorizationContext: authorizationContextOf(request),
         });
 
-        if (body.series !== undefined && ruleset !== undefined) {
+        if (ruleset !== undefined) {
           const stageConfiguration = await tournaments.createStageConfiguration(uow, {
             stageId: created.stageId,
             rulesetId: ruleset.rulesetId,
             organizationId,
-            overrides: {
-              'series.span': body.series.span,
-              ...(body.series.resolutionClass === undefined
+            overrides:
+              body.series === undefined
                 ? {}
-                : { 'series.resolutionClass': body.series.resolutionClass }),
-              ...(body.series.neutralGround === undefined
-                ? {}
-                : { 'series.neutralGround': body.series.neutralGround }),
-              ...(body.series.standingsAccounting === undefined
-                ? {}
-                : { 'series.standingsAccounting': body.series.standingsAccounting }),
-            },
+                : {
+                    'series.span': body.series.span,
+                    ...(body.series.resolutionClass === undefined
+                      ? {}
+                      : { 'series.resolutionClass': body.series.resolutionClass }),
+                    ...(body.series.neutralGround === undefined
+                      ? {}
+                      : { 'series.neutralGround': body.series.neutralGround }),
+                    ...(body.series.standingsAccounting === undefined
+                      ? {}
+                      : { 'series.standingsAccounting': body.series.standingsAccounting }),
+                  },
+            ...(body.allocation === undefined
+              ? {}
+              : { allocation: body.allocation as StageAllocation }),
             actor: actorOf(request),
             authorizationContext: authorizationContextOf(request),
           });
@@ -220,6 +314,7 @@ export class StagesController {
         name: stage.name,
         format: stage.format,
         ...(body.series === undefined ? {} : { series: body.series }),
+        ...(body.allocation === undefined ? {} : { allocation: body.allocation }),
       };
     } catch (error) {
       if (error instanceof InvariantViolationError)
@@ -275,6 +370,14 @@ export class StagesController {
       format = await this.resolveFormat(tournament.tournamentId, descriptor, body.format);
     }
 
+    if (body.allocation !== undefined) {
+      assertAllocationRequestComplete(body.allocation);
+      const validated = validateAllocation(body.allocation as StageAllocation);
+      if (!validated.ok) {
+        throw new BadRequestException(validated.error.message, { errorCode: 'stage-bad-request' });
+      }
+    }
+
     try {
       return await withTransaction(this.db, async (uow) => {
         let updated = stage;
@@ -296,12 +399,44 @@ export class StagesController {
             authorizationContext: authorizationContextOf(request),
           });
         }
+        if (body.allocation !== undefined) {
+          const tournaments = new TournamentRepository(this.db);
+          const existing = await tournaments.findLatestStageConfiguration(stage.stageId);
+          if (existing) {
+            await tournaments.updateStageConfiguration(uow, {
+              stageId: stage.stageId,
+              organizationId: tournament.organizationId,
+              changedOverrides: {},
+              allocation: body.allocation as StageAllocation,
+              actor: actorOf(request),
+              authorizationContext: authorizationContextOf(request),
+            });
+          } else {
+            const found = await tournaments.findLatestRuleset(tournament.tournamentId);
+            if (!found) {
+              throw new BadRequestException(
+                'This tournament has no configured ruleset to attach a stage allocation declaration to',
+                { errorCode: 'stage-bad-request' },
+              );
+            }
+            await tournaments.createStageConfiguration(uow, {
+              stageId: stage.stageId,
+              rulesetId: found.rulesetId,
+              organizationId: tournament.organizationId,
+              overrides: {},
+              allocation: body.allocation as StageAllocation,
+              actor: actorOf(request),
+              authorizationContext: authorizationContextOf(request),
+            });
+          }
+        }
         return {
           stageId: updated.stageId,
           seasonId: updated.seasonId,
           number: updated.number,
           name: updated.name,
           format: updated.format,
+          ...(body.allocation === undefined ? {} : { allocation: body.allocation }),
         };
       });
     } catch (error) {

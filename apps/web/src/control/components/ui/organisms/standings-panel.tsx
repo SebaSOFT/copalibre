@@ -22,6 +22,10 @@ export interface StandingsPanelProps<Row> {
   readonly title: string;
   /** A short chrome label above the title — the group, stage or layout name. */
   readonly eyebrow?: string;
+  /** A monospace second line under the title — the ruleset/descriptor this table was computed under. */
+  readonly descriptorSubtitle?: string;
+  /** Renders a positive-toned confirmation badge in the header when present (e.g. "Standings verified"). */
+  readonly verifiedLabel?: string;
   readonly columns: readonly DataTableColumn<Row>[];
   readonly rows: readonly Row[];
   readonly rowKey: (row: Row) => string;
@@ -34,6 +38,9 @@ export interface StandingsPanelProps<Row> {
   readonly caption?: string;
   readonly emptyMessage?: string;
   readonly renderRowDetail?: (row: Row) => ReactNode;
+  /** Denser rows (~44px) and a `position: sticky` header — see `DataTable`'s own props for the same opt-in. */
+  readonly compact?: boolean;
+  readonly stickyHeader?: boolean;
   /**
    * The configured tiebreaker chain, in the order the organizer configured it.
    * Omitted where the format declares none — an empty footer would imply the
@@ -41,6 +48,8 @@ export interface StandingsPanelProps<Row> {
    */
   readonly tiebreakers?: readonly TiebreakerRuleItem[];
   readonly tiebreakerTitle?: string;
+  /** A reference code for the computation that produced this table, shown beside the tiebreaker title. */
+  readonly auditProofCode?: string;
   /** Anything the surface must say beneath the chain: a projection version, a fixture notice. */
   readonly footnote?: ReactNode;
   readonly className?: string;
@@ -49,6 +58,8 @@ export interface StandingsPanelProps<Row> {
 export function StandingsPanel<Row>({
   title,
   eyebrow,
+  descriptorSubtitle,
+  verifiedLabel,
   columns,
   rows,
   rowKey,
@@ -56,12 +67,16 @@ export function StandingsPanel<Row>({
   caption,
   emptyMessage,
   renderRowDetail,
+  compact = false,
+  stickyHeader = false,
   tiebreakers,
   tiebreakerTitle,
+  auditProofCode,
   footnote,
   className = '',
 }: StandingsPanelProps<Row>): React.JSX.Element {
-  const hasFooter = (tiebreakers !== undefined && tiebreakers.length > 0) || footnote !== undefined;
+  const hasTiebreakers = tiebreakers !== undefined && tiebreakers.length > 0;
+  const hasFooter = hasTiebreakers || auditProofCode !== undefined || footnote !== undefined;
   const titleId = useId();
 
   return (
@@ -75,27 +90,38 @@ export function StandingsPanel<Row>({
           <h2 className="cl-standings-panel__title" id={titleId}>
             {title}
           </h2>
+          {descriptorSubtitle !== undefined && (
+            <p className="cl-standings-panel__subtitle">{descriptorSubtitle}</p>
+          )}
         </div>
+        {verifiedLabel !== undefined && (
+          <Badge className="cl-badge--verified" dot label={verifiedLabel} />
+        )}
       </header>
 
       <DataTable
         {...(tableAriaLabel === undefined ? {} : { ariaLabel: tableAriaLabel })}
         columns={columns}
         {...(caption === undefined ? {} : { caption })}
+        compact={compact}
         {...(emptyMessage === undefined ? {} : { emptyMessage })}
         {...(renderRowDetail === undefined ? {} : { renderRowDetail })}
         rowKey={rowKey}
         rows={rows}
+        stickyHeader={stickyHeader}
       />
 
       {hasFooter && (
         <footer className="cl-standings-panel__footer cl-chrome">
-          {tiebreakers !== undefined && tiebreakers.length > 0 && (
-            <TiebreakerSequence
-              rules={tiebreakers}
-              {...(tiebreakerTitle === undefined ? {} : { title: tiebreakerTitle })}
-            />
+          {(hasTiebreakers || auditProofCode !== undefined) && (
+            <div className="cl-standings-panel__footer-heading">
+              {tiebreakerTitle !== undefined && <span>{tiebreakerTitle}</span>}
+              {auditProofCode !== undefined && (
+                <span className="cl-standings-panel__audit-code">{auditProofCode}</span>
+              )}
+            </div>
           )}
+          {hasTiebreakers && <TiebreakerSequence rules={tiebreakers} />}
           {footnote}
         </footer>
       )}
@@ -123,15 +149,25 @@ export function StandingsFigure({
   children,
   deciding = false,
   decidingLabel,
+  tone,
 }: {
   readonly children: ReactNode;
   readonly deciding?: boolean;
   /** Names the comparator; supplied by the caller, which holds the catalogue. */
   readonly decidingLabel?: string;
+  /**
+   * `positive`/`negative` for a signed value (the sign already printed in
+   * `children` is the required non-colour cue); `emphasis` for the layout's
+   * own primary ranking metric (`defaultSort[0]`) — never inferred from a
+   * column's code or label, which would silently assume one discipline's
+   * naming applies to every other's.
+   */
+  readonly tone?: 'positive' | 'negative' | 'emphasis';
 }): React.JSX.Element {
+  const toneClass = tone !== undefined ? ` cl-standings-panel__figure--${tone}` : '';
   return (
     <span
-      className={`cl-standings-panel__figure${deciding ? ' cl-standings-panel__figure--deciding' : ''}`}
+      className={`cl-standings-panel__figure${deciding ? ' cl-standings-panel__figure--deciding' : ''}${toneClass}`}
       data-deciding={deciding ? 'true' : undefined}
     >
       {children}

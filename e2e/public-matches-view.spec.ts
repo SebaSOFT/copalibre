@@ -54,6 +54,7 @@ const liveMatch = {
   awayScore: 1,
   clockSeconds: 2145,
   venueName: 'Estadio Central',
+  scheduledAt: '2026-08-28T18:00:00.000Z',
   latestEvent: { label: 'Goal — Talleres', occurredAt: '2026-08-28T20:15:00.000Z' },
 };
 
@@ -127,7 +128,11 @@ test('0199: the state filter renders as discrete pills with a visible active sta
   await context.route('**/*.js', (route) => route.abort());
   await page.goto(matchesPath);
 
-  const group = page.locator('nav.cl-pill-group');
+  // Scoped by its own aria-label (openspec 0299 added a second
+  // `nav.cl-pill-group` for the density toggle): a bare `nav.cl-pill-group`
+  // locator now matches two navs and Playwright's strict mode refuses to
+  // resolve either.
+  const group = page.locator('nav.cl-pill-group[aria-label="Filter by match state"]');
   await expect(group).toBeVisible();
 
   const pills = group.locator('a.cl-pill');
@@ -146,5 +151,111 @@ test('0199: the state filter renders as discrete pills with a visible active sta
   expect(first.height).toBeGreaterThanOrEqual(40);
 
   await page.getByRole('link', { name: 'Live' }).click();
-  await expect(page.locator('a.cl-pill[aria-current]')).toHaveText('Live');
+  // Scoped to this nav (openspec 0299's density toggle is its own
+  // `cl-pill` group with its own always-current selection, so a bare,
+  // page-wide `a.cl-pill[aria-current]` now matches two elements).
+  await expect(group.locator('a.cl-pill[aria-current]')).toHaveText('Live');
+});
+
+test.describe('0299: density toggle', () => {
+  test('the Compact link switches to the ticker card and sets ?compact=true, with scripting off', async ({
+    page,
+    context,
+  }) => {
+    await context.route('**/*.js', (route) => route.abort());
+    await page.goto(matchesPath);
+
+    await expect(page.locator('.cl-match-card--compact')).toHaveCount(0);
+    await page.getByRole('link', { name: 'Compact' }).click();
+
+    expect(new URL(page.url()).searchParams.get('compact')).toBe('true');
+    await expect(page.locator('.cl-match-card--compact').first()).toBeVisible();
+    await expect(page.locator('.cl-matches-view__grid--compact').first()).toBeVisible();
+    // The full card's own structure is gone, not just visually collapsed.
+    await expect(page.locator('.cl-match-card__sides')).toHaveCount(0);
+  });
+
+  test('preserves the active state filter when toggling density, and vice versa', async ({
+    page,
+    context,
+  }) => {
+    await context.route('**/*.js', (route) => route.abort());
+    await page.goto(matchesPath);
+
+    await page.getByRole('link', { name: 'Live' }).click();
+    expect(new URL(page.url()).searchParams.get('state')).toBe('live');
+
+    await page.getByRole('link', { name: 'Compact' }).click();
+    const afterCompact = new URL(page.url());
+    expect(afterCompact.searchParams.get('compact')).toBe('true');
+    expect(afterCompact.searchParams.get('state')).toBe('live');
+
+    await page.getByRole('link', { name: 'Detailed' }).click();
+    const afterDetailed = new URL(page.url());
+    expect(afterDetailed.searchParams.get('compact')).toBeNull();
+    expect(afterDetailed.searchParams.get('state')).toBe('live');
+    await expect(page.locator('.cl-match-card--compact')).toHaveCount(0);
+  });
+
+  test('marks the active density with aria-current', async ({ page }) => {
+    await page.goto(`${matchesPath}?compact=true`);
+
+    const toggle = page.locator('nav.cl-pill-group[aria-label="Switch view density"]');
+    await expect(toggle.getByRole('link', { name: 'Compact' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    await expect(toggle.getByRole('link', { name: 'Detailed' })).not.toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+  });
+});
+
+test.describe('0272: match card timestamp locale', () => {
+  // A browser locale deliberately different from the page's own /es/ route
+  // and from any plausible server ICU default. Before the fix,
+  // ResponsiveTimestamp resolved its own locale from `navigator` — real on
+  // the client, but Node's minimal `navigator.language` (undefined) on the
+  // server, silently falling back to the process's own default ICU locale
+  // instead. A French browser proves neither side is reading `navigator`
+  // any more: both the server-only render (scripting off) and the
+  // post-hydration render (scripting on) must render in Spanish — the
+  // locale the /es/ route actually resolved — never in French, and must be
+  // byte-identical to each other (no hydration-time re-render).
+  test.use({ locale: 'fr-FR' });
+
+  test('renders and hydrates in the route locale, not the browser locale', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    const spanishMonth = new Intl.DateTimeFormat('es', { month: 'short' }).format(
+      new Date(liveMatch.scheduledAt),
+    );
+    const frenchMonth = new Intl.DateTimeFormat('fr', { month: 'short' }).format(
+      new Date(liveMatch.scheduledAt),
+    );
+
+    await page.route('**/*.js', (route) => route.abort());
+    await page.goto(`/es${matchesPath}`);
+    const ssrText = await page
+      .locator('.cl-match-card__venue time.cl-responsive-timestamp')
+      .first()
+      .textContent();
+
+    await page.unroute('**/*.js');
+    await page.goto(`/es${matchesPath}`);
+    const hydratedText = await page
+      .locator('.cl-match-card__venue time.cl-responsive-timestamp')
+      .first()
+      .textContent();
+
+    expect(ssrText).toContain(spanishMonth);
+    expect(ssrText).not.toContain(frenchMonth);
+    expect(hydratedText).toBe(ssrText);
+    expect(
+      consoleErrors.filter((text) => /hydrat/i.test(text) || /did not match/i.test(text)),
+    ).toEqual([]);
+  });
 });

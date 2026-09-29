@@ -17,14 +17,19 @@ Rosetta), e Windows (x86_64).
 
 ## Passaggi
 
+Esegui questi comandi in Bash (WSL2 o Git Bash su Windows). L’export PATH abilita la directory del binario nella shell corrente. Per scegliere una versione pubblicata, invia lo script a `VERSION=1.2.0 bash`; la versione deve essere già pubblicata.
+
 ```bash
 curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
+export PATH="$HOME/.copalibre/bin:$PATH"
 mkdir mia-lega && cd mia-lega
 copalibre init      # scrive i valori predefiniti non segreti in .env
 ```
 
 Modifica `.env`: la password di PostgreSQL, `COPALIBRE_BOOTSTRAP_TOKEN`, JWKS/issuer/audience OIDC,
 l'ID client del browser, e un provider email.
+
+Prima dell’avvio, imposta `GARAGE_RPC_SECRET` in `.env` con un valore generato da `openssl rand -hex 32`; Compose lo richiede anche senza storage opzionale.
 
 ```bash
 copalibre doctor    # valida la configurazione prima di avviare qualsiasi cosa

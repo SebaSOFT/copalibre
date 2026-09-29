@@ -8,7 +8,39 @@
  * the tournament, and the operator has no way to tell which one is real.
  */
 
+import type { components } from '@copalibre/contracts';
+import { entrantPath, type BracketMatch } from '../../lib/bracket.js';
+
+export type CanvasSeriesState = components['schemas']['PublicSeriesStateResponse'];
 export type CanvasSlotKind = 'entrant' | 'bye' | 'winner-of' | 'loser-of';
+
+/** Adapt control's structural ids to the shared journey algorithm. */
+export function canvasEntrantPath(
+  matches: readonly CanvasMatch[],
+  entrantId: string,
+): ReadonlySet<string> {
+  return entrantPath(
+    matches.map((match): BracketMatch => ({
+      matchId: match.matchId,
+      matchNumber: match.position,
+      roundNumber: match.round,
+      branch: match.bracket,
+      state:
+        match.status === 'finalized' || match.status === 'forfeited' || match.status === 'final'
+          ? 'final'
+          : 'upcoming',
+      scores: match.slots.map((slot) => slot.score),
+      slots: match.slots.map((slot) =>
+        slot.kind === 'entrant'
+          ? { kind: 'entrant', entrantId: slot.entrantId, name: slot.entrantId ?? '' }
+          : slot.kind === 'bye'
+            ? { kind: 'seed', seed: 0 }
+            : { kind: slot.kind, matchId: slot.matchId },
+      ),
+    })),
+    entrantId,
+  );
+}
 
 export interface CanvasSlot {
   readonly kind: CanvasSlotKind;
@@ -29,6 +61,8 @@ export interface CanvasMatch {
   /** Declared match format badge, e.g. `BO3`. Absent when the stage declares none. */
   readonly format?: string;
   readonly slots: readonly CanvasSlot[];
+  /** Present only on a cross settled by a series */
+  readonly series?: CanvasSeriesState;
 }
 
 export interface CanvasGeometry {
@@ -68,6 +102,7 @@ export interface LaidOutMatch {
   readonly position: number;
   readonly status: string;
   readonly format?: string;
+  readonly series?: CanvasSeriesState;
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -138,6 +173,7 @@ export function layoutBracket(
           position: match.position,
           status: match.status,
           ...(match.format === undefined ? {} : { format: match.format }),
+          ...(match.series === undefined ? {} : { series: match.series }),
           x,
           y,
           width: geometry.nodeWidth,

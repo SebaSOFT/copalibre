@@ -91,3 +91,10 @@ or token hashes.
 
 - **WHEN** the cutover completes or fails
 - **THEN** its output, logs, and audit records contain neither a raw token nor a token hash.
+
+### Requirement: Personal Access Token management UI localization
+The personal access token interface on the preferences screen SHALL render all form labels, help instructions, status messages, and actions in the active language from shared message catalogues.
+
+#### Scenario: Token generation interface matches operator locale
+- **WHEN** an operator views the personal access tokens section in a non-English language (such as Spanish)
+- **THEN** all titles, instructions, input labels, and action buttons render in the selected language rather than English defaults

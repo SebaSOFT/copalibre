@@ -1,17 +1,39 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
-import { useIntl } from 'react-intl';
+import { useIntl, type IntlShape } from 'react-intl';
 import {
   ControlApiError,
   createControlApiClient,
   type ControlApiClient,
   type PromotionPreviewResponse,
+  type RegistrationResponse,
   type ZoneResponse,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
-import { PromotionPlanTemplate, type BandRow } from '../screens/PromotionPlanTemplate.js';
+import {
+  PromotionPlanTemplate,
+  type BandRow,
+  type PreviewError,
+} from '../screens/PromotionPlanTemplate.js';
+
+/**
+ * `promotion-plan-not-found` (openspec 0284) names specifically "this zone has
+ * no saved plan yet" — an expected, benign state. Every other error this
+ * endpoint can produce (a genuinely missing stage/zone, a network fault, a
+ * business-rule refusal) shares the controller's generic `zone-group-not-found`
+ * code or another one entirely, and keeps its own server message and the
+ * destructive tone that message earns. A non-`ControlApiError` (shape
+ * unexpected) falls to the same benign reading as before this fix, not a
+ * behavior change.
+ */
+function classifyPreviewError(error: unknown, intl: IntlShape): PreviewError {
+  if (error instanceof ControlApiError && error.errorCode !== 'promotion-plan-not-found') {
+    return { message: error.message, tone: 'destructive' };
+  }
+  return { message: intl.formatMessage(messages.promotionNoPlanYet), tone: 'info' };
+}
 
 /**
  * A zone's promotion-plan configuration and review —
@@ -51,9 +73,15 @@ export function PromotionPlanPage({
   );
 
   const [zone, setZone] = useState<ZoneResponse>();
+  const [entrants, setEntrants] = useState<readonly RegistrationResponse[]>([]);
   const [preview, setPreview] = useState<PromotionPreviewResponse>();
-  const [previewError, setPreviewError] = useState<string>();
+  const [previewError, setPreviewError] = useState<PreviewError>();
   const [loading, setLoading] = useState(true);
+
+  function entrantLabel(entrantId: string): string {
+    const entrant = entrants.find((candidate) => candidate.entrantId === entrantId);
+    return entrant?.displayName ?? entrantId.slice(-8);
+  }
 
   useEffect(() => {
     let live = true;
@@ -75,6 +103,21 @@ export function PromotionPlanPage({
 
   useEffect(() => {
     let live = true;
+    api
+      .listRegistrations(organizationAlias, tournamentAlias, 'accepted')
+      .then((loaded) => {
+        if (live) setEntrants(loaded);
+      })
+      .catch(() => {
+        // Candidate names fall back to their id's own tail; not worth a banner.
+      });
+    return () => {
+      live = false;
+    };
+  }, [api, organizationAlias, tournamentAlias]);
+
+  useEffect(() => {
+    let live = true;
     const fetchPromotionPreview = api.fetchPromotionPreview;
     if (!fetchPromotionPreview) return undefined;
     fetchPromotionPreview(organizationAlias, tournamentAlias, stageNumber, zoneNumber)
@@ -86,11 +129,7 @@ export function PromotionPlanPage({
       .catch((error: unknown) => {
         if (!live) return;
         setPreview(undefined);
-        setPreviewError(
-          error instanceof ControlApiError
-            ? error.message
-            : intl.formatMessage(messages.promotionNoPlanYet),
-        );
+        setPreviewError(classifyPreviewError(error, intl));
       });
     return () => {
       live = false;
@@ -129,11 +168,7 @@ export function PromotionPlanPage({
           setPreviewError(undefined);
         } catch (previewErr) {
           setPreview(undefined);
-          setPreviewError(
-            previewErr instanceof ControlApiError
-              ? previewErr.message
-              : intl.formatMessage(messages.promotionNoPlanYet),
-          );
+          setPreviewError(classifyPreviewError(previewErr, intl));
         }
       }
     } catch (error) {
@@ -147,6 +182,7 @@ export function PromotionPlanPage({
 
   return (
     <PromotionPlanTemplate
+      entrantLabel={entrantLabel}
       onSave={savePlan}
       preview={preview}
       previewError={previewError}

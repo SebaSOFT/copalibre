@@ -130,6 +130,24 @@ describe('AdminModulesController (integration)', () => {
       expect.objectContaining({ alias: 'orbital-frisbee', ok: true, failures: [] }),
     ]);
 
+    const document = await inject('admin', 'GET', '/admin/modules/orbital-frisbee/document');
+    expect(document.statusCode).toBe(200);
+    const documentBody = document.json();
+    expect(documentBody).toMatchObject({ alias: 'orbital-frisbee', version: '1.0.0' });
+    expect(typeof documentBody.descriptorId).toBe('string');
+    expect(Array.isArray(documentBody.document.segmentTypes)).toBe(true);
+    expect(Array.isArray(documentBody.document.eventDefinitions)).toBe(true);
+    expect(documentBody.document.fieldPolicies).toBeDefined();
+    // The document is the full descriptor without a redundant nested descriptorId.
+    expect(documentBody.document.descriptorId).toBeUndefined();
+
+    const documentForbidden = await inject(
+      'orgAdmin',
+      'GET',
+      '/admin/modules/orbital-frisbee/document',
+    );
+    expect(documentForbidden.statusCode).toBe(403);
+
     const remove = await inject('admin', 'DELETE', '/admin/modules/orbital-frisbee');
     expect(remove.statusCode).toBe(200);
     expect(remove.json()).toEqual({ alias: 'orbital-frisbee', removedCount: 1 });
@@ -172,6 +190,11 @@ describe('AdminModulesController (integration)', () => {
     );
     expect(installed).toHaveLength(0);
   }, 30_000);
+
+  it('404s a document request for a discipline that is not installed', async () => {
+    const response = await inject('admin', 'GET', '/admin/modules/not-installed/document');
+    expect(response.statusCode).toBe(404);
+  });
 
   it('refuses an unallow-listed alternate source, installing nothing', async () => {
     const response = await inject('admin', 'POST', '/admin/modules', {

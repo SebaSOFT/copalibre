@@ -7,18 +7,21 @@ import type {
   PublicStandingsRowResponse,
   PublicMatchReportResponse,
   PublicPersonProfileResponse,
+  PlayerStatisticsDrilldownResponse,
   PublicOrganizationTournamentListResponse,
 } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import type { OrganizationResponse } from '@copalibre/api/src/dto/organization.dto.js';
+import type { TournamentCompletionResponse } from '@copalibre/contracts';
 import type {
   TableLayoutListResponse,
   TableProjectionResponse,
 } from '@copalibre/api/src/dto/table-projections.dto.js';
-import type { ResultReason } from '@copalibre/domain';
+import { humanizeFieldPath, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
 import type { OverviewInput, MatchState } from './overview.js';
 import type { LiveDashboard } from './live-state.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { BracketMatch, SlotSource } from './bracket.js';
+export { mapBracketResponse } from './bracket-projection.js';
+export type { BracketZone } from './bracket-projection.js';
 import type { MatchCardData } from './matches-view.js';
 import type { PublicSeriesState } from './series.js';
 
@@ -69,6 +72,15 @@ export async function fetchOverview(
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/overview`;
   return fetchOr404<PublicOverviewResponse>(url);
+}
+
+export async function fetchCompletion(
+  organizationAlias: string,
+  tournamentAlias: string,
+): Promise<TournamentCompletionResponse | undefined> {
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/completion`;
+  return fetchOr404<TournamentCompletionResponse>(url);
 }
 
 export async function fetchLive(
@@ -158,7 +170,52 @@ export async function fetchPlayerProfile(
   return fetchOr404<PublicPersonProfileResponse>(url);
 }
 
-export function mapOverviewResponse(response: PublicOverviewResponse): OverviewInput {
+/** `layoutCode` absent reads the tournament's default person-granularity layout. */
+export async function fetchPlayerStatistics(
+  organizationAlias: string,
+  tournamentAlias: string,
+  personId: string,
+  layoutCode?: string,
+): Promise<PlayerStatisticsDrilldownResponse | undefined> {
+  const baseUrl = getApiBaseUrl();
+  const query = layoutCode ? `?layout=${encodeURIComponent(layoutCode)}` : '';
+  const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(personId)}/public/statistics${query}`;
+  return fetchOr404<PlayerStatisticsDrilldownResponse>(url);
+}
+
+/**
+ * `language` resolves each ruleset field's declared label (openspec 0267) —
+ * the field's own `FieldPolicy.label` when the descriptor declares one,
+ * humanized from its dot-path otherwise. Never English-only regardless of
+ * `language`: this is the same fallback `resolveFieldPolicyLabel` uses on
+ * `control-web`, ported here since the public overview has no `FieldPolicy`
+ * object to call that function with directly, only the label it carries.
+ */
+/**
+ * `forfeited` and `not-required` both count as resolved, matching the platform's existing
+ * "resolved = finalized + forfeited" definition (`stage-completion.ts`) — a `not-required` game
+ * never needed playing (its series already decided), so it is equally closed, not pending. Mapping
+ * both to `'final'` keeps every `matches.every((m) => m.state === 'final')` check (TV's own
+ * `allFinal`, `deriveTournamentStatus`) from treating a tournament decided partly by forfeit as
+ * still in progress (openspec 0270).
+ */
+function publicMatchState(status: string): MatchState {
+  if (status === 'scheduled') return 'upcoming';
+  if (status === 'in-progress' || status === 'in_progress') return 'live';
+  if (
+    status === 'completed' ||
+    status === 'finalized' ||
+    status === 'forfeited' ||
+    status === 'not-required'
+  )
+    return 'final';
+  return status as MatchState;
+}
+
+export function mapOverviewResponse(
+  response: PublicOverviewResponse,
+  language: SupportedLanguage = 'en',
+): OverviewInput {
   return {
     organizationAlias: response.organizationAlias,
     tournamentAlias: response.tournamentAlias,
@@ -168,21 +225,31 @@ export function mapOverviewResponse(response: PublicOverviewResponse): OverviewI
     status: response.status,
     winners: response.winners,
     ...(response.emblemObjectId === undefined ? {} : { emblemObjectId: response.emblemObjectId }),
-    ruleset: Object.entries(response.ruleset).map(([label, value]) => ({ label, value })),
+    ruleset: Object.entries(response.ruleset).map(([dotPath, value]) => {
+      const declaredLabel = response.rulesetLabels?.[dotPath];
+      const label =
+        declaredLabel === undefined
+          ? humanizeFieldPath(dotPath)
+          : resolveLabel(declaredLabel, language);
+      return { dotPath, label, value };
+    }),
     matches: response.matches.map((m: PublicOverviewMatchResponse) => ({
+      matchId: m.matchId,
       matchNumber: m.matchNumber,
       stageNumber: m.stageNumber,
       home: {
         name: m.homeName ?? 'TBD',
         abbreviation: m.homeAbbreviation,
         score: m.homeScore,
+        entrantId: m.homeEntrantId,
       },
       away: {
         name: m.awayName ?? 'TBD',
         abbreviation: m.awayAbbreviation,
         score: m.awayScore,
+        entrantId: m.awayEntrantId,
       },
-      state: m.status as MatchState,
+      state: publicMatchState(m.status),
       startsAt: m.scheduledAt ?? '',
     })),
     standings: (response.standingsPreview ?? []).map((s: PublicStandingsRowResponse) => ({
@@ -206,52 +273,29 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
   return {
     standingsVersion: 0,
     usingLastKnown: true,
-    matches: response.matches.map((m) => ({
-      matchId: m.matchId,
-      stageNumber: m.stageNumber,
-      matchNumber: m.matchNumber,
-      state: m.state as MatchState,
-      projectionVersion: m.projectionVersion,
-      sides: m.sides.map((s) => ({
-        entrantId: s.entrantId,
-        name: s.name,
-        abbreviation: s.abbreviation,
-        score: s.score,
-        state: m.state as MatchState,
-      })),
-    })),
+    matches: response.matches.map((m) => {
+      const state = publicMatchState(m.state);
+      return {
+        matchId: m.matchId,
+        stageNumber: m.stageNumber,
+        matchNumber: m.matchNumber,
+        state,
+        projectionVersion: m.projectionVersion,
+        ...(m.possessionEntrantId === undefined ||
+        !m.sides.some((side) => side.entrantId === m.possessionEntrantId)
+          ? {}
+          : { possessionEntrantId: m.possessionEntrantId }),
+        ...(m.activePenalties === undefined ? {} : { activePenalties: m.activePenalties }),
+        sides: m.sides.map((s) => ({
+          entrantId: s.entrantId,
+          name: s.name,
+          abbreviation: s.abbreviation,
+          score: s.score,
+          state,
+        })),
+      };
+    }),
   } as LiveDashboard;
-}
-
-export function mapBracketResponse(response: PublicBracketResponse): {
-  format?: string;
-  matches: readonly BracketMatch[];
-} {
-  return {
-    format: response.format,
-    matches: response.matches.map((m) => ({
-      matchNumber: m.position,
-      roundNumber: m.round,
-      branch: m.bracket,
-      state: m.status as MatchState,
-      scores: m.slots.map((s) => s.score),
-      resultReasons: m.slots.map((s) => s.resultReason as ResultReason | undefined),
-      slots: m.slots.map((s): SlotSource => {
-        if (s.kind === 'winner-of') {
-          const digits = s.matchId?.match(/\d+/g)?.join('');
-          const parsed = digits ? parseInt(digits, 10) : 0;
-          return { kind: 'winner-of', matchNumber: Number.isNaN(parsed) ? 0 : parsed };
-        }
-        if (s.kind === 'loser-of') {
-          const digits = s.matchId?.match(/\d+/g)?.join('');
-          const parsed = digits ? parseInt(digits, 10) : 0;
-          return { kind: 'loser-of', matchNumber: Number.isNaN(parsed) ? 0 : parsed };
-        }
-        return { kind: 'entrant', name: s.name ?? 'TBD', abbreviation: s.abbreviation };
-      }),
-      ...(m.series === undefined ? {} : { series: m.series as PublicSeriesState }),
-    })),
-  };
 }
 
 export function mapMatchesViewResponse(response: PublicMatchesViewResponse): {
@@ -262,6 +306,7 @@ export function mapMatchesViewResponse(response: PublicMatchesViewResponse): {
       matchId: m.matchId,
       stageNumber: m.stageNumber,
       matchNumber: m.matchNumber,
+      round: m.round,
       state: m.status as MatchState,
       homeName: m.homeName,
       homeAbbreviation: m.homeAbbreviation,
@@ -271,6 +316,7 @@ export function mapMatchesViewResponse(response: PublicMatchesViewResponse): {
       awayScore: m.awayScore,
       clockSeconds: m.clockSeconds,
       venueName: m.venueName,
+      scheduledAt: m.scheduledAt,
       latestEvent: m.latestEvent,
       zoneName: m.zoneName,
       groupName: m.groupName,

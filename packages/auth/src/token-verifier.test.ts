@@ -40,6 +40,8 @@ interface TokenOptions {
   readonly issuer?: string;
   readonly audience?: string;
   readonly expiresIn?: string;
+  /** Skips `.setExpirationTime(...)` entirely — a technically valid JWT per RFC 7519. */
+  readonly omitExpiration?: boolean;
   readonly notBefore?: number;
   readonly subject?: string | null;
   readonly scopes?: string | string[];
@@ -66,9 +68,9 @@ async function signToken(keys: KeyMaterial, options: TokenOptions = {}): Promise
     .setProtectedHeader({ alg: options.alg ?? 'RS256', kid: keys.kid })
     .setIssuedAt()
     .setIssuer(options.issuer ?? ISSUER)
-    .setAudience(options.audience ?? AUDIENCE)
-    .setExpirationTime(options.expiresIn ?? '5m');
+    .setAudience(options.audience ?? AUDIENCE);
 
+  if (!options.omitExpiration) jwt = jwt.setExpirationTime(options.expiresIn ?? '5m');
   if (options.subject !== null) jwt = jwt.setSubject(options.subject ?? 'user-1');
   if (options.notBefore !== undefined) jwt = jwt.setNotBefore(options.notBefore);
 
@@ -201,6 +203,14 @@ describe('TokenVerifier', () => {
   it('rejects an expired token', async () => {
     const keys = await makeKeys();
     const token = await signToken(keys, { expiresIn: '-1m' });
+    await expect(verifierFor([keys.publicJwk]).verify(token)).rejects.toMatchObject({
+      reason: 'expired',
+    });
+  });
+
+  it('rejects a token with no expiration claim at all', async () => {
+    const keys = await makeKeys();
+    const token = await signToken(keys, { omitExpiration: true });
     await expect(verifierFor([keys.publicJwk]).verify(token)).rejects.toMatchObject({
       reason: 'expired',
     });

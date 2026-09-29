@@ -28,3 +28,7 @@ Construit le tirage/tableau d'une phase : assigne à chaque participant une posi
 
 Le tirage peut être refait tant que la phase n'a pas commencé. Une fois la phase en cours, refaire le
 tirage n'aurait plus de sens avec des matchs déjà joués — l'écran ne le permet pas à ce stade.
+
+## Suivre un participant
+
+Dans le tableau public ou le tableau de placement, sélectionnez un participant pour mettre en évidence ses matchs et son parcours possible en cas de victoire. Une première défaite mène au tableau des perdants si cette voie est prévue. Sélectionnez à nouveau le nom ou appuyez sur Échap pour effacer. Les liens vers les rapports restent séparés. Les résultats publics restent lisibles sans JavaScript.

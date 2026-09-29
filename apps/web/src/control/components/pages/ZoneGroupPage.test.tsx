@@ -64,6 +64,24 @@ describe('ZoneGroupPage', () => {
     expect(screen.getAllByText('Zona Campeonato').length).toBeGreaterThanOrEqual(1);
   });
 
+  it('links its breadcrumb back to the stage hub', async () => {
+    render(
+      withIntl(
+        <ZoneGroupPage
+          client={stubClient()}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: /zones and groups/i }));
+    expect(screen.getByRole('link', { name: 'Stage 1' }).getAttribute('href')).toBe(
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
+    );
+  });
+
   it('reports an error when renaming a zone fails', async () => {
     render(
       withIntl(

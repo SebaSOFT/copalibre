@@ -10,7 +10,7 @@ const roleCommands: Record<ProductRole, readonly string[]> = {
   doctor: ['apps/copalibre/dist/main.js', 'doctor'],
   'upgrade-check': ['apps/copalibre/dist/main.js', 'upgrade-check'],
   'create-admin': ['apps/copalibre/dist/main.js', 'create-admin'],
-  web: ['apps/web/dist/server/entry.mjs'],
+  web: ['apps/web/scripts/serve-with-security-headers.mjs'],
 };
 
 async function main(): Promise<void> {

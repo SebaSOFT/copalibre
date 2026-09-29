@@ -5,9 +5,11 @@ import { commandClasses } from './commands/index.js';
 import {
   COMMAND_HELP,
   MODULE_SUBCOMMAND_HELP,
+  TOURNAMENT_SUBCOMMAND_HELP,
   renderCommandHelp,
   renderModuleHelp,
   renderTopLevelHelp,
+  renderTournamentHelp,
 } from './help-text.js';
 import type { ProcessRunner } from './process-runner.js';
 
@@ -53,6 +55,17 @@ export async function runCli(
       process.stderr.write(renderModuleHelp());
       return 64;
     }
+  } else if (command === 'tournament') {
+    const tournamentHelp = tournamentHelpFor(arguments_.slice(1));
+    if (tournamentHelp !== undefined) {
+      process.stdout.write(tournamentHelp);
+      return 0;
+    }
+    const sub = arguments_[1];
+    if (!TOURNAMENT_SUBCOMMAND_HELP.some((candidate) => candidate.name === sub)) {
+      process.stderr.write(renderTournamentHelp());
+      return 64;
+    }
   } else if (
     HELP_FLAGS.has(arguments_[1] ?? '') &&
     COMMAND_HELP.some((candidate) => candidate.name === command)
@@ -81,6 +94,20 @@ function moduleHelpFor(arguments_: readonly string[]): string | undefined {
   if (!sub || HELP_FLAGS.has(sub)) return renderModuleHelp();
   if (HELP_FLAGS.has(next ?? '') && MODULE_SUBCOMMAND_HELP.some((c) => c.name === sub)) {
     return renderCommandHelp(sub, MODULE_SUBCOMMAND_HELP);
+  }
+  return undefined;
+}
+
+/**
+ * Returns rendered help text for a `tournament` help request, or `undefined`
+ * when `arguments_` is not a help request and dispatch should proceed
+ * normally. Mirrors `moduleHelpFor` exactly (openspec 0252).
+ */
+function tournamentHelpFor(arguments_: readonly string[]): string | undefined {
+  const [sub, next] = arguments_;
+  if (!sub || HELP_FLAGS.has(sub)) return renderTournamentHelp();
+  if (HELP_FLAGS.has(next ?? '') && TOURNAMENT_SUBCOMMAND_HELP.some((c) => c.name === sub)) {
+    return renderCommandHelp(sub, TOURNAMENT_SUBCOMMAND_HELP);
   }
   return undefined;
 }

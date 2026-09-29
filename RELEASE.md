@@ -9,12 +9,23 @@ and it's what `.github/workflows/release.yml` reads to decide what to tag and pu
 
 1. **Bump the version.** Set the same new version in every `apps/*/package.json`, every
    `packages/*/package.json`, and the root `package.json`. There's no script for this yet — it's a
-   deliberate, reviewable diff, not an automated bump.
-2. **Open a pull request from `develop` into `main`.** This PR runs the full CI suite, including the
+   deliberate, reviewable diff, not an automated bump. Prepare these changes on a branch from
+   `develop` (for example, `release/1.2.0`). Update both image tags in
+   `apps/copalibre/src/init.ts` and its test expectation, `appVersion` in
+   `deploy/helm/copalibre/Chart.yaml`, and `COPALIBRE_VERSION` in
+   `.github/workflows/module-validation.yml` alongside the package versions. The Helm chart's
+   `version` tracks chart packaging separately from the application's `appVersion`.
+2. **Refresh the changelog and documentation.** Run `yarn changelog` after bumping the root version,
+   then review `CHANGELOG.md` against the commits since the previous release tag. Update README
+   feature descriptions and release-related documentation where behavior has changed.
+3. **Validate and merge the preparation branch into `develop`.** Run the repository's required local
+   gates, including the deployment validation scripts for Helm metadata changes, and open a PR
+   against `develop`. Merge after CI passes and explicit merge approval is given.
+4. **Open a pull request from `develop` into `main`.** This PR runs the full CI suite, including the
    end-to-end and deploy-verification chain (`e2e-tests`, `build`, `deployment-e2e`,
    `deploy-smoke-test`) — these are skipped on routine `develop`-targeting PRs and only run for a PR
    targeting `main`, so this is the first time a change gets that full gate.
-3. **Merge once CI is green.** The merge is a push to `main`, which triggers `release.yml`
+5. **Merge once CI is green and the release is approved.** The merge is a push to `main`, which triggers `release.yml`
    automatically. Nothing else to do.
 
 ## What happens automatically on merge
@@ -54,7 +65,8 @@ runner-to-target mapping.
 
 ## What this does not do
 
-- No changelog is hand-maintained; the GitHub Release's auto-generated notes are what exists today.
+- GitHub Release notes are generated automatically; they do not replace the reviewed `CHANGELOG.md`
+  generated from Conventional Commits during release preparation.
 - Nothing validates that a version bump is the "correct" major/minor/patch increment — that judgment
   stays with whoever bumps it.
 - No workspace package is published to npm. Every package stays private; only the two container images

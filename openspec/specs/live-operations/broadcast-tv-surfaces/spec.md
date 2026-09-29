@@ -187,3 +187,165 @@ exception.
 - **WHEN** an existing TV component moves into the owned tier
 - **THEN** its overlay remains readable over video, its state cues remain non-colour-only, and it
   introduces no undeclared token
+
+### Requirement: Reusable `ResponsiveTimestamp` Atom
+The system SHALL provide a reusable, restylable `ResponsiveTimestamp` atom component that dynamically calculates and renders kickoff, event, or log time relative to the viewing date across TV broadcast, public spectator, and operator control surfaces. It SHALL also support a relative-time format for feeds that intentionally show elapsed time rather than a clock time.
+
+#### Scenario: Same-day timestamp calculation
+- **WHEN** a scheduled or recorded timestamp occurs on the current viewing date
+- **THEN** `ResponsiveTimestamp` outputs the localized hour and minute (e.g. `14:30`) in an accessible `<time datetime="...">` element.
+
+#### Scenario: Different-day timestamp calculation
+- **WHEN** a scheduled or recorded timestamp occurs on a different calendar date
+- **THEN** `ResponsiveTimestamp` outputs the localized abbreviated day, month, and time (e.g. `02-Nov 14:30`).
+
+#### Scenario: Relative-time rendering for an activity feed
+- **WHEN** `ResponsiveTimestamp` is used with `format="relative"`
+- **THEN** it outputs elapsed time relative to now (e.g. "5 minutes ago") in an accessible `<time datetime="...">` element, matching the operator dashboard's existing activity-feed convention.
+
+### Requirement: Entrant Name Responsive Fallback
+The system SHALL render an entrant's or club's name so that it adaptively falls back to its official 3/4-letter abbreviation whenever container space is constrained, eliminating ellipsis (`...`) truncation, across all tournament surfaces including TV broadcast.
+
+#### Scenario: Constrained container layout
+- **WHEN** container width cannot fit the full entrant name
+- **THEN** the rendered name switches to the official abbreviation while retaining the full name in an accessible `title` attribute.
+
+#### Scenario: Unconstrained container layout
+- **WHEN** container width accommodates the full entrant name
+- **THEN** the full name renders, with optional crest or monogram support.
+
+### Requirement: Reusable `ResponsivePlayerName` Atom
+The system SHALL provide a reusable, restylable `ResponsivePlayerName` atom that adaptively renders player/person identities across four responsive width tiers based on available container space:
+1. Tier 1 (Full): `[Flag] [First Name] [Last Name]` (e.g. `[ARG] Sebastian Dieguez`)
+2. Tier 2 (Medium): `[First Name] [Last Name]` (e.g. `Sebastian Dieguez`)
+3. Tier 3 (Compact): `[Initial]. [Last Name]` (e.g. `S. Dieguez`)
+4. Tier 4 (Minimal): `[Initial]. [Initial].` (e.g. `S. D.`)
+
+#### Scenario: Full container width
+- **WHEN** container width accommodates the complete representation
+- **THEN** `ResponsivePlayerName` renders nationality flag icon, first name, and last name.
+
+#### Scenario: Progressively constrained container widths
+- **WHEN** container space narrows through medium, compact, and minimal thresholds
+- **THEN** `ResponsivePlayerName` gracefully degrades to `First Last`, `F. Last`, and `F. L.` respectively, retaining full name and nationality in `title` and `aria-label`.
+
+#### Scenario: Nationality not available
+- **WHEN** no nationality code is supplied for a person
+- **THEN** `ResponsivePlayerName` renders the name tiers with no flag and no layout gap, rather than a broken or placeholder icon.
+
+### Requirement: Person-Granularity Table Rows Carry Name, Abbreviation, and Nationality
+A person-granularity table projection row SHALL report the actor's resolved display name, tournament-scoped abbreviation (when the actor is a team), and nationality code (when the actor is a person), so that public and TV consumers of the same projection can render responsive team and player identities without a second lookup.
+
+#### Scenario: Player ranking row exposes nationality
+- **WHEN** a stage's player-ranking table projection includes a roster member whose match-roster snapshot recorded a nationality
+- **THEN** that row's response carries the nationality code, and any consumer of the same projection (standings table, TV top-performers view) can render a flag from it.
+
+#### Scenario: Team ranking row exposes name and abbreviation end to end
+- **WHEN** a stage's team-ranking table projection is read through either the operator or the public table route
+- **THEN** each row's response carries the resolved entrant name and, when configured, its tournament-scoped abbreviation.
+
+### Requirement: Prominent TV Match Spotlight Emblems
+The TV broadcast match spotlight SHALL render high-contrast, prominent team emblems, with the primary home team emblem sized at least 120x120px on the left side.
+
+#### Scenario: Match spotlight layout
+- **WHEN** a featured match is displayed on the TV broadcast kiosk
+- **THEN** the left home emblem renders with minimum dimensions of 120x120px.
+
+### Requirement: Pinned-match kiosk shows recorded match events
+The pinned-match kiosk route (`/tv/{organization}/tournaments/{tournament}/stages/{stage}/matches/{match}`)
+SHALL show the match's recorded goal and card events — at minimum the scoring/carded entrant, the
+player, and the minute — alongside the score, whenever the match has recorded events. A match with no
+recorded events SHALL show no ticker, rather than an empty or placeholder one.
+
+#### Scenario: Pinned match with recorded events shows a ticker
+- **WHEN** the pinned-match kiosk route renders a match that has recorded goal or card events
+- **THEN** the screen shows those events (entrant, player, minute) alongside the score
+
+#### Scenario: Pinned match with no recorded events shows no ticker
+- **WHEN** the pinned-match kiosk route renders a match with no recorded events
+- **THEN** the screen shows the score without an empty or placeholder ticker section
+
+### Requirement: Kiosk and overlay routes report a finished tournament's actual state
+Any `/tv/**` route variant (kiosk, pinned-match, or either overlay mode) rendering a tournament whose
+every match is either finalized or forfeited (a `not-required` match, if any, does not block this)
+SHALL show that tournament's status badge and match ticker consistent with that finished state, never
+the scheduled/upcoming default a route falls back to when its match data is unexpectedly empty.
+
+#### Scenario: A finished tournament's overlay does not show a scheduled badge
+- **WHEN** any `/tv/**` route variant renders a tournament whose matches are all finalized
+- **THEN** its status badge reflects the finished state, not the scheduled/upcoming default
+
+#### Scenario: A tournament decided partly by forfeit still shows as finished
+- **WHEN** any `/tv/**` route variant renders a tournament where every match is finalized or forfeited,
+  with at least one forfeited
+- **THEN** its status badge and match ticker reflect the finished state, not the scheduled/upcoming
+  default
+
+### Requirement: TV match indicators reflect recorded discipline facts
+A TV scorebug SHALL show possession only when the public live projection explicitly supplies a participating side, and each active timed penalty declared by that discipline. It SHALL not infer either marker from score, event names, or unrelated actions. Timed-penalty indicators SHALL update after event recording, manual timer resolution, and timer expiry without requiring a person to reload the display.
+
+#### Scenario: Explicit possession is projected
+- **WHEN** a live match projection explicitly identifies a participating entrant as holding possession
+- **THEN** the TV scorebug identifies that entrant without claiming a possession percentage
+
+#### Scenario: Timed penalty starts and ends
+- **WHEN** a discipline-declared timed penalty is recorded for an entrant
+- **THEN** the TV scorebug shows that entrant and the remaining time while the penalty is active, and removes the marker after expiry or authorized manual resolution
+
+#### Scenario: No indicator facts exist
+- **WHEN** the live projection omits possession or the match has no active timed penalty
+- **THEN** the TV scorebug omits the corresponding indicator rather than showing a default or guessed value
+
+### Requirement: Full-frame TV bracket presents published elimination matches
+The full-frame TV kiosk and full overlay SHALL show a bracket section for an elimination stage using the published stage graph. It SHALL retain zone and round context, named pending sources, scores when published, and match state. Lower-third overlays and stages without an elimination bracket SHALL not show bracket cards.
+
+#### Scenario: Published bracket with unresolved slots
+- **WHEN** the featured stage is an elimination stage with published bracket matches
+- **THEN** the TV section displays matchup cards grouped by zone and round, with unresolved entrants identified by their source matches rather than blank or invented names
+
+#### Scenario: Non-elimination stage or unavailable bracket
+- **WHEN** the featured stage is round robin or its bracket projection is unavailable
+- **THEN** the TV keeps its other score and statistics sections without an empty bracket section or sample matchup cards
+
+### Requirement: Broadcaster self-service portal
+The system SHALL provide a dedicated self-service interface (`/control/tournaments/:id/broadcaster`) allowing authorized streamers and media operators to generate scoped broadcast display tokens and copy ready-to-use OBS Browser Source URLs without super-admin assistance.
+
+#### Scenario: Streamer copies OBS overlay URL
+- **WHEN** a streamer visits the broadcaster studio page for an active tournament or match
+- **THEN** the system generates a scoped display token and provides a one-click button to copy the full OBS Browser Source URL with recommended resolution (1920x1080) and FPS settings (60fps)
+
+#### Scenario: Overlay live preview
+- **WHEN** a streamer configures their overlay on the broadcaster studio page
+- **THEN** an embedded iframe renders the live overlay with a background picker (transparent, green chroma `#00FF00`, magenta `#FF00FF`, dark stadium) to preview layout before going live
+
+### Requirement: Animated live event alerts in overlay mode
+When rendered in overlay mode (`?mode=overlay-lower` or `?mode=overlay-full`), the broadcast surface SHALL dynamically render animated alert callouts for critical match events (such as goals, points, yellow/red cards, or penalties) received via real-time SSE stream.
+
+#### Scenario: Goal or scoring event triggers animated banner
+- **WHEN** a `match.event-recorded` event with a score-altering or highlight action is received by an active overlay
+- **THEN** the overlay displays an animated banner showing the scoring team crest, scorer player name, minute/clock, and new score line
+- **AND** the banner automatically dismisses after 6 seconds without operator intervention
+
+#### Scenario: Disciplinary card event triggers alert
+- **WHEN** a card event (yellow card, red card) is recorded during the match
+- **THEN** the overlay displays a graphic callout with the card color, player name, minute, and club emblem
+- **AND** auto-dismisses after 5 seconds
+
+#### Scenario: Reduced motion preference
+- **WHEN** the browser environment or operating system specifies `prefers-reduced-motion: reduce`
+- **THEN** event alert banners transition with simple opacity fading rather than sliding or bouncing keyframe animations
+
+### Requirement: Multi-court TV kiosk presentation mode
+The system SHALL support a multi-court grid presentation mode (`?layout=multicourt` or `?grid=auto|2|4|6`) on tournament TV routes (`/tv/{organization}/tournaments/{tournament}`) to display multiple simultaneous matches on venue screens.
+
+#### Scenario: Displaying 4 simultaneous matches in a 2x2 grid
+- **WHEN** a TV route is loaded with `?layout=multicourt` and 4 matches are currently active
+- **THEN** the screen renders a balanced 2x2 grid where each quadrant represents one court with its assigned court/pitch name, team emblems, score line, and running match clock
+
+#### Scenario: Real-time score update on a specific court
+- **WHEN** a score change occurs on Court 2 via SSE event
+- **THEN** the Court 2 match card updates its score figures and pulses its indicator dot immediately without disrupting or re-rendering other court cards
+
+#### Scenario: Multi-page rotation for large venues
+- **WHEN** more active live matches exist than the selected grid display limit
+- **THEN** the multi-court presentation rotates through groups of matches on a 20-second interval, respecting `prefers-reduced-motion` settings

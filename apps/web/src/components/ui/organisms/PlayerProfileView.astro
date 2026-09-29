@@ -1,11 +1,18 @@
 ---
 import type { IntlShape } from 'react-intl';
 import type {
+  PlayerStatisticsDrilldownResponse,
+  PlayerStatisticsMatchRowResponse,
   PublicPersonCompetitionHistoryResponse,
   PublicPersonProfileResponse,
 } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type {
+  TableCellResponse,
+  TableLayoutSummaryResponse,
+} from '@copalibre/api/src/dto/table-projections.dto.js';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { personPhotoUrl } from '../../../lib/public-api-client.ts';
+import { localizedText } from '../../../lib/localized-label.ts';
 import PersonPhotoImage from '../atoms/PersonPhotoImage.astro';
 import DataTable from './DataTable.astro';
 
@@ -13,9 +20,64 @@ interface Props {
   readonly profile: PublicPersonProfileResponse;
   readonly intl: IntlShape;
   readonly organizationAlias: string;
+  /** The tournament's own canonical path — used to build the layout-selector links. */
+  readonly canonicalPath?: string;
+  /** Every effective person-granularity player-ranking layout declared for the current tournament. */
+  readonly statisticsLayouts?: readonly TableLayoutSummaryResponse[];
+  readonly activeStatisticsLayoutCode?: string;
+  readonly statistics?: PlayerStatisticsDrilldownResponse;
 }
 
-const { profile, intl, organizationAlias } = Astro.props;
+const {
+  profile,
+  intl,
+  organizationAlias,
+  canonicalPath = '',
+  statisticsLayouts = [],
+  activeStatisticsLayoutCode,
+  statistics,
+} = Astro.props;
+
+/** Tournament-total row: cells keyed directly by column code (not nested under `.cells`). */
+const totalColumns = (statistics?.columns ?? []).map((column) => ({
+  key: column.code,
+  header: localizedText(column.header, intl.locale),
+  render: (row: unknown) =>
+    (row as Record<string, TableCellResponse | undefined>)[column.code]?.formatted ?? '—',
+}));
+
+// Match rows only ever carry collector-kind cells (openspec 0244) — narrowed
+// to the columns actually present on a match row, in the tournament-total's
+// own declared order, so a composite/computed column never appears here.
+const matchCellCodes = new Set(
+  (statistics?.matches ?? []).flatMap((row) => Object.keys(row.cells)),
+);
+const matchStatColumns = (statistics?.columns ?? [])
+  .filter((column) => matchCellCodes.has(column.code))
+  .map((column) => ({
+    key: column.code,
+    header: localizedText(column.header, intl.locale),
+    render: (row: unknown) =>
+      (row as PlayerStatisticsMatchRowResponse).cells[column.code]?.formatted ?? '—',
+  }));
+const matchColumns = [
+  {
+    key: 'match',
+    header: intl.formatMessage(messages.playerProfileMatchColumnHeading),
+    render: (row: unknown) => {
+      const match = row as PlayerStatisticsMatchRowResponse;
+      return intl.formatMessage(messages.playerProfileMatchLabel, {
+        stage: match.stageNumber,
+        match: match.matchNumber,
+      });
+    },
+  },
+  ...matchStatColumns,
+];
+
+const hasStatistics =
+  statistics !== undefined &&
+  (statistics.tournamentTotal !== undefined || statistics.matches.length > 0);
 
 // `DataTable`'s `render` returns a plain value per cell (its own docstring
 // records why), so the bold tournament name and the muted abbreviation
@@ -108,6 +170,59 @@ const historyColumns = [
       )
     }
   </section>
+
+  {
+    statisticsLayouts.length > 0 && (
+      <section class="cl-player-profile__section" aria-labelledby="player-tournament-stats-heading">
+        <h3 id="player-tournament-stats-heading" class="cl-player-profile__section-title">
+          {intl.formatMessage(messages.playerProfileTournamentStatsHeading)}
+        </h3>
+        {statisticsLayouts.length > 1 && (
+          <div class="cl-player-profile__layout-selector" role="tablist">
+            {statisticsLayouts.map((layoutOption) => (
+              <a
+                href={`${canonicalPath}/players/${profile.personId}?layout=${encodeURIComponent(layoutOption.code)}`}
+                class={
+                  layoutOption.code === activeStatisticsLayoutCode
+                    ? 'cl-player-profile__layout-tab cl-player-profile__layout-tab--active'
+                    : 'cl-player-profile__layout-tab'
+                }
+                role="tab"
+                aria-selected={layoutOption.code === activeStatisticsLayoutCode}
+              >
+                {localizedText(layoutOption.label, intl.locale)}
+              </a>
+            ))}
+          </div>
+        )}
+        {!hasStatistics && (
+          <p class="cl-player-profile__empty">
+            {intl.formatMessage(messages.playerProfileNoTournamentStats)}
+          </p>
+        )}
+        {hasStatistics && (
+          <div class="cl-player-profile__stats-tables">
+            {statistics?.tournamentTotal !== undefined && (
+              <DataTable
+                caption={intl.formatMessage(messages.playerProfileTournamentTotalHeading)}
+                ariaLabel={intl.formatMessage(messages.playerProfileTournamentTotalHeading)}
+                columns={totalColumns}
+                rows={[statistics.tournamentTotal]}
+              />
+            )}
+            {statistics && statistics.matches.length > 0 && (
+              <DataTable
+                caption={intl.formatMessage(messages.playerProfileMatchByMatchHeading)}
+                ariaLabel={intl.formatMessage(messages.playerProfileMatchByMatchHeading)}
+                columns={matchColumns}
+                rows={statistics.matches}
+              />
+            )}
+          </div>
+        )}
+      </section>
+    )
+  }
 
   <section class="cl-player-profile__section" aria-labelledby="player-history-heading">
     <h3 id="player-history-heading" class="cl-player-profile__section-title">
@@ -213,5 +328,30 @@ const historyColumns = [
     .cl-player-profile__stat-list {
       grid-template-columns: minmax(0, 1fr);
     }
+  }
+  .cl-player-profile__stats-tables {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .cl-player-profile__layout-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--cl-border-muted);
+  }
+  .cl-player-profile__layout-tab {
+    display: inline-block;
+    padding: 8px 16px;
+    text-decoration: none;
+    color: inherit;
+    font-weight: 500;
+    font-size: var(--cl-font-size-sm);
+    border-bottom: 2px solid transparent;
+  }
+  .cl-player-profile__layout-tab--active {
+    border-bottom-color: var(--cl-primary);
+    color: var(--cl-primary);
   }
 </style>

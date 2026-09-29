@@ -136,3 +136,34 @@ test('preview identifiers are unknown paths in the production server', async ({ 
     expect(await response.text()).not.toContain('data-preview=');
   }
 });
+
+test('ControlApp hydrates without a bundling-crash console error (openspec 0279)', async ({
+  page,
+}) => {
+  // General hydration health-check, not a proven regression guard for the
+  // specific bug this change fixes (a Node-only `node:crypto` import in
+  // @copalibre/rules, transitively imported by ControlApp.tsx, externalized
+  // by Vite's *dev*-server and throwing at hydration). Verified by A/B: this
+  // e2e suite always runs against an `astro build` production bundle (see
+  // playwright.config.ts), and Rollup's production build tree-shook the
+  // unused `createHash` import away entirely — re-introducing the original
+  // bug and rebuilding still passed this test, confirming production builds
+  // never reproduce that dev-only failure mode. The real regression guard
+  // for that specific bug is the lint-level one in eslint.config.js
+  // (`no-restricted-imports` on `packages/rules/src/**`), verified to catch
+  // it. This test stays as a real, independent smoke check that the control
+  // panel's login screen renders cleanly.
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+
+  await page.goto('/control/login');
+  await expect(page.getByLabel('Email', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+
+  const bundlingErrors = errors.filter((text) => /node:/i.test(text) || /externalized/i.test(text));
+  expect(bundlingErrors).toEqual([]);
+});

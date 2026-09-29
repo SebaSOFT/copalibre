@@ -208,3 +208,20 @@ same validation applies, the same install path runs, and the same submission flo
 - **WHEN** an authored package is contributed upstream
 - **THEN** `module submit`'s behavior applies unchanged, including that the local package is copied
   rather than moved and remains installable afterward
+
+### Requirement: An installed module's full descriptor document can be fetched
+The API SHALL expose an endpoint that returns an installed discipline module's complete
+`DisciplineDescriptorDocument` — segment types, event definitions, statistics, rule defaults and
+field policies, win condition, and every other declared field — to a caller with the
+`copalibre.super-admin` scope. No endpoint SHALL expose this document to a caller without that
+scope.
+
+#### Scenario: A super-admin fetches an installed discipline's full document
+- **WHEN** a caller with `copalibre.super-admin` requests an installed discipline's document by its
+  identifier
+- **THEN** the response contains the discipline's complete descriptor document, not only the
+  lightweight summary fields `GET /disciplines` already returns
+
+#### Scenario: A caller without super-admin scope is refused
+- **WHEN** a caller without `copalibre.super-admin` requests an installed discipline's full document
+- **THEN** the API rejects the request

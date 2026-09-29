@@ -31,7 +31,22 @@ export function battleRoyaleDescriptor(
     },
     participantTypes: ['individual', 'team'],
     rosterConstraints: { minPlayers: 1, maxPlayers: 4 },
-    segmentTypes: [{ name: 'lobby', label: 'Lobby', timed: false }],
+    segmentTypes: [
+      {
+        name: 'lobby',
+        label: {
+          en: 'Lobby',
+          es: 'Lobby',
+          fr: 'Lobby',
+          de: 'Lobby',
+          it: 'Lobby',
+          pt: 'Lobby',
+          ru: 'Лобби',
+          zh: '大厅',
+        },
+        timed: false,
+      },
+    ],
     eventDefinitions: [
       {
         code: 'elimination',

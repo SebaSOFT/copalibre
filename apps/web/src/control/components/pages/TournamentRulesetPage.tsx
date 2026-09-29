@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage } from 'react-intl';
-import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
+import {
+  createControlApiClient,
+  type ControlApiClient,
+  type RulesetOverridesResponse,
+  type TournamentSettingsResponse,
+} from '../../lib/api-client.js';
+import type { ConfigFieldPolicies } from '@copalibre/domain';
 import { controlTokenStore } from '../../session/token-store.js';
 import { TournamentRulesetTemplate } from '../screens/TournamentRulesetTemplate.js';
 import { messages } from '../../i18n/messages.en.js';
@@ -24,9 +30,8 @@ export function TournamentRulesetPage({
       }),
     [client],
   );
-  const [overrides, setOverrides] = useState<Readonly<Record<string, unknown>> | undefined>(
-    undefined,
-  );
+  const [ruleset, setRuleset] = useState<RulesetOverridesResponse | undefined>(undefined);
+  const [settings, setSettings] = useState<TournamentSettingsResponse | undefined>(undefined);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -34,11 +39,19 @@ export function TournamentRulesetPage({
     api
       .fetchRulesetOverrides?.(organizationAlias, tournamentAlias)
       .then((loaded) => {
-        if (live) setOverrides(loaded.overrides);
+        if (live) setRuleset(loaded);
       })
       .catch(() => {
         if (live) setFailed(true);
       });
+    // Additive context for the plain-language summary (openspec 0267) —
+    // never gates loading/failed state, which stays keyed to `ruleset` only.
+    api
+      .fetchTournamentSettings?.(organizationAlias, tournamentAlias)
+      .then((loaded) => {
+        if (live) setSettings(loaded);
+      })
+      .catch(() => {});
     return () => {
       live = false;
     };
@@ -51,7 +64,7 @@ export function TournamentRulesetPage({
       </Alert>
     );
   }
-  if (overrides === undefined) {
+  if (ruleset === undefined) {
     return (
       <Alert tone="info">
         <FormattedMessage {...messages.settingsLoading} />
@@ -61,6 +74,8 @@ export function TournamentRulesetPage({
 
   return (
     <TournamentRulesetTemplate
+      disciplineDefaults={ruleset.disciplineDefaults}
+      fieldPolicies={ruleset.fieldPolicies as ConfigFieldPolicies}
       onPreview={(request) =>
         api
           .previewRulesetOverrides?.(organizationAlias, tournamentAlias, request)
@@ -70,11 +85,12 @@ export function TournamentRulesetPage({
         api
           .updateRulesetOverrides?.(organizationAlias, tournamentAlias, request)
           .then((updated) => {
-            if (updated) setOverrides(updated.overrides);
+            if (updated) setRuleset(updated);
           }) ?? Promise.resolve()
       }
       organizationAlias={organizationAlias}
-      overrides={overrides}
+      overrides={ruleset.overrides}
+      settings={settings}
       tournamentAlias={tournamentAlias}
     />
   );

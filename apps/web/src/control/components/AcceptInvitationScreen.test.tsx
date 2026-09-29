@@ -10,19 +10,24 @@ describe('AcceptInvitationScreen', () => {
     // The screen exists so the form is positioned by the page tier instead of
     // centring and margining itself, which is what left it flush to both
     // mobile edges.
+    //
+    // No explicit locale is passed, so `ControlIntl` resolves via
+    // `activeControlLanguage()`'s placeholder organization language ('es') —
+    // and since openspec 0278 gave `invitation.*` a real Spanish catalogue,
+    // this now genuinely renders Spanish, not an English fallback.
     const { container } = render(<AcceptInvitationScreen initialToken="invitation-token" />);
 
     expect(container.querySelector('.cl-auth-screen')).not.toBeNull();
     expect(container.querySelector('.cl-auth-screen__panel')).not.toBeNull();
     expect(container.querySelector('.cl-card')).not.toBeNull();
-    expect(screen.getByRole('heading', { name: 'Accept invitation' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Aceptar invitación' })).toBeDefined();
   });
 
   it('hands its token to the form rather than making the form find one', () => {
     render(<AcceptInvitationScreen initialToken="invitation-token" />);
 
-    expect(screen.queryByText('The invitation token was not found in the link.')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Accept and start' })).toBeDefined();
+    expect(screen.queryByText('No se encontró el token de invitación en el enlace.')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Aceptar y comenzar' })).toBeDefined();
   });
 
   it('renders with no props at all, letting the form read the URL itself', () => {
@@ -31,7 +36,7 @@ describe('AcceptInvitationScreen', () => {
     // the missing-token state rather than rendering a form that cannot submit.
     render(<AcceptInvitationScreen />);
 
-    expect(screen.getByText('The invitation token was not found in the link.')).toBeDefined();
+    expect(screen.getByText('No se encontró el token de invitación en el enlace.')).toBeDefined();
   });
 
   it('provides its own IntlProvider, since accept.astro mounts it outside ControlShell/Dashboard.tsx', () => {

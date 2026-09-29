@@ -1,6 +1,6 @@
 {
   "name": "@copalibre/worker",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "scripts": {
@@ -25,7 +25,7 @@
     "nodemailer": "^9.1.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.4"
   },
   "type": "module",
   "devDependencies": {

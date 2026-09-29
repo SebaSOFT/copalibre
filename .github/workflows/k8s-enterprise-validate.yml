@@ -53,9 +53,10 @@ jobs:
       - name: Install k3d
         run: curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
       # validate-backup-restore.sh's object-storage backup/restore step uses
-      # the MinIO client directly against the bucket — not preinstalled on
-      # GitHub-hosted runners, unlike the PostgreSQL client tools
-      # backup-restore-drill.yml already relies on being present.
+      # the MinIO client (mc) as an ordinary S3-compatible data-plane client
+      # against the Garage bucket (0297) — not preinstalled on GitHub-hosted
+      # runners, unlike the PostgreSQL client tools backup-restore-drill.yml
+      # already relies on being present.
       - name: Install MinIO client (mc)
         if: matrix.slug == 'backup-restore'
         run: |

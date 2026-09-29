@@ -65,10 +65,15 @@ export function buildHreflangAlternates(
 }
 
 export function serializeJsonLd(data: JsonLdStructuredData): string {
+  // Escapes `<` exactly like BracketView.astro's own inline-script payload
+  // does: this is injected via `set:html` inside a `<script>` tag
+  // (PublicLayout.astro), so an unescaped `</script` in admin-set text
+  // (an organization/tournament name) would close the tag early and let
+  // arbitrary markup execute.
   return JSON.stringify({
     '@context': 'https://schema.org',
     ...data,
-  });
+  }).replace(/</g, '\\u003c');
 }
 
 export function isCanonicalPathValidForLocale(canonicalPath: string, locale: string): boolean {

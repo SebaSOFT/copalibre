@@ -44,6 +44,21 @@ export function accessTokenHasScope(token: string | undefined, scope: string): b
   return accessTokenScopes(token).includes(scope);
 }
 
+/** The registered `exp` claim (seconds since epoch), in milliseconds — how the renewal scheduler learns when a restored-from-storage token actually expires, without the caller having to carry that value around separately. */
+export function accessTokenExpiresAtMs(token: string | undefined): number | undefined {
+  if (!token) return undefined;
+  const payload = token.split('.')[1];
+  if (!payload) return undefined;
+  try {
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const parsed = JSON.parse(atob(padded)) as { readonly exp?: unknown };
+    return typeof parsed.exp === 'number' ? parsed.exp * 1000 : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function createTokenStore(
   now: () => number = Date.now,
   options?: { readonly storage?: Storage },
@@ -134,6 +149,54 @@ export const controlTokenStore: TokenStore = createTokenStore(Date.now, {
   storage: defaultSessionStorage,
 });
 
+/** Which mechanism established the current session — decides how a silent renewal must be attempted (openspec 0302). */
+export type AuthMethod = 'native' | 'oidc';
+
+const AUTH_METHOD_STORAGE_KEY = 'copalibre:session:authMethod:v1';
+let currentAuthMethod: AuthMethod | undefined;
+
+/**
+ * Not a credential — which login screen was used is not secret — so it is
+ * fine to mirror into the same `sessionStorage` the access token already
+ * uses in pragmatic-persistent mode, so a reload can still tell which
+ * renewal mechanism applies without the operator logging in again.
+ */
+export function recordAuthMethod(
+  method: AuthMethod,
+  storage: Storage | undefined = defaultSessionStorage,
+): void {
+  currentAuthMethod = method;
+  if (!storage) return;
+  try {
+    storage.setItem(AUTH_METHOD_STORAGE_KEY, method);
+  } catch {
+    // Ignore quota errors in constrained environments
+  }
+}
+
+export function readAuthMethod(
+  storage: Storage | undefined = defaultSessionStorage,
+): AuthMethod | undefined {
+  if (currentAuthMethod !== undefined) return currentAuthMethod;
+  if (!storage) return undefined;
+  try {
+    const raw = storage.getItem(AUTH_METHOD_STORAGE_KEY);
+    return raw === 'native' || raw === 'oidc' ? raw : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function clearAuthMethod(storage: Storage | undefined = defaultSessionStorage): void {
+  currentAuthMethod = undefined;
+  if (!storage) return;
+  try {
+    storage.removeItem(AUTH_METHOD_STORAGE_KEY);
+  } catch {
+    // Ignore
+  }
+}
+
 /**
  * What a reload means in each mode.
  *
@@ -154,5 +217,6 @@ export const FORBIDDEN_STORAGE_KEYS: readonly string[] = [
   'access_token',
   'accessToken',
   'copalibre.token',
+  'copalibre_access_token',
   'refresh_token',
 ];

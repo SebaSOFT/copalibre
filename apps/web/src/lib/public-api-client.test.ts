@@ -1,6 +1,7 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import {
   fetchOverview,
+  fetchCompletion,
   fetchLive,
   fetchBracket,
   fetchMatchesView,
@@ -65,6 +66,53 @@ describe('public-api-client', () => {
       } as unknown as Response);
 
       await expect(fetchOverview('org1', 'tourney1')).rejects.toThrow(/500 Internal Server Error/);
+    });
+  });
+
+  describe('fetchCompletion', () => {
+    it('returns parsed json on 200', async () => {
+      const mockData = {
+        totalMatches: 10,
+        resolvedMatches: 6,
+        liveMatches: 1,
+        scheduledMatches: 3,
+        finalizedMatches: 5,
+        forfeitedMatches: 1,
+        stages: [],
+      };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      const result = await fetchCompletion('org1', 'tourney1');
+      expect(result).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/completion',
+      );
+    });
+
+    it('returns undefined on 404', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as unknown as Response);
+
+      const result = await fetchCompletion('org1', 'tourney1');
+      expect(result).toBeUndefined();
+    });
+
+    it('throws on non-404 failure', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      } as unknown as Response);
+
+      await expect(fetchCompletion('org1', 'tourney1')).rejects.toThrow(
+        /500 Internal Server Error/,
+      );
     });
   });
 
@@ -216,6 +264,7 @@ describe('public-api-client', () => {
           matchId: 'm1',
           stageNumber: 1,
           matchNumber: 1,
+          round: 1,
           state: 'final',
           homeName: 'Norte',
           homeAbbreviation: undefined,
@@ -225,6 +274,7 @@ describe('public-api-client', () => {
           awayScore: 1,
           clockSeconds: undefined,
           venueName: undefined,
+          scheduledAt: undefined,
           latestEvent: undefined,
           zoneName: 'Group B',
           groupName: undefined,
@@ -430,9 +480,11 @@ describe('public-api-client', () => {
             homeName: 'H',
             homeAbbreviation: 'H',
             homeScore: 1,
+            homeEntrantId: 'entrant-home',
             awayName: 'A',
             awayAbbreviation: 'A',
             awayScore: 0,
+            awayEntrantId: 'entrant-away',
             status: 'completed',
             scheduledAt: '2020',
           },
@@ -451,10 +503,38 @@ describe('public-api-client', () => {
       );
       expect(result.organizationAlias).toBe('org');
       expect(result.emblemObjectId).toBe('emblem-123');
-      expect(result.ruleset).toEqual([{ label: 'pointsForWin', value: 3 }]);
+      expect(result.ruleset).toEqual([
+        { dotPath: 'pointsForWin', label: 'Points For Win', value: 3 },
+      ]);
       expect(result.matches[0].home.name).toBe('H');
+      expect(result.matches[0].home.entrantId).toBe('entrant-home');
+      expect(result.matches[0].away.entrantId).toBe('entrant-away');
       expect(result.standings[0].points).toBe(3);
     });
+
+    it.each([
+      ['scheduled', 'upcoming'],
+      ['in-progress', 'live'],
+      ['in_progress', 'live'],
+      ['finalized', 'final'],
+      ['completed', 'final'],
+      ['forfeited', 'final'],
+      ['not-required', 'final'],
+    ])(
+      'maps persisted %s status to %s (openspec 0270 for forfeited/not-required)',
+      (status, state) => {
+        const result = mapOverviewResponse({
+          organizationAlias: 'org',
+          tournamentAlias: 'cup',
+          organizationName: 'Org',
+          tournamentName: 'Cup',
+          seasonName: '2026',
+          ruleset: {},
+          matches: [{ stageNumber: 1, status, homeName: 'A', awayName: 'B' }],
+        } as Parameters<typeof mapOverviewResponse>[0]);
+        expect(result.matches[0].state).toBe(state);
+      },
+    );
 
     it('handles missing fields gracefully', () => {
       const response = {
@@ -514,7 +594,67 @@ describe('public-api-client', () => {
   });
 
   describe('mapLiveResponse', () => {
-    it('maps correctly', () => {
+    it.each(['in_progress', 'in-progress'])('maps %s to the public live state', (state) => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            matchNumber: 1,
+            state,
+            projectionVersion: 2,
+            sides: [{ entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 }],
+          },
+        ],
+      };
+      const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
+      expect(result.usingLastKnown).toBe(true);
+      expect(result.matches[0].matchId).toBe('m1');
+      expect(result.matches[0].sides[0].entrantId).toBe('e1');
+      expect(result.matches[0].state).toBe('live');
+      expect(result.matches[0].sides[0].state).toBe('live');
+    });
+
+    it('keeps a projected possession entrant that participates in the match', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            matchNumber: 1,
+            state: 'in-progress',
+            projectionVersion: 2,
+            possessionEntrantId: 'e1',
+            sides: [
+              { entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 },
+              { entrantId: 'e2', name: 'B', abbreviation: 'B', score: 0 },
+            ],
+          },
+        ],
+      };
+      const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
+      expect(result.matches[0].possessionEntrantId).toBe('e1');
+    });
+
+    it('drops a projected possession entrant that names nobody on the match', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            matchNumber: 1,
+            state: 'in-progress',
+            projectionVersion: 2,
+            possessionEntrantId: 'someone-else',
+            sides: [
+              { entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 },
+              { entrantId: 'e2', name: 'B', abbreviation: 'B', score: 0 },
+            ],
+          },
+        ],
+      };
+      const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
+      expect(result.matches[0]).not.toHaveProperty('possessionEntrantId');
+    });
+
+    it('omits possession entirely when the projection supplies none', () => {
       const response = {
         matches: [
           {
@@ -527,27 +667,77 @@ describe('public-api-client', () => {
         ],
       };
       const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
-      expect(result.usingLastKnown).toBe(true);
-      expect(result.matches[0].matchId).toBe('m1');
-      expect(result.matches[0].sides[0].entrantId).toBe('e1');
-      expect(result.matches[0].sides[0].state).toBe('in-progress');
+      expect(result.matches[0]).not.toHaveProperty('possessionEntrantId');
+    });
+
+    it('passes active timed penalties through unchanged', () => {
+      const activePenalties = [{ timerId: 't1', entrantId: 'e1', remainingSeconds: 42 }];
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            matchNumber: 1,
+            state: 'in-progress',
+            projectionVersion: 2,
+            activePenalties,
+            sides: [{ entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 }],
+          },
+        ],
+      };
+      const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
+      expect(result.matches[0].activePenalties).toEqual(activePenalties);
+    });
+
+    it('omits activePenalties when the projection has none', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            matchNumber: 1,
+            state: 'in-progress',
+            projectionVersion: 2,
+            sides: [{ entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 }],
+          },
+        ],
+      };
+      const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
+      expect(result.matches[0]).not.toHaveProperty('activePenalties');
     });
   });
 
   describe('mapBracketResponse', () => {
+    function zoneAt(
+      result: ReturnType<typeof mapBracketResponse>,
+      index: number,
+    ): ReturnType<typeof mapBracketResponse>['zones'][number] {
+      const zone = result.zones[index];
+      if (zone === undefined) throw new Error(`expected a zone at index ${index}`);
+      return zone;
+    }
+
     it('maps correctly for entrant and winner-of / loser-of', () => {
       const response = {
-        matches: [
+        zones: [
           {
-            position: 1,
-            round: 1,
-            bracket: 'winners',
-            status: 'completed',
-            slots: [
-              { kind: 'entrant', name: 'A', abbreviation: 'A', score: 1 },
-              { kind: 'winner-of', matchId: '2', score: 0 },
-              { kind: 'loser-of', matchId: '3', score: 0 },
-              { kind: 'entrant' }, // missing name
+            matches: [
+              {
+                position: 1,
+                round: 1,
+                bracket: 'winners',
+                status: 'completed',
+                slots: [
+                  {
+                    kind: 'entrant',
+                    entrantId: 'entrant-a',
+                    name: 'A',
+                    abbreviation: 'A',
+                    score: 1,
+                  },
+                  { kind: 'winner-of', matchId: 'WB-R1-M2', score: 0 },
+                  { kind: 'loser-of', matchId: 'WB-R1-M3', score: 0 },
+                  { kind: 'entrant' }, // missing name
+                ],
+              },
             ],
           },
         ],
@@ -555,29 +745,96 @@ describe('public-api-client', () => {
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
       );
-      expect(result.matches[0].matchNumber).toBe(1);
-      expect(result.matches[0].slots[0]).toEqual({ kind: 'entrant', name: 'A', abbreviation: 'A' });
-      expect(result.matches[0].slots[1]).toEqual({ kind: 'winner-of', matchNumber: 2 });
-      expect(result.matches[0].slots[2]).toEqual({ kind: 'loser-of', matchNumber: 3 });
-      expect(result.matches[0].slots[3]).toEqual({
+      const matches = zoneAt(result, 0).matches;
+      expect(matches[0].matchNumber).toBe(1);
+      expect(matches[0].slots[0]).toEqual({
+        kind: 'entrant',
+        entrantId: 'entrant-a',
+        name: 'A',
+        abbreviation: 'A',
+        clubId: undefined,
+        emblemObjectId: undefined,
+      });
+      expect(matches[0].slots[1]).toEqual({
+        kind: 'winner-of',
+        matchId: 'WB-R1-M2',
+      });
+      expect(matches[0].slots[2]).toEqual({
+        kind: 'loser-of',
+        matchId: 'WB-R1-M3',
+      });
+      expect(matches[0].slots[3]).toEqual({
         kind: 'entrant',
         name: 'TBD',
         abbreviation: undefined,
+        clubId: undefined,
+        emblemObjectId: undefined,
       });
-      expect(result.matches[0].scores).toEqual([1, 0, 0, undefined]);
+      expect(matches[0].scores).toEqual([1, 0, 0, undefined]);
+    });
+
+    it('prefers the wire matchNumber (a real stage-wide ordinal) over the per-round position (openspec 0249)', () => {
+      const response = {
+        zones: [
+          {
+            matches: [
+              {
+                matchId: 'WB-R2-M1',
+                matchNumber: 17,
+                position: 1,
+                round: 2,
+                bracket: 'winners',
+                status: 'completed',
+                slots: [],
+              },
+            ],
+          },
+        ],
+      };
+      const result = mapBracketResponse(
+        response as unknown as Parameters<typeof mapBracketResponse>[0],
+      );
+      expect(zoneAt(result, 0).matches[0].matchNumber).toBe(17);
+    });
+
+    it('falls back to the per-round position when no persisted match resolved a wire matchNumber', () => {
+      const response = {
+        zones: [
+          {
+            matches: [
+              {
+                matchId: 'WB-R2-M1',
+                position: 1,
+                round: 2,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [],
+              },
+            ],
+          },
+        ],
+      };
+      const result = mapBracketResponse(
+        response as unknown as Parameters<typeof mapBracketResponse>[0],
+      );
+      expect(zoneAt(result, 0).matches[0].matchNumber).toBe(1);
     });
 
     it('handles missing matchId for winner/loser', () => {
       const response = {
-        matches: [
+        zones: [
           {
-            position: 1,
-            round: 1,
-            bracket: 'winners',
-            status: 'completed',
-            slots: [
-              { kind: 'winner-of', score: 0 },
-              { kind: 'loser-of', score: 0 },
+            matches: [
+              {
+                position: 1,
+                round: 1,
+                bracket: 'winners',
+                status: 'completed',
+                slots: [
+                  { kind: 'winner-of', score: 0 },
+                  { kind: 'loser-of', score: 0 },
+                ],
+              },
             ],
           },
         ],
@@ -585,8 +842,111 @@ describe('public-api-client', () => {
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
       );
-      expect(result.matches[0].slots[0]).toEqual({ kind: 'winner-of', matchNumber: 0 });
-      expect(result.matches[0].slots[1]).toEqual({ kind: 'loser-of', matchNumber: 0 });
+      const matches = zoneAt(result, 0).matches;
+      expect(matches[0].slots[0]).toEqual({ kind: 'winner-of' });
+      expect(matches[0].slots[1]).toEqual({ kind: 'loser-of' });
+    });
+
+    it('resolves readable positions from exact structural ids without joining their digits', () => {
+      const response = {
+        zones: [
+          {
+            matches: [
+              {
+                matchId: 'WB-R1-M2',
+                position: 2,
+                round: 1,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [],
+              },
+              {
+                matchId: 'WB-R2-M1',
+                position: 1,
+                round: 2,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [
+                  { kind: 'winner-of', matchId: 'WB-R1-M2' },
+                  { kind: 'loser-of', matchId: '3' },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+      const result = mapBracketResponse(response as Parameters<typeof mapBracketResponse>[0]);
+      expect(zoneAt(result, 0).matches[1]?.slots).toEqual([
+        { kind: 'winner-of', matchId: 'WB-R1-M2', matchNumber: 2 },
+        { kind: 'loser-of', matchId: '3', matchNumber: 3 },
+      ]);
+    });
+
+    it('resolves winner-of/loser-of positions independently per zone', () => {
+      const response = {
+        zones: [
+          {
+            zoneId: 'zone-1',
+            zoneName: 'Copa de Oro',
+            matches: [
+              {
+                matchId: 'z1-m1',
+                position: 1,
+                round: 1,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [],
+              },
+              {
+                matchId: 'z1-m2',
+                position: 1,
+                round: 2,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [{ kind: 'winner-of', matchId: 'z1-m1' }],
+              },
+            ],
+          },
+          {
+            zoneId: 'zone-2',
+            zoneName: 'Copa de Plata',
+            matches: [
+              {
+                matchId: 'z2-m1',
+                position: 1,
+                round: 1,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [],
+              },
+              {
+                matchId: 'z2-m2',
+                position: 1,
+                round: 2,
+                bracket: 'winners',
+                status: 'scheduled',
+                slots: [{ kind: 'winner-of', matchId: 'z2-m1' }],
+              },
+            ],
+          },
+        ],
+      };
+      const result = mapBracketResponse(
+        response as unknown as Parameters<typeof mapBracketResponse>[0],
+      );
+      expect(result.zones).toHaveLength(2);
+      expect(zoneAt(result, 0).zoneName).toBe('Copa de Oro');
+      expect(zoneAt(result, 0).matches[1]?.slots[0]).toEqual({
+        kind: 'winner-of',
+        matchId: 'z1-m1',
+        matchNumber: 1,
+      });
+      expect(zoneAt(result, 1).zoneName).toBe('Copa de Plata');
+      expect(zoneAt(result, 1).matches[1]?.slots[0]).toEqual({
+        kind: 'winner-of',
+        matchId: 'z2-m1',
+        matchNumber: 1,
+      });
     });
   });
 });

@@ -177,6 +177,26 @@ describe('toAuthoredDocument', () => {
   it('throws rather than producing a document with no name', () => {
     expect(() => toAuthoredDocument(initialProfileWizard())).toThrow();
   });
+
+  it('includes a declared allocation default and omits it when undeclared', () => {
+    const state = {
+      ...completeState(),
+      stages: [
+        {
+          number: 1,
+          name: 'Groups',
+          format: 'round-robin',
+          allocation: { mode: 'automatic' as const },
+        },
+        { number: 2, name: 'Final', format: 'single-elimination' },
+      ],
+    };
+    const document = toAuthoredDocument(state);
+    expect(document.stages).toEqual([
+      { number: 1, name: 'Groups', format: 'round-robin', allocation: { mode: 'automatic' } },
+      { number: 2, name: 'Final', format: 'single-elimination' },
+    ]);
+  });
 });
 
 describe('toAuthoredModuleRequest', () => {

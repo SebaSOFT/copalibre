@@ -1,13 +1,52 @@
-import type { ConfigFieldPolicies, LocalizedLabel, MutationClass } from '@copalibre/domain';
+import type {
+  ConfigFieldPolicies,
+  LocalizedLabel,
+  MutationClass,
+  RulesetConfig,
+} from '@copalibre/domain';
 import { Ajv } from 'ajv';
+import { renderTemplate } from '@copalibre/rules';
 import type { MessageDescriptor } from 'react-intl';
 import { messages } from '../i18n/messages.en.js';
 import type {
   CreateTournamentRequest,
   HookScriptVocabulary,
   HookVocabularyEntry,
-  SeriesAccountingGrain,
 } from './api-client.js';
+import {
+  initialStages,
+  stageProblems,
+  type StageAllocationDraft,
+  type WizardStageDraft,
+} from './stage-authoring.js';
+import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
+
+export {
+  appendStage,
+  emptySeriesDraft,
+  removeStage,
+  replaceStage,
+  ALLOCATION_MODES,
+  PLACEMENT_FORMATS,
+  SERIES_RESOLUTION_CLASSES,
+  type AllocationMode,
+  type SeedDirection,
+  type SeriesAccountingGrain,
+  type SeriesResolutionClass,
+  type StageAllocationDraft,
+  type StageSeriesDraft,
+  type WizardStageDraft,
+} from './stage-authoring.js';
+export {
+  DEFAULT_PREVIEW_ENTRANT_COUNT,
+  derivePreviewEntrantCount,
+  derivePreviewPlaceholders,
+  generatePreviewEntrants,
+  generatePreviewMatches,
+  generatePreviewNames,
+  isIllustrativePreview,
+  mapFixtureGraphToCanvasMatches,
+} from './wizard-preview.js';
 
 /**
  * The tournament setup wizard.
@@ -17,7 +56,8 @@ import type {
  * the operator has forgotten which screen the field was on.
  */
 
-export type WizardStepId = 'name' | 'discipline' | 'format' | 'rules' | 'window';
+export type WizardStepId =
+  'name' | 'discipline' | 'format' | 'ruleset' | 'rules' | 'window' | 'summary';
 
 export const WIZARD_STEPS: readonly {
   readonly id: WizardStepId;
@@ -26,8 +66,10 @@ export const WIZARD_STEPS: readonly {
   { id: 'name', label: messages.wizardStepName },
   { id: 'discipline', label: messages.wizardStepDiscipline },
   { id: 'format', label: messages.wizardStepFormat },
+  { id: 'ruleset', label: messages.wizardStepRuleset },
   { id: 'rules', label: messages.wizardStepRules },
   { id: 'window', label: messages.wizardStepWindow },
+  { id: 'summary', label: messages.wizardStepSummary },
 ];
 
 export interface DisciplineOption {
@@ -42,12 +84,15 @@ export interface DisciplineOption {
   readonly formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
   /** Read to warn an organizer before a hard-to-reverse decision; never enforced client-side. */
   readonly fieldPolicies?: ConfigFieldPolicies;
+  /** The discipline's own default configuration tree, before any override. */
+  readonly defaults?: RulesetConfig;
 }
 
 export interface ProfileStageOption {
   readonly number: number;
   readonly name: string;
   readonly format: string;
+  readonly allocation?: StageAllocationDraft;
 }
 
 export interface TournamentProfileOption {
@@ -72,7 +117,8 @@ export interface WizardState {
   readonly name?: string;
   readonly descriptorId?: string;
   readonly descriptorVersion?: string;
-  readonly format?: string;
+  /** Every stage of the tournament, in order — add/remove/append only, no reorder. */
+  readonly stages: readonly WizardStageDraft[];
   readonly profileId?: string;
   readonly profileVersion?: string;
   readonly region?: string;
@@ -80,49 +126,27 @@ export interface WizardState {
   readonly publicRegistration: boolean;
   readonly requiresCheckIn: boolean;
   readonly checkInClosesAt?: string;
+  /** Dot-path → value for a discipline-declared ruleset field beyond format/registration.*. */
+  readonly ruleOverrides: Readonly<Record<string, unknown>>;
   readonly customRuleEnabled: boolean;
   readonly customRuleConditionType?: string;
   readonly customRuleActionType?: string;
   readonly customRuleValues: Readonly<Record<string, string>>;
   readonly customRuleOptions: Readonly<Record<string, string>>;
   readonly customRules: readonly WizardRuleDraft[];
-  /**
-   * Off by default and requiring no operator action: a tournament authored
-   * without touching these controls submits exactly the request it did before
-   * they existed — no `series` key at all, not a `series` of span 1.
-   */
-  readonly seriesEnabled: boolean;
-  readonly seriesSpan?: number;
-  readonly seriesResolutionClass?: SeriesResolutionClass;
-  readonly seriesNeutralGround: boolean;
-  /**
-   * Preselected `match`, which is what an undeclared grain has always meant —
-   * an operator who never opens this control gets the request they got before
-   * it existed.
-   */
-  readonly seriesStandingsAccounting: SeriesAccountingGrain;
 }
-
-export type SeriesResolutionClass = 'best-of' | 'aggregate' | 'points-per-leg';
-
-export const SERIES_RESOLUTION_CLASSES: readonly SeriesResolutionClass[] = [
-  'best-of',
-  'aggregate',
-  'points-per-leg',
-];
 
 export function initialWizard(): WizardState {
   return {
     step: 'name',
+    stages: initialStages(),
     publicRegistration: false,
     requiresCheckIn: false,
+    ruleOverrides: {},
     customRuleEnabled: false,
     customRuleValues: {},
     customRuleOptions: {},
     customRules: [],
-    seriesEnabled: false,
-    seriesNeutralGround: false,
-    seriesStandingsAccounting: 'match',
   };
 }
 
@@ -199,14 +223,22 @@ export function stepProblems(
     case 'discipline':
       return state.descriptorId === undefined ? [messages.wizardProblemChooseDiscipline] : [];
     case 'format': {
-      if (state.format === undefined) return [messages.wizardProblemChooseFormat];
+      if (state.stages.length === 0) return [messages.wizardProblemChooseFormat];
+      const supported = formatsFor(disciplines, state.descriptorId);
       // Guards against a stale selection: changing the discipline after
-      // choosing a format must not carry the old one through.
-      if (!formatsFor(disciplines, state.descriptorId).includes(state.format)) {
-        return [messages.wizardProblemFormatNotSupported];
-      }
-      return seriesProblems(state);
+      // choosing a format must not carry the old one through. Evaluated
+      // per stage, so one placement-format stage among several is refused
+      // independent of the other stages' validity.
+      return state.stages.flatMap((stage) =>
+        !supported.includes(stage.format)
+          ? [messages.wizardProblemFormatNotSupported]
+          : stageProblems(stage),
+      );
     }
+    case 'ruleset':
+      // Optional per-field overrides; a rejected value fails at submission
+      // (the same validation the post-creation editor uses), not here.
+      return [];
     case 'rules': {
       if (!state.customRuleEnabled) return [];
       const hasDraft =
@@ -222,39 +254,10 @@ export function stepProblems(
       return state.capacity !== undefined && state.capacity < 2
         ? [messages.wizardProblemMinParticipants]
         : [];
+    case 'summary':
+      return [];
   }
 }
-
-/**
- * The two refusals, client-side, mirroring the server's own checks so the
- * operator meets them while authoring rather than on submit. Both refuse a
- * configuration that cannot cohere, never an unusual-but-valid one: a placement
- * match has no two sides to settle, and an even-span `best-of` has no majority.
- */
-export function seriesProblems(state: WizardState): readonly MessageDescriptor[] {
-  if (!state.seriesEnabled) return [];
-
-  const problems: MessageDescriptor[] = [];
-  if (state.format !== undefined && PLACEMENT_FORMATS.includes(state.format)) {
-    problems.push(messages.wizardProblemSeriesOnPlacementFormat);
-  }
-  if (
-    state.seriesSpan === undefined ||
-    !Number.isInteger(state.seriesSpan) ||
-    state.seriesSpan < 2
-  ) {
-    problems.push(messages.wizardProblemSeriesSpan);
-  } else if (state.seriesResolutionClass === 'best-of' && state.seriesSpan % 2 === 0) {
-    problems.push(messages.wizardProblemSeriesEvenBestOf);
-  }
-  return problems;
-}
-
-/**
- * Read from the client rather than the API only because it decides which *label*
- * to show; the server refuses a series on a placement format regardless.
- */
-const PLACEMENT_FORMATS: readonly string[] = ['free-for-all', 'heats'];
 
 export function canContinue(
   state: WizardState,
@@ -265,18 +268,15 @@ export function canContinue(
 }
 
 export function nextStep(state: WizardState): WizardStepId {
-  const index = WIZARD_STEPS.findIndex((step) => step.id === state.step);
-  return WIZARD_STEPS[Math.min(index + 1, WIZARD_STEPS.length - 1)]?.id ?? state.step;
+  return nextStepId(WIZARD_STEPS, state.step);
 }
 
 export function previousStep(state: WizardState): WizardStepId {
-  const index = WIZARD_STEPS.findIndex((step) => step.id === state.step);
-  return WIZARD_STEPS[Math.max(index - 1, 0)]?.id ?? state.step;
+  return previousStepId(WIZARD_STEPS, state.step);
 }
 
 export function progress(state: WizardState): number {
-  const index = WIZARD_STEPS.findIndex((step) => step.id === state.step);
-  return Math.round(((index + 1) / WIZARD_STEPS.length) * 100);
+  return stepProgress(WIZARD_STEPS, state.step);
 }
 
 /**
@@ -294,7 +294,7 @@ export function toCreateRequest(
     state.name === undefined ||
     state.descriptorId === undefined ||
     state.descriptorVersion === undefined ||
-    state.format === undefined
+    state.stages.length === 0
   ) {
     throw new Error('The wizard is not complete');
   }
@@ -303,7 +303,7 @@ export function toCreateRequest(
     name: state.name,
     descriptorId: state.descriptorId,
     descriptorVersion: state.descriptorVersion,
-    format: state.format,
+    stages: state.stages.map(stageRequestFrom),
     publicRegistration: state.publicRegistration,
     requiresCheckIn: state.requiresCheckIn,
     ...(state.checkInClosesAt !== undefined && state.checkInClosesAt.trim() !== ''
@@ -313,29 +313,31 @@ export function toCreateRequest(
     ...(state.capacity !== undefined ? { capacity: state.capacity } : {}),
     ...(state.profileId !== undefined ? { profileId: state.profileId } : {}),
     ...(state.profileVersion !== undefined ? { profileVersion: state.profileVersion } : {}),
+    ...(Object.keys(state.ruleOverrides).length > 0 ? { ruleOverrides: state.ruleOverrides } : {}),
     customScripts: customScriptsFrom(state, vocabulary),
-    ...seriesFrom(state),
   };
 }
 
-/**
- * Absent, not empty, when no series is declared — a tournament authored without
- * touching the series controls submits the request it submitted before they
- * existed, byte for byte.
- */
-function seriesFrom(state: WizardState): Pick<CreateTournamentRequest, 'series'> | object {
-  if (!state.seriesEnabled || state.seriesSpan === undefined) return {};
+function stageRequestFrom(stage: WizardStageDraft): CreateTournamentRequest['stages'][number] {
   return {
-    series: {
-      span: state.seriesSpan,
-      ...(state.seriesResolutionClass === undefined
-        ? {}
-        : { resolutionClass: state.seriesResolutionClass }),
-      ...(state.seriesNeutralGround ? { neutralGround: true } : {}),
-      ...(state.seriesStandingsAccounting === 'series'
-        ? { standingsAccounting: 'series' as const }
-        : {}),
-    },
+    number: stage.number,
+    ...(stage.name.trim() === '' ? {} : { name: stage.name }),
+    format: stage.format,
+    ...(stage.series === undefined || stage.series.span === undefined
+      ? {}
+      : {
+          series: {
+            span: stage.series.span,
+            ...(stage.series.resolutionClass === undefined
+              ? {}
+              : { resolutionClass: stage.series.resolutionClass }),
+            ...(stage.series.neutralGround ? { neutralGround: true } : {}),
+            ...(stage.series.standingsAccounting === 'series'
+              ? { standingsAccounting: 'series' as const }
+              : {}),
+          },
+        }),
+    ...(stage.allocation === undefined ? {} : { allocation: stage.allocation }),
   };
 }
 
@@ -349,6 +351,36 @@ export function parameterValueKey(
 
 export function elementOptionsKey(kind: 'condition' | 'action', type: string): string {
   return `${kind}:${type}:options`;
+}
+
+/**
+ * A configured rule's condition or action, rendered as a plain-language
+ * sentence via the entry's own `phraseTemplate` (openspec 0266) — never a
+ * second type-inference or merge implementation, just the shared
+ * `renderTemplate` (`@copalibre/rules`) fed this side's own parameter values
+ * and options, keyed the same way `scriptElement`/`invalidAuthoringInput`
+ * already extract them.
+ *
+ * Falls back to the raw type identifier when no vocabulary entry resolves
+ * (a stale reference), and to `type — description` when the entry resolves
+ * but declares no `phraseTemplate` yet — a row never renders blank.
+ */
+export function renderRulePhrase(
+  kind: 'condition' | 'action',
+  type: string,
+  entry: HookVocabularyEntry | undefined,
+  draft: WizardRuleDraft,
+): string {
+  if (entry === undefined) return type;
+  if (entry.phraseTemplate === undefined) return `${entry.type} — ${entry.description}`;
+  const values: Record<string, unknown> = {
+    ...optionsFrom(draft.options[elementOptionsKey(kind, entry.type)]),
+  };
+  for (const parameter of entry.authoring?.parameters ?? []) {
+    const raw = draft.values[parameterValueKey(kind, entry.type, parameter.name)];
+    if (raw !== undefined) values[parameter.name] = raw;
+  }
+  return renderTemplate(entry.phraseTemplate, values);
 }
 
 export function addCustomRule(state: WizardState, vocabulary?: HookScriptVocabulary): WizardState {

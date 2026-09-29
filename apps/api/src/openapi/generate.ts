@@ -14,6 +14,8 @@ import { detectBreakingChanges } from './breaking-change.js';
 import { formatArtifactSecurityFindings, scanOpenApiArtifact } from './artifact-security.js';
 import { serializeOpenApiArtifact } from './artifact.js';
 import { Module } from '@nestjs/common';
+import { DiagnosticsService } from '../modules/admin/diagnostics.service.js';
+import { OutboxInspectorService } from '../modules/admin/outbox-inspector.service.js';
 
 /**
  * Generates, lints, and breaking-change-checks the OpenAPI artifact.
@@ -30,6 +32,8 @@ const CONTROLLERS = OPENAPI_CONTROLLERS;
     { provide: DATABASE, useValue: {} },
     { provide: TokenVerifier, useValue: {} },
     { provide: OBJECT_STORAGE, useValue: undefined },
+    { provide: DiagnosticsService, useValue: {} },
+    { provide: OutboxInspectorService, useValue: {} },
   ],
 })
 class OpenApiModule {}

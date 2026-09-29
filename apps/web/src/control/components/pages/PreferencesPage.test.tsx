@@ -75,10 +75,17 @@ describe('PreferencesPage', () => {
       </ControlIntl>,
     );
 
-    expect(screen.getByText(/Personal Access Tokens/i)).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Tokens de acceso personal' })).toBeDefined();
+    expect(
+      screen.getByText(
+        'Generá tokens para acceder directamente a la API. Solo se muestran una vez.',
+      ),
+    ).toBeDefined();
+    expect(screen.getByRole('form', { name: 'Tokens de acceso personal' })).toBeDefined();
     await waitFor(() => {
       expect(screen.getByText(/Test PAT/i)).toBeDefined();
     });
+    expect(screen.getByText(/Vence:/)).toBeDefined();
   });
 
   it('creates a new PAT', async () => {
@@ -96,10 +103,11 @@ describe('PreferencesPage', () => {
       </ControlIntl>,
     );
 
-    fireEvent.change(screen.getByLabelText(/Token Label/i), { target: { value: 'New PAT' } });
-    fireEvent.click(screen.getByRole('button', { name: /Generate Token/i }));
+    fireEvent.change(screen.getByLabelText('Etiqueta del token'), { target: { value: 'New PAT' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Generar token' }));
 
     await waitFor(() => {
+      expect(screen.getByText('Token creado. Copialo ahora:')).toBeDefined();
       expect(screen.getByText(/clpat_generated123/i)).toBeDefined();
     });
   });
@@ -133,7 +141,7 @@ describe('PreferencesPage', () => {
       expect(screen.getByText(/Test PAT/i)).toBeDefined();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Revoke/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Revocar' }));
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledTimes(2));
   });

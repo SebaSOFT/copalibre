@@ -113,7 +113,12 @@ describe('organization-scoped tournament routes', () => {
         name: 'Copa Export Multi',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        // Mirrors profile.stages — the wizard submits its read-only preview
+        // of the profile's own declared stages verbatim.
+        stages: [
+          { number: 1, name: 'Groups', format: 'round-robin' },
+          { number: 2, name: 'Final', format: 'single-elimination' },
+        ],
         publicRegistration: true,
         requiresCheckIn: false,
         region: 'Cuyo',
@@ -353,18 +358,33 @@ describe('organization-scoped tournament routes', () => {
     expect(response.statusCode).toBe(200);
     const vocabulary = response.json() as {
       hooks: string[];
-      entries: { kind: string; type: string; authoring?: unknown }[];
+      entries: { kind: string; type: string; authoring?: unknown; phraseTemplate?: string }[];
     };
     expect(vocabulary.hooks).toEqual(['event.recorded']);
     expect(vocabulary.entries).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ kind: 'condition', type: 'compare_two_numbers' }),
-        expect.objectContaining({ kind: 'action', type: 'notify' }),
+        expect.objectContaining({
+          kind: 'condition',
+          type: 'compare_two_numbers',
+          phraseTemplate: '{{op1}} {{comp}} {{op2}}',
+        }),
+        expect.objectContaining({
+          kind: 'action',
+          type: 'notify',
+          phraseTemplate: 'Notify: {{title}}',
+        }),
         expect.objectContaining({ kind: 'parameter', type: 'simple_string' }),
       ]),
     );
     expect(vocabulary.entries.every((entry) => entry.authoring !== undefined)).toBe(true);
     expect(vocabulary.entries.some((entry) => entry.type === 'set-guard-outcome')).toBe(false);
+    // Every condition/action carries a phrase template (openspec 0266); a bare
+    // vocabulary parameter entry is not rendered directly, so it carries none.
+    expect(
+      vocabulary.entries
+        .filter((entry) => entry.kind === 'condition' || entry.kind === 'action')
+        .every((entry) => Boolean(entry.phraseTemplate)),
+    ).toBe(true);
   });
 
   it('creates, reads, and safely versions valid custom scripts before results', async () => {
@@ -387,7 +407,7 @@ describe('organization-scoped tournament routes', () => {
         name: 'Copa Custom Scripts',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: false,
         requiresCheckIn: false,
         customScripts: [notifyAttachment()],
@@ -475,7 +495,7 @@ describe('organization-scoped tournament routes', () => {
         name: 'Copa Invalid Script',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: false,
         requiresCheckIn: false,
         customScripts: [invalid],
@@ -505,7 +525,7 @@ describe('organization-scoped tournament routes', () => {
         name: 'Copa Unpublished Expression',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: false,
         requiresCheckIn: false,
         customScripts: [unpublished],
@@ -756,7 +776,7 @@ describe('organization-scoped tournament routes', () => {
         name: 'Copa Completa',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: true,
         requiresCheckIn: true,
         checkInClosesAt: '2026-09-01T12:00:00.000Z',
@@ -778,6 +798,143 @@ describe('organization-scoped tournament routes', () => {
       'registration.publicOpen': true,
       'registration.requiresCheckIn': true,
     });
+  });
+
+  it('creates a tournament with a discipline-declared rule override beyond format/registration (openspec 0265)', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const response = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'copa-overrides',
+        name: 'Copa Overrides',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        stages: [{ format: 'round-robin' }],
+        publicRegistration: true,
+        requiresCheckIn: false,
+        customScripts: [],
+        ruleOverrides: { 'scoring.pointsPerWin': 4 },
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const created = JSON.parse(response.payload as string);
+
+    const ruleset = await tournaments.findLatestRuleset(created.tournamentId);
+    expect(ruleset?.overrides).toMatchObject({ 'scoring.pointsPerWin': 4 });
+  });
+
+  it('rejects tournament creation with a ruleOverrides entry that violates its field policy, performing no write (openspec 0265)', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const response = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'copa-rejected-override',
+        name: 'Copa Rejected Override',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        stages: [{ format: 'round-robin' }],
+        publicRegistration: true,
+        requiresCheckIn: false,
+        customScripts: [],
+        // `venuePolicy.neutralGround` is declared `inherited` — accepts no override.
+        ruleOverrides: { 'venuePolicy.neutralGround': true },
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+
+    const found = await tournaments.findByScopedAlias('liga-orbital', 'copa-rejected-override');
+    expect(found).toBeUndefined();
+  });
+
+  it('creates an ad-hoc tournament declaring three stages in one pass, each with its own series and allocation', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const response = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'copa-multi-fase',
+        name: 'Copa Multi Fase',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        stages: [
+          { name: 'Grupos', format: 'round-robin', allocation: { mode: 'automatic' } },
+          {
+            name: 'Playoffs',
+            format: 'single-elimination',
+            allocation: { mode: 'manual' },
+          },
+          {
+            name: 'Gran Final',
+            format: 'single-elimination',
+            series: { span: 3, resolutionClass: 'best-of' },
+          },
+        ],
+        publicRegistration: false,
+        requiresCheckIn: false,
+        customScripts: [],
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const created = response.json() as { tournamentId: string; rulesetId: string };
+
+    const stages = await competition.listStagesOfTournament(created.tournamentId);
+    expect(
+      stages.map((stage) => ({ number: stage.number, name: stage.name, format: stage.format })),
+    ).toEqual([
+      { number: 1, name: 'Grupos', format: 'round-robin' },
+      { number: 2, name: 'Playoffs', format: 'single-elimination' },
+      { number: 3, name: 'Gran Final', format: 'single-elimination' },
+    ]);
+
+    // The first declared stage's format is the tournament-level fallback a
+    // later ad-hoc stage addition with no explicit format defaults to.
+    const ruleset = await tournaments.findLatestRuleset(created.tournamentId);
+    expect(ruleset?.overrides).toMatchObject({ format: 'round-robin' });
+
+    const [groupsStage, playoffsStage, finalStage] = stages;
+    if (!groupsStage || !playoffsStage || !finalStage) throw new Error('Expected three stages');
+    const groupsConfig = await tournaments.findLatestStageConfiguration(groupsStage.stageId);
+    expect(groupsConfig?.allocation).toEqual({ mode: 'automatic' });
+    const playoffsConfig = await tournaments.findLatestStageConfiguration(playoffsStage.stageId);
+    expect(playoffsConfig?.allocation).toEqual({ mode: 'manual' });
+    const finalConfig = await tournaments.findLatestStageConfiguration(finalStage.stageId);
+    expect(finalConfig?.overrides).toMatchObject({ 'series.span': 3 });
   });
 
   it('creates a tournament instantiating a tournament profile and pre-creating declared stages', async () => {
@@ -832,7 +989,12 @@ describe('organization-scoped tournament routes', () => {
         name: 'Copa With Profile',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        // Mirrors profile.stages — the wizard submits its read-only preview
+        // of the profile's own declared stages verbatim.
+        stages: [
+          { number: 1, name: 'Group Stage', format: 'round-robin' },
+          { number: 2, name: 'Final Stage', format: 'single-elimination' },
+        ],
         publicRegistration: false,
         requiresCheckIn: false,
         profileId: profile.profileId,
@@ -1037,7 +1199,7 @@ describe('organization-scoped tournament routes', () => {
       name: 'Rejected Undeclared Tournament',
       descriptorId: descriptor.descriptorId,
       descriptorVersion: descriptor.version,
-      format: 'single-elimination',
+      stages: [{ format: 'single-elimination' }],
       publicRegistration: true,
       requiresCheckIn: false,
       customScripts: [],
@@ -1062,6 +1224,84 @@ describe('organization-scoped tournament routes', () => {
       'rejected-undeclared-tournament',
     );
     expect(found).toBeUndefined();
+  });
+
+  it('applies visibility rules to GET completion: allows public access for published, requires auth for draft', async () => {
+    const tournaments = new TournamentRepository(scratch.db as Kysely<Database>);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+    });
+
+    const createdResponse = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'completion-visibility-test',
+        name: 'Completion Visibility Test',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        stages: [{ format: 'single-elimination' }],
+        publicRegistration: true,
+        requiresCheckIn: false,
+        customScripts: [],
+      },
+    });
+    expect(createdResponse.statusCode).toBe(201);
+    const created = JSON.parse(createdResponse.payload as string);
+    const tournamentId = created.tournamentId;
+
+    // 1. Unpublished (draft) tournament requested publicly (anonymous) -> 404
+    const anonDraftResponse = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+    });
+    expect(anonDraftResponse.statusCode).toBe(404);
+    const anonDraftBody = JSON.parse(anonDraftResponse.payload as string);
+    expect(anonDraftBody.errorCode).toBe('tournament-not-found');
+
+    // 2. Unpublished (draft) tournament requested by authorized organizer -> 200
+    const authDraftResponse = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+      token: 'organizer-org1',
+    });
+    expect(authDraftResponse.statusCode).toBe(200);
+    const authDraftBody = JSON.parse(authDraftResponse.payload as string);
+    expect(authDraftBody.totalMatches).toBe(0);
+    expect(authDraftBody.stages).toHaveLength(1);
+
+    // Publish the tournament
+    await (scratch.db as Kysely<Database>)
+      .updateTable('tournaments')
+      .set({ status: 'published' })
+      .where('tournament_id', '=', tournamentId)
+      .execute();
+
+    // 3. Published tournament requested publicly (anonymous) -> 200
+    const anonPubResponse = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+    });
+    expect(anonPubResponse.statusCode).toBe(200);
+    const anonPubBody = JSON.parse(anonPubResponse.payload as string);
+    expect(anonPubBody.totalMatches).toBe(0);
+    expect(anonPubBody.stages).toHaveLength(1);
+
+    // 4. Published tournament requested by authorized organizer -> 200
+    const authPubResponse = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+      token: 'organizer-org1',
+    });
+    expect(authPubResponse.statusCode).toBe(200);
+    const authPubBody = JSON.parse(authPubResponse.payload as string);
+    expect(authPubBody.totalMatches).toBe(0);
   });
 });
 

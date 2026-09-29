@@ -37,6 +37,7 @@ import MatchHero from '../components/ui/organisms/MatchHero.astro';
 import MatchNode from '../components/ui/organisms/MatchNode.astro';
 import MatchOfficials from '../components/ui/organisms/MatchOfficials.astro';
 import MatchRosters from '../components/ui/organisms/MatchRosters.astro';
+import MatchScheduleFilters from '../components/ui/organisms/MatchScheduleFilters.astro';
 import MatchTimeline from '../components/ui/organisms/MatchTimeline.astro';
 import Modal from '../components/ui/organisms/Modal.astro';
 import OrganizationClubs from '../components/ui/organisms/OrganizationClubs.astro';
@@ -49,8 +50,10 @@ import StandingsTable from '../components/ui/organisms/StandingsTable.astro';
 import TournamentCard from '../components/ui/organisms/TournamentCard.astro';
 import TournamentSection from '../components/ui/organisms/TournamentSection.astro';
 import {
+  matchCardLabels,
   publicIntl,
   resultStateLabels,
+  rulesetBriefingRows,
   seriesStateBarLabels,
   tickerChromeLabels,
   tickerLabels,
@@ -59,6 +62,7 @@ import {
 import { messages } from '../lib/i18n/public-messages.en.ts';
 import {
   referenceBracket,
+  referenceJourneyBracket,
   referenceClubs,
   referenceGroupMatches,
   referenceMatchReportModel,
@@ -88,6 +92,9 @@ const PREVIEWABLE = new Set([
   'score-ticker-empty',
   'score-ticker-stale',
   'bracket-stage',
+  'bracket-journey-alive',
+  'bracket-journey-champion',
+  'bracket-journey-eliminated',
   'match-bracket-context-early',
   'match-bracket-context-championship',
   'match-bracket-context-unknown-focus',
@@ -103,12 +110,15 @@ const PREVIEWABLE = new Set([
   'series-state-bar',
   'tournament-hero',
   'champion-podium',
+  'champion-podium-shared-title',
+  'champion-podium-empty',
   'data-table',
   'match-card-grid',
   'match-hero',
   'match-node',
   'match-officials',
   'match-rosters',
+  'match-schedule-filters',
   'match-timeline',
   'modal',
   'organization-clubs',
@@ -222,10 +232,10 @@ const tournaments = referenceTournamentListing();
       /* Eight entrants, four quarter-finals decided and a final still waiting on
          its sources — the case the graph, its key and its textual view all have
          to describe without inventing an advancement. */
-      component === 'bracket-stage' && (
+      (component === 'bracket-stage' || component.startsWith('bracket-journey-')) && (
         <BracketView
           intl={intl}
-          matches={referenceBracket()}
+          matches={referenceJourneyBracket(component === 'bracket-journey-champion')}
           organizationAlias="reference-league"
           stageNumber={1}
           tournamentAlias="reference-cup"
@@ -334,7 +344,11 @@ const tournaments = referenceTournamentListing();
         <BroadcastStatusPanel model={overview} statusText="Connected — live updates streaming." />
       )
     }
-    {component === 'ruleset-briefing' && <RulesetBriefing heading="Ruleset" model={overview} />}
+    {
+      component === 'ruleset-briefing' && (
+        <RulesetBriefing heading="Ruleset" rows={rulesetBriefingRows(intl, overview)} />
+      )
+    }
     {
       /* Undecided at game four of five, so both the segment strip and the pending
          outcome text render — a decided series would hide the pending copy. */
@@ -346,6 +360,12 @@ const tournaments = referenceTournamentListing();
         <ChampionPodium intl={intl} winners={referenceWinnerZones()} />
       )
     }
+    {
+      component === 'champion-podium-shared-title' && (
+        <ChampionPodium intl={intl} winners={referenceWinnerZones().slice(1)} />
+      )
+    }
+    {component === 'champion-podium-empty' && <ChampionPodium intl={intl} winners={[]} />}
     {
       component === 'data-table' && (
         <DataTable
@@ -362,7 +382,7 @@ const tournaments = referenceTournamentListing();
         <MatchCardGrid intl={intl} localePrefix="" model={overview} />
       )
     }
-    {component === 'match-hero' && <MatchHero model={matchReport} />}
+    {component === 'match-hero' && <MatchHero locale={intl.locale} model={matchReport} />}
     {
       component === 'match-node' && (
         <MatchNode
@@ -375,10 +395,11 @@ const tournaments = referenceTournamentListing();
         />
       )
     }
-    {component === 'match-officials' && <MatchOfficials model={matchReport} />}
+    {component === 'match-officials' && <MatchOfficials intl={intl} model={matchReport} />}
     {
       component === 'match-rosters' && (
         <MatchRosters
+          intl={intl}
           locale={locale}
           model={matchReport}
           organization="reference-league"
@@ -386,7 +407,30 @@ const tournaments = referenceTournamentListing();
         />
       )
     }
-    {component === 'match-timeline' && <MatchTimeline model={matchReport} />}
+    {
+      component === 'match-schedule-filters' && (
+        <MatchScheduleFilters
+          activeStageNumber={1}
+          activeZone="Copa de Oro"
+          buildUrl={() => '#'}
+          groups={['Group A', 'Group B']}
+          labels={{
+            stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
+            zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
+            groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
+            stateFilterAriaLabel: intl.formatMessage(messages.matchesViewStateFilterAriaLabel),
+            filters: matchCardLabels(intl).filters,
+          }}
+          stages={[
+            { stageNumber: 1, stageName: 'Group Stage' },
+            { stageNumber: 2, stageName: 'Playoffs' },
+          ]}
+          state="all"
+          zones={['Copa de Oro', 'Copa de Plata']}
+        />
+      )
+    }
+    {component === 'match-timeline' && <MatchTimeline intl={intl} model={matchReport} />}
     {
       component === 'modal' && (
         <Modal
@@ -462,3 +506,23 @@ const tournaments = referenceTournamentListing();
     }
   </body>
 </html>
+
+<script>
+  // Story-only selection uses the same activation a visitor uses on the production bracket.
+  const state = window.location.pathname.split('/').pop();
+  if (state?.startsWith('bracket-journey-')) {
+    const select = (): void => {
+      const root = document.querySelector('.cl-bracket-stage');
+      const buttons = root?.querySelectorAll<HTMLButtonElement>('button[data-entrant-id]');
+      const button = buttons?.[state === 'bracket-journey-eliminated' ? 1 : 0];
+      if (button && !button.hidden) {
+        observer.disconnect();
+        button.click();
+      }
+    };
+    const observer = new MutationObserver(select);
+    observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+    select();
+    window.addEventListener('pagehide', () => observer.disconnect(), { once: true });
+  }
+</script>

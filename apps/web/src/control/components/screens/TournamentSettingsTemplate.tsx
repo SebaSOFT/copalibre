@@ -5,6 +5,7 @@ import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
+import { filePickerLabels } from '../../lib/file-picker-labels.js';
 import { Input } from '../ui/atoms/input.js';
 import { Form } from '../ui/atoms/form.js';
 import { Field } from '../ui/molecules/field.js';
@@ -15,10 +16,18 @@ import { ImageCropModal } from '../ImageCropModal.js';
 import {
   tournamentEmblemUrl,
   type MutationFieldPreview,
+  type RulesetOverridesResponse,
   type TournamentSettingsRequest,
   type TournamentSettingsResponse,
 } from '../../lib/api-client.js';
+import { TournamentSummary } from '../ui/organisms/tournament-summary.js';
+import { fieldValueAt, mergeOverrides } from '../../lib/discipline-summary.js';
+import type { ConfigFieldPolicies } from '@copalibre/domain';
 import { messages } from '../../i18n/messages.en.js';
+
+function asBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
 
 const FIELD_LABEL: Record<string, string> = {
   name: 'name',
@@ -36,6 +45,7 @@ export function TournamentSettingsTemplate({
   organizationAlias,
   tournamentAlias,
   settings,
+  ruleset,
   onPreview,
   onSave,
   onUploadEmblem,
@@ -44,6 +54,8 @@ export function TournamentSettingsTemplate({
   readonly organizationAlias: string;
   readonly tournamentAlias: string;
   readonly settings: TournamentSettingsResponse;
+  /** Additive context for the plain-language summary below (openspec 0267). */
+  readonly ruleset?: RulesetOverridesResponse;
   readonly onPreview?: (
     request: TournamentSettingsRequest,
   ) => Promise<readonly MutationFieldPreview[]>;
@@ -55,6 +67,12 @@ export function TournamentSettingsTemplate({
   readonly onDeleteEmblem?: () => Promise<void>;
 }): React.JSX.Element {
   const intl = useIntl();
+  const rulesetFieldPolicies = (ruleset?.fieldPolicies ?? {}) as ConfigFieldPolicies;
+  const mergedRulesetConfig = mergeOverrides(
+    ruleset?.disciplineDefaults ?? {},
+    ruleset?.overrides ?? {},
+    rulesetFieldPolicies,
+  );
   const [name, setName] = useState(settings.name);
   const [region, setRegion] = useState(settings.region ?? '');
   const [capacity, setCapacity] = useState(
@@ -99,6 +117,22 @@ export function TournamentSettingsTemplate({
       breadcrumb={breadcrumbNode}
       listing={
         <>
+          <TournamentSummary
+            discipline={{ fieldPolicies: rulesetFieldPolicies, defaults: mergedRulesetConfig }}
+            facts={{
+              name: settings.name,
+              region: settings.region,
+              capacity: settings.capacity,
+              checkInClosesAt: settings.checkInClosesAt,
+              publicRegistration: asBoolean(
+                fieldValueAt(mergedRulesetConfig, 'registration.publicOpen'),
+              ),
+              requiresCheckIn: asBoolean(
+                fieldValueAt(mergedRulesetConfig, 'registration.requiresCheckIn'),
+              ),
+            }}
+            sections={['rules']}
+          />
           <Form
             className="cl-platform-form-grid"
             onSubmit={(event) => {
@@ -167,6 +201,7 @@ export function TournamentSettingsTemplate({
                         const file = files?.[0];
                         if (file) setEmblemCropSrc(URL.createObjectURL(file));
                       }}
+                      {...filePickerLabels(intl, { accept: 'image/*' })}
                     />
                   )}
                   {settings.emblemObjectId !== undefined && onDeleteEmblem && (

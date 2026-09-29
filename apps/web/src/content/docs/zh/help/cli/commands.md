@@ -1,7 +1,8 @@
 ---
 title: 命令参考
 description: 每个 copalibre CLI 命令、其用法及其选项标志。
-capabilities: []
+capabilities:
+  - platform/cli-tournament-operations
 roles:
   - super-admin
   - admin

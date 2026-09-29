@@ -85,7 +85,6 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // private sub-components and its table/button ownership moved into their
   // own files, `TvStandingsTable.tsx` and `TvRailTab.tsx`, both named in
   // `TABLE_OWNER_FILES` above as the TV surface's genuine table owner.
-  ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 11],
   // A close control with no name a screen reader can announce is unusable
   // (Decision 5's own reasoning for building `Modal` on Radix Dialog in the
   // first place), but the `Button` atom's filled, chamfered pill is a CTA
@@ -106,9 +105,11 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // recorded alongside the other un-adopted `<form>`s below rather than
   // forced onto an atom built for a different shape.
   ['control/components/ui/layouts/form-screen-layout.tsx', 1],
-  // Operator surface — converted screens eliminated; only remaining items:
-  ['control/components/pages/SeedingBuilderPage.tsx', 5],
-  ['control/components/screens/TournamentRulesetTemplate.tsx', 3],
+  // openspec 0282 replaced raw `<input>`s with `<Input>` atom in SeedingBuilderPage.tsx.
+  // openspec 0264 replaced the per-override-field raw JSON `<input>`s with
+  // `RulesetFieldControl` (typed, owned atoms); only the "add a new field by
+  // dot-path" name input remains raw.
+  ['control/components/screens/TournamentRulesetTemplate.tsx', 1],
   // Form-structure elements (task 2.4): `<form>`, `<label>`, `<fieldset>`,
   // `<legend>` and table parts outside the table owners, now governed by
   // `Form`, `Field`/`Label`, `FieldSet` and `DataTable` (tasks 2.2-2.3).
@@ -120,23 +121,17 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // `<form className="cl-platform-form-grid" …>` (`PlatformAdministrationPage.tsx`,
   // `TournamentRulesetTemplate.tsx`, `TournamentSettingsTemplate.tsx` — that
   // class's own `gap` already equals `Form`'s, so the two compose without a
-  // visual change). `AcceptInvitationForm.tsx`, `NativeAuthRoutes.tsx` and
-  // `PreferencesTemplate.tsx` were not: each `<form>` there carries its own
-  // inline layout style, and reconciling that with `Form`'s `cl-form` grid
-  // is task 5.1's inline-style paydown, not this task's naming/composition
-  // concern — left as recorded debt rather than done here.
+  // visual change). `PreferencesTemplate.tsx` now composes `Form` with its
+  // `Inline` layout atom; `AcceptInvitationForm.tsx` and `NativeAuthRoutes.tsx`
+  // remain recorded because their inline layouts need a separate migration.
   ['control/components/AcceptInvitationForm.tsx', 1],
   ['control/components/DescriptorBuilderWizard.tsx', 5],
   ['control/components/screens/LoadMatchDataTemplate.tsx', 3],
   ['control/components/NativeAuthRoutes.tsx', 3],
-  ['control/components/screens/PreferencesTemplate.tsx', 1],
-  ['control/components/screens/RolesPermissionsTemplate.tsx', 2],
   ['control/components/RosterSelectionStep.tsx', 3],
   ['control/components/screens/ScheduleBuilderTemplate.tsx', 3],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 1],
-  ['control/components/screens/VenueManagementTemplate.tsx', 11],
-  ['control/components/screens/ZoneGroupTemplate.tsx', 4],
-  ['control/components/TournamentSetupWizard.tsx', 7],
+  ['control/components/TournamentSetupWizard.tsx', 5],
 ]);
 
 /**
@@ -222,17 +217,22 @@ const OWNED_CLASS_RULES = [
  */
 export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // Operator surface — an owned atom exists for every one of these.
-  ['control/components/ActivityLog.tsx', 1],
+  // openspec 0280 moved ActivityLog.tsx's and DeviceHeartbeat.tsx's raw
+  // cl-badge spans onto the Badge atom — both entries removed at zero.
   ['control/components/BracketCanvas.tsx', 2],
-  ['control/components/DeviceHeartbeat.tsx', 1],
   ['control/components/screens/LiveConsoleTemplate.tsx', 3],
   ['control/components/screens/LoadMatchDataTemplate.tsx', 1],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 2],
-  ['control/components/screens/SeedingBuilderTemplate.tsx', 2],
-  ['control/components/pages/SeedingBuilderPage.tsx', 2],
+  // openspec 0282 replaced cl-card with Card in SeedingBuilderTemplate.tsx.
+  // openspec 0250 moved `StageSettingsSection`'s hand-written `cl-card` to
+  // `StageHubTemplate.tsx`, lowering this file's count from 2 to 1.
+  ['control/components/pages/SeedingBuilderPage.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 2],
-  ['control/components/TournamentSummaryCard.tsx', 1],
+  // openspec 0250 added a second `cl-btn`-as-anchor (the Tournament hub
+  // entry point), the same genuine gap this file's first one is recorded
+  // for above — the `Button` atom renders a `<button>`, which cannot link.
+  ['control/components/TournamentSummaryCard.tsx', 2],
   // Same gap as `TournamentSummaryCard.tsx` above: an `<a>` styled as a
   // button, which the `Button` atom cannot render (openspec 0225 task 8.1,
   // surfaced by narrowing the `ui/` directory skip to the atom tier).
@@ -252,7 +252,6 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // there. Repointing was therefore not the fix (openspec 0225 task 1.5);
   // deleting them was, since the violation these entries recorded no longer
   // exists for the scanner to find.
-  ['pages/[...locale]/[organization]/tournaments/[tournament]/live.astro', 1],
   ['pages/[...locale]/[organization]/tournaments/[tournament]/players/[personId].astro', 1],
   ['pages/index.astro', 1],
   // The control-panel CTA: an `<a href="/control/">` styled as a button, the

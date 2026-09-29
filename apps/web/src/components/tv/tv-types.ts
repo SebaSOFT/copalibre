@@ -1,3 +1,5 @@
+import type { ResultStateLabels } from '../../lib/result-state.js';
+
 /**
  * Shared types for the TV/broadcast surface's split-out sub-components
  * (openspec 0225 task 7.1) — kept separate from `TvDashboard.tsx` so a
@@ -9,15 +11,22 @@ export interface TvClubItem {
 }
 
 export interface TvDashboardLabels {
+  readonly resultState: ResultStateLabels;
   readonly noMatchesScheduled: string;
   readonly standingsUnavailable: string;
   readonly clubColumn: string;
   readonly playedColumn: string;
   readonly noTopPerformers: string;
   readonly focalPanelLabel: string;
+  readonly matchEventsLabel: string;
   readonly statsAndTablesLabel: string;
   readonly sidebarSectionsLabel: string;
   readonly standingsTab: string;
   readonly performersTab: string;
   readonly statisticsTab: string;
+  readonly bracketTab: string;
+  readonly bracketRound: string;
+  readonly bracketMatch: string;
+  readonly possession: string;
+  readonly penalty: string;
 }

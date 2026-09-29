@@ -53,6 +53,7 @@ const CONTROLLER_ERROR_CODES = [
   'organization-not-found',
   'participant-forbidden',
   'participant-not-found',
+  'promotion-plan-not-found',
   'public-projection-not-found',
   'registration-bad-request',
   'registration-conflict',

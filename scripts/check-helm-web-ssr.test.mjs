@@ -87,16 +87,22 @@ test('only web-ssr carries the internal API URL', () => {
 test('the web role points its Caddy at the Service this chart creates', () => {
   const env = envOf(named(helmTemplate(), 'Deployment', 'release-name-web'));
   assert.equal(env.COPALIBRE_WEB_SSR_UPSTREAM, 'release-name-web-ssr:3005');
+  assert.equal(env.COPALIBRE_WEB_API_UPSTREAM, 'release-name-api:3001');
 });
 
 test('an operator can override the upstream and the internal API URL', () => {
   const docs = helmTemplate([
     ['web.ssrUpstream', 'ssr.internal:8080'],
+    ['web.apiUpstream', 'api.internal:8081'],
     ['roles.web-ssr.apiInternalUrl', 'http://api.internal:3001'],
   ]);
   assert.equal(
     envOf(named(docs, 'Deployment', 'release-name-web')).COPALIBRE_WEB_SSR_UPSTREAM,
     'ssr.internal:8080',
+  );
+  assert.equal(
+    envOf(named(docs, 'Deployment', 'release-name-web')).COPALIBRE_WEB_API_UPSTREAM,
+    'api.internal:8081',
   );
   assert.equal(
     envOf(named(docs, 'Deployment', 'release-name-web-ssr')).COPALIBRE_API_INTERNAL_URL,
@@ -114,18 +120,22 @@ test('the web role probes a path its own server answers, not a proxied one', () 
   }
 });
 
-test('the Caddyfile addresses the renderer through a placeholder, defaulting to Compose', () => {
-  // Verified against caddy:2.10-alpine: with no variable set the adapted
-  // config dials web-ssr:3005, and with it set it dials the override. What
-  // this asserts is the property a future edit could silently lose — that no
-  // proxy site hardcodes a hostname only one install path can resolve.
+test('the Caddyfile addresses renderer and API through install-specific placeholders', () => {
+  // Compose resolves these defaults directly; the chart supplies its scoped
+  // Service names through the matching deployment environment variables.
   const caddyfile = readFileSync(
     join(dirname(fileURLToPath(import.meta.url)), '..', 'deploy', 'web', 'Caddyfile'),
     'utf8',
   );
   const upstreams = [...caddyfile.matchAll(/reverse_proxy\s+(\S+)/g)].map((match) => match[1]);
   assert.ok(upstreams.length > 0, 'no reverse_proxy directives found');
-  for (const upstream of upstreams) {
-    assert.equal(upstream, '{$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}');
-  }
+  assert.equal(
+    upstreams.filter((upstream) => upstream === '{$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}')
+      .length,
+    5,
+  );
+  assert.equal(
+    upstreams.filter((upstream) => upstream === '{$COPALIBRE_WEB_API_UPSTREAM:api:3001}').length,
+    2,
+  );
 });

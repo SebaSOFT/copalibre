@@ -145,17 +145,33 @@ export function tvStatisticsLabels(intl: IntlShape) {
 /** `TvDashboard.tsx`'s own chrome — separate from `tvStatisticsLabels`'s derived-stat labels. */
 export function tvDashboardLabels(intl: IntlShape) {
   return {
+    resultState: resultStateLabels(intl),
     noMatchesScheduled: intl.formatMessage(messages.tvDashboardNoMatchesScheduled),
     standingsUnavailable: intl.formatMessage(messages.tvDashboardStandingsUnavailable),
     clubColumn: intl.formatMessage(messages.tvDashboardClubColumn),
     playedColumn: intl.formatMessage(messages.tvDashboardPlayedColumn),
     noTopPerformers: intl.formatMessage(messages.tvDashboardNoTopPerformers),
     focalPanelLabel: intl.formatMessage(messages.tvDashboardFocalPanelLabel),
+    matchEventsLabel: intl.formatMessage(messages.tvDashboardMatchEventsLabel),
     statsAndTablesLabel: intl.formatMessage(messages.tvDashboardStatsAndTablesLabel),
     sidebarSectionsLabel: intl.formatMessage(messages.tvDashboardSidebarSectionsLabel),
     standingsTab: intl.formatMessage(messages.tvDashboardStandingsTab),
     performersTab: intl.formatMessage(messages.tvDashboardPerformersTab),
     statisticsTab: intl.formatMessage(messages.tvDashboardStatisticsTab),
+    bracketTab: intl.formatMessage(messages.tvDashboardBracketTab),
+    bracketRound: intl.formatMessage(messages.tvDashboardBracketRound),
+    bracketMatch: intl.formatMessage(messages.tvDashboardBracketMatch),
+    possession: intl.formatMessage(messages.tvDashboardPossession),
+    penalty: intl.formatMessage(messages.tvDashboardPenalty),
+  };
+}
+
+/** `TvMultiCourtGrid.tsx`'s own chrome — reuses `resultStateLabels` rather than its own state dictionary. */
+export function tvMultiCourtGridLabels(intl: IntlShape) {
+  return {
+    resultState: resultStateLabels(intl),
+    noMatches: intl.formatMessage(messages.tvMultiCourtGridNoMatches),
+    ariaLabel: intl.formatMessage(messages.tvMultiCourtGridAriaLabel),
   };
 }
 
@@ -193,6 +209,8 @@ export interface MatchCardLabels {
    */
   readonly clockAriaLabel: string;
   readonly venueAriaLabel: string;
+  /** Absent on a surface (e.g. control-web) that doesn't show kickoff time. */
+  readonly scheduledAtAriaLabel?: string;
   readonly latestEventAriaLabel: string;
   readonly zoneGroupAriaLabel: string;
   readonly positionInGroup: string;
@@ -204,6 +222,8 @@ export interface MatchCardLabels {
   readonly seriesPending: string;
   readonly seriesDecided: string;
   readonly seriesAggregate: string;
+  /** The compact ticker's separator (openspec 0299), e.g. "CPC 4 vs 3 UVT". Absent means `MatchCard` falls back to the literal `vs`. */
+  readonly versus?: string;
 }
 
 export function matchCardLabels(intl: IntlShape): MatchCardLabels {
@@ -222,6 +242,9 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
     empty: intl.formatMessage(messages.matchesViewEmpty),
     clockAriaLabel: intl.formatMessage(messages.matchesViewClockAriaLabel, { time: '{time}' }),
     venueAriaLabel: intl.formatMessage(messages.matchesViewVenueAriaLabel, { venue: '{venue}' }),
+    scheduledAtAriaLabel: intl.formatMessage(messages.matchesViewScheduledAtAriaLabel, {
+      time: '{time}',
+    }),
     latestEventAriaLabel: intl.formatMessage(messages.matchesViewLatestEventAriaLabel, {
       event: '{event}',
     }),
@@ -250,6 +273,7 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
       home: '{home}',
       away: '{away}',
     }),
+    versus: intl.formatMessage(messages.matchesViewVersus),
   };
 }
 
@@ -365,5 +389,104 @@ export function tournamentHeroLabels(intl: IntlShape, model: OverviewModel): Tou
       model.liveCount > 0
         ? intl.formatMessage(messages.heroLiveCount, { count: model.liveCount })
         : intl.formatMessage(messages.heroNoLiveMatches),
+  };
+}
+
+export interface RulesetBriefingRow {
+  readonly label: string;
+  readonly value: string;
+}
+
+/**
+ * A finite, well-known enum of stage formats — every one of the bracket/
+ * round-robin family the tournament engine declares. A format a future
+ * discipline module adds and this map has not caught up with falls back to
+ * the generic word-split below, same as any other unrecognized enum value.
+ */
+const RULESET_FORMAT_MESSAGE: Record<string, (typeof messages)['rulesetFormatSingleElimination']> =
+  {
+    'single-elimination': messages.rulesetFormatSingleElimination,
+    'double-elimination': messages.rulesetFormatDoubleElimination,
+    'round-robin': messages.rulesetFormatRoundRobin,
+    'round-robin-single-leg': messages.rulesetFormatRoundRobinSingleLeg,
+    'round-robin-home-away': messages.rulesetFormatRoundRobinHomeAway,
+    league: messages.rulesetFormatLeague,
+    swiss: messages.rulesetFormatSwiss,
+    gauntlet: messages.rulesetFormatGauntlet,
+    'bracket-groups': messages.rulesetFormatBracketGroups,
+    'custom-bracket': messages.rulesetFormatCustomBracket,
+    'ffa-bracket': messages.rulesetFormatFfaBracket,
+    'ffa-league': messages.rulesetFormatFfaLeague,
+  };
+
+function rulesetValue(intl: IntlShape, value: string): string {
+  if (value === 'true') return intl.formatMessage(messages.rulesetValueYes);
+  if (value === 'false') return intl.formatMessage(messages.rulesetValueNo);
+  const formatMessage = RULESET_FORMAT_MESSAGE[value];
+  if (formatMessage) return intl.formatMessage(formatMessage);
+  if (/^[a-z]+([-_][a-z]+)+$/i.test(value)) {
+    return value
+      .split(/[-_]+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+  }
+  return value;
+}
+
+/**
+ * `RulesetBriefing.astro`'s rows, fully resolved — the field's label (already
+ * localized by `mapOverviewResponse`) paired with its localized display value
+ * (openspec 0267). i18n formatting stays at this organism-and-above tier
+ * (`check-atomic-composition.mjs` R6); the molecule only ever renders strings.
+ */
+export function rulesetBriefingRows(
+  intl: IntlShape,
+  model: OverviewModel,
+): readonly RulesetBriefingRow[] {
+  return model.ruleset.map((entry) => ({
+    label: entry.label,
+    value: rulesetValue(intl, entry.value),
+  }));
+}
+
+export interface CompletionFigureLabels {
+  readonly heading: string;
+  readonly summary: string;
+  readonly stateLabel: string;
+  readonly stateGlyph: string;
+  readonly unmeasuredLabel: string;
+}
+
+export function completionFigureLabels(
+  intl: IntlShape,
+  completion: { totalMatches: number; resolvedMatches: number; liveMatches?: number },
+): CompletionFigureLabels {
+  const isUnmeasured = completion.totalMatches === 0;
+  const isComplete =
+    completion.totalMatches > 0 && completion.resolvedMatches === completion.totalMatches;
+
+  let stateLabel: string;
+  let stateGlyph: string;
+
+  if (isUnmeasured) {
+    stateLabel = intl.formatMessage(messages.completionUnmeasured);
+    stateGlyph = '—';
+  } else if (isComplete) {
+    stateLabel = intl.formatMessage(messages.completionComplete);
+    stateGlyph = '✓';
+  } else {
+    stateLabel = intl.formatMessage(messages.completionInProgress);
+    stateGlyph = '◐';
+  }
+
+  return {
+    heading: intl.formatMessage(messages.completionHeading),
+    summary: intl.formatMessage(messages.completionSummary, {
+      resolved: completion.resolvedMatches,
+      total: completion.totalMatches,
+    }),
+    stateLabel,
+    stateGlyph,
+    unmeasuredLabel: intl.formatMessage(messages.completionUnmeasured),
   };
 }

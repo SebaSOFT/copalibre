@@ -17,6 +17,7 @@ administrator access to do it.
 
 <!-- GENERATED:CAPABILITIES:START -->
 
+- `org.manage-club-members`
 - `org.manage-clubs`
 
 <!-- GENERATED:CAPABILITIES:END -->

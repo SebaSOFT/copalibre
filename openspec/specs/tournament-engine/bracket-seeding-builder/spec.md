@@ -102,3 +102,112 @@ NOT link to a placeholder or guessed destination.
 - **WHEN** a bracket canvas node is linkable
 - **THEN** it exposes a focus-visible, keyboard-activatable target at least 44px in its constrained
   axis, consistent with every other interactive control in the design system
+
+### Requirement: Bracket canvas can render focused on one match
+The bracket canvas SHALL support rendering with a single named match visually emphasized and scrolled
+into view on mount, while every other node renders with its normal, unmodified presentation — the
+canvas's existing "renders engine-generated structure" requirement continues to govern every node's
+own content and connections; focus SHALL only add emphasis to the named node, never alter or omit
+another node's slots, score, or connections.
+
+#### Scenario: Canvas opens centered on the focused match
+- **WHEN** the bracket canvas is rendered with a focus target set to a match present in its structure
+- **THEN** that match's node is visually emphasized and is scrolled into the visible viewport without
+  requiring the viewer to locate it manually
+
+#### Scenario: Focus does not suppress other nodes
+- **WHEN** the bracket canvas is rendered with a focus target set
+- **THEN** every other node still renders its full slots, score, and connections exactly as it would
+  with no focus target set
+
+#### Scenario: An unknown focus target is ignored
+- **WHEN** the bracket canvas is rendered with a focus target that does not match any node in its
+  structure
+- **THEN** the canvas renders normally with no node emphasized and no error
+
+### Requirement: Bracket canvas can highlight one entrant's path
+The bracket canvas SHALL support highlighting one entrant's path through the structure — every match
+it occupies a slot in, plus, while it remains alive, its potential winning chain of not-yet-resolved
+matches — with path matches at full presentation carrying an explicit marker and non-path matches at
+reduced emphasis. This mode SHALL NOT alter the structural rendering the canvas's existing "renders
+engine-generated structure" requirement governs.
+
+#### Scenario: An operator highlights an entrant's path
+- **WHEN** an operator activates highlighting for an entrant present in the canvas
+- **THEN** every match on that entrant's path renders with an explicit marker at full presentation, and
+  every other match renders at reduced emphasis
+
+#### Scenario: Highlighting an eliminated entrant stops at elimination
+- **WHEN** an operator activates highlighting for an entrant a resolved match has already eliminated
+- **THEN** the highlighted path ends at the eliminating match, with no future match included
+
+#### Scenario: A first loss continues into the losers' bracket
+- **WHEN** the selected entrant lost a resolved match with a declared `loser-of` continuation
+- **THEN** the path follows that continuation and does not classify the first loss as elimination
+
+#### Scenario: Graph identity survives repeated round positions
+- **WHEN** multiple matches have the same position in different rounds or branches
+- **THEN** highlighting follows exact structural match/source ids without confusing those nodes
+
+#### Scenario: Highlighting can be cleared with a keyboard
+- **WHEN** the visitor activates the selected entrant again or presses Escape within the bracket
+- **THEN** all matches return to normal emphasis and activation buttons expose their pressed state
+
+### Requirement: Bracket canvas shows series progress for a cross a series settles
+Where a cross rendered in the bracket canvas is settled by a series, the canvas SHALL show that
+series's current state — legs played, running score, decided-or-pending status, and any anulled leg —
+resolved by the same series-resolution logic the public bracket already uses, rather than rendering the
+series's legs as unrelated matches. A cross not settled by a series SHALL render exactly as it does
+today, with no series indicator.
+
+#### Scenario: An in-progress series shows its running state
+- **WHEN** an operator views a bracket canvas node whose cross is settled by a series with some but not
+  all legs played
+- **THEN** the node shows the series' current score and which legs remain to be played
+
+#### Scenario: A decided series shows its outcome and anulled legs
+- **WHEN** an operator views a bracket canvas node whose series has already been decided before every
+  possible leg was played
+- **THEN** the node shows the decided outcome and identifies which remaining legs the decision anulled
+
+#### Scenario: A cross with no series declaration is unaffected
+- **WHEN** an operator views a bracket canvas node for a cross with no series declaration
+- **THEN** the node renders exactly as it does without this requirement, with no series indicator
+
+### Requirement: Bracket canvas renders one diagram per zone
+
+When a stage's fixtures declare more than one zone, the bracket canvas SHALL render one independent,
+correctly-scoped bracket diagram per zone, rather than one diagram assembled from every zone's fixtures
+combined. Seed order assignment and publishing operate on the stage's full entrant list unchanged —
+this requirement governs only how already-generated, zoned fixtures are displayed to the operator.
+
+#### Scenario: Viewing a multi-zone stage's canvas
+- **WHEN** an operator opens the bracket canvas for a stage whose fixtures declare $Z > 1$ zones
+- **THEN** the canvas renders $Z$ distinct bracket diagrams, each showing only that zone's own matches,
+  with real entrant/status data (not placeholders caused by another zone's fixture sharing the same
+  round and position)
+
+#### Scenario: A single-zone or un-zoned stage is unaffected
+- **WHEN** an operator opens the bracket canvas for a stage with exactly one zone or none declared
+- **THEN** the canvas renders exactly one bracket diagram, matching today's behavior
+
+#### Scenario: Seed editing remains scoped to the whole stage
+- **WHEN** an operator locks seeds, randomizes unlocked seeds, or publishes a seed order for a stage
+  whose canvas displays multiple zone diagrams
+- **THEN** the seed order interaction is unchanged — it still operates on the stage's one flat entrant
+  list, and publishing still regenerates one unzoned bracket, exactly as before this requirement
+
+### Requirement: Entrant name resolution in seeding and bracket views
+The seeding builder and bracket canvas SHALL resolve entrant identifiers into human-readable display names (team or participant name, and optional abbreviation) using the stage's resolved entrant names. A raw opaque identifier SHALL NOT be rendered as a substitute when a display name is available.
+
+#### Scenario: Seeding order renders resolved team names
+- **WHEN** an operator views the seeding order list for a stage with registered entrants
+- **THEN** each seed row renders the entrant's human-readable name rather than a raw UUID identifier
+
+#### Scenario: Bracket canvas nodes render resolved entrant names
+- **WHEN** an operator views the bracket canvas for a stage with seeded or advanced entrants
+- **THEN** match slots render the entrant's human-readable name rather than a raw UUID identifier
+
+#### Scenario: Fallback when entrant cannot be resolved
+- **WHEN** an entrant identifier cannot be resolved by the backend or local name mapping
+- **THEN** the builder displays an explicit fallback label rather than silently rendering an unformatted opaque UUID

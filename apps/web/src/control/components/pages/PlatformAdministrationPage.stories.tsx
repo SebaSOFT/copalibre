@@ -20,6 +20,44 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
       listDisciplines: () => read(empty ? [] : [discipline]),
       listInstallationSuperAdmins: () => read([]),
       listInstalledModules: () => read([]),
+      getDiagnosticsSummary: () =>
+        read({
+          status: 'healthy',
+          version: '0.306.0',
+          uptimeSeconds: 3600,
+          sampledAt: '2026-09-28T12:00:00.000Z',
+          database: {
+            connected: true,
+            latencyMs: 2.1,
+            poolActive: 1,
+            poolIdle: 9,
+            poolWaiting: 0,
+          },
+          outbox: {
+            available: true,
+            pending: 0,
+            processed24h: 100,
+            failed: 0,
+            recentFailures: [],
+          },
+          storage: {
+            connected: true,
+            profile: 'filesystem',
+            totalObjects: 10,
+            totalBytes: 1024,
+          },
+          realtime: {
+            available: true,
+            totalConnections: 5,
+            tvKiosks: 2,
+            overlays: 1,
+            publicSpectators: 2,
+            controlConnections: 0,
+            activeReplicas: 1,
+            staleReplicas: 0,
+          },
+        }),
+      retryOutboxEvents: () => read({ retried: [], skipped: [] }),
     });
   }, [mode, intl]);
   return <PlatformAdministrationPage client={client} />;

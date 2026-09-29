@@ -1,4 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { TableCellResponse, TableColumnResponse } from './table-projections.dto.js';
+import type { LocalizedLabel } from '@copalibre/domain';
 
 export class PublicStandingsRowResponse {
   @ApiProperty()
@@ -125,6 +127,16 @@ export class PublicOverviewResponse {
   @ApiProperty({ type: 'object', additionalProperties: { type: 'string' } })
   ruleset!: Record<string, string>;
 
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    description:
+      "Each `ruleset` key's declared display label, when the installed discipline's field " +
+      'policy declares one — absent keys fall back to a humanized dot-path client-side ' +
+      '(openspec 0267).',
+  })
+  rulesetLabels?: Record<string, string | LocalizedLabel>;
+
   @ApiPropertyOptional({ enum: ['upcoming', 'live', 'finished'] })
   status?: 'upcoming' | 'live' | 'finished';
 
@@ -152,6 +164,17 @@ export class PublicLiveMatchSideResponse {
   score!: number;
 }
 
+export class PublicLivePenaltyResponse {
+  @ApiProperty({ format: 'uuid' })
+  timerId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  entrantId!: string;
+
+  @ApiProperty({ description: 'Seconds remaining at response time' })
+  remainingSeconds!: number;
+}
+
 export class PublicLiveMatchResponse {
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
@@ -170,6 +193,15 @@ export class PublicLiveMatchResponse {
 
   @ApiProperty({ type: [PublicLiveMatchSideResponse] })
   sides!: PublicLiveMatchSideResponse[];
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Explicitly projected possession side; omitted when unavailable',
+  })
+  possessionEntrantId?: string;
+
+  @ApiPropertyOptional({ type: [PublicLivePenaltyResponse] })
+  activePenalties?: PublicLivePenaltyResponse[];
 }
 
 export class PublicLiveResponse {
@@ -339,6 +371,15 @@ export class PublicBracketSlotResponse {
   @ApiPropertyOptional()
   abbreviation?: string;
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: "The entrant's club, when it belongs to one",
+  })
+  clubId?: string;
+
+  @ApiPropertyOptional({ description: "The club's emblem object id, when one is on record" })
+  emblemObjectId?: string;
+
   @ApiPropertyOptional({ description: 'Match this slot sources its participant from' })
   matchId?: string;
 
@@ -454,6 +495,14 @@ export class PublicBracketMatchResponse {
   @ApiPropertyOptional()
   format?: string;
 
+  @ApiPropertyOptional({
+    description:
+      "The match's stage-unique ordinal for the public report page's URL — present only when this " +
+      'graph node resolved to a real persisted match; a purely theoretical winner-of/loser-of ' +
+      'placeholder has none yet',
+  })
+  matchNumber?: number;
+
   @ApiProperty({ type: [PublicBracketSlotResponse] })
   slots!: PublicBracketSlotResponse[];
 
@@ -464,12 +513,27 @@ export class PublicBracketMatchResponse {
   series?: PublicSeriesStateResponse;
 }
 
+/**
+ * One zone's own independent bracket — or the stage's only bracket, for an un-zoned stage, which
+ * always comes back as exactly one zone entry with no `zoneId`/`zoneName` (openspec 0246).
+ */
+export class PublicBracketZoneResponse {
+  @ApiPropertyOptional({ format: 'uuid', description: 'Absent for an un-zoned stage' })
+  zoneId?: string;
+
+  @ApiPropertyOptional({ description: 'Absent for an un-zoned stage' })
+  zoneName?: string;
+
+  @ApiProperty({ type: [PublicBracketMatchResponse] })
+  matches!: PublicBracketMatchResponse[];
+}
+
 export class PublicBracketResponse {
   @ApiPropertyOptional({ description: 'The competition format of the stage' })
   format?: string;
 
-  @ApiProperty({ type: [PublicBracketMatchResponse] })
-  matches!: PublicBracketMatchResponse[];
+  @ApiProperty({ type: [PublicBracketZoneResponse] })
+  zones!: PublicBracketZoneResponse[];
 }
 
 export class PublicPersonCompetitionHistoryResponse {
@@ -564,6 +628,57 @@ export class PublicPersonProfileResponse {
   careerStatistics!: PublicPersonCareerDisciplineTotalsResponse[];
 }
 
+export class PlayerStatisticsMatchRowResponse {
+  @ApiProperty({ description: 'Public stage number, for linking to this match’s public report' })
+  stageNumber!: number;
+
+  @ApiProperty({
+    description: 'Public match number within its stage, for linking to this match’s public report',
+  })
+  matchNumber!: number;
+
+  @ApiProperty({
+    description:
+      'One cell per collector-kind declared column, keyed by column code — composite and ' +
+      'computed columns are aggregate ratios/expressions that do not apply to a single match, ' +
+      'so they never appear here',
+    type: TableCellResponse,
+  })
+  cells!: Record<string, TableCellResponse>;
+}
+
+export class PlayerStatisticsDrilldownResponse {
+  @ApiProperty()
+  layoutCode!: string;
+
+  @ApiProperty()
+  label!: string | LocalizedLabel;
+
+  @ApiProperty({
+    type: TableColumnResponse,
+    isArray: true,
+    description: 'Every non-rank declared column — collector, composite, and computed',
+  })
+  columns!: TableColumnResponse[];
+
+  @ApiPropertyOptional({
+    type: TableCellResponse,
+    description:
+      'One cell per column in `columns`, keyed by column code — the same values as this ' +
+      'player’s own leaderboard row. Absent when the player has no recorded roster appearance ' +
+      'anywhere in the tournament.',
+  })
+  tournamentTotal?: Record<string, TableCellResponse>;
+
+  @ApiProperty({
+    type: PlayerStatisticsMatchRowResponse,
+    isArray: true,
+    description:
+      'One row per finalized match the player is rostered in, ordered by stage then match number',
+  })
+  matches!: PlayerStatisticsMatchRowResponse[];
+}
+
 export class PublicTournamentEntrantPodiumResponse {
   @ApiProperty({ format: 'uuid' })
   entrantId!: string;
@@ -591,8 +706,20 @@ export class PublicTournamentWinnerZoneResponse {
   @ApiProperty({ type: PublicTournamentEntrantPodiumResponse })
   champion!: PublicTournamentEntrantPodiumResponse;
 
+  @ApiPropertyOptional({
+    type: [PublicTournamentEntrantPodiumResponse],
+    description: 'Every champion in this zone, including multiple entrants for a shared title.',
+  })
+  champions?: PublicTournamentEntrantPodiumResponse[];
+
   @ApiPropertyOptional({ type: PublicTournamentEntrantPodiumResponse })
   runnerUp?: PublicTournamentEntrantPodiumResponse;
+
+  @ApiPropertyOptional({
+    type: PublicTournamentEntrantPodiumResponse,
+    description: 'Rank three only when a completed ranked stage explicitly resolves one entrant.',
+  })
+  thirdPlace?: PublicTournamentEntrantPodiumResponse;
 }
 
 export class PublicTournamentDisciplineSummaryResponse {
@@ -721,6 +848,9 @@ export class PublicMatchesViewMatchResponse {
 
   @ApiPropertyOptional()
   venueName?: string;
+
+  @ApiPropertyOptional({ format: 'date-time' })
+  scheduledAt?: string;
 
   @ApiPropertyOptional({ type: PublicMatchesViewEventResponse })
   latestEvent?: PublicMatchesViewEventResponse;

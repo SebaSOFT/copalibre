@@ -19,10 +19,20 @@ export type OrganizationStorageUsageResponse =
   components['schemas']['OrganizationStorageUsageResponse'];
 export type CreateOrganizationRequest = components['schemas']['CreateOrganizationRequest'];
 export type TournamentResponse = components['schemas']['TournamentResponse'];
+export type TournamentCompletionResponse = components['schemas']['TournamentCompletionResponse'];
+export type StageCompletionResponse = components['schemas']['StageCompletionResponse'];
 export type CreateTournamentRequest = components['schemas']['CreateTournamentRequest'];
 export type ProblemResponse = components['schemas']['ProblemResponse'];
 export type HealthResponse = components['schemas']['HealthResponse'];
 export type ReadinessResponse = components['schemas']['ReadinessResponse'];
+export type DiagnosticsSummary = components['schemas']['DiagnosticsSummary'];
+export type DiagnosticsFailure = components['schemas']['DiagnosticsFailure'];
+export type DiagnosticsDatabase = components['schemas']['DiagnosticsDatabase'];
+export type DiagnosticsOutbox = components['schemas']['DiagnosticsOutbox'];
+export type DiagnosticsStorage = components['schemas']['DiagnosticsStorage'];
+export type DiagnosticsRealtime = components['schemas']['DiagnosticsRealtime'];
+export type RetryOutboxRequest = components['schemas']['RetryOutboxRequest'];
+export type RetryOutboxResponse = components['schemas']['RetryOutboxResponse'];
 
 /** Every path the API exposes, as a literal union — useful for typed clients. */
 export type ApiPath = keyof paths;

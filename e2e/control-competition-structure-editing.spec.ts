@@ -33,22 +33,26 @@ async function withTokenEndpoint(page: Page): Promise<void> {
   );
 }
 
-test('renames a stage from the seeding screen and sees the change immediately', async ({
-  page,
-}) => {
+test('renames a stage from the stage hub and sees the change immediately', async ({ page }) => {
+  // Stage identity (rename/format/delete) moved from the seeding screen to
+  // the stage hub (openspec 0250) — this exercises the same fact
+  // (a rename shows immediately) at its new location.
   await withTokenEndpoint(page);
   let stageName = 'Fase de grupos';
   await page.exposeFunction('__route', (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
-    if (url.endsWith(`/stages/1/seeding`) && method === 'GET') {
+    if (url.endsWith(`/tournaments/${TOURNAMENT_ALIAS}/stages`) && method === 'GET') {
       return {
-        body: {
-          stageId: 'stage-1',
-          format: 'round-robin',
-          seeds: [],
-          matches: [],
-          hasRecordedResults: false,
-        },
+        body: [
+          {
+            stageId: 'stage-1',
+            seasonId: 'season-1',
+            number: 1,
+            name: stageName,
+            format: 'round-robin',
+            seeded: false,
+          },
+        ],
       };
     }
     if (url.endsWith(`/stages/1`) && method === 'PATCH') {
@@ -67,7 +71,7 @@ test('renames a stage from the seeding screen and sees the change immediately', 
     return undefined;
   });
 
-  const target = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/stages/1/seeding`;
+  const target = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/stages/1`;
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
@@ -157,6 +161,53 @@ test('refuses a capacity reduction below the current entrant count before the sa
   await expect(page.getByText(/already accepted/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Guardar' })).toBeDisabled();
   expect(updateCalled).toBe(false);
+});
+
+test('shows the plain-language summary on the settings screen and updates it after a save (openspec 0267)', async ({
+  page,
+}) => {
+  await withTokenEndpoint(page);
+  let settings = { name: 'Copa Alta', region: 'Cuyo', capacity: 16, featured: false };
+  await page.exposeFunction('__route', (url: string, init?: RequestInit) => {
+    const method = init?.method ?? 'GET';
+    if (url.endsWith('/settings') && method === 'GET') {
+      return { body: settings };
+    }
+    if (url.endsWith('/settings') && method === 'PUT') {
+      const body = JSON.parse(String(init?.body)) as Partial<typeof settings>;
+      settings = { ...settings, ...body };
+      return { body: settings };
+    }
+    if (url.endsWith('/ruleset-overrides') && method === 'GET') {
+      return {
+        body: {
+          overrides: {},
+          fieldPolicies: {
+            'scoring.pointsPerWin': {
+              permission: { kind: 'replaced' },
+              mutationClass: 'safe',
+              label: 'Points per win',
+            },
+          },
+          disciplineDefaults: { scoring: { pointsPerWin: 3 } },
+        },
+      };
+    }
+    return undefined;
+  });
+
+  const target = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/settings`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await expect(page.getByText('Región: Cuyo')).toBeVisible();
+  await expect(page.getByText('Points per win')).toBeVisible();
+
+  await page.getByLabel('Región').fill('Mendoza');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+
+  await expect(page.getByText('Región: Mendoza')).toBeVisible();
 });
 
 test('deletes an unreferenced upload from the storage-usage screen and the usage total drops', async ({

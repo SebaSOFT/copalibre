@@ -29,8 +29,36 @@ export function footballDescriptor(
     participantTypes: ['team'],
     rosterConstraints: { minPlayers: 11, maxPlayers: 11, maxSubstitutes: 12 },
     segmentTypes: [
-      { name: 'half', label: 'Half', timed: true, defaultDurationSeconds: 2700 },
-      { name: 'extra-time', label: 'Extra time', timed: true, defaultDurationSeconds: 900 },
+      {
+        name: 'half',
+        label: {
+          en: 'Half',
+          es: 'Tiempo',
+          fr: 'Mi-temps',
+          de: 'Halbzeit',
+          it: 'Tempo',
+          pt: 'Tempo',
+          ru: 'Тайм',
+          zh: '半场',
+        },
+        timed: true,
+        defaultDurationSeconds: 2700,
+      },
+      {
+        name: 'extra-time',
+        label: {
+          en: 'Extra time',
+          es: 'Tiempo suplementario',
+          fr: 'Prolongation',
+          de: 'Verlängerung',
+          it: 'Tempi supplementari',
+          pt: 'Prorrogação',
+          ru: 'Дополнительное время',
+          zh: '加时赛',
+        },
+        timed: true,
+        defaultDurationSeconds: 900,
+      },
     ],
     eventDefinitions: [
       {

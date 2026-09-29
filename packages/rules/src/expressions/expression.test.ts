@@ -2,6 +2,7 @@ import { type ExecutionContext } from '@sebasoft/neuron-js';
 import {
   evaluateExpression,
   expressionResolutions,
+  renderTemplate,
   resolveExpressionField,
   resolveParameterExpression,
   splitTemplate,
@@ -149,6 +150,20 @@ describe('field resolution', () => {
       { kind: 'literal', text: ' of ' },
       { kind: 'expression', source: 'group.total' },
     ]);
+  });
+
+  it('renders a template by substituting each named value', () => {
+    expect(
+      renderTemplate('{{statistic}} crosses {{threshold}}', { statistic: 'shots', threshold: 5 }),
+    ).toBe('shots crosses 5');
+  });
+
+  it('leaves an unresolved placeholder literal instead of blanking or throwing', () => {
+    expect(renderTemplate('Margin: {{margin}}', {})).toBe('Margin: {{margin}}');
+  });
+
+  it('renders a template with no placeholders unchanged', () => {
+    expect(renderTemplate('Always true', { unused: 1 })).toBe('Always true');
   });
 });
 

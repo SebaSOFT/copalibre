@@ -4,7 +4,9 @@
 Provides CopaLibre's deterministic, explainable decision runtime — tiebreaks, eligibility,
 advancement, and notification rules evaluated as versioned, auditable Neuron-JS decisions instead of
 hardcoded conditionals — so every ranking and gate can show its own reasoning.
+
 ## Requirements
+
 ### Requirement: Framework-free rules package
 `packages/rules` SHALL contain no import of `@nestjs/*` or `fastify`, consistent with the boundary
 rule applied to `packages/domain`.
@@ -334,3 +336,24 @@ duplicate an effect.
 - **THEN** valid match event remains recorded
 - **AND** no partial effect from that script is materialized
 - **AND** audit and outbox record `rule.evaluation-failed` with script, hook, cause, and explanation
+
+### Requirement: A registered condition or action may declare a canonical phrase template
+A registered condition or action entry MAY declare a phrase template: a string using the package's
+existing `{{paramName}}` placeholder syntax, naming zero or more of the entry's own authored
+parameters. Rendering a phrase template against a set of chosen parameter values SHALL substitute
+each named placeholder with its value and SHALL leave a placeholder naming a parameter absent from
+the given values as literal text, never as a blank or a thrown error.
+
+#### Scenario: A phrase template renders with its parameter values substituted
+- **WHEN** a condition's phrase template naming `{{statistic}}` and `{{threshold}}` is rendered
+  against values supplying both
+- **THEN** the rendered text contains each value in place of its placeholder
+
+#### Scenario: A phrase template renders safely with a value missing
+- **WHEN** a phrase template names a parameter absent from the given values
+- **THEN** rendering returns text with that placeholder left literal, not an error and not an empty
+  substitution
+
+#### Scenario: An entry with no phrase template is unaffected
+- **WHEN** a registered condition or action declares no phrase template
+- **THEN** it behaves exactly as it did before this capability existed

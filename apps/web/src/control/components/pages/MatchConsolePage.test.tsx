@@ -130,17 +130,21 @@ describe('MatchConsolePage', () => {
           stageId: 'stage-1',
           format: 'single-elimination',
           seeds: [],
-          matches: [
+          zones: [
             {
-              matchId: 'WB-R1-M1',
-              persistedMatchId: 'match-1',
-              bracket: 'winners',
-              round: 1,
-              position: 1,
-              status: 'in-progress',
-              slots: [
-                { kind: 'entrant', entrantId: 'entrant-home' },
-                { kind: 'entrant', entrantId: 'entrant-away' },
+              matches: [
+                {
+                  matchId: 'WB-R1-M1',
+                  persistedMatchId: 'match-1',
+                  bracket: 'winners',
+                  round: 1,
+                  position: 1,
+                  status: 'in-progress',
+                  slots: [
+                    { kind: 'entrant', entrantId: 'entrant-home' },
+                    { kind: 'entrant', entrantId: 'entrant-away' },
+                  ],
+                },
               ],
             },
           ],

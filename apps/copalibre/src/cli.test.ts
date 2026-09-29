@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { createBackupPacket } from './backup-packet.js';
 import { readCopalibreVersion, renderBanner, renderFullLogo } from './banner.js';
 import { runCli } from './cli.js';
-import { COMMAND_HELP, MODULE_SUBCOMMAND_HELP } from './help-text.js';
+import { COMMAND_HELP, MODULE_SUBCOMMAND_HELP, TOURNAMENT_SUBCOMMAND_HELP } from './help-text.js';
 import { writeCredential } from './credentials.js';
 import { writeInstallationMarker } from './installation-marker.js';
 import type { ProcessRunner } from './process-runner.js';
@@ -620,6 +620,367 @@ describe('runCli', () => {
               headers: expect.objectContaining({ authorization: 'Bearer clpat_x' }),
             }),
           );
+        } finally {
+          fetchSpy.mockRestore();
+          stdout.mockRestore();
+        }
+      });
+    });
+  });
+
+  describe('organization/tournament HTTP-only commands (openspec 0252)', () => {
+    it('"tournament --help" lists every tournament subcommand', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      try {
+        const result = await runCli(['tournament', '--help'], {}, { run: jest.fn(async () => 0) });
+        expect(result).toBe(0);
+        const printed = stdout.mock.calls.map((call) => String(call[0])).join('');
+        for (const subcommand of TOURNAMENT_SUBCOMMAND_HELP) {
+          expect(printed).toContain(subcommand.name);
+        }
+      } finally {
+        stdout.mockRestore();
+      }
+    });
+
+    it.each(TOURNAMENT_SUBCOMMAND_HELP.map((subcommand) => subcommand.name))(
+      '"tournament %s --help" prints usage and exits 0 without running the subcommand',
+      async (subcommand) => {
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(['tournament', subcommand, '--help'], {}, { run });
+          expect(result).toBe(0);
+          expect(run).not.toHaveBeenCalled();
+        } finally {
+          stdout.mockRestore();
+        }
+      },
+    );
+
+    it('organization get fails naming "copalibre login" when no credential is stored, without fetching', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        const fetchSpy = jest.spyOn(globalThis, 'fetch');
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(
+            ['organization', 'get', 'liga-orbital'],
+            {},
+            { run: jest.fn(async () => 0) },
+          );
+          expect(result).toBe(1);
+          expect(
+            stderr.mock.calls.some((call) => String(call[0]).includes('copalibre login')),
+          ).toBe(true);
+          expect(fetchSpy).not.toHaveBeenCalled();
+        } finally {
+          fetchSpy.mockRestore();
+          stderr.mockRestore();
+        }
+      });
+    });
+
+    it('organization get prints the organization’s identity and exits 0 on success', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        await writeCredential(process.cwd(), 'https://copalibre.example', 'clpat_x');
+        const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+          new Response(
+            JSON.stringify({
+              organizationId: 'org-1',
+              alias: 'liga-orbital',
+              name: 'Liga Orbital',
+              primaryLanguage: 'es',
+              timezone: 'America/Argentina/San_Juan',
+            }),
+            { status: 200 },
+          ),
+        );
+        const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(
+            ['organization', 'get', 'liga-orbital'],
+            {},
+            { run: jest.fn(async () => 0) },
+          );
+          expect(result).toBe(0);
+          expect(fetchSpy).toHaveBeenCalledWith(
+            new URL('/organizations/liga-orbital', 'https://copalibre.example'),
+            expect.objectContaining({
+              headers: expect.objectContaining({ Authorization: 'Bearer clpat_x' }),
+            }),
+          );
+          const printed = stdout.mock.calls.map((call) => String(call[0])).join('');
+          expect(printed).toContain('alias: liga-orbital');
+          expect(printed).toContain('name: Liga Orbital');
+        } finally {
+          fetchSpy.mockRestore();
+          stdout.mockRestore();
+        }
+      });
+    });
+
+    it('organization get prints the API’s own refusal message verbatim on a non-2xx response', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        await writeCredential(process.cwd(), 'https://copalibre.example', 'clpat_x');
+        const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+          new Response(JSON.stringify({ message: 'No organization with alias "ghost"' }), {
+            status: 404,
+          }),
+        );
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(
+            ['organization', 'get', 'ghost'],
+            {},
+            { run: jest.fn(async () => 0) },
+          );
+          expect(result).toBe(1);
+          expect(stderr).toHaveBeenCalledWith(
+            'copalibre organization failed: No organization with alias "ghost"\n',
+          );
+        } finally {
+          fetchSpy.mockRestore();
+          stderr.mockRestore();
+        }
+      });
+    });
+
+    it('tournament list fails naming "copalibre login" when no credential is stored, without fetching', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        const fetchSpy = jest.spyOn(globalThis, 'fetch');
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(
+            ['tournament', 'list', '--organization-alias', 'liga-orbital'],
+            {},
+            { run: jest.fn(async () => 0) },
+          );
+          expect(result).toBe(1);
+          expect(
+            stderr.mock.calls.some((call) => String(call[0]).includes('copalibre login')),
+          ).toBe(true);
+          expect(fetchSpy).not.toHaveBeenCalled();
+        } finally {
+          fetchSpy.mockRestore();
+          stderr.mockRestore();
+        }
+      });
+    });
+
+    it('tournament list prints one line per tournament and exits 0', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        await writeCredential(process.cwd(), 'https://copalibre.example', 'clpat_x');
+        const fetchSpy = jest
+          .spyOn(globalThis, 'fetch')
+          .mockResolvedValue(
+            new Response(
+              JSON.stringify([
+                { tournamentId: 't-1', alias: 'copa', name: 'Copa Verano', status: 'draft' },
+              ]),
+              { status: 200 },
+            ),
+          );
+        const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(
+            ['tournament', 'list', '--organization-alias', 'liga-orbital'],
+            {},
+            { run: jest.fn(async () => 0) },
+          );
+          expect(result).toBe(0);
+          expect(fetchSpy).toHaveBeenCalledWith(
+            new URL('/organizations/liga-orbital/tournaments', 'https://copalibre.example'),
+            expect.objectContaining({
+              headers: expect.objectContaining({ Authorization: 'Bearer clpat_x' }),
+            }),
+          );
+          expect(stdout).toHaveBeenCalledWith('copa\tCopa Verano\tdraft\n');
+        } finally {
+          fetchSpy.mockRestore();
+          stdout.mockRestore();
+        }
+      });
+    });
+
+    it('tournament get prints the tournament’s identity and exits 0 on success', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        await writeCredential(process.cwd(), 'https://copalibre.example', 'clpat_x');
+        const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+          new Response(
+            JSON.stringify({
+              tournamentId: 't-1',
+              alias: 'copa',
+              name: 'Copa Verano',
+              status: 'draft',
+            }),
+            { status: 200 },
+          ),
+        );
+        const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(
+            [
+              'tournament',
+              'get',
+              '--organization-alias',
+              'liga-orbital',
+              '--tournament-alias',
+              'copa',
+            ],
+            {},
+            { run: jest.fn(async () => 0) },
+          );
+          expect(result).toBe(0);
+          expect(fetchSpy).toHaveBeenCalledWith(
+            new URL('/organizations/liga-orbital/tournaments/copa', 'https://copalibre.example'),
+            expect.objectContaining({
+              headers: expect.objectContaining({ Authorization: 'Bearer clpat_x' }),
+            }),
+          );
+          const printed = stdout.mock.calls.map((call) => String(call[0])).join('');
+          expect(printed).toContain('alias: copa');
+          expect(printed).toContain('status: draft');
+        } finally {
+          fetchSpy.mockRestore();
+          stdout.mockRestore();
+        }
+      });
+    });
+
+    it('tournament get prints the API’s own refusal message verbatim on a non-2xx response', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        await writeCredential(process.cwd(), 'https://copalibre.example', 'clpat_x');
+        const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+          new Response(JSON.stringify({ message: 'No tournament with alias "ghost"' }), {
+            status: 404,
+          }),
+        );
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(
+            [
+              'tournament',
+              'get',
+              '--organization-alias',
+              'liga-orbital',
+              '--tournament-alias',
+              'ghost',
+            ],
+            {},
+            { run: jest.fn(async () => 0) },
+          );
+          expect(result).toBe(1);
+          expect(stderr).toHaveBeenCalledWith(
+            'copalibre tournament failed: No tournament with alias "ghost"\n',
+          );
+        } finally {
+          fetchSpy.mockRestore();
+          stderr.mockRestore();
+        }
+      });
+    });
+
+    it('tournament create POSTs the single-stage request body and prints the created tournament', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        await writeCredential(process.cwd(), 'https://copalibre.example', 'clpat_x');
+        const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+          new Response(
+            JSON.stringify({
+              tournamentId: 't-1',
+              alias: 'copa',
+              name: 'Copa Verano',
+              status: 'draft',
+            }),
+            { status: 201 },
+          ),
+        );
+        const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(
+            [
+              'tournament',
+              'create',
+              '--organization-alias',
+              'liga-orbital',
+              '--alias',
+              'copa',
+              '--name',
+              'Copa Verano',
+              '--descriptor-id',
+              'discipline-id',
+              '--descriptor-version',
+              '1.2.0',
+              '--format',
+              'round-robin',
+              '--public-registration',
+            ],
+            {},
+            { run: jest.fn(async () => 0) },
+          );
+          expect(result).toBe(0);
+          const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+          expect(url).toEqual(
+            new URL('/organizations/liga-orbital/tournaments', 'https://copalibre.example'),
+          );
+          expect(init.method).toBe('POST');
+          expect(JSON.parse(init.body as string)).toEqual({
+            alias: 'copa',
+            name: 'Copa Verano',
+            descriptorId: 'discipline-id',
+            descriptorVersion: '1.2.0',
+            stages: [{ format: 'round-robin' }],
+            publicRegistration: true,
+            requiresCheckIn: false,
+          });
+          const printed = stdout.mock.calls.map((call) => String(call[0])).join('');
+          expect(printed).toContain('alias: copa');
+        } finally {
+          fetchSpy.mockRestore();
+          stdout.mockRestore();
+        }
+      });
+    });
+
+    it('tournament publish POSTs the publish route with no body and prints the published tournament', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        await writeCredential(process.cwd(), 'https://copalibre.example', 'clpat_x');
+        const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+          new Response(
+            JSON.stringify({
+              tournamentId: 't-1',
+              alias: 'copa',
+              name: 'Copa Verano',
+              status: 'published',
+            }),
+            { status: 200 },
+          ),
+        );
+        const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(
+            [
+              'tournament',
+              'publish',
+              '--organization-alias',
+              'liga-orbital',
+              '--tournament-alias',
+              'copa',
+            ],
+            {},
+            { run: jest.fn(async () => 0) },
+          );
+          expect(result).toBe(0);
+          const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+          expect(url).toEqual(
+            new URL(
+              '/organizations/liga-orbital/tournaments/copa/publish',
+              'https://copalibre.example',
+            ),
+          );
+          expect(init.method).toBe('POST');
+          expect(init.body).toBeUndefined();
+          const printed = stdout.mock.calls.map((call) => String(call[0])).join('');
+          expect(printed).toContain('status: published');
         } finally {
           fetchSpy.mockRestore();
           stdout.mockRestore();

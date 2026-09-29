@@ -47,11 +47,47 @@ export function auditFieldLabel(field: string, intl: IntlShape): string {
   return field.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (char) => char.toUpperCase());
 }
 
-/** A scalar rendering that keeps a `0` and a `false` visible. */
+function formatResult(result: unknown): string | null {
+  if (!result || typeof result !== 'object') return null;
+  const res = result as Record<string, unknown>;
+  if (Array.isArray(res.sides) && res.sides.length > 0) {
+    const scores = res.sides.map((side: unknown) => {
+      if (side && typeof side === 'object') {
+        const s = side as Record<string, unknown>;
+        if (typeof s.score === 'number' || typeof s.score === 'string') return String(s.score);
+        if (s.statistics && typeof s.statistics === 'object') {
+          const stats = s.statistics as Record<string, unknown>;
+          if (typeof stats.score === 'number' || typeof stats.score === 'string')
+            return String(stats.score);
+          if (typeof stats.points === 'number' || typeof stats.points === 'string')
+            return String(stats.points);
+          if (typeof stats.goals === 'number' || typeof stats.goals === 'string')
+            return String(stats.goals);
+        }
+      }
+      return '0';
+    });
+    return scores.join(' - ');
+  }
+  return null;
+}
+
+/** A scalar rendering that formats primitives and structured objects cleanly. */
 function render(value: unknown): string {
   if (value === undefined) return '—';
   if (value === null) return 'null';
-  if (typeof value === 'object') return JSON.stringify(value);
+  if (typeof value === 'object') {
+    const formattedResult = formatResult(value);
+    if (formattedResult !== null) return formattedResult;
+    if (Array.isArray(value)) {
+      return value.map((item) => render(item)).join(', ');
+    }
+    const entries = Object.entries(value as Record<string, unknown>);
+    if (entries.length === 0) return '{}';
+    return entries
+      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
+      .join(', ');
+  }
   return String(value);
 }
 

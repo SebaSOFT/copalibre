@@ -11,22 +11,57 @@ import { tvStreamPath } from '@copalibre/routing';
 import { sampleDashboard } from '../../../../../../../../lib/live-sample.ts';
 import {
   fetchLive,
+  fetchMatchReport,
   fetchOverview,
+  fetchBracket,
   mapLiveResponse,
   mapOverviewResponse,
+  mapBracketResponse,
   tournamentEmblemUrl,
 } from '../../../../../../../../lib/public-api-client.ts';
+import {
+  buildActorDirectory,
+  buildTvMatchEvents,
+  type TvMatchEvent,
+} from '../../../../../../../../lib/tv-match-events.ts';
 import type { PublicObjectReference } from '../../../../../../../../lib/discipline-background.ts';
 import type { LiveDashboard } from '../../../../../../../../lib/live-state.ts';
 import type { ResultState } from '../../../../../../../../lib/result-state.ts';
+import type { StandingsRowView } from '../../../../../../../../lib/overview.ts';
+import { selectStageLayout } from '../../../../../../../../lib/bracket.ts';
+import type { BracketZone } from '../../../../../../../../lib/bracket-projection.ts';
 
 export const prerender = false;
 
-const { organization, tournament, match } = Astro.params;
+const { organization, tournament, stage, match } = Astro.params;
 const organizationAlias = organization ?? 'liga-mendocina';
 const tournamentAlias = tournament ?? 'apertura-2026';
+const stageNumber = Number(stage ?? '1');
 const matchNumber = Number(match ?? '1');
 const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
+
+// Reuses the same fetch the public match report page makes (`fetchMatchReport`) — a second
+// consumer of that data, not a new endpoint (openspec 0270). Kept in its own guard, same
+// reasoning as the ticker/standings fetch on the general kiosk route: a failure here must cost
+// only the event ticker, never replace the whole live dashboard with sample data.
+let matchEvents: readonly TvMatchEvent[] = [];
+let rosterActors: Readonly<Record<string, string>> = {};
+try {
+  const report = await fetchMatchReport(
+    organizationAlias,
+    tournamentAlias,
+    stageNumber,
+    matchNumber,
+  );
+  if (report) {
+    matchEvents = buildTvMatchEvents(report);
+    // openspec 0300: resolves a *live* event's actor the same way the initial
+    // timeline above already resolves one, for `BroadcastAlertBanner`.
+    rosterActors = buildActorDirectory(report.rosters);
+  }
+} catch {
+  matchEvents = [];
+}
 
 let dashboard: LiveDashboard = {
   matches: [],
@@ -40,6 +75,7 @@ let clubs: { name: string; emblemObjectId?: string }[] = [];
 /* The kiosk carries the tournament's own discipline imagery, the same source the
  * public pages already render. An overlay never does — see TvLayout. */
 let disciplineImages: PublicObjectReference[] | undefined;
+let standings: StandingsRowView[] = [];
 
 try {
   const [live, overview] = await Promise.all([
@@ -61,6 +97,7 @@ try {
         emblemObjectId: c.emblemObjectId,
       }));
     }
+    standings = mappedOverview.standings ? [...mappedOverview.standings] : [];
 
     if (live && live.matches.length > 0) {
       dashboard = mapLiveResponse(live);
@@ -117,6 +154,22 @@ const overlayMode =
 const chromaKey = Astro.url.searchParams.get('chroma') ?? undefined;
 const presentation = overlayMode ?? 'kiosk';
 
+let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
+if (presentation !== 'lower') {
+  try {
+    const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, stageNumber);
+    if (rawBracket) {
+      const mapped = mapBracketResponse(rawBracket);
+      const zones = mapped.zones.filter((zone) => zone.matches.length > 0);
+      if (selectStageLayout(mapped.format) === 'bracket' && zones.length > 0) {
+        initialBracket = { stageNumber, zones };
+      }
+    }
+  } catch {
+    // A bracket outage does not affect the pinned match or event ticker.
+  }
+}
+
 /* Same query-param language the tournament kiosk takes; TV routes carry no locale segment. */
 const langParam = Astro.url.searchParams.get('lang');
 const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
@@ -135,13 +188,17 @@ const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam :
     client:load
     presentation={presentation}
     initial={dashboard}
+    initialBracket={initialBracket}
     streamPath={streamPath}
     branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
     pinnedMatchNumber={matchNumber}
+    matchEvents={matchEvents}
+    rosterActors={rosterActors}
     tournamentName={tournamentName}
     organizationName={organizationName}
     organizationAlias={organizationAlias}
     tournamentAlias={tournamentAlias}
     clubs={clubs}
+    standings={standings}
   />
 </TvLayout>

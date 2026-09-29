@@ -348,17 +348,15 @@ test('a URL is not mistaken for a line comment when blanking comments', () => {
 
 test('the raw-element debt register admits its recorded count and nothing beyond it', () => {
   const input = ['<input', '  type="text"', '/>'].join('\n');
-  const threeInputs = [input, input, input].join('\n');
-  // control/components/screens/TournamentRulesetTemplate.tsx is recorded at 3.
+  // control/components/screens/TournamentRulesetTemplate.tsx is recorded at 1.
   assert.equal(
-    checkFileOwnership('control/components/screens/TournamentRulesetTemplate.tsx', threeInputs)
-      .length,
+    checkFileOwnership('control/components/screens/TournamentRulesetTemplate.tsx', input).length,
     0,
   );
   assert.equal(
     checkFileOwnership(
       'control/components/screens/TournamentRulesetTemplate.tsx',
-      `${threeInputs}\n${input}`,
+      `${input}\n${input}`,
     ).length,
     1,
   );
@@ -372,7 +370,7 @@ test('the debt register ratchets: improving below the recorded count asks for it
     'const nothing = 1;',
   );
   assert.equal(violations.length, 1);
-  assert.match(violations[0].message, /fewer than the 3 recorded/);
+  assert.match(violations[0].message, /fewer than the 1 recorded/);
 });
 
 test('a hand-written owned class is a violation, the way a raw element is', () => {
@@ -406,29 +404,38 @@ test("a BEM child of an owned class is that component's own structure, not a byp
 
 test('the owned-class register admits its recorded count and nothing beyond it', () => {
   const badge = '<span className="cl-badge" />';
-  // ActivityLog.tsx is recorded at 1.
-  assert.equal(checkFileOwnership('control/components/ActivityLog.tsx', badge).length, 0);
+  // control/components/pages/SeedingBuilderPage.tsx is recorded at 1, and
+  // only in this register — unlike screens recorded in both registers, a
+  // zero-content fixture here trips exactly one violation, not two.
   assert.equal(
-    checkFileOwnership('control/components/ActivityLog.tsx', `${badge}\n${badge}`).length,
+    checkFileOwnership('control/components/pages/SeedingBuilderPage.tsx', badge).length,
+    0,
+  );
+  assert.equal(
+    checkFileOwnership('control/components/pages/SeedingBuilderPage.tsx', `${badge}\n${badge}`)
+      .length,
     1,
   );
   assert.equal(checkFileOwnership('NotListed.tsx', badge).length, 1);
 });
 
 test('the owned-class register ratchets down, naming its own register', () => {
-  const violations = checkFileOwnership('control/components/ActivityLog.tsx', 'const nothing = 1;');
+  const violations = checkFileOwnership(
+    'control/components/pages/SeedingBuilderPage.tsx',
+    'const nothing = 1;',
+  );
   assert.equal(violations.length, 1);
   assert.match(violations[0].message, /fewer than the 1 recorded in KNOWN_HANDWRITTEN_CLASSES/);
 });
 
 test('the two registers ratchet independently on the same file', () => {
-  // control/components/pages/SeedingBuilderPage.tsx is recorded at 5 raw governed
-  // elements and 2 owned classes. Meeting one register while missing the other
-  // reports only the one missed.
+  // control/components/screens/LoadMatchDataTemplate.tsx is recorded at 3 raw governed
+  // elements and 1 owned class. Meeting one register exactly while
+  // under-supplying the other reports only the one that needs ratcheting down.
   const input = ['<input', '  type="text"', '/>'].join('\n');
   const violations = checkFileOwnership(
-    'control/components/pages/SeedingBuilderPage.tsx',
-    [...Array(5).fill(input), '<div className="cl-card" />'].join('\n'),
+    'control/components/screens/LoadMatchDataTemplate.tsx',
+    Array(3).fill(input).join('\n'),
   );
   assert.equal(violations.length, 1);
   assert.match(violations[0].message, /KNOWN_HANDWRITTEN_CLASSES/);

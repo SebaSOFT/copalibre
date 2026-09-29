@@ -5,7 +5,7 @@ import {
   type TournamentCard as CardModel,
   type TournamentLifecycle,
 } from '../lib/dashboard.js';
-import { controlLinkClick } from '../lib/control-navigation.js';
+import { controlLinkClick, navigateControl } from '../lib/control-navigation.js';
 import { messages } from '../i18n/messages.en.js';
 import { Button } from './ui/atoms/button.js';
 import { DataEntityCard, type DataEntityCardAccent } from './ui/molecules/data-entity-card.js';
@@ -33,6 +33,8 @@ export interface TournamentSummaryCardProps {
   readonly onExport: (alias: string, kind: TournamentExportKind) => void;
   readonly onExportConfiguration: (alias: string) => void;
   readonly onArchive: (alias: string) => void;
+  /** Gates the Broadcaster Studio link (openspec 0300) — the same capability its backend endpoints already require. */
+  readonly canManageDisplayTokens: boolean;
 }
 
 /**
@@ -54,10 +56,12 @@ export function TournamentSummaryCard({
   onExport,
   onExportConfiguration,
   onArchive,
+  canManageDisplayTokens,
 }: TournamentSummaryCardProps): React.JSX.Element {
   const intl = useIntl();
   const presentation = LIFECYCLE_PRESENTATION[card.lifecycle];
   const base = `/control/${organizationAlias}/tournaments/${card.alias}`;
+  const broadcasterHref = `${base}/broadcaster`;
 
   /*
     `matches-view` is the listing route. `.../matches` is not a route at all —
@@ -68,6 +72,10 @@ export function TournamentSummaryCard({
   // A draft has nothing to open yet; its own requirement asks for a way back
   // into editing, which is its settings screen.
   const primaryHref = card.lifecycle === 'draft' ? `${base}/settings` : matchesHref;
+  // The Tournament hub (openspec 0250): a second entry point alongside the
+  // title, since it leads somewhere the title never has — the tournament's
+  // stage list, not its matches.
+  const stagesHref = base;
   const primaryLabel =
     card.lifecycle === 'draft'
       ? intl.formatMessage(messages.dashboardResumeEditing)
@@ -94,6 +102,21 @@ export function TournamentSummaryCard({
       label: messages.dashboardConfigurationJson,
       run: () => onExportConfiguration(card.alias),
     },
+    // Not an export, but the same overflow menu — a fourth standalone button
+    // here (like the four exports before this menu existed) wraps this row
+    // into two at 375px, exactly the layout defect this menu already exists
+    // to prevent (openspec 0300). `navigateControl` directly, not
+    // `controlLinkClick`: a menu item is a Radix `onSelect`, not an `<a>`
+    // click, and carries no `MouseEvent` to read modifier keys from.
+    ...(canManageDisplayTokens
+      ? [
+          {
+            id: 'broadcaster',
+            label: messages.dashboardBroadcasterStudio,
+            run: () => navigateControl(broadcasterHref),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -107,6 +130,13 @@ export function TournamentSummaryCard({
             onClick={controlLinkClick(primaryHref)}
           >
             {primaryLabel}
+          </a>
+          <a
+            className="cl-btn cl-btn--secondary cl-focusable"
+            href={stagesHref}
+            onClick={controlLinkClick(stagesHref)}
+          >
+            {intl.formatMessage(messages.dashboardStages)}
           </a>
           <DropdownMenu
             items={exports.map((one) => ({

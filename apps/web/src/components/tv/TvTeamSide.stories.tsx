@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TvTeamSide } from './TvTeamSide.js';
 
 const meta = {
-  title: 'TV/TvTeamSide',
+  title: 'TV/Kiosk & Full-Frame Widget/TvTeamSide',
   component: TvTeamSide,
   args: {
     name: 'Club Atlético Independiente',

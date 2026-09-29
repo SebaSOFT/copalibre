@@ -3,12 +3,33 @@ import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { BracketCanvas } from '../BracketCanvas.js';
 import { Button } from '../ui/atoms/button.js';
+import { controlLinkClick } from '../../lib/control-navigation.js';
 import type { CanvasMatch } from '../../lib/bracket-canvas.js';
 import { canRedo, canUndo, initHistory, push, redo, undo } from '../../lib/history.js';
 import { isDirty, randomizeUnlocked, toggleLock, type SeedAssignment } from '../../lib/seeding.js';
 import { mutationFeedback } from '../../lib/mutation-feedback.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { Card } from '../ui/atoms/card.js';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function resolveEntrantDisplayName(
+  entrantId: string,
+  names: Readonly<Record<string, string>>,
+  intl: ReturnType<typeof useIntl>,
+): string {
+  const resolved = names[entrantId];
+  if (resolved) {
+    return resolved;
+  }
+  if (UUID_PATTERN.test(entrantId)) {
+    return intl.formatMessage(messages.seedingUnresolvedEntrant, {
+      id: entrantId.slice(0, 8),
+    });
+  }
+  return entrantId;
+}
 
 /**
  * A6 — seed assignment beside the bracket it produces.
@@ -18,16 +39,25 @@ import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
  * list; the canvas is read-only, because bracket shape is engine-derived and
  * dragging a match somewhere else would be editing a picture of the truth.
  */
+/** One zone's own independent bracket — see `SeedingResponse.zones` (openspec 0246). */
+export interface SeedingCanvasZone {
+  readonly zoneId?: string;
+  readonly zoneName?: string;
+  readonly matches: readonly CanvasMatch[];
+}
+
 export function SeedingBuilderTemplate({
   organizationAlias,
   tournamentAlias,
   tournamentName,
+  stageNumber,
   seeds,
-  matches,
+  zones,
   names = {},
   hasRecordedResults,
   onPublish,
   random,
+  configurationSection,
 }: {
   readonly organizationAlias: string;
   /**
@@ -37,16 +67,24 @@ export function SeedingBuilderTemplate({
    */
   readonly tournamentAlias?: string;
   readonly tournamentName: string;
+  /** Present when the caller knows it — used only to link the breadcrumb back to the stage hub. */
+  readonly stageNumber?: number;
   readonly seeds: readonly SeedAssignment[];
-  readonly matches: readonly CanvasMatch[];
+  /**
+   * One entry per zone the stage's fixtures already declare — always exactly one entry, with no
+   * `zoneId`/`zoneName`, for an un-zoned stage (openspec 0246).
+   */
+  readonly zones: readonly SeedingCanvasZone[];
   readonly names?: Readonly<Record<string, string>>;
   readonly hasRecordedResults: boolean;
   readonly onPublish?: (seeds: readonly SeedAssignment[]) => Promise<void> | void;
   readonly random?: () => number;
+  readonly configurationSection?: React.ReactNode;
 }): React.JSX.Element {
   const intl = useIntl();
   const [history, setHistory] = useState(() => initHistory<readonly SeedAssignment[]>(seeds));
   const [zoom, setZoom] = useState(1);
+  const [highlightEntrantId, setHighlightEntrantId] = useState<string>();
   const current = history.present;
 
   // A courtesy, not the authority: the API classifies the same change and
@@ -56,9 +94,21 @@ export function SeedingBuilderTemplate({
 
   const apply = (next: readonly SeedAssignment[]): void => setHistory((state) => push(state, next));
 
+  const stageHubHref =
+    tournamentAlias !== undefined && stageNumber !== undefined
+      ? `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`
+      : undefined;
   const breadcrumbNode = (
     <span>
       {organizationAlias} &gt; {tournamentName}
+      {stageHubHref !== undefined && (
+        <>
+          {' · '}
+          <a className="cl-focusable" href={stageHubHref} onClick={controlLinkClick(stageHubHref)}>
+            <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
+          </a>
+        </>
+      )}
     </span>
   );
 
@@ -107,7 +157,10 @@ export function SeedingBuilderTemplate({
       )}
 
       <div className="cl-platform-form-grid">
-        <div className="cl-card cl-chamfer cl-chamfer--control">
+        <Card
+          aria-label={intl.formatMessage(messages.seedingOrder)}
+          className="cl-chamfer cl-chamfer--control"
+        >
           <header className="cl-card__header">
             <h2 className="cl-card__title">
               <FormattedMessage {...messages.seedingOrder} />
@@ -115,27 +168,30 @@ export function SeedingBuilderTemplate({
           </header>
           <div className="cl-card__content">
             <ol aria-label={intl.formatMessage(messages.seedingOrder)}>
-              {current.map((assignment) => (
-                <li key={assignment.seed} className="cl-role-user">
-                  <span className="cl-label">{assignment.seed}</span>
-                  <span>{names[assignment.entrantId] ?? assignment.entrantId}</span>
-                  <Button
-                    aria-label={intl.formatMessage(messages.seedingToggleLockAriaLabel, {
-                      locked: assignment.locked,
-                      seed: assignment.seed,
-                    })}
-                    aria-pressed={assignment.locked}
-                    disabled={blocked}
-                    onClick={() => apply(toggleLock(current, assignment.seed))}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage
-                      {...(assignment.locked ? messages.seedingLocked : messages.seedingUnlocked)}
-                    />
-                  </Button>
-                </li>
-              ))}
+              {current.map((assignment) => {
+                const displayName = resolveEntrantDisplayName(assignment.entrantId, names, intl);
+                return (
+                  <li key={assignment.seed} className="cl-role-user">
+                    <span className="cl-label">{assignment.seed}</span>
+                    <span>{displayName}</span>
+                    <Button
+                      aria-label={intl.formatMessage(messages.seedingToggleLockAriaLabel, {
+                        locked: assignment.locked,
+                        seed: assignment.seed,
+                      })}
+                      aria-pressed={assignment.locked}
+                      disabled={blocked}
+                      onClick={() => apply(toggleLock(current, assignment.seed))}
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage
+                        {...(assignment.locked ? messages.seedingLocked : messages.seedingUnlocked)}
+                      />
+                    </Button>
+                  </li>
+                );
+              })}
             </ol>
             {current.length === 0 && (
               <p className="cl-card__description">
@@ -143,29 +199,57 @@ export function SeedingBuilderTemplate({
               </p>
             )}
           </div>
-        </div>
+        </Card>
 
-        <div className="cl-card cl-chamfer cl-chamfer--control">
+        <Card className="cl-chamfer cl-chamfer--control">
           <header className="cl-card__header">
             <h2 className="cl-card__title">
               <FormattedMessage {...messages.seedingGeneratedBracket} />
             </h2>
           </header>
           <div className="cl-card__content">
-            <BracketCanvas
-              matches={matches}
-              matchUrl={
-                tournamentAlias === undefined
-                  ? undefined
-                  : (persistedMatchId) =>
-                      `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${persistedMatchId}`
-              }
-              onZoomChange={setZoom}
-              zoom={zoom}
-            />
+            {/* At least one canvas always renders, even for a not-yet-generated stage, so
+                `BracketCanvas`'s own "no structure yet" empty state still shows. */}
+            {(zones.length > 0 ? zones : [{ matches: [] as readonly CanvasMatch[] }]).map(
+              (zone, index) => (
+                <div key={('zoneId' in zone && zone.zoneId) || index}>
+                  {zones.length > 1 && 'zoneName' in zone && <h3>{zone.zoneName}</h3>}
+                  <BracketCanvas
+                    matches={zone.matches}
+                    highlightEntrantId={highlightEntrantId}
+                    onHighlightEntrant={setHighlightEntrantId}
+                    names={names}
+                    matchUrl={
+                      tournamentAlias === undefined
+                        ? undefined
+                        : (persistedMatchId) =>
+                            `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${persistedMatchId}`
+                    }
+                    onZoomChange={setZoom}
+                    zoom={zoom}
+                  />
+                </div>
+              ),
+            )}
           </div>
-        </div>
+        </Card>
       </div>
+
+      {configurationSection}
+
+      {stageNumber !== undefined && tournamentAlias !== undefined && (
+        <div>
+          <a
+            className="cl-focusable"
+            href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones`}
+            onClick={controlLinkClick(
+              `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones`,
+            )}
+          >
+            <FormattedMessage {...messages.stageHubZoneGroupsLink} />
+          </a>
+        </div>
+      )}
     </div>
   );
 

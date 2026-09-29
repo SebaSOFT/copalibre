@@ -46,7 +46,7 @@ describe('compiled-ruleset persistence (integration)', () => {
         name: alias,
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: false,
         requiresCheckIn: false,
       },
@@ -145,7 +145,8 @@ describe('compiled-ruleset persistence (integration)', () => {
       url: '/organizations/liga-prueba-cr/tournaments/fase-mixta/stages',
       headers: { authorization: 'Bearer admin' },
       payload: {
-        number: 1,
+        // createTournament's own request already declares stage 1.
+        number: 2,
         name: 'Con serie',
         format: 'round-robin',
         series: { span: 3, resolutionClass: 'aggregate' },
@@ -158,7 +159,7 @@ describe('compiled-ruleset persistence (integration)', () => {
       method: 'POST',
       url: '/organizations/liga-prueba-cr/tournaments/fase-mixta/stages',
       headers: { authorization: 'Bearer admin' },
-      payload: { number: 2, name: 'Sin serie', format: 'round-robin' },
+      payload: { number: 3, name: 'Sin serie', format: 'round-robin' },
     });
     expect(withoutSeries.statusCode).toBe(201);
     const stageWithoutSeries = withoutSeries.json() as { stageId: string };
@@ -228,7 +229,8 @@ describe('compiled-ruleset persistence (integration)', () => {
       ]);
       const stage = await competition.createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
-        number: 1,
+        // createTournament's own request already declares stage 1.
+        number: 2,
         name: 'Regular',
         format: 'round-robin',
         organizationId,

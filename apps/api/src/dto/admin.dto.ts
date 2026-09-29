@@ -135,3 +135,25 @@ export class ModuleVerifyResultResponse {
   @ApiProperty({ type: [ModuleVerifyFailureResponse] })
   failures!: readonly ModuleVerifyFailureResponse[];
 }
+
+export class InstalledDisciplineDocumentResponse {
+  @ApiProperty({ format: 'uuid' })
+  descriptorId!: string;
+
+  @ApiProperty({ example: 'orbital-frisbee' })
+  alias!: string;
+
+  @ApiProperty({ example: '1.0.0' })
+  version!: string;
+
+  @ApiProperty({
+    type: Object,
+    additionalProperties: true,
+    description:
+      'The complete DisciplineDescriptor document (segment types, event definitions, statistics, ' +
+      'rule defaults, field policies, win condition, and every other declared field) for this ' +
+      'installed discipline. Same shape a `discipline` AuthoredModuleRequest.document accepts, plus ' +
+      'the assigned descriptorId.',
+  })
+  document!: Record<string, unknown>;
+}

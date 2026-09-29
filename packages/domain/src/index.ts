@@ -56,6 +56,7 @@ export type {
   RulesetConfig,
   OverrideSet,
 } from './descriptors/override-policy.js';
+export { humanizeFieldPath, resolveFieldPolicyLabel } from './descriptors/field-policy-label.js';
 export type { Attribution } from './descriptors/attribution.js';
 export {
   CANONICAL_STATISTICS,
@@ -151,6 +152,7 @@ export {
   TOURNAMENT_PROFILE_SCHEMA,
   validateTournamentProfileDocument,
 } from './profiles/profile-schema.js';
+export { PROFILE_FIELD_EXPLANATIONS } from './profiles/profile-field-explanations.js';
 
 export {
   TOURNAMENT_CUSTOM_SCRIPT_HOOKS,
@@ -372,7 +374,7 @@ export {
   type SeedDirection,
   type SeedPlacement,
 } from './rulesets/stage-allocation.js';
-export { compileEffectiveRuleset } from './rulesets/compiler.js';
+export { compileEffectiveRuleset, mergeWithStrategy } from './rulesets/compiler.js';
 export {
   evaluateMutation,
   evaluateCustomScriptsMutation,
@@ -398,11 +400,15 @@ export {
 export {
   validateStageCompletion,
   validateNextStage,
+  foldTournamentCompletion,
   StageCompletionError,
   StageNotReadyError,
   type StageStatus,
   type StageCompletionPreconditions,
   type NextStagePreconditions,
+  type RawStageStatusCount,
+  type StageCompletionSummary,
+  type TournamentCompletionSummary,
 } from './aggregates/stage-completion.js';
 export {
   validateStart,

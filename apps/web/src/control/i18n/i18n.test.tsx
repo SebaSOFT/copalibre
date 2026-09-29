@@ -119,7 +119,7 @@ describe('Spanish catalog reproduces pre-extraction wording', () => {
         'es',
         <SeedingBuilderTemplate
           hasRecordedResults={false}
-          matches={[]}
+          zones={[]}
           organizationAlias="liga-mendocina"
           seeds={[]}
           tournamentName="Apertura"

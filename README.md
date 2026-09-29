@@ -24,8 +24,10 @@ discipline logic — shipped as a single multi-role Docker image driven by the `
 
 ```bash
 curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
+export PATH="$HOME/.copalibre/bin:$PATH"
 mkdir my-league && cd my-league && copalibre init
-# edit .env — see the comments copalibre init writes into it
+# edit .env — configure identity/email and replace development credentials
+# also set GARAGE_RPC_SECRET using openssl rand -hex 32
 copalibre doctor && copalibre start
 copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
@@ -36,10 +38,11 @@ Full walkthrough, remote management, TLS, and the contributor checkout: see Full
 
 ```bash
 curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
+export PATH="$HOME/.copalibre/bin:$PATH"
 mkdir my-league && cd my-league
 copalibre init      # writes a full installation (compose file, .env, marker) into the cwd
 # edit .env: PostgreSQL password, COPALIBRE_BOOTSTRAP_TOKEN, OIDC JWKS/issuer/audience,
-# browser client ID, and one email provider
+# browser client ID, one email provider, and GARAGE_RPC_SECRET (openssl rand -hex 32)
 copalibre doctor    # validates configuration before anything starts
 copalibre start     # docker compose up --detach --wait
 copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
@@ -68,7 +71,7 @@ command reference, generated from the CLI's own metadata and checked at build ti
 shipped command, lives at `/help/cli/commands/` on a running instance.
 
 Prefer Kubernetes over Docker Compose? A Helm chart ([`deploy/helm/copalibre/`](deploy/helm/copalibre/))
-covers that path too — see `/help/self-hosting.md`'s Option B on a running instance for the
+covers that path too — see `/help/self-hosting/`'s Option B on a running instance for the
 `helm install` walkthrough and autoscaling caveats.
 
 `docker-compose.yml` does not terminate TLS by design — put Caddy or NGINX at the edge (example
@@ -78,8 +81,9 @@ configs in [`deploy/proxy/`](deploy/proxy/)) and verify it with
 #### Contributor / module-author checkout
 
 Building CopaLibre itself, or authoring a module against its own source, needs a full checkout —
-the same commands, run through the checkout's own `./copalibre` wrapper instead of the installed
-binary:
+install Node.js 24 and Corepack as well as Git, Docker and Docker Compose v2. The checkout's
+`./copalibre` wrapper installs dependencies and compiles the CLI on the host. Run it from a separate
+installation directory:
 
 ```bash
 git clone https://github.com/SebaSOFT/copalibre.git
@@ -92,7 +96,11 @@ mkdir my-league && cd my-league
 ```
 
 `init` writes into the current directory, same as the downloaded binary — running it from the
-checkout root itself would collide with the checkout's own `docker-compose.yml`.
+checkout root itself would collide with the checkout's own `docker-compose.yml`. The generated
+`.env` selects published images matching the CLI version. To run unpublished source changes, build
+both images from the checkout root first (`docker build --target runtime -t copalibre:local .` and
+`docker build --target web -t copalibre-web:local .`), then set `COPALIBRE_IMAGE=copalibre:local` and
+`COPALIBRE_WEB_IMAGE=copalibre-web:local` in the installation's `.env` before starting it.
 
 See [`AGENTS.md`](AGENTS.md) for the full contributor guide.
 Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosting.md`](docs/self-hosting.md).
@@ -132,10 +140,13 @@ Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosti
   one-document JSON export of a tournament's full configuration (never results or personal data).
 - **Public coverage** — schedules, live outcomes, brackets, and standings, separate from operator
   controls.
-- **Platform administration** — an installation-wide super-admin console creates organizations and
-  installs, verifies, and removes modules; organization admins see their own storage usage.
+- **Platform administration** — an installation-wide super-admin console creates organizations,
+  inspects live platform health/diagnostics (database latency, transactional outbox status, SSE telemetry,
+  object storage), and installs, verifies, and removes modules; organization admins see their own storage usage.
+- **Club administration & self-service** — club representatives manage member directories, affiliations,
+  and submit match rosters for organizer review.
 - **Self-hosted deployment** — one Docker image runs every process role; the `copalibre` CLI
-  handles init, health checks (`doctor`), start, admin bootstrap, and verified backup/restore.
+  handles init, health checks (`doctor`), start, admin bootstrap, data diagnostics/repair, and verified backup/restore.
 
 ## Disciplines and formats
 

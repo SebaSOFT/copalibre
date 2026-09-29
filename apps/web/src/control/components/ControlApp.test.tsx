@@ -45,12 +45,24 @@ describe('ControlApp', () => {
         if (url === 'https://identity.example/token') {
           return json({ access_token: 'fresh-access-token', expires_in: 3600 });
         }
+        if (url.endsWith('/tournaments/apertura-2026/stages')) {
+          return json([
+            {
+              stageId: 'stage-1',
+              seasonId: 'season-1',
+              number: 1,
+              name: 'Fase de grupos',
+              format: 'round-robin',
+              seeded: false,
+            },
+          ]);
+        }
         if (url.includes('/seeding')) {
           return json({
             stageId: 'stage-1',
             format: 'single-elimination',
             seeds: [],
-            matches: [],
+            zones: [],
             hasRecordedResults: false,
           });
         }
@@ -92,6 +104,17 @@ describe('ControlApp', () => {
         if (url.includes('/internal-matches-view')) {
           return json({ matches: [] });
         }
+        if (url.includes('/completion')) {
+          return json({
+            totalMatches: 0,
+            resolvedMatches: 0,
+            finalizedMatches: 0,
+            forfeitedMatches: 0,
+            liveMatches: 0,
+            scheduledMatches: 0,
+            stages: [],
+          });
+        }
         if (url.endsWith('/tournaments/apertura-2026/settings')) {
           return json({ name: 'Apertura 2026', region: 'Cuyo', capacity: 16 });
         }
@@ -116,6 +139,16 @@ describe('ControlApp', () => {
     ['/control/liga-mendocina', 'Dashboard — liga-mendocina', 'Torneos'],
     ['/control/liga-mendocina/roles', 'Roles and permissions - liga-mendocina', 'Rol'],
     ['/control/liga-mendocina/tournaments/new', 'Create tournament — liga-mendocina', 'torneo'],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026',
+      'Stages — apertura-2026',
+      'apertura-2026',
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
+      'Stage 1 — apertura-2026',
+      'apertura-2026',
+    ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/registrations',
       'Registrations — apertura-2026',
@@ -163,14 +196,14 @@ describe('ControlApp', () => {
     [
       '/control/liga-mendocina/preferences',
       'Personal preferences — CopaLibre',
-      'Personal Preferences',
+      'Preferencias personales',
     ],
     ['/control/liga-mendocina/tournaments', 'Tournaments — liga-mendocina', 'Torneo'],
     ['/control/liga-mendocina/live', 'Live console — liga-mendocina', 'Consola'],
     [
       '/control/liga-mendocina/organization',
       'Organization — liga-mendocina',
-      'Personal Preferences',
+      'Preferencias personales',
     ],
     ['/control/liga-mendocina/analytics', 'Analytics — liga-mendocina', 'Analítica'],
   ])('renders the right screen and title for %s', async (path, title, content) => {

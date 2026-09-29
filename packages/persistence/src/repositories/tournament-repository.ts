@@ -9,6 +9,7 @@ import {
   type HookScriptAttachment,
   type MatchRuleset,
   type OverrideSet,
+  type StageAllocation,
   type StageConfiguration,
   type Tournament,
   type TournamentRuleset,
@@ -476,6 +477,7 @@ export class TournamentRepository {
       readonly rulesetId: string;
       readonly organizationId: string;
       readonly overrides: OverrideSet;
+      readonly allocation?: StageAllocation;
       readonly actor: string;
       readonly authorizationContext: string;
     },
@@ -487,6 +489,7 @@ export class TournamentRepository {
       version: 1,
       rulesetId: input.rulesetId,
       overrides: input.overrides,
+      ...(input.allocation === undefined ? {} : { allocation: input.allocation }),
     };
 
     await uow.tx
@@ -497,6 +500,7 @@ export class TournamentRepository {
         version: 1,
         ruleset_id: input.rulesetId,
         overrides: JSON.stringify(input.overrides),
+        allocation: input.allocation === undefined ? null : JSON.stringify(input.allocation),
         created_at: new Date(),
       })
       .execute();
@@ -533,6 +537,8 @@ export class TournamentRepository {
       readonly stageId: string;
       readonly organizationId: string;
       readonly changedOverrides: OverrideSet;
+      /** Absent leaves the prior version's allocation unchanged; `null` clears it. */
+      readonly allocation?: StageAllocation | null;
       readonly actor: string;
       readonly authorizationContext: string;
     },
@@ -554,6 +560,12 @@ export class TournamentRepository {
     const previousOverrides =
       typeof rawPrevious === 'string' ? JSON.parse(rawPrevious) : (rawPrevious ?? {});
     const mergedOverrides = { ...previousOverrides, ...input.changedOverrides };
+    const rawPreviousAllocation = previous.allocation;
+    const previousAllocation =
+      typeof rawPreviousAllocation === 'string'
+        ? (JSON.parse(rawPreviousAllocation) as StageAllocation)
+        : ((rawPreviousAllocation ?? undefined) as StageAllocation | undefined);
+    const nextAllocation = input.allocation === undefined ? previousAllocation : input.allocation;
     const version = previous.version + 1;
     const stageConfigurationId = newId();
     const configuration: StageConfiguration = {
@@ -562,6 +574,9 @@ export class TournamentRepository {
       version,
       rulesetId: previous.ruleset_id,
       overrides: mergedOverrides,
+      ...(nextAllocation === null || nextAllocation === undefined
+        ? {}
+        : { allocation: nextAllocation }),
     };
 
     await uow.tx
@@ -572,6 +587,10 @@ export class TournamentRepository {
         version,
         ruleset_id: previous.ruleset_id,
         overrides: JSON.stringify(mergedOverrides),
+        allocation:
+          nextAllocation === null || nextAllocation === undefined
+            ? null
+            : JSON.stringify(nextAllocation),
         created_at: new Date(),
       })
       .execute();
@@ -897,12 +916,18 @@ export class TournamentRepository {
     const rawOverrides = row.overrides;
     const overrides =
       typeof rawOverrides === 'string' ? JSON.parse(rawOverrides) : (rawOverrides ?? {});
+    const rawAllocation = row.allocation;
+    const allocation =
+      typeof rawAllocation === 'string'
+        ? (JSON.parse(rawAllocation) as StageAllocation)
+        : (rawAllocation as StageAllocation | null);
     return {
       stageConfigurationId: row.stage_configuration_id,
       stageId: row.stage_id,
       version: row.version,
       rulesetId: row.ruleset_id,
       overrides: overrides as Record<string, unknown>,
+      ...(allocation === null || allocation === undefined ? {} : { allocation }),
     };
   }
 

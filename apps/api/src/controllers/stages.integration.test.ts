@@ -19,6 +19,7 @@ import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { SeedingController } from './seeding.controller.js';
 import { StagesController } from './stages.controller.js';
+import { TournamentsController } from './tournaments.controller.js';
 
 /**
  * Stage creation through the real HTTP stack.
@@ -106,7 +107,7 @@ describe('stage creation routes (integration)', () => {
     scratch = await createMigratedDatabase('stages');
 
     @Module({
-      controllers: [StagesController, SeedingController],
+      controllers: [StagesController, SeedingController, TournamentsController],
       providers: [
         { provide: DATABASE, useValue: scratch.db },
         { provide: TokenVerifier, useValue: new FakeTokenVerifier(() => organizationId) },
@@ -339,7 +340,7 @@ describe('stage creation routes (integration)', () => {
           (seed: { entrantId: string }) => seed.entrantId === pendingEntrantId,
         ),
       ).toBe(false);
-      expect(previewBody.matches.length).toBeGreaterThan(0);
+      expect(previewBody.zones[0].matches.length).toBeGreaterThan(0);
       expect(previewBody.hasRecordedResults).toBe(false);
 
       const publish = await request({
@@ -381,12 +382,100 @@ describe('stage creation routes (integration)', () => {
       const after = await request({ method: 'GET', url: seedingUrl, token: 'organizer' });
       expect(after.statusCode).toBe(200);
       const afterBody = after.json();
-      expect(afterBody.matches.length).toBeGreaterThan(0);
+      expect(afterBody.zones[0].matches.length).toBeGreaterThan(0);
       expect(
-        afterBody.matches.some((match: { status: string }) => match.status === 'scheduled'),
+        afterBody.zones[0].matches.some(
+          (match: { status: string }) => match.status === 'scheduled',
+        ),
       ).toBe(true);
     },
   );
+
+  it('lists this tournament’s stages with each one’s seeded state', async () => {
+    const response = await request({ method: 'GET', url: base, token: 'organizer' });
+
+    expect(response.statusCode).toBe(200);
+    const stages = response.json() as Array<{
+      number: number;
+      name: string;
+      seeded: boolean;
+      availableFormats?: string[];
+      formatDescriptions?: Record<string, unknown>;
+    }>;
+    expect(stages.length).toBeGreaterThanOrEqual(2);
+
+    const seededStage = stages.find((stage) => stage.name === 'Fase E2E');
+    expect(seededStage?.seeded).toBe(true);
+
+    const unseededStage = stages.find((stage) => stage.name !== 'Fase E2E');
+    expect(unseededStage?.seeded).toBe(false);
+
+    // Task 2.1: `availableFormats` comes from the tournament's own discipline
+    // (`descriptor()` above declares no `formatDescriptions`, so that field
+    // stays absent — the "discipline declares none" half of the contract).
+    expect(unseededStage?.availableFormats).toEqual(
+      expect.arrayContaining(['round-robin', 'free-for-all', 'swiss', 'single-elimination']),
+    );
+    expect(unseededStage?.formatDescriptions).toBeUndefined();
+  });
+
+  it("exposes the tournament discipline's per-format descriptions, both plain string and localized (0251 task 2.1)", async () => {
+    const formatTournamentAlias = 'apertura-0066-formatos';
+    const discipline: DisciplineDescriptor = {
+      ...descriptor(),
+      descriptorId: '01890000-0000-7000-8000-0000000066a2',
+      version: '1.0.1',
+      formatDescriptions: {
+        'round-robin': 'Every entrant plays every other entrant once',
+        'single-elimination': { en: 'Single elimination bracket', es: 'Eliminación directa' },
+      },
+    } as unknown as DisciplineDescriptor;
+
+    await withTransaction(scratch.db, async (uow) => {
+      await new TournamentRepository(scratch.db).saveDescriptor(uow, discipline, {
+        organizationId,
+        ...AUDIT,
+      });
+      const tournament = await new TournamentRepository(scratch.db).create(uow, {
+        organizationId,
+        alias: formatTournamentAlias,
+        name: 'Apertura con formatos',
+        descriptor: discipline,
+        ...AUDIT,
+      });
+      await new TournamentRepository(scratch.db).createRuleset(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        descriptor: discipline,
+        overrides: { format: 'round-robin' },
+        ...AUDIT,
+      });
+    });
+
+    const formatBase = `/organizations/${organizationAlias}/tournaments/${formatTournamentAlias}/stages`;
+    const created = await request({
+      method: 'POST',
+      url: formatBase,
+      token: 'organizer',
+      payload: {},
+    });
+    expect(created.statusCode).toBe(201);
+
+    const response = await request({ method: 'GET', url: formatBase, token: 'organizer' });
+    expect(response.statusCode).toBe(200);
+    const [stage] = response.json() as Array<{
+      availableFormats?: string[];
+      formatDescriptions?: Record<string, unknown>;
+    }>;
+    expect(stage?.availableFormats).toEqual(
+      expect.arrayContaining(['round-robin', 'free-for-all', 'swiss', 'single-elimination']),
+    );
+    // Passed through byte-identical, unresolved — the API never picks a language.
+    expect(stage?.formatDescriptions).toEqual({
+      'round-robin': 'Every entrant plays every other entrant once',
+      'single-elimination': { en: 'Single elimination bracket', es: 'Eliminación directa' },
+    });
+  });
 
   it(
     'a stage with no accepted registrations still refuses seeding rather than fabricating an ' +
@@ -657,6 +746,202 @@ describe('stage creation routes (integration)', () => {
     );
   });
 
+  describe('stage allocation (0235)', () => {
+    const allocationTournamentAlias = 'apertura-0235-allocation';
+    const allocationBase = `/organizations/${organizationAlias}/tournaments/${allocationTournamentAlias}/stages`;
+    let allocationTournamentId = '';
+    let higherRatedEntrantId = '';
+    let lowerRatedEntrantId = '';
+
+    beforeAll(async () => {
+      const discipline = descriptor();
+      const enrollment = new EnrollmentRepository(scratch.db);
+
+      await withTransaction(scratch.db, async (uow) => {
+        const tournament = await new TournamentRepository(scratch.db).create(uow, {
+          organizationId,
+          alias: allocationTournamentAlias,
+          name: 'Apertura con allocation',
+          descriptor: discipline,
+          ...AUDIT,
+        });
+        allocationTournamentId = tournament.tournamentId;
+        await new TournamentRepository(scratch.db).createRuleset(uow, {
+          tournamentId: tournament.tournamentId,
+          organizationId,
+          descriptor: discipline,
+          overrides: { format: 'round-robin' },
+          ...AUDIT,
+        });
+
+        // Registered in an order that differs from rating order, so a weighted
+        // pre-fill visibly reorders the stage's seeds, and a manual/undeclared
+        // one visibly does not.
+        const lowly = await enrollment.createTeam(uow, { organizationId, name: 'Lowly', ...AUDIT });
+        const lowlyEntrant = await enrollment.registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: lowly.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        lowerRatedEntrantId = lowlyEntrant.entrantId;
+
+        const mighty = await enrollment.createTeam(uow, {
+          organizationId,
+          name: 'Mighty',
+          ...AUDIT,
+        });
+        const mightyEntrant = await enrollment.registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: mighty.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        higherRatedEntrantId = mightyEntrant.entrantId;
+
+        await enrollment.setEntrantAttributes(uow, {
+          entrantId: lowerRatedEntrantId,
+          attributes: [{ key: 'rating', value: 10, kind: 'numeric' }],
+          organizationId,
+          ...AUDIT,
+        });
+        await enrollment.setEntrantAttributes(uow, {
+          entrantId: higherRatedEntrantId,
+          attributes: [{ key: 'rating', value: 90, kind: 'numeric' }],
+          organizationId,
+          ...AUDIT,
+        });
+      });
+
+      for (const entrantId of [lowerRatedEntrantId, higherRatedEntrantId]) {
+        await withTransaction(scratch.db, (uow) =>
+          enrollment.setEntrantStatus(uow, {
+            entrantId,
+            status: 'accepted',
+            organizationId,
+            ...AUDIT,
+          }),
+        );
+      }
+    });
+
+    it('persists each declared allocation mode and echoes it back', async () => {
+      const automatic = await request({
+        method: 'POST',
+        url: allocationBase,
+        token: 'organizer',
+        payload: { allocation: { mode: 'automatic' } },
+      });
+      expect(automatic.statusCode).toBe(201);
+      expect(automatic.json().allocation).toEqual({ mode: 'automatic' });
+
+      const manual = await request({
+        method: 'POST',
+        url: allocationBase,
+        token: 'organizer',
+        payload: { allocation: { mode: 'manual' } },
+      });
+      expect(manual.statusCode).toBe(201);
+      expect(manual.json().allocation).toEqual({ mode: 'manual' });
+
+      const weighted = await request({
+        method: 'POST',
+        url: allocationBase,
+        token: 'organizer',
+        payload: {
+          allocation: { mode: 'weighted', attributeKey: 'rating', direction: 'higher-first' },
+        },
+      });
+      expect(weighted.statusCode).toBe(201);
+      expect(weighted.json().allocation).toEqual({
+        mode: 'weighted',
+        attributeKey: 'rating',
+        direction: 'higher-first',
+      });
+    });
+
+    it('refuses a weighted allocation with no attribute key, storing nothing', async () => {
+      const before = await new CompetitionRepository(scratch.db).listStagesOfTournament(
+        allocationTournamentId,
+      );
+      const response = await request({
+        method: 'POST',
+        url: allocationBase,
+        token: 'organizer',
+        payload: { allocation: { mode: 'weighted', direction: 'higher-first' } },
+      });
+      expect(response.statusCode).toBe(400);
+      const after = await new CompetitionRepository(scratch.db).listStagesOfTournament(
+        allocationTournamentId,
+      );
+      expect(after).toHaveLength(before.length);
+    });
+
+    it("pre-fills a weighted stage's seeding from the declared attribute, higher first", async () => {
+      const created = await request({
+        method: 'POST',
+        url: allocationBase,
+        token: 'organizer',
+        payload: {
+          allocation: { mode: 'weighted', attributeKey: 'rating', direction: 'higher-first' },
+        },
+      });
+      const { number } = created.json();
+
+      const seeding = await request({
+        method: 'GET',
+        url: `${allocationBase}/${number}/seeding`,
+        token: 'organizer',
+      });
+      expect(seeding.statusCode).toBe(200);
+      expect(seeding.json().seeds).toEqual([
+        { seed: 1, entrantId: higherRatedEntrantId },
+        { seed: 2, entrantId: lowerRatedEntrantId },
+      ]);
+    });
+
+    it("leaves a manual stage's seeding in registration order, unresolved", async () => {
+      const created = await request({
+        method: 'POST',
+        url: allocationBase,
+        token: 'organizer',
+        payload: { allocation: { mode: 'manual' } },
+      });
+      const { number } = created.json();
+
+      const seeding = await request({
+        method: 'GET',
+        url: `${allocationBase}/${number}/seeding`,
+        token: 'organizer',
+      });
+      expect(seeding.statusCode).toBe(200);
+      expect(seeding.json().seeds).toEqual([
+        { seed: 1, entrantId: lowerRatedEntrantId },
+        { seed: 2, entrantId: higherRatedEntrantId },
+      ]);
+    });
+
+    it("lists this tournament's numeric entrant-attribute keys, sorted, isolated from other tournaments", async () => {
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/${organizationAlias}/tournaments/${allocationTournamentAlias}/entrant-attribute-keys`,
+        token: 'organizer',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ keys: ['rating'] });
+
+      // tournamentId (the base describe block's own tournament) shares no
+      // entrant attributes with this one.
+      const isolated = await request({
+        method: 'GET',
+        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/entrant-attribute-keys`,
+        token: 'organizer',
+      });
+      expect(isolated.statusCode).toBe(200);
+      expect(isolated.json()).toEqual({ keys: [] });
+    });
+  });
+
   describe('Swiss dynamic round progression (POST .../rounds/next)', () => {
     it('refuses next round if stage format is not swiss', async () => {
       // Stage 1 is round-robin
@@ -887,7 +1172,7 @@ describe('stage creation routes (integration)', () => {
         token: 'organizer',
       });
       expect(bracketPreview.statusCode).toBe(200);
-      const bracketMatches = bracketPreview.json().matches;
+      const bracketMatches = bracketPreview.json().zones[0].matches;
       const finalNode = bracketMatches.find((b: { round: number }) => b.round === 2);
       expect(finalNode).toBeDefined();
       expect(finalNode.slots[0].kind).toBe('entrant');

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { ActivityEntry } from '../lib/dashboard.js';
-import { formatActivityAction, formatRelativeTime } from '../lib/activity-formatting.js';
+import { formatActivityAction } from '../lib/activity-formatting.js';
 import { messages } from '../i18n/messages.en.js';
+import { ResponsiveTimestamp } from '../../components/ui/atoms/ResponsiveTimestamp.js';
+import { Badge } from './ui/atoms/badge.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 
 /**
@@ -40,19 +42,19 @@ export function ActivityLog({
     {
       key: 'actor',
       header: <FormattedMessage {...messages.auditTrailColumnActor} />,
-      render: (entry) => <span className="cl-badge cl-state--muted">{entry.actor}</span>,
+      render: (entry) => <Badge className="cl-state--muted" label={entry.actor} />,
     },
     {
       key: 'occurredAt',
       header: <FormattedMessage {...messages.auditTrailColumnTime} />,
       render: (entry) => (
-        <time
+        <ResponsiveTimestamp
           className="cl-label cl-activity-feed__time"
-          dateTime={entry.occurredAt}
-          title={entry.occurredAt}
-        >
-          {formatRelativeTime(entry.occurredAt, currentNow, locale)}
-        </time>
+          format="relative"
+          locale={locale}
+          referenceDate={currentNow}
+          timestamp={entry.occurredAt}
+        />
       ),
     },
   ];

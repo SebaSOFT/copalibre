@@ -52,6 +52,24 @@ describe('CORS policy', () => {
   });
 });
 
+describe('baseline security response headers', () => {
+  it('carries the three baseline headers on a 2xx response', async () => {
+    const response = await request({ method: 'GET', url: '/organizations/liga-orbital' });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['x-frame-options']).toBe('DENY');
+    expect(response.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+  });
+
+  it('carries the three baseline headers on a 4xx response', async () => {
+    const response = await request({ method: 'GET', url: '/organizations/no-such-org' });
+    expect(response.statusCode).toBe(404);
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['x-frame-options']).toBe('DENY');
+    expect(response.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+  });
+});
+
 describe('public-read plane', () => {
   it('serves the liveness probe anonymously', async () => {
     const response = await request({ method: 'GET', url: '/health' });
@@ -97,7 +115,7 @@ describe('public-read plane', () => {
         name: 'Torneo Publicado',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: true,
         requiresCheckIn: false,
         customScripts: [],
@@ -248,7 +266,7 @@ describe('admin-control plane', () => {
         name: 'Copa Ajena',
         descriptorId: '01890000-0000-7000-8000-000000000001',
         descriptorVersion: '1',
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: false,
         requiresCheckIn: false,
         customScripts: [],
@@ -269,7 +287,7 @@ describe('admin-control plane', () => {
         name: 'Copa Sin Disciplina',
         descriptorId: '01890000-0000-7000-8000-0000000000ff',
         descriptorVersion: 9,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: false,
         requiresCheckIn: false,
         customScripts: [],
@@ -298,7 +316,7 @@ describe('admin-control plane', () => {
         name: 'Copa Versionada',
         descriptorId: descriptor.descriptorId,
         descriptorVersion: descriptor.version,
-        format: 'round-robin',
+        stages: [{ format: 'round-robin' }],
         publicRegistration: true,
         requiresCheckIn: true,
         customScripts: [],

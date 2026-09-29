@@ -63,5 +63,6 @@ export function matchCardLabelsFromControlIntl(intl: IntlShape): MatchCardLabels
       home: '{home}',
       away: '{away}',
     }),
+    versus: intl.formatMessage(messages.matchesViewVersus),
   };
 }

@@ -33,6 +33,18 @@ export interface TickerItem {
    * discipline that declares no such period.
    */
   readonly overtime?: string;
+  /**
+   * Live-correlation fields, present only for a `'match'`-kind item whose
+   * fixture has a persisted match and both entrants resolved — a synthetic
+   * fixture or a bye/TBD side carries none of these, and `ticker-live.ts`
+   * simply leaves that item static rather than half-patching it.
+   */
+  readonly matchId?: string;
+  readonly homeEntrantId?: string;
+  readonly awayEntrantId?: string;
+  readonly homeScore?: number;
+  readonly awayScore?: number;
+  readonly matchState?: OverviewMatch['state'];
 }
 
 export interface TickerLabels {
@@ -54,7 +66,7 @@ export interface TickerLabels {
 export type OvertimeResolver = (match: OverviewMatch) => string | undefined;
 
 /** A live or finished fixture reads as a score; one not yet played reads as `VS`. */
-function matchItem(
+export function matchItem(
   match: OverviewMatch,
   index: number,
   labels: TickerLabels,
@@ -64,6 +76,10 @@ function matchItem(
   const overtime = overtimeFor?.(match);
   const tone =
     match.state === 'live' ? 'live' : match.state === 'upcoming' ? 'upcoming' : 'positive';
+  const liveCorrelatable =
+    match.matchId !== undefined &&
+    match.home.entrantId !== undefined &&
+    match.away.entrantId !== undefined;
   return {
     key: `match-${match.stageNumber}-${match.matchNumber ?? index}`,
     kind: 'match',
@@ -79,6 +95,16 @@ function matchItem(
     figure: played ? `${match.home.score} : ${match.away.score}` : labels.versus,
     ...(match.startsAt === '' ? {} : { meta: match.startsAt }),
     ...(overtime === undefined ? {} : { overtime }),
+    ...(liveCorrelatable
+      ? {
+          matchId: match.matchId,
+          homeEntrantId: match.home.entrantId,
+          awayEntrantId: match.away.entrantId,
+          homeScore: match.home.score ?? 0,
+          awayScore: match.away.score ?? 0,
+          matchState: match.state,
+        }
+      : {}),
   };
 }
 

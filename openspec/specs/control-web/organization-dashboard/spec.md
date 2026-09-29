@@ -23,7 +23,7 @@ draft, with a distinct visual treatment per state.
 - **THEN** its card renders with the draft visual treatment (muted styling) and a resume-editing action, distinct from live and upcoming cards
 
 ### Requirement: Recent activity feed shows audited operational events
-The dashboard SHALL display recent organization audit events when activity records exist, rather than rendering an empty placeholder state.
+The dashboard SHALL display recent organization audit events when activity records exist, rather than rendering an empty placeholder state, with action names localized according to the operator's active locale and actor identifiers presented using the owned badge atom.
 
 #### Scenario: Audit event appears in the feed
 - **WHEN** an operator approves a registration
@@ -37,6 +37,25 @@ The dashboard SHALL display recent organization audit events when activity recor
 - **WHEN** an organizer views a newly created organization with zero audit records
 - **THEN** the "Actividad reciente" section SHALL display the empty state message
 
+#### Scenario: Operational and match clock audit events are localized
+- **WHEN** an audit record with action `segment.clock-adjusted`, `segment.completed`, `segment.created`, `player.enlisted`, `module.installed`, `fixtures.generated`, or `ruleset.compiled` is displayed in the recent activity feed
+- **THEN** its primary action description SHALL be localized into the active language (e.g. Spanish "Reloj de segmento ajustado", "Segmento completado") rather than falling back to unlocalized English text.
+
+#### Scenario: Actor identifier composes the owned badge atom
+- **WHEN** an audit event row renders the actor identifier
+- **THEN** it SHALL compose the owned `<Badge>` primitive atom with neutral/muted styling instead of raw element markup with handwritten CSS classes.
+
+### Requirement: TV devices panel reports heartbeat status
+The dashboard SHALL render a TV devices panel reporting the heartbeat status of paired kiosk displays, with status markers composing the owned `<Badge>` atom and unprovisioned states presented using design-token empty state styling.
+
+#### Scenario: Status marker composes the owned badge atom
+- **WHEN** a TV display's heartbeat status is rendered
+- **THEN** it SHALL compose the owned `<Badge>` atom with the semantic color corresponding to its connection status.
+
+#### Scenario: Unprovisioned TV devices empty state
+- **WHEN** no TV displays or kiosks are provisioned for the organization
+- **THEN** the empty state SHALL be presented in a styled container consistent with dashboard section empty states.
+
 ### Requirement: Dashboard is scoped to the authenticated organizer's organization
 The dashboard SHALL only display tournaments and activity belonging to organizations the
 authenticated user has a role in.
@@ -46,10 +65,11 @@ authenticated user has a role in.
 - **THEN** no tournament or activity data belonging to organization B is present in the response
 
 ### Requirement: The dashboard lists the organization's real tournaments
-
 The control panel dashboard SHALL list the tournaments actually belonging to the signed-in organizer's
 organization, read from current backend state. It SHALL NOT render sample or fabricated tournaments
-under any condition, including when the organization has none.
+under any condition, including when the organization has none. When the organization has no tournaments,
+the dashboard SHALL render an actionable empty state providing clear guidance and a direct call-to-action
+button to create the organization's first tournament.
 
 #### Scenario: An organizer sees their own tournaments
 - **WHEN** an authorized organizer opens the dashboard
@@ -57,7 +77,7 @@ under any condition, including when the organization has none.
 
 #### Scenario: An organization with no tournaments shows an empty state
 - **WHEN** an organization has no tournaments
-- **THEN** the dashboard states that there are none, rather than showing sample data
+- **THEN** the dashboard states that there are none rather than showing sample data, and renders a primary call-to-action button linking to `/control/<organization>/tournaments/new`
 
 ### Requirement: An authorized organizer can trigger a statistics rebuild and see its outcome
 
@@ -174,3 +194,45 @@ separated from both.
 - **WHEN** the dashboard lists two tournaments
 - **THEN** each tournament's actions render within that tournament's own card, so no action sits
   between two cards where the tournament it applies to is ambiguous
+
+### Requirement: A tournament card offers a way to reach its stage list
+
+Each tournament card SHALL offer a way to reach that tournament's hub (its stage list), in addition
+to its existing title link to the tournament's matches view — a second entry point, not a
+replacement, since the two lead to different destinations an operator reaches for different
+reasons.
+
+#### Scenario: Reaching a tournament's stage list from its card
+- **WHEN** an operator activates a tournament card's stages action
+- **THEN** the control panel navigates to that tournament's hub
+
+#### Scenario: The card's existing title link is unchanged
+- **WHEN** an operator activates a tournament card's title
+- **THEN** the control panel still navigates to that tournament's matches view, exactly as before
+
+### Requirement: Analytics dashboard layout and tournament overview
+The analytics dashboard SHALL compose owned layout and card primitives without inline style definitions and SHALL present a summary matrix of the organization's tournaments alongside high-level KPI cards.
+
+#### Scenario: Analytics cards comply with atomic composition
+- **WHEN** an operator views the analytics screen
+- **THEN** all metric cards and layout grids are rendered using owned layout primitives and token values, with zero inline CSS style attributes
+
+#### Scenario: Tournaments matrix provides operational status overview
+- **WHEN** an operator views the analytics screen for an organization with active or concluded tournaments
+- **THEN** a tabular overview lists each tournament with its lifecycle status and operational progress
+
+### Requirement: Dashboard offers an explicit tournament creation action
+The organization dashboard and tournaments view SHALL render a prominent, accessible primary action button
+allowing authorized operators to navigate directly to the tournament setup wizard.
+
+#### Scenario: Primary create tournament button is visible in tournament section
+- **WHEN** an organizer with tournament creation capabilities views the dashboard or tournaments list
+- **THEN** the tournament section renders a primary action button labeled "Create tournament" (localized) linking to `/control/<organization>/tournaments/new`
+
+#### Scenario: Activating the create tournament button navigates client-side
+- **WHEN** an organizer clicks the "Create tournament" button
+- **THEN** the control panel initiates client-side navigation to the tournament creation wizard at `/control/<organization>/tournaments/new` without full page reload
+
+#### Scenario: Operators lacking tournament management permissions do not see the creation action
+- **WHEN** a user whose role lacks tournament management capabilities views the dashboard
+- **THEN** the tournament creation action button is omitted or hidden

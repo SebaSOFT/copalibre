@@ -50,6 +50,8 @@ export interface TableColumnDefinition {
   readonly shortHeader?: LocalizedLabel;
   readonly source: ColumnSource;
   readonly format: ColumnFormat;
+  /** Replaces an exact numeric zero in the rendered cell while retaining raw `0` for ordering. */
+  readonly zeroDisplay?: string;
   /** Absent means visible. A discipline may declare a column a console offers to reveal, not one it hides entirely. */
   readonly visibleByDefault?: boolean;
 }

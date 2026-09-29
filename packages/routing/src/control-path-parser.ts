@@ -12,10 +12,16 @@
 export type ControlRoute =
   | { readonly screen: 'root' }
   | { readonly screen: 'callback' }
+  | { readonly screen: 'silent-renew-callback' }
   | { readonly screen: 'login' }
   | { readonly screen: 'forgot-password' }
   | { readonly screen: 'reset-password' }
   | { readonly screen: 'platformAdministration' }
+  | {
+      /** An installed discipline's plain-language document detail (openspec 0263). */
+      readonly screen: 'disciplineDocument';
+      readonly disciplineAlias: string;
+    }
   | { readonly screen: 'dashboard'; readonly organizationAlias: string }
   | { readonly screen: 'tournaments'; readonly organizationAlias: string }
   | { readonly screen: 'liveConsole'; readonly organizationAlias: string }
@@ -31,6 +37,12 @@ export type ControlRoute =
       readonly screen: 'personProfile';
       readonly organizationAlias: string;
       readonly personId: string;
+    }
+  | {
+      /** The tournament hub: lists the tournament's stages (bare `/tournaments/{tournamentAlias}`). */
+      readonly screen: 'tournamentHub';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
     }
   | {
       readonly screen: 'registrations';
@@ -71,6 +83,13 @@ export type ControlRoute =
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
       readonly matchId: string;
+    }
+  | {
+      /** The stage hub: identity (rename/format/delete) plus links to this stage's own tools (bare `/stages/{stageNumber}`). */
+      readonly screen: 'stageHub';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+      readonly stageNumber: number;
     }
   | {
       readonly screen: 'seeding';
@@ -116,6 +135,25 @@ export type ControlRoute =
       readonly screen: 'matchesView';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
+    }
+  | {
+      /** The streamer self-service console (openspec 0300): OBS URL generation, chroma preview. */
+      readonly screen: 'broadcaster';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+    }
+  | {
+      /** The Club Portal member directory (openspec 0301): a club-admin's own scoped person registry. */
+      readonly screen: 'clubPortalMembers';
+      readonly organizationAlias: string;
+      readonly clubId: string;
+    }
+  | {
+      /** The Club Portal roster-submission wizard (openspec 0301). */
+      readonly screen: 'clubPortalRoster';
+      readonly organizationAlias: string;
+      readonly clubId: string;
+      readonly tournamentAlias: string;
     };
 
 /**
@@ -138,6 +176,14 @@ const ORG_SCOPED_ROUTES: readonly {
     matches: (organizationAlias, rest) => organizationAlias === 'callback' && rest.length === 0,
     build: () => ({ screen: 'callback' }),
   },
+  // The hidden-iframe target for OIDC silent renewal (openspec 0302): same
+  // reserved-alias shape as `callback`, since it is the same PKCE redirect
+  // landing, just posted back to a parent frame instead of navigated to.
+  {
+    matches: (organizationAlias, rest) =>
+      organizationAlias === 'silent-renew-callback' && rest.length === 0,
+    build: () => ({ screen: 'silent-renew-callback' }),
+  },
   {
     matches: (organizationAlias, rest) => organizationAlias === 'login' && rest.length === 0,
     build: () => ({ screen: 'login' }),
@@ -155,6 +201,15 @@ const ORG_SCOPED_ROUTES: readonly {
   {
     matches: (organizationAlias, rest) => organizationAlias === 'platform' && rest.length === 0,
     build: () => ({ screen: 'platformAdministration' }),
+  },
+  {
+    matches: (organizationAlias, rest) =>
+      organizationAlias === 'platform' && rest.length === 2 && rest[0] === 'disciplines',
+    build: (_organizationAlias, rest) => {
+      const disciplineAlias = rest[1];
+      if (disciplineAlias === undefined) return undefined;
+      return { screen: 'disciplineDocument', disciplineAlias };
+    },
   },
   {
     matches: (_organizationAlias, rest) => rest.length === 0,
@@ -193,6 +248,29 @@ const ORG_SCOPED_ROUTES: readonly {
     build: (organizationAlias) => ({ screen: 'clubs', organizationAlias }),
   },
   {
+    matches: (_organizationAlias, rest) =>
+      rest.length === 4 && rest[0] === 'clubs' && rest[2] === 'portal' && rest[3] === 'members',
+    build: (organizationAlias, rest) => {
+      const clubId = rest[1];
+      if (clubId === undefined) return undefined;
+      return { screen: 'clubPortalMembers', organizationAlias, clubId };
+    },
+  },
+  {
+    matches: (_organizationAlias, rest) =>
+      rest.length === 6 &&
+      rest[0] === 'clubs' &&
+      rest[2] === 'portal' &&
+      rest[3] === 'tournaments' &&
+      rest[5] === 'roster',
+    build: (organizationAlias, rest) => {
+      const clubId = rest[1];
+      const tournamentAlias = rest[4];
+      if (clubId === undefined || tournamentAlias === undefined) return undefined;
+      return { screen: 'clubPortalRoster', organizationAlias, clubId, tournamentAlias };
+    },
+  },
+  {
     matches: (_organizationAlias, rest) => rest.length === 1 && rest[0] === 'resources',
     build: (organizationAlias) => ({ screen: 'resources', organizationAlias }),
   },
@@ -229,6 +307,14 @@ const TOURNAMENT_SCOPED_ROUTES: readonly {
     rest: readonly string[],
   ) => ControlRoute | undefined;
 }[] = [
+  {
+    matches: (rest) => rest.length === 2,
+    build: (organizationAlias, tournamentAlias) => ({
+      screen: 'tournamentHub',
+      organizationAlias,
+      tournamentAlias,
+    }),
+  },
   {
     matches: (rest) => rest.length === 3 && rest[2] === 'registrations',
     build: (organizationAlias, tournamentAlias) => ({
@@ -270,6 +356,14 @@ const TOURNAMENT_SCOPED_ROUTES: readonly {
     }),
   },
   {
+    matches: (rest) => rest.length === 3 && rest[2] === 'broadcaster',
+    build: (organizationAlias, tournamentAlias) => ({
+      screen: 'broadcaster',
+      organizationAlias,
+      tournamentAlias,
+    }),
+  },
+  {
     matches: (rest) => rest.length === 4 && rest[2] === 'matches',
     build: (organizationAlias, tournamentAlias, rest) => {
       const matchId = rest[3];
@@ -283,6 +377,14 @@ const TOURNAMENT_SCOPED_ROUTES: readonly {
       const matchId = rest[3];
       if (matchId === undefined) return undefined;
       return { screen: 'loadMatchData', organizationAlias, tournamentAlias, matchId };
+    },
+  },
+  {
+    matches: (rest) => rest.length === 4 && rest[2] === 'stages',
+    build: (organizationAlias, tournamentAlias, rest) => {
+      const stageNumber = Number(rest[3]);
+      if (!Number.isFinite(stageNumber)) return undefined;
+      return { screen: 'stageHub', organizationAlias, tournamentAlias, stageNumber };
     },
   },
   {

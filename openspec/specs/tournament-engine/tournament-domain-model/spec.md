@@ -261,3 +261,20 @@ tournament or a stage SHALL be able to override it.
 #### Scenario: A tournament with no series declaration anywhere
 - **WHEN** no level of the hierarchy declares a series
 - **THEN** the effective configuration settles every fixture by a single match
+
+### Requirement: A configured field may declare a human-readable label and description
+A `FieldPolicy` MAY declare an optional `label` and an optional `description` (each
+`string | LocalizedLabel`), naming the configured field and explaining what it controls in
+plain language. A `FieldPolicy` without either field SHALL remain valid, and every field policy
+declared before this requirement existed SHALL continue to compile a ruleset exactly as before.
+
+#### Scenario: A field policy declares a label
+- **WHEN** a `FieldPolicy` for a dot-path declares a `label`
+- **THEN** that label is available to any surface presenting the field, in place of the raw
+  dot-path
+
+#### Scenario: A field policy omits label and description
+- **WHEN** a `FieldPolicy` declares neither `label` nor `description`
+- **THEN** ruleset compilation, override validation, and mutation classification behave exactly as
+  they did before this requirement — the absence of these fields never affects override permission
+  or enforcement

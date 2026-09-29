@@ -9,7 +9,7 @@ function seeding(overrides: Partial<SeedingResponse> = {}): SeedingResponse {
     stageId: 'stage-1',
     format: 'round-robin',
     seeds: [],
-    matches: [],
+    zones: [],
     hasRecordedResults: false,
     ...overrides,
   };
@@ -39,174 +39,11 @@ describe('SeedingBuilderPage', () => {
       ),
     );
 
-    await screen.findByText('Stage settings');
+    await screen.findByText('Stage configuration');
     expect(screen.getByText('This stage has no participants.')).toBeDefined();
   });
-});
 
-describe('SeedingBuilderPage — stage settings (task 2.3)', () => {
-  it('renames a stage', async () => {
-    const updateStage = jest.fn<NonNullable<ControlApiClient['updateStage']>>(() =>
-      Promise.resolve({
-        stageId: 'stage-1',
-        seasonId: 'season-1',
-        number: 1,
-        name: 'Fase de grupos (corregida)',
-        format: 'round-robin',
-      }),
-    );
-    render(
-      withIntl(
-        <SeedingBuilderPage
-          client={stubClient({ updateStage })}
-          organizationAlias="liga-mendocina"
-          stageNumber={1}
-          tournamentAlias="apertura-2026"
-        />,
-      ),
-    );
-
-    await screen.findByText('Stage settings');
-    fireEvent.change(screen.getByLabelText('New stage name'), {
-      target: { value: 'Fase de grupos (corregida)' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
-
-    await waitFor(() =>
-      expect(updateStage).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1, {
-        name: 'Fase de grupos (corregida)',
-      }),
-    );
-  });
-
-  it('changes a stage format when unseeded', async () => {
-    const updateStage = jest.fn<NonNullable<ControlApiClient['updateStage']>>(() =>
-      Promise.resolve({
-        stageId: 'stage-1',
-        seasonId: 'season-1',
-        number: 1,
-        name: 'Fase de grupos',
-        format: 'single-elimination',
-      }),
-    );
-    render(
-      withIntl(
-        <SeedingBuilderPage
-          client={stubClient({ updateStage })}
-          organizationAlias="liga-mendocina"
-          stageNumber={1}
-          tournamentAlias="apertura-2026"
-        />,
-      ),
-    );
-
-    await screen.findByText('Stage settings');
-    fireEvent.change(screen.getByLabelText('Format'), {
-      target: { value: 'single-elimination' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Change format' }));
-
-    await waitFor(() =>
-      expect(updateStage).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1, {
-        format: 'single-elimination',
-      }),
-    );
-  });
-
-  it('deletes an unseeded stage', async () => {
-    const deleteStage = jest.fn<NonNullable<ControlApiClient['deleteStage']>>(() =>
-      Promise.resolve({
-        stageId: 'stage-1',
-        seasonId: 'season-1',
-        number: 1,
-        name: 'Fase de grupos',
-        format: 'round-robin',
-      }),
-    );
-    render(
-      withIntl(
-        <SeedingBuilderPage
-          client={stubClient({ deleteStage })}
-          organizationAlias="liga-mendocina"
-          stageNumber={1}
-          tournamentAlias="apertura-2026"
-        />,
-      ),
-    );
-
-    await screen.findByText('Stage settings');
-    fireEvent.click(screen.getByRole('button', { name: 'Delete stage' }));
-
-    await waitFor(() =>
-      expect(deleteStage).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1),
-    );
-  });
-
-  it('reports an error when a stage edit fails', async () => {
-    render(
-      withIntl(
-        <SeedingBuilderPage
-          client={stubClient({
-            updateStage: () => Promise.reject(new Error('stage conflict')),
-          })}
-          organizationAlias="liga-mendocina"
-          stageNumber={1}
-          tournamentAlias="apertura-2026"
-        />,
-      ),
-    );
-
-    await screen.findByText('Stage settings');
-    fireEvent.change(screen.getByLabelText('New stage name'), { target: { value: 'X' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
-
-    expect(await screen.findByText('The request could not be completed. Try again.')).toBeDefined();
-  });
-
-  it('reports an error when a format change fails', async () => {
-    render(
-      withIntl(
-        <SeedingBuilderPage
-          client={stubClient({
-            updateStage: () => Promise.reject(new Error('format conflict')),
-          })}
-          organizationAlias="liga-mendocina"
-          stageNumber={1}
-          tournamentAlias="apertura-2026"
-        />,
-      ),
-    );
-
-    await screen.findByText('Stage settings');
-    fireEvent.change(screen.getByLabelText('Format'), {
-      target: { value: 'single-elimination' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Change format' }));
-
-    expect(await screen.findByText('The request could not be completed. Try again.')).toBeDefined();
-  });
-
-  it('reports an error when deleting a stage fails', async () => {
-    render(
-      withIntl(
-        <SeedingBuilderPage
-          client={stubClient({
-            deleteStage: () => Promise.reject(new Error('stage delete conflict')),
-          })}
-          organizationAlias="liga-mendocina"
-          stageNumber={1}
-          tournamentAlias="apertura-2026"
-        />,
-      ),
-    );
-
-    await screen.findByText('Stage settings');
-    fireEvent.click(screen.getByRole('button', { name: 'Delete stage' }));
-
-    expect(await screen.findByText('The request could not be completed. Try again.')).toBeDefined();
-  });
-
-  it('disables format-change and delete once the stage is seeded, and names why', async () => {
+  it('passes resolved entrant names from fetchSeeding to the template and renders them', async () => {
     render(
       withIntl(
         <SeedingBuilderPage
@@ -214,16 +51,8 @@ describe('SeedingBuilderPage — stage settings (task 2.3)', () => {
             fetchSeeding: () =>
               Promise.resolve(
                 seeding({
-                  matches: [
-                    {
-                      matchId: 'm-1',
-                      bracket: 'main',
-                      round: 1,
-                      position: 1,
-                      status: 'scheduled',
-                      slots: [],
-                    },
-                  ],
+                  seeds: [{ seed: 1, entrantId: 'entrant-1' }],
+                  names: { 'entrant-1': 'Club Atlético Huracán' },
                 }),
               ),
           })}
@@ -234,16 +63,8 @@ describe('SeedingBuilderPage — stage settings (task 2.3)', () => {
       ),
     );
 
-    await screen.findByText('Stage settings');
-    expect(
-      (screen.getByRole('button', { name: 'Change format' }) as HTMLButtonElement).disabled,
-    ).toBe(true);
-    expect(
-      (screen.getByRole('button', { name: 'Delete stage' }) as HTMLButtonElement).disabled,
-    ).toBe(true);
-    expect(
-      screen.getByText('This stage already has fixtures, so its format and removal are locked.'),
-    ).toBeDefined();
+    await screen.findByText('Stage configuration');
+    expect(await screen.findByText('Club Atlético Huracán')).toBeDefined();
   });
 });
 
@@ -415,14 +236,18 @@ describe('SeedingBuilderPage — stage configuration (openspec 0169)', () => {
             fetchSeeding: () =>
               Promise.resolve(
                 seeding({
-                  matches: [
+                  zones: [
                     {
-                      matchId: 'm-1',
-                      bracket: 'main',
-                      round: 1,
-                      position: 1,
-                      status: 'scheduled',
-                      slots: [],
+                      matches: [
+                        {
+                          matchId: 'm-1',
+                          bracket: 'main',
+                          round: 1,
+                          position: 1,
+                          status: 'scheduled',
+                          slots: [],
+                        },
+                      ],
                     },
                   ],
                 }),

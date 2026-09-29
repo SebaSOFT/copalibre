@@ -1,22 +1,29 @@
 ---
 /**
  * Extracted from the match report page (openspec 0225 task 7.2), unchanged
- * in markup and styling.
+ * in markup and styling except for localization and timestamp handling
+ * (openspec 0269).
  */
+import type { IntlShape } from 'react-intl';
+import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
 
 export interface Props {
   readonly model: MatchReportModel;
+  readonly intl: IntlShape;
 }
 
-const { model } = Astro.props;
+const { model, intl } = Astro.props;
 ---
 
 <section class="cl-section-card" aria-labelledby="timeline-heading">
-  <h2 id="timeline-heading" class="cl-section-title">Event timeline</h2>
+  <h2 id="timeline-heading" class="cl-section-title">
+    {intl.formatMessage(messages.matchTimelineHeading)}
+  </h2>
   {
     model.timeline.length === 0 ? (
-      <p class="cl-text-muted">Events are not yet available.</p>
+      <p class="cl-text-muted">{intl.formatMessage(messages.matchTimelineEmpty)}</p>
     ) : (
       <ol class="cl-timeline-list">
         {model.timeline.map((group) => (
@@ -26,9 +33,12 @@ const { model } = Astro.props;
           >
             {group.events.map((event) => (
               <div class="cl-timeline-entry">
-                <time datetime={event.occurredAt} class="cl-timeline-time">
-                  {event.occurredAt}
-                </time>
+                <ResponsiveTimestamp
+                  client:load
+                  timestamp={event.occurredAt}
+                  locale={intl.locale}
+                  className="cl-timeline-time"
+                />
                 <span class="cl-timeline-label">{event.label}</span>
                 {event.actor ? <span class="cl-timeline-actor">· {event.actor}</span> : null}
               </div>

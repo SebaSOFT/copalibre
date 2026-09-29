@@ -11,6 +11,15 @@ import { defineMessages } from 'react-intl';
  * {...messages.someKey} />` directly.
  */
 export const messages = defineMessages({
+  bracketHighlightEntrant: {
+    id: 'control.bracket.highlightEntrant',
+    defaultMessage: 'Highlight path for {entrant}',
+  },
+  bracketHighlightHint: {
+    id: 'control.bracket.highlightHint',
+    defaultMessage:
+      'Select an entrant to follow their path. Select again or press Escape to clear. Future matches show their possible winning route.',
+  },
   // Shell
   shellSections: { id: 'control.shell.sections', defaultMessage: 'Sections' },
   shellWhatIsThisScreen: {
@@ -271,6 +280,14 @@ export const messages = defineMessages({
     id: 'control.dashboard.noTournaments',
     defaultMessage: 'This organization has no tournaments yet.',
   },
+  dashboardCreateTournament: {
+    id: 'control.dashboard.createTournament',
+    defaultMessage: 'Create tournament',
+  },
+  dashboardNoTournamentsCta: {
+    id: 'control.dashboard.noTournamentsCta',
+    defaultMessage: 'Create your first tournament',
+  },
   dashboardParticipantsCsv: {
     id: 'control.dashboard.participantsCsv',
     defaultMessage: 'Participants CSV',
@@ -316,6 +333,20 @@ export const messages = defineMessages({
     defaultMessage: 'No structure has been generated for this stage yet.',
   },
   bracketGroupLabel: { id: 'control.bracket.groupLabel', defaultMessage: 'Bracket' },
+  bracketSeriesDecided: { id: 'control.bracket.seriesDecided', defaultMessage: 'Decided' },
+  bracketSeriesPending: { id: 'control.bracket.seriesPending', defaultMessage: 'Pending' },
+  bracketSeriesScore: {
+    id: 'control.bracket.seriesScore',
+    defaultMessage: 'Series: {home}–{away}',
+  },
+  bracketSeriesRemaining: {
+    id: 'control.bracket.seriesRemaining',
+    defaultMessage: 'Remaining: {count, plural, one {Leg {legs}} other {Legs {legs}}}',
+  },
+  bracketSeriesAnulled: {
+    id: 'control.bracket.seriesAnulled',
+    defaultMessage: 'Anulled: {count, plural, one {Leg {legs}} other {Legs {legs}}}',
+  },
 
   // Mutation feedback (lib/mutation-feedback.ts)
   mutationBlockedAfterResults: {
@@ -356,6 +387,10 @@ export const messages = defineMessages({
   seedingGeneratedBracket: {
     id: 'control.seeding.generatedBracket',
     defaultMessage: 'Generated bracket',
+  },
+  seedingUnresolvedEntrant: {
+    id: 'control.seeding.unresolvedEntrant',
+    defaultMessage: 'Entrant {id}',
   },
 
   // Reports/disputes (lib/reports.ts, ReportReviewPage.tsx)
@@ -612,6 +647,30 @@ export const messages = defineMessages({
     defaultMessage: 'Event ledger',
   },
   matchConsoleAll: { id: 'control.matchConsole.all', defaultMessage: 'All' },
+  matchConsoleCategoryPositive: {
+    id: 'control.matchConsole.categoryPositive',
+    defaultMessage: 'Positive',
+  },
+  matchConsoleCategoryNegative: {
+    id: 'control.matchConsole.categoryNegative',
+    defaultMessage: 'Negative',
+  },
+  matchConsoleCategoryNeutral: {
+    id: 'control.matchConsole.categoryNeutral',
+    defaultMessage: 'Neutral',
+  },
+  matchConsoleSegmentStatePending: {
+    id: 'control.matchConsole.segmentStatePending',
+    defaultMessage: 'pending',
+  },
+  matchConsoleSegmentStateActive: {
+    id: 'control.matchConsole.segmentStateActive',
+    defaultMessage: 'active',
+  },
+  matchConsoleSegmentStateCompleted: {
+    id: 'control.matchConsole.segmentStateCompleted',
+    defaultMessage: 'completed',
+  },
   matchConsoleUnknownSegment: {
     id: 'control.matchConsole.unknownSegment',
     defaultMessage: 'Unknown segment',
@@ -1011,6 +1070,41 @@ export const messages = defineMessages({
   rolesRoleReferee: { id: 'control.roles.role.referee', defaultMessage: 'Referee' },
   rolesRoleBroadcaster: { id: 'control.roles.role.broadcaster', defaultMessage: 'Broadcast' },
   rolesRoleViewer: { id: 'control.roles.role.viewer', defaultMessage: 'Viewer' },
+  /**
+   * Condensed from each role's own "What this role is for" paragraph in
+   * apps/web/src/content/docs/help/roles/*.md — never claims authority that
+   * page does not (openspec 0251, control-web/roles-permissions spec).
+   */
+  rolesDescriptionAdmin: {
+    id: 'control.roles.description.admin',
+    defaultMessage:
+      'Runs everything the organization does — creating and publishing tournaments, managing every user, administering every club, and operating matches.',
+  },
+  rolesDescriptionClubAdmin: {
+    id: 'control.roles.description.clubAdmin',
+    defaultMessage:
+      "Manages one club's own identity — its name, alias, abbreviation and emblem — without organization-wide access.",
+  },
+  rolesDescriptionTournamentAdmin: {
+    id: 'control.roles.description.tournamentAdmin',
+    defaultMessage: 'Runs one tournament end to end, without organization-wide reach.',
+  },
+  rolesDescriptionReferee: {
+    id: 'control.roles.description.referee',
+    defaultMessage:
+      'Operates a live match — recording events, controlling the clock, resolving timers, and selecting a roster.',
+  },
+  rolesDescriptionBroadcaster: {
+    id: 'control.roles.description.broadcaster',
+    defaultMessage:
+      'Marks someone producing a broadcast around a tournament rather than administering it; grants no operator capability today.',
+  },
+  rolesDescriptionViewer: {
+    id: 'control.roles.description.viewer',
+    defaultMessage:
+      "The least-privileged organization role — belongs to the organization's taxonomy without granting any operator authority.",
+  },
+  rolesLearnMore: { id: 'control.roles.learnMore', defaultMessage: 'Learn more' },
   rolesInviteDialogClose: { id: 'control.roles.inviteDialog.close', defaultMessage: 'Close' },
   registrationModalClose: {
     id: 'control.registration.modalClose',
@@ -1044,6 +1138,14 @@ export const messages = defineMessages({
   rolesInviteDialogSubmit: {
     id: 'control.roles.inviteDialog.submit',
     defaultMessage: 'Send invitation',
+  },
+  rolesSelectClubPlaceholder: {
+    id: 'control.roles.selectClubPlaceholder',
+    defaultMessage: 'Select club…',
+  },
+  rolesSelectTournamentPlaceholder: {
+    id: 'control.roles.selectTournamentPlaceholder',
+    defaultMessage: 'Select tournament…',
   },
 
   // AuditTrailPage.tsx
@@ -1116,8 +1218,97 @@ export const messages = defineMessages({
   wizardStepName: { id: 'control.wizard.step.name', defaultMessage: 'Name' },
   wizardStepDiscipline: { id: 'control.wizard.step.discipline', defaultMessage: 'Discipline' },
   wizardStepFormat: { id: 'control.wizard.step.format', defaultMessage: 'Format' },
+  wizardStepRuleset: { id: 'control.wizard.step.ruleset', defaultMessage: 'Discipline rules' },
+  wizardRulesetEmpty: {
+    id: 'control.wizard.ruleset.empty',
+    defaultMessage: 'This discipline declares no additional rules to configure here.',
+  },
   wizardStepRules: { id: 'control.wizard.step.rules', defaultMessage: 'Event rules' },
   wizardStepWindow: { id: 'control.wizard.step.window', defaultMessage: 'Window' },
+  wizardStepSummary: { id: 'control.wizard.step.summary', defaultMessage: 'Summary' },
+  wizardFormatPreviewTitle: {
+    id: 'control.wizard.formatPreview.title',
+    defaultMessage: 'Structure preview',
+  },
+  wizardFormatPreviewIllustrative: {
+    id: 'control.wizard.formatPreview.illustrative',
+    defaultMessage: 'Illustrative preview (8 entrants)',
+  },
+  wizardFormatPreviewCapacity: {
+    id: 'control.wizard.formatPreview.capacity',
+    defaultMessage: '{count, plural, one {# entrant} other {# entrants}}',
+  },
+
+  // Shared stage editor (lib/stage-authoring.ts, components/StageListEditor.tsx)
+  stageEditorTitle: { id: 'control.stageEditor.title', defaultMessage: 'Stages' },
+  stageEditorAddStage: { id: 'control.stageEditor.addStage', defaultMessage: 'Add stage' },
+  stageEditorRemoveStage: { id: 'control.stageEditor.removeStage', defaultMessage: 'Remove' },
+  stageEditorStageHeading: {
+    id: 'control.stageEditor.stageHeading',
+    defaultMessage: 'Stage {number}',
+  },
+  stageEditorStageName: { id: 'control.stageEditor.stageName', defaultMessage: 'Stage name' },
+  stageEditorStageFormat: {
+    id: 'control.stageEditor.stageFormat',
+    defaultMessage: 'Stage format',
+  },
+  stageEditorSeriesToggle: {
+    id: 'control.stageEditor.seriesToggle',
+    defaultMessage: 'Settle this stage’s crosses with a series',
+  },
+  stageEditorSeriesSpan: { id: 'control.stageEditor.seriesSpan', defaultMessage: 'Matches' },
+  stageEditorSeriesResolutionClass: {
+    id: 'control.stageEditor.seriesResolutionClass',
+    defaultMessage: 'Resolution',
+  },
+  stageEditorSeriesNeutralGround: {
+    id: 'control.stageEditor.seriesNeutralGround',
+    defaultMessage: 'Neutral ground',
+  },
+  stageEditorSeriesAccountPerSeries: {
+    id: 'control.stageEditor.seriesAccountPerSeries',
+    defaultMessage: 'Count standings per series, not per match',
+  },
+  stageEditorAllocationLabel: {
+    id: 'control.stageEditor.allocationLabel',
+    defaultMessage: 'Seeding',
+  },
+  stageEditorAllocationNone: {
+    id: 'control.stageEditor.allocationNone',
+    defaultMessage: 'Decide later',
+  },
+  stageEditorAllocationAutomatic: {
+    id: 'control.stageEditor.allocationAutomatic',
+    defaultMessage: 'Automatic — prior stage’s cut order',
+  },
+  stageEditorAllocationManual: {
+    id: 'control.stageEditor.allocationManual',
+    defaultMessage: 'Manual — I’ll place entrants myself',
+  },
+  stageEditorAllocationWeighted: {
+    id: 'control.stageEditor.allocationWeighted',
+    defaultMessage: 'Weighted — rank by an entrant attribute',
+  },
+  stageEditorAllocationAttributeKey: {
+    id: 'control.stageEditor.allocationAttributeKey',
+    defaultMessage: 'Attribute',
+  },
+  stageEditorAllocationDirection: {
+    id: 'control.stageEditor.allocationDirection',
+    defaultMessage: 'Direction',
+  },
+  stageEditorAllocationDirectionHigherFirst: {
+    id: 'control.stageEditor.allocationDirectionHigherFirst',
+    defaultMessage: 'Higher value seeds first',
+  },
+  stageEditorAllocationDirectionLowerFirst: {
+    id: 'control.stageEditor.allocationDirectionLowerFirst',
+    defaultMessage: 'Lower value seeds first',
+  },
+  stageEditorProfilePreviewHint: {
+    id: 'control.stageEditor.profilePreviewHint',
+    defaultMessage: 'This tournament will use the profile’s own stages, shown here read-only.',
+  },
 
   // Wizard validation problems (lib/wizard.ts stepProblems)
   wizardProblemMissingName: {
@@ -1153,6 +1344,10 @@ export const messages = defineMessages({
     id: 'control.wizard.problem.seriesEvenBestOf',
     defaultMessage:
       'A best-of series needs an odd number of matches so one side can win the majority. Use Aggregate or Points per leg for an even number.',
+  },
+  wizardProblemAllocationAttributeKey: {
+    id: 'control.wizard.problem.allocationAttributeKey',
+    defaultMessage: 'Weighted seeding needs an attribute to rank entrants on',
   },
   wizardProblemMinParticipants: {
     id: 'control.wizard.problem.minParticipants',
@@ -1573,6 +1768,10 @@ export const messages = defineMessages({
   },
   zoneGroupRename: { id: 'control.zoneGroup.rename', defaultMessage: 'Rename' },
   zoneGroupDelete: { id: 'control.zoneGroup.delete', defaultMessage: 'Delete' },
+  zoneGroupNoEntrantsAssigned: {
+    id: 'control.zoneGroup.noEntrantsAssigned',
+    defaultMessage: 'No entrants assigned yet',
+  },
 
   // TournamentSettingsTemplate.tsx, TournamentSettingsPage.tsx (openspec 0168)
   settingsTitle: { id: 'control.settings.title', defaultMessage: 'Tournament settings' },
@@ -1633,6 +1832,34 @@ export const messages = defineMessages({
     defaultMessage: 'Tournament emblem removed.',
   },
 
+  // file-picker.tsx (openspec 0285) — the atom itself may not call react-intl
+  // (R6), so every caller resolves these via `filePickerLabels(intl)` and
+  // passes the result down as props.
+  filePickerPrompt: {
+    id: 'control.filePicker.prompt',
+    defaultMessage: 'Choose a file or drag here',
+  },
+  filePickerPromptDragging: {
+    id: 'control.filePicker.promptDragging',
+    defaultMessage: 'Drop file here',
+  },
+  filePickerAcceptedFormats: {
+    id: 'control.filePicker.acceptedFormats',
+    defaultMessage: 'Accepted formats: {formats}',
+  },
+  filePickerMaxSize: {
+    id: 'control.filePicker.maxSize',
+    defaultMessage: 'Max size: {size}',
+  },
+  filePickerClear: {
+    id: 'control.filePicker.clear',
+    defaultMessage: 'Clear',
+  },
+  filePickerFilesSelected: {
+    id: 'control.filePicker.filesSelected',
+    defaultMessage: '{count, plural, one {# file selected} other {# files selected}}',
+  },
+
   // TournamentRulesetTemplate.tsx, TournamentRulesetPage.tsx (openspec 0169)
   rulesetOverridesTitle: { id: 'control.rulesetOverrides.title', defaultMessage: 'Ruleset' },
   rulesetOverridesLink: { id: 'control.rulesetOverrides.link', defaultMessage: 'Ruleset' },
@@ -1657,6 +1884,21 @@ export const messages = defineMessages({
     defaultMessage: 'Value (JSON)',
   },
 
+  // RulesetFieldControl (ui/molecules/ruleset-field-control.tsx, openspec 0264)
+  rulesetFieldListAdd: { id: 'control.rulesetField.listAdd', defaultMessage: 'Add' },
+  rulesetFieldInheritedHeading: {
+    id: 'control.rulesetField.inheritedHeading',
+    defaultMessage: 'Already includes:',
+  },
+  rulesetFieldUnrecognized: {
+    id: 'control.rulesetField.unrecognized',
+    defaultMessage: 'Not governed by a known rule policy — edited as raw JSON.',
+  },
+  rulesetFieldUnknownType: {
+    id: 'control.rulesetField.unknownType',
+    defaultMessage: "This field's value type is unknown — edited as raw JSON.",
+  },
+
   // SeedingBuilderPage.tsx — stage rename/format-change/delete (openspec 0168)
   stageSettingsTitle: { id: 'control.stageSettings.title', defaultMessage: 'Stage settings' },
   stageRenameLabel: { id: 'control.stageSettings.renameLabel', defaultMessage: 'New stage name' },
@@ -1670,6 +1912,58 @@ export const messages = defineMessages({
   stageSeededExplanation: {
     id: 'control.stageSettings.seededExplanation',
     defaultMessage: 'This stage already has fixtures, so its format and removal are locked.',
+  },
+
+  // TournamentHubTemplate.tsx / StageHubTemplate.tsx (openspec 0250)
+  tournamentHubTitle: { id: 'control.tournamentHub.title', defaultMessage: 'Stages' },
+  tournamentHubStagesHeading: {
+    id: 'control.tournamentHub.stagesHeading',
+    defaultMessage: 'Stages',
+  },
+  tournamentHubEmpty: {
+    id: 'control.tournamentHub.empty',
+    defaultMessage: 'This tournament has no stages yet.',
+  },
+  tournamentHubSeeded: { id: 'control.tournamentHub.seeded', defaultMessage: 'Seeded' },
+  tournamentHubUnseeded: { id: 'control.tournamentHub.unseeded', defaultMessage: 'Unseeded' },
+  tournamentHubOpenStage: {
+    id: 'control.tournamentHub.openStage',
+    defaultMessage: 'Open stage {number}: {name}',
+  },
+  tournamentHubLoading: {
+    id: 'control.tournamentHub.loading',
+    defaultMessage: 'Loading stages…',
+  },
+  tournamentHubLoadFailed: {
+    id: 'control.tournamentHub.loadFailed',
+    defaultMessage: 'Could not load this tournament’s stages.',
+  },
+  stageHubTitle: { id: 'control.stageHub.title', defaultMessage: 'Stage {number}' },
+  stageHubToolsHeading: { id: 'control.stageHub.toolsHeading', defaultMessage: 'Stage tools' },
+  stageHubSeedingLink: { id: 'control.stageHub.seedingLink', defaultMessage: 'Seeding' },
+  stageHubZoneGroupsLink: {
+    id: 'control.stageHub.zoneGroupsLink',
+    defaultMessage: 'Zones and groups',
+  },
+  stageHubStandingsLink: { id: 'control.stageHub.standingsLink', defaultMessage: 'Standings' },
+  stageHubScheduleLink: { id: 'control.stageHub.scheduleLink', defaultMessage: 'Schedule' },
+  stageHubLoading: { id: 'control.stageHub.loading', defaultMessage: 'Loading stage…' },
+  stageHubLoadFailed: {
+    id: 'control.stageHub.loadFailed',
+    defaultMessage: 'Could not load this stage.',
+  },
+  stageHubNotFound: {
+    id: 'control.stageHub.notFound',
+    defaultMessage: 'No stage {number} in this tournament.',
+  },
+  stageHubBreadcrumbLink: {
+    id: 'control.stageHub.breadcrumbLink',
+    defaultMessage: 'Stage {stageNumber}',
+  },
+  dashboardStages: { id: 'control.dashboard.stages', defaultMessage: 'Stages' },
+  dashboardBroadcasterStudio: {
+    id: 'control.dashboard.broadcasterStudio',
+    defaultMessage: 'Broadcaster Studio',
   },
 
   // SeedingBuilderPage.tsx — stage-configuration override editing (openspec 0169)
@@ -2019,6 +2313,119 @@ export const messages = defineMessages({
   clubManagementEmblemUploaded: {
     id: 'control.clubManagement.emblemUploaded',
     defaultMessage: 'Emblem uploaded.',
+  },
+
+  // Club Portal (openspec 0301) — a club-admin's own scoped member directory
+  // and tournament roster submission.
+  clubPortalMembersTitle: { id: 'control.clubPortal.membersTitle', defaultMessage: 'Club members' },
+  clubPortalMembersLoading: { id: 'control.clubPortal.membersLoading', defaultMessage: 'Loading…' },
+  clubPortalMembersLoadFailed: {
+    id: 'control.clubPortal.membersLoadFailed',
+    defaultMessage: 'Could not load members.',
+  },
+  clubPortalMembersEmpty: {
+    id: 'control.clubPortal.membersEmpty',
+    defaultMessage: 'This club has no members yet.',
+  },
+  clubPortalMembersEdit: { id: 'control.clubPortal.membersEdit', defaultMessage: 'Edit' },
+  clubPortalMembersNewMemberName: {
+    id: 'control.clubPortal.newMemberName',
+    defaultMessage: 'New member name',
+  },
+  clubPortalMembersNewMemberAlias: {
+    id: 'control.clubPortal.newMemberAlias',
+    defaultMessage: 'Alias (optional)',
+  },
+  clubPortalMembersNewMemberBirthDate: {
+    id: 'control.clubPortal.newMemberBirthDate',
+    defaultMessage: 'Birth date (optional)',
+  },
+  clubPortalMembersAddMember: {
+    id: 'control.clubPortal.addMember',
+    defaultMessage: 'Add member',
+  },
+  clubPortalMembersEditHeading: {
+    id: 'control.clubPortal.membersEditHeading',
+    defaultMessage: 'Edit member',
+  },
+  clubPortalMembersName: { id: 'control.clubPortal.membersName', defaultMessage: 'Name' },
+  clubPortalMembersAlias: { id: 'control.clubPortal.membersAlias', defaultMessage: 'Alias' },
+  clubPortalMembersSaveChanges: {
+    id: 'control.clubPortal.membersSaveChanges',
+    defaultMessage: 'Save changes',
+  },
+  clubPortalMembersSaved: {
+    id: 'control.clubPortal.membersSaved',
+    defaultMessage: 'Changes saved.',
+  },
+  clubPortalMembersCreated: {
+    id: 'control.clubPortal.membersCreated',
+    defaultMessage: 'Member added.',
+  },
+  clubPortalRosterTitle: {
+    id: 'control.clubPortal.rosterTitle',
+    defaultMessage: 'Submit tournament roster',
+  },
+  clubPortalRosterLoading: { id: 'control.clubPortal.rosterLoading', defaultMessage: 'Loading…' },
+  clubPortalRosterLoadFailed: {
+    id: 'control.clubPortal.rosterLoadFailed',
+    defaultMessage: "Could not load the club's members and teams.",
+  },
+  clubPortalRosterSubmitted: {
+    id: 'control.clubPortal.rosterSubmitted',
+    defaultMessage: 'Registration submitted for review.',
+  },
+  clubPortalRosterTeamHeading: {
+    id: 'control.clubPortal.rosterTeamHeading',
+    defaultMessage: 'Team',
+  },
+  clubPortalRosterTeamSelect: {
+    id: 'control.clubPortal.rosterTeamSelect',
+    defaultMessage: 'Select a team',
+  },
+  clubPortalRosterNewTeamName: {
+    id: 'control.clubPortal.rosterNewTeamName',
+    defaultMessage: 'New team name',
+  },
+  clubPortalRosterCreateTeam: {
+    id: 'control.clubPortal.rosterCreateTeam',
+    defaultMessage: 'Create team',
+  },
+  clubPortalRosterSquadHeading: {
+    id: 'control.clubPortal.rosterSquadHeading',
+    defaultMessage: 'Squad',
+  },
+  clubPortalRosterRolePlayer: {
+    id: 'control.clubPortal.rosterRolePlayer',
+    defaultMessage: 'Player',
+  },
+  clubPortalRosterRoleSubstitute: {
+    id: 'control.clubPortal.rosterRoleSubstitute',
+    defaultMessage: 'Substitute',
+  },
+  clubPortalRosterRoleCoach: {
+    id: 'control.clubPortal.rosterRoleCoach',
+    defaultMessage: 'Coach',
+  },
+  clubPortalRosterRoleStaff: {
+    id: 'control.clubPortal.rosterRoleStaff',
+    defaultMessage: 'Staff',
+  },
+  clubPortalRosterRoleLabel: {
+    id: 'control.clubPortal.rosterRoleLabel',
+    defaultMessage: "{name}'s role",
+  },
+  clubPortalRosterNoMembers: {
+    id: 'control.clubPortal.rosterNoMembers',
+    defaultMessage: 'This club has no members yet.',
+  },
+  clubPortalRosterSubmit: {
+    id: 'control.clubPortal.rosterSubmit',
+    defaultMessage: 'Submit registration',
+  },
+  dashboardClubPortal: {
+    id: 'control.clubPortal.dashboardLink',
+    defaultMessage: 'Club Portal',
   },
 
   // Venue/official management — the resource pool a schedule assigns from.
@@ -3020,6 +3427,7 @@ export const messages = defineMessages({
     id: 'control.matchesView.fullTraceHeading',
     defaultMessage: 'Full standings comparator trace',
   },
+  matchesViewVersus: { id: 'control.matchesView.versus', defaultMessage: 'vs' },
   matchesViewResultStateLive: {
     id: 'control.matchesView.resultState.live',
     defaultMessage: 'LIVE',
@@ -3102,6 +3510,25 @@ export const messages = defineMessages({
     id: 'control.preferences.tokensLoading',
     defaultMessage: 'Loading…',
   },
+  preferencesTitle: { id: 'preferences.title', defaultMessage: 'Personal Preferences' },
+  preferencesPatTitle: { id: 'preferences.patTitle', defaultMessage: 'Personal Access Tokens' },
+  preferencesPatDescription: {
+    id: 'preferences.patDescription',
+    defaultMessage: 'Generate tokens to access the API directly. Tokens are only shown once.',
+  },
+  preferencesPatCreate: { id: 'preferences.createPat', defaultMessage: 'Generate Token' },
+  preferencesPatLabel: { id: 'preferences.patLabel', defaultMessage: 'Token Label' },
+  preferencesPatExpiresIn: { id: 'preferences.patExpiresIn', defaultMessage: 'Expires in (days)' },
+  preferencesPatCreated: {
+    id: 'preferences.patCreated',
+    defaultMessage: 'Token created. Copy it now:',
+  },
+  preferencesPatRevoke: { id: 'preferences.revokePat', defaultMessage: 'Revoke' },
+  preferencesPatEmpty: {
+    id: 'preferences.noTokens',
+    defaultMessage: 'No active personal access tokens.',
+  },
+  preferencesPatExpiresAt: { id: 'preferences.patExpiresAt', defaultMessage: 'Expires: {date}' },
 
   // Analytics route (openspec 0225 task 2.6).
   analyticsSubtitle: {
@@ -3134,6 +3561,37 @@ export const messages = defineMessages({
     defaultMessage: '{count} media files',
   },
   analyticsNoData: { id: 'control.analytics.noData', defaultMessage: 'No data' },
+  analyticsTournamentOverview: {
+    id: 'control.analytics.tournamentOverview',
+    defaultMessage: 'Tournament overview',
+  },
+  analyticsNoTournaments: {
+    id: 'control.analytics.noTournaments',
+    defaultMessage: 'No tournaments found.',
+  },
+  analyticsColumnTournament: {
+    id: 'control.analytics.column.tournament',
+    defaultMessage: 'Tournament',
+  },
+  analyticsColumnStatus: { id: 'control.analytics.column.status', defaultMessage: 'Status' },
+  analyticsColumnProgress: {
+    id: 'control.analytics.column.progress',
+    defaultMessage: 'Match progress',
+  },
+  analyticsColumnLiveMatches: {
+    id: 'control.analytics.column.liveMatches',
+    defaultMessage: 'Live matches',
+  },
+  analyticsMatchProgress: {
+    id: 'control.analytics.matchProgress',
+    defaultMessage: '{resolved} / {total} matches',
+  },
+  analyticsStatusDraft: { id: 'control.analytics.status.draft', defaultMessage: 'Draft' },
+  analyticsStatusUpcoming: { id: 'control.analytics.status.upcoming', defaultMessage: 'Upcoming' },
+  analyticsStatusLive: { id: 'control.analytics.status.live', defaultMessage: 'Live' },
+  analyticsStatusFinished: { id: 'control.analytics.status.finished', defaultMessage: 'Finished' },
+  analyticsStatusArchived: { id: 'control.analytics.status.archived', defaultMessage: 'Archived' },
+  analyticsStatusUnknown: { id: 'control.analytics.status.unknown', defaultMessage: 'Unknown' },
 
   // Roster role selector (openspec 0225 task 2.6). `rosterRole*` replace
   // ROSTER_ROLE_LABELS, previously a plain Spanish-only lookup object
@@ -3149,5 +3607,491 @@ export const messages = defineMessages({
   rosterRoleFieldLabel: {
     id: 'control.roster.roleFieldLabel',
     defaultMessage: 'Role for {name}',
+  },
+  tournamentCompletion: {
+    id: 'control.tournament.completion',
+    defaultMessage: 'Tournament completion',
+  },
+  tournamentCompletionStage: {
+    id: 'control.tournament.completionStage',
+    defaultMessage: 'Stage {stageNumber}',
+  },
+
+  // DisciplineSummary (ui/organisms/discipline-summary.tsx, openspec 0263) —
+  // translates a DisciplineDescriptor's segments/rules/events to plain
+  // language, in place of raw JSON.
+  disciplineSummarySegmentsHeading: {
+    id: 'control.disciplineSummary.segmentsHeading',
+    defaultMessage: 'Segments',
+  },
+  disciplineSummaryNoSegments: {
+    id: 'control.disciplineSummary.noSegments',
+    defaultMessage: 'This discipline declares no segments.',
+  },
+  disciplineSummarySegmentTimed: {
+    id: 'control.disciplineSummary.segmentTimed',
+    defaultMessage: '{name} runs a clock. Default duration: {duration}.',
+  },
+  disciplineSummarySegmentUntimed: {
+    id: 'control.disciplineSummary.segmentUntimed',
+    defaultMessage: '{name} has no clock.',
+  },
+  disciplineSummaryRulesHeading: {
+    id: 'control.disciplineSummary.rulesHeading',
+    defaultMessage: 'Rules',
+  },
+  disciplineSummaryNoRules: {
+    id: 'control.disciplineSummary.noRules',
+    defaultMessage: 'This discipline declares no configurable rules.',
+  },
+  disciplineSummaryRuleCurrentValue: {
+    id: 'control.disciplineSummary.ruleCurrentValue',
+    defaultMessage: 'Current value: {value}',
+  },
+  disciplineSummarySegmentsFieldValue: {
+    id: 'control.disciplineSummary.segmentsFieldValue',
+    defaultMessage:
+      '{count, plural, one {# regulation segment} other {# regulation segments}} ({overtime, select, true {with overtime} other {without overtime}})',
+  },
+  booleanYes: {
+    id: 'control.booleanYes',
+    defaultMessage: 'Yes',
+  },
+  booleanNo: {
+    id: 'control.booleanNo',
+    defaultMessage: 'No',
+  },
+  disciplineSummaryPermissionInherited: {
+    id: 'control.disciplineSummary.permissionInherited',
+    defaultMessage: "Uses the discipline's default unless the tournament replaces it.",
+  },
+  disciplineSummaryPermissionReplaced: {
+    id: 'control.disciplineSummary.permissionReplaced',
+    defaultMessage: 'Can be replaced with a tournament-specific value.',
+  },
+  disciplineSummaryPermissionMerged: {
+    id: 'control.disciplineSummary.permissionMerged',
+    defaultMessage: "Can be extended with the tournament's own values, on top of the discipline's.",
+  },
+  disciplineSummaryPermissionForbidden: {
+    id: 'control.disciplineSummary.permissionForbidden',
+    defaultMessage: 'Cannot be changed per tournament.',
+  },
+  disciplineSummaryEventsHeading: {
+    id: 'control.disciplineSummary.eventsHeading',
+    defaultMessage: 'Events',
+  },
+  disciplineSummaryNoEvents: {
+    id: 'control.disciplineSummary.noEvents',
+    defaultMessage: 'This discipline declares no events.',
+  },
+  disciplineSummaryEventAffectsResult: {
+    id: 'control.disciplineSummary.eventAffectsResult',
+    defaultMessage: 'Changes the result',
+  },
+  disciplineSummaryEventActorSide: {
+    id: 'control.disciplineSummary.eventActorSide',
+    defaultMessage: 'Applies to the team.',
+  },
+  disciplineSummaryEventActorPerson: {
+    id: 'control.disciplineSummary.eventActorPerson',
+    defaultMessage: 'Applies to a player.',
+  },
+  disciplineSummaryEventActorPersonOrStaff: {
+    id: 'control.disciplineSummary.eventActorPersonOrStaff',
+    defaultMessage: 'Applies to a player or staff member.',
+  },
+  disciplineSummaryEventActorNone: {
+    id: 'control.disciplineSummary.eventActorNone',
+    defaultMessage: 'Does not apply to a specific team member.',
+  },
+  disciplineSummaryRawJsonToggleShow: {
+    id: 'control.disciplineSummary.rawJsonToggleShow',
+    defaultMessage: 'Show raw JSON',
+  },
+  disciplineSummaryRawJsonToggleHide: {
+    id: 'control.disciplineSummary.rawJsonToggleHide',
+    defaultMessage: 'Hide raw JSON',
+  },
+  // TournamentSummary (ui/organisms/tournament-summary.tsx, openspec 0267) —
+  // the tournament-level facts block composed above DisciplineSummary.
+  tournamentSummaryFactsHeading: {
+    id: 'control.tournamentSummary.factsHeading',
+    defaultMessage: '{name}',
+  },
+  tournamentSummaryStagesHeading: {
+    id: 'control.tournamentSummary.stagesHeading',
+    defaultMessage: 'Stages',
+  },
+  tournamentSummaryStageLine: {
+    id: 'control.tournamentSummary.stageLine',
+    defaultMessage: '{name}: {format}',
+  },
+  tournamentSummaryPublicRegistrationOpen: {
+    id: 'control.tournamentSummary.publicRegistrationOpen',
+    defaultMessage: 'Public registration is open.',
+  },
+  tournamentSummaryPublicRegistrationClosed: {
+    id: 'control.tournamentSummary.publicRegistrationClosed',
+    defaultMessage: 'Public registration is closed; entrants are added by the organizer.',
+  },
+  tournamentSummaryCheckInRequired: {
+    id: 'control.tournamentSummary.checkInRequired',
+    defaultMessage: 'Check-in is required.',
+  },
+  tournamentSummaryCheckInNotRequired: {
+    id: 'control.tournamentSummary.checkInNotRequired',
+    defaultMessage: 'Check-in is not required.',
+  },
+  tournamentSummaryCheckInClosesAt: {
+    id: 'control.tournamentSummary.checkInClosesAt',
+    defaultMessage: 'Check-in closes at {closesAt}.',
+  },
+  tournamentSummaryRegion: {
+    id: 'control.tournamentSummary.region',
+    defaultMessage: 'Region: {region}',
+  },
+  tournamentSummaryCapacity: {
+    id: 'control.tournamentSummary.capacity',
+    defaultMessage: 'Capacity: {capacity} entrants',
+  },
+  disciplineDocumentLoading: {
+    id: 'control.disciplineDocument.loading',
+    defaultMessage: 'Loading discipline…',
+  },
+  disciplineDocumentLoadFailed: {
+    id: 'control.disciplineDocument.loadFailed',
+    defaultMessage: 'Could not load this discipline.',
+  },
+  platformViewDiscipline: {
+    id: 'control.platform.viewDiscipline',
+    defaultMessage: 'View',
+  },
+
+  // Invitation acceptance (AcceptInvitationForm.tsx / accept.astro)
+  invitationMissingToken: {
+    id: 'invitation.missingToken',
+    defaultMessage: 'The invitation token was not found in the link.',
+  },
+  invitationPasswordTooShort: {
+    id: 'invitation.passwordTooShort',
+    defaultMessage: 'The password must be at least 8 characters.',
+  },
+  invitationPasswordMismatch: {
+    id: 'invitation.passwordMismatch',
+    defaultMessage: 'Passwords do not match.',
+  },
+  invitationAcceptFailed: {
+    id: 'invitation.acceptFailed',
+    defaultMessage: 'Failed to accept the invitation ({status}).',
+  },
+  invitationUnexpectedError: {
+    id: 'invitation.unexpectedError',
+    defaultMessage: 'Unexpected error accepting the invitation.',
+  },
+  invitationTitle: { id: 'invitation.title', defaultMessage: 'Accept invitation' },
+  invitationSubtitle: {
+    id: 'invitation.subtitle',
+    defaultMessage: 'Set up your CopaLibre administrator account',
+  },
+  invitationSuccessHeading: {
+    id: 'invitation.successHeading',
+    defaultMessage: 'Account set up!',
+  },
+  invitationSuccessBody: {
+    id: 'invitation.successBody',
+    defaultMessage: 'Redirecting to the control console…',
+  },
+  invitationNameLabel: {
+    id: 'invitation.nameLabel',
+    defaultMessage: 'Full name (optional)',
+  },
+  invitationNamePlaceholder: {
+    id: 'invitation.namePlaceholder',
+    defaultMessage: 'E.g. Ana Pérez',
+  },
+  invitationPasswordLabel: {
+    id: 'invitation.passwordLabel',
+    defaultMessage: 'Password (minimum 8 characters)',
+  },
+  invitationConfirmPasswordLabel: {
+    id: 'invitation.confirmPasswordLabel',
+    defaultMessage: 'Confirm password',
+  },
+  invitationSubmitLoading: {
+    id: 'invitation.submitLoading',
+    defaultMessage: 'Setting up account…',
+  },
+  invitationSubmit: { id: 'invitation.submit', defaultMessage: 'Accept and start' },
+
+  // Broadcaster Studio (openspec 0300)
+  broadcasterStudioTitle: { id: 'broadcasterStudio.title', defaultMessage: 'Broadcaster Studio' },
+  broadcasterStudioIntro: {
+    id: 'broadcasterStudio.intro',
+    defaultMessage:
+      'Generate a streaming-ready overlay link for OBS Studio or any other browser-source capable software — no administrator required.',
+  },
+  broadcasterStudioLoading: {
+    id: 'broadcasterStudio.loading',
+    defaultMessage: 'Generating your streaming link…',
+  },
+  broadcasterStudioLoadError: {
+    id: 'broadcasterStudio.loadError',
+    defaultMessage: 'Could not generate a streaming link. Try reloading this page.',
+  },
+  broadcasterStudioModeLabel: {
+    id: 'broadcasterStudio.modeLabel',
+    defaultMessage: 'Overlay mode',
+  },
+  broadcasterStudioModeLower: {
+    id: 'broadcasterStudio.modeLower',
+    defaultMessage: 'Lower third (over your camera)',
+  },
+  broadcasterStudioModeFull: {
+    id: 'broadcasterStudio.modeFull',
+    defaultMessage: 'Full screen (no camera needed)',
+  },
+  broadcasterStudioChromaLabel: {
+    id: 'broadcasterStudio.chromaLabel',
+    defaultMessage: 'Preview background',
+  },
+  broadcasterStudioChromaTransparent: {
+    id: 'broadcasterStudio.chromaTransparent',
+    defaultMessage: 'Transparent',
+  },
+  broadcasterStudioChromaGreen: {
+    id: 'broadcasterStudio.chromaGreen',
+    defaultMessage: 'Green screen',
+  },
+  broadcasterStudioChromaMagenta: {
+    id: 'broadcasterStudio.chromaMagenta',
+    defaultMessage: 'Magenta screen',
+  },
+  broadcasterStudioChromaDark: {
+    id: 'broadcasterStudio.chromaDark',
+    defaultMessage: 'Dark stadium',
+  },
+  broadcasterStudioUrlLabel: {
+    id: 'broadcasterStudio.urlLabel',
+    defaultMessage: 'OBS Browser Source URL',
+  },
+  broadcasterStudioCopyButton: {
+    id: 'broadcasterStudio.copyButton',
+    defaultMessage: 'Copy OBS Browser Source URL',
+  },
+  broadcasterStudioCopySuccess: {
+    id: 'broadcasterStudio.copySuccess',
+    defaultMessage: 'URL copied to clipboard',
+  },
+  broadcasterStudioCopyFailure: {
+    id: 'broadcasterStudio.copyFailure',
+    defaultMessage: 'Could not copy — copy the URL manually',
+  },
+  broadcasterStudioResolutionHeading: {
+    id: 'broadcasterStudio.resolutionHeading',
+    defaultMessage: 'Recommended OBS Browser Source settings',
+  },
+  broadcasterStudioPreviewLabel: {
+    id: 'broadcasterStudio.previewLabel',
+    defaultMessage: 'Live preview',
+  },
+  platformTabOverview: {
+    id: 'control.platform.tab.overview',
+    defaultMessage: 'Overview',
+  },
+  platformTabDiagnostics: {
+    id: 'control.platform.tab.diagnostics',
+    defaultMessage: 'System Diagnostics',
+  },
+  platformDiagnosticsHeading: {
+    id: 'control.platform.diagnostics.heading',
+    defaultMessage: 'System Health & Diagnostics',
+  },
+  platformDiagnosticsDescription: {
+    id: 'control.platform.diagnostics.description',
+    defaultMessage: 'Live telemetry, process health, and dead-letter queue remediation.',
+  },
+  platformDiagnosticsRefresh: {
+    id: 'control.platform.diagnostics.refresh',
+    defaultMessage: 'Refresh',
+  },
+  platformDiagnosticsAutoPoll: {
+    id: 'control.platform.diagnostics.autoPoll',
+    defaultMessage: 'Auto-refresh (30s)',
+  },
+  platformDiagnosticsStatus: {
+    id: 'control.platform.diagnostics.status',
+    defaultMessage: 'System status',
+  },
+  platformDiagnosticsHealthy: {
+    id: 'control.platform.diagnostics.status.healthy',
+    defaultMessage: 'Healthy',
+  },
+  platformDiagnosticsDegraded: {
+    id: 'control.platform.diagnostics.status.degraded',
+    defaultMessage: 'Degraded',
+  },
+  platformDiagnosticsCritical: {
+    id: 'control.platform.diagnostics.status.critical',
+    defaultMessage: 'Critical',
+  },
+  platformDiagnosticsDatabase: {
+    id: 'control.platform.diagnostics.database',
+    defaultMessage: 'Database',
+  },
+  platformDiagnosticsDbConnected: {
+    id: 'control.platform.diagnostics.db.connected',
+    defaultMessage: 'Connected',
+  },
+  platformDiagnosticsDbDisconnected: {
+    id: 'control.platform.diagnostics.db.disconnected',
+    defaultMessage: 'Disconnected',
+  },
+  platformDiagnosticsDbLatency: {
+    id: 'control.platform.diagnostics.db.latency',
+    defaultMessage: '{ms} ms probe',
+  },
+  platformDiagnosticsDbPool: {
+    id: 'control.platform.diagnostics.db.pool',
+    defaultMessage: 'Pool: {active} active, {idle} idle, {waiting} waiting',
+  },
+  platformDiagnosticsStorage: {
+    id: 'control.platform.diagnostics.storage',
+    defaultMessage: 'Object Storage',
+  },
+  platformDiagnosticsStorageConnected: {
+    id: 'control.platform.diagnostics.storage.connected',
+    defaultMessage: 'Connected ({profile})',
+  },
+  platformDiagnosticsStorageDisconnected: {
+    id: 'control.platform.diagnostics.storage.disconnected',
+    defaultMessage: 'Disconnected ({profile})',
+  },
+  platformDiagnosticsStorageObjects: {
+    id: 'control.platform.diagnostics.storage.objects',
+    defaultMessage: '{count} objects',
+  },
+  platformDiagnosticsStorageBytes: {
+    id: 'control.platform.diagnostics.storage.bytes',
+    defaultMessage: '{bytes} stored',
+  },
+  platformDiagnosticsOutbox: {
+    id: 'control.platform.diagnostics.outbox',
+    defaultMessage: 'Transactional Outbox',
+  },
+  platformDiagnosticsOutboxPending: {
+    id: 'control.platform.diagnostics.outbox.pending',
+    defaultMessage: 'Pending: {count}',
+  },
+  platformDiagnosticsOutboxProcessed: {
+    id: 'control.platform.diagnostics.outbox.processed',
+    defaultMessage: 'Processed 24h: {count}',
+  },
+  platformDiagnosticsOutboxFailed: {
+    id: 'control.platform.diagnostics.outbox.failed',
+    defaultMessage: 'Dead letters: {count}',
+  },
+  platformDiagnosticsRealtime: {
+    id: 'control.platform.diagnostics.realtime',
+    defaultMessage: 'Realtime Streams',
+  },
+  platformDiagnosticsRealtimeActive: {
+    id: 'control.platform.diagnostics.realtime.active',
+    defaultMessage: '{count} subscribers',
+  },
+  platformDiagnosticsRealtimeBreakdown: {
+    id: 'control.platform.diagnostics.realtime.breakdown',
+    defaultMessage: '{kiosks} kiosks, {overlays} overlays, {spectators} public, {control} control',
+  },
+  platformDiagnosticsRealtimeReplicas: {
+    id: 'control.platform.diagnostics.realtime.replicas',
+    defaultMessage: '{active} reporting replicas ({stale} stale)',
+  },
+  platformDiagnosticsRealtimeUnavailable: {
+    id: 'control.platform.diagnostics.realtime.unavailable',
+    defaultMessage: 'No reporting replicas',
+  },
+  platformDiagnosticsFailuresHeading: {
+    id: 'control.platform.diagnostics.failures.heading',
+    defaultMessage: 'Dead-Lettered Outbox Events',
+  },
+  platformDiagnosticsFailuresDescription: {
+    id: 'control.platform.diagnostics.failures.description',
+    defaultMessage:
+      'Events that exhausted retry attempts. Select events to re-enqueue for delivery.',
+  },
+  platformDiagnosticsNoFailures: {
+    id: 'control.platform.diagnostics.failures.empty',
+    defaultMessage: 'No dead-lettered events in the outbox queue.',
+  },
+  platformDiagnosticsRetrySelected: {
+    id: 'control.platform.diagnostics.retry.selected',
+    defaultMessage: 'Retry selected events',
+  },
+  platformDiagnosticsRetryModalTitle: {
+    id: 'control.platform.diagnostics.retryModal.title',
+    defaultMessage: 'Retry dead-lettered events',
+  },
+  platformDiagnosticsRetryModalDescription: {
+    id: 'control.platform.diagnostics.retryModal.description',
+    defaultMessage:
+      'Re-enqueuing {count, plural, one {1 dead letter} other {# dead letters}} will reset their attempt counter to 0 and make them immediately eligible for outbox relay. An audit ledger record will be written atomically.',
+  },
+  platformDiagnosticsRetryConfirm: {
+    id: 'control.platform.diagnostics.retryModal.confirm',
+    defaultMessage: 'Confirm re-enqueue',
+  },
+  platformDiagnosticsRetryCancel: {
+    id: 'control.platform.diagnostics.retryModal.cancel',
+    defaultMessage: 'Cancel',
+  },
+  platformDiagnosticsRetrySuccess: {
+    id: 'control.platform.diagnostics.retry.success',
+    defaultMessage:
+      'Re-enqueued {count, plural, one {1 event} other {# events}} ({skipped} skipped).',
+  },
+  platformDiagnosticsRetryModalClose: {
+    id: 'control.platform.diagnostics.retryModal.close',
+    defaultMessage: 'Close retry dialog',
+  },
+  platformDiagnosticsColEventId: {
+    id: 'control.platform.diagnostics.col.eventId',
+    defaultMessage: 'Event ID',
+  },
+  platformDiagnosticsColEventType: {
+    id: 'control.platform.diagnostics.col.eventType',
+    defaultMessage: 'Type',
+  },
+  platformDiagnosticsColAttempts: {
+    id: 'control.platform.diagnostics.col.attempts',
+    defaultMessage: 'Attempts',
+  },
+  platformDiagnosticsColError: {
+    id: 'control.platform.diagnostics.col.error',
+    defaultMessage: 'Error message',
+  },
+  platformDiagnosticsColFailedAt: {
+    id: 'control.platform.diagnostics.col.failedAt',
+    defaultMessage: 'Dead-lettered at',
+  },
+  platformDiagnosticsSelectEvent: {
+    id: 'control.platform.diagnostics.selectEvent',
+    defaultMessage: 'Select event {id}',
+  },
+  platformDiagnosticsSelectAllEvents: {
+    id: 'control.platform.diagnostics.selectAllEvents',
+    defaultMessage: 'Select all dead-lettered events',
+  },
+  platformDiagnosticsUptime: {
+    id: 'control.platform.diagnostics.uptime',
+    defaultMessage: 'Uptime: {hours}h {minutes}m',
+  },
+  platformDiagnosticsVersion: {
+    id: 'control.platform.diagnostics.version',
+    defaultMessage: 'Version {version}',
+  },
+  platformDiagnosticsLoading: {
+    id: 'control.platform.diagnostics.loading',
+    defaultMessage: 'Loading platform diagnostics…',
   },
 });

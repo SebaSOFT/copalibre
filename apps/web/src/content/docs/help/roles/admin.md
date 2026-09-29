@@ -21,6 +21,7 @@ one tournament.
 - `org.assign-match-authority`
 - `org.correct-match-results`
 - `org.create-tournaments`
+- `org.manage-club-members` (inherited from `club-admin`)
 - `org.manage-clubs` (inherited from `club-admin`)
 - `org.manage-display-tokens`
 - `org.manage-persons`

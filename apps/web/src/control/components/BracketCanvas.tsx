@@ -3,14 +3,38 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import {
   DEFAULT_GEOMETRY,
   layoutBracket,
+  canvasEntrantPath,
   zoomIn,
   zoomOut,
   type CanvasMatch,
   type LaidOutMatch,
 } from '../lib/bracket-canvas.js';
 import { Button } from './ui/atoms/button.js';
+import { Badge } from './ui/atoms/badge.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function resolveSlotLabel(
+  slot: LaidOutMatch['slots'][number],
+  names: Readonly<Record<string, string>>,
+  intl: ReturnType<typeof useIntl>,
+): string {
+  if (slot.entrantId === undefined) {
+    return slot.label;
+  }
+  const resolved = names[slot.entrantId];
+  if (resolved) {
+    return resolved;
+  }
+  if (UUID_PATTERN.test(slot.entrantId)) {
+    return intl.formatMessage(messages.seedingUnresolvedEntrant, {
+      id: slot.entrantId.slice(0, 8),
+    });
+  }
+  return slot.label;
+}
 
 /**
  * A6 — the bracket canvas.
@@ -33,6 +57,9 @@ export function BracketCanvas({
   emptyMessage,
   matchUrl,
   focusMatchId,
+  highlightEntrantId,
+  onHighlightEntrant,
+  names = {},
 }: {
   readonly matches: readonly CanvasMatch[];
   readonly zoom: number;
@@ -47,9 +74,23 @@ export function BracketCanvas({
    * simply renders with nothing emphasized.
    */
   readonly focusMatchId?: string;
+  readonly highlightEntrantId?: string;
+  readonly onHighlightEntrant?: (entrantId?: string) => void;
+  readonly names?: Readonly<Record<string, string>>;
 }): React.JSX.Element {
   const intl = useIntl();
-  const layout = layoutBracket(matches);
+  const interactive = onHighlightEntrant !== undefined;
+  const hasSeries = matches.some((m) => m.series !== undefined);
+  const layout = layoutBracket(
+    matches,
+    interactive
+      ? { ...DEFAULT_GEOMETRY, nodeHeight: hasSeries ? 128 : 88 }
+      : hasSeries
+        ? { ...DEFAULT_GEOMETRY, nodeHeight: 104 }
+        : DEFAULT_GEOMETRY,
+  );
+  const path =
+    highlightEntrantId === undefined ? undefined : canvasEntrantPath(matches, highlightEntrantId);
   const padding = DEFAULT_GEOMETRY.grid * 2;
   const focusedNodeRef = useRef<HTMLElement | null>(null);
 
@@ -60,7 +101,17 @@ export function BracketCanvas({
   }, [focusMatchId]);
 
   return (
-    <div style={wrapperStyle}>
+    <div
+      style={wrapperStyle}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') onHighlightEntrant?.(undefined);
+      }}
+    >
+      {onHighlightEntrant !== undefined && (
+        <p>
+          <FormattedMessage {...messages.bracketHighlightHint} />
+        </p>
+      )}
       <div style={toolbarStyle}>
         <Button
           aria-label={intl.formatMessage(messages.bracketZoomOut)}
@@ -133,6 +184,12 @@ export function BracketCanvas({
                 }
                 key={node.matchId}
                 node={node}
+                pathState={
+                  path?.size ? (path.has(node.matchId) ? 'included' : 'excluded') : undefined
+                }
+                highlightEntrantId={highlightEntrantId}
+                onHighlightEntrant={onHighlightEntrant}
+                names={names}
               />
             ))}
           </div>
@@ -154,27 +211,124 @@ function BracketNode({
   focusedRef,
   href,
   node,
+  pathState,
+  highlightEntrantId,
+  onHighlightEntrant,
+  names,
 }: {
   readonly focused: boolean;
   /** Set only on the focused node, so `BracketCanvas` can scroll it into view on mount. */
   readonly focusedRef: React.RefObject<HTMLElement | null> | undefined;
   readonly href: string | undefined;
   readonly node: LaidOutMatch;
+  readonly pathState?: 'included' | 'excluded';
+  readonly highlightEntrantId?: string;
+  readonly onHighlightEntrant?: (entrantId?: string) => void;
+  readonly names: Readonly<Record<string, string>>;
 }): React.JSX.Element {
+  const intl = useIntl();
+  const interactive = onHighlightEntrant !== undefined;
   const children = (
     <>
       <header style={nodeHeaderStyle}>
-        <span>{node.matchId}</span>
+        {interactive && href !== undefined ? (
+          <a className="cl-focusable" href={href} onClick={controlLinkClick(href)}>
+            {node.matchId}
+          </a>
+        ) : (
+          <span>{node.matchId}</span>
+        )}
         {node.format === undefined ? null : <span className="cl-badge">{node.format}</span>}
       </header>
       {node.slots.map((slot, index) => (
         <div key={`${node.matchId}-${index}`} style={slot.pending ? pendingSlotStyle : slotStyle}>
           {/* Named, never blank: "Ganador del WB-R1-M2" tells an
               operator what has to happen; an empty box reads as a bug. */}
-          <span>{slot.label}</span>
+          {interactive && slot.entrantId !== undefined ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="cl-journey-name"
+              aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                entrant: resolveSlotLabel(slot, names, intl),
+              })}
+              aria-pressed={highlightEntrantId === slot.entrantId}
+              onClick={() =>
+                onHighlightEntrant(
+                  slot.entrantId === highlightEntrantId ? undefined : slot.entrantId,
+                )
+              }
+            >
+              {resolveSlotLabel(slot, names, intl)}
+            </Button>
+          ) : (
+            <span>{resolveSlotLabel(slot, names, intl)}</span>
+          )}
           <span style={scoreStyle}>{slot.score ?? '—'}</span>
         </div>
       ))}
+      {node.series !== undefined && (
+        <div
+          data-series-status={node.series.status === 'decided' ? 'decided' : 'undecided'}
+          style={seriesIndicatorStyle}
+        >
+          <div style={seriesIndicatorHeaderStyle}>
+            <span style={seriesScoreStyle}>
+              <FormattedMessage
+                {...messages.bracketSeriesScore}
+                values={{
+                  home: node.series.homeGamesWon,
+                  away: node.series.awayGamesWon,
+                }}
+              />
+            </span>
+            <Badge
+              label={intl.formatMessage(
+                node.series.status === 'decided'
+                  ? messages.bracketSeriesDecided
+                  : messages.bracketSeriesPending,
+              )}
+            />
+          </div>
+          {node.series.status === 'decided' &&
+            node.series.games.some((game) => game.status === 'not-required') && (
+              <span data-testid="series-anulled" style={seriesLegsStyle}>
+                <FormattedMessage
+                  {...messages.bracketSeriesAnulled}
+                  values={{
+                    count: node.series.games.filter((game) => game.status === 'not-required')
+                      .length,
+                    legs: node.series.games
+                      .filter((game) => game.status === 'not-required')
+                      .map((game) => game.number)
+                      .join(', '),
+                  }}
+                />
+              </span>
+            )}
+          {node.series.status !== 'decided' &&
+            node.series.games.some(
+              (game) => game.status === 'scheduled' || game.status === 'in-progress',
+            ) && (
+              <span data-testid="series-remaining" style={seriesLegsStyle}>
+                <FormattedMessage
+                  {...messages.bracketSeriesRemaining}
+                  values={{
+                    count: node.series.games.filter(
+                      (game) => game.status === 'scheduled' || game.status === 'in-progress',
+                    ).length,
+                    legs: node.series.games
+                      .filter(
+                        (game) => game.status === 'scheduled' || game.status === 'in-progress',
+                      )
+                      .map((game) => game.number)
+                      .join(', '),
+                  }}
+                />
+              </span>
+            )}
+        </div>
+      )}
     </>
   );
 
@@ -189,13 +343,14 @@ function BracketNode({
     ...(focused ? { borderWidth: 2, borderColor: 'var(--cl-primary)' } : {}),
   };
 
-  if (href === undefined) {
+  if (href === undefined || interactive) {
     return (
       <article
         className={NODE_CLASS_NAME}
         data-bracket={node.bracket}
         data-focused={focused ? 'true' : undefined}
         data-match={node.matchId}
+        data-entrant-path={pathState}
         ref={focusedRef as React.RefObject<HTMLElement>}
         style={{ ...positionStyle, ...nodeContentStyle }}
       >
@@ -210,6 +365,7 @@ function BracketNode({
       data-bracket={node.bracket}
       data-focused={focused ? 'true' : undefined}
       data-match={node.matchId}
+      data-entrant-path={pathState}
       href={href}
       onClick={controlLinkClick(href)}
       ref={focusedRef as React.RefObject<HTMLAnchorElement>}
@@ -276,4 +432,24 @@ const mutedStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
   fontSize: 'var(--cl-font-size-xs)',
+};
+const seriesIndicatorStyle: React.CSSProperties = {
+  display: 'grid',
+  gap: 'var(--cl-space-1)',
+  borderTop: '1px solid var(--cl-border-muted)',
+  paddingTop: 'var(--cl-space-1)',
+  marginTop: 'var(--cl-space-1)',
+  fontSize: 'var(--cl-font-size-xs)',
+  fontFamily: 'var(--cl-font-mono)',
+};
+const seriesIndicatorHeaderStyle: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+};
+const seriesScoreStyle: React.CSSProperties = {
+  fontWeight: 'var(--cl-weight-bold)',
+};
+const seriesLegsStyle: React.CSSProperties = {
+  color: 'var(--cl-text-muted)',
 };

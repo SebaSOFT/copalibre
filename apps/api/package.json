@@ -1,6 +1,6 @@
 {
   "name": "@copalibre/api",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "scripts": {
@@ -22,6 +22,7 @@
     "@copalibre/rules": "workspace:^",
     "@copalibre/statistics-refold": "workspace:^",
     "@copalibre/tournament-engine": "workspace:^",
+    "@fastify/helmet": "^13.1.1",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",
     "@nestjs/platform-fastify": "^11.1.29",
@@ -32,7 +33,7 @@
     "jose": "^6",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
     "@copalibre/module-catalogue": "workspace:^",

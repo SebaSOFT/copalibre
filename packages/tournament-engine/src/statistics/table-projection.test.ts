@@ -115,6 +115,45 @@ describe('projectTableLayout', () => {
     expect(projection.rows[1]?.cells['goals-per-match']).toEqual({ raw: 1, formatted: '1.00' });
   });
 
+  it('uses a declared zero display without changing the raw numeric value', () => {
+    const layout: TableLayoutDefinition = {
+      code: 'cards',
+      target: 'player-ranking',
+      label: { en: 'Cards' },
+      entityGranularity: 'team',
+      defaultSort: [{ columnCode: 'cards-per-match', direction: 'desc' }],
+      columns: [
+        {
+          code: 'cards',
+          header: { en: 'Cards' },
+          source: { kind: 'collector', code: 'cards' },
+          format: 'number',
+        },
+        {
+          code: 'played',
+          header: { en: 'Matches played' },
+          source: { kind: 'collector', code: 'played' },
+          format: 'number',
+        },
+        {
+          code: 'cards-per-match',
+          header: { en: 'Cards per match' },
+          source: { kind: 'computed', expression: 'cards / max(played, 1)' },
+          format: 'decimal-2',
+          zeroDisplay: '-',
+        },
+      ],
+    };
+
+    const projection = projectTableLayout(
+      [figure('a-1', 'cards', 0), figure('a-1', 'played', 2)],
+      layout,
+      { actors: [team('a-1', 'Alice')] },
+    );
+
+    expect(projection.rows[0]?.cells['cards-per-match']).toEqual({ raw: 0, formatted: '-' });
+  });
+
   it('formats a composite column as a fraction and carries numerator/denominator', () => {
     const layout: TableLayoutDefinition = {
       code: 'penalties',
@@ -142,6 +181,41 @@ describe('projectTableLayout', () => {
     expect(projection.rows[0]?.cells['penalties']).toEqual({
       raw: 0.8,
       formatted: '4/5',
+      numerator: 4,
+      denominator: 5,
+    });
+  });
+
+  it('formats a composite column as a percentage while retaining its ratio', () => {
+    const layout: TableLayoutDefinition = {
+      code: 'penalty-conversion',
+      target: 'player-ranking',
+      label: { en: 'Penalty conversion' },
+      entityGranularity: 'team',
+      defaultSort: [{ columnCode: 'percentage', direction: 'desc' }],
+      columns: [
+        {
+          code: 'percentage',
+          header: { en: 'Penalty conversion' },
+          source: {
+            kind: 'composite',
+            numerator: 'penalties-scored',
+            denominator: 'penalties-taken',
+          },
+          format: 'percentage',
+        },
+      ],
+    };
+
+    const projection = projectTableLayout(
+      [figure('a-1', 'penalties-scored', 4), figure('a-1', 'penalties-taken', 5)],
+      layout,
+      { actors: [team('a-1', 'Alice')] },
+    );
+
+    expect(projection.rows[0]?.cells.percentage).toEqual({
+      raw: 0.8,
+      formatted: '80%',
       numerator: 4,
       denominator: 5,
     });
@@ -298,7 +372,13 @@ describe('projectTableLayout', () => {
     ];
 
     const actors: readonly TableProjectionActor[] = [
-      { actorId: 'p-1', name: 'Alice Striker', teamName: 'Atlas FC', entrantId: 'en-atlas' },
+      {
+        actorId: 'p-1',
+        name: 'Alice Striker',
+        teamName: 'Atlas FC',
+        entrantId: 'en-atlas',
+        nationality: 'AR',
+      },
       { actorId: 'p-2', name: 'Bob Forward', teamName: 'Boca Juniors', entrantId: 'en-boca' },
       { actorId: 'p-3', name: 'Charlie Winger', teamName: 'Colo Colo', entrantId: 'en-colo' },
     ];
@@ -311,6 +391,12 @@ describe('projectTableLayout', () => {
     expect(projection.rows[1]?.cells['goals']).toEqual({ raw: 5, formatted: '5' });
     expect(projection.rows[2]?.cells['goals']).toEqual({ raw: 2, formatted: '2' });
     expect(projection.rows[0]?.entrantId).toBe('en-atlas');
+    // A row's own headline identity survives regardless of granularity — this
+    // is the field a client reads instead of guessing which column code the
+    // discipline used for its display column (openspec 0247).
+    expect(projection.rows[0]?.actorName).toBe('Alice Striker');
+    expect(projection.rows[0]?.nationality).toBe('AR');
+    expect(projection.rows[1]?.nationality).toBeUndefined();
   });
 
   it('projects football cards layout sorting first by red cards then yellow cards', () => {

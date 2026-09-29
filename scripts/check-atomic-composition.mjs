@@ -232,25 +232,31 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['components/tv/ui/organisms/TvStandingsTable.tsx', 1],
   ['components/ui/AstroPreview.tsx', 1],
   ['components/ui/organisms/MatchCard.tsx', 1],
-  ['control/components/screens/AnalyticsTemplate.tsx', 5],
   ['control/components/BracketCanvas.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
-  ['control/components/DescriptorBuilderWizard.tsx', 12],
+  ['control/components/DescriptorBuilderWizard.tsx', 9],
   ['control/components/screens/LiveConsoleTemplate.tsx', 4],
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/screens/PlatformAdministrationTemplate.tsx', 1],
-  ['control/components/screens/PreferencesTemplate.tsx', 15],
-  ['control/components/ProfileBuilderWizard.tsx', 6],
+  ['control/components/screens/PreferencesTemplate.tsx', 14],
+  ['control/components/ProfileBuilderWizard.tsx', 3],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 4],
-  ['control/components/screens/StandingsTemplate.tsx', 5],
+  ['control/components/screens/StandingsTemplate.tsx', 4],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 4],
-  ['control/components/TournamentSetupWizard.tsx', 17],
+  ['control/components/TournamentSetupWizard.tsx', 10],
+  // A stage is genuinely an ordered list; the layout primitives (Stack/
+  // Inline/Grid) only ever render a <div> and cannot become an <ol>, the
+  // same class of exception as AstroPreview.tsx's <iframe> above.
+  ['control/components/StageListEditor.tsx', 1],
   ['control/components/ui/molecules/callout-banner.tsx', 5],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 5],
-  ['control/components/ui/organisms/audit-log-panel.tsx', 10],
   ['control/components/ui/organisms/standings-panel.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 2],
+  // The step-indicator <ol>/<li>/<span> is the same ordered-list exception
+  // StageListEditor.tsx's entry above documents, moved here from the three
+  // wizards' own hand-rolled chrome (openspec 0236) rather than newly added.
+  ['control/components/ui/organisms/wizard-shell.tsx', 2],
 ]);
 
 export function checkInlineLayout(nodes) {
@@ -311,18 +317,18 @@ function withoutVarCalls(text) {
 export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['components/tv/TvDashboard.tsx', 1],
   ['components/ui/AstroPreview.tsx', 1],
-  ['control/components/screens/AnalyticsTemplate.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
-  ['control/components/DescriptorBuilderWizard.tsx', 1],
   ['control/components/NativeAuthRoutes.tsx', 7],
-  ['control/components/screens/PreferencesTemplate.tsx', 14],
-  ['control/components/ProfileBuilderWizard.tsx', 1],
+  ['control/components/screens/PreferencesTemplate.tsx', 13],
   ['control/components/RosterRoleSelector.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 1],
-  ['control/components/TournamentSetupWizard.tsx', 2],
+  ['control/components/TournamentSetupWizard.tsx', 1],
   ['control/components/ui/molecules/callout-banner.tsx', 2],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 2],
-  ['control/components/ui/organisms/audit-log-panel.tsx', 5],
+  // The step-indicator grid's `minmax(8rem, 1fr)`/`minmax(min(100%, 6rem), 1fr)`
+  // moved here from the three wizards' own hand-rolled chrome (openspec 0236)
+  // rather than newly added.
+  ['control/components/ui/organisms/wizard-shell.tsx', 1],
 ]);
 
 export function checkRawStyleValues(nodes) {
@@ -357,6 +363,9 @@ export const KNOWN_DATA_BELOW_PAGE = new Map([
   ['components/ui/organisms/StandingsTable.astro', 2],
   ['components/ui/molecules/TournamentHero.astro', 1],
   ['components/ui/organisms/PlayerProfileView.astro', 1],
+  // openspec 0246: bracket entrant slots gain a club emblem, the same
+  // clubEmblemUrl()-in-the-template pattern StandingsTable.astro already uses above.
+  ['components/ui/organisms/MatchNode.astro', 1],
 ]);
 
 export function checkDataAccess(nodes) {
@@ -485,9 +494,8 @@ export const KNOWN_ORPHANS = new Map([
   // them — that is task 5.1's inline-layout paydown. `stack.tsx`/`box.tsx`
   // (AnalyticsPage.tsx) and `inline.tsx` (LiveConsolePage.tsx) gained their
   // first real consumer there and are gone from this register; `grid.tsx`
-  // remains a temporary orphan by the migration plan's own ordering, not an
-  // oversight.
-  ['control/components/ui/atoms/layout/grid.tsx', 1],
+  // gained its own first real consumer in `StageListEditor.tsx` (0235) and
+  // is gone from this register the same way.
   // Form's own entry is gone: task 4.2 gave it eleven real consumers across
   // the five files named in check-ui-ownership.mjs's KNOWN_RAW_ELEMENTS
   // comment. FieldSet's own entry is gone the same way — task 2.5's
@@ -658,6 +666,19 @@ export const KNOWN_MULTI_ATOM_OWNERSHIP = new Map([
   ['control/components/ui/atoms/button.tsx', 1],
   ['control/components/ui/atoms/file-picker.tsx', 2], // owns both `button` and `input`
   ['control/components/ui/atoms/input.tsx', 1],
+  // Left unregistered when this atom was added (openspec 0233); its tab
+  // strip renders its own <button> per language tab, a shape none of the
+  // other governed-element owners share (a tab, not a generic click target).
+  ['control/components/ui/atoms/localized-field-tabs.tsx', 1],
+  // openspec 0248: `ColumnHeaderTooltip` is a table column header's own
+  // sort/description trigger — borderless, embedded in a `<th>`, a shape
+  // distinct from `Button.astro`'s CTA-styled anchor/button and unusable as
+  // one, since public-web's Astro atom cannot be imported into this React
+  // component (or vice versa: `Button.astro` cannot render inside a `.tsx`
+  // file StandingsTemplate.tsx, which needs the interactivity, actually
+  // imports).
+  ['components/ui/atoms/Button.astro', 1],
+  ['components/ui/atoms/ColumnHeaderTooltip.tsx', 1],
 ]);
 
 export function checkSingleAtomOwnership(nodes) {
@@ -718,16 +739,21 @@ export const KNOWN_LITERAL_TEXT = new Map([
   // did not name, recorded rather than silently exempted, same as the rest
   // of this register.
   ['components/ui/organisms/MatchHero.astro', 1],
-  ['components/ui/organisms/MatchOfficials.astro', 3],
-  ['components/ui/organisms/MatchRosters.astro', 5],
-  ['components/ui/organisms/MatchTimeline.astro', 2],
+  // `MatchOfficials.astro`, `MatchRosters.astro` and `MatchTimeline.astro`'s
+  // entries are gone (openspec 0269): every literal moved into the message
+  // catalogue, and every timestamp now renders through `ResponsiveTimestamp`.
   // `PlayerProfileView.astro`'s entry is gone (openspec 0225 task 8.1): its
   // three column headers moved into `DataTable`'s `columns` config as plain
   // JS string literals when the file adopted the owned table, the same way
   // this register's other `DataTable`/`AstroPreview.astro` column configs
   // were never counted here — R10 finds literal text nodes in a template,
   // not string literals in frontmatter.
-  ['components/ui/organisms/StandingsTable.astro', 9],
+  // `StandingsTable.astro`'s entry is gone (openspec 0271): every counted
+  // template-node literal, plus the competition-history modal's
+  // script-template-literal strings this register's own comment above says
+  // R10 cannot see, now resolve through the message catalogue via a
+  // `data-player-dialog-labels` JSON island (the same mechanism
+  // `BracketView.astro` already uses for `data-journey-matches`).
   // `AcceptInvitationForm.tsx`'s entry is gone (openspec 0225 task 8.3,
   // found by /impeccable critique): every literal moved through
   // `useIntl`/`FormattedMessage`, the same fix applied across this task.
@@ -737,7 +763,9 @@ export const KNOWN_LITERAL_TEXT = new Map([
   ['pages/control/app.astro', 1],
   ['pages/help/api-reference.astro', 1],
   ['pages/index.astro', 3],
-  ['pages/invitations/accept.astro', 1],
+  // pages/invitations/accept.astro's hardcoded "CopaLibre · Aceptar
+  // invitación" title is now resolved through the message catalogue
+  // (openspec 0278) — zero violations, entry removed per the ratchet rule.
 ]);
 
 export function checkLiteralTextNodes(nodes) {

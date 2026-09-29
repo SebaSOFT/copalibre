@@ -21,6 +21,9 @@ function json(body: unknown, status = 200): Response {
 }
 
 describe('platform administration console', () => {
+  afterEach(() => {
+    window.history.pushState({}, '', '/control/platform');
+  });
   it('creates an organization and immediately invites its first administrator', async () => {
     const calls: Array<{ url: string; body: unknown }> = [];
     const client = createControlApiClient({
@@ -123,6 +126,10 @@ describe('platform administration console', () => {
     });
     render(withIntl(<PlatformAdministrationPage client={client} />));
     await screen.findByText('CopaLibre');
+
+    expect(
+      (screen.getByRole('link', { name: 'View' }) as HTMLAnchorElement).getAttribute('href'),
+    ).toBe('/control/platform/disciplines/football');
 
     fireEvent.change(screen.getByLabelText('Module alias'), { target: { value: 'football' } });
     fireEvent.change(screen.getByLabelText('Alternate source (one use only)'), {
@@ -468,5 +475,267 @@ describe('platform administration console', () => {
     await screen.findByRole('heading', { name: 'Author a tournament profile' });
     fireEvent.click(screen.getByRole('button', { name: 'Author a tournament profile' }));
     expect(screen.queryByRole('heading', { name: 'Author a tournament profile' })).toBeNull();
+  });
+
+  it('switches to System Diagnostics tab, renders telemetry, and performs outbox retry', async () => {
+    const requests: Array<{ url: string; method: string; body?: unknown }> = [];
+    const diagnosticsSummary = {
+      status: 'healthy' as const,
+      version: '0.306.0',
+      uptimeSeconds: 7200,
+      sampledAt: '2026-09-28T12:00:00.000Z',
+      database: {
+        connected: true,
+        latencyMs: 5.1,
+        poolActive: 2,
+        poolIdle: 8,
+        poolWaiting: 0,
+      },
+      outbox: {
+        available: true,
+        pending: 3,
+        processed24h: 1200,
+        failed: 1,
+        recentFailures: [
+          {
+            eventId: '019927d0-0000-7000-8000-000000000101',
+            eventType: 'match.score_updated',
+            attempts: 6,
+            error: 'Webhook connection refused',
+            failedAt: '2026-09-28T11:55:00.000Z',
+          },
+        ],
+      },
+      storage: {
+        connected: true,
+        profile: 'filesystem' as const,
+        totalObjects: 15,
+        totalBytes: 2048,
+      },
+      realtime: {
+        available: true,
+        totalConnections: 10,
+        tvKiosks: 4,
+        overlays: 2,
+        publicSpectators: 4,
+        controlConnections: 0,
+        activeReplicas: 1,
+        staleReplicas: 0,
+      },
+    };
+
+    const client = createControlApiClient({
+      fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? 'GET';
+        requests.push({
+          url,
+          method,
+          body: init?.body ? JSON.parse(String(init.body)) : undefined,
+        });
+        if (url === '/admin/modules') return json([]);
+        if (url === '/installation/super-admins') return json([]);
+        if (url === '/disciplines') return json([]);
+        if (url === '/admin/diagnostics/summary') return json(diagnosticsSummary);
+        if (url === '/admin/diagnostics/outbox/retry') {
+          return json({
+            retried: ['019927d0-0000-7000-8000-000000000101'],
+            skipped: [],
+          });
+        }
+        return json({}, 200);
+      }),
+    });
+
+    render(withIntl(<PlatformAdministrationPage client={client} />));
+    await screen.findByText('No modules are installed.');
+
+    const diagnosticsTabBtn = screen.getByRole('tab', { name: 'System Diagnostics' });
+    await act(async () => {
+      fireEvent.click(diagnosticsTabBtn);
+    });
+
+    await screen.findByText('System Health & Diagnostics');
+    expect(screen.getByText('Healthy')).toBeDefined();
+    expect(screen.getAllByText(/5.1 ms probe/i).length).toBeGreaterThan(0);
+    expect(screen.getByText('Webhook connection refused')).toBeDefined();
+
+    const eventCheckbox = screen.getByRole('checkbox', {
+      name: /select event 019927d0-0000-7000-8000-000000000101/i,
+    });
+    fireEvent.click(eventCheckbox);
+
+    const retryBtn = screen.getByRole('button', { name: 'Retry selected events' });
+    fireEvent.click(retryBtn);
+
+    await screen.findByRole('dialog');
+    expect(screen.getByText('Retry dead-lettered events')).toBeDefined();
+
+    const confirmBtn = screen.getByRole('button', { name: 'Confirm re-enqueue' });
+    await act(async () => {
+      fireEvent.click(confirmBtn);
+    });
+
+    const retryRequest = requests.find((r) => r.url === '/admin/diagnostics/outbox/retry');
+    expect(retryRequest).toBeDefined();
+    expect(retryRequest?.method).toBe('POST');
+    expect(retryRequest?.body).toEqual({
+      eventIds: ['019927d0-0000-7000-8000-000000000101'],
+    });
+
+    expect(await screen.findByText('Re-enqueued 1 event (0 skipped).')).toBeDefined();
+
+    // Switch back to Overview tab
+    const overviewTabBtn = screen.getByRole('tab', { name: 'Overview' });
+    await act(async () => {
+      fireEvent.click(overviewTabBtn);
+    });
+    expect(screen.getByRole('heading', { name: 'Create organization' })).toBeDefined();
+
+    // Trigger navigation event
+    window.history.pushState({}, '', '/control/platform?tab=diagnostics');
+    await act(async () => {
+      window.dispatchEvent(new Event('copalibre:control-navigated'));
+    });
+    expect(await screen.findByText('System Health & Diagnostics')).toBeDefined();
+  });
+
+  it('reports verbatim error when diagnostics summary fails to load', async () => {
+    const client = createControlApiClient({
+      fetch: jest.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/admin/modules') return json([]);
+        if (url === '/installation/super-admins') return json([]);
+        if (url === '/disciplines') return json([]);
+        if (url === '/admin/diagnostics/summary') {
+          return json({ message: 'Diagnostics probe timeout' }, 504);
+        }
+        return json({}, 200);
+      }),
+    });
+
+    render(withIntl(<PlatformAdministrationPage client={client} />));
+    await screen.findByText('No modules are installed.');
+
+    const diagnosticsTabBtn = screen.getByRole('tab', { name: 'System Diagnostics' });
+    await act(async () => {
+      fireEvent.click(diagnosticsTabBtn);
+    });
+
+    expect((await screen.findAllByText('Diagnostics probe timeout')).length).toBeGreaterThan(0);
+  });
+
+  it('reports verbatim error when outbox retry fails', async () => {
+    const diagnosticsSummary = {
+      status: 'healthy' as const,
+      version: '0.306.0',
+      uptimeSeconds: 100,
+      sampledAt: '2026-09-28T12:00:00.000Z',
+      database: { connected: true, latencyMs: 2, poolActive: 1, poolIdle: 1, poolWaiting: 0 },
+      outbox: {
+        available: true,
+        pending: 1,
+        processed24h: 10,
+        failed: 1,
+        recentFailures: [
+          {
+            eventId: '019927d0-0000-7000-8000-000000000101',
+            eventType: 'test.failed',
+            attempts: 6,
+            error: 'Test failure',
+            failedAt: '2026-09-28T12:00:00.000Z',
+          },
+        ],
+      },
+      storage: { connected: true, profile: 'filesystem' as const, totalObjects: 1, totalBytes: 10 },
+      realtime: { available: true, totalConnections: 1 },
+    };
+
+    const client = createControlApiClient({
+      fetch: jest.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/admin/modules') return json([]);
+        if (url === '/installation/super-admins') return json([]);
+        if (url === '/disciplines') return json([]);
+        if (url === '/admin/diagnostics/summary') return json(diagnosticsSummary);
+        if (url === '/admin/diagnostics/outbox/retry') {
+          return json({ message: 'Outbox locked by background processor' }, 409);
+        }
+        return json({}, 200);
+      }),
+    });
+
+    render(withIntl(<PlatformAdministrationPage client={client} />));
+    await screen.findByText('No modules are installed.');
+
+    const diagnosticsTabBtn = screen.getByRole('tab', { name: 'System Diagnostics' });
+    await act(async () => {
+      fireEvent.click(diagnosticsTabBtn);
+    });
+
+    await screen.findByText('System Health & Diagnostics');
+    const eventCheckbox = screen.getByRole('checkbox', {
+      name: /select event 019927d0-0000-7000-8000-000000000101/i,
+    });
+    fireEvent.click(eventCheckbox);
+
+    const retryBtn = screen.getByRole('button', { name: 'Retry selected events' });
+    fireEvent.click(retryBtn);
+
+    const confirmBtn = screen.getByRole('button', { name: 'Confirm re-enqueue' });
+    await act(async () => {
+      fireEvent.click(confirmBtn);
+    });
+
+    expect(await screen.findByText('Outbox locked by background processor')).toBeDefined();
+  });
+
+  it('polls diagnostics summary periodically when auto-refresh is enabled', async () => {
+    let pollCount = 0;
+    const diagnosticsSummary = {
+      status: 'healthy' as const,
+      version: '0.306.0',
+      uptimeSeconds: 100,
+      sampledAt: '2026-09-28T12:00:00.000Z',
+      database: { connected: true, latencyMs: 2, poolActive: 1, poolIdle: 1, poolWaiting: 0 },
+      outbox: { available: true, pending: 0, processed24h: 0, failed: 0, recentFailures: [] },
+      storage: { connected: true, profile: 'filesystem' as const, totalObjects: 1, totalBytes: 10 },
+      realtime: { available: true, totalConnections: 0 },
+    };
+
+    const client = createControlApiClient({
+      fetch: jest.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/admin/modules') return json([]);
+        if (url === '/installation/super-admins') return json([]);
+        if (url === '/disciplines') return json([]);
+        if (url === '/admin/diagnostics/summary') {
+          pollCount += 1;
+          return json(diagnosticsSummary);
+        }
+        return json({}, 200);
+      }),
+    });
+
+    render(withIntl(<PlatformAdministrationPage client={client} />));
+    await screen.findByText('No modules are installed.');
+
+    const diagnosticsTabBtn = screen.getByRole('tab', { name: 'System Diagnostics' });
+    await act(async () => {
+      fireEvent.click(diagnosticsTabBtn);
+    });
+
+    await screen.findByText('System Health & Diagnostics');
+    expect(pollCount).toBe(1);
+
+    const autoPollCheckbox = screen.getByRole('checkbox', { name: /auto-refresh \(30s\)/i });
+    fireEvent.click(autoPollCheckbox);
+
+    const refreshBtn = screen.getByRole('button', { name: 'Refresh' });
+    await act(async () => {
+      fireEvent.click(refreshBtn);
+    });
+
+    expect(pollCount).toBe(2);
   });
 });

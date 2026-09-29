@@ -1,4 +1,6 @@
 import type { TopPerformer } from '../../lib/tv-statistics.js';
+import { EntrantName } from '../ui/atoms/EntrantName.js';
+import { ResponsivePlayerName } from '../ui/atoms/ResponsivePlayerName.js';
 
 /**
  * Extracted from `TvDashboard.tsx` (openspec 0225 task 7.1) — the rotating
@@ -33,8 +35,18 @@ export function TvPerformersView({
               />
             ) : null}
             <div className="tv-performer-card__info">
-              <span className="tv-performer-card__name">{p.name}</span>
-              {p.clubName && <span className="tv-performer-card__club">{p.clubName}</span>}
+              <ResponsivePlayerName
+                className="tv-performer-card__name"
+                fullName={p.name}
+                nationalityCode={p.nationalityCode}
+              />
+              {p.clubName && (
+                <EntrantName
+                  abbreviation={p.clubAbbreviation}
+                  className="tv-performer-card__club"
+                  fullName={p.clubName}
+                />
+              )}
             </div>
           </div>
           <span className="tv-performer-card__score">

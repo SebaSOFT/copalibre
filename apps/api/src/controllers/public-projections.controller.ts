@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Inject } from '@nestjs/common';
+import { Controller, Get, Param, Query, Inject, Logger } from '@nestjs/common';
 import { NotFoundException } from '../http/error-contract.js';
 import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
@@ -10,18 +10,18 @@ import {
   PersonRepository,
   withTransaction,
   StageReadModel,
+  stageMatchOrdinals,
   PublicOverviewReadModel,
-  type StageMatchRecord,
 } from '@copalibre/persistence';
 import {
   PublicOverviewResponse,
   PublicLiveResponse,
   PublicBracketResponse,
   PublicMatchesViewResponse,
-  PublicSeriesStateResponse,
   PublicOverviewMatchResponse,
   PublicMatchReportResponse,
   PublicPersonProfileResponse,
+  PlayerStatisticsDrilldownResponse,
   PublicOrganizationTournamentListResponse,
   PublicTournamentListingItemResponse,
   PublicTournamentWinnerZoneResponse,
@@ -33,24 +33,38 @@ import { readStandings } from '../standings/read.js';
 import { readMatchesView } from '../matches-view/read.js';
 import {
   listEffectiveTableLayouts,
+  readPlayerStatisticsDrilldown,
   readSegmentedTableProjection,
   readTableProjection,
+  type PlayerStatisticsDrilldownResult,
 } from '../table-projections/read.js';
 
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
-import { publicSeriesState, readStageSeries, type PublicSeriesState } from './stage-series.js';
+import { resolveStageZones } from './bracket-zones.js';
+import { readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
+import { reconstructChampionshipFixture } from './tournament-winner-resolution.js';
 import { segmentedTableResponse, tableResponse } from './table-projections.controller.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
 import {
   resolveLabel,
   ageAt,
   primaryScoreOf,
+  compileEffectiveRuleset,
   type DisciplineDescriptor,
   type StatisticCollector,
   type Tournament,
-  type MatchResult,
+  type LocalizedLabel,
   deriveTournamentStatus,
+  runningTimers,
 } from '@copalibre/domain';
+
+/** A dot-path's value in a compiled ruleset's nested config tree, `undefined` when absent. */
+function fieldValueAt(config: Record<string, unknown>, dotPath: string): unknown {
+  return dotPath.split('.').reduce<unknown>((node, key) => {
+    if (node === undefined || node === null || typeof node !== 'object') return undefined;
+    return (node as Record<string, unknown>)[key];
+  }, config);
+}
 
 @ApiTags('Public Projections')
 @Controller('organizations/:organizationAlias/public/tournaments')
@@ -151,6 +165,8 @@ export class PublicTournamentListingController {
   }
 }
 
+const resolveTournamentWinnersLogger = new Logger('resolveTournamentWinners');
+
 export async function resolveTournamentWinners(
   db: Kysely<Database>,
   tournament: Tournament,
@@ -182,56 +198,76 @@ export async function resolveTournamentWinners(
   const results: PublicTournamentWinnerZoneResponse[] = [];
 
   for (const zone of zonesToProcess) {
-    const isDuel =
-      terminalStage.format === 'single-elimination' ||
-      terminalStage.format === 'double-elimination';
+    // Each zone is resolved independently: one zone's error or ambiguous
+    // terminal round must never prevent the other zones from resolving
+    // (openspec 0245 — previously an uncaught error in this loop's duel
+    // branch aborted every zone's result, not just the failing one).
+    try {
+      const isDuel =
+        terminalStage.format === 'single-elimination' ||
+        terminalStage.format === 'double-elimination';
 
-    if (isDuel) {
-      let matchQuery = db
-        .selectFrom('matches')
-        .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-        .selectAll('matches')
-        .where('fixtures.stage_id', '=', terminalStage.stageId)
-        .where('matches.status', '=', 'finalized');
+      if (isDuel) {
+        const readModel = new StageReadModel(db);
+        const record = await readModel.stageRecord(terminalStage.stageId, undefined, zone.zoneId);
+        const fixtures = await readModel.matches(terminalStage.stageId, undefined, zone.zoneId);
+        const generated = generateFixtures({
+          format: terminalStage.format,
+          entrants: (record?.entrantIds ?? []).map((entrantId, index) => ({
+            entrantId,
+            seed: index + 1,
+          })),
+        });
+        const winnersByFixtureId = new Map(
+          (record?.outcomes ?? [])
+            .filter(
+              (outcome) => outcome.fixtureId !== undefined && outcome.winnerEntrantId !== undefined,
+            )
+            .map((outcome) => [outcome.fixtureId as string, outcome.winnerEntrantId as string]),
+        );
+        const resolved = generated.ok
+          ? reconstructChampionshipFixture({
+              graph: generated.value,
+              records: fixtures,
+              winnerByFixtureId: winnersByFixtureId,
+            })
+          : undefined;
 
-      if (zone.zoneId) {
-        matchQuery = matchQuery.where('fixtures.zone_id', '=', zone.zoneId);
-      }
+        if (resolved) {
+          const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails([
+            ...resolved.championEntrantIds,
+            ...(resolved.runnerUpEntrantId ? [resolved.runnerUpEntrantId] : []),
+          ]);
+          const champions = resolved.championEntrantIds.flatMap((entrantId) => {
+            const details = podiumDetails.get(entrantId);
+            return details
+              ? [
+                  {
+                    entrantId,
+                    name: details.name,
+                    abbreviation: details.abbreviation,
+                    clubId: details.clubId,
+                    emblemObjectId: details.emblemObjectId,
+                  },
+                ]
+              : [];
+          });
+          const championDetails = champions[0];
+          const runnerUpEntrantId = resolved.runnerUpEntrantId;
+          const runnerUpDetails = runnerUpEntrantId
+            ? podiumDetails.get(runnerUpEntrantId)
+            : undefined;
 
-      const matches = await matchQuery
-        .orderBy('fixtures.round', 'desc')
-        .orderBy('matches.number', 'desc')
-        .execute();
-
-      if (matches.length > 0 && matches[0]) {
-        const finalMatch = matches[0];
-        const result = (
-          typeof finalMatch.result === 'string' ? JSON.parse(finalMatch.result) : finalMatch.result
-        ) as MatchResult | null;
-
-        if (result?.winnerEntrantId) {
-          const championId = result.winnerEntrantId;
-          const runnerUpId = result.sides.find((s) => s.entrantId !== championId)?.entrantId;
-          const entrantIds = runnerUpId ? [championId, runnerUpId] : [championId];
-          const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails(entrantIds);
-          const championDetails = podiumDetails.get(championId);
-
-          if (championDetails) {
-            const runnerUpDetails = runnerUpId ? podiumDetails.get(runnerUpId) : undefined;
+          if (championDetails && champions.length === resolved.championEntrantIds.length) {
             results.push({
               ...(zone.zoneId ? { zoneId: zone.zoneId } : {}),
               ...(zone.zoneName ? { zoneName: zone.zoneName } : {}),
-              champion: {
-                entrantId: championId,
-                name: championDetails.name,
-                abbreviation: championDetails.abbreviation,
-                clubId: championDetails.clubId,
-                emblemObjectId: championDetails.emblemObjectId,
-              },
-              ...(runnerUpDetails && runnerUpId
+              champion: championDetails,
+              champions,
+              ...(runnerUpDetails && runnerUpEntrantId
                 ? {
                     runnerUp: {
-                      entrantId: runnerUpId,
+                      entrantId: runnerUpEntrantId,
                       name: runnerUpDetails.name,
                       abbreviation: runnerUpDetails.abbreviation,
                       clubId: runnerUpDetails.clubId,
@@ -241,33 +277,58 @@ export async function resolveTournamentWinners(
                 : {}),
             });
           }
+        } else {
+          resolveTournamentWinnersLogger.warn(
+            `Could not uniquely reconstruct the championship fixture for zone ${zone.zoneId ?? '(default)'} of tournament ${tournament.tournamentId}; skipping this zone's champion`,
+          );
         }
-      }
-    } else {
-      try {
-        const standings = await readStandings(db, tournament, terminalStage.number);
+      } else {
+        const standings = await readStandings(
+          db,
+          tournament,
+          terminalStage.number,
+          undefined,
+          zone.zoneId,
+        );
         if (standings.rows.length > 0) {
-          const rank1 = standings.rows.find((r) => r.rank === 1) ?? standings.rows[0];
-          const rank2 =
-            standings.rows.find((r) => r.rank === 2) ??
-            (standings.rows.length > 1 ? standings.rows[1] : undefined);
-          if (rank1) {
-            const entrantIds = rank2 ? [rank1.entrantId, rank2.entrantId] : [rank1.entrantId];
+          const rankOneRows = standings.rows.filter((row) => row.rank === 1);
+          const rankTwoRows = standings.rows.filter((row) => row.rank === 2);
+          const rank2 = rankTwoRows.length === 1 ? rankTwoRows[0] : undefined;
+          const rankThreeRows = standings.fullyResolved
+            ? standings.rows.filter((row) => row.rank === 3)
+            : [];
+          const rank3 = rankThreeRows.length === 1 ? rankThreeRows[0] : undefined;
+          if (rankOneRows.length > 0) {
+            const entrantIds = [
+              ...rankOneRows.map((row) => row.entrantId),
+              rank2?.entrantId,
+              rank3?.entrantId,
+            ].filter((entrantId): entrantId is string => entrantId !== undefined);
             const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails(entrantIds);
-            const championDetails = podiumDetails.get(rank1.entrantId);
+            const champions = rankOneRows.flatMap((row) => {
+              const details = podiumDetails.get(row.entrantId);
+              return details
+                ? [
+                    {
+                      entrantId: row.entrantId,
+                      name: details.name,
+                      abbreviation: details.abbreviation,
+                      clubId: details.clubId,
+                      emblemObjectId: details.emblemObjectId,
+                    },
+                  ]
+                : [];
+            });
 
-            if (championDetails) {
+            const primaryChampion = champions[0];
+            if (primaryChampion && champions.length === rankOneRows.length) {
               const runnerUpDetails = rank2 ? podiumDetails.get(rank2.entrantId) : undefined;
+              const thirdPlaceDetails = rank3 ? podiumDetails.get(rank3.entrantId) : undefined;
               results.push({
                 ...(zone.zoneId ? { zoneId: zone.zoneId } : {}),
                 ...(zone.zoneName ? { zoneName: zone.zoneName } : {}),
-                champion: {
-                  entrantId: rank1.entrantId,
-                  name: championDetails.name,
-                  abbreviation: championDetails.abbreviation,
-                  clubId: championDetails.clubId,
-                  emblemObjectId: championDetails.emblemObjectId,
-                },
+                champion: primaryChampion,
+                champions,
                 ...(runnerUpDetails && rank2
                   ? {
                       runnerUp: {
@@ -279,13 +340,28 @@ export async function resolveTournamentWinners(
                       },
                     }
                   : {}),
+                ...(thirdPlaceDetails && rank3
+                  ? {
+                      thirdPlace: {
+                        entrantId: rank3.entrantId,
+                        name: thirdPlaceDetails.name,
+                        abbreviation: thirdPlaceDetails.abbreviation,
+                        clubId: thirdPlaceDetails.clubId,
+                        emblemObjectId: thirdPlaceDetails.emblemObjectId,
+                      },
+                    }
+                  : {}),
               });
             }
           }
         }
-      } catch {
-        // Fallback if standings cannot be computed
       }
+    } catch (error) {
+      resolveTournamentWinnersLogger.warn(
+        `Failed to resolve winner for zone ${zone.zoneId ?? '(default)'} of tournament ${
+          tournament.tournamentId
+        }: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -360,9 +436,18 @@ export class PublicProjectionsController {
       tournament.disciplineRef.version,
     );
     const ruleset: Record<string, string> = {};
+    const rulesetLabels: Record<string, string | LocalizedLabel> = {};
     if (rulesetData) {
+      // The compiled *effective* value (discipline default merged with the
+      // tournament's overrides, per each field's merge strategy) — never the
+      // raw override delta, which for a `merged` field is only the addition
+      // (openspec 0267). Falls back to the raw delta if compilation fails or
+      // the descriptor is unavailable, so the public page never breaks.
+      const compiled = descriptor ? compileEffectiveRuleset(descriptor, rulesetData) : undefined;
       for (const [k, v] of Object.entries(rulesetData.overrides)) {
-        ruleset[k] = String(v);
+        ruleset[k] = compiled?.ok ? String(fieldValueAt(compiled.value.config, k)) : String(v);
+        const label = descriptor?.fieldPolicies[k]?.label;
+        if (label !== undefined) rulesetLabels[k] = label;
       }
     }
 
@@ -449,6 +534,7 @@ export class PublicProjectionsController {
         ...(c.emblemObjectId ? { emblemObjectId: c.emblemObjectId } : {}),
       })),
       ruleset,
+      ...(Object.keys(rulesetLabels).length > 0 ? { rulesetLabels } : {}),
     };
   }
 
@@ -486,6 +572,17 @@ export class PublicProjectionsController {
         errorCode: 'public-projection-not-found',
       });
 
+    // `matches.number` is a per-fixture series-game index (always 1 for a
+    // non-series fixture) — never stage-unique, so this resolves the target
+    // match by indexing into the stage's own deterministic order instead of
+    // filtering by that column (openspec 0249).
+    const stageMatches = await new StageReadModel(this.db).matches(stage.stageId);
+    const targetRecord = stageMatches[matchNumber - 1];
+    if (!targetRecord)
+      throw new NotFoundException(`No match ${matchNumberValue} in stage ${stageNumberValue}`, {
+        errorCode: 'public-projection-not-found',
+      });
+
     const match = await this.db
       .selectFrom('matches')
       .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
@@ -499,8 +596,7 @@ export class PublicProjectionsController {
         'fixtures.home_entrant_id',
         'fixtures.away_entrant_id',
       ])
-      .where('fixtures.stage_id', '=', stage.stageId)
-      .where('matches.number', '=', matchNumber)
+      .where('fixtures.fixture_id', '=', targetRecord.fixtureId)
       .executeTakeFirst();
     if (!match)
       throw new NotFoundException(`No match ${matchNumberValue} in stage ${stageNumberValue}`, {
@@ -657,7 +753,7 @@ export class PublicProjectionsController {
     const matches = await new PublicOverviewReadModel(this.db).matchesForTournament(
       tournament.tournamentId,
     );
-    const liveMatches = matches.filter((m) => m.status === 'in_progress');
+    const liveMatches = matches.filter((m) => m.status === 'in-progress');
 
     const entrantIds = new Set<string>();
     for (const match of liveMatches) {
@@ -667,13 +763,51 @@ export class PublicProjectionsController {
     const names = await new EnrollmentRepository(this.db).resolveEntrantNames(
       Array.from(entrantIds),
     );
+    const descriptor = await new TournamentRepository(this.db).findDescriptor(
+      tournament.disciplineRef.descriptorId,
+      tournament.disciplineRef.version,
+    );
+    const timerStarts = Object.fromEntries(
+      (descriptor?.eventDefinitions ?? []).flatMap((definition) =>
+        (definition.effects ?? [])
+          .filter((effect) => effect.kind === 'timed-penalty')
+          .map((effect) => [definition.code, effect.durationSeconds]),
+      ),
+    );
+    const competition = new CompetitionRepository(this.db);
+    const penaltiesByMatch = await Promise.all(
+      liveMatches.map(async (match) => {
+        const [events, resolvedTimerIds] = await Promise.all([
+          competition.listEvents(match.matchId),
+          competition.resolvedTimerIds(match.matchId),
+        ]);
+        const participants = new Set(
+          [match.homeEntrantId, match.awayEntrantId].filter((id): id is string => !!id),
+        );
+        return runningTimers(
+          events,
+          { starts: timerStarts, stops: [] },
+          Date.now(),
+          resolvedTimerIds,
+        ).flatMap((timer) => {
+          if (timer.side === undefined || !participants.has(timer.side)) return [];
+          return [
+            {
+              timerId: timer.timerId,
+              entrantId: timer.side,
+              remainingSeconds: timer.remainingSeconds,
+            },
+          ];
+        });
+      }),
+    );
 
     return {
-      matches: liveMatches.map((m) => ({
+      matches: liveMatches.map((m, index) => ({
         matchId: m.matchId,
         stageNumber: m.stageNumber,
         matchNumber: m.matchNumber ?? m.round,
-        state: 'in_progress',
+        state: 'live',
         projectionVersion: 1,
         sides: [
           ...(m.homeEntrantId
@@ -697,6 +831,7 @@ export class PublicProjectionsController {
               ]
             : []),
         ],
+        ...(penaltiesByMatch[index]?.length ? { activePenalties: penaltiesByMatch[index] } : {}),
       })),
     };
   }
@@ -730,76 +865,100 @@ export class PublicProjectionsController {
     if (!stage) throw new NotFoundException({ errorCode: 'public-projection-not-found' });
 
     const readModel = new StageReadModel(this.db);
-    const stageMatchesMapped = await readModel.matches(stage.stageId);
-    const record = await readModel.stageRecord(stage.stageId);
+    const enrollmentRepo = new EnrollmentRepository(this.db);
+    const zones = await resolveStageZones(this.db, stage.stageId);
 
-    // Seeded from the stage's own entrants, the same way the control panel's bracket is: the
-    // graph's shape is a function of format plus seed order, and generating from an empty
-    // entrant list produces no graph at all — which is what this endpoint used to return for
-    // every stage, an empty bracket the public web then rendered as an empty page.
-    const generated = generateFixtures({
-      format: stage.format as Parameters<typeof generateFixtures>[0]['format'],
-      entrants: (record?.entrantIds ?? []).map((entrantId, index) => ({
-        entrantId,
-        seed: index + 1,
-      })),
-    });
-    if (!generated.ok) {
-      return { format: stage.format, matches: [] };
-    }
-    const graph = generated.value;
+    // Computed once, from every zone combined — a per-zone fetch below cannot
+    // reconstruct this on its own, since it has no visibility into how many
+    // matches other zones contribute ahead of it (openspec 0249).
+    const ordinalByMatchId = stageMatchOrdinals(await readModel.matches(stage.stageId));
 
-    const ambiguous = ambiguousRoundPositions(graph.matches);
+    const zoneResponses = await Promise.all(
+      zones.map(async (zone) => {
+        const stageMatchesMapped = await readModel.matches(stage.stageId, undefined, zone.zoneId);
+        const record = await readModel.stageRecord(stage.stageId, undefined, zone.zoneId);
 
-    const bracketMatches = graph.matches.map((match) =>
-      toBracketMatch(match, stageMatchesMapped, {
-        ambiguousPositions: ambiguous,
-        matchFormat: undefined,
-      }),
-    );
-
-    const entrantIds = new Set<string>();
-    for (const match of bracketMatches) {
-      for (const slot of match.slots) {
-        if (slot.entrantId) entrantIds.add(slot.entrantId);
-      }
-    }
-    const names = await new EnrollmentRepository(this.db).resolveEntrantNames(
-      Array.from(entrantIds),
-    );
-
-    // Keyed by the round/position the bracket graph and the read model agree on, so a series
-    // rides onto the cross it settles rather than onto a match id neither side shares.
-    const seriesByPosition = await this.seriesByPosition(
-      tournament.tournamentId,
-      stage.stageId,
-      stageMatchesMapped,
-    );
-
-    return {
-      format: stage.format,
-      matches: bracketMatches.map((m) => {
-        const series = seriesByPosition.get(`${m.round}:${m.position}`);
-        return {
-          matchId: m.matchId,
-          bracket: m.bracket,
-          round: m.round,
-          position: m.position,
-          status: m.status,
-          format: m.format,
-          slots: m.slots.map((s) => ({
-            kind: s.kind,
-            entrantId: s.entrantId,
-            name: s.entrantId ? (names.get(s.entrantId)?.name ?? 'Unknown') : undefined,
-            abbreviation: s.entrantId ? names.get(s.entrantId)?.abbreviation : undefined,
-            matchId: s.matchId,
-            score: s.score,
-            resultReason: s.resultReason,
+        // Seeded from this zone's own entrants, the same way the control panel's bracket is: the
+        // graph's shape is a function of format plus seed order, and generating from an empty
+        // entrant list produces no graph at all — which is what this endpoint used to return for
+        // every stage, an empty bracket the public web then rendered as an empty page. Scoping the
+        // entrant list (and every match lookup below) to this one zone is what stops a multi-zone
+        // stage's zones from colliding on the same round/position (openspec 0246).
+        const generated = generateFixtures({
+          format: stage.format as Parameters<typeof generateFixtures>[0]['format'],
+          entrants: (record?.entrantIds ?? []).map((entrantId, index) => ({
+            entrantId,
+            seed: index + 1,
           })),
-          ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
+        });
+        if (!generated.ok) {
+          return { ...zone, matches: [] };
+        }
+        const graph = generated.value;
+
+        const ambiguous = ambiguousRoundPositions(graph.matches);
+
+        const bracketMatches = graph.matches.map((match) =>
+          toBracketMatch(match, stageMatchesMapped, {
+            ambiguousPositions: ambiguous,
+            matchFormat: undefined,
+          }),
+        );
+
+        const entrantIds = new Set<string>();
+        for (const match of bracketMatches) {
+          for (const slot of match.slots) {
+            if (slot.entrantId) entrantIds.add(slot.entrantId);
+          }
+        }
+        const details = await enrollmentRepo.resolveEntrantPodiumDetails(Array.from(entrantIds));
+
+        // Keyed by the round/position the bracket graph and the read model agree on, so a series
+        // rides onto the cross it settles rather than onto a match id neither side shares — scoped
+        // to this zone's own records, so a series can't ride onto another zone's identically
+        // round/position-keyed cross.
+        const seriesByPosition = await readStageSeriesByPosition(this.db, {
+          tournamentId: tournament.tournamentId,
+          stageId: stage.stageId,
+          records: stageMatchesMapped,
+        });
+
+        return {
+          ...zone,
+          matches: bracketMatches.map((m) => {
+            const series = seriesByPosition.get(`${m.round}:${m.position}`);
+            return {
+              matchId: m.matchId,
+              bracket: m.bracket,
+              round: m.round,
+              position: m.position,
+              status: m.status,
+              format: m.format,
+              ...(m.persistedMatchId === undefined
+                ? {}
+                : { matchNumber: ordinalByMatchId.get(m.persistedMatchId) }),
+              slots: m.slots.map((s) => {
+                const detail = s.entrantId ? details.get(s.entrantId) : undefined;
+                return {
+                  kind: s.kind,
+                  entrantId: s.entrantId,
+                  name: s.entrantId ? (detail?.name ?? 'Unknown') : undefined,
+                  abbreviation: detail?.abbreviation,
+                  clubId: detail?.clubId,
+                  emblemObjectId: detail?.emblemObjectId,
+                  matchId: s.matchId,
+                  score: s.score,
+                  resultReason: s.resultReason,
+                };
+              }),
+              ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
+            };
+          }),
         };
       }),
-    };
+    );
+
+    return { format: stage.format, zones: zoneResponses };
   }
 
   /**
@@ -848,6 +1007,7 @@ export class PublicProjectionsController {
         ...(row.awayScore === undefined ? {} : { awayScore: row.awayScore }),
         ...(row.clockSeconds === undefined ? {} : { clockSeconds: row.clockSeconds }),
         ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
+        ...(row.scheduledAt === undefined ? {} : { scheduledAt: row.scheduledAt }),
         ...(row.latestEvent === undefined ? {} : { latestEvent: row.latestEvent }),
         ...(row.zoneName === undefined ? {} : { zoneName: row.zoneName }),
         ...(row.groupName === undefined ? {} : { groupName: row.groupName }),
@@ -857,41 +1017,6 @@ export class PublicProjectionsController {
         ...(row.decidingFactor === undefined ? {} : { decidingFactor: row.decidingFactor }),
       })),
     };
-  }
-
-  /**
-   * Every cross of a stage that a series settles, by `round:position`.
-   *
-   * Returns an empty map — and reads nothing beyond the one declaration lookup — for a stage
-   * declaring no series, which is very nearly every stage. Nothing about this endpoint changes
-   * for one.
-   */
-  private async seriesByPosition(
-    tournamentId: string,
-    stageId: string,
-    records: readonly StageMatchRecord[],
-  ): Promise<ReadonlyMap<string, PublicSeriesState>> {
-    const declaration = await readStageSeries(this.db, { tournamentId, stageId });
-    if (declaration === undefined) return new Map();
-
-    const matches = await new CompetitionRepository(this.db).listMatchesForStage(stageId);
-    const byFixture = new Map<string, typeof matches>();
-    for (const match of matches) {
-      byFixture.set(match.fixtureId, [...(byFixture.get(match.fixtureId) ?? []), match]);
-    }
-
-    const states = new Map<string, PublicSeriesState>();
-    for (const record of records) {
-      const games = byFixture.get(record.fixtureId) ?? [];
-      const state = publicSeriesState({
-        declaration,
-        ...(record.homeEntrantId === undefined ? {} : { homeEntrantId: record.homeEntrantId }),
-        ...(record.awayEntrantId === undefined ? {} : { awayEntrantId: record.awayEntrantId }),
-        games,
-      });
-      if (state !== undefined) states.set(`${record.round}:${record.position}`, state);
-    }
-    return states;
   }
 
   // 'public/tables', not 'tables': the admin `TableProjectionsController`
@@ -1081,6 +1206,88 @@ export class PublicProjectionsController {
       careerStatistics,
     };
   }
+
+  @Get('persons/:personId/public/statistics')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: "A person's tournament-total and match-by-match declared statistics" })
+  @ApiOkResponse({ type: PlayerStatisticsDrilldownResponse })
+  async playerStatistics(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('personId') personId: string,
+    @Query('layout') layoutParam?: string,
+  ): Promise<PlayerStatisticsDrilldownResponse> {
+    const { tournament } = await this.resolvePublishedTournament(
+      organizationAlias,
+      tournamentAlias,
+    );
+
+    const person = await new PersonRepository(this.db).findPerson(personId);
+    if (!person || person.organizationId !== tournament.organizationId) {
+      throw new NotFoundException(
+        `No person "${personId}" found in organization "${organizationAlias}"`,
+        { errorCode: 'public-projection-not-found' },
+      );
+    }
+
+    let layoutCode = layoutParam;
+    if (layoutCode === undefined) {
+      const layouts = await listEffectiveTableLayouts(this.db, {
+        tournamentId: tournament.tournamentId,
+        disciplineRef: tournament.disciplineRef,
+      });
+      const defaultLayout = layouts.find(
+        (one) => one.entityGranularity === 'person' || one.entityGranularity === 'player',
+      );
+      if (!defaultLayout) {
+        throw new NotFoundException(
+          `No person-granularity table layout for tournament "${tournamentAlias}"`,
+          { errorCode: 'public-projection-not-found' },
+        );
+      }
+      layoutCode = defaultLayout.code;
+    }
+
+    const result = await readPlayerStatisticsDrilldown(
+      this.db,
+      {
+        organizationId: tournament.organizationId,
+        tournament: {
+          tournamentId: tournament.tournamentId,
+          disciplineRef: tournament.disciplineRef,
+        },
+      },
+      personId,
+      layoutCode,
+    );
+    return playerStatisticsResponse(result);
+  }
+}
+
+function playerStatisticsResponse(
+  result: PlayerStatisticsDrilldownResult,
+): PlayerStatisticsDrilldownResponse {
+  const columns = result.layout.columns
+    .filter((column) => column.source.kind !== 'rank')
+    .map((column) => ({
+      code: column.code,
+      header: column.header,
+      ...(column.shortHeader === undefined ? {} : { shortHeader: column.shortHeader }),
+      ...(column.zeroDisplay === undefined ? {} : { zeroDisplay: column.zeroDisplay }),
+      format: column.format,
+    }));
+
+  return {
+    layoutCode: result.layout.code,
+    label: result.layout.label,
+    columns,
+    ...(result.tournamentTotal === undefined ? {} : { tournamentTotal: result.tournamentTotal }),
+    matches: result.matches.map((row) => ({
+      stageNumber: row.match.stageNumber,
+      matchNumber: row.match.matchNumber,
+      cells: row.cells,
+    })),
+  };
 }
 
 function publicScores(
@@ -1090,28 +1297,7 @@ function publicScores(
   return sides.map((side) => primaryScoreOf(side.statistics, descriptor));
 }
 
-export function seriesResponseOf(series: PublicSeriesState): PublicSeriesStateResponse {
-  return {
-    span: series.span,
-    ...(series.resolutionClass === undefined ? {} : { resolutionClass: series.resolutionClass }),
-    games: series.games.map((game) => ({
-      number: game.number,
-      status: game.status,
-      ...(game.winnerEntrantId === undefined ? {} : { winnerEntrantId: game.winnerEntrantId }),
-      ...(game.winner === undefined ? {} : { winner: game.winner }),
-      ...(game.scores === undefined ? {} : { scores: [...game.scores] }),
-    })),
-    homeGamesWon: series.homeGamesWon,
-    awayGamesWon: series.awayGamesWon,
-    ...(series.aggregateScores === undefined
-      ? {}
-      : { aggregateScores: [...series.aggregateScores] }),
-    status: series.status,
-    ...(series.winnerEntrantId === undefined ? {} : { winnerEntrantId: series.winnerEntrantId }),
-    ...(series.winner === undefined ? {} : { winner: series.winner }),
-    explanation: series.explanation,
-  };
-}
+export { seriesResponseOf } from './stage-series.js';
 
 function publicMatchStatus(status: string): PublicMatchReportResponse['status'] {
   if (status === 'finalized') return 'final';

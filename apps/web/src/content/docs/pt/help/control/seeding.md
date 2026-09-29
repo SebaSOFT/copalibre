@@ -28,3 +28,7 @@ Monta o sorteio/chaveamento de uma fase: atribui a cada participante uma posiç�
 O sorteio pode ser refeito enquanto a fase não tiver começado. Uma vez que a fase está em andamento,
 refazer o sorteio deixaria de fazer sentido com partidas já jogadas — a tela não permite isso nesse
 ponto.
+
+## Acompanhar um participante
+
+Na chave pública ou no quadro de cabeças de chave, selecione um participante para destacar suas partidas e o possível percurso de vitórias. A primeira derrota continua na chave dos perdedores quando essa rota está definida. Selecione novamente ou pressione Escape para limpar. Os links dos relatórios ficam separados. Os resultados públicos continuam legíveis sem JavaScript.

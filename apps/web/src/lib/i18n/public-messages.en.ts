@@ -13,6 +13,15 @@ import { defineMessages } from 'react-intl';
  * string as a plain prop instead of importing this catalog itself.
  */
 export const messages = defineMessages({
+  bracketHighlightEntrant: {
+    id: 'publicWeb.bracket.highlightEntrant',
+    defaultMessage: 'Highlight path for {entrant}',
+  },
+  bracketHighlightHint: {
+    id: 'publicWeb.bracket.highlightHint',
+    defaultMessage:
+      'Select an entrant to follow their path. Select again or press Escape to clear. Future matches show their possible winning route.',
+  },
   // Layout chrome (layouts/PublicLayout.astro)
   layoutSkipToContent: { id: 'publicWeb.layout.skipToContent', defaultMessage: 'Skip to content' },
   layoutNavAriaLabel: { id: 'publicWeb.layout.navAriaLabel', defaultMessage: 'Main' },
@@ -63,6 +72,47 @@ export const messages = defineMessages({
 
   // RulesetBriefing.astro
   rulesetHeading: { id: 'publicWeb.ruleset.heading', defaultMessage: 'Rules' },
+  rulesetValueYes: { id: 'publicWeb.ruleset.valueYes', defaultMessage: 'Yes' },
+  rulesetValueNo: { id: 'publicWeb.ruleset.valueNo', defaultMessage: 'No' },
+  rulesetFormatSingleElimination: {
+    id: 'publicWeb.ruleset.format.singleElimination',
+    defaultMessage: 'Single Elimination',
+  },
+  rulesetFormatDoubleElimination: {
+    id: 'publicWeb.ruleset.format.doubleElimination',
+    defaultMessage: 'Double Elimination',
+  },
+  rulesetFormatRoundRobin: {
+    id: 'publicWeb.ruleset.format.roundRobin',
+    defaultMessage: 'Round Robin',
+  },
+  rulesetFormatRoundRobinSingleLeg: {
+    id: 'publicWeb.ruleset.format.roundRobinSingleLeg',
+    defaultMessage: 'Round Robin (Single Leg)',
+  },
+  rulesetFormatRoundRobinHomeAway: {
+    id: 'publicWeb.ruleset.format.roundRobinHomeAway',
+    defaultMessage: 'Round Robin (Home & Away)',
+  },
+  rulesetFormatLeague: { id: 'publicWeb.ruleset.format.league', defaultMessage: 'League' },
+  rulesetFormatSwiss: { id: 'publicWeb.ruleset.format.swiss', defaultMessage: 'Swiss' },
+  rulesetFormatGauntlet: { id: 'publicWeb.ruleset.format.gauntlet', defaultMessage: 'Gauntlet' },
+  rulesetFormatBracketGroups: {
+    id: 'publicWeb.ruleset.format.bracketGroups',
+    defaultMessage: 'Bracket Groups',
+  },
+  rulesetFormatCustomBracket: {
+    id: 'publicWeb.ruleset.format.customBracket',
+    defaultMessage: 'Custom Bracket',
+  },
+  rulesetFormatFfaBracket: {
+    id: 'publicWeb.ruleset.format.ffaBracket',
+    defaultMessage: 'FFA Bracket',
+  },
+  rulesetFormatFfaLeague: {
+    id: 'publicWeb.ruleset.format.ffaLeague',
+    defaultMessage: 'FFA League',
+  },
 
   // StandingsTable.astro
   standingsHeading: { id: 'publicWeb.standings.heading', defaultMessage: 'Standings' },
@@ -109,6 +159,34 @@ export const messages = defineMessages({
     id: 'publicWeb.standings.column.series.shortLabel',
     defaultMessage: 'S',
   },
+  // StandingsTable.astro's player quick-view dialog (openspec 0271) — its
+  // fallback title, career-stats/history headings, and empty states reuse
+  // PlayerProfileView.astro's own playerProfile* messages below, since both
+  // present the same profile content.
+  standingsPlayerDialogLoadingPlaceholder: {
+    id: 'publicWeb.standings.playerDialog.loadingPlaceholder',
+    defaultMessage: 'Loading player details...',
+  },
+  standingsPlayerDialogLoadingFetch: {
+    id: 'publicWeb.standings.playerDialog.loadingFetch',
+    defaultMessage: 'Loading...',
+  },
+  standingsPlayerDialogColumnTournament: {
+    id: 'publicWeb.standings.playerDialog.columnTournament',
+    defaultMessage: 'Tournament',
+  },
+  standingsPlayerDialogColumnTeam: {
+    id: 'publicWeb.standings.playerDialog.columnTeam',
+    defaultMessage: 'Team',
+  },
+  standingsPlayerDialogColumnRole: {
+    id: 'publicWeb.standings.playerDialog.columnRole',
+    defaultMessage: 'Role',
+  },
+  standingsPlayerDialogLoadError: {
+    id: 'publicWeb.standings.playerDialog.loadError',
+    defaultMessage: 'Unable to load player details.',
+  },
 
   // TournamentHero.astro
   heroLiveCount: { id: 'publicWeb.hero.liveCount', defaultMessage: '{count} LIVE' },
@@ -130,6 +208,11 @@ export const messages = defineMessages({
   bracketRoundHeading: { id: 'publicWeb.bracket.roundHeading', defaultMessage: 'Round {round}' },
   // 0223 — the bracket stage's own chrome, its key, and its textual view.
   bracketStageAriaLabel: { id: 'publicWeb.bracket.stageAriaLabel', defaultMessage: 'Bracket' },
+  // 0246 — jump-to-zone navigation, shown only when a stage has more than one zone.
+  bracketZoneJumpAriaLabel: {
+    id: 'publicWeb.bracket.zoneJumpAriaLabel',
+    defaultMessage: 'Jump to a zone’s bracket',
+  },
   bracketScrollAriaLabel: {
     id: 'publicWeb.bracket.scrollAriaLabel',
     defaultMessage: 'Bracket graph, scrolls sideways',
@@ -197,6 +280,10 @@ export const messages = defineMessages({
     id: 'publicWeb.matchesView.venueAriaLabel',
     defaultMessage: 'Venue: {venue}',
   },
+  matchesViewScheduledAtAriaLabel: {
+    id: 'publicWeb.matchesView.scheduledAtAriaLabel',
+    defaultMessage: 'Kickoff: {time}',
+  },
   matchesViewLatestEventAriaLabel: {
     id: 'publicWeb.matchesView.latestEventAriaLabel',
     defaultMessage: 'Latest event: {event}',
@@ -204,6 +291,22 @@ export const messages = defineMessages({
   matchesViewZoneGroupAriaLabel: {
     id: 'publicWeb.matchesView.zoneGroupAriaLabel',
     defaultMessage: 'Zone/group: {scope}',
+  },
+  matchesViewStageFilterAriaLabel: {
+    id: 'publicWeb.matchesView.stageFilterAriaLabel',
+    defaultMessage: 'Filter by stage',
+  },
+  matchesViewZoneFilterAriaLabel: {
+    id: 'publicWeb.matchesView.zoneFilterAriaLabel',
+    defaultMessage: 'Filter by zone',
+  },
+  matchesViewGroupFilterAriaLabel: {
+    id: 'publicWeb.matchesView.groupFilterAriaLabel',
+    defaultMessage: 'Filter by group',
+  },
+  matchesViewStateFilterAriaLabel: {
+    id: 'publicWeb.matchesView.stateFilterAriaLabel',
+    defaultMessage: 'Filter by match state',
   },
   matchesViewPositionInGroup: {
     id: 'publicWeb.matchesView.positionInGroup',
@@ -229,6 +332,19 @@ export const messages = defineMessages({
   matchesViewSeeAll: {
     id: 'publicWeb.matchesView.seeAll',
     defaultMessage: 'See every match',
+  },
+  matchesViewVersus: { id: 'publicWeb.matchesView.versus', defaultMessage: 'vs' },
+  matchesViewDensityToggleAriaLabel: {
+    id: 'publicWeb.matchesView.densityToggleAriaLabel',
+    defaultMessage: 'Switch view density',
+  },
+  matchesViewDetailedToggle: {
+    id: 'publicWeb.matchesView.detailedToggle',
+    defaultMessage: 'Detailed',
+  },
+  matchesViewCompactToggle: {
+    id: 'publicWeb.matchesView.compactToggle',
+    defaultMessage: 'Compact',
   },
 
   // SeriesStateBar.astro
@@ -280,6 +396,19 @@ export const messages = defineMessages({
 
   // pages/[organization]/tournaments/[tournament]/live.astro
   livePageTitle: { id: 'publicWeb.livePage.title', defaultMessage: 'Live' },
+  livePageBreadcrumb: { id: 'publicWeb.livePage.breadcrumb', defaultMessage: 'Breadcrumb' },
+  livePageNoMatches: {
+    id: 'publicWeb.livePage.noMatches',
+    defaultMessage: 'No live matches in progress',
+  },
+  livePageNextKickoff: {
+    id: 'publicWeb.livePage.nextKickoff',
+    defaultMessage: 'Next scheduled match',
+  },
+  livePageNoUpcoming: {
+    id: 'publicWeb.livePage.noUpcoming',
+    defaultMessage: 'No upcoming matches scheduled.',
+  },
   livePageSeriesHeading: { id: 'publicWeb.livePage.seriesHeading', defaultMessage: 'Series' },
   livePageUpcomingHeading: { id: 'publicWeb.livePage.upcomingHeading', defaultMessage: 'Upcoming' },
   livePageLeadersHeading: { id: 'publicWeb.livePage.leadersHeading', defaultMessage: 'Leaders' },
@@ -311,6 +440,10 @@ export const messages = defineMessages({
     defaultMessage: 'No career statistics recorded.',
   },
   playerProfileClose: { id: 'publicWeb.playerProfile.close', defaultMessage: 'Close' },
+  playerProfileBackTo: {
+    id: 'publicWeb.playerProfile.backTo',
+    defaultMessage: '← Back to {name}',
+  },
   playerProfilePhotoAlt: {
     id: 'publicWeb.playerProfile.photoAlt',
     defaultMessage: '{name}',
@@ -318,6 +451,32 @@ export const messages = defineMessages({
   playerProfilePhotoPlaceholderAlt: {
     id: 'publicWeb.playerProfile.photoPlaceholderAlt',
     defaultMessage: 'No photo uploaded',
+  },
+
+  // Player statistics drilldown (0244)
+  playerProfileTournamentStatsHeading: {
+    id: 'publicWeb.playerProfile.tournamentStatsHeading',
+    defaultMessage: 'Tournament Statistics',
+  },
+  playerProfileTournamentTotalHeading: {
+    id: 'publicWeb.playerProfile.tournamentTotalHeading',
+    defaultMessage: 'Tournament Total',
+  },
+  playerProfileMatchByMatchHeading: {
+    id: 'publicWeb.playerProfile.matchByMatchHeading',
+    defaultMessage: 'Match by Match',
+  },
+  playerProfileNoTournamentStats: {
+    id: 'publicWeb.playerProfile.noTournamentStats',
+    defaultMessage: 'No tournament statistics recorded for this player.',
+  },
+  playerProfileMatchColumnHeading: {
+    id: 'publicWeb.playerProfile.matchColumnHeading',
+    defaultMessage: 'Match',
+  },
+  playerProfileMatchLabel: {
+    id: 'publicWeb.playerProfile.matchLabel',
+    defaultMessage: 'Stage {stage} · Match {match}',
   },
 
   // Organization tournament listing
@@ -340,6 +499,10 @@ export const messages = defineMessages({
   },
   tournamentsChampion: { id: 'publicWeb.tournamentsPage.champion', defaultMessage: 'Champion' },
   tournamentsRunnerUp: { id: 'publicWeb.tournamentsPage.runnerUp', defaultMessage: 'Runner-up' },
+  tournamentsThirdPlace: {
+    id: 'publicWeb.tournamentsPage.thirdPlace',
+    defaultMessage: 'Third place',
+  },
   tournamentsViewDetails: {
     id: 'publicWeb.tournamentsPage.viewDetails',
     defaultMessage: 'View tournament',
@@ -471,6 +634,11 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.focalPanelLabel',
     defaultMessage: 'Main broadcast panel',
   },
+  // Pinned-match compact event ticker (openspec 0270).
+  tvDashboardMatchEventsLabel: {
+    id: 'publicWeb.tvDashboard.matchEventsLabel',
+    defaultMessage: 'Match events',
+  },
   tvDashboardStatsAndTablesLabel: {
     id: 'publicWeb.tvDashboard.statsAndTablesLabel',
     defaultMessage: 'Tournament statistics and tables',
@@ -490,5 +658,113 @@ export const messages = defineMessages({
   tvDashboardStatisticsTab: {
     id: 'publicWeb.tvDashboard.statisticsTab',
     defaultMessage: 'Statistics',
+  },
+  tvDashboardBracketTab: {
+    id: 'publicWeb.tvDashboard.bracketTab',
+    defaultMessage: 'Bracket',
+  },
+  tvDashboardBracketRound: {
+    id: 'publicWeb.tvDashboard.bracketRound',
+    defaultMessage: 'Round',
+  },
+  tvDashboardBracketMatch: {
+    id: 'publicWeb.tvDashboard.bracketMatch',
+    defaultMessage: 'Match',
+  },
+  tvDashboardPossession: {
+    id: 'publicWeb.tvDashboard.possession',
+    defaultMessage: 'Possession',
+  },
+  tvDashboardPenalty: {
+    id: 'publicWeb.tvDashboard.penalty',
+    defaultMessage: 'Penalty',
+  },
+  tvMultiCourtGridNoMatches: {
+    id: 'publicWeb.tvMultiCourtGrid.noMatches',
+    defaultMessage: 'No matches currently live',
+  },
+  tvMultiCourtGridAriaLabel: {
+    id: 'publicWeb.tvMultiCourtGrid.ariaLabel',
+    defaultMessage: 'Live matches, multi-court view',
+  },
+  completionHeading: {
+    id: 'publicWeb.completion.heading',
+    defaultMessage: 'Tournament Progress',
+  },
+  completionSummary: {
+    id: 'publicWeb.completion.summary',
+    defaultMessage: '{resolved} of {total} matches played',
+  },
+  completionComplete: {
+    id: 'publicWeb.completion.complete',
+    defaultMessage: 'Complete',
+  },
+  completionInProgress: {
+    id: 'publicWeb.completion.inProgress',
+    defaultMessage: 'In progress',
+  },
+  completionUnmeasured: {
+    id: 'publicWeb.completion.unmeasured',
+    defaultMessage: 'No matches scheduled',
+  },
+
+  // Match report sections (openspec 0269): MatchTimeline.astro, MatchOfficials.astro,
+  // MatchRosters.astro. Each component gets its own namespace rather than a shared
+  // "match report" bucket, so a future change to one section's copy touches only it.
+  matchTimelineHeading: {
+    id: 'publicWeb.matchTimeline.heading',
+    defaultMessage: 'Event timeline',
+  },
+  matchTimelineEmpty: {
+    id: 'publicWeb.matchTimeline.empty',
+    defaultMessage: 'Events are not yet available.',
+  },
+  matchOfficialsHeading: {
+    id: 'publicWeb.matchOfficials.heading',
+    defaultMessage: 'Officials',
+  },
+  matchOfficialsScheduleNotPublished: {
+    id: 'publicWeb.matchOfficials.scheduleNotPublished',
+    defaultMessage: 'Schedule has not yet been published.',
+  },
+  matchOfficialsNoneAssigned: {
+    id: 'publicWeb.matchOfficials.noneAssigned',
+    defaultMessage: 'No officials assigned.',
+  },
+  matchRostersHeading: {
+    id: 'publicWeb.matchRosters.heading',
+    defaultMessage: 'Rosters',
+  },
+  matchRostersEmpty: {
+    id: 'publicWeb.matchRosters.empty',
+    defaultMessage: 'Rosters are not yet available.',
+  },
+  matchRostersTeamEmpty: {
+    id: 'publicWeb.matchRosters.teamEmpty',
+    defaultMessage: 'Roster not yet available.',
+  },
+  matchRostersColumnNumber: {
+    id: 'publicWeb.matchRosters.columnNumber',
+    defaultMessage: 'No.',
+  },
+  matchRostersColumnPlayer: {
+    id: 'publicWeb.matchRosters.columnPlayer',
+    defaultMessage: 'Player',
+  },
+  matchRostersColumnRoles: {
+    id: 'publicWeb.matchRosters.columnRoles',
+    defaultMessage: 'Roles',
+  },
+  matchRostersColumnOnField: {
+    id: 'publicWeb.matchRosters.columnOnField',
+    defaultMessage: 'On field',
+  },
+  matchRostersOnFieldYes: {
+    id: 'publicWeb.matchRosters.onFieldYes',
+    defaultMessage: 'Yes',
+  },
+  matchRostersOnFieldNo: {
+    id: 'publicWeb.matchRosters.onFieldNo',
+    defaultMessage: 'No',
   },
 });

@@ -50,6 +50,70 @@
         ]
       }
     },
+    "/admin/diagnostics/summary": {
+      "get": {
+        "operationId": "DiagnosticsController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticsSummary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Inspect installation health and aggregate telemetry",
+        "tags": [
+          "platform-diagnostics"
+        ]
+      }
+    },
+    "/admin/diagnostics/outbox/retry": {
+      "post": {
+        "operationId": "DiagnosticsController_retry",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetryOutboxRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryOutboxResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Manually re-enqueue selected dead letters with an atomic audit record",
+        "tags": [
+          "platform-diagnostics"
+        ]
+      }
+    },
     "/organizations": {
       "get": {
         "description": "When called without filters, returns public organizations with at least one published tournament. When called with \"?mine=true\", returns organizations the authenticated caller belongs to.",
@@ -529,6 +593,46 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/completion": {
+      "get": {
+        "description": "Available publicly for published tournaments, and with organization-scoped authorization for unpublished tournaments.",
+        "operationId": "TournamentsController_completion",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentCompletionResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Tournament completion overview with per-stage and tournament-wide rollups",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/export": {
       "get": {
         "operationId": "TournamentsController_exportConfiguration",
@@ -652,6 +756,80 @@
           }
         ],
         "summary": "A tournament's matches, with the full comparator trace where relevant",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrant-attribute-keys": {
+      "get": {
+        "operationId": "TournamentsController_entrantAttributeKeys",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntrantAttributeKeysResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A tournament's distinct recorded entrant-attribute keys",
         "tags": [
           "tournaments"
         ]
@@ -4955,6 +5133,57 @@
       }
     },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages": {
+      "get": {
+        "description": "Number, name and format for every stage, plus whether each already holds a generated fixture — an organizer’s stage list carries no more sensitivity than its zone list.",
+        "operationId": "StagesController_list",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StageResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List a tournament’s stages",
+        "tags": [
+          "stages"
+        ]
+      },
       "post": {
         "description": "Number, name and format all default. Fixtures are not generated here — publish a seed order via POST .../stages/:stageNumber/seeding afterward.",
         "operationId": "StagesController_create",
@@ -7359,6 +7588,61 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/statistics": {
+      "get": {
+        "operationId": "PublicProjectionsController_playerStatistics",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layout",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerStatisticsDrilldownResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A person's tournament-total and match-by-match declared statistics",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
     "/objects/discipline-background-image": {
       "get": {
         "operationId": "PublicObjectsController_disciplineBackgroundImage",
@@ -7472,6 +7756,50 @@
           }
         },
         "summary": "Accept invitation and set password for administrator",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "NativeAuthController_refresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Silently renew a native session from its refresh cookie",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "NativeAuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSuccessResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "End a native session, revoking its refresh cookie",
         "tags": [
           "auth"
         ]
@@ -7897,6 +8225,72 @@
           }
         ],
         "summary": "Remove an installed module that no started tournament references",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/modules/{alias}/document": {
+      "get": {
+        "operationId": "AdminModulesController_document",
+        "parameters": [
+          {
+            "name": "alias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstalledDisciplineDocumentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Fetch an installed discipline module's complete descriptor document",
         "tags": [
           "admin"
         ]
@@ -8599,6 +8993,329 @@
         "summary": "Edit a club's name, alias, or abbreviation",
         "tags": [
           "clubs"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/clubs/{clubId}/members": {
+      "get": {
+        "operationId": "ClubPortalController_listMembers",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClubMemberResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List a club's own member directory",
+        "tags": [
+          "club-portal"
+        ]
+      },
+      "post": {
+        "operationId": "ClubPortalController_createMember",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClubMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubMemberResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a new person to the club member directory",
+        "tags": [
+          "club-portal"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/clubs/{clubId}/members/{personId}": {
+      "patch": {
+        "operationId": "ClubPortalController_updateMember",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClubMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubMemberResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit a club member's display name or alias",
+        "tags": [
+          "club-portal"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/clubs/{clubId}/teams": {
+      "get": {
+        "operationId": "ClubPortalController_listTeams",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClubTeamResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the club's own teams",
+        "tags": [
+          "club-portal"
+        ]
+      },
+      "post": {
+        "operationId": "ClubPortalController_createTeam",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClubTeamRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubTeamResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a team owned by this club",
+        "tags": [
+          "club-portal"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/clubs/{clubId}/tournaments/{tournamentAlias}/registrations": {
+      "post": {
+        "description": "Registers the named team as a pending entrant (organizer review, unchanged, decides the rest) and applies the submitted squad in the same transaction. Every named person must already be one of the club's own members.",
+        "operationId": "ClubPortalController_submitRegistration",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitClubRegistrationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubRegistrationResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit the club's team as a pending tournament registration with its squad",
+        "tags": [
+          "club-portal"
         ]
       }
     },
@@ -10831,7 +11548,7 @@
   "info": {
     "title": "CopaLibre API",
     "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "6.0.0",
+    "version": "7.0.0",
     "contact": {}
   },
   "tags": [],
@@ -10900,6 +11617,245 @@
           "role",
           "version",
           "schemaVersion"
+        ]
+      },
+      "DiagnosticsDatabase": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "latencyMs": {
+            "type": "number",
+            "description": "Round-trip time of the database probe in milliseconds"
+          },
+          "poolActive": {
+            "type": "number",
+            "description": "Active connections in the serving API process pool"
+          },
+          "poolIdle": {
+            "type": "number"
+          },
+          "poolWaiting": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "connected",
+          "latencyMs"
+        ]
+      },
+      "DiagnosticsFailure": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "attempts": {
+            "type": "number"
+          },
+          "error": {
+            "type": "string"
+          },
+          "failedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "eventId",
+          "eventType",
+          "attempts",
+          "error",
+          "failedAt"
+        ]
+      },
+      "DiagnosticsOutbox": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "pending": {
+            "type": "number"
+          },
+          "processed24h": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "number"
+          },
+          "oldestPendingAgeSeconds": {
+            "type": "number"
+          },
+          "inFlight": {
+            "type": "number"
+          },
+          "recentFailures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiagnosticsFailure"
+            }
+          }
+        },
+        "required": [
+          "available",
+          "recentFailures"
+        ]
+      },
+      "DiagnosticsStorage": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "profile": {
+            "type": "string",
+            "enum": [
+              "filesystem",
+              "s3"
+            ]
+          },
+          "bucketName": {
+            "type": "string"
+          },
+          "totalObjects": {
+            "type": "number"
+          },
+          "totalBytes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "connected",
+          "profile"
+        ]
+      },
+      "DiagnosticsRealtime": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "totalConnections": {
+            "type": "number"
+          },
+          "tvKiosks": {
+            "type": "number"
+          },
+          "overlays": {
+            "type": "number"
+          },
+          "publicSpectators": {
+            "type": "number"
+          },
+          "controlConnections": {
+            "type": "number"
+          },
+          "unclassified": {
+            "type": "number"
+          },
+          "activeReplicas": {
+            "type": "number"
+          },
+          "staleReplicas": {
+            "type": "number"
+          },
+          "reportedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "available"
+        ]
+      },
+      "DiagnosticsSummary": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "degraded",
+              "critical"
+            ]
+          },
+          "version": {
+            "type": "string"
+          },
+          "uptimeSeconds": {
+            "type": "number"
+          },
+          "sampledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DiagnosticsDatabase"
+          },
+          "outbox": {
+            "$ref": "#/components/schemas/DiagnosticsOutbox"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/DiagnosticsStorage"
+          },
+          "realtime": {
+            "$ref": "#/components/schemas/DiagnosticsRealtime"
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "uptimeSeconds",
+          "sampledAt",
+          "database",
+          "outbox",
+          "storage",
+          "realtime"
+        ]
+      },
+      "RetryOutboxRequest": {
+        "type": "object",
+        "properties": {
+          "eventIds": {
+            "minItems": 1,
+            "maxItems": 50,
+            "description": "Explicitly selected dead-letter event UUIDv7 identifiers",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "eventIds"
+        ]
+      },
+      "RetryOutboxResponse": {
+        "type": "object",
+        "properties": {
+          "retried": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "skipped": {
+            "description": "Events no longer eligible, including already retried events",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "retried",
+          "skipped"
         ]
       },
       "OrganizationResponse": {
@@ -11160,6 +12116,11 @@
           },
           "authoring": {
             "$ref": "#/components/schemas/RegistryAuthoringDefinitionResponse"
+          },
+          "phraseTemplate": {
+            "type": "string",
+            "description": "A `{{paramName}}`-placeholder sentence naming this entry's own authored parameters, for rendering a configured rule in plain language. Absent entries render as `type — description`.",
+            "example": "{{statistic}} crosses {{threshold}}"
           }
         },
         "required": [
@@ -11275,6 +12236,118 @@
           "alias",
           "name",
           "status"
+        ]
+      },
+      "StageCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUIDv7 identifier"
+          },
+          "stageNumber": {
+            "type": "number",
+            "description": "1-based stage order in the tournament",
+            "example": 1
+          },
+          "stageName": {
+            "type": "string",
+            "description": "Stage name",
+            "example": "Group Stage"
+          },
+          "totalMatches": {
+            "type": "number",
+            "description": "Total matches in the stage, excluding cancelled/not-required",
+            "example": 12
+          },
+          "resolvedMatches": {
+            "type": "number",
+            "description": "Resolved matches (finalized + forfeited)",
+            "example": 8
+          },
+          "liveMatches": {
+            "type": "number",
+            "description": "Live / in-progress matches",
+            "example": 1
+          },
+          "scheduledMatches": {
+            "type": "number",
+            "description": "Scheduled matches not yet played",
+            "example": 3
+          },
+          "finalizedMatches": {
+            "type": "number",
+            "description": "Finalized matches",
+            "example": 7
+          },
+          "forfeitedMatches": {
+            "type": "number",
+            "description": "Forfeited matches",
+            "example": 1
+          }
+        },
+        "required": [
+          "stageId",
+          "stageNumber",
+          "stageName",
+          "totalMatches",
+          "resolvedMatches",
+          "liveMatches",
+          "scheduledMatches",
+          "finalizedMatches",
+          "forfeitedMatches"
+        ]
+      },
+      "TournamentCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "totalMatches": {
+            "type": "number",
+            "description": "Total matches across all stages, excluding cancelled/not-required",
+            "example": 32
+          },
+          "resolvedMatches": {
+            "type": "number",
+            "description": "Total resolved matches across all stages (finalized + forfeited)",
+            "example": 18
+          },
+          "liveMatches": {
+            "type": "number",
+            "description": "Total live matches across all stages",
+            "example": 2
+          },
+          "scheduledMatches": {
+            "type": "number",
+            "description": "Total scheduled matches across all stages",
+            "example": 12
+          },
+          "finalizedMatches": {
+            "type": "number",
+            "description": "Total finalized matches across all stages",
+            "example": 17
+          },
+          "forfeitedMatches": {
+            "type": "number",
+            "description": "Total forfeited matches across all stages",
+            "example": 1
+          },
+          "stages": {
+            "description": "Per-stage breakdown ordered by stage number",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageCompletionResponse"
+            }
+          }
+        },
+        "required": [
+          "totalMatches",
+          "resolvedMatches",
+          "liveMatches",
+          "scheduledMatches",
+          "finalizedMatches",
+          "forfeitedMatches",
+          "stages"
         ]
       },
       "TournamentConfigurationDescriptorRefResponse": {
@@ -11671,6 +12744,10 @@
           "venueName": {
             "type": "string"
           },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
           "latestEvent": {
             "$ref": "#/components/schemas/PublicMatchesViewEventResponse"
           },
@@ -11739,6 +12816,25 @@
           "matches"
         ]
       },
+      "EntrantAttributeKeysResponse": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "description": "Distinct entrant-attribute keys recorded anywhere in this tournament, sorted. Empty when no entrant carries any attribute yet.",
+            "example": [
+              "rating",
+              "seed-rank"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "keys"
+        ]
+      },
       "SeriesDeclarationRequest": {
         "type": "object",
         "properties": {
@@ -11775,6 +12871,76 @@
           "span"
         ]
       },
+      "StageAllocationRequest": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "manual",
+              "weighted"
+            ],
+            "description": "Where this stage’s seed order comes from: the prior stage’s qualification cut (automatic), an operator’s explicit placement (manual), or a numeric entrant attribute (weighted).",
+            "example": "automatic"
+          },
+          "attributeKey": {
+            "type": "string",
+            "description": "Required when mode is \"weighted\": the entrant attribute key to rank on.",
+            "example": "rating"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "higher-first",
+              "lower-first"
+            ],
+            "description": "Required when mode is \"weighted\": never inferred from the attribute’s values.",
+            "example": "higher-first"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "CreateTournamentStageRequest": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "Defaults to this stage’s 1-based position within `stages`.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Defaults to \"Stage {number}\".",
+            "example": "Fase de grupos"
+          },
+          "format": {
+            "type": "string",
+            "example": "round-robin"
+          },
+          "series": {
+            "description": "Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
+          },
+          "allocation": {
+            "description": "Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageAllocationRequest"
+              }
+            ]
+          }
+        },
+        "required": [
+          "format"
+        ]
+      },
       "CreateTournamentRequest": {
         "type": "object",
         "properties": {
@@ -11796,9 +12962,12 @@
             "description": "Pinned descriptor version (semver). Rulesets never track \"latest\": the version a tournament starts on is frozen.",
             "example": "1.2.0"
           },
-          "format": {
-            "type": "string",
-            "example": "round-robin"
+          "stages": {
+            "description": "Every stage of the tournament, in order. At least one is required — a tournament with one stage is the common case, declared the same way as a multi-stage one.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateTournamentStageRequest"
+            }
           },
           "publicRegistration": {
             "type": "boolean",
@@ -11841,13 +13010,13 @@
               "$ref": "#/components/schemas/HookScriptAttachmentRequest"
             }
           },
-          "series": {
-            "description": "Declares this tournament’s crosses as multi-match series by default. Absent stays the default: no series, a single match per cross, requiring no further action.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SeriesDeclarationRequest"
-              }
-            ]
+          "ruleOverrides": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Dot-path → override value for any discipline-declared ruleset field beyond format/registration.* (already captured by their own dedicated fields above). Merged into the tournament's initial ruleset alongside those fixed fields; a value rejected by its field policy fails the entire creation.",
+            "example": {
+              "scoring.pointsPerWin": 4
+            }
           }
         },
         "required": [
@@ -11855,7 +13024,7 @@
           "name",
           "descriptorId",
           "descriptorVersion",
-          "format",
+          "stages",
           "publicRegistration",
           "requiresCheckIn",
           "customScripts"
@@ -11979,10 +13148,22 @@
           "overrides": {
             "type": "object",
             "description": "The full override document after applying the edit, not only the changed fields."
+          },
+          "fieldPolicies": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The installed discipline's field policies for every overridable field (permission, mutation class, and optional label/description) — context for explaining what each override field means and how changing it behaves, never a second override-application path."
+          },
+          "disciplineDefaults": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The installed discipline's own default configuration tree, before any override."
           }
         },
         "required": [
-          "overrides"
+          "overrides",
+          "fieldPolicies",
+          "disciplineDefaults"
         ]
       },
       "RulesetOverridesRequest": {
@@ -12028,6 +13209,14 @@
           "format": {
             "type": "string",
             "example": "round-robin"
+          },
+          "allocation": {
+            "description": "The profile’s declared default seeding for this stage, if any.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageAllocationRequest"
+              }
+            ]
           }
         },
         "required": [
@@ -12752,6 +13941,14 @@
                 "mutationClass": "blocked_after_results"
               }
             }
+          },
+          "defaults": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The discipline's own default configuration tree, before any override.",
+            "example": {
+              "scoring.pointsPerWin": 3
+            }
           }
         },
         "required": [
@@ -13021,7 +14218,12 @@
             "format": "uuid"
           },
           "type": {
-            "type": "string"
+            "type": "string",
+            "description": "Descriptor-declared segment type slug, e.g. \"half\""
+          },
+          "typeLabel": {
+            "type": "object",
+            "description": "The bound discipline's declared display label for this segment type"
           },
           "number": {
             "type": "number"
@@ -14140,6 +15342,10 @@
           "shortHeader": {
             "type": "object"
           },
+          "zeroDisplay": {
+            "type": "string",
+            "description": "Displayed text when the numeric value is exactly zero"
+          },
           "format": {
             "type": "string",
             "enum": [
@@ -14213,13 +15419,21 @@
             "format": "uuid",
             "description": "Present at team/entrant granularity"
           },
+          "actorName": {
+            "type": "string",
+            "description": "The row's own headline identity — a team row's own name, or a person row's own name — regardless of which column code the discipline chose for its display column"
+          },
           "entrantName": {
             "type": "string",
-            "description": "Resolved full entrant name for responsive team/entrant rows"
+            "description": "Resolved name of the row's affiliated entrant: its own identity for a team row, or the club it played for on a person row"
           },
           "entrantAbbreviation": {
             "type": "string",
             "description": "Tournament-scoped entrant abbreviation, when resolved"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 nationality code, present only at person granularity"
           },
           "rank": {
             "type": "number",
@@ -14240,6 +15454,7 @@
         },
         "required": [
           "actorId",
+          "actorName",
           "rank",
           "sharedRank",
           "cells"
@@ -14449,6 +15664,14 @@
             "items": {
               "$ref": "#/components/schemas/BracketSlotResponse"
             }
+          },
+          "series": {
+            "description": "Present only on a cross settled by a series",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicSeriesStateResponse"
+              }
+            ]
           }
         },
         "required": [
@@ -14458,6 +15681,29 @@
           "position",
           "status",
           "slots"
+        ]
+      },
+      "SeedingZoneResponse": {
+        "type": "object",
+        "properties": {
+          "zoneId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Absent for an un-zoned stage"
+          },
+          "zoneName": {
+            "type": "string",
+            "description": "Absent for an un-zoned stage"
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BracketMatchResponse"
+            }
+          }
+        },
+        "required": [
+          "matches"
         ]
       },
       "SeedingResponse": {
@@ -14477,27 +15723,39 @@
             ]
           },
           "seeds": {
+            "description": "The stage’s one flat seed order, across every zone — unaffected by `zones` below",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SeedAssignmentResponse"
             }
           },
-          "matches": {
+          "zones": {
+            "description": "Display only: one entry per zone the stage’s fixtures already declare",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/BracketMatchResponse"
+              "$ref": "#/components/schemas/SeedingZoneResponse"
             }
           },
           "hasRecordedResults": {
             "type": "boolean",
             "description": "True once any match in this stage has a recorded result"
+          },
+          "names": {
+            "type": "object",
+            "description": "Resolved human-readable entrant display names keyed by entrant ID",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "01890000-0000-7000-8000-000000000001": "Club Atlético Huracán"
+            }
           }
         },
         "required": [
           "stageId",
           "format",
           "seeds",
-          "matches",
+          "zones",
           "hasRecordedResults"
         ]
       },
@@ -14550,34 +15808,6 @@
           "persisted"
         ]
       },
-      "CreateStageRequest": {
-        "type": "object",
-        "properties": {
-          "number": {
-            "type": "number",
-            "description": "Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.",
-            "example": 1
-          },
-          "name": {
-            "type": "string",
-            "description": "Defaults to \"Stage {number}\".",
-            "example": "Fase de grupos"
-          },
-          "format": {
-            "type": "string",
-            "description": "Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.",
-            "example": "round-robin"
-          },
-          "series": {
-            "description": "Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross, requiring no further action.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SeriesDeclarationRequest"
-              }
-            ]
-          }
-        }
-      },
       "StageResponse": {
         "type": "object",
         "properties": {
@@ -14610,6 +15840,85 @@
                 "$ref": "#/components/schemas/SeriesDeclarationRequest"
               }
             ]
+          },
+          "allocation": {
+            "description": "Absent when this stage declares no allocation.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageAllocationRequest"
+              }
+            ]
+          },
+          "seeded": {
+            "type": "boolean",
+            "description": "Whether this stage already holds a generated fixture. Present on the list read only — `create`/`update`/`remove` do not compute it."
+          },
+          "availableFormats": {
+            "description": "The tournament's discipline-declared formats to choose from. Present on the list read only — `create`/`update`/`remove` do not compute it.",
+            "example": [
+              "single-elimination",
+              "round-robin"
+            ],
+            "type": "array",
+            "items": {
+              "type": "array"
+            }
+          },
+          "formatDescriptions": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "en"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "es": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "fr": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "pt": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "it": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "de": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "ru": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "zh": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "description": "The discipline's own explanation of a format it supports, keyed by format. Present on the list read only — `create`/`update`/`remove` do not compute it.",
+            "example": {
+              "round-robin": "Every entrant plays every other entrant once"
+            }
           }
         },
         "required": [
@@ -14619,6 +15928,42 @@
           "name",
           "format"
         ]
+      },
+      "CreateStageRequest": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Defaults to \"Stage {number}\".",
+            "example": "Fase de grupos"
+          },
+          "format": {
+            "type": "string",
+            "description": "Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.",
+            "example": "round-robin"
+          },
+          "series": {
+            "description": "Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross, requiring no further action.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
+          },
+          "allocation": {
+            "description": "Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageAllocationRequest"
+              }
+            ]
+          }
+        }
       },
       "UpdateStageRequest": {
         "type": "object",
@@ -14631,6 +15976,14 @@
             "type": "string",
             "description": "Refused once the stage already holds a generated fixture. Validated against the tournament's discipline descriptor.",
             "example": "round-robin"
+          },
+          "allocation": {
+            "description": "Replaces this stage’s declared allocation. Absent leaves it unchanged; there is no way to clear a declared allocation back to none through this endpoint.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageAllocationRequest"
+              }
+            ]
           }
         }
       },
@@ -15606,8 +16959,23 @@
           "champion": {
             "$ref": "#/components/schemas/PublicTournamentEntrantPodiumResponse"
           },
+          "champions": {
+            "description": "Every champion in this zone, including multiple entrants for a shared title.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicTournamentEntrantPodiumResponse"
+            }
+          },
           "runnerUp": {
             "$ref": "#/components/schemas/PublicTournamentEntrantPodiumResponse"
+          },
+          "thirdPlace": {
+            "description": "Rank three only when a completed ranked stage explicitly resolves one entrant.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicTournamentEntrantPodiumResponse"
+              }
+            ]
           }
         },
         "required": [
@@ -15884,6 +17252,11 @@
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "rulesetLabels": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Each `ruleset` key's declared display label, when the installed discipline's field policy declares one — absent keys fall back to a humanized dot-path client-side (openspec 0267)."
           },
           "status": {
             "type": "string",
@@ -16177,6 +17550,28 @@
           "score"
         ]
       },
+      "PublicLivePenaltyResponse": {
+        "type": "object",
+        "properties": {
+          "timerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "remainingSeconds": {
+            "type": "number",
+            "description": "Seconds remaining at response time"
+          }
+        },
+        "required": [
+          "timerId",
+          "entrantId",
+          "remainingSeconds"
+        ]
+      },
       "PublicLiveMatchResponse": {
         "type": "object",
         "properties": {
@@ -16200,6 +17595,17 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PublicLiveMatchSideResponse"
+            }
+          },
+          "possessionEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Explicitly projected possession side; omitted when unavailable"
+          },
+          "activePenalties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicLivePenaltyResponse"
             }
           }
         },
@@ -16248,6 +17654,15 @@
           },
           "abbreviation": {
             "type": "string"
+          },
+          "clubId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The entrant's club, when it belongs to one"
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "description": "The club's emblem object id, when one is on record"
           },
           "matchId": {
             "type": "string",
@@ -16300,6 +17715,10 @@
           "format": {
             "type": "string"
           },
+          "matchNumber": {
+            "type": "number",
+            "description": "The match's stage-unique ordinal for the public report page's URL — present only when this graph node resolved to a real persisted match; a purely theoretical winner-of/loser-of placeholder has none yet"
+          },
           "slots": {
             "type": "array",
             "items": {
@@ -16324,12 +17743,17 @@
           "slots"
         ]
       },
-      "PublicBracketResponse": {
+      "PublicBracketZoneResponse": {
         "type": "object",
         "properties": {
-          "format": {
+          "zoneId": {
             "type": "string",
-            "description": "The competition format of the stage"
+            "format": "uuid",
+            "description": "Absent for an un-zoned stage"
+          },
+          "zoneName": {
+            "type": "string",
+            "description": "Absent for an un-zoned stage"
           },
           "matches": {
             "type": "array",
@@ -16340,6 +17764,24 @@
         },
         "required": [
           "matches"
+        ]
+      },
+      "PublicBracketResponse": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "description": "The competition format of the stage"
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBracketZoneResponse"
+            }
+          }
+        },
+        "required": [
+          "zones"
         ]
       },
       "PublicMatchesViewMatchResponse": {
@@ -16398,6 +17840,10 @@
           },
           "venueName": {
             "type": "string"
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
           },
           "latestEvent": {
             "$ref": "#/components/schemas/PublicMatchesViewEventResponse"
@@ -16601,6 +18047,71 @@
           "careerStatistics"
         ]
       },
+      "PlayerStatisticsMatchRowResponse": {
+        "type": "object",
+        "properties": {
+          "stageNumber": {
+            "type": "number",
+            "description": "Public stage number, for linking to this match’s public report"
+          },
+          "matchNumber": {
+            "type": "number",
+            "description": "Public match number within its stage, for linking to this match’s public report"
+          },
+          "cells": {
+            "description": "One cell per collector-kind declared column, keyed by column code — composite and computed columns are aggregate ratios/expressions that do not apply to a single match, so they never appear here",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TableCellResponse"
+              }
+            ]
+          }
+        },
+        "required": [
+          "stageNumber",
+          "matchNumber",
+          "cells"
+        ]
+      },
+      "PlayerStatisticsDrilldownResponse": {
+        "type": "object",
+        "properties": {
+          "layoutCode": {
+            "type": "string"
+          },
+          "label": {
+            "type": "object"
+          },
+          "columns": {
+            "description": "Every non-rank declared column — collector, composite, and computed",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableColumnResponse"
+            }
+          },
+          "tournamentTotal": {
+            "description": "One cell per column in `columns`, keyed by column code — the same values as this player’s own leaderboard row. Absent when the player has no recorded roster appearance anywhere in the tournament.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TableCellResponse"
+              }
+            ]
+          },
+          "matches": {
+            "description": "One row per finalized match the player is rostered in, ordered by stage then match number",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlayerStatisticsMatchRowResponse"
+            }
+          }
+        },
+        "required": [
+          "layoutCode",
+          "label",
+          "columns",
+          "matches"
+        ]
+      },
       "LoginRequest": {
         "type": "object",
         "properties": {
@@ -16700,18 +18211,6 @@
           "password"
         ]
       },
-      "ForgotPasswordRequest": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email"
-          }
-        },
-        "required": [
-          "email"
-        ]
-      },
       "AuthSuccessResponse": {
         "type": "object",
         "properties": {
@@ -16722,6 +18221,18 @@
         },
         "required": [
           "message"
+        ]
+      },
+      "ForgotPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "email"
         ]
       },
       "ResetPasswordRequest": {
@@ -17037,6 +18548,34 @@
           "removedCount"
         ]
       },
+      "InstalledDisciplineDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "descriptorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "alias": {
+            "type": "string",
+            "example": "orbital-frisbee"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0.0"
+          },
+          "document": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The complete DisciplineDescriptor document (segment types, event definitions, statistics, rule defaults, field policies, win condition, and every other declared field) for this installed discipline. Same shape a `discipline` AuthoredModuleRequest.document accepts, plus the assigned descriptorId."
+          }
+        },
+        "required": [
+          "descriptorId",
+          "alias",
+          "version",
+          "document"
+        ]
+      },
       "ModuleVerifyFailureResponse": {
         "type": "object",
         "properties": {
@@ -17347,6 +18886,160 @@
             "example": "C I"
           }
         }
+      },
+      "ClubMemberResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Elías Salomón"
+          },
+          "alias": {
+            "type": "string"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2001-05-14"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code",
+            "example": "AR"
+          },
+          "photoObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "object_metadata.object_id of the photo"
+          }
+        },
+        "required": [
+          "personId",
+          "displayName"
+        ]
+      },
+      "CreateClubMemberRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "example": "Elías Salomón"
+          },
+          "alias": {
+            "type": "string",
+            "description": "Suggested from displayName when omitted."
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2001-05-14"
+          }
+        },
+        "required": [
+          "displayName"
+        ]
+      },
+      "UpdateClubMemberRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          }
+        }
+      },
+      "ClubTeamResponse": {
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "teamId",
+          "name"
+        ]
+      },
+      "CreateClubTeamRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Talleres"
+          },
+          "alias": {
+            "type": "string",
+            "description": "Suggested from name when omitted."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "SubmitClubRegistrationRequest": {
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamMembershipMemberInput"
+            }
+          }
+        },
+        "required": [
+          "teamId",
+          "members"
+        ]
+      },
+      "ClubRegistrationResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "refused",
+              "withdrawn",
+              "checked-in"
+            ]
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "entrantId",
+          "tournamentId",
+          "status",
+          "teamId"
+        ]
       },
       "VenueResponse": {
         "type": "object",
@@ -17874,6 +19567,16 @@
           "name": {
             "type": "string",
             "example": "Grupo 1"
+          },
+          "entrantIds": {
+            "description": "Entrant IDs assigned to the group, if any",
+            "example": [
+              "01890000-0000-7000-8000-000000000001"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [

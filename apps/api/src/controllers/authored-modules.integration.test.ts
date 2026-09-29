@@ -406,7 +406,12 @@ describe('AuthoredModulesController (integration)', () => {
           name: 'Copa Authored',
           descriptorId: descriptor?.descriptorId,
           descriptorVersion: descriptor?.version,
-          format: 'round-robin',
+          // Mirrors profileDocument()'s own declared stages — the wizard
+          // submits its read-only preview of the profile's stages verbatim.
+          stages: [
+            { number: 1, name: 'Groups', format: 'round-robin' },
+            { number: 2, name: 'Final', format: 'single-elimination' },
+          ],
           publicRegistration: true,
           requiresCheckIn: false,
           capacity: 16,

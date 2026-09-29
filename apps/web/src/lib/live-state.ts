@@ -28,6 +28,13 @@ export interface LiveMatch {
   /** What the last applied event said; a lower one is stale and ignored. */
   readonly projectionVersion: number;
   readonly clockSeconds?: number;
+  /** Present only when a public projection explicitly supplies a participating side. */
+  readonly possessionEntrantId?: string;
+  readonly activePenalties?: readonly {
+    readonly timerId: string;
+    readonly entrantId: string;
+    readonly remainingSeconds: number;
+  }[];
 }
 
 export interface LiveDashboard {
@@ -87,11 +94,16 @@ function patch(match: LiveMatch, event: EventEnvelope): LiveMatch {
 
   const state = nextState(match.state, event.eventType);
   const outcome = state === 'final' ? decide(sides[0]?.score, sides[1]?.score) : undefined;
+  const clockSeconds =
+    typeof event.payload.clockSeconds === 'number'
+      ? event.payload.clockSeconds
+      : match.clockSeconds;
 
   return {
     ...match,
     projectionVersion: event.projectionVersion,
     state,
+    clockSeconds,
     sides: outcome
       ? sides.map((side, index) => ({ ...side, state: index === 0 ? outcome.home : outcome.away }))
       : sides,
@@ -110,6 +122,15 @@ function nextState(current: ResultState, eventType: string): ResultState {
 function readScores(
   payload: Readonly<Record<string, unknown>>,
 ): Record<string, number> | undefined {
+  if (typeof payload.scores === 'object' && payload.scores !== null) {
+    const rawScores = payload.scores as Record<string, unknown>;
+    const scores: Record<string, number> = {};
+    for (const [k, v] of Object.entries(rawScores)) {
+      if (typeof v === 'number') scores[k] = v;
+    }
+    if (Object.keys(scores).length > 0) return scores;
+  }
+
   const result = payload.result;
   if (typeof result !== 'object' || result === null) return undefined;
 

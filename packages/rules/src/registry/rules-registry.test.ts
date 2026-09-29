@@ -1,3 +1,4 @@
+import { AbstractCondition, ExecutionResult, type ExecutionContext } from '@sebasoft/neuron-js';
 import type { RuleScript } from './rules-registry.js';
 import { RulesRegistry } from './rules-registry.js';
 import { registerCopalibreVocabulary } from '../evaluation/vocabulary.js';
@@ -153,6 +154,38 @@ describe('RulesRegistry', () => {
     expect(types).toEqual(
       expect.arrayContaining(['simple_rule', 'simple_number', 'simple_string', 'value_exists']),
     );
+  });
+
+  it('round-trips an entry registered with a phrase template through list() (openspec 0266)', () => {
+    class NoopCondition extends AbstractCondition {
+      static readonly TYPE = 'noop-condition';
+      execute(context: ExecutionContext) {
+        return new ExecutionResult(true, context, true);
+      }
+    }
+    const registry = new RulesRegistry();
+    registry.registerCondition(
+      NoopCondition.TYPE,
+      NoopCondition,
+      'Always true',
+      undefined,
+      '{{statistic}} crosses {{threshold}}',
+    );
+    const entry = registry.list().find((one) => one.type === NoopCondition.TYPE);
+    expect(entry?.phraseTemplate).toBe('{{statistic}} crosses {{threshold}}');
+  });
+
+  it('leaves phraseTemplate absent when the caller does not declare one', () => {
+    class NoopCondition extends AbstractCondition {
+      static readonly TYPE = 'noop-condition-no-phrase';
+      execute(context: ExecutionContext) {
+        return new ExecutionResult(true, context, true);
+      }
+    }
+    const registry = new RulesRegistry();
+    registry.registerCondition(NoopCondition.TYPE, NoopCondition, 'Always true');
+    const entry = registry.list().find((one) => one.type === NoopCondition.TYPE);
+    expect(entry?.phraseTemplate).toBeUndefined();
   });
 
   it('builds a hook-specific registry from conditions and declared-effect actions only', () => {

@@ -85,10 +85,9 @@ describe('TournamentCard CTAs consume the shared Button (openspec 0198)', () => 
 });
 
 describe('public tables and filter pills (openspec 0199)', () => {
-  const matchesPage = readFileSync(
-    join(here, '../pages/[...locale]/[organization]/tournaments/[tournament]/matches.astro'),
-    'utf8',
-  );
+  // openspec 0245 moved the matches page's filter bar (state, plus the new
+  // stage/zone/group facets) into its own MatchScheduleFilters organism.
+  const matchesPage = read('ui/organisms/MatchScheduleFilters.astro');
   const overviewPage = readFileSync(
     join(here, '../pages/[...locale]/[organization]/tournaments/[tournament].astro'),
     'utf8',
@@ -96,17 +95,37 @@ describe('public tables and filter pills (openspec 0199)', () => {
   const matchReport = read('ui/organisms/MatchRosters.astro');
   const standings = read('ui/organisms/StandingsTable.astro');
 
-  it('renders the state filter as a bounded pill group, not bare anchors', () => {
+  it('renders every filter facet as a bounded pill group, not bare anchors', () => {
     expect(matchesPage).toContain('class="cl-pill-group"');
-    // Every filter option is a pill, and the active one is marked for assistive tech too.
-    expect(matchesPage.match(/class="cl-pill cl-focusable"/g)).toHaveLength(4);
-    expect(matchesPage.match(/aria-current=/g)).toHaveLength(4);
+    // Four facet groups (stage, zone, group, state), each an "All" reset plus
+    // one templated per-option pill, and the state group's four literal
+    // options — every option is a pill, and the active one is marked for
+    // assistive tech too.
+    expect(matchesPage.match(/class="cl-pill cl-focusable"/g)).toHaveLength(10);
+    expect(matchesPage.match(/aria-current=/g)).toHaveLength(10);
   });
 
   it('renders standings through the shared table treatment', () => {
-    expect(standings).toContain('<table class="cl-table">');
+    expect(standings).toContain(
+      '<table class="cl-table" data-sortable-table={previewRows === undefined ? true : undefined}>',
+    );
     expect(standings).toContain('cl-table-scroll');
     expect(standings).toContain("'cl-table__num'");
+  });
+
+  it('renders declared columns as accessible local sort controls', () => {
+    expect(standings).toContain('data-sortable-table');
+    expect(standings).toContain('aria-sort="none"');
+    expect(standings).toContain('data-column-code');
+    expect(standings).toContain('data-sort-value');
+    expect(standings).toContain('data-player-id');
+    expect(standings).toContain('initTableSorting');
+  });
+
+  it('keeps missing values after numeric rows and reverses activation direction', () => {
+    expect(standings).toContain('sortMissing');
+    expect(standings).toContain("direction === 'ascending'");
+    expect(standings).toContain("header.setAttribute('aria-sort'");
   });
 
   it('renders the standings club filter through the shared pill, not a local duplicate', () => {

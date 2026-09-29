@@ -81,6 +81,42 @@
   display: flex;
   align-items: center;
   gap: 2vmin;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tv-match-indicators {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--cl-space-2);
+}
+
+.tv-match-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cl-space-2);
+  padding: var(--cl-space-2) var(--cl-space-3);
+  background-color: var(--cl-color-ink-950);
+  border: 1px solid currentColor;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-xs), 1.5vmin, var(--cl-font-size-base));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tv-match-indicator--possession {
+  color: var(--cl-state-positive);
+}
+
+.tv-match-indicator--penalty {
+  color: var(--cl-state-upcoming);
+}
+
+.tv-match-indicator__label {
+  text-transform: uppercase;
 }
 
 .tv-scorebug__badge {
@@ -303,6 +339,16 @@
   height: clamp(14vmin, 18vmin, 22vmin);
 }
 
+/*
+ * The home side is the spotlight's visual anchor (openspec 0247): larger
+ * than the away side, and never smaller than 120px even on a cramped
+ * viewport where `vmin` alone would shrink below a legible size.
+ */
+.tv-match-spotlight__vs-grid .tv-team-side--anchor .tv-team-side__emblem-wrap {
+  width: max(120px, clamp(16vmin, 22vmin, 26vmin));
+  height: max(120px, clamp(16vmin, 22vmin, 26vmin));
+}
+
 .tv-team-side {
   display: flex;
   flex-direction: column;
@@ -368,6 +414,59 @@
   color: var(--cl-text-primary);
 }
 
+/* 3C. Pinned-Match Event Ticker (openspec 0270) */
+.tv-event-ticker {
+  display: flex;
+  flex-direction: column;
+  gap: 1vmin;
+  max-height: 22vmin;
+  overflow-y: auto;
+  margin: 0;
+  padding: 1.5vmin 2vmin;
+  background: var(--tv-bg-elevated);
+  border: 1px solid var(--tv-border);
+  border-radius: 4px;
+  list-style: none;
+}
+
+.tv-event-ticker__item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1vmin;
+  font-size: clamp(0.75rem, 1.3vmin, 0.95rem);
+}
+
+.tv-event-ticker__time {
+  font-family: var(--cl-font-mono);
+  color: var(--tv-live-cyan);
+  flex-shrink: 0;
+}
+
+.tv-event-ticker__side {
+  font-family: var(--cl-font-mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.tv-event-ticker__side--home {
+  color: var(--tv-text-primary);
+}
+
+.tv-event-ticker__side--away {
+  color: var(--tv-text-secondary);
+}
+
+.tv-event-ticker__label {
+  color: var(--tv-text-primary);
+  flex: 1;
+}
+
+.tv-event-ticker__actor {
+  color: var(--tv-text-secondary);
+}
+
 /* 4. Secondary Rotating Rail (Companion Panel) */
 .tv-rail-panel {
   display: flex;
@@ -418,6 +517,66 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+
+.tv-bracket {
+  display: grid;
+  align-content: start;
+  gap: var(--cl-space-4);
+}
+
+.tv-bracket__zone,
+.tv-bracket__round,
+.tv-bracket__matches {
+  display: grid;
+  gap: var(--cl-space-2);
+}
+
+.tv-bracket__zone-name,
+.tv-bracket__round-name {
+  margin: 0;
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-sm);
+  text-transform: uppercase;
+}
+
+.tv-bracket-card {
+  min-width: 0;
+  padding: var(--cl-space-3);
+  background: var(--cl-surface-chrome);
+  border: 1px solid var(--tv-border);
+  font-family: var(--cl-font-mono);
+}
+
+.tv-bracket-card__header,
+.tv-bracket-card__slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-2);
+}
+
+.tv-bracket-card__header {
+  color: var(--tv-text-secondary);
+  font-size: var(--cl-font-size-xs);
+  text-transform: uppercase;
+}
+
+.tv-bracket-card__slot {
+  min-width: 0;
+  margin-block-start: var(--cl-space-2);
+  font-size: var(--cl-font-size-sm);
+}
+
+.tv-bracket-card__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tv-bracket-card__score {
+  color: var(--tv-text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 /* 4A. Standings Table */
@@ -834,5 +993,232 @@
   }
   50% {
     opacity: 0.25;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Animated live event alert banner (openspec 0300) — the "Broadcast Command
+ * Precision" callout for a `match.event-recorded` moment: chamfered, high-
+ * contrast dark ink, bold display type. `--scoring`/`--notable` are the only
+ * two kinds `BroadcastAlertBanner.tsx` ever asks for — generic across every
+ * installed discipline's own event vocabulary, never a hardcoded goal/card
+ * split. Fixed-positioned so it composites over whichever presentation
+ * (`kiosk`/`lower`/`full`) is already on screen, matching an OBS browser
+ * source's own transparent-canvas expectation.
+ * ------------------------------------------------------------------------- */
+.tv-broadcast-alert {
+  position: fixed;
+  top: 12vmin;
+  left: 50%;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 1.2vmin;
+  padding: 1.4vmin 2.4vmin;
+  background: color-mix(in srgb, var(--tv-bg-elevated) 95%, black);
+  border: 1px solid var(--tv-border-active);
+  font-family: var(--cl-font-display);
+  font-size: clamp(var(--cl-font-size-base), 2.4vmin, var(--cl-font-size-xl));
+  font-weight: var(--cl-weight-bold);
+  color: var(--tv-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.tv-broadcast-alert--scoring {
+  border-color: var(--tv-live-cyan);
+  box-shadow: 0 0 3vmin color-mix(in srgb, var(--tv-live-cyan) 35%, transparent);
+}
+
+.tv-broadcast-alert--notable {
+  border-color: var(--tv-gold);
+  box-shadow: 0 0 3vmin var(--tv-gold-glow);
+}
+
+.tv-broadcast-alert__side {
+  color: var(--tv-live-cyan);
+}
+
+.tv-broadcast-alert__actor {
+  color: var(--tv-text-secondary);
+  font-weight: var(--cl-weight-semibold);
+  text-transform: none;
+}
+
+.tv-broadcast-alert--entering {
+  animation: tvBroadcastAlertEnter 0.4s ease-out forwards;
+}
+
+.tv-broadcast-alert--exiting {
+  animation: tvBroadcastAlertExit 0.3s ease-in forwards;
+}
+
+@keyframes tvBroadcastAlertEnter {
+  from {
+    transform: translate(-50%, -1.5vmin) scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes tvBroadcastAlertExit {
+  from {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -1.5vmin) scale(0.96);
+    opacity: 0;
+  }
+}
+
+/* The information is in the words and the accent border, never the motion — reduced motion keeps both fully legible and drops only the movement, the same accommodation `.tv-scorebug__badge--live .tv-scorebug__dot` and `.tv-champion__glow` already make. */
+.tv-broadcast-alert[data-reduced-motion] {
+  transform: translateX(-50%);
+}
+
+.tv-broadcast-alert[data-reduced-motion].tv-broadcast-alert--entering {
+  animation: tvBroadcastAlertFade 0.4s ease-out forwards;
+}
+
+.tv-broadcast-alert[data-reduced-motion].tv-broadcast-alert--exiting {
+  animation: tvBroadcastAlertFade 0.3s ease-in reverse forwards;
+}
+
+@keyframes tvBroadcastAlertFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-broadcast-alert.tv-broadcast-alert--entering,
+  .tv-broadcast-alert.tv-broadcast-alert--exiting {
+    animation: tvBroadcastAlertFade 0.3s ease forwards;
+    transform: translateX(-50%);
+  }
+}
+
+/* Multi-court grid (openspec 0303) */
+.tv-multicourt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: var(--cl-space-4);
+  width: 100%;
+  height: 100%;
+}
+
+.tv-multicourt-grid--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.tv-multicourt-grid--4 {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+.tv-multicourt-grid--6 {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+.tv-multicourt-grid--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(1.2rem, 2.4vmin, 2rem);
+  color: var(--tv-text-secondary);
+}
+
+.tv-court-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-3);
+  min-height: 0;
+  padding: 2vmin;
+  background: var(--tv-bg-surface);
+  border: 1px solid var(--tv-border);
+  overflow: hidden;
+}
+
+.tv-court-card__venue {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.9rem, 2vmin, 1.4rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tv-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-court-card__score {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-2);
+  flex: 1;
+  justify-content: center;
+}
+
+.tv-court-card__score--pulse {
+  animation: tvCourtScorePulse 1.2s ease-out;
+}
+
+.tv-court-card__side {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-3);
+}
+
+.tv-court-card__name {
+  font-family: var(--cl-font-display);
+  font-size: clamp(1rem, 2.6vmin, 1.8rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--tv-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-court-card__value {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(2.2rem, 7vmin, 4.5rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--tv-text-primary);
+}
+
+.tv-court-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-3);
+}
+
+.tv-court-card__clock {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.9rem, 1.8vmin, 1.3rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--tv-text-secondary);
+}
+
+@keyframes tvCourtScorePulse {
+  0% {
+    background: color-mix(in srgb, var(--cl-primary) 30%, transparent);
+  }
+  100% {
+    background: transparent;
   }
 }

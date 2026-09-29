@@ -100,6 +100,8 @@ export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): Di
       'scoring.pointsPerWin': {
         permission: { kind: 'replaced' },
         mutationClass: 'blocked_after_results',
+        label: 'Points per win',
+        description: 'How many standings points a win is worth.',
       },
       'scoring.pointsPerDraw': {
         permission: { kind: 'replaced' },

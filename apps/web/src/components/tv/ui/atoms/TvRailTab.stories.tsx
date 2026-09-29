@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TvRailTab } from './TvRailTab.js';
 
 const meta = {
-  title: 'TV/TvRailTab',
+  title: 'TV/Kiosk & Full-Frame Widget/TvRailTab',
   component: TvRailTab,
   args: {
     active: false,

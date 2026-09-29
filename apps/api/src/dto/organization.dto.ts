@@ -395,6 +395,23 @@ export class RulesetOverridesResponse {
     description: 'The full override document after applying the edit, not only the changed fields.',
   })
   overrides!: Record<string, unknown>;
+
+  @ApiProperty({
+    type: Object,
+    additionalProperties: true,
+    description:
+      "The installed discipline's field policies for every overridable field (permission, " +
+      'mutation class, and optional label/description) — context for explaining what each override ' +
+      'field means and how changing it behaves, never a second override-application path.',
+  })
+  fieldPolicies!: Record<string, unknown>;
+
+  @ApiProperty({
+    type: Object,
+    additionalProperties: true,
+    description: "The installed discipline's own default configuration tree, before any override.",
+  })
+  disciplineDefaults!: Record<string, unknown>;
 }
 
 /** Same shape as `RulesetOverridesRequest`/`Response`, one layer down: a stage's own overrides. */
@@ -487,6 +504,14 @@ export class RegistryEntryResponse {
 
   @ApiPropertyOptional({ type: RegistryAuthoringDefinitionResponse })
   authoring?: RegistryAuthoringDefinitionResponse;
+
+  @ApiPropertyOptional({
+    description:
+      "A `{{paramName}}`-placeholder sentence naming this entry's own authored parameters, for " +
+      'rendering a configured rule in plain language. Absent entries render as `type — description`.',
+    example: '{{statistic}} crosses {{threshold}}',
+  })
+  phraseTemplate?: string;
 }
 
 export class HookScriptVocabularyResponse {
@@ -495,6 +520,18 @@ export class HookScriptVocabularyResponse {
 
   @ApiProperty({ type: [RegistryEntryResponse] })
   entries!: readonly RegistryEntryResponse[];
+}
+
+/** Backs weighted allocation's attribute picker — see `StageAllocationRequest`. */
+export class EntrantAttributeKeysResponse {
+  @ApiProperty({
+    type: [String],
+    description:
+      'Distinct entrant-attribute keys recorded anywhere in this tournament, sorted. Empty ' +
+      'when no entrant carries any attribute yet.',
+    example: ['rating', 'seed-rank'],
+  })
+  keys!: readonly string[];
 }
 
 /**
@@ -543,6 +580,79 @@ export class SeriesDeclarationRequest {
   standingsAccounting?: 'series' | 'match';
 }
 
+/** Mirrors the domain's `StageAllocation` union (`automatic` | `manual` | `weighted`). */
+export class StageAllocationRequest {
+  @IsIn(['automatic', 'manual', 'weighted'])
+  @ApiProperty({
+    enum: ['automatic', 'manual', 'weighted'],
+    description:
+      'Where this stage’s seed order comes from: the prior stage’s qualification cut ' +
+      '(automatic), an operator’s explicit placement (manual), or a numeric entrant attribute ' +
+      '(weighted).',
+    example: 'automatic',
+  })
+  mode!: 'automatic' | 'manual' | 'weighted';
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description: 'Required when mode is "weighted": the entrant attribute key to rank on.',
+    example: 'rating',
+  })
+  attributeKey?: string;
+
+  @IsOptional()
+  @IsIn(['higher-first', 'lower-first'])
+  @ApiPropertyOptional({
+    enum: ['higher-first', 'lower-first'],
+    description: 'Required when mode is "weighted": never inferred from the attribute’s values.',
+    example: 'higher-first',
+  })
+  direction?: 'higher-first' | 'lower-first';
+}
+
+/** One stage of a tournament declared at creation time — see `CreateTournamentRequest.stages`. */
+export class CreateTournamentStageRequest {
+  @IsOptional()
+  @IsInt()
+  @ApiPropertyOptional({
+    description: 'Defaults to this stage’s 1-based position within `stages`.',
+    example: 1,
+  })
+  number?: number;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Defaults to "Stage {number}".', example: 'Fase de grupos' })
+  name?: string;
+
+  @IsString()
+  @ApiProperty({ example: 'round-robin' })
+  format!: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SeriesDeclarationRequest)
+  @ApiPropertyOptional({
+    type: SeriesDeclarationRequest,
+    description:
+      'Declares this stage’s crosses as multi-match series. Absent stays the default: no ' +
+      'series, a single match per cross.',
+  })
+  series?: SeriesDeclarationRequest;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StageAllocationRequest)
+  @ApiPropertyOptional({
+    type: StageAllocationRequest,
+    description:
+      'Where this stage’s seed order comes from. Absent leaves the caller to supply seeds ' +
+      'explicitly when opening the stage’s seeding view.',
+  })
+  allocation?: StageAllocationRequest;
+}
+
 export class CreateTournamentRequest {
   @IsString()
   @ApiProperty({ example: 'copa-verano' })
@@ -564,9 +674,16 @@ export class CreateTournamentRequest {
   })
   descriptorVersion!: string;
 
-  @IsString()
-  @ApiProperty({ example: 'round-robin' })
-  format!: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateTournamentStageRequest)
+  @ApiProperty({
+    type: [CreateTournamentStageRequest],
+    description:
+      'Every stage of the tournament, in order. At least one is required — a tournament with ' +
+      'one stage is the common case, declared the same way as a multi-stage one.',
+  })
+  stages!: CreateTournamentStageRequest[];
 
   @IsBoolean()
   @ApiProperty({
@@ -631,15 +748,18 @@ export class CreateTournamentRequest {
   customScripts!: HookScriptAttachmentRequest[];
 
   @IsOptional()
-  @ValidateNested()
-  @Type(() => SeriesDeclarationRequest)
+  @IsObject()
   @ApiPropertyOptional({
-    type: SeriesDeclarationRequest,
+    type: 'object',
+    additionalProperties: true,
     description:
-      'Declares this tournament’s crosses as multi-match series by default. Absent stays the ' +
-      'default: no series, a single match per cross, requiring no further action.',
+      'Dot-path → override value for any discipline-declared ruleset field beyond format/' +
+      'registration.* (already captured by their own dedicated fields above). Merged into the ' +
+      "tournament's initial ruleset alongside those fixed fields; a value rejected by its field " +
+      'policy fails the entire creation.',
+    example: { 'scoring.pointsPerWin': 4 },
   })
-  series?: SeriesDeclarationRequest;
+  ruleOverrides?: Readonly<Record<string, unknown>>;
 }
 
 export class CreateStageRequest {
@@ -676,6 +796,17 @@ export class CreateStageRequest {
       'a single match per cross, requiring no further action.',
   })
   series?: SeriesDeclarationRequest;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StageAllocationRequest)
+  @ApiPropertyOptional({
+    type: StageAllocationRequest,
+    description:
+      'Where this stage’s seed order comes from. Absent leaves the caller to supply seeds ' +
+      'explicitly when opening the stage’s seeding view.',
+  })
+  allocation?: StageAllocationRequest;
 }
 
 export class SeriesMutationFieldPreview {
@@ -731,6 +862,38 @@ export class StageResponse {
     description: 'Absent when this stage declares no series.',
   })
   series?: SeriesDeclarationRequest;
+
+  @ApiPropertyOptional({
+    type: StageAllocationRequest,
+    description: 'Absent when this stage declares no allocation.',
+  })
+  allocation?: StageAllocationRequest;
+
+  @ApiPropertyOptional({
+    description:
+      'Whether this stage already holds a generated fixture. Present on the list read only — ' +
+      '`create`/`update`/`remove` do not compute it.',
+  })
+  seeded?: boolean;
+
+  @ApiPropertyOptional({
+    isArray: true,
+    description:
+      "The tournament's discipline-declared formats to choose from. Present on the list read " +
+      'only — `create`/`update`/`remove` do not compute it.',
+    example: ['single-elimination', 'round-robin'],
+  })
+  availableFormats?: string[];
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: { oneOf: localizedLabelOneOf },
+    description:
+      "The discipline's own explanation of a format it supports, keyed by format. Present on " +
+      'the list read only — `create`/`update`/`remove` do not compute it.',
+    example: { 'round-robin': 'Every entrant plays every other entrant once' },
+  })
+  formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
 }
 
 /** A partial edit — rename is always permitted; a format change is refused once the stage holds a fixture. */
@@ -749,6 +912,17 @@ export class UpdateStageRequest {
     example: 'round-robin',
   })
   format?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StageAllocationRequest)
+  @ApiPropertyOptional({
+    type: StageAllocationRequest,
+    description:
+      'Replaces this stage’s declared allocation. Absent leaves it unchanged; there is no way ' +
+      'to clear a declared allocation back to none through this endpoint.',
+  })
+  allocation?: StageAllocationRequest;
 }
 
 export class ProblemResponse {
@@ -992,6 +1166,14 @@ export class DisciplineSummaryResponse {
     },
   })
   fieldPolicies?: Readonly<Record<string, unknown>>;
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    description: "The discipline's own default configuration tree, before any override.",
+    example: { 'scoring.pointsPerWin': 3 },
+  })
+  defaults?: Readonly<Record<string, unknown>>;
 }
 
 export class ProfileStageSummaryResponse {
@@ -1003,6 +1185,12 @@ export class ProfileStageSummaryResponse {
 
   @ApiProperty({ example: 'round-robin' })
   format!: string;
+
+  @ApiPropertyOptional({
+    type: StageAllocationRequest,
+    description: 'The profile’s declared default seeding for this stage, if any.',
+  })
+  allocation?: StageAllocationRequest;
 }
 
 export class TournamentProfileSummaryResponse {

@@ -7,6 +7,13 @@ import {
   type LocalizedDraft,
 } from './descriptor-authoring.js';
 import type { DisciplineOption } from './wizard.js';
+import {
+  stageProblems as stageAllocationProblems,
+  type WizardStageDraft,
+} from './stage-authoring.js';
+import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
+
+export { renumbered } from './stage-authoring.js';
 
 /**
  * The tournament profile builder wizard (openspec 0164).
@@ -31,16 +38,13 @@ export const PROFILE_STEPS: readonly {
   { id: 'points', label: messages.profileStepPoints },
 ];
 
-export interface ProfileStageDraft {
-  readonly number: number;
-  readonly name: string;
-  readonly format: string;
-}
-
-/** Keeps `number` a contiguous 1-based sequence after an add or a remove — never a gap or a duplicate. */
-export function renumbered(stages: readonly ProfileStageDraft[]): readonly ProfileStageDraft[] {
-  return stages.map((stage, index) => ({ ...stage, number: index + 1 }));
-}
+/**
+ * A profile's stage shares `TournamentSetupWizard`'s stage shape (design.md,
+ * "one shared stage-editor component") but never declares `series` — a
+ * profile is discipline-neutral and has no per-tournament series concept of
+ * its own; it declares only format and a default seeding `allocation`.
+ */
+export type ProfileStageDraft = WizardStageDraft;
 
 export interface ProfileWizardState {
   readonly step: ProfileStepId;
@@ -76,21 +80,18 @@ export function initialProfileWizard(): ProfileWizardState {
   };
 }
 
-const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export function nextStep(state: ProfileWizardState): ProfileStepId {
-  const index = PROFILE_STEPS.findIndex((step) => step.id === state.step);
-  return PROFILE_STEPS[Math.min(index + 1, PROFILE_STEPS.length - 1)]?.id ?? state.step;
+  return nextStepId(PROFILE_STEPS, state.step);
 }
 
 export function previousStep(state: ProfileWizardState): ProfileStepId {
-  const index = PROFILE_STEPS.findIndex((step) => step.id === state.step);
-  return PROFILE_STEPS[Math.max(index - 1, 0)]?.id ?? state.step;
+  return previousStepId(PROFILE_STEPS, state.step);
 }
 
 export function progress(state: ProfileWizardState): number {
-  const index = PROFILE_STEPS.findIndex((step) => step.id === state.step);
-  return Math.round(((index + 1) / PROFILE_STEPS.length) * 100);
+  return stepProgress(PROFILE_STEPS, state.step);
 }
 
 export function formatsFor(
@@ -129,6 +130,7 @@ export function stepProblems(
       ) {
         problems.push(messages.profileProblemStageFormat);
       }
+      problems.push(...state.stages.flatMap(stageAllocationProblems));
       return problems;
     }
     case 'points':
@@ -174,6 +176,7 @@ export function toAuthoredDocument(state: ProfileWizardState): Record<string, un
       number: stage.number,
       name: stage.name,
       format: stage.format,
+      ...(stage.allocation === undefined ? {} : { allocation: stage.allocation }),
     })),
     points: { win: state.pointsWin, draw: state.pointsDraw, loss: state.pointsLoss },
     tiebreak: [],

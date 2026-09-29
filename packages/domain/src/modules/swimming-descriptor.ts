@@ -32,7 +32,22 @@ export function swimmingDescriptor(
     participantTypes: ['individual', 'team'],
     // A team here is a relay squad.
     rosterConstraints: { minPlayers: 1, maxPlayers: 4 },
-    segmentTypes: [{ name: 'heat', label: 'Heat', timed: true }],
+    segmentTypes: [
+      {
+        name: 'heat',
+        label: {
+          en: 'Heat',
+          es: 'Serie',
+          fr: 'Série',
+          de: 'Lauf',
+          it: 'Batteria',
+          pt: 'Bateria',
+          ru: 'Заезд',
+          zh: '预赛',
+        },
+        timed: true,
+      },
+    ],
     eventDefinitions: [
       {
         code: 'finish',

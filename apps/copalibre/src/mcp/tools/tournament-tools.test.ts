@@ -87,7 +87,7 @@ describe('tournamentTools', () => {
       name: 'Copa Verano',
       descriptorId: 'discipline-id',
       descriptorVersion: '1.2.0',
-      format: 'round-robin',
+      stages: [{ format: 'round-robin' }],
       publicRegistration: true,
       requiresCheckIn: false,
     });

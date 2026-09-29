@@ -319,6 +319,7 @@ export function registerCopalibreConditions(registry: RulesRegistry): RulesRegis
         ),
       ],
     },
+    '{{op1}} {{comp}} {{op2}}',
   );
   registry.registerCondition(
     CompareTwoStringsCondition.TYPE,
@@ -351,6 +352,7 @@ export function registerCopalibreConditions(registry: RulesRegistry): RulesRegis
         additionalProperties: false,
       },
     },
+    '{{op1}} {{comp}} {{op2}}',
   );
   registry.registerCondition(
     ValueInSetCondition.TYPE,
@@ -371,6 +373,7 @@ export function registerCopalibreConditions(registry: RulesRegistry): RulesRegis
         additionalProperties: false,
       },
     },
+    '{{value}} is in the declared list',
   );
   registry.registerCondition(
     ValueExistsCondition.TYPE,
@@ -385,6 +388,7 @@ export function registerCopalibreConditions(registry: RulesRegistry): RulesRegis
         additionalProperties: false,
       },
     },
+    '{{path}} was recorded',
   );
   registry.registerCondition(
     CompareTwoInstantsCondition.TYPE,
@@ -403,6 +407,7 @@ export function registerCopalibreConditions(registry: RulesRegistry): RulesRegis
         },
       ],
     },
+    '{{op1}} {{comp}} {{op2}}',
   );
   return registry;
 }

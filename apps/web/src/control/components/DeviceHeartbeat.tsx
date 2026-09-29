@@ -6,6 +6,7 @@ import {
 } from '../lib/device-heartbeat.js';
 import type { DisplayTokenResponse } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
+import { Badge } from './ui/atoms/badge.js';
 
 const BADGE_ACCENT: Readonly<Record<HeartbeatStatus, string>> = {
   online: 'cl-state--live',
@@ -39,9 +40,11 @@ export function DeviceHeartbeat({
         <FormattedMessage {...messages.deviceHeartbeatTitle} />
       </h2>
       {devices.length === 0 && (
-        <p>
-          <FormattedMessage {...messages.deviceHeartbeatEmpty} />
-        </p>
+        <div className="cl-empty-state">
+          <p className="cl-text-muted">
+            <FormattedMessage {...messages.deviceHeartbeatEmpty} />
+          </p>
+        </div>
       )}
       <ul>
         {devices.map(({ tournamentAlias, token }) => {
@@ -49,9 +52,10 @@ export function DeviceHeartbeat({
           const presentation = HEARTBEAT_PRESENTATION[status];
           return (
             <li key={token.displayTokenId}>
-              <span className={`cl-badge ${BADGE_ACCENT[status]}`}>
-                {intl.formatMessage(presentation.label)}
-              </span>{' '}
+              <Badge
+                className={BADGE_ACCENT[status]}
+                label={intl.formatMessage(presentation.label)}
+              />{' '}
               <span>{token.label ?? token.displayTokenId}</span> <span>({tournamentAlias})</span>
               {token.lastSeenAt !== undefined && (
                 <>

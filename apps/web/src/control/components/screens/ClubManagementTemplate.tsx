@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { clubEmblemUrl, type ClubResponse, type ControlApiClient } from '../../lib/api-client.js';
+import { controlLinkClick } from '../../lib/control-navigation.js';
 import { FramedImage } from '../FramedImage.js';
 import { ImageCropModal } from '../ImageCropModal.js';
 import { ClubEmblemPlaceholder } from '../placeholders.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
+import { filePickerLabels } from '../../lib/file-picker-labels.js';
 import { Input } from '../ui/atoms/input.js';
+import { LinkButton } from '../ui/atoms/link-button.js';
 import { Field } from '../ui/molecules/field.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
@@ -20,6 +23,7 @@ import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
  */
 export function ClubManagementTemplate({
   api,
+  canManageClubMembers,
   clubs,
   onCreateClub,
   onSaveClub,
@@ -27,6 +31,8 @@ export function ClubManagementTemplate({
   organizationAlias,
 }: {
   readonly api: ControlApiClient;
+  /** Gates the per-club "Club Portal" link (openspec 0301) — the same capability its backend routes require. */
+  readonly canManageClubMembers: boolean;
   readonly clubs: readonly ClubResponse[];
   readonly onCreateClub: (name: string, alias: string, abbreviation: string) => Promise<boolean>;
   readonly onSaveClub: (
@@ -113,6 +119,17 @@ export function ClubManagementTemplate({
               <Button onClick={() => selectClub(club)} type="button" variant="secondary">
                 <FormattedMessage {...messages.clubManagementEdit} />
               </Button>
+              {canManageClubMembers && (
+                <LinkButton
+                  href={`/control/${organizationAlias}/clubs/${club.clubId}/portal/members`}
+                  onClick={controlLinkClick(
+                    `/control/${organizationAlias}/clubs/${club.clubId}/portal/members`,
+                  )}
+                  variant="secondary"
+                >
+                  <FormattedMessage {...messages.dashboardClubPortal} />
+                </LinkButton>
+              )}
             </li>
           ))}
         </ul>
@@ -205,6 +222,7 @@ export function ClubManagementTemplate({
                   const file = files?.[0];
                   if (file) setEmblemCropSrc(URL.createObjectURL(file));
                 }}
+                {...filePickerLabels(intl, { accept: 'image/*' })}
               />
             )}
 

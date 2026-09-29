@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import type { CreateOrganizationRequest } from '@copalibre/contracts';
+import type { CreateOrganizationRequest, DiagnosticsSummary } from '@copalibre/contracts';
+import { controlLinkClick } from '../../lib/control-navigation.js';
 import type {
   AuthoredModuleRequest,
   AuthoredModuleValidationFailureResponse,
@@ -24,6 +25,7 @@ import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
 import { Form } from '../ui/atoms/form.js';
 import { EditorialCard } from '../ui/molecules/editorial-card.js';
 import { Field } from '../ui/molecules/field.js';
+import { PlatformDiagnosticsScreen } from './PlatformDiagnosticsScreen.js';
 
 const LANGUAGES = ['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;
 
@@ -42,10 +44,15 @@ const EMPTY_ORGANIZATION: CreateOrganizationRequest = {
  * props.
  */
 export function PlatformAdministrationTemplate({
+  activeTab = 'overview',
   api,
   authoringBusy,
   authoringFailures,
+  autoPoll = false,
   busy,
+  diagnosticsError,
+  diagnosticsLoading = false,
+  diagnosticsSummary,
   disciplineOptions,
   loadingModules,
   loadingSuperAdmins,
@@ -57,17 +64,27 @@ export function PlatformAdministrationTemplate({
   onCreateSuperAdmin,
   onInstallModule,
   onInviteAdmin,
+  onRefreshDiagnostics,
   onRemoveModule,
   onRemoveSuperAdmin,
+  onRetryOutboxEvents,
+  onSelectTab,
+  onToggleAutoPoll,
   onVerifyModule,
   outdated,
+  retryingOutbox = false,
   superAdmins,
   verification,
 }: {
+  readonly activeTab?: 'overview' | 'diagnostics';
   readonly api: ControlApiClient;
   readonly authoringBusy: boolean;
   readonly authoringFailures: readonly AuthoredModuleValidationFailureResponse[];
+  readonly autoPoll?: boolean;
   readonly busy: string | undefined;
+  readonly diagnosticsError?: string;
+  readonly diagnosticsLoading?: boolean;
+  readonly diagnosticsSummary?: DiagnosticsSummary;
   readonly disciplineOptions: readonly DisciplineOption[];
   readonly loadingModules: boolean;
   readonly loadingSuperAdmins: boolean;
@@ -81,10 +98,15 @@ export function PlatformAdministrationTemplate({
   readonly onCreateSuperAdmin: (principalId: string) => Promise<boolean>;
   readonly onInstallModule: (aliasValue: string, range: string, source: string) => Promise<boolean>;
   readonly onInviteAdmin: (alias: string, email: string) => Promise<boolean>;
+  readonly onRefreshDiagnostics?: () => Promise<void>;
   readonly onRemoveModule: (moduleAlias: string) => Promise<void>;
   readonly onRemoveSuperAdmin: (assignmentId: string) => Promise<void>;
+  readonly onRetryOutboxEvents?: (eventIds: readonly string[]) => Promise<void>;
+  readonly onSelectTab?: (tab: 'overview' | 'diagnostics') => void;
+  readonly onToggleAutoPoll?: (enabled: boolean) => void;
   readonly onVerifyModule: (moduleAlias: string) => Promise<void>;
   readonly outdated: readonly OutdatedModuleResponse[];
+  readonly retryingOutbox?: boolean;
   readonly superAdmins: readonly InstallationSuperAdminResponse[];
   readonly verification: readonly ModuleVerifyResultResponse[];
 }): React.JSX.Element {
@@ -178,8 +200,18 @@ export function PlatformAdministrationTemplate({
         const result = verification.find(
           (entry) => entry.alias === module_.alias && entry.version === module_.version,
         );
+        const documentHref = `/control/platform/disciplines/${module_.alias}`;
         return (
           <div className="cl-role-status">
+            {module_.kind === 'discipline' && (
+              <a
+                className="cl-focusable"
+                href={documentHref}
+                onClick={controlLinkClick(documentHref)}
+              >
+                <FormattedMessage {...messages.platformViewDiscipline} />
+              </a>
+            )}
             <Button
               disabled={busy !== undefined}
               onClick={() => void onVerifyModule(module_.alias)}
@@ -230,346 +262,388 @@ export function PlatformAdministrationTemplate({
       breadcrumb={<FormattedMessage {...messages.platformSectionLabel} />}
       listing={
         <div className="cl-screen-sections">
-          <Card aria-labelledby="platform-organization-heading" role="region">
-            <CardHeader>
-              <CardTitle id="platform-organization-heading">
-                <FormattedMessage {...messages.platformOrganizationHeading} />
-              </CardTitle>
-              <CardDescription>
-                <FormattedMessage {...messages.platformOrganizationDescription} />
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {!bootstrapAlias ? (
-                <Form
-                  className="cl-platform-form-grid"
-                  onSubmit={(event) => void submitOrganization(event)}
-                >
-                  <Field
-                    id="platform-org-alias"
-                    label={intl.formatMessage(messages.platformOrganizationAlias)}
-                  >
-                    <Input
-                      id="platform-org-alias"
-                      onChange={(event) =>
-                        setOrganization((current) => ({ ...current, alias: event.target.value }))
-                      }
-                      required
-                      value={organization.alias}
-                    />
-                  </Field>
-                  <Field
-                    id="platform-org-name"
-                    label={intl.formatMessage(messages.platformOrganizationName)}
-                  >
-                    <Input
-                      id="platform-org-name"
-                      onChange={(event) =>
-                        setOrganization((current) => ({ ...current, name: event.target.value }))
-                      }
-                      required
-                      value={organization.name}
-                    />
-                  </Field>
-                  <Field
-                    id="platform-org-language"
-                    label={intl.formatMessage(messages.platformPrimaryLanguage)}
-                  >
-                    <Select
-                      id="platform-org-language"
-                      onValueChange={(val) =>
-                        setOrganization((current) => ({
-                          ...current,
-                          primaryLanguage: val as CreateOrganizationRequest['primaryLanguage'],
-                        }))
-                      }
-                      options={LANGUAGES.map((language) => ({
-                        value: language,
-                        label: language,
-                      }))}
-                      value={organization.primaryLanguage ?? 'es'}
-                    />
-                  </Field>
-                  <Field
-                    id="platform-org-timezone"
-                    label={intl.formatMessage(messages.platformTimezone)}
-                  >
-                    <Input
-                      id="platform-org-timezone"
-                      onChange={(event) =>
-                        setOrganization((current) => ({ ...current, timezone: event.target.value }))
-                      }
-                      required
-                      value={organization.timezone}
-                    />
-                  </Field>
-                  <Button disabled={busy === 'organization'} type="submit">
-                    <FormattedMessage {...messages.platformCreateOrganization} />
-                  </Button>
-                </Form>
-              ) : (
-                <Form
-                  className="cl-platform-form-grid"
-                  onSubmit={(event) => void submitInvitation(event)}
-                >
-                  <p>
-                    <FormattedMessage
-                      {...messages.platformOrganizationReady}
-                      values={{ alias: bootstrapAlias }}
-                    />
-                  </p>
-                  <Field
-                    id="platform-admin-email"
-                    label={intl.formatMessage(messages.platformFirstAdminEmail)}
-                  >
-                    <Input
-                      id="platform-admin-email"
-                      onChange={(event) => setAdminEmail(event.target.value)}
-                      required
-                      type="email"
-                      value={adminEmail}
-                    />
-                  </Field>
-                  <Field
-                    id="platform-admin-role"
-                    label={intl.formatMessage(messages.platformFirstAdminRole)}
-                  >
-                    <Input id="platform-admin-role" readOnly value="admin" />
-                  </Field>
-                  <Button disabled={busy === 'invitation'} type="submit">
-                    <FormattedMessage {...messages.platformInviteAdministrator} />
-                  </Button>
-                </Form>
-              )}
-            </CardContent>
-          </Card>
+          <div className="cl-table-toolbar__filters" role="tablist">
+            <Button
+              aria-selected={activeTab !== 'diagnostics'}
+              onClick={() => onSelectTab?.('overview')}
+              role="tab"
+              variant={activeTab !== 'diagnostics' ? 'primary' : 'secondary'}
+            >
+              <FormattedMessage {...messages.platformTabOverview} />
+            </Button>
+            <Button
+              aria-selected={activeTab === 'diagnostics'}
+              onClick={() => onSelectTab?.('diagnostics')}
+              role="tab"
+              variant={activeTab === 'diagnostics' ? 'primary' : 'secondary'}
+            >
+              <FormattedMessage {...messages.platformTabDiagnostics} />
+            </Button>
+          </div>
 
-          <Card aria-labelledby="platform-users-heading" role="region">
-            <CardHeader>
-              <CardTitle id="platform-users-heading">
-                <FormattedMessage {...messages.platformUsersHeading} />
-              </CardTitle>
-              <CardDescription>
-                <FormattedMessage {...messages.platformUsersDescription} />
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="cl-platform-form-grid">
-                <Field
-                  id="platform-manage-org-alias"
-                  label={intl.formatMessage(messages.platformManageOrganizationAlias)}
-                >
-                  <Input
-                    id="platform-manage-org-alias"
-                    onChange={(event) => setManageOrgAlias(event.target.value)}
-                    value={manageOrgAlias}
-                  />
-                </Field>
-                <Button
-                  disabled={!manageOrgAlias.trim()}
-                  onClick={() => setManagingOrgAlias(manageOrgAlias.trim())}
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage {...messages.platformManageOrganizationUsers} />
-                </Button>
-              </div>
-              {managingOrgAlias ? (
-                <Card>
-                  <CardContent>
-                    <RolesPermissionsPage client={api} organizationAlias={managingOrgAlias} />
-                  </CardContent>
-                </Card>
-              ) : null}
-
-              <h3>
-                <FormattedMessage {...messages.platformSuperAdminsHeading} />
-              </h3>
-              {loadingSuperAdmins ? (
-                <p>
-                  <FormattedMessage {...messages.platformLoadingModules} />
-                </p>
-              ) : superAdmins.length === 0 ? (
-                <p>
-                  <FormattedMessage {...messages.platformNoSuperAdmins} />
-                </p>
-              ) : (
-                <ul className="cl-platform-update-list">
-                  {superAdmins.map((row) => (
-                    <li key={row.assignmentId}>
-                      {row.principalId} — {row.status}{' '}
-                      <Button
-                        disabled={busy !== undefined}
-                        onClick={() => void onRemoveSuperAdmin(row.assignmentId)}
-                        type="button"
-                        variant="destructive-outline"
+          {activeTab === 'diagnostics' ? (
+            <PlatformDiagnosticsScreen
+              autoPoll={autoPoll}
+              error={diagnosticsError}
+              loading={diagnosticsLoading}
+              onRefresh={onRefreshDiagnostics ?? (async () => {})}
+              onRetryEvents={onRetryOutboxEvents ?? (async () => {})}
+              onToggleAutoPoll={onToggleAutoPoll ?? (() => {})}
+              retrying={retryingOutbox}
+              summary={diagnosticsSummary}
+            />
+          ) : (
+            <>
+              <Card aria-labelledby="platform-organization-heading" role="region">
+                <CardHeader>
+                  <CardTitle id="platform-organization-heading">
+                    <FormattedMessage {...messages.platformOrganizationHeading} />
+                  </CardTitle>
+                  <CardDescription>
+                    <FormattedMessage {...messages.platformOrganizationDescription} />
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {!bootstrapAlias ? (
+                    <Form
+                      className="cl-platform-form-grid"
+                      onSubmit={(event) => void submitOrganization(event)}
+                    >
+                      <Field
+                        id="platform-org-alias"
+                        label={intl.formatMessage(messages.platformOrganizationAlias)}
                       >
-                        <FormattedMessage {...messages.platformRemove} />
+                        <Input
+                          id="platform-org-alias"
+                          onChange={(event) =>
+                            setOrganization((current) => ({
+                              ...current,
+                              alias: event.target.value,
+                            }))
+                          }
+                          required
+                          value={organization.alias}
+                        />
+                      </Field>
+                      <Field
+                        id="platform-org-name"
+                        label={intl.formatMessage(messages.platformOrganizationName)}
+                      >
+                        <Input
+                          id="platform-org-name"
+                          onChange={(event) =>
+                            setOrganization((current) => ({ ...current, name: event.target.value }))
+                          }
+                          required
+                          value={organization.name}
+                        />
+                      </Field>
+                      <Field
+                        id="platform-org-language"
+                        label={intl.formatMessage(messages.platformPrimaryLanguage)}
+                      >
+                        <Select
+                          id="platform-org-language"
+                          onValueChange={(val) =>
+                            setOrganization((current) => ({
+                              ...current,
+                              primaryLanguage: val as CreateOrganizationRequest['primaryLanguage'],
+                            }))
+                          }
+                          options={LANGUAGES.map((language) => ({
+                            value: language,
+                            label: language,
+                          }))}
+                          value={organization.primaryLanguage ?? 'es'}
+                        />
+                      </Field>
+                      <Field
+                        id="platform-org-timezone"
+                        label={intl.formatMessage(messages.platformTimezone)}
+                      >
+                        <Input
+                          id="platform-org-timezone"
+                          onChange={(event) =>
+                            setOrganization((current) => ({
+                              ...current,
+                              timezone: event.target.value,
+                            }))
+                          }
+                          required
+                          value={organization.timezone}
+                        />
+                      </Field>
+                      <Button disabled={busy === 'organization'} type="submit">
+                        <FormattedMessage {...messages.platformCreateOrganization} />
                       </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Form
-                className="cl-platform-form-grid"
-                onSubmit={(event) => void submitSuperAdmin(event)}
-              >
-                <Field
-                  id="platform-super-admin-principal"
-                  label={intl.formatMessage(messages.platformSuperAdminPrincipalId)}
-                >
-                  <Input
-                    id="platform-super-admin-principal"
-                    onChange={(event) => setNewSuperAdminPrincipalId(event.target.value)}
-                    required
-                    value={newSuperAdminPrincipalId}
-                  />
-                </Field>
-                <Button disabled={busy === 'super-admin'} type="submit">
-                  <FormattedMessage {...messages.platformCreateSuperAdmin} />
-                </Button>
-              </Form>
-            </CardContent>
-          </Card>
+                    </Form>
+                  ) : (
+                    <Form
+                      className="cl-platform-form-grid"
+                      onSubmit={(event) => void submitInvitation(event)}
+                    >
+                      <p>
+                        <FormattedMessage
+                          {...messages.platformOrganizationReady}
+                          values={{ alias: bootstrapAlias }}
+                        />
+                      </p>
+                      <Field
+                        id="platform-admin-email"
+                        label={intl.formatMessage(messages.platformFirstAdminEmail)}
+                      >
+                        <Input
+                          id="platform-admin-email"
+                          onChange={(event) => setAdminEmail(event.target.value)}
+                          required
+                          type="email"
+                          value={adminEmail}
+                        />
+                      </Field>
+                      <Field
+                        id="platform-admin-role"
+                        label={intl.formatMessage(messages.platformFirstAdminRole)}
+                      >
+                        <Input id="platform-admin-role" readOnly value="admin" />
+                      </Field>
+                      <Button disabled={busy === 'invitation'} type="submit">
+                        <FormattedMessage {...messages.platformInviteAdministrator} />
+                      </Button>
+                    </Form>
+                  )}
+                </CardContent>
+              </Card>
 
-          <Card aria-labelledby="platform-modules-heading" role="region">
-            <CardHeader className="cl-platform-modules-header">
-              <div>
-                <CardTitle id="platform-modules-heading">
-                  <FormattedMessage {...messages.platformModulesHeading} />
-                </CardTitle>
-                <CardDescription>
-                  <FormattedMessage {...messages.platformModulesDescription} />
-                </CardDescription>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--cl-space-3)' }}>
-                <Button
-                  disabled={busy === 'outdated'}
-                  onClick={() => void onCheckOutdated()}
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage {...messages.platformCheckUpdates} />
-                </Button>
-                <Button
-                  onClick={() => setAuthoringDiscipline((current) => !current)}
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage {...messages.platformAuthorDiscipline} />
-                </Button>
-                <Button
-                  onClick={() => setAuthoringProfile((current) => !current)}
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage {...messages.platformAuthorProfile} />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {authoringDiscipline && (
-                <DescriptorBuilderWizard
-                  busy={authoringBusy}
-                  failures={authoringFailures}
-                  onSubmit={(request) => void submitDiscipline(request)}
-                />
-              )}
-              {authoringProfile && (
-                <ProfileBuilderWizard
-                  busy={authoringBusy}
-                  disciplines={disciplineOptions}
-                  failures={authoringFailures}
-                  onSubmit={(request) => void submitProfile(request)}
-                />
-              )}
-              {/*
+              <Card aria-labelledby="platform-users-heading" role="region">
+                <CardHeader>
+                  <CardTitle id="platform-users-heading">
+                    <FormattedMessage {...messages.platformUsersHeading} />
+                  </CardTitle>
+                  <CardDescription>
+                    <FormattedMessage {...messages.platformUsersDescription} />
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="cl-platform-form-grid">
+                    <Field
+                      id="platform-manage-org-alias"
+                      label={intl.formatMessage(messages.platformManageOrganizationAlias)}
+                    >
+                      <Input
+                        id="platform-manage-org-alias"
+                        onChange={(event) => setManageOrgAlias(event.target.value)}
+                        value={manageOrgAlias}
+                      />
+                    </Field>
+                    <Button
+                      disabled={!manageOrgAlias.trim()}
+                      onClick={() => setManagingOrgAlias(manageOrgAlias.trim())}
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage {...messages.platformManageOrganizationUsers} />
+                    </Button>
+                  </div>
+                  {managingOrgAlias ? (
+                    <Card>
+                      <CardContent>
+                        <RolesPermissionsPage client={api} organizationAlias={managingOrgAlias} />
+                      </CardContent>
+                    </Card>
+                  ) : null}
+
+                  <h3>
+                    <FormattedMessage {...messages.platformSuperAdminsHeading} />
+                  </h3>
+                  {loadingSuperAdmins ? (
+                    <p>
+                      <FormattedMessage {...messages.platformLoadingModules} />
+                    </p>
+                  ) : superAdmins.length === 0 ? (
+                    <p>
+                      <FormattedMessage {...messages.platformNoSuperAdmins} />
+                    </p>
+                  ) : (
+                    <ul className="cl-platform-update-list">
+                      {superAdmins.map((row) => (
+                        <li key={row.assignmentId}>
+                          {row.principalId} — {row.status}{' '}
+                          <Button
+                            disabled={busy !== undefined}
+                            onClick={() => void onRemoveSuperAdmin(row.assignmentId)}
+                            type="button"
+                            variant="destructive-outline"
+                          >
+                            <FormattedMessage {...messages.platformRemove} />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <Form
+                    className="cl-platform-form-grid"
+                    onSubmit={(event) => void submitSuperAdmin(event)}
+                  >
+                    <Field
+                      id="platform-super-admin-principal"
+                      label={intl.formatMessage(messages.platformSuperAdminPrincipalId)}
+                    >
+                      <Input
+                        id="platform-super-admin-principal"
+                        onChange={(event) => setNewSuperAdminPrincipalId(event.target.value)}
+                        required
+                        value={newSuperAdminPrincipalId}
+                      />
+                    </Field>
+                    <Button disabled={busy === 'super-admin'} type="submit">
+                      <FormattedMessage {...messages.platformCreateSuperAdmin} />
+                    </Button>
+                  </Form>
+                </CardContent>
+              </Card>
+
+              <Card aria-labelledby="platform-modules-heading" role="region">
+                <CardHeader className="cl-platform-modules-header">
+                  <div>
+                    <CardTitle id="platform-modules-heading">
+                      <FormattedMessage {...messages.platformModulesHeading} />
+                    </CardTitle>
+                    <CardDescription>
+                      <FormattedMessage {...messages.platformModulesDescription} />
+                    </CardDescription>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--cl-space-3)' }}>
+                    <Button
+                      disabled={busy === 'outdated'}
+                      onClick={() => void onCheckOutdated()}
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage {...messages.platformCheckUpdates} />
+                    </Button>
+                    <Button
+                      onClick={() => setAuthoringDiscipline((current) => !current)}
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage {...messages.platformAuthorDiscipline} />
+                    </Button>
+                    <Button
+                      onClick={() => setAuthoringProfile((current) => !current)}
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage {...messages.platformAuthorProfile} />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {authoringDiscipline && (
+                    <DescriptorBuilderWizard
+                      busy={authoringBusy}
+                      failures={authoringFailures}
+                      onSubmit={(request) => void submitDiscipline(request)}
+                    />
+                  )}
+                  {authoringProfile && (
+                    <ProfileBuilderWizard
+                      busy={authoringBusy}
+                      disciplines={disciplineOptions}
+                      failures={authoringFailures}
+                      onSubmit={(request) => void submitProfile(request)}
+                    />
+                  )}
+                  {/*
                 The updates this screen already fetched, read as writing rather
                 than as a bare list. Every value below comes from
                 `listOutdatedModules`; nothing is a release note this file made
                 up, and no listing, feed or subscription was added to show them.
               */}
-              {outdated.length > 0 && (
-                <div
-                  aria-label={intl.formatMessage(messages.platformUpdatesAvailable)}
-                  className="cl-editorial-list"
-                  role="group"
-                >
-                  {outdated.map((entry) => (
-                    <EditorialCard
-                      callout={{
-                        title: intl.formatMessage(messages.platformUpdateCalloutTitle),
-                        description: intl.formatMessage(messages.platformUpdateCalloutDescription),
-                      }}
-                      dateline={intl.formatMessage(messages.platformUpdateKind, {
-                        upgrade: entry.upgrade,
-                      })}
-                      eyebrow={intl.formatMessage(messages.platformUpdateEyebrow)}
-                      key={entry.alias}
-                      title={intl.formatMessage(messages.platformUpdateHeadline, {
-                        alias: entry.alias,
-                        currentVersion: entry.currentVersion,
-                        latestVersion: entry.latestVersion,
-                      })}
-                    />
-                  ))}
-                </div>
-              )}
-              <Form
-                className="cl-platform-form-grid"
-                onSubmit={(event) => void submitModule(event)}
-              >
-                <Field
-                  id="platform-module-alias"
-                  label={intl.formatMessage(messages.platformModuleAlias)}
-                >
-                  <Input
-                    id="platform-module-alias"
-                    onChange={(event) => setAlias(event.target.value)}
-                    required
-                    value={alias}
-                  />
-                </Field>
-                <Field
-                  id="platform-module-range"
-                  label={intl.formatMessage(messages.platformVersionRange)}
-                >
-                  <Input
-                    id="platform-module-range"
-                    onChange={(event) => setRange(event.target.value)}
-                    placeholder="^1.0.0"
-                    value={range}
-                  />
-                </Field>
-                <Field
-                  id="platform-module-source"
-                  label={intl.formatMessage(messages.platformAlternateSource)}
-                >
-                  <Input
-                    id="platform-module-source"
-                    onChange={(event) => setSource(event.target.value)}
-                    placeholder="file:///…"
-                    value={source}
-                  />
-                </Field>
-                <Button disabled={busy === 'install'} type="submit">
-                  <FormattedMessage {...messages.platformInstallModule} />
-                </Button>
-              </Form>
+                  {outdated.length > 0 && (
+                    <div
+                      aria-label={intl.formatMessage(messages.platformUpdatesAvailable)}
+                      className="cl-editorial-list"
+                      role="group"
+                    >
+                      {outdated.map((entry) => (
+                        <EditorialCard
+                          callout={{
+                            title: intl.formatMessage(messages.platformUpdateCalloutTitle),
+                            description: intl.formatMessage(
+                              messages.platformUpdateCalloutDescription,
+                            ),
+                          }}
+                          dateline={intl.formatMessage(messages.platformUpdateKind, {
+                            upgrade: entry.upgrade,
+                          })}
+                          eyebrow={intl.formatMessage(messages.platformUpdateEyebrow)}
+                          key={entry.alias}
+                          title={intl.formatMessage(messages.platformUpdateHeadline, {
+                            alias: entry.alias,
+                            currentVersion: entry.currentVersion,
+                            latestVersion: entry.latestVersion,
+                          })}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <Form
+                    className="cl-platform-form-grid"
+                    onSubmit={(event) => void submitModule(event)}
+                  >
+                    <Field
+                      id="platform-module-alias"
+                      label={intl.formatMessage(messages.platformModuleAlias)}
+                    >
+                      <Input
+                        id="platform-module-alias"
+                        onChange={(event) => setAlias(event.target.value)}
+                        required
+                        value={alias}
+                      />
+                    </Field>
+                    <Field
+                      id="platform-module-range"
+                      label={intl.formatMessage(messages.platformVersionRange)}
+                    >
+                      <Input
+                        id="platform-module-range"
+                        onChange={(event) => setRange(event.target.value)}
+                        placeholder="^1.0.0"
+                        value={range}
+                      />
+                    </Field>
+                    <Field
+                      id="platform-module-source"
+                      label={intl.formatMessage(messages.platformAlternateSource)}
+                    >
+                      <Input
+                        id="platform-module-source"
+                        onChange={(event) => setSource(event.target.value)}
+                        placeholder="file:///…"
+                        value={source}
+                      />
+                    </Field>
+                    <Button disabled={busy === 'install'} type="submit">
+                      <FormattedMessage {...messages.platformInstallModule} />
+                    </Button>
+                  </Form>
 
-              {loadingModules ? (
-                <p>
-                  <FormattedMessage {...messages.platformLoadingModules} />
-                </p>
-              ) : modules.length === 0 ? (
-                <p>
-                  <FormattedMessage {...messages.platformNoModules} />
-                </p>
-              ) : (
-                <DataTable columns={moduleColumns} rowKey={(m) => m.moduleId} rows={modules} />
-              )}
-            </CardContent>
-          </Card>
+                  {loadingModules ? (
+                    <p>
+                      <FormattedMessage {...messages.platformLoadingModules} />
+                    </p>
+                  ) : modules.length === 0 ? (
+                    <p>
+                      <FormattedMessage {...messages.platformNoModules} />
+                    </p>
+                  ) : (
+                    <DataTable columns={moduleColumns} rowKey={(m) => m.moduleId} rows={modules} />
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       }
       title={<FormattedMessage {...messages.platformTitle} />}

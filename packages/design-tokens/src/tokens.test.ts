@@ -10,6 +10,7 @@ import {
 import { CONTRAST_GATES, contrastRatio } from './contrast.js';
 import { PROTECTED_TOKENS, SEMANTIC_COLORS, isProtected, resolveSemantic } from './semantic.js';
 import {
+  BADGE_TONES,
   BUTTON_VARIANTS,
   CHECKBOX_TOKENS,
   RADIO_TOKENS,
@@ -156,6 +157,22 @@ describe('the Control-web data-density spacing subset', () => {
 });
 
 describe('the badge contract', () => {
+  it('defines every used tone with a semantic color, weight and non-color cue', () => {
+    expect(Object.keys(BADGE_TONES)).toEqual([
+      'live',
+      'final',
+      'upcoming',
+      'stage',
+      'muted',
+      'positive',
+    ]);
+    for (const tone of Object.values(BADGE_TONES)) {
+      expect(SEMANTIC_COLORS[tone.color]).toBeDefined();
+      expect(tone.nonColourCue).not.toBe('');
+      expect(assertBadge({ state: tone.color, label: tone.nonColourCue })).toBeDefined();
+    }
+  });
+
   it('accepts a badge with a label', () => {
     expect(assertBadge({ state: 'state-live', label: 'EN VIVO' }).label).toBe('EN VIVO');
   });
@@ -167,6 +184,14 @@ describe('the badge contract', () => {
 
 describe('the CSS output', () => {
   const css = generateCss();
+
+  it('generates a token-backed rule for every badge tone', () => {
+    for (const [name, tone] of Object.entries(BADGE_TONES)) {
+      expect(css).toContain(`--cl-badge-${name}-color: var(--cl-${tone.color});`);
+      expect(css).toContain(`.cl-badge--${name} {`);
+      expect(css).toContain(`color: var(--cl-badge-${name}-color);`);
+    }
+  });
 
   it('declares every primitive and every semantic token', () => {
     for (const name of Object.keys(COLOR_PRIMITIVES)) expect(css).toContain(`--cl-color-${name}:`);
@@ -251,6 +276,22 @@ describe('the CSS output', () => {
     }
   });
 
+  it('keeps TV possession and timed-penalty text readable on their opaque ink-950 well', () => {
+    // The TV scorebug and lower third render each marker as `state-positive` or
+    // `state-upcoming` text over an opaque `ink-950` background (openspec 0294)
+    // — never a translucent scrim, since that inherits unpredictable video
+    // color behind it. Both must clear normal-text AA on their own, not just
+    // the non-text gate, since the marker's text is the fact being broadcast.
+    const well = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-base'].primitive];
+    expect(SEMANTIC_COLORS['surface-base'].primitive).toBe('ink-950');
+    expect(
+      contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['state-positive'].primitive], well),
+    ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+    expect(
+      contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['state-upcoming'].primitive], well),
+    ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+  });
+
   it('separates actual selection fills from neutral chrome without tinting ordinary controls', () => {
     const selected = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-raised'].primitive];
     const chrome = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-chrome'].primitive];
@@ -273,10 +314,10 @@ describe('the CSS output', () => {
   it('offers the chamfer as a family, not a single cut', () => {
     // A composition that wants one corner cut should not have to take the pair.
     expect(css).toContain('border-radius: 0 var(--cl-chamfer-size) 0 0;');
-    expect(css).toContain('corner-shape: round bevel round round;');
+    expect(css).toContain('corner-shape: square bevel square square;');
     expect(css).toContain('border-radius: 0 0 0 var(--cl-chamfer-size);');
-    expect(css).toContain('corner-shape: round round round bevel;');
-    expect(css).toContain('corner-shape: round bevel round bevel;');
+    expect(css).toContain('corner-shape: square square square bevel;');
+    expect(css).toContain('corner-shape: square bevel square bevel;');
   });
 
   it('bevels for a browser that has only the per-corner longhands', () => {
@@ -287,12 +328,26 @@ describe('the CSS output', () => {
     expect(css).toContain('corner-bottom-left-shape: bevel;');
   });
 
+  it('provides a positioned, opaque 4:5 image frame for the crop viewport', () => {
+    const imageFrameRule = /\.cl-image-frame \{([^}]+)\}/.exec(css)?.[1] ?? '';
+
+    expect(imageFrameRule).toContain('position: relative;');
+    expect(imageFrameRule).toContain('aspect-ratio: 4 / 5;');
+    expect(imageFrameRule).toContain('background: var(--cl-surface-chrome);');
+  });
+
   it('cuts a badge on its left pair, never with clip-path', () => {
     // A deliberate divergence from the reference project, which paints badges
     // square: the inherited diagonal pair reads as a skewed box at this size.
     expect(css).toContain('border-radius: var(--cl-radius-chamfer) 0 0 var(--cl-radius-chamfer);');
     expect(css).toContain('corner-shape: bevel round round bevel;');
     expect(css).not.toMatch(/\.cl-badge\s*\{[^}]*clip-path/);
+  });
+
+  it('adds leading inset for the chamfer without changing trailing inset', () => {
+    expect(css).toContain(
+      'padding: var(--cl-space-1) var(--cl-space-2) var(--cl-space-1) var(--cl-space-3);',
+    );
   });
 
   it('assigns a surface level from what a container is, not how deep it sits', () => {
@@ -433,6 +488,7 @@ describe('the CSS output', () => {
   it('emits the dialog backdrop and surface rules', () => {
     expect(css).toContain('.cl-dialog-backdrop {');
     expect(css).toContain('.cl-dialog-surface {');
+    expect(css).toContain(`box-shadow: ${DIALOG_TOKENS.elevation};`);
   });
 
   it('emits template layout rules including match console', () => {
@@ -459,6 +515,27 @@ describe('the CSS output', () => {
     for (const name of Object.keys(CONTROL_DENSITY_SPACING)) {
       expect(css).toContain(`--cl-density-${name}:`);
     }
+  });
+
+  it('gives the custom select popover the control chamfer, mono typography, and a cyan active cue (openspec 0295)', () => {
+    expect(css).toContain('.cl-select { font-family: var(--cl-font-mono); }');
+    expect(css).toContain('.cl-select__content {');
+    expect(css).toContain('font-family: var(--cl-font-mono)');
+    expect(css).toContain(
+      '.cl-select__item[data-highlighted] { background: var(--cl-surface-raised); border-inline-start-color: var(--cl-state-live); color: var(--cl-state-live); font-weight: var(--cl-weight-bold); outline: none; }',
+    );
+    expect(css).toContain(
+      '.cl-select[data-state="open"] .cl-select__icon { transform: rotate(180deg); }',
+    );
+    expect(css).toContain('font-size: 10px');
+  });
+
+  it('stops the native select shim from intercepting pointer events (openspec 0295 task 1.1)', () => {
+    const nativeSelectRule = css.slice(css.indexOf('.cl-select-native {'));
+    expect(nativeSelectRule).toContain('pointer-events: none');
+    expect(nativeSelectRule.slice(0, nativeSelectRule.indexOf('}'))).not.toContain(
+      'cursor: pointer',
+    );
   });
 });
 
@@ -603,6 +680,7 @@ describe('public table and pill treatments (openspec 0199)', () => {
 
   it('gives every table a header treatment and tabular figures', () => {
     expect(css).toMatch(/\.cl-table \{[^}]*font-variant-numeric: tabular-nums/);
+    expect(css).toContain('.cl-tabular-nums { font-variant-numeric: tabular-nums; }');
     expect(css).toMatch(/\.cl-table thead th \{[^}]*var\(--cl-surface-chrome\)/);
     expect(css).toMatch(/\.cl-table thead th \{[^}]*text-transform: uppercase/);
   });
@@ -627,6 +705,42 @@ describe('public table and pill treatments (openspec 0199)', () => {
       /\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*var\(--cl-state-live\)/,
     );
     expect(css).toMatch(/\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*border-color/);
+  });
+});
+
+describe('compact match card (openspec 0299)', () => {
+  const css = generateCss();
+
+  it('lays the compact card out as a dense flex row, not the full card grid', () => {
+    expect(css).toMatch(/\.cl-match-card--compact \{[^}]*display: inline-flex/);
+    expect(css).toMatch(/\.cl-match-card--compact \{[^}]*align-items: center/);
+  });
+
+  it('sizes the compact grids denser than the full-card grids', () => {
+    expect(css).toMatch(/\.cl-matches-view__grid--compact \{[^}]*minmax\(min\(100%, 220px\)/);
+    expect(css).toMatch(/\.cl-match-card-grid--compact \{[^}]*minmax\(min\(100%, 220px\)/);
+  });
+
+  it('colors the state dot per semantic state, never leaving it uncolored', () => {
+    expect(css).toMatch(
+      /\.cl-match-card__compact-dot\.cl-state--live \{[^}]*var\(--cl-state-live\)/,
+    );
+    expect(css).toMatch(
+      /\.cl-match-card__compact-dot\.cl-state--upcoming \{[^}]*var\(--cl-state-upcoming\)/,
+    );
+    expect(css).toMatch(
+      /\.cl-match-card__compact-dot\.cl-state--positive \{[^}]*var\(--cl-state-positive\)/,
+    );
+    expect(css).toMatch(
+      /\.cl-match-card__compact-dot\.cl-state--destructive \{[^}]*var\(--cl-state-destructive\)/,
+    );
+  });
+
+  it('pulses only the live dot, and stops under reduced motion', () => {
+    expect(css).toMatch(/\.cl-match-card__compact-dot\.cl-state--live \{[^}]*cl-badge-pulse/);
+    expect(css).toMatch(
+      /prefers-reduced-motion: reduce\) \{ \.cl-match-card__compact-dot\.cl-state--live \{ animation: none/,
+    );
   });
 });
 

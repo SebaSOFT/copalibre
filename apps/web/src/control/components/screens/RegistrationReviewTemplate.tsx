@@ -5,6 +5,7 @@ import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
+import { filePickerLabels } from '../../lib/file-picker-labels.js';
 import { Input } from '../ui/atoms/input.js';
 import { Select } from '../ui/atoms/select.js';
 import { Form } from '../ui/atoms/form.js';
@@ -357,6 +358,7 @@ export function RegistrationReviewTemplate({
                       if (!file) return;
                       setPhotoCrop({ personId, src: URL.createObjectURL(file) });
                     }}
+                    {...filePickerLabels(intl, { accept: 'image/*' })}
                   />
                   <a
                     className="cl-focusable"

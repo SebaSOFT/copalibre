@@ -16,13 +16,18 @@ Silicon）以及 Windows（x86_64）。
 
 ## 步骤
 
+在 Bash 中运行命令（Windows 使用 WSL2 或 Git Bash）。PATH 导出使当前 shell 能找到安装目录。若要选择已发布版本，将脚本传给 `VERSION=1.2.0 bash`；该版本必须已发布。
+
 ```bash
 curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
+export PATH="$HOME/.copalibre/bin:$PATH"
 mkdir my-league && cd my-league
 copalibre init      # 将非敏感的默认值写入 .env
 ```
 
 编辑 `.env`：PostgreSQL 密码、`COPALIBRE_BOOTSTRAP_TOKEN`、OIDC JWKS/issuer/audience、浏览器客户端 ID，以及一个邮件服务提供商。
+
+启动前在 `.env` 中设置由 `openssl rand -hex 32` 生成的 `GARAGE_RPC_SECRET`；即使不启用可选存储，Compose 也需要此值。
 
 ```bash
 copalibre doctor    # 在启动任何进程之前验证配置

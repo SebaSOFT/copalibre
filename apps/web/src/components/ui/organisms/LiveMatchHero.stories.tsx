@@ -80,6 +80,10 @@ const meta = {
     initial: DASHBOARD,
     streamPath: '/stories/no-stream',
     usingLastKnownText: '',
+    noMatchesText: publicIntl('en').formatMessage(publicMessages.livePageNoMatches),
+    nextKickoffText: publicIntl('en').formatMessage(publicMessages.livePageNextKickoff),
+    locale: 'en',
+    referenceDate: Date.UTC(2026, 8, 23),
     resultStateLabels: labelsFor('en'),
   },
 } satisfies Meta<typeof LiveMatchHero>;
@@ -96,6 +100,10 @@ export const UsingLastKnown: Story = {
         resultStateLabels={labelsFor(locale)}
         streamPath="/stories/no-stream"
         usingLastKnownText={publicIntl(locale).formatMessage(publicMessages.liveUsingLastKnown)}
+        noMatchesText={publicIntl(locale).formatMessage(publicMessages.livePageNoMatches)}
+        nextKickoffText={publicIntl(locale).formatMessage(publicMessages.livePageNextKickoff)}
+        locale={locale}
+        referenceDate={Date.UTC(2026, 8, 23)}
       />
     );
   },
@@ -111,6 +119,11 @@ export const NoMatches: Story = {
         resultStateLabels={labelsFor(locale)}
         streamPath="/stories/no-stream"
         usingLastKnownText=""
+        noMatchesText={publicIntl(locale).formatMessage(publicMessages.livePageNoMatches)}
+        nextKickoffText={publicIntl(locale).formatMessage(publicMessages.livePageNextKickoff)}
+        nextKickoffAt="2026-09-24T16:00:00.000Z"
+        locale={locale}
+        referenceDate={Date.UTC(2026, 8, 23)}
       />
     );
   },

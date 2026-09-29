@@ -2,8 +2,10 @@
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
 import ResultLegend from '../../../../../components/ui/molecules/ResultLegend.astro';
 import StateBadge from '../../../../../components/ui/atoms/StateBadge.astro';
+import { Card, CardDescription, CardTitle } from '../../../../../components/ui/atoms/Card.tsx';
+import { ResponsiveTimestamp } from '../../../../../components/ui/atoms/ResponsiveTimestamp.tsx';
 import { LiveMatchHero } from '../../../../../components/ui/organisms/LiveMatchHero.tsx';
-import { EntrantName } from '../../../../../components/ui/atoms/EntrantName.tsx';
+import StandingsTable from '../../../../../components/ui/organisms/StandingsTable.astro';
 import { buildOverview, displayName } from '../../../../../lib/overview.ts';
 import {
   fetchLive,
@@ -39,11 +41,18 @@ if (!overviewData || !dashboard) {
   return Astro.rewrite('/404');
 }
 
-const model = buildOverview(mapOverviewResponse(overviewData));
+const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
 const localePrefix = locale ? `/${locale}` : '';
 const canonicalPath = `${localePrefix}${model.canonicalPath}/live`;
+const tournamentPath = `${localePrefix}${model.canonicalPath}`;
 const reportPath = (stageNumber: number, matchNumber: number) =>
   `${localePrefix}${model.canonicalPath}/stages/${stageNumber}/matches/${matchNumber}`;
+const upcomingMatches = model.matches.filter((match) => match.state === 'upcoming');
+const nextKickoffAt = upcomingMatches
+  .map((match) => match.startsAt)
+  .filter((startsAt) => !Number.isNaN(Date.parse(startsAt)))
+  .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
+const referenceDate = Date.now();
 const structuredData = {
   '@type': 'SportsEvent' as const,
   name: `${intl.formatMessage(messages.livePageTitle)} — ${displayName(model)}`,
@@ -58,97 +67,83 @@ const structuredData = {
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
+  <nav aria-label={intl.formatMessage(messages.livePageBreadcrumb)} class="cl-live-breadcrumb">
+    <a href={tournamentPath}>{displayName(model)}</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{intl.formatMessage(messages.livePageTitle)}</span>
+  </nav>
   <h1>{intl.formatMessage(messages.livePageTitle)}</h1>
-  {/* Server-rendered first, so the page is right before any script runs. */}
-  <section>
-    {
-      dashboard.matches.map((match) => (
-        <a href={reportPath(match.stageNumber, match.matchNumber)}>
-          <article class="cl-card cl-chamfer">
-            <StateBadge state={match.state} intl={intl} />
-            {match.sides.map((side) => (
-              <p>
-                <EntrantName client:load fullName={side.name} abbreviation={side.abbreviation} />{' '}
-                {side.score}
-              </p>
-            ))}
-          </article>
-        </a>
-      ))
-    }
-  </section>
-
-  <h2>{intl.formatMessage(messages.livePageUpcomingHeading)}</h2>
-  <ul>
-    {
-      model.matches
-        .filter((match) => match.state === 'upcoming')
-        .map((match) => (
-          <li>
-            {match.matchNumber === undefined ? (
-              <>
-                {match.home.name} vs {match.away.name} —{' '}
-                <time datetime={match.startsAt}>{match.startsAt}</time>
-              </>
-            ) : (
-              <a href={reportPath(match.stageNumber, match.matchNumber)}>
-                {match.home.name} vs {match.away.name} —{' '}
-                <time datetime={match.startsAt}>{match.startsAt}</time>
-              </a>
-            )}
-          </li>
-        ))
-    }
-  </ul>
-
-  <h2>{intl.formatMessage(messages.livePageLeadersHeading)}</h2>
-  {
-    model.standingsGrain !== undefined && (
-      <p class="cl-standings-grain">
-        {intl.formatMessage(
-          model.standingsGrain === 'series'
-            ? messages.standingsGrainSeries
-            : messages.standingsGrainMatch,
-        )}
-      </p>
-    )
-  }
-  <table>
-    <thead
-      ><tr
-        ><th scope="col">#</th><th scope="col">{intl.formatMessage(messages.standingsTeam)}</th><th
-          scope="col">{intl.formatMessage(messages.standingsPoints)}</th
-        ></tr
-      ></thead
-    >
-    <tbody>
-      {
-        model.standings.map((row) => (
-          <tr>
-            <>
-              <td>{row.position}</td>
-              <td>
-                <EntrantName client:load fullName={row.name} abbreviation={row.abbreviation} />
-              </td>
-              <td>{row.points}</td>
-            </>
-          </tr>
-        ))
-      }
-    </tbody>
-  </table>
-
-  <ResultLegend
-    heading={intl.formatMessage(messages.legendHeading)}
-    labels={resultStateLabels(intl)}
-  />
-
-  {/* The island only patches what is already on the page. */}
+  {/* The island server-renders its initial state, including the zero-live state. */}
   <LiveMatchHero
     client:idle
     initial={dashboard}
     streamPath={model.streamPath}
     usingLastKnownText={intl.formatMessage(messages.liveUsingLastKnown)}
+    noMatchesText={intl.formatMessage(messages.livePageNoMatches)}
+    nextKickoffText={intl.formatMessage(messages.livePageNextKickoff)}
+    nextKickoffAt={nextKickoffAt}
+    locale={resolvedLocale}
+    referenceDate={referenceDate}
     resultStateLabels={labels}
   />
+
+  <h2>{intl.formatMessage(messages.livePageUpcomingHeading)}</h2>
+  {upcomingMatches.length === 0 && <p>{intl.formatMessage(messages.livePageNoUpcoming)}</p>}
+  <div class="cl-match-card-grid">
+    {
+      upcomingMatches.map((match) => {
+        const Wrapper = match.matchNumber === undefined ? 'div' : 'a';
+        return (
+          <Wrapper
+            href={
+              match.matchNumber === undefined
+                ? undefined
+                : reportPath(match.stageNumber, match.matchNumber)
+            }
+          >
+            <Card as="article">
+              <StateBadge state="upcoming" intl={intl} />
+              <CardTitle>
+                {match.home.name} {intl.formatMessage(messages.tickerVersus)} {match.away.name}
+              </CardTitle>
+              {match.startsAt && !Number.isNaN(Date.parse(match.startsAt)) && (
+                <CardDescription>
+                  <ResponsiveTimestamp
+                    locale={resolvedLocale}
+                    referenceDate={referenceDate}
+                    timestamp={match.startsAt}
+                  />
+                </CardDescription>
+              )}
+            </Card>
+          </Wrapper>
+        );
+      })
+    }
+  </div>
+
+  <StandingsTable
+    headingText={intl.formatMessage(messages.livePageLeadersHeading)}
+    intl={intl}
+    previewGrain={model.standingsGrain}
+    previewRows={model.standings}
+  />
+
+  <ResultLegend
+    heading={intl.formatMessage(messages.legendHeading)}
+    labels={resultStateLabels(intl)}
+  />
 </PublicLayout>
+
+<style>
+  .cl-live-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cl-space-2);
+    margin-block-end: var(--cl-space-4);
+    color: var(--cl-text-muted);
+  }
+  .cl-live-breadcrumb a {
+    color: var(--cl-text-primary);
+  }
+</style>

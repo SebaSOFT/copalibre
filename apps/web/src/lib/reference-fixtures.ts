@@ -295,8 +295,8 @@ export function referenceBracket(): readonly BracketMatch[] {
   const e = REFERENCE_ENTRANTS;
   const pair = (a: number, b: number) =>
     [
-      { kind: 'entrant', name: e[a].name, abbreviation: e[a].abbreviation },
-      { kind: 'entrant', name: e[b].name, abbreviation: e[b].abbreviation },
+      { kind: 'entrant', entrantId: e[a].id, name: e[a].name, abbreviation: e[a].abbreviation },
+      { kind: 'entrant', entrantId: e[b].id, name: e[b].name, abbreviation: e[b].abbreviation },
     ] as const;
   return [
     {
@@ -563,9 +563,9 @@ export function referenceStandingsTable(): ReferenceStandingsTable {
   };
 }
 
-/** Two zones, one with a runner-up and one settled by a walkover with none. */
+/** Two zones: one decisive final and one shared title, to exercise public podium rendering. */
 export function referenceWinnerZones(): PublicTournamentWinnerZoneResponse[] {
-  const [meridian, ironclad, obsidian] = REFERENCE_ENTRANTS;
+  const [meridian, ironclad, obsidian, echo, vermilion] = REFERENCE_ENTRANTS;
   return [
     {
       zoneId: '01936f4a-2001-7000-8000-000000000001',
@@ -580,6 +580,11 @@ export function referenceWinnerZones(): PublicTournamentWinnerZoneResponse[] {
         name: ironclad.name,
         abbreviation: ironclad.abbreviation,
       },
+      thirdPlace: {
+        entrantId: vermilion.id,
+        name: vermilion.name,
+        abbreviation: vermilion.abbreviation,
+      },
     },
     {
       zoneId: '01936f4a-2002-7000-8000-000000000002',
@@ -589,6 +594,11 @@ export function referenceWinnerZones(): PublicTournamentWinnerZoneResponse[] {
         name: obsidian.name,
         abbreviation: obsidian.abbreviation,
       },
+      champions: [obsidian, echo].map((entrant) => ({
+        entrantId: entrant.id,
+        name: entrant.name,
+        abbreviation: entrant.abbreviation,
+      })),
     },
   ];
 }
@@ -641,8 +651,8 @@ export function referenceOverview(): OverviewModel {
     standingsGrain: 'match',
     clubs: referenceClubs(),
     ruleset: [
-      { label: 'Format', value: 'Round Robin' },
-      { label: 'Legs', value: 'Single' },
+      { dotPath: 'format', label: 'Format', value: 'Round Robin' },
+      { dotPath: 'legs', label: 'Legs', value: 'Single' },
     ],
     // No `emblemObjectId`: the preview seam has no backend to serve an
     // object-storage asset from, so any URL built from one 404s and the
@@ -843,6 +853,7 @@ export function referenceTableProjection(): TableProjectionResponse {
     rows: table.rows.map((row) => ({
       actorId: row.entrantId,
       entrantId: row.entrantId,
+      actorName: row.name,
       entrantName: row.name,
       entrantAbbreviation: row.abbreviation,
       rank: row.rank,
@@ -855,4 +866,24 @@ export function referenceTableProjection(): TableProjectionResponse {
     })),
     projectionVersion: 12,
   };
+}
+
+/** Journey review: the same eight-entrant bracket, optionally completed. */
+export function referenceJourneyBracket(complete = false): readonly BracketMatch[] {
+  const bracket = referenceBracket();
+  if (!complete) return bracket;
+  const slot = (index: number) => ({
+    kind: 'entrant' as const,
+    entrantId: REFERENCE_ENTRANTS[index].id,
+    name: REFERENCE_ENTRANTS[index].name,
+  });
+  return bracket.map((match) => {
+    if (match.matchNumber === 5)
+      return { ...match, state: 'final' as const, slots: [slot(0), slot(4)], scores: [3, 1] };
+    if (match.matchNumber === 6)
+      return { ...match, state: 'final' as const, slots: [slot(2), slot(1)], scores: [1, 2] };
+    if (match.matchNumber === 7)
+      return { ...match, state: 'final' as const, slots: [slot(0), slot(1)], scores: [2, 1] };
+    return match;
+  });
 }

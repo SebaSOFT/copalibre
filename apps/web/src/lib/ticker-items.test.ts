@@ -38,6 +38,7 @@ const footballScorers: TableProjectionResponse = {
   rows: [
     {
       actorId: 'player-1',
+      actorName: 'Lionel Messi',
       entrantName: 'Lionel Messi',
       rank: 1,
       sharedRank: false,
@@ -64,6 +65,7 @@ const groupedStandings: TableProjectionResponse = {
       rows: [
         {
           actorId: 'entrant-1',
+          actorName: 'Vermilion Wolves',
           entrantName: 'Vermilion Wolves',
           rank: 1,
           sharedRank: false,
@@ -77,6 +79,7 @@ const groupedStandings: TableProjectionResponse = {
       rows: [
         {
           actorId: 'entrant-2',
+          actorName: 'Aurora Vanguard',
           entrantName: 'Aurora Vanguard',
           rank: 1,
           sharedRank: false,
@@ -158,6 +161,7 @@ describe('buildTickerItems', () => {
           rows: [
             {
               actorId: 'entrant-3',
+              actorName: 'Kinetic Apex',
               entrantName: 'Kinetic Apex',
               rank: 1,
               sharedRank: false,
@@ -213,7 +217,7 @@ describe('buildTickerItems', () => {
   it('falls back to a rank when the projection could not name the competitor', () => {
     const anonymous: TableProjectionResponse = {
       ...footballScorers,
-      rows: [{ actorId: 'player-9', rank: 4, sharedRank: false, cells: {} }],
+      rows: [{ actorId: 'player-9', actorName: '', rank: 4, sharedRank: false, cells: {} }],
     };
     const items = buildTickerItems({
       matches: [],
@@ -252,6 +256,37 @@ describe('buildTickerItems', () => {
   it('contributes no leader items when no stage projection was fetched', () => {
     const items = buildTickerItems({ matches, labels, language: 'en' });
     expect(items.some((item) => item.kind === 'leader')).toBe(false);
+  });
+
+  it('carries live-correlation fields when a match has a persisted id and both entrants', () => {
+    const items = buildTickerItems({
+      matches: [
+        {
+          matchId: 'match-1',
+          stageNumber: 1,
+          matchNumber: 1,
+          state: 'live',
+          startsAt: '20:30',
+          home: { name: 'Meridian Seven', score: 3, entrantId: 'entrant-home' },
+          away: { name: 'Ironclad Five', score: 1, entrantId: 'entrant-away' },
+        },
+      ],
+      labels,
+      language: 'en',
+    });
+    expect(items[0]?.matchId).toBe('match-1');
+    expect(items[0]?.homeEntrantId).toBe('entrant-home');
+    expect(items[0]?.awayEntrantId).toBe('entrant-away');
+    expect(items[0]?.homeScore).toBe(3);
+    expect(items[0]?.awayScore).toBe(1);
+    expect(items[0]?.matchState).toBe('live');
+  });
+
+  it('omits live-correlation fields for a synthetic fixture with no persisted match or entrant', () => {
+    const items = buildTickerItems({ matches, labels, language: 'en' });
+    expect(items[0]?.matchId).toBeUndefined();
+    expect(items[0]?.homeEntrantId).toBeUndefined();
+    expect(items[0]?.awayEntrantId).toBeUndefined();
   });
 });
 

@@ -16,10 +16,14 @@ interface DeviceEntry {
 
 /** A1, the organization dashboard. */
 export function Dashboard({
+  canCreateTournament,
+  canManageDisplayTokens,
   model,
   organizationAlias,
   client,
 }: {
+  readonly canCreateTournament: boolean;
+  readonly canManageDisplayTokens: boolean;
   readonly client?: ControlApiClient;
   readonly model: DashboardModel;
   readonly organizationAlias: string;
@@ -31,7 +35,13 @@ export function Dashboard({
       helpPath="overview"
       organizationAlias={organizationAlias}
     >
-      <DashboardContent client={client} model={model} organizationAlias={organizationAlias} />
+      <DashboardContent
+        canCreateTournament={canCreateTournament}
+        canManageDisplayTokens={canManageDisplayTokens}
+        client={client}
+        model={model}
+        organizationAlias={organizationAlias}
+      />
     </ControlShell>
   );
 }
@@ -43,10 +53,14 @@ export function Dashboard({
  * reference of its own.
  */
 function DashboardContent({
+  canCreateTournament,
+  canManageDisplayTokens,
   model,
   organizationAlias,
   client,
 }: {
+  readonly canCreateTournament: boolean;
+  readonly canManageDisplayTokens: boolean;
   readonly client?: ControlApiClient;
   readonly model: DashboardModel;
   readonly organizationAlias: string;
@@ -121,6 +135,8 @@ function DashboardContent({
 
   return (
     <DashboardTemplate
+      canCreateTournament={canCreateTournament}
+      canManageDisplayTokens={canManageDisplayTokens}
       devices={devices}
       model={visibleModel}
       now={now}

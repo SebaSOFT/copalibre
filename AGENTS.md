@@ -52,7 +52,11 @@ exists, so run the relevant `yarn workspace @copalibre/<workspace> test:coverage
 is grandfathered in the `KNOWN_CRAP` register inside the script (same ratchet pattern as
 `KNOWN_HARDCODED` in `scripts/check-ui-text-catalogue-coverage.mjs`): a recorded score may only fall,
 never rise, and a new function above threshold that isn't registered fails outright. CI runs it as the
-last step of each `unit-tests-group` matrix leg in `.github/workflows/ci.yml`.
+last step of each `unit-tests-group` matrix leg in `.github/workflows/ci.yml`, via
+`yarn crap:check --report=<path>`, which additionally dumps every scored function (not just gate
+offenders) to that path before the gate's own exit code. A separate `crap-report` job merges both
+legs' dumps and renders the repo-wide top-15 highest-risk functions to the run's Job Summary via
+`scripts/render-crap-report.mjs` — presentation only, it never affects the gate's pass/fail.
 
 `@copalibre/web` sits a fraction of a point over its 85% branch threshold, so almost any new UI code trips it; budget tests for the branches a change adds rather than discovering it in CI.
 
@@ -260,6 +264,8 @@ Crucially, if you modify **any** infrastructure or deployment file, you MUST exp
 ## Changes and Reviews
 
 Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes. Git ignore rules are authoritative: never force-add anything under `openspec/changes/`, whether active or archived. Commit only accepted specification deltas under `openspec/specs/`. Never commit `.env` files, credentials, or production connection strings.
+
+Before every commit, run `node --test scripts/lib/component-graph.test.mjs`. When a change alters the web component graph, update the asserted node and edge counts and baseline description in that same commit; keep the zero-unresolved-import assertion passing.
 
 ## Tooling Reference
 

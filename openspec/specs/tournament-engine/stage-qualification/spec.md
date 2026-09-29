@@ -6,6 +6,7 @@ operator's chosen allocation mode, with the same explainability the standings th
 TMS-012.
 
 ## Requirements
+
 ### Requirement: Entrants carry operator-supplied tournament-scoped attributes
 An operator SHALL be able to attach numeric and categorical attributes to an entrant when loading it
 into a tournament, and those attributes SHALL be scoped to that tournament.
@@ -164,3 +165,46 @@ implicit zone, unchanged from the plan's behavior before bands existed.
 #### Scenario: Generating the next stage remains a separate, explicit act
 - **WHEN** a promotion plan's combined list is fully resolved
 - **THEN** the next stage's fixtures are still not generated until an officer explicitly requests it
+
+### Requirement: A published profile declares a default allocation per stage
+A `TournamentProfile`'s stage SHALL be able to declare a default `StageAllocation` (automatic,
+manual, or weighted with attribute and direction). Instantiating a tournament from a profile whose
+stage declares a default SHALL carry that default onto the created `StageConfiguration.allocation`,
+unless the instantiating operator explicitly overrides it. A stage declaring no default SHALL
+produce a `StageConfiguration` with no allocation, identical to instantiation before this
+requirement existed.
+
+#### Scenario: A profile's declared default reaches the instantiated stage
+- **WHEN** a tournament is created from a profile whose second stage declares automatic allocation
+- **THEN** the created tournament's second stage configuration records automatic allocation
+
+#### Scenario: An operator override at creation time wins over the profile default
+- **WHEN** an operator instantiates a tournament from a profile whose stage declares manual
+  allocation, and explicitly declares weighted allocation for that stage during creation
+- **THEN** the created stage configuration records the operator's weighted declaration, not the
+  profile's manual default
+
+#### Scenario: No profile default and no operator declaration leaves allocation unset
+- **WHEN** a tournament is created from a profile whose stage declares no allocation default, and
+  the operator does not declare one either
+- **THEN** the created stage configuration has no allocation, and seeding behaves as it did before
+  allocation defaults existed
+
+### Requirement: An operator can discover a tournament's known entrant-attribute keys
+The system SHALL expose the set of entrant-attribute keys already recorded on a tournament's
+entrants, so an authoring surface offering weighted allocation can present them as a choice rather
+than requiring free-text entry. The set SHALL reflect only attributes actually present on at least
+one entrant of that tournament — it SHALL NOT be a platform-wide or cross-tournament catalogue.
+
+#### Scenario: A recorded attribute is discoverable
+- **WHEN** entrants have been loaded into a tournament with a `ranking` attribute
+- **THEN** `ranking` appears in that tournament's list of known entrant-attribute keys
+
+#### Scenario: An attribute recorded on a different tournament is not offered
+- **WHEN** a `seed-power` attribute is recorded only on a different tournament's entrants
+- **THEN** `seed-power` does not appear in this tournament's list of known entrant-attribute keys
+
+#### Scenario: No entrants loaded yet yields an empty, not erroring, list
+- **WHEN** a tournament has no entrants loaded
+- **THEN** the known entrant-attribute keys list is empty, and weighted allocation cannot be
+  completed until at least one attribute exists

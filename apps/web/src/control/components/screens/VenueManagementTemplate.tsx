@@ -7,11 +7,15 @@ import type {
   ScheduleDetailResponse,
   VenueResponse,
 } from '../../lib/api-client.js';
+import { Badge } from '../ui/atoms/badge.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
 import { Input } from '../ui/atoms/input.js';
+import { Label } from '../ui/atoms/label.js';
+import { Inline } from '../ui/atoms/layout/inline.js';
 import { Field } from '../ui/molecules/field.js';
+import { FieldSet } from '../ui/molecules/field-set.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
@@ -342,10 +346,10 @@ export function VenueManagementTemplate({
                 />
               </Field>
 
-              <fieldset className="cl-role-user">
-                <legend className="cl-label">
-                  <FormattedMessage {...messages.resourceManagementDetailsHeading} />
-                </legend>
+              <FieldSet
+                className="cl-role-user"
+                legend={intl.formatMessage(messages.resourceManagementDetailsHeading)}
+              >
                 <p className="cl-card__description">
                   <FormattedMessage {...messages.resourceManagementDetailsHint} />
                 </p>
@@ -389,7 +393,7 @@ export function VenueManagementTemplate({
                 >
                   <FormattedMessage {...messages.resourceManagementAddDetail} />
                 </Button>
-              </fieldset>
+              </FieldSet>
 
               <Button onClick={() => void saveVenue()} type="button">
                 <FormattedMessage {...messages.resourceManagementSaveVenueChanges} />
@@ -420,7 +424,7 @@ export function VenueManagementTemplate({
                     values={{ count: schedule.slots.length }}
                   />
                 </span>
-                <div>
+                <Inline gap="2">
                   <Button
                     onClick={() => selectSchedule(schedule)}
                     type="button"
@@ -435,7 +439,7 @@ export function VenueManagementTemplate({
                   >
                     <FormattedMessage {...messages.resourceManagementDeleteSchedule} />
                   </Button>
-                </div>
+                </Inline>
               </li>
             ))}
           </ul>
@@ -510,21 +514,21 @@ export function VenueManagementTemplate({
                   value={newScheduleTurnaroundMinutes}
                 />
               </Field>
-              <fieldset className="cl-role-user">
-                <legend className="cl-label">
-                  <FormattedMessage {...messages.resourceManagementNewScheduleVenues} />
-                </legend>
+              <FieldSet
+                className="cl-role-user"
+                legend={intl.formatMessage(messages.resourceManagementNewScheduleVenues)}
+              >
                 {venues.map((venue) => (
-                  <label key={venue.venueId} className="cl-toggle cl-focusable">
+                  <Label key={venue.venueId} className="cl-toggle cl-focusable">
                     <Checkbox
                       aria-label={venue.name}
                       checked={newScheduleVenueIds.includes(venue.venueId)}
                       onCheckedChange={() => toggleScheduleVenue(venue.venueId)}
                     />
                     <span>{venue.name}</span>
-                  </label>
+                  </Label>
                 ))}
-              </fieldset>
+              </FieldSet>
               <Button onClick={() => void createSchedule()} type="button">
                 <FormattedMessage {...messages.resourceManagementAddSchedule} />
               </Button>
@@ -578,10 +582,12 @@ export function VenueManagementTemplate({
           <ul>
             {officials.map((official) => (
               <li key={official.officialId} className="cl-role-user">
-                <span>
-                  {official.displayName}
-                  {official.roles.length > 0 && ` — ${official.roles.map(roleLabel).join(', ')}`}
-                </span>
+                <Inline align="center" gap="2" wrap>
+                  <span>{official.displayName}</span>
+                  {official.roles.map((role) => (
+                    <Badge key={role} label={roleLabel(role)} variant="section" />
+                  ))}
+                </Inline>
                 <Button onClick={() => selectOfficial(official)} type="button" variant="secondary">
                   <FormattedMessage {...messages.resourceManagementEdit} />
                 </Button>
@@ -607,12 +613,12 @@ export function VenueManagementTemplate({
                   value={newOfficialName}
                 />
               </Field>
-              <fieldset className="cl-role-user">
-                <legend className="cl-label">
-                  <FormattedMessage {...messages.resourceManagementOfficialRoles} />
-                </legend>
+              <FieldSet
+                className="cl-role-user"
+                legend={intl.formatMessage(messages.resourceManagementOfficialRoles)}
+              >
                 {OFFICIAL_ROLES.map((role) => (
-                  <label key={role} className="cl-toggle cl-focusable">
+                  <Label key={role} className="cl-toggle cl-focusable">
                     <Checkbox
                       aria-label={roleLabel(role)}
                       checked={newOfficialRoles.includes(role)}
@@ -621,9 +627,9 @@ export function VenueManagementTemplate({
                       }
                     />
                     <span>{roleLabel(role)}</span>
-                  </label>
+                  </Label>
                 ))}
-              </fieldset>
+              </FieldSet>
               <Button onClick={() => void createOfficial()} type="button">
                 <FormattedMessage {...messages.resourceManagementAddOfficial} />
               </Button>
@@ -655,12 +661,12 @@ export function VenueManagementTemplate({
                   value={editOfficialName}
                 />
               </Field>
-              <fieldset className="cl-role-user">
-                <legend className="cl-label">
-                  <FormattedMessage {...messages.resourceManagementOfficialRoles} />
-                </legend>
+              <FieldSet
+                className="cl-role-user"
+                legend={intl.formatMessage(messages.resourceManagementOfficialRoles)}
+              >
                 {OFFICIAL_ROLES.map((role) => (
-                  <label key={role} className="cl-toggle cl-focusable">
+                  <Label key={role} className="cl-toggle cl-focusable">
                     <Checkbox
                       aria-label={roleLabel(role)}
                       checked={editOfficialRoles.includes(role)}
@@ -669,9 +675,9 @@ export function VenueManagementTemplate({
                       }
                     />
                     <span>{roleLabel(role)}</span>
-                  </label>
+                  </Label>
                 ))}
-              </fieldset>
+              </FieldSet>
               <Button onClick={() => void saveOfficial()} type="button">
                 <FormattedMessage {...messages.resourceManagementSaveOfficialChanges} />
               </Button>

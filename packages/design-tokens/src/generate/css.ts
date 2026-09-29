@@ -13,6 +13,7 @@ import {
   TYPOGRAPHY,
 } from '../primitives.js';
 import {
+  BADGE_TONES,
   BUTTON_VARIANTS,
   CARD_STATES,
   CHECKBOX_TOKENS,
@@ -56,6 +57,10 @@ export function generateCss(): string {
     ...Object.entries(SEMANTIC_COLORS).map(
       ([name, token]) => `  --cl-${name}: var(--cl-color-${token.primitive});`,
     ),
+    ...Object.entries(BADGE_TONES).flatMap(([name, tone]) => [
+      `  --cl-badge-${name}-color: var(--cl-${tone.color});`,
+      `  --cl-badge-${name}-weight: var(--cl-weight-${tone.weight});`,
+    ]),
     '',
     `  --cl-font-display: ${TYPOGRAPHY.display};`,
     `  --cl-font-body: ${TYPOGRAPHY.body};`,
@@ -241,15 +246,15 @@ function chamfer(): string {
     '@supports (corner-shape: bevel) {',
     '  .cl-chamfer-tr {',
     `    border-radius: 0 ${size} 0 0;`,
-    '    corner-shape: round bevel round round;',
+    '    corner-shape: square bevel square square;',
     '  }',
     '  .cl-chamfer-bl {',
     `    border-radius: 0 0 0 ${size};`,
-    '    corner-shape: round round round bevel;',
+    '    corner-shape: square square square bevel;',
     '  }',
     '  .cl-chamfer, .cl-chamfer--control {',
     `    border-radius: 0 ${size} 0 ${size};`,
-    '    corner-shape: round bevel round bevel;',
+    '    corner-shape: square bevel square bevel;',
     '  }',
     '}',
   ].join('\n');
@@ -265,6 +270,7 @@ function imageFrame(): string {
   return [
     '.cl-image-frame {',
     `  --cl-chamfer-size: ${RADIUS['image-frame']};`,
+    '  position: relative;',
     '  aspect-ratio: 4 / 5;',
     '  max-height: 512px;',
     '  border: 1px solid var(--cl-border-muted);',
@@ -590,18 +596,32 @@ function components(): string {
     '    border-radius: var(--cl-radius-md);',
     '  }',
     '}',
-    '.cl-select__icon { margin-inline-start: var(--cl-space-2); }',
+    '.cl-select { font-family: var(--cl-font-mono); }',
+    '.cl-select__icon { margin-inline-start: var(--cl-space-2); transition: transform 0.15s ease; }',
+    '.cl-select[data-state="open"] .cl-select__icon { transform: rotate(180deg); }',
+    '.cl-select__badge { margin-inline-start: var(--cl-space-2); font-size: 10px; font-family: var(--cl-font-mono); text-transform: uppercase; letter-spacing: var(--cl-tracking-wider); color: var(--cl-text-muted); }',
     // `popper` positioning exposes the trigger's width, so the panel lines up
     // with the box it belongs to rather than sizing itself to its longest
     // option. `max-height` is the space Radix measured to the viewport edge.
-    '.cl-select__content { padding: var(--cl-space-1); min-width: var(--radix-select-trigger-width); max-height: var(--radix-select-content-available-height); overflow-y: auto; }',
-    '.cl-select__item { padding: var(--cl-space-2) var(--cl-space-3); cursor: pointer; }',
-    // The visible Radix trigger and a fully transparent native `<select>`
-    // stacked on top of it (openspec 0225 task 5.7): the native element is
-    // the one a form, autofill, or assistive technology actually addresses.
+    // `.cl-chamfer--control` cuts the same top-right/bottom-left corners as
+    // the trigger it drops from (openspec 0295 task 1.4).
+    '.cl-select__content { padding-block: var(--cl-space-1); min-width: max(10rem, var(--radix-select-trigger-width)); max-height: var(--radix-select-content-available-height); overflow-y: auto; font-family: var(--cl-font-mono); }',
+    '.cl-select__item { display: flex; align-items: center; justify-content: space-between; gap: var(--cl-space-3); padding: var(--cl-space-2) var(--cl-space-3); border-inline-start: 2px solid transparent; cursor: pointer; }',
+    // The keyboard-navigated/hovered option reads as active the same way a
+    // live indicator does elsewhere: the signal-cyan leading rail and text.
+    '.cl-select__item[data-highlighted] { background: var(--cl-surface-raised); border-inline-start-color: var(--cl-state-live); color: var(--cl-state-live); font-weight: var(--cl-weight-bold); outline: none; }',
+    '.cl-select__item[data-highlighted] .cl-select__badge { color: var(--cl-state-live); }',
+    // The native `<select>` is still the element a form, autofill, or
+    // assistive technology actually addresses (its accessible name and
+    // keyboard/native-select semantics are unchanged), but it no longer
+    // stacks a full-size invisible copy on top of the Radix trigger to catch
+    // pointer clicks — that overlay opened the browser's own native picker
+    // instead of the styled `.cl-select__content` popover underneath. It is
+    // sized off-screen instead, so a mouse click lands on the visible,
+    // styled trigger while Tab/keyboard/AT users still reach it directly
+    // (openspec 0295 task 1.1, replacing the openspec 0225 task 5.7 overlay).
     '.cl-select-wrapper { position: relative; display: inline-block; width: 100%; }',
-    '.cl-select-native { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }',
-    '.cl-select-native.cl-select--disabled { cursor: not-allowed; }',
+    '.cl-select-native { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; pointer-events: none; }',
     '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); }',
     '',
     '.cl-form-field { display: grid; gap: var(--cl-space-1); min-width: 0; }',
@@ -698,6 +718,27 @@ function components(): string {
     '.cl-data-table__empty { padding: var(--cl-space-4); color: var(--cl-text-muted); }',
     '@media (max-width: 767px) { .cl-data-table { -webkit-overflow-scrolling: touch; } }',
     '',
+    // A muted-text utility, and the structured "nothing here yet" card every
+    // list-shaped surface not backed by DataTable needs (openspec 0280) —
+    // the same visual language public-web's own per-file `.cl-empty-state`
+    // rule already uses, centralized here since design-tokens' generator is
+    // the one place a class shared across Control-web and public-web lives
+    // (see `.cl-auth-screen__panel`'s own history, openspec 0278).
+    '.cl-text-muted { color: var(--cl-text-muted); }',
+    '.cl-empty-state { padding: var(--cl-space-8) var(--cl-space-4); text-align: center; background-color: var(--cl-surface-panel); border-radius: 12px; border: 1px dashed var(--cl-border-muted); color: var(--cl-text-muted); }',
+    '',
+    // Compact density: tighter padding, approximating `--cl-touch-target`
+    // (44px) per row instead of the default's roomier whitespace — opt-in,
+    // since most `DataTable`/`DataTable.astro` callers (roles, activity log)
+    // keep the default row height unchanged.
+    '.cl-data-table--compact .cl-data-table__table th, .cl-data-table--compact .cl-data-table__table td { padding: var(--cl-space-2) var(--cl-space-3); }',
+    '',
+    // Floating header: `position: sticky` against the table's own scroll
+    // container's nearest scrolling ancestor (typically the page), so column
+    // identity stays visible while a long table scrolls past it. Opt-in —
+    // most callers have no need to pin their header.
+    '.cl-data-table--sticky .cl-data-table__table thead th { position: sticky; top: 0; z-index: 1; background: var(--cl-surface-panel); box-shadow: 0 1px 0 var(--cl-border-muted); }',
+    '',
     '.cl-modal__overlay { position: fixed; inset: 0; }',
     '.cl-modal__content { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(480px, calc(100vw - var(--cl-space-8))); max-height: 85vh; overflow-y: auto; padding: var(--cl-space-4); }',
     // The title and the close control share a row, and a long compound title
@@ -750,7 +791,12 @@ function components(): string {
     // the shipped login/forgot/reset screens carry it. A Card composed inside
     // this panel sits 24px inboard of it, so the two read as a rail plus a
     // card rather than a doubled border.
-    '.cl-auth-screen__panel { width: min(100%, 560px); min-width: 0; max-width: 100%; box-sizing: border-box; align-self: center; margin-block: var(--cl-space-8); display: grid; gap: var(--cl-space-5); border-left: 4px solid var(--cl-state-live); padding: var(--cl-space-6) 0 var(--cl-space-6) var(--cl-space-6); }',
+    // `.cl-auth-screen` is a single-column grid, so `align-self: center` alone
+    // only centers the panel vertically (the block axis); without
+    // `justify-self: center` (the inline axis) the panel's constrained width
+    // left it flush to the grid track's start edge instead of centered
+    // (openspec 0278).
+    '.cl-auth-screen__panel { width: min(100%, 560px); min-width: 0; max-width: 100%; box-sizing: border-box; align-self: center; justify-self: center; margin-block: var(--cl-space-8); display: grid; gap: var(--cl-space-5); border-left: 4px solid var(--cl-state-live); padding: var(--cl-space-6) 0 var(--cl-space-6) var(--cl-space-6); }',
     '',
     '.cl-match-console-screen__header { display: flex; justify-content: space-between; align-items: start; gap: var(--cl-space-4); flex-wrap: wrap; min-width: 0; }',
     '.cl-match-console-screen__header > * { min-width: 0; }',
@@ -793,6 +839,31 @@ function components(): string {
     '.cl-role-status--active { color: var(--cl-state-live); }',
     '.cl-role-status--inactive { color: var(--cl-text-muted); }',
     '',
+    // Small tabs above the field, not a Select-with-icon: Select's trigger
+    // holds one leading icon for the whole control (select.tsx), not a
+    // per-option marker, so it cannot carry a "this language already has
+    // text" dot per option without changing what an atom's `icon` prop means.
+    // Tabs give every language its own always-visible slot for that dot.
+    //
+    // Shared by LocalizedInput and LocalizedTextarea (localized-field-tabs.tsx)
+    // - one class family, not one copy per field control. The strip sits
+    // flush on the field it controls, not floating above it with a gap: the
+    // tabs' bottom border is dropped, the row is pulled down 1px onto the
+    // field's own top border (`margin-bottom: -1px`), and the field's top
+    // corners are squared under the tabs so the two read as one piece, not
+    // two stacked boxes.
+    '.cl-localized-field { display: grid; min-width: 0; }',
+    '.cl-localized-field__tabs { display: flex; gap: var(--cl-space-1); overflow-x: auto; margin-bottom: -1px; }',
+    '.cl-localized-field__tab { display: inline-flex; flex: 0 0 auto; align-items: center; gap: var(--cl-space-1); border: 1px solid var(--cl-border-muted); border-bottom: none; border-radius: var(--cl-radius-sm) var(--cl-radius-sm) 0 0; background: var(--cl-surface-chrome); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); line-height: 1; text-transform: uppercase; white-space: nowrap; padding: var(--cl-space-1); cursor: pointer; }',
+    '.cl-localized-field__tab--active { position: relative; z-index: 1; background: var(--cl-surface-panel); border-color: var(--cl-primary); color: var(--cl-text-primary); }',
+    '.cl-localized-field__tab:disabled { cursor: not-allowed; opacity: 0.6; }',
+    // Same green as the badge/terminal-block fill dots (--cl-state-positive):
+    // one colour for "this already has a value," everywhere it appears. A
+    // fixed small size, like the sync-indicator dot (control.css) - a dot's
+    // exact pixel size is a bespoke visual detail, not a spacing decision.
+    '.cl-localized-field__dot { width: 4px; height: 4px; border-radius: 50%; background: var(--cl-state-positive); flex: 0 0 auto; }',
+    '.cl-localized-field .cl-input, .cl-localized-field .cl-textarea { position: relative; border-top-left-radius: 0; border-top-right-radius: 0; }',
+    '',
     // One name for one rule. The dashboard's and the platform screen's own
     // section wrappers were byte-identical: a screen that stacks sections is a
     // screen that stacks sections, whichever screen it is.
@@ -826,7 +897,7 @@ function components(): string {
     '  font-family: var(--cl-font-display);',
     '  font-weight: var(--cl-weight-semibold);',
     '  text-transform: uppercase;',
-    '  padding: var(--cl-space-1) var(--cl-space-2);',
+    '  padding: var(--cl-space-1) var(--cl-space-2) var(--cl-space-1) var(--cl-space-3);',
     '}',
     '',
     '@supports (corner-top-left-shape: bevel) or (corner-shape: bevel) {',
@@ -846,12 +917,13 @@ function components(): string {
     '  }',
     '}',
     '',
-    // Promoted from `MatchHero.astro`'s own scoped styles (openspec 0225
-    // task 8.1): a state variant belongs to the shared badge, not to one
-    // organism's private copy of it, so every future `<Badge>` — not only
-    // the match hero's — can reach a live or final treatment.
-    '.cl-badge--live { background: color-mix(in srgb, var(--cl-primary) 15%, transparent); color: var(--cl-primary); border: 1px solid color-mix(in srgb, var(--cl-primary) 40%, transparent); }',
-    '.cl-badge--final { background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent); color: var(--cl-state-positive); }',
+    ...Object.entries(BADGE_TONES).map(
+      ([name, tone]) =>
+        `.cl-badge--${name} { background: color-mix(in srgb, var(--cl-badge-${name}-color) 15%, transparent); color: var(--cl-badge-${name}-color); ${tone.border ? `border: 1px solid color-mix(in srgb, var(--cl-badge-${name}-color) 40%, transparent); ` : ''}font-weight: var(--cl-badge-${name}-weight); }`,
+    ),
+    // A confirmed/verified computed result — same positive role as `--final`,
+    // its own name because "final" already means a finished match.
+    '.cl-badge--verified { background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent); color: var(--cl-state-positive); border: 1px solid color-mix(in srgb, var(--cl-state-positive) 40%, transparent); }',
     '',
     '.cl-btn {',
     // A link wearing the button treatment is a button, underline included —
@@ -938,6 +1010,7 @@ function components(): string {
     '}',
     '/* Numeric columns read right-aligned against the figure above them. */',
     '.cl-table__num { text-align: right; }',
+    '.cl-tabular-nums { font-variant-numeric: tabular-nums; }',
     '.cl-table tbody tr:last-child th,',
     '.cl-table tbody tr:last-child td { border-block-end: none; }',
     '',
@@ -1167,7 +1240,34 @@ function components(): string {
     // 1408px wide on the matches view while the same card sat at 343px on the
     // live page — two grids for one kind of card, disagreeing about what a card
     // is. A match card has a size; a row with one of them is a row with a gap.
+    '.cl-matches-view__completion { margin-bottom: var(--cl-space-6); }',
     '.cl-matches-view__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--cl-space-4); }',
+    '',
+    // The compact ticker card (openspec 0299) — a dense single-line row, not
+    // a smaller version of the full card: `.cl-match-card--compact` overrides
+    // the base card's grid layout with a flex row, and neither its grid
+    // variant selects `.cl-match-card__sides`, `__header`, etc., since the
+    // compact branch never renders them.
+    '.cl-matches-view__grid--compact { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: var(--cl-space-2); }',
+    '.cl-match-card-grid--compact { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: var(--cl-space-2); }',
+    '.cl-match-card--compact { display: inline-flex; align-items: center; gap: var(--cl-space-2); padding: var(--cl-space-1) var(--cl-space-3); font-family: var(--cl-font-display); font-size: var(--cl-font-size-sm); min-width: 0; max-width: 100%; }',
+    '.cl-match-card__compact-dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--cl-border-muted); }',
+    // Each `presentState()` class fills the dot with its own semantic token —
+    // color is never the sole cue (the visually-hidden label beside it says
+    // the same thing), but the dot still has to actually be that color.
+    '.cl-match-card__compact-dot.cl-state--live { background: var(--cl-state-live); animation: cl-badge-pulse var(--cl-motion-slow) ease-in-out infinite alternate; }',
+    '.cl-match-card__compact-dot.cl-state--upcoming { background: var(--cl-state-upcoming); }',
+    '.cl-match-card__compact-dot.cl-state--positive { background: var(--cl-state-positive); }',
+    '.cl-match-card__compact-dot.cl-state--destructive { background: var(--cl-state-destructive); }',
+    '.cl-match-card__compact-dot.cl-state--muted { background: var(--cl-border-muted); }',
+    '.cl-match-card__compact-dot.cl-state--pending { background: var(--cl-text-muted); }',
+    '@media (prefers-reduced-motion: reduce) { .cl-match-card__compact-dot.cl-state--live { animation: none; opacity: 1; } }',
+    '.cl-match-card__compact-content { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }',
+    '',
+    // The Broadcaster Studio's live preview (openspec 0300): a real `<iframe>`
+    // has no intrinsic size, so it renders at the UA default (300×150) with no
+    // explicit dimensions — every property here exists to give it one.
+    '.cl-broadcaster-studio__preview { display: block; width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--cl-border-muted); background: var(--cl-surface-chrome); }',
     '',
     // The grand-final spotlight (openspec 0225 task 4.3/5.2) — a MatchCard
     // variant, not MatchCardData's shape: a seed and a per-participant winner
@@ -1330,6 +1430,134 @@ function compositions(): string {
     '',
     '.cl-outcome-legend__label { color: var(--cl-text-secondary); font-size: var(--cl-font-size-sm); overflow-wrap: anywhere; }',
     '',
+    '.cl-completion-figure {',
+    '  display: flex;',
+    '  flex-direction: column;',
+    '  gap: var(--cl-space-3);',
+    '  padding: var(--cl-space-4);',
+    '}',
+    '',
+    '.cl-completion-figure__header {',
+    '  display: flex;',
+    '  flex-wrap: wrap;',
+    '  align-items: center;',
+    '  justify-content: space-between;',
+    '  gap: var(--cl-space-2) var(--cl-space-3);',
+    '}',
+    '',
+    '.cl-completion-figure__heading {',
+    '  margin: 0;',
+    '  font-family: var(--cl-font-display);',
+    '  font-size: var(--cl-font-size-md);',
+    '  font-weight: var(--cl-weight-bold);',
+    '  color: var(--cl-text-primary);',
+    '}',
+    '',
+    '.cl-completion-figure__badge {',
+    '  display: inline-flex;',
+    '  align-items: center;',
+    '  gap: var(--cl-space-1);',
+    '  white-space: nowrap;',
+    '  flex-shrink: 0;',
+    '}',
+    '',
+    '.cl-completion-figure__body {',
+    '  display: flex;',
+    '  flex-direction: column;',
+    '  gap: var(--cl-space-2);',
+    '}',
+    '',
+    '.cl-completion-figure__stages {',
+    '  display: flex;',
+    '  flex-direction: column;',
+    '  gap: var(--cl-space-1);',
+    '  margin: 0;',
+    '  padding: 0;',
+    '  list-style: none;',
+    '}',
+    '',
+    '.cl-completion-figure__stage-item {',
+    '  display: flex;',
+    '  align-items: center;',
+    '  justify-content: space-between;',
+    '  gap: var(--cl-space-2);',
+    '  font-size: var(--cl-font-size-sm);',
+    '  color: var(--cl-text-secondary);',
+    '}',
+    '',
+    '.cl-completion-figure__stage-counts {',
+    '  font-family: var(--cl-font-mono);',
+    '  font-variant-numeric: tabular-nums;',
+    '  white-space: nowrap;',
+    '}',
+    '',
+    '/* The audit log panel displays cryptographic ledger diffs and events */',
+    '.cl-audit-log-panel {',
+    '  background: var(--cl-surface-panel);',
+    '  border: 1px solid var(--cl-border-muted);',
+    '  padding: var(--cl-space-4);',
+    '}',
+    '.cl-audit-log-panel__header {',
+    '  border-bottom: 1px solid var(--cl-border-muted);',
+    '  padding-bottom: var(--cl-space-2);',
+    '}',
+    '.cl-audit-log-panel__title {',
+    '  margin: 0;',
+    '  min-width: 0;',
+    '  font-family: var(--cl-font-display);',
+    '  font-size: var(--cl-font-size-md);',
+    '  font-weight: var(--cl-weight-bold);',
+    '  text-transform: uppercase;',
+    '  letter-spacing: var(--cl-tracking-wide);',
+    '  color: var(--cl-text-primary);',
+    '}',
+    '.cl-audit-log-panel__count {',
+    '  font-family: var(--cl-font-mono);',
+    '  font-size: var(--cl-font-size-xs);',
+    '  color: var(--cl-text-muted);',
+    '}',
+    '.cl-audit-log-panel__item {',
+    '  padding: var(--cl-space-2) var(--cl-space-3);',
+    '  background: var(--cl-surface-chrome);',
+    '  border-radius: 0 var(--cl-radius-sm) var(--cl-radius-sm) 0;',
+    '}',
+    '.cl-audit-log-panel__meta {',
+    '  font-size: var(--cl-font-size-xs);',
+    '  font-family: var(--cl-font-mono);',
+    '  color: var(--cl-text-secondary);',
+    '  margin-bottom: var(--cl-space-1);',
+    '}',
+    '.cl-audit-log-panel__actor {',
+    '  font-weight: var(--cl-weight-bold);',
+    '  color: var(--cl-text-primary);',
+    '}',
+    '.cl-audit-log-panel__dot {',
+    '  margin: 0 6px;',
+    '  color: var(--cl-text-muted);',
+    '}',
+    '.cl-audit-log-panel__latency {',
+    '  color: var(--cl-state-live);',
+    '  background: var(--cl-surface-base);',
+    '  padding: 1px 6px;',
+    '  border-radius: var(--cl-radius-sm);',
+    '  font-size: var(--cl-font-size-xs);',
+    '}',
+    '.cl-audit-log-panel__diff {',
+    '  font-family: var(--cl-font-mono);',
+    '  font-size: var(--cl-font-size-xs);',
+    '  margin-top: var(--cl-space-2);',
+    '  padding: var(--cl-space-2);',
+    '  background: var(--cl-surface-base);',
+    '  border-radius: var(--cl-radius-sm);',
+    '  border: 1px solid var(--cl-border-muted);',
+    '}',
+    '.cl-audit-log-panel__diff-prev {',
+    '  color: var(--cl-state-destructive);',
+    '}',
+    '.cl-audit-log-panel__diff-curr {',
+    '  color: var(--cl-state-positive);',
+    '}',
+    '',
     /*
      * The standings panel dresses `.cl-data-table`; it does not replace it.
      * Header and footer are chrome, the table sits in the well, and the footer
@@ -1366,6 +1594,58 @@ function compositions(): string {
     '  text-decoration: underline;',
     '  text-underline-offset: 3px;',
     '}',
+    '',
+    // Signed goal difference: the sign itself is the non-colour cue the
+    // identity doc's accessibility gate requires (0220 semantic.ts), so no
+    // icon is added on top of it — colour only reinforces what the digit
+    // already says.
+    '.cl-standings-panel__figure--positive { color: var(--cl-state-positive); }',
+    '.cl-standings-panel__figure--negative { color: var(--cl-state-destructive); }',
+    // The ranking metric a layout's `defaultSort[0]` scales (PTS for group
+    // standings, goals for a scorers table) — emphasised so it reads as the
+    // column the whole table is ordered by.
+    '.cl-standings-panel__figure--emphasis { color: var(--cl-primary); font-weight: var(--cl-weight-bold); }',
+    '',
+    '.cl-standings-panel__subtitle { margin: 0; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
+    '',
+    '.cl-standings-panel__footer-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--cl-space-3); }',
+    '.cl-standings-panel__audit-code { color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
+    '',
+    // The sortable header's own trigger: the whole cell is a button so its
+    // hit target is the header, not just the tooltip glyph beside the label.
+    '.cl-column-header { display: inline-flex; align-items: center; gap: var(--cl-space-1); background: transparent; border: none; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; padding: 0; cursor: pointer; }',
+    '.cl-column-header__indicator { font-size: var(--cl-font-size-xs); color: var(--cl-text-muted); }',
+    'th[aria-sort="ascending"] .cl-column-header__indicator, th[aria-sort="descending"] .cl-column-header__indicator { color: var(--cl-primary); }',
+    '',
+    // A description trigger beside a header label: a dotted underline is the
+    // "there is more here" affordance, the bubble itself only exists in the
+    // DOM (and only paints) while hovered or focused.
+    '.cl-column-header-tooltip { position: relative; display: inline-flex; }',
+    '.cl-column-header-tooltip__trigger { background: transparent; border: none; color: inherit; font: inherit; padding: 0; cursor: help; text-decoration: underline dotted; text-underline-offset: 3px; }',
+    '.cl-column-header-tooltip__bubble {',
+    '  position: absolute;',
+    '  bottom: calc(100% + var(--cl-space-2));',
+    '  left: 50%;',
+    '  transform: translateX(-50%);',
+    '  z-index: 20;',
+    '  width: max-content;',
+    '  max-width: 220px;',
+    '  padding: var(--cl-space-2) var(--cl-space-3);',
+    '  background: var(--cl-surface-chrome);',
+    '  border: 1px solid var(--cl-border-muted);',
+    '  color: var(--cl-text-primary);',
+    '  font-family: var(--cl-font-body);',
+    '  font-size: var(--cl-font-size-xs);',
+    '  text-transform: none;',
+    '  letter-spacing: normal;',
+    '  font-weight: normal;',
+    '  pointer-events: none;',
+    '  opacity: 0;',
+    '  visibility: hidden;',
+    '  transition: opacity var(--cl-motion-fast) var(--cl-motion-easing);',
+    '}',
+    '.cl-column-header-tooltip__trigger:hover + .cl-column-header-tooltip__bubble, .cl-column-header-tooltip__trigger:focus-visible + .cl-column-header-tooltip__bubble { opacity: 1; visibility: visible; }',
+    '@media (prefers-reduced-motion: reduce) { .cl-column-header-tooltip__bubble { transition: none; } }',
     '',
     /*
      * Numbered steps. The marker is a flex peer of the heading rather than a

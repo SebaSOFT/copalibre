@@ -37,6 +37,41 @@ describe('audit records as ledger entries', () => {
     expect(summarizeState({}, ['homeScore'])).toBe('homeScore: —');
   });
 
+  it('renders null values as "null"', () => {
+    expect(summarizeState({ value: null }, ['value'])).toBe('value: null');
+  });
+
+  it('renders score objects formatted as a hyphen-separated score', () => {
+    expect(summarizeState({ result: { sides: [{ score: 7 }, { score: 3 }] } }, ['result'])).toBe(
+      'result: 7 - 3',
+    );
+
+    expect(
+      summarizeState(
+        {
+          result: {
+            sides: [
+              { statistics: { score: 10 } },
+              { statistics: { points: 5 } },
+              { statistics: { goals: 2 } },
+              { statistics: {} },
+              null,
+            ],
+          },
+        },
+        ['result'],
+      ),
+    ).toBe('result: 10 - 5 - 2 - 0 - 0');
+  });
+
+  it('renders arrays and generic objects cleanly', () => {
+    expect(summarizeState({ tags: ['gold', 'featured'] }, ['tags'])).toBe('tags: gold, featured');
+    expect(summarizeState({ meta: { a: 1, b: { nested: true } } }, ['meta'])).toBe(
+      'meta: a: 1, b: {"nested":true}',
+    );
+    expect(summarizeState({ empty: {} }, ['empty'])).toBe('empty: {}');
+  });
+
   it('reads a record carrying both states as a correction', () => {
     const item = toAuditLogItem({
       ...base,

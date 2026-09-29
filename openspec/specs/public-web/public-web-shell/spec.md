@@ -158,22 +158,26 @@ variant of every public page for each.
 
 ### Requirement: Public web surfaces render discipline-tailored table layouts
 
-Public spectator pages SHALL render standings and leaderboards according to the tournament's effective table layout definitions.
+Public spectator pages SHALL render standings and leaderboards according to the tournament's effective table layout definitions. Each sortable column header's control SHALL expose an accessible name that matches the text visually presented for it — a short column label displayed on screen SHALL NOT be exposed to assistive technology under a different, longer label.
 
 #### Scenario: Public spectator views stage standings
 - **WHEN** a public visitor opens a tournament's standings page
 - **THEN** the table displays the discipline's declared columns and pre-sorted ranking order, server-rendered from the effective table layout without client-side column filtering
 
+#### Scenario: A column header's accessible name matches its visible label
+- **WHEN** a table layout declares both a long header and a short header for a column, and the short header is what renders on screen
+- **THEN** the column header control's accessible name is that same short header, not the long one — a screen reader announces what a sighted visitor reads
+
 ### Requirement: Per-match public report page
 
 The public site SHALL serve a per-match report page at
-`/{organization}/tournaments/{tournament}/stages/{stageNumber}/matches/{matchNumber}`, keyed by the
-stage number and match's stage-scoped sequential number, showing the match header
-(competition/stage/round identity, both entrants, current score,
-status, scheduled date/time and venue when a schedule exists), the officials assigned to it, each side's
-roster as recorded, and the full event timeline in match order. This page SHALL be rendered per request
-from current backend state, matching the existing overview page's "reachable without a site rebuild"
-guarantee.
+`/{organization}/tournaments/{tournament}/stages/{stageNumber}/matches/{matchNumber}`, where
+`matchNumber` is a genuinely stage-unique 1-based ordinal — never a value that can be shared by more
+than one fixture within the same stage — keyed by the stage number and that ordinal, showing the match
+header (competition/stage/round identity, both entrants, current score, status, scheduled date/time and
+venue when a schedule exists), the officials assigned to it, each side's roster as recorded, and the
+full event timeline in match order. This page SHALL be rendered per request from current backend state,
+matching the existing overview page's "reachable without a site rebuild" guarantee.
 
 #### Scenario: Visiting a finished match's report
 - **WHEN** an anonymous visitor requests the report page for a finalized match
@@ -196,6 +200,13 @@ guarantee.
   published
 - **THEN** the public site returns a not-found response, matching the existing overview page's
   unpublished-tournament behavior
+
+#### Scenario: A stage with more than one non-series fixture resolves the requested match, not an arbitrary one
+- **WHEN** an anonymous visitor requests the report page for one specific match in a stage that has more
+  than one fixture carrying the same per-fixture game index (true of every stage where not every
+  fixture is a multi-game series — the common case)
+- **THEN** the page renders that specific match's own data, never another fixture's data substituted
+  for it
 
 ### Requirement: Officials assigned to a fixture are shown on its match report
 
@@ -291,18 +302,49 @@ ranking computation.
 
 ### Requirement: Public player profile popup
 
-The public site SHALL serve a per-person competition profile, reachable from wherever a player's name
-is rendered on a public page, showing display name, nationality flag, photo or placeholder, computed
-age when set, competition history (every tournament and team the person has been entered under, within
-the person's organization), and career statistic totals aggregated across every tournament, per
-discipline. The photo, or its placeholder, SHALL render inside the platform's standard 4:5 framed-image
-presentation.
+The public site SHALL serve a per-person competition profile, reachable from wherever a player's
+name is rendered on a public page, showing display name, nationality flag, photo or placeholder,
+computed age when set, competition history (every tournament and team the person has been entered
+under, within the person's organization), and career statistic totals aggregated across every
+tournament, per discipline. The photo, or its placeholder, SHALL render inside the platform's
+standard 4:5 framed-image presentation.
+
+Within the current published tournament, a profile SHALL also expose every effective
+person-granularity player-ranking layout through a labeled selector. For the selected layout, it
+SHALL show that player's tournament total and a match-by-match table for finalized matches where
+the player appears in a recorded roster, ordered chronologically by stage and match number. The
+tournament-total table SHALL show every declared column, including composite and computed ones; the
+match-by-match table SHALL show only the layout's collector-kind (atomic) columns, since composite
+and computed columns are ratios or expressions that depend on more than one match. Both tables SHALL
+use the layout's declared localized labels, values, and zero-value display rules. The selected
+layout identifier SHALL be a query parameter on the profile URL, defaulting to the tournament's
+first effective person-granularity layout when omitted, and a player link from a ranking SHALL open
+the matching layout when one exists.
 
 #### Scenario: Visiting a player's public profile
 - **WHEN** an anonymous visitor opens a player's name on a public page
 - **THEN** the profile shows the player's display name, nationality flag if set, photo or placeholder
   inside the standard framed presentation, computed age if a birth date is set, their competition
   history, and their career statistic totals
+
+#### Scenario: A player views statistics for the current tournament
+- **WHEN** a spectator opens a player profile from a published tournament ranking, for the
+  tournament's installed discipline
+- **THEN** the tournament-total table shows the same declared columns, values, and presentation
+  rules as that discipline's ranking, and the match-by-match table shows a row per finalized match
+  with only the layout's collector-kind columns
+
+#### Scenario: A profile selects another declared player layout
+- **WHEN** a tournament declares more than one person-granularity player-ranking layout and a
+  spectator changes the profile's selected layout
+- **THEN** the URL identifies that layout and the profile renders its declared columns without
+  combining values from another layout
+
+#### Scenario: A player with no current-tournament roster record has no inferred match rows
+- **WHEN** a player profile belongs to the organization but the person has no recorded roster
+  appearance in the current tournament
+- **THEN** the profile shows the existing identity and career sections with an empty
+  tournament-statistics state and does not infer zero-valued match rows
 
 #### Scenario: A player with no career statistics still has a valid profile
 - **WHEN** a player's discipline declares no organization-granularity collector, or the player has none
@@ -726,3 +768,164 @@ Components moved into that tier SHALL continue to resolve every value through de
 - **WHEN** an existing public component moves into the owned tier
 - **THEN** its rendered output is unchanged and it introduces no undeclared token or unapproved raw
   colour
+
+### Requirement: Generic Discipline Hero Backdrop
+The tournament overview's hero SHALL fill its full section with the active discipline's background
+image, when one is declared, at full visual strength (no low-opacity wash), with a gradient scrim
+behind the title/emblem content for legibility, dynamically resolving for any installed discipline via
+the same mechanism the public shell already uses for its page-wide background. The hero SHALL NOT be
+rendered as an enclosed card (no card border/background framing it).
+
+#### Scenario: Renders discipline hero background
+- **WHEN** viewing a tournament's public overview whose discipline declares background imagery
+- **THEN** the hero's image fills the entire hero section, visibly showing the photo (not a faint
+  wash), with its title and other content legible over a gradient scrim
+
+#### Scenario: A discipline with no imagery keeps a plain fill
+- **WHEN** viewing a tournament's public overview whose discipline declares no background imagery
+- **THEN** the hero renders a flat surface fill, with no other discipline's imagery substituted and no
+  card framing
+  substituted
+
+### Requirement: Standardized Tournament Progress Spacing
+The tournament progress component SHALL enforce a minimum top margin of `--space-6` (24px) separating
+it from the hero banner.
+
+#### Scenario: Progress bar spacing
+- **WHEN** the tournament progress bar is rendered
+- **THEN** it maintains at least 24px vertical separation from the preceding section
+
+### Requirement: Per-zone winner resolution is isolated and never guesses an ambiguous final
+Resolving a finished tournament's per-zone champion/runner-up SHALL treat each zone of the terminal
+stage independently: a failure or an ambiguous terminal round for one zone SHALL NOT prevent the other
+zones of the same tournament from resolving. A zone's terminal round that contains more than one
+finalized match SHALL be reported as unresolved for that zone rather than resolved from an arbitrarily
+chosen match among them.
+
+#### Scenario: One zone's ambiguous terminal round does not affect the others
+- **WHEN** a finished tournament's terminal stage has multiple zones, and exactly one zone's terminal
+  round contains more than one finalized match while the other zones' terminal rounds each contain
+  exactly one
+- **THEN** the ambiguous zone is omitted from the results and every other zone's champion/runner-up is
+  still returned
+
+#### Scenario: A single-match terminal round resolves normally
+- **WHEN** a zone's terminal round contains exactly one finalized match
+- **THEN** that match's result determines the zone's champion and runner-up, unchanged from today's
+  behavior
+
+### Requirement: Emblem images fall back on a client-side load failure
+Every surface rendering a club, organization, or person emblem/photo through the shared emblem atoms
+SHALL fall back to the existing placeholder graphic when the image fails to load in the browser, not
+only when no image reference is on record.
+
+#### Scenario: A recorded emblem whose image request fails still shows a placeholder
+- **WHEN** an entity has an emblem/photo object recorded, but the browser's request for that image
+  fails or errors
+- **THEN** the UI shows the same placeholder graphic used when no emblem is recorded, never a
+  broken-image icon
+
+### Requirement: Zone-Scoped Public Bracket Presentation
+The public stage bracket view SHALL render an independent bracket diagram for every zone ($1..Z$)
+defined in an elimination stage, each showing only that zone's own matches, participants, and
+resolved status — never a match dropped to a placeholder because another zone's fixture happens to
+share the same round and position.
+
+#### Scenario: Displaying Z zones in an elimination stage
+- **WHEN** a spectator views an elimination stage with $Z > 1$ zones
+- **THEN** the view renders $Z$ distinct bracket diagrams, each with a zone heading and containing only
+  that zone's matches, with real entrant names, scores, and match status (not "TBD" placeholders caused
+  by a collision with another zone's fixture at the same round/position)
+
+#### Scenario: A single-zone or un-zoned stage is unaffected
+- **WHEN** a spectator views an elimination stage with exactly one zone (or none declared)
+- **THEN** the view renders exactly one bracket diagram, with no zone heading and no jump-list, matching
+  today's behavior
+
+### Requirement: Bracket Entrant Club Emblem Display
+Bracket entrant slots resolved to a real entrant SHALL display that entrant's club emblem, when one is
+on record, alongside the team name and abbreviation — the same emblem-or-placeholder treatment already
+used by the standings table and tournament hero.
+
+#### Scenario: An entrant with a recorded club emblem
+- **WHEN** a bracket cross's slot resolves to an entrant whose club has an emblem on record
+- **THEN** the slot displays that emblem image beside the entrant's name
+
+#### Scenario: An entrant with no recorded club emblem
+- **WHEN** a bracket cross's slot resolves to an entrant with no emblem on record (or is not yet
+  resolved)
+- **THEN** the slot displays the existing placeholder graphic, never a broken-image icon or empty gap
+
+### Requirement: Independent Per-Zone Champion Highlight
+Each zone's own completed bracket SHALL highlight that zone's own champion, independently of every
+other zone's completion state, using the existing single-match-terminal-round rule (a zone whose
+deepest round holds more than one match is not marked, consistent with the tournament overview's
+winner-resolution behavior).
+
+#### Scenario: One zone completes before the others
+- **WHEN** one zone's terminal round has finalized to a single match while the tournament's other zones
+  have not yet finished
+- **THEN** that zone's bracket highlights its own champion, and every other zone's bracket renders
+  unaffected by that zone's completion
+
+### Requirement: Structured-data injection is safe against script-breakout
+Any admin-set text (organization name, tournament name, or other free-text field) rendered inside a
+public page's JSON-LD structured-data `<script>` tag SHALL be escaped so it cannot terminate that
+`<script>` tag early, regardless of its content.
+
+#### Scenario: An organization name containing a script-closing sequence cannot execute
+- **WHEN** an organization's name contains the literal text `</script>` followed by markup
+- **THEN** that organization's public page renders the name as inert JSON-LD text data, and no
+  script derived from it executes in a visitor's browser
+
+#### Scenario: Ordinary organization and tournament names render unaffected
+- **WHEN** an organization or tournament name contains no script-breakout sequence
+- **THEN** the public page's structured data renders exactly as before, byte-for-byte equivalent for
+  any name that needed no escaping
+
+### Requirement: Public pages carry baseline security response headers
+Every response the public site serves SHALL include `X-Content-Type-Options: nosniff`,
+`X-Frame-Options: DENY`, and `Referrer-Policy: strict-origin-when-cross-origin`.
+
+#### Scenario: A visitor requests any public page
+- **WHEN** an anonymous visitor requests any public route, prerendered or server-rendered
+- **THEN** the response includes `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and
+  `Referrer-Policy: strict-origin-when-cross-origin`
+
+### Requirement: The public overview's ruleset section shows the tournament's effective configuration
+The tournament overview page's ruleset section SHALL show each field's effective value — the
+discipline's default combined with the tournament's overrides per the field's merge strategy —
+never the raw stored override delta.
+
+#### Scenario: A merged-strategy field's public display matches its effective value
+- **WHEN** the overview page renders a ruleset field whose override permission is `merged` and the
+  tournament has submitted an addition to it
+- **THEN** the displayed value is the discipline's inherited value combined with the addition, not
+  the addition alone
+
+### Requirement: The public overview's ruleset section is localized
+The tournament overview page's ruleset section SHALL render each field's label and value in the
+page's served locale, using the field's own declared label where one exists, rather than a
+hardcoded English-only formatting of the field's raw dot-path or stored value.
+
+#### Scenario: A non-English locale shows localized rule labels and values
+- **WHEN** the overview page is requested in a supported locale other than English
+- **THEN** the ruleset section's field labels and boolean/enum values are rendered in that locale,
+  not in English
+
+### Requirement: Not found error page adheres to design tokens and provides return navigation
+The public 404 Page Not Found error page SHALL resolve its presentation through declared CopaLibre
+design tokens, rendering on a dark ink background (`#0A0E1A`) with an instrument-grade chamfered
+card, clear localized error copy, and an accessible call-to-action control linking back to the home
+directory. It SHALL NOT render as an unstyled, pure-white browser document.
+
+#### Scenario: Sighted visitor navigates to non-existent route
+- **WHEN** a visitor navigates to an unmatched public route
+- **THEN** the rendered 404 page presents the dark surface palette, brand header, centered chamfered
+  error panel, and a primary return button
+- **AND** the document background is not pure white `#ffffff`
+
+#### Scenario: Control SPA routing fallback remains intact
+- **WHEN** a visitor directly accesses a `/control/**` deep link on a static host serving `404.html`
+- **THEN** `ControlOrNotFound` hides the static error card and mounts the control application
+  seamlessly

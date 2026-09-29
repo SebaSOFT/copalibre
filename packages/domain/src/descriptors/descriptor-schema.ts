@@ -576,6 +576,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
         shortHeader: LOCALIZED_LABEL_SCHEMA,
         source: { $ref: '#/definitions/columnSource' },
         format: { enum: ['text', 'number', 'decimal-1', 'decimal-2', 'percentage', 'fraction'] },
+        zeroDisplay: { type: 'string', minLength: 1 },
         visibleByDefault: { type: 'boolean' },
       },
     },

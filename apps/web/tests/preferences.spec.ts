@@ -71,11 +71,11 @@ test('user can generate and revoke PAT', async ({ page }) => {
   await expect(page.getByText('E2E Test Token')).toBeVisible();
 
   // Create a new token
-  await page.getByLabel('Token Label').fill('New CI Token');
-  await page.getByRole('button', { name: 'Generate Token' }).click();
+  await page.getByLabel('Etiqueta del token').fill('New CI Token');
+  await page.getByRole('button', { name: 'Generar token' }).click();
 
   // Check it shows the token value
-  await expect(page.getByText('Token created. Copy it now:')).toBeVisible();
+  await expect(page.getByText('Token creado. Copialo ahora:')).toBeVisible();
   await expect(page.getByText('cl_pat_123456789')).toBeVisible();
 
   // Verify it was added to the list
@@ -86,7 +86,7 @@ test('user can generate and revoke PAT', async ({ page }) => {
   await page
     .locator('li')
     .filter({ hasText: 'E2E Test Token' })
-    .getByRole('button', { name: 'Revoke' })
+    .getByRole('button', { name: 'Revocar' })
     .click();
 
   // E2E Test Token should be gone

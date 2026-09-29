@@ -28,3 +28,7 @@ the constraints declared for that discipline/format.
 The draw can be redone as long as the stage hasn't started. Once the stage is underway, redoing the
 draw would no longer make sense with matches already played — the screen does not allow it at that
 point.
+
+## Follow an entrant
+
+In the public bracket or control seeding canvas, select an entrant name to highlight their played matches and possible winning route. A first loss continues into the losers’ bracket when the draw declares that route. Select the name again or press Escape to clear. Match report links remain separate. Public results remain readable without JavaScript.

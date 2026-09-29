@@ -5,49 +5,71 @@ import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Form } from '../ui/atoms/form.js';
 import { Field } from '../ui/molecules/field.js';
+import { RulesetFieldControl } from '../ui/molecules/ruleset-field-control.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
-import type { MutationFieldPreview, RulesetOverridesRequest } from '../../lib/api-client.js';
+import { TournamentSummary } from '../ui/organisms/tournament-summary.js';
+import { fieldValueAt, mergeOverrides, observedFieldValue } from '../../lib/discipline-summary.js';
+import { isSupportedLanguage, resolveFieldPolicyLabel } from '@copalibre/domain';
+import type {
+  MutationFieldPreview,
+  RulesetOverridesRequest,
+  TournamentSettingsResponse,
+} from '../../lib/api-client.js';
+import type { ConfigFieldPolicies, RulesetConfig } from '@copalibre/domain';
 import { messages } from '../../i18n/messages.en.js';
 
 interface FieldDraft {
   readonly field: string;
-  /** JSON-encoded, so a number/boolean/array/object survives round-tripping, not only a string. */
-  readonly value: string;
+  readonly value: unknown;
 }
 
 function toDrafts(overrides: Readonly<Record<string, unknown>>): FieldDraft[] {
-  return Object.entries(overrides).map(([field, value]) => ({
-    field,
-    value: JSON.stringify(value),
-  }));
+  return Object.entries(overrides).map(([field, value]) => ({ field, value }));
+}
+
+function asBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
 }
 
 /**
  * A published tournament's ruleset override fields — every field the installed
  * discipline descriptor marks `replaced`/`merged`, excluding `customScripts` and
- * `registration.capacity`, which keep their own dedicated screens/routes. Values
- * are edited as JSON so a number, array, or object survives round-tripping the
- * same way the underlying dot-path override document stores it (design.md).
+ * `registration.capacity`, which keep their own dedicated screens/routes. Each
+ * field renders a control typed to its declared merge behavior and value shape
+ * (`RulesetFieldControl`, openspec 0264) instead of hand-typed JSON.
  */
 export function TournamentRulesetTemplate({
   organizationAlias,
   tournamentAlias,
   overrides,
+  fieldPolicies,
+  disciplineDefaults,
+  availableFormats = [],
+  settings,
   onPreview,
   onSave,
 }: {
   readonly organizationAlias: string;
   readonly tournamentAlias: string;
   readonly overrides: Readonly<Record<string, unknown>>;
+  readonly fieldPolicies?: ConfigFieldPolicies;
+  readonly disciplineDefaults?: RulesetConfig;
+  /** Constrains the `format` field's control to the installed discipline's declared formats. */
+  readonly availableFormats?: readonly string[];
+  /** Additive context for the plain-language summary below (openspec 0267). */
+  readonly settings?: TournamentSettingsResponse;
   readonly onPreview?: (
     request: RulesetOverridesRequest,
   ) => Promise<readonly MutationFieldPreview[]>;
   readonly onSave?: (request: RulesetOverridesRequest) => Promise<void>;
 }): React.JSX.Element {
   const intl = useIntl();
+  const resolvedFieldPolicies = fieldPolicies ?? {};
+  const resolvedDefaults = disciplineDefaults ?? {};
+  const shortLocale = intl.locale.split('-')[0];
+  const language = isSupportedLanguage(shortLocale) ? shortLocale : 'en';
   const [drafts, setDrafts] = useState<readonly FieldDraft[]>(toDrafts(overrides));
   const [newField, setNewField] = useState('');
-  const [newValue, setNewValue] = useState('');
   const [preview, setPreview] = useState<readonly MutationFieldPreview[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -56,14 +78,8 @@ export function TournamentRulesetTemplate({
   function changedOverrides(): Record<string, unknown> {
     const changed: Record<string, unknown> = {};
     for (const draft of drafts) {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(draft.value);
-      } catch {
-        continue;
-      }
-      if (JSON.stringify(overrides[draft.field]) !== JSON.stringify(parsed)) {
-        changed[draft.field] = parsed;
+      if (JSON.stringify(overrides[draft.field]) !== JSON.stringify(draft.value)) {
+        changed[draft.field] = draft.value;
       }
     }
     return changed;
@@ -104,37 +120,80 @@ export function TournamentRulesetTemplate({
             <FormattedMessage {...messages.tournamentSettingsLink} />
           </a>
 
+          {fieldPolicies !== undefined && (
+            <TournamentSummary
+              discipline={{
+                fieldPolicies,
+                defaults: mergeOverrides(resolvedDefaults, overrides, resolvedFieldPolicies),
+              }}
+              facts={{
+                name: settings?.name ?? tournamentAlias,
+                region: settings?.region,
+                capacity: settings?.capacity,
+                checkInClosesAt: settings?.checkInClosesAt,
+                publicRegistration: asBoolean(
+                  fieldValueAt(
+                    mergeOverrides(resolvedDefaults, overrides, resolvedFieldPolicies),
+                    'registration.publicOpen',
+                  ),
+                ),
+                requiresCheckIn: asBoolean(
+                  fieldValueAt(
+                    mergeOverrides(resolvedDefaults, overrides, resolvedFieldPolicies),
+                    'registration.requiresCheckIn',
+                  ),
+                ),
+              }}
+              sections={['rules']}
+            />
+          )}
+
           <ul aria-label={intl.formatMessage(messages.rulesetOverridesFields)}>
-            {drafts.map((draft, index) => (
-              <li key={draft.field}>
-                <Field id={`ruleset-field-${index}`} label={draft.field}>
-                  <input
-                    className="cl-input cl-input--default cl-focusable"
-                    id={`ruleset-field-${index}`}
-                    onChange={(event) => {
-                      const value = event.target.value;
+            {drafts.map((draft, index) => {
+              const policy = resolvedFieldPolicies[draft.field];
+              const label =
+                policy !== undefined
+                  ? resolveFieldPolicyLabel(draft.field, policy, language)
+                  : draft.field;
+              return (
+                <li key={draft.field}>
+                  <Field id={`ruleset-field-${index}`} label={label}>
+                    <RulesetFieldControl
+                      addLabel={intl.formatMessage(messages.rulesetFieldListAdd)}
+                      availableFormats={availableFormats}
+                      disciplineDefaultValue={fieldValueAt(resolvedDefaults, draft.field)}
+                      dotPath={draft.field}
+                      id={`ruleset-field-${index}`}
+                      inheritedHeading={intl.formatMessage(messages.rulesetFieldInheritedHeading)}
+                      label={label}
+                      onChange={(value) =>
+                        setDrafts((current) =>
+                          current.map((entry, entryIndex) =>
+                            entryIndex === index ? { ...entry, value } : entry,
+                          ),
+                        )
+                      }
+                      overrideValue={draft.value}
+                      policy={policy}
+                      removeLabel={intl.formatMessage(messages.rulesetOverridesRemoveField)}
+                      unknownTypeText={intl.formatMessage(messages.rulesetFieldUnknownType)}
+                      unrecognizedText={intl.formatMessage(messages.rulesetFieldUnrecognized)}
+                    />
+                  </Field>
+                  <Button
+                    onClick={() =>
                       setDrafts((current) =>
-                        current.map((entry, entryIndex) =>
-                          entryIndex === index ? { ...entry, value } : entry,
-                        ),
-                      );
-                    }}
-                    value={draft.value}
-                  />
-                </Field>
-                <Button
-                  onClick={() =>
-                    setDrafts((current) =>
-                      current.filter((_entry, entryIndex) => entryIndex !== index),
-                    )
-                  }
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage {...messages.rulesetOverridesRemoveField} />
-                </Button>
-              </li>
-            ))}
+                        current.filter((_entry, entryIndex) => entryIndex !== index),
+                      )
+                    }
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FormattedMessage {...messages.rulesetOverridesRemoveField} />
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
 
           <Field
@@ -149,26 +208,14 @@ export function TournamentRulesetTemplate({
               value={newField}
             />
           </Field>
-          <Field
-            id="ruleset-new-field-value"
-            label={intl.formatMessage(messages.rulesetOverridesNewFieldValueLabel)}
-          >
-            <input
-              className="cl-input cl-input--default cl-focusable"
-              id="ruleset-new-field-value"
-              onChange={(event) => setNewValue(event.target.value)}
-              placeholder="4"
-              value={newValue}
-            />
-          </Field>
           <Button
             disabled={newField.trim() === ''}
             onClick={() => {
               const field = newField.trim();
               if (field === '' || drafts.some((draft) => draft.field === field)) return;
-              setDrafts((current) => [...current, { field, value: newValue.trim() || '""' }]);
+              const initialValue = observedFieldValue(overrides, resolvedDefaults, field);
+              setDrafts((current) => [...current, { field, value: initialValue }]);
               setNewField('');
-              setNewValue('');
             }}
             type="button"
             variant="secondary"

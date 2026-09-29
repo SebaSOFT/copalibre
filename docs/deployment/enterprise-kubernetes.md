@@ -16,10 +16,14 @@ values` gives) and records an installation marker in the current directory — n
 automatically; `--namespace`/`--release` default to `default`/`copalibre` when omitted.
 
 Bootstrapping the first administrator runs as a one-shot Job instead of `kubectl exec` into a
-running pod:
+running pod. Run the example from the checkout root after configuring `values.yaml` with the
+required database, identity, email and public URL settings. These image tags are available only
+after the 1.2.0 release is published; for an earlier installation, use its released version:
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre -f values.yaml \
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.0 \
   --set createAdmin.enabled=true \
   --set createAdmin.organizationAlias=my-league \
   --set createAdmin.organizationName="My League" \
@@ -33,6 +37,152 @@ one exists. `statistics-rebuild` and `module add/list/remove/verify` work exactl
 a Compose-mode installation: run `copalibre login --api-url <the cluster's public API URL>` once,
 then every later invocation from that directory authenticates over HTTP — no `kubectl` access
 involved.
+
+## Upgrading an existing Helm release safely
+
+These steps upgrade an existing release; they do not install a second copy. Examples use release
+`my-copalibre` in namespace `default`. Substitute your actual names consistently. Use the reviewed
+chart from the target release checkout and published runtime/web images. Preserve database and
+object-store endpoints, secret references, public hostnames and signing keys.
+
+The quiesced procedure below can exceed two minutes: it stops all application deployments and
+waits for migrations and rollout. For a hard two-minute maximum, rehearse with production-sized data
+and require measured margin below the limit. Keep ingress on the old release during preflight; use a
+rolling cutover only after verifying the migration works with both old and new application versions.
+If that compatibility or timing is not proven for the target release, this procedure does not meet
+the downtime limit. Do not scale everything to zero and expect the limit to hold.
+
+### 1. Capture configuration and recovery evidence
+
+Store values in a private directory: Helm values can contain credentials. Record the current Helm
+revision, both image tags/digests, replica counts, HPA settings and ingress/TLS configuration.
+
+```bash
+umask 077
+mkdir -p release-backup
+helm history my-copalibre -n default
+helm get values my-copalibre -n default -o yaml > release-backup/values.yaml
+kubectl get deployment,hpa,ingress -n default \
+  -l app.kubernetes.io/instance=my-copalibre -o yaml > release-backup/workloads.yaml
+```
+
+Take a verified PostgreSQL backup/snapshot and a matching object-store backup. Preserve signing keys
+and secret-manager versions separately. The CLI's Compose `backup`/`restore` commands do not operate
+on Kubernetes installations. Use your database and storage provider's recovery procedure and verify
+it in an isolated namespace/database before the maintenance window.
+
+Copy the previous user-supplied values to a private `upgrade-values.yaml` and reconcile them with the
+target chart's defaults (`helm show values deploy/helm/copalibre`). Do not blindly replace them with
+new defaults or rely on `--reuse-values` to discover new configuration. Keep
+`createAdmin.enabled=false` for an existing installation. If `externalSecrets.enabled=true`, verify
+the existing release Secret has the intended values before proceeding: the migration hook needs it
+before ordinary resources are applied.
+
+### 2. Check the target runtime against the existing database
+
+Run a short-lived Job using the **target** runtime image and the existing release's ConfigMap/Secret.
+This checks installed module compatibility and reports pending migrations without applying them.
+Save this as `upgrade-check.yaml`, adapting release and namespace names:
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: my-copalibre-upgrade-check-1-2-0
+  namespace: default
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: copalibre
+        app.kubernetes.io/instance: my-copalibre
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: upgrade-check
+          image: ghcr.io/sebasoft/copalibre:1.2.0
+          command: [node, apps/copalibre/dist/main.js]
+          args: [upgrade-check, --target-version, 1.2.0]
+          envFrom:
+            - configMapRef:
+                name: my-copalibre-env
+            - secretRef:
+                name: my-copalibre-secret
+```
+
+```bash
+kubectl apply -f upgrade-check.yaml
+kubectl wait -n default --for=condition=complete \
+  job/my-copalibre-upgrade-check-1-2-0 --timeout=5m
+kubectl logs -n default job/my-copalibre-upgrade-check-1-2-0
+```
+
+Stop on failure. Keep failed Job logs; use a new Job name for a retry after correcting configuration.
+The Job requires the same database network access as the migration hook. If the target release needs
+new environment settings for its check, supply those explicitly; this example reads current settings.
+
+### 3. Quiesce writers and apply the reviewed chart
+
+Unless the target migrations have been verified compatible with both running versions, use a
+maintenance window. Keep ingress on your maintenance backend, pause GitOps/other controllers that
+would undo manual scaling, and suspend autoscaling according to your controller's procedure. Record
+the desired settings first. Stop CopaLibre deployments and wait for application pods to terminate:
+
+```bash
+kubectl scale deployment -n default \
+  -l app.kubernetes.io/instance=my-copalibre --replicas=0
+kubectl get pods -n default -l app.kubernetes.io/instance=my-copalibre
+```
+
+Take the final database/object backup with writers stopped. Then upgrade using the desired production
+replicas and configuration in `upgrade-values.yaml`:
+
+```bash
+helm upgrade my-copalibre deploy/helm/copalibre -n default \
+  -f upgrade-values.yaml \
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.0 \
+  --set createAdmin.enabled=false --set doctor.enabled=true \
+  --wait --wait-for-jobs --timeout 10m
+```
+
+The chart writes its ConfigMap/Secret hooks at weight `-5`, then runs the target migration Job at
+weight `0`, before updating application workloads. This orders migration before new pods; it does
+**not** stop old writers for you or prove arbitrary migrations are safe without downtime.
+No automatic rollback flag is used: rolling workload manifests back cannot undo a database migration.
+
+### 4. Verify before reopening traffic
+
+```bash
+helm status my-copalibre -n default
+kubectl get jobs,pods -n default -l app.kubernetes.io/instance=my-copalibre
+kubectl rollout status deployment/my-copalibre-api -n default --timeout=5m
+kubectl rollout status deployment/my-copalibre-web -n default --timeout=5m
+kubectl rollout status deployment/my-copalibre-web-ssr -n default --timeout=5m
+```
+
+Inspect the revision-suffixed `my-copalibre-migrate-<revision>` and `my-copalibre-doctor-<revision>`
+Job logs and confirm worker/events/scheduler rollout too. Check API readiness, native/OIDC login,
+public tournament pages, uploads and live SSE through ingress. Keep TLS secrets, DNS names and
+unbuffered SSE settings intact. **The Helm ingress sends its web hostname directly to the web
+Service, unlike the Compose gateway.** Verify app-origin `/auth/*`, `/api/*` and `/events/*` routing
+in your ingress configuration; the default separate-host rules do not supply those paths on the web
+hostname. Treat a failed login or SSE check as a failed upgrade, even if all pods are Ready.
+
+Restore intended HPA/GitOps settings and reopen traffic only after those checks pass.
+
+### Failure and rollback
+
+If the check fails before migration, leave the old release serving and correct the inputs. If a
+migration or rollout fails during maintenance, keep traffic blocked and capture hook/Pod logs.
+`helm rollback` changes Kubernetes resources; it does **not** restore PostgreSQL or object data.
+After schema changes, recover the pre-upgrade database and matching objects/configuration into an
+isolated target with the previous chart/images, validate it, then switch traffic. Do not run old
+application code against a new schema unless compatibility has been explicitly verified. Writes made
+after the backup are not present in the restored target. See also
+[Compose recovery](../self-hosting.md#recovery-if-an-upgrade-fails) for the same data boundary.
 
 ### Personal Access Token security cutover
 
@@ -123,7 +273,10 @@ nothing in this chart installs them.
   `ingress.tls.enabled` is true (the default annotation targets a
   cert-manager `ClusterIssuer`).
 - **An ingress controller** (e.g. ingress-nginx), required by
-  `ingress.enabled`.
+  `ingress.enabled`. The chart's default annotations also disable nginx
+  response buffering (`nginx.ingress.kubernetes.io/proxy-buffering: "off"`),
+  so the `events` host's SSE streams aren't delayed; override
+  `ingress.annotations` for a different controller.
 - **External Secrets Operator**, required by `externalSecrets.enabled`.
 
 ## Managed external dependencies
@@ -162,8 +315,12 @@ don't infer Redis is deployed or required by installing this chart.
 Set `env.COPALIBRE_OBJECT_STORAGE_URL`, `_ACCESS_KEY`, `_SECRET_KEY`, and
 `_BUCKET` to the managed provider's endpoint and credentials — consumed by
 `packages/persistence/src/object-storage.ts`'s `ObjectStorageAdapter`
-(AWS SDK `S3Client`, so any S3-compatible endpoint works: AWS S3, MinIO,
-Cloudflare R2, Backblaze B2, etc.). `_ACCESS_KEY` and `_SECRET_KEY` are both
+(AWS SDK `S3Client`, so any S3-compatible endpoint works: AWS S3, Cloudflare
+R2, Backblaze B2, a self-hosted Garage instance, etc.). Also set
+`_REGION` when the endpoint enforces its own region (a self-hosted Garage
+instance rejects every request with `AuthorizationHeaderMalformed` unless
+`_REGION` matches its configured `s3_region`; AWS S3 defaults to
+`us-east-1` when left blank). `_ACCESS_KEY` and `_SECRET_KEY` are both
 in `secretKeys`, so they're covered by `externalSecrets` the same as
 `DATABASE_URL`.
 

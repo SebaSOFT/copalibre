@@ -81,6 +81,9 @@ web:
   # `env` mirrors docker-compose.yml's web service key-for-key, and Compose
   # needs no such variable (the Caddyfile's default is Compose's own hostname).
   ssrUpstream: ''
+  # API routes served through the app origin (emblems and discipline images).
+  # Empty means the release-scoped API Service this chart creates.
+  apiUpstream: ''
   env:
     COPALIBRE_JWT_ISSUER: ''
     COPALIBRE_OIDC_CLIENT_ID: ''
@@ -112,6 +115,12 @@ env:
   COPALIBRE_OBJECT_STORAGE_ACCESS_KEY: ''
   COPALIBRE_OBJECT_STORAGE_SECRET_KEY: ''
   COPALIBRE_OBJECT_STORAGE_BUCKET: ''
+  # Required alongside the above when the endpoint is a self-hosted Garage
+  # instance ("garage", matching its configured s3_region) — Garage rejects
+  # every request with AuthorizationHeaderMalformed if the region doesn't
+  # match. Leave blank for AWS S3 (defaults to us-east-1) or set to your
+  # provider's region for Cloudflare R2/Backblaze B2.
+  COPALIBRE_OBJECT_STORAGE_REGION: ''
   COPALIBRE_DATA_DIR: /var/lib/copalibre
   COPALIBRE_IN_CONTAINER: 'true'
 
@@ -232,13 +241,17 @@ networkPolicy:
 
 # TLS ingress for the public-facing roles (web/api/events), layered on top of
 # the Service templates above, not replacing them. Annotations default to
-# cert-manager's ClusterIssuer convention; override for a different ingress
+# cert-manager's ClusterIssuer convention and nginx-ingress's proxy-buffering
+# guarantee (Compose's edge gateway and the example reverse-proxy configs
+# already disable SSE buffering; this keeps the Kubernetes Ingress in parity
+# for the default nginx controller); override either for a different ingress
 # controller/cert issuer. A host left empty ('') is not routed.
 ingress:
   enabled: false
   className: nginx
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-buffering: 'off'
   tls:
     enabled: true
     secretName: copalibre-tls

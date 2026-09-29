@@ -38,6 +38,7 @@ export {
   evaluateExpression,
   resolveExpressionField,
   splitTemplate,
+  renderTemplate,
   expressionResolutions,
   pathsIn,
   pathsRead,

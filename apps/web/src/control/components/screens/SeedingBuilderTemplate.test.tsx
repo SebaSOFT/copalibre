@@ -22,7 +22,7 @@ describe('SeedingBuilderTemplate', () => {
       withIntl(
         <SeedingBuilderTemplate
           hasRecordedResults={false}
-          matches={[]}
+          zones={[]}
           names={{ 'entrant-1': 'Godoy Cruz', 'entrant-2': 'Independiente Rivadavia' }}
           organizationAlias="liga-mendocina"
           seeds={[
@@ -42,12 +42,33 @@ describe('SeedingBuilderTemplate', () => {
     expect(screen.getByText('Independiente Rivadavia')).toBeDefined();
   });
 
+  it('links its breadcrumb back to the stage hub when a tournament alias and stage number are supplied', async () => {
+    render(
+      withIntl(
+        <SeedingBuilderTemplate
+          hasRecordedResults={false}
+          zones={[]}
+          organizationAlias="liga-mendocina"
+          seeds={[]}
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+          tournamentName="Apertura 2026"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: /seeding/i }));
+    expect(screen.getByRole('link', { name: 'Stage 1' }).getAttribute('href')).toBe(
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
+    );
+  });
+
   it('links a resolved bracket node to its match console when a tournament alias is supplied', () => {
     render(
       withIntl(
         <SeedingBuilderTemplate
           hasRecordedResults={false}
-          matches={[materializedMatch]}
+          zones={[{ matches: [materializedMatch] }]}
           organizationAlias="liga-mendocina"
           seeds={[{ seed: 1, entrantId: 'entrant-1', locked: false }]}
           tournamentAlias="apertura-2026"
@@ -67,7 +88,7 @@ describe('SeedingBuilderTemplate', () => {
       withIntl(
         <SeedingBuilderTemplate
           hasRecordedResults={false}
-          matches={[materializedMatch]}
+          zones={[{ matches: [materializedMatch] }]}
           organizationAlias="liga-mendocina"
           seeds={[{ seed: 1, entrantId: 'entrant-1', locked: false }]}
           tournamentName="Apertura 2026"
@@ -76,5 +97,23 @@ describe('SeedingBuilderTemplate', () => {
     );
 
     expect(screen.getByText('WB-R1-M1').closest('a')).toBeNull();
+  });
+
+  it('renders graceful fallback for unresolved entrants missing from names dictionary', () => {
+    render(
+      withIntl(
+        <SeedingBuilderTemplate
+          hasRecordedResults={false}
+          zones={[]}
+          names={{}}
+          organizationAlias="liga-mendocina"
+          seeds={[{ seed: 1, entrantId: '01890000-0000-7000-8000-000000000001', locked: false }]}
+          tournamentName="Apertura 2026"
+        />,
+      ),
+    );
+
+    expect(screen.getByText('Entrant 01890000')).toBeDefined();
+    expect(screen.queryByText('01890000-0000-7000-8000-000000000001')).toBeNull();
   });
 });

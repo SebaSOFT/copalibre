@@ -46,6 +46,8 @@ export interface Person {
   readonly birthDate?: string;
   /** Object-storage reference; absent until a photo is uploaded. */
   readonly photoObjectId?: string;
+  /** The club this person is affiliated with; absent for a person with no club affiliation. */
+  readonly clubId?: string;
 }
 
 export const PLAYER_ROLES = ['player', 'substitute', 'coach', 'staff'] as const;

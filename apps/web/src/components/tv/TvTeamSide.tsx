@@ -1,3 +1,4 @@
+import { EntrantName } from '../ui/atoms/EntrantName.js';
 import type { TvClubItem } from './tv-types.js';
 
 /**
@@ -8,15 +9,18 @@ export function TvTeamSide({
   name,
   abbreviation,
   clubs,
+  anchor = false,
 }: {
   readonly name: string;
   readonly abbreviation?: string;
   readonly clubs?: readonly TvClubItem[];
+  /** The home side, on the spotlight's left — the jumbotron's visual anchor (openspec 0247). */
+  readonly anchor?: boolean;
 }): React.JSX.Element {
   const club = clubs?.find((c) => c.name.toLowerCase() === name.toLowerCase());
 
   return (
-    <div className="tv-team-side">
+    <div className={`tv-team-side ${anchor ? 'tv-team-side--anchor' : ''}`.trim()}>
       <div className="tv-team-side__emblem-wrap">
         {club?.emblemObjectId ? (
           <img
@@ -30,7 +34,7 @@ export function TvTeamSide({
           </div>
         )}
       </div>
-      <span className="tv-team-side__name">{name}</span>
+      <EntrantName abbreviation={abbreviation} className="tv-team-side__name" fullName={name} />
     </div>
   );
 }

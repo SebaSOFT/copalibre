@@ -27,4 +27,4 @@ MCP-Server zu authentifizieren, ohne Benutzername und Passwort zu verwenden.
 - **Token widerrufen**: Wenn ein Token kompromittiert wurde oder nicht mehr benötigt wird, können Sie
   es jederzeit widerrufen.
 
-Diese Token sind zustandslos und bestätigen Ihre Identität bei jeder Anfrage.
+Diese Token werden bei jeder Anfrage mit den gespeicherten Zugangsdaten geprüft; ein Widerruf wirkt sofort.

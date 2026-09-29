@@ -13,7 +13,7 @@ The release SHALL ship one Docker image capable of running as any documented pro
 rebuilding the image. The `web` role SHALL serve server-rendered public pages for the subset of public
 routes that require per-request backend data; it SHALL NOT replace the existing static delivery of
 every other public, control-panel-shell, help, and TV route, which continues to be served as static
-files by a separate process in front of it. In addition, the release container image (`ghcr.io/sebasoft/copalibre:1.1.0`)
+files by a separate process in front of it. In addition, the release container image (`ghcr.io/sebasoft/copalibre:1.2.0`)
 SHALL include `git` in its runtime filesystem layers to support dynamic discipline module cloning and updates via `POST /admin/modules`.
 
 #### Scenario: Same image runs two different roles
@@ -39,7 +39,9 @@ integrated edge reverse proxy service that unifies network ingress under a singl
 and `/installation/*` to the `api` service (port 3001), `/events/*` to the `events` service (port 3002,
 preserving SSE streaming), and all other requests (static assets, control panel shell, SSR public pages,
 TV kiosks) to the `web` service (port 4321). Individual microservices (`api`, `events`, `web`, `web-ssr`)
-SHALL NOT require external port exposure in production mode.
+SHALL NOT require external port exposure in production mode. When the optional object storage adapter
+is enabled, it SHALL be provided by a lightweight Garage container (`dxflrs/garage:v1.1.0`), and SHALL NOT
+require secondary auxiliary containers for bucket provisioning.
 
 #### Scenario: One-command install
 - **WHEN** an operator with Docker installed runs the documented Compose-up command against a fresh
@@ -63,12 +65,23 @@ SHALL NOT require external port exposure in production mode.
 - **WHEN** an operator creates `docker-compose.override.yml` in the installation directory
 - **THEN** Docker Compose automatically applies the override without requiring manual editing of `COMPOSE_FILE` in `.env`.
 
+#### Scenario: S3-compatible storage via lightweight Garage engine
+- **WHEN** an operator enables the optional `object-storage` service in Docker Compose or development profiles
+- **THEN** Garage provides the S3 endpoint without requiring auxiliary container sidecars for bucket initialization.
+
 ### Requirement: copalibre administrative CLI
 The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev --hybrid`, `start`,
 `migrate`, `create-admin`, `login`, `statistics-rebuild`, `backup`, `restore`, `upgrade-check`, and
 `mcp` subcommands, distributed both as a standalone executable (downloadable via a documented install
 script, one per supported OS/architecture) and as source runnable from a checkout — the two SHALL
-behave identically for every subcommand. Every invocation SHALL print a startup banner identifying the product, its version, and
+behave identically for every subcommand. In addition to environment and service configuration checks,
+`copalibre doctor` SHALL inspect PostgreSQL database data structure integrity when the database is
+reachable, reporting detected discrepancies as a diagnostic check item (`data:tournament-status`) —
+informational, never a reason to fail the check or block `copalibre start`.
+When invoked with `--fix` or `--interactive` on an interactive terminal, `copalibre doctor` SHALL
+initiate an interactive decision-support prompt workflow allowing an operator to repair a detected
+anomaly non-destructively; without a TTY, it SHALL report that repair requires one and apply nothing.
+Every invocation SHALL print a startup banner identifying the product, its version, and
 its license before running the requested subcommand, and that banner SHALL be written to a stream that
 never mixes with a subcommand's own stdout output. Running `copalibre --help`/`-h` with no subcommand
 SHALL list every subcommand with a one-line summary, and running `copalibre <subcommand> --help`/`-h`
@@ -219,6 +232,18 @@ SHALL operate over a direct database connection.
 - **WHEN** an operator runs `copalibre doctor` using the standalone SEA binary in a directory initialized with `copalibre init`
 - **THEN** the CLI loads the local `.env` and passes all environmental checks without crashing or missing API URL errors.
 
+#### Scenario: doctor runs data diagnostics by default
+- **WHEN** an operator runs `copalibre doctor` against an operational database containing a tournament with non-canonical status `'completed'`
+- **THEN** `doctor` reports `PASS data:tournament-status`, naming the affected tournament and expected domain statuses (`draft`, `published`, `started`, `finished`, `archived`), without mutating database records and without failing the check
+
+#### Scenario: doctor --fix prompts for interactive repair
+- **WHEN** an operator runs `copalibre doctor --fix` in an interactive terminal against a database holding a tournament with a non-canonical status
+- **THEN** `doctor` presents an interactive choice of the five canonical statuses for that tournament, asks for confirmation, and commits the approved change transactionally with an audit entry
+
+#### Scenario: doctor --fix without a TTY applies nothing
+- **WHEN** an operator runs `copalibre doctor --fix` with stdin piped or redirected (no TTY)
+- **THEN** `doctor` reports that repair requires an interactive terminal and applies no changes
+
 ### Requirement: Kubernetes instance mode
 
 `copalibre init --kubernetes` SHALL scaffold a Helm `values.yaml` and record an installation marker
@@ -363,7 +388,8 @@ installation expects before reporting success.
 The release SHALL document and test at least one reverse-proxy configuration (Caddy or NGINX)
 preserving original scheme/host/client-address forwarding, disabling buffering/caching on SSE routes,
 providing sufficiently long idle timeouts with heartbeat support, and restricting trusted client-IP
-resolution to an explicit, operator-scoped allowlist of proxy addresses.
+resolution to an explicit, operator-scoped allowlist of proxy addresses. The Kubernetes Helm chart's
+Ingress SHALL default to the same unbuffered-SSE guarantee for its default ingress controller.
 
 #### Scenario: Proxy conformance test detects SSE buffering
 - **WHEN** the conformance test suite runs against a reverse-proxy configuration that buffers
@@ -375,6 +401,12 @@ resolution to an explicit, operator-scoped allowlist of proxy addresses.
 - **THEN** it contains an explicit trusted-proxy allowlist directive (not a default that trusts
   every upstream) and documentation directing the operator to scope it to their actual proxy
   network
+
+#### Scenario: Kubernetes Ingress disables SSE response buffering by default
+- **WHEN** the Helm chart renders its Ingress with default values under the default `nginx` ingress
+  class
+- **THEN** the rendered Ingress carries an annotation disabling proxy response buffering, so real-time
+  score events reaching the `events` host are not delayed by controller-side buffering
 
 ### Requirement: Continuous integration builds and smoke-tests the release image
 The CI pipeline SHALL build the release Docker image and start a full Compose profile as an
@@ -402,3 +434,63 @@ application servers without manual intervention, when all infrastructure contain
   provisioning) completes and exits with status 0
 - **THEN** `copalibre dev --hybrid` SHALL treat the infrastructure profile as ready and proceed to
   migrations and application servers, rather than treating the exited container as a failure
+
+### Requirement: Browser-facing media paths reach the API in every deployment mode
+The application SHALL keep emblem and discipline-background URLs on the browser's application origin and route their requests to the API in local development and supported self-hosted proxy topologies. The proxy SHALL preserve the API's status, response bytes, and content type rather than serving a web fallback document.
+
+#### Scenario: Local development serves emblems and discipline backgrounds
+- **WHEN** a browser requests emblem upload, supported deletion, or read under `/organizations/*`, or requests a discipline background through `/objects/discipline-background-image`
+- **THEN** the local Astro development proxy forwards each request to the API and preserves its authorization, status, response bytes, and content type
+
+#### Scenario: Local development uses a configured loopback hostname
+- **WHEN** `COPALIBRE_SITE` names a hostname mapped to `127.0.0.1`
+- **THEN** the development web server accepts that hostname while retaining localhost as its default, and the same-origin emblem and discipline-background paths continue to use the local API proxy
+
+#### Scenario: Self-hosted gateway serves all media operations
+- **WHEN** a browser requests emblem upload, supported deletion, or read under `/organizations/*`, or a discipline background under `/objects/*` on the single-origin gateway
+- **THEN** the gateway forwards the request to the API and preserves its authorization, status, response bytes, and content type
+
+#### Scenario: Self-hosted web edge serves all media operations
+- **WHEN** the browser requests emblem upload, supported deletion, or read under `/organizations/*`, or a discipline background under `/objects/*` through the self-hosted web edge
+- **THEN** the request reaches the API before static or SSR fallback and preserves its authorization, status, response bytes, and content type
+
+#### Scenario: Kubernetes web edge resolves the release-scoped API service
+- **WHEN** the Helm chart deploys the web edge with its default values
+- **THEN** Caddy sends browser-facing media requests to that release's API service and not to a fixed Compose-only hostname
+
+### Requirement: Tournament status data-integrity diagnostic and repair
+`copalibre doctor` SHALL detect a tournament whose `status` column does not match one of the domain's
+canonical `TournamentStatus` values (`draft`, `published`, `started`, `finished`, `archived`) — a state
+reachable only through an out-of-band write, since the domain layer never produces one — and report it
+as an informational `data:tournament-status` check, naming the affected tournament(s) and their current
+status. This never fails the check or blocks `copalibre start`: it is information for the operator, and
+`copalibre doctor --fix` is the separate, explicit path that acts on it.
+
+When invoked with `--fix` or `--interactive` on an interactive terminal, `copalibre doctor` SHALL
+present each affected tournament, offer the five canonical statuses as resolution choices, and — once
+the operator selects one and confirms — update the `tournaments.status` column and record an
+`audit_log` entry (`data-integrity.repaired`, actor `operator:copalibre-doctor`, authorization context
+`doctor-repair`) inside one transaction. Declining either the selection or the confirmation prompt SHALL
+skip that tournament without any write. Without a TTY, `--fix`/`--interactive` SHALL report that repair
+requires an interactive terminal and apply nothing.
+
+#### Scenario: A non-canonical status is reported without failing doctor
+- **WHEN** a tournament's `status` column holds `'completed'`, left over from an old import script
+- **THEN** `copalibre doctor` reports it under `data:tournament-status` as `PASS` (informational),
+  naming the tournament and pointing to `copalibre doctor --fix`
+
+#### Scenario: An operator repairs the status interactively
+- **WHEN** an operator runs `copalibre doctor --fix` from an interactive terminal, selects `finished`
+  for a tournament reported with status `'completed'`, and confirms
+- **THEN** the tournament's `status` column becomes `finished`, an audit entry records the previous and
+  resulting status and the reason, and a subsequent `copalibre doctor` run reports no anomaly for it
+
+#### Scenario: Declining a repair prompt leaves the record untouched
+- **WHEN** an operator runs `copalibre doctor --fix`, and either declines to select a status or declines
+  the confirmation prompt for an affected tournament
+- **THEN** that tournament's `status` column is not modified and no audit entry is written for it
+
+#### Scenario: --fix without a TTY never mutates data
+- **WHEN** `copalibre doctor --fix` runs with stdin piped or redirected, such as from a script or CI job
+- **THEN** it reports that interactive repair requires a TTY and applies no changes, regardless of how
+  many anomalies were detected

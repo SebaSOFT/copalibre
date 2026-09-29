@@ -1,7 +1,11 @@
 import type { LocalizedLabel } from '@copalibre/domain';
 import type {
   CreateOrganizationRequest,
+  DiagnosticsSummary,
   OrganizationResponse as ContractOrganizationResponse,
+  RetryOutboxRequest,
+  RetryOutboxResponse,
+  TournamentCompletionResponse,
   components,
 } from '@copalibre/contracts';
 import type { CanvasMatch } from './bracket-canvas.js';
@@ -9,6 +13,7 @@ import type { RegistrationStatus } from './review.js';
 import type { StandingsData } from './standings.js';
 import type { DisciplineOption, TournamentProfileOption } from './wizard.js';
 import type { MatchCardData } from '../../lib/matches-view.js';
+import { renewSessionOnce } from '../session/silent-renewal.js';
 
 export interface ControlApiClient {
   /** Every organization the authenticated caller belongs to, with their role. */
@@ -18,9 +23,16 @@ export interface ControlApiClient {
   ) => Promise<ContractOrganizationResponse>;
   readonly listInstalledModules?: () => Promise<readonly InstalledModuleResponse[]>;
   readonly listOutdatedModules?: () => Promise<readonly OutdatedModuleResponse[]>;
+  readonly getDiagnosticsSummary?: () => Promise<DiagnosticsSummary>;
+  readonly retryOutboxEvents?: (request: RetryOutboxRequest) => Promise<RetryOutboxResponse>;
   readonly installModule?: (request: InstallModuleRequest) => Promise<InstallModuleResponse>;
   readonly removeModule?: (alias: string) => Promise<RemoveModuleResponse>;
   readonly verifyModules?: () => Promise<readonly ModuleVerifyResultResponse[]>;
+  /** An installed discipline's complete descriptor document, for plain-language display. */
+  readonly fetchInstalledDisciplineDocument?: (
+    alias: string,
+    version?: string,
+  ) => Promise<InstalledDisciplineDocumentResponse>;
   /** Validates an authored discipline/profile document without installing it. */
   readonly validateAuthoredModule?: (
     request: AuthoredModuleRequest,
@@ -50,6 +62,11 @@ export interface ControlApiClient {
   readonly fetchCustomScriptVocabulary?: (
     organizationAlias: string,
   ) => Promise<HookScriptVocabulary>;
+  /** Backs weighted allocation's attribute picker. */
+  readonly fetchEntrantAttributeKeys?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<EntrantAttributeKeysResponse>;
   /** The organization's active (non-archived) tournaments, for the dashboard. */
   readonly listActiveTournaments?: (
     organizationAlias: string,
@@ -159,6 +176,13 @@ export interface ControlApiClient {
     },
   ) => Promise<{ readonly matches: readonly MatchCardData[] }>;
   /**
+   * Tournament completion aggregate summary (openspec 0241).
+   */
+  readonly fetchCompletion?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<TournamentCompletionResponse>;
+  /**
    * One row's comparator chain, fetched when it is expanded.
    *
    * Lazy on purpose: a forty-row table would otherwise carry forty chains
@@ -203,6 +227,11 @@ export interface ControlApiClient {
     stageNumber: number,
     request: PublishSeedingRequest,
   ) => Promise<SeedingClassificationResponse>;
+  /** A tournament's stages, in order, each with whether it already holds a generated fixture. */
+  readonly listStages?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<readonly StageResponse[]>;
   /** Rename applies regardless of seeding; a format change is refused once the stage holds a fixture. */
   readonly updateStage?: (
     organizationAlias: string,
@@ -443,6 +472,22 @@ export interface ControlApiClient {
     organizationAlias: string,
     tournamentAlias: string,
   ) => Promise<readonly DisplayTokenResponse[]>;
+  /**
+   * Issues a device-scoped `/tv/**` token (openspec 0300's Broadcaster
+   * Studio, but not exclusive to it — a kiosk device uses the same call).
+   * The raw token and its ready-to-use launch URL are returned once; neither
+   * is retrievable again afterward.
+   */
+  readonly issueDisplayToken?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    request: IssueDisplayTokenRequest,
+  ) => Promise<DisplayTokenIssuedResponse>;
+  readonly revokeDisplayToken?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    displayTokenId: string,
+  ) => Promise<DisplayTokenResponse>;
   /** The pending participant reports/disputes queue. */
   readonly listPendingReports?: (
     organizationAlias: string,
@@ -524,6 +569,40 @@ export interface ControlApiClient {
     clubId: string,
     request: UploadImageRequest,
   ) => Promise<{ readonly objectId: string }>;
+  /**
+   * The Club Portal (openspec 0301): a club-admin's own scoped member
+   * directory, team list, and tournament roster submission.
+   */
+  readonly listClubMembers?: (
+    organizationAlias: string,
+    clubId: string,
+  ) => Promise<readonly ClubMemberResponse[]>;
+  readonly createClubMember?: (
+    organizationAlias: string,
+    clubId: string,
+    request: CreateClubMemberRequest,
+  ) => Promise<ClubMemberResponse>;
+  readonly updateClubMember?: (
+    organizationAlias: string,
+    clubId: string,
+    personId: string,
+    request: UpdateClubMemberRequest,
+  ) => Promise<ClubMemberResponse>;
+  readonly listClubTeams?: (
+    organizationAlias: string,
+    clubId: string,
+  ) => Promise<readonly ClubTeamResponse[]>;
+  readonly createClubTeam?: (
+    organizationAlias: string,
+    clubId: string,
+    request: CreateClubTeamRequest,
+  ) => Promise<ClubTeamResponse>;
+  readonly submitClubRegistration?: (
+    organizationAlias: string,
+    clubId: string,
+    tournamentAlias: string,
+    request: SubmitClubRegistrationRequest,
+  ) => Promise<ClubRegistrationResponse>;
   /** An organization's venues and officials — the resource pool a schedule assigns from. */
   readonly listVenues?: (organizationAlias: string) => Promise<readonly VenueResponse[]>;
   readonly createVenue?: (
@@ -601,6 +680,8 @@ export type InstallModuleRequest = components['schemas']['InstallModuleRequest']
 export type InstallModuleResponse = components['schemas']['InstallModuleResponse'];
 export type RemoveModuleResponse = components['schemas']['RemoveModuleResponse'];
 export type ModuleVerifyResultResponse = components['schemas']['ModuleVerifyResultResponse'];
+export type InstalledDisciplineDocumentResponse =
+  components['schemas']['InstalledDisciplineDocumentResponse'];
 export type AuthoredModuleRequest = components['schemas']['AuthoredModuleRequest'];
 export type AuthoredModuleValidationResponse =
   components['schemas']['AuthoredModuleValidationResponse'];
@@ -662,6 +743,52 @@ export interface UpdateClubRequest {
   readonly name?: string;
   readonly alias?: string;
   readonly abbreviation?: string;
+}
+
+export interface ClubMemberResponse {
+  readonly personId: string;
+  readonly displayName: string;
+  readonly alias?: string;
+  readonly birthDate?: string;
+  readonly nationality?: string;
+  readonly photoObjectId?: string;
+}
+
+export interface CreateClubMemberRequest {
+  readonly displayName: string;
+  readonly alias?: string;
+  readonly birthDate?: string;
+}
+
+export interface UpdateClubMemberRequest {
+  readonly displayName?: string;
+  readonly alias?: string;
+}
+
+export interface ClubTeamResponse {
+  readonly teamId: string;
+  readonly name: string;
+  readonly alias?: string;
+}
+
+export interface CreateClubTeamRequest {
+  readonly name: string;
+  readonly alias?: string;
+}
+
+export interface SubmitClubRegistrationRequest {
+  readonly teamId: string;
+  readonly members: readonly {
+    readonly personId: string;
+    readonly role?: 'player' | 'substitute' | 'coach' | 'staff';
+  }[];
+}
+
+export interface ClubRegistrationResponse {
+  readonly entrantId: string;
+  readonly tournamentId: string;
+  readonly status: 'pending' | 'accepted' | 'refused' | 'withdrawn' | 'checked-in';
+  readonly teamId: string;
 }
 
 export interface UploadImageRequest {
@@ -844,6 +971,22 @@ export interface DisplayTokenResponse {
   readonly revoked: boolean;
   readonly lastSeenAt?: string;
   readonly createdAt: string;
+}
+
+export interface IssueDisplayTokenRequest {
+  /** Pins the device to one match, not the full tournament rotation. */
+  readonly matchId?: string;
+  /** Operator-facing device label, e.g. "Cancha 1 - TV entrada". */
+  readonly label?: string;
+}
+
+export interface DisplayTokenIssuedResponse {
+  readonly displayTokenId: string;
+  /** Shown once. Provision the device with it; it is never stored raw. */
+  readonly token: string;
+  /** The `/tv/**` launch URL to configure on the device. */
+  readonly url: string;
+  readonly label?: string;
 }
 
 export interface ParticipantReportResponse {
@@ -1029,12 +1172,24 @@ export interface TableProjectionResponseData {
   readonly countColumnCode?: string;
 }
 
+/**
+ * One zone's own independent bracket in the seeding canvas — or the stage's only bracket, for an
+ * un-zoned stage, which always comes back as exactly one zone entry with no
+ * `zoneId`/`zoneName` (openspec 0246).
+ */
+export interface SeedingZoneResponse {
+  readonly zoneId?: string;
+  readonly zoneName?: string;
+  readonly matches: readonly CanvasMatch[];
+}
+
 export interface SeedingResponse {
   readonly stageId: string;
   readonly format: string;
   readonly seeds: readonly { readonly seed: number; readonly entrantId: string }[];
-  readonly matches: readonly CanvasMatch[];
+  readonly zones: readonly SeedingZoneResponse[];
   readonly hasRecordedResults: boolean;
+  readonly names?: Readonly<Record<string, string>>;
 }
 
 export interface PublishSeedingRequest {
@@ -1061,6 +1216,7 @@ export interface GroupResponse {
   readonly zoneId: string;
   readonly number: number;
   readonly name: string;
+  readonly entrantIds?: readonly string[];
 }
 
 /** Shared by a zone's and a group's rename action — the only field either edits. */
@@ -1074,11 +1230,20 @@ export interface StageResponse {
   readonly number: number;
   readonly name: string;
   readonly format: string;
+  readonly series?: SeriesDeclaration;
+  readonly allocation?: StageAllocationDeclaration;
+  /** Present on the list read only — whether this stage already holds a generated fixture. */
+  readonly seeded?: boolean;
+  /** Present on the list read only — the tournament's discipline-declared formats. */
+  readonly availableFormats?: readonly string[];
+  /** Present on the list read only — the discipline's own per-format explanation, unresolved. */
+  readonly formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
 }
 
 export interface UpdateStageRequest {
   readonly name?: string;
   readonly format?: string;
+  readonly allocation?: StageAllocationDeclaration;
 }
 
 export interface TournamentSettingsResponse {
@@ -1096,6 +1261,10 @@ export type TournamentSettingsRequest = Partial<TournamentSettingsResponse>;
 /** Dot-path → value for a tournament ruleset's override fields (openspec 0169). */
 export interface RulesetOverridesResponse {
   readonly overrides: Readonly<Record<string, unknown>>;
+  /** The installed discipline's field policies — context for the plain-language summary (0263). */
+  readonly fieldPolicies: Readonly<Record<string, unknown>>;
+  /** The installed discipline's own default configuration tree, before any override. */
+  readonly disciplineDefaults: Readonly<Record<string, unknown>>;
 }
 
 export interface RulesetOverridesRequest {
@@ -1236,7 +1405,8 @@ export interface CreateTournamentRequest {
   readonly name: string;
   readonly descriptorId: string;
   readonly descriptorVersion: string;
-  readonly format: string;
+  /** Every stage of the tournament, in order. At least one is required. */
+  readonly stages: readonly CreateTournamentStageRequest[];
   readonly publicRegistration: boolean;
   readonly requiresCheckIn: boolean;
   readonly checkInClosesAt?: string;
@@ -1244,14 +1414,19 @@ export interface CreateTournamentRequest {
   readonly capacity?: number;
   readonly profileId?: string;
   readonly profileVersion?: string;
+  /** Dot-path → override value for any discipline-declared ruleset field beyond format/registration.*. */
+  readonly ruleOverrides?: Readonly<Record<string, unknown>>;
   readonly customScripts: readonly HookScriptAttachment[];
-  readonly series?: SeriesDeclaration;
 }
 
-/**
- * Declared here rather than at a stage, because the wizard authors one tournament
- * before any stage exists. It rides the same dot-path override layer server-side.
- */
+export interface CreateTournamentStageRequest {
+  readonly number?: number;
+  readonly name?: string;
+  readonly format: string;
+  readonly series?: SeriesDeclaration;
+  readonly allocation?: StageAllocationDeclaration;
+}
+
 export type SeriesResolutionClass = 'best-of' | 'aggregate' | 'points-per-leg';
 
 export interface SeriesDeclaration {
@@ -1263,6 +1438,17 @@ export interface SeriesDeclaration {
 }
 
 export type SeriesAccountingGrain = 'series' | 'match';
+
+/** Mirrors the domain's `StageAllocation` union (`automatic` | `manual` | `weighted`). */
+export interface StageAllocationDeclaration {
+  readonly mode: 'automatic' | 'manual' | 'weighted';
+  readonly attributeKey?: string;
+  readonly direction?: 'higher-first' | 'lower-first';
+}
+
+export interface EntrantAttributeKeysResponse {
+  readonly keys: readonly string[];
+}
 
 export interface HookScriptAttachment {
   readonly hook: string;
@@ -1289,6 +1475,8 @@ export interface HookVocabularyEntry {
     readonly valueSchema?: Readonly<Record<string, unknown>>;
     readonly allowExpression?: boolean;
   };
+  /** A `{{paramName}}`-placeholder sentence for rendering a configured rule in plain language. */
+  readonly phraseTemplate?: string;
 }
 
 export interface HookScriptVocabulary {
@@ -1541,6 +1729,8 @@ export type MatchCapability =
 export interface ConsoleSegment {
   readonly segmentId: string;
   readonly type: string;
+  /** The bound discipline's declared display label for `type`, when the descriptor provides one. */
+  readonly typeLabel?: string | LocalizedLabel;
   readonly number: number;
   readonly state: 'pending' | 'active' | 'completed';
   readonly elapsedSeconds: number;
@@ -1818,6 +2008,18 @@ export function createControlApiClient(input: {
         { token: input.accessToken?.() },
       ),
 
+    getDiagnosticsSummary: () =>
+      requestJson<DiagnosticsSummary>(input.fetch, `${baseUrl}/admin/diagnostics/summary`, {
+        token: input.accessToken?.(),
+      }),
+
+    retryOutboxEvents: (body: RetryOutboxRequest) =>
+      requestJson<RetryOutboxResponse>(input.fetch, `${baseUrl}/admin/diagnostics/outbox/retry`, {
+        method: 'POST',
+        body,
+        token: input.accessToken?.(),
+      }),
+
     installModule: (body) =>
       requestJson<InstallModuleResponse>(input.fetch, `${baseUrl}/admin/modules`, {
         method: 'POST',
@@ -1837,6 +2039,15 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/admin/modules/verify`,
         { method: 'POST', token: input.accessToken?.() },
+      ),
+
+    fetchInstalledDisciplineDocument: (alias, version) =>
+      requestJson<InstalledDisciplineDocumentResponse>(
+        input.fetch,
+        `${baseUrl}/admin/modules/${encodeURIComponent(alias)}/document${
+          version === undefined ? '' : `?version=${encodeURIComponent(version)}`
+        }`,
+        { token: input.accessToken?.() },
       ),
 
     validateAuthoredModule: (body) =>
@@ -1887,6 +2098,13 @@ export function createControlApiClient(input: {
       requestJson<HookScriptVocabulary>(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/custom-script-vocabulary`,
+        { token: input.accessToken?.() },
+      ),
+
+    fetchEntrantAttributeKeys: (organizationAlias, tournamentAlias) =>
+      requestJson<EntrantAttributeKeysResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/entrant-attribute-keys`,
         { token: input.accessToken?.() },
       ),
 
@@ -2065,6 +2283,13 @@ export function createControlApiClient(input: {
       );
     },
 
+    fetchCompletion: (organizationAlias, tournamentAlias) =>
+      requestJson<TournamentCompletionResponse>(
+        input.fetch,
+        `${tournamentPath(baseUrl, organizationAlias, tournamentAlias)}/completion`,
+        { token: input.accessToken?.() },
+      ),
+
     fetchTiebreakTrace: (organizationAlias, tournamentAlias, stageNumber, entrantId) =>
       requestJson<TiebreakTraceResponse>(
         input.fetch,
@@ -2112,6 +2337,13 @@ export function createControlApiClient(input: {
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/seeding`,
         { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    listStages: (organizationAlias, tournamentAlias) =>
+      requestJson<readonly StageResponse[]>(
+        input.fetch,
+        `${tournamentPath(baseUrl, organizationAlias, tournamentAlias)}/stages`,
+        { token: input.accessToken?.() },
       ),
 
     updateStage: (organizationAlias, tournamentAlias, stageNumber, body) =>
@@ -2469,6 +2701,20 @@ export function createControlApiClient(input: {
         { token: input.accessToken?.() },
       ),
 
+    issueDisplayToken: (organizationAlias, tournamentAlias, body) =>
+      requestJson<DisplayTokenIssuedResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/display-tokens`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    revokeDisplayToken: (organizationAlias, tournamentAlias, displayTokenId) =>
+      requestJson<DisplayTokenResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/display-tokens/${encodeURIComponent(displayTokenId)}`,
+        { method: 'DELETE', token: input.accessToken?.() },
+      ),
+
     listPendingReports: (organizationAlias, tournamentAlias) =>
       requestJson<readonly ParticipantReportResponse[]>(
         input.fetch,
@@ -2700,6 +2946,48 @@ export function createControlApiClient(input: {
         { method: 'POST', body, token: input.accessToken?.() },
       ),
 
+    listClubMembers: (organizationAlias, clubId) =>
+      requestJson<readonly ClubMemberResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/members`,
+        { token: input.accessToken?.() },
+      ),
+
+    createClubMember: (organizationAlias, clubId, body) =>
+      requestJson<ClubMemberResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/members`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    updateClubMember: (organizationAlias, clubId, personId, body) =>
+      requestJson<ClubMemberResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/members/${encodeURIComponent(personId)}`,
+        { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    listClubTeams: (organizationAlias, clubId) =>
+      requestJson<readonly ClubTeamResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/teams`,
+        { token: input.accessToken?.() },
+      ),
+
+    createClubTeam: (organizationAlias, clubId, body) =>
+      requestJson<ClubTeamResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/teams`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    submitClubRegistration: (organizationAlias, clubId, tournamentAlias, body) =>
+      requestJson<ClubRegistrationResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/tournaments/${encodeURIComponent(tournamentAlias)}/registrations`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
     listVenues: (organizationAlias) =>
       requestJson<readonly VenueResponse[]>(
         input.fetch,
@@ -2912,16 +3200,29 @@ async function requestJson<T>(
     readonly idempotencyKey?: string;
   } = {},
 ): Promise<T> {
-  const headers = new Headers();
-  if (options.body !== undefined) headers.set('content-type', 'application/json');
-  if (options.token !== undefined) headers.set('authorization', `Bearer ${options.token}`);
-  if (options.idempotencyKey !== undefined) headers.set('idempotency-key', options.idempotencyKey);
+  const attempt = (token: string | undefined): Promise<Response> => {
+    const headers = new Headers();
+    if (options.body !== undefined) headers.set('content-type', 'application/json');
+    if (token !== undefined) headers.set('authorization', `Bearer ${token}`);
+    if (options.idempotencyKey !== undefined)
+      headers.set('idempotency-key', options.idempotencyKey);
 
-  const response = await fetcher(url, {
-    method: options.method ?? 'GET',
-    headers,
-    ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
-  });
+    return fetcher(url, {
+      method: options.method ?? 'GET',
+      headers,
+      ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
+    });
+  };
+
+  let response = await attempt(options.token);
+
+  // Only a call that carried a token in the first place is a session that
+  // silent renewal could actually save — a public, unauthenticated request's
+  // own 401 (e.g. a bad native login) is never this.
+  if (response.status === 401 && options.token !== undefined) {
+    const outcome = await renewSessionOnce();
+    if (outcome !== undefined) response = await attempt(outcome.accessToken);
+  }
 
   if (!response.ok) {
     // The status is the least useful part. A 409 here carries "check-in has

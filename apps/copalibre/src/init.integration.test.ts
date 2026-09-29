@@ -56,6 +56,10 @@ function withFakeSecrets(environment: NodeJS.ProcessEnv = process.env): NodeJS.P
     COPALIBRE_OIDC_CLIENT_ID: 'fake',
     COPALIBRE_EMAIL_PROVIDER: 'smtp',
     COPALIBRE_EMAIL_FROM: 'noreply@example.invalid',
+    // Only required when the optional-adapters profile's object-storage
+    // service is active, but `docker compose config` interpolates every
+    // service's variables regardless of active profile (0297).
+    GARAGE_RPC_SECRET: 'fake',
   };
 }
 
