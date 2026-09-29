@@ -54,7 +54,7 @@ describe('PreferencesPage', () => {
   });
 
   it('renders and lists PATs', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [
         {
@@ -89,7 +89,7 @@ describe('PreferencesPage', () => {
   });
 
   it('creates a new PAT', async () => {
-    (globalThis.fetch as jest.Mock<any>)
+    (globalThis.fetch as jest.Mock<typeof fetch>)
       .mockResolvedValueOnce({ ok: true, json: async () => [] } as any) // load PATs
       .mockResolvedValueOnce({
         ok: true,
@@ -113,7 +113,7 @@ describe('PreferencesPage', () => {
   });
 
   it('revokes a PAT', async () => {
-    (globalThis.fetch as jest.Mock<any>)
+    (globalThis.fetch as jest.Mock<typeof fetch>)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [
@@ -147,7 +147,7 @@ describe('PreferencesPage', () => {
   });
 
   it('loads and edits the organization identity when an alias is given', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -179,7 +179,7 @@ describe('PreferencesPage', () => {
   });
 
   it('shows a placeholder with no emblem, and uploads one', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -225,7 +225,7 @@ describe('PreferencesPage', () => {
   });
 
   it('does not update state after unmounting mid-fetch', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -250,7 +250,7 @@ describe('PreferencesPage', () => {
   });
 
   it('reports a save failure with the server refusal message', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -272,7 +272,7 @@ describe('PreferencesPage', () => {
   });
 
   it('falls back to the generic save-failure message for a non-API error', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -294,7 +294,7 @@ describe('PreferencesPage', () => {
   });
 
   it('ignores a save click when the client has no updateOrganizationSettings method', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -313,7 +313,7 @@ describe('PreferencesPage', () => {
   });
 
   it('reports an emblem-upload failure that is not a ControlApiError', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -343,7 +343,7 @@ describe('PreferencesPage', () => {
   });
 
   it('renders the emblem image for an organization that has one', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -361,7 +361,7 @@ describe('PreferencesPage', () => {
   });
 
   it('requires confirmation before running a statistics rebuild, and shows the result', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -395,7 +395,7 @@ describe('PreferencesPage', () => {
   });
 
   it('cancels a rebuild without calling the API', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -425,7 +425,7 @@ describe('PreferencesPage', () => {
   });
 
   it('scopes a confirmed rebuild to the entered tournament alias', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -462,7 +462,7 @@ describe('PreferencesPage', () => {
   });
 
   it('surfaces a rebuild refusal with the server message', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -485,7 +485,7 @@ describe('PreferencesPage', () => {
   });
 
   it('falls back to a generic rebuild-failure message for a non-API error', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -508,7 +508,7 @@ describe('PreferencesPage', () => {
   });
 
   it('disables the rebuild trigger when the client offers no rebuildStatistics method', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -528,7 +528,7 @@ describe('PreferencesPage', () => {
   });
 
   it('reports an organization load it could not complete', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -550,7 +550,7 @@ describe('PreferencesPage', () => {
   });
 
   it('renders the formatted storage usage in MB and GB', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -574,7 +574,7 @@ describe('PreferencesPage', () => {
   });
 
   it('renders storage usage formatted dynamically in GB when over 1024 MB', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -597,7 +597,7 @@ describe('PreferencesPage', () => {
   });
 
   it('lists an unreferenced object and deletes it, dropping the usage total by its size', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -639,7 +639,7 @@ describe('PreferencesPage', () => {
   });
 
   it('reports an error when deleting an unreferenced object fails', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -671,7 +671,7 @@ describe('PreferencesPage', () => {
   });
 
   it('renders zero-state storage usage correctly', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -694,7 +694,7 @@ describe('PreferencesPage', () => {
   });
 
   it('surfaces an error when storage usage fails to load', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);

@@ -30,7 +30,7 @@ describe('NativeAuthRoutes', () => {
   // than to the Spanish these tests used to see by coincidence.
 
   it('renders LoginRoute and handles success', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ accessToken: 'foo', expiresIn: 3600 }),
     } as any);
@@ -82,7 +82,7 @@ describe('NativeAuthRoutes', () => {
   });
 
   it('renders ForgotPasswordRoute and handles success', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({ ok: true } as any);
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({ ok: true } as any);
 
     render(
       <ControlIntl locale="en">
@@ -101,7 +101,7 @@ describe('NativeAuthRoutes', () => {
     // mock URL with token
     window.history.pushState({}, '', '?token=123');
 
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({ ok: true } as any);
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({ ok: true } as any);
 
     render(
       <ControlIntl locale="en">

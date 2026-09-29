@@ -18,7 +18,7 @@ const patchedFloors = {
   astro: { 7: '7.2.8' },
   hono: { 4: '4.13.5' },
   'ip-address': { 10: '10.5.1' },
-  undici: { 8: '8.10.2' },
+  undici: { 6: '6.28.1', 8: '8.10.2' },
 };
 
 function assertPatched(name, version, label) {
@@ -42,7 +42,7 @@ for (const name of Object.keys(patchedFloors)) {
         entries.every((entry) => ['6', '8'].includes(entry.version.split('.')[0])),
         'undici: review security advisories for a new major line',
       );
-      for (const entry of entries.filter((entry) => entry.version.startsWith('8.'))) {
+      for (const entry of entries) {
         assertPatched(name, entry.version, entry.resolution);
       }
     } else {
@@ -57,6 +57,7 @@ for (const [selector, name] of [
   ['fast-uri@npm:^4.0.0', 'fast-uri'],
   ['@ai-sdk/provider-utils@npm:4.0.5', '@ai-sdk/provider-utils'],
   ['ip-address', 'ip-address'],
+  ['undici@npm:^6.25.0', 'undici'],
   ['undici@npm:^8.4.1', 'undici'],
   ['undici@npm:^8.9.0', 'undici'],
 ]) {

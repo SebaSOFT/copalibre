@@ -10,7 +10,8 @@
  * absent from the other is a difference and appears as such, and a record with
  * no previous state is not a correction and is not presented as one.
  */
-import { defineMessages, type IntlShape } from 'react-intl';
+import { type IntlShape } from 'react-intl';
+import { defineMessages } from '../../lib/i18n/define-messages.js';
 import type { AuditRecordResponse } from './api-client.js';
 import type { AuditLogItem } from '../components/ui/organisms/audit-log-panel.js';
 

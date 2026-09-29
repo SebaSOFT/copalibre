@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { useIntl } from 'react-intl';
+import { useIntl, type MessageDescriptor } from 'react-intl';
 import { ControlShell } from './components/ControlShell.js';
 import {
   AnalyticsControlRoute,
@@ -691,7 +691,7 @@ describe('mutation feedback', () => {
 
 /** Formats a `MessageDescriptor` outside a component tree, for assertions. */
 function formatDescriptor(
-  descriptor: Parameters<ReturnType<typeof useIntl>['formatMessage']>[0],
+  descriptor: MessageDescriptor,
   values?: Record<string, string | number>,
 ): string {
   let formatted = '';
