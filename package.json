@@ -63,7 +63,8 @@
     "undici@npm:^8.4.1": "8.10.2",
     "undici@npm:^8.9.0": "8.10.2",
     "@ai-sdk/provider-utils@npm:4.0.5": "4.0.33",
-    "nanoid@npm:^3.3.16": "3.3.18"
+    "nanoid@npm:^3.3.16": "3.3.18",
+    "@nestjs/platform-fastify": "11.2.6"
   },
   "type": "module"
 }
