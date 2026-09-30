@@ -135,6 +135,7 @@ export function MatchConsoleTemplate({
           : messages.matchConsoleSegmentStatePending,
     );
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
+  const [dismissedRosterNotice, setDismissedRosterNotice] = useState(false);
   // Explicit, and separate from selectedSide: selectedSide is JerseyGrid's
   // event-attribution field, reset by every jersey tap for a completely
   // different purpose (who performed the next logged event). Reusing it as
@@ -324,6 +325,7 @@ export function MatchConsoleTemplate({
   const alertsNode = (
     <AlertsSection
       intl={intl}
+      lastSyncedAt={lastSyncedAt}
       onDismissMutation={onDismissMutation}
       pendingMutations={pendingMutations}
       stale={stale}
@@ -492,21 +494,22 @@ export function MatchConsoleTemplate({
             />
           ) : (
             !rosterStepOpen && (
-              <Alert tone="info">
-                <FormattedMessage {...messages.matchConsoleNoRosterSelected} />
-                {canSelectRoster && (
-                  <>
-                    {' '}
-                    <Button
-                      onClick={() => setRosterStepOpen(true)}
-                      type="button"
-                      variant="secondary"
-                    >
-                      <FormattedMessage {...messages.matchConsoleSelectRoster} />
-                    </Button>
-                  </>
+              <>
+                {!dismissedRosterNotice && (
+                  <Alert
+                    dismissLabel={intl.formatMessage(messages.toastDismiss)}
+                    onDismiss={() => setDismissedRosterNotice(true)}
+                    tone="info"
+                  >
+                    <FormattedMessage {...messages.matchConsoleNoRosterSelected} />
+                  </Alert>
                 )}
-              </Alert>
+                {canSelectRoster && (
+                  <Button onClick={() => setRosterStepOpen(true)} type="button" variant="secondary">
+                    <FormattedMessage {...messages.matchConsoleSelectRoster} />
+                  </Button>
+                )}
+              </>
             )
           )}
           <div className="cl-platform-form-grid">
@@ -611,7 +614,12 @@ export function MatchConsoleTemplate({
               <FormattedMessage {...messages.matchConsoleFinalizeMatch} />
             </Button>
           ) : (
-            <Alert block tone="info">
+            <Alert
+              block
+              dismissLabel={intl.formatMessage(messages.toastDismiss)}
+              onDismiss={handleCancelFinalize}
+              tone="warning"
+            >
               <strong>
                 <FormattedMessage {...messages.matchConsoleFinalizeImmutable} />
               </strong>
@@ -847,22 +855,31 @@ export function MatchConsoleTemplate({
  */
 function AlertsSection({
   intl,
+  lastSyncedAt,
   onDismissMutation,
   pendingMutations,
   stale,
   status,
 }: {
   readonly intl: IntlShape;
+  readonly lastSyncedAt: number | undefined;
   readonly onDismissMutation: (mutationId: string) => void;
   readonly pendingMutations: readonly QueuedMutation[];
   readonly stale: boolean;
   readonly status: ConsoleStatus;
 }): React.JSX.Element {
+  const staleKey = String(lastSyncedAt ?? 'unknown');
+  const [dismissedStaleKey, setDismissedStaleKey] = useState<string>();
+
   return (
     <>
       {status.kind === 'error' && <Alert tone="destructive">{status.message}</Alert>}
-      {stale && (
-        <Alert tone="info">
+      {stale && dismissedStaleKey !== staleKey && (
+        <Alert
+          dismissLabel={intl.formatMessage(messages.toastDismiss)}
+          onDismiss={() => setDismissedStaleKey(staleKey)}
+          tone="warning"
+        >
           <FormattedMessage {...messages.matchConsoleAwaitingProjection} />
         </Alert>
       )}

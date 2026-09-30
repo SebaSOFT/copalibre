@@ -15,16 +15,21 @@ function registrationsResponse(): unknown {
   return registrations;
 }
 
-async function mockRegistrationApi(page: Page, initial: readonly unknown[] = []): Promise<void> {
+async function mockRegistrationApi(
+  page: Page,
+  initial: readonly unknown[] = [],
+  pendingRegistrations = false,
+): Promise<void> {
   registrations = [...initial];
   await page.addInitScript(
-    ({ tokenEndpoint, teamId }) => {
+    ({ tokenEndpoint, teamId, pendingRegistrations }) => {
       window.fetch = async (input, init) => {
         const url = String(input);
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
         if (url.endsWith('/registrations')) {
+          if (pendingRegistrations) return new Promise<Response>(() => undefined);
           const loaded = await (
             window as unknown as { __registrations: () => Promise<unknown> }
           ).__registrations();
@@ -47,7 +52,7 @@ async function mockRegistrationApi(page: Page, initial: readonly unknown[] = [])
         return new Response('Not found', { status: 404 });
       };
     },
-    { tokenEndpoint: TOKEN_ENDPOINT, teamId: TEAM_ID },
+    { tokenEndpoint: TOKEN_ENDPOINT, teamId: TEAM_ID, pendingRegistrations },
   );
 
   await page.exposeFunction('__registrations', registrationsResponse);
@@ -67,6 +72,30 @@ async function mockRegistrationApi(page: Page, initial: readonly unknown[] = [])
   });
 }
 
+test('dismisses a loading alert in the registration control screen and captures both states', async ({
+  page,
+}) => {
+  await mockRegistrationApi(page, [], true);
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/registrations';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const alert = page.getByRole('status');
+  await expect(alert).toContainText('Cargando inscripciones...');
+  await page.screenshot({
+    fullPage: true,
+    path: 'docs/assets/screenshots/0312-control-panel-loading-alert.png',
+  });
+
+  await alert.getByRole('button', { name: 'Descartar notificación' }).click();
+  await expect(alert).toHaveCount(0);
+  await page.screenshot({
+    fullPage: true,
+    path: 'docs/assets/screenshots/0312-control-panel-alert-dismissed.png',
+  });
+});
+
 test('registers a walk-up entrant from the registration review screen, with no CSV file involved (task 4.1)', async ({
   page,
 }) => {
@@ -75,6 +104,23 @@ test('registers a walk-up entrant from the registration review screen, with no C
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
+
+  const header = page.locator('.cl-list-screen__header');
+  const breadcrumb = page.locator('.cl-list-screen__breadcrumb');
+  const title = page.getByRole('heading', { level: 1 });
+  const toolbar = page.locator('.cl-list-screen__toolbar');
+  await expect(header).toBeVisible();
+  await expect(breadcrumb).toBeVisible();
+  await expect(title).toBeVisible();
+  await expect(toolbar).toBeVisible();
+  const [headerTop, headerBottom, toolbarTop] = await Promise.all([
+    header.evaluate((element) => element.getBoundingClientRect().top),
+    header.evaluate((element) => element.getBoundingClientRect().bottom),
+    toolbar.evaluate((element) => element.getBoundingClientRect().top),
+  ]);
+  expect(headerTop).toBeGreaterThanOrEqual(0);
+  expect(headerTop).toBeLessThan(300);
+  expect(headerBottom).toBeLessThan(toolbarTop);
 
   await page.getByRole('button', { name: 'Agregar participante' }).click();
   const dialog = page.getByRole('dialog', { name: 'Agregar participante' });

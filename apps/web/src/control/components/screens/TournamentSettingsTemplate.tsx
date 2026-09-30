@@ -227,7 +227,15 @@ export function TournamentSettingsTemplate({
                   )}
                 </div>
               </div>
-              {emblemNotice && <Alert tone="info">{emblemNotice}</Alert>}
+              {emblemNotice && (
+                <Alert
+                  dismissLabel={intl.formatMessage(messages.toastDismiss)}
+                  onDismiss={() => setEmblemNotice(undefined)}
+                  tone="info"
+                >
+                  {emblemNotice}
+                </Alert>
+              )}
             </div>
 
             <Field id="settings-name" label={intl.formatMessage(messages.settingsNameLabel)}>

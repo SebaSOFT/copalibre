@@ -77,14 +77,11 @@ describe('PromotionPlanPage', () => {
       ),
     );
 
-    // `role="status"` (openspec 0284): an unconfigured plan is an expected
-    // state, not a destructive failure — see PromotionPlanPage's
-    // classifyPreviewError and the Alert atom's tone-to-role mapping.
+    // An unconfigured plan is a neutral empty state, not an alert or failure.
     await waitFor(() =>
-      expect(screen.getByRole('status').textContent).toContain(
-        'No promotion plan saved for this zone yet.',
-      ),
+      expect(screen.queryByText('No promotion plan saved for this zone yet.')).not.toBeNull(),
     );
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('localizes the real server 404 the backend sends for an unconfigured plan (openspec 0284)', async () => {
@@ -113,11 +110,10 @@ describe('PromotionPlanPage', () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByRole('status').textContent).toContain(
-        'No promotion plan saved for this zone yet.',
-      ),
+      expect(screen.queryByText('No promotion plan saved for this zone yet.')).not.toBeNull(),
     );
-    expect(screen.getByRole('status').textContent).not.toContain('No promotion plan for zone 1');
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.queryByText('No promotion plan for zone 1')).toBeNull();
   });
 
   it('treats a genuinely missing zone as a destructive error, not an unconfigured plan (openspec 0284)', async () => {

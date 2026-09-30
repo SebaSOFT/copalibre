@@ -45,6 +45,7 @@ describe('committed design documentation', () => {
 describe('the token source', () => {
   it('resolves a semantic token to its primitive', () => {
     expect(resolveSemantic('state-live')).toBe(COLOR_PRIMITIVES['cyan-400']);
+    expect(resolveSemantic('state-warning')).toBe(COLOR_PRIMITIVES['amber-400']);
   });
 
   it('gives every state a non-colour cue', () => {
@@ -60,6 +61,7 @@ describe('the token source', () => {
   it('protects the tokens an organizer accent may never replace', () => {
     // A team whose colour is red does not get to make "disputed" mean "us".
     expect(isProtected('state-destructive')).toBe(true);
+    expect(isProtected('state-warning')).toBe(true);
     expect(isProtected('focus-ring')).toBe(true);
     expect(isProtected('accent-team')).toBe(false);
     expect(PROTECTED_TOKENS).toContain('state-live');
@@ -191,6 +193,12 @@ describe('the CSS output', () => {
       expect(css).toContain(`.cl-badge--${name} {`);
       expect(css).toContain(`color: var(--cl-badge-${name}-color);`);
     }
+  });
+
+  it('styles warning alerts with the semantic warning token', () => {
+    expect(css).toContain(
+      '.cl-inline-alert--warning { border-left-color: var(--cl-state-warning); }',
+    );
   });
 
   it('declares every primitive and every semantic token', () => {

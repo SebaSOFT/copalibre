@@ -16,9 +16,9 @@ function row(overrides: Partial<AbbreviationCandidateRow> = {}): AbbreviationCan
 }
 
 describe('AbbreviationReviewSection', () => {
-  it('shows an empty state when no entrant needs an abbreviation', () => {
+  it('renders nothing when no entrant needs an abbreviation', () => {
     render(withIntl(<AbbreviationReviewSection rows={[]} />));
-    expect(screen.getByText('Every entrant already has an abbreviation.')).toBeDefined();
+    expect(screen.queryByLabelText('Entrants needing an abbreviation')).toBeNull();
   });
 
   it('sets a valid abbreviation and removes the entrant from the list on success', async () => {

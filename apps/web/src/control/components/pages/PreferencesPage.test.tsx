@@ -392,6 +392,8 @@ describe('PreferencesPage', () => {
       expect(rebuildStatistics).toHaveBeenCalledWith('liga-mendocina', undefined),
     );
     await screen.findByText('12 matches processed.');
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
+    expect(screen.queryByText('12 matches processed.')).toBeNull();
   });
 
   it('cancels a rebuild without calling the API', async () => {

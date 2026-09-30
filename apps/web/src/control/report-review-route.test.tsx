@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { jest } from '@jest/globals';
 import { ReportReviewPage } from './components/pages/ReportReviewPage.js';
+import { ReportReviewTemplate } from './components/screens/ReportReviewTemplate.js';
 import type { ControlApiClient, ParticipantReportResponse } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
@@ -74,6 +75,16 @@ function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
 }
 
 describe('the pending reports and disputes queue', () => {
+  it('lets the operator dismiss the loading notice', () => {
+    render(
+      withIntl(<ReportReviewTemplate onDismiss={() => undefined} rows={[]} status="loading" />),
+    );
+
+    expect(screen.getByRole('status').textContent).toContain('Loading reports...');
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
   it('says so when there is nothing pending', async () => {
     render(
       withIntl(

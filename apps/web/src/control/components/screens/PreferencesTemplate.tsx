@@ -93,6 +93,7 @@ export function PreferencesTemplate({
   const [emblemCropSrc, setEmblemCropSrc] = useState<string | undefined>(undefined);
   const [rebuildTournamentAlias, setRebuildTournamentAlias] = useState('');
   const [rebuildConfirming, setRebuildConfirming] = useState(false);
+  const [dismissedRebuildResult, setDismissedRebuildResult] = useState(false);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +102,7 @@ export function PreferencesTemplate({
   };
 
   async function runStatisticsRebuild(): Promise<void> {
+    setDismissedRebuildResult(false);
     await onRunStatisticsRebuild(rebuildTournamentAlias);
     setRebuildConfirming(false);
   }
@@ -324,8 +326,12 @@ export function PreferencesTemplate({
             <FormattedMessage {...controlMessages.statisticsRebuildDescription} />
           </p>
 
-          {rebuildResult && (
-            <Alert tone="info">
+          {rebuildResult && !dismissedRebuildResult && (
+            <Alert
+              dismissLabel={intl.formatMessage(controlMessages.toastDismiss)}
+              onDismiss={() => setDismissedRebuildResult(true)}
+              tone="info"
+            >
               {intl.formatMessage(controlMessages.statisticsRebuildResult, {
                 matches: rebuildResult.matches,
               })}

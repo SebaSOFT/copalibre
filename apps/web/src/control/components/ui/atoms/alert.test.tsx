@@ -31,10 +31,16 @@ describe('the Alert atom', () => {
     expect(infoClasses).toContain('cl-inline-alert');
     expect(infoClasses).not.toContain('cl-inline-alert--');
 
-    for (const tone of ['success', 'destructive', 'live'] as const) {
+    for (const tone of ['success', 'warning', 'destructive', 'live'] as const) {
       const { container } = render(<Alert tone={tone}>x</Alert>);
       expect((container.firstChild as HTMLElement).className).toContain(`cl-inline-alert--${tone}`);
     }
+  });
+
+  it('announces a warning politely and exposes its dedicated tone class', () => {
+    const { container } = render(<Alert tone="warning">Check eligibility</Alert>);
+    expect(screen.getByRole('status').textContent).toBe('Check eligibility');
+    expect((container.firstChild as HTMLElement).className).toContain('cl-inline-alert--warning');
   });
 
   it('renders a paragraph for a single line and a div once it carries structure', () => {
@@ -64,17 +70,20 @@ describe('the Alert atom', () => {
     expect(screen.getByText('Account ready').className).toBe('cl-inline-alert__title');
   });
 
-  it('renders a dismiss control only when the caller supplies a handler', () => {
-    const { rerender } = render(<Alert tone="info">x</Alert>);
-    expect(screen.queryByRole('button')).toBeNull();
+  it.each(['info', 'warning'] as const)(
+    'renders a dismiss control for %s only when the caller supplies a handler',
+    (tone) => {
+      const { rerender } = render(<Alert tone={tone}>x</Alert>);
+      expect(screen.queryByRole('button')).toBeNull();
 
-    const onDismiss = jest.fn();
-    rerender(
-      <Alert dismissLabel="Dismiss notification" onDismiss={onDismiss} tone="info">
-        x
-      </Alert>,
-    );
-    screen.getByRole('button', { name: 'Dismiss notification' }).click();
-    expect(onDismiss).toHaveBeenCalledTimes(1);
-  });
+      const onDismiss = jest.fn();
+      rerender(
+        <Alert dismissLabel="Dismiss notification" onDismiss={onDismiss} tone={tone}>
+          x
+        </Alert>,
+      );
+      screen.getByRole('button', { name: 'Dismiss notification' }).click();
+      expect(onDismiss).toHaveBeenCalledTimes(1);
+    },
+  );
 });

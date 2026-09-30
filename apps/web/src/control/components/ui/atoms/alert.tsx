@@ -21,7 +21,7 @@ import type { ReactNode } from 'react';
  * `live` is kept distinct from `success` because the token layer already
  * separates them: an in-progress broadcast is not a completed action.
  */
-export type AlertTone = 'info' | 'success' | 'destructive' | 'live';
+export type AlertTone = 'info' | 'success' | 'warning' | 'destructive' | 'live';
 
 export interface AlertProps {
   /** Required: an alert that does not say what it means is the defect this replaces. */
@@ -66,6 +66,7 @@ export interface AlertProps {
 const POLITENESS: Readonly<Record<AlertTone, 'polite' | 'assertive'>> = {
   info: 'polite',
   success: 'polite',
+  warning: 'polite',
   live: 'polite',
   destructive: 'assertive',
 };

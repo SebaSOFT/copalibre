@@ -1067,6 +1067,7 @@ function components(): string {
     '',
     '/* An alert is its accent *and* its words: the variant colours the rail, the text says what happened. */',
     '.cl-inline-alert--destructive { border-left-color: var(--cl-state-destructive); }',
+    '.cl-inline-alert--warning { border-left-color: var(--cl-state-warning); }',
     // `success` completes the set the Alert atom exposes. Until it existed, 65
     // of 68 inline alerts declared no tone at all, so an error, a success
     // confirmation and a loading message all drew the same rail — the class was

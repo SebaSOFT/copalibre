@@ -57,6 +57,7 @@ test('uploads, reviews and confirms a valid participant CSV', async ({ page }) =
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
+  await page.getByRole('button', { name: 'Importar participantes' }).click();
   await page.getByLabel('CSV de participantes').setInputFiles({
     name: 'teams.csv',
     mimeType: 'text/csv',
@@ -73,6 +74,7 @@ test('shows row errors and cannot confirm an invalid participant CSV', async ({ 
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
+  await page.getByRole('button', { name: 'Importar participantes' }).click();
   await page.getByLabel('CSV de participantes').setInputFiles({
     name: 'teams.csv',
     mimeType: 'text/csv',
@@ -88,6 +90,7 @@ test('re-import flow accepts participant CSV exported by CopaLibre', async ({ pa
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
+  await page.getByRole('button', { name: 'Importar participantes' }).click();
   await page.getByLabel('CSV de participantes').setInputFiles({
     name: 'exported-teams.csv',
     mimeType: 'text/csv',
