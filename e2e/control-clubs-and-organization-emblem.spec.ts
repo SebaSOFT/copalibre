@@ -39,6 +39,7 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
 
   await page.addInitScript(
     ({ tokenEndpoint, orgAlias }) => {
+      const originalFetch = window.fetch.bind(window);
       window.fetch = async (input, init) => {
         const url = String(input);
         const method = init?.method ?? 'GET';
@@ -105,7 +106,7 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
           return Response.json(created);
         }
 
-        return new Response('Not found', { status: 404 });
+        return originalFetch(input, init);
       };
     },
     { tokenEndpoint: TOKEN_ENDPOINT, orgAlias: ORG_ALIAS },
@@ -191,7 +192,16 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   });
   const clubDialog = page.getByRole('dialog', { name: 'Ajustar imagen' });
   await expect(clubDialog).toBeVisible();
-  await clubDialog.getByRole('button', { name: 'Usar imagen' }).click();
+  const keepOriginal = clubDialog.getByRole('button', { name: 'Conservar original' });
+  try {
+    await keepOriginal.waitFor({ state: 'visible', timeout: 4000 });
+    await keepOriginal.click();
+  } catch {
+    // removal succeeded or already in cropping state
+  }
+  const useImage = clubDialog.getByRole('button', { name: 'Usar imagen' });
+  await expect(useImage).toBeEnabled({ timeout: 15000 });
+  await useImage.click();
   await expect(page.getByText('Escudo subido.')).toBeVisible();
   await expect(page.getByAltText('Escudo de Casa de Italia').first()).toBeVisible();
 
@@ -210,7 +220,16 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   });
   const orgDialog = page.getByRole('dialog', { name: 'Ajustar imagen' });
   await expect(orgDialog).toBeVisible();
-  await orgDialog.getByRole('button', { name: 'Usar imagen' }).click();
+  const orgKeepOriginal = orgDialog.getByRole('button', { name: 'Conservar original' });
+  try {
+    await orgKeepOriginal.waitFor({ state: 'visible', timeout: 4000 });
+    await orgKeepOriginal.click();
+  } catch {
+    // removal succeeded or already in cropping state
+  }
+  const orgUseImage = orgDialog.getByRole('button', { name: 'Usar imagen' });
+  await expect(orgUseImage).toBeEnabled({ timeout: 15000 });
+  await orgUseImage.click();
   await expect(page.getByText('Escudo subido.')).toBeVisible();
   // The toast appears as soon as the upload resolves; the emblem `<img>`
   // only appears once the route's own follow-up reload completes — a

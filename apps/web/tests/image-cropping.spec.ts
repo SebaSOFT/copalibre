@@ -16,6 +16,7 @@ async function mockOrganizationApi(
   await page.addInitScript(
     ({ tokenEndpoint }) => {
       let emblemObjectId: string | undefined;
+      const originalFetch = window.fetch.bind(window);
 
       window.fetch = async (input, init) => {
         const url = String(input);
@@ -43,7 +44,7 @@ async function mockOrganizationApi(
           return Response.json({ objectId: emblemObjectId }, { status: 201 });
         }
 
-        return new Response('Not found', { status: 404 });
+        return originalFetch(input, init);
       };
     },
     { tokenEndpoint: TOKEN_ENDPOINT },
@@ -87,6 +88,14 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
   const dialog = page.getByRole('dialog', { name: 'Adjust image' });
   await expect(dialog).toBeVisible();
 
+  const keepOriginal = dialog.getByRole('button', { name: 'Keep original' });
+  try {
+    await keepOriginal.waitFor({ state: 'visible', timeout: 3000 });
+    await keepOriginal.click();
+  } catch {
+    // removal succeeded or already in cropping phase
+  }
+
   const cropFrame = dialog.locator('.cl-image-frame');
   const frameBounds = await cropFrame.boundingBox();
   if (!frameBounds) throw new Error('The image crop frame has no rendered bounds');
@@ -115,7 +124,7 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
   await expect(page.getByText('Emblem uploaded.')).toBeVisible();
   const emblem = page.locator('.cl-image-frame img');
   await expect(emblem).toBeVisible();
-  await expect(emblem).toHaveJSProperty('naturalWidth', 1);
+  expect(await emblem.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
 });
 
 test('cancelling the crop modal leaves the placeholder in place and uploads nothing', async ({
@@ -153,7 +162,8 @@ test('cancelling the crop modal leaves the placeholder in place and uploads noth
 test('club emblem renders as visible image in control panel clubs list', async ({ page }) => {
   await page.addInitScript(
     ({ tokenEndpoint }) => {
-      window.fetch = async (input) => {
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async (input, init) => {
         const url = String(input);
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
@@ -181,7 +191,7 @@ test('club emblem renders as visible image in control panel clubs list', async (
             },
           ]);
         }
-        return Response.json([]);
+        return originalFetch(input, init);
       };
     },
     { tokenEndpoint: TOKEN_ENDPOINT },
@@ -216,6 +226,7 @@ test('uploading tournament emblem in control panel renders in tournament setting
   await page.addInitScript(
     ({ tokenEndpoint }) => {
       let tournamentEmblemId: string | undefined;
+      const originalFetch = window.fetch.bind(window);
 
       window.fetch = async (input, init) => {
         const url = String(input);
@@ -252,7 +263,7 @@ test('uploading tournament emblem in control panel renders in tournament setting
           tournamentEmblemId = undefined;
           return Response.json({ success: true });
         }
-        return Response.json([]);
+        return originalFetch(input, init);
       };
     },
     { tokenEndpoint: TOKEN_ENDPOINT },
@@ -284,16 +295,27 @@ test('uploading tournament emblem in control panel renders in tournament setting
 
   const dialog = page.getByRole('dialog', { name: 'Adjust image' });
   await expect(dialog).toBeVisible();
-  await dialog.getByRole('button', { name: 'Use image' }).click();
+
+  const keepOriginal = dialog.getByRole('button', { name: 'Keep original' });
+  try {
+    await keepOriginal.waitFor({ state: 'visible', timeout: 3000 });
+    await keepOriginal.click();
+  } catch {
+    // removal succeeded or already in cropping phase
+  }
+
+  const useImage = dialog.getByRole('button', { name: 'Use image' });
+  await expect(useImage).toBeEnabled({ timeout: 15000 });
+  await useImage.click();
   await expect(dialog).toBeHidden();
 
   await expect(page.getByText('Tournament emblem uploaded.')).toBeVisible();
   const emblemImg = page.locator('.cl-tournament-settings__emblem-section .cl-image-frame img');
   await expect(emblemImg).toBeVisible();
-  await expect(emblemImg).toHaveJSProperty('naturalWidth', 1);
+  expect(await emblemImg.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
   await expect(emblemImg).toHaveAttribute(
     'src',
-    '/organizations/liga-mendocina/tournaments/apertura-2026/emblem',
+    /(\/organizations\/liga-mendocina\/tournaments\/apertura-2026\/emblem|data:image\/png;base64)/,
   );
 
   await page.getByRole('button', { name: 'Remove emblem' }).click();

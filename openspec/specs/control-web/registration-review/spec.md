@@ -237,3 +237,21 @@ The roster editing interface SHALL provide a role selector allowing operators to
 #### Scenario: Assigning a coach role to a team member
 - **WHEN** an operator selects "Coach" from the role dropdown for an enrolled person in a club roster
 - **THEN** the selection SHALL be saved and visually badged as Coach in the roster view
+
+### Requirement: Entrant abbreviation review section is conditionally displayed
+The entrant abbreviation review section SHALL only render when there is at least one entrant in the tournament requiring abbreviation resolution. When zero entrants require an abbreviation, the section SHALL render nothing (`null`).
+
+#### Scenario: No entrants need abbreviation
+- **WHEN** all entrants have valid unique abbreviations
+- **THEN** no abbreviation review card or alert is rendered on the registration review screen
+
+#### Scenario: Entrants need abbreviation
+- **WHEN** one or more entrants lack a unique abbreviation due to collisions
+- **THEN** the abbreviation review section renders within the template's listing region with explicit resolve actions
+
+### Requirement: Registration review follows the screen header hierarchy
+The registration review screen SHALL maintain the tournament title and breadcrumbs as the top visual header, keeping bulk actions, status filters, and secondary workflows (such as CSV participant imports) enclosed within the template layout structure below the primary title.
+
+#### Scenario: Header crowns the registration review screen
+- **WHEN** an operator accesses the registration review screen
+- **THEN** the tournament breadcrumb and `<h1>` title appear at the top of the viewport ahead of any tables, toolbars, or modal triggers

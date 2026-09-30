@@ -155,9 +155,11 @@ export function RegistrationReviewTemplate({
   const [dismissedLoading, setDismissedLoading] = useState(false);
   const [dismissedLockNotice, setDismissedLockNotice] = useState(false);
   const [nationalityDraft, setNationalityDraft] = useState<Record<string, string>>({});
+  const [optimisticPhotos, setOptimisticPhotos] = useState<Record<string, string>>({});
   const [photoCrop, setPhotoCrop] = useState<{ personId: string; src: string } | undefined>(
     undefined,
   );
+
   const [addOpen, setAddOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<ReviewRegistrationRow | undefined>(undefined);
   const [linkingRow, setLinkingRow] = useState<ReviewRegistrationRow | undefined>(undefined);
@@ -378,9 +380,10 @@ export function RegistrationReviewTemplate({
                     }
                     size={64}
                     src={
-                      row.photoObjectId !== undefined
+                      optimisticPhotos[personId] ??
+                      (row.photoObjectId !== undefined
                         ? personPhotoUrl(organizationAlias, personId)
-                        : undefined
+                        : undefined)
                     }
                   />
                   <FilePicker
@@ -526,11 +529,23 @@ export function RegistrationReviewTemplate({
           onConfirm={(output) => {
             URL.revokeObjectURL(photoCrop.src);
             const personId = photoCrop.personId;
+            setOptimisticPhotos((prev) => ({
+              ...prev,
+              [personId]: `data:${output.contentType};base64,${output.contentBase64}`,
+            }));
             setPhotoCrop(undefined);
-            void onUploadPhoto?.(personId, {
-              filename: 'photo.png',
-              contentType: output.contentType,
-              contentBase64: output.contentBase64,
+            Promise.resolve(
+              onUploadPhoto?.(personId, {
+                filename: 'photo.png',
+                contentType: output.contentType,
+                contentBase64: output.contentBase64,
+              }),
+            ).catch(() => {
+              setOptimisticPhotos((prev) => {
+                const next = { ...prev };
+                delete next[personId];
+                return next;
+              });
             });
           }}
         />

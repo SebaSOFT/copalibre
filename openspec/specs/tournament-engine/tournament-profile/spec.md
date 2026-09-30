@@ -1,6 +1,10 @@
-# tournament-profile Specification Delta
+# tournament-profile Specification
 
-## ADDED Requirements
+## Purpose
+
+Defines management of tournament profile details and the official emblem associated with a tournament.
+
+## Requirements
 
 ### Requirement: Tournament emblem asset management
 The tournament profile SHALL support uploading, storing, retrieving, and removing an official tournament emblem.

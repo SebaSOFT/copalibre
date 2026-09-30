@@ -92,6 +92,21 @@ export const PublicHeader: Story = {
   args: { component: 'public-header', height: 360 },
 };
 
+/** A 4:5 transparent emblem contained within a square chamfer-safe frame. */
+export const EmblemImage: Story = {
+  args: { component: 'emblem-image', height: 180 },
+};
+
+/** The same emblem at three `size` values; every frame remains square. */
+export const EmblemImageMatrix: Story = {
+  args: { component: 'emblem-image-matrix', height: 200 },
+};
+
+/** A transparent portrait remains contained in the separate 4:5 photo frame. */
+export const PersonPhotoCutout: Story = {
+  args: { component: 'person-photo-cutout', height: 300 },
+};
+
 /**
  * The bracket stage over the eight-entrant fixture.
  *

@@ -133,7 +133,12 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
     fireEvent.change(input, { target: { files: [file] } });
 
     const dialog = await screen.findByRole('dialog');
-    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
     );
@@ -155,6 +160,30 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
     fireEvent.change(input, { target: { files: [] } });
 
     expect(onUploadPhoto).not.toHaveBeenCalled();
+  });
+
+  it('resets optimistic photo when photo upload fails', async () => {
+    const onUploadPhoto = jest.fn(() => Promise.reject(new Error('upload failed')));
+    renderPage({ onUploadPhoto });
+    fireEvent.click(screen.getByText('Elías Salomón'));
+
+    const file = new File(['fake-bytes'], 'photo.png', { type: 'image/png' });
+    const input = screen.getByLabelText('Upload photo') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+
+    const dialog = await screen.findByRole('dialog');
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
+    await waitFor(() =>
+      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(screen.getByText('Use image'));
+
+    await waitFor(() => expect(onUploadPhoto).toHaveBeenCalled());
   });
 
   it('links a participant identity through the link dialog (openspec 0170)', async () => {

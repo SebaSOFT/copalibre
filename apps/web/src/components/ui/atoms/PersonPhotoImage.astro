@@ -53,7 +53,15 @@ const { src, alt, placeholderAlt, size = 96 } = Astro.props;
 
 <style>
   .cl-person-photo-frame {
+    box-sizing: border-box;
     flex-shrink: 0;
+    max-height: none;
+  }
+
+  .cl-person-photo-frame img {
+    box-sizing: border-box;
+    object-fit: contain;
+    padding: var(--cl-space-2);
   }
 
   .cl-person-photo-placeholder {

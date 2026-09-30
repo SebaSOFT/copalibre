@@ -58,6 +58,7 @@ export function ClubManagementTemplate({
   const [editAlias, setEditAlias] = useState('');
   const [editAbbreviation, setEditAbbreviation] = useState('');
   const [emblemCropSrc, setEmblemCropSrc] = useState<string>();
+  const [optimisticEmblems, setOptimisticEmblems] = useState<Record<string, string>>({});
 
   const selectClub = (club: ClubResponse): void => {
     setSelectedClubId(club.clubId);
@@ -101,6 +102,9 @@ export function ClubManagementTemplate({
           {clubs.map((club) => (
             <li key={club.clubId} className="cl-role-user">
               <FramedImage
+                key={
+                  optimisticEmblems[club.clubId] ? 'optimistic' : (club.emblemObjectId ?? 'none')
+                }
                 alt={intl.formatMessage(messages.clubManagementEmblemAlt, { name: club.name })}
                 placeholder={
                   <ClubEmblemPlaceholder
@@ -110,9 +114,10 @@ export function ClubManagementTemplate({
                 }
                 size={32}
                 src={
-                  club.emblemObjectId !== undefined
+                  optimisticEmblems[club.clubId] ??
+                  (club.emblemObjectId !== undefined
                     ? clubEmblemUrl(organizationAlias, club.clubId)
-                    : undefined
+                    : undefined)
                 }
               />
               <span>{club.name}</span>
@@ -194,7 +199,11 @@ export function ClubManagementTemplate({
 
           <div className="cl-card__content">
             <FramedImage
-              key={selectedClub.emblemObjectId ?? 'none'}
+              key={
+                optimisticEmblems[selectedClub.clubId]
+                  ? 'optimistic'
+                  : (selectedClub.emblemObjectId ?? 'none')
+              }
               alt={intl.formatMessage(messages.clubManagementEmblemAlt, {
                 name: selectedClub.name,
               })}
@@ -206,9 +215,10 @@ export function ClubManagementTemplate({
               }
               size={64}
               src={
-                selectedClub.emblemObjectId !== undefined
+                optimisticEmblems[selectedClub.clubId] ??
+                (selectedClub.emblemObjectId !== undefined
                   ? clubEmblemUrl(organizationAlias, selectedClub.clubId)
-                  : undefined
+                  : undefined)
               }
             />
 
@@ -272,7 +282,21 @@ export function ClubManagementTemplate({
           onConfirm={(output) => {
             URL.revokeObjectURL(emblemCropSrc);
             setEmblemCropSrc(undefined);
-            void uploadClubEmblem(output);
+            if (selectedClubId) {
+              setOptimisticEmblems((prev) => ({
+                ...prev,
+                [selectedClubId]: `data:${output.contentType};base64,${output.contentBase64}`,
+              }));
+            }
+            void uploadClubEmblem(output).catch(() => {
+              if (selectedClubId) {
+                setOptimisticEmblems((prev) => {
+                  const next = { ...prev };
+                  delete next[selectedClubId];
+                  return next;
+                });
+              }
+            });
           }}
         />
       )}

@@ -42,7 +42,16 @@ const { src, alt, placeholderAlt, size = 48 } = Astro.props;
 
 <style>
   .cl-emblem-frame {
+    box-sizing: border-box;
     flex-shrink: 0;
+    aspect-ratio: 1 / 1;
+    max-height: none;
+  }
+
+  .cl-emblem-frame img {
+    box-sizing: border-box;
+    object-fit: contain;
+    padding: var(--cl-space-2);
   }
 
   .cl-emblem-placeholder {

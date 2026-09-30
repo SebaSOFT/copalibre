@@ -267,6 +267,7 @@ export function PreferencesPage({
       void reloadOrganization();
     } catch (error) {
       pushError(error);
+      throw error;
     }
   }
 

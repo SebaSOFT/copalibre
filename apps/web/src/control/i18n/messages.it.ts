@@ -954,6 +954,11 @@ export const messages: Record<string, string> = {
   'control.imageCropModal.close': 'Chiudi',
   'control.imageCropModal.processing': 'Elaborazione…',
   'control.imageCropModal.failed': 'Impossibile elaborare questa immagine.',
+  'control.imageCropModal.removing': 'Rimozione dello sfondo…',
+  'control.imageCropModal.removalFailed':
+    'Rimozione non riuscita. Riprova o scegli di mantenere l’immagine originale.',
+  'control.imageCropModal.retry': 'Riprova',
+  'control.imageCropModal.keepOriginal': 'Mantieni originale',
   'control.toast.dismiss': 'Chiudi notifica',
   'control.toast.notifications': 'Notifiche',
   'control.toast.details': 'Dettagli tecnici',

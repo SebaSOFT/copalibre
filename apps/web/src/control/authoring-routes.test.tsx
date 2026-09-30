@@ -423,7 +423,12 @@ describe('the registration review route container', () => {
       fireEvent.change(screen.getByLabelText('Upload photo'), { target: { files: [file] } });
     });
     const dialog = await screen.findByRole('dialog');
-    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
     );

@@ -165,6 +165,7 @@ export function ClubManagementPage({
       void reload();
     } catch (error) {
       pushError(error);
+      throw error;
     }
   }
 

@@ -48,9 +48,20 @@ function stubClient(overrides: Partial<ControlApiClient>): ControlApiClient {
 }
 
 describe('PreferencesPage', () => {
+  const defaultFetch = globalThis.fetch;
   beforeEach(() => {
     controlTokenStore.write('test-token', Date.now() + 3600000);
-    globalThis.fetch = jest.fn() as any;
+    globalThis.fetch = jest.fn((...args: Parameters<typeof defaultFetch>) => {
+      const [input] = args;
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof Request
+            ? input.url
+            : String((input as any)?.href ?? input);
+      if (url.startsWith('blob:')) return defaultFetch(...args);
+      return undefined as any;
+    }) as any;
   });
 
   it('renders and lists PATs', async () => {
@@ -104,6 +115,7 @@ describe('PreferencesPage', () => {
     );
 
     fireEvent.change(screen.getByLabelText('Etiqueta del token'), { target: { value: 'New PAT' } });
+    fireEvent.change(screen.getByLabelText('Vence en (días)'), { target: { value: '60' } });
     fireEvent.click(screen.getByRole('button', { name: 'Generar token' }));
 
     await waitFor(() => {
@@ -205,11 +217,12 @@ describe('PreferencesPage', () => {
     fireEvent.change(input, { target: { files: [file] } });
 
     const dialog = await screen.findByRole('dialog');
-    // jsdom never fires a real `load` on `react-easy-crop`'s internal <img>
-    // (it does not load image bytes); firing it manually is what lets the
-    // library compute a crop area and enable Confirm, the same way a real
-    // browser's image decode would.
-    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
     );
@@ -222,6 +235,32 @@ describe('PreferencesPage', () => {
         contentBase64: expect.any(String),
       }),
     );
+  });
+
+  it('cancels the emblem crop modal and leaves the placeholder intact', async () => {
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      uploadOrganizationEmblem: () => Promise.resolve({ objectId: 'obj-1' }),
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    await screen.findByLabelText('Name');
+    const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
+    const input = screen.getByLabelText('Upload emblem');
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('does not update state after unmounting mid-fetch', async () => {
@@ -333,7 +372,12 @@ describe('PreferencesPage', () => {
     fireEvent.change(screen.getByLabelText('Upload emblem'), { target: { files: [file] } });
 
     const dialog = await screen.findByRole('dialog');
-    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
     );
