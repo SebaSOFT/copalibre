@@ -1,5 +1,8 @@
 ---
+import { createIntl } from 'react-intl';
+import { messages } from '../../control/i18n/messages.en.ts';
 
+const intl = createIntl({ locale: 'en' });
 ---
 
 <!doctype html>
@@ -7,7 +10,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="robots" content="noindex" />
-    <title>Redirecting to control panel</title>
+    <title>{intl.formatMessage(messages.invitationSuccessBody)}</title>
     <script is:inline>
       const target = new URL('/control/login', window.location.origin);
       const returnTo = new URLSearchParams(window.location.search).get('returnTo');
