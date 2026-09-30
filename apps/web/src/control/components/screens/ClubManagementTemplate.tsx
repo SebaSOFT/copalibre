@@ -116,7 +116,7 @@ export function ClubManagementTemplate({
                 src={
                   optimisticEmblems[club.clubId] ??
                   (club.emblemObjectId !== undefined
-                    ? clubEmblemUrl(organizationAlias, club.clubId, '', club.emblemObjectId)
+                    ? clubEmblemUrl(organizationAlias, club.clubId)
                     : undefined)
                 }
               />
@@ -217,12 +217,7 @@ export function ClubManagementTemplate({
               src={
                 optimisticEmblems[selectedClub.clubId] ??
                 (selectedClub.emblemObjectId !== undefined
-                  ? clubEmblemUrl(
-                      organizationAlias,
-                      selectedClub.clubId,
-                      '',
-                      selectedClub.emblemObjectId,
-                    )
+                  ? clubEmblemUrl(organizationAlias, selectedClub.clubId)
                   : undefined)
               }
             />

@@ -113,9 +113,7 @@ const historyColumns = [
     <PersonPhotoImage
       alt={intl.formatMessage(messages.playerProfilePhotoAlt, { name: profile.displayName })}
       placeholderAlt={intl.formatMessage(messages.playerProfilePhotoPlaceholderAlt)}
-      src={profile.photoObjectId
-        ? personPhotoUrl(organizationAlias, profile.personId, profile.photoObjectId)
-        : undefined}
+      src={profile.photoObjectId ? personPhotoUrl(organizationAlias, profile.personId) : undefined}
     />
     <div class="cl-player-profile__identity">
       <h2 class="cl-player-profile__name">{profile.displayName}</h2>

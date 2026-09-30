@@ -87,11 +87,7 @@ try {
     tournamentName = mappedOverview.tournamentName || tournamentAlias;
     organizationName = mappedOverview.organizationName || organizationAlias;
     if (mappedOverview.emblemObjectId) {
-      tournamentEmblem = tournamentEmblemUrl(
-        organizationAlias,
-        tournamentAlias,
-        mappedOverview.emblemObjectId,
-      );
+      tournamentEmblem = tournamentEmblemUrl(organizationAlias, tournamentAlias);
     }
     standings = mappedOverview.standings ? [...mappedOverview.standings] : [];
     overviewMatches = mappedOverview.matches;

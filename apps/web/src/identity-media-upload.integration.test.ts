@@ -63,7 +63,12 @@ describe('identity media upload integration (Task 3.1 & 3.2)', () => {
   const transparentPng = createTransparentTestPng(CROP_OUTPUT_WIDTH, CROP_OUTPUT_HEIGHT);
   const base64Payload = transparentPng.toString('base64');
   const repoRoot = join(import.meta.dirname, '../../..');
-  const publicAssetsDir = join(repoRoot, 'apps/web/public/background-removal/1.7.0/assets');
+  const candidateDirs = [
+    join(repoRoot, 'apps/web/public/background-removal/1.7.0/assets'),
+    join(repoRoot, 'apps/web/dist/client/background-removal/1.7.0/assets'),
+  ];
+  let publicAssetsDir =
+    candidateDirs.find((dir) => existsSync(join(dir, 'resources.json'))) ?? candidateDirs[0];
 
   describe('media client upload flows with transparent PNG payload (Task 3.1)', () => {
     it('verifies generated PNG payload has 410x512 dimensions and RGBA alpha channel', () => {
@@ -163,49 +168,60 @@ describe('identity media upload integration (Task 3.1 & 3.2)', () => {
     let server: Server;
     let serverPort: number;
 
-    beforeAll((done) => {
-      server = createServer((req, res) => {
-        const url = new URL(req.url ?? '/', `http://localhost:${serverPort}`);
-        const filePath = join(
-          publicAssetsDir,
-          url.pathname.replace('/background-removal/1.7.0/assets/', ''),
-        );
-
-        if (!existsSync(filePath)) {
-          res.writeHead(404, { 'Content-Type': 'text/plain' });
-          res.end('Not Found');
-          return;
-        }
-
-        const data = readFileSync(filePath);
-        const etag = `"${createHash('sha256').update(data).digest('hex')}"`;
-
-        if (req.headers['if-none-match'] === etag) {
-          res.writeHead(304);
-          res.end();
-          return;
-        }
-
-        res.writeHead(200, {
-          'Content-Type': filePath.endsWith('.json')
-            ? 'application/json'
-            : 'application/octet-stream',
-          'Cache-Control': 'public, max-age=31536000, immutable',
-          ETag: etag,
+    beforeAll(async () => {
+      if (!existsSync(join(publicAssetsDir, 'resources.json'))) {
+        const { execFileSync } = await import('node:child_process');
+        execFileSync('node', ['scripts/copy-background-removal-assets.mjs'], {
+          cwd: join(repoRoot, 'apps/web'),
+          stdio: 'pipe',
         });
-        res.end(data);
-      });
+        publicAssetsDir = join(repoRoot, 'apps/web/public/background-removal/1.7.0/assets');
+      }
 
-      server.listen(0, '127.0.0.1', () => {
-        const address = server.address();
-        if (address && typeof address === 'object') {
-          serverPort = address.port;
-          done();
-        } else {
-          done(new Error('Server failed to start'));
-        }
+      await new Promise<void>((resolve, reject) => {
+        server = createServer((req, res) => {
+          const url = new URL(req.url ?? '/', `http://localhost:${serverPort}`);
+          const filePath = join(
+            publicAssetsDir,
+            url.pathname.replace('/background-removal/1.7.0/assets/', ''),
+          );
+
+          if (!existsSync(filePath)) {
+            res.writeHead(404, { 'Content-Type': 'text/plain' });
+            res.end('Not Found');
+            return;
+          }
+
+          const data = readFileSync(filePath);
+          const etag = `"${createHash('sha256').update(data).digest('hex')}"`;
+
+          if (req.headers['if-none-match'] === etag) {
+            res.writeHead(304);
+            res.end();
+            return;
+          }
+
+          res.writeHead(200, {
+            'Content-Type': filePath.endsWith('.json')
+              ? 'application/json'
+              : 'application/octet-stream',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+            ETag: etag,
+          });
+          res.end(data);
+        });
+
+        server.listen(0, '127.0.0.1', () => {
+          const address = server.address();
+          if (address && typeof address === 'object') {
+            serverPort = address.port;
+            resolve();
+          } else {
+            reject(new Error('Server failed to start'));
+          }
+        });
       });
-    });
+    }, 60_000);
 
     afterAll((done) => {
       server.close(done);

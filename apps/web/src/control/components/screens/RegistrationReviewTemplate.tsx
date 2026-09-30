@@ -382,7 +382,7 @@ export function RegistrationReviewTemplate({
                     src={
                       optimisticPhotos[personId] ??
                       (row.photoObjectId !== undefined
-                        ? personPhotoUrl(organizationAlias, personId, '', row.photoObjectId)
+                        ? personPhotoUrl(organizationAlias, personId)
                         : undefined)
                     }
                   />

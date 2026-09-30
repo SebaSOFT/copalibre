@@ -115,6 +115,7 @@ describe('PreferencesPage', () => {
     );
 
     fireEvent.change(screen.getByLabelText('Etiqueta del token'), { target: { value: 'New PAT' } });
+    fireEvent.change(screen.getByLabelText('Vence en (días)'), { target: { value: '60' } });
     fireEvent.click(screen.getByRole('button', { name: 'Generar token' }));
 
     await waitFor(() => {
@@ -234,6 +235,32 @@ describe('PreferencesPage', () => {
         contentBase64: expect.any(String),
       }),
     );
+  });
+
+  it('cancels the emblem crop modal and leaves the placeholder intact', async () => {
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      uploadOrganizationEmblem: () => Promise.resolve({ objectId: 'obj-1' }),
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    await screen.findByLabelText('Name');
+    const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
+    const input = screen.getByLabelText('Upload emblem');
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('does not update state after unmounting mid-fetch', async () => {

@@ -175,4 +175,21 @@ describe('ClubManagementPage', () => {
 
     await waitFor(() => expect(uploadClubEmblem).toHaveBeenCalled());
   });
+
+  it('cancels the emblem crop modal and leaves the placeholder intact', async () => {
+    render(
+      withIntl(<ClubManagementPage client={stubClient()} organizationAlias="liga-mendocina" />),
+    );
+
+    await waitFor(() => screen.getByText('Club Atlético Huracán Las Heras'));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
+    const input = screen.getByLabelText('Upload emblem') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
 });

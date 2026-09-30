@@ -188,12 +188,7 @@ export function TournamentSettingsTemplate({
                   src={
                     optimisticEmblemSrc ??
                     (settings.emblemObjectId !== undefined
-                      ? tournamentEmblemUrl(
-                          organizationAlias,
-                          tournamentAlias,
-                          '',
-                          settings.emblemObjectId,
-                        )
+                      ? tournamentEmblemUrl(organizationAlias, tournamentAlias)
                       : undefined)
                   }
                 />
@@ -217,6 +212,7 @@ export function TournamentSettingsTemplate({
                       onClick={() => {
                         setEmblemBusy(true);
                         setEmblemNotice(undefined);
+                        setOptimisticEmblemSrc(undefined);
                         void onDeleteEmblem()
                           .then(() =>
                             setEmblemNotice(intl.formatMessage(messages.settingsEmblemRemoved)),

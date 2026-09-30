@@ -275,7 +275,7 @@ export function PreferencesTemplate({
                 src={
                   optimisticEmblemSrc ??
                   (organization?.emblemObjectId !== undefined
-                    ? organizationEmblemUrl(organizationAlias, '', organization.emblemObjectId)
+                    ? organizationEmblemUrl(organizationAlias)
                     : undefined)
                 }
               />
