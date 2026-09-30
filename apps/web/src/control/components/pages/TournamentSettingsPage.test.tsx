@@ -406,8 +406,12 @@ describe('TournamentSettingsPage', () => {
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toBeDefined();
 
-    const img = dialog.querySelector('img');
-    if (img) fireEvent.load(img);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
 
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
@@ -501,8 +505,12 @@ describe('TournamentSettingsPage', () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     const dialog = await screen.findByRole('dialog');
-    const img = dialog.querySelector('img');
-    if (img) fireEvent.load(img);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
 
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
@@ -538,8 +546,12 @@ describe('TournamentSettingsPage', () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     const dialog = await screen.findByRole('dialog');
-    const img = dialog.querySelector('img');
-    if (img) fireEvent.load(img);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
 
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
@@ -697,8 +709,12 @@ describe('TournamentSettingsPage', () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     const dialog = await screen.findByRole('dialog');
-    const img = dialog.querySelector('img');
-    if (img) fireEvent.load(img);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
 
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),

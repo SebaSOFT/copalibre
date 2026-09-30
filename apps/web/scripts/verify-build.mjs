@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { buildSitemap } from '@copalibre/routing';
 
 /**
@@ -46,6 +46,37 @@ check(
 
 const serverEntry = readFileSync(new URL('entry.mjs', SERVER_DIST), 'utf8');
 check('server entry bundles sitemap route', serverEntry.includes('sitemap.xml'));
+
+const backgroundAssets = new URL('background-removal/1.7.0/assets/', DIST);
+const backgroundAssetNames = existsSync(backgroundAssets) ? readdirSync(backgroundAssets) : [];
+check(
+  'same-origin background-removal resource manifest is built',
+  backgroundAssetNames.includes('resources.json'),
+);
+check(
+  'background-removal manifest contains only selected model and runtime resources',
+  (() => {
+    if (!backgroundAssetNames.includes('resources.json')) return false;
+    const resources = JSON.parse(readFileSync(new URL('resources.json', backgroundAssets), 'utf8'));
+    return (
+      Object.keys(resources).sort().join(',') ===
+      [
+        '/models/isnet_quint8',
+        '/onnxruntime-web/ort-wasm-simd-threaded.mjs',
+        '/onnxruntime-web/ort-wasm-simd-threaded.wasm',
+      ]
+        .sort()
+        .join(',')
+    );
+  })(),
+);
+check(
+  'background-removal assets are present and non-empty',
+  backgroundAssetNames.filter((name) => /^[a-f0-9]{64}$/.test(name)).length === 15 &&
+    backgroundAssetNames
+      .filter((name) => /^[a-f0-9]{64}$/.test(name))
+      .every((name) => statSync(new URL(name, backgroundAssets)).size > 0),
+);
 
 const NON_PRIMARY_LOCALES = [
   { locale: 'es', name: 'Spanish' },

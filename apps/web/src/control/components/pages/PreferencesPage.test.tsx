@@ -48,9 +48,20 @@ function stubClient(overrides: Partial<ControlApiClient>): ControlApiClient {
 }
 
 describe('PreferencesPage', () => {
+  const defaultFetch = globalThis.fetch;
   beforeEach(() => {
     controlTokenStore.write('test-token', Date.now() + 3600000);
-    globalThis.fetch = jest.fn() as any;
+    globalThis.fetch = jest.fn((...args: Parameters<typeof defaultFetch>) => {
+      const [input] = args;
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof Request
+            ? input.url
+            : String((input as any)?.href ?? input);
+      if (url.startsWith('blob:')) return defaultFetch(...args);
+      return undefined as any;
+    }) as any;
   });
 
   it('renders and lists PATs', async () => {
@@ -205,11 +216,12 @@ describe('PreferencesPage', () => {
     fireEvent.change(input, { target: { files: [file] } });
 
     const dialog = await screen.findByRole('dialog');
-    // jsdom never fires a real `load` on `react-easy-crop`'s internal <img>
-    // (it does not load image bytes); firing it manually is what lets the
-    // library compute a crop area and enable Confirm, the same way a real
-    // browser's image decode would.
-    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
     );
@@ -333,7 +345,12 @@ describe('PreferencesPage', () => {
     fireEvent.change(screen.getByLabelText('Upload emblem'), { target: { files: [file] } });
 
     const dialog = await screen.findByRole('dialog');
-    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
     );

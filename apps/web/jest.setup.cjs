@@ -45,12 +45,80 @@ require('fake-indexeddb/auto');
 
 // jsdom implements the `URL` constructor but not the Blob-registry half of
 // the API (the crop modal opens a selected file through an object URL).
-if (typeof URL.createObjectURL !== 'function') {
-  URL.createObjectURL = () => 'blob:jsdom-mock';
+const blobStore = new Map();
+let nextBlobId = 1;
+URL.createObjectURL = (blob) => {
+  const url = `blob:jsdom/${nextBlobId++}`;
+  blobStore.set(url, blob);
+  return url;
+};
+URL.revokeObjectURL = (url) => {
+  blobStore.delete(url);
+};
+
+const undiciFetch = globalThis.fetch;
+define('fetch', async (input, init) => {
+  const url =
+    typeof input === 'string'
+      ? input
+      : input instanceof Request
+        ? input.url
+        : String(input?.href ?? input);
+  if (typeof url === 'string' && url.startsWith('blob:')) {
+    const blob = blobStore.get(url) ?? new Blob(['mock-blob-bytes'], { type: 'image/png' });
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': blob.type || 'image/png' }),
+      blob: async () => blob,
+      arrayBuffer: async () => new ArrayBuffer(0),
+      text: async () => '',
+    };
+  }
+  return undiciFetch(input, init);
+});
+
+class MockWorker {
+  constructor(scriptUrl, options) {
+    this.scriptUrl = scriptUrl;
+    this.options = options;
+    this._listeners = {};
+  }
+  addEventListener(type, handler) {
+    (this._listeners[type] ??= []).push(handler);
+  }
+  removeEventListener(type, handler) {
+    this._listeners[type] = (this._listeners[type] ?? []).filter((h) => h !== handler);
+  }
+  postMessage(message) {
+    queueMicrotask(() => {
+      const { id } = message ?? {};
+      const handlers = this._listeners.message ?? [];
+      for (const handler of handlers) {
+        handler({
+          data: {
+            id,
+            type: 'progress',
+            key: 'isnet_quint8',
+            current: 100,
+            total: 100,
+          },
+        });
+        handler({
+          data: {
+            id,
+            type: 'result',
+            blob: new Blob(['mock-cutout-png-bytes'], { type: 'image/png' }),
+          },
+        });
+      }
+    });
+  }
+  terminate() {
+    this._listeners = {};
+  }
 }
-if (typeof URL.revokeObjectURL !== 'function') {
-  URL.revokeObjectURL = () => undefined;
-}
+define('Worker', MockWorker);
 
 /**
  * jsdom loads no image bytes and ships no `<canvas>` renderer (that needs the
@@ -96,12 +164,14 @@ const mock2dContext = {
   drawImage: () => undefined,
   clearRect: () => undefined,
 };
-HTMLCanvasElement.prototype.getContext = function getContext(kind) {
-  return kind === '2d' ? mock2dContext : null;
-};
-HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
-  callback(new Blob(['jsdom-mock-png-bytes'], { type: type ?? 'image/png' }));
-};
+if (typeof HTMLCanvasElement !== 'undefined') {
+  HTMLCanvasElement.prototype.getContext = function getContext(kind) {
+    return kind === '2d' ? mock2dContext : null;
+  };
+  HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
+    callback(new Blob(['jsdom-mock-png-bytes'], { type: type ?? 'image/png' }));
+  };
+}
 
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class ResizeObserver {

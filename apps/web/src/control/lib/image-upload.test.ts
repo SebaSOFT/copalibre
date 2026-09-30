@@ -149,6 +149,37 @@ describe('cropToPng', () => {
     }
   });
 
+  it('retains transparent pixels through crop and PNG encoding, preserving transparent edge pixels and opaque foreground pixels', async () => {
+    const pixels = new Uint8ClampedArray(CROP_OUTPUT_WIDTH * CROP_OUTPUT_HEIGHT * 4);
+    const centerIndex =
+      (Math.floor(CROP_OUTPUT_HEIGHT / 2) * CROP_OUTPUT_WIDTH + Math.floor(CROP_OUTPUT_WIDTH / 2)) *
+      4;
+    pixels[centerIndex] = 255;
+    pixels[centerIndex + 1] = 50;
+    pixels[centerIndex + 2] = 50;
+    pixels[centerIndex + 3] = 255;
+
+    let encodedType: string | undefined;
+    const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function (callback: BlobCallback, type?: string) {
+      encodedType = type;
+      callback(new Blob([pixels.buffer], { type: type ?? 'image/png' }));
+    };
+
+    try {
+      const crop: CropArea = { x: 0, y: 0, width: 200, height: 250 };
+      const result = await cropToPng('blob:source', crop, 0);
+
+      expect(encodedType).toBe('image/png');
+      expect(result.contentType).toBe('image/png');
+      expect(pixels[3]).toBe(0);
+      expect(pixels[centerIndex + 3]).toBe(255);
+      expect(result.contentBase64.length).toBeGreaterThan(0);
+    } finally {
+      HTMLCanvasElement.prototype.toBlob = originalToBlob;
+    }
+  });
+
   it('rejects when the canvas cannot produce a 2D context', async () => {
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, 'getContext')

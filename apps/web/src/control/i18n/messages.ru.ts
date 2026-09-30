@@ -948,6 +948,11 @@ export const messages: Record<string, string> = {
   'control.imageCropModal.close': 'Закрыть',
   'control.imageCropModal.processing': 'Обработка…',
   'control.imageCropModal.failed': 'Не удалось обработать это изображение.',
+  'control.imageCropModal.removing': 'Удаление фона изображения…',
+  'control.imageCropModal.removalFailed':
+    'Не удалось удалить фон. Повторите попытку или оставьте исходное изображение.',
+  'control.imageCropModal.retry': 'Повторить',
+  'control.imageCropModal.keepOriginal': 'Оставить оригинал',
   'control.toast.dismiss': 'Закрыть уведомление',
   'control.toast.notifications': 'Уведомления',
   'control.toast.details': 'Технические подробности',
