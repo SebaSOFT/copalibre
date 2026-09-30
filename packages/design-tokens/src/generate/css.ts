@@ -1061,7 +1061,7 @@ function components(): string {
     '  display: flex;',
     '  gap: var(--cl-space-2);',
     '  padding: var(--cl-space-3);',
-    '  border-left: var(--cl-space-1) solid var(--cl-state-upcoming);',
+    '  border-left: var(--cl-space-1) solid var(--cl-state-live);',
     '  background: var(--cl-surface-chrome);',
     '}',
     '',
@@ -1073,7 +1073,15 @@ function components(): string {
     // confirmation and a loading message all drew the same rail — the class was
     // doing three jobs and looking identical for each.
     '.cl-inline-alert--success { border-left-color: var(--cl-state-positive); }',
-    '.cl-inline-alert--live { border-left-color: var(--cl-state-live); }',
+    '.cl-inline-alert--live {',
+    '  border-left-color: var(--cl-state-positive);',
+    '  animation: cl-alert-live-pulse var(--cl-motion-slow) ease-in-out infinite alternate;',
+    '}',
+    '@keyframes cl-alert-live-pulse {',
+    '  from { border-left-color: var(--cl-state-positive); }',
+    '  to { border-left-color: color-mix(in srgb, var(--cl-state-positive) 65%, transparent); }',
+    '}',
+    '@media (prefers-reduced-motion: reduce) { .cl-inline-alert--live { animation: none; } }',
     // Only where an alert carries more than one line. The base rule stays a
     // row: BroadcastStatusPanel and the public surfaces already lay their
     // single-line alerts out along it.

@@ -201,6 +201,15 @@ describe('the CSS output', () => {
     );
   });
 
+  it('uses cyan for informational alert rims and pulses live alerts in green', () => {
+    expect(css).toContain('border-left: var(--cl-space-1) solid var(--cl-state-live);');
+    expect(css).toContain('border-left-color: var(--cl-state-positive);');
+    expect(css).toContain('@keyframes cl-alert-live-pulse');
+    expect(css).toContain(
+      '@media (prefers-reduced-motion: reduce) { .cl-inline-alert--live { animation: none; } }',
+    );
+  });
+
   it('declares every primitive and every semantic token', () => {
     for (const name of Object.keys(COLOR_PRIMITIVES)) expect(css).toContain(`--cl-color-${name}:`);
     for (const name of Object.keys(SEMANTIC_COLORS)) expect(css).toContain(`--cl-${name}:`);
