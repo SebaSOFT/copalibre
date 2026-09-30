@@ -3089,24 +3089,43 @@ export function createControlApiClient(input: {
 }
 
 /** Public, unauthenticated image routes — safe to use directly as an `<img src>`. */
-export function personPhotoUrl(organizationAlias: string, personId: string, baseUrl = ''): string {
-  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo`;
+export function personPhotoUrl(
+  organizationAlias: string,
+  personId: string,
+  baseUrl = '',
+  objectId?: string,
+): string {
+  const query = objectId ? `?v=${encodeURIComponent(objectId)}` : '';
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo${query}`;
 }
 
-export function clubEmblemUrl(organizationAlias: string, clubId: string, baseUrl = ''): string {
-  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`;
+export function clubEmblemUrl(
+  organizationAlias: string,
+  clubId: string,
+  baseUrl = '',
+  objectId?: string,
+): string {
+  const query = objectId ? `?v=${encodeURIComponent(objectId)}` : '';
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem${query}`;
 }
 
-export function organizationEmblemUrl(organizationAlias: string, baseUrl = ''): string {
-  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/emblem`;
+export function organizationEmblemUrl(
+  organizationAlias: string,
+  baseUrl = '',
+  objectId?: string,
+): string {
+  const query = objectId ? `?v=${encodeURIComponent(objectId)}` : '';
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/emblem${query}`;
 }
 
 export function tournamentEmblemUrl(
   organizationAlias: string,
   tournamentAlias: string,
   baseUrl = '',
+  objectId?: string,
 ): string {
-  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`;
+  const query = objectId ? `?v=${encodeURIComponent(objectId)}` : '';
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem${query}`;
 }
 
 async function requestText(

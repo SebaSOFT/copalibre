@@ -644,6 +644,11 @@ describe('the control API client', () => {
     expect(tournamentEmblemUrl('liga-orbital', 'copa-verano', 'https://api.copalibre.test')).toBe(
       'https://api.copalibre.test/organizations/liga-orbital/tournaments/copa-verano/emblem',
     );
+    expect(
+      tournamentEmblemUrl('liga-orbital', 'copa-verano', 'https://api.copalibre.test', 'obj-v7'),
+    ).toBe(
+      'https://api.copalibre.test/organizations/liga-orbital/tournaments/copa-verano/emblem?v=obj-v7',
+    );
   });
 
   it('fetches tournament completion with authorization token', async () => {

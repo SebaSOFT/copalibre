@@ -16,6 +16,7 @@ import {
   organizationEmblemUrl,
   clubEmblemUrl,
   tournamentEmblemUrl,
+  personPhotoUrl,
 } from './public-api-client.js';
 
 describe('public-api-client', () => {
@@ -460,6 +461,24 @@ describe('public-api-client', () => {
     it('builds a same-origin tournament emblem URL', () => {
       expect(tournamentEmblemUrl('liga-mendocina', 'apertura-2026')).toBe(
         '/organizations/liga-mendocina/tournaments/apertura-2026/emblem',
+      );
+    });
+
+    it('appends objectId version parameter when provided for cache-busting', () => {
+      expect(organizationEmblemUrl('liga-mendocina', 'obj-org-1')).toBe(
+        '/organizations/liga-mendocina/emblem?v=obj-org-1',
+      );
+      expect(clubEmblemUrl('liga-mendocina', 'club-1', 'obj-club-2')).toBe(
+        '/organizations/liga-mendocina/clubs/club-1/emblem?v=obj-club-2',
+      );
+      expect(tournamentEmblemUrl('liga-mendocina', 'apertura-2026', 'obj-trn-3')).toBe(
+        '/organizations/liga-mendocina/tournaments/apertura-2026/emblem?v=obj-trn-3',
+      );
+      expect(personPhotoUrl('liga-mendocina', 'person-1')).toBe(
+        '/organizations/liga-mendocina/persons/person-1/photo',
+      );
+      expect(personPhotoUrl('liga-mendocina', 'person-1', 'obj-photo-4')).toBe(
+        '/organizations/liga-mendocina/persons/person-1/photo?v=obj-photo-4',
       );
     });
   });

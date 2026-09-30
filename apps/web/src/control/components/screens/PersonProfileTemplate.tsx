@@ -58,7 +58,7 @@ export function PersonProfileTemplate({
         size={96}
         src={
           person.photoObjectId !== undefined
-            ? personPhotoUrl(organizationAlias, personId)
+            ? personPhotoUrl(organizationAlias, personId, '', person.photoObjectId)
             : undefined
         }
       />

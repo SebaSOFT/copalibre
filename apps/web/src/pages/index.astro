@@ -38,7 +38,11 @@ const organizations = (await fetchOrganizations()) ?? [];
             {organizations.map((org) => (
               <a href={`/${encodeURIComponent(org.alias)}`} class="cl-org-card cl-card cl-chamfer">
                 <EmblemImage
-                  src={org.emblemObjectId ? organizationEmblemUrl(org.alias) : undefined}
+                  src={
+                    org.emblemObjectId
+                      ? organizationEmblemUrl(org.alias, org.emblemObjectId)
+                      : undefined
+                  }
                   alt={`${org.name} emblem`}
                   placeholderAlt={`${org.name} placeholder`}
                   size={48}

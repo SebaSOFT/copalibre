@@ -142,4 +142,37 @@ describe('ClubManagementPage', () => {
 
     await waitFor(() => screen.getByText('Could not load clubs.'));
   });
+
+  it('resets optimistic emblem when upload fails', async () => {
+    const uploadClubEmblem = jest.fn(() => Promise.reject(new Error('fail')));
+    render(
+      withIntl(
+        <ClubManagementPage
+          client={stubClient({ uploadClubEmblem })}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByText('Club Atlético Huracán Las Heras'));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
+    const input = screen.getByLabelText('Upload emblem') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+
+    const dialog = await screen.findByRole('dialog');
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
+    await waitFor(() =>
+      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(screen.getByText('Use image'));
+
+    await waitFor(() => expect(uploadClubEmblem).toHaveBeenCalled());
+  });
 });

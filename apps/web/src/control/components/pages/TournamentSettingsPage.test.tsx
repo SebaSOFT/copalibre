@@ -355,7 +355,7 @@ describe('TournamentSettingsPage', () => {
 
     const emblemImg = await screen.findByAltText('Tournament emblem');
     expect(emblemImg.getAttribute('src')).toBe(
-      '/organizations/liga-mendocina/tournaments/apertura-2026/emblem',
+      '/organizations/liga-mendocina/tournaments/apertura-2026/emblem?v=emblem-99',
     );
 
     const removeBtn = screen.getByRole('button', { name: 'Remove emblem' });

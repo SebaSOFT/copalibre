@@ -85,6 +85,7 @@ export function TournamentSettingsTemplate({
   const [error, setError] = useState<string>();
   const [saved, setSaved] = useState(false);
   const [emblemCropSrc, setEmblemCropSrc] = useState<string | undefined>(undefined);
+  const [optimisticEmblemSrc, setOptimisticEmblemSrc] = useState<string | undefined>(undefined);
   const [emblemBusy, setEmblemBusy] = useState(false);
   const [emblemNotice, setEmblemNotice] = useState<string | undefined>(undefined);
 
@@ -175,7 +176,7 @@ export function TournamentSettingsTemplate({
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-4)' }}>
                 <FramedImage
-                  key={settings.emblemObjectId ?? 'none'}
+                  key={optimisticEmblemSrc ? 'optimistic' : (settings.emblemObjectId ?? 'none')}
                   alt={intl.formatMessage(messages.settingsEmblemAlt)}
                   placeholder={
                     <ClubEmblemPlaceholder
@@ -185,9 +186,15 @@ export function TournamentSettingsTemplate({
                   }
                   size={64}
                   src={
-                    settings.emblemObjectId !== undefined
-                      ? tournamentEmblemUrl(organizationAlias, tournamentAlias)
-                      : undefined
+                    optimisticEmblemSrc ??
+                    (settings.emblemObjectId !== undefined
+                      ? tournamentEmblemUrl(
+                          organizationAlias,
+                          tournamentAlias,
+                          '',
+                          settings.emblemObjectId,
+                        )
+                      : undefined)
                   }
                 />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--cl-space-2)' }}>
@@ -339,13 +346,15 @@ export function TournamentSettingsTemplate({
               onConfirm={(output) => {
                 URL.revokeObjectURL(emblemCropSrc);
                 setEmblemCropSrc(undefined);
+                setOptimisticEmblemSrc(`data:${output.contentType};base64,${output.contentBase64}`);
                 setEmblemBusy(true);
                 setEmblemNotice(undefined);
                 void onUploadEmblem?.(output)
                   .then(() => setEmblemNotice(intl.formatMessage(messages.settingsEmblemUploaded)))
-                  .catch((cause: unknown) =>
-                    setError(cause instanceof Error ? cause.message : String(cause)),
-                  )
+                  .catch((cause: unknown) => {
+                    setOptimisticEmblemSrc(undefined);
+                    setError(cause instanceof Error ? cause.message : String(cause));
+                  })
                   .finally(() => setEmblemBusy(false));
               }}
             />

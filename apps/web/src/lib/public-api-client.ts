@@ -342,18 +342,34 @@ export async function fetchOrganizationTournaments(
  * this app serves; unlike the fetchers above, the browser requests these
  * directly, not this SSR-only client.
  */
-export function organizationEmblemUrl(organizationAlias: string): string {
-  return `/organizations/${encodeURIComponent(organizationAlias)}/emblem`;
+export function organizationEmblemUrl(organizationAlias: string, objectId?: string): string {
+  const query = objectId ? `?v=${encodeURIComponent(objectId)}` : '';
+  return `/organizations/${encodeURIComponent(organizationAlias)}/emblem${query}`;
 }
 
-export function clubEmblemUrl(organizationAlias: string, clubId: string): string {
-  return `/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`;
+export function clubEmblemUrl(
+  organizationAlias: string,
+  clubId: string,
+  objectId?: string,
+): string {
+  const query = objectId ? `?v=${encodeURIComponent(objectId)}` : '';
+  return `/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem${query}`;
 }
 
-export function tournamentEmblemUrl(organizationAlias: string, tournamentAlias: string): string {
-  return `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem`;
+export function tournamentEmblemUrl(
+  organizationAlias: string,
+  tournamentAlias: string,
+  objectId?: string,
+): string {
+  const query = objectId ? `?v=${encodeURIComponent(objectId)}` : '';
+  return `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/emblem${query}`;
 }
 
-export function personPhotoUrl(organizationAlias: string, personId: string): string {
-  return `/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo`;
+export function personPhotoUrl(
+  organizationAlias: string,
+  personId: string,
+  objectId?: string,
+): string {
+  const query = objectId ? `?v=${encodeURIComponent(objectId)}` : '';
+  return `/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo${query}`;
 }
