@@ -15,7 +15,7 @@ export interface BandRow {
   readonly count: string;
 }
 
-/** `tone` distinguishes "nothing configured yet" (info) from a genuine failure (destructive). */
+/** Informational empty states render as copy; genuine failures use the destructive alert tone. */
 export interface PreviewError {
   readonly message: string;
   readonly tone: 'info' | 'destructive';
@@ -210,7 +210,12 @@ export function PromotionPlanTemplate({
           </h2>
         </header>
         <div className="cl-card__content">
-          {previewError && <Alert tone={previewError.tone}>{previewError.message}</Alert>}
+          {previewError?.tone === 'info' && (
+            <p className="cl-card__description">{previewError.message}</p>
+          )}
+          {previewError?.tone === 'destructive' && (
+            <Alert tone="destructive">{previewError.message}</Alert>
+          )}
           {preview && !previewError && (
             <ol className="cl-platform-update-list">
               {preview.combined.map((entrant, index) => (

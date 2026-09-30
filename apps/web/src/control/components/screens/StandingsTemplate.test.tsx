@@ -71,6 +71,25 @@ describe('StandingsTemplate', () => {
     expect(screen.getByText('Shared position')).toBeTruthy();
   });
 
+  it('lets the operator dismiss an informational projection status', () => {
+    render(
+      withIntl(
+        <StandingsTemplate
+          activeLayoutCode={groupPhaseLayout.code}
+          layouts={[groupPhaseLayout]}
+          organizationAlias="liga-mendocina"
+          projection={projection}
+          status="Projection refreshed."
+          tournamentName="Apertura"
+        />,
+      ),
+    );
+
+    expect(screen.getByRole('status').textContent).toContain('Projection refreshed.');
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
   it('links its breadcrumb back to the stage hub when a tournament alias and stage number are supplied', () => {
     render(
       withIntl(

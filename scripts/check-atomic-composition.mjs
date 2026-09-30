@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
+import ts from 'typescript';
 import { buildGraph } from './lib/component-graph.mjs';
 import { ratchet, unreachableRegisterEntries } from './lib/rule-register.mjs';
 import {
@@ -894,6 +895,88 @@ export function checkBannedOrnament(nodes) {
 }
 
 // ---------------------------------------------------------------------------
+// R14 — page components place their template before any sibling content.
+// ---------------------------------------------------------------------------
+
+export const KNOWN_PAGE_TEMPLATE_HIERARCHY = new Map();
+
+/**
+ * A page may return a template directly or place it first in a Fragment when
+ * it owns overlays such as dialogs. Content before the template moves the
+ * template's breadcrumb and title below auxiliary screen content.
+ *
+ * @param {Map<string, { path: string }>} nodes
+ * @param {string} webSrcDir
+ * @returns {readonly { path: string, line: number, message: string }[]}
+ */
+export function checkPageTemplateHierarchy(nodes, webSrcDir) {
+  const violations = [];
+
+  for (const node of nodes.values()) {
+    if (!node.path.startsWith('control/components/pages/') || !node.path.endsWith('.tsx')) {
+      continue;
+    }
+
+    const source = readFileSync(join(webSrcDir, node.path), 'utf8');
+    const sourceFile = ts.createSourceFile(
+      node.path,
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
+    );
+
+    function visit(current) {
+      if (ts.isReturnStatement(current) && current.expression !== undefined) {
+        let expression = current.expression;
+        while (ts.isParenthesizedExpression(expression)) expression = expression.expression;
+
+        if (ts.isJsxFragment(expression)) {
+          const children = expression.children;
+          const templateIndex = children.findIndex((child) => {
+            const tag = ts.isJsxElement(child)
+              ? child.openingElement.tagName
+              : ts.isJsxSelfClosingElement(child)
+                ? child.tagName
+                : undefined;
+            const tagName = tag?.getText(sourceFile).split('.').at(-1);
+            return tagName?.endsWith('Template') ?? false;
+          });
+
+          if (templateIndex > 0) {
+            const leading = children
+              .slice(0, templateIndex)
+              .find((child) =>
+                ts.isJsxText(child)
+                  ? child.text.trim().length > 0
+                  : ts.isJsxExpression(child)
+                    ? child.expression !== undefined
+                    : true,
+              );
+
+            if (leading !== undefined) {
+              const line =
+                sourceFile.getLineAndCharacterOfPosition(leading.getStart(sourceFile)).line + 1;
+              violations.push({
+                path: node.path,
+                line,
+                message: `${node.path}:${line}: page renders content before its template; put the template first so its breadcrumb and title remain the primary header.`,
+              });
+            }
+          }
+        }
+      }
+
+      ts.forEachChild(current, visit);
+    }
+
+    visit(sourceFile);
+  }
+
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -985,6 +1068,12 @@ export function checkAtomicComposition(webSrcDir) {
       'KNOWN_BANNED_ORNAMENT',
       'banned-ornament violation(s)',
     ),
+    ratchet(
+      checkPageTemplateHierarchy(nodes, webSrcDir),
+      KNOWN_PAGE_TEMPLATE_HIERARCHY,
+      'KNOWN_PAGE_TEMPLATE_HIERARCHY',
+      'leading page sibling(s)',
+    ),
   ].flat();
 
   return results.sort((a, b) => (a.path === b.path ? a.line - b.line : a.path < b.path ? -1 : 1));
@@ -1031,6 +1120,7 @@ const ALL_REGISTERS = [
   ['KNOWN_LITERAL_TEXT', KNOWN_LITERAL_TEXT],
   ['KNOWN_CATALOGUE_GAPS', KNOWN_CATALOGUE_GAPS],
   ['KNOWN_BANNED_ORNAMENT', KNOWN_BANNED_ORNAMENT],
+  ['KNOWN_PAGE_TEMPLATE_HIERARCHY', KNOWN_PAGE_TEMPLATE_HIERARCHY],
 ];
 
 /** R12 — every register entry in this script names a path that exists. */

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { KIND_LABEL, summaryOf, type ReportRow } from '../../lib/reports.js';
 import { messages } from '../../i18n/messages.en.js';
@@ -24,14 +25,19 @@ export function ReportReviewTemplate({
   readonly status: LoadStatus;
 }): React.JSX.Element {
   const intl = useIntl();
+  const [dismissedLoading, setDismissedLoading] = useState(false);
 
   const listingNode = (
     <Card
       aria-label={intl.formatMessage(messages.reportSectionLabel)}
       className="cl-chamfer cl-chamfer--control"
     >
-      {status === 'loading' && rows.length === 0 && (
-        <Alert tone="info">
+      {status === 'loading' && rows.length === 0 && !dismissedLoading && (
+        <Alert
+          dismissLabel={intl.formatMessage(messages.toastDismiss)}
+          onDismiss={() => setDismissedLoading(true)}
+          tone="info"
+        >
           <FormattedMessage {...messages.reportLoading} />
         </Alert>
       )}

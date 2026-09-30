@@ -95,7 +95,8 @@ test('sets a free abbreviation for a collided entrant and it disappears from the
   await page.getByRole('button', { name: 'Asignar' }).click();
   await expect(
     page.getByText(/Todos los (?:entrantes|participantes) ya tienen una abreviatura\./),
-  ).toBeVisible();
+  ).toHaveCount(0);
+  await expect(page.getByLabel('Abreviatura para club-atletico-talleres')).toHaveCount(0);
 
   // The session is in-memory only and a reload discards it, same as a real
   // browser refresh — log back in to return to this screen so the assertion
@@ -103,6 +104,6 @@ test('sets a free abbreviation for a collided entrant and it disappears from the
 
   await expect(
     page.getByText(/Todos los (?:entrantes|participantes) ya tienen una abreviatura\./),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(page.getByText('club-atletico-talleres')).toHaveCount(0);
 });

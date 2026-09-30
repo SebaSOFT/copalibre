@@ -21,6 +21,7 @@ import {
   checkCatalogueResolution,
   extractCatalogueIds,
   checkBannedOrnament,
+  checkPageTemplateHierarchy,
   loadReferenceIndex,
 } from './check-atomic-composition.mjs';
 import { buildGraph } from './lib/component-graph.mjs';
@@ -79,6 +80,51 @@ test('R1 reports a file and line for a component sitting outside any declared ti
   assert.equal(r1.length, 1);
   assert.equal(r1[0].path, 'ui/Loose.tsx');
   assert.equal(typeof r1[0].line, 'number');
+});
+
+test('R14 rejects a rendered sibling before a page template', () => {
+  const root = fixture();
+  const pageDir = join(root, 'control/components/pages');
+  mkdirSync(pageDir, { recursive: true });
+  writeFileSync(
+    join(pageDir, 'RegistrationReviewPage.tsx'),
+    [
+      'export function RegistrationReviewPage() {',
+      '  return (<>',
+      '    <Card />',
+      '    <RegistrationReviewTemplate />',
+      '  </>);',
+      '}',
+    ].join('\n'),
+  );
+
+  const { nodes } = buildGraph(root);
+  const violations = checkPageTemplateHierarchy(nodes, root);
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].path, 'control/components/pages/RegistrationReviewPage.tsx');
+  assert.equal(violations[0].line, 3);
+  assert.match(violations[0].message, /put the template first/);
+});
+
+test('R14 allows a template-first fragment and standalone loading returns', () => {
+  const root = fixture();
+  const pageDir = join(root, 'control/components/pages');
+  mkdirSync(pageDir, { recursive: true });
+  writeFileSync(
+    join(pageDir, 'RegistrationReviewPage.tsx'),
+    [
+      'export function RegistrationReviewPage({ loading }) {',
+      '  if (loading) return <Alert />;',
+      '  return (<>',
+      '    <RegistrationReviewTemplate />',
+      '    <EditDialog />',
+      '  </>);',
+      '}',
+    ].join('\n'),
+  );
+
+  const { nodes } = buildGraph(root);
+  assert.deepEqual(checkPageTemplateHierarchy(nodes, root), []);
 });
 
 test('R2 reports a file and line when an atom imports a screen component', () => {

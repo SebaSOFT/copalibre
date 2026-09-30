@@ -78,6 +78,7 @@ export function StandingsTemplate({
   const [traces, setTraces] = useState<Readonly<Record<string, readonly string[]>>>({});
   const [pending, setPending] = useState<readonly string[]>([]);
   const [sort, setSort] = useState<ActiveSort | undefined>(undefined);
+  const [dismissedStatus, setDismissedStatus] = useState<string>();
 
   const tabs = tableLayoutTabs(layouts, intl.locale);
   const columns = useMemo(() => {
@@ -260,7 +261,15 @@ export function StandingsTemplate({
         </p>
       )}
 
-      {status !== undefined && <Alert tone="info">{status}</Alert>}
+      {status !== undefined && dismissedStatus !== status && (
+        <Alert
+          dismissLabel={intl.formatMessage(messages.toastDismiss)}
+          onDismiss={() => setDismissedStatus(status)}
+          tone="info"
+        >
+          {status}
+        </Alert>
+      )}
 
       {projection && (
         <>

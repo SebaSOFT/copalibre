@@ -30,6 +30,11 @@ export const SEMANTIC_COLORS = {
     purpose: 'Upcoming or needs attention',
     nonColourCue: 'Scheduled time label',
   },
+  'state-warning': {
+    primitive: 'amber-400',
+    purpose: 'Precautionary warning',
+    nonColourCue: 'Warning label or explanatory text',
+  },
   'state-positive': {
     primitive: 'green-500',
     purpose: 'Positive result',
@@ -134,6 +139,7 @@ export function resolveSemantic(token: SemanticColor): string {
 export const PROTECTED_TOKENS: readonly SemanticColor[] = [
   'state-live',
   'state-upcoming',
+  'state-warning',
   'state-positive',
   'state-destructive',
   'focus-ring',
