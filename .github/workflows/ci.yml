@@ -1034,7 +1034,7 @@ jobs:
           ../copalibre start
           ../copalibre create-admin --organization-alias integrity-league --organization-name "Integrity League" --email admin@example.test
       - name: Verify Compose login and PKCE
-        run: yarn playwright test --config playwright.compose.config.ts
+        run: yarn playwright test --config playwright.compose.config.ts e2e/deployment-login.spec.ts
       - name: Show container logs on failure
         if: failure()
         working-directory: ci-e2e-install

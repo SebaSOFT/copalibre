@@ -10,16 +10,16 @@ const lock = parse(readFileSync(new URL('yarn.lock', root), 'utf8'));
 // Supported stable major lines only. A new major needs its own advisory review;
 // a numerically larger prerelease is not evidence that a security fix is present.
 const patchedFloors = {
-  'brace-expansion': { 1: '1.1.18', 2: '2.1.4', 5: '5.0.9' },
+  'brace-expansion': { 1: '1.1.21', 2: '2.1.7', 5: '5.0.12' },
   'fast-uri': { 3: '3.1.8', 4: '4.2.1' },
   qs: { 6: '6.16.0' },
   '@ai-sdk/provider-utils': { 4: '4.0.33' },
-  'js-yaml': { 3: '3.15.2', 4: '4.3.2', 5: '5.2.2' },
+  'js-yaml': { 3: '3.15.2', 4: '4.3.2', 5: '5.4.1' },
   svgo: { 4: '4.1.0' },
   nodemailer: { 10: '10.0.2' },
   astro: { 7: '7.2.8' },
   hono: { 4: '4.13.5' },
-  'ip-address': { 10: '10.5.1' },
+  'ip-address': { 10: '10.7.1' },
   undici: { 6: '6.28.1', 8: '8.10.2' },
   nanoid: { 3: '3.3.18', 5: '5.1.16' },
 };

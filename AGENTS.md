@@ -383,3 +383,5 @@ change artifacts. Keep resulting accepted-spec deltas uncommitted on `develop`; 
 branch, commit only those `openspec/specs/` deltas first
 (`docs(openspec): promote NNNN specs into the accepted baseline`). Do not create a standalone PR for
 promotion. Only then implement the next queued change, unless told to work ahead.
+
+@RTK.md

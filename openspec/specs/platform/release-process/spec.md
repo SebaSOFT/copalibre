@@ -91,3 +91,20 @@ Release preparation SHALL review the changelog, product version references, inst
 - **AND** the changelog covers changes since the preceding release
 - **AND** source and binary installation procedures declare their actual prerequisites and working directories
 - **AND** translated upgrade procedures preserve persistent data and honor installation version checks
+
+### Requirement: A fresh dependency security audit gates release publication
+Before creating a new release tag or publishing release images, the release workflow SHALL audit all direct and transitive dependencies from every workspace against current package registry security advisories. A failed audit SHALL stop the workflow before any release artifact is published.
+
+#### Scenario: Vulnerable dependency blocks release publication
+- **WHEN** the release workflow is preparing a version that does not have an existing release tag
+- **AND** the recursive dependency audit reports any security advisory
+- **THEN** the workflow fails before creating the tag, pushing images, or creating the GitHub Release
+
+#### Scenario: Clean dependency graph allows release publication
+- **WHEN** the release workflow is preparing a version that does not have an existing release tag
+- **AND** the recursive dependency audit reports no security advisories
+- **THEN** the workflow may continue to create the tag and publish its images and GitHub Release
+
+#### Scenario: Existing release tag remains an idempotent no-op
+- **WHEN** the version already has a release tag
+- **THEN** the release workflow completes as a no-op without auditing or publishing that version again

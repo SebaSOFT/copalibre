@@ -28,6 +28,22 @@ const robots = read('robots.txt');
 check('robots disallows /control/', robots.includes('Disallow: /control/'));
 check('robots disallows /tv/', robots.includes('Disallow: /tv/'));
 
+const controlEntry = read('control/index.html');
+check(
+  'control entry has a root-relative login fallback',
+  /http-equiv="refresh" content="0;url=\/control\/login"/i.test(controlEntry),
+);
+check(
+  'control entry preserves the request-time returnTo parameter',
+  controlEntry.includes('new URLSearchParams(window.location.search)') &&
+    controlEntry.includes("get('returnTo')") &&
+    controlEntry.includes("target.searchParams.set('returnTo', returnTo)"),
+);
+check(
+  'control entry does not embed an absolute login origin',
+  !/https?:\/\/[^"'<>\s]+\/control\/login/.test(controlEntry),
+);
+
 const serverEntry = readFileSync(new URL('entry.mjs', SERVER_DIST), 'utf8');
 check('server entry bundles sitemap route', serverEntry.includes('sitemap.xml'));
 
