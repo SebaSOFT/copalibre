@@ -1,6 +1,10 @@
-# identity-visuals Specification Delta
+# identity-visuals Specification
 
-## ADDED Requirements
+## Purpose
+
+Defines how organization identity images are presented across CopaLibre control and public surfaces.
+
+## Requirements
 
 ### Requirement: Club and organization emblem image rendering
 Uploaded club and organization emblems SHALL render as visible image elements across administrative and public surfaces, rather than falling back to initials-only avatar placeholders when an asset exists.
