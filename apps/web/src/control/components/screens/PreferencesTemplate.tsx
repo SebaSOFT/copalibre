@@ -91,8 +91,10 @@ export function PreferencesTemplate({
   const [label, setLabel] = useState('');
   const [expiresInDays, setExpiresInDays] = useState(30);
   const [emblemCropSrc, setEmblemCropSrc] = useState<string | undefined>(undefined);
+  const [optimisticEmblemSrc, setOptimisticEmblemSrc] = useState<string | undefined>(undefined);
   const [rebuildTournamentAlias, setRebuildTournamentAlias] = useState('');
   const [rebuildConfirming, setRebuildConfirming] = useState(false);
+  const [dismissedRebuildResult, setDismissedRebuildResult] = useState(false);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +103,7 @@ export function PreferencesTemplate({
   };
 
   async function runStatisticsRebuild(): Promise<void> {
+    setDismissedRebuildResult(false);
     await onRunStatisticsRebuild(rebuildTournamentAlias);
     setRebuildConfirming(false);
   }
@@ -260,7 +263,7 @@ export function PreferencesTemplate({
           ) : (
             <Stack gap="4">
               <FramedImage
-                key={organization?.emblemObjectId ?? 'none'}
+                key={optimisticEmblemSrc ? 'optimistic' : (organization?.emblemObjectId ?? 'none')}
                 alt={intl.formatMessage(controlMessages.orgIdentityEmblemAlt)}
                 placeholder={
                   <ClubEmblemPlaceholder
@@ -270,9 +273,10 @@ export function PreferencesTemplate({
                 }
                 size={64}
                 src={
-                  organization?.emblemObjectId !== undefined
+                  optimisticEmblemSrc ??
+                  (organization?.emblemObjectId !== undefined
                     ? organizationEmblemUrl(organizationAlias)
-                    : undefined
+                    : undefined)
                 }
               />
 
@@ -324,8 +328,12 @@ export function PreferencesTemplate({
             <FormattedMessage {...controlMessages.statisticsRebuildDescription} />
           </p>
 
-          {rebuildResult && (
-            <Alert tone="info">
+          {rebuildResult && !dismissedRebuildResult && (
+            <Alert
+              dismissLabel={intl.formatMessage(controlMessages.toastDismiss)}
+              onDismiss={() => setDismissedRebuildResult(true)}
+              tone="info"
+            >
               {intl.formatMessage(controlMessages.statisticsRebuildResult, {
                 matches: rebuildResult.matches,
               })}
@@ -450,7 +458,10 @@ export function PreferencesTemplate({
           onConfirm={(output) => {
             URL.revokeObjectURL(emblemCropSrc);
             setEmblemCropSrc(undefined);
-            void onUploadOrganizationEmblem(output);
+            setOptimisticEmblemSrc(`data:${output.contentType};base64,${output.contentBase64}`);
+            void onUploadOrganizationEmblem(output).catch(() => {
+              setOptimisticEmblemSrc(undefined);
+            });
           }}
         />
       )}

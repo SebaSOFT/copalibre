@@ -20,6 +20,8 @@ jobs:
     env:
       COPALIBRE_IMAGE: copalibre:backup-drill
       POSTGRES_PASSWORD: backup_restore_drill_only
+      # Compose interpolates this even when the optional object-storage profile is not started.
+      GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
       COPALIBRE_APP_URL: http://localhost:4321
       COPALIBRE_API_URL: http://localhost:3001
       COPALIBRE_BOOTSTRAP_TOKEN: backup_restore_drill_bootstrap_only
@@ -35,7 +37,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - run: yarn typecheck

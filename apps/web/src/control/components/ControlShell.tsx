@@ -129,7 +129,7 @@ function ControlShellChrome({
 
   const orgEmblem =
     organizationAlias && currentOrg?.emblemObjectId !== undefined
-      ? organizationEmblemUrl(organizationAlias)
+      ? organizationEmblemUrl(organizationAlias, '', currentOrg.emblemObjectId)
       : undefined;
 
   const brandMarkNode = (

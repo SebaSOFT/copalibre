@@ -97,7 +97,12 @@ describe('ClubManagementPage', () => {
     // (it does not load image bytes); firing it manually is what lets the
     // library compute a crop area and enable Confirm, the same way a real
     // browser's image decode would.
-    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
     );
@@ -261,7 +266,12 @@ describe('ClubManagementPage', () => {
     fireEvent.change(screen.getByLabelText('Upload emblem'), { target: { files: [file] } });
 
     const dialog = await screen.findByRole('dialog');
-    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
     );

@@ -13,7 +13,7 @@ The release SHALL ship one Docker image capable of running as any documented pro
 rebuilding the image. The `web` role SHALL serve server-rendered public pages for the subset of public
 routes that require per-request backend data; it SHALL NOT replace the existing static delivery of
 every other public, control-panel-shell, help, and TV route, which continues to be served as static
-files by a separate process in front of it. In addition, the release container image (`ghcr.io/sebasoft/copalibre:1.2.0`)
+files by a separate process in front of it. In addition, the release container image (`ghcr.io/sebasoft/copalibre:1.2.1`)
 SHALL include `git` in its runtime filesystem layers to support dynamic discipline module cloning and updates via `POST /admin/modules`.
 
 #### Scenario: Same image runs two different roles
@@ -494,3 +494,22 @@ requires an interactive terminal and apply nothing.
 - **WHEN** `copalibre doctor --fix` runs with stdin piped or redirected, such as from a script or CI job
 - **THEN** it reports that interactive repair requires a TTY and applies no changes, regardless of how
   many anomalies were detected
+
+### Requirement: Static control entry redirects on the requested origin
+The pre-rendered `/control/` entry route SHALL send browsers to `/control/login` on the same origin that served the entry page, in local, reverse-proxy, and Kubernetes deployments. It SHALL preserve a supplied `returnTo` query parameter and SHALL NOT direct browsers to a build-time hostname or port.
+
+#### Scenario: Reverse proxy serves the control entry
+- **WHEN** a browser requests `/control/` through a self-hosted reverse proxy on an installed domain
+- **THEN** the redirect target is `/control/login` on that same domain and does not contain a build-time hostname or port
+
+#### Scenario: Kubernetes ingress serves the control entry
+- **WHEN** a browser requests `/control/` through the configured Kubernetes ingress
+- **THEN** the redirect target remains on the ingress origin and the login route is reachable through the same ingress
+
+#### Scenario: Local development serves the control entry
+- **WHEN** a browser requests `/control/` from the local web server
+- **THEN** the redirect target stays on the local web server origin
+
+#### Scenario: Return destination is preserved
+- **WHEN** a request to `/control/` includes a `returnTo` query parameter
+- **THEN** the login route retains the parameter with its value safely URL-encoded

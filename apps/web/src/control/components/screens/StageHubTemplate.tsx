@@ -46,6 +46,7 @@ function StageIdentitySection({
   const intl = useIntl();
   const [name, setName] = useState(currentName);
   const [format, setFormat] = useState(currentFormat);
+  const [dismissedSeededNotice, setDismissedSeededNotice] = useState(false);
   const language = isSupportedLanguage(intl.locale) ? intl.locale : 'en';
   const formatDescriptionValue = formatDescriptions?.[format];
   const formatHintText = resolveDecisionDescription(
@@ -114,8 +115,12 @@ function StageIdentitySection({
         >
           <FormattedMessage {...messages.stageDelete} />
         </Button>
-        {seeded && (
-          <Alert tone="info">
+        {seeded && !dismissedSeededNotice && (
+          <Alert
+            dismissLabel={intl.formatMessage(messages.toastDismiss)}
+            onDismiss={() => setDismissedSeededNotice(true)}
+            tone="warning"
+          >
             <FormattedMessage {...messages.stageSeededExplanation} />
           </Alert>
         )}

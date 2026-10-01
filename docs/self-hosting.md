@@ -163,7 +163,7 @@ Topology-specific procedures: [Caddy](deployment/reverse-proxy/caddy.md#upgradin
 [NGINX](deployment/reverse-proxy/nginx.md#upgrading-copalibre-behind-nginx), and
 [Kubernetes/Helm](deployment/enterprise-kubernetes.md#upgrading-an-existing-helm-release-safely).
 
-### Compose upgrade to 1.2.0
+### Compose upgrade to 1.2.1
 
 Use this procedure after the target images have been published. Keep the existing installation
 directory, Compose project name and named volumes; a new `init` directory is a separate installation,
@@ -187,13 +187,13 @@ against a partially upgraded database to fit the budget.
    storage endpoints; a PostgreSQL backup does not contain those objects.
 3. Set **both** image references in `.env`:
    ```dotenv
-   COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.0
-   COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.0
+   COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.1
+   COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.1
    ```
 4. Pull images and run the target runtime's compatibility check without starting dependencies:
    ```bash
    docker compose pull
-   docker compose run --rm --no-deps upgrade-check --target-version 1.2.0
+   docker compose run --rm --no-deps upgrade-check --target-version 1.2.1
    ```
    The check reports incompatible installed modules and pending migrations without applying them.
    Resolve failures before proceeding. Keep PostgreSQL running for this check.

@@ -1,7 +1,11 @@
 import { useState } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
+import { Alert, type AlertTone } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { Button } from '../ui/atoms/button.js';
+import {
+  AbbreviationReviewSection,
+  type AbbreviationCandidateRow,
+} from '../AbbreviationReviewSection.js';
 import { Card } from '../ui/atoms/card.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
 import { FilePicker } from '../ui/atoms/file-picker.js';
@@ -15,6 +19,7 @@ import { CountrySelect } from '../CountrySelect.js';
 import {
   personPhotoUrl,
   type BulkReviewRequest,
+  type CsvImportPreviewResponse,
   type CreatePersonRequest,
   type CreateTeamRequest,
   type LinkParticipantIdentityRequest,
@@ -82,8 +87,15 @@ export function RegistrationReviewTemplate({
   tournamentName,
   rows,
   now,
+  loadStatus = 'ready',
+  csv,
+  csvStatus,
+  abbreviationCandidates = [],
   onBulkReview,
   onReview,
+  onCsvFileSelected,
+  onConfirmCsvImport,
+  onSetAbbreviation,
   onSetNationality,
   onUploadPhoto,
   onAddPerson,
@@ -98,11 +110,18 @@ export function RegistrationReviewTemplate({
   readonly tournamentName: string;
   readonly rows: readonly ReviewRegistrationRow[];
   readonly now: string;
+  readonly loadStatus?: 'loading' | 'ready' | 'failed';
+  readonly csv?: CsvImportPreviewResponse;
+  readonly csvStatus?: { readonly text: string; readonly tone: AlertTone };
+  readonly abbreviationCandidates?: readonly AbbreviationCandidateRow[];
   readonly onBulkReview?: (request: BulkReviewRequest) => Promise<void> | void;
   readonly onReview?: (
     entrantId: string,
     request: ReviewRegistrationRequest,
   ) => Promise<void> | void;
+  readonly onCsvFileSelected?: (file: File) => void;
+  readonly onConfirmCsvImport?: () => void;
+  readonly onSetAbbreviation?: (entrantId: string, abbreviation: string) => Promise<unknown> | void;
   /** Absent on a team-kind row; set only for a person entrant. */
   readonly onSetNationality?: (
     personId: string,
@@ -131,10 +150,16 @@ export function RegistrationReviewTemplate({
 }): React.JSX.Element {
   const intl = useIntl();
   const [state, setState] = useState(() => initialReview(10));
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [dismissedCsvStatus, setDismissedCsvStatus] = useState<string>();
+  const [dismissedLoading, setDismissedLoading] = useState(false);
+  const [dismissedLockNotice, setDismissedLockNotice] = useState(false);
   const [nationalityDraft, setNationalityDraft] = useState<Record<string, string>>({});
+  const [optimisticPhotos, setOptimisticPhotos] = useState<Record<string, string>>({});
   const [photoCrop, setPhotoCrop] = useState<{ personId: string; src: string } | undefined>(
     undefined,
   );
+
   const [addOpen, setAddOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<ReviewRegistrationRow | undefined>(undefined);
   const [linkingRow, setLinkingRow] = useState<ReviewRegistrationRow | undefined>(undefined);
@@ -158,6 +183,18 @@ export function RegistrationReviewTemplate({
     <TableToolbar
       actions={
         <>
+          <a
+            className="cl-focusable"
+            href={`/control/${organizationAlias}/tournaments/${tournamentName}/settings`}
+            onClick={controlLinkClick(
+              `/control/${organizationAlias}/tournaments/${tournamentName}/settings`,
+            )}
+          >
+            <FormattedMessage {...messages.tournamentSettingsLink} />
+          </a>
+          <Button onClick={() => setCsvImportOpen(true)} type="button" variant="secondary">
+            <FormattedMessage {...messages.registrationImportSection} />
+          </Button>
           <Button onClick={() => setAddOpen(true)} type="button">
             <FormattedMessage {...messages.reviewAddParticipant} />
           </Button>
@@ -199,7 +236,7 @@ export function RegistrationReviewTemplate({
     </TableToolbar>
   );
 
-  const listingNode = (
+  const tableNode = (
     <div
       aria-label={intl.formatMessage(messages.reviewSectionLabel)}
       className="cl-data-table"
@@ -343,9 +380,10 @@ export function RegistrationReviewTemplate({
                     }
                     size={64}
                     src={
-                      row.photoObjectId !== undefined
+                      optimisticPhotos[personId] ??
+                      (row.photoObjectId !== undefined
                         ? personPhotoUrl(organizationAlias, personId)
-                        : undefined
+                        : undefined)
                     }
                   />
                   <FilePicker
@@ -417,8 +455,14 @@ export function RegistrationReviewTemplate({
                   <FormattedMessage {...messages.reviewRevoke} />
                 </Button>
               </div>
-              {!teamMembershipEnabled && (
-                <Alert tone="info">{intl.formatMessage(LOCK_EXPLANATION)}</Alert>
+              {!teamMembershipEnabled && !dismissedLockNotice && (
+                <Alert
+                  dismissLabel={intl.formatMessage(messages.toastDismiss)}
+                  onDismiss={() => setDismissedLockNotice(true)}
+                  tone="warning"
+                >
+                  {intl.formatMessage(LOCK_EXPLANATION)}
+                </Alert>
               )}
             </div>
           </details>
@@ -429,6 +473,30 @@ export function RegistrationReviewTemplate({
           <FormattedMessage {...messages.reviewEmptyFilter} />
         </p>
       )}
+    </div>
+  );
+
+  const listingNode = (
+    <div className="cl-screen-sections">
+      {loadStatus === 'loading' && !dismissedLoading && (
+        <Alert
+          dismissLabel={intl.formatMessage(messages.toastDismiss)}
+          onDismiss={() => setDismissedLoading(true)}
+          tone="info"
+        >
+          <FormattedMessage {...messages.registrationLoading} />
+        </Alert>
+      )}
+      {loadStatus === 'failed' && rows.length === 0 && (
+        <Alert tone="destructive">
+          <FormattedMessage {...messages.registrationLoadFailed} />
+        </Alert>
+      )}
+      {tableNode}
+      <AbbreviationReviewSection
+        onSetAbbreviation={onSetAbbreviation}
+        rows={abbreviationCandidates}
+      />
     </div>
   );
 
@@ -461,15 +529,91 @@ export function RegistrationReviewTemplate({
           onConfirm={(output) => {
             URL.revokeObjectURL(photoCrop.src);
             const personId = photoCrop.personId;
+            setOptimisticPhotos((prev) => ({
+              ...prev,
+              [personId]: `data:${output.contentType};base64,${output.contentBase64}`,
+            }));
             setPhotoCrop(undefined);
-            void onUploadPhoto?.(personId, {
-              filename: 'photo.png',
-              contentType: output.contentType,
-              contentBase64: output.contentBase64,
+            Promise.resolve(
+              onUploadPhoto?.(personId, {
+                filename: 'photo.png',
+                contentType: output.contentType,
+                contentBase64: output.contentBase64,
+              }),
+            ).catch(() => {
+              setOptimisticPhotos((prev) => {
+                const next = { ...prev };
+                delete next[personId];
+                return next;
+              });
             });
           }}
         />
       )}
+
+      <Modal
+        closeLabel={intl.formatMessage(messages.registrationModalClose)}
+        onOpenChange={setCsvImportOpen}
+        open={csvImportOpen}
+        title={intl.formatMessage(messages.registrationImportSection)}
+      >
+        <FilePicker
+          accept=".csv,text/csv"
+          aria-label={intl.formatMessage(messages.registrationCsvLabel)}
+          id="registration-csv-file"
+          label={intl.formatMessage(messages.registrationCsvLabel)}
+          {...filePickerLabels(intl, { accept: '.csv,text/csv' })}
+          onChange={(files) => {
+            const file = files?.[0];
+            if (!file) return;
+            setDismissedCsvStatus(undefined);
+            onCsvFileSelected?.(file);
+          }}
+        />
+        {csvStatus &&
+          (csvStatus.tone === 'info' || csvStatus.tone === 'warning' ? (
+            dismissedCsvStatus !== csvStatus.text && (
+              <Alert
+                dismissLabel={intl.formatMessage(messages.toastDismiss)}
+                onDismiss={() => setDismissedCsvStatus(csvStatus.text)}
+                tone={csvStatus.tone}
+              >
+                {csvStatus.text}
+              </Alert>
+            )
+          ) : (
+            <Alert tone={csvStatus.tone}>{csvStatus.text}</Alert>
+          ))}
+        {csv?.preview && (
+          <div>
+            <p>
+              {csv.preview.valid
+                ? intl.formatMessage(messages.registrationPreviewValid)
+                : intl.formatMessage(messages.registrationPreviewInvalid)}
+            </p>
+            {csv.preview.errors.map((error) => (
+              <p key={error.message}>{error.message}</p>
+            ))}
+            {csv.preview.rows
+              .filter((row) => row.errors.length > 0)
+              .map((row) => (
+                <p key={row.rowNumber}>
+                  {intl.formatMessage(messages.registrationRow, {
+                    rowNumber: row.rowNumber,
+                    errors: row.errors.map((error) => error.message).join(', '),
+                  })}
+                </p>
+              ))}
+            <Button
+              disabled={!csv.preview.valid || csv.status !== 'review-ready'}
+              onClick={() => onConfirmCsvImport?.()}
+              type="button"
+            >
+              <FormattedMessage {...messages.registrationConfirmImport} />
+            </Button>
+          </div>
+        )}
+      </Modal>
 
       <AddParticipantDialog
         onClose={() => setAddOpen(false)}

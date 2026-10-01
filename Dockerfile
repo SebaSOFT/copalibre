@@ -1,6 +1,6 @@
 # One compilation produces every application role. The runtime image selects a
 # role at start, which keeps every role on the same reviewed release version.
-FROM node:24-bookworm-slim AS build
+FROM node:26-bookworm-slim AS build
 
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 WORKDIR /app
@@ -8,6 +8,7 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends build-essential python3 \
     && rm -rf /var/lib/apt/lists/* \
+    && npm install -g corepack@latest \
     && corepack enable
 
 COPY package.json yarn.lock .yarnrc.yml ./
@@ -30,7 +31,7 @@ RUN yarn workspace @copalibre/web build
 # the six process roles and the CLI in the final image.
 RUN yarn workspaces focus --all --production
 
-FROM node:24-bookworm-slim AS runtime
+FROM node:26-bookworm-slim AS runtime
 
 ENV NODE_ENV=production \
     COPALIBRE_DATA_DIR=/var/lib/copalibre
@@ -51,7 +52,7 @@ USER node
 
 ENTRYPOINT ["node", "apps/copalibre/dist/container-entrypoint.js"]
 
-FROM caddy:2.10-alpine AS web
+FROM caddy:2.11-alpine AS web
 
 COPY --from=build /app/apps/web/dist/client /srv
 COPY deploy/web/Caddyfile /etc/caddy/Caddyfile

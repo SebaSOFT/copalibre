@@ -48,13 +48,24 @@ function stubClient(overrides: Partial<ControlApiClient>): ControlApiClient {
 }
 
 describe('PreferencesPage', () => {
+  const defaultFetch = globalThis.fetch;
   beforeEach(() => {
     controlTokenStore.write('test-token', Date.now() + 3600000);
-    globalThis.fetch = jest.fn() as any;
+    globalThis.fetch = jest.fn((...args: Parameters<typeof defaultFetch>) => {
+      const [input] = args;
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof Request
+            ? input.url
+            : String((input as any)?.href ?? input);
+      if (url.startsWith('blob:')) return defaultFetch(...args);
+      return undefined as any;
+    }) as any;
   });
 
   it('renders and lists PATs', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [
         {
@@ -89,7 +100,7 @@ describe('PreferencesPage', () => {
   });
 
   it('creates a new PAT', async () => {
-    (globalThis.fetch as jest.Mock<any>)
+    (globalThis.fetch as jest.Mock<typeof fetch>)
       .mockResolvedValueOnce({ ok: true, json: async () => [] } as any) // load PATs
       .mockResolvedValueOnce({
         ok: true,
@@ -104,6 +115,7 @@ describe('PreferencesPage', () => {
     );
 
     fireEvent.change(screen.getByLabelText('Etiqueta del token'), { target: { value: 'New PAT' } });
+    fireEvent.change(screen.getByLabelText('Vence en (días)'), { target: { value: '60' } });
     fireEvent.click(screen.getByRole('button', { name: 'Generar token' }));
 
     await waitFor(() => {
@@ -113,7 +125,7 @@ describe('PreferencesPage', () => {
   });
 
   it('revokes a PAT', async () => {
-    (globalThis.fetch as jest.Mock<any>)
+    (globalThis.fetch as jest.Mock<typeof fetch>)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [
@@ -147,7 +159,7 @@ describe('PreferencesPage', () => {
   });
 
   it('loads and edits the organization identity when an alias is given', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -179,7 +191,7 @@ describe('PreferencesPage', () => {
   });
 
   it('shows a placeholder with no emblem, and uploads one', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -205,11 +217,12 @@ describe('PreferencesPage', () => {
     fireEvent.change(input, { target: { files: [file] } });
 
     const dialog = await screen.findByRole('dialog');
-    // jsdom never fires a real `load` on `react-easy-crop`'s internal <img>
-    // (it does not load image bytes); firing it manually is what lets the
-    // library compute a crop area and enable Confirm, the same way a real
-    // browser's image decode would.
-    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
     );
@@ -224,8 +237,34 @@ describe('PreferencesPage', () => {
     );
   });
 
+  it('cancels the emblem crop modal and leaves the placeholder intact', async () => {
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      uploadOrganizationEmblem: () => Promise.resolve({ objectId: 'obj-1' }),
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    await screen.findByLabelText('Name');
+    const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
+    const input = screen.getByLabelText('Upload emblem');
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
   it('does not update state after unmounting mid-fetch', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -250,7 +289,7 @@ describe('PreferencesPage', () => {
   });
 
   it('reports a save failure with the server refusal message', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -272,7 +311,7 @@ describe('PreferencesPage', () => {
   });
 
   it('falls back to the generic save-failure message for a non-API error', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -294,7 +333,7 @@ describe('PreferencesPage', () => {
   });
 
   it('ignores a save click when the client has no updateOrganizationSettings method', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -313,7 +352,7 @@ describe('PreferencesPage', () => {
   });
 
   it('reports an emblem-upload failure that is not a ControlApiError', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -333,7 +372,12 @@ describe('PreferencesPage', () => {
     fireEvent.change(screen.getByLabelText('Upload emblem'), { target: { files: [file] } });
 
     const dialog = await screen.findByRole('dialog');
-    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
     );
@@ -343,7 +387,7 @@ describe('PreferencesPage', () => {
   });
 
   it('renders the emblem image for an organization that has one', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -361,7 +405,7 @@ describe('PreferencesPage', () => {
   });
 
   it('requires confirmation before running a statistics rebuild, and shows the result', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -392,10 +436,12 @@ describe('PreferencesPage', () => {
       expect(rebuildStatistics).toHaveBeenCalledWith('liga-mendocina', undefined),
     );
     await screen.findByText('12 matches processed.');
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
+    expect(screen.queryByText('12 matches processed.')).toBeNull();
   });
 
   it('cancels a rebuild without calling the API', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -425,7 +471,7 @@ describe('PreferencesPage', () => {
   });
 
   it('scopes a confirmed rebuild to the entered tournament alias', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -462,7 +508,7 @@ describe('PreferencesPage', () => {
   });
 
   it('surfaces a rebuild refusal with the server message', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -485,7 +531,7 @@ describe('PreferencesPage', () => {
   });
 
   it('falls back to a generic rebuild-failure message for a non-API error', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -508,7 +554,7 @@ describe('PreferencesPage', () => {
   });
 
   it('disables the rebuild trigger when the client offers no rebuildStatistics method', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -528,7 +574,7 @@ describe('PreferencesPage', () => {
   });
 
   it('reports an organization load it could not complete', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -550,7 +596,7 @@ describe('PreferencesPage', () => {
   });
 
   it('renders the formatted storage usage in MB and GB', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -574,7 +620,7 @@ describe('PreferencesPage', () => {
   });
 
   it('renders storage usage formatted dynamically in GB when over 1024 MB', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -597,7 +643,7 @@ describe('PreferencesPage', () => {
   });
 
   it('lists an unreferenced object and deletes it, dropping the usage total by its size', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -639,7 +685,7 @@ describe('PreferencesPage', () => {
   });
 
   it('reports an error when deleting an unreferenced object fails', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -671,7 +717,7 @@ describe('PreferencesPage', () => {
   });
 
   it('renders zero-state storage usage correctly', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);
@@ -694,7 +740,7 @@ describe('PreferencesPage', () => {
   });
 
   it('surfaces an error when storage usage fails to load', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     } as any);

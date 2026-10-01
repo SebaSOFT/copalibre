@@ -1,6 +1,6 @@
 {
   "name": "@copalibre/module-catalogue",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "jest": "^30.4.2",
+    "jest": "^30.5.2",
     "ts-jest": "^29.4.12",
     "typescript": "^5"
   }

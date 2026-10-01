@@ -40,6 +40,56 @@ function renderPage(overrides: Partial<Parameters<typeof RegistrationReviewTempl
   return { onSetNationality, onUploadPhoto };
 }
 
+describe('registration review screen hierarchy', () => {
+  it('keeps the title above toolbar actions and hides resolved abbreviation review', () => {
+    renderPage();
+
+    const title = screen.getByRole('heading', { level: 1, name: 'Registration review' });
+    const importButton = screen.getByRole('button', { name: 'Import participants' });
+    expect(
+      title.compareDocumentPosition(importButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.queryByLabelText('Entrants needing an abbreviation')).toBeNull();
+  });
+
+  it('opens CSV import from the toolbar and shows pending abbreviation candidates', async () => {
+    const onCsvFileSelected = jest.fn();
+    renderPage({
+      abbreviationCandidates: [{ entrantId: 'entrant-2', displayName: 'Club Talleres' }],
+      onCsvFileSelected,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Import participants' }));
+    const dialog = await screen.findByRole('dialog');
+    const file = new File(['alias,name\ntalleres,Club Talleres\n'], 'participants.csv', {
+      type: 'text/csv',
+    });
+    fireEvent.change(within(dialog).getByLabelText('Participants CSV'), {
+      target: { files: [file] },
+    });
+
+    expect(onCsvFileSelected).toHaveBeenCalledWith(file);
+    expect(screen.getByLabelText('Entrants needing an abbreviation')).toBeDefined();
+    expect(screen.getByText('Club Talleres')).toBeDefined();
+  });
+
+  it('lets the operator dismiss loading and CSV status notices', () => {
+    renderPage({
+      csvStatus: { text: 'Validation queued.', tone: 'info' },
+      loadStatus: 'loading',
+    });
+
+    expect(screen.getByText('Loading registrations...')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
+    expect(screen.queryByText('Loading registrations...')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Import participants' }));
+    expect(screen.getByText('Validation queued.')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
+    expect(screen.queryByText('Validation queued.')).toBeNull();
+  });
+});
+
 describe('RegistrationReviewTemplate — nationality and profile', () => {
   it("shows the person's flag next to their name once a nationality is set", () => {
     renderPage({ rows: [row({ personId: 'person-1', nationality: 'AR' })] });
@@ -83,7 +133,12 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
     fireEvent.change(input, { target: { files: [file] } });
 
     const dialog = await screen.findByRole('dialog');
-    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
     );
@@ -105,6 +160,30 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
     fireEvent.change(input, { target: { files: [] } });
 
     expect(onUploadPhoto).not.toHaveBeenCalled();
+  });
+
+  it('resets optimistic photo when photo upload fails', async () => {
+    const onUploadPhoto = jest.fn(() => Promise.reject(new Error('upload failed')));
+    renderPage({ onUploadPhoto });
+    fireEvent.click(screen.getByText('Elías Salomón'));
+
+    const file = new File(['fake-bytes'], 'photo.png', { type: 'image/png' });
+    const input = screen.getByLabelText('Upload photo') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+
+    const dialog = await screen.findByRole('dialog');
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
+    await waitFor(() =>
+      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(screen.getByText('Use image'));
+
+    await waitFor(() => expect(onUploadPhoto).toHaveBeenCalled());
   });
 
   it('links a participant identity through the link dialog (openspec 0170)', async () => {

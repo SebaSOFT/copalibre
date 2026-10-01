@@ -1,4 +1,4 @@
-import { defineMessages } from 'react-intl';
+import { defineMessages } from '../../lib/i18n/define-messages.ts';
 
 /**
  * Every control-panel interface string, keyed by a stable ID. English is the
@@ -2899,6 +2899,19 @@ export const messages = defineMessages({
   imageCropModalFailed: {
     id: 'control.imageCropModal.failed',
     defaultMessage: 'Could not process this image.',
+  },
+  imageCropModalRemoving: {
+    id: 'control.imageCropModal.removing',
+    defaultMessage: 'Removing image background…',
+  },
+  imageCropModalRemovalFailed: {
+    id: 'control.imageCropModal.removalFailed',
+    defaultMessage: 'Background removal failed. Retry or choose to keep the original image.',
+  },
+  imageCropModalRetry: { id: 'control.imageCropModal.retry', defaultMessage: 'Retry' },
+  imageCropModalKeepOriginal: {
+    id: 'control.imageCropModal.keepOriginal',
+    defaultMessage: 'Keep original',
   },
 
   // Stackable notifications and stable API error localization.

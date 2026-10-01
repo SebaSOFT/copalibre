@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { StageHubPage } from './StageHubPage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient, StageResponse } from '../../lib/api-client.js';
@@ -163,6 +163,10 @@ describe('StageHubPage', () => {
     expect(
       screen.getByText('This stage already has fixtures, so its format and removal are locked.'),
     ).toBeTruthy();
+    fireEvent.click(
+      within(screen.getByRole('status')).getByRole('button', { name: 'Dismiss notification' }),
+    );
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('deletes an unseeded stage', async () => {

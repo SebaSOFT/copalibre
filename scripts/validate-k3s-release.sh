@@ -77,6 +77,12 @@ create_cluster() {
   log "Creating k3d cluster ${CLUSTER_NAME}"
   k3d cluster delete "${CLUSTER_NAME}" >/dev/null 2>&1 || true
   k3d cluster create --config "${ROOT_DIR}/deploy/helm/k3s-dev-cluster.yaml"
+  local attempt
+  for attempt in $(seq 1 60); do
+    kubectl get deployment traefik -n kube-system >/dev/null 2>&1 && break
+    sleep 2
+  done
+  kubectl rollout status deployment/traefik -n kube-system --timeout=120s
   k3d image import "copalibre:${IMAGE_TAG}" "copalibre-web:${IMAGE_TAG}" -c "${CLUSTER_NAME}"
 }
 
@@ -133,6 +139,14 @@ web:
   env:
     COPALIBRE_JWT_ISSUER: http://oidc.invalid
     COPALIBRE_OIDC_CLIENT_ID: copalibre-validate
+ingress:
+  enabled: true
+  className: traefik
+  annotations: {}
+  tls:
+    enabled: false
+  hosts:
+    web: copalibre-validate.localhost
 env:
   DATABASE_URL: postgres://copalibre:copalibre_validate_only@postgres:5432/copalibre
   COPALIBRE_APP_URL: http://web
@@ -378,7 +392,7 @@ test_unhealthy_pod_not_routed() {
 # in this script would notice an upstream that no longer resolves — which is
 # precisely the defect that broke three nightly runs.
 test_ssr_routes_are_served() {
-  log "ssr-routes: requesting a proxied route through the web Service"
+  log "ssr-routes: requesting routes through the web Service and Helm ingress"
   local pod=copalibre-validate-ssr-probe
   kubectl run "${pod}" --image=curlimages/curl:latest --restart=Never \
     --command -- sh -c "sleep 300"
@@ -387,7 +401,6 @@ test_ssr_routes_are_served() {
   local status
   status=$(kubectl exec "${pod}" -- sh -c \
     "curl -s -o /dev/null -w '%{http_code}' --max-time 20 http://${RELEASE_NAME}-web:4321/" || true)
-  kubectl delete pod "${pod}" --grace-period=0 --force >/dev/null 2>&1 || true
 
   # 5xx covers both halves of this: a 502/503/504 means the upstream does not
   # resolve or is not listening, and a 500 means the renderer answered but
@@ -397,6 +410,23 @@ test_ssr_routes_are_served() {
     fail "GET / through the web Service returned '${status}': the SSR route is not being served"
   fi
   log "OK: a proxied route returned ${status} through the web Service"
+
+  local control_html
+  control_html=$(kubectl exec "${pod}" -- curl -fsS --max-time 20 \
+    -H 'Host: copalibre-validate.localhost' \
+    http://traefik.kube-system.svc.cluster.local/control/ || true)
+  [ -n "${control_html}" ] || fail "GET /control/ through the Helm ingress returned no HTML"
+  grep -Fq 'content="0;url=/control/login"' <<<"${control_html}" \
+    || fail "Ingress /control/ HTML has no same-origin fallback"
+  grep -Fq 'window.location.origin' <<<"${control_html}" \
+    || fail "Ingress /control/ HTML does not resolve login against the serving origin"
+  grep -Fq "get('returnTo')" <<<"${control_html}" \
+    || fail "Ingress /control/ HTML does not preserve returnTo at runtime"
+  if grep -Eq 'https?://[^" ]+/control/login' <<<"${control_html}"; then
+    fail "Ingress /control/ HTML contains an absolute build-time login origin"
+  fi
+  log "OK: Helm ingress serves the same-origin /control/ redirect entry"
+  kubectl delete pod "${pod}" --grace-period=0 --force >/dev/null 2>&1 || true
 }
 
 main() {

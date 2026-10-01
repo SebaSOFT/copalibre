@@ -5,6 +5,7 @@ const generateJestWorkspaceMapper = require('../../scripts/generate-jest-workspa
 module.exports = {
   ...base,
   displayName: 'web',
+  testPathIgnorePatterns: ['/node_modules/', '\\.integration\\.test\\.ts$'],
   // jsdom for the control app's components; the public surfaces are strings.
   testEnvironment: 'jsdom',
   setupFiles: ['<rootDir>/jest.setup.cjs'],

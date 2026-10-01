@@ -182,6 +182,7 @@ describe('the registration review route container', () => {
       );
     });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Import participants' }));
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Participants CSV'), {
         target: { files: [{ text: async () => 'alias,name\nclub-atletico,Club Atletico\n' }] },
@@ -226,6 +227,7 @@ describe('the registration review route container', () => {
       );
     });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Import participants' }));
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Participants CSV'), {
         target: { files: [{ text: async () => 'alias,name\nclub-atletico,\n' }] },
@@ -369,6 +371,7 @@ describe('the registration review route container', () => {
       );
     });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Import participants' }));
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Participants CSV'), {
         target: { files: [{ text: async () => 'alias,name\nclub-atletico,Club Atletico\n' }] },
@@ -420,7 +423,12 @@ describe('the registration review route container', () => {
       fireEvent.change(screen.getByLabelText('Upload photo'), { target: { files: [file] } });
     });
     const dialog = await screen.findByRole('dialog');
-    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
     await waitFor(() =>
       expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
     );
@@ -475,7 +483,7 @@ describe('the registration review route container', () => {
       },
     ]);
     await waitFor(() =>
-      expect(screen.getByText('Every entrant already has an abbreviation.')).toBeDefined(),
+      expect(screen.queryByLabelText('Entrants needing an abbreviation')).toBeNull(),
     );
   });
 

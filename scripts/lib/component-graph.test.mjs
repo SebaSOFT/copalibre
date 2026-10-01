@@ -17,9 +17,9 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (315/1214 after 0306 adds PlatformDiagnosticsScreen)', () => {
+test('the graph resolves the current node/edge count (318/1214 after the React Intl compatibility adapter, redirect title formatter, and registration review template delegation)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 315);
+  assert.equal(graph.nodes.size, 318);
   assert.equal(graph.edges.length, 1214);
 });
 

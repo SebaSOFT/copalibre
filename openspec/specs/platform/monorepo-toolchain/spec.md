@@ -135,7 +135,7 @@ The repository SHALL remediate known unmitigated Dependabot alerts with availabl
 
 #### Scenario: Transitive fast-uri instances resolve to patched release
 - **WHEN** dependencies are installed via `yarn install --immutable`
-- **THEN** both direct and transitive instances of `fast-uri` resolve to version `3.1.6` or greater (for the v3 line) and `4.1.3` or greater (for the v4 line), remediating CVE-2026-75931, CVE-2026-75899, CVE-2026-76172, and CVE-2026-75975
+- **THEN** both direct and transitive instances of `fast-uri` resolve to version `3.1.8` or greater (for the v3 line) and `4.2.1` or greater (for the v4 line), remediating authority injection and host confusion vulnerabilities (CVE-2026-75975, GHSA-f65p-4m7j-42xc)
 
 #### Scenario: Transitive qs instances resolve to patched release
 - **WHEN** dependencies are installed via `yarn install --immutable`
@@ -155,7 +155,7 @@ The repository SHALL remediate known unmitigated Dependabot alerts with availabl
 
 #### Scenario: Direct mail delivery dependency resolves to patched release
 - **WHEN** dependencies are installed via `yarn install --immutable`
-- **THEN** the worker's Nodemailer instance resolves to version `9.1.1` or greater, remediating GHSA-8m3c-c648-2xjj, GHSA-2x7j-588g-ccc2, GHSA-wmmp-3585-3rmp, and GHSA-cc9r-2j5m-2m83
+- **THEN** the worker's Nodemailer instance resolves to version `10.0.2` or greater, remediating TLS servername DNS cache disclosure across transports
 
 #### Scenario: Public and help build dependency resolves to patched release
 - **WHEN** dependencies are installed via `yarn install --immutable`
@@ -176,6 +176,45 @@ The repository SHALL remediate known unmitigated Dependabot alerts with availabl
 #### Scenario: Closure follows release rather than manual dismissal
 - **WHEN** remediation is merged to the integration branch while the default branch still has vulnerable versions
 - **THEN** release tracking identifies the patched versions and pending default-branch closure, without claiming GitHub alerts are already fixed
+
+#### Scenario: Transitive ip-address dependency resolves to patched release
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** all locked instances of `ip-address` resolve to version `10.5.1` or greater, remediating link-local and NAT64 classification SSRF bypasses
+
+#### Scenario: Web undici dependency resolves to patched release
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** all locked `undici` 8.x instances used by `apps/web`, including transitive instances, resolve to version `8.10.2` or greater, remediating WebSocket permessage-deflate decompression DoS
+
+#### Scenario: Every locked undici major line meets its patched floor
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** every locked `undici` 6.x instance resolves to version `6.28.1` or greater, including the Node tooling dependency path whose Dependabot alert was auto-dismissed
+
+#### Scenario: Open Dependabot PR dependency updates typecheck
+- **WHEN** the branch includes Jest `30.5.2` and `react-intl` `12.1.3`
+- **AND** the monorepo typecheck runs
+- **THEN** Jest fetch mocks and descriptor-based message catalogs typecheck without weakening runtime behavior
+
+#### Scenario: Dependabot PR audit coverage is explicit
+- **WHEN** the change's dependency audit is reviewed against its base branch
+- **THEN** every open Dependabot PR is implemented in this change or already present in `develop`
+- **AND** every active alert and every auto-dismissed alert with a vulnerable lock entry is checked against a patched floor
+
+### Requirement: Node 26 runtime and container bootstrap
+The toolchain and container images SHALL target Node 26 as the active supported runtime. Because Node 26 removes Corepack from the core distribution, container build stages SHALL explicitly install Corepack globally before invoking Yarn commands.
+
+#### Scenario: Engine enforcement accepts Node 26
+- **WHEN** `node -v` reports a Node.js 26.x release
+- **AND** `yarn install --immutable` or `yarn typecheck` is run
+- **THEN** the root `package.json` engine constraint does not error or reject the runtime
+
+#### Scenario: Container image builds succeed on Node 26
+- **WHEN** the production Docker image is built using `node:26-bookworm-slim`
+- **THEN** the build stage installs Corepack via npm before `corepack enable`
+- **AND** the compilation, type-check, and web build finish cleanly
+
+#### Scenario: QEMU GitHub Action is unified to v4
+- **WHEN** release and verification workflows invoke `docker/setup-qemu-action`
+- **THEN** all workflows use `@v4` consistently
 
 ### Requirement: Conditional verification accounts for affected consumers
 
@@ -363,3 +402,41 @@ its exit code, or its debt register.
 - **WHEN** a workspace has not yet produced an Istanbul `coverage-final.json` for this run
 - **THEN** that workspace contributes no entries to the report, consistent with the existing gate's
   skip-with-warning behavior for the same condition
+
+### Requirement: Patched floors cover newly identified transitive advisories
+The toolchain SHALL pin supported stable major lines of packages with known advisories to patched versions, and its dependency security guard SHALL fail when any locked instance falls below its patched floor or introduces an unreviewed major line.
+
+#### Scenario: Locked brace-expansion instances meet patched floors
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** every locked `brace-expansion` 1.x instance resolves to `1.1.18` or greater, every 2.x instance resolves to `2.1.4` or greater, and every 5.x instance resolves to `5.0.9` or greater
+
+#### Scenario: The pinned js-yaml 4.x instance is patched
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** the locked `js-yaml` instance selected by the exact `4.2.0` descriptor resolves to `4.3.2` or greater
+
+#### Scenario: Locked nanoid 3.x instances meet the patched floor
+- **WHEN** dependencies are installed via `yarn install --immutable`
+- **THEN** every locked `nanoid` 3.x instance resolves to `3.3.18` or greater
+
+#### Scenario: A vulnerable duplicate or unreviewed major fails the dependency guard
+- **WHEN** a supported package has any locked instance below its patched floor or a locked instance on a major line without a declared floor
+- **THEN** the dependency security guard fails and identifies the package and locked descriptor
+
+### Requirement: Continuous integration audits the full dependency graph
+Continuous integration SHALL check direct and transitive dependencies from every workspace against current package registry security advisories. Any reported security advisory SHALL fail the check, while package deprecation notices alone SHALL NOT count as security advisories.
+
+#### Scenario: Pull request dependency graph has no security advisories
+- **WHEN** CI installs dependencies for a pull request
+- **THEN** it audits every workspace's direct and transitive dependencies, including development dependencies, and the check passes only when no security advisories are reported
+
+#### Scenario: A newly disclosed advisory blocks CI
+- **WHEN** the current registry reports a security advisory for any locked direct or transitive dependency
+- **THEN** CI fails the dependency audit check, even if the advisory was not present when the branch was created
+
+#### Scenario: An advisory in a package without a manual floor blocks CI
+- **WHEN** the current registry reports a security advisory for a package that has no entry in the dependency security guard's patched-floor table
+- **THEN** the all-workspace dependency audit still fails CI for that package
+
+#### Scenario: Deprecation notices do not fail the vulnerability gate
+- **WHEN** the registry reports only package deprecation notices and no security advisories
+- **THEN** the dependency audit check passes

@@ -37,6 +37,7 @@ async function mockRegistrationApi(page: import('@playwright/test').Page): Promi
   photoObjectId = undefined;
   await page.addInitScript(
     ({ tokenEndpoint, personId }) => {
+      const originalFetch = window.fetch.bind(window);
       window.fetch = async (input, init) => {
         const url = String(input);
         if (url === tokenEndpoint) {
@@ -67,7 +68,7 @@ async function mockRegistrationApi(page: import('@playwright/test').Page): Promi
           ).__personProfile();
           return Response.json(profile);
         }
-        return new Response('Not found', { status: 404 });
+        return originalFetch(input, init);
       };
     },
     { tokenEndpoint: TOKEN_ENDPOINT, personId: PERSON_ID },
@@ -138,6 +139,15 @@ test('uploads a person photo through the crop modal from the registration review
 
   const dialog = page.getByRole('dialog', { name: 'Ajustar imagen' });
   await expect(dialog).toBeVisible();
-  await dialog.getByRole('button', { name: 'Usar imagen' }).click();
+  const keepOriginal = dialog.getByRole('button', { name: 'Conservar original' });
+  try {
+    await keepOriginal.waitFor({ state: 'visible', timeout: 4000 });
+    await keepOriginal.click();
+  } catch {
+    // removal succeeded or already in cropping state
+  }
+  const useImage = dialog.getByRole('button', { name: 'Usar imagen' });
+  await expect(useImage).toBeEnabled({ timeout: 15000 });
+  await useImage.click();
   await expect(dialog).toBeHidden();
 });

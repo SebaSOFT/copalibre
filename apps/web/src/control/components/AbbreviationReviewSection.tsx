@@ -25,11 +25,13 @@ export function AbbreviationReviewSection({
 }: {
   readonly rows: readonly AbbreviationCandidateRow[];
   readonly onSetAbbreviation?: (entrantId: string, abbreviation: string) => Promise<unknown> | void;
-}): React.JSX.Element {
+}): React.JSX.Element | null {
   const intl = useIntl();
   const { pushError } = useToast();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  if (rows.length === 0) return null;
 
   function submit(entrantId: string): void {
     const value = (drafts[entrantId] ?? '').trim();
@@ -62,30 +64,24 @@ export function AbbreviationReviewSection({
       <h2 style={titleStyle}>
         <FormattedMessage {...messages.abbreviationReviewTitle} />
       </h2>
-      {rows.length === 0 ? (
-        <p>
-          <FormattedMessage {...messages.abbreviationReviewEmpty} />
-        </p>
-      ) : (
-        rows.map((row) => (
-          <div key={row.entrantId} style={rowStyle}>
-            <span>{row.displayName}</span>
-            <Input
-              aria-label={intl.formatMessage(messages.abbreviationReviewInputLabel, {
-                displayName: row.displayName,
-              })}
-              onChange={(event) =>
-                setDrafts((current) => ({ ...current, [row.entrantId]: event.target.value }))
-              }
-              value={drafts[row.entrantId] ?? ''}
-            />
-            <Button onClick={() => submit(row.entrantId)} type="button" variant="secondary">
-              <FormattedMessage {...messages.abbreviationReviewSet} />
-            </Button>
-            {errors[row.entrantId] && <Alert tone="destructive">{errors[row.entrantId]}</Alert>}
-          </div>
-        ))
-      )}
+      {rows.map((row) => (
+        <div key={row.entrantId} style={rowStyle}>
+          <span>{row.displayName}</span>
+          <Input
+            aria-label={intl.formatMessage(messages.abbreviationReviewInputLabel, {
+              displayName: row.displayName,
+            })}
+            onChange={(event) =>
+              setDrafts((current) => ({ ...current, [row.entrantId]: event.target.value }))
+            }
+            value={drafts[row.entrantId] ?? ''}
+          />
+          <Button onClick={() => submit(row.entrantId)} type="button" variant="secondary">
+            <FormattedMessage {...messages.abbreviationReviewSet} />
+          </Button>
+          {errors[row.entrantId] && <Alert tone="destructive">{errors[row.entrantId]}</Alert>}
+        </div>
+      ))}
     </Card>
   );
 }

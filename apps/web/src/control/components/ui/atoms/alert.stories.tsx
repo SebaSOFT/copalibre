@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useState } from 'react';
 import { useIntl } from 'react-intl';
 import { Alert, type AlertTone } from './alert.js';
 import { StoryMatrix } from '../story-matrix.js';
 import { storyText } from '../story-text.js';
 
-const TONES: readonly AlertTone[] = ['info', 'success', 'destructive', 'live'];
+const TONES: readonly AlertTone[] = ['info', 'success', 'warning', 'destructive', 'live'];
 
 const meta = {
   title: 'Admin/Atoms/Alert',
@@ -78,14 +79,20 @@ export const WithAList: Story = {
 export const Dismissible: Story = {
   render: function Render() {
     const intl = useIntl();
+    const [visible, setVisible] = useState(true);
+
     return (
-      <Alert
-        dismissLabel={intl.formatMessage(storyText.dismiss)}
-        onDismiss={() => undefined}
-        tone="info"
-      >
-        {intl.formatMessage(storyText.saved)}
-      </Alert>
+      <>
+        {visible && (
+          <Alert
+            dismissLabel={intl.formatMessage(storyText.dismiss)}
+            onDismiss={() => setVisible(false)}
+            tone="info"
+          >
+            {intl.formatMessage(storyText.saved)}
+          </Alert>
+        )}
+      </>
     );
   },
 };

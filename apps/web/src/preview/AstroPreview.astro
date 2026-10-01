@@ -102,8 +102,10 @@ const PREVIEWABLE = new Set([
   // openspec 0225 task 7.4 — every remaining server-rendered library component.
   'button',
   'emblem-image',
+  'emblem-image-matrix',
   'logo',
   'person-photo-image',
+  'person-photo-cutout',
   'state-badge',
   'broadcast-status-panel',
   'ruleset-briefing',
@@ -323,7 +325,26 @@ const tournaments = referenceTournamentListing();
             defaultMessage: 'Reference League emblem',
           })}
           placeholderAlt="No emblem set"
+          size={96}
+          src="/preview-fixtures/emblem-display.svg"
         />
+      )
+    }
+    {
+      component === 'emblem-image-matrix' && (
+        <div class="cl-preview-emblem-matrix">
+          {[48, 96, 160].map((size) => (
+            <EmblemImage
+              alt={intl.formatMessage({
+                id: 'preview.emblemImage.alt',
+                defaultMessage: 'Reference League emblem',
+              })}
+              placeholderAlt="No emblem set"
+              size={size}
+              src="/preview-fixtures/emblem-display.svg"
+            />
+          ))}
+        </div>
       )
     }
     {component === 'logo' && <Logo href="/" />}
@@ -335,6 +356,19 @@ const tournaments = referenceTournamentListing();
             defaultMessage: 'Priya Natarajan-Whitfield',
           })}
           placeholderAlt="No photo set"
+        />
+      )
+    }
+    {
+      component === 'person-photo-cutout' && (
+        <PersonPhotoImage
+          alt={intl.formatMessage({
+            id: 'preview.personPhotoImage.alt',
+            defaultMessage: 'Priya Natarajan-Whitfield',
+          })}
+          placeholderAlt="No photo set"
+          size={160}
+          src="/preview-fixtures/person-photo-cutout.svg"
         />
       )
     }
@@ -506,6 +540,14 @@ const tournaments = referenceTournamentListing();
     }
   </body>
 </html>
+
+<style>
+  .cl-preview-emblem-matrix {
+    display: flex;
+    align-items: center;
+    gap: var(--cl-space-4);
+  }
+</style>
 
 <script>
   // Story-only selection uses the same activation a visitor uses on the production bracket.

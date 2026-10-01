@@ -57,7 +57,7 @@ describe('AcceptInvitationForm', () => {
   });
 
   it('handles successful invitation acceptance and redirect', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ accessToken: 'sample-jwt-token', expiresIn: 3600 }),
     } as any);
@@ -106,7 +106,7 @@ describe('AcceptInvitationForm', () => {
   });
 
   it('handles server error response', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: false,
       status: 400,
       json: async () => ({ message: 'Invitation token expired' }),
@@ -126,7 +126,7 @@ describe('AcceptInvitationForm', () => {
   });
 
   it('handles server error response when json parsing fails', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
       ok: false,
       status: 500,
       json: async () => {
@@ -148,7 +148,9 @@ describe('AcceptInvitationForm', () => {
   });
 
   it('handles unexpected network error', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockRejectedValueOnce(new Error('Network offline'));
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockRejectedValueOnce(
+      new Error('Network offline'),
+    );
 
     render(withIntl(<AcceptInvitationForm initialToken="valid-token" navigate={navigateMock} />));
 
@@ -164,7 +166,7 @@ describe('AcceptInvitationForm', () => {
   });
 
   it('handles unexpected non-Error thrown', async () => {
-    (globalThis.fetch as jest.Mock<any>).mockRejectedValueOnce('string rejection');
+    (globalThis.fetch as jest.Mock<typeof fetch>).mockRejectedValueOnce('string rejection');
 
     render(withIntl(<AcceptInvitationForm initialToken="valid-token" navigate={navigateMock} />));
 

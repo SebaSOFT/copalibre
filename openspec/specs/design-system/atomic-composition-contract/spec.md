@@ -384,3 +384,31 @@ technology SHALL NOT satisfy this, because an imitation only agrees with itself.
 - **WHEN** a component in a library tier is server-rendered and cannot be hosted by the workbench
 - **THEN** it is reachable through the preview seam, rendered by the renderer that ships it, and a
   library component with neither a story nor a preview entry is reported
+
+### Requirement: Page components delegate layout to templates without leading siblings
+A component in the page tier (`apps/web/src/control/components/pages/`) SHALL delegate the entire visual hierarchy to its template and SHALL NOT render leading sibling elements or structural containers outside the template. The layout header (breadcrumb and `<h1>` title) defined by the template SHALL remain the primary landmark at the top of the page content region.
+
+#### Scenario: Leading sibling before template is flagged as violation
+- **WHEN** a page-tier component returns a Fragment containing any element prior to its template component
+- **THEN** the atomic composition check fails, identifying the offending page and enforcing template-first return
+
+### Requirement: Alerts are actionable, tone-consistent, and dismissable
+An `Alert` component or notice block SHALL only be displayed when user attention or decision is required, such as non-transient errors, critical warnings, or necessary operational choices. An optimal, completed, or zero-item condition (such as "all items resolved" or "no pending candidates") SHALL NOT render inside an `Alert` or occupy persistent prominence above active workflows.
+
+Alerts with `info` and `warning` tones SHALL support dismissal via an accessible dismiss control, allowing operators to acknowledge and clear them from the view. Alerts with `destructive` tone SHALL remain persistent until the underlying failure is resolved or retried.
+
+#### Scenario: Zero-item optimal state renders quietly
+- **WHEN** an auxiliary review list (such as missing abbreviations) contains zero pending items
+- **THEN** the section renders nothing (`null`), leaving the screen focused on active tasks
+
+#### Scenario: Info and warning alerts are dismissable
+- **WHEN** an alert with tone `info` or `warning` is rendered
+- **THEN** it renders a dismiss action that, when clicked, removes the alert from the view
+
+#### Scenario: Destructive alerts remain persistent until resolved
+- **WHEN** an alert with tone `destructive` is rendered for an unhandled failure or blocking condition
+- **THEN** it remains visible until the operation is retried or the condition clears
+
+#### Scenario: Warning tone uses dedicated token styling
+- **WHEN** an alert is rendered with tone `warning`
+- **THEN** it applies class `.cl-inline-alert--warning` with border color `var(--cl-state-warning)`

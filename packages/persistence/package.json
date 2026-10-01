@@ -1,6 +1,6 @@
 {
   "name": "@copalibre/persistence",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "license": "AGPL-3.0-only",
   "main": "dist/index.js",
@@ -23,7 +23,7 @@
     "@types/jest": "^30.0.0",
     "@types/pg": "^8.20.0",
     "better-sqlite3": "^13.0.2",
-    "jest": "^30.4.2",
+    "jest": "^30.5.2",
     "ts-jest": "^29.4.12"
   },
   "type": "module"

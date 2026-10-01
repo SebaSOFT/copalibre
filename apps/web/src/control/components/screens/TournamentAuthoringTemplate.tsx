@@ -35,7 +35,7 @@ export function TournamentAuthoringTemplate({
 }: {
   readonly organizationAlias: string;
   readonly client?: ControlApiClient;
-}): React.JSX.Element {
+}): React.JSX.Element | null {
   const intl = useIntl();
   const api = useMemo(
     () =>
@@ -49,6 +49,7 @@ export function TournamentAuthoringTemplate({
   const [disciplines, setDisciplines] = useState<readonly DisciplineOption[]>([]);
   const [vocabulary, setVocabulary] = useState<HookScriptVocabulary>({ hooks: [], entries: [] });
   const [status, setStatus] = useState<AuthoringStatus>({ kind: 'loading' });
+  const [dismissedStatusMessage, setDismissedStatusMessage] = useState<string>();
 
   useEffect(() => {
     let live = true;
@@ -77,7 +78,17 @@ export function TournamentAuthoringTemplate({
    * claim about what happened, and here what happened varies.
    */
   function toneFor(current: AuthoringStatus): AlertTone {
-    return current.kind === 'loadFailed' ? 'destructive' : 'info';
+    switch (current.kind) {
+      case 'loadFailed':
+      case 'createFailed':
+        return 'destructive';
+      case 'noDisciplines':
+        return 'warning';
+      case 'created':
+        return 'success';
+      default:
+        return 'info';
+    }
   }
 
   function statusMessage(current: AuthoringStatus): string | undefined {
@@ -99,13 +110,35 @@ export function TournamentAuthoringTemplate({
     }
   }
 
+  function statusAlert(current: AuthoringStatus): React.JSX.Element | null {
+    const message = statusMessage(current);
+    if (message === undefined) return null;
+    const tone = toneFor(current);
+    const dismissible = tone === 'info' || tone === 'warning';
+    if (dismissible && dismissedStatusMessage === message) return null;
+
+    return (
+      <Alert
+        {...(dismissible
+          ? {
+              dismissLabel: intl.formatMessage(messages.toastDismiss),
+              onDismiss: () => setDismissedStatusMessage(message),
+            }
+          : {})}
+        tone={tone}
+      >
+        {message}
+      </Alert>
+    );
+  }
+
   if (disciplines.length === 0) {
-    return <Alert tone={toneFor(status)}>{statusMessage(status)}</Alert>;
+    return statusAlert(status);
   }
 
   return (
     <>
-      {status.kind !== 'ready' && <Alert tone={toneFor(status)}>{statusMessage(status)}</Alert>}
+      {status.kind !== 'ready' && statusAlert(status)}
       <TournamentSetupWizard
         disciplines={disciplines}
         loadProfiles={api.listCompatibleProfiles}
