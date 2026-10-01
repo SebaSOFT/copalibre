@@ -14,17 +14,13 @@ RUN apt-get update \
 COPY package.json yarn.lock .yarnrc.yml ./
 COPY apps apps
 COPY packages packages
-# `yarn typecheck` below type-checks every test file too, and
-# apps/web/src/help-coverage.test.ts imports scripts/check-help-coverage.mjs
-# by relative path — without this, that import fails to resolve inside the
-# build context (a real, previously undiscovered gap: this Dockerfile had
-# never actually built against a non-empty `main` before openspec 0172's
-# release PR, since `main` was an empty scaffold until then).
+# `scripts` are copied because apps/web/scripts are invoked during web build
+# and test scripts are referenced across project configs.
 COPY scripts scripts
 COPY tsconfig.json tsconfig.base.json jest.config.base.cjs jest.esm-mapper.cjs ./
 
 RUN yarn install --immutable
-RUN yarn typecheck
+RUN yarn tsc --build tsconfig.json
 RUN yarn workspace @copalibre/design-tokens build:tokens
 RUN yarn workspace @copalibre/web build
 # Keep only runtime dependencies while preserving all workspace links needed by
