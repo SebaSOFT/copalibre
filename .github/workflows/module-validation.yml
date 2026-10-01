@@ -64,4 +64,4 @@ jobs:
       - run: node scripts/validate-module-repository.mjs "${{ github.workspace }}/modules"
         working-directory: copalibre
         env:
-          COPALIBRE_VERSION: 1.2.0
+          COPALIBRE_VERSION: 1.2.1
