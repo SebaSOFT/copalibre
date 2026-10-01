@@ -1,3 +1,23 @@
+## [1.2.1](https://github.com/SebaSOFT/copalibre/compare/v1.2.0...v1.2.1) (2026-10-01)
+
+### Features
+
+- **web:** add versioned image cache-busting and optimistic preview ([9c114f0](https://github.com/SebaSOFT/copalibre/commit/9c114f0d9314ed9effa6ff3aa33ba8bbecf3afc0))
+- **web:** client-side image cutout and emblem display ([d0422af](https://github.com/SebaSOFT/copalibre/commit/d0422af947726a0b7d44732c1e7c296038740de4))
+- **web:** improve screen hierarchy and actionable alerts ([1fdfc61](https://github.com/SebaSOFT/copalibre/commit/1fdfc61bc75ae08964bb46b82bb3e8e6eced34d8))
+
+### Bug Fixes
+
+- **deps:** cover remaining Dependabot updates ([17a3aa2](https://github.com/SebaSOFT/copalibre/commit/17a3aa2dc5b0bfc43f67d35d3368954f8cc34f3c))
+- **deps:** enforce workspace-wide security audit ([7c9f718](https://github.com/SebaSOFT/copalibre/commit/7c9f7181f02f1992a1c4b3439bcebd47d06a403b))
+- **deps:** refresh security advisory floors ([d77506d](https://github.com/SebaSOFT/copalibre/commit/d77506dd78e7ba1f1ca96541ff3fce9d8aacfe99))
+- **deps:** resolve @nestjs/platform-fastify GHSA-9c5c-9qcx-q35q audit advisory ([0045807](https://github.com/SebaSOFT/copalibre/commit/004580758edde30e83c1ae98dacfab20c34ab004))
+- **deps:** resolve js-yaml security audit ([c5951ef](https://github.com/SebaSOFT/copalibre/commit/c5951efb5167b4f15ebf66844dc9dca55b62e5d4))
+- **web:** clarify info and live alert colors ([5024ee5](https://github.com/SebaSOFT/copalibre/commit/5024ee53db58704d6697eb8a41ede0ed7d18c2d7))
+- **web:** keep static control redirect same-origin ([6276b8d](https://github.com/SebaSOFT/copalibre/commit/6276b8d769a759a4c88f3ece076ed264872e9704))
+- **web:** localize static control redirect title ([00ef22d](https://github.com/SebaSOFT/copalibre/commit/00ef22d3d8ebd113cafce2556b2a3e43728b4322))
+- **web:** preserve canonical caching and fix CI test suites ([760b01d](https://github.com/SebaSOFT/copalibre/commit/760b01d2de8312ab1571afd51a5d08d0a54c8a9a))
+
 ## [1.2.0](https://github.com/SebaSOFT/copalibre/compare/v1.1.0...v1.2.0) (2026-09-28)
 
 ### Features

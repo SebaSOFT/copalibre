@@ -145,6 +145,8 @@ Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosti
   object storage), and installs, verifies, and removes modules; organization admins see their own storage usage.
 - **Club administration & self-service** — club representatives manage member directories, affiliations,
   and submit match rosters for organizer review.
+- **Visual identity & foreground isolation** — browser-local neural foreground cutout and chamfered
+  cropping for emblems and participant photos with zero third-party data transmission.
 - **Self-hosted deployment** — one Docker image runs every process role; the `copalibre` CLI
   handles init, health checks (`doctor`), start, admin bootstrap, data diagnostics/repair, and verified backup/restore.
 
