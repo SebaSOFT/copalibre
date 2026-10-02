@@ -17,6 +17,27 @@ import type { SupportedLanguage } from '@copalibre/domain';
 export const prerender = false;
 
 const { organization } = Astro.params;
+
+const RESERVED_PREFIXES = new Set([
+  'control',
+  'help',
+  'tv',
+  'api',
+  'objects',
+  'organizations',
+  'disciplines',
+  'tournament-profiles',
+  'health',
+  'invitations',
+  'runtime-config.json',
+  'sitemap.xml',
+  'robots.txt',
+]);
+
+if (!organization || RESERVED_PREFIXES.has(organization.toLowerCase())) {
+  return new Response(null, { status: 404 });
+}
+
 const rawPath = Astro.request?.url ? new URL(Astro.request.url).pathname : Astro.url.pathname;
 const resolvedLocale: SupportedLanguage = resolvePathLocale(rawPath);
 const intl = publicIntl(resolvedLocale);
