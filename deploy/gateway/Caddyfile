@@ -1,35 +1,19 @@
 :80 {
-	# Microservice API endpoints
-	handle /api/* {
-		reverse_proxy api:3001
-	}
-	handle /auth/* {
-		reverse_proxy api:3001
-	}
-	handle /organizations/* {
-		reverse_proxy api:3001
-	}
-	handle /objects/* {
-		reverse_proxy api:3001
-	}
-	handle /admin/* {
-		reverse_proxy api:3001
-	}
-	handle /installation/* {
-		reverse_proxy api:3001
-	}
-	handle /.well-known/* {
-		reverse_proxy api:3001
-	}
-
-	# Realtime SSE stream with unbuffered flushing
-	handle /events/* {
+	# Realtime SSE stream
+	@events path /events /events/*
+	handle @events {
 		reverse_proxy events:3002 {
 			flush_interval -1
 		}
 	}
 
-	# Web frontend (SPA shell, SSR public pages, TV kiosks, assets)
+	# Microservice API endpoints (incluye rutas base y subrutas)
+	@api path /api /api/* /auth /auth/* /organizations /organizations/* /objects /objects/* /admin /admin/* /installation /installation/* /.well-known /.well-known/* /disciplines /disciplines/* /tournament-profiles /tournament-profiles/*
+	handle @api {
+		reverse_proxy api:3001
+	}
+
+	# Web frontend
 	handle {
 		reverse_proxy web:4321
 	}

@@ -218,29 +218,21 @@ export async function writeInstallationAssets(
     gatewayCaddyContent = await readAsset('Caddyfile', options.assetsDir);
   } catch {
     gatewayCaddyContent = `:80 {
-\thandle /api/* {
-\t\treverse_proxy api:3001
-\t}
-\thandle /auth/* {
-\t\treverse_proxy api:3001
-\t}
-\thandle /organizations/* {
-\t\treverse_proxy api:3001
-\t}
-\thandle /admin/* {
-\t\treverse_proxy api:3001
-\t}
-\thandle /installation/* {
-\t\treverse_proxy api:3001
-\t}
-\thandle /.well-known/* {
-\t\treverse_proxy api:3001
-\t}
-\thandle /events/* {
+\t# Realtime SSE stream
+\t@events path /events /events/*
+\thandle @events {
 \t\treverse_proxy events:3002 {
 \t\t\tflush_interval -1
 \t\t}
 \t}
+
+\t# Microservice API endpoints (incluye rutas base y subrutas)
+\t@api path /api /api/* /auth /auth/* /organizations /organizations/* /objects /objects/* /admin /admin/* /installation /installation/* /.well-known /.well-known/* /disciplines /disciplines/* /tournament-profiles /tournament-profiles/*
+\thandle @api {
+\t\treverse_proxy api:3001
+\t}
+
+\t# Web frontend
 \thandle {
 \t\treverse_proxy web:4321
 \t}
