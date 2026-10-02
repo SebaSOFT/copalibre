@@ -1,6 +1,9 @@
 ---
 import PublicLayout from '../layouts/PublicLayout.astro';
 import EmblemImage from '../components/ui/atoms/EmblemImage.astro';
+import Button from '../components/ui/atoms/Button.astro';
+import { Card } from '../components/ui/atoms/Card.tsx';
+import { Badge } from '../components/ui/atoms/Badge.tsx';
 import { fetchOrganizations, organizationEmblemUrl } from '../lib/public-api-client.ts';
 import { publicIntl } from '../lib/i18n/public-intl.ts';
 import { messages } from '../lib/i18n/public-messages.en.ts';
@@ -13,39 +16,91 @@ const organizations = (await fetchOrganizations()) ?? [];
 
 <PublicLayout
   title={intl.formatMessage(messages.homePageTitle)}
-  description="Self-hosted, transparent tournament management for clubs, leagues, and federations."
+  description={intl.formatMessage(messages.homePageDescription)}
   canonicalPath="/"
   intl={intl}
 >
   <div class="cl-home-container">
-    <header class="cl-home-header">
-      <h1>CopaLibre</h1>
-      <p>Self-hosted tournament operations.</p>
+    <header class="cl-home-hero">
+      <div class="cl-home-hero__meta">
+        <h1 class="cl-home-hero__title">{intl.formatMessage(messages.homeHeroTitle)}</h1>
+        <p class="cl-home-hero__subtitle">{intl.formatMessage(messages.homeHeroSubtitle)}</p>
+      </div>
+      <p class="cl-home-hero__description">
+        {intl.formatMessage(messages.homeHeroDescription)}
+      </p>
+      <div class="cl-home-hero__badges" role="list">
+        <Badge>{intl.formatMessage(messages.homeBadgeFreeSoftware)}</Badge>
+        <Badge>{intl.formatMessage(messages.homeBadgeSovereign)}</Badge>
+        <Badge>{intl.formatMessage(messages.homeBadgeDisciplines)}</Badge>
+      </div>
     </header>
 
     {
       organizations.length === 0 ? (
-        <div class="cl-empty-state">
-          <p>No published tournaments available yet.</p>
-        </div>
+        <section
+          class="cl-home-empty-hub cl-tactical-grid"
+          aria-label={intl.formatMessage(messages.homeEmptyHeading)}
+        >
+          <div class="cl-home-empty-hub__intro">
+            <h2 class="cl-home-empty-hub__heading">
+              {intl.formatMessage(messages.homeEmptyHeading)}
+            </h2>
+            <p class="cl-home-empty-hub__lead">{intl.formatMessage(messages.homeEmptyLead)}</p>
+          </div>
+
+          <div class="cl-home-orientation-grid">
+            <Card as="article" className="cl-orientation-card">
+              <h3 class="cl-orientation-card__title">
+                {intl.formatMessage(messages.homeOperatorCardTitle)}
+              </h3>
+              <p class="cl-orientation-card__body">
+                {intl.formatMessage(messages.homeOperatorCardBody)}
+              </p>
+              <div class="cl-orientation-card__action">
+                <Button href="/control/" variant="primary">
+                  {intl.formatMessage(messages.homeOperatorCta)}
+                </Button>
+              </div>
+            </Card>
+
+            <Card as="article" className="cl-orientation-card">
+              <h3 class="cl-orientation-card__title">
+                {intl.formatMessage(messages.homeDocsCardTitle)}
+              </h3>
+              <p class="cl-orientation-card__body">
+                {intl.formatMessage(messages.homeDocsCardBody)}
+              </p>
+              <div class="cl-orientation-card__action">
+                <Button href="/help/" variant="secondary">
+                  {intl.formatMessage(messages.homeDocsCta)}
+                </Button>
+              </div>
+            </Card>
+          </div>
+
+          <div class="cl-home-spectator-notice">
+            <p>{intl.formatMessage(messages.homeEmptySpectatorNotice)}</p>
+          </div>
+        </section>
       ) : (
         <section
           class="cl-org-directory"
           aria-label={intl.formatMessage(messages.homeOrganizationsLabel)}
         >
-          <h2>Organizations</h2>
+          <h2>{intl.formatMessage(messages.homeOrganizationsLabel)}</h2>
           <div class="cl-org-grid">
             {organizations.map((org) => (
-              <a href={`/${encodeURIComponent(org.alias)}`} class="cl-org-card cl-card cl-chamfer">
+              <a href={`/${encodeURIComponent(org.alias)}`} class="cl-org-card">
                 <EmblemImage
                   src={org.emblemObjectId ? organizationEmblemUrl(org.alias) : undefined}
-                  alt={`${org.name} emblem`}
-                  placeholderAlt={`${org.name} placeholder`}
+                  alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: org.name })}
+                  placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
                   size={48}
                 />
                 <div class="cl-org-info">
                   <span class="cl-org-name">{org.name}</span>
-                  <span class="cl-org-alias">/{org.alias}</span>
+                  <span class="cl-org-alias">{`/${org.alias}`}</span>
                 </div>
               </a>
             ))}
@@ -60,34 +115,141 @@ const organizations = (await fetchOrganizations()) ?? [];
   .cl-home-container {
     max-width: 960px;
     margin: 0 auto;
-    padding: 32px 16px;
+    padding: var(--cl-space-8) var(--cl-space-4);
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    gap: var(--cl-space-8);
   }
 
-  .cl-home-header h1 {
-    margin: 0 0 8px;
+  .cl-home-hero {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-4);
+  }
+
+  .cl-home-hero__meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-1);
+  }
+
+  .cl-home-hero__title {
+    margin: 0;
     font-size: 2.25rem;
     font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--cl-text-primary);
   }
 
-  .cl-home-header p {
+  .cl-home-hero__subtitle {
     margin: 0;
-    color: var(--cl-text-muted);
-    font-size: 1.125rem;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--cl-primary);
   }
 
-  .cl-empty-state {
-    padding: 48px 24px;
-    text-align: center;
-    border: 1px dashed var(--cl-border-muted);
+  .cl-home-hero__description {
+    margin: 0;
+    max-width: 64ch;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--cl-text-muted);
+  }
+
+  .cl-home-hero__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cl-space-2);
+    align-items: center;
+  }
+
+  .cl-home-empty-hub {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-6);
+    padding: var(--cl-space-8) var(--cl-space-6);
+    background: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
     border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .cl-home-empty-hub__intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-2);
+    text-align: center;
+    max-width: 580px;
+    margin: 0 auto;
+  }
+
+  .cl-home-empty-hub__heading {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--cl-text-primary);
+  }
+
+  .cl-home-empty-hub__lead {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--cl-text-muted);
+  }
+
+  .cl-home-orientation-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--cl-space-4);
+  }
+
+  .cl-orientation-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--cl-space-4);
+    padding: var(--cl-space-6);
+    background: var(--cl-surface-chrome);
+    border: 1px solid var(--cl-border-muted);
+  }
+
+  .cl-orientation-card__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--cl-text-primary);
+  }
+
+  .cl-orientation-card__body {
+    margin: 0;
+    flex: 1 1 auto;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--cl-text-muted);
+  }
+
+  .cl-orientation-card__action {
+    display: flex;
+    align-items: center;
+    padding-top: var(--cl-space-2);
+  }
+
+  .cl-home-spectator-notice {
+    padding: var(--cl-space-4);
+    text-align: center;
+    border-top: 1px solid var(--cl-border-subtle);
+  }
+
+  .cl-home-spectator-notice p {
+    margin: 0;
+    font-size: 0.75rem;
     color: var(--cl-text-muted);
   }
 
   .cl-org-directory h2 {
-    margin: 0 0 16px;
+    margin: 0 0 var(--cl-space-4);
     font-size: 1.25rem;
     font-weight: 600;
   }
@@ -95,14 +257,14 @@ const organizations = (await fetchOrganizations()) ?? [];
   .cl-org-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
+    gap: var(--cl-space-4);
   }
 
   .cl-org-card {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 16px;
+    gap: var(--cl-space-4);
+    padding: var(--cl-space-4);
     text-decoration: none;
     color: inherit;
     border: 1px solid var(--cl-border-muted);
@@ -117,7 +279,7 @@ const organizations = (await fetchOrganizations()) ?? [];
   .cl-org-info {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--cl-space-1);
     min-width: 0;
   }
 
@@ -130,7 +292,7 @@ const organizations = (await fetchOrganizations()) ?? [];
   }
 
   .cl-org-alias {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     color: var(--cl-text-muted);
   }
 </style>

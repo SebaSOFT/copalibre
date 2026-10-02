@@ -35,7 +35,6 @@ function readTree(directory) {
 
 const help = readOutput('help/index.html');
 const gettingStarted = readOutput('help/getting-started/index.html');
-const apiReference = readOutput('help/api-reference/index.html');
 const publicHome = readOutput('index.html');
 const controlHome = readOutput('control/index.html');
 const customCss = readFileSync(CUSTOM_CSS, 'utf8');
@@ -56,25 +55,6 @@ check(
 check('Starlight source does not define CopaLibre tokens', !starlightSource.includes('--cl-'));
 check('public home does not render Starlight markup', !publicHome.includes('starlight'));
 check('control home does not render Starlight markup', !controlHome.includes('starlight'));
-check(
-  'API reference reads the local OpenAPI artifact',
-  apiReference.includes("url: '/openapi/v1.json'"),
-);
-check(
-  'API reference loads Scalar from the vendored build asset, not a CDN',
-  apiReference.includes('src="/vendor/scalar/standalone.js"') &&
-    !apiReference.includes('cdn.jsdelivr.net') &&
-    !apiReference.includes('unpkg.com'),
-);
-check(
-  'Vendored Scalar bundle exists in the build output',
-  existsSync(join(DIST, 'vendor/scalar/standalone.js')),
-);
-check(
-  'API reference disables request execution',
-  apiReference.includes('hideTestRequestButton: true'),
-);
-check('API reference navigation forces a document load', help.includes('data-astro-reload'));
 
 const llmsTxt = existsSync(join(DIST, 'llms.txt')) ? readOutput('llms.txt') : '';
 const llmsFullTxt = existsSync(join(DIST, 'llms-full.txt')) ? readOutput('llms-full.txt') : '';

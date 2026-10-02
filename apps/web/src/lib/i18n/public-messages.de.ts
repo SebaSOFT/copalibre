@@ -50,6 +50,28 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.closeDialog': 'Dialog schließen',
   'publicWeb.home.pageTitle': 'CopaLibre — Turnierbetrieb',
   'publicWeb.home.organizationsLabel': 'Organisationen',
+  'publicWeb.home.pageDescription':
+    'Selbstgehostetes, transparentes Turniermanagement für Vereine, Ligen und Verbände.',
+  'publicWeb.home.heroTitle': 'CopaLibre',
+  'publicWeb.home.heroSubtitle': 'Selbstgehosteter Turnierbetrieb.',
+  'publicWeb.home.heroDescription':
+    'Unabhängiger, selbst hostbarer Wettbewerbsbetrieb mit präzisen Ergebnissen, verifizierbaren Regelwerken und ohne Bindung an Dritte.',
+  'publicWeb.home.badgeFreeSoftware': 'Freie Software (AGPL-3.0)',
+  'publicWeb.home.badgeSovereign': 'Souverän und selbstgehostet',
+  'publicWeb.home.badgeDisciplines': 'Konfigurationsgestützte Disziplinen',
+  'publicWeb.home.emptyHeading': 'Bereit für den Wettbewerb',
+  'publicWeb.home.emptyLead':
+    'Auf dieser Instanz wurden noch keine öffentlichen Turniere veröffentlicht.',
+  'publicWeb.home.operatorCardTitle': 'Turnierorganisatoren',
+  'publicWeb.home.operatorCardBody':
+    'Melden Sie sich im Kontrollpanel an, um Organisationen anzulegen, Disziplinen zu konfigurieren, Spielpläne zu erstellen und Live-Spiele zu leiten.',
+  'publicWeb.home.operatorCta': 'Kontrollpanel öffnen',
+  'publicWeb.home.docsCardTitle': 'Selbsthosting & Dokumentation',
+  'publicWeb.home.docsCardBody':
+    'Entdecken Sie das Bedienerhandbuch, konfigurieren Sie externe Reverse-Proxies oder integrieren Sie über REST-API und CLI.',
+  'publicWeb.home.docsCta': 'Anleitungen lesen',
+  'publicWeb.home.emptySpectatorNotice':
+    'Wenn Sie Zuschauer oder Teilnehmer sind, schauen Sie wieder vorbei, sobald die Organisatoren den Spielplan veröffentlicht haben.',
   'publicWeb.standings.empty': 'Die Tabelle erscheint, sobald das erste Spiel ausgetragen ist.',
   'publicWeb.standings.team': 'Team',
   'publicWeb.standings.played': 'Sp.',

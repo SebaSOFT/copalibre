@@ -50,6 +50,27 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.closeDialog': 'Fermer la boîte de dialogue',
   'publicWeb.home.pageTitle': 'CopaLibre — Gestion de tournois',
   'publicWeb.home.organizationsLabel': 'Organisations',
+  'publicWeb.home.pageDescription':
+    'Gestion transparente et auto-hébergée de tournois pour clubs, ligues et fédérations.',
+  'publicWeb.home.heroTitle': 'CopaLibre',
+  'publicWeb.home.heroSubtitle': 'Opérations de tournois auto-hébergées.',
+  'publicWeb.home.heroDescription':
+    'Opérations de compétition indépendantes et auto-hébergeables avec résultats précis, règlements vérifiables et sans dépendance tierce.',
+  'publicWeb.home.badgeFreeSoftware': 'Logiciel libre AGPL-3.0',
+  'publicWeb.home.badgeSovereign': 'Souverain et auto-hébergé',
+  'publicWeb.home.badgeDisciplines': 'Disciplines pilotées par configuration',
+  'publicWeb.home.emptyHeading': 'Prêt pour la compétition',
+  'publicWeb.home.emptyLead': 'Aucun tournoi public n’a encore été publié sur cette instance.',
+  'publicWeb.home.operatorCardTitle': 'Organisateurs de tournois',
+  'publicWeb.home.operatorCardBody':
+    'Connectez-vous au Panneau de configuration pour créer des organisations, configurer des disciplines, générer des tableaux et gérer les matchs en direct.',
+  'publicWeb.home.operatorCta': 'Ouvrir le Panneau de contrôle',
+  'publicWeb.home.docsCardTitle': 'Auto-hébergement et documentation',
+  'publicWeb.home.docsCardBody':
+    'Explorez le manuel de l’opérateur, configurez des proxys inverses externes ou intégrez via l’API REST et le CLI.',
+  'publicWeb.home.docsCta': 'Lire les guides',
+  'publicWeb.home.emptySpectatorNotice':
+    'Si vous êtes spectateur ou participant, revenez consulter cette page dès que les organisateurs auront publié le calendrier.',
   'publicWeb.standings.empty': 'Le classement apparaît après le premier match joué.',
   'publicWeb.standings.team': 'Équipe',
   'publicWeb.standings.played': 'MJ',
