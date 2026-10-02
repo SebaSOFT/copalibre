@@ -371,7 +371,9 @@ grid of the organization's clubs. The Live section SHALL render before the Featu
 SHALL be reachable without already knowing a specific tournament's alias, and SHALL be rendered per
 request from current backend state, matching the existing overview page's "reachable without a site
 rebuild" guarantee. Every emblem shown on this page, and every placeholder shown in its place, SHALL
-render inside the platform's standard 4:5 framed-image presentation.
+render inside the platform's standard 4:5 framed-image presentation. Reserved system route prefixes
+(`organizations`, `objects`, `control`, `tv`, `events`, `api`, `docs`) SHALL NOT be treated as
+organization aliases and requests matching them SHALL NOT be processed as public organization listings.
 
 The previously served path `/{organization}/tournaments` SHALL NOT be served.
 
@@ -424,6 +426,10 @@ The previously served path `/{organization}/tournaments` SHALL NOT be served.
 - **WHEN** an organization has no emblem
 - **THEN** the header renders a placeholder, inside the standard framed presentation, rather than a
   broken image or an empty gap
+
+#### Scenario: Reserved system route prefixes are not treated as organization aliases
+- **WHEN** a request arrives for a top-level path matching a reserved system prefix (`organizations`, `objects`, `control`, `tv`, `events`, `api`, `docs`)
+- **THEN** the organization-scoped route handler aborts without issuing backend organization queries or rendering an organization-not-found error page
 
 ### Requirement: A finished tournament's listing card shows its winner and runner-up, per zone
 

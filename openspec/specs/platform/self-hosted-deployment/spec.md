@@ -35,13 +35,15 @@ The repository SHALL provide a `docker-compose.yml` that starts a complete singl
 installation (all process roles, PostgreSQL, and optional Redis/object storage/SMTP) with one
 command, and a separate dev profile with Compose Watch enabled. The installation SHALL include an
 integrated edge reverse proxy service that unifies network ingress under a single published host port
-(`COPALIBRE_PORT`, default 8080 or 80), routing `/api/*`, `/auth/*`, `/organizations/*`, `/admin/*`,
-and `/installation/*` to the `api` service (port 3001), `/events/*` to the `events` service (port 3002,
-preserving SSE streaming), and all other requests (static assets, control panel shell, SSR public pages,
-TV kiosks) to the `web` service (port 4321). Individual microservices (`api`, `events`, `web`, `web-ssr`)
-SHALL NOT require external port exposure in production mode. When the optional object storage adapter
-is enabled, it SHALL be provided by a lightweight Garage container (`dxflrs/garage:v1.1.0`), and SHALL NOT
-require secondary auxiliary containers for bucket provisioning.
+(`COPALIBRE_PORT`, default 8080 or 80), routing `/api` (`/api/*`), `/auth` (`/auth/*`), `/organizations`
+(`/organizations/*`), `/objects` (`/objects/*`), `/admin` (`/admin/*`), `/installation` (`/installation/*`),
+and `/.well-known` (`/.well-known/*`) to the `api` service (port 3001), `/events` (`/events/*`) to the `events`
+service (port 3002, preserving SSE streaming), and all other requests (static assets, control panel shell, SSR public pages,
+TV kiosks) to the `web` service (port 4321). Edge reverse proxy and web proxy matchers SHALL match both bare
+prefixes and subpaths, ensuring queries such as `/organizations?mine=true` are not forwarded to web SSR.
+Individual microservices (`api`, `events`, `web`, `web-ssr`) SHALL NOT require external port exposure in production mode.
+When the optional object storage adapter is enabled, it SHALL be provided by a lightweight Garage container
+(`dxflrs/garage:v1.1.0`), and SHALL NOT require secondary auxiliary containers for bucket provisioning.
 
 #### Scenario: One-command install
 - **WHEN** an operator with Docker installed runs the documented Compose-up command against a fresh
