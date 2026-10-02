@@ -515,3 +515,18 @@ The pre-rendered `/control/` entry route SHALL send browsers to `/control/login`
 #### Scenario: Return destination is preserved
 - **WHEN** a request to `/control/` includes a `returnTo` query parameter
 - **THEN** the login route retains the parameter with its value safely URL-encoded
+
+### Requirement: Public self-hosting documentation truthfulness
+The repository and its associated public documentation (`docs/self-hosting.md` and `copalibre-app`'s `/self-hosting` page) SHALL accurately describe the standalone CLI installation and canonical redirect endpoint, `copalibre init` directory scaffolding, required PostgreSQL and edge reverse proxy services, `copalibre backup` and `copalibre restore --confirm` procedures, and `copalibre upgrade-check` compatibility verification without fictitious commands, ports, or single-container SQLite deployments.
+
+#### Scenario: Truthful Compose architecture presented in public self-hosting documentation
+- **WHEN** an operator or evaluator inspects the public self-hosting documentation
+- **THEN** the documented Compose architecture and references describe the real multi-service structure (`postgres`, `migrate`, `api`, `events`, `web`, `worker`, `scheduler`, `gateway`) and real published gateway ingress port (8080) rather than a non-existent single-container SQLite service.
+
+#### Scenario: Canonical installer redirect behavior
+- **WHEN** an operator executes `curl -fsSL https://copalibre.app/install.sh | bash`
+- **THEN** the endpoint resolves or delegates to the official release installer script from GitHub Releases (`https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh`), installing the standalone `copalibre` binary without failure.
+
+#### Scenario: Truthful CLI commands and terminal examples
+- **WHEN** an operator follows the documented command examples on the self-hosting guide
+- **THEN** the commands match real CLI syntax (`copalibre backup`, `copalibre restore --file <path> --confirm`, `copalibre upgrade-check --target-version <version>`) and do not fail due to fictitious subcommands, missing required flags, or non-existent download endpoints.
