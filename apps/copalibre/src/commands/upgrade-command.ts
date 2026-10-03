@@ -6,6 +6,7 @@ import { readCopalibreVersion } from '../banner.js';
 import { runCommand } from '../command-support.js';
 import { isContainer, refuseForKubernetesMode, requireComposeTarget } from '../compose-target.js';
 import { reconcileInstallationDirectory } from '../compose-reconciler.js';
+import { readInstallationMarker } from '../installation-marker.js';
 import { formatOutdatedModules, runModuleUpgradeCheck } from '../module-upgrade-check.js';
 import { fetchReleaseMetadata, performSelfUpdate } from '../self-update.js';
 import { runUpgradeCheck } from '../upgrade-check.js';
@@ -52,15 +53,32 @@ export class UpgradeCommand extends Command<CliContext> {
         targetVersion = targetVersion.replace(/^v/, '');
       }
 
+      const marker = await readInstallationMarker(process.cwd());
+      const stackVersion = marker?.version;
+
       if (isCheckMode) {
         process.stdout.write(`Current CopaLibre version: v${currentVersion}\n`);
+        if (stackVersion) {
+          process.stdout.write(`Installed stack version: v${stackVersion}\n`);
+        }
         process.stdout.write(`Target / Latest available version: v${targetVersion}\n`);
-        if (currentVersion === targetVersion) {
+
+        const cliUpToDate = currentVersion === targetVersion;
+        const stackUpToDate = !stackVersion || stackVersion === targetVersion;
+
+        if (cliUpToDate && stackUpToDate) {
           process.stdout.write('CopaLibre is up to date.\n');
         } else {
-          process.stdout.write(
-            `Platform upgrade available: v${currentVersion} -> v${targetVersion}\n`,
-          );
+          if (!cliUpToDate) {
+            process.stdout.write(
+              `CLI binary upgrade available: v${currentVersion} -> v${targetVersion}\n`,
+            );
+          }
+          if (!stackUpToDate) {
+            process.stdout.write(
+              `Platform stack upgrade available: v${stackVersion} -> v${targetVersion}\n`,
+            );
+          }
         }
 
         try {
@@ -93,6 +111,11 @@ export class UpgradeCommand extends Command<CliContext> {
 
       // Interactive confirmation if running in interactive terminal
       if (!parsed.values.yes && process.stdin.isTTY) {
+        if (stackVersion && stackVersion !== currentVersion) {
+          process.stdout.write(
+            `Notice: CLI binary (v${currentVersion}) and installed stack (v${stackVersion}) differ.\n`,
+          );
+        }
         const readline = createInterface({
           input: process.stdin,
           output: process.stdout,
