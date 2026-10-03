@@ -7,9 +7,13 @@ roles:
 
 ## Updating the copalibre CLI itself
 
-`copalibre --version` prints the installed binary's version. Re-running the install script fetches
-the latest release and replaces the binary in place — it's idempotent, checking the installed
-version first and skipping the download when it already matches:
+`copalibre --version` prints the installed binary's version. Standalone binaries can update themselves directly in place:
+
+```bash
+copalibre upgrade --self
+```
+
+Alternatively, re-running the install script fetches the latest release idempotently:
 
 ```bash
 curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
@@ -20,6 +24,20 @@ for updating the framework and its modules.
 
 ## Updating the framework
 
+### Automated upgrade with the CLI
+
+The recommended upgrade path uses the `copalibre upgrade` command inside the installation directory. It inspects version disparity, pulls new images, reconciles `docker-compose.yml` and `.env`, runs database migrations, and validates the installation with doctor health checks:
+
+```bash
+# 1. Preview changes and check version compatibility
+copalibre upgrade --check
+
+# 2. Run the automated upgrade
+copalibre upgrade
+```
+
+### Manual Compose upgrade procedure
+
 Keep the CLI matching `.copalibre/installation.json` for the current installation. Replacing the binary does not update the marker, Compose files or image pins. Before upgrading, back up PostgreSQL, object storage, configuration and signing keys; retain the old image versions.
 
 ```bash
@@ -29,13 +47,13 @@ copalibre backup --file backups/pre-upgrade.tar.gz
 In the existing installation directory, review the target release’s Compose/configuration changes and set both `.env` image references to the target version. Keep the same Compose project and volumes. Pull and check the target image without starting dependencies or applying migrations:
 
 ```dotenv
-COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.0
-COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.0
+COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.5
+COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.5
 ```
 
 ```bash
 docker compose pull
-docker compose run --rm --no-deps upgrade-check --target-version 1.2.0
+docker compose run --rm --no-deps upgrade-check --target-version 1.2.5
 ```
 
 After a successful check, schedule downtime, stop application writers, take a final backup, then migrate and restart. Do not restart if migration fails:

@@ -63,9 +63,9 @@ https://api.example`. `statistics-rebuild` and `module add/list/remove/verify` t
 authenticated HTTP connection.
 
 Day-two operations run through the same binary: `backup`/`restore` a compressed,
-retention-managed data packet, and `upgrade-check` to verify module and migration compatibility
-before moving a running installation to a newer version non-destructively (`copalibre start`
-applies pending migrations automatically once you do). `copalibre mcp` runs a local stdio MCP
+retention-managed data packet, `preflight` to check host prerequisites, and `upgrade`/`upgrade-check`
+to verify module compatibility and coordinate automated self-hosted upgrades non-destructively
+(`copalibre start` applies pending migrations automatically once you do). `copalibre mcp` runs a local stdio MCP
 server so an AI agent can drive the same operations — see [`docs/MCP.md`](docs/MCP.md). The full
 command reference, generated from the CLI's own metadata and checked at build time against every
 shipped command, lives at `/help/cli/commands/` on a running instance.

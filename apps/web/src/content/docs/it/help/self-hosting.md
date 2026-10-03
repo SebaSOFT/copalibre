@@ -73,7 +73,7 @@ Per distribuzioni multi-nodo, scalate orizzontalmente, o su infrastruttura gesti
 salute e processo di migrazione dell'installazione Compose — installarlo con i valori predefiniti si
 comporta in modo identico al solo chart base.
 
-Esegui Helm dalla radice del repository dopo aver configurato `my-values.yaml` con database, identità, email e URL pubblici. Usa una versione già pubblicata per entrambe le immagini; 1.2.0 sarà disponibile dopo la pubblicazione.
+Esegui Helm dalla radice del repository dopo aver configurato `my-values.yaml` con database, identità, email e URL pubblici. Usa una versione già pubblicata per entrambe le immagini; 1.2.5 sarà disponibile dopo la pubblicazione.
 
 ```bash
 cd ..
@@ -82,8 +82,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.0 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.0
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5
 ```
 
 Aggiungi questi gruppi `values.yaml` additivi, disattivati per impostazione predefinita, secondo le

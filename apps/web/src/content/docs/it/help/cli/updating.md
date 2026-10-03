@@ -30,13 +30,13 @@ copalibre backup --file backups/pre-upgrade.tar.gz
 Nella directory esistente, esamina le modifiche Compose/configurazione della versione destinazione e aggiorna entrambe le immagini in `.env`. Conserva progetto Compose e volumi. Scarica e verifica l’immagine senza avviare dipendenze né applicare migrazioni:
 
 ```dotenv
-COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.0
-COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.0
+COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.5
+COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.5
 ```
 
 ```bash
 docker compose pull
-docker compose run --rm --no-deps upgrade-check --target-version 1.2.0
+docker compose run --rm --no-deps upgrade-check --target-version 1.2.5
 ```
 
 Dopo la verifica, pianifica un’interruzione, arresta i processi applicativi e crea un backup finale; poi migra e riavvia. Non riavviare se la migrazione fallisce:
