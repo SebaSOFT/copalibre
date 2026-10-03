@@ -25,13 +25,22 @@ to the CopaLibre version that `init` created it with — running several version
 running the matching CLI version per directory (see [updating](/help/cli/updating/)).
 
 Without `--kubernetes`, writes `docker-compose.yml` and `.env` with non-secret defaults, and lists
-the required secrets to fill into `.env` afterward.
+the required secrets to fill into `.env` afterward. In an interactive terminal, `copalibre init`
+launches a setup wizard prompting for domain configuration, starter disciplines, and generates a
+secure `GARAGE_RPC_SECRET`. It also validates host requirements (Docker daemon, socket permissions,
+Compose v2, port availability) before proceeding.
 
 - `--module-dev`: also writes `docker-compose.module-dev.yml` and a `modules-dev/` directory,
   bind-mounted into `api`/`worker` with `COPALIBRE_MODULE_SOURCE_ALLOWLIST` pre-set — pairs with
   `module scaffold --output modules-dev/<alias>` and `module add <alias> --source
 file:///var/lib/copalibre/modules-dev/<alias>` to develop a module against a running self-hosted
   instance with no source checkout.
+- `--non-interactive`: skip interactive prompts and use sensible defaults or provided flags
+- `--skip-preflight`: bypass host and Docker daemon preflight validation checks
+- `--app-url <url>`: public application URL (default: `http://localhost:8080`)
+- `--api-url <url>`: public API URL (defaults to match application URL)
+- `--disciplines <list>`: comma-separated list of starter disciplines (default: `football,tennis`)
+- `--proxy <type>`: export reverse proxy configuration file (e.g. `nginx` exports `copalibre-nginx.conf`)
 
 With `--kubernetes`, writes a Helm `values.yaml` scaffold instead — no compose file, no `.env`;
 Kubernetes' own Secret/ConfigMap mechanism stays authoritative for configuration. Full workflow,
@@ -45,15 +54,16 @@ including bootstrapping the first administrator as a one-shot Helm Job:
 
 ## doctor
 
-`copalibre doctor [--check-proxy] [--proxy-url <url>] [--fix | --interactive]`
+`copalibre doctor [--check-proxy] [--proxy-url <url>] [--smoke] [--fix | --interactive]`
 
-Validates configuration and dependencies before starting. When `DATABASE_URL` is
-configured, it also reports tournaments holding a non-canonical status (for
-example, one left over from an old import script) as an informational finding
-— never as a reason to fail the check or block startup.
+Validates configuration and dependencies before starting. Performs host preflight checks (Docker
+daemon connectivity and socket permissions). When `DATABASE_URL` is configured, it also reports
+tournaments holding a non-canonical status (for example, one left over from an old import script) as
+an informational finding — never as a reason to fail the check or block startup.
 
 - `--check-proxy`: also verifies the reverse-proxy configuration
 - `--proxy-url <url>`: public URL to test when `--check-proxy` is used
+- `--smoke`: run end-to-end connectivity smoke tests against gateway, auth JWKS, organizations, and SSE stream
 - `--fix`, `--interactive`: after reporting, walk any non-canonical tournament
   status through an interactive prompt (choose the correct status, confirm,
   apply). Requires a TTY; run it from an interactive shell, not a script or CI

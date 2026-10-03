@@ -23,4 +23,18 @@ describe('reverse-proxy example configs', () => {
     expect(nginxConf).toMatch(/set_real_ip_from\s+\S+;/);
     expect(nginxConf).toContain('real_ip_header X-Forwarded-For;');
   });
+
+  it('deploy/templates/nginx/copalibre.conf specifies unbuffered SSE, 86400s timeouts, and WebSocket upgrades', () => {
+    const templateDir = join(ROOT, '../../../deploy/templates/nginx');
+    const templateConf = readFileSync(join(templateDir, 'copalibre.conf'), 'utf8');
+
+    expect(templateConf).toContain('location /events/ {');
+    expect(templateConf).toContain('proxy_buffering off;');
+    expect(templateConf).toContain('proxy_cache off;');
+    expect(templateConf).toMatch(/add_header\s+X-Accel-Buffering\s+"?no"?\s+always;/);
+    expect(templateConf).toContain('proxy_read_timeout 86400s;');
+    expect(templateConf).toContain('proxy_send_timeout 86400s;');
+    expect(templateConf).toContain('proxy_set_header Upgrade $http_upgrade;');
+    expect(templateConf).toMatch(/proxy_set_header\s+Connection\s+\$connection_upgrade;/);
+  });
 });

@@ -1,9 +1,12 @@
+import { readFile } from 'node:fs/promises';
+import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 import { Command, Option } from 'clipanion';
 import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
 import { formatRequiredSecrets, writeInstallationAssets } from '../init.js';
 import { writeKubernetesInstallationAssets } from '../kubernetes-init.js';
+import { formatPreflightReport, runPreflight } from '../preflight.js';
 
 const DEFAULT_KUBERNETES_NAMESPACE = 'default';
 const DEFAULT_KUBERNETES_RELEASE = 'copalibre';
@@ -23,6 +26,12 @@ export class InitCommand extends Command<CliContext> {
           namespace: { type: 'string' },
           release: { type: 'string' },
           context: { type: 'string' },
+          proxy: { type: 'string' },
+          'non-interactive': { type: 'boolean', default: false },
+          'skip-preflight': { type: 'boolean', default: false },
+          'app-url': { type: 'string' },
+          'api-url': { type: 'string' },
+          disciplines: { type: 'string' },
         },
         strict: true,
       });
@@ -44,18 +53,94 @@ export class InitCommand extends Command<CliContext> {
         return 0;
       }
 
+      if (!parsed.values['skip-preflight']) {
+        const preflight = await runPreflight();
+        if (!preflight.ok) {
+          process.stderr.write(formatPreflightReport(preflight) + '\n');
+          const isNonInteractive = parsed.values['non-interactive'] || !process.stdin.isTTY;
+          if (isNonInteractive) {
+            throw new Error(
+              'Host preflight checks failed. Review the remediation steps above, or pass --skip-preflight to bypass.',
+            );
+          }
+          const rl = createInterface({ input: process.stdin, output: process.stdout });
+          try {
+            const answer = await rl.question(
+              'Preflight checks reported issues. Continue anyway? (y/N): ',
+            );
+            if (answer.trim().toLowerCase() !== 'y') {
+              return 1;
+            }
+          } finally {
+            rl.close();
+          }
+        }
+      }
+
+      let appUrl = parsed.values['app-url'];
+      let apiUrl = parsed.values['api-url'];
+      let starterDisciplines: string[] | undefined = parsed.values.disciplines
+        ? parsed.values.disciplines
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : undefined;
+
+      const isInteractive = process.stdin.isTTY && !parsed.values['non-interactive'];
+      if (isInteractive) {
+        const rl = createInterface({ input: process.stdin, output: process.stdout });
+        try {
+          if (!appUrl) {
+            const enteredAppUrl = await rl.question(
+              'Public application URL [http://localhost:8080]: ',
+            );
+            appUrl = enteredAppUrl.trim() || 'http://localhost:8080';
+          }
+          if (!apiUrl) {
+            const enteredApiUrl = await rl.question(`Public API URL [${appUrl}]: `);
+            apiUrl = enteredApiUrl.trim() || appUrl;
+          }
+          if (!starterDisciplines) {
+            const enteredDisciplines = await rl.question(
+              'Starter sport disciplines to provision [football, tennis]: ',
+            );
+            starterDisciplines = enteredDisciplines.trim()
+              ? enteredDisciplines
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              : ['football', 'tennis'];
+          }
+        } finally {
+          rl.close();
+        }
+      }
+
       const result = await writeInstallationAssets(process.cwd(), {
         moduleDev: parsed.values['module-dev'],
+        proxy: parsed.values.proxy,
+        appUrl,
+        apiUrl,
+        starterDisciplines,
       });
+
       const lines = [
         `Wrote ${result.composeFile}`,
         ...(result.moduleDevFile ? [`Wrote ${result.moduleDevFile}`] : []),
         `Wrote ${result.envFile}`,
+        ...(result.proxyConfigFile ? [`Wrote ${result.proxyConfigFile}`] : []),
+        `Scaffolded local ./modules directory (disciplines and profiles)`,
         `Installation recorded: CopaLibre ${result.marker.version}, id ${result.marker.installId}`,
         '',
         `Required secrets:\n${formatRequiredSecrets()}`,
       ];
       process.stdout.write(`${lines.join('\n')}\n`);
+
+      if (parsed.values.proxy === 'nginx' && result.proxyConfigFile) {
+        const proxyConfigContent = await readFile(result.proxyConfigFile, 'utf8');
+        process.stdout.write(`\n--- Generated Nginx Configuration ---\n${proxyConfigContent}\n`);
+      }
+
       return 0;
     });
   }

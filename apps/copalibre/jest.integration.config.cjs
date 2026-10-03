@@ -5,7 +5,7 @@ const generateJestWorkspaceMapper = require('../../scripts/generate-jest-workspa
 module.exports = {
   ...base,
   displayName: 'copalibre-integration',
-  testMatch: ['<rootDir>/src/**/*.integration.test.ts'],
+  testMatch: ['<rootDir>/src/**/*.integration.test.ts', '<rootDir>/test/**/*.integration.test.ts'],
   moduleNameMapper: {
     ...esmExtensionMapper,
     ...generateJestWorkspaceMapper(__dirname),

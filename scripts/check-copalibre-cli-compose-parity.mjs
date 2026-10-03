@@ -31,6 +31,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       '../docker-compose.module-dev.yml',
       '../apps/copalibre/dist/assets/docker-compose.module-dev.yml',
     ],
+    [
+      'copalibre.conf',
+      '../deploy/templates/nginx/copalibre.conf',
+      '../apps/copalibre/dist/assets/copalibre.conf',
+    ],
   ];
 
   const problems = [];

@@ -25,6 +25,7 @@ x-application-environment: &application-environment
   COPALIBRE_OBJECT_STORAGE_BUCKET: ${COPALIBRE_OBJECT_STORAGE_BUCKET:-}
   COPALIBRE_OBJECT_STORAGE_REGION: ${COPALIBRE_OBJECT_STORAGE_REGION:-}
   COPALIBRE_DATA_DIR: /var/lib/copalibre
+  COPALIBRE_MODULE_SOURCE_ALLOWLIST: ${COPALIBRE_MODULE_SOURCE_ALLOWLIST:-file:///var/lib/copalibre/modules}
   COPALIBRE_IN_CONTAINER: 'true'
   HOST: '0.0.0.0'
 
@@ -57,6 +58,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ./modules:/var/lib/copalibre/modules:ro
     restart: 'no'
 
   api:
@@ -72,6 +75,7 @@ services:
       - '3001:3001'
     volumes:
       - copalibre-data:/var/lib/copalibre
+      - ./modules:/var/lib/copalibre/modules:ro
     healthcheck:
       test:
         [
@@ -116,6 +120,7 @@ services:
         condition: service_completed_successfully
     volumes:
       - copalibre-data:/var/lib/copalibre
+      - ./modules:/var/lib/copalibre/modules:ro
     healthcheck:
       test:
         [
@@ -161,6 +166,7 @@ services:
       - '3005:3005'
     volumes:
       - copalibre-data:/var/lib/copalibre
+      - ./modules:/var/lib/copalibre/modules:ro
     healthcheck:
       test:
         [
@@ -181,6 +187,8 @@ services:
       COPALIBRE_OIDC_CLIENT_ID: ${COPALIBRE_OIDC_CLIENT_ID:?Set COPALIBRE_OIDC_CLIENT_ID in .env}
     ports:
       - '4321:4321'
+    volumes:
+      - ./modules:/var/lib/copalibre/modules:ro
     healthcheck:
       test: ['CMD-SHELL', 'wget -q --spider http://127.0.0.1:4321/']
       interval: 5s
