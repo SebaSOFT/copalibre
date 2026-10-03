@@ -155,7 +155,9 @@ allow an explicit override.
 
 ### Requirement: Installed modules can be re-verified and retired
 The CLI SHALL re-run validation against installed modules and report versions no started tournament
-references.
+references. In addition, the CLI SHALL inspect the curated module registry during upgrade workflows
+to detect newer published revisions for installed disciplines and profiles, reporting upgrade deltas
+and prompting the operator to update them.
 
 #### Scenario: Drift against the registry is detected
 - **WHEN** an installed module references an identifier removed from the registry by a core upgrade
@@ -164,6 +166,10 @@ references.
 #### Scenario: A version in use is not offered for retirement
 - **WHEN** a started tournament references a discipline version
 - **THEN** that version is excluded from the retirable list
+
+#### Scenario: Outdated modules are detected and reported during upgrade
+- **WHEN** an operator runs `copalibre upgrade` and an installed module has a higher version published in the curated registry
+- **THEN** the upgrade flow reports the version delta (e.g. `1.1.0 -> 1.2.0`) and prompts the operator to update the module.
 
 ### Requirement: A module can be scaffolded, validated, and run locally before submission
 

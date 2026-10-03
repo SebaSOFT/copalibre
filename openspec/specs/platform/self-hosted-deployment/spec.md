@@ -73,7 +73,7 @@ When the optional object storage adapter is enabled, it SHALL be provided by a l
 
 ### Requirement: copalibre administrative CLI
 The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev --hybrid`, `start`,
-`migrate`, `create-admin`, `login`, `statistics-rebuild`, `backup`, `restore`, `upgrade-check`, and
+`migrate`, `create-admin`, `login`, `statistics-rebuild`, `backup`, `restore`, `upgrade-check`, `upgrade`, and
 `mcp` subcommands, distributed both as a standalone executable (downloadable via a documented install
 script, one per supported OS/architecture) and as source runnable from a checkout — the two SHALL
 behave identically for every subcommand. In addition to environment and service configuration checks,
@@ -92,6 +92,11 @@ documented subcommand, sourced from one place so the top-level summary and each 
 cannot drift apart. `upgrade-check` SHALL evaluate a given target CopaLibre version against every
 installed module's declared compatibility range and report pending database migrations, exiting
 non-zero if any installed module would become incompatible with the target version.
+
+`copalibre upgrade` SHALL coordinate the end-to-end upgrade lifecycle: (1) self-updating the CLI binary
+to the target or latest stable release, (2) reconciling `docker-compose.yml` and newly required `.env` variables
+while preserving existing port bindings and volume configuration, (3) pulling updated container images and
+applying database migrations via `copalibre migrate`, and (4) detecting and prompting for available module updates.
 
 `copalibre init`, run in a directory with no prior CopaLibre installation, SHALL write a complete,
 runnable installation (a Compose file and its environment defaults) into that directory without
@@ -274,6 +279,14 @@ SHALL operate over a direct database connection.
 #### Scenario: init scaffolds local modules directory and prompts for starter disciplines
 - **WHEN** an operator runs `copalibre init`
 - **THEN** the CLI creates the `./modules/disciplines/` and `./modules/profiles/` directories with starter documentation, binds the directory into the compose environment for both backend containers and frontend containers, and records the selected starter disciplines for bootstrap.
+
+#### Scenario: upgrade orchestrates executable, compose, images, migrations, and module checks
+- **WHEN** an operator runs `copalibre upgrade`
+- **THEN** the CLI verifies available target version, updates the CLI executable, reconciles `docker-compose.yml` and `.env` variables, pulls updated images, executes database migrations, and queries for outdated module updates.
+
+#### Scenario: upgrade --check inspects available platform and module updates non-destructively
+- **WHEN** an operator runs `copalibre upgrade --check`
+- **THEN** the CLI prints available platform versions and outdated modules without applying changes or restarting containers.
 
 ### Requirement: Kubernetes instance mode
 
