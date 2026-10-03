@@ -150,6 +150,35 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     ],
   },
   {
+    name: 'upgrade',
+    summary:
+      'Coordinate self-hosted upgrade lifecycle: CLI binary, compose, images, migrations, and modules',
+    usage:
+      'copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--yes]',
+    flags: [
+      {
+        flag: '--check',
+        description: 'Inspect available platform and module updates without applying changes',
+      },
+      {
+        flag: '--target-version <v>',
+        description: 'Target CopaLibre version to upgrade to (default: latest release)',
+      },
+      {
+        flag: '--self',
+        description: 'Only self-update the CLI binary without touching services',
+      },
+      {
+        flag: '--skip-self-update',
+        description: 'Skip CLI binary update and only upgrade compose, images, and migrations',
+      },
+      {
+        flag: '--yes, -y',
+        description: 'Run upgrade non-interactively without confirmation prompts',
+      },
+    ],
+  },
+  {
     name: 'create-admin',
     summary: 'Bootstrap the first administrator account for an organization',
     usage:

@@ -142,6 +142,18 @@ Checks installed module compatibility and pending migrations before upgrading.
 Exits with a non-zero status if any installed module would stop being compatible with the target
 version. See [updating](/help/cli/updating/) for the full sequence.
 
+## upgrade
+
+`copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--yes]`
+
+Coordinates the end-to-end self-hosted upgrade lifecycle: CLI binary self-updating, Compose file and environment reconciliation, container image pulling, database schema migrations, and outdated module update inspection.
+
+- `--check`: inspect available platform and module updates without applying changes or restarting containers
+- `--target-version <v>`: target CopaLibre version to upgrade to (default: latest published release)
+- `--self`: only self-update the CLI binary without modifying Compose, pulling images, or restarting services
+- `--skip-self-update`: skip CLI binary update and only upgrade Compose configuration, container images, and migrations
+- `--yes`, `-y`: run upgrade non-interactively without confirmation prompts
+
 ## create-admin
 
 `copalibre create-admin --organization-alias <alias> --organization-name <name> --email <email>`
