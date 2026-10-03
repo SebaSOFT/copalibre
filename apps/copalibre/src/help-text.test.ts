@@ -73,6 +73,14 @@ describe('renderTopLevelHelp', () => {
   it('documents the global --version flag', () => {
     expect(renderTopLevelHelp()).toContain('--version');
   });
+
+  it('aligns command summaries with sufficient spacing after long command names', () => {
+    const rendered = renderTopLevelHelp();
+    const lines = rendered.split('\n');
+    const rebuildLine = lines.find((l) => l.trimStart().startsWith('statistics-rebuild'));
+    expect(rebuildLine).toBeDefined();
+    expect(rebuildLine).toMatch(/statistics-rebuild\s{3,}\S/);
+  });
 });
 
 describe('renderCommandHelp', () => {

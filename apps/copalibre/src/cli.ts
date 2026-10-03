@@ -33,10 +33,13 @@ export async function runCli(
   const command = arguments_[0];
   if (command && VERSION_FLAGS.has(command)) {
     // The larger, deliberately-invoked-only mark, in place of the compact
-    // per-invocation banner — stdout still carries only the
-    // version, unchanged, so nothing parsing it sees any difference.
+    // per-invocation banner — stdout carries only the semver string when
+    // redirected, while interactive TTYs display the unified logo mark without
+    // echoing the duplicate version string.
     process.stderr.write(renderFullLogo());
-    process.stdout.write(`${readCopalibreVersion()}\n`);
+    if (!process.stdout.isTTY) {
+      process.stdout.write(`${readCopalibreVersion()}\n`);
+    }
     return 0;
   }
   process.stderr.write(renderBanner());

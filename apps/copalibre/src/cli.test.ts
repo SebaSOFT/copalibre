@@ -112,15 +112,40 @@ describe('runCli', () => {
   });
 
   describe('--version', () => {
-    it('prints only the version, on stdout, without running any command', async () => {
+    it('prints only the version, on stdout, when stdout is not a TTY (piped/redirected)', async () => {
       const run = jest.fn<ProcessRunner['run']>(async () => 0);
       const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const isTTYOriginal = process.stdout.isTTY;
+      Object.defineProperty(process.stdout, 'isTTY', { value: false, configurable: true });
       try {
         const result = await runCli(['--version'], {}, { run });
         expect(result).toBe(0);
         expect(run).not.toHaveBeenCalled();
         expect(stdout).toHaveBeenCalledWith(`${readCopalibreVersion()}\n`);
       } finally {
+        Object.defineProperty(process.stdout, 'isTTY', {
+          value: isTTYOriginal,
+          configurable: true,
+        });
+        stdout.mockRestore();
+      }
+    });
+
+    it('omits duplicate raw version on stdout when running in an interactive TTY', async () => {
+      const run = jest.fn<ProcessRunner['run']>(async () => 0);
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const isTTYOriginal = process.stdout.isTTY;
+      Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
+      try {
+        const result = await runCli(['--version'], {}, { run });
+        expect(result).toBe(0);
+        expect(run).not.toHaveBeenCalled();
+        expect(stdout).not.toHaveBeenCalledWith(`${readCopalibreVersion()}\n`);
+      } finally {
+        Object.defineProperty(process.stdout, 'isTTY', {
+          value: isTTYOriginal,
+          configurable: true,
+        });
         stdout.mockRestore();
       }
     });

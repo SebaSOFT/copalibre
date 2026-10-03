@@ -69,16 +69,37 @@ export function readLogoText(dependencies: ReadPackageManifestDependencies = {})
   return readFileSync(logoUrl, 'utf8');
 }
 
+export interface BannerOptions {
+  readonly isTTY?: boolean;
+  readonly noColor?: boolean;
+}
+
+const ANSI_CYAN = '\x1b[36m';
+const ANSI_RESET = '\x1b[0m';
+
+/**
+ * Applies brand cyan ANSI coloring to ASCII line art if output is directed to a
+ * color-capable TTY and NO_COLOR is unset.
+ */
+export function colorizeAscii(text: string, options?: BannerOptions): string {
+  const isTTY = options?.isTTY ?? Boolean(process.stderr?.isTTY);
+  const noColor = options?.noColor ?? Boolean(process.env.NO_COLOR);
+  if (isTTY && !noColor) {
+    return `${ANSI_CYAN}${text}${ANSI_RESET}`;
+  }
+  return text;
+}
+
 /** Product self-identification printed on every invocation (task 1.1/2.1). */
-export function renderBanner(): string {
+export function renderBanner(options?: BannerOptions): string {
   const { version, license } = readPackageManifest();
-  return `${MARK}  CopaLibre v${version} · ${license}\n\n`;
+  return `${colorizeAscii(MARK, options)}  CopaLibre v${version} · ${license}\n\n`;
 }
 
 /** The larger mark, `--version`-only — see `readLogoText`. */
-export function renderFullLogo(): string {
+export function renderFullLogo(options?: BannerOptions): string {
   const { version, license } = readPackageManifest();
-  return `${readLogoText()}\n  CopaLibre v${version} · ${license}\n\n`;
+  return `${colorizeAscii(readLogoText(), options)}\n  CopaLibre v${version} · ${license}\n\n`;
 }
 
 /** The running CopaLibre version, for callers that need it outside the banner. */
