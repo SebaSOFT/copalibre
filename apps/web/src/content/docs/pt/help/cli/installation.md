@@ -17,7 +17,7 @@ sob Rosetta), e Windows (x86_64).
 
 ## Passos
 
-Execute os comandos em Bash (WSL2 ou Git Bash no Windows). O export PATH ativa o diretório do binário no shell atual. Para selecionar uma versão publicada, encaminhe o script para `VERSION=1.2.0 bash`; essa versão deve estar publicada.
+Execute os comandos em Bash (WSL2 ou Git Bash no Windows). O export PATH ativa o diretório do binário no shell atual. Para selecionar uma versão publicada, encaminhe o script para `VERSION=1.2.5 bash`; essa versão deve estar publicada.
 
 ```bash
 curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash

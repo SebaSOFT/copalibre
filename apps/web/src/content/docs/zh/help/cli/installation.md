@@ -16,7 +16,7 @@ Silicon）以及 Windows（x86_64）。
 
 ## 步骤
 
-在 Bash 中运行命令（Windows 使用 WSL2 或 Git Bash）。PATH 导出使当前 shell 能找到安装目录。若要选择已发布版本，将脚本传给 `VERSION=1.2.0 bash`；该版本必须已发布。
+在 Bash 中运行命令（Windows 使用 WSL2 或 Git Bash）。PATH 导出使当前 shell 能找到安装目录。若要选择已发布版本，将脚本传给 `VERSION=1.2.5 bash`；该版本必须已发布。
 
 ```bash
 curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash

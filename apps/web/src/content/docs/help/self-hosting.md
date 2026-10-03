@@ -72,7 +72,7 @@ For multi-node, horizontally-scaled, or managed-infrastructure deployments, a He
 migration process as the Compose install — installing it with default values behaves identically to
 the base chart alone.
 
-Run Helm from the checkout root, after creating and configuring `my-values.yaml` with database, identity, email and public URL settings. Use an already published version for both images; 1.2.0 becomes available after release publication.
+Run Helm from the checkout root, after creating and configuring `my-values.yaml` with database, identity, email and public URL settings. Use an already published version for both images; 1.2.5 becomes available after release publication.
 
 ```bash
 cd ..
@@ -81,8 +81,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.0 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.0
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5
 ```
 
 Layer these additive, defaulted-off `values.yaml` groups on top as needed — none require a template

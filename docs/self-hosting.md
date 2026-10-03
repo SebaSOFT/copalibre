@@ -1,8 +1,10 @@
 # Self-Hosting CopaLibre
 
-Install the standalone CLI as shown in [README](../README.md#get-started), then run
-`copalibre init` once in an empty installation directory. It writes a complete installation into the
-current directory — `docker-compose.yml`, `.env` with non-secret local defaults, and a
+Install the standalone CLI as shown in [README](../README.md#get-started). Optionally run
+`copalibre preflight` to verify host requirements (Docker daemon, socket permissions, Compose v2,
+available ports), then run `copalibre init` (or `copalibre init --wizard` for interactive domain and
+TLS proxy configuration) once in an empty installation directory. It writes a complete installation
+into the current directory — `docker-compose.yml`, `.env` with non-secret local defaults, and a
 `.copalibre/installation.json` marker — and lists values that must be supplied by the operator.
 `init` doesn't require running from the checkout's own root: `cd` into any empty directory first
 (a separate data/config directory, or a second installation) and run it there; every later command
@@ -163,7 +165,21 @@ Topology-specific procedures: [Caddy](deployment/reverse-proxy/caddy.md#upgradin
 [NGINX](deployment/reverse-proxy/nginx.md#upgrading-copalibre-behind-nginx), and
 [Kubernetes/Helm](deployment/enterprise-kubernetes.md#upgrading-an-existing-helm-release-safely).
 
-### Compose upgrade to 1.2.1
+### Automated upgrade with copalibre upgrade
+
+The `copalibre` CLI coordinates the end-to-end upgrade lifecycle:
+
+```bash
+# Preview changes and check version/module compatibility without modifying services
+copalibre upgrade --check
+
+# Execute the automated upgrade (pulls images, reconciles Compose, runs migrations, verifies health)
+copalibre upgrade
+```
+
+To upgrade only the CLI binary itself, run `copalibre upgrade --self`.
+
+### Manual Compose upgrade to 1.2.5
 
 Use this procedure after the target images have been published. Keep the existing installation
 directory, Compose project name and named volumes; a new `init` directory is a separate installation,
@@ -187,13 +203,13 @@ against a partially upgraded database to fit the budget.
    storage endpoints; a PostgreSQL backup does not contain those objects.
 3. Set **both** image references in `.env`:
    ```dotenv
-   COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.1
-   COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.1
+   COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.5
+   COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.5
    ```
 4. Pull images and run the target runtime's compatibility check without starting dependencies:
    ```bash
    docker compose pull
-   docker compose run --rm --no-deps upgrade-check --target-version 1.2.1
+   docker compose run --rm --no-deps upgrade-check --target-version 1.2.5
    ```
    The check reports incompatible installed modules and pending migrations without applying them.
    Resolve failures before proceeding. Keep PostgreSQL running for this check.
