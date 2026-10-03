@@ -85,8 +85,10 @@ initiate an interactive decision-support prompt workflow allowing an operator to
 anomaly non-destructively; without a TTY, it SHALL report that repair requires one and apply nothing.
 Every invocation SHALL print a startup banner identifying the product, its version, and
 its license before running the requested subcommand, and that banner SHALL be written to a stream that
-never mixes with a subcommand's own stdout output. Running `copalibre --help`/`-h` with no subcommand
-SHALL list every subcommand with a one-line summary, and running `copalibre <subcommand> --help`/`-h`
+never mixes with a subcommand's own stdout output. The ASCII monogram and full logo mark SHALL render
+in brand cyan color when output is directed to a color-capable TTY. Running `copalibre --help`/`-h` with no subcommand
+SHALL list every subcommand with a one-line summary formatted with sufficient column padding so no command name
+overlaps its summary description, and running `copalibre <subcommand> --help`/`-h`
 SHALL print that subcommand's usage line, a description of what it does, and its flags — for every
 documented subcommand, sourced from one place so the top-level summary and each subcommand's detail
 cannot drift apart. `upgrade-check` SHALL evaluate a given target CopaLibre version against every
@@ -165,13 +167,12 @@ SHALL operate over a direct database connection.
 
 #### Scenario: --version prints a larger, distinct mark
 - **WHEN** an operator runs `copalibre --version`
-- **THEN** the CLI writes a larger ASCII-art rendering of the CopaLibre mark to stderr, in place of
-  the compact per-invocation banner, while stdout still receives only the version number
+- **THEN** the CLI writes a larger ASCII-art rendering of the CopaLibre mark in brand cyan to stderr, in place of
+  the compact per-invocation banner, without duplicating the version string on interactive terminals while stdout receives the bare version when redirected
 
 #### Scenario: Top-level help lists every subcommand
 - **WHEN** an operator runs `copalibre --help`, `copalibre -h`, or `copalibre` with no arguments
-- **THEN** the output lists every documented subcommand with a one-line summary of what it does, and
-  names `copalibre <subcommand> --help` as the way to see more
+- **THEN** the output lists every documented subcommand with a one-line summary of what it does, with column alignment preventing longer command names from overlapping summaries, and names `copalibre <subcommand> --help` as the way to see more
 
 #### Scenario: A subcommand's own help never runs the subcommand
 - **WHEN** an operator runs `copalibre <subcommand> --help` or `copalibre <subcommand> -h` for any
