@@ -33,8 +33,10 @@ jobs:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
+      - run: yarn workspace @copalibre/domain build
       - run: yarn workspace @copalibre/routing build
       - run: yarn workspace @copalibre/realtime build
+      - run: yarn workspace @copalibre/tournament-engine build
       - run: yarn workspace @copalibre/design-tokens build:tokens
       - run: yarn playwright install --with-deps chromium
       - name: Start the built web preview
