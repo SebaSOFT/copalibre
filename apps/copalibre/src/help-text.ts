@@ -21,12 +21,38 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     name: 'init',
     summary: 'Write a new installation into the current directory — no checkout required',
     usage:
-      'copalibre init [--module-dev] | copalibre init --kubernetes [--namespace <ns>] ' +
-      '[--release <name>] [--context <ctx>]',
+      'copalibre init [--module-dev] [--proxy <name>] [--non-interactive] [--skip-preflight] ' +
+      '[--app-url <url>] [--api-url <url>] [--disciplines <list>] | ' +
+      'copalibre init --kubernetes [--namespace <ns>] [--release <name>] [--context <ctx>]',
     flags: [
       {
         flag: '--module-dev',
         description: 'Also write docker-compose.module-dev.yml, for local module development',
+      },
+      {
+        flag: '--proxy <name>',
+        description: 'Export reverse-proxy configuration template (e.g. "nginx")',
+      },
+      {
+        flag: '--non-interactive',
+        description: 'Run initialization without interactive setup prompts',
+      },
+      {
+        flag: '--skip-preflight',
+        description: 'Bypass Docker and host preflight validation',
+      },
+      {
+        flag: '--app-url <url>',
+        description: 'Public application domain URL (default: http://localhost:8080)',
+      },
+      {
+        flag: '--api-url <url>',
+        description: 'Public API domain URL (default: matches app-url)',
+      },
+      {
+        flag: '--disciplines <list>',
+        description:
+          'Comma-separated starter sport disciplines to provision (default: football, tennis)',
       },
       {
         flag: '--kubernetes',
@@ -49,10 +75,11 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'doctor',
     summary: 'Validate configuration and dependencies before starting',
-    usage: 'copalibre doctor [--check-proxy] [--proxy-url <url>] [--fix | --interactive]',
+    usage: 'copalibre doctor [--check-proxy] [--proxy-url <url>] [--smoke] [--fix | --interactive]',
     flags: [
       { flag: '--check-proxy', description: 'Also verify the reverse-proxy configuration' },
       { flag: '--proxy-url <url>', description: 'Public URL to probe when --check-proxy is set' },
+      { flag: '--smoke', description: 'Run post-setup end-to-end connectivity smoke tests' },
       {
         flag: '--fix, --interactive',
         description:

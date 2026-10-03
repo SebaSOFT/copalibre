@@ -101,6 +101,103 @@ describe('writeInstallationAssets', () => {
 
     await expect(writeInstallationAssets(cwd, { assetsDir })).rejects.toThrow();
   });
+
+  it('generates a 32-byte hex GARAGE_RPC_SECRET and interpolates custom domains', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    const result = await writeInstallationAssets(cwd, {
+      assetsDir,
+      appUrl: 'https://tournaments.example.com',
+    });
+
+    const env = await readFile(result.envFile, 'utf8');
+    expect(env).toMatch(/GARAGE_RPC_SECRET=[0-9a-f]{64}/);
+    expect(env).toContain('COPALIBRE_APP_URL=https://tournaments.example.com');
+    expect(env).toContain('COPALIBRE_API_URL=https://tournaments.example.com');
+    expect(env).toContain('COPALIBRE_JWT_ISSUER=https://tournaments.example.com');
+    expect(env).toContain('COPALIBRE_MODULE_SOURCE_ALLOWLIST=file:///var/lib/copalibre/modules');
+  });
+
+  it('scaffolds local ./modules directory hierarchy and starter disciplines', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    await writeInstallationAssets(cwd, {
+      assetsDir,
+      starterDisciplines: ['football', 'tennis'],
+    });
+
+    const readme = await readFile(join(cwd, 'modules', 'README.md'), 'utf8');
+    expect(readme).toContain('/var/lib/copalibre/modules');
+    expect(readme).toContain('- football');
+    expect(readme).toContain('- tennis');
+
+    const footballManifest = await readFile(
+      join(cwd, 'modules', 'disciplines', 'football', 'manifest.json'),
+      'utf8',
+    );
+    expect(JSON.parse(footballManifest).alias).toBe('football');
+
+    const tennisManifest = await readFile(
+      join(cwd, 'modules', 'disciplines', 'tennis', 'manifest.json'),
+      'utf8',
+    );
+    expect(JSON.parse(tennisManifest).alias).toBe('tennis');
+  });
+
+  it('exports copalibre-nginx.conf when proxy is set to nginx', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    const result = await writeInstallationAssets(cwd, {
+      assetsDir,
+      proxy: 'nginx',
+    });
+
+    expect(result.proxyConfigFile).toBe(join(cwd, 'copalibre-nginx.conf'));
+    const nginxConf = await readFile(join(cwd, 'copalibre-nginx.conf'), 'utf8');
+    expect(nginxConf).toContain('proxy_buffering off;');
+    expect(nginxConf).toContain('proxy_read_timeout 86400s;');
+    expect(nginxConf).toContain('proxy_set_header Upgrade $http_upgrade;');
+  });
+
+  it('interpolates public appUrl hostname into exported copalibre-nginx.conf', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    const result = await writeInstallationAssets(cwd, {
+      assetsDir,
+      proxy: 'nginx',
+      appUrl: 'https://play.copalibre.app',
+    });
+
+    const nginxConf = await readFile(
+      result.proxyConfigFile ?? join(cwd, 'copalibre-nginx.conf'),
+      'utf8',
+    );
+    expect(nginxConf).toContain('server_name play.copalibre.app;');
+    expect(nginxConf).toContain("proxy_set_header Connection '';");
+    expect(nginxConf).toContain('client_max_body_size 100M;');
+    expect(nginxConf).toContain('proxy_request_buffering off;');
+  });
+
+  it('supports apiUrl override without appUrl and falls back to default Caddyfile when not in assets', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    // Empty directory without Caddyfile
+    const emptyAssetsDir = await mkdtemp(join(tmpdir(), 'copalibre-empty-assets-'));
+    await writeFile(join(emptyAssetsDir, 'docker-compose.yml'), 'services: {}\n');
+
+    await writeInstallationAssets(cwd, {
+      assetsDir: emptyAssetsDir,
+      apiUrl: 'https://api.copalibre.local',
+    });
+
+    const env = await readFile(join(cwd, '.env'), 'utf8');
+    expect(env).toContain('COPALIBRE_API_URL=https://api.copalibre.local');
+    const caddy = await readFile(join(cwd, 'deploy', 'gateway', 'Caddyfile'), 'utf8');
+    expect(caddy).toContain('reverse_proxy events:3002');
+  });
 });
 
 describe('readAsset SEA-vs-relative-path resolution', () => {

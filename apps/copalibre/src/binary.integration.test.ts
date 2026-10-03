@@ -142,7 +142,12 @@ describeIfBuilt('packaged binary parity with node dist/main.js (integration)', (
 
         const nodeEnv = await readFile(join(nodeDirectory, '.env'), 'utf8');
         const binaryEnv = await readFile(join(binaryDirectory, '.env'), 'utf8');
-        expect(binaryEnv).toBe(nodeEnv);
+        // GARAGE_RPC_SECRET is generated randomly per-run (32-byte hex); everything else in .env must match.
+        const normalizeEnv = (env: string) =>
+          env.replace(/^GARAGE_RPC_SECRET=[0-9a-f]{64}$/m, 'GARAGE_RPC_SECRET=<random>');
+        expect(normalizeEnv(binaryEnv)).toBe(normalizeEnv(nodeEnv));
+        expect(binaryEnv).toMatch(/^GARAGE_RPC_SECRET=[0-9a-f]{64}$/m);
+        expect(nodeEnv).toMatch(/^GARAGE_RPC_SECRET=[0-9a-f]{64}$/m);
 
         const nodeMarker = JSON.parse(
           await readFile(join(nodeDirectory, '.copalibre', 'installation.json'), 'utf8'),

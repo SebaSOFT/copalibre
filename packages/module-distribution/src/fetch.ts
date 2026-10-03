@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { access, mkdtemp, rm } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -112,15 +112,86 @@ export async function listPublishedVersions(
  * checkout — the layout `copalibre-modules` uses (task 5.2) — since the
  * fetch itself does not yet know the module's kind.
  */
+export interface FetchModuleDependencies {
+  readonly runGit?: (args: readonly string[]) => Promise<{ stdout: string }>;
+  readonly listPublishedVersions?: (
+    source: ModuleSource,
+    alias: string,
+  ) => Promise<readonly string[]>;
+  readonly pathExists?: (path: string) => Promise<boolean>;
+  readonly readManifestFile?: (path: string) => Promise<string>;
+}
+
+async function tryManifestFallback(
+  source: ModuleSource,
+  alias: string,
+  range: string | undefined,
+  workspaceDirectory: string,
+  gitRunner: (args: readonly string[]) => Promise<{ stdout: string }>,
+  checkPath: (path: string) => Promise<boolean>,
+  readManifest: (path: string) => Promise<string>,
+): Promise<FetchedModule | undefined> {
+  const checkoutRoot = await mkdtemp(join(workspaceDirectory, 'copalibre-module-fallback-'));
+  try {
+    await gitRunner(['clone', '--quiet', '--depth', '1', source.repositoryUrl, checkoutRoot]);
+    for (const category of ['disciplines', 'profiles']) {
+      const candidate = join(checkoutRoot, category, alias);
+      const manifestPath = join(candidate, 'manifest.json');
+      if (await checkPath(manifestPath)) {
+        const manifestRaw = await readManifest(manifestPath);
+        const manifest = JSON.parse(manifestRaw) as { version?: string };
+        const version = manifest.version;
+        if (version && (!range || semver.satisfies(version, range, { includePrerelease: true }))) {
+          process.stderr.write(
+            `[diagnostic] Module "${alias}": Git tag was absent in ${source.repositoryUrl}; resolved version ${version} via default branch manifest verification fallback.\n`,
+          );
+          return { directory: candidate, checkoutRoot, resolvedVersion: version, source };
+        }
+      }
+    }
+  } catch {
+    // fallback failed
+  }
+  await rm(checkoutRoot, { recursive: true, force: true });
+  return undefined;
+}
+
+/**
+ * Resolves `alias`[`@range`] against `source` and checks out that tag's
+ * module directory into a fresh temp directory under `workspaceDirectory`
+ * (task 3.1). Tries `disciplines/<alias>` then `profiles/<alias>` within the
+ * checkout — the layout `copalibre-modules` uses (task 5.2) — since the
+ * fetch itself does not yet know the module's kind.
+ *
+ * If an exact Git tag is missing from the repository, attempts manifest
+ * verification fallback against the default branch.
+ */
 export async function fetchModule(
   source: ModuleSource,
   alias: string,
   range: string | undefined,
   workspaceDirectory: string = tmpdir(),
+  dependencies: FetchModuleDependencies = {},
 ): Promise<FetchedModule> {
-  const versions = await listPublishedVersions(source, alias);
+  const gitRunner = dependencies.runGit ?? runGit;
+  const listVersions = dependencies.listPublishedVersions ?? listPublishedVersions;
+  const checkPath = dependencies.pathExists ?? pathExists;
+  const readManifest = dependencies.readManifestFile ?? ((p: string) => readFile(p, 'utf8'));
+
+  const versions = await listVersions(source, alias);
   const resolvedVersion = resolveModuleVersion(versions, range);
   if (!resolvedVersion) {
+    const fallback = await tryManifestFallback(
+      source,
+      alias,
+      range,
+      workspaceDirectory,
+      gitRunner,
+      checkPath,
+      readManifest,
+    );
+    if (fallback) return fallback;
+
     throw new ModuleFetchError(
       `No published version of "${alias}" in ${source.repositoryUrl} satisfies ${range ?? 'any version'}` +
         (versions.length > 0 ? ` (published: ${versions.join(', ')})` : ' (no versions published)'),
@@ -129,7 +200,7 @@ export async function fetchModule(
 
   const checkoutRoot = await mkdtemp(join(workspaceDirectory, 'copalibre-module-fetch-'));
   try {
-    await runGit([
+    await gitRunner([
       'clone',
       '--quiet',
       '--depth',
@@ -141,6 +212,18 @@ export async function fetchModule(
     ]);
   } catch (error) {
     await rm(checkoutRoot, { recursive: true, force: true });
+    // Remote git tag clone failed: try manifest fallback on default branch
+    const fallback = await tryManifestFallback(
+      source,
+      alias,
+      range,
+      workspaceDirectory,
+      gitRunner,
+      checkPath,
+      readManifest,
+    );
+    if (fallback) return fallback;
+
     throw new ModuleFetchError(
       `Failed to fetch ${alias}@${resolvedVersion} from ${source.repositoryUrl}: ${String(error)}`,
     );
@@ -148,7 +231,7 @@ export async function fetchModule(
 
   for (const category of ['disciplines', 'profiles']) {
     const candidate = join(checkoutRoot, category, alias);
-    if (await pathExists(join(candidate, 'manifest.json'))) {
+    if (await checkPath(join(candidate, 'manifest.json'))) {
       return { directory: candidate, checkoutRoot, resolvedVersion, source };
     }
   }

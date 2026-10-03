@@ -1,4 +1,4 @@
-import { parseModuleTagVersions, resolveModuleVersion } from './fetch.js';
+import { fetchModule, parseModuleTagVersions, resolveModuleVersion } from './fetch.js';
 
 const LS_REMOTE_OUTPUT = [
   'abc123\trefs/tags/football@1.0.0',
@@ -48,5 +48,42 @@ describe('resolveModuleVersion', () => {
 
   it('returns undefined for an empty version list', () => {
     expect(resolveModuleVersion([], undefined)).toBeUndefined();
+  });
+});
+
+describe('fetchModule manifest verification fallback', () => {
+  const source = {
+    kind: 'curated' as const,
+    repositoryUrl: 'https://github.com/SebaSOFT/copalibre-modules.git',
+  };
+
+  it('falls back to default branch manifest when remote tag list has no published version', async () => {
+    const dependencies = {
+      listPublishedVersions: async () => [],
+      runGit: async () => ({ stdout: '' }),
+      pathExists: async (path: string) => path.includes('manifest.json'),
+      readManifestFile: async () => JSON.stringify({ alias: 'rink-hockey', version: '1.1.0' }),
+    };
+
+    const result = await fetchModule(source, 'rink-hockey', '^1.0.0', undefined, dependencies);
+    expect(result.resolvedVersion).toBe('1.1.0');
+    expect(result.directory).toContain('rink-hockey');
+  });
+
+  it('falls back to default branch manifest when remote git clone --branch tag fails', async () => {
+    const dependencies = {
+      listPublishedVersions: async () => ['1.1.0'],
+      runGit: async (args: readonly string[]) => {
+        if (args.includes('--branch')) {
+          throw new Error('Remote branch rink-hockey@1.1.0 not found');
+        }
+        return { stdout: '' };
+      },
+      pathExists: async (path: string) => path.includes('manifest.json'),
+      readManifestFile: async () => JSON.stringify({ alias: 'rink-hockey', version: '1.1.0' }),
+    };
+
+    const result = await fetchModule(source, 'rink-hockey', '1.1.0', undefined, dependencies);
+    expect(result.resolvedVersion).toBe('1.1.0');
   });
 });
