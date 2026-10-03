@@ -25,6 +25,7 @@ import { TournamentGetCommand } from './tournament-get-command.js';
 import { TournamentListCommand } from './tournament-list-command.js';
 import { TournamentPublishCommand } from './tournament-publish-command.js';
 import { UpgradeCheckCommand } from './upgrade-check-command.js';
+import { UpgradeCommand } from './upgrade-command.js';
 
 /** Every clipanion `Command` class registered on the `copalibre` CLI. */
 export const commandClasses: readonly CommandClass<CliContext>[] = [
@@ -37,6 +38,7 @@ export const commandClasses: readonly CommandClass<CliContext>[] = [
   RestoreCommand,
   RevokeLegacyPersonalAccessTokensCommand,
   UpgradeCheckCommand,
+  UpgradeCommand,
   CreateAdminCommand,
   LoginCommand,
   StatisticsRebuildCommand,
