@@ -95,3 +95,35 @@ describe('renderFullLogo', () => {
     expect(renderFullLogo().length).toBeGreaterThan(renderBanner().length);
   });
 });
+
+describe('colorizeAscii brand cyan styling', () => {
+  it('applies cyan ANSI escape codes when running on a TTY with NO_COLOR unset', () => {
+    const banner = renderBanner({ isTTY: true, noColor: false });
+    expect(banner).toContain('\x1b[36m');
+    expect(banner).toContain('\x1b[0m');
+
+    const fullLogo = renderFullLogo({ isTTY: true, noColor: false });
+    expect(fullLogo).toContain('\x1b[36m');
+    expect(fullLogo).toContain('\x1b[0m');
+  });
+
+  it('omits ANSI escape codes when NO_COLOR is set', () => {
+    const banner = renderBanner({ isTTY: true, noColor: true });
+    expect(banner).not.toContain('\x1b[36m');
+    expect(banner).not.toContain('\x1b[0m');
+
+    const fullLogo = renderFullLogo({ isTTY: true, noColor: true });
+    expect(fullLogo).not.toContain('\x1b[36m');
+    expect(fullLogo).not.toContain('\x1b[0m');
+  });
+
+  it('omits ANSI escape codes when not running in a TTY stream', () => {
+    const banner = renderBanner({ isTTY: false, noColor: false });
+    expect(banner).not.toContain('\x1b[36m');
+    expect(banner).not.toContain('\x1b[0m');
+
+    const fullLogo = renderFullLogo({ isTTY: false, noColor: false });
+    expect(fullLogo).not.toContain('\x1b[36m');
+    expect(fullLogo).not.toContain('\x1b[0m');
+  });
+});

@@ -386,12 +386,17 @@ export const TOURNAMENT_SUBCOMMAND_HELP: readonly CommandHelp[] = [
   },
 ];
 
+function calculateColumnWidth(commands: readonly { readonly name: string }[]): number {
+  return Math.max(22, ...commands.map((c) => c.name.length + 3));
+}
+
 export function renderTopLevelHelp(): string {
+  const colWidth = calculateColumnWidth(COMMAND_HELP);
   const lines = [
     'Usage: copalibre <command> [options]',
     '',
     'Commands:',
-    ...COMMAND_HELP.map((command) => `  ${command.name.padEnd(14)}${command.summary}`),
+    ...COMMAND_HELP.map((command) => `  ${command.name.padEnd(colWidth)}${command.summary}`),
     '',
     'Global options:',
     '  --help, -h    Show this help (also accepted after any command)',
@@ -416,12 +421,13 @@ export function renderCommandHelp(name: string, table: readonly CommandHelp[]): 
 }
 
 export function renderModuleHelp(): string {
+  const colWidth = calculateColumnWidth(MODULE_SUBCOMMAND_HELP);
   const lines = [
     'Usage: copalibre module <subcommand> [options]',
     '',
     'Subcommands:',
     ...MODULE_SUBCOMMAND_HELP.map(
-      (subcommand) => `  ${subcommand.name.padEnd(14)}${subcommand.summary}`,
+      (subcommand) => `  ${subcommand.name.padEnd(colWidth)}${subcommand.summary}`,
     ),
     '',
     "Run 'copalibre module <subcommand> --help' for details on a specific subcommand.",
@@ -430,12 +436,13 @@ export function renderModuleHelp(): string {
 }
 
 export function renderTournamentHelp(): string {
+  const colWidth = calculateColumnWidth(TOURNAMENT_SUBCOMMAND_HELP);
   const lines = [
     'Usage: copalibre tournament <subcommand> [options]',
     '',
     'Subcommands:',
     ...TOURNAMENT_SUBCOMMAND_HELP.map(
-      (subcommand) => `  ${subcommand.name.padEnd(14)}${subcommand.summary}`,
+      (subcommand) => `  ${subcommand.name.padEnd(colWidth)}${subcommand.summary}`,
     ),
     '',
     "Run 'copalibre tournament <subcommand> --help' for details on a specific subcommand.",
