@@ -371,7 +371,9 @@ grid of the organization's clubs. The Live section SHALL render before the Featu
 SHALL be reachable without already knowing a specific tournament's alias, and SHALL be rendered per
 request from current backend state, matching the existing overview page's "reachable without a site
 rebuild" guarantee. Every emblem shown on this page, and every placeholder shown in its place, SHALL
-render inside the platform's standard 4:5 framed-image presentation.
+render inside the platform's standard 4:5 framed-image presentation. Reserved system route prefixes
+(`organizations`, `objects`, `control`, `tv`, `events`, `api`, `docs`) SHALL NOT be treated as
+organization aliases and requests matching them SHALL NOT be processed as public organization listings.
 
 The previously served path `/{organization}/tournaments` SHALL NOT be served.
 
@@ -424,6 +426,10 @@ The previously served path `/{organization}/tournaments` SHALL NOT be served.
 - **WHEN** an organization has no emblem
 - **THEN** the header renders a placeholder, inside the standard framed presentation, rather than a
   broken image or an empty gap
+
+#### Scenario: Reserved system route prefixes are not treated as organization aliases
+- **WHEN** a request arrives for a top-level path matching a reserved system prefix (`organizations`, `objects`, `control`, `tv`, `events`, `api`, `docs`)
+- **THEN** the organization-scoped route handler aborts without issuing backend organization queries or rendering an organization-not-found error page
 
 ### Requirement: A finished tournament's listing card shows its winner and runner-up, per zone
 
@@ -490,8 +496,7 @@ clear the filter.
 
 ### Requirement: The public site root is a real, indexable landing page
 The public site SHALL serve real content at `/` — an organization directory or equivalent landing
-content reflecting the installation's actual data — rather than a static placeholder. The root path
-SHALL remain listed in `sitemap.xml` and `Allow`ed in `robots.txt` only while it serves real content.
+content reflecting the installation's actual data — rather than a static placeholder. When an installation has zero published organizations, the page SHALL render an inviting orientation hub featuring a hero presentation, tactical coordinate ground (`.cl-tactical-grid`), platform provenance badges, and distinct actionable pathways directing tournament organizers to the Control Panel (`/control/`) and developers/evaluators to documentation (`/help/`), alongside clear guidance for spectators. The root path SHALL remain listed in `sitemap.xml` and `Allow`ed in `robots.txt` only while it serves real content.
 
 #### Scenario: The homepage reflects real installation data
 - **WHEN** an anonymous visitor requests `/`
@@ -502,6 +507,10 @@ SHALL remain listed in `sitemap.xml` and `Allow`ed in `robots.txt` only while it
 - **WHEN** an anonymous visitor requests `/` on an installation with zero published organizations
 - **THEN** the page renders a real empty state, not an error and not placeholder copy implying the
   feature is unbuilt
+
+#### Scenario: A fresh installation with no published organizations renders an inviting orientation hub
+- **WHEN** an anonymous visitor requests `/` on an installation with zero published organizations
+- **THEN** the page renders a structured orientation experience with a hero header, platform capability badges, direct action pathways for operators to launch the Control Panel, and developer links to documentation
 
 ### Requirement: Public pages carry Open Graph, Twitter Card, and structured data
 Every public canonical page SHALL emit Open Graph (`og:title`, `og:description`, `og:type`, `og:url`,
@@ -649,12 +658,16 @@ Every primary and secondary call-to-action on a public-web page SHALL be rendere
 public-web Button component built on the same `.cl-btn` token classes, with the same variant treatments
 (`state-live` primary with dark text, raised neutral secondary with a muted border) and the same
 chamfered control geometry that `control-web/admin-interface-components` requires of the Control-web
-Button atom. A public-web CTA SHALL NOT carry hand-written, non-token color values.
+Button atom. The button element SHALL enforce inline-flex alignment (`display: inline-flex; align-items: center; justify-content: center;`) such that label text and icons remain optically centered both vertically and horizontally across all element types (whether `<button>` or `<a>`). A public-web CTA SHALL NOT carry hand-written, non-token color values.
 
 #### Scenario: Primary and secondary public CTAs are visually distinct
 - **WHEN** a public tournament card renders a primary action alongside a secondary one
 - **THEN** their fill colors are visually distinct, each resolved from a design token rather than a
   hand-written hex value, and each meets the documented contrast contract
+
+#### Scenario: Primary and secondary public CTAs are vertically centered
+- **WHEN** a public CTA renders as a button or anchor link
+- **THEN** its label text is vertically and horizontally centered with balanced internal padding, without sagging or top-heavy clipping
 
 ### Requirement: Public tabular data renders through a shared Table component
 Every tabular data view on a public-web page — tournament standings, per-match rosters, and the match
@@ -929,3 +942,18 @@ directory. It SHALL NOT render as an unstyled, pure-white browser document.
 - **WHEN** a visitor directly accesses a `/control/**` deep link on a static host serving `404.html`
 - **THEN** `ControlOrNotFound` hides the static error card and mounts the control application
   seamlessly
+
+### Requirement: Public-web header layout and interaction integrity
+The public-web header (`.cl-public-header`) SHALL attach flush to the top edge of the browser viewport without unintended margin or padding leakage from parent document body styles. The language selection popover (`.cl-public-header__locale-list`) SHALL render endonyms without horizontal squishing, sizing to its own content (`min-width: max-content`) with `white-space: nowrap` so language names do not break across individual syllables or characters. The header navigation links SHALL focus cleanly on core destinations ("Home" and "Help"), omitting the API Reference link from primary public chrome.
+
+#### Scenario: Public header attaches flush to top edge
+- **WHEN** any public page is rendered
+- **THEN** the header sticks directly to the top edge of the viewport with 0px top margin gap
+
+#### Scenario: Language popover displays complete endonyms
+- **WHEN** a visitor activates the language selector in the public header
+- **THEN** the dropdown menu expands to accommodate the full width of all language endonyms, without breaking words across multiple lines
+
+#### Scenario: Header navigation links are streamlined to core destinations
+- **WHEN** the public header renders on any public page
+- **THEN** its primary navigation links expose "Home" and "Help" without exposing an "API Reference" navigation link

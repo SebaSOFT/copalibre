@@ -21,12 +21,38 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     name: 'init',
     summary: 'Write a new installation into the current directory — no checkout required',
     usage:
-      'copalibre init [--module-dev] | copalibre init --kubernetes [--namespace <ns>] ' +
-      '[--release <name>] [--context <ctx>]',
+      'copalibre init [--module-dev] [--proxy <name>] [--non-interactive] [--skip-preflight] ' +
+      '[--app-url <url>] [--api-url <url>] [--disciplines <list>] | ' +
+      'copalibre init --kubernetes [--namespace <ns>] [--release <name>] [--context <ctx>]',
     flags: [
       {
         flag: '--module-dev',
         description: 'Also write docker-compose.module-dev.yml, for local module development',
+      },
+      {
+        flag: '--proxy <name>',
+        description: 'Export reverse-proxy configuration template (e.g. "nginx")',
+      },
+      {
+        flag: '--non-interactive',
+        description: 'Run initialization without interactive setup prompts',
+      },
+      {
+        flag: '--skip-preflight',
+        description: 'Bypass Docker and host preflight validation',
+      },
+      {
+        flag: '--app-url <url>',
+        description: 'Public application domain URL (default: http://localhost:8080)',
+      },
+      {
+        flag: '--api-url <url>',
+        description: 'Public API domain URL (default: matches app-url)',
+      },
+      {
+        flag: '--disciplines <list>',
+        description:
+          'Comma-separated starter sport disciplines to provision (default: football, tennis)',
       },
       {
         flag: '--kubernetes',
@@ -49,10 +75,11 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'doctor',
     summary: 'Validate configuration and dependencies before starting',
-    usage: 'copalibre doctor [--check-proxy] [--proxy-url <url>] [--fix | --interactive]',
+    usage: 'copalibre doctor [--check-proxy] [--proxy-url <url>] [--smoke] [--fix | --interactive]',
     flags: [
       { flag: '--check-proxy', description: 'Also verify the reverse-proxy configuration' },
       { flag: '--proxy-url <url>', description: 'Public URL to probe when --check-proxy is set' },
+      { flag: '--smoke', description: 'Run post-setup end-to-end connectivity smoke tests' },
       {
         flag: '--fix, --interactive',
         description:
@@ -119,6 +146,35 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
       {
         flag: '--target-version <semver>',
         description: 'CopaLibre version to check installed modules and migrations against',
+      },
+    ],
+  },
+  {
+    name: 'upgrade',
+    summary:
+      'Coordinate self-hosted upgrade lifecycle: CLI binary, compose, images, migrations, and modules',
+    usage:
+      'copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--yes]',
+    flags: [
+      {
+        flag: '--check',
+        description: 'Inspect available platform and module updates without applying changes',
+      },
+      {
+        flag: '--target-version <v>',
+        description: 'Target CopaLibre version to upgrade to (default: latest release)',
+      },
+      {
+        flag: '--self',
+        description: 'Only self-update the CLI binary without touching services',
+      },
+      {
+        flag: '--skip-self-update',
+        description: 'Skip CLI binary update and only upgrade compose, images, and migrations',
+      },
+      {
+        flag: '--yes, -y',
+        description: 'Run upgrade non-interactively without confirmation prompts',
       },
     ],
   },
@@ -330,12 +386,17 @@ export const TOURNAMENT_SUBCOMMAND_HELP: readonly CommandHelp[] = [
   },
 ];
 
+function calculateColumnWidth(commands: readonly { readonly name: string }[]): number {
+  return Math.max(22, ...commands.map((c) => c.name.length + 3));
+}
+
 export function renderTopLevelHelp(): string {
+  const colWidth = calculateColumnWidth(COMMAND_HELP);
   const lines = [
     'Usage: copalibre <command> [options]',
     '',
     'Commands:',
-    ...COMMAND_HELP.map((command) => `  ${command.name.padEnd(14)}${command.summary}`),
+    ...COMMAND_HELP.map((command) => `  ${command.name.padEnd(colWidth)}${command.summary}`),
     '',
     'Global options:',
     '  --help, -h    Show this help (also accepted after any command)',
@@ -360,12 +421,13 @@ export function renderCommandHelp(name: string, table: readonly CommandHelp[]): 
 }
 
 export function renderModuleHelp(): string {
+  const colWidth = calculateColumnWidth(MODULE_SUBCOMMAND_HELP);
   const lines = [
     'Usage: copalibre module <subcommand> [options]',
     '',
     'Subcommands:',
     ...MODULE_SUBCOMMAND_HELP.map(
-      (subcommand) => `  ${subcommand.name.padEnd(14)}${subcommand.summary}`,
+      (subcommand) => `  ${subcommand.name.padEnd(colWidth)}${subcommand.summary}`,
     ),
     '',
     "Run 'copalibre module <subcommand> --help' for details on a specific subcommand.",
@@ -374,12 +436,13 @@ export function renderModuleHelp(): string {
 }
 
 export function renderTournamentHelp(): string {
+  const colWidth = calculateColumnWidth(TOURNAMENT_SUBCOMMAND_HELP);
   const lines = [
     'Usage: copalibre tournament <subcommand> [options]',
     '',
     'Subcommands:',
     ...TOURNAMENT_SUBCOMMAND_HELP.map(
-      (subcommand) => `  ${subcommand.name.padEnd(14)}${subcommand.summary}`,
+      (subcommand) => `  ${subcommand.name.padEnd(colWidth)}${subcommand.summary}`,
     ),
     '',
     "Run 'copalibre tournament <subcommand> --help' for details on a specific subcommand.",

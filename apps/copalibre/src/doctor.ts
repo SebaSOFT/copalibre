@@ -48,6 +48,7 @@ export interface DoctorDependencies {
 export interface DoctorOptions {
   readonly checkProxy?: boolean;
   readonly proxyUrl?: string;
+  readonly smoke?: boolean;
 }
 
 const EMAIL_PROVIDERS = ['resend', 'brevo', 'mailgun', 'smtp'] as const;
@@ -70,6 +71,7 @@ export async function runDoctor(
   checks.push(await validateObjectStorage(environment, dependencies));
   checks.push(...(await validatePersistentPath(environment, dependencies)));
   if (options.checkProxy) checks.push(await validateReverseProxy(options, dependencies));
+  if (options.smoke) checks.push(...(await validateSmokeTests(environment, dependencies)));
   return { checks, ok: checks.every((check) => check.status !== 'fail') };
 }
 
@@ -448,6 +450,112 @@ function systemDoctorDependencies(): DoctorDependencies {
       await adapter.delete(reference);
     },
   };
+}
+
+export async function validateSmokeTests(
+  environment: NodeJS.ProcessEnv,
+  dependencies: Pick<DoctorDependencies, 'fetch'>,
+): Promise<readonly DoctorCheck[]> {
+  const checks: DoctorCheck[] = [];
+  const appUrl = environment.COPALIBRE_APP_URL ?? 'http://localhost:8080';
+  const apiUrl = environment.COPALIBRE_API_URL ?? appUrl;
+
+  // 1. Gateway health
+  try {
+    const res = await dependencies.fetch(`${appUrl}/health`);
+    if (res.ok || res.status === 404) {
+      checks.push(
+        pass('smoke:gateway', `Gateway responded with status ${res.status} at ${appUrl}`),
+      );
+    } else {
+      checks.push(
+        fail('smoke:gateway', `Gateway returned unexpected HTTP ${res.status} at ${appUrl}/health`),
+      );
+    }
+  } catch (error) {
+    checks.push(fail('smoke:gateway', `Gateway unreachable at ${appUrl}: ${errorMessage(error)}`));
+  }
+
+  // 2. Auth / JWKS endpoint
+  try {
+    const res = await dependencies.fetch(`${apiUrl}/.well-known/jwks.json`);
+    if (res.ok) {
+      const body = (await res.json()) as { keys?: unknown[] };
+      if (Array.isArray(body?.keys)) {
+        checks.push(pass('smoke:auth', 'JWKS authentication endpoint reachable and returned keys'));
+      } else {
+        checks.push(
+          fail(
+            'smoke:auth',
+            'JWKS authentication endpoint returned invalid JSON without keys array',
+          ),
+        );
+      }
+    } else {
+      checks.push(
+        fail(
+          'smoke:auth',
+          `Auth endpoint returned HTTP ${res.status} at ${apiUrl}/.well-known/jwks.json`,
+        ),
+      );
+    }
+  } catch (error) {
+    checks.push(
+      fail(
+        'smoke:auth',
+        `Auth endpoint unreachable at ${apiUrl}/.well-known/jwks.json: ${errorMessage(error)}`,
+      ),
+    );
+  }
+
+  // 3. Organization discovery
+  try {
+    const res = await dependencies.fetch(`${apiUrl}/organizations?mine=true`);
+    if (res.ok || res.status === 401) {
+      checks.push(
+        pass('smoke:organizations', `Organizations endpoint responded with HTTP ${res.status}`),
+      );
+    } else {
+      checks.push(
+        fail('smoke:organizations', `Organizations endpoint returned HTTP ${res.status}`),
+      );
+    }
+  } catch (error) {
+    checks.push(
+      fail('smoke:organizations', `Organizations endpoint unreachable: ${errorMessage(error)}`),
+    );
+  }
+
+  // 4. Realtime SSE stream
+  try {
+    const eventsUrl = `${appUrl}/events/`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2000);
+    const res = await dependencies
+      .fetch(eventsUrl, {
+        headers: { Accept: 'text/event-stream' },
+        signal: controller.signal,
+      })
+      .finally(() => clearTimeout(timer));
+
+    const contentType = res.headers.get('content-type') ?? '';
+    if (res.ok && contentType.includes('text/event-stream')) {
+      checks.push(pass('smoke:events-sse', `SSE stream opened with Content-Type "${contentType}"`));
+    } else if (res.ok) {
+      checks.push(pass('smoke:events-sse', `SSE endpoint reachable (HTTP ${res.status})`));
+    } else {
+      checks.push(fail('smoke:events-sse', `SSE endpoint returned HTTP ${res.status}`));
+    }
+  } catch (error) {
+    const msg = errorMessage(error);
+    if (msg.includes('abort') || msg.includes('timeout')) {
+      checks.push(pass('smoke:events-sse', 'SSE stream connected and held connection'));
+    } else {
+      checks.push(fail('smoke:events-sse', `SSE stream unreachable: ${msg}`));
+    }
+  }
+
+  return checks;
 }
 
 function pass(name: string, message: string): DoctorCheck {

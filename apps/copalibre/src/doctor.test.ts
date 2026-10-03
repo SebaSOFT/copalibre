@@ -405,4 +405,111 @@ describe('copalibre doctor', () => {
     expect(missingSecond.message).toContain('idle heartbeat');
     expect(validStream.status).toBe('pass');
   });
+
+  it('runs post-setup smoke tests against gateway, auth, organizations, and sse when smoke option is set', async () => {
+    const fetchMock = jest.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/health')) {
+        return new Response(JSON.stringify({ status: 'ok' }), { status: 200 });
+      }
+      if (url.includes('/jwks.json')) {
+        return new Response(JSON.stringify({ keys: [{ kid: 'key-1', kty: 'RSA' }] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (url.includes('/organizations')) {
+        return new Response(JSON.stringify({ organizations: [] }), { status: 200 });
+      }
+      if (url.includes('/events/')) {
+        return new Response('event: ping\ndata: {}\n\n', {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        });
+      }
+      return new Response('Not found', { status: 404 });
+    });
+
+    const report = await runDoctor(
+      environment,
+      dependencies({ fetch: fetchMock as unknown as typeof fetch }),
+      { smoke: true },
+    );
+
+    const smokeChecks = report.checks.filter((c) => c.name.startsWith('smoke:'));
+    expect(smokeChecks).toHaveLength(4);
+    expect(smokeChecks.every((c) => c.status === 'pass')).toBe(true);
+  });
+
+  it('reports failures when smoke test endpoints fail or error', async () => {
+    // Test failures on all smoke endpoints
+    const failingFetch = jest.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/health')) {
+        return new Response('Internal error', { status: 500 });
+      }
+      if (url.includes('/jwks.json')) {
+        return new Response(JSON.stringify({}), { status: 200 }); // missing keys array
+      }
+      if (url.includes('/organizations')) {
+        return new Response('Server Error', { status: 500 });
+      }
+      if (url.includes('/events/')) {
+        return new Response('Not found', { status: 404 });
+      }
+      return new Response('', { status: 500 });
+    });
+
+    const report = await runDoctor(
+      environment,
+      dependencies({ fetch: failingFetch as unknown as typeof fetch }),
+      { smoke: true },
+    );
+
+    const smokeChecks = report.checks.filter((c) => c.name.startsWith('smoke:'));
+    expect(smokeChecks).toHaveLength(4);
+    expect(smokeChecks.every((c) => c.status === 'fail')).toBe(true);
+
+    // Test network/timeout errors
+    const errorFetch = jest.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/events/')) {
+        throw new Error('Connection aborted');
+      }
+      throw new Error('Network error');
+    });
+
+    const reportWithError = await runDoctor(
+      environment,
+      dependencies({ fetch: errorFetch as unknown as typeof fetch }),
+      { smoke: true },
+    );
+
+    const errorSmokeChecks = reportWithError.checks.filter((c) => c.name.startsWith('smoke:'));
+    expect(errorSmokeChecks.find((c) => c.name === 'smoke:gateway')?.status).toBe('fail');
+    expect(errorSmokeChecks.find((c) => c.name === 'smoke:auth')?.status).toBe('fail');
+    expect(errorSmokeChecks.find((c) => c.name === 'smoke:organizations')?.status).toBe('fail');
+    // Aborted event stream counts as pass because connection was held
+    expect(errorSmokeChecks.find((c) => c.name === 'smoke:events-sse')?.status).toBe('pass');
+
+    // Test SSE endpoint with plain ok but not text/event-stream
+    const plainOkFetch = jest.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/events/')) {
+        return new Response('ok', { status: 200, headers: { 'content-type': 'text/plain' } });
+      }
+      if (url.includes('/jwks.json')) {
+        return new Response('Forbidden', { status: 403 });
+      }
+      return new Response('ok', { status: 200 });
+    });
+
+    const reportPlain = await runDoctor(
+      environment,
+      dependencies({ fetch: plainOkFetch as unknown as typeof fetch }),
+      { smoke: true },
+    );
+    expect(reportPlain.checks.find((c) => c.name === 'smoke:events-sse')?.status).toBe('pass');
+    expect(reportPlain.checks.find((c) => c.name === 'smoke:auth')?.status).toBe('fail');
+  });
 });

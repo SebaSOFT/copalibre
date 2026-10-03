@@ -27,42 +27,23 @@ test('navigates help content and searches through Starlight', async ({ page }) =
   await expect(page.getByRole('link', { name: /Roster/ }).first()).toBeVisible();
 });
 
-test('loads its rendering script and stylesheet same-origin, not from a CDN', async ({ page }) => {
-  // Vendored: the reference's own script tag must point at this
-  // origin's build output, never a third-party host — the literal defect
-  // this task fixes (a blank page on an install with no internet egress).
-  const documentRequests: string[] = [];
-  page.on('request', (request) => {
-    if (['script', 'stylesheet'].includes(request.resourceType())) {
-      documentRequests.push(request.url());
-    }
-  });
+test('public home page renders hero orientation hub with zero organizations', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'CopaLibre', level: 1 })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Ready for Competition', level: 2 }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open Control Panel' })).toHaveAttribute(
+    'href',
+    '/control/',
+  );
+  await expect(page.getByRole('link', { name: 'Read the Guides' })).toHaveAttribute(
+    'href',
+    '/help/',
+  );
 
-  await page.goto('/help/api-reference/');
-  await expect(page.getByText('CopaLibre API')).toBeVisible();
-
-  const origin = new URL(page.url()).origin;
-  expect(documentRequests).toContain(`${origin}/vendor/scalar/standalone.js`);
-  expect(documentRequests.every((url) => url.startsWith(`${origin}/`))).toBe(true);
-});
-
-test('renders correctly when Scalar’s own hosted endpoints are unreachable', async ({ page }) => {
-  // Even vendored, this pinned build still calls out to Scalar's cloud for a
-  // couple of secondary features (default webfont, an AI-agent "suggested
-  // docs" prefetch) that no documented config flag fully suppresses — see
-  // design.md's "residual outbound calls" note. What must hold regardless:
-  // those calls failing (as they would on a true no-egress install) must not
-  // break the reference itself.
-  await page.route('**://fonts.scalar.com/**', (route) => route.abort());
-  await page.route('**://api.scalar.com/**', (route) => route.abort());
-
-  const pageErrors: string[] = [];
-  page.on('pageerror', (error) => pageErrors.push(error.message));
-
-  await page.goto('/help/api-reference/');
-
-  await expect(page.locator('#api-reference')).not.toBeEmpty();
-  await expect(page.getByText('CopaLibre API')).toBeVisible();
-  await expect(page.getByRole('button', { name: /Send Request|Test Request/ })).toHaveCount(0);
-  expect(pageErrors).toEqual([]);
+  const nav = page.getByRole('navigation', { name: 'Main' });
+  await expect(nav.getByRole('link', { name: 'Home' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Help' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: /API reference/i })).toHaveCount(0);
 });

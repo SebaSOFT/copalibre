@@ -136,6 +136,75 @@ export const messages = defineMessages({
     id: 'publicWeb.home.organizationsLabel',
     defaultMessage: 'Organizations',
   },
+  homePageDescription: {
+    id: 'publicWeb.home.pageDescription',
+    defaultMessage:
+      'Self-hosted, transparent tournament management for clubs, leagues, and federations.',
+  },
+  homeHeroTitle: {
+    id: 'publicWeb.home.heroTitle',
+    defaultMessage: 'CopaLibre',
+  },
+  homeHeroSubtitle: {
+    id: 'publicWeb.home.heroSubtitle',
+    defaultMessage: 'Self-hosted tournament operations.',
+  },
+  homeHeroDescription: {
+    id: 'publicWeb.home.heroDescription',
+    defaultMessage:
+      'Independent, self-hostable competition operations with precision results, verifiable rulesets, and zero third-party lock-in.',
+  },
+  homeBadgeFreeSoftware: {
+    id: 'publicWeb.home.badgeFreeSoftware',
+    defaultMessage: 'AGPL-3.0 Free Software',
+  },
+  homeBadgeSovereign: {
+    id: 'publicWeb.home.badgeSovereign',
+    defaultMessage: 'Self-Hosted Sovereign',
+  },
+  homeBadgeDisciplines: {
+    id: 'publicWeb.home.badgeDisciplines',
+    defaultMessage: 'Config-Driven Disciplines',
+  },
+  homeEmptyHeading: {
+    id: 'publicWeb.home.emptyHeading',
+    defaultMessage: 'Ready for Competition',
+  },
+  homeEmptyLead: {
+    id: 'publicWeb.home.emptyLead',
+    defaultMessage: 'No public tournaments have been published yet on this instance.',
+  },
+  homeOperatorCardTitle: {
+    id: 'publicWeb.home.operatorCardTitle',
+    defaultMessage: 'Tournament Organizers',
+  },
+  homeOperatorCardBody: {
+    id: 'publicWeb.home.operatorCardBody',
+    defaultMessage:
+      'Sign in to the Control Panel to create organizations, configure disciplines, seed brackets, and operate live matches.',
+  },
+  homeOperatorCta: {
+    id: 'publicWeb.home.operatorCta',
+    defaultMessage: 'Open Control Panel',
+  },
+  homeDocsCardTitle: {
+    id: 'publicWeb.home.docsCardTitle',
+    defaultMessage: 'Self-Hosting & Documentation',
+  },
+  homeDocsCardBody: {
+    id: 'publicWeb.home.docsCardBody',
+    defaultMessage:
+      'Explore the operator handbook, configure external reverse proxies, or integrate with the REST API and CLI.',
+  },
+  homeDocsCta: {
+    id: 'publicWeb.home.docsCta',
+    defaultMessage: 'Read the Guides',
+  },
+  homeEmptySpectatorNotice: {
+    id: 'publicWeb.home.emptySpectatorNotice',
+    defaultMessage:
+      'If you are a spectator or participant, check back once the organizers publish the competition schedule.',
+  },
   standingsEmpty: {
     id: 'publicWeb.standings.empty',
     defaultMessage: 'Standings appear once the first match is played.',

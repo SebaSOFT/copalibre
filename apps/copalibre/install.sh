@@ -174,10 +174,22 @@ fi
 echo ""
 print_message success "copalibre is ready."
 echo ""
-echo -e "${MUTED}To get started:${NC}"
-echo -e "  ${MUTED}mkdir my-tournament && cd my-tournament${NC}"
-echo -e "  ${MUTED}$INSTALL_DIR/copalibre init${NC}"
-echo ""
+if [ -d ".copalibre" ] || [ -f "docker-compose.yml" ]; then
+  echo -e "${YELLOW}Existing CopaLibre installation detected in current directory.${NC}"
+  echo -e "To update running services, container images, and database migrations:"
+  echo -e "  ${GREEN}copalibre upgrade${NC}"
+  echo ""
+elif [ -d "/opt/copalibre/.copalibre" ] || [ -f "/opt/copalibre/docker-compose.yml" ]; then
+  echo -e "${YELLOW}Existing CopaLibre installation detected at /opt/copalibre.${NC}"
+  echo -e "To update running services, container images, and database migrations:"
+  echo -e "  ${GREEN}cd /opt/copalibre && copalibre upgrade${NC}"
+  echo ""
+else
+  echo -e "${MUTED}To get started:${NC}"
+  echo -e "  ${MUTED}mkdir my-tournament && cd my-tournament${NC}"
+  echo -e "  ${MUTED}$INSTALL_DIR/copalibre init${NC}"
+  echo ""
+fi
 if [ "$os" != "windows" ]; then
   echo -e "${YELLOW}→${NC} Open a new terminal (or re-source your shell's startup file) to use ${MUTED}copalibre${NC} directly."
 fi

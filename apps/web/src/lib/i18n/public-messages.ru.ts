@@ -50,6 +50,27 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.closeDialog': 'Закрыть диалог',
   'publicWeb.home.pageTitle': 'CopaLibre — Управление турнирами',
   'publicWeb.home.organizationsLabel': 'Организации',
+  'publicWeb.home.pageDescription':
+    'Автономное прозрачное управление турнирами для клубов, лиг и федераций.',
+  'publicWeb.home.heroTitle': 'CopaLibre',
+  'publicWeb.home.heroSubtitle': 'Автономная организация и проведение турниров.',
+  'publicWeb.home.heroDescription':
+    'Независимая автономная платформа для проведения соревнований с точными результатами, проверяемыми правилами и без привязки к поставщикам.',
+  'publicWeb.home.badgeFreeSoftware': 'Свободное ПО (AGPL-3.0)',
+  'publicWeb.home.badgeSovereign': 'Автономный и суверенный',
+  'publicWeb.home.badgeDisciplines': 'Дисциплины на основе конфигураций',
+  'publicWeb.home.emptyHeading': 'Готово к проведению соревнований',
+  'publicWeb.home.emptyLead': 'На этом сервере еще не опубликовано ни одного публичного турнира.',
+  'publicWeb.home.operatorCardTitle': 'Организаторы турниров',
+  'publicWeb.home.operatorCardBody':
+    'Войдите в Панель управления, чтобы создавать организации, настраивать дисциплины, формировать сетки и вести матчи в реальном времени.',
+  'publicWeb.home.operatorCta': 'Открыть панель управления',
+  'publicWeb.home.docsCardTitle': 'Автономное развертывание и документация',
+  'publicWeb.home.docsCardBody':
+    'Изучите руководство оператора, настройте обратные прокси или интегрируйтесь через REST API и CLI.',
+  'publicWeb.home.docsCta': 'Читать руководства',
+  'publicWeb.home.emptySpectatorNotice':
+    'Если вы зритель или участник, загляните позже, когда организаторы опубликуют расписание соревнований.',
   'publicWeb.standings.empty': 'Таблица появится после первого сыгранного матча.',
   'publicWeb.standings.team': 'Команда',
   'publicWeb.standings.played': 'И',

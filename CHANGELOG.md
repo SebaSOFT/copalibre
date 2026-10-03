@@ -1,3 +1,21 @@
+## [1.2.5](https://github.com/SebaSOFT/copalibre/compare/v1.2.1...v1.2.5) (2026-10-03)
+
+### Features
+
+- **cli:** dynamic help column alignment, deduplicate interactive version, and cyan ascii logo ([b62bfe7](https://github.com/SebaSOFT/copalibre/commit/b62bfe72b3806950ee064ae067b57b1cb4172f3d))
+- **cli:** prompt upgrade on existing installation and detect stack version disparity ([2786d1d](https://github.com/SebaSOFT/copalibre/commit/2786d1dd53a1523d4090bf35c5c3a4f6be570da2))
+- **cli:** add upgrade lifecycle management and module update check ([cb351de](https://github.com/SebaSOFT/copalibre/commit/cb351de753239a5fefc58bb7dc05f42fb6e49221))
+- **cli:** harden reverse proxy template with SSE keep-alive, upload streaming, and wizard prompt ([321d02a](https://github.com/SebaSOFT/copalibre/commit/321d02afabda15f3408bfdcab15ae6292376fb68))
+- **cli:** add host preflight, onboarding wizard, and proxy export ([bf8db7b](https://github.com/SebaSOFT/copalibre/commit/bf8db7b78996bdfef51421683ec10c0e782ee81f))
+- **web:** invite public home experience and refine header layout ([d127210](https://github.com/SebaSOFT/copalibre/commit/d127210a473ee16ba5863378415d85feebce53fb))
+
+### Bug Fixes
+
+- **cli:** advisory ignores, non-blocking preflight in init, and binary parity secret normalization ([266651f](https://github.com/SebaSOFT/copalibre/commit/266651ff2c68a442e9d2906bbbfefdf586d38e89))
+- **deploy:** route bare API endpoints and subpaths through gateway ([5917b62](https://github.com/SebaSOFT/copalibre/commit/5917b62372f8541e4c3b5bc1a5ee7265be7fef00))
+- **deps:** remove obsolete @ai-sdk/provider-utils resolution and guard ([69e012c](https://github.com/SebaSOFT/copalibre/commit/69e012c1b2c451da7787fb9d663efd85d7742d13))
+- **web:** use declared --cl-border-muted token in spectator notice ([2527c79](https://github.com/SebaSOFT/copalibre/commit/2527c797634bdf26046e32c3b28ca4ef4b4eafe6))
+
 ## [1.2.1](https://github.com/SebaSOFT/copalibre/compare/v1.2.0...v1.2.1) (2026-10-01)
 
 ### Features

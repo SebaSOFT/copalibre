@@ -31,7 +31,7 @@
 	# relied upon to lose priority by file order.
 	@ssrOrg {
 		path_regexp ^(?:/(?:es|fr|pt|it|de|ru|zh))?/[^/]+/?$
-		not path /control /control/* /help /help/* /tv /tv/* /api /api/* /runtime-config.json
+		not path /control /control/* /help /help/* /tv /tv/* /api /api/* /organizations /organizations/* /objects /objects/* /disciplines /disciplines/* /tournament-profiles /tournament-profiles/* /runtime-config.json
 	}
 	handle @ssrOrg {
 		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
@@ -84,7 +84,8 @@
 	# longer have their own built pages) falls back to the shell instead of
 	# the public site's own index, so a direct visit or hard refresh still
 	# renders the right screen.
-	handle /control/* {
+	@control path /control /control/*
+	handle @control {
 		try_files {path} {path}/index.html /control/app/index.html
 		file_server
 	}

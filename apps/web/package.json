@@ -1,11 +1,11 @@
 {
   "name": "@copalibre/web",
-  "version": "1.2.1",
+  "version": "1.2.5",
   "private": true,
   "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "yarn workspace @copalibre/design-tokens build:tokens && node scripts/copy-background-removal-assets.mjs && astro dev",
-    "build": "NODE_ENV=production yarn workspace @copalibre/design-tokens build:tokens && node scripts/copy-openapi-artifact.mjs && node scripts/copy-scalar-assets.mjs && node scripts/copy-background-removal-assets.mjs && node scripts/generate-authoring-docs.mjs && NODE_ENV=production astro build",
+    "build": "NODE_ENV=production yarn workspace @copalibre/design-tokens build:tokens && node scripts/copy-openapi-artifact.mjs && node scripts/copy-background-removal-assets.mjs && node scripts/generate-authoring-docs.mjs && NODE_ENV=production astro build",
     "preview": "astro preview",
     "storybook": "yarn workspace @copalibre/design-tokens build:tokens && storybook dev -p 6006",
     "check": "astro check",
@@ -35,7 +35,6 @@
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-radio-group": "^1.2.0",
     "@radix-ui/react-select": "^2.1.0",
-    "@scalar/api-reference": "1.68.0",
     "ajv": "^8.20.0",
     "astro": "^7.3.5",
     "idb": "^8.0.3",

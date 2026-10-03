@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (318/1214 after the React Intl compatibility adapter, redirect title formatter, and registration review template delegation)', () => {
+test('the graph resolves the current node/edge count (317/1217 after decommissioning api-reference.astro and composing Card/Badge/Button on the public home page)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 318);
-  assert.equal(graph.edges.length, 1214);
+  assert.equal(graph.nodes.size, 317);
+  assert.equal(graph.edges.length, 1217);
 });
 
 test('a type-only import is not counted as a render', () => {

@@ -55,6 +55,11 @@ export const CLI_MCP_PARITY: readonly ParityEntry[] = [
     cliCommand: 'mcp',
     exemptReason: 'Starts the MCP server itself — a tool cannot start its own server.',
   },
+  {
+    cliCommand: 'upgrade',
+    exemptReason:
+      'Performs host lifecycle orchestration (binary self-update, image pulls, and service restarts), not suitable as an in-process MCP request.',
+  },
 
   // CLI-only, security: mints/bootstraps/revokes credentials, or is an
   // irreversible data/schema mutation (excluded per 0253's own Why).

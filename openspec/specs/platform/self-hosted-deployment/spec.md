@@ -13,7 +13,7 @@ The release SHALL ship one Docker image capable of running as any documented pro
 rebuilding the image. The `web` role SHALL serve server-rendered public pages for the subset of public
 routes that require per-request backend data; it SHALL NOT replace the existing static delivery of
 every other public, control-panel-shell, help, and TV route, which continues to be served as static
-files by a separate process in front of it. In addition, the release container image (`ghcr.io/sebasoft/copalibre:1.2.1`)
+files by a separate process in front of it. In addition, the release container image (`ghcr.io/sebasoft/copalibre:1.2.5`)
 SHALL include `git` in its runtime filesystem layers to support dynamic discipline module cloning and updates via `POST /admin/modules`.
 
 #### Scenario: Same image runs two different roles
@@ -35,13 +35,15 @@ The repository SHALL provide a `docker-compose.yml` that starts a complete singl
 installation (all process roles, PostgreSQL, and optional Redis/object storage/SMTP) with one
 command, and a separate dev profile with Compose Watch enabled. The installation SHALL include an
 integrated edge reverse proxy service that unifies network ingress under a single published host port
-(`COPALIBRE_PORT`, default 8080 or 80), routing `/api/*`, `/auth/*`, `/organizations/*`, `/admin/*`,
-and `/installation/*` to the `api` service (port 3001), `/events/*` to the `events` service (port 3002,
-preserving SSE streaming), and all other requests (static assets, control panel shell, SSR public pages,
-TV kiosks) to the `web` service (port 4321). Individual microservices (`api`, `events`, `web`, `web-ssr`)
-SHALL NOT require external port exposure in production mode. When the optional object storage adapter
-is enabled, it SHALL be provided by a lightweight Garage container (`dxflrs/garage:v1.1.0`), and SHALL NOT
-require secondary auxiliary containers for bucket provisioning.
+(`COPALIBRE_PORT`, default 8080 or 80), routing `/api` (`/api/*`), `/auth` (`/auth/*`), `/organizations`
+(`/organizations/*`), `/objects` (`/objects/*`), `/admin` (`/admin/*`), `/installation` (`/installation/*`),
+and `/.well-known` (`/.well-known/*`) to the `api` service (port 3001), `/events` (`/events/*`) to the `events`
+service (port 3002, preserving SSE streaming), and all other requests (static assets, control panel shell, SSR public pages,
+TV kiosks) to the `web` service (port 4321). Edge reverse proxy and web proxy matchers SHALL match both bare
+prefixes and subpaths, ensuring queries such as `/organizations?mine=true` are not forwarded to web SSR.
+Individual microservices (`api`, `events`, `web`, `web-ssr`) SHALL NOT require external port exposure in production mode.
+When the optional object storage adapter is enabled, it SHALL be provided by a lightweight Garage container
+(`dxflrs/garage:v1.1.0`), and SHALL NOT require secondary auxiliary containers for bucket provisioning.
 
 #### Scenario: One-command install
 - **WHEN** an operator with Docker installed runs the documented Compose-up command against a fresh
@@ -71,7 +73,7 @@ require secondary auxiliary containers for bucket provisioning.
 
 ### Requirement: copalibre administrative CLI
 The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev --hybrid`, `start`,
-`migrate`, `create-admin`, `login`, `statistics-rebuild`, `backup`, `restore`, `upgrade-check`, and
+`migrate`, `create-admin`, `login`, `statistics-rebuild`, `backup`, `restore`, `upgrade-check`, `upgrade`, and
 `mcp` subcommands, distributed both as a standalone executable (downloadable via a documented install
 script, one per supported OS/architecture) and as source runnable from a checkout — the two SHALL
 behave identically for every subcommand. In addition to environment and service configuration checks,
@@ -83,29 +85,45 @@ initiate an interactive decision-support prompt workflow allowing an operator to
 anomaly non-destructively; without a TTY, it SHALL report that repair requires one and apply nothing.
 Every invocation SHALL print a startup banner identifying the product, its version, and
 its license before running the requested subcommand, and that banner SHALL be written to a stream that
-never mixes with a subcommand's own stdout output. Running `copalibre --help`/`-h` with no subcommand
-SHALL list every subcommand with a one-line summary, and running `copalibre <subcommand> --help`/`-h`
+never mixes with a subcommand's own stdout output. The ASCII monogram and full logo mark SHALL render
+in brand cyan color when output is directed to a color-capable TTY. Running `copalibre --help`/`-h` with no subcommand
+SHALL list every subcommand with a one-line summary formatted with sufficient column padding so no command name
+overlaps its summary description, and running `copalibre <subcommand> --help`/`-h`
 SHALL print that subcommand's usage line, a description of what it does, and its flags — for every
 documented subcommand, sourced from one place so the top-level summary and each subcommand's detail
 cannot drift apart. `upgrade-check` SHALL evaluate a given target CopaLibre version against every
 installed module's declared compatibility range and report pending database migrations, exiting
 non-zero if any installed module would become incompatible with the target version.
 
+`copalibre upgrade` SHALL coordinate the end-to-end upgrade lifecycle: (1) self-updating the CLI binary
+to the target or latest stable release, (2) reconciling `docker-compose.yml` and newly required `.env` variables
+while preserving existing port bindings and volume configuration, (3) pulling updated container images and
+applying database migrations via `copalibre migrate`, and (4) detecting and prompting for available module updates.
+
 `copalibre init`, run in a directory with no prior CopaLibre installation, SHALL write a complete,
 runnable installation (a Compose file and its environment defaults) into that directory without
 requiring a checkout of this repository's source, and SHALL record the CopaLibre version and an
 installation identifier in that directory so later commands run from it identify the installation
-automatically. `copalibre init` SHALL generate a fully-interpolated `.env` file containing sensible
-defaults for all required runtime variables (`COPALIBRE_JWKS_URI`, `COPALIBRE_JWT_AUDIENCE`,
-`COPALIBRE_JWT_ISSUER`, `COPALIBRE_PORT`, `COPALIBRE_API_PORT`, `COPALIBRE_EVENTS_PORT`, `COPALIBRE_IMAGE`).
+automatically. `copalibre init` SHALL execute host preflight validation (Docker daemon connectivity,
+socket permissions, Compose version, and port collision checks), prompt the operator interactively
+when run on a TTY for public application and API domains, and generate a fully-interpolated `.env` file
+containing sensible defaults and cryptographically random secrets for all required runtime variables,
+including `GARAGE_RPC_SECRET`, `COPALIBRE_JWKS_URI`, `COPALIBRE_JWT_AUDIENCE`, `COPALIBRE_JWT_ISSUER`,
+`COPALIBRE_PORT`, `COPALIBRE_API_PORT`, `COPALIBRE_EVENTS_PORT`, and `COPALIBRE_IMAGE`.
 In addition, `copalibre init` SHALL automatically generate a 2048-bit RSA keypair (`jwt-private.pem`
 and `jwks.json`) in the installation directory and configure the environment so asymmetric JWT verification
-works immediately without external OIDC dependencies. A directory already containing an installation
-SHALL cause `init` to refuse rather than overwrite any part of it. `doctor`, `start`, `migrate`, and
-`upgrade-check`, when run from a directory containing a recorded installation, SHALL operate against
-that directory's own files without requiring a checkout; version-sensitive subcommands (`init` re-run,
-`migrate`, `upgrade-check`) SHALL refuse with a message naming both versions when the running CLI's own
-version does not match the directory's recorded version. `init --module-dev` SHALL additionally write a
+works immediately without external OIDC dependencies. `copalibre init` SHALL scaffold a local `./modules/`
+directory hierarchy (`./modules/disciplines/` and `./modules/profiles/`) with README documentation and configure
+`COPALIBRE_MODULE_SOURCE_ALLOWLIST` with read-only bind-mounts in `docker-compose.yml` across backend containers
+(for rules engine and descriptors) and frontend containers (for media assets, emblems, and banners), prompting
+the operator during interactive initialization to select starter disciplines to provision. `copalibre init` SHALL also export
+production-tested reverse proxy configurations (`deploy/templates/nginx/`) incorporating unbuffered Server-Sent Events
+proxies, long-lived connection timeouts, and WebSocket upgrade rules for external gateways such as Nginx or CloudPanel.
+A directory already containing an installation SHALL cause `init` to refuse rather than overwrite any part of it.
+`doctor`, `start`, `migrate`, and `upgrade-check`, when run from a directory containing a recorded installation,
+SHALL operate against that directory's own files without requiring a checkout; version-sensitive subcommands
+(`init` re-run, `migrate`, `upgrade-check`) SHALL refuse with a message naming both versions when the running
+CLI's own version does not match the directory's recorded version. `init --module-dev` SHALL additionally write a
 companion Compose override file bind-mounting a local module-development directory into the installation,
 with no extra flag needed at the operator's own `docker compose` invocation.
 
@@ -149,13 +167,12 @@ SHALL operate over a direct database connection.
 
 #### Scenario: --version prints a larger, distinct mark
 - **WHEN** an operator runs `copalibre --version`
-- **THEN** the CLI writes a larger ASCII-art rendering of the CopaLibre mark to stderr, in place of
-  the compact per-invocation banner, while stdout still receives only the version number
+- **THEN** the CLI writes a larger ASCII-art rendering of the CopaLibre mark in brand cyan to stderr, in place of
+  the compact per-invocation banner, without duplicating the version string on interactive terminals while stdout receives the bare version when redirected
 
 #### Scenario: Top-level help lists every subcommand
 - **WHEN** an operator runs `copalibre --help`, `copalibre -h`, or `copalibre` with no arguments
-- **THEN** the output lists every documented subcommand with a one-line summary of what it does, and
-  names `copalibre <subcommand> --help` as the way to see more
+- **THEN** the output lists every documented subcommand with a one-line summary of what it does, with column alignment preventing longer command names from overlapping summaries, and names `copalibre <subcommand> --help` as the way to see more
 
 #### Scenario: A subcommand's own help never runs the subcommand
 - **WHEN** an operator runs `copalibre <subcommand> --help` or `copalibre <subcommand> -h` for any
@@ -243,6 +260,34 @@ SHALL operate over a direct database connection.
 #### Scenario: doctor --fix without a TTY applies nothing
 - **WHEN** an operator runs `copalibre doctor --fix` with stdin piped or redirected (no TTY)
 - **THEN** `doctor` reports that repair requires an interactive terminal and applies no changes
+
+#### Scenario: Preflight detects Docker socket permission failure
+- **WHEN** `copalibre init` or `copalibre doctor` runs on a host where the current user cannot access `/var/run/docker.sock`
+- **THEN** execution halts with an actionable error explaining that the user must be added to the `docker` group (`sudo usermod -aG docker $USER`) rather than failing with an unhandled exception.
+
+#### Scenario: Preflight detects host port collision
+- **WHEN** an operator runs `copalibre init` while port 8080 or 5432 is already bound by another process
+- **THEN** the CLI reports the conflicting port, identifies the offending process if inspectable, and prompts the operator to select an alternative port.
+
+#### Scenario: Cryptographic secrets generated during init
+- **WHEN** `copalibre init` writes the `.env` file
+- **THEN** `GARAGE_RPC_SECRET` contains a freshly generated 32-byte hex secret, and the file contains no unresolved variable placeholders.
+
+#### Scenario: Reverse proxy snippet export
+- **WHEN** an operator requests external proxy template generation via `copalibre init --proxy nginx`
+- **THEN** the CLI outputs a ready-to-use Nginx virtual host configuration configured with `proxy_buffering off;`, `X-Accel-Buffering "no";`, and a 24-hour read timeout for `/events/`.
+
+#### Scenario: init scaffolds local modules directory and prompts for starter disciplines
+- **WHEN** an operator runs `copalibre init`
+- **THEN** the CLI creates the `./modules/disciplines/` and `./modules/profiles/` directories with starter documentation, binds the directory into the compose environment for both backend containers and frontend containers, and records the selected starter disciplines for bootstrap.
+
+#### Scenario: upgrade orchestrates executable, compose, images, migrations, and module checks
+- **WHEN** an operator runs `copalibre upgrade`
+- **THEN** the CLI verifies available target version, updates the CLI executable, reconciles `docker-compose.yml` and `.env` variables, pulls updated images, executes database migrations, and queries for outdated module updates.
+
+#### Scenario: upgrade --check inspects available platform and module updates non-destructively
+- **WHEN** an operator runs `copalibre upgrade --check`
+- **THEN** the CLI prints available platform versions and outdated modules without applying changes or restarting containers.
 
 ### Requirement: Kubernetes instance mode
 
@@ -513,3 +558,18 @@ The pre-rendered `/control/` entry route SHALL send browsers to `/control/login`
 #### Scenario: Return destination is preserved
 - **WHEN** a request to `/control/` includes a `returnTo` query parameter
 - **THEN** the login route retains the parameter with its value safely URL-encoded
+
+### Requirement: Public self-hosting documentation truthfulness
+The repository and its associated public documentation (`docs/self-hosting.md` and `copalibre-app`'s `/self-hosting` page) SHALL accurately describe the standalone CLI installation and canonical redirect endpoint, `copalibre init` directory scaffolding, required PostgreSQL and edge reverse proxy services, `copalibre backup` and `copalibre restore --confirm` procedures, and `copalibre upgrade-check` compatibility verification without fictitious commands, ports, or single-container SQLite deployments.
+
+#### Scenario: Truthful Compose architecture presented in public self-hosting documentation
+- **WHEN** an operator or evaluator inspects the public self-hosting documentation
+- **THEN** the documented Compose architecture and references describe the real multi-service structure (`postgres`, `migrate`, `api`, `events`, `web`, `worker`, `scheduler`, `gateway`) and real published gateway ingress port (8080) rather than a non-existent single-container SQLite service.
+
+#### Scenario: Canonical installer redirect behavior
+- **WHEN** an operator executes `curl -fsSL https://copalibre.app/install.sh | bash`
+- **THEN** the endpoint resolves or delegates to the official release installer script from GitHub Releases (`https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh`), installing the standalone `copalibre` binary without failure.
+
+#### Scenario: Truthful CLI commands and terminal examples
+- **WHEN** an operator follows the documented command examples on the self-hosting guide
+- **THEN** the commands match real CLI syntax (`copalibre backup`, `copalibre restore --file <path> --confirm`, `copalibre upgrade-check --target-version <version>`) and do not fail due to fictitious subcommands, missing required flags, or non-existent download endpoints.

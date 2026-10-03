@@ -73,7 +73,7 @@ mkdir my-league && cd my-league
 процесс миграции, что и установка через Compose — установка со значениями по умолчанию ведёт себя
 идентично одному базовому чарту.
 
-Запускайте Helm из корня репозитория после настройки `my-values.yaml`: база данных, идентификация, почта и публичные URL. Для обоих образов используйте опубликованную версию; 1.2.0 станет доступна после публикации.
+Запускайте Helm из корня репозитория после настройки `my-values.yaml`: база данных, идентификация, почта и публичные URL. Для обоих образов используйте опубликованную версию; 1.2.5 станет доступна после публикации.
 
 ```bash
 cd ..
@@ -82,8 +82,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.0 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.0
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5
 ```
 
 Накладывайте эти аддитивные, отключённые по умолчанию группы `values.yaml` по мере необходимости — ни

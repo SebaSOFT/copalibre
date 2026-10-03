@@ -21,7 +21,11 @@ A module SHALL be a directory containing a manifest declaring its kind (`discipl
 
 ### Requirement: Installation names a module, not a location
 The CLI SHALL install a module by alias and version, resolved against the project's curated module
-repository, and an operator SHALL NOT need to know where a module is hosted to install it.
+repository, and an operator SHALL NOT need to know where a module is hosted to install it. If an exact
+Git tag is absent from the curated upstream repository but the module's manifest and artifact version
+are present in the canonical default branch, the module resolution mechanism SHALL resolve and install
+the satisfying version using manifest verification fallback, recording a non-blocking diagnostic note
+rather than aborting with a Git tag resolution failure.
 
 #### Scenario: A published module installs by name
 - **WHEN** an operator runs the module-add command with a module alias
@@ -35,6 +39,10 @@ repository, and an operator SHALL NOT need to know where a module is hosted to i
 #### Scenario: An invalid module is refused without partial import
 - **WHEN** a fetched module fails any validation check
 - **THEN** the import is refused and no artifact, asset or database row from that module remains
+
+#### Scenario: Published module without remote Git tag installs via manifest fallback
+- **WHEN** an operator requests `copalibre module add rink-hockey` and the upstream repository contains `rink-hockey` version 1.1.0 on its default branch but lacks the explicit Git tag `rink-hockey@1.1.0`
+- **THEN** the module is validated against its descriptor manifest, successfully installed into the system, and registered as active without requiring local volume bind mounts or manual Git tagging.
 
 ### Requirement: An alternate source is opt-in and explicit
 Installing from any source other than the curated repository SHALL require an explicit per-invocation
@@ -147,7 +155,9 @@ allow an explicit override.
 
 ### Requirement: Installed modules can be re-verified and retired
 The CLI SHALL re-run validation against installed modules and report versions no started tournament
-references.
+references. In addition, the CLI SHALL inspect the curated module registry during upgrade workflows
+to detect newer published revisions for installed disciplines and profiles, reporting upgrade deltas
+and prompting the operator to update them.
 
 #### Scenario: Drift against the registry is detected
 - **WHEN** an installed module references an identifier removed from the registry by a core upgrade
@@ -156,6 +166,10 @@ references.
 #### Scenario: A version in use is not offered for retirement
 - **WHEN** a started tournament references a discipline version
 - **THEN** that version is excluded from the retirable list
+
+#### Scenario: Outdated modules are detected and reported during upgrade
+- **WHEN** an operator runs `copalibre upgrade` and an installed module has a higher version published in the curated registry
+- **THEN** the upgrade flow reports the version delta (e.g. `1.1.0 -> 1.2.0`) and prompts the operator to update the module.
 
 ### Requirement: A module can be scaffolded, validated, and run locally before submission
 

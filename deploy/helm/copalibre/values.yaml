@@ -122,6 +122,7 @@ env:
   # provider's region for Cloudflare R2/Backblaze B2.
   COPALIBRE_OBJECT_STORAGE_REGION: ''
   COPALIBRE_DATA_DIR: /var/lib/copalibre
+  COPALIBRE_MODULE_SOURCE_ALLOWLIST: 'file:///var/lib/copalibre/modules'
   COPALIBRE_IN_CONTAINER: 'true'
 
 # Which of the keys in `env` above hold credentials and belong in the Secret

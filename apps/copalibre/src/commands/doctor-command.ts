@@ -5,6 +5,7 @@ import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
 import { isContainer, refuseForKubernetesMode, requireComposeTarget } from '../compose-target.js';
 import { runDoctor, type DoctorOptions } from '../doctor.js';
+import { runPreflight } from '../preflight.js';
 import { probeDataIntegrity } from '../doctor-data-probe.js';
 import {
   createPrompter,
@@ -24,6 +25,17 @@ export class DoctorCommand extends Command<CliContext> {
         await refuseForKubernetesMode(
           'run job-doctor.yaml instead (helm install --set doctor.enabled=true, or equivalent)',
         );
+        const preflight = await runPreflight();
+        const socketFailure = preflight.checks.find(
+          (c) => c.name === 'preflight:docker-socket' && c.status === 'fail',
+        );
+        if (socketFailure) {
+          process.stderr.write(
+            `FAIL ${socketFailure.name}: ${socketFailure.message}\n` +
+              `Actionable remediation: ${socketFailure.remediation}\n`,
+          );
+          return 1;
+        }
         await requireComposeTarget(environment);
         return this.context.processes.run('docker', [
           'compose',
@@ -38,6 +50,7 @@ export class DoctorCommand extends Command<CliContext> {
         options: {
           'check-proxy': { type: 'boolean', default: false },
           'proxy-url': { type: 'string' },
+          smoke: { type: 'boolean', default: false },
           fix: { type: 'boolean', default: false },
           interactive: { type: 'boolean', default: false },
         },
@@ -46,6 +59,7 @@ export class DoctorCommand extends Command<CliContext> {
       const options: DoctorOptions = {
         checkProxy: parsed.values['check-proxy'],
         proxyUrl: parsed.values['proxy-url'],
+        smoke: parsed.values.smoke,
       };
       const report = await runDoctor(environment, undefined, options);
       for (const check of report.checks) {
