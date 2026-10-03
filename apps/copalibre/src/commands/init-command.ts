@@ -57,23 +57,6 @@ export class InitCommand extends Command<CliContext> {
         const preflight = await runPreflight();
         if (!preflight.ok) {
           process.stderr.write(formatPreflightReport(preflight) + '\n');
-          const isNonInteractive = parsed.values['non-interactive'] || !process.stdin.isTTY;
-          if (isNonInteractive) {
-            throw new Error(
-              'Host preflight checks failed. Review the remediation steps above, or pass --skip-preflight to bypass.',
-            );
-          }
-          const rl = createInterface({ input: process.stdin, output: process.stdout });
-          try {
-            const answer = await rl.question(
-              'Preflight checks reported issues. Continue anyway? (y/N): ',
-            );
-            if (answer.trim().toLowerCase() !== 'y') {
-              return 1;
-            }
-          } finally {
-            rl.close();
-          }
         }
       }
 
