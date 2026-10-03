@@ -203,3 +203,32 @@ describe('TV backdrop and focal panel (openspec 0202)', () => {
     expect(rule).not.toContain('justify-content: center');
   });
 });
+
+describe('public layout, header, and home orientation hub (openspec 0315)', () => {
+  const layout = readFileSync(join(here, '../layouts/PublicLayout.astro'), 'utf8');
+  const header = read('ui/organisms/PublicHeader.astro');
+  const indexPage = readFileSync(join(here, '../pages/index.astro'), 'utf8');
+
+  it('resets margin and padding to zero on html and body', () => {
+    expect(layout).toMatch(
+      /:global\(html\),\s*:global\(body\)\s*\{[\s\S]*?margin:\s*0;[\s\S]*?padding:\s*0;/,
+    );
+  });
+
+  it('streamlines header navigation to Home and Help, omitting API Reference', () => {
+    expect(header).toContain('messages.headerNavHome');
+    expect(header).toContain('messages.headerNavHelp');
+    expect(header).not.toContain('headerNavApiReference');
+    expect(header).not.toContain('/help/api-reference/');
+  });
+
+  it('renders index page orientation hub with tactical grid, badges, and owned CTA buttons', () => {
+    expect(indexPage).toContain('cl-tactical-grid');
+    expect(indexPage).toContain("import Button from '../components/ui/atoms/Button.astro'");
+    expect(indexPage).toContain("import { Card } from '../components/ui/atoms/Card.tsx'");
+    expect(indexPage).toContain("import { Badge } from '../components/ui/atoms/Badge.tsx'");
+    expect(indexPage).toMatch(/<Button\b[^>]*href="\/control\/"[^>]*variant="primary"/);
+    expect(indexPage).toMatch(/<Button\b[^>]*href="\/help\/"[^>]*variant="secondary"/);
+    expect(indexPage.match(HEX_LITERAL)).toBeNull();
+  });
+});

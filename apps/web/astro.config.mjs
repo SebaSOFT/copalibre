@@ -75,26 +75,7 @@ export default defineConfig({
       sidebar: [
         {
           label: 'CopaLibre',
-          items: [
-            'help',
-            'help/self-hosting',
-            'help/getting-started',
-            'help/operations',
-            {
-              label: 'API reference',
-              translations: {
-                es: 'Referencia API',
-                fr: 'Référence API',
-                pt: 'Referência da API',
-                it: 'Riferimento API',
-                de: 'API-Referenz',
-                ru: 'Справочник API',
-                zh: 'API 参考',
-              },
-              link: '/help/api-reference/',
-              attrs: { 'data-astro-reload': true },
-            },
-          ],
+          items: ['help', 'help/self-hosting', 'help/getting-started', 'help/operations'],
         },
         {
           label: 'Role manuals',

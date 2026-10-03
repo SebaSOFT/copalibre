@@ -253,7 +253,8 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // deleting them was, since the violation these entries recorded no longer
   // exists for the scanner to find.
   ['pages/[...locale]/[organization]/tournaments/[tournament]/players/[personId].astro', 1],
-  ['pages/index.astro', 1],
+  // pages/index.astro composed owned Card, Badge, and Button atoms (openspec 0315)
+  // — zero hand-written owned classes, entry removed per the ratchet rule.
   // The control-panel CTA: an `<a href="/control/">` styled as a button, the
   // same "`Button` cannot render a link" gap as `TournamentSummaryCard.tsx`
   // above (openspec 0225 task 8.1, surfaced the same way).

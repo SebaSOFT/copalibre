@@ -50,6 +50,27 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.closeDialog': 'Chiudi finestra',
   'publicWeb.home.pageTitle': 'CopaLibre — Gestione tornei',
   'publicWeb.home.organizationsLabel': 'Organizzazioni',
+  'publicWeb.home.pageDescription':
+    'Gestione trasparente e self-hosted di tornei per club, leghe e federazioni.',
+  'publicWeb.home.heroTitle': 'CopaLibre',
+  'publicWeb.home.heroSubtitle': 'Operazioni di torneo self-hosted.',
+  'publicWeb.home.heroDescription':
+    'Operazioni di competizione indipendenti e self-hosted con risultati di precisione, regolamenti verificabili e zero vincoli proprietari.',
+  'publicWeb.home.badgeFreeSoftware': 'Software libero AGPL-3.0',
+  'publicWeb.home.badgeSovereign': 'Sovrano e self-hosted',
+  'publicWeb.home.badgeDisciplines': 'Discipline guidate da configurazione',
+  'publicWeb.home.emptyHeading': 'Pronto per la competizione',
+  'publicWeb.home.emptyLead': 'Nessun torneo pubblico è stato ancora pubblicato su questa istanza.',
+  'publicWeb.home.operatorCardTitle': 'Organizzatori di tornei',
+  'publicWeb.home.operatorCardBody':
+    'Accedi al Pannello di controllo per creare organizzazioni, configurare discipline, compilare tabelloni e gestire partite dal vivo.',
+  'publicWeb.home.operatorCta': 'Apri Pannello di controllo',
+  'publicWeb.home.docsCardTitle': 'Self-hosting e documentazione',
+  'publicWeb.home.docsCardBody':
+    'Esplora il manuale dell’operatore, configura proxy inversi esterni o integrati con l’API REST e la CLI.',
+  'publicWeb.home.docsCta': 'Leggi le guide',
+  'publicWeb.home.emptySpectatorNotice':
+    'Se sei uno spettatore o un partecipante, ricontrolla quando gli organizzatori pubblicheranno il calendario della competizione.',
   'publicWeb.standings.empty': 'La classifica appare dopo la prima partita giocata.',
   'publicWeb.standings.team': 'Squadra',
   'publicWeb.standings.played': 'PG',

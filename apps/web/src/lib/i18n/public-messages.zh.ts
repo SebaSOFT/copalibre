@@ -50,6 +50,26 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.closeDialog': '关闭对话框',
   'publicWeb.home.pageTitle': 'CopaLibre — 赛事运营',
   'publicWeb.home.organizationsLabel': '组织',
+  'publicWeb.home.pageDescription': '面向俱乐部、联赛和联合会的自主托管、透明赛事管理。',
+  'publicWeb.home.heroTitle': 'CopaLibre',
+  'publicWeb.home.heroSubtitle': '自主托管的赛事运营平台。',
+  'publicWeb.home.heroDescription':
+    '独立、可自主托管的赛事运营，具备高精度赛果、可验证规则集，且无任何第三方锁定。',
+  'publicWeb.home.badgeFreeSoftware': 'AGPL-3.0 自由软件',
+  'publicWeb.home.badgeSovereign': '自主可控的主权部署',
+  'publicWeb.home.badgeDisciplines': '配置驱动的运动项目',
+  'publicWeb.home.emptyHeading': '已就绪，迎接赛事',
+  'publicWeb.home.emptyLead': '当前实例尚未发布任何公开赛事。',
+  'publicWeb.home.operatorCardTitle': '赛事主办方',
+  'publicWeb.home.operatorCardBody':
+    '登录控制面板以创建组织、配置运动项目、编排赛程并运营实时比赛。',
+  'publicWeb.home.operatorCta': '打开控制面板',
+  'publicWeb.home.docsCardTitle': '自主托管与技术文档',
+  'publicWeb.home.docsCardBody':
+    '查阅运维手册、配置外部反向代理，或通过 REST API 与 CLI 进行集成。',
+  'publicWeb.home.docsCta': '阅读指南',
+  'publicWeb.home.emptySpectatorNotice':
+    '如果您是观众或参赛选手，请在主办方发布比赛日程后再次查看。',
   'publicWeb.standings.empty': '排名将在首场比赛结束后显示。',
   'publicWeb.standings.team': '队伍',
   'publicWeb.standings.played': '场次',

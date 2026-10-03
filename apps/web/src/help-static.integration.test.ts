@@ -5,9 +5,10 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 const REPOSITORY_ROOT = join(import.meta.dirname, '../../..');
-const API_REFERENCE_OUTPUT = join(
+const HELP_OUTPUT = join(REPOSITORY_ROOT, 'apps/web/dist/client/help/index.html');
+const GETTING_STARTED_OUTPUT = join(
   REPOSITORY_ROOT,
-  'apps/web/dist/client/help/api-reference/index.html',
+  'apps/web/dist/client/help/getting-started/index.html',
 );
 
 async function runWorkspaceScript(workspace: string, script: string): Promise<void> {
@@ -18,7 +19,7 @@ async function runWorkspaceScript(workspace: string, script: string): Promise<vo
 }
 
 describe('help static build (integration)', () => {
-  it('renders the API reference without an API process', async () => {
+  it('renders the documentation without an API process', async () => {
     // These are build-time dependencies only; no API server is started here.
     // @copalibre/domain joined this list in language-preference.ts
     // imports it, and the first control-web pass makes that file
@@ -30,9 +31,9 @@ describe('help static build (integration)', () => {
     await runWorkspaceScript('@copalibre/design-tokens', 'build:tokens');
     await runWorkspaceScript('@copalibre/web', 'verify:docs');
 
-    const output = readFileSync(API_REFERENCE_OUTPUT, 'utf8');
-    expect(output).toContain('id="api-reference"');
-    expect(output).toContain("url: '/openapi/v1.json'");
-    expect(output).toContain('hideTestRequestButton: true');
+    const help = readFileSync(HELP_OUTPUT, 'utf8');
+    expect(help).toContain('/help/getting-started/');
+    const gettingStarted = readFileSync(GETTING_STARTED_OUTPUT, 'utf8');
+    expect(gettingStarted).toContain('On this page');
   }, 120_000);
 });
