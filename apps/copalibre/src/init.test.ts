@@ -162,6 +162,26 @@ describe('writeInstallationAssets', () => {
     expect(nginxConf).toContain('proxy_set_header Upgrade $http_upgrade;');
   });
 
+  it('interpolates public appUrl hostname into exported copalibre-nginx.conf', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    const result = await writeInstallationAssets(cwd, {
+      assetsDir,
+      proxy: 'nginx',
+      appUrl: 'https://play.copalibre.app',
+    });
+
+    const nginxConf = await readFile(
+      result.proxyConfigFile ?? join(cwd, 'copalibre-nginx.conf'),
+      'utf8',
+    );
+    expect(nginxConf).toContain('server_name play.copalibre.app;');
+    expect(nginxConf).toContain("proxy_set_header Connection '';");
+    expect(nginxConf).toContain('client_max_body_size 100M;');
+    expect(nginxConf).toContain('proxy_request_buffering off;');
+  });
+
   it('supports apiUrl override without appUrl and falls back to default Caddyfile when not in assets', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
     // Empty directory without Caddyfile

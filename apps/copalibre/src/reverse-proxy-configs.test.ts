@@ -32,8 +32,11 @@ describe('reverse-proxy example configs', () => {
     expect(templateConf).toContain('proxy_buffering off;');
     expect(templateConf).toContain('proxy_cache off;');
     expect(templateConf).toMatch(/add_header\s+X-Accel-Buffering\s+"?no"?\s+always;/);
+    expect(templateConf).toContain("proxy_set_header Connection '';");
     expect(templateConf).toContain('proxy_read_timeout 86400s;');
     expect(templateConf).toContain('proxy_send_timeout 86400s;');
+    expect(templateConf).toContain('client_max_body_size 100M;');
+    expect(templateConf).toContain('proxy_request_buffering off;');
     expect(templateConf).toContain('proxy_set_header Upgrade $http_upgrade;');
     expect(templateConf).toMatch(/proxy_set_header\s+Connection\s+\$connection_upgrade;/);
   });

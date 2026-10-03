@@ -367,12 +367,27 @@ server {
   listen [::]:80;
   server_name play.example.com;
 
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header X-Forwarded-Host $host;
+  proxy_set_header X-Forwarded-Port $server_port;
+
+  client_max_body_size 100M;
+  proxy_request_buffering off;
+
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection $connection_upgrade;
+
   location /events/ {
     proxy_pass http://127.0.0.1:8080/events/;
     proxy_http_version 1.1;
     proxy_buffering off;
     proxy_cache off;
     chunked_transfer_encoding off;
+    proxy_set_header Connection '';
     add_header X-Accel-Buffering "no" always;
     proxy_read_timeout 86400s;
     proxy_send_timeout 86400s;
@@ -381,12 +396,24 @@ server {
   location / {
     proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
     proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
   }
 }
 `;
+    }
+    if (options.appUrl) {
+      try {
+        const hostname = new URL(options.appUrl).hostname;
+        if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+          proxyContent = proxyContent.replace(
+            /server_name\s+play\.example\.com;/,
+            `server_name ${hostname};`,
+          );
+        }
+      } catch {
+        // preserve default server_name
+      }
     }
     await writeFile(proxyConfigFile, proxyContent, 'utf8');
   }

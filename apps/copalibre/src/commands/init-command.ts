@@ -68,6 +68,7 @@ export class InitCommand extends Command<CliContext> {
             .map((s) => s.trim())
             .filter(Boolean)
         : undefined;
+      let proxyChoice = parsed.values.proxy;
 
       const isInteractive = process.stdin.isTTY && !parsed.values['non-interactive'];
       if (isInteractive) {
@@ -94,6 +95,15 @@ export class InitCommand extends Command<CliContext> {
                   .filter(Boolean)
               : ['football', 'tennis'];
           }
+          if (!proxyChoice) {
+            const enteredProxy = await rl.question(
+              'Export reverse proxy template? (nginx / none) [none]: ',
+            );
+            const val = enteredProxy.trim().toLowerCase();
+            if (val === 'nginx') {
+              proxyChoice = 'nginx';
+            }
+          }
         } finally {
           rl.close();
         }
@@ -101,7 +111,7 @@ export class InitCommand extends Command<CliContext> {
 
       const result = await writeInstallationAssets(process.cwd(), {
         moduleDev: parsed.values['module-dev'],
-        proxy: parsed.values.proxy,
+        proxy: proxyChoice,
         appUrl,
         apiUrl,
         starterDisciplines,
@@ -119,9 +129,18 @@ export class InitCommand extends Command<CliContext> {
       ];
       process.stdout.write(`${lines.join('\n')}\n`);
 
-      if (parsed.values.proxy === 'nginx' && result.proxyConfigFile) {
+      if (result.proxyConfigFile) {
         const proxyConfigContent = await readFile(result.proxyConfigFile, 'utf8');
-        process.stdout.write(`\n--- Generated Nginx Configuration ---\n${proxyConfigContent}\n`);
+        process.stdout.write(
+          `\n--- Suggested Reverse Proxy Configuration (${result.proxyConfigFile}) ---\n${proxyConfigContent}\n` +
+            `Ensure your proxy sets proxy_buffering off for /events/ and client_max_body_size >= 50M.\n`,
+        );
+      } else {
+        process.stdout.write(
+          `\nTip: If using an external reverse proxy (e.g. Nginx), export a turnkey configuration with:\n` +
+            `  copalibre init --proxy nginx\n` +
+            `Ensure /events/ disables buffering (proxy_buffering off) and client_max_body_size allows backup/media uploads (>= 50M).\n`,
+        );
       }
 
       return 0;
