@@ -1619,7 +1619,7 @@ __metadata:
   resolution: "@copalibre/rules@workspace:packages/rules"
   dependencies:
     "@copalibre/domain": "workspace:^"
-    "@sebasoft/neuron-js": "npm:0.6.1"
+    "@sebasoft/neuron-js": "npm:0.7.5"
     "@types/jest": "npm:^30.0.0"
     ajv: "npm:^8.20.0"
     jest: "npm:^30.5.2"
@@ -5439,10 +5439,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sebasoft/neuron-js@npm:0.6.1":
-  version: 0.6.1
-  resolution: "@sebasoft/neuron-js@npm:0.6.1"
-  checksum: 10c0/145ed9be3c0e204579d451deaa0bc843bdc378ae5230ca2e6dd5c2c173cdfc124c792ece93d5bf6e12e9e8cfe3653930d40859694f3eb6e7ccc1e18a5491ee75
+"@sebasoft/neuron-js@npm:0.7.5":
+  version: 0.7.5
+  resolution: "@sebasoft/neuron-js@npm:0.7.5"
+  checksum: 10c0/2d7a4ecf3b6d271d41a884c15137c91c639b1a30b8caec2ec2e7167c15693298c8b43d2e3a1c6aa2d2a3cbc1341a63b3af4099d559410956568d5d91260992a7
   languageName: node
   linkType: hard
 
