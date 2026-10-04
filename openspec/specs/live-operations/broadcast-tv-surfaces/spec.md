@@ -62,12 +62,12 @@ retry; connection loss and data unavailability SHALL resolve automatically witho
   requiring a click to dismiss
 
 ### Requirement: Long-running memory stability
-A `/tv/**` route SHALL sustain multi-day continuous rendering without unbounded memory growth.
+A `/tv/**` route SHALL sustain multi-day continuous rendering without unbounded memory growth. The automated scheduled verification pipeline SHALL compile all required workspace domain and engine dependencies before building the production web preview, guaranteeing the headless Chromium soak measurement executes to completion and produces an evaluated report artifact.
 
 #### Scenario: Multi-day soak does not leak
 - **WHEN** a `/tv/**` route runs continuously in a headless browser for the duration of the soak-test
   window
-- **THEN** measured memory usage does not grow unbounded over that window
+- **THEN** measured memory usage does not grow unbounded over that window, and the automated pipeline uploads `tv-soak-report.json` with evaluation results
 
 ### Requirement: Organizer event branding
 A `/tv/**` route SHALL support an organizer-supplied logo and accent color layered over the base

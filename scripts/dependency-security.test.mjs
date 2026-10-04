@@ -2,10 +2,16 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { parse } from 'yaml';
+import {
+  checkPatchedFloor,
+  KNOWN_UNPATCHED_ADVISORIES,
+  lockVersions,
+} from './check-dependabot-alerts.mjs';
 
 const root = new URL('../', import.meta.url);
 const manifest = JSON.parse(readFileSync(new URL('package.json', root), 'utf8'));
 const lock = parse(readFileSync(new URL('yarn.lock', root), 'utf8'));
+const lockText = readFileSync(new URL('yarn.lock', root), 'utf8');
 
 // Supported stable major lines only. A new major needs its own advisory review;
 // a numerically larger prerelease is not evidence that a security fix is present.
@@ -74,6 +80,30 @@ for (const [selector, name] of [
     assert.ok(
       Object.values(lock).some((entry) => entry.resolution === `${name}@npm:${version}`),
       `${selector}: pinned version is absent from yarn.lock`,
+    );
+  });
+}
+
+for (const advisory of Object.values(KNOWN_UNPATCHED_ADVISORIES)) {
+  test(`${advisory.package}: tracked advisory lock entries enforce any upstream patched floor`, () => {
+    const versions = lockVersions(lockText, advisory.package);
+    assert.ok(
+      versions.length > 0,
+      `${advisory.package}: no locked instances; review the advisory register`,
+    );
+
+    const [major, minor, patch] = versions[0].split('.').map(Number);
+    const nextPatch = `${major}.${minor}.${patch + 1}`;
+    assert.equal(
+      checkPatchedFloor(advisory.package, versions, nextPatch).length,
+      versions.filter((version) => version.localeCompare(nextPatch, 'en', { numeric: true }) < 0)
+        .length,
+      `${advisory.package}: every locked instance below an upstream fix must be reported`,
+    );
+    assert.deepEqual(
+      checkPatchedFloor(advisory.package, [nextPatch], nextPatch),
+      [],
+      `${advisory.package}: a lock updated to the fix must pass`,
     );
   });
 }
