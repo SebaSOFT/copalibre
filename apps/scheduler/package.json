@@ -15,7 +15,7 @@
     "@copalibre/domain": "workspace:^",
     "@copalibre/persistence": "workspace:^",
     "@nestjs/common": "^11.1.28",
-    "@nestjs/core": "^11.1.28",
+    "@nestjs/core": "^12.1.2",
     "@nestjs/platform-fastify": "^11.1.29",
     "kysely": "^0.29",
     "reflect-metadata": "^0.2.2",

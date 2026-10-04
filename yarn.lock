@@ -1391,7 +1391,7 @@ __metadata:
     "@copalibre/tournament-engine": "workspace:^"
     "@fastify/helmet": "npm:^13.1.1"
     "@nestjs/common": "npm:^11.1.28"
-    "@nestjs/core": "npm:^11.1.28"
+    "@nestjs/core": "npm:^12.1.2"
     "@nestjs/platform-fastify": "npm:^11.1.29"
     "@nestjs/swagger": "npm:^11.4.6"
     "@nestjs/testing": "npm:^11.1.28"
@@ -1504,7 +1504,7 @@ __metadata:
     "@copalibre/persistence": "workspace:^"
     "@copalibre/realtime": "workspace:^"
     "@nestjs/common": "npm:^11.1.28"
-    "@nestjs/core": "npm:^11.1.28"
+    "@nestjs/core": "npm:^12.1.2"
     "@nestjs/platform-fastify": "npm:^11.1.29"
     "@nestjs/testing": "npm:^11.1.28"
     "@types/jest": "npm:^30.0.0"
@@ -1637,7 +1637,7 @@ __metadata:
     "@copalibre/domain": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@nestjs/common": "npm:^11.1.28"
-    "@nestjs/core": "npm:^11.1.28"
+    "@nestjs/core": "npm:^12.1.2"
     "@nestjs/platform-fastify": "npm:^11.1.29"
     "@nestjs/testing": "npm:^11.1.28"
     "@types/jest": "npm:^30.0.0"
@@ -1760,7 +1760,7 @@ __metadata:
     "@copalibre/statistics-refold": "workspace:^"
     "@copalibre/tournament-engine": "workspace:^"
     "@nestjs/common": "npm:^11.1.28"
-    "@nestjs/core": "npm:^11.1.28"
+    "@nestjs/core": "npm:^12.1.2"
     "@nestjs/platform-fastify": "npm:^11.1.29"
     "@nestjs/testing": "npm:^11.1.28"
     "@types/clamscan": "npm:^2.4.1"
@@ -3689,9 +3689,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@nestjs/core@npm:^11.1.28":
-  version: 11.1.28
-  resolution: "@nestjs/core@npm:11.1.28"
+"@nestjs/core@npm:^12.1.2":
+  version: 12.1.2
+  resolution: "@nestjs/core@npm:12.1.2"
   dependencies:
     fast-safe-stringify: "npm:2.1.1"
     iterare: "npm:1.2.1"
@@ -3699,10 +3699,10 @@ __metadata:
     tslib: "npm:2.8.1"
     uid: "npm:2.0.2"
   peerDependencies:
-    "@nestjs/common": ^11.0.0
-    "@nestjs/microservices": ^11.0.0
-    "@nestjs/platform-express": ^11.0.0
-    "@nestjs/websockets": ^11.0.0
+    "@nestjs/common": ^12.0.0
+    "@nestjs/microservices": ^12.0.0
+    "@nestjs/platform-express": ^12.0.0
+    "@nestjs/websockets": ^12.0.0
     reflect-metadata: ^0.1.12 || ^0.2.0
     rxjs: ^7.1.0
   peerDependenciesMeta:
@@ -3712,7 +3712,7 @@ __metadata:
       optional: true
     "@nestjs/websockets":
       optional: true
-  checksum: 10c0/691e4328fc7b428beb1cfe47fe5342f2abbf6cfb2bfb3fd76b0430cf7732b59f520c7599bbab2186c734f8be7b4abcdd805c0c846a337a65f822f547d5714fda
+  checksum: 10c0/09bc525c18d8416010f3a879df63392172dab76d87d4e2f0d95b3e0a2e074b82e34c8f6b22b83388409e0e650c07ba232459ecf1dc4d0b17060a7d0d13efe423
   languageName: node
   linkType: hard
 
