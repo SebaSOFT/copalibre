@@ -27,7 +27,7 @@ jobs:
     permissions:
       contents: write
       packages: write
-      security-events: read
+      vulnerability-alerts: read
     steps:
       - uses: actions/checkout@v7
         with:

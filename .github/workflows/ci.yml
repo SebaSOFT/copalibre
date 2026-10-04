@@ -100,7 +100,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: read
+      vulnerability-alerts: read
     steps:
       - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
