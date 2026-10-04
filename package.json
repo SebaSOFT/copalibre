@@ -31,7 +31,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^26.1.2",
     "conventional-changelog-cli": "^5.0.0",
-    "eslint": "^10.8.0",
+    "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-astro": "^3.0.1",
     "eslint-plugin-react": "^7.37.5",
