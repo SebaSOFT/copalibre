@@ -423,7 +423,7 @@ The toolchain SHALL pin supported stable major lines of packages with known advi
 - **THEN** the dependency security guard fails and identifies the package and locked descriptor
 
 ### Requirement: Continuous integration audits the full dependency graph
-Continuous integration SHALL check direct and transitive dependencies from every workspace against current package registry security advisories. Any reported security advisory SHALL fail the check, while package deprecation notices alone SHALL NOT count as security advisories.
+Continuous integration SHALL check direct and transitive dependencies from every workspace against package registry security advisories and the GitHub Advisory Database. Any open, unreviewed security advisory SHALL fail the check, while package deprecation notices alone SHALL NOT count as security advisories. Transitive build-time dependencies without upstream patches SHALL require explicit documented architectural blast-radius assessment before release.
 
 #### Scenario: Pull request dependency graph has no security advisories
 - **WHEN** CI installs dependencies for a pull request
@@ -440,3 +440,11 @@ Continuous integration SHALL check direct and transitive dependencies from every
 #### Scenario: Deprecation notices do not fail the vulnerability gate
 - **WHEN** the registry reports only package deprecation notices and no security advisories
 - **THEN** the dependency audit check passes
+
+#### Scenario: Supply-chain audit detects GitHub security advisories
+- **WHEN** CI runs security verification on a pull request
+- **THEN** it audits the dependency graph against open repository advisories and fails if an unreviewed advisory exists
+
+#### Scenario: Unpatched build-time dependencies require recorded blast-radius assessment
+- **WHEN** a transitive dependency carries an open advisory with no upstream patch available
+- **THEN** CI requires an explicit entry in the verified unpatched register documenting zero runtime exposure, failing if the advisory is unreviewed or if an upstream patch has been released but not adopted

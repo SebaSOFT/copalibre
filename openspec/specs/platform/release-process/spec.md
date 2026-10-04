@@ -93,16 +93,21 @@ Release preparation SHALL review the changelog, product version references, inst
 - **AND** translated upgrade procedures preserve persistent data and honor installation version checks
 
 ### Requirement: A fresh dependency security audit gates release publication
-Before creating a new release tag or publishing release images, the release workflow SHALL audit all direct and transitive dependencies from every workspace against current package registry security advisories. A failed audit SHALL stop the workflow before any release artifact is published.
+Before creating a new release tag or publishing release images, the release workflow SHALL audit all direct and transitive dependencies from every workspace against current package registry security advisories and GitHub Dependabot advisories. An unreviewed open advisory SHALL stop the workflow before any release artifact is published. An explicitly registered unpatched advisory MAY pass only while its upstream fix remains unavailable; once a fix is available, the locked package versions and root resolutions SHALL meet the published patched floor.
 
 #### Scenario: Vulnerable dependency blocks release publication
 - **WHEN** the release workflow is preparing a version that does not have an existing release tag
-- **AND** the recursive dependency audit reports any security advisory
+- **AND** the recursive registry audit reports a security advisory, an open GitHub advisory is not in the reviewed register, or a published fix is not adopted in the lockfile and root resolutions
 - **THEN** the workflow fails before creating the tag, pushing images, or creating the GitHub Release
+
+#### Scenario: Reviewed unpatched advisory is recorded before release
+- **WHEN** the release workflow finds an open advisory with no upstream patched version
+- **AND** the advisory identity, package, dependency path, and runtime blast radius match an explicit reviewed register entry
+- **THEN** the workflow records the advisory as reviewed and may continue only if every other security check passes
 
 #### Scenario: Clean dependency graph allows release publication
 - **WHEN** the release workflow is preparing a version that does not have an existing release tag
-- **AND** the recursive dependency audit reports no security advisories
+- **AND** the recursive dependency audit reports no security advisories and the GitHub advisory guard reports no unreviewed advisory or unadopted patched floor
 - **THEN** the workflow may continue to create the tag and publish its images and GitHub Release
 
 #### Scenario: Existing release tag remains an idempotent no-op
