@@ -160,21 +160,25 @@ export async function checkDependabotAlerts({
 
 async function listOpenAlerts(repository, token, fetchImpl) {
   const alerts = [];
-  for (let page = 1; ; page++) {
-    const result = await githubJson(
-      `/repos/${repository}/dependabot/alerts?state=open&per_page=100&page=${page}`,
-      token,
-      fetchImpl,
-    );
+  let url = `${API}/repos/${repository}/dependabot/alerts?state=open&per_page=100`;
+  while (url) {
+    const response = await githubResponse(url, token, fetchImpl);
+    const result = await response.json();
     if (!Array.isArray(result))
       throw new Error('Dependabot alerts API returned a non-array response');
     alerts.push(...result);
-    if (result.length < 100) return alerts;
+    url = nextPageUrl(response.headers?.get('link'));
   }
+  return alerts;
 }
 
 async function githubJson(path, token, fetchImpl) {
-  const response = await fetchImpl(`${API}${path}`, {
+  const response = await githubResponse(`${API}${path}`, token, fetchImpl);
+  return response.json();
+}
+
+async function githubResponse(url, token, fetchImpl) {
+  const response = await fetchImpl(url, {
     headers: {
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${token}`,
@@ -183,10 +187,20 @@ async function githubJson(path, token, fetchImpl) {
   });
   if (!response.ok) {
     throw new Error(
-      `GitHub API ${path} returned HTTP ${response.status}: ${await response.text()}`,
+      `GitHub API ${url.replace(API, '')} returned HTTP ${response.status}: ${await response.text()}`,
     );
   }
-  return response.json();
+  return response;
+}
+
+function nextPageUrl(linkHeader) {
+  if (!linkHeader) return null;
+  return (
+    linkHeader
+      .split(',')
+      .map((link) => /^\s*<([^>]+)>;\s*rel="next"/.exec(link)?.[1])
+      .find(Boolean) ?? null
+  );
 }
 
 function repositoryFromOrigin() {

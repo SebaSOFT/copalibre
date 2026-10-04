@@ -132,3 +132,68 @@ test('the API audit fails unknown alerts and detects a patch below current lock 
     /braces: locked 3\.0\.3 is below upstream patched version 3\.0\.4/,
   );
 });
+
+test('the API audit follows GitHub Link pagination for Dependabot alerts', async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    calls.push(url);
+    if (url.includes('/dependabot/alerts?')) {
+      const secondPage = url.includes('cursor=next');
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => (secondPage ? null : `<${url}&cursor=next>; rel="next"`) },
+        json: async () =>
+          secondPage
+            ? [
+                {
+                  number: 71,
+                  security_vulnerability: { package: { name: 'braces' } },
+                  security_advisory: { ghsa_id: 'GHSA-vfj7-8cjw-p6xm' },
+                },
+              ]
+            : Array.from({ length: 100 }, () => ({
+                number: 71,
+                security_vulnerability: { package: { name: 'braces' } },
+                security_advisory: { ghsa_id: 'GHSA-vfj7-8cjw-p6xm' },
+              })),
+        text: async () => '',
+      };
+    }
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({
+        vulnerabilities: [
+          {
+            package: { ecosystem: 'npm', name: 'braces' },
+            first_patched_version: null,
+          },
+        ],
+      }),
+      text: async () => '',
+    };
+  };
+
+  const result = await checkDependabotAlerts({
+    repository: 'SebaSOFT/copalibre',
+    token: 'test-token',
+    fetchImpl,
+    lockText: lock,
+    known: {
+      71: {
+        package: 'braces',
+        ghsa: 'GHSA-vfj7-8cjw-p6xm',
+        dependencyPath: 'root -> braces',
+        runtimeExposure: 'none; test fixture',
+        upstreamIssue: 'https://github.com/micromatch/braces/issues/70',
+      },
+    },
+  });
+
+  assert.equal(result.openAlertCount, 101);
+  assert.equal(calls.filter((url) => url.includes('/dependabot/alerts?')).length, 2);
+  assert.match(calls[0], /per_page=100$/);
+  assert.match(calls[1], /cursor=next$/);
+});
