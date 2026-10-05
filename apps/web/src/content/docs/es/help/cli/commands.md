@@ -71,9 +71,27 @@ Corre un entorno de desarrollo, contenerizado o híbrido.
 
 ## start
 
-`copalibre start`
+`copalibre start [--dev]`
 
-Levanta PostgreSQL, corre doctor, y arranca todos los roles de proceso.
+Inicia PostgreSQL, ejecuta doctor y luego inicia todos los roles. En instalaciones Kubernetes muestra instrucciones de Helm. Con --dev inicia el perfil de desarrollo containerizado.
+
+## stop
+
+`copalibre stop [--dev] [--down]`
+
+Detiene los contenedores Compose sin borrar volúmenes. --down elimina contenedores y redes. En Kubernetes muestra instrucciones de kubectl/Helm. --dev controla contenedores Compose, no procesos Yarn del host.
+
+## restart
+
+`copalibre restart [--dev] [--no-doctor]`
+
+Detiene Compose, inicia PostgreSQL, ejecuta doctor y luego inicia los demás servicios esperando su estado saludable. --no-doctor omite doctor; --dev reinicia los perfil de infraestructura Compose de desarrollo.
+
+## status
+
+`copalibre status [--json] [--dev]`
+
+Muestra estados de contenedores, puertos de ingreso publicados y salud del gateway. --json produce JSON para máquinas y --dev consulta Compose de desarrollo. En Kubernetes muestra release, namespace y contexto, y consulta pods si kubectl está disponible.
 
 ## migrate
 

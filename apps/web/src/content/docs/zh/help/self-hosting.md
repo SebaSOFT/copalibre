@@ -48,8 +48,13 @@ mkdir my-league && cd my-league
 ```bash
 ../copalibre doctor
 ../copalibre start
+../copalibre status
+../copalibre restart
+../copalibre stop
 ../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
+
+使用 copalibre status 检查容器和网关。copalibre restart 会检查 PostgreSQL 和 doctor，然后重新启动服务。copalibre stop 会保留卷；--down 会移除容器和网络。Kubernetes 模式下，start/stop/restart 会显示 Helm 或 kubectl 操作说明。
 
 网关在 `http://localhost:8080`（`COPALIBRE_PORT`）提供 HTTP。Compose 也会发布服务端口；请在主机和网络层限制访问。TLS 由边缘代理终止。
 

@@ -52,6 +52,18 @@ export const CLI_MCP_PARITY: readonly ParityEntry[] = [
       'A long-running process (starts every process role), not a request/response tool call.',
   },
   {
+    cliCommand: 'stop',
+    exemptReason: 'Host-level Compose lifecycle operation, not a request/response tool call.',
+  },
+  {
+    cliCommand: 'restart',
+    exemptReason: 'Host-level Compose lifecycle operation, not a request/response tool call.',
+  },
+  {
+    cliCommand: 'status',
+    exemptReason: 'Inspects the local host/container runtime, not a remote MCP operation.',
+  },
+  {
     cliCommand: 'mcp',
     exemptReason: 'Starts the MCP server itself — a tool cannot start its own server.',
   },

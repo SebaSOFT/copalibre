@@ -51,8 +51,13 @@ Prima dell’avvio modifica `.env`: usa `COPALIBRE_IMAGE=copalibre:local` e `COP
 ```bash
 ../copalibre doctor
 ../copalibre start
+../copalibre status
+../copalibre restart
+../copalibre stop
 ../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
+
+Usa copalibre status per controllare container e gateway. copalibre restart verifica PostgreSQL e doctor prima di avviare di nuovo i servizi. copalibre stop mantiene i volumi; --down rimuove container e reti. In modalità Kubernetes, start/stop/restart mostrano istruzioni Helm o kubectl.
 
 Il gateway espone HTTP su `http://localhost:8080` (`COPALIBRE_PORT`). Compose espone anche le porte dei servizi; limitane l’accesso sull’host e sulla rete. TLS termina al proxy perimetrale.
 

@@ -72,9 +72,27 @@ Exécute un environnement de développement, conteneurisé ou hybride.
 
 ## start
 
-`copalibre start`
+`copalibre start [--dev]`
 
-Démarre PostgreSQL, exécute doctor, et lance tous les rôles de processus.
+Démarre PostgreSQL, exécute doctor puis lance tous les rôles de processus. Dans une installation Kubernetes, la commande affiche les instructions Helm. Avec --dev, elle démarre le profil de développement conteneurisé.
+
+## stop
+
+`copalibre stop [--dev] [--down]`
+
+Arrête les conteneurs Compose sans supprimer les volumes. --down supprime les conteneurs et réseaux. En mode Kubernetes, la commande affiche des instructions kubectl/Helm. --dev ne gère que Compose, pas les processus Yarn lancés sur l’hôte.
+
+## restart
+
+`copalibre restart [--dev] [--no-doctor]`
+
+Arrête Compose, démarre PostgreSQL, exécute doctor puis relance les autres services en attendant leur état sain. --no-doctor ignore doctor ; --dev redémarre les profil d’infrastructure Compose de développement.
+
+## status
+
+`copalibre status [--json] [--dev]`
+
+Affiche l’état des conteneurs, les ports d’entrée publiés et la santé de la passerelle. --json produit un JSON lisible par machine et --dev consulte Compose de développement. En mode Kubernetes, la commande affiche release, namespace et contexte, puis interroge les pods si kubectl est disponible.
 
 ## migrate
 

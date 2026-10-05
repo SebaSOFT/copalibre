@@ -73,9 +73,27 @@ Führt eine Entwicklungsumgebung aus, containerisiert oder hybrid.
 
 ## start
 
-`copalibre start`
+`copalibre start [--dev]`
 
-Startet PostgreSQL, führt doctor aus und startet alle Prozessrollen.
+Startet PostgreSQL, führt doctor aus und startet danach alle Prozessrollen. Bei einer Kubernetes-Installation zeigt der Befehl Helm-Hinweise. Mit --dev startet er das containerisierte Entwicklungsprofil.
+
+## stop
+
+`copalibre stop [--dev] [--down]`
+
+Stoppt Compose-Container, ohne Volumes zu entfernen. --down entfernt Container und Netzwerke. Bei Kubernetes zeigt der Befehl kubectl-/Helm-Hinweise. --dev steuert nur Compose-Container, keine lokal gestarteten Yarn-Prozesse.
+
+## restart
+
+`copalibre restart [--dev] [--no-doctor]`
+
+Stoppt den Compose-Stack, startet PostgreSQL, führt doctor aus und startet danach die übrigen Dienste mit Bereitschaftsprüfung. --no-doctor überspringt doctor; --dev startet Compose-Infrastrukturprofil für die Entwicklung neu.
+
+## status
+
+`copalibre status [--json] [--dev]`
+
+Zeigt Containerstatus, veröffentlichte Eingangsports und den Gateway-Status. --json liefert maschinenlesbares JSON, --dev zeigt die Entwicklungs-Compose-Umgebung. Bei Kubernetes zeigt der Befehl Release, Namespace und Kontext und fragt Pods ab, wenn kubectl verfügbar ist.
 
 ## migrate
 

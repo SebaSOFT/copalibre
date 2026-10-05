@@ -51,8 +51,13 @@ mkdir my-league && cd my-league
 ```bash
 ../copalibre doctor
 ../copalibre start
+../copalibre status
+../copalibre restart
+../copalibre stop
 ../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
+
+Используйте copalibre status для проверки контейнеров и шлюза. copalibre restart проверяет PostgreSQL и doctor перед повторным запуском служб. copalibre stop сохраняет тома; --down удаляет контейнеры и сети. В Kubernetes команды start/stop/restart выводят инструкции Helm или kubectl.
 
 Шлюз публикует HTTP на `http://localhost:8080` (`COPALIBRE_PORT`). Compose также публикует порты сервисов; ограничьте доступ на уровне хоста и сети. TLS завершается на внешнем прокси.
 
