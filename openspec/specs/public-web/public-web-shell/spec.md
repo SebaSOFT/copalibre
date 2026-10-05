@@ -98,33 +98,27 @@ route even if the old alias string collides.
 
 ### Requirement: Public routes carry a locale prefix, primary locale excepted
 
-Every public canonical route SHALL be available in each of the platform's supported interface
-languages that have populated content, as a `/{locale}/{organization}/...` prefixed variant, except
-the primary locale (English), which SHALL remain unprefixed at
-`/{organization}/tournaments/{tournament}` and its public children. Interface chrome (navigation,
-footer, section headings, status labels) SHALL render in the variant's own language; organizer-entered
-content (tournament names, participant names, organization names) is never translated. A route's
-locale variant is resolved from the request path at the time it is served — for a route that is
-rendered per request against live backend data, this resolution SHALL happen on every request rather
-than being limited to a fixed, pre-generated set of locale/alias combinations.
+Every public canonical route SHALL be available in each of the platform's supported interface languages that have populated content, as a `/{locale}/{organization}/...` prefixed variant, except the primary locale (English), which SHALL remain unprefixed at `/{organization}/tournaments/{tournament}` and its public children. Interface chrome (navigation, footer, section headings, status labels) SHALL render in the variant's own language; organizer-entered content (tournament names, participant names, organization names) is never translated. A route's locale variant is resolved from the request path at the time it is served — for a route that is rendered per request against live backend data, this resolution SHALL happen on every request rather than being limited to a fixed, pre-generated set of locale/alias combinations. The root public home page SHALL also be reachable under non-primary locale prefixes (e.g. `/{locale}`) serving the localized home landing page. When switching languages, the system SHALL replace the active locale prefix cleanly without accumulating duplicated or nested locale segments.
 
 #### Scenario: English is served unprefixed
-
 - **WHEN** an anonymous visitor requests `/{organization}/tournaments/{tournament}`
 - **THEN** the page renders with English interface chrome and no locale prefix in the URL
 
 #### Scenario: A non-primary locale is served under its prefix
-
-- **WHEN** an anonymous visitor requests `/es/{organization}/tournaments/{tournament}` for a
-  tournament that also has an English variant
-- **THEN** the page renders the same tournament's data with Spanish interface chrome, and organizer-
-  entered names render identically to the English variant
+- **WHEN** an anonymous visitor requests `/es/{organization}/tournaments/{tournament}` for a tournament that also has an English variant
+- **THEN** the page renders the same tournament's data with Spanish interface chrome, and organizer-entered names render identically to the English variant
 
 #### Scenario: The document language attribute matches the served locale
-
 - **WHEN** any public page is requested
-- **THEN** its `<html lang>` attribute matches the locale actually served, never a value hardcoded
-  independent of the requested variant
+- **THEN** its `<html lang>` attribute matches the locale actually served, never a value hardcoded independent of the requested variant
+
+#### Scenario: Non-primary locale home page is served under its prefix
+- **WHEN** an anonymous visitor requests `/{locale}` for any supported non-primary locale (e.g. `/es`, `/fr`)
+- **THEN** the public site serves the localized home landing page in that locale, and does not treat the locale code as an organization alias
+
+#### Scenario: Switching language replaces locale prefix without segment duplication
+- **WHEN** a visitor on a localized route (e.g. `/es/org/tournaments/t1`) selects another language (e.g. French or English)
+- **THEN** the target URL cleanly swaps the prefix (e.g. `/fr/org/tournaments/t1` or `/org/tournaments/t1`), never producing duplicated segments like `/es/es/...`
 
 ### Requirement: Sitemap advertises every locale variant of a public route
 
@@ -944,11 +938,11 @@ directory. It SHALL NOT render as an unstyled, pure-white browser document.
   seamlessly
 
 ### Requirement: Public-web header layout and interaction integrity
-The public-web header (`.cl-public-header`) SHALL attach flush to the top edge of the browser viewport without unintended margin or padding leakage from parent document body styles. The language selection popover (`.cl-public-header__locale-list`) SHALL render endonyms without horizontal squishing, sizing to its own content (`min-width: max-content`) with `white-space: nowrap` so language names do not break across individual syllables or characters. The header navigation links SHALL focus cleanly on core destinations ("Home" and "Help"), omitting the API Reference link from primary public chrome.
+The public-web header (`.cl-public-header`) SHALL attach flush to the top edge of the browser viewport without unintended margin or padding leakage from parent document body styles or skip-link elements. The skip-to-content link SHALL remain completely off-screen and isolated from document normal flow until focused. The language selection trigger SHALL display the platform standard translation glyph and current uppercase locale (`文A {LOCALE} ⌵`), and the popover (`.cl-public-header__locale-list`) SHALL render endonyms without horizontal squishing, sizing to its own content (`min-width: max-content`) with `white-space: nowrap` so language names do not break across individual syllables or characters. The header navigation links SHALL focus cleanly on core destinations ("Home" and "Help"), omitting the API Reference link from primary public chrome.
 
 #### Scenario: Public header attaches flush to top edge
 - **WHEN** any public page is rendered
-- **THEN** the header sticks directly to the top edge of the viewport with 0px top margin gap
+- **THEN** the header sticks directly to the top edge of the viewport with 0px top margin gap, with the skip-to-content link isolated off-canvas in default state
 
 #### Scenario: Language popover displays complete endonyms
 - **WHEN** a visitor activates the language selector in the public header
