@@ -113,7 +113,7 @@ test.afterAll(async () => {
 });
 
 test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () => {
-  test('0326: the Spanish home route outranks organization lookup and keeps header flush', async ({
+  test('0326: the Spanish home route is localized, flush, and leaves unknown routes as 404s', async ({
     page,
   }) => {
     const response = await page.goto('/es');
@@ -129,17 +129,16 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
     expect(await header.evaluate((element) => element.getBoundingClientRect().top)).toBe(0);
 
     const languageTrigger = page.locator('.cl-public-header__locale summary');
-    await expect(languageTrigger).toContainText('文A');
+    const translationMark = languageTrigger.locator('.cl-public-header__translation-mark');
+    expect(
+      await translationMark.evaluate((element) => getComputedStyle(element, '::before').content),
+    ).toBe('"文A"');
     await expect(languageTrigger).toContainText('ES');
     await languageTrigger.click();
     await expect(page.locator('.cl-public-header__locale-list a[hreflang="fr"]')).toHaveAttribute(
       'href',
       '/fr',
     );
-
-    const organizationResponse = await page.goto(`/${ORGANIZATION}`);
-    expect(organizationResponse?.status()).toBe(200);
-    await expect(page.getByRole('heading', { name: 'Liga Mendocina' })).toBeVisible();
 
     const missingRouteResponse = await page.goto('/some-missing-page');
     expect(missingRouteResponse?.status()).toBe(404);

@@ -96,7 +96,7 @@ const languageName = (code: string): string => {
         localeOptions.length > 1 && (
           <details class="cl-public-header__locale">
             <summary aria-label={intl.formatMessage(messages.headerLanguage)} class="cl-focusable">
-              <span aria-hidden="true">文A</span>
+              <span aria-hidden="true" class="cl-public-header__translation-mark" />
               <span>{locale.toUpperCase()}</span>
               <span aria-hidden="true">⌄</span>
             </summary>
@@ -230,3 +230,9 @@ const languageName = (code: string): string => {
     enhanceHeader(toggle);
   }
 </script>
+
+<style>
+  .cl-public-header__translation-mark::before {
+    content: '文A';
+  }
+</style>
