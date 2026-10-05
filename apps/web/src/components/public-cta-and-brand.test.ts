@@ -215,9 +215,9 @@ describe('public layout, header, and home orientation hub (openspec 0315)', () =
     );
   });
 
-  it('streamlines header navigation to Home and Help, omitting API Reference', () => {
+  it('keeps public header navigation focused on spectator destinations', () => {
     expect(header).toContain('messages.headerNavHome');
-    expect(header).toContain('messages.headerNavHelp');
+    expect(header).not.toContain('messages.headerNavHelp');
     expect(header).not.toContain('headerNavApiReference');
     expect(header).not.toContain('/help/api-reference/');
   });

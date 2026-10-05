@@ -128,7 +128,12 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
     expect(await header.evaluate((element) => (element as HTMLElement).offsetTop)).toBe(0);
     expect(await header.evaluate((element) => element.getBoundingClientRect().top)).toBe(0);
 
+    const nav = page.locator('#cl-public-nav');
+    await expect(nav.locator('a[href="/es/"]')).toBeVisible();
+    await expect(nav.locator('a[href="/es/help/"]')).toHaveCount(0);
+
     const languageTrigger = page.locator('.cl-public-header__locale summary');
+    await expect(languageTrigger).toBeVisible();
     const translationMark = languageTrigger.locator('.cl-public-header__translation-mark');
     expect(
       await translationMark.evaluate((element) => getComputedStyle(element, '::before').content),
