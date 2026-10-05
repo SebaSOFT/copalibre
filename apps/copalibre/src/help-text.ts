@@ -123,7 +123,38 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'start',
     summary: 'Start PostgreSQL, run doctor, then start every process role',
-    usage: 'copalibre start',
+    usage: 'copalibre start [--dev]',
+    flags: [{ flag: '--dev', description: 'Start the containerized development Compose profile' }],
+  },
+  {
+    name: 'stop',
+    summary: 'Stop the running Compose installation without removing volumes',
+    usage: 'copalibre stop [--dev] [--down]',
+    flags: [
+      { flag: '--dev', description: 'Stop development Compose services' },
+      { flag: '--down', description: 'Remove containers and networks while retaining volumes' },
+    ],
+  },
+  {
+    name: 'restart',
+    summary: 'Restart Compose services and wait for them to become healthy',
+    usage: 'copalibre restart [--dev] [--no-doctor]',
+    flags: [
+      { flag: '--dev', description: 'Restart development Compose services' },
+      {
+        flag: '--no-doctor',
+        description: 'Skip the doctor check before starting application services',
+      },
+    ],
+  },
+  {
+    name: 'status',
+    summary: 'Show installation mode, container health, and ingress endpoints',
+    usage: 'copalibre status [--json] [--dev]',
+    flags: [
+      { flag: '--json', description: 'Print machine-readable JSON status' },
+      { flag: '--dev', description: 'Inspect development Compose services' },
+    ],
   },
   {
     name: 'migrate',

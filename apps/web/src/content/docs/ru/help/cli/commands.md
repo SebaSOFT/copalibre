@@ -71,9 +71,27 @@ file:///var/lib/copalibre/modules-dev/<alias>` для разработки мо�
 
 ## start
 
-`copalibre start`
+`copalibre start [--dev]`
 
-Поднимает PostgreSQL, запускает doctor и все роли процессов.
+Запускает PostgreSQL, выполняет doctor, затем запускает все роли процессов. Для установки Kubernetes команда показывает инструкции Helm. Флаг --dev запускает контейнерный профиль разработки.
+
+## stop
+
+`copalibre stop [--dev] [--down]`
+
+Останавливает контейнеры Compose, не удаляя тома. Флаг --down удаляет контейнеры и сети. Для Kubernetes команда показывает инструкции kubectl/Helm. Флаг --dev управляет контейнерами Compose, но не процессами Yarn на хосте.
+
+## restart
+
+`copalibre restart [--dev] [--no-doctor]`
+
+Останавливает Compose, запускает PostgreSQL, выполняет doctor, затем запускает остальные службы с ожиданием готовности. --no-doctor пропускает doctor; --dev перезапускает инфраструктурный профиль Compose для разработки.
+
+## status
+
+`copalibre status [--json] [--dev]`
+
+Показывает состояние контейнеров, опубликованные входные порты и здоровье шлюза. --json выводит машиночитаемый JSON, а --dev проверяет Compose для разработки. В Kubernetes команда показывает release, namespace и context, затем запрашивает pod'ы, если доступен kubectl.
 
 ## migrate
 

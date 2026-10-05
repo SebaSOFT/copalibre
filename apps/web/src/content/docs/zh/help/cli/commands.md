@@ -64,9 +64,27 @@ file:///var/lib/copalibre/modules-dev/<alias>` 搭配使用，可在无需源代
 
 ## start
 
-`copalibre start`
+`copalibre start [--dev]`
 
-启动 PostgreSQL、运行 doctor，并启动每个进程角色。
+启动 PostgreSQL，运行 doctor，然后启动所有进程角色。Kubernetes 安装会显示 Helm 操作说明。使用 --dev 启动容器化开发配置。
+
+## stop
+
+`copalibre stop [--dev] [--down]`
+
+停止 Compose 容器但保留卷。--down 会移除容器和网络。Kubernetes 模式下会显示 kubectl/Helm 操作说明。--dev 只控制 Compose 容器，不管理主机上运行的 Yarn 进程。
+
+## restart
+
+`copalibre restart [--dev] [--no-doctor]`
+
+停止 Compose，启动 PostgreSQL，运行 doctor，再启动其余服务并等待健康状态。--no-doctor 可跳过 doctor；--dev 会重启开发用 Compose 基础设施配置。
+
+## status
+
+`copalibre status [--json] [--dev]`
+
+显示容器状态、已发布入口端口和网关健康状态。--json 输出机器可读 JSON，--dev 检查开发用 Compose。Kubernetes 模式会显示 release、namespace 和 context，并在 kubectl 可用时查询 Pod。
 
 ## migrate
 

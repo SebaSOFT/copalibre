@@ -21,6 +21,15 @@ installation's directory refuses rather than overwriting it. `--module-dev` addi
 supported email provider configuration. Then run `copalibre start` or
 `docker compose up --detach --wait`.
 
+From the installation directory, `copalibre status` reports container state, the published ingress
+port, and gateway health. `copalibre restart` stops the stack, starts PostgreSQL, runs `doctor`, then
+starts the remaining services after health checks pass. `copalibre stop` stops containers while
+preserving volumes; `copalibre stop --down` removes containers and networks but still retains
+volumes. Add `--dev` to use the checkout's development Compose file. Those flags manage Compose
+containers only; they do not stop host Yarn processes started by a separate `copalibre dev --hybrid`
+invocation. In Kubernetes mode, `start`, `stop`, and `restart` print `helm`/`kubectl` guidance;
+`status` reads the installation marker and queries pods when `kubectl` is available.
+
 The standalone binary needs Docker and Docker Compose v2. The source checkout's `./copalibre`
 wrapper additionally needs Node.js 24 and Corepack. Run that wrapper by its path from the empty
 installation directory; do not run `init` in the checkout root. The generated `.env` pins published

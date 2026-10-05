@@ -88,9 +88,27 @@ Runs a development environment, containerized or hybrid.
 
 ## start
 
-`copalibre start`
+`copalibre start [--dev]`
 
-Brings up PostgreSQL, runs doctor, and starts every process role.
+Starts PostgreSQL, runs doctor, then starts every process role. In a Kubernetes installation it prints Helm guidance instead. Use --dev to start the containerized development profile.
+
+## stop
+
+`copalibre stop [--dev] [--down]`
+
+Stops Compose containers without removing volumes. Add --down to remove containers and networks. In Kubernetes mode it prints kubectl/Helm guidance. The --dev form only controls Compose containers, not host-run Yarn processes.
+
+## restart
+
+`copalibre restart [--dev] [--no-doctor]`
+
+Stops the Compose stack, starts PostgreSQL, runs doctor, then starts the remaining services and waits for health. Add --no-doctor to skip the doctor check, or --dev to restart development Compose containers.
+
+## status
+
+`copalibre status [--json] [--dev]`
+
+Shows container state, published ingress ports, and gateway health. Add --json for machine-readable output or --dev for development Compose. Kubernetes status reports the recorded release, namespace, and context, then queries pods when kubectl is available.
 
 ## migrate
 
