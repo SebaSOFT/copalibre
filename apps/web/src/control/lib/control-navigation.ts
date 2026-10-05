@@ -40,15 +40,17 @@ export function navigateControl(path: string): void {
 }
 
 /**
- * A Starlight help page's URL for a given interface locale — the same
+ * A Starlight help page's canonical URL for a given interface locale — the same
  * locale-prefix computation `ControlShell.tsx` used to do inline for its own
- * `/help/control/{helpPath}` link (openspec 0251, design.md - "Role hints
+ * `/help/control/{helpPath}/` link (openspec 0251, design.md - "Role hints
  * link to the full manual page"). English pages are unprefixed, matching
- * Starlight's own routing for every locale but the default.
+ * Starlight's own routing for every locale but the default. Normalize separators
+ * so callers can pass a bare path or one with surrounding slashes.
  */
 export function helpPageUrl(locale: SupportedLanguage, path: string): string {
   const localePrefix = locale === 'en' ? '' : `/${locale}`;
-  return `${localePrefix}/help/${path}`;
+  const normalizedPath = path.replace(/^\/+|\/+$/g, '');
+  return `${localePrefix}/help/${normalizedPath ? `${normalizedPath}/` : ''}`;
 }
 
 /**

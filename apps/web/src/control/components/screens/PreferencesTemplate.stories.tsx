@@ -49,7 +49,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const NoOrganization: Story = { args: { organizationAlias: undefined } };
 export const WithOrganization: Story = {};
-export const WithTokens: Story = {
+export const OrganizationSectionsInPriorityOrder: Story = {
   args: {
     tokens: [
       {

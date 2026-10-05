@@ -33,10 +33,13 @@ describe('roles and permissions control', () => {
       ),
     );
 
+    const roleSelect = screen.getByLabelText('Role of referee@example.test');
+    const roleCell = roleSelect.closest('.cl-role-cell');
+    expect(roleCell?.firstElementChild?.classList.contains('cl-role-cell__select')).toBe(true);
+    expect(roleCell?.querySelector('.cl-role-cell__details .cl-decision-hint')).toBeTruthy();
+
     await act(async () => {
-      fireEvent.change(screen.getByLabelText('Role of referee@example.test'), {
-        target: { value: 'broadcaster' },
-      });
+      fireEvent.change(roleSelect, { target: { value: 'broadcaster' } });
     });
     await act(async () => {
       fireEvent.click(screen.getByLabelText('Status of referee@example.test'));
@@ -63,7 +66,7 @@ describe('roles and permissions control', () => {
       ),
     );
 
-    fireEvent.click(screen.getByText('Add recipient'));
+    fireEvent.click(screen.getByText('Invite user'));
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'viewer@example.test' },
     });
@@ -99,7 +102,7 @@ describe('roles and permissions control', () => {
       ),
     );
 
-    fireEvent.click(screen.getByText('Add recipient'));
+    fireEvent.click(screen.getByText('Invite user'));
     expect(screen.queryByLabelText('Club administered')).toBeNull();
 
     fireEvent.change(screen.getByLabelText('Invitation role'), {
@@ -149,7 +152,7 @@ describe('roles and permissions control', () => {
       ),
     );
 
-    fireEvent.click(screen.getByText('Add recipient'));
+    fireEvent.click(screen.getByText('Invite user'));
     expect(screen.queryByLabelText('Tournament administered')).toBeNull();
 
     fireEvent.change(screen.getByLabelText('Invitation role'), {
@@ -195,7 +198,7 @@ describe('roles and permissions control', () => {
       ),
     );
 
-    fireEvent.click(screen.getByText('Add recipient'));
+    fireEvent.click(screen.getByText('Invite user'));
     fireEvent.change(screen.getByLabelText('Invitation role'), {
       target: { value: 'club-admin' },
     });
@@ -256,7 +259,7 @@ describe('roles and permissions control', () => {
     await waitFor(() => expect(listClubs).toHaveBeenCalledWith('liga-mendocina'));
     await waitFor(() => expect(listActiveTournaments).toHaveBeenCalledWith('liga-mendocina'));
 
-    fireEvent.click(screen.getByText('Add recipient'));
+    fireEvent.click(screen.getByText('Invite user'));
     fireEvent.change(screen.getByLabelText('Invitation role'), {
       target: { value: 'tournament-admin' },
     });
@@ -317,7 +320,7 @@ describe('roles and permissions control', () => {
     render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
-    fireEvent.click(screen.getByText('Add recipient'));
+    fireEvent.click(screen.getByText('Invite user'));
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'nuevo@example.test' },
     });
@@ -348,7 +351,7 @@ describe('roles and permissions control', () => {
     render(withIntl(<RolesPermissionsPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
-    fireEvent.click(screen.getByText('Add recipient'));
+    fireEvent.click(screen.getByText('Invite user'));
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'viewer@example.test' },
     });
@@ -645,12 +648,12 @@ describe('roles and permissions control', () => {
 
   it('links "learn more" to each role’s own help page, opening in a new tab (openspec 0251 task 7.2)', () => {
     const rolesToPaths: Record<string, string> = {
-      admin: '/help/roles/admin',
-      'club-admin': '/help/roles/club-admin',
-      'tournament-admin': '/help/roles/tournament-admin',
-      referee: '/help/roles/referee',
-      broadcaster: '/help/roles/broadcaster',
-      viewer: '/help/roles/viewer',
+      admin: '/help/roles/admin/',
+      'club-admin': '/help/roles/club-admin/',
+      'tournament-admin': '/help/roles/tournament-admin/',
+      referee: '/help/roles/referee/',
+      broadcaster: '/help/roles/broadcaster/',
+      viewer: '/help/roles/viewer/',
     };
 
     for (const [role, path] of Object.entries(rolesToPaths)) {
@@ -689,7 +692,7 @@ describe('roles and permissions control', () => {
       ),
     );
 
-    fireEvent.click(screen.getByText('Add recipient'));
+    fireEvent.click(screen.getByText('Invite user'));
     const dialog = within(screen.getByRole('dialog'));
 
     expect(
@@ -699,7 +702,7 @@ describe('roles and permissions control', () => {
     ).toBeTruthy();
     expect(
       (dialog.getByText('Learn more').closest('a') as HTMLAnchorElement).getAttribute('href'),
-    ).toBe('/help/roles/viewer');
+    ).toBe('/help/roles/viewer/');
 
     fireEvent.change(screen.getByLabelText('Invitation role'), { target: { value: 'admin' } });
 
@@ -710,7 +713,7 @@ describe('roles and permissions control', () => {
     ).toBeTruthy();
     expect(
       (dialog.getByText('Learn more').closest('a') as HTMLAnchorElement).getAttribute('href'),
-    ).toBe('/help/roles/admin');
+    ).toBe('/help/roles/admin/');
   });
 
   it('does not disable an admin row when a second active admin exists', () => {

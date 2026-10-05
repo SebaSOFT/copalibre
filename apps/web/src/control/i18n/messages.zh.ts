@@ -343,7 +343,7 @@ export const messages: Record<string, string> = {
   'control.roles.sectionLabel': '角色与权限',
   'control.roles.breadcrumb': '{organizationAlias} / 组织',
   'control.roles.title': '角色与权限',
-  'control.roles.addRecipient': '添加收件人',
+  'control.roles.addUser': '邀请用户',
   'control.roles.columnUser': '用户',
   'control.roles.columnRole': '角色',
   'control.roles.columnStatus': '状态',

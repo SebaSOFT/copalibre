@@ -352,7 +352,7 @@ export const messages: Record<string, string> = {
   'control.roles.sectionLabel': 'Rôles et permissions',
   'control.roles.breadcrumb': '{organizationAlias} / Organisation',
   'control.roles.title': 'Rôles et permissions',
-  'control.roles.addRecipient': 'Ajouter un destinataire',
+  'control.roles.addUser': 'Inviter un utilisateur',
   'control.roles.columnUser': 'Utilisateur',
   'control.roles.columnRole': 'Rôle',
   'control.roles.columnStatus': 'Statut',

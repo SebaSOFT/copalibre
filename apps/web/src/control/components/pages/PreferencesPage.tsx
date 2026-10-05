@@ -46,9 +46,11 @@ export interface PatCreatedResponse extends PatResponse {
  * resulting data and the callbacks below.
  */
 export function PreferencesPage({
+  isOrganizationPage,
   organizationAlias,
   client,
 }: {
+  readonly isOrganizationPage?: boolean;
   readonly organizationAlias?: string;
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
@@ -292,6 +294,7 @@ export function PreferencesPage({
   return (
     <PreferencesTemplate
       api={api}
+      isOrganizationPage={isOrganizationPage}
       loading={loading}
       newToken={newToken}
       onChangeOrgName={setOrgName}
