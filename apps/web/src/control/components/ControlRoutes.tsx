@@ -53,7 +53,7 @@ export function OrganizationControlRoute({
       helpPath="organization"
       organizationAlias={organizationAlias}
     >
-      <PreferencesPage client={client} organizationAlias={organizationAlias} />
+      <PreferencesPage client={client} isOrganizationPage organizationAlias={organizationAlias} />
     </ControlShell>
   );
 }

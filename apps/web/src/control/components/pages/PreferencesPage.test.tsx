@@ -173,9 +173,19 @@ describe('PreferencesPage', () => {
 
     render(
       <ControlIntl locale="en">
-        <PreferencesPage client={client} organizationAlias="liga-mendocina" />
+        <PreferencesPage client={client} isOrganizationPage organizationAlias="liga-mendocina" />
       </ControlIntl>,
     );
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Organization' })).toBeDefined();
+    expect(
+      screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent),
+    ).toEqual([
+      'Organization identity',
+      'Storage usage',
+      'Statistics rebuild',
+      'Personal Access Tokens',
+    ]);
 
     const nameInput = await screen.findByDisplayValue('Liga Mendocina');
 

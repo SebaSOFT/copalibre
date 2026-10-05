@@ -133,7 +133,7 @@ test('the role Select explains the assigned role and links to that role’s own 
     ),
   ).toBeVisible();
   const learnMoreLink = page.getByRole('link', { name: 'Más información' });
-  await expect(learnMoreLink).toHaveAttribute('href', '/es/help/roles/referee');
+  await expect(learnMoreLink).toHaveAttribute('href', '/es/help/roles/referee/');
   await expect(learnMoreLink).toHaveAttribute('target', '_blank');
 
   await page.getByLabel('Rol de referee@example.test').selectOption('viewer');
@@ -143,7 +143,7 @@ test('the role Select explains the assigned role and links to that role’s own 
       'El rol de organización con menos privilegios: pertenece a la organización sin otorgar ninguna autoridad operativa.',
     ),
   ).toBeVisible();
-  await expect(learnMoreLink).toHaveAttribute('href', '/es/help/roles/viewer');
+  await expect(learnMoreLink).toHaveAttribute('href', '/es/help/roles/viewer/');
 
   const [helpPage] = await Promise.all([
     page.context().waitForEvent('page'),

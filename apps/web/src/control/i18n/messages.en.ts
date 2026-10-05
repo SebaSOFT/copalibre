@@ -1028,7 +1028,7 @@ export const messages = defineMessages({
     defaultMessage: '{organizationAlias} / Organization',
   },
   rolesTitle: { id: 'control.roles.title', defaultMessage: 'Roles and permissions' },
-  rolesAddRecipient: { id: 'control.roles.addRecipient', defaultMessage: 'Add recipient' },
+  rolesAddUser: { id: 'control.roles.addUser', defaultMessage: 'Invite user' },
   rolesColumnUser: { id: 'control.roles.columnUser', defaultMessage: 'User' },
   rolesColumnRole: { id: 'control.roles.columnRole', defaultMessage: 'Role' },
   rolesColumnStatus: { id: 'control.roles.columnStatus', defaultMessage: 'Status' },

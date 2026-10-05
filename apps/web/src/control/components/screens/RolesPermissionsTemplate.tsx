@@ -223,7 +223,7 @@ export function RolesPermissionsTemplate({
         title={<FormattedMessage {...messages.rolesTitle} />}
         toolbar={
           <Button onClick={() => setInviteOpen(true)} type="button">
-            <FormattedMessage {...messages.rolesAddRecipient} />
+            <FormattedMessage {...messages.rolesAddUser} />
           </Button>
         }
       />
@@ -307,24 +307,28 @@ function RoleSelect({
     : [row.role, ...assignableRoles];
   const hintId = `role-hint-${row.assignmentId}`;
   return (
-    <>
-      <Select
-        aria-describedby={hintId}
-        aria-label={intl.formatMessage(messages.rolesRoleOf, { email: row.email })}
-        disabled={disabled}
-        onValueChange={(val) => onChange(val as OrganizationRole)}
-        options={roles.map((role) => ({
-          value: role,
-          label: intl.formatMessage(ROLE_LABEL[role]),
-        }))}
-        title={
-          isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
-        }
-        value={row.role}
-      />
-      <DecisionHint id={hintId} text={intl.formatMessage(ROLE_DESCRIPTION[row.role])} />
-      <RoleLearnMoreLink language={language} role={row.role} />
-    </>
+    <div className="cl-role-cell">
+      <div className="cl-role-cell__select">
+        <Select
+          aria-describedby={hintId}
+          aria-label={intl.formatMessage(messages.rolesRoleOf, { email: row.email })}
+          disabled={disabled}
+          onValueChange={(val) => onChange(val as OrganizationRole)}
+          options={roles.map((role) => ({
+            value: role,
+            label: intl.formatMessage(ROLE_LABEL[role]),
+          }))}
+          title={
+            isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
+          }
+          value={row.role}
+        />
+      </div>
+      <div className="cl-role-cell__details">
+        <DecisionHint id={hintId} text={intl.formatMessage(ROLE_DESCRIPTION[row.role])} />
+        <RoleLearnMoreLink language={language} role={row.role} />
+      </div>
+    </div>
   );
 }
 
@@ -448,7 +452,7 @@ export function InviteDialog({
         if (!next) onClose();
       }}
       open={open}
-      title={intl.formatMessage(messages.rolesAddRecipient)}
+      title={intl.formatMessage(messages.rolesAddUser)}
     >
       <Form
         id="invite-dialog-form"

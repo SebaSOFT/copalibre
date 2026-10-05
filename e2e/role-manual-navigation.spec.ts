@@ -161,7 +161,7 @@ test('inviting a tournament-admin requires selecting a tournament (7.4)', async 
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByText('Añadir destinatario').click();
+  await page.getByText('Invitar usuario').click();
   await page.getByLabel('Rol de invitación').selectOption('tournament-admin');
   const submit = page.getByText('Enviar invitación');
   await expect(submit).toBeDisabled();
