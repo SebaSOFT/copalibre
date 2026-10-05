@@ -44,6 +44,14 @@ file:///var/lib/copalibre/modules-dev/<alias>` для разработки мо�
 - `--release <имя>`: имя релиза Helm для записи (по умолчанию: `copalibre`)
 - `--context <ctx>`: kube-context для записи (по умолчанию: нет — передавайте явно каждый раз)
 
+Параметры электронной почты и восстановления:
+
+- `--repair`: создает резервные копии `.env` и `docker-compose.yml`, добавляет отсутствующие значения и файлы, сохраняя существующий Compose. Отсутствующие стандартные сервисы выводятся с фрагментами YAML для ручной проверки.
+- `--email-provider <provider>`: `smtp`, `resend`, `brevo` или `mailgun` (по умолчанию: локальный SMTP).
+- `--email-from <address>`: адрес отправителя (по умолчанию: `noreply@copalibre.local`).
+- `--email-credential <value>`: URL подключения SMTP или API-ключ провайдера.
+- `--email-domain <domain>`: обязателен для Mailgun.
+
 ## doctor
 
 `copalibre doctor [--check-proxy] [--proxy-url <url>]`

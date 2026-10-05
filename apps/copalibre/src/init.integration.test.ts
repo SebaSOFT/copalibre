@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,6 +36,49 @@ function run(
 
 function runCli(arguments_: readonly string[], cwd: string): Promise<ProcessResult> {
   return run(process.execPath, [CLI_EXECUTABLE, ...arguments_], cwd, process.env);
+}
+
+function runCliWithTty(
+  arguments_: readonly string[],
+  cwd: string,
+  input: string,
+): Promise<ProcessResult> {
+  const ptyRunner = [
+    'import errno, os, pty, subprocess, sys',
+    'input_data = sys.stdin.buffer.read()',
+    'master, slave = pty.openpty()',
+    'child = subprocess.Popen(sys.argv[1:], stdin=slave, stdout=slave, stderr=slave)',
+    'os.close(slave)',
+    'if input_data: os.write(master, input_data)',
+    'output = bytearray()',
+    'while True:',
+    '  try: chunk = os.read(master, 4096)',
+    '  except OSError as error:',
+    '    if error.errno == errno.EIO: break',
+    '    raise',
+    '  if not chunk: break',
+    '  output.extend(chunk)',
+    'sys.stdout.buffer.write(output)',
+    'sys.exit(child.wait())',
+  ].join('\n');
+  return new Promise((resolveResult, reject) => {
+    const child = spawn(
+      'python3',
+      ['-c', ptyRunner, process.execPath, CLI_EXECUTABLE, ...arguments_],
+      {
+        cwd,
+        env: process.env,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      },
+    );
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk: Buffer) => (stdout += chunk));
+    child.stderr.on('data', (chunk: Buffer) => (stderr += chunk));
+    child.once('error', reject);
+    child.once('exit', (code) => resolveResult({ code, stdout, stderr }));
+    child.stdin.end(input);
+  });
 }
 
 /**
@@ -111,6 +154,68 @@ describe('copalibre init (integration)', () => {
         /target: \/var\/lib\/copalibre\/modules-dev/g,
       );
       expect(mountOccurrences).toHaveLength(2);
+    });
+  });
+
+  it('--repair backs up existing files, preserves Compose, and prints missing service snippets', async () => {
+    await withInstanceDirectory(async (directory) => {
+      const initResult = await runCli(['init'], directory);
+      expect(initResult.code).toBe(0);
+      const composePath = resolve(directory, 'docker-compose.yml');
+      await writeFile(composePath, 'services:\n  custom:\n    image: example.invalid/custom\n');
+      const originalCompose = await readFile(composePath, 'utf8');
+
+      const repairResult = await runCli(['init', '--repair'], directory);
+
+      expect(repairResult.code).toBe(0);
+      expect(repairResult.stdout).toContain('Backups:');
+      expect(repairResult.stdout).toContain('services:');
+      expect(repairResult.stdout).toContain('api:');
+      expect(await readFile(composePath, 'utf8')).toBe(originalCompose);
+      const files = await readdir(directory);
+      expect(files).toEqual(
+        expect.arrayContaining([expect.stringMatching(/^docker-compose\.yml\.backup\./)]),
+      );
+    });
+  });
+
+  it('accepts Mailgun CLI flags and writes both runtime credentials', async () => {
+    await withInstanceDirectory(async (directory) => {
+      const result = await runCli(
+        [
+          'init',
+          '--skip-preflight',
+          '--email-provider',
+          'mailgun',
+          '--email-from',
+          'team@example.test',
+          '--email-credential',
+          'mailgun_test_key',
+          '--email-domain',
+          'mg.example.test',
+        ],
+        directory,
+      );
+
+      expect(result.code).toBe(0);
+      const env = await readFile(resolve(directory, '.env'), 'utf8');
+      expect(env).toContain('COPALIBRE_EMAIL_PROVIDER=mailgun');
+      expect(env).toContain('COPALIBRE_EMAIL_FROM=team@example.test');
+      expect(env).toContain('COPALIBRE_MAILGUN_API_KEY=mailgun_test_key');
+      expect(env).toContain('COPALIBRE_MAILGUN_DOMAIN=mg.example.test');
+    });
+  });
+
+  it('asks before repairing an existing installation in an interactive terminal', async () => {
+    await withInstanceDirectory(async (directory) => {
+      const initResult = await runCli(['init'], directory);
+      expect(initResult.code).toBe(0);
+
+      const repairResult = await runCliWithTty(['init', '--skip-preflight'], directory, 'y\n');
+
+      expect(repairResult.code).toBe(0);
+      expect(repairResult.stdout).toContain('Back up, inspect and repair it?');
+      expect(repairResult.stdout).toContain('Backups:');
     });
   });
 

@@ -37,6 +37,14 @@ file:///var/lib/copalibre/modules-dev/<alias>` 搭配使用，可在无需源代
 - `--release <name>`：要记录的 Helm release 名称（默认：`copalibre`）
 - `--context <ctx>`：要记录的 kube-context（默认：无——需每次显式传入）
 
+电子邮件与修复选项：
+
+- `--repair`：备份 `.env` 和 `docker-compose.yml`，补齐缺失的默认值与文件，并保留现有 Compose。缺少默认服务时会显示 YAML 片段，供手动检查和添加。
+- `--email-provider <provider>`：`smtp`、`resend`、`brevo` 或 `mailgun`（默认：本地 SMTP）。
+- `--email-from <address>`：发件地址（默认：`noreply@copalibre.local`）。
+- `--email-credential <value>`：SMTP 连接 URL 或服务商 API 密钥。
+- `--email-domain <domain>`：Mailgun 必填。
+
 ## doctor
 
 `copalibre doctor [--check-proxy] [--proxy-url <url>]`

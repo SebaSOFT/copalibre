@@ -1,10 +1,15 @@
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 import { Command, Option } from 'clipanion';
 import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
-import { formatRequiredSecrets, writeInstallationAssets } from '../init.js';
+import {
+  formatRequiredSecrets,
+  repairInstallationAssets,
+  writeInstallationAssets,
+} from '../init.js';
 import { writeKubernetesInstallationAssets } from '../kubernetes-init.js';
 import { formatPreflightReport, runPreflight } from '../preflight.js';
 
@@ -28,10 +33,15 @@ export class InitCommand extends Command<CliContext> {
           context: { type: 'string' },
           proxy: { type: 'string' },
           'non-interactive': { type: 'boolean', default: false },
+          repair: { type: 'boolean', default: false },
           'skip-preflight': { type: 'boolean', default: false },
           'app-url': { type: 'string' },
           'api-url': { type: 'string' },
           disciplines: { type: 'string' },
+          'email-provider': { type: 'string' },
+          'email-from': { type: 'string' },
+          'email-credential': { type: 'string' },
+          'email-domain': { type: 'string' },
         },
         strict: true,
       });
@@ -69,8 +79,59 @@ export class InitCommand extends Command<CliContext> {
             .filter(Boolean)
         : undefined;
       let proxyChoice = parsed.values.proxy;
+      let emailProvider = parseEmailProvider(parsed.values['email-provider']);
+      let emailFrom = parsed.values['email-from'];
+      let emailCredential = parsed.values['email-credential'];
+      let emailDomain = parsed.values['email-domain'];
 
       const isInteractive = process.stdin.isTTY && !parsed.values['non-interactive'];
+      const hasExistingInstallation = [
+        'docker-compose.yml',
+        '.env',
+        'jwt-private.pem',
+        'jwks.json',
+        '.copalibre/installation.json',
+      ].some((path) => existsSync(`${process.cwd()}/${path}`));
+      if (parsed.values.repair || hasExistingInstallation) {
+        if (!parsed.values.repair && !isInteractive) {
+          throw new Error(
+            'An existing CopaLibre installation was detected. Re-run with --repair to back up and inspect it safely.',
+          );
+        }
+        if (isInteractive && !parsed.values.repair) {
+          const rl = createInterface({ input: process.stdin, output: process.stdout });
+          let confirmed: string;
+          try {
+            confirmed = await rl.question(
+              'An existing CopaLibre installation was detected. Back up, inspect and repair it? [y/N] ',
+            );
+          } finally {
+            rl.close();
+          }
+          if (!/^y(es)?$/i.test(confirmed.trim())) {
+            process.stdout.write('Repair cancelled; no files were changed.\n');
+            return 0;
+          }
+        }
+        const result = await repairInstallationAssets(process.cwd());
+        process.stdout.write(
+          [
+            `Backups: ${result.backups.length ? result.backups.join(', ') : 'none (source files were absent)'}`,
+            `Created or reconciled: ${result.createdAssets.length ? result.createdAssets.join(', ') : 'nothing'}`,
+            result.preservedCompose ? 'Preserved docker-compose.yml without changes.' : '',
+            ...(result.missingServices.length
+              ? [
+                  `WARNING: shipped Compose template includes services missing from this installation: ${result.missingServices.join(', ')}. Review and add the snippets below if required.`,
+                  ...result.serviceSnippets.map((snippet) => `\n${snippet}`),
+                ]
+              : ['Compose service definitions match the shipped template.']),
+          ]
+            .filter(Boolean)
+            .join('\n') + '\n',
+        );
+        return 0;
+      }
+
       if (isInteractive) {
         const rl = createInterface({ input: process.stdin, output: process.stdout });
         try {
@@ -104,10 +165,42 @@ export class InitCommand extends Command<CliContext> {
               proxyChoice = 'nginx';
             }
           }
+          if (!emailProvider) {
+            const enteredProvider = await rl.question(
+              'Email delivery provider (smtp / resend / brevo / mailgun) [smtp]: ',
+            );
+            emailProvider = parseEmailProvider(enteredProvider.trim() || 'smtp');
+          }
+          if (!emailFrom) {
+            const enteredFrom = await rl.question(
+              'Email sender address [noreply@copalibre.local]: ',
+            );
+            emailFrom = enteredFrom.trim() || 'noreply@copalibre.local';
+          }
+          const credentialProvider = emailProvider ?? 'smtp';
+          const credentialLabel =
+            credentialProvider === 'smtp'
+              ? 'SMTP connection URL [smtp://host.docker.internal:1025]: '
+              : credentialProvider === 'mailgun'
+                ? 'Mailgun API key: '
+                : `${credentialProvider} API key: `;
+          if (!emailCredential) {
+            const enteredCredential = await rl.question(credentialLabel);
+            emailCredential = enteredCredential.trim() || undefined;
+            if (emailProvider === 'smtp' && !emailCredential) {
+              emailCredential = 'smtp://host.docker.internal:1025';
+            }
+          }
+          if (emailProvider === 'mailgun' && !emailDomain) {
+            const enteredDomain = await rl.question('Mailgun domain: ');
+            emailDomain = enteredDomain.trim() || undefined;
+          }
         } finally {
           rl.close();
         }
       }
+
+      validateEmailOptions(emailProvider, emailCredential, emailDomain);
 
       const result = await writeInstallationAssets(process.cwd(), {
         moduleDev: parsed.values['module-dev'],
@@ -115,6 +208,10 @@ export class InitCommand extends Command<CliContext> {
         appUrl,
         apiUrl,
         starterDisciplines,
+        emailProvider,
+        emailFrom,
+        emailCredential,
+        emailDomain,
       });
 
       const lines = [
@@ -145,5 +242,36 @@ export class InitCommand extends Command<CliContext> {
 
       return 0;
     });
+  }
+}
+
+function parseEmailProvider(
+  value: string | undefined,
+): 'smtp' | 'resend' | 'brevo' | 'mailgun' | undefined {
+  if (value === undefined) return undefined;
+  if (value === 'smtp' || value === 'resend' || value === 'brevo' || value === 'mailgun') {
+    return value;
+  }
+  throw new Error('--email-provider must be one of: smtp, resend, brevo, mailgun');
+}
+
+function validateEmailOptions(
+  provider: 'smtp' | 'resend' | 'brevo' | 'mailgun' | undefined,
+  credential: string | undefined,
+  domain: string | undefined,
+): void {
+  if (!provider) {
+    if (credential || domain)
+      throw new Error('--email-credential and --email-domain require --email-provider');
+    return;
+  }
+  if (provider !== 'smtp' && !credential) {
+    throw new Error(`--email-credential is required for the ${provider} provider`);
+  }
+  if (provider === 'mailgun' && !domain) {
+    throw new Error('--email-domain is required for the mailgun provider');
+  }
+  if (provider !== 'mailgun' && domain) {
+    throw new Error('--email-domain is only valid with --email-provider mailgun');
   }
 }

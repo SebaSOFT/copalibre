@@ -21,13 +21,19 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     name: 'init',
     summary: 'Write a new installation into the current directory — no checkout required',
     usage:
-      'copalibre init [--module-dev] [--proxy <name>] [--non-interactive] [--skip-preflight] ' +
-      '[--app-url <url>] [--api-url <url>] [--disciplines <list>] | ' +
+      'copalibre init [--module-dev] [--repair] [--proxy <name>] [--non-interactive] [--skip-preflight] ' +
+      '[--app-url <url>] [--api-url <url>] [--disciplines <list>] [--email-provider <provider>] ' +
+      '[--email-from <address>] [--email-credential <value>] [--email-domain <domain>] | ' +
       'copalibre init --kubernetes [--namespace <ns>] [--release <name>] [--context <ctx>]',
     flags: [
       {
         flag: '--module-dev',
         description: 'Also write docker-compose.module-dev.yml, for local module development',
+      },
+      {
+        flag: '--repair',
+        description:
+          'Back up and repair an existing installation while preserving its Compose file',
       },
       {
         flag: '--proxy <name>',
@@ -53,6 +59,22 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
         flag: '--disciplines <list>',
         description:
           'Comma-separated starter sport disciplines to provision (default: football, tennis)',
+      },
+      {
+        flag: '--email-provider <provider>',
+        description: 'Email provider: smtp, resend, brevo, or mailgun (default: local SMTP)',
+      },
+      {
+        flag: '--email-from <address>',
+        description: 'Email sender address (default: noreply@copalibre.local)',
+      },
+      {
+        flag: '--email-credential <value>',
+        description: 'SMTP connection URL or the selected provider API key',
+      },
+      {
+        flag: '--email-domain <domain>',
+        description: 'Mailgun sending domain (required for the mailgun provider)',
       },
       {
         flag: '--kubernetes',

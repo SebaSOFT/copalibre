@@ -45,6 +45,14 @@ Flux complet, y compris le bootstrap du premier administrateur comme un Job Helm
 - `--context <ctx>` : kube-context à enregistrer (par défaut : aucun — à passer explicitement à
   chaque fois)
 
+Options e-mail et réparation :
+
+- `--repair` : sauvegarde `.env` et `docker-compose.yml`, ajoute les valeurs et fichiers manquants et préserve le Compose existant. Les services par défaut absents sont affichés avec leurs extraits YAML à examiner manuellement.
+- `--email-provider <provider>` : `smtp`, `resend`, `brevo` ou `mailgun` (par défaut : SMTP local).
+- `--email-from <address>` : adresse d'expéditeur (par défaut : `noreply@copalibre.local`).
+- `--email-credential <value>` : URL de connexion SMTP ou clé API du fournisseur.
+- `--email-domain <domain>` : requis pour Mailgun.
+
 ## doctor
 
 `copalibre doctor [--check-proxy] [--proxy-url <url>]`

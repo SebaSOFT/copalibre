@@ -44,6 +44,14 @@ uso único: `docs/deployment/enterprise-kubernetes.md` no repositório.
 - `--release <nome>`: nome do release do Helm a registrar (padrão: `copalibre`)
 - `--context <ctx>`: kube-context a registrar (padrão: nenhum — forneça explicitamente a cada vez)
 
+Opções de e-mail e reparo:
+
+- `--repair`: faz backup de `.env` e `docker-compose.yml`, adiciona valores e recursos ausentes e preserva o Compose existente. Serviços padrão ausentes são exibidos com trechos YAML para revisão e aplicação manual.
+- `--email-provider <provider>`: `smtp`, `resend`, `brevo` ou `mailgun` (padrão: SMTP local).
+- `--email-from <address>`: endereço do remetente (padrão: `noreply@copalibre.local`).
+- `--email-credential <value>`: URL de conexão SMTP ou chave de API do provedor.
+- `--email-domain <domain>`: obrigatório para Mailgun.
+
 ## doctor
 
 `copalibre doctor [--check-proxy] [--proxy-url <url>]`

@@ -46,6 +46,14 @@ monouso: `docs/deployment/enterprise-kubernetes.md` nel repository.
 - `--context <ctx>`: kube-context da registrare (predefinito: nessuno — passalo esplicitamente ogni
   volta)
 
+Opzioni email e riparazione:
+
+- `--repair`: crea backup di `.env` e `docker-compose.yml`, aggiunge valori e risorse mancanti e preserva il Compose esistente. I servizi predefiniti assenti vengono mostrati con snippet YAML da verificare e applicare manualmente.
+- `--email-provider <provider>`: `smtp`, `resend`, `brevo` o `mailgun` (predefinito: SMTP locale).
+- `--email-from <address>`: indirizzo mittente (predefinito: `noreply@copalibre.local`).
+- `--email-credential <value>`: URL di connessione SMTP o chiave API del provider.
+- `--email-domain <domain>`: obbligatorio per Mailgun.
+
 ## doctor
 
 `copalibre doctor [--check-proxy] [--proxy-url <url>]`
