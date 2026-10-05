@@ -136,7 +136,7 @@ When the template defines default-profile services missing from the installation
 ready-to-review YAML service snippets without applying them; services behind optional profiles SHALL not trigger a warning.
 Email setup SHALL accept only `smtp`, `resend`, `brevo`, or `mailgun`; Mailgun requires both
 `COPALIBRE_MAILGUN_API_KEY` and `COPALIBRE_MAILGUN_DOMAIN`, and local SMTP remains the default.
-`doctor`, `start`, `migrate`, and `upgrade-check`, when run from a directory containing a recorded installation,
+`doctor`, `start`, `stop`, `restart`, `status`, `migrate`, and `upgrade-check`, when run from a directory containing a recorded installation,
 SHALL operate against that directory's own files without requiring a checkout; version-sensitive subcommands
 (`init` re-run, `migrate`, `upgrade-check`) SHALL refuse with a message naming both versions when the running
 CLI's own version does not match the directory's recorded version. `init --module-dev` SHALL additionally write a
@@ -152,6 +152,27 @@ validate it against the target installation, and store it so subsequent `statist
 exists for its target installation, SHALL operate over an authenticated HTTP call requiring
 organization-administrator authority for the named organization; without a stored credential, it
 SHALL operate over a direct database connection.
+
+
+copalibre start --dev SHALL start the containerized development Compose profile in the background.
+copalibre start, stop, and restart SHALL refuse a Kubernetes-mode installation with actionable
+Kubernetes-native alternatives and SHALL not mutate the cluster.
+
+copalibre stop SHALL stop the Compose installation without removing persistent volumes by default;
+with --down, it SHALL remove Compose containers and networks while retaining volumes. With --dev,
+it SHALL stop only the development Compose infrastructure profile; it SHALL not manage host-run foreground Yarn
+processes started separately by copalibre dev --hybrid.
+
+copalibre restart SHALL stop and start Compose services, bring PostgreSQL up before dependent
+services, run the Compose doctor check before bringing up the remaining services unless --no-doctor
+is supplied, and wait for services to become healthy. With --dev, it SHALL restart only the
+development Compose infrastructure profile without managing host-run foreground Yarn processes.
+
+copalibre status SHALL report the installation mode and service health. For Compose and development
+Compose it SHALL list container states and published ingress ports and probe the gateway health URL.
+With --json, it SHALL emit machine-readable status. For Kubernetes mode it SHALL report the recorded
+release, namespace, and optional context, query pods matching the release when kubectl is available,
+and print the exact inspection command when it is not.
 
 #### Scenario: doctor catches misconfiguration before start
 - **WHEN** `copalibre doctor` runs against an installation missing a required secret or with an
@@ -324,6 +345,38 @@ SHALL operate over a direct database connection.
 #### Scenario: init email providers match runtime
 - **WHEN** an operator configures email through the interactive wizard or email flags
 - **THEN** the CLI accepts `smtp`, `resend`, `brevo`, or `mailgun`, writes corresponding runtime environment variables, uses local SMTP by default, and requires both Mailgun API key and domain for Mailgun
+
+#### Scenario: stop halts running containers
+- **WHEN** an operator runs copalibre stop against a running Compose installation
+- **THEN** the CLI halts running containers without removing volume data, or removes containers and networks if --down is provided
+
+#### Scenario: stop dev halts development Compose services only
+- **WHEN** an operator runs copalibre stop --dev
+- **THEN** the CLI stops the development infrastructure profile and leaves separately started host Yarn processes untouched
+
+#### Scenario: restart performs ordered startup and health verification
+- **WHEN** an operator runs copalibre restart against a Compose installation
+- **THEN** the CLI stops the running stack, brings up PostgreSQL, runs the doctor check unless --no-doctor is supplied, then starts remaining services with --wait
+
+#### Scenario: restart dev restarts development Compose services
+- **WHEN** an operator runs copalibre restart --dev
+- **THEN** the CLI restarts the development infrastructure profile without claiming to stop host-run Yarn processes
+
+#### Scenario: status displays Compose health and ingress endpoints
+- **WHEN** an operator runs copalibre status against a Compose installation
+- **THEN** the CLI displays container health, active published ingress ports, and the gateway URL and health result
+
+#### Scenario: status supports machine-readable output
+- **WHEN** an operator runs copalibre status --json
+- **THEN** the CLI emits a JSON status document describing installation mode, services, ingress ports, gateway URL, and health
+
+#### Scenario: Kubernetes status uses installation marker or gives an inspection command
+- **WHEN** an operator runs copalibre status in a Kubernetes-mode directory
+- **THEN** the CLI reports release, namespace, and recorded context and either lists matching pods with kubectl or prints the equivalent kubectl get pods command
+
+#### Scenario: lifecycle commands refuse Kubernetes mutations with native alternatives
+- **WHEN** an operator runs copalibre start, copalibre stop, or copalibre restart in a directory initialized with --kubernetes
+- **THEN** the CLI refuses with actionable helm or kubectl commands appropriate to the requested lifecycle action
 
 ### Requirement: Kubernetes instance mode
 

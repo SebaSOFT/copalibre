@@ -57,7 +57,7 @@ const canonicalUrl = `${site}${canonicalPath}`;
 */
 const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, localeVariants)
   .filter((alternate) => alternate.hreflang !== 'x-default')
-  .map((alternate) => ({ locale: alternate.hreflang, href: alternate.href }));
+  .map((alternate) => ({ locale: alternate.hreflang }));
 ---
 
 <!doctype html>
@@ -207,7 +207,7 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
       var(--cl-surface-base);
   }
 
-  body > :not(.cl-discipline-background) {
+  body > :not(.cl-discipline-background):not(.cl-skip-link) {
     position: relative;
     z-index: 1;
   }
