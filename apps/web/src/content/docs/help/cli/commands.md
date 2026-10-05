@@ -52,6 +52,14 @@ including bootstrapping the first administrator as a one-shot Helm Job:
 - `--release <name>`: Helm release name to record (default: `copalibre`)
 - `--context <ctx>`: kube-context to record (default: none — supply it explicitly each time)
 
+Email and repair options:
+
+- `--repair`: back up `.env` and `docker-compose.yml`, add missing defaults and assets, and preserve the existing Compose file. Missing default services are reported with YAML snippets for manual review.
+- `--email-provider <provider>`: `smtp`, `resend`, `brevo`, or `mailgun` (default: local SMTP).
+- `--email-from <address>`: sender address (default: `noreply@copalibre.local`).
+- `--email-credential <value>`: SMTP connection URL or provider API key.
+- `--email-domain <domain>`: required for Mailgun.
+
 ## doctor
 
 `copalibre doctor [--check-proxy] [--proxy-url <url>] [--smoke] [--fix | --interactive]`

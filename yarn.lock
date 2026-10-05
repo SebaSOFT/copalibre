@@ -1458,6 +1458,7 @@ __metadata:
     tar: "npm:^7.4.3"
     ts-jest: "npm:^29.4.12"
     typescript: "npm:^5"
+    yaml: "npm:^2.8.3"
     yauzl: "npm:^3.4.0"
   languageName: unknown
   linkType: soft

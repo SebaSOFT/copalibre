@@ -77,9 +77,14 @@ The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev -
 `mcp` subcommands, distributed both as a standalone executable (downloadable via a documented install
 script, one per supported OS/architecture) and as source runnable from a checkout — the two SHALL
 behave identically for every subcommand. In addition to environment and service configuration checks,
+`copalibre doctor` SHALL inspect the local `.env` configuration file on the host before invoking containerized
+checks, validating the presence of required secrets and variables (`DATABASE_URL` or `POSTGRES_PASSWORD`,
+`COPALIBRE_APP_URL`, `COPALIBRE_BOOTSTRAP_TOKEN`, `COPALIBRE_JWT_ISSUER`, `GARAGE_RPC_SECRET`, and email provider keys),
+reporting missing, empty, or unconfigured variables as actionable failures before or alongside containerized execution.
 `copalibre doctor` SHALL inspect PostgreSQL database data structure integrity when the database is
 reachable, reporting detected discrepancies as a diagnostic check item (`data:tournament-status`) —
-informational, never a reason to fail the check or block `copalibre start`.
+informational, never a reason to fail the check or block `copalibre start`. When invoking containerized
+diagnostic runs, `copalibre doctor` SHALL utilize locally present container images without triggering redundant network image downloads.
 When invoked with `--fix` or `--interactive` on an interactive terminal, `copalibre doctor` SHALL
 initiate an interactive decision-support prompt workflow allowing an operator to repair a detected
 anomaly non-destructively; without a TTY, it SHALL report that repair requires one and apply nothing.
@@ -96,9 +101,11 @@ installed module's declared compatibility range and report pending database migr
 non-zero if any installed module would become incompatible with the target version.
 
 `copalibre upgrade` SHALL coordinate the end-to-end upgrade lifecycle: (1) self-updating the CLI binary
-to the target or latest stable release, (2) reconciling `docker-compose.yml` and newly required `.env` variables
-while preserving existing port bindings and volume configuration, (3) pulling updated container images and
-applying database migrations via `copalibre migrate`, and (4) detecting and prompting for available module updates.
+to the target or latest stable release, (2) reconciling `docker-compose.yml` and newly required `.env` variables,
+explicitly updating `COPALIBRE_VERSION` alongside image tags while preserving existing port bindings and volume configuration,
+(3) pulling updated container images and applying database migrations via `copalibre migrate`, (4) restarting the running stack
+with `--force-recreate` so updated container images and configuration variables are loaded into active service containers, and
+(5) detecting and prompting for available module updates.
 
 `copalibre init`, run in a directory with no prior CopaLibre installation, SHALL write a complete,
 runnable installation (a Compose file and its environment defaults) into that directory without
@@ -283,11 +290,15 @@ SHALL operate over a direct database connection.
 
 #### Scenario: upgrade orchestrates executable, compose, images, migrations, and module checks
 - **WHEN** an operator runs `copalibre upgrade`
-- **THEN** the CLI verifies available target version, updates the CLI executable, reconciles `docker-compose.yml` and `.env` variables, pulls updated images, executes database migrations, and queries for outdated module updates.
+- **THEN** the CLI verifies available target version, updates the CLI executable, reconciles `COPALIBRE_VERSION`, `docker-compose.yml`, and `.env` variables, pulls updated images, executes database migrations, recreates active containers with `--force-recreate`, and queries for outdated module updates.
 
 #### Scenario: upgrade --check inspects available platform and module updates non-destructively
 - **WHEN** an operator runs `copalibre upgrade --check`
 - **THEN** the CLI prints available platform versions and outdated modules without applying changes or restarting containers.
+
+#### Scenario: doctor validates host .env configuration
+- **WHEN** an operator runs `copalibre doctor` on a host where `.env` is missing required secrets or defines empty values
+- **THEN** the CLI identifies each missing or unconfigured variable directly on the host with actionable guidance before or alongside launching containerized checks
 
 ### Requirement: Kubernetes instance mode
 

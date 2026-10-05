@@ -46,6 +46,14 @@ einmaliger Helm-Job: `docs/deployment/enterprise-kubernetes.md` im Repository.
 - `--release <name>`: zu erfassender Helm-Release-Name (Standard: `copalibre`)
 - `--context <ctx>`: zu erfassender kube-context (Standard: keiner — jedes Mal explizit angeben)
 
+E-Mail- und Reparaturoptionen:
+
+- `--repair`: sichert `.env` und `docker-compose.yml`, ergänzt fehlende Standardwerte und Dateien und erhält die vorhandene Compose-Datei. Fehlende Standarddienste werden mit YAML-Snippets zur manuellen Prüfung angezeigt.
+- `--email-provider <provider>`: `smtp`, `resend`, `brevo` oder `mailgun` (Standard: lokales SMTP).
+- `--email-from <address>`: Absenderadresse (Standard: `noreply@copalibre.local`).
+- `--email-credential <value>`: SMTP-Verbindungs-URL oder API-Schlüssel des Anbieters.
+- `--email-domain <domain>`: für Mailgun erforderlich.
+
 ## doctor
 
 `copalibre doctor [--check-proxy] [--proxy-url <url>]`

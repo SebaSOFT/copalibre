@@ -5,6 +5,7 @@ import {
   formatRequiredSecrets,
   generateRsaKeypair,
   readAsset,
+  repairInstallationAssets,
   writeInstallationAssets,
   writeLocalDefaults,
 } from './init.js';
@@ -197,6 +198,101 @@ describe('writeInstallationAssets', () => {
     expect(env).toContain('COPALIBRE_API_URL=https://api.copalibre.local');
     const caddy = await readFile(join(cwd, 'deploy', 'gateway', 'Caddyfile'), 'utf8');
     expect(caddy).toContain('reverse_proxy events:3002');
+  });
+
+  it.each([
+    ['smtp', 'smtp://mail.example.test:587', undefined, 'COPALIBRE_SMTP_URL'],
+    ['resend', 're_test_key', undefined, 'COPALIBRE_RESEND_API_KEY'],
+    ['brevo', 'brevo_test_key', undefined, 'COPALIBRE_BREVO_API_KEY'],
+    ['mailgun', 'mailgun_test_key', 'mg.example.test', 'COPALIBRE_MAILGUN_API_KEY'],
+  ] as const)(
+    'writes runtime email settings for %s',
+    async (provider, credential, domain, credentialKey) => {
+      const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+      const assetsDir = await stubAssetsDir();
+      const result = await writeInstallationAssets(cwd, {
+        assetsDir,
+        emailProvider: provider,
+        emailFrom: 'tournaments@example.test',
+        emailCredential: credential,
+        ...(domain ? { emailDomain: domain } : {}),
+      });
+
+      const env = await readFile(result.envFile, 'utf8');
+      expect(env).toContain(`COPALIBRE_EMAIL_PROVIDER=${provider}`);
+      expect(env).toContain('COPALIBRE_EMAIL_FROM=tournaments@example.test');
+      expect(env).toContain(`${credentialKey}=${credential}`);
+      if (domain) expect(env).toContain(`COPALIBRE_MAILGUN_DOMAIN=${domain}`);
+    },
+  );
+});
+
+describe('repairInstallationAssets', () => {
+  it('backs up .env and Compose, preserves custom values and Compose bytes, and reports missing service snippets', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-repair-'));
+    const assetsDir = await stubAssetsDir();
+    const originalCompose =
+      '# operator-managed compose\nservices:\n  legacy:\n    image: example.test/legacy\n';
+    const originalEnv =
+      'POSTGRES_PASSWORD=custom-password\nCOPALIBRE_EMAIL_FROM=owner@example.test\n';
+    await writeFile(join(cwd, 'docker-compose.yml'), originalCompose);
+    await writeFile(join(cwd, '.env'), originalEnv);
+    await writeFile(join(cwd, 'jwt-private.pem'), generateRsaKeypair().privateKeyPem);
+
+    const result = await repairInstallationAssets(cwd, { assetsDir });
+
+    expect(result.backups).toHaveLength(2);
+    expect(result.backups.every((backup) => /\.backup\.\d{4}-/.test(backup))).toBe(true);
+    const envBackup = result.backups.find((backup) => backup.includes('.env.backup.'));
+    expect(envBackup).toBeDefined();
+    if (!envBackup) throw new Error('Expected .env backup to be created');
+    expect(await readFile(envBackup, 'utf8')).toContain('custom-password');
+    expect(await readFile(join(cwd, '.env'), 'utf8')).toContain(originalEnv);
+    expect(await readFile(join(cwd, '.env'), 'utf8')).toContain('COPALIBRE_API_PORT=3001');
+    expect(await readFile(join(cwd, 'docker-compose.yml'), 'utf8')).toBe(originalCompose);
+    expect(result.preservedCompose).toBe(true);
+    expect(result.missingServices).toEqual([]);
+    expect(await readFile(join(cwd, 'jwks.json'), 'utf8')).toContain('copalibre-local-key-1');
+    await expect(readFile(join(cwd, 'modules', 'README.md'), 'utf8')).resolves.toContain(
+      'Directory Layout',
+    );
+  });
+
+  it('returns paste-ready snippets for services missing from the existing Compose file', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-repair-'));
+    const assetsDir = await mkdtemp(join(tmpdir(), 'copalibre-assets-'));
+    await writeFile(
+      join(assetsDir, 'docker-compose.yml'),
+      'services:\n  api:\n    image: copalibre/api\n  worker:\n    image: copalibre/worker\n  optional-cache:\n    image: redis\n    profiles: [optional-adapters]\n',
+    );
+    await writeFile(join(assetsDir, 'Caddyfile'), ':80 {}\n');
+    await writeFile(join(cwd, 'docker-compose.yml'), 'services:\n  api:\n    image: custom/api\n');
+
+    const result = await repairInstallationAssets(cwd, { assetsDir });
+
+    expect(result.missingServices).toEqual(['worker']);
+    expect(result.serviceSnippets[0]).toContain(
+      'services:\n  worker:\n    image: copalibre/worker',
+    );
+    expect(await readFile(join(cwd, 'docker-compose.yml'), 'utf8')).toBe(
+      'services:\n  api:\n    image: custom/api\n',
+    );
+  });
+
+  it('preserves a JWKS without its matching private key and stops before reconciling .env', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-repair-'));
+    const assetsDir = await stubAssetsDir();
+    const jwksJson = generateRsaKeypair().jwksJson;
+    await writeFile(join(cwd, 'docker-compose.yml'), 'services: {}\n');
+    await writeFile(join(cwd, '.env'), 'CUSTOM_VALUE=preserve\n');
+    await writeFile(join(cwd, 'jwks.json'), jwksJson);
+
+    await expect(repairInstallationAssets(cwd, { assetsDir })).rejects.toThrow(
+      /incomplete signing keypair/,
+    );
+
+    expect(await readFile(join(cwd, 'jwks.json'), 'utf8')).toBe(jwksJson);
+    expect(await readFile(join(cwd, '.env'), 'utf8')).toBe('CUSTOM_VALUE=preserve\n');
   });
 });
 
