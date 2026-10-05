@@ -12,29 +12,14 @@ import { featuredTournaments } from '../../lib/organization-page.ts';
 import { publicIntl } from '../../lib/i18n/public-intl.ts';
 import { messages } from '../../lib/i18n/public-messages.en.ts';
 import { resolvePathLocale } from '../../lib/locale.ts';
+import { isReservedOrganizationAlias } from '../../lib/public-route-guards.ts';
 import type { SupportedLanguage } from '@copalibre/domain';
 
 export const prerender = false;
 
 const { organization } = Astro.params;
 
-const RESERVED_PREFIXES = new Set([
-  'control',
-  'help',
-  'tv',
-  'api',
-  'objects',
-  'organizations',
-  'disciplines',
-  'tournament-profiles',
-  'health',
-  'invitations',
-  'runtime-config.json',
-  'sitemap.xml',
-  'robots.txt',
-]);
-
-if (!organization || RESERVED_PREFIXES.has(organization.toLowerCase())) {
+if (!organization || isReservedOrganizationAlias(organization)) {
   return new Response(null, { status: 404 });
 }
 

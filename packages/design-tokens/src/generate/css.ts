@@ -1855,7 +1855,7 @@ function compositions(): string {
     '',
     // The locale control is a native disclosure, so it opens with no script.
     '.cl-public-header__locale { position: relative; }',
-    '.cl-public-header__locale > summary { display: inline-grid; place-items: center; min-width: var(--cl-touch-target); min-height: var(--cl-touch-target); padding-inline: var(--cl-space-2); border: 1px solid var(--cl-border-muted); color: var(--cl-text-secondary); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; cursor: pointer; list-style: none; }',
+    '.cl-public-header__locale > summary { display: inline-flex; align-items: center; justify-content: center; gap: var(--cl-space-1); min-width: var(--cl-touch-target); min-height: var(--cl-touch-target); padding-inline: var(--cl-space-2); border: 1px solid var(--cl-border-muted); color: var(--cl-text-secondary); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; cursor: pointer; list-style: none; }',
     '.cl-public-header__locale > summary::-webkit-details-marker { display: none; }',
     `.cl-public-header__locale-list { position: absolute; inset-inline-end: 0; z-index: 40; min-width: max-content; width: max-content; white-space: nowrap; display: grid; gap: var(--cl-space-1); margin: var(--cl-space-1) 0 0; padding: var(--cl-space-2); list-style: none; background: var(--cl-surface-chrome); border: 1px solid var(--cl-border-muted); box-shadow: ${DIALOG_TOKENS.elevation}; }`,
     '',
