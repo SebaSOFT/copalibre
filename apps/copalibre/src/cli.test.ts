@@ -6,6 +6,7 @@ import { createBackupPacket } from './backup-packet.js';
 import { readCopalibreVersion, renderBanner, renderFullLogo } from './banner.js';
 import { runCli } from './cli.js';
 import { COMMAND_HELP, MODULE_SUBCOMMAND_HELP, TOURNAMENT_SUBCOMMAND_HELP } from './help-text.js';
+import { dockerComposeDoctorRunArgs } from './commands/doctor-command.js';
 import { writeCredential } from './credentials.js';
 import { writeInstallationMarker } from './installation-marker.js';
 import type { ProcessRunner } from './process-runner.js';
@@ -431,13 +432,12 @@ describe('runCli', () => {
   });
 
   describe('marker-aware compose dispatch', () => {
-    it('an installation marker alone (no discoverable compose file) is enough for doctor/start/migrate/upgrade-check to proceed', async () => {
+    it('an installation marker alone (no discoverable compose file) is enough for start/migrate/upgrade-check to proceed', async () => {
       await withTemporaryWorkingDirectory(async () => {
         await writeInstallationMarker(process.cwd(), readCopalibreVersion());
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
         const processes = { run };
 
-        expect(await runCli(['doctor'], {}, processes)).toBe(0);
         expect(await runCli(['start'], {}, processes)).toBe(0);
         expect(await runCli(['migrate'], {}, processes)).toBe(0);
         expect(await runCli(['upgrade-check', '--target-version', '2.0.0'], {}, processes)).toBe(0);
@@ -471,11 +471,32 @@ describe('runCli', () => {
 
     it('an explicit COMPOSE_FILE environment variable also counts as a valid target', async () => {
       await withTemporaryWorkingDirectory(async () => {
+        await writeFile('.env', 'COPALIBRE_APP_URL=\n', 'utf8');
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
-        const result = await runCli(['doctor'], { COMPOSE_FILE: 'docker-compose.yml' }, { run });
-        expect(result).toBe(0);
-        expect(run).toHaveBeenCalled();
+        const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(['doctor'], { COMPOSE_FILE: 'docker-compose.yml' }, { run });
+          expect(result).toBe(1);
+          expect(stdout.mock.calls.some((call) => String(call[0]).includes('FAIL host-env:'))).toBe(
+            true,
+          );
+          expect(run).not.toHaveBeenCalled();
+        } finally {
+          stdout.mockRestore();
+        }
       });
+    });
+
+    it('runs the doctor service without pulling a remote image', () => {
+      expect(dockerComposeDoctorRunArgs(['--smoke'])).toEqual([
+        'compose',
+        'run',
+        '--pull',
+        'never',
+        '--rm',
+        'doctor',
+        '--smoke',
+      ]);
     });
 
     it('migrate refuses on a version mismatch against the marker, naming both versions', async () => {
