@@ -48,6 +48,15 @@ export function reconcileEnvContent(
     const val = match[2];
     foundKeys.add(key);
 
+    if (key === 'COPALIBRE_VERSION') {
+      const inlineComment = /(\s+#.*)$/.exec(val)?.[1] ?? '';
+      const configuredVersion = inlineComment ? val.slice(0, -inlineComment.length).trim() : val;
+      if (configuredVersion !== cleanVersion) {
+        updatedKeys.push(key);
+        return `${key}=${cleanVersion}${inlineComment}`;
+      }
+    }
+
     if (key === 'COPALIBRE_IMAGE' && val.includes('ghcr.io/sebasoft/copalibre')) {
       const newImg = `ghcr.io/sebasoft/copalibre:${cleanVersion}`;
       if (val !== newImg) {
@@ -109,6 +118,12 @@ export function reconcileComposeContent(
 
   // Match: image: ghcr.io/sebasoft/copalibre:1.2.1 or ${COPALIBRE_IMAGE:-ghcr.io/sebasoft/copalibre:1.2.1}
   let updatedContent = existingContent;
+
+  updatedContent = updatedContent.replace(
+    /(\$\{COPALIBRE_VERSION:-)([^}]+)(\})/g,
+    (_match, prefix: string, _oldVersion: string, suffix: string) =>
+      `${prefix}${cleanVersion}${suffix}`,
+  );
 
   const copalibreRegex = /(ghcr\.io\/sebasoft\/copalibre:)([A-Za-z0-9_.-]+)/g;
   updatedContent = updatedContent.replace(copalibreRegex, (_match, prefix, oldTag) => {

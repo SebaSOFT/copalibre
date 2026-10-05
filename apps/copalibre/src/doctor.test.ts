@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 import {
   runDoctor,
   validateDatabase,
+  validateHostEnvironment,
   validateJwksContent,
   validateObjectStorage,
   validatePersistentPath,
@@ -58,6 +59,56 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
 }
 
 describe('copalibre doctor', () => {
+  it('validates host .env values and accepts a configured database and provider credential', () => {
+    const report = validateHostEnvironment({
+      ...environment,
+      GARAGE_RPC_SECRET: 'generated-garage-secret',
+      POSTGRES_PASSWORD: 'operator-chosen-database-secret',
+    });
+
+    expect(report.ok).toBe(true);
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ name: 'host-env:email', status: 'pass' }),
+    );
+  });
+
+  it('reports missing values and default placeholder secrets without exposing their values', () => {
+    const report = validateHostEnvironment({
+      ...environment,
+      COPALIBRE_APP_URL: '  ',
+      COPALIBRE_BOOTSTRAP_TOKEN: 'copalibre_bootstrap_token_secret',
+      COPALIBRE_SMTP_URL: '',
+      GARAGE_RPC_SECRET: 'copalibre_garage_rpc_secret_change_me',
+    });
+
+    expect(report.ok).toBe(false);
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ name: 'host-env:COPALIBRE_APP_URL', status: 'fail' }),
+    );
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ name: 'host-env:COPALIBRE_BOOTSTRAP_TOKEN', status: 'fail' }),
+    );
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ name: 'host-env:email', status: 'fail' }),
+    );
+    expect(report.checks.map((check) => check.message).join(' ')).not.toContain(
+      'copalibre_bootstrap_token_secret',
+    );
+  });
+
+  it('accepts POSTGRES_PASSWORD when DATABASE_URL is omitted', () => {
+    const report = validateHostEnvironment({
+      ...environment,
+      DATABASE_URL: '',
+      POSTGRES_PASSWORD: 'operator-chosen-database-secret',
+      GARAGE_RPC_SECRET: 'generated-garage-secret',
+    });
+
+    expect(report.checks).not.toContainEqual(
+      expect.objectContaining({ name: 'host-env:database', status: 'fail' }),
+    );
+  });
+
   it('reports a specific missing dependency and exits non-zero', async () => {
     const report = await runDoctor({}, dependencies());
 

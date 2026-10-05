@@ -11,6 +11,7 @@ import {
 } from '@copalibre/persistence';
 import { sql } from 'kysely';
 import { createRemoteJWKSet, customFetch, type FetchImplementation } from 'jose';
+import { LOCAL_DEFAULTS } from './init.js';
 import { evaluateDataIntegrity, type DataIntegritySnapshot } from './doctor-data.js';
 import { probeDataIntegrity } from './doctor-data-probe.js';
 
@@ -54,6 +55,15 @@ export interface DoctorOptions {
 const EMAIL_PROVIDERS = ['resend', 'brevo', 'mailgun', 'smtp'] as const;
 type EmailProvider = (typeof EMAIL_PROVIDERS)[number];
 
+const PLACEHOLDER_SECRETS: Readonly<Record<string, readonly string[]>> = {
+  POSTGRES_PASSWORD: [LOCAL_DEFAULTS.POSTGRES_PASSWORD],
+  COPALIBRE_BOOTSTRAP_TOKEN: [
+    LOCAL_DEFAULTS.COPALIBRE_BOOTSTRAP_TOKEN,
+    'copalibre_dev_bootstrap_only',
+  ],
+  GARAGE_RPC_SECRET: [LOCAL_DEFAULTS.GARAGE_RPC_SECRET],
+};
+
 export async function runDoctor(
   environment: NodeJS.ProcessEnv = process.env,
   dependencies: DoctorDependencies = systemDoctorDependencies(),
@@ -96,6 +106,68 @@ export function validateRequiredConfiguration(
   }
   checks.push(validateEmailConfiguration(environment));
   return checks;
+}
+
+/** Validates an installation's parsed `.env` before the host starts Compose. */
+export function validateHostEnvironment(environment: NodeJS.ProcessEnv): DoctorReport {
+  const checks: DoctorCheck[] = [];
+  if (!environment.DATABASE_URL?.trim() && !environment.POSTGRES_PASSWORD?.trim()) {
+    checks.push(fail('host-env:database', 'DATABASE_URL or POSTGRES_PASSWORD must be configured'));
+  }
+
+  for (const name of [
+    'COPALIBRE_APP_URL',
+    'COPALIBRE_BOOTSTRAP_TOKEN',
+    'COPALIBRE_JWKS_URI',
+    'COPALIBRE_JWT_ISSUER',
+    'COPALIBRE_JWT_AUDIENCE',
+    'COPALIBRE_OIDC_CLIENT_ID',
+    'COPALIBRE_EMAIL_FROM',
+    'GARAGE_RPC_SECRET',
+  ]) {
+    if (!environment[name]?.trim()) {
+      checks.push(
+        fail(`host-env:${name}`, `${name} is required and must not be blank; configure it in .env`),
+      );
+    }
+  }
+
+  for (const [name, placeholders] of Object.entries(PLACEHOLDER_SECRETS)) {
+    const value = environment[name]?.trim();
+    if (value && placeholders.includes(value)) {
+      checks.push(
+        fail(
+          `host-env:${name}`,
+          `${name} still has its default placeholder; replace it with a unique secret`,
+        ),
+      );
+    }
+  }
+
+  const emailProvider = environment.COPALIBRE_EMAIL_PROVIDER;
+  if (!isEmailProvider(emailProvider)) {
+    checks.push(
+      fail('host-env:email', 'COPALIBRE_EMAIL_PROVIDER must be resend, brevo, mailgun, or smtp'),
+    );
+  } else {
+    const providerSecrets: Record<EmailProvider, readonly string[]> = {
+      resend: ['COPALIBRE_RESEND_API_KEY'],
+      brevo: ['COPALIBRE_BREVO_API_KEY'],
+      mailgun: ['COPALIBRE_MAILGUN_API_KEY', 'COPALIBRE_MAILGUN_DOMAIN'],
+      smtp: ['COPALIBRE_SMTP_URL'],
+    };
+    const missing = providerSecrets[emailProvider].filter((name) => !environment[name]?.trim());
+    checks.push(
+      missing.length === 0
+        ? pass('host-env:email', `Email provider ${emailProvider} is configured`)
+        : fail(
+            'host-env:email',
+            `Email provider ${emailProvider} is missing: ${missing.join(', ')}`,
+          ),
+    );
+  }
+
+  return { checks, ok: checks.every((check) => check.status !== 'fail') };
 }
 
 export function validateServicePorts(environment: NodeJS.ProcessEnv): readonly DoctorCheck[] {
