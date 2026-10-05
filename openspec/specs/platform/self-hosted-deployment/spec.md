@@ -113,7 +113,8 @@ requiring a checkout of this repository's source, and SHALL record the CopaLibre
 installation identifier in that directory so later commands run from it identify the installation
 automatically. `copalibre init` SHALL execute host preflight validation (Docker daemon connectivity,
 socket permissions, Compose version, and port collision checks), prompt the operator interactively
-when run on a TTY for public application and API domains, and generate a fully-interpolated `.env` file
+when run on a TTY for public application and API domains and email delivery provider configuration
+(`smtp`, `resend`, `brevo`, or `mailgun`) matching runtime-supported providers, and generate a fully-interpolated `.env` file
 containing sensible defaults and cryptographically random secrets for all required runtime variables,
 including `GARAGE_RPC_SECRET`, `COPALIBRE_JWKS_URI`, `COPALIBRE_JWT_AUDIENCE`, `COPALIBRE_JWT_ISSUER`,
 `COPALIBRE_PORT`, `COPALIBRE_API_PORT`, `COPALIBRE_EVENTS_PORT`, and `COPALIBRE_IMAGE`.
@@ -126,7 +127,15 @@ directory hierarchy (`./modules/disciplines/` and `./modules/profiles/`) with RE
 the operator during interactive initialization to select starter disciplines to provision. `copalibre init` SHALL also export
 production-tested reverse proxy configurations (`deploy/templates/nginx/`) incorporating unbuffered Server-Sent Events
 proxies, long-lived connection timeouts, and WebSocket upgrade rules for external gateways such as Nginx or CloudPanel.
-A directory already containing an installation SHALL cause `init` to refuse rather than overwrite any part of it.
+When run in a directory already containing an installation, `copalibre init` without interactive confirmation or `--repair`
+SHALL refuse rather than overwrite existing files; in interactive terminal mode or with `--repair`, it SHALL offer to
+reconcile and repair the installation non-destructively, creating timestamped backups of existing `.env` and `docker-compose.yml`
+files before appending missing environment variables, generating missing keypairs, or scaffolding missing directories. Repair SHALL
+preserve an existing `docker-compose.yml` byte-for-byte and inspect its service definitions against the shipped Compose template.
+When the template defines default-profile services missing from the installation, repair SHALL warn and print corresponding
+ready-to-review YAML service snippets without applying them; services behind optional profiles SHALL not trigger a warning.
+Email setup SHALL accept only `smtp`, `resend`, `brevo`, or `mailgun`; Mailgun requires both
+`COPALIBRE_MAILGUN_API_KEY` and `COPALIBRE_MAILGUN_DOMAIN`, and local SMTP remains the default.
 `doctor`, `start`, `migrate`, and `upgrade-check`, when run from a directory containing a recorded installation,
 SHALL operate against that directory's own files without requiring a checkout; version-sensitive subcommands
 (`init` re-run, `migrate`, `upgrade-check`) SHALL refuse with a message naming both versions when the running
@@ -212,7 +221,7 @@ SHALL operate over a direct database connection.
   `upgrade-check`) operates correctly without a checkout
 
 #### Scenario: init refuses to overwrite an existing installation
-- **WHEN** `copalibre init` is run in a directory that already contains a CopaLibre installation
+- **WHEN** `copalibre init` is run non-interactively in a directory that already contains a CopaLibre installation without `--repair`
 - **THEN** it refuses, naming which file already exists, and writes nothing
 
 #### Scenario: Multiple installations coexist as separate directories
@@ -299,6 +308,22 @@ SHALL operate over a direct database connection.
 #### Scenario: doctor validates host .env configuration
 - **WHEN** an operator runs `copalibre doctor` on a host where `.env` is missing required secrets or defines empty values
 - **THEN** the CLI identifies each missing or unconfigured variable directly on the host with actionable guidance before or alongside launching containerized checks
+
+#### Scenario: init repairs existing installation directory
+- **WHEN** an operator runs `copalibre init` in an existing installation directory with `--repair` or in interactive mode
+- **THEN** the CLI creates timestamped backups of existing `.env` and `docker-compose.yml`, adds missing defaults and assets without overwriting existing values or key material, and leaves the Compose file byte-for-byte unchanged
+
+#### Scenario: init repair warns about missing required Compose services
+- **WHEN** an existing installation's Compose file lacks one or more default-profile services present in the shipped template
+- **THEN** repair warns which services are missing and prints their YAML snippets for review, without modifying the Compose file
+
+#### Scenario: init repair ignores optional Compose profiles
+- **WHEN** an existing installation's Compose file omits a service defined only under an optional profile
+- **THEN** repair does not warn about that service or print a snippet for it
+
+#### Scenario: init email providers match runtime
+- **WHEN** an operator configures email through the interactive wizard or email flags
+- **THEN** the CLI accepts `smtp`, `resend`, `brevo`, or `mailgun`, writes corresponding runtime environment variables, uses local SMTP by default, and requires both Mailgun API key and domain for Mailgun
 
 ### Requirement: Kubernetes instance mode
 
