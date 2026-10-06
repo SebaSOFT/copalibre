@@ -236,3 +236,14 @@ allowing authorized operators to navigate directly to the tournament setup wizar
 #### Scenario: Operators lacking tournament management permissions do not see the creation action
 - **WHEN** a user whose role lacks tournament management capabilities views the dashboard
 - **THEN** the tournament creation action button is omitted or hidden
+
+### Requirement: Organization preferences card hierarchy and identification
+The organization preferences screen SHALL present its functional sections in a priority sequence based on operational frequency and data importance: Organization Identity first, Storage Usage and unreferenced media second, Statistics Rebuild third, and Personal Access Tokens at the end. When rendered for organization preferences, the screen title SHALL identify the page as "Organización" (or localized equivalent) rather than personal preferences.
+
+#### Scenario: Sections appear in frequency-based priority sequence
+- **WHEN** an authenticated operator navigates to organization preferences
+- **THEN** the Identity card renders first, followed by Storage Usage, Statistics Rebuild, and Personal Access Tokens at the bottom of the page
+
+#### Scenario: Organization scope heading names organization
+- **WHEN** viewing the organization properties screen
+- **THEN** the primary page heading displays "Organización" (or the localized equivalent in the active language)

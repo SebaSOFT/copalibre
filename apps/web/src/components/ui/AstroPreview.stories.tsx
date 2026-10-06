@@ -81,7 +81,7 @@ export const ScoreTickerStale: Story = {
 };
 
 /**
- * The public header, and the reason it is worth framing rather than imitating.
+ * Public spectator navigation: Home and locale selection, without operator help.
  *
  * With the frame below 768px the menu expands into the page: the content
  * beneath it moves down instead of being covered. Reload with JavaScript

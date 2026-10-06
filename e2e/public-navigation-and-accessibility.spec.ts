@@ -128,17 +128,23 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
     expect(await header.evaluate((element) => (element as HTMLElement).offsetTop)).toBe(0);
     expect(await header.evaluate((element) => element.getBoundingClientRect().top)).toBe(0);
 
+    const nav = page.locator('#cl-public-nav');
+    await expect(nav.locator('a[href="/es/"]')).toBeVisible();
+    await expect(nav.locator('a[href="/es/help/"]')).toHaveCount(0);
+
     const languageTrigger = page.locator('.cl-public-header__locale summary');
+    await expect(languageTrigger).toBeVisible();
+    await expect(languageTrigger).toHaveClass(/cl-chamfer--control/);
     const translationMark = languageTrigger.locator('.cl-public-header__translation-mark');
     expect(
       await translationMark.evaluate((element) => getComputedStyle(element, '::before').content),
     ).toBe('"文A"');
     await expect(languageTrigger).toContainText('ES');
     await languageTrigger.click();
-    await expect(page.locator('.cl-public-header__locale-list a[hreflang="fr"]')).toHaveAttribute(
-      'href',
-      '/fr',
-    );
+    const languagePopover = page.locator('.cl-public-header__locale-list');
+    await expect(languagePopover).toBeVisible();
+    await expect(languagePopover).toHaveClass(/cl-chamfer--control/);
+    await expect(languagePopover.locator('a[hreflang="fr"]')).toHaveAttribute('href', '/fr');
 
     const missingRouteResponse = await page.goto('/some-missing-page');
     expect(missingRouteResponse?.status()).toBe(404);

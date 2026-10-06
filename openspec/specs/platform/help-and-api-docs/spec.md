@@ -68,43 +68,35 @@ hostnames, private paths, or production example credentials.
 
 ### Requirement: Every control-panel screen links to matching contextual help
 
-Each control-panel screen SHALL render a visible link to a Starlight help page that explains that
-specific screen's purpose and its key data fields, distinct from a generic link to the help site's
-homepage. The link SHALL resolve to the Starlight page in the operator's currently active display
-language, using the same locale-prefix routing the help site itself uses for every other page. The page
-SHALL describe the screen as it currently behaves; a page describing a surface the screen no longer
-presents SHALL be treated as a defect rather than as documentation.
+Each control-panel screen SHALL render a visible link to a Starlight help page that explains that specific screen's purpose and its key data fields, distinct from a generic link to the help site's homepage. The link SHALL resolve to the Starlight page in the operator's currently active display language, using the same locale-prefix routing the help site itself uses for every other page. All generated contextual help URLs SHALL include a trailing slash to prevent intermediate redirect loops behind reverse proxies. The page SHALL describe the screen as it currently behaves; a page describing a surface the screen no longer presents SHALL be treated as a defect rather than as documentation.
 
 #### Scenario: An operator on the seeding screen reaches seeding-specific help
-
 - **WHEN** an operator viewing the seeding-builder control-panel screen activates its help link
-- **THEN** they land on a Starlight page that explains seeding, byes, and the draw constraints this
-  screen enforces — not the help site's homepage or an unrelated screen's page
+- **THEN** they land on a Starlight page that explains seeding, byes, and the draw constraints this screen enforces — not the help site's homepage or an unrelated screen's page
 
 #### Scenario: A screen with no matching help page fails the build
-
-- **WHEN** a control-panel route component is added or changed without a corresponding `helpPath`
-  pointing at an existing Starlight page under `/help/control/`
-- **THEN** the build fails, naming the missing help path, rather than shipping a silently broken or
-  absent help link
+- **WHEN** a control-panel route component is added or changed without a corresponding `helpPath` pointing at an existing Starlight page under `/help/control/`
+- **THEN** the build fails, naming the missing help path, rather than shipping a silently broken or absent help link
 
 #### Scenario: A non-English operator lands on the matching locale's help page
-
-- **WHEN** an operator using the control panel in a language other than English activates a screen's
-  help link
+- **WHEN** an operator using the control panel in a language other than English activates a screen's help link
 - **THEN** they land on that language's Starlight page for the same screen, not the English default
 
 #### Scenario: An English-language operator sees the unprefixed default page
-
 - **WHEN** an operator using the control panel in English activates a screen's help link
 - **THEN** they land on the unprefixed default-locale Starlight page
 
 #### Scenario: A page describing a replaced surface is a defect
+- **WHEN** a screen's controls change such that its help page describes affordances the screen no longer offers
+- **THEN** the page is updated in the same change that altered the screen, and the documentation lint treats an unclaimed capability as the signal that it was not
 
-- **WHEN** a screen's controls change such that its help page describes affordances the screen no longer
-  offers
-- **THEN** the page is updated in the same change that altered the screen, and the documentation lint
-  treats an unclaimed capability as the signal that it was not
+#### Scenario: Generated help links contain trailing slashes
+- **WHEN** any control-panel screen generates a contextual help link
+- **THEN** the resolved path includes a trailing slash (e.g. `/help/control/` or `/help/es/control/`) ensuring direct resolution without reverse-proxy 308 redirect failure
+
+#### Scenario: Dashboard help stays specific to the dashboard
+- **WHEN** an operator on the organization dashboard opens contextual help
+- **THEN** they reach the dashboard-specific `/help/control/overview/` article in their active help locale, while `/help/control/` remains the general Control panel index
 
 ### Requirement: Help site documents CLI installation, updating, and every command
 

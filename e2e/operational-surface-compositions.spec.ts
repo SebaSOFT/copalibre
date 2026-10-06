@@ -285,18 +285,16 @@ test.describe('Public header, expanding in page flow (0223)', () => {
 test.describe('The public page without JavaScript (0223)', () => {
   test.use({ javaScriptEnabled: false, viewport: { width: 375, height: 720 } });
 
-  test('navigation is already expanded, and its destinations are locale-aware', async ({
-    page,
-  }) => {
-    await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT}`);
+  test('navigation is already expanded and keeps the public home destination', async ({ page }) => {
+    await page.goto('/es/');
 
     const nav = page.locator('#cl-public-nav');
     await expect(nav).toBeVisible();
     // The toggle never appears: nothing would answer it.
     await expect(page.locator('[data-public-nav-toggle]')).toBeHidden();
 
-    const help = nav.locator('a[href="/es/help/"]');
-    await expect(help).toBeVisible();
+    await expect(nav.locator('a[href="/es/"]')).toBeVisible();
+    await expect(nav.locator('a[href="/es/help/"]')).toHaveCount(0);
   });
 
   test('the ticker still reads, with no control that would do nothing', async ({ page }) => {

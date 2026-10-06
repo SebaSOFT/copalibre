@@ -65,6 +65,6 @@ test('public home page renders hero orientation hub with zero organizations', as
 
   const nav = page.getByRole('navigation', { name: 'Main' });
   await expect(nav.getByRole('link', { name: 'Home' })).toBeVisible();
-  await expect(nav.getByRole('link', { name: 'Help' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Help' })).toHaveCount(0);
   await expect(nav.getByRole('link', { name: /API reference/i })).toHaveCount(0);
 });
