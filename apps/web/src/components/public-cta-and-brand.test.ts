@@ -228,6 +228,12 @@ describe('public layout, header, and home orientation hub (openspec 0315)', () =
     );
   });
 
+  it('chamfers the open language popover with the matching control treatment', () => {
+    expect(header).toContain(
+      '<ul class="cl-public-header__locale-list cl-chamfer cl-chamfer--control">',
+    );
+  });
+
   it('renders index page orientation hub with tactical grid, badges, and owned CTA buttons', () => {
     expect(homeLayout).toContain('cl-tactical-grid');
     expect(homeLayout).toContain("import Button from '../components/ui/atoms/Button.astro'");

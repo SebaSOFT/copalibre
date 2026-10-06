@@ -141,10 +141,10 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
     ).toBe('"文A"');
     await expect(languageTrigger).toContainText('ES');
     await languageTrigger.click();
-    await expect(page.locator('.cl-public-header__locale-list a[hreflang="fr"]')).toHaveAttribute(
-      'href',
-      '/fr',
-    );
+    const languagePopover = page.locator('.cl-public-header__locale-list');
+    await expect(languagePopover).toBeVisible();
+    await expect(languagePopover).toHaveClass(/cl-chamfer--control/);
+    await expect(languagePopover.locator('a[hreflang="fr"]')).toHaveAttribute('href', '/fr');
 
     const missingRouteResponse = await page.goto('/some-missing-page');
     expect(missingRouteResponse?.status()).toBe(404);
