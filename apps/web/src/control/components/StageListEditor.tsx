@@ -25,6 +25,7 @@ import { Input } from './ui/atoms/input.js';
 import { Grid } from './ui/atoms/layout/grid.js';
 import { Inline } from './ui/atoms/layout/inline.js';
 import { Stack } from './ui/atoms/layout/stack.js';
+import { Label } from './ui/atoms/label.js';
 import { Select } from './ui/atoms/select.js';
 import { Field } from './ui/molecules/field.js';
 import {
@@ -279,7 +280,7 @@ function GroupConfigurationFields({
   const configuration = stage.groupConfiguration;
   return (
     <Stack gap="2">
-      <label className="cl-toggle cl-focusable">
+      <Label className="cl-toggle cl-focusable">
         <Checkbox
           checked={configuration !== undefined}
           disabled={readOnly}
@@ -296,7 +297,7 @@ function GroupConfigurationFields({
           }
         />
         <span>{intl.formatMessage(messages.stageEditorConfigureGroups)}</span>
-      </label>
+      </Label>
       {configuration !== undefined && (
         <div className="cl-platform-form-grid">
           <Field
