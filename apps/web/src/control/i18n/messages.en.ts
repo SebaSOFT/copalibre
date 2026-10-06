@@ -1238,6 +1238,27 @@ export const messages = defineMessages({
     id: 'control.wizard.formatPreview.capacity',
     defaultMessage: '{count, plural, one {# entrant} other {# entrants}}',
   },
+  stagePreviewUpperBracket: {
+    id: 'control.stageEditor.preview.upperBracket',
+    defaultMessage: "Winners' bracket",
+  },
+  stagePreviewLowerBracket: {
+    id: 'control.stageEditor.preview.lowerBracket',
+    defaultMessage: "Losers' bracket",
+  },
+  stagePreviewGrandFinal: {
+    id: 'control.stageEditor.preview.grandFinal',
+    defaultMessage: 'Grand final',
+  },
+  stagePreviewConditionalReset: {
+    id: 'control.stageEditor.preview.conditionalReset',
+    defaultMessage: 'Conditional reset final',
+  },
+  stagePreviewMatchday: {
+    id: 'control.stageEditor.preview.matchday',
+    defaultMessage: 'Matchday {number}',
+  },
+  stagePreviewGroup: { id: 'control.stageEditor.preview.group', defaultMessage: 'Group {letter}' },
 
   // Shared stage editor (lib/stage-authoring.ts, components/StageListEditor.tsx)
   stageEditorTitle: { id: 'control.stageEditor.title', defaultMessage: 'Stages' },
@@ -1251,6 +1272,63 @@ export const messages = defineMessages({
   stageEditorStageFormat: {
     id: 'control.stageEditor.stageFormat',
     defaultMessage: 'Stage format',
+  },
+  stageEditorConfigureGroups: {
+    id: 'control.stageEditor.configureGroups',
+    defaultMessage: 'Configure groups for this stage',
+  },
+  stageEditorGroupCount: {
+    id: 'control.stageEditor.groupCount',
+    defaultMessage: 'Number of groups',
+  },
+  stageEditorGroupSize: {
+    id: 'control.stageEditor.groupSize',
+    defaultMessage: 'Nominal group size',
+  },
+  stageEditorGroupDistribution: {
+    id: 'control.stageEditor.groupDistribution',
+    defaultMessage: 'Entrant distribution',
+  },
+  stageEditorGroupBalanced: {
+    id: 'control.stageEditor.groupDistribution.balanced',
+    defaultMessage: 'Balanced',
+  },
+  stageEditorGroupExactSize: {
+    id: 'control.stageEditor.groupDistribution.exactSize',
+    defaultMessage: 'Exact size; leave extras unassigned',
+  },
+  stageEditorGroupOverflowLast: {
+    id: 'control.stageEditor.groupDistribution.overflowLast',
+    defaultMessage: 'Put overflow in final group',
+  },
+  stageEditorGroupManual: {
+    id: 'control.stageEditor.groupDistribution.manual',
+    defaultMessage: 'Set capacity per group',
+  },
+  stageEditorManualGroupSize: {
+    id: 'control.stageEditor.manualGroupSize',
+    defaultMessage: 'Group {number} capacity',
+  },
+  stageFormatLeague: { id: 'control.stageEditor.format.league', defaultMessage: 'League' },
+  stageFormatRoundRobin: {
+    id: 'control.stageEditor.format.roundRobin',
+    defaultMessage: 'Round robin',
+  },
+  stageFormatSingleElimination: {
+    id: 'control.stageEditor.format.singleElimination',
+    defaultMessage: 'Single elimination',
+  },
+  stageFormatDoubleElimination: {
+    id: 'control.stageEditor.format.doubleElimination',
+    defaultMessage: 'Double elimination',
+  },
+  stageFormatRoundRobinSingleLeg: {
+    id: 'control.stageEditor.format.roundRobinSingleLeg',
+    defaultMessage: 'Single-leg round robin',
+  },
+  stageFormatRoundRobinHomeAway: {
+    id: 'control.stageEditor.format.roundRobinHomeAway',
+    defaultMessage: 'Round robin, home and away',
   },
   stageEditorSeriesToggle: {
     id: 'control.stageEditor.seriesToggle',
@@ -1428,6 +1506,28 @@ export const messages = defineMessages({
   wizardRuleHookHelp: {
     id: 'control.wizard.rule.hookHelp',
     defaultMessage: 'Runs synchronously at event.recorded using vocabulary accepted by server.',
+  },
+  wizardRuleGiven: { id: 'control.wizard.rule.given', defaultMessage: 'GIVEN' },
+  wizardRuleGivenEvent: {
+    id: 'control.wizard.rule.givenEvent',
+    defaultMessage:
+      'The system supplies the recorded discipline-defined event that triggers this rule (event.recorded).',
+  },
+  wizardRuleWhen: { id: 'control.wizard.rule.when', defaultMessage: 'WHEN' },
+  wizardRuleThen: { id: 'control.wizard.rule.then', defaultMessage: 'THEN' },
+  wizardRuleAnd: { id: 'control.wizard.rule.and', defaultMessage: 'AND' },
+  wizardRuleAddCondition: {
+    id: 'control.wizard.rule.addCondition',
+    defaultMessage: 'Add condition',
+  },
+  wizardRuleAddAction: { id: 'control.wizard.rule.addAction', defaultMessage: 'Add action' },
+  wizardRuleMoveActionUp: {
+    id: 'control.wizard.rule.moveActionUp',
+    defaultMessage: 'Move action up',
+  },
+  wizardRuleMoveActionDown: {
+    id: 'control.wizard.rule.moveActionDown',
+    defaultMessage: 'Move action down',
   },
   wizardRuleCondition: { id: 'control.wizard.rule.condition', defaultMessage: 'Condition' },
   wizardRuleAction: { id: 'control.wizard.rule.action', defaultMessage: 'Action' },
@@ -1892,11 +1992,11 @@ export const messages = defineMessages({
   },
   rulesetFieldUnrecognized: {
     id: 'control.rulesetField.unrecognized',
-    defaultMessage: 'Not governed by a known rule policy — edited as raw JSON.',
+    defaultMessage: 'Not governed by a known rule policy; editing is unavailable.',
   },
   rulesetFieldUnknownType: {
     id: 'control.rulesetField.unknownType',
-    defaultMessage: "This field's value type is unknown — edited as raw JSON.",
+    defaultMessage: "This field's value type has no supported editor.",
   },
 
   // SeedingBuilderPage.tsx — stage rename/format-change/delete (openspec 0168)

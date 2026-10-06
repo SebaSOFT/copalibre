@@ -51,8 +51,10 @@ import {
   validateAllocation,
   validateHookScriptAttachment,
   validateSeriesDeclaration,
+  validateStageGroupConfiguration,
   type HookScriptAttachment,
   type StageAllocation,
+  type StageGroupConfiguration,
   type TournamentFormat,
   type TournamentProfile,
 } from '@copalibre/domain';
@@ -484,6 +486,12 @@ export class TournamentsController {
           });
         }
       }
+      if (stage.groupConfiguration !== undefined) {
+        const groupError = validateStageGroupConfiguration(stage.groupConfiguration);
+        if (groupError) {
+          throw new BadRequestException(groupError, { errorCode: 'tournament-bad-request' });
+        }
+      }
     });
 
     const customScripts = validateCustomScripts(body.customScripts ?? []);
@@ -568,6 +576,8 @@ export class TournamentsController {
           const profileDefault = profileToBind?.stages.find(
             (candidate) => candidate.number === number,
           );
+          const groupConfiguration = (stage.groupConfiguration ??
+            profileDefault?.groupConfiguration) as StageGroupConfiguration | undefined;
 
           const createdStage = await competition.createStageInTournament(uow, {
             organizationId: organization.organizationId,
@@ -601,13 +611,18 @@ export class TournamentsController {
           const allocation = (stage.allocation ?? profileDefault?.allocation) as
             StageAllocation | undefined;
 
-          if (Object.keys(overrides).length > 0 || allocation !== undefined) {
+          if (
+            Object.keys(overrides).length > 0 ||
+            allocation !== undefined ||
+            groupConfiguration !== undefined
+          ) {
             const stageConfiguration = await tournaments.createStageConfiguration(uow, {
               organizationId: organization.organizationId,
               stageId: createdStage.stageId,
               rulesetId: ruleset.rulesetId,
               overrides,
               ...(allocation === undefined ? {} : { allocation }),
+              ...(groupConfiguration === undefined ? {} : { groupConfiguration }),
               actor: `user:${subject?.subjectId ?? 'unknown'}`,
               authorizationContext: (subject?.scopes ?? []).join(' '),
             });

@@ -60,6 +60,8 @@ export function BracketCanvas({
   highlightEntrantId,
   onHighlightEntrant,
   names = {},
+  showBracketLabels = false,
+  skeletonMode = false,
 }: {
   readonly matches: readonly CanvasMatch[];
   readonly zoom: number;
@@ -77,6 +79,10 @@ export function BracketCanvas({
   readonly highlightEntrantId?: string;
   readonly onHighlightEntrant?: (entrantId?: string) => void;
   readonly names?: Readonly<Record<string, string>>;
+  /** Label winners, losers, and grand-final bands in a double-elimination preview. */
+  readonly showBracketLabels?: boolean;
+  /** Replace entrants, structural ids, and scores with neutral slot skeletons. */
+  readonly skeletonMode?: boolean;
 }): React.JSX.Element {
   const intl = useIntl();
   const interactive = onHighlightEntrant !== undefined;
@@ -190,6 +196,12 @@ export function BracketCanvas({
                 highlightEntrantId={highlightEntrantId}
                 onHighlightEntrant={onHighlightEntrant}
                 names={names}
+                showBracketLabel={
+                  showBracketLabels &&
+                  layout.matches.find((match) => match.bracket === node.bracket)?.matchId ===
+                    node.matchId
+                }
+                skeletonMode={skeletonMode}
               />
             ))}
           </div>
@@ -215,6 +227,8 @@ function BracketNode({
   highlightEntrantId,
   onHighlightEntrant,
   names,
+  showBracketLabel,
+  skeletonMode,
 }: {
   readonly focused: boolean;
   /** Set only on the focused node, so `BracketCanvas` can scroll it into view on mount. */
@@ -225,46 +239,73 @@ function BracketNode({
   readonly highlightEntrantId?: string;
   readonly onHighlightEntrant?: (entrantId?: string) => void;
   readonly names: Readonly<Record<string, string>>;
+  readonly showBracketLabel: boolean;
+  readonly skeletonMode: boolean;
 }): React.JSX.Element {
   const intl = useIntl();
   const interactive = onHighlightEntrant !== undefined;
   const children = (
     <>
       <header style={nodeHeaderStyle}>
-        {interactive && href !== undefined ? (
+        {showBracketLabel && node.bracket === 'winners' && (
+          <Badge label={intl.formatMessage(messages.stagePreviewUpperBracket)} variant="section" />
+        )}
+        {showBracketLabel && node.bracket === 'losers' && (
+          <Badge label={intl.formatMessage(messages.stagePreviewLowerBracket)} variant="section" />
+        )}
+        {showBracketLabel && node.bracket === 'grand-final' && (
+          <Badge label={intl.formatMessage(messages.stagePreviewGrandFinal)} variant="section" />
+        )}
+        {skeletonMode ? (
+          <span aria-hidden="true" className="cl-bracket-node__title-skeleton" />
+        ) : interactive && href !== undefined ? (
           <a className="cl-focusable" href={href} onClick={controlLinkClick(href)}>
             {node.matchId}
           </a>
         ) : (
           <span>{node.matchId}</span>
         )}
-        {node.format === undefined ? null : <span className="cl-badge">{node.format}</span>}
+        {skeletonMode || node.format === undefined ? null : (
+          <span className="cl-badge">{node.format}</span>
+        )}
+        {node.conditional === 'bracket-reset' && (
+          <Badge
+            label={intl.formatMessage(messages.stagePreviewConditionalReset)}
+            variant="section"
+          />
+        )}
       </header>
       {node.slots.map((slot, index) => (
         <div key={`${node.matchId}-${index}`} style={slot.pending ? pendingSlotStyle : slotStyle}>
-          {/* Named, never blank: "Ganador del WB-R1-M2" tells an
-              operator what has to happen; an empty box reads as a bug. */}
-          {interactive && slot.entrantId !== undefined ? (
-            <Button
-              type="button"
-              variant="secondary"
-              className="cl-journey-name"
-              aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
-                entrant: resolveSlotLabel(slot, names, intl),
-              })}
-              aria-pressed={highlightEntrantId === slot.entrantId}
-              onClick={() =>
-                onHighlightEntrant(
-                  slot.entrantId === highlightEntrantId ? undefined : slot.entrantId,
-                )
-              }
-            >
-              {resolveSlotLabel(slot, names, intl)}
-            </Button>
+          {skeletonMode ? (
+            <span aria-hidden="true" className="cl-bracket-slot-skeleton" />
           ) : (
-            <span>{resolveSlotLabel(slot, names, intl)}</span>
+            <>
+              {/* Named, never blank: "Ganador del WB-R1-M2" tells an
+              operator what has to happen; an empty box reads as a bug. */}
+              {interactive && slot.entrantId !== undefined ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="cl-journey-name"
+                  aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                    entrant: resolveSlotLabel(slot, names, intl),
+                  })}
+                  aria-pressed={highlightEntrantId === slot.entrantId}
+                  onClick={() =>
+                    onHighlightEntrant(
+                      slot.entrantId === highlightEntrantId ? undefined : slot.entrantId,
+                    )
+                  }
+                >
+                  {resolveSlotLabel(slot, names, intl)}
+                </Button>
+              ) : (
+                <span>{resolveSlotLabel(slot, names, intl)}</span>
+              )}
+              <span style={scoreStyle}>{slot.score ?? '—'}</span>
+            </>
           )}
-          <span style={scoreStyle}>{slot.score ?? '—'}</span>
         </div>
       ))}
       {node.series !== undefined && (

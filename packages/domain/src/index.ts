@@ -374,6 +374,10 @@ export {
   type SeedDirection,
   type SeedPlacement,
 } from './rulesets/stage-allocation.js';
+export {
+  validateStageGroupConfiguration,
+  type StageGroupConfiguration,
+} from './rulesets/tournament-ruleset.js';
 export { compileEffectiveRuleset, mergeWithStrategy } from './rulesets/compiler.js';
 export {
   evaluateMutation,

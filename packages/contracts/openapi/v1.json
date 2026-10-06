@@ -12452,6 +12452,48 @@
           "effective"
         ]
       },
+      "StageGroupConfigurationRequest": {
+        "type": "object",
+        "properties": {
+          "groupCount": {
+            "type": "number",
+            "minimum": 2,
+            "example": 4
+          },
+          "groupSize": {
+            "type": "number",
+            "minimum": 2,
+            "example": 5
+          },
+          "distribution": {
+            "type": "string",
+            "enum": [
+              "balanced",
+              "exact-size",
+              "overflow-last",
+              "manual"
+            ]
+          },
+          "manualGroupSizes": {
+            "minItems": 2,
+            "example": [
+              4,
+              5,
+              5,
+              4
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "groupCount",
+          "groupSize",
+          "distribution"
+        ]
+      },
       "TournamentConfigurationStageLayerResponse": {
         "type": "object",
         "properties": {
@@ -12465,6 +12507,9 @@
           "effective": {
             "type": "object",
             "additionalProperties": true
+          },
+          "groupConfiguration": {
+            "$ref": "#/components/schemas/StageGroupConfigurationRequest"
           }
         },
         "required": [
@@ -12935,6 +12980,9 @@
                 "$ref": "#/components/schemas/StageAllocationRequest"
               }
             ]
+          },
+          "groupConfiguration": {
+            "$ref": "#/components/schemas/StageGroupConfigurationRequest"
           }
         },
         "required": [
@@ -15962,6 +16010,9 @@
                 "$ref": "#/components/schemas/StageAllocationRequest"
               }
             ]
+          },
+          "groupConfiguration": {
+            "$ref": "#/components/schemas/StageGroupConfigurationRequest"
           }
         }
       },
@@ -15993,6 +16044,9 @@
           "overrides": {
             "type": "object",
             "description": "The full stage-configuration override document, not only the changed fields."
+          },
+          "groupConfiguration": {
+            "$ref": "#/components/schemas/StageGroupConfigurationRequest"
           }
         },
         "required": [
@@ -16008,6 +16062,15 @@
             "example": {
               "segments.overtimeEnabled": true
             }
+          },
+          "groupConfiguration": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageGroupConfigurationRequest"
+              }
+            ]
           }
         },
         "required": [

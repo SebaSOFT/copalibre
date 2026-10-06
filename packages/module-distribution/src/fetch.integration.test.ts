@@ -141,5 +141,5 @@ describe('fetchModule / listPublishedVersions (integration, real repository)', (
     await expect(
       fetchModule(CURATED_MODULE_REPOSITORY, 'no-such-module-alias', undefined, workspaceDirectory),
     ).rejects.toThrow(/No published version/);
-  });
+  }, 30_000);
 });

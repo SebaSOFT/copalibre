@@ -48,6 +48,7 @@ export interface TournamentConfigurationExportDocument {
       readonly configuration: {
         readonly version?: number;
         readonly rawOverrides: OverrideSet;
+        readonly groupConfiguration?: StageConfiguration['groupConfiguration'];
         readonly effective: MatchRuleset;
       };
     }[];
@@ -135,6 +136,9 @@ export function buildTournamentConfigurationExport(
         configuration: {
           ...(configuration ? { version: configuration.version } : {}),
           rawOverrides: structuredClone(configuration?.overrides ?? {}),
+          ...(configuration?.groupConfiguration === undefined
+            ? {}
+            : { groupConfiguration: structuredClone(configuration.groupConfiguration) }),
           effective: compile(input.descriptor, input.ruleset, configuration),
         },
       })),

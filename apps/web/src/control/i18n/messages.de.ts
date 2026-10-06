@@ -460,6 +460,29 @@ export const messages: Record<string, string> = {
   'control.stageEditor.stageHeading': 'Phase {number}',
   'control.stageEditor.stageName': 'Phasenname',
   'control.stageEditor.stageFormat': 'Phasenformat',
+  'control.stageEditor.configureGroups': 'Gruppen für diese Phase einrichten',
+  'control.stageEditor.groupCount': 'Anzahl der Gruppen',
+  'control.stageEditor.groupSize': 'Nominale Gruppengröße',
+  'control.stageEditor.groupDistribution': 'Teilnehmendenverteilung',
+  'control.stageEditor.groupDistribution.balanced': 'Ausgeglichen',
+  'control.stageEditor.groupDistribution.exactSize':
+    'Feste Größe; übrige Teilnehmende nicht zuweisen',
+  'control.stageEditor.groupDistribution.overflowLast':
+    'Übrige Teilnehmende der letzten Gruppe zuweisen',
+  'control.stageEditor.groupDistribution.manual': 'Kapazität je Gruppe festlegen',
+  'control.stageEditor.manualGroupSize': 'Kapazität Gruppe {number}',
+  'control.stageEditor.preview.matchday': 'Spieltag {number}',
+  'control.stageEditor.preview.group': 'Gruppe {letter}',
+  'control.stageEditor.format.league': 'Liga',
+  'control.stageEditor.format.roundRobin': 'Rundenturnier',
+  'control.stageEditor.format.singleElimination': 'Einfaches K.-o.',
+  'control.stageEditor.format.doubleElimination': 'Doppel-K.-o.',
+  'control.stageEditor.format.roundRobinSingleLeg': 'Rundenturnier (einfache Runde)',
+  'control.stageEditor.format.roundRobinHomeAway': 'Rundenturnier (Hin- und Rückrunde)',
+  'control.stageEditor.preview.upperBracket': 'Siegerbaum',
+  'control.stageEditor.preview.lowerBracket': 'Verliererbaum',
+  'control.stageEditor.preview.grandFinal': 'Großes Finale',
+  'control.stageEditor.preview.conditionalReset': 'Bedingtes Rückspiel',
   'control.stageEditor.seriesToggle': 'Begegnungen dieser Phase mit einer Serie entscheiden',
   'control.stageEditor.seriesSpan': 'Spiele',
   'control.stageEditor.seriesResolutionClass': 'Entscheidung',
@@ -992,6 +1015,16 @@ export const messages: Record<string, string> = {
   'control.wizard.rule.enable': 'Regel für jedes erfasste Ereignis hinzufügen',
   'control.wizard.rule.hookHelp':
     'Wird synchron bei event.recorded mit dem vom Server akzeptierten Vokabular ausgeführt.',
+  'control.wizard.rule.given': 'GIVEN',
+  'control.wizard.rule.givenEvent':
+    'Das System liefert das erfasste, von der Disziplin definierte Ereignis, das diese Regel auslöst (event.recorded).',
+  'control.wizard.rule.when': 'WHEN',
+  'control.wizard.rule.then': 'THEN',
+  'control.wizard.rule.and': 'UND',
+  'control.wizard.rule.addCondition': 'Bedingung hinzufügen',
+  'control.wizard.rule.addAction': 'Aktion hinzufügen',
+  'control.wizard.rule.moveActionUp': 'Aktion nach oben verschieben',
+  'control.wizard.rule.moveActionDown': 'Aktion nach unten verschieben',
   'control.wizard.rule.condition': 'Bedingung',
   'control.wizard.rule.action': 'Aktion',
   'control.wizard.rule.chooseAction': 'Aktion auswählen',
@@ -1301,9 +1334,8 @@ export const messages: Record<string, string> = {
   'control.rulesetField.listAdd': 'Hinzufügen',
   'control.rulesetField.inheritedHeading': 'Enthält bereits:',
   'control.rulesetField.unrecognized':
-    'Nicht durch eine bekannte Regel-Policy geregelt — wird als rohes JSON bearbeitet.',
-  'control.rulesetField.unknownType':
-    'Der Werttyp dieses Felds ist unbekannt — wird als rohes JSON bearbeitet.',
+    'Für dieses Feld ist keine bekannte Regelrichtlinie festgelegt; es kann nicht bearbeitet werden.',
+  'control.rulesetField.unknownType': 'Für diesen Werttyp ist kein unterstützter Editor verfügbar.',
 
   // invitation.* (AcceptInvitationForm.tsx / accept.astro)
   'invitation.missingToken': 'Das Einladungstoken wurde im Link nicht gefunden.',

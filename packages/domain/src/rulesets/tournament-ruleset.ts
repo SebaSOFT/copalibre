@@ -74,4 +74,36 @@ export interface StageConfiguration {
    * for a single-stage tournament.
    */
   readonly allocation?: StageAllocation;
+  /** Explicit group-stage structure and the entrant-capacity policy for each group. */
+  readonly groupConfiguration?: StageGroupConfiguration;
+}
+
+/** Persisted group-stage authoring; group size is a nominal per-group capacity. */
+export interface StageGroupConfiguration {
+  readonly groupCount: number;
+  readonly groupSize: number;
+  readonly distribution: 'balanced' | 'exact-size' | 'overflow-last' | 'manual';
+  /** Per-group capacities, required only when distribution is `manual`. */
+  readonly manualGroupSizes?: readonly number[];
+}
+
+export function validateStageGroupConfiguration(
+  configuration: StageGroupConfiguration,
+): string | undefined {
+  if (!Number.isInteger(configuration.groupCount) || configuration.groupCount < 2) {
+    return 'Group count must be an integer of at least 2';
+  }
+  if (!Number.isInteger(configuration.groupSize) || configuration.groupSize < 2) {
+    return 'Group size must be an integer of at least 2';
+  }
+  if (configuration.distribution === 'manual') {
+    if (configuration.manualGroupSizes?.length !== configuration.groupCount) {
+      return 'Manual distribution requires one capacity for each group';
+    }
+    if (configuration.manualGroupSizes.some((size) => !Number.isInteger(size) || size < 1)) {
+      return 'Manual group capacities must be positive integers';
+    }
+  } else if (configuration.manualGroupSizes !== undefined) {
+    return 'Manual group capacities are valid only with manual distribution';
+  }
 }

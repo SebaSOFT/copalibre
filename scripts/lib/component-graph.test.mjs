@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count (327/1245 after static localized home routes and a shared home layout)', () => {
+test('the graph resolves the current node/edge count (328/1250 after the visual rule-builder organism)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 327);
-  assert.equal(graph.edges.length, 1245);
+  assert.equal(graph.nodes.size, 328);
+  assert.equal(graph.edges.length, 1250);
 });
 
 test('a type-only import is not counted as a render', () => {

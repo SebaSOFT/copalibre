@@ -150,7 +150,7 @@ test('renders typed controls for boolean/format/union-list fields, saves only th
 
   // Adding one tiebreaker sends only that addition, not the inherited list.
   const tiebreakersRow = page.getByRole('listitem').filter({ hasText: 'Tiebreakers' });
-  await tiebreakersRow.getByLabel('Tiebreakers').fill('goals-against');
+  await tiebreakersRow.getByRole('textbox', { name: 'Tiebreakers' }).fill('goals-against');
   await tiebreakersRow.getByRole('button', { name: 'Agregar' }).click();
   await page.getByRole('button', { name: 'Guardar' }).click();
 
@@ -166,10 +166,24 @@ test('refuses a blocked ruleset-override edit before the save request is sent', 
 }) => {
   await withTokenEndpoint(page);
   let updateCalled = false;
+  const fieldPolicies = {
+    'scoring.pointsPerWin': {
+      permission: { kind: 'replaced' },
+      mutationClass: 'blocked_after_results',
+      label: 'Points per win',
+    },
+  };
+  const disciplineDefaults = { scoring: { pointsPerWin: 3 } };
   await page.exposeFunction('__route', (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
     if (url.endsWith('/ruleset-overrides') && method === 'GET') {
-      return { body: { overrides: { 'scoring.pointsPerWin': 3 } } };
+      return {
+        body: {
+          overrides: { 'scoring.pointsPerWin': 3 },
+          fieldPolicies,
+          disciplineDefaults,
+        },
+      };
     }
     if (url.endsWith('/ruleset-overrides/preview') && method === 'POST') {
       return {
@@ -197,7 +211,7 @@ test('refuses a blocked ruleset-override edit before the save request is sent', 
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByLabel('scoring.pointsPerWin').fill('5');
+  await page.getByLabel('Points per win').fill('5');
   await page.getByRole('button', { name: 'Vista previa' }).click();
 
   await expect(page.getByText(/audited correction workflow/)).toBeVisible();

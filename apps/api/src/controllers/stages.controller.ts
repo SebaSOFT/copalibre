@@ -36,7 +36,9 @@ import {
   SUPPORTED_FORMATS,
   validateAllocation,
   validateSeriesDeclaration,
+  validateStageGroupConfiguration,
   type StageAllocation,
+  type StageGroupConfiguration,
   type TournamentFormat,
   type TournamentRuleset,
 } from '@copalibre/domain';
@@ -212,6 +214,17 @@ export class StagesController {
         throw new BadRequestException(validated.error.message, { errorCode: 'stage-bad-request' });
       }
     }
+    if (body.groupConfiguration == null && body.groupConfiguration !== undefined) {
+      throw new BadRequestException('Group configuration cannot be null', {
+        errorCode: 'stage-bad-request',
+      });
+    }
+    if (body.groupConfiguration !== undefined) {
+      const groupError = validateStageGroupConfiguration(
+        body.groupConfiguration as StageGroupConfiguration,
+      );
+      if (groupError) throw new BadRequestException(groupError, { errorCode: 'stage-bad-request' });
+    }
 
     let ruleset: TournamentRuleset | undefined;
     if (body.series !== undefined) {
@@ -230,7 +243,11 @@ export class StagesController {
       }
     }
 
-    if (body.series !== undefined || body.allocation !== undefined) {
+    if (
+      body.series !== undefined ||
+      body.allocation !== undefined ||
+      body.groupConfiguration !== undefined
+    ) {
       const found = await new TournamentRepository(this.db).findLatestRuleset(
         tournament.tournamentId,
       );
@@ -288,6 +305,9 @@ export class StagesController {
             ...(body.allocation === undefined
               ? {}
               : { allocation: body.allocation as StageAllocation }),
+            ...(body.groupConfiguration === undefined
+              ? {}
+              : { groupConfiguration: body.groupConfiguration as StageGroupConfiguration }),
             actor: actorOf(request),
             authorizationContext: authorizationContextOf(request),
           });
@@ -661,7 +681,12 @@ export class StagesController {
     const configuration = await new TournamentRepository(this.db).findLatestStageConfiguration(
       stage.stageId,
     );
-    return { overrides: { ...(configuration?.overrides ?? {}) } };
+    return {
+      overrides: { ...(configuration?.overrides ?? {}) },
+      ...(configuration?.groupConfiguration === undefined
+        ? {}
+        : { groupConfiguration: configuration.groupConfiguration }),
+    };
   }
 
   @Post(':stageNumber/configuration/preview')
@@ -790,6 +815,13 @@ export class StagesController {
     const { hasRecordedResults, generatedFixtures, previousValues } =
       await this.stageMutationContext(stage.stageId);
 
+    if (body.groupConfiguration !== undefined && body.groupConfiguration !== null) {
+      const groupError = validateStageGroupConfiguration(body.groupConfiguration);
+      if (groupError) {
+        throw new BadRequestException(groupError, { errorCode: 'stage-bad-request' });
+      }
+    }
+
     const fields = Object.entries(body.overrides);
     for (const [field, nextValue] of fields) {
       const decision = evaluateMutation(descriptor.fieldPolicies, field, {
@@ -823,7 +855,15 @@ export class StagesController {
     try {
       return await withTransaction(this.db, async (uow) => {
         await competition.assertStageHasNoFixtures(uow, stage.stageId);
-        if (fields.length === 0) return { overrides: mergedOverrides };
+        if (fields.length === 0 && body.groupConfiguration === undefined) {
+          const current = await tournaments.findLatestStageConfiguration(stage.stageId);
+          return {
+            overrides: mergedOverrides,
+            ...(current?.groupConfiguration === undefined
+              ? {}
+              : { groupConfiguration: current.groupConfiguration }),
+          };
+        }
 
         const currentConfiguration = await tournaments.findLatestStageConfiguration(stage.stageId);
         const ruleset = await tournaments.findLatestRuleset(tournament.tournamentId);
@@ -839,6 +879,9 @@ export class StagesController {
               stageId: stage.stageId,
               organizationId,
               changedOverrides: Object.fromEntries(fields),
+              ...(body.groupConfiguration === undefined
+                ? {}
+                : { groupConfiguration: body.groupConfiguration }),
               actor: actorOf(request),
               authorizationContext: authorizationContextOf(request),
             })
@@ -847,6 +890,9 @@ export class StagesController {
               rulesetId: ruleset.rulesetId,
               organizationId,
               overrides: mergedOverrides,
+              ...(body.groupConfiguration == null
+                ? {}
+                : { groupConfiguration: body.groupConfiguration }),
               actor: actorOf(request),
               authorizationContext: authorizationContextOf(request),
             });
@@ -862,7 +908,12 @@ export class StagesController {
             authorizationContext: authorizationContextOf(request),
           });
         }
-        return { overrides: mergedOverrides };
+        return {
+          overrides: mergedOverrides,
+          ...(stageConfiguration.groupConfiguration === undefined
+            ? {}
+            : { groupConfiguration: stageConfiguration.groupConfiguration }),
+        };
       });
     } catch (error) {
       if (error instanceof InvariantViolationError) {

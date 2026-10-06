@@ -414,6 +414,29 @@ export class RulesetOverridesResponse {
   disciplineDefaults!: Record<string, unknown>;
 }
 
+export class StageGroupConfigurationRequest {
+  @IsInt()
+  @Min(2)
+  @ApiProperty({ minimum: 2, example: 4 })
+  groupCount!: number;
+
+  @IsInt()
+  @Min(2)
+  @ApiProperty({ minimum: 2, example: 5 })
+  groupSize!: number;
+
+  @IsIn(['balanced', 'exact-size', 'overflow-last', 'manual'])
+  @ApiProperty({ enum: ['balanced', 'exact-size', 'overflow-last', 'manual'] })
+  distribution!: 'balanced' | 'exact-size' | 'overflow-last' | 'manual';
+
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @ApiPropertyOptional({ type: [Number], minItems: 2, example: [4, 5, 5, 4] })
+  readonly manualGroupSizes?: readonly number[];
+}
+
 /** Same shape as `RulesetOverridesRequest`/`Response`, one layer down: a stage's own overrides. */
 export class StageConfigurationRequest {
   @IsObject()
@@ -425,6 +448,12 @@ export class StageConfigurationRequest {
     example: { 'segments.overtimeEnabled': true },
   })
   overrides!: Record<string, unknown>;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StageGroupConfigurationRequest)
+  @ApiPropertyOptional({ type: () => StageGroupConfigurationRequest, nullable: true })
+  groupConfiguration?: StageGroupConfigurationRequest | null;
 }
 
 export class StageConfigurationResponse {
@@ -433,6 +462,9 @@ export class StageConfigurationResponse {
     description: 'The full stage-configuration override document, not only the changed fields.',
   })
   overrides!: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: () => StageGroupConfigurationRequest })
+  groupConfiguration?: StageGroupConfigurationRequest;
 }
 
 export class HookScriptAttachmentRequest {
@@ -651,6 +683,12 @@ export class CreateTournamentStageRequest {
       'explicitly when opening the stage’s seeding view.',
   })
   allocation?: StageAllocationRequest;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StageGroupConfigurationRequest)
+  @ApiPropertyOptional({ type: () => StageGroupConfigurationRequest })
+  groupConfiguration?: StageGroupConfigurationRequest;
 }
 
 export class CreateTournamentRequest {
@@ -807,6 +845,12 @@ export class CreateStageRequest {
       'explicitly when opening the stage’s seeding view.',
   })
   allocation?: StageAllocationRequest;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StageGroupConfigurationRequest)
+  @ApiPropertyOptional({ type: StageGroupConfigurationRequest })
+  groupConfiguration?: StageGroupConfigurationRequest;
 }
 
 export class SeriesMutationFieldPreview {

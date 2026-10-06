@@ -13,6 +13,7 @@ import {
   derivePreviewPlaceholders,
   generatePreviewMatches,
   generatePreviewNames,
+  groupSlotCounts,
   isIllustrativePreview,
 } from '../lib/wizard-preview.js';
 import { BracketCanvas } from './BracketCanvas.js';
@@ -54,6 +55,27 @@ const ALLOCATION_DIRECTION_LABELS: Record<
 > = {
   'higher-first': messages.stageEditorAllocationDirectionHigherFirst,
   'lower-first': messages.stageEditorAllocationDirectionLowerFirst,
+};
+
+const STAGE_FORMAT_LABELS: Readonly<Record<string, typeof messages.stageFormatLeague>> = {
+  league: messages.stageFormatLeague,
+  'round-robin': messages.stageFormatRoundRobin,
+  'round-robin-home-away': messages.stageFormatRoundRobinHomeAway,
+  'round-robin-single-leg': messages.stageFormatRoundRobinSingleLeg,
+  'single-elimination': messages.stageFormatSingleElimination,
+  'double-elimination': messages.stageFormatDoubleElimination,
+};
+
+const GROUP_DISTRIBUTION_LABELS: Readonly<
+  Record<
+    NonNullable<WizardStageDraft['groupConfiguration']>['distribution'],
+    typeof messages.stageEditorGroupBalanced
+  >
+> = {
+  balanced: messages.stageEditorGroupBalanced,
+  'exact-size': messages.stageEditorGroupExactSize,
+  'overflow-last': messages.stageEditorGroupOverflowLast,
+  manual: messages.stageEditorGroupManual,
 };
 
 /**
@@ -170,7 +192,13 @@ export function StageListEditor({
                         disabled={readOnly}
                         id={`stage-${stage.number}-format`}
                         onValueChange={(val) => patchStage(stage.number, { format: val })}
-                        options={formats.map((format) => ({ value: format, label: format }))}
+                        options={formats.map((format) => {
+                          const label = STAGE_FORMAT_LABELS[format];
+                          return {
+                            value: format,
+                            label: label === undefined ? format : intl.formatMessage(label),
+                          };
+                        })}
                         value={stage.format}
                       />
                       {formatHintText !== undefined && (
@@ -201,8 +229,21 @@ export function StageListEditor({
                     />
                   )}
 
+                  <GroupConfigurationFields
+                    intl={intl}
+                    onChange={(groupConfiguration) =>
+                      patchStage(stage.number, { groupConfiguration })
+                    }
+                    readOnly={readOnly}
+                    stage={stage}
+                  />
+
                   {showStructurePreview && stage.number === 1 && (
-                    <StageStructurePreview capacity={capacity} format={stage.format} />
+                    <StageStructurePreview
+                      capacity={capacity}
+                      format={stage.format}
+                      groupConfiguration={stage.groupConfiguration}
+                    />
                   )}
                 </Stack>
               </CardContent>
@@ -219,6 +260,150 @@ export function StageListEditor({
         >
           <FormattedMessage {...messages.stageEditorAddStage} />
         </Button>
+      )}
+    </Stack>
+  );
+}
+
+function GroupConfigurationFields({
+  stage,
+  intl,
+  onChange,
+  readOnly,
+}: {
+  readonly stage: WizardStageDraft;
+  readonly intl: IntlShape;
+  readonly onChange: (configuration: WizardStageDraft['groupConfiguration']) => void;
+  readonly readOnly: boolean;
+}): React.JSX.Element {
+  const configuration = stage.groupConfiguration;
+  return (
+    <Stack gap="2">
+      <label className="cl-toggle cl-focusable">
+        <Checkbox
+          checked={configuration !== undefined}
+          disabled={readOnly}
+          onCheckedChange={(checked) =>
+            onChange(
+              checked
+                ? {
+                    groupCount: 2,
+                    groupSize: 4,
+                    distribution: 'balanced',
+                  }
+                : undefined,
+            )
+          }
+        />
+        <span>{intl.formatMessage(messages.stageEditorConfigureGroups)}</span>
+      </label>
+      {configuration !== undefined && (
+        <div className="cl-platform-form-grid">
+          <Field
+            id={`stage-${stage.number}-group-count`}
+            label={intl.formatMessage(messages.stageEditorGroupCount)}
+          >
+            <Input
+              disabled={readOnly}
+              id={`stage-${stage.number}-group-count`}
+              min={2}
+              onChange={(event) => {
+                const groupCount = Number(event.target.value);
+                onChange({
+                  ...configuration,
+                  groupCount,
+                  ...(configuration.distribution === 'manual'
+                    ? {
+                        manualGroupSizes: Array.from(
+                          { length: Math.max(0, groupCount) },
+                          (_, index) =>
+                            configuration.manualGroupSizes?.[index] ?? configuration.groupSize,
+                        ),
+                      }
+                    : {}),
+                });
+              }}
+              type="number"
+              value={configuration.groupCount}
+            />
+          </Field>
+          <Field
+            id={`stage-${stage.number}-group-size`}
+            label={intl.formatMessage(messages.stageEditorGroupSize)}
+          >
+            <Input
+              disabled={readOnly}
+              id={`stage-${stage.number}-group-size`}
+              min={2}
+              onChange={(event) =>
+                onChange({ ...configuration, groupSize: Number(event.target.value) })
+              }
+              type="number"
+              value={configuration.groupSize}
+            />
+          </Field>
+          <Field
+            id={`stage-${stage.number}-group-distribution`}
+            label={intl.formatMessage(messages.stageEditorGroupDistribution)}
+          >
+            <Select
+              disabled={readOnly}
+              id={`stage-${stage.number}-group-distribution`}
+              onValueChange={(value) => {
+                const distribution = value as typeof configuration.distribution;
+                onChange(
+                  distribution === 'manual'
+                    ? {
+                        ...configuration,
+                        distribution,
+                        manualGroupSizes: Array.from(
+                          { length: configuration.groupCount },
+                          (_, index) =>
+                            configuration.manualGroupSizes?.[index] ?? configuration.groupSize,
+                        ),
+                      }
+                    : {
+                        groupCount: configuration.groupCount,
+                        groupSize: configuration.groupSize,
+                        distribution,
+                      },
+                );
+              }}
+              options={Object.entries(GROUP_DISTRIBUTION_LABELS).map(([value, label]) => ({
+                value,
+                label: intl.formatMessage(label),
+              }))}
+              value={configuration.distribution}
+            />
+          </Field>
+          {configuration.distribution === 'manual' &&
+            configuration.manualGroupSizes?.map((size, index) => (
+              <Field
+                id={`stage-${stage.number}-group-${index + 1}-size`}
+                key={index}
+                label={intl.formatMessage(messages.stageEditorManualGroupSize, {
+                  number: index + 1,
+                })}
+              >
+                <Input
+                  disabled={readOnly}
+                  id={`stage-${stage.number}-group-${index + 1}-size`}
+                  min={1}
+                  onChange={(event) =>
+                    onChange({
+                      ...configuration,
+                      manualGroupSizes: configuration.manualGroupSizes?.map(
+                        (current, currentIndex) =>
+                          currentIndex === index ? Number(event.target.value) : current,
+                      ),
+                    })
+                  }
+                  type="number"
+                  value={size}
+                />
+              </Field>
+            ))}
+        </div>
       )}
     </Stack>
   );
@@ -480,15 +665,26 @@ function WeightedAllocationFields({
 function StageStructurePreview({
   format,
   capacity,
+  groupConfiguration,
 }: {
   readonly format: string;
   readonly capacity?: number;
+  readonly groupConfiguration?: WizardStageDraft['groupConfiguration'];
 }): React.JSX.Element {
+  const intl = useIntl();
   const [zoom, setZoom] = useState(1);
   const entrants = useMemo(() => derivePreviewPlaceholders(capacity), [capacity]);
   const matches = useMemo(() => generatePreviewMatches(format, entrants), [format, entrants]);
   const names = useMemo(() => generatePreviewNames(entrants), [entrants]);
   const illustrative = isIllustrativePreview(capacity);
+  const isRoundRobin = format === 'league' || format.startsWith('round-robin');
+  const matchdays = useMemo(() => {
+    const rounds = new Map<number, typeof matches>();
+    for (const match of matches) {
+      rounds.set(match.round, [...(rounds.get(match.round) ?? []), match]);
+    }
+    return [...rounds.entries()].sort(([left], [right]) => left - right);
+  }, [matches]);
 
   return (
     <div className="cl-stage-structure-preview" data-testid="stage-structure-preview">
@@ -513,8 +709,90 @@ function StageStructurePreview({
             </span>
           )}
         </Inline>
-        <BracketCanvas matches={matches} names={names} onZoomChange={setZoom} zoom={zoom} />
+        {groupConfiguration !== undefined ? (
+          <GroupStructurePreview
+            configuration={groupConfiguration}
+            entrantCount={entrants.length}
+            intl={intl}
+          />
+        ) : isRoundRobin ? (
+          <div className="cl-stage-matchdays">
+            {matchdays.map(([round, roundMatches]) => (
+              <Card key={round}>
+                <CardContent>
+                  <Stack gap="2">
+                    <strong>
+                      <FormattedMessage
+                        {...messages.stagePreviewMatchday}
+                        values={{ number: round }}
+                      />
+                    </strong>
+                    {roundMatches.map((match) => (
+                      <div className="cl-match-card cl-match-card--skeleton" key={match.matchId}>
+                        {match.slots.map((_, index) => (
+                          <div
+                            className="cl-match-card__slot-skeleton"
+                            key={`${match.matchId}-${index}`}
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </Stack>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <BracketCanvas
+            matches={matches}
+            names={names}
+            onZoomChange={setZoom}
+            showBracketLabels={format === 'double-elimination'}
+            skeletonMode
+            zoom={zoom}
+          />
+        )}
       </Stack>
     </div>
   );
+}
+
+function GroupStructurePreview({
+  configuration,
+  entrantCount,
+  intl,
+}: {
+  readonly configuration: NonNullable<WizardStageDraft['groupConfiguration']>;
+  readonly entrantCount: number;
+  readonly intl: IntlShape;
+}): React.JSX.Element {
+  return (
+    <div className="cl-stage-groups">
+      {groupSlotCounts(configuration, entrantCount).map((slotCount, index) => (
+        <Card key={index}>
+          <CardContent>
+            <Stack gap="2">
+              <strong>
+                {intl.formatMessage(messages.stagePreviewGroup, { letter: groupLetter(index) })}
+              </strong>
+              {Array.from({ length: slotCount }, (_, slot) => (
+                <div className="cl-group-slot-skeleton" key={slot} />
+              ))}
+            </Stack>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function groupLetter(index: number): string {
+  let value = index + 1;
+  let label = '';
+  while (value > 0) {
+    value -= 1;
+    label = String.fromCharCode(65 + (value % 26)) + label;
+    value = Math.floor(value / 26);
+  }
+  return label;
 }

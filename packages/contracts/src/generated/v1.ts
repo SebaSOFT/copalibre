@@ -3229,6 +3229,23 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        StageGroupConfigurationRequest: {
+            /** @example 4 */
+            groupCount: number;
+            /** @example 5 */
+            groupSize: number;
+            /** @enum {string} */
+            distribution: "balanced" | "exact-size" | "overflow-last" | "manual";
+            /**
+             * @example [
+             *       4,
+             *       5,
+             *       5,
+             *       4
+             *     ]
+             */
+            manualGroupSizes?: number[];
+        };
         TournamentConfigurationStageLayerResponse: {
             version?: number;
             rawOverrides: {
@@ -3237,6 +3254,7 @@ export interface components {
             effective: {
                 [key: string]: unknown;
             };
+            groupConfiguration?: components["schemas"]["StageGroupConfigurationRequest"];
         };
         TournamentConfigurationStageResponse: {
             number: number;
@@ -3430,6 +3448,7 @@ export interface components {
             series?: components["schemas"]["SeriesDeclarationRequest"];
             /** @description Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view. */
             allocation?: components["schemas"]["StageAllocationRequest"];
+            groupConfiguration?: components["schemas"]["StageGroupConfigurationRequest"];
         };
         CreateTournamentRequest: {
             /** @example copa-verano */
@@ -4634,6 +4653,7 @@ export interface components {
             series?: components["schemas"]["SeriesDeclarationRequest"];
             /** @description Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view. */
             allocation?: components["schemas"]["StageAllocationRequest"];
+            groupConfiguration?: components["schemas"]["StageGroupConfigurationRequest"];
         };
         UpdateStageRequest: {
             /** @example Fase de grupos (corregida) */
@@ -4649,6 +4669,7 @@ export interface components {
         StageConfigurationResponse: {
             /** @description The full stage-configuration override document, not only the changed fields. */
             overrides: Record<string, never>;
+            groupConfiguration?: components["schemas"]["StageGroupConfigurationRequest"];
         };
         StageConfigurationRequest: {
             /**
@@ -4658,6 +4679,7 @@ export interface components {
              *     }
              */
             overrides: Record<string, never>;
+            groupConfiguration?: components["schemas"]["StageGroupConfigurationRequest"] | null;
         };
         FixtureMatchResponse: {
             /** Format: uuid */

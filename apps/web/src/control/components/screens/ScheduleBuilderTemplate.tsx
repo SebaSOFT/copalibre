@@ -359,7 +359,7 @@ export function ScheduleBuilderTemplate({
                       );
                     }
                     return (
-                      <div key={row.matchId} className="cl-platform-form-grid">
+                      <div key={row.matchId} className="cl-schedule-builder__assignment-row">
                         <Field
                           id={`slot-${row.matchId}`}
                           label={intl.formatMessage(messages.scheduleBuilderStartTime)}
