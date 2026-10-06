@@ -222,6 +222,12 @@ describe('public layout, header, and home orientation hub (openspec 0315)', () =
     expect(header).not.toContain('/help/api-reference/');
   });
 
+  it('chamfers the closed language selector with the control treatment', () => {
+    expect(header).toMatch(
+      /<summary[\s\S]*?class="cl-chamfer cl-chamfer--control cl-focusable"[\s\S]*?<\/summary>/,
+    );
+  });
+
   it('renders index page orientation hub with tactical grid, badges, and owned CTA buttons', () => {
     expect(homeLayout).toContain('cl-tactical-grid');
     expect(homeLayout).toContain("import Button from '../components/ui/atoms/Button.astro'");

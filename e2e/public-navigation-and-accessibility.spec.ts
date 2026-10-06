@@ -134,6 +134,7 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
 
     const languageTrigger = page.locator('.cl-public-header__locale summary');
     await expect(languageTrigger).toBeVisible();
+    await expect(languageTrigger).toHaveClass(/cl-chamfer--control/);
     const translationMark = languageTrigger.locator('.cl-public-header__translation-mark');
     expect(
       await translationMark.evaluate((element) => getComputedStyle(element, '::before').content),

@@ -90,7 +90,10 @@ const languageName = (code: string): string => {
       {
         localeOptions.length > 1 && (
           <details class="cl-public-header__locale">
-            <summary aria-label={intl.formatMessage(messages.headerLanguage)} class="cl-focusable">
+            <summary
+              aria-label={intl.formatMessage(messages.headerLanguage)}
+              class="cl-chamfer cl-chamfer--control cl-focusable"
+            >
               <span aria-hidden="true" class="cl-public-header__translation-mark" />
               <span>{locale.toUpperCase()}</span>
               <span aria-hidden="true">⌄</span>
