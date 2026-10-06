@@ -458,6 +458,29 @@ export const messages: Record<string, string> = {
   'control.stageEditor.stageHeading': 'Этап {number}',
   'control.stageEditor.stageName': 'Название этапа',
   'control.stageEditor.stageFormat': 'Формат этапа',
+  'control.stageEditor.configureGroups': 'Настроить группы для этапа',
+  'control.stageEditor.groupCount': 'Количество групп',
+  'control.stageEditor.groupSize': 'Номинальный размер группы',
+  'control.stageEditor.groupDistribution': 'Распределение участников',
+  'control.stageEditor.groupDistribution.balanced': 'Равномерное',
+  'control.stageEditor.groupDistribution.exactSize':
+    'Точный размер; лишних участников оставить без группы',
+  'control.stageEditor.groupDistribution.overflowLast':
+    'Лишних участников добавить в последнюю группу',
+  'control.stageEditor.groupDistribution.manual': 'Задать вместимость каждой группы',
+  'control.stageEditor.manualGroupSize': 'Вместимость группы {number}',
+  'control.stageEditor.preview.matchday': 'Тур {number}',
+  'control.stageEditor.preview.group': 'Группа {letter}',
+  'control.stageEditor.format.league': 'Лига',
+  'control.stageEditor.format.roundRobin': 'Круговой турнир',
+  'control.stageEditor.format.singleElimination': 'Олимпийская система',
+  'control.stageEditor.format.doubleElimination': 'Двойное выбывание',
+  'control.stageEditor.format.roundRobinSingleLeg': 'Круговой турнир в один круг',
+  'control.stageEditor.format.roundRobinHomeAway': 'Круговой турнир дома и в гостях',
+  'control.stageEditor.preview.upperBracket': 'Верхняя сетка',
+  'control.stageEditor.preview.lowerBracket': 'Нижняя сетка',
+  'control.stageEditor.preview.grandFinal': 'Большой финал',
+  'control.stageEditor.preview.conditionalReset': 'Условный переигровочный финал',
   'control.stageEditor.seriesToggle': 'Определять пары этого этапа серией матчей',
   'control.stageEditor.seriesSpan': 'Матчи',
   'control.stageEditor.seriesResolutionClass': 'Тип решения',
@@ -976,6 +999,16 @@ export const messages: Record<string, string> = {
   'control.wizard.rule.enable': 'Добавить правило для каждого записанного события',
   'control.wizard.rule.hookHelp':
     'Выполняется синхронно в event.recorded с принятым сервером словарём.',
+  'control.wizard.rule.given': 'GIVEN',
+  'control.wizard.rule.givenEvent':
+    'Система передаёт зарегистрированное событие, определённое дисциплиной и запускающее это правило (event.recorded).',
+  'control.wizard.rule.when': 'WHEN',
+  'control.wizard.rule.then': 'THEN',
+  'control.wizard.rule.and': 'И',
+  'control.wizard.rule.addCondition': 'Добавить условие',
+  'control.wizard.rule.addAction': 'Добавить действие',
+  'control.wizard.rule.moveActionUp': 'Переместить действие вверх',
+  'control.wizard.rule.moveActionDown': 'Переместить действие вниз',
   'control.wizard.rule.condition': 'Условие',
   'control.wizard.rule.action': 'Действие',
   'control.wizard.rule.chooseAction': 'Выберите действие',
@@ -1285,9 +1318,8 @@ export const messages: Record<string, string> = {
   'control.rulesetField.listAdd': 'Добавить',
   'control.rulesetField.inheritedHeading': 'Уже включает:',
   'control.rulesetField.unrecognized':
-    'Не регулируется известной политикой правил — редактируется как необработанный JSON.',
-  'control.rulesetField.unknownType':
-    'Тип значения этого поля неизвестен — редактируется как необработанный JSON.',
+    'Для этого поля нет известной политики правил; редактирование недоступно.',
+  'control.rulesetField.unknownType': 'Для этого типа значения нет поддерживаемого редактора.',
 
   // invitation.* (AcceptInvitationForm.tsx / accept.astro)
   'invitation.missingToken': 'Токен приглашения не найден в ссылке.',

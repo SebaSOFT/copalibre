@@ -177,6 +177,9 @@ export function toAuthoredDocument(state: ProfileWizardState): Record<string, un
       name: stage.name,
       format: stage.format,
       ...(stage.allocation === undefined ? {} : { allocation: stage.allocation }),
+      ...(stage.groupConfiguration === undefined
+        ? {}
+        : { groupConfiguration: stage.groupConfiguration }),
     })),
     points: { win: state.pointsWin, draw: state.pointsDraw, loss: state.pointsLoss },
     tiebreak: [],

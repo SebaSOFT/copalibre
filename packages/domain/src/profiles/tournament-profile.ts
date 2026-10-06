@@ -5,6 +5,7 @@ import type { RuleScript } from '../descriptors/discipline-descriptor.js';
 import type { TournamentFormat } from '../descriptors/discipline-descriptor.js';
 import type { LocalizedLabel } from '../i18n-label.js';
 import type { StageAllocation } from '../rulesets/stage-allocation.js';
+import type { StageGroupConfiguration } from '../rulesets/tournament-ruleset.js';
 
 /**
  * A reusable, publishable tournament configuration.
@@ -32,6 +33,8 @@ export interface ProfileStage {
    * instantiating request declares its own for the stage.
    */
   readonly allocation?: StageAllocation;
+  /** Optional explicit group-stage layout; omitted for ordinary round-robin stages. */
+  readonly groupConfiguration?: StageGroupConfiguration;
 }
 
 /** Ordered comparator chain, referencing capability names rather than raw codes. */

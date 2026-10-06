@@ -8,7 +8,12 @@ import { Field } from '../ui/molecules/field.js';
 import { RulesetFieldControl } from '../ui/molecules/ruleset-field-control.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 import { TournamentSummary } from '../ui/organisms/tournament-summary.js';
-import { fieldValueAt, mergeOverrides, observedFieldValue } from '../../lib/discipline-summary.js';
+import {
+  chooseControlKind,
+  fieldValueAt,
+  mergeOverrides,
+  observedFieldValue,
+} from '../../lib/discipline-summary.js';
 import { isSupportedLanguage, resolveFieldPolicyLabel } from '@copalibre/domain';
 import type {
   MutationFieldPreview,
@@ -155,31 +160,42 @@ export function TournamentRulesetTemplate({
                 policy !== undefined
                   ? resolveFieldPolicyLabel(draft.field, policy, language)
                   : draft.field;
+              const controlKind = chooseControlKind(policy, draft.value, draft.field);
+              const editor = (
+                <RulesetFieldControl
+                  addLabel={intl.formatMessage(messages.rulesetFieldListAdd)}
+                  availableFormats={availableFormats}
+                  disciplineDefaultValue={fieldValueAt(resolvedDefaults, draft.field)}
+                  dotPath={draft.field}
+                  id={`ruleset-field-${index}`}
+                  inheritedHeading={intl.formatMessage(messages.rulesetFieldInheritedHeading)}
+                  label={label}
+                  onChange={(value) =>
+                    setDrafts((current) =>
+                      current.map((entry, entryIndex) =>
+                        entryIndex === index ? { ...entry, value } : entry,
+                      ),
+                    )
+                  }
+                  overrideValue={draft.value}
+                  policy={policy}
+                  removeLabel={intl.formatMessage(messages.rulesetOverridesRemoveField)}
+                  unknownTypeText={intl.formatMessage(messages.rulesetFieldUnknownType)}
+                  unrecognizedText={intl.formatMessage(messages.rulesetFieldUnrecognized)}
+                />
+              );
               return (
                 <li key={draft.field}>
-                  <Field id={`ruleset-field-${index}`} label={label}>
-                    <RulesetFieldControl
-                      addLabel={intl.formatMessage(messages.rulesetFieldListAdd)}
-                      availableFormats={availableFormats}
-                      disciplineDefaultValue={fieldValueAt(resolvedDefaults, draft.field)}
-                      dotPath={draft.field}
-                      id={`ruleset-field-${index}`}
-                      inheritedHeading={intl.formatMessage(messages.rulesetFieldInheritedHeading)}
-                      label={label}
-                      onChange={(value) =>
-                        setDrafts((current) =>
-                          current.map((entry, entryIndex) =>
-                            entryIndex === index ? { ...entry, value } : entry,
-                          ),
-                        )
-                      }
-                      overrideValue={draft.value}
-                      policy={policy}
-                      removeLabel={intl.formatMessage(messages.rulesetOverridesRemoveField)}
-                      unknownTypeText={intl.formatMessage(messages.rulesetFieldUnknownType)}
-                      unrecognizedText={intl.formatMessage(messages.rulesetFieldUnrecognized)}
-                    />
-                  </Field>
+                  {controlKind === 'raw-json' ? (
+                    <div>
+                      <strong>{label}</strong>
+                      {editor}
+                    </div>
+                  ) : (
+                    <Field id={`ruleset-field-${index}`} label={label}>
+                      {editor}
+                    </Field>
+                  )}
                   <Button
                     onClick={() =>
                       setDrafts((current) =>

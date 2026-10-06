@@ -40,8 +40,8 @@ const meta = {
     addLabel: 'Add',
     removeLabel: 'Remove',
     inheritedHeading: 'Already includes:',
-    unrecognizedText: 'Not governed by a known rule policy — edited as raw JSON.',
-    unknownTypeText: "This field's value type is unknown — edited as raw JSON.",
+    unrecognizedText: 'Not governed by a known rule policy.',
+    unknownTypeText: "This field's type is not editable here.",
   },
 } satisfies Meta<typeof RulesetFieldControl>;
 
@@ -107,7 +107,7 @@ export const PatchObject: Story = {
 };
 
 export const UnrecognizedField: Story = {
-  name: 'Undeclared field (raw JSON)',
+  name: 'Undeclared field (explained)',
   args: {
     dotPath: 'legacyField',
     label: 'legacyField',

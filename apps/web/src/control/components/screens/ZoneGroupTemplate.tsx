@@ -259,7 +259,7 @@ export function ZoneGroupTemplate({
           </RadioGroup>
 
           {zoneMode === 'draw' ? (
-            <div className="cl-platform-form-grid">
+            <div className="cl-platform-form-grid cl-zone-group__assignment-controls">
               <Field id="zone-draw-count" label={intl.formatMessage(messages.zoneGroupZoneCount)}>
                 <Input
                   aria-label={intl.formatMessage(messages.zoneGroupZoneCount)}
@@ -290,7 +290,7 @@ export function ZoneGroupTemplate({
             <div>
               <ul>
                 {entrants.map((entrant) => (
-                  <li key={entrant.entrantId} className="cl-role-user">
+                  <li key={entrant.entrantId} className="cl-zone-group__entrant-assignment">
                     <span>{entrantLabel(entrant.entrantId)}</span>
                     <Input
                       aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {
@@ -456,7 +456,7 @@ export function ZoneGroupTemplate({
               </RadioGroup>
 
               {groupMode === 'draw' ? (
-                <div className="cl-platform-form-grid">
+                <div className="cl-platform-form-grid cl-zone-group__assignment-controls">
                   <Field
                     id="group-draw-count"
                     label={intl.formatMessage(messages.zoneGroupGroupCount)}
@@ -494,7 +494,7 @@ export function ZoneGroupTemplate({
                 <div>
                   <ul>
                     {zoneEntrantIds.map((entrantId) => (
-                      <li key={entrantId} className="cl-role-user">
+                      <li key={entrantId} className="cl-zone-group__entrant-assignment">
                         <span>{entrantLabel(entrantId)}</span>
                         <Input
                           aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {

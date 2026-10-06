@@ -73,6 +73,48 @@ describe('tournament profile schema', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('accepts explicit manual group capacities when they match the declared group count', () => {
+    const result = validateTournamentProfileDocument(
+      asDocument({
+        stages: [
+          {
+            number: 1,
+            name: 'Groups',
+            format: 'round-robin',
+            groupConfiguration: {
+              groupCount: 4,
+              groupSize: 5,
+              distribution: 'manual',
+              manualGroupSizes: [4, 5, 5, 4],
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects manual group capacities when their count differs from groupCount', () => {
+    const result = validateTournamentProfileDocument(
+      asDocument({
+        stages: [
+          {
+            number: 1,
+            name: 'Groups',
+            format: 'round-robin',
+            groupConfiguration: {
+              groupCount: 4,
+              groupSize: 5,
+              distribution: 'manual',
+              manualGroupSizes: [5, 5, 5],
+            },
+          },
+        ],
+      }),
+    );
+    expect(result.ok).toBe(false);
+  });
+
   it.each([
     ['automatic', { mode: 'automatic' }],
     ['manual', { mode: 'manual' }],

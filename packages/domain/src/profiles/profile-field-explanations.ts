@@ -44,6 +44,15 @@ export const PROFILE_FIELD_EXPLANATIONS: Readonly<Record<string, string>> = {
     "Overrides applied to the bound discipline's defaults for this stage only. Optional; absent means the discipline's own defaults apply unchanged.",
   'stages[].allocation':
     "Default seed-order rule for this stage (automatic, manual, or weighted by a named attribute) — carried onto the instantiated tournament's stage configuration unless the instantiating request supplies its own. Optional.",
+  'stages[].groupConfiguration':
+    'Optional explicit group layout for this stage. The format alone does not declare whether groups are used or how many there are.',
+  'stages[].groupConfiguration.groupCount': 'Number of groups in this stage; must be at least two.',
+  'stages[].groupConfiguration.groupSize':
+    'Nominal number of entrant slots per group, used by automatic distribution policies.',
+  'stages[].groupConfiguration.distribution':
+    "`balanced` spreads entrants as evenly as possible; `exact-size` leaves extras unassigned; `overflow-last` places extras in the final group; `manual` uses each group's explicit capacity.",
+  'stages[].groupConfiguration.manualGroupSizes':
+    'Per-group entrant capacities, required only for `manual` distribution and bounded by tournament capacity.',
   points:
     'The match-result point values a tournament instantiated from this profile awards, before any per-discipline scoring input overrides them.',
   'points.win': 'Points awarded to the winning side of a match.',

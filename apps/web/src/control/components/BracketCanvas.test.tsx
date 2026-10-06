@@ -31,6 +31,33 @@ const matches: readonly CanvasMatch[] = [
 ];
 
 describe('BracketCanvas', () => {
+  it('labels double-elimination brackets and identifies the conditional reset final', () => {
+    const doubleEliminationMatches: readonly CanvasMatch[] = [
+      { ...matches[0], bracket: 'winners' },
+      { ...matches[1], bracket: 'losers' },
+      {
+        ...matches[0],
+        matchId: 'GF-R1-M1',
+        bracket: 'grand-final',
+      },
+      {
+        ...matches[1],
+        matchId: 'GF-R2-M1',
+        bracket: 'grand-final',
+        conditional: 'bracket-reset',
+      },
+    ];
+
+    render(
+      withIntl(<BracketCanvas matches={doubleEliminationMatches} showBracketLabels zoom={1} />),
+    );
+
+    expect(screen.getByText("Winners' bracket")).toBeTruthy();
+    expect(screen.getByText("Losers' bracket")).toBeTruthy();
+    expect(screen.getByText('Grand final')).toBeTruthy();
+    expect(screen.getByText('Conditional reset final')).toBeTruthy();
+  });
+
   it('links a node with a persisted match id to the URL matchUrl builds', () => {
     render(
       withIntl(

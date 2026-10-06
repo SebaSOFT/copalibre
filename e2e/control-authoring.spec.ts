@@ -341,7 +341,7 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
 
   // Renders the phrase template (openspec 0266) against the operator's own
   // values, not the raw condition/action type identifiers.
-  await expect(page.getByText('always → Notify: Actualización del partido')).toBeVisible();
+  await expect(page.getByText('Notify: Actualización del partido')).toBeVisible();
 
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByLabel('Región').fill('Mendoza');
@@ -917,12 +917,12 @@ test('previews first stage structure on the format step and updates on format ch
   const illustrative = page.getByTestId('wizard-preview-demonstration');
   await expect(illustrative).toBeVisible();
   await expect(illustrative).toHaveText('Vista previa ilustrativa (8 participantes)');
-  await expect(page.getByText('RR-R1-M1')).toBeVisible();
+  await expect(preview.locator('.cl-match-card--skeleton').first()).toBeVisible();
 
   await page.locator('#stage-1-format').selectOption('single-elimination');
 
-  await expect(page.getByText('SE-R3-M1')).toBeVisible();
-  await expect(page.getByText('RR-R1-M1')).not.toBeVisible();
+  await expect(preview.locator('.cl-bracket-node__title-skeleton')).toHaveCount(7);
+  await expect(preview.locator('.cl-match-card--skeleton')).toHaveCount(0);
 });
 
 test('setting registration capacity updates preview entrant count and removes illustrative label', async ({
@@ -941,7 +941,7 @@ test('setting registration capacity updates preview entrant count and removes il
 
   await page.locator('#stage-1-format').selectOption('single-elimination');
   await expect(page.getByTestId('wizard-preview-demonstration')).toBeVisible();
-  await expect(page.getByText('SE-R3-M1')).toBeVisible();
+  await expect(page.locator('.cl-bracket-node__title-skeleton')).toHaveCount(7);
 
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
@@ -959,6 +959,5 @@ test('setting registration capacity updates preview entrant count and removes il
   await expect(capacityLabel).toBeVisible();
   await expect(capacityLabel).toHaveText('4 participantes');
 
-  await expect(page.getByText('SE-R2-M1')).toBeVisible();
-  await expect(page.getByText('SE-R3-M1')).not.toBeVisible();
+  await expect(page.locator('.cl-bracket-node__title-skeleton')).toHaveCount(3);
 });

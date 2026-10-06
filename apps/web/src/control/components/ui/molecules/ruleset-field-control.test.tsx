@@ -125,7 +125,8 @@ describe('RulesetFieldControl', () => {
         />,
       ),
     );
-    expect(screen.getByText(/points, score-difference/)).toBeDefined();
+    expect(screen.getByText('1. Points')).toBeDefined();
+    expect(screen.getByText('2. Score Difference')).toBeDefined();
     // The "add" input is labeled with the field's human name, not its raw id.
     fireEvent.change(screen.getByLabelText('Tiebreakers'), { target: { value: 'goals-against' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
@@ -170,9 +171,26 @@ describe('RulesetFieldControl', () => {
     expect(container.querySelector('input, select, button')).toBeNull();
   });
 
-  it('renders raw JSON for an undeclared field and only propagates valid JSON', () => {
+  it('hides unconfigured values and never offers a raw JSON editor for unknown fields', () => {
     const onChange = jest.fn();
-    render(
+    const { rerender } = render(
+      withIntl(
+        <RulesetFieldControl
+          {...TEXT_PROPS}
+          availableFormats={[]}
+          disciplineDefaultValue={null}
+          dotPath="legacyField"
+          id="field-8"
+          onChange={onChange}
+          overrideValue={undefined}
+          policy={undefined}
+        />,
+      ),
+    );
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.queryByText('null')).toBeNull();
+
+    rerender(
       withIntl(
         <RulesetFieldControl
           {...TEXT_PROPS}
@@ -187,10 +205,7 @@ describe('RulesetFieldControl', () => {
       ),
     );
     expect(screen.getByText(/Not governed by a known rule policy/)).toBeDefined();
-    const input = screen.getByDisplayValue('"old"') as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'not-json' } });
+    expect(screen.queryByRole('textbox')).toBeNull();
     expect(onChange).not.toHaveBeenCalled();
-    fireEvent.change(input, { target: { value: '"new"' } });
-    expect(onChange).toHaveBeenCalledWith('new');
   });
 });

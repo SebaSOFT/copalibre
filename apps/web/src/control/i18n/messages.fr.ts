@@ -459,6 +459,29 @@ export const messages: Record<string, string> = {
   'control.stageEditor.stageHeading': 'Phase {number}',
   'control.stageEditor.stageName': 'Nom de la phase',
   'control.stageEditor.stageFormat': 'Format de la phase',
+  'control.stageEditor.configureGroups': 'Configurer les groupes de cette phase',
+  'control.stageEditor.groupCount': 'Nombre de groupes',
+  'control.stageEditor.groupSize': 'Taille nominale du groupe',
+  'control.stageEditor.groupDistribution': 'Répartition des participants',
+  'control.stageEditor.groupDistribution.balanced': 'Équilibrée',
+  'control.stageEditor.groupDistribution.exactSize':
+    'Taille exacte ; laisser les excédents sans affectation',
+  'control.stageEditor.groupDistribution.overflowLast':
+    'Placer les excédents dans le dernier groupe',
+  'control.stageEditor.groupDistribution.manual': 'Définir la capacité de chaque groupe',
+  'control.stageEditor.manualGroupSize': 'Capacité du groupe {number}',
+  'control.stageEditor.preview.matchday': 'Journée {number}',
+  'control.stageEditor.preview.group': 'Groupe {letter}',
+  'control.stageEditor.format.league': 'Ligue',
+  'control.stageEditor.format.roundRobin': 'Toutes rondes',
+  'control.stageEditor.format.singleElimination': 'Élimination simple',
+  'control.stageEditor.format.doubleElimination': 'Double élimination',
+  'control.stageEditor.format.roundRobinSingleLeg': 'Toutes rondes (aller simple)',
+  'control.stageEditor.format.roundRobinHomeAway': 'Toutes rondes (aller-retour)',
+  'control.stageEditor.preview.upperBracket': 'Tableau supérieur',
+  'control.stageEditor.preview.lowerBracket': 'Tableau inférieur',
+  'control.stageEditor.preview.grandFinal': 'Grande finale',
+  'control.stageEditor.preview.conditionalReset': 'Finale de revanche conditionnelle',
   'control.stageEditor.seriesToggle': 'Décider les confrontations de cette phase par une série',
   'control.stageEditor.seriesSpan': 'Matchs',
   'control.stageEditor.seriesResolutionClass': 'Résolution',
@@ -984,6 +1007,16 @@ export const messages: Record<string, string> = {
   'control.wizard.rule.enable': 'Ajouter une règle pour chaque événement enregistré',
   'control.wizard.rule.hookHelp':
     'S’exécute de façon synchrone sur event.recorded avec le vocabulaire accepté par le serveur.',
+  'control.wizard.rule.given': 'GIVEN',
+  'control.wizard.rule.givenEvent':
+    'Le système fournit l’événement enregistré défini par la discipline qui déclenche cette règle (event.recorded).',
+  'control.wizard.rule.when': 'WHEN',
+  'control.wizard.rule.then': 'THEN',
+  'control.wizard.rule.and': 'ET',
+  'control.wizard.rule.addCondition': 'Ajouter une condition',
+  'control.wizard.rule.addAction': 'Ajouter une action',
+  'control.wizard.rule.moveActionUp': 'Déplacer l’action vers le haut',
+  'control.wizard.rule.moveActionDown': 'Déplacer l’action vers le bas',
   'control.wizard.rule.condition': 'Condition',
   'control.wizard.rule.action': 'Action',
   'control.wizard.rule.chooseAction': 'Choisir une action',
@@ -1294,9 +1327,9 @@ export const messages: Record<string, string> = {
   'control.rulesetField.listAdd': 'Ajouter',
   'control.rulesetField.inheritedHeading': 'Inclut déjà :',
   'control.rulesetField.unrecognized':
-    'Non régi par une politique de règle connue — modifié en JSON brut.',
+    'Aucune politique de règle connue ne régit ce champ ; la modification est indisponible.',
   'control.rulesetField.unknownType':
-    'Le type de valeur de ce champ est inconnu — modifié en JSON brut.',
+    'Aucun éditeur compatible ne prend en charge ce type de valeur.',
 
   // invitation.* (AcceptInvitationForm.tsx / accept.astro)
   'invitation.missingToken': "Le jeton d'invitation est introuvable dans le lien.",

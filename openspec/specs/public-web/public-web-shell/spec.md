@@ -938,11 +938,11 @@ directory. It SHALL NOT render as an unstyled, pure-white browser document.
   seamlessly
 
 ### Requirement: Public-web header layout and interaction integrity
-The public-web header (`.cl-public-header`) SHALL attach flush to the top edge of the browser viewport without unintended margin or padding leakage from parent document body styles or skip-link elements. The skip-to-content link SHALL remain completely off-screen and isolated from document normal flow until focused. The language selection trigger SHALL display the platform standard translation glyph and current uppercase locale (`文A {LOCALE} ⌵`), and the popover (`.cl-public-header__locale-list`) SHALL render endonyms without horizontal squishing, sizing to its own content (`min-width: max-content`) with `white-space: nowrap` so language names do not break across individual syllables or characters. The header navigation links SHALL focus cleanly on core destinations ("Home" and "Help"), omitting the API Reference link from primary public chrome.
+The public-web header (`.cl-public-header`) SHALL attach flush to the top edge of the browser viewport without unintended margin or padding leakage from parent document body styles. The language selection popover (`.cl-public-header__locale-list`) SHALL render endonyms without horizontal squishing, sizing to its own content (`min-width: max-content`) with `white-space: nowrap` so language names do not break across individual syllables or characters. The header navigation links SHALL focus cleanly on public spectator destinations, omitting operator-oriented help and API Reference links from primary public chrome.
 
 #### Scenario: Public header attaches flush to top edge
 - **WHEN** any public page is rendered
-- **THEN** the header sticks directly to the top edge of the viewport with 0px top margin gap, with the skip-to-content link isolated off-canvas in default state
+- **THEN** the header sticks directly to the top edge of the viewport with 0px top margin gap
 
 #### Scenario: Language popover displays complete endonyms
 - **WHEN** a visitor activates the language selector in the public header
@@ -950,4 +950,4 @@ The public-web header (`.cl-public-header`) SHALL attach flush to the top edge o
 
 #### Scenario: Header navigation links are streamlined to core destinations
 - **WHEN** the public header renders on any public page
-- **THEN** its primary navigation links expose "Home" and "Help" without exposing an "API Reference" navigation link
+- **THEN** its primary navigation links focus on public spectator destinations ("Home" and language selection) without exposing operator-facing "Help" or "API Reference" navigation links

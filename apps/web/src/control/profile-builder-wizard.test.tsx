@@ -46,7 +46,7 @@ describe('the tournament profile builder wizard', () => {
       target: { value: 'football' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add stage' }));
-    const options = screen.getAllByRole('option').map((option) => option.textContent);
+    const options = screen.getAllByRole('option').map((option) => option.getAttribute('value'));
     expect(options).toContain('round-robin');
     expect(options).toContain('single-elimination');
     expect(options).not.toContain('league');

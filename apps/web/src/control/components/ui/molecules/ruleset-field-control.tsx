@@ -15,10 +15,13 @@
  */
 import { useState } from 'react';
 import type { FieldPolicy } from '@copalibre/domain';
+import { Badge } from '../atoms/badge.js';
+import { Button } from '../atoms/button.js';
 import { Checkbox } from '../atoms/checkbox.js';
 import { Input } from '../atoms/input.js';
 import { Select } from '../atoms/select.js';
 import { StringListInput } from '../atoms/string-list-input.js';
+import { Inline } from '../atoms/layout/inline.js';
 import { Stack } from '../atoms/layout/stack.js';
 import { Field } from './field.js';
 import { chooseControlKind } from '../../../lib/discipline-summary.js';
@@ -31,6 +34,14 @@ function subkeyControlValue(value: unknown): string {
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (value === undefined || value === null) return '';
   return String(value);
+}
+
+function humanizeCode(value: string): string {
+  return value
+    .split(/[-_.]+/)
+    .filter(Boolean)
+    .map((word) => `${word.slice(0, 1).toLocaleUpperCase()}${word.slice(1)}`)
+    .join(' ');
 }
 
 export interface RulesetFieldControlProps {
@@ -69,7 +80,7 @@ export function RulesetFieldControl({
 }: RulesetFieldControlProps): React.JSX.Element {
   const observedValue = overrideValue !== undefined ? overrideValue : disciplineDefaultValue;
   const kind = chooseControlKind(policy, observedValue, dotPath);
-  const [rawText, setRawText] = useState(() => JSON.stringify(observedValue ?? null));
+  const [tiebreakerDraft, setTiebreakerDraft] = useState('');
   const [touchedSubkeys, setTouchedSubkeys] = useState<ReadonlySet<string>>(
     () => new Set(isPlainObject(overrideValue) ? Object.keys(overrideValue) : []),
   );
@@ -120,6 +131,62 @@ export function RulesetFieldControl({
     case 'add-to-list': {
       const inherited = Array.isArray(disciplineDefaultValue) ? disciplineDefaultValue : [];
       const added = Array.isArray(overrideValue) ? overrideValue : [];
+      if (
+        dotPath === 'tiebreakers' &&
+        [...inherited, ...added].every((entry) => typeof entry === 'string')
+      ) {
+        const ordered = [...inherited, ...added] as string[];
+        return (
+          <Stack gap="2">
+            {ordered.length > 0 && (
+              <ol aria-label={`${label} order`} className="cl-tiebreaker-editor__list">
+                {ordered.map((entry, index) => (
+                  <li key={`${entry}-${index}`}>
+                    <Inline align="center" gap="2">
+                      <Badge label={`${index + 1}. ${humanizeCode(entry)}`} variant="section" />
+                      {index >= inherited.length && (
+                        <Button
+                          onClick={() =>
+                            onChange(
+                              added.filter(
+                                (_item, addedIndex) => addedIndex !== index - inherited.length,
+                              ),
+                            )
+                          }
+                          type="button"
+                          variant="secondary"
+                        >
+                          {removeLabel}
+                        </Button>
+                      )}
+                    </Inline>
+                  </li>
+                ))}
+              </ol>
+            )}
+            <Inline gap="2">
+              <Input
+                aria-label={label}
+                onChange={(event) => setTiebreakerDraft(event.target.value)}
+                value={tiebreakerDraft}
+              />
+              <Button
+                disabled={tiebreakerDraft.trim() === ''}
+                onClick={() => {
+                  const value = tiebreakerDraft.trim();
+                  if (value === '') return;
+                  onChange([...added, value]);
+                  setTiebreakerDraft('');
+                }}
+                type="button"
+                variant="secondary"
+              >
+                {addLabel}
+              </Button>
+            </Inline>
+          </Stack>
+        );
+      }
       return (
         <Stack gap="2">
           {inherited.length > 0 && (
@@ -198,20 +265,6 @@ export function RulesetFieldControl({
     default:
       return (
         <Stack gap="1">
-          <Input
-            id={id}
-            onChange={(event) => {
-              const text = event.target.value;
-              setRawText(text);
-              try {
-                onChange(JSON.parse(text));
-              } catch {
-                // Invalid JSON mid-edit — hold the text locally without
-                // propagating, same as the field it replaces once did.
-              }
-            }}
-            value={rawText}
-          />
           <p>{policy === undefined ? unrecognizedText : unknownTypeText}</p>
         </Stack>
       );

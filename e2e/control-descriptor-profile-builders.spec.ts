@@ -224,7 +224,9 @@ test('refuses to author a profile stage format the discipline does not declare, 
   await profileWizard.getByRole('button', { name: 'Agregar fase' }).click();
   await profileWizard.getByLabel('Nombre de la fase').fill('Playoffs');
   // Only round-robin is declared by the discipline — no other option exists to select instead.
-  await expect(profileWizard.getByLabel('Formato de la fase')).toHaveText(/round-robin/);
+  const stageFormat = profileWizard.getByLabel('Formato de la fase');
+  await expect(stageFormat).toHaveValue('round-robin');
+  await expect(stageFormat.locator('option')).toHaveCount(1);
 });
 
 /**

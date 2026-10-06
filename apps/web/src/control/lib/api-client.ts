@@ -1274,10 +1274,12 @@ export interface RulesetOverridesRequest {
 /** Same shape one layer down: a stage's own configuration overrides (openspec 0169). */
 export interface StageConfigurationResponse {
   readonly overrides: Readonly<Record<string, unknown>>;
+  readonly groupConfiguration?: StageGroupConfigurationDeclaration;
 }
 
 export interface StageConfigurationRequest {
   readonly overrides: Readonly<Record<string, unknown>>;
+  readonly groupConfiguration?: StageGroupConfigurationDeclaration | null;
 }
 
 /** One field's classification from a mutation-preview endpoint. */
@@ -1425,6 +1427,14 @@ export interface CreateTournamentStageRequest {
   readonly format: string;
   readonly series?: SeriesDeclaration;
   readonly allocation?: StageAllocationDeclaration;
+  readonly groupConfiguration?: StageGroupConfigurationDeclaration;
+}
+
+export interface StageGroupConfigurationDeclaration {
+  readonly groupCount: number;
+  readonly groupSize: number;
+  readonly distribution: 'balanced' | 'exact-size' | 'overflow-last' | 'manual';
+  readonly manualGroupSizes?: readonly number[];
 }
 
 export type SeriesResolutionClass = 'best-of' | 'aggregate' | 'points-per-leg';

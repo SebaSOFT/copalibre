@@ -10,6 +10,7 @@ import {
   type JsonSchemaDocument,
 } from '../descriptors/descriptor-schema.js';
 import type { TournamentProfileDocument } from './tournament-profile.js';
+import { validateStageGroupConfiguration } from '../rulesets/tournament-ruleset.js';
 
 const TOURNAMENT_FORMATS = [
   'single-elimination',
@@ -47,6 +48,29 @@ const STAGE_ALLOCATION_SCHEMA: JsonSchemaDocument = Object.freeze({
         attributeKey: { type: 'string', minLength: 1 },
         direction: { enum: ['higher-first', 'lower-first'] },
       },
+    },
+  ],
+});
+
+const STAGE_GROUP_CONFIGURATION_SCHEMA: JsonSchemaDocument = Object.freeze({
+  type: 'object',
+  required: ['groupCount', 'groupSize', 'distribution'],
+  additionalProperties: false,
+  properties: {
+    groupCount: { type: 'integer', minimum: 2 },
+    groupSize: { type: 'integer', minimum: 2 },
+    distribution: { enum: ['balanced', 'exact-size', 'overflow-last', 'manual'] },
+    manualGroupSizes: {
+      type: 'array',
+      minItems: 2,
+      items: { type: 'integer', minimum: 1 },
+    },
+  },
+  allOf: [
+    {
+      if: { properties: { distribution: { const: 'manual' } } },
+      then: { required: ['manualGroupSizes'] },
+      else: { not: { required: ['manualGroupSizes'] } },
     },
   ],
 });
@@ -101,6 +125,7 @@ export const TOURNAMENT_PROFILE_SCHEMA: JsonSchemaDocument = Object.freeze({
           format: { enum: TOURNAMENT_FORMATS },
           overrides: { type: 'object' },
           allocation: STAGE_ALLOCATION_SCHEMA,
+          groupConfiguration: STAGE_GROUP_CONFIGURATION_SCHEMA,
         },
       },
     },
@@ -151,5 +176,18 @@ export function validateTournamentProfileDocument(
     );
   }
 
-  return ok(document as TournamentProfileDocument);
+  const profile = document as TournamentProfileDocument;
+  for (const stage of profile.stages) {
+    if (stage.groupConfiguration === undefined) continue;
+    const groupError = validateStageGroupConfiguration(stage.groupConfiguration);
+    if (groupError) {
+      return err(
+        new TournamentProfileValidationError(
+          `Tournament profile has invalid group configuration: ${groupError}`,
+          { field: `stages[${stage.number - 1}].groupConfiguration` },
+        ),
+      );
+    }
+  }
+  return ok(profile);
 }

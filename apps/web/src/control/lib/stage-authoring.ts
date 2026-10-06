@@ -49,6 +49,14 @@ export interface WizardStageDraft {
   readonly format: string;
   readonly series?: StageSeriesDraft;
   readonly allocation?: StageAllocationDraft;
+  readonly groupConfiguration?: StageGroupConfigurationDraft;
+}
+
+export interface StageGroupConfigurationDraft {
+  readonly groupCount: number;
+  readonly groupSize: number;
+  readonly distribution: 'balanced' | 'exact-size' | 'overflow-last' | 'manual';
+  readonly manualGroupSizes?: readonly number[];
 }
 
 /** A stage list of one, the shape every wizard starts from. */

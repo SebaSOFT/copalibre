@@ -52,6 +52,8 @@ export interface CanvasSlot {
 
 export interface CanvasMatch {
   readonly matchId: string;
+  /** The engine emits the reset grand final as a possible, conditional match. */
+  readonly conditional?: 'bracket-reset';
   /** The real persisted matches.match_id — absent for a not-yet-materialized node. */
   readonly persistedMatchId?: string;
   readonly bracket: string;
@@ -96,6 +98,7 @@ export interface LaidOutSlot {
 
 export interface LaidOutMatch {
   readonly matchId: string;
+  readonly conditional?: 'bracket-reset';
   readonly persistedMatchId?: string;
   readonly bracket: string;
   readonly round: number;
@@ -165,6 +168,7 @@ export function layoutBracket(
 
         laidOut.set(match.matchId, {
           matchId: match.matchId,
+          ...(match.conditional === undefined ? {} : { conditional: match.conditional }),
           ...(match.persistedMatchId === undefined
             ? {}
             : { persistedMatchId: match.persistedMatchId }),

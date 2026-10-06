@@ -202,9 +202,23 @@ describe('migrations (integration)', () => {
       expect.arrayContaining([expect.objectContaining({ name: 'featured' })]),
     );
     expect(afterUpTables.find((table) => table.name === 'stage_configurations')?.columns).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'allocation' })]),
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'allocation' }),
+        expect.objectContaining({ name: 'group_configuration' }),
+      ]),
     );
     expect(afterUp).toContain('realtime_replicas');
+
+    const stageGroupConfigurationDown = await migrateDownOneStep(scratch.db);
+    expect(stageGroupConfigurationDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0038-realtime-replicas');
+    const afterStageGroupConfigurationDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterStageGroupConfigurationDownTables.find((table) => table.name === 'stage_configurations')
+        ?.columns,
+    ).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'group_configuration' })]),
+    );
 
     const realtimeReplicasDown = await migrateDownOneStep(scratch.db);
     expect(realtimeReplicasDown.error).toBeUndefined();

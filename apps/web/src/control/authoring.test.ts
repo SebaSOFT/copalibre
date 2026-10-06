@@ -1,10 +1,13 @@
 import {
+  addRuleAction,
+  addRuleCondition,
   addCustomRule,
   canAddCustomRule,
   canContinue,
   elementOptionsKey,
   formatsFor,
   initialWizard,
+  moveRuleAction,
   mutationClassOf,
   nextStep,
   parameterValueKey,
@@ -453,13 +456,16 @@ describe('the wizard gates each step', () => {
       step: 'rules',
       customRuleEnabled: true,
       customRuleActionType: 'notify',
-      customRuleValues: { [titleKey]: 'Match update' },
+      customRuleActionValues: { [titleKey]: 'Match update' },
     });
     expect(canContinue(state, DISCIPLINES, HOOK_VOCABULARY)).toBe(false);
 
     state = {
       ...state,
-      customRuleValues: { ...state.customRuleValues, [messageKey]: '{{ event.definitionCode }}' },
+      customRuleActionValues: {
+        ...state.customRuleActionValues,
+        [messageKey]: '{{ event.definitionCode }}',
+      },
     };
     expect(canContinue(state, DISCIPLINES, HOOK_VOCABULARY)).toBe(true);
     state = addCustomRule(state, HOOK_VOCABULARY);
@@ -468,7 +474,7 @@ describe('the wizard gates each step', () => {
     state = {
       ...state,
       customRuleActionType: 'notify',
-      customRuleValues: { [titleKey]: 'Second', [messageKey]: 'Second rule' },
+      customRuleActionValues: { [titleKey]: 'Second', [messageKey]: 'Second rule' },
       alias: 'copa-reglas',
       name: 'Copa Reglas',
       descriptorId: 'd-football',
@@ -487,12 +493,12 @@ describe('the wizard gates each step', () => {
 
     const saved = wizard({
       customRules: [
-        { actionType: 'notify', values: {}, options: {} },
-        { actionType: 'startTimer', values: {}, options: {} },
+        { conditions: [], actions: [{ type: 'notify', values: {}, options: {} }] },
+        { conditions: [], actions: [{ type: 'startTimer', values: {}, options: {} }] },
       ],
     });
     expect(removeCustomRule(saved, 0).customRules).toEqual([
-      { actionType: 'startTimer', values: {}, options: {} },
+      { conditions: [], actions: [{ type: 'startTimer', values: {}, options: {} }] },
     ]);
   });
 
@@ -552,8 +558,8 @@ describe('the wizard gates each step', () => {
       customRuleEnabled: true,
       customRuleConditionType: 'configured',
       customRuleActionType: 'startTimer',
-      customRuleValues: { [timerKey]: 'discipline-clock', [durationKey]: '30' },
-      customRuleOptions: {
+      customRuleActionValues: { [timerKey]: 'discipline-clock', [durationKey]: '30' },
+      customRuleConditionOptions: {
         [elementOptionsKey('condition', 'configured')]: '"primitive"',
       },
     });
@@ -573,6 +579,52 @@ describe('the wizard gates each step', () => {
       expect.arrayContaining([expect.objectContaining({ name: 'durationSeconds', value: 30 })]),
     );
     expect(rules?.[0]?.actions[0]?.params).toHaveLength(2);
+  });
+
+  it('serializes every condition as AND and preserves ordered actions in one engine rule', () => {
+    const vocabulary: HookScriptVocabulary = {
+      hooks: ['event.recorded'],
+      entries: [
+        { kind: 'condition', type: 'condition-a', description: 'Condition A' },
+        { kind: 'condition', type: 'condition-b', description: 'Condition B' },
+        { kind: 'action', type: 'action-a', description: 'Action A' },
+        { kind: 'action', type: 'action-b', description: 'Action B' },
+      ],
+    };
+    let state = wizard({
+      alias: 'copa-reglas',
+      name: 'Copa Reglas',
+      descriptorId: 'd-football',
+      descriptorVersion: '1.2.0',
+      stages: [{ number: 1, name: 'Final', format: 'round-robin' }],
+      customRuleEnabled: true,
+      customRuleConditionType: 'condition-a',
+      customRuleActionType: 'action-a',
+    });
+    state = addRuleCondition(state, vocabulary);
+    state = { ...state, customRuleConditionType: 'condition-b' };
+    state = addRuleCondition(state, vocabulary);
+    state = addRuleAction(state, vocabulary);
+    state = { ...state, customRuleActionType: 'action-b' };
+    state = addRuleAction(state, vocabulary);
+    state = moveRuleAction(state, 1, -1);
+
+    const rules = toCreateRequest(state, vocabulary).customScripts[0]?.script['rules'] as
+      | readonly {
+          conditions: readonly { type: string; id: string }[];
+          actions: readonly { type: string; id: string }[];
+        }[]
+      | undefined;
+    expect(rules?.[0]?.conditions.map(({ type }) => type)).toEqual(['condition-a', 'condition-b']);
+    expect(rules?.[0]?.conditions.map(({ id }) => id)).toEqual([
+      'condition-a-condition-1',
+      'condition-b-condition-2',
+    ]);
+    expect(rules?.[0]?.actions.map(({ type }) => type)).toEqual(['action-b', 'action-a']);
+    expect(rules?.[0]?.actions.map(({ id }) => id)).toEqual([
+      'action-b-action-1',
+      'action-a-action-2',
+    ]);
   });
 
   describe('rendering a configured rule in plain language (openspec 0266)', () => {
@@ -618,7 +670,7 @@ describe('the wizard gates each step', () => {
 
     it('renders a template with the operator-chosen values substituted', () => {
       const draft = {
-        actionType: 'notify',
+        type: 'compare_two_numbers',
         values: {
           [parameterValueKey('condition', 'compare_two_numbers', 'op1')]: 'shots',
           [parameterValueKey('condition', 'compare_two_numbers', 'comp')]: '>',
@@ -633,7 +685,7 @@ describe('the wizard gates each step', () => {
 
     it('leaves a missing value literal rather than blanking the row', () => {
       const draft = {
-        actionType: 'notify',
+        type: 'compare_two_numbers',
         values: {
           [parameterValueKey('condition', 'compare_two_numbers', 'op1')]: 'shots',
         },
@@ -645,14 +697,14 @@ describe('the wizard gates each step', () => {
     });
 
     it('falls back to type — description when the entry declares no phraseTemplate', () => {
-      const draft = { actionType: 'notify', values: {}, options: {} };
+      const draft = { type: 'notify', values: {}, options: {} };
       expect(renderRulePhrase('action', 'notify', ACTION_NO_PHRASE, draft)).toBe(
         'notify — Declare notification',
       );
     });
 
     it('falls back to the raw type identifier when no vocabulary entry resolves', () => {
-      const draft = { actionType: 'stale-action', values: {}, options: {} };
+      const draft = { type: 'stale-action', values: {}, options: {} };
       expect(renderRulePhrase('action', 'stale-action', undefined, draft)).toBe('stale-action');
     });
   });

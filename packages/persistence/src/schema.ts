@@ -229,6 +229,7 @@ export interface StageConfigurationsTable {
   ruleset_id: string;
   overrides: JSONColumnType<Record<string, unknown>>;
   allocation: JSONColumnType<Record<string, unknown>> | null;
+  group_configuration: JSONColumnType<Record<string, unknown>> | null;
   created_at: Timestamp;
 }
 

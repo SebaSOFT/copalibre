@@ -5,12 +5,39 @@ import {
   generatePreviewEntrants,
   generatePreviewMatches,
   generatePreviewNames,
+  groupSlotCounts,
   isIllustrativePreview,
   mapFixtureGraphToCanvasMatches,
 } from './lib/wizard-preview.js';
 import type { FixtureGraph } from '@copalibre/tournament-engine';
 
 describe('wizard-preview', () => {
+  describe('groupSlotCounts', () => {
+    const base = {
+      groupCount: 4,
+      groupSize: 5,
+      distribution: 'balanced' as const,
+    };
+
+    it('balances remainders across the first groups without exceeding nominal capacity', () => {
+      expect(groupSlotCounts(base, 18)).toEqual([5, 5, 4, 4]);
+    });
+
+    it('keeps exact-size groups and leaves overflow outside the group slots', () => {
+      expect(groupSlotCounts({ ...base, distribution: 'exact-size' }, 23)).toEqual([5, 5, 5, 5]);
+    });
+
+    it('places entrants beyond nominal capacity in the final group when requested', () => {
+      expect(groupSlotCounts({ ...base, distribution: 'overflow-last' }, 23)).toEqual([5, 5, 5, 8]);
+    });
+
+    it('uses explicitly authored capacities for manual distribution', () => {
+      expect(
+        groupSlotCounts({ ...base, distribution: 'manual', manualGroupSizes: [4, 5, 5, 4] }, 18),
+      ).toEqual([4, 5, 5, 4]);
+    });
+  });
+
   describe('derivePreviewEntrantCount', () => {
     it('returns default count (8) when capacity is unset', () => {
       expect(derivePreviewEntrantCount(undefined)).toBe(DEFAULT_PREVIEW_ENTRANT_COUNT);
@@ -154,6 +181,11 @@ describe('wizard-preview', () => {
       const losersMatches = matches.filter((m) => m.bracket === 'losers');
       expect(losersMatches.length).toBeGreaterThan(0);
       expect(losersMatches.some((m) => m.slots.some((s) => s.kind === 'loser-of'))).toBe(true);
+      expect(matches.find((match) => match.matchId === 'GF-R1-M1')?.bracket).toBe('grand-final');
+      expect(matches.find((match) => match.matchId === 'GF-R2-M1')).toMatchObject({
+        bracket: 'grand-final',
+        conditional: 'bracket-reset',
+      });
     });
 
     it('generates expected structure for round-robin with default 8 entrants', () => {
