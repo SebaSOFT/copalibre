@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { withIntl } from '../../../i18n/test-support.js';
-import { VisualRuleBuilder } from './VisualRuleBuilder.js';
+import { VisualRuleBuilder } from './visual-rule-builder.js';
 
 describe('VisualRuleBuilder', () => {
   it('shows system-provided GIVEN context and WHEN/THEN blocks', () => {

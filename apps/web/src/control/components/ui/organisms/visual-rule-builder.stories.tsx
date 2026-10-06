@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { messages } from '../../../i18n/messages.en.js';
-import { VisualRuleBuilder } from './VisualRuleBuilder.js';
+import { VisualRuleBuilder } from './visual-rule-builder.js';
 
 const meta = {
   title: 'Admin/Organisms/VisualRuleBuilder',

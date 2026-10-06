@@ -245,7 +245,8 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/RosterRoleSelector.tsx', 4],
   ['control/components/screens/StandingsTemplate.tsx', 4],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 4],
-  ['control/components/TournamentSetupWizard.tsx', 10],
+  // OpenSpec 0329 extracted the GIVEN/WHEN/THEN rule composition into its own organism.
+  ['control/components/TournamentSetupWizard.tsx', 9],
   // A stage is genuinely an ordered list; the layout primitives (Stack/
   // Inline/Grid) only ever render a <div> and cannot become an <ol>, the
   // same class of exception as AstroPreview.tsx's <iframe> above.

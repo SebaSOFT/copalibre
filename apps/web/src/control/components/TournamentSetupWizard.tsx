@@ -12,7 +12,7 @@ import { Field } from './ui/molecules/field.js';
 import { StepHeading } from './ui/molecules/step-heading.js';
 import { WizardShell } from './ui/organisms/wizard-shell.js';
 import { StageListEditor } from './StageListEditor.js';
-import { VisualRuleBuilder } from './ui/organisms/VisualRuleBuilder.js';
+import { VisualRuleBuilder } from './ui/organisms/visual-rule-builder.js';
 import { RulesetFieldControl } from './ui/molecules/ruleset-field-control.js';
 import {
   TournamentSummary,
