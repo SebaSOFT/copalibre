@@ -21,6 +21,33 @@ installation's directory refuses rather than overwriting it. `--module-dev` addi
 supported email provider configuration. Then run `copalibre start` or
 `docker compose up --detach --wait`.
 
+### Notification email
+
+Lifecycle email uses the provider already configured for invitations (`COPALIBRE_EMAIL_PROVIDER`,
+`COPALIBRE_EMAIL_FROM`, `COPALIBRE_APP_URL` and the provider's credentials); it needs no other
+setting, and the development stack delivers it to Mailpit. `apps/worker` sends it from the
+transactional outbox (change `0337-lifecycle-email-notifications`):
+
+| Event                                           | Goes to                                                                                                 |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `tournament.created`, `club.created`            | The organization's `admin` assignments                                                                  |
+| `entrant.registered`, `entrant.squad-submitted` | The organization's `admin` assignments and the `tournament-admin` assignments scoped to that tournament |
+
+The actor is not emailed about their own action, and an address held through several assignments gets
+one email. Every email, including invitations and password resets, renders in the organization's
+primary language (English for a password reset, which has no organization) with the organization's
+emblem and name in the header and a Copa Libre signature linking to `https://copalibre.app`. A club
+submitting its squad sends one email, for `entrant.squad-submitted`. CSV imports and `copalibre dev
+demo` mark their events `origin: 'import'` and send none.
+
+**The same email is never sent twice to the same recipient.** The worker reserves each
+`(outbox event, recipient)` pair in `processed_markers` before calling the provider, so a retry, a
+crash and redelivery, two workers, or an operator re-enqueue from the dead-letter inspector cannot
+send it again. The reservation is released only when the provider definitely rejects the message. When
+the outcome is unknown, such as a timeout after the request was sent, the email is not retried and the
+worker logs `Email delivery outcome unknown for event <id>`: a possibly missed email is accepted over
+a possible duplicate, and an operator can resend it by hand.
+
 From the installation directory, `copalibre status` reports container state, the published ingress
 port, and gateway health. `copalibre restart` stops the stack, starts PostgreSQL, runs `doctor`, then
 starts the remaining services after health checks pass. `copalibre stop` stops containers while

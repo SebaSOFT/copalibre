@@ -78,3 +78,5 @@ Datasets are plain JSON validated against `packages/demo-datasets/schema/dataset
 `apps/api/src/controllers/demo-dataset.integration.test.ts` (which reads the loaded tournament through
 the public API) run against PostgreSQL. Production images exclude `packages/demo-datasets/datasets/`
 through `.dockerignore`, so they carry no demo data.
+
+Loading the dataset sends no email: its clubs, tournament and entrants are written with `origin: 'import'`, which the notification handlers skip, so a development provider or Mailpit is not flooded.

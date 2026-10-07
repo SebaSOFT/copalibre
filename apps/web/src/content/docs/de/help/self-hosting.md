@@ -122,7 +122,17 @@ Vollständige Voraussetzungsliste und die gemessenen Nachweise zu Multi-Node-Fai
 Backup-Wiederherstellung und Upgrade-Sicherheit, auf denen diese Behauptung beruht:
 `docs/deployment/enterprise-kubernetes.md` im Repository.
 
-## 4. Nächste Schritte
+## 4. Benachrichtigungs-E-Mails
+
+Aktivitäten von Turnieren und Organisation werden per E-Mail über den für Einladungen konfigurierten Anbieter gemeldet (`COPALIBRE_EMAIL_PROVIDER`); eine weitere Einstellung ist nicht nötig. In der Entwicklungsumgebung landen die E-Mails in Mailpit.
+
+- Ein neues Turnier und ein neuer Verein werden den Administratoren der Organisation gemeldet.
+- Eine neue Anmeldung und ein Verein, der seinen Kader einreicht, werden den Administratoren der Organisation und den Administratoren dieses Turniers gemeldet. Wer das Ereignis ausgelöst hat, erhält keine E-Mail.
+- Die E-Mails verwenden die Hauptsprache der Organisation, zeigen deren Emblem und Namen im Kopf und sind von Copa Libre mit einem Link zu [copalibre.app](https://copalibre.app) signiert.
+- CSV-Importe und `copalibre dev demo` versenden keine E-Mails.
+- Dieselbe E-Mail wird nie zweimal an denselben Empfänger gesendet. Läuft ein Anbieter vor der Bestätigung in ein Timeout, wird diese E-Mail nicht erneut gesendet; sie kann also fehlen, statt doppelt anzukommen.
+
+## 5. Nächste Schritte
 
 - [Ihr erstes Turnier](/help/getting-started/) — eine Competition erstellen und veröffentlichen,
   sobald die Installation läuft.

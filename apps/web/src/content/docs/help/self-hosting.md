@@ -117,7 +117,17 @@ k3d cluster create --config deploy/helm/k3s-dev-cluster.yaml
 Full prerequisite list and the measured multi-node-failover, backup-restore, and upgrade-safety
 evidence this claim is gated on: `docs/deployment/enterprise-kubernetes.md` in the repository.
 
-## 4. Next steps
+## 4. Notification email
+
+Tournament and organization activity is announced by email through the provider you configured for invitations (`COPALIBRE_EMAIL_PROVIDER`); no extra setting is needed. In the development stack the emails arrive in Mailpit.
+
+- A new tournament and a new club go to the organization's administrators.
+- A new registration, and a club submitting its squad, go to the organization's administrators and to the tournament administrators of that tournament. The person who caused the event is not emailed.
+- Emails use the organization's primary language, carry its emblem and name in the header, and are signed by Copa Libre with a link to [copalibre.app](https://copalibre.app).
+- CSV imports and `copalibre dev demo` send no email.
+- The same email is never sent twice to the same recipient. If a provider times out before confirming, that email is not retried, so one may be missed rather than duplicated.
+
+## 5. Next steps
 
 - [Your first tournament](/help/getting-started/) — create and publish a competition once the
   installation is up.

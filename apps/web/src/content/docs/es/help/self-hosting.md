@@ -120,7 +120,17 @@ Lista completa de prerrequisitos y la evidencia medida de failover multi-nodo, b
 seguridad de actualización sobre la que se condiciona esta afirmación:
 `docs/deployment/enterprise-kubernetes.md` en el repositorio.
 
-## 4. Próximos pasos
+## 4. Correo de notificaciones
+
+La actividad de torneos y de la organización se avisa por correo mediante el proveedor que configuró para las invitaciones (`COPALIBRE_EMAIL_PROVIDER`); no hace falta ninguna otra configuración. En el entorno de desarrollo los correos llegan a Mailpit.
+
+- Un torneo nuevo y un club nuevo se avisan a los administradores de la organización.
+- Una inscripción nueva, y un club que envía su plantel, se avisan a los administradores de la organización y a los administradores de ese torneo. Quien provocó el evento no recibe el correo.
+- Los correos usan el idioma principal de la organización, llevan su emblema y nombre en el encabezado, y van firmados por Copa Libre con un enlace a [copalibre.app](https://copalibre.app).
+- Las importaciones CSV y `copalibre dev demo` no envían correo.
+- El mismo correo nunca se envía dos veces al mismo destinatario. Si un proveedor agota el tiempo antes de confirmar, ese correo no se reintenta, así que puede perderse en lugar de duplicarse.
+
+## 5. Próximos pasos
 
 - [Primer torneo](/es/help/getting-started/) — cree y publique una competición una vez que la
   instalación esté funcionando.
