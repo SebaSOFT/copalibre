@@ -332,7 +332,16 @@ describe('ZoneGroupPage', () => {
     });
 
     it('saves and clears a zone series', async () => {
-      const configureZone = jest.fn(() => Promise.resolve(zone()));
+      const configureZone = jest.fn(
+        (
+          _organization: string,
+          _tournament: string,
+          _stage: number,
+          _zone: number,
+          request: unknown,
+        ) =>
+          Promise.resolve(zone({ series: (request as { series?: unknown }).series ?? undefined })),
+      );
       renderPage(
         stubClient({
           listStages: () => Promise.resolve([stage]),

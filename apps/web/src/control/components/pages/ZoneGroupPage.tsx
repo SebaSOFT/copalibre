@@ -170,9 +170,19 @@ export function ZoneGroupPage({
   ): Promise<void> {
     if (!api.configureZone) return;
     try {
-      await api.configureZone(organizationAlias, tournamentAlias, stageNumber, zoneNumber, request);
+      const updated = await api.configureZone(
+        organizationAlias,
+        tournamentAlias,
+        stageNumber,
+        zoneNumber,
+        request,
+      );
       push({ severity: 'success', message: intl.formatMessage(messages.zoneGroupZoneConfigSaved) });
-      void reload();
+      // Replaced in place rather than reloaded, so the override section the operator is working in
+      // stays open and keeps what they typed.
+      setZones((current) =>
+        current.map((zone) => (zone.number === updated.number ? updated : zone)),
+      );
     } catch (error) {
       pushError(error);
     }

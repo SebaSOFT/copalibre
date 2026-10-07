@@ -384,3 +384,134 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
     ),
   ).toBe(false);
 });
+
+test('overrides one zone’s format and series, labels it, and returns it to the stage default', async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ tournament, stage, tokenEndpoint }) => {
+      const ZONES_KEY = 'e2e-format-zones';
+      const REQUEST_LOG_KEY = 'e2e-request-log';
+      type Zone = {
+        zoneId: string;
+        stageId: string;
+        number: number;
+        name: string;
+        effectiveFormat: string;
+        format?: string;
+        series?: { span: number; resolutionClass?: string };
+      };
+      const initial: Zone[] = [1, 2, 3].map((number) => ({
+        zoneId: `zone-${number}`,
+        stageId: 'stage-1',
+        number,
+        name: `Zona ${number}`,
+        effectiveFormat: 'single-elimination',
+      }));
+      const readZones = (): Zone[] =>
+        JSON.parse(sessionStorage.getItem(ZONES_KEY) ?? JSON.stringify(initial)) as Zone[];
+      const logRequest = (entry: string): void => {
+        const log = JSON.parse(sessionStorage.getItem(REQUEST_LOG_KEY) ?? '[]') as string[];
+        log.push(entry);
+        sessionStorage.setItem(REQUEST_LOG_KEY, JSON.stringify(log));
+      };
+
+      window.fetch = async (input, init) => {
+        const url = String(input);
+        const method = init?.method ?? 'GET';
+        if (url === tokenEndpoint) {
+          return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
+        }
+        if (url === `${tournament}/registrations?status=accepted`) return Response.json([]);
+        if (url === `${tournament}/stages`) {
+          return Response.json([
+            {
+              stageId: 'stage-1',
+              seasonId: 'season-1',
+              number: 1,
+              name: 'Fase 1',
+              format: 'single-elimination',
+              seeded: false,
+              availableFormats: ['single-elimination', 'round-robin'],
+            },
+          ]);
+        }
+        if (url === `${stage}/zones` && method === 'GET') return Response.json(readZones());
+        if (/\/zones\/\d+\/(groups|entrants)$/.test(url)) return Response.json([]);
+
+        const configuration = /\/zones\/(\d+)\/configuration$/.exec(url);
+        if (configuration && method === 'PUT') {
+          const number = Number(configuration[1]);
+          const body = JSON.parse(String(init?.body)) as {
+            format?: string | null;
+            series?: { span: number; resolutionClass?: string } | null;
+          };
+          logRequest(`PUT zone ${number} ${JSON.stringify(body)}`);
+          const next = readZones().map((zone) => {
+            if (zone.number !== number) return zone;
+            const { format: _format, series: _series, ...rest } = zone;
+            const format = body.format === undefined ? zone.format : (body.format ?? undefined);
+            const series = body.series === undefined ? zone.series : (body.series ?? undefined);
+            return {
+              ...rest,
+              effectiveFormat: format ?? 'single-elimination',
+              ...(format === undefined ? {} : { format }),
+              ...(series === undefined ? {} : { series }),
+            };
+          });
+          sessionStorage.setItem(ZONES_KEY, JSON.stringify(next));
+          return Response.json(next.find((zone) => zone.number === number));
+        }
+        return new Response('Not found', { status: 404 });
+      };
+    },
+    { tournament: TOURNAMENT, stage: STAGE, tokenEndpoint: TOKEN_ENDPOINT },
+  );
+
+  const target = `/control/${ORG}/tournaments/${TOURNAMENT_ALIAS}/stages/1/zones`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const zonesPanel = page.getByRole('region', { name: 'Zonas', exact: true });
+  await expect(
+    zonesPanel.getByText(/Juega Eliminación directa \(formato de la fase\)/),
+  ).toHaveCount(3);
+  await expect(zonesPanel.getByText('Personalizada')).toHaveCount(0);
+
+  // The override controls stay collapsed until asked for, so the stage default is the primary path.
+  const zone3 = page.locator('details', { has: page.locator('#zone-3-series-span') });
+  await expect(zone3.getByLabel('Formato de Zona 3')).toBeHidden();
+  await zone3.locator('summary').click();
+
+  // Zona 3 becomes a league for the clubs left over; the other two keep inheriting.
+  await page.getByLabel('Formato de Zona 3').selectOption({ label: 'Todos contra todos' });
+  await expect(zonesPanel.getByText('Personalizada')).toHaveCount(1);
+  await expect(zonesPanel.getByText('Juega Todos contra todos')).toBeVisible();
+  await expect(
+    zonesPanel.getByText(/Juega Eliminación directa \(formato de la fase\)/),
+  ).toHaveCount(2);
+
+  // A series for Zona 3 only.
+  await page.locator('#zone-3-series-span').fill('3');
+  await page
+    .locator('details', { has: page.locator('#zone-3-series-span') })
+    .getByRole('button', {
+      name: 'Guardar serie',
+    })
+    .click();
+  await expect(zonesPanel.getByText(/Serie de 3 partidos/)).toHaveCount(1);
+
+  // Back to the stage default.
+  await page
+    .getByLabel('Formato de Zona 3')
+    .selectOption({ label: 'Formato de la fase (Eliminación directa)' });
+  await expect(zonesPanel.getByText('Personalizada')).toHaveCount(0);
+
+  const log = await readRequestLog(page);
+  expect(log).toEqual([
+    'PUT zone 3 {"format":"round-robin"}',
+    'PUT zone 3 {"series":{"span":3,"resolutionClass":"best-of"}}',
+    'PUT zone 3 {"format":null}',
+  ]);
+});
