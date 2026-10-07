@@ -173,16 +173,15 @@ describe('TV backdrop and focal panel (openspec 0202)', () => {
   const layout = readFileSync(join(here, '../layouts/TvLayout.astro'), 'utf8');
   const tvCss = readFileSync(join(here, '../styles/tv-broadcast.css'), 'utf8');
 
-  it('carries the discipline backdrop on non-overlay presentations only', () => {
-    // A lower third is meant to be keyed out; imagery is what must not survive the key.
+  it('renders discipline imagery only when the selected backdrop is discipline', () => {
     expect(layout).toContain(
-      "const backdrop = overlayMode === 'lower' ? undefined : selectDisciplineBackground(disciplineImages)",
+      "background === 'discipline' ? selectDisciplineBackground(disciplineImages) : undefined",
     );
   });
 
   it('reuses the public pages’ backdrop source and opacity rather than a second mechanism', () => {
     expect(layout).toContain("from '../lib/discipline-background.ts'");
-    expect(layout).toContain('opacity: ${backdrop.opacity}');
+    expect(layout).toContain('opacity: ${disciplineBackdrop.opacity}');
   });
 
   it('blurs the backdrop so it reads as ground, not as a picture', () => {

@@ -47,7 +47,14 @@ export interface RawColourException {
   readonly why: string;
 }
 
-export const RAW_COLOUR_EXCEPTIONS: readonly RawColourException[] = [];
+export const RAW_COLOUR_EXCEPTIONS: readonly RawColourException[] = [
+  {
+    file: 'apps/web/src/lib/tv-background.ts',
+    line: 19,
+    value: '#00b140',
+    why: 'The chroma key a vision mixer cuts against; not a product colour.',
+  },
+];
 
 const TOKEN_DECLARATION = /(--cl-[a-z0-9-]+)\s*:/g;
 const TOKEN_REFERENCE = /var\(\s*(--cl-[a-z0-9-]+)\s*(?:,([^)]*))?\)/g;

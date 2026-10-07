@@ -32,6 +32,15 @@ export const messages = defineMessages({
   },
   shellLanguage: { id: 'control.shell.language', defaultMessage: 'Language' },
   shellLogout: { id: 'control.shell.logout', defaultMessage: 'Log out' },
+  shellPublicOverview: {
+    id: 'control.shell.publicOverview',
+    defaultMessage: 'Public organization page',
+  },
+  authPublicHome: { id: 'auth.publicHome', defaultMessage: 'Return to public site' },
+  tournamentPublicSite: { id: 'control.tournament.publicSite', defaultMessage: 'Public site' },
+  tournamentTvDisplay: { id: 'control.tournament.tvDisplay', defaultMessage: 'TV display' },
+  tournamentPublicSiteShort: { id: 'control.tournament.publicSiteShort', defaultMessage: 'Public' },
+  tournamentTvDisplayShort: { id: 'control.tournament.tvDisplayShort', defaultMessage: 'TV' },
 
   // Sidenav (lib/dashboard.ts SIDENAV)
   navDashboard: { id: 'control.nav.dashboard', defaultMessage: 'Dashboard' },

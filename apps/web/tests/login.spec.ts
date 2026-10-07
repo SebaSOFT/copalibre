@@ -27,6 +27,11 @@ test('user can log in successfully', async ({ page }) => {
   await mockLoginApi(page);
   await page.goto('/control/login');
 
+  await expect(page.getByRole('link', { name: 'Volver al sitio público' })).toHaveAttribute(
+    'href',
+    '/',
+  );
+
   await expect(page.getByLabel('Email')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByLabel('Password')).toBeVisible();
 

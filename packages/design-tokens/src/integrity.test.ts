@@ -291,8 +291,15 @@ describe('the exception registry', () => {
     expect(hits).toHaveLength(1);
   });
 
-  it('is empty, because every first-party colour now resolves to a token', () => {
-    expect(RAW_COLOUR_EXCEPTIONS).toEqual([]);
+  it('contains only the exact chroma key required by broadcast switchers', () => {
+    expect(RAW_COLOUR_EXCEPTIONS).toEqual([
+      {
+        file: 'apps/web/src/lib/tv-background.ts',
+        line: 19,
+        value: '#00b140',
+        why: 'The chroma key a vision mixer cuts against; not a product colour.',
+      },
+    ]);
   });
 });
 

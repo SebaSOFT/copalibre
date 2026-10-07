@@ -10,11 +10,10 @@ import { Field } from './ui/molecules/field.js';
 import { useToast } from './ToastProvider.js';
 import { AuthScreenLayout } from './ui/layouts/auth-screen-layout.js';
 
-// openspec 0225 task 2.6: every defaultMessage here was Spanish, and
-// `auth.*` has no locale catalogue anywhere else in the repo — so every
-// locale without its own override (all eight, currently) fell back to
-// Spanish rather than the source language. Restated in English; a real
-// per-locale catalogue for this namespace is separate work.
+// openspec 0225 task 2.6: every defaultMessage here was Spanish and fell back
+// incorrectly across locales. Restated in English; the return link has a
+// localized override in each control catalog, while the remaining auth copy
+// uses the source language until that namespace receives its own translations.
 const messages = defineMessages({
   loginTitle: { id: 'auth.loginTitle', defaultMessage: 'Sign in to operate' },
   loginContext: { id: 'auth.loginContext', defaultMessage: 'Organization console' },
@@ -45,6 +44,7 @@ const messages = defineMessages({
     id: 'auth.sessionExpired',
     defaultMessage: 'Your session expired. Please sign in again.',
   },
+  publicHome: { id: 'auth.publicHome', defaultMessage: 'Return to public site' },
 });
 
 export function LoginRoute(): React.JSX.Element {
@@ -147,6 +147,11 @@ export function LoginRoute(): React.JSX.Element {
       <Button onClick={() => beginOidcLogin()} type="button" variant="secondary">
         <FormattedMessage {...messages.oidcButton} />
       </Button>
+      <p>
+        <a className="cl-link cl-focusable" href="/">
+          <FormattedMessage {...messages.publicHome} />
+        </a>
+      </p>
     </AuthScreenLayout>
   );
 }

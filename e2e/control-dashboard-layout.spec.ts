@@ -213,7 +213,7 @@ test('0211: the section is titled, its cards share rows on desktop and stack on 
   expect(new Set(mobileRows).size).toBe(TOURNAMENT_COUNT);
 });
 
-test('0211: a card’s actions stay one row at 375px rather than a stack of export buttons', async ({
+test('0211: tournament actions stay within two rows at 375px with public and TV shortcuts', async ({
   page,
 }) => {
   await page.setViewportSize(MOBILE);
@@ -228,7 +228,16 @@ test('0211: a card’s actions stay one row at 375px rather than a stack of expo
     );
     return new Set(tops).size;
   });
-  expect(rows).toBe(1);
+  expect(rows).toBeLessThanOrEqual(2);
+
+  await expect(footer.getByRole('link', { name: 'Sitio público' })).toHaveAttribute(
+    'href',
+    '/liga-mendocina/tournaments/torneo-1',
+  );
+  await expect(footer.getByRole('link', { name: 'Pantalla TV' })).toHaveAttribute(
+    'href',
+    '/tv/liga-mendocina/tournaments/torneo-1',
+  );
 
   // And the exports are not buttons of their own any more.
   await expect(page.getByRole('button', { name: 'Participantes CSV' })).toHaveCount(0);

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-async function mockControlApis(page: Page): Promise<void> {
-  await page.addInitScript(() => {
+async function mockControlApis(page: Page, includeTournament = false): Promise<void> {
+  await page.addInitScript((includeTournament) => {
     // Write valid session into sessionStorage before app loads
     const payload = btoa(JSON.stringify({ scp: 'copalibre.control' }));
     const fakeToken = `header.${payload}.signature`;
@@ -25,8 +25,20 @@ async function mockControlApis(page: Page): Promise<void> {
           },
         ]);
       }
-      if (url.includes('/organizations/liga-mendocina/active-tournaments')) {
-        return Response.json([]);
+      if (url.includes('/organizations/liga-mendocina/tournaments')) {
+        return Response.json(
+          includeTournament
+            ? [
+                {
+                  tournamentId: '01935bd3-7b4a-7a19-9c20-5a1a44600001',
+                  organizationId: '01935bd3-7b4a-7a19-9c20-5a1a44600002',
+                  alias: 'apertura-2026',
+                  name: 'Torneo Apertura 2026',
+                  status: 'published',
+                },
+              ]
+            : [],
+        );
       }
       if (url.includes('/organizations/liga-mendocina/storage/usage')) {
         return Response.json({
@@ -35,9 +47,6 @@ async function mockControlApis(page: Page): Promise<void> {
           unreferencedBytes: 0,
           unreferencedCount: 0,
         });
-      }
-      if (url.includes('/organizations/liga-mendocina/tournaments')) {
-        return Response.json([]);
       }
       if (
         url.endsWith('/organizations/liga-mendocina') ||
@@ -51,7 +60,7 @@ async function mockControlApis(page: Page): Promise<void> {
       }
       return Response.json([]);
     };
-  });
+  }, includeTournament);
 }
 
 test('navigates to sidebar sections without 404 (Tournaments, Live Console, Organization, Analytics)', async ({
@@ -59,6 +68,10 @@ test('navigates to sidebar sections without 404 (Tournaments, Live Console, Orga
 }) => {
   await mockControlApis(page);
   await page.goto('/control/liga-mendocina');
+
+  await expect(
+    page.getByRole('link', { name: 'Página pública de la organización' }),
+  ).toHaveAttribute('href', '/liga-mendocina');
 
   // Verify no 404 screen is shown
   await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
@@ -74,7 +87,7 @@ test('navigates to sidebar sections without 404 (Tournaments, Live Console, Orga
   await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
 
   // Navigate to Organización
-  await page.getByRole('link', { name: 'Organización' }).click();
+  await page.getByRole('link', { name: 'Organización', exact: true }).click();
   await expect(page).toHaveURL(/\/control\/liga-mendocina\/organization/);
   await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
 
@@ -97,11 +110,46 @@ test('mobile viewport provides accessible drawer navigation', async ({ page }) =
   await hamburger.click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
+  await expect(
+    dialog.getByRole('link', { name: 'Página pública de la organización' }),
+  ).toHaveAttribute('href', '/liga-mendocina');
 
   // Click a navigation link in the drawer
   await dialog.getByRole('link', { name: 'Torneos' }).click();
   await expect(page).toHaveURL(/\/control\/liga-mendocina\/tournaments/);
   await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
+});
+
+test('mobile tournament card links directly to public and TV displays', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await mockControlApis(page, true);
+  await page.goto('/control/liga-mendocina');
+
+  await expect(page.getByText('Torneo Apertura 2026')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Sitio público' })).toHaveAttribute(
+    'href',
+    '/liga-mendocina/tournaments/apertura-2026',
+  );
+  await expect(page.getByRole('link', { name: 'Pantalla TV' })).toHaveAttribute(
+    'href',
+    '/tv/liga-mendocina/tournaments/apertura-2026',
+  );
+});
+
+test('desktop tournament card links directly to public and TV displays', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await mockControlApis(page, true);
+  await page.goto('/control/liga-mendocina');
+
+  await expect(page.getByText('Torneo Apertura 2026')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Sitio público' })).toHaveAttribute(
+    'href',
+    '/liga-mendocina/tournaments/apertura-2026',
+  );
+  await expect(page.getByRole('link', { name: 'Pantalla TV' })).toHaveAttribute(
+    'href',
+    '/tv/liga-mendocina/tournaments/apertura-2026',
+  );
 });
 
 test('session survives hard reload across navigation', async ({ page }) => {

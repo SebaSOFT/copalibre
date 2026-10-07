@@ -8,6 +8,7 @@ import {
 import { controlLinkClick, navigateControl } from '../lib/control-navigation.js';
 import { messages } from '../i18n/messages.en.js';
 import { Button } from './ui/atoms/button.js';
+import { LinkButton } from './ui/atoms/link-button.js';
 import { DataEntityCard, type DataEntityCardAccent } from './ui/molecules/data-entity-card.js';
 import { DropdownMenu } from './ui/organisms/dropdown-menu.js';
 
@@ -76,6 +77,8 @@ export function TournamentSummaryCard({
   // title, since it leads somewhere the title never has — the tournament's
   // stage list, not its matches.
   const stagesHref = base;
+  const publicHref = `/${organizationAlias}/tournaments/${card.alias}`;
+  const tvHref = `/tv/${organizationAlias}/tournaments/${card.alias}`;
   const primaryLabel =
     card.lifecycle === 'draft'
       ? intl.formatMessage(messages.dashboardResumeEditing)
@@ -138,6 +141,22 @@ export function TournamentSummaryCard({
           >
             {intl.formatMessage(messages.dashboardStages)}
           </a>
+          <LinkButton
+            aria-label={intl.formatMessage(messages.tournamentPublicSite)}
+            href={publicHref}
+            title={intl.formatMessage(messages.tournamentPublicSite)}
+            variant="secondary"
+          >
+            {intl.formatMessage(messages.tournamentPublicSiteShort)}
+          </LinkButton>
+          <LinkButton
+            aria-label={intl.formatMessage(messages.tournamentTvDisplay)}
+            href={tvHref}
+            title={intl.formatMessage(messages.tournamentTvDisplay)}
+            variant="secondary"
+          >
+            {intl.formatMessage(messages.tournamentTvDisplayShort)}
+          </LinkButton>
           <DropdownMenu
             items={exports.map((one) => ({
               id: one.id,

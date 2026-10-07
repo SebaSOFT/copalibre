@@ -24,10 +24,9 @@ describe('NativeAuthRoutes', () => {
   });
 
   // `locale="en"`, not `"es"`: openspec 0225 task 2.6 restated every
-  // `auth.*` defaultMessage in the source language. There is still no
-  // real per-locale catalogue for this namespace (a separate concern), so
-  // every locale — Spanish included — now falls back to English rather
-  // than to the Spanish these tests used to see by coincidence.
+  // `auth.*` defaultMessage in the source language. The public return link
+  // is translated in each control catalog; remaining auth copy still uses
+  // English source messages.
 
   it('renders LoginRoute and handles success', async () => {
     (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
@@ -44,6 +43,9 @@ describe('NativeAuthRoutes', () => {
     const forgotLink = screen.getByRole('link', { name: /Forgot your password\?/i });
     expect(forgotLink.className).toContain('cl-link');
     expect(forgotLink.className).toContain('cl-focusable');
+    expect(screen.getByRole('link', { name: 'Return to public site' }).getAttribute('href')).toBe(
+      '/',
+    );
 
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'test@example.com' } });
     fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'password' } });

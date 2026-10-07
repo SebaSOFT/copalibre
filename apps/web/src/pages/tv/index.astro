@@ -1,0 +1,779 @@
+---
+import TvLayout from '../../layouts/TvLayout.astro';
+import {
+  fetchOrganizations,
+  fetchOrganizationTournaments,
+  fetchOverview,
+  fetchMatchesView,
+  mapMatchesViewResponse,
+} from '../../lib/public-api-client.ts';
+import { TV_BACKGROUNDS } from '../../lib/tv-background.ts';
+import { selectDisciplineBackground } from '../../lib/discipline-background.ts';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+
+export const prerender = false;
+
+const messages: Record<SupportedLanguage, Record<string, string>> = {
+  en: {
+    title: 'TV display launcher',
+    intro: 'Configure a venue screen or broadcast overlay.',
+    organization: 'Organization',
+    tournament: 'Tournament',
+    view: 'View',
+    dashboard: 'Rotating dashboard',
+    standings: 'Standings',
+    matches: 'Pinned match',
+    overlay: 'Broadcast overlay',
+    stage: 'Stage',
+    match: 'Match',
+    background: 'Background',
+    discipline: 'Discipline',
+    neutral: 'Neutral',
+    chroma: 'Chroma green',
+    football: 'Football pitch',
+    court: 'Indoor court',
+    language: 'Language',
+    launch: 'Launch TV display',
+    unavailable: 'No published tournaments are available for this organization.',
+    loadError: 'Tournament data is temporarily unavailable.',
+    noMatches: 'No matches are available to pin for this tournament.',
+    publicSite: 'Public site',
+    emptyOrganizations: 'No organizations are available.',
+  },
+  es: {
+    title: 'Lanzador de pantalla TV',
+    intro: 'Configura una pantalla del recinto o una superposición de transmisión.',
+    organization: 'Organización',
+    tournament: 'Torneo',
+    view: 'Vista',
+    dashboard: 'Panel rotativo',
+    standings: 'Tabla de posiciones',
+    matches: 'Partido fijado',
+    overlay: 'Superposición de transmisión',
+    stage: 'Etapa',
+    match: 'Partido',
+    background: 'Fondo',
+    discipline: 'Disciplina',
+    neutral: 'Neutro',
+    chroma: 'Verde chroma',
+    football: 'Cancha de fútbol',
+    court: 'Cancha cubierta',
+    language: 'Idioma',
+    launch: 'Lanzar pantalla TV',
+    unavailable: 'No hay torneos publicados disponibles para esta organización.',
+    loadError: 'Los datos del torneo no están disponibles temporalmente.',
+    noMatches: 'No hay partidos disponibles para fijar en este torneo.',
+    publicSite: 'Sitio público',
+    emptyOrganizations: 'No hay organizaciones disponibles.',
+  },
+  fr: {
+    title: 'Lanceur d’écran TV',
+    intro: 'Configurez un écran de salle ou une incrustation de diffusion.',
+    organization: 'Organisation',
+    tournament: 'Tournoi',
+    view: 'Vue',
+    dashboard: 'Tableau tournant',
+    standings: 'Classement',
+    matches: 'Match épinglé',
+    overlay: 'Incrustation de diffusion',
+    stage: 'Étape',
+    match: 'Match',
+    background: 'Arrière-plan',
+    discipline: 'Discipline',
+    neutral: 'Neutre',
+    chroma: 'Vert chroma',
+    football: 'Terrain de football',
+    court: 'Terrain couvert',
+    language: 'Langue',
+    launch: 'Lancer l’écran TV',
+    unavailable: 'Aucun tournoi publié pour cette organisation.',
+    loadError: 'Données du tournoi temporairement indisponibles.',
+    noMatches: 'Aucun match à épingler pour ce tournoi.',
+    publicSite: 'Site public',
+    emptyOrganizations: 'Aucune organisation disponible.',
+  },
+  pt: {
+    title: 'Lançador de tela TV',
+    intro: 'Configure uma tela do local ou uma sobreposição de transmissão.',
+    organization: 'Organização',
+    tournament: 'Torneio',
+    view: 'Visualização',
+    dashboard: 'Painel rotativo',
+    standings: 'Classificação',
+    matches: 'Partida fixada',
+    overlay: 'Sobreposição de transmissão',
+    stage: 'Etapa',
+    match: 'Partida',
+    background: 'Plano de fundo',
+    discipline: 'Modalidade',
+    neutral: 'Neutro',
+    chroma: 'Verde chroma',
+    football: 'Campo de futebol',
+    court: 'Quadra coberta',
+    language: 'Idioma',
+    launch: 'Iniciar tela TV',
+    unavailable: 'Não há torneios publicados disponíveis para esta organização.',
+    loadError: 'Dados do torneio indisponíveis temporariamente.',
+    noMatches: 'Não há partidas disponíveis para fixar neste torneio.',
+    publicSite: 'Site público',
+    emptyOrganizations: 'Nenhuma organização disponível.',
+  },
+  it: {
+    title: 'Avvio schermo TV',
+    intro: 'Configura uno schermo per la sede o una sovrapposizione broadcast.',
+    organization: 'Organizzazione',
+    tournament: 'Torneo',
+    view: 'Vista',
+    dashboard: 'Pannello a rotazione',
+    standings: 'Classifica',
+    matches: 'Partita fissata',
+    overlay: 'Sovrapposizione broadcast',
+    stage: 'Fase',
+    match: 'Partita',
+    background: 'Sfondo',
+    discipline: 'Disciplina',
+    neutral: 'Neutro',
+    chroma: 'Verde chroma',
+    football: 'Campo da calcio',
+    court: 'Campo indoor',
+    language: 'Lingua',
+    launch: 'Avvia schermo TV',
+    unavailable: 'Nessun torneo pubblicato disponibile per questa organizzazione.',
+    loadError: 'Dati del torneo temporaneamente non disponibili.',
+    noMatches: 'Non ci sono partite da fissare per questo torneo.',
+    publicSite: 'Sito pubblico',
+    emptyOrganizations: 'Nessuna organizzazione disponibile.',
+  },
+  de: {
+    title: 'TV-Bildschirm starten',
+    intro: 'Richten Sie einen Hallenbildschirm oder eine Broadcast-Einblendung ein.',
+    organization: 'Organisation',
+    tournament: 'Turnier',
+    view: 'Ansicht',
+    dashboard: 'Rotierendes Dashboard',
+    standings: 'Tabelle',
+    matches: 'Fixiertes Spiel',
+    overlay: 'Broadcast-Einblendung',
+    stage: 'Phase',
+    match: 'Spiel',
+    background: 'Hintergrund',
+    discipline: 'Disziplin',
+    neutral: 'Neutral',
+    chroma: 'Chroma-Grün',
+    football: 'Fußballfeld',
+    court: 'Hallenfeld',
+    language: 'Sprache',
+    launch: 'TV-Bildschirm starten',
+    unavailable: 'Für diese Organisation sind keine veröffentlichten Turniere verfügbar.',
+    loadError: 'Turnierdaten sind vorübergehend nicht verfügbar.',
+    noMatches: 'Für dieses Turnier gibt es keine fixierbaren Spiele.',
+    publicSite: 'Öffentliche Website',
+    emptyOrganizations: 'Keine Organisationen verfügbar.',
+  },
+  ru: {
+    title: 'Запуск ТВ-экрана',
+    intro: 'Настройте экран площадки или эфирную накладку.',
+    organization: 'Организация',
+    tournament: 'Турнир',
+    view: 'Вид',
+    dashboard: 'Сменяемая панель',
+    standings: 'Таблица',
+    matches: 'Закреплённый матч',
+    overlay: 'Эфирная накладка',
+    stage: 'Этап',
+    match: 'Матч',
+    background: 'Фон',
+    discipline: 'Дисциплина',
+    neutral: 'Нейтральный',
+    chroma: 'Зелёный хромакей',
+    football: 'Футбольное поле',
+    court: 'Зал',
+    language: 'Язык',
+    launch: 'Запустить ТВ-экран',
+    unavailable: 'Для этой организации нет опубликованных турниров.',
+    loadError: 'Данные турнира временно недоступны.',
+    noMatches: 'В этом турнире нет матчей для закрепления.',
+    publicSite: 'Публичный сайт',
+    emptyOrganizations: 'Организации недоступны.',
+  },
+  zh: {
+    title: '电视屏幕启动器',
+    intro: '配置场馆屏幕或直播叠加层。',
+    organization: '组织',
+    tournament: '赛事',
+    view: '视图',
+    dashboard: '轮播面板',
+    standings: '排名',
+    matches: '固定比赛',
+    overlay: '直播叠加层',
+    stage: '阶段',
+    match: '比赛',
+    background: '背景',
+    discipline: '项目',
+    neutral: '中性',
+    chroma: '色键绿',
+    football: '足球场',
+    court: '室内球场',
+    language: '语言',
+    launch: '启动电视屏幕',
+    unavailable: '此组织没有已发布的赛事。',
+    loadError: '赛事数据暂时不可用。',
+    noMatches: '此赛事没有可固定的比赛。',
+    publicSite: '公开网站',
+    emptyOrganizations: '没有可用组织。',
+  },
+};
+
+const params = Astro.url.searchParams;
+const langParam = params.get('lang');
+const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
+const t = messages[language];
+let organizationsResponse;
+try {
+  organizationsResponse = await fetchOrganizations();
+} catch {
+  organizationsResponse = undefined;
+}
+const organizations = organizationsResponse ?? [];
+const requestedOrganization = params.get('organization');
+const selectedOrganization =
+  organizations.find((item) => item.alias === requestedOrganization) ?? organizations[0];
+let tournaments: NonNullable<
+  Awaited<ReturnType<typeof fetchOrganizationTournaments>>
+>['tournaments'] = [];
+let loadFailed = false;
+if (organizationsResponse === undefined) loadFailed = true;
+if (selectedOrganization) {
+  try {
+    const response = await fetchOrganizationTournaments(selectedOrganization.alias);
+    if (!response) loadFailed = true;
+    tournaments = response?.tournaments ?? [];
+  } catch {
+    loadFailed = true;
+  }
+}
+const requestedTournament = params.get('tournament');
+const selectedTournament =
+  tournaments.find((item) => item.alias === requestedTournament) ?? tournaments[0];
+let matchChoices: { stage: number; match: number; label: string }[] = [];
+let selectedDisciplineBackground: ReturnType<typeof selectDisciplineBackground>;
+if (selectedOrganization && selectedTournament) {
+  try {
+    const [overview, matchesView] = await Promise.all([
+      fetchOverview(selectedOrganization.alias, selectedTournament.alias),
+      fetchMatchesView(selectedOrganization.alias, selectedTournament.alias),
+    ]);
+    if (!overview || !matchesView) loadFailed = true;
+    const stages = new Set((overview?.matches ?? []).map((item) => item.stageNumber));
+    selectedDisciplineBackground = selectDisciplineBackground(overview?.disciplineImages);
+    const matches = mapMatchesViewResponse(matchesView ?? { matches: [] }).matches;
+    for (const item of matches) stages.add(item.stageNumber);
+    for (const stage of stages) {
+      for (const match of matches.filter((item) => item.stageNumber === stage)) {
+        matchChoices.push({
+          stage,
+          match: match.matchNumber,
+          label: `#${match.matchNumber} · ${match.homeName ?? 'TBD'} — ${match.awayName ?? 'TBD'}`,
+        });
+      }
+    }
+  } catch {
+    loadFailed = true;
+  }
+}
+const viewParam = params.get('view');
+const view = ['dashboard', 'standings', 'matches', 'overlay'].includes(viewParam ?? '')
+  ? viewParam!
+  : 'dashboard';
+const requestedBackground = params.get('bg') ?? params.get('background');
+const background =
+  TV_BACKGROUNDS.find((value) => value === requestedBackground && value !== 'transparent') ??
+  'discipline';
+const initialStage = Number(params.get('stage')) || matchChoices[0]?.stage;
+const stageMatches = matchChoices.filter((item) => item.stage === initialStage);
+const initialMatch = Number(params.get('match')) || stageMatches[0]?.match;
+const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'football';
+---
+
+<TvLayout title={t.title} background={background}>
+  <main
+    class="tv-launcher"
+    data-tv-launcher
+    data-background={background}
+    data-discipline={backdropDiscipline}
+    data-has-discipline={String(Boolean(selectedDisciplineBackground))}
+  >
+    {
+      selectedDisciplineBackground && (
+        <img
+          class="tv-launcher__discipline"
+          data-discipline-image
+          data-active={background === 'discipline' ? 'true' : 'false'}
+          src={selectedDisciplineBackground.url}
+          alt=""
+          aria-hidden="true"
+          style={`opacity:${selectedDisciplineBackground.opacity}`}
+        />
+      )
+    }
+    <div class="tv-launcher__backdrop" aria-hidden="true"></div>
+    <section class="tv-launcher__panel" aria-labelledby="tv-launcher-title">
+      <h1 id="tv-launcher-title">{t.title}</h1>
+      <p class="tv-launcher__intro">{t.intro}</p>
+      {
+        organizations.length === 0 ? (
+          <p role="status">{loadFailed ? t.loadError : t.emptyOrganizations}</p>
+        ) : (
+          <form
+            class="tv-launcher__form"
+            data-match-options={encodeURIComponent(JSON.stringify(matchChoices))}
+          >
+            <label>
+              {t.organization}
+              <select name="organization" data-launcher-organization>
+                {organizations.map((org) => (
+                  <option value={org.alias} selected={org.alias === selectedOrganization?.alias}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t.tournament}
+              <select name="tournament" data-launcher-tournament>
+                {tournaments.map((tournament) => (
+                  <option
+                    value={tournament.alias}
+                    selected={tournament.alias === selectedTournament?.alias}
+                  >
+                    {tournament.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t.view}
+              <select name="view" data-launcher-view>
+                {(['dashboard', 'standings', 'matches', 'overlay'] as const).map((item) => (
+                  <option value={item} selected={item === view}>
+                    {t[item]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div
+              class="tv-launcher__match-fields"
+              data-match-fields
+              hidden={!['matches'].includes(view)}
+            >
+              <label>
+                {t.stage}
+                <select data-launcher-stage>
+                  {Array.from(new Set(matchChoices.map((item) => item.stage))).map((stage) => (
+                    <option value={stage} selected={stage === initialStage}>
+                      {stage}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t.match}
+                <select data-launcher-match>
+                  {stageMatches.map((item) => (
+                    <option value={item.match} selected={item.match === initialMatch}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {view === 'matches' && matchChoices.length === 0 && (
+              <p role="status" class="tv-launcher__notice">
+                {t.noMatches}
+              </p>
+            )}
+            <label>
+              {t.background}
+              <select name="bg" data-launcher-background>
+                {(['discipline', 'neutral', 'chroma', 'football', 'court'] as const).map((item) => (
+                  <option value={item} selected={item === background}>
+                    {t[item]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t.language}
+              <select name="lang" data-launcher-language>
+                {(['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const).map((item) => (
+                  <option value={item} selected={item === language}>
+                    {item.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {loadFailed && (
+              <p role="status" class="tv-launcher__notice">
+                {t.loadError}
+              </p>
+            )}
+            {selectedOrganization && tournaments.length === 0 && !loadFailed && (
+              <p role="status" class="tv-launcher__notice">
+                {t.unavailable}
+              </p>
+            )}
+            <a class="tv-launcher__launch" data-launcher-link href="#">
+              {t.launch}
+              <span aria-hidden="true">↗</span>
+            </a>
+            {selectedOrganization && (
+              <a
+                class="tv-launcher__public"
+                href={`/${encodeURIComponent(selectedOrganization.alias)}`}
+              >
+                {t.publicSite} ↗
+              </a>
+            )}
+          </form>
+        )
+      }
+    </section>
+  </main>
+</TvLayout>
+
+<script>
+  import { buildTvLauncherDestination, parseTvLauncherPreset } from '../../lib/tv-launcher.js';
+  import type { TvBackground } from '../../lib/tv-background.js';
+
+  const root = document.querySelector<HTMLElement>('[data-tv-launcher]');
+  const form = root?.querySelector<HTMLFormElement>('.tv-launcher__form');
+  if (root && form) {
+    const organization = form.querySelector<HTMLSelectElement>('[data-launcher-organization]');
+    const tournament = form.querySelector<HTMLSelectElement>('[data-launcher-tournament]');
+    const view = form.querySelector<HTMLSelectElement>('[data-launcher-view]');
+    const background = form.querySelector<HTMLSelectElement>('[data-launcher-background]');
+    const language = form.querySelector<HTMLSelectElement>('[data-launcher-language]');
+    const stage = form.querySelector<HTMLSelectElement>('[data-launcher-stage]');
+    const match = form.querySelector<HTMLSelectElement>('[data-launcher-match]');
+    const matchFields = form.querySelector<HTMLElement>('[data-match-fields]');
+    const launch = form.querySelector<HTMLAnchorElement>('[data-launcher-link]');
+    let matchChoices: { stage: number; match: number; label: string }[] = [];
+    try {
+      matchChoices = JSON.parse(decodeURIComponent(form.dataset.matchOptions ?? ''));
+    } catch {
+      matchChoices = [];
+    }
+
+    const readPreset = (): void => {
+      if (
+        !organization?.value ||
+        !tournament?.value ||
+        !view?.value ||
+        !background?.value ||
+        !language?.value
+      )
+        return;
+      const preset = {
+        organization: organization.value,
+        tournament: tournament.value,
+        view: view.value,
+        background: background.value,
+        language: language.value,
+        stage: Number(stage?.value),
+        match: Number(match?.value),
+      };
+      try {
+        localStorage.setItem('copalibre.tv.launcher_preset', JSON.stringify(preset));
+      } catch {
+        /* Storage can be disabled by kiosk policy. */
+      }
+      root.dataset.background = background.value;
+      document.documentElement.dataset.tvBackground = background.value as TvBackground;
+      const disciplineImage = root.querySelector<HTMLElement>('[data-discipline-image]');
+      disciplineImage?.setAttribute('data-active', String(background.value === 'discipline'));
+      matchFields?.toggleAttribute('hidden', view.value !== 'matches');
+      const href = buildTvLauncherDestination({
+        ...preset,
+        view: view.value as 'dashboard' | 'standings' | 'matches' | 'overlay',
+        background: background.value as Exclude<TvBackground, 'transparent'>,
+        language: language.value,
+        ...(view.value === 'matches'
+          ? { stage: Number(stage?.value), match: Number(match?.value) }
+          : {}),
+      });
+      const matchUnavailable = view.value === 'matches' && (!stage?.value || !match?.value);
+      if (launch) {
+        launch.href = matchUnavailable ? '#' : href;
+        launch.setAttribute('aria-disabled', String(matchUnavailable));
+      }
+      root.dataset.tvBackground = background.value;
+    };
+    const refreshMatches = (): void => {
+      if (!stage || !match) return;
+      const selectedStage = Number(stage.value);
+      const options = matchChoices.filter((item) => item.stage === selectedStage);
+      match.replaceChildren(
+        ...options.map((item) => {
+          const option = document.createElement('option');
+          option.value = String(item.match);
+          option.textContent = item.label;
+          return option;
+        }),
+      );
+      readPreset();
+    };
+    const restore = (): void => {
+      try {
+        const saved = parseTvLauncherPreset(
+          JSON.parse(localStorage.getItem('copalibre.tv.launcher_preset') ?? 'null'),
+        );
+        if (!saved) return;
+        const url = new URL(window.location.href);
+        if (
+          ['organization', 'tournament', 'view', 'bg', 'lang'].some((key) =>
+            url.searchParams.has(key),
+          )
+        )
+          return;
+        if (
+          !url.searchParams.has('organization') &&
+          (organization?.value !== saved.organization || tournament?.value !== saved.tournament)
+        ) {
+          if (
+            organization &&
+            [...organization.options].some((option) => option.value === saved.organization)
+          ) {
+            const restored = new URLSearchParams({
+              organization: saved.organization,
+              tournament: saved.tournament,
+              view: saved.view,
+              bg: saved.background,
+              lang: saved.language,
+              ...(saved.stage === undefined ? {} : { stage: String(saved.stage) }),
+              ...(saved.match === undefined ? {} : { match: String(saved.match) }),
+            });
+            window.location.replace(`/tv?${restored}`);
+          }
+          return;
+        }
+        if (view && [...view.options].some((option) => option.value === saved.view))
+          view.value = saved.view;
+        if (
+          background &&
+          [...background.options].some((option) => option.value === saved.background)
+        )
+          background.value = saved.background;
+        if (language && [...language.options].some((option) => option.value === saved.language))
+          language.value = saved.language;
+        if (
+          tournament &&
+          [...tournament.options].some((option) => option.value === saved.tournament)
+        )
+          tournament.value = saved.tournament;
+        if (stage && [...stage.options].some((option) => Number(option.value) === saved.stage))
+          stage.value = String(saved.stage);
+        refreshMatches();
+        if (
+          match &&
+          saved.match !== undefined &&
+          [...match.options].some((option) => Number(option.value) === saved.match)
+        )
+          match.value = String(saved.match);
+      } catch {
+        /* Invalid or unavailable local storage leaves server defaults in place. */
+      }
+    };
+    organization?.addEventListener('change', () => form.requestSubmit());
+    tournament?.addEventListener('change', () => form.requestSubmit());
+    stage?.addEventListener('change', refreshMatches);
+    form.addEventListener('change', readPreset);
+    launch?.addEventListener('click', (event) => {
+      if (launch.getAttribute('aria-disabled') === 'true') event.preventDefault();
+    });
+    restore();
+    readPreset();
+  }
+</script>
+
+<style>
+  .tv-launcher {
+    position: relative;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    min-height: 100dvh;
+    padding: clamp(1rem, 4vw, 3rem);
+    isolation: isolate;
+  }
+  .tv-launcher__backdrop {
+    position: fixed;
+    z-index: -1;
+    inset: 0;
+    background: var(--cl-surface-base);
+    transition: background 240ms ease;
+  }
+  .tv-launcher__discipline {
+    position: fixed;
+    z-index: -2;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(12px);
+    transform: scale(1.06);
+  }
+  .tv-launcher__discipline[data-active='false'] {
+    display: none;
+  }
+  .tv-launcher[data-background='chroma'] .tv-launcher__backdrop {
+    background: var(--tv-chroma);
+  }
+  .tv-launcher[data-background='football'] .tv-launcher__backdrop {
+    background:
+      repeating-linear-gradient(
+        90deg,
+        transparent 0 12.4%,
+        color-mix(in srgb, var(--cl-text-primary) 10%, transparent) 12.5% 12.6%,
+        transparent 12.7% 25%
+      ),
+      radial-gradient(
+        ellipse,
+        transparent 0 24%,
+        color-mix(in srgb, var(--cl-text-primary) 42%, transparent) 24.2% 24.5%,
+        transparent 24.7%
+      ),
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--cl-state-positive) 70%, var(--cl-surface-base)),
+        color-mix(in srgb, var(--cl-state-positive) 36%, var(--cl-surface-base))
+      );
+  }
+  .tv-launcher[data-background='court'] .tv-launcher__backdrop {
+    background:
+      repeating-linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--cl-text-primary) 20%, transparent) 0 1px,
+        transparent 1px 12.5%
+      ),
+      radial-gradient(
+        ellipse,
+        transparent 0 20%,
+        color-mix(in srgb, var(--cl-text-primary) 45%, transparent) 20.2% 20.5%,
+        transparent 20.7%
+      ),
+      linear-gradient(
+        110deg,
+        color-mix(in srgb, var(--cl-state-upcoming) 40%, var(--cl-surface-base)),
+        color-mix(in srgb, var(--cl-state-upcoming) 22%, var(--cl-surface-base))
+      );
+  }
+  .tv-launcher[data-background='discipline'] .tv-launcher__backdrop {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cl-surface-base) 25%, transparent),
+      color-mix(in srgb, var(--cl-surface-base) 65%, transparent)
+    );
+  }
+  .tv-launcher[data-background='discipline'][data-has-discipline='false'] .tv-launcher__backdrop {
+    background: radial-gradient(
+      ellipse at 25% 20%,
+      color-mix(in srgb, var(--cl-state-positive) 48%, var(--cl-surface-base)),
+      var(--cl-surface-base) 64%
+    );
+  }
+  .tv-launcher__panel {
+    width: min(100%, 38rem);
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    box-sizing: border-box;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    color: var(--cl-text-primary);
+    background: var(--cl-surface-panel);
+    border: 1px solid var(--cl-border-muted);
+    border-radius: var(--cl-radius-md);
+    box-shadow: 0 24px 48px -12px color-mix(in srgb, var(--cl-surface-base) 55%, transparent);
+  }
+  .tv-launcher h1 {
+    margin: 0;
+    font-size: clamp(var(--cl-font-size-xl), 4vw, var(--cl-font-size-3xl));
+  }
+  .tv-launcher__intro {
+    margin: 0.5rem 0 1.5rem;
+    color: var(--cl-text-secondary);
+  }
+  .tv-launcher__form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .tv-launcher__form label {
+    display: grid;
+    gap: 0.4rem;
+    color: var(--cl-text-secondary);
+    font-size: var(--cl-font-size-sm);
+  }
+  .tv-launcher select {
+    min-width: 0;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.7rem;
+    color: var(--cl-text-primary);
+    background: var(--cl-surface-base);
+    border: 1px solid var(--cl-border-muted);
+    border-radius: var(--cl-radius-sm);
+    font: inherit;
+  }
+  .tv-launcher__match-fields {
+    display: contents;
+  }
+  .tv-launcher__match-fields[hidden] {
+    display: none;
+  }
+  .tv-launcher__launch {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 3rem;
+    padding: 0 1rem;
+    color: var(--cl-surface-base);
+    background: var(--cl-primary);
+    border-radius: var(--cl-radius-sm);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .tv-launcher__launch[aria-disabled='true'] {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .tv-launcher__public {
+    grid-column: 1 / -1;
+    justify-self: center;
+    color: var(--cl-text-secondary);
+  }
+  .tv-launcher__notice {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--cl-state-warning);
+  }
+  .tv-launcher a:focus-visible,
+  .tv-launcher select:focus-visible {
+    outline: 3px solid var(--cl-focus-ring);
+    outline-offset: 2px;
+  }
+  @media (max-width: 600px) {
+    .tv-launcher {
+      padding: 0.75rem;
+    }
+    .tv-launcher__panel {
+      max-height: calc(100dvh - 1.5rem);
+    }
+    .tv-launcher__form {
+      grid-template-columns: 1fr;
+    }
+    .tv-launcher__launch,
+    .tv-launcher__public,
+    .tv-launcher__notice {
+      grid-column: auto;
+    }
+  }
+</style>

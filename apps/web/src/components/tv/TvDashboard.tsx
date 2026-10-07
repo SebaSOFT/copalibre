@@ -61,6 +61,8 @@ export interface TvDashboardProps {
   readonly presentation?: TvPresentation;
   /** Set on the pinned-match route; the full-rotation route leaves this unset. */
   readonly pinnedMatchNumber?: number;
+  /** Keeps a launcher-selected TV tab fixed instead of entering carousel rotation. */
+  readonly initialView?: 'standings';
   /**
    * The pinned match's own recorded events (goals, cards), set only on the pinned-match route
    * (openspec 0270) — the full-rotation route leaves this unset, same as `pinnedMatchNumber`.
@@ -129,10 +131,11 @@ export function TvDashboard({
   dashboardLabels,
   language,
   pollIntervalMs = 15_000,
+  initialView,
 }: TvDashboardProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState<LiveDashboard>(initial);
   const [activeTab, setActiveTab] = useState<'standings' | 'performers' | 'facts' | 'bracket'>(
-    'standings',
+    initialView ?? 'standings',
   );
   const [bracketData, setBracketData] = useState(initialBracket);
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -293,7 +296,7 @@ export function TvDashboard({
 
   // 5. Automatic Carousel Rotation (respects prefers-reduced-motion)
   useEffect(() => {
-    if (prefersReducedMotion) return;
+    if (prefersReducedMotion || initialView) return;
     const interval = setInterval(() => {
       setActiveTab((current) => {
         if (current === 'standings') return 'performers';
@@ -303,7 +306,7 @@ export function TvDashboard({
       });
     }, 10_000);
     return () => clearInterval(interval);
-  }, [prefersReducedMotion, bracketData]);
+  }, [prefersReducedMotion, bracketData, initialView]);
 
   // 6. Data Computations
   const matches = dashboard.matches;
