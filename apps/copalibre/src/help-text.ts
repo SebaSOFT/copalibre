@@ -112,11 +112,15 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'dev',
     summary: 'Run a development environment (containerized or hybrid)',
-    usage: 'copalibre dev [--hybrid]',
+    usage: 'copalibre dev [--hybrid]\n       copalibre dev demo [--list] [<dataset>]',
     flags: [
       {
         flag: '--hybrid',
         description: 'Run infrastructure in Docker but application processes on the host',
+      },
+      {
+        flag: 'demo [--list] [<dataset>]',
+        description: 'Load a demo dataset into the running development stack, or list the datasets',
       },
     ],
   },

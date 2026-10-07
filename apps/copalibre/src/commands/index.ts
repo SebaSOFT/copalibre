@@ -3,6 +3,7 @@ import type { CliContext } from '../cli-context.js';
 import { BackupCommand } from './backup-command.js';
 import { CreateAdminCommand } from './create-admin-command.js';
 import { DevCommand } from './dev-command.js';
+import { DevDemoCommand } from './dev-demo-command.js';
 import { DoctorCommand } from './doctor-command.js';
 import { InitCommand } from './init-command.js';
 import { LoginCommand } from './login-command.js';
@@ -34,6 +35,7 @@ export const commandClasses: readonly CommandClass<CliContext>[] = [
   InitCommand,
   DoctorCommand,
   DevCommand,
+  DevDemoCommand,
   StartCommand,
   StopCommand,
   RestartCommand,

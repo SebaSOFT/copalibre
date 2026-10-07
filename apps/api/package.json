@@ -36,6 +36,7 @@
     "sharp": "^0.35.5"
   },
   "devDependencies": {
+    "@copalibre/demo-datasets": "workspace:^",
     "@copalibre/module-catalogue": "workspace:^",
     "@nestjs/testing": "^12.1.2",
     "@types/supertest": "^7.2.1",

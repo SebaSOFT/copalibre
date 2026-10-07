@@ -322,6 +322,7 @@ jobs:
           yarn workspace @copalibre/rules test:coverage --maxWorkers=2
           yarn workspace @copalibre/tournament-engine test:coverage --maxWorkers=2
           yarn workspace @copalibre/statistics-refold test:coverage --maxWorkers=2
+          yarn workspace @copalibre/demo-datasets test:coverage --maxWorkers=2
           yarn workspace @copalibre/module-catalogue test:coverage --maxWorkers=2
           yarn workspace @copalibre/module-distribution test:coverage --maxWorkers=2
           yarn workspace @copalibre/auth test:coverage --maxWorkers=2
@@ -339,6 +340,7 @@ jobs:
           yarn workspace @copalibre/api test:coverage --maxWorkers=2
           yarn workspace @copalibre/api test:sqlite
           yarn workspace @copalibre/persistence test:sqlite
+          yarn workspace @copalibre/seed test
           yarn workspace @copalibre/seed test:sqlite
           yarn workspace @copalibre/object-storage test:coverage --maxWorkers=2
           yarn workspace @copalibre/worker test:coverage --maxWorkers=2

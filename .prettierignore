@@ -28,3 +28,8 @@ deploy/helm/copalibre/templates/
 # comparison that compares values exactly (openspec change 0224).
 DESIGN.md
 .impeccable/
+
+# Generated demo datasets and the scrape cache
+packages/demo-datasets/datasets/
+packages/demo-datasets/cache/
+packages/demo-datasets/src/scrape/fixtures/

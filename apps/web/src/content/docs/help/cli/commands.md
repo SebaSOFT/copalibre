@@ -86,6 +86,19 @@ Runs a development environment, containerized or hybrid.
 
 - `--hybrid`: infrastructure in Docker, application processes on the host
 
+### dev demo
+
+`copalibre dev demo [--list] [<dataset>]`
+
+Loads a committed demo dataset (for example `panamericano-clubes-2025`, a 24-club rink hockey
+championship with groups, cups, schedule, results and emblems) into the running development stack.
+Run it from your checkout with the stack up (`copalibre dev`). The `rink-hockey` discipline must
+already be installed; loading never installs modules, and a dataset already loaded is left
+untouched. Player surnames in the datasets are generated, not real.
+
+- `--list`: print the available datasets and exit
+- reset the demo data with `docker compose -f docker-compose.dev.yml down -v`
+
 ## start
 
 `copalibre start [--dev]`

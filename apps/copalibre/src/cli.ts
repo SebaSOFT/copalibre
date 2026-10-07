@@ -69,6 +69,9 @@ export async function runCli(
       process.stderr.write(renderTournamentHelp());
       return 64;
     }
+  } else if (command === 'dev' && arguments_[1] === 'demo' && HELP_FLAGS.has(arguments_[2] ?? '')) {
+    process.stdout.write(renderCommandHelp('dev', COMMAND_HELP));
+    return 0;
   } else if (
     HELP_FLAGS.has(arguments_[1] ?? '') &&
     COMMAND_HELP.some((candidate) => candidate.name === command)

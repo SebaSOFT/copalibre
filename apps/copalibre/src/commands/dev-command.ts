@@ -73,7 +73,8 @@ export class DevCommand extends Command<CliContext> {
   }
 }
 
-function hybridEnvironment(environment: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+/** The host-side environment for the dev infrastructure, defaulting every value to the dev Compose profile's own. */
+export function hybridEnvironment(environment: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   return {
     ...environment,
     DATABASE_URL:
