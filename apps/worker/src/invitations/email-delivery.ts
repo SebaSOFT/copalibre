@@ -1,6 +1,7 @@
+import type { SupportedLanguage } from '@copalibre/domain';
 import nodemailer from 'nodemailer';
-import type { JobHandler } from '../jobs/dispatcher.js';
-import { payloadOf } from '../jobs/relay-runner.js';
+import { emailCopy } from '../notifications/email-copy.js';
+import { renderEmail, type EmailOrganization } from '../notifications/email-layout.js';
 
 export type EmailProvider = 'resend' | 'brevo' | 'mailgun' | 'smtp';
 
@@ -14,14 +15,14 @@ export interface EmailDeliveryConfig {
   readonly smtpUrl?: string;
 }
 
-interface InvitationPayload {
+export interface InvitationPayload {
   readonly invitationId: string;
   readonly recipientEmail: string;
   readonly token: string;
   readonly expiresAt: string;
 }
 
-interface PasswordResetPayload {
+export interface PasswordResetPayload {
   readonly verificationId: string;
   readonly recipientEmail: string;
   readonly token: string;
@@ -36,6 +37,19 @@ export interface EmailMessage {
 }
 
 export type FetchLike = typeof fetch;
+
+/**
+ * The provider answered and refused the message, so it was definitely not delivered and the
+ * recipient may safely be retried. Any other failure (timeout, reset) is of unknown outcome, and
+ * `deliverOnce` does not retry it: the same email must never reach one recipient twice.
+ */
+export class EmailRejectedError extends Error {}
+
+/** Who and in which language an email speaks; absent means English with the Copa Libre mark only. */
+export interface EmailBrandingContext {
+  readonly organization?: EmailOrganization;
+  readonly language?: SupportedLanguage;
+}
 
 export function emailDeliveryConfigFromEnv(
   environment: NodeJS.ProcessEnv = process.env,
@@ -75,21 +89,22 @@ export function emailDeliveryConfigFromEnv(
 export function invitationMessage(
   config: EmailDeliveryConfig,
   payload: InvitationPayload,
+  context: EmailBrandingContext = {},
 ): EmailMessage {
+  const language = context.language ?? 'en';
+  const copy = emailCopy(language).invitation;
   const url = new URL('/invitations/accept', config.appUrl);
   url.searchParams.set('token', payload.token);
   const expiresAt = new Date(payload.expiresAt).toISOString();
-  const text = [
-    'You have been invited to CopaLibre.',
-    `Accept invitation: ${url.toString()}`,
-    `This invitation expires at ${expiresAt}.`,
-  ].join('\n');
-  return {
+  return renderEmail(config, {
     to: payload.recipientEmail,
-    subject: 'CopaLibre invitation',
-    text,
-    html: `<p>You have been invited to CopaLibre.</p><p><a href="${url.toString()}">Accept invitation</a></p><p>This invitation expires at ${expiresAt}.</p>`,
-  };
+    subject: copy.subject,
+    language,
+    ...(context.organization ? { organization: context.organization } : {}),
+    heading: copy.heading,
+    paragraphs: [copy.body, copy.expires(expiresAt)],
+    action: { label: copy.action, url: url.toString() },
+  });
 }
 
 /** Native provider APIs plus SMTP fallback. Any failure propagates to outbox retry/dead-letter policy. */
@@ -99,13 +114,22 @@ export async function sendEmail(
   fetcher: FetchLike = fetch,
 ): Promise<void> {
   if (config.provider === 'smtp') {
-    await nodemailer.createTransport(requiredConfig(config.smtpUrl, 'SMTP URL')).sendMail({
-      from: config.from,
-      to: message.to,
-      subject: message.subject,
-      text: message.text,
-      html: message.html,
-    });
+    try {
+      await nodemailer.createTransport(requiredConfig(config.smtpUrl, 'SMTP URL')).sendMail({
+        from: config.from,
+        to: message.to,
+        subject: message.subject,
+        text: message.text,
+        html: message.html,
+      });
+    } catch (error) {
+      if (isSmtpRefusal(error)) {
+        throw new EmailRejectedError(error instanceof Error ? error.message : 'SMTP refused', {
+          cause: error,
+        });
+      }
+      throw error;
+    }
     return;
   }
 
@@ -170,48 +194,24 @@ function requiredConfig(value: string | undefined, name: string): string {
   throw new Error(`${name} is required for the selected email provider`);
 }
 
-export function invitationEmailHandler(
-  config: EmailDeliveryConfig,
-  fetcher: FetchLike = fetch,
-): JobHandler {
-  return async (job) => {
-    const payload = payloadOf<InvitationPayload>(job);
-    assertInvitationPayload(payload);
-    await sendEmail(config, invitationMessage(config, payload), fetcher);
-  };
-}
-
 /** Creates the queued password-reset email without persisting or logging its token. */
 export function passwordResetMessage(
   config: EmailDeliveryConfig,
   payload: PasswordResetPayload,
 ): EmailMessage {
+  // A reset is principal-scoped, with no organization and so no organization language.
+  const copy = emailCopy('en').passwordReset;
   const url = new URL('/control/reset-password', config.appUrl);
   url.searchParams.set('token', payload.token);
   const expiresAt = new Date(payload.expiresAt).toISOString();
-  const text = [
-    'A password reset was requested for your CopaLibre account.',
-    `Reset your password: ${url.toString()}`,
-    `This link expires at ${expiresAt}.`,
-    'If you did not request this, you can ignore this email.',
-  ].join('\n');
-  return {
+  return renderEmail(config, {
     to: payload.recipientEmail,
-    subject: 'CopaLibre password reset',
-    text,
-    html: `<p>A password reset was requested for your CopaLibre account.</p><p><a href="${url.toString()}">Reset your password</a></p><p>This link expires at ${expiresAt}.</p><p>If you did not request this, you can ignore this email.</p>`,
-  };
-}
-
-export function passwordResetEmailHandler(
-  config: EmailDeliveryConfig,
-  fetcher: FetchLike = fetch,
-): JobHandler {
-  return async (job) => {
-    const payload = payloadOf<PasswordResetPayload>(job);
-    assertPasswordResetPayload(payload);
-    await sendEmail(config, passwordResetMessage(config, payload), fetcher);
-  };
+    subject: copy.subject,
+    language: 'en',
+    heading: copy.heading,
+    paragraphs: [copy.body, copy.expires(expiresAt), copy.ignore],
+    action: { label: copy.action, url: url.toString() },
+  });
 }
 
 async function request(
@@ -226,29 +226,14 @@ async function request(
     body: body instanceof URLSearchParams ? body : JSON.stringify(body),
   });
   if (!response.ok)
-    throw new Error(`Email provider rejected delivery with HTTP ${response.status}`);
+    throw new EmailRejectedError(`Email provider rejected delivery with HTTP ${response.status}`);
 }
 
-function assertInvitationPayload(payload: InvitationPayload): void {
-  if (
-    typeof payload.invitationId !== 'string' ||
-    typeof payload.recipientEmail !== 'string' ||
-    typeof payload.token !== 'string' ||
-    typeof payload.expiresAt !== 'string'
-  ) {
-    throw new Error('organization.invite.requested payload is invalid');
-  }
-}
-
-function assertPasswordResetPayload(payload: PasswordResetPayload): void {
-  if (
-    typeof payload.verificationId !== 'string' ||
-    typeof payload.recipientEmail !== 'string' ||
-    typeof payload.token !== 'string' ||
-    typeof payload.expiresAt !== 'string'
-  ) {
-    throw new Error('password-reset-requested payload is invalid');
-  }
+/** An SMTP server replied with a refusal, or the connection never opened: nothing was delivered. */
+export function isSmtpRefusal(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const { responseCode, command } = error as { responseCode?: unknown; command?: unknown };
+  return typeof responseCode === 'number' || command === 'CONN';
 }
 
 function isEmailProvider(value: string | undefined): value is EmailProvider {

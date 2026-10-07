@@ -448,3 +448,26 @@ Continuous integration SHALL check direct and transitive dependencies from every
 #### Scenario: Unpatched build-time dependencies require recorded blast-radius assessment
 - **WHEN** a transitive dependency carries an open advisory with no upstream patch available
 - **THEN** CI requires an explicit entry in the verified unpatched register documenting zero runtime exposure, failing if the advisory is unreviewed or if an upstream patch has been released but not adopted
+
+### Requirement: Transitive security remediations are attributed to direct dependencies
+The repository SHALL maintain a versioned, machine-readable register of confirmed security remediation events caused by vulnerable transitive dependencies. Each event SHALL identify the advisory, affected transitive package, remediation action, and all direct dependency package roots that lead to the affected package, with the consuming workspaces and evidence needed to verify those paths. A single event SHALL count once for each distinct direct dependency root, regardless of how many workspaces consume that root or how many duplicate paths occur beneath it. CI SHALL validate the register and publish cumulative event, advisory, and transitive-package counts grouped by direct dependency root. The report SHALL identify the historical coverage window and mark an incomplete baseline as partial; missing historical entries SHALL NOT be presented as zero incidents. This report SHALL inform maintainer decisions and SHALL NOT automatically replace dependencies or weaken the dependency audit gate.
+
+#### Scenario: One advisory remediation is counted once per direct root
+- **WHEN** one transitive advisory affects the same direct dependency package in multiple workspaces and through duplicate nested paths
+- **THEN** the report counts one event for that direct dependency package and lists all affected workspaces
+
+#### Scenario: One advisory remediation is attributed to multiple direct roots
+- **WHEN** two distinct direct dependency packages introduce the same vulnerable transitive package
+- **THEN** the report attributes one event to each direct dependency package and links both attributions to the same remediation evidence
+
+#### Scenario: A new transitive remediation updates the lifetime counts
+- **WHEN** maintainers add a verified remediation event to the register
+- **THEN** CI validates its advisory, transitive package, remediation, direct roots, affected workspaces, and evidence, then includes it in grouped counts
+
+#### Scenario: Incomplete historical coverage is visible
+- **WHEN** the register includes only remediations that can be confirmed from repository evidence
+- **THEN** the report identifies its coverage start and marks the historical baseline partial rather than treating earlier omissions as zero incidents
+
+#### Scenario: Security incident reporting preserves the audit gate
+- **WHEN** the report is generated for a CI run
+- **THEN** it does not change dependency audit results or automatically modify dependency manifests, resolutions, or lockfiles

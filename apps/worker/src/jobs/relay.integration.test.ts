@@ -72,6 +72,36 @@ describe('outbox relay (integration)', () => {
     expect(claimedIds).toHaveLength(1);
   });
 
+  it('reserves a (consumer, event) pair for exactly one of many concurrent callers', async () => {
+    const eventId = await publish('reservation.probe', '44444444-4444-4444-8444-444444444444');
+
+    const results = await Promise.all(
+      Array.from({ length: 10 }, () => relay.reserve('email:recipient', eventId)),
+    );
+    expect(results.filter(Boolean)).toHaveLength(1);
+
+    // A reservation is not a completion: the row is still pending for its own consumer.
+    const pending = await scratch.db
+      .selectFrom('outbox_events')
+      .select('consumed_at')
+      .where('event_id', '=', eventId)
+      .executeTakeFirstOrThrow();
+    expect(pending.consumed_at).toBeNull();
+    expect(await relay.wasProcessed('email:recipient', eventId)).toBe(true);
+  });
+
+  it('lets a released reservation be taken again, and keeps other consumers apart', async () => {
+    const eventId = await publish('reservation.probe', '55555555-5555-4555-8555-555555555555');
+
+    expect(await relay.reserve('email:a', eventId)).toBe(true);
+    expect(await relay.reserve('email:b', eventId)).toBe(true);
+    expect(await relay.reserve('email:a', eventId)).toBe(false);
+
+    await relay.release('email:a', eventId);
+    expect(await relay.reserve('email:a', eventId)).toBe(true);
+    expect(await relay.wasProcessed('email:b', eventId)).toBe(true);
+  });
+
   it('does not duplicate the side effect when the same row is redelivered', async () => {
     const entityId = '33333333-3333-4333-8333-333333333333';
     const eventId = await publish('match.finalized', entityId);

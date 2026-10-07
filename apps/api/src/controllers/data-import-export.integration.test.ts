@@ -226,6 +226,17 @@ describe('CSV import routes', () => {
       { alias: 'casa-italia-b', abbreviation: null },
       { alias: 'club-milan', abbreviation: 'CM' },
     ]);
+
+    // Every entrant an import registers is flagged, so notification email stays silent for a bulk write.
+    const registrations = await scratch.db
+      .selectFrom('outbox_events')
+      .select('payload')
+      .where('event_type', '=', 'entrant.registered')
+      .execute();
+    const imported = registrations.filter(
+      (row) => (row.payload as { origin?: string }).origin === 'import',
+    );
+    expect(imported.length).toBeGreaterThanOrEqual(3);
   });
 
   it('rejects a source larger than 4 MiB before creating a durable job', async () => {

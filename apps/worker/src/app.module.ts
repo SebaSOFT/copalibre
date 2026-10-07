@@ -1,10 +1,11 @@
-import { Module, type Provider } from '@nestjs/common';
+import { Logger, Module, type Provider } from '@nestjs/common';
 import { createObjectStorageAdapter, objectStorageConfigFromEnv } from '@copalibre/object-storage';
 import {
   createDatabase,
   databaseConfigFromEnv,
   EVIDENCE_VALIDATION_REQUESTED_EVENT,
   OBJECT_PROCESSING_REQUESTED_EVENT,
+  OutboxRelay,
   type Database,
 } from '@copalibre/persistence';
 import { createRefold } from '@copalibre/statistics-refold';
@@ -19,11 +20,15 @@ import {
   csvImportValidationHandler,
   CSV_IMPORT_VALIDATION_EVENT,
 } from './jobs/csv-import-handler.js';
+import { emailDeliveryConfigFromEnv } from './invitations/email-delivery.js';
 import {
-  emailDeliveryConfigFromEnv,
   invitationEmailHandler,
   passwordResetEmailHandler,
-} from './invitations/email-delivery.js';
+} from './notifications/account-handlers.js';
+import {
+  LIFECYCLE_EMAIL_EVENTS,
+  lifecycleEmailHandlers,
+} from './notifications/lifecycle-handlers.js';
 import { objectProcessingHandler } from './jobs/object-processing-handler.js';
 import { reportEvidenceValidationHandler } from './jobs/report-evidence-handler.js';
 import { RelayService } from './relay.service.js';
@@ -50,15 +55,23 @@ const providers: Provider[] = [
     useFactory: async (db: Kysely<Database>): Promise<JobDispatcher> => {
       const handler = statisticsHandler({ db, refold: createRefold(db) });
       const csvImport = csvImportValidationHandler({ db });
-      const invitation = invitationEmailHandler(emailDeliveryConfigFromEnv());
-      const passwordReset = passwordResetEmailHandler(emailDeliveryConfigFromEnv());
+      const emailConfig = emailDeliveryConfigFromEnv();
+      const logger = new Logger('EmailDelivery');
+      const email = {
+        db,
+        relay: new OutboxRelay(db),
+        warn: (message: string) => logger.warn(message),
+      };
+      const invitation = invitationEmailHandler(emailConfig, email);
+      const passwordReset = passwordResetEmailHandler(emailConfig, email);
+      const lifecycle = lifecycleEmailHandlers(emailConfig, email);
       const evidence = reportEvidenceValidationHandler({ db });
       const objectProcessing = objectProcessingHandler({
         db,
         storage: createObjectStorageAdapter(objectStorageConfigFromEnv(process.env)),
         scanner: await createClamScanClient(),
       });
-      return new JobDispatcher()
+      const dispatcher = new JobDispatcher()
         .register('match.finalized', handler)
         .register('result.superseded', handler)
         .register(CSV_IMPORT_VALIDATION_EVENT, csvImport)
@@ -66,6 +79,10 @@ const providers: Provider[] = [
         .register('password-reset-requested', passwordReset)
         .register(EVIDENCE_VALIDATION_REQUESTED_EVENT, evidence)
         .register(OBJECT_PROCESSING_REQUESTED_EVENT, objectProcessing);
+      for (const eventType of LIFECYCLE_EMAIL_EVENTS) {
+        dispatcher.register(eventType, lifecycle[eventType]);
+      }
+      return dispatcher;
     },
   },
   RelayService,

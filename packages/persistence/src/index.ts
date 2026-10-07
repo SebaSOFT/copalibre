@@ -54,7 +54,7 @@ export {
   type AuditPage,
   type AuditPageOptions,
 } from './audit.js';
-export { OutboxReader, type OutboxRecord } from './outbox.js';
+export { OutboxReader, type EventOrigin, type OutboxRecord } from './outbox.js';
 
 export {
   OrganizationRepository,

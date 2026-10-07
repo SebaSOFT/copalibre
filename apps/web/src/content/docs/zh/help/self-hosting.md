@@ -111,7 +111,17 @@ k3d cluster create --config deploy/helm/k3s-dev-cluster.yaml
 完整的先决条件清单，以及支撑这一说法的多节点故障切换、备份恢复和升级安全性的实测证据：见仓库中的
 `docs/deployment/enterprise-kubernetes.md`。
 
-## 4. 后续步骤
+## 4. 通知邮件
+
+赛事和组织的动态会通过为邀请配置的邮件服务商（`COPALIBRE_EMAIL_PROVIDER`）以邮件通知，无需额外设置。在开发环境中，邮件会进入 Mailpit。
+
+- 新赛事和新俱乐部会通知组织管理员。
+- 新报名以及俱乐部提交名单，会通知组织管理员和该赛事的管理员。触发该事件的人不会收到邮件。
+- 邮件使用组织的主要语言，页眉显示其徽标和名称，并由 Copa Libre 署名，附带指向 [copalibre.app](https://copalibre.app) 的链接。
+- CSV 导入和 `copalibre dev demo` 不发送邮件。
+- 同一封邮件绝不会向同一收件人发送两次。如果服务商在确认前超时，该邮件不会重试，因此可能漏发，但不会重复。
+
+## 5. 后续步骤
 
 - [您的第一场赛事](/help/getting-started/)——安装启动后创建并发布一项赛事。
 - [运营与可追溯性](/help/operations/)——安全地进行比赛和更正结果。

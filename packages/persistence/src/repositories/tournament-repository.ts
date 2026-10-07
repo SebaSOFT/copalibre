@@ -19,6 +19,7 @@ import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
 import { toTournament } from '../mapping.js';
 import type { Database } from '../schema.js';
+import type { EventOrigin } from '../outbox.js';
 import type { UnitOfWork } from '../transaction.js';
 
 export interface CreateTournamentInput {
@@ -29,6 +30,7 @@ export interface CreateTournamentInput {
   readonly profile?: { readonly profileId: string; readonly version: string };
   readonly actor: string;
   readonly authorizationContext: string;
+  readonly origin?: EventOrigin;
 }
 
 export interface CreateRulesetInput {
@@ -252,7 +254,14 @@ export class TournamentRepository {
       entityId: tournamentId,
       eventType: 'tournament.created',
       projectionVersion: 1,
-      payload: { tournamentId, alias: tournament.alias, status: tournament.status },
+      payload: {
+        tournamentId,
+        alias: tournament.alias,
+        status: tournament.status,
+        name: tournament.name,
+        actor: input.actor,
+        ...(input.origin === undefined ? {} : { origin: input.origin }),
+      },
     });
 
     return tournament;

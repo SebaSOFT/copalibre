@@ -23,6 +23,13 @@ export interface OutboxRecord {
   readonly consumedAt?: string;
 }
 
+/**
+ * What caused a mutation, when that matters downstream. `import` (CSV import, demo loading) tells
+ * notification handlers to send nothing for a bulk write; `club-portal` marks a club's own
+ * submission, whose squad event carries the notification. Absent means a direct operator action.
+ */
+export type EventOrigin = 'import' | 'club-portal';
+
 export class OutboxReader {
   constructor(private readonly db: Kysely<Database>) {}
 

@@ -228,6 +228,7 @@ async function loadInto(
       abbreviation: club.abbreviation,
       actor,
       authorizationContext: context,
+      origin: 'import',
     });
     clubIdByAlias.set(club.alias, created.clubId);
     const emblemObjectId = await storeEmblem(club.emblem, `clubs/${created.clubId}`, club.alias);
@@ -292,6 +293,7 @@ async function loadInto(
     descriptor,
     actor,
     authorizationContext: context,
+    origin: 'import',
   });
   const tournamentId = tournament.tournamentId;
   await tournamentRepository.updateEmblem(uow, {
@@ -314,6 +316,7 @@ async function loadInto(
       tournamentId,
       entrantRef: { kind: 'team', teamId: teamIdByAlias.get(team.alias) as string },
       ...audit,
+      origin: 'import',
     });
     await enrollment.setEntrantStatus(uow, {
       entrantId: entrant.entrantId,

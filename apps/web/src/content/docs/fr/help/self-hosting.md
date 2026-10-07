@@ -120,7 +120,17 @@ Liste complète des prérequis et les preuves mesurées de basculement multi-nœ
 sauvegarde-restauration et de sécurité de mise à niveau sur lesquelles repose cette affirmation :
 `docs/deployment/enterprise-kubernetes.md` dans le dépôt.
 
-## 4. Étapes suivantes
+## 4. E-mails de notification
+
+L'activité des tournois et de l'organisation est signalée par e-mail via le fournisseur configuré pour les invitations (`COPALIBRE_EMAIL_PROVIDER`) ; aucun autre réglage n'est nécessaire. Dans l'environnement de développement, les e-mails arrivent dans Mailpit.
+
+- Un nouveau tournoi et un nouveau club sont signalés aux administrateurs de l'organisation.
+- Une nouvelle inscription, et un club qui envoie son effectif, sont signalés aux administrateurs de l'organisation et aux administrateurs de ce tournoi. La personne à l'origine de l'événement ne reçoit pas l'e-mail.
+- Les e-mails utilisent la langue principale de l'organisation, portent son emblème et son nom en en-tête, et sont signés Copa Libre avec un lien vers [copalibre.app](https://copalibre.app).
+- Les importations CSV et `copalibre dev demo` n'envoient aucun e-mail.
+- Le même e-mail n'est jamais envoyé deux fois au même destinataire. Si un fournisseur expire avant de confirmer, cet e-mail n'est pas renvoyé : il peut donc manquer plutôt qu'être dupliqué.
+
+## 5. Étapes suivantes
 
 - [Votre premier tournoi](/help/getting-started/) — créez et publiez une compétition une fois
   l'installation en place.

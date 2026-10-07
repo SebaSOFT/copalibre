@@ -206,6 +206,7 @@ export class DataImportExportController {
                 : { abbreviation: values.abbreviation.trim() }),
               actor: actorOf(request),
               authorizationContext: authorizationContextOf(request),
+              origin: 'import',
             });
           }
           rowAliases.push(values.alias ?? '');
@@ -228,6 +229,7 @@ export class DataImportExportController {
                 : { abbreviation: values.abbreviation.trim() }),
               actor: actorOf(request),
               authorizationContext: authorizationContextOf(request),
+              origin: 'import',
             });
           }
           rowAliases.push(values.alias ?? '');
