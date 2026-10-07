@@ -11,7 +11,9 @@ import {
 import { aggregateTo } from '@copalibre/tournament-engine';
 import {
   IMPLICIT_GROUP_NAME,
+  effectiveFormat,
   findTableLayout,
+  producesStandingsTable,
   resolveEffectiveTableLayouts,
   type ActorGranularity,
   type CompetitionGranularity,
@@ -19,6 +21,7 @@ import {
   type SeriesAccountingGrain,
   type StatisticCollector,
   type TableLayoutDefinition,
+  type TournamentFormat,
 } from '@copalibre/domain';
 import {
   CompetitionRepository,
@@ -387,9 +390,34 @@ export async function readSegmentedTableProjection(
   }
 
   const competition = new CompetitionRepository(db);
-  const zones = await competition.listZonesOfStage(scope.stageId);
+  const allZones = await competition.listZonesOfStage(scope.stageId);
+  const stage = await db
+    .selectFrom('stages')
+    .select('format')
+    .where('stage_id', '=', scope.stageId)
+    .executeTakeFirst();
+  const stageFormat = (stage?.format ?? 'round-robin') as TournamentFormat;
+
+  /*
+    A stage whose zones play different formats ranks only the zones whose format produces a table:
+    a knockout zone has a bracket, not a points table, and ranking it beside a league would put
+    entrants who never played each other in one list. A stage whose zones all play its own format
+    is untouched.
+  */
+  const heterogeneous = allZones.some(
+    (zone) => zone.format !== undefined && zone.format !== stageFormat,
+  );
+  const zones = heterogeneous
+    ? allZones.filter((zone) =>
+        producesStandingsTable(effectiveFormat(zone, { format: stageFormat })),
+      )
+    : allZones;
   const groups = (
-    await Promise.all(zones.map((zone) => competition.listGroupsOfZone(zone.zoneId)))
+    await Promise.all(
+      zones.map(async (zone) =>
+        (await competition.listGroupsOfZone(zone.zoneId)).map((group) => ({ zone, group })),
+      ),
+    )
   ).flat();
 
   /*
@@ -401,20 +429,27 @@ export async function readSegmentedTableProjection(
     So it reports as the undivided stage it is.
   */
   const undivided =
-    groups.length === 0 || (groups.length === 1 && groups[0]?.name === IMPLICIT_GROUP_NAME);
+    !heterogeneous &&
+    (groups.length === 0 || (groups.length === 1 && groups[0]?.group.name === IMPLICIT_GROUP_NAME));
   if (undivided) return { ...whole, segments: [{ rows: whole.rows }] };
 
   const segments = await Promise.all(
-    groups.map(async (group) => {
+    groups.map(async ({ zone, group }) => {
       const scoped = await readTableProjection(
         db,
         { ...scope, groupId: group.groupId },
         layoutCode,
       );
-      return { groupId: group.groupId, groupName: group.name, rows: scoped.rows };
+      // A zone's implicit group is a storage device; its heading is the zone's own name.
+      const groupName =
+        heterogeneous && group.name === IMPLICIT_GROUP_NAME ? zone.name : group.name;
+      return { groupId: group.groupId, groupName, rows: scoped.rows };
     }),
   );
-  return { ...whole, segments };
+  // The merged table of a mixed stage is its table zones' rows, each zone ranked on its own.
+  return heterogeneous
+    ? { ...whole, rows: segments.flatMap((segment) => segment.rows), segments }
+    : { ...whole, segments };
 }
 
 /** Every collector/statistic code a layout's columns or filter could resolve. */
@@ -558,6 +593,10 @@ async function statisticsBridgeFigures(
   const seriesDeclaration = await readStageSeries(db, {
     tournamentId: input.tournamentId,
     stageId: input.stageId,
+    zoneId:
+      input.groupId === undefined
+        ? undefined
+        : await new CompetitionRepository(db).findGroupZoneId(input.groupId),
   });
   const grain: SeriesAccountingGrain | undefined =
     seriesDeclaration === undefined

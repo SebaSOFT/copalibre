@@ -524,6 +524,12 @@ export class PublicBracketZoneResponse {
   @ApiPropertyOptional({ description: 'Absent for an un-zoned stage' })
   zoneName?: string;
 
+  @ApiProperty({
+    description:
+      'The format this zone plays: its own when it declares one, otherwise the stage’s. Decides how the zone is drawn.',
+  })
+  format!: string;
+
   @ApiProperty({ type: [PublicBracketMatchResponse] })
   matches!: PublicBracketMatchResponse[];
 }

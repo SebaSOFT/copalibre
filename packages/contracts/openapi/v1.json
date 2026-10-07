@@ -10173,6 +10173,127 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/configuration": {
+      "put": {
+        "description": "A zone without its own format plays its stage’s. Refused once the stage holds a fixture, and for a format the tournament’s discipline does not offer.",
+        "operationId": "ZonesGroupsController_configureZone",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "zoneNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ZoneConfigurationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZoneResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set or clear the format and series a zone declares itself",
+        "tags": [
+          "zones and groups"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/entrants": {
       "get": {
         "operationId": "ZonesGroupsController_zoneEntrants",
@@ -15743,6 +15864,10 @@
             "type": "string",
             "description": "Absent for an un-zoned stage"
           },
+          "format": {
+            "type": "string",
+            "description": "The format this zone plays: its own when it declares one, otherwise the stage’s."
+          },
           "matches": {
             "type": "array",
             "items": {
@@ -15751,6 +15876,7 @@
           }
         },
         "required": [
+          "format",
           "matches"
         ]
       },
@@ -17818,6 +17944,10 @@
             "type": "string",
             "description": "Absent for an un-zoned stage"
           },
+          "format": {
+            "type": "string",
+            "description": "The format this zone plays: its own when it declares one, otherwise the stage’s. Decides how the zone is drawn."
+          },
           "matches": {
             "type": "array",
             "items": {
@@ -17826,6 +17956,7 @@
           }
         },
         "required": [
+          "format",
           "matches"
         ]
       },
@@ -19573,13 +19704,32 @@
           "name": {
             "type": "string",
             "example": "Zona 1"
+          },
+          "format": {
+            "type": "string",
+            "description": "The format this zone declares itself. Absent: the zone inherits its stage’s format.",
+            "example": "round-robin"
+          },
+          "effectiveFormat": {
+            "type": "string",
+            "description": "The format this zone plays: its own when it declares one, otherwise the stage’s.",
+            "example": "single-elimination"
+          },
+          "series": {
+            "description": "The series this zone declares itself. Absent: the zone inherits its stage’s declaration, then the ruleset’s.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
           }
         },
         "required": [
           "zoneId",
           "stageId",
           "number",
-          "name"
+          "name",
+          "effectiveFormat"
         ]
       },
       "CreateZoneRequest": {
@@ -19610,6 +19760,27 @@
         "required": [
           "name"
         ]
+      },
+      "ZoneConfigurationRequest": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "object",
+            "nullable": true,
+            "description": "Sets the zone’s own format; `null` clears it so the zone inherits its stage’s. Absent leaves it unchanged. Must be a format the tournament’s discipline offers.",
+            "example": "round-robin"
+          },
+          "series": {
+            "nullable": true,
+            "description": "Sets the zone’s own series; `null` clears it so the zone inherits its stage’s. Absent leaves it unchanged.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
+          }
+        }
       },
       "GroupResponse": {
         "type": "object",

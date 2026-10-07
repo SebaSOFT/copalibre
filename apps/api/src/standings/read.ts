@@ -35,15 +35,19 @@ export async function readStandings(
 
   const stageId = stage.stageId;
 
+  // The zone whose series declaration governs this read: the requested zone, or the one holding the
+  // requested group. A stage-wide read keeps the stage's own declaration.
+  let seriesZoneId = zoneId;
   if (groupId !== undefined) {
     const group = await db
       .selectFrom('groups')
       .innerJoin('zones', 'zones.zone_id', 'groups.zone_id')
-      .select('groups.group_id')
+      .select(['groups.group_id', 'groups.zone_id'])
       .where('groups.group_id', '=', groupId)
       .where('zones.stage_id', '=', stageId)
       .executeTakeFirst();
     if (!group) throw new NotFoundException(`No group ${groupId} in stage ${stageNumber}`);
+    seriesZoneId ??= group.zone_id;
   }
 
   if (zoneId !== undefined) {
@@ -70,6 +74,7 @@ export async function readStandings(
   const seriesDeclaration = await readStageSeries(db, {
     tournamentId: tournament.tournamentId,
     stageId,
+    zoneId: seriesZoneId,
   });
 
   if (stored) {
