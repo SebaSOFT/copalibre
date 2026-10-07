@@ -13,6 +13,7 @@ module.exports = {
     'src/**/*.ts',
     '!src/**/*.test.ts',
     '!src/scrape/cli.ts',
+    '!src/scrape/cutout-browser.ts',
     '!src/validate-cli.ts',
   ],
   coverageThreshold: {

@@ -1468,10 +1468,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@copalibre/demo-datasets@workspace:packages/demo-datasets"
   dependencies:
+    "@imgly/background-removal": "npm:1.7.0"
     "@types/jest": "npm:^30.0.0"
     ajv: "npm:^8.20.0"
     cheerio: "npm:^1.2.0"
+    esbuild: "npm:^0.28.0"
     jest: "npm:^30.5.2"
+    onnxruntime-web: "npm:1.21.0"
+    playwright-core: "npm:1.63.0"
     sharp: "npm:^0.35.5"
     ts-jest: "npm:^29.4.12"
     typescript: "npm:^5"

@@ -5,6 +5,7 @@ import { loadGivenNamePool, loadSurnamePool } from '../scramble.js';
 import type { DemoDataset } from '../types.js';
 import { EMBLEM_HEIGHT, EMBLEM_WIDTH, validateDatasetDirectory } from '../validate.js';
 import type { DatasetConfig } from './config.js';
+import type { Cutout } from './cutout-cache.js';
 import type { CachedFetcher } from './fetch.js';
 import { findLeaks } from './leaks.js';
 import { collectRealSurnames, normalise } from './normalise.js';
@@ -32,6 +33,8 @@ export interface ScrapeOptions {
   readonly capturedOn: string;
   readonly pool?: readonly string[];
   readonly givenNamePool?: readonly string[];
+  /** Makes each emblem's background transparent before it is fitted to the product size. */
+  readonly cutout?: Cutout;
   readonly onProgress?: (message: string) => void;
 }
 
@@ -43,11 +46,58 @@ export interface ScrapeResult {
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
+/** Pixels at or below this alpha count as background when looking for the logo's extent. */
+const VISIBLE_ALPHA = 8;
+
+/**
+ * Crops a cutout to the logo itself (everything transparent around it goes) and pads the shorter
+ * side with transparency so the result is a 1:1 square with the logo centred in it.
+ */
+async function squareOnContent(png: Buffer, label: string): Promise<Buffer> {
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  let left = info.width;
+  let top = info.height;
+  let right = -1;
+  let bottom = -1;
+  for (let y = 0; y < info.height; y += 1) {
+    for (let x = 0; x < info.width; x += 1) {
+      if ((data[(y * info.width + x) * info.channels + 3] ?? 0) <= VISIBLE_ALPHA) continue;
+      left = Math.min(left, x);
+      right = Math.max(right, x);
+      top = Math.min(top, y);
+      bottom = Math.max(bottom, y);
+    }
+  }
+  if (right < 0) throw new Error(`${label} has nothing left after background removal`);
+  const width = right - left + 1;
+  const height = bottom - top + 1;
+  const side = Math.max(width, height);
+  const across = Math.floor((side - width) / 2);
+  const down = Math.floor((side - height) / 2);
+  return sharp(png)
+    .extract({ left, top, width, height })
+    .extend({
+      left: across,
+      right: side - width - across,
+      top: down,
+      bottom: side - height - down,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toBuffer();
+}
+
 /**
  * Checks that the download is a PNG of a believable emblem size, then fits it (never cropping, never
  * distorting) on a transparent canvas of the product's emblem size, which the API enforces on upload.
+ * With a `cutout`, the background is removed first, as the console does for an uploaded logo, and the
+ * logo is cropped to a centred 1:1 square before it is fitted.
  */
-export async function conformEmblem(bytes: Buffer, label: string): Promise<Buffer> {
+export async function conformEmblem(
+  bytes: Buffer,
+  label: string,
+  cutout?: Cutout,
+): Promise<Buffer> {
   if (bytes.length < 24 || !bytes.subarray(0, 8).equals(PNG_SIGNATURE)) {
     throw new Error(`${label} is not a PNG image`);
   }
@@ -56,7 +106,7 @@ export async function conformEmblem(bytes: Buffer, label: string): Promise<Buffe
   if (width < 8 || height < 8 || width > 2048 || height > 2048) {
     throw new Error(`${label} has an implausible size ${width}x${height}`);
   }
-  return sharp(bytes)
+  return sharp(cutout ? await squareOnContent(await cutout(bytes, label), label) : bytes)
     .resize(EMBLEM_WIDTH, EMBLEM_HEIGHT, {
       fit: 'contain',
       background: { r: 0, g: 0, b: 0, alpha: 0 },
@@ -91,6 +141,7 @@ ${dataset.clubs.length} clubs, ${dataset.players.length} players, ${dataset.phas
 
 - **Player surnames are replaced** with generated ones; given names are kept as published. **Referee names are replaced entirely** (given name and surname), because the portal prints them inconsistently. The replacement is a function of an opaque key and a fixed seed, never of the real name, so it cannot be reversed from this dataset. Club, venue and result data are unchanged.
 - Staff (coaches and delegates) are not included.
+- Club and tournament emblems had their background removed with the control console's process (IMG.LY background removal 1.7.0), except ${config.keepOriginalEmblems.join(', ')}, and were cropped to a centred square on a 410x512 canvas.
 - Two games were played to 10-2 but officially recorded 8-2 under the regulation goal cap; the official score is kept and their scorers are omitted.
 ${warnings.map((warning) => `- ${warning}`).join('\n')}
 
@@ -143,17 +194,25 @@ export async function runScrape(options: ScrapeOptions): Promise<ScrapeResult> {
     givenNamePool,
   });
 
+  const cutoutFor = (key: string): Cutout | undefined =>
+    config.keepOriginalEmblems.includes(key) ? undefined : options.cutout;
   say('fetching emblems');
   const emblems = new Map<string, Buffer>();
   for (const [alias, file] of clubLogos) {
     const bytes = await fetcher.binary(`emblems/club-${file}`, clubLogoUrl(file));
-    emblems.set(`emblems/clubs/${alias}.png`, await conformEmblem(bytes, `emblem of ${alias}`));
+    emblems.set(
+      `emblems/clubs/${alias}.png`,
+      await conformEmblem(bytes, `emblem of ${alias}`, cutoutFor(alias)),
+    );
   }
   const tournament = await fetcher.binary(
     `emblems/competition-${TOURNAMENT_LOGO_FILE}`,
     tournamentLogoUrl(),
   );
-  emblems.set('emblems/tournament.png', await conformEmblem(tournament, 'tournament emblem'));
+  emblems.set(
+    'emblems/tournament.png',
+    await conformEmblem(tournament, 'tournament emblem', cutoutFor('tournament')),
+  );
 
   const datasetJson = `${JSON.stringify(dataset, null, 2)}\n`;
   const source = sourceDocument(config, dataset, options.capturedOn, warnings);

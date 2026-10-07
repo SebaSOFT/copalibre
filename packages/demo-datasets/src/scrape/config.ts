@@ -9,6 +9,11 @@ export interface DatasetConfig {
   readonly tournament: { readonly alias: string; readonly name: string; readonly season: string };
   /** Fixed string that, with a key, selects a replacement surname. Change it and every pseudonym changes. */
   readonly scramblerSeed: string;
+  /**
+   * Club aliases, and `tournament`, whose emblem keeps its published background because the
+   * background removal eats the light parts of the logo itself.
+   */
+  readonly keepOriginalEmblems: readonly string[];
 }
 
 export const PANAMERICANO_CLUBES_2025: DatasetConfig = {
@@ -29,4 +34,5 @@ export const PANAMERICANO_CLUBES_2025: DatasetConfig = {
     season: '2025/26',
   },
   scramblerSeed: 'panamericano-clubes-2025/v1',
+  keepOriginalEmblems: ['tournament', 'casa-de-italia', 'super-patin'],
 };

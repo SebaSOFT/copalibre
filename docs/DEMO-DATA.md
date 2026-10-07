@@ -45,8 +45,14 @@ seconds after the load.
 - Two games were played to 10-2 but officially recorded 8-2 under the regulation goal cap; the
   official score is kept and their scorers are omitted. One game has no report on the source, so it has
   a score and no scorers.
-- Club and tournament emblems are fitted, without cropping or distortion, on a transparent 410x512
-  canvas, the size the product requires.
+- Club and tournament emblems go through the same background removal the control console applies to an
+  uploaded logo (IMG.LY `@imgly/background-removal` 1.7.0, `isnet_quint8` on the CPU, run in headless
+  Chromium with the console's model assets). Each logo is then cropped to its content as a centred 1:1
+  square and fitted, without distortion, on a transparent 410x512 canvas, the size the product requires.
+  The scraper needs the assets from `node apps/web/scripts/copy-background-removal-assets.mjs`; cutouts
+  are cached beside the raw downloads, and `--no-cutout` skips them. The model removes the light parts of
+  some logos, so `keepOriginalEmblems` in `scrape/config.ts` lists the emblems that keep their published
+  background (the tournament emblem, Casa de Italia and Super Patin).
 
 Club names, emblems, schedules and results belong to their owners and are reproduced only as
 development sample data; `packages/demo-datasets/datasets/<name>/source.md` records the origin, capture

@@ -111,6 +111,25 @@ describe('runScrape', () => {
     expect(messages.length).toBeGreaterThan(2);
   });
 
+  it('cuts out every emblem except the ones kept as published', async () => {
+    const { fetcher, outputRoot } = await setup();
+    const labels: string[] = [];
+    await runScrape({
+      fetcher,
+      outputRoot,
+      config: { ...config, keepOriginalEmblems: ['huracan', 'tournament'] },
+      capturedOn: '2026-10-07',
+      pool: POOL,
+      cutout: async (bytes, label) => {
+        labels.push(label);
+        return offCentreLogo();
+      },
+    });
+    expect(labels).toHaveLength(5);
+    expect(labels).not.toContain('emblem of huracan');
+    expect(labels).not.toContain('tournament emblem');
+  });
+
   it('reuses the cache on a second run without any request', async () => {
     const first = await setup();
     await runScrape({
@@ -177,6 +196,68 @@ describe('runScrape', () => {
       }),
     ).rejects.toThrow('real surnames would be committed: pereyra');
     await expect(stat(path.join(outputRoot, config.alias))).rejects.toThrow();
+  });
+});
+
+/** A transparent 200x120 canvas with an opaque 40x20 block at (150, 10): off-centre and not square. */
+async function offCentreLogo(): Promise<Buffer> {
+  return sharp({
+    create: { width: 200, height: 120, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+  })
+    .composite([
+      {
+        input: await sharp({
+          create: {
+            width: 40,
+            height: 20,
+            channels: 4,
+            background: { r: 10, g: 90, b: 200, alpha: 1 },
+          },
+        })
+          .png()
+          .toBuffer(),
+        left: 150,
+        top: 10,
+      },
+    ])
+    .png()
+    .toBuffer();
+}
+
+describe('conformEmblem with a background cutout', () => {
+  it('crops the logo to a centred 1:1 square before fitting it on the emblem canvas', async () => {
+    const seen: string[] = [];
+    const conformed = await conformEmblem(await png(100, 100), 'club', async (_png, label) => {
+      seen.push(label);
+      return offCentreLogo();
+    });
+    expect(seen).toEqual(['club']);
+    const { data, info } = await sharp(conformed)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    expect([info.width, info.height]).toEqual([410, 512]);
+    const alphaAt = (x: number, y: number): number =>
+      data[(y * info.width + x) * info.channels + 3] ?? 0;
+    // the 40x20 block sits in a 40x40 square, so it fills the width and the middle half of 410 rows
+    expect(alphaAt(205, 256)).toBe(255);
+    expect(alphaAt(20, 256)).toBe(255);
+    expect(alphaAt(390, 256)).toBe(255);
+    expect(alphaAt(205, 180)).toBe(255);
+    expect(alphaAt(205, 332)).toBe(255);
+    expect(alphaAt(205, 130)).toBe(0);
+    expect(alphaAt(205, 380)).toBe(0);
+  });
+
+  it('refuses a cutout that removed everything', async () => {
+    const empty = await sharp({
+      create: { width: 20, height: 20, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+    })
+      .png()
+      .toBuffer();
+    await expect(conformEmblem(await png(100, 100), 'club', async () => empty)).rejects.toThrow(
+      'nothing left after background removal',
+    );
   });
 });
 
