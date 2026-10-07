@@ -30,6 +30,18 @@ celle implicite que possède déjà toute étape.
 - **Placement manuel** : assigner directement chaque participant à un numéro de zone ou de groupe,
   enregistré exactement comme le résultat d'un tirage automatique le serait.
 
+## Jouer un autre format dans une zone
+
+Par défaut, chaque zone joue le format de sa phase. Ouvrez **Modifier le format de la zone** sur une zone
+pour lui en donner un propre — par exemple deux zones à élimination directe et une poule en
+championnat pour les clubs restants — et, si le format l'exige, sa propre longueur de série. L'écran
+signale une zone personnalisée et indique le format hérité par les autres ; choisir **Format de la phase**
+ramène la zone à celui de la phase. La liste des formats est celle que propose la discipline du tournoi.
+Une fois que la phase a des matchs, le format et la série des zones sont verrouillés.
+
+La page publique de la phase affiche alors chaque zone comme son format l'exige : un tableau pour une zone
+à élimination directe, et les matchs avec leur classement pour une zone de championnat.
+
 ## Ce que vous ne pouvez pas faire ici
 
 Renommer une zone ou un groupe déjà créé n'est pas encore disponible — nommez-le avec soin à la
