@@ -1,5 +1,5 @@
-// Under ESM, Jest's `jest` object is not a global; it must be imported.
-import { jest } from '@jest/globals';
+// Under ESM, import Vitest's `vi` API for mock helpers.
+import { vi } from 'vitest';
 import { ForbiddenException, UnauthorizedException, type ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { extractBearerToken, JwtAuthGuard } from './jwt-auth.guard.js';
@@ -16,7 +16,7 @@ function contextFor(
   requiredScopes?: readonly string[],
 ): { context: ExecutionContext; reflector: Reflector } {
   const reflector = new Reflector();
-  jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((key: unknown) => {
+  vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key: unknown) => {
     if (key === SECURITY_PLANE_KEY) return plane;
     if (key === REQUIRED_SCOPES_KEY) return requiredScopes;
     return undefined;
@@ -32,13 +32,13 @@ function contextFor(
 }
 
 function verifierReturning(subject: AuthenticatedSubject): TokenVerifier {
-  const verify = jest.fn<(token: string) => Promise<AuthenticatedSubject>>();
+  const verify = vi.fn<(token: string) => Promise<AuthenticatedSubject>>();
   verify.mockResolvedValue(subject);
   return { verify } as unknown as TokenVerifier;
 }
 
 function rejectingVerifier(): TokenVerifier {
-  const verify = jest.fn<(token: string) => Promise<AuthenticatedSubject>>();
+  const verify = vi.fn<(token: string) => Promise<AuthenticatedSubject>>();
   verify.mockRejectedValue(new Error('nope'));
   return { verify } as unknown as TokenVerifier;
 }
@@ -51,7 +51,7 @@ const controlSubject: AuthenticatedSubject = {
 
 describe('JwtAuthGuard', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('lets a public-read route through without a token', async () => {
@@ -165,22 +165,18 @@ describe('JwtAuthGuard', () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
   });
   it('validates a clpat_ token against the database repository', async () => {
-    const scopeOf = jest
-      .spyOn(PersonalAccessTokenRepository.prototype, 'scopeOf')
-      .mockResolvedValue({
-        tokenId: 'token-1',
-        principalId: 'org-1-admin',
-        scopes: ['copalibre.control'],
-      });
+    const scopeOf = vi.spyOn(PersonalAccessTokenRepository.prototype, 'scopeOf').mockResolvedValue({
+      tokenId: 'token-1',
+      principalId: 'org-1-admin',
+      scopes: ['copalibre.control'],
+    });
 
-    jest
-      .spyOn(PersonalAccessTokenRepository.prototype, 'touchLastUsed')
-      .mockResolvedValue(undefined);
+    vi.spyOn(PersonalAccessTokenRepository.prototype, 'touchLastUsed').mockResolvedValue(undefined);
     const mockDb = {
-      selectFrom: jest.fn().mockReturnValue({
-        selectAll: jest.fn().mockReturnValue({
-          where: jest.fn().mockReturnValue({
-            executeTakeFirst: jest
+      selectFrom: vi.fn().mockReturnValue({
+        selectAll: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            executeTakeFirst: vi
               .fn()
               .mockResolvedValue({ email: 'admin@example.com' } as unknown as never),
           }),
@@ -209,7 +205,7 @@ describe('JwtAuthGuard', () => {
   });
 
   it('rejects a clpat_ token if it is not found or revoked in the database', async () => {
-    jest.spyOn(PersonalAccessTokenRepository.prototype, 'scopeOf').mockResolvedValue(undefined);
+    vi.spyOn(PersonalAccessTokenRepository.prototype, 'scopeOf').mockResolvedValue(undefined);
 
     const request: RequestWithSubject = { headers: { authorization: 'Bearer clpat_invalid' } };
     const { context, reflector } = contextFor(request, 'admin-control');
@@ -219,19 +215,19 @@ describe('JwtAuthGuard', () => {
   });
 
   it('does not let a usage-heartbeat failure reject valid PAT authentication', async () => {
-    jest.spyOn(PersonalAccessTokenRepository.prototype, 'scopeOf').mockResolvedValue({
+    vi.spyOn(PersonalAccessTokenRepository.prototype, 'scopeOf').mockResolvedValue({
       tokenId: 'token-1',
       principalId: 'org-1-admin',
       scopes: ['copalibre.control'],
     });
-    jest
-      .spyOn(PersonalAccessTokenRepository.prototype, 'touchLastUsed')
-      .mockRejectedValue(new Error('database unavailable'));
+    vi.spyOn(PersonalAccessTokenRepository.prototype, 'touchLastUsed').mockRejectedValue(
+      new Error('database unavailable'),
+    );
     const mockDb = {
-      selectFrom: jest.fn().mockReturnValue({
-        selectAll: jest.fn().mockReturnValue({
-          where: jest.fn().mockReturnValue({
-            executeTakeFirst: jest
+      selectFrom: vi.fn().mockReturnValue({
+        selectAll: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            executeTakeFirst: vi
               .fn()
               .mockResolvedValue({ email: 'admin@example.com' } as unknown as never),
           }),

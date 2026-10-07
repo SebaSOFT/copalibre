@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 import type { DisciplineDescriptor } from '@copalibre/domain';
 import { resolveTiebreak } from '@copalibre/rules';
 import { standingsPipeline } from './pipeline.js';

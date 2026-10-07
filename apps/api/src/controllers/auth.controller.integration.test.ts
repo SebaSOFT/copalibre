@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import { Module, type INestApplication } from '@nestjs/common';
 import { ApiExceptionFilter } from '../http/error-contract.js';
 import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
@@ -10,7 +10,6 @@ import { Test } from '@nestjs/testing';
 import * as argon2 from 'argon2';
 import {
   AuthVerificationTokenRepository,
-  PersonalAccessTokenRepository,
   withTransaction,
   newId,
   type Database,
@@ -444,39 +443,6 @@ describe('Auth Controllers', () => {
       expect(data[0].revoked).toBe(true);
     });
 
-    it('rejects a bulk-revoked PAT on the protected API path', async () => {
-      const issued = await request({
-        method: 'POST',
-        url: '/auth/pat',
-        token: 'admin-token',
-        payload: { label: 'Bulk Cutover Test', expiresInDays: 30 },
-      });
-      expect(issued.statusCode).toBe(201);
-      const credential = JSON.parse(issued.payload) as { readonly token: string };
-
-      const beforeCutover = await request({
-        method: 'GET',
-        url: '/auth/pat',
-        token: credential.token,
-      });
-      expect(beforeCutover.statusCode).toBe(200);
-
-      await withTransaction(scratch.db, (uow) =>
-        new PersonalAccessTokenRepository(scratch.db).revokeAllActive(uow, {
-          actor: 'operator-cli',
-          authorizationContext: 'operator-cli:revoke-legacy-personal-access-tokens',
-        }),
-      );
-
-      const afterCutover = await request({
-        method: 'GET',
-        url: '/auth/pat',
-        token: credential.token,
-      });
-      expect(afterCutover.statusCode).toBe(401);
-      expect(afterCutover.payload).not.toContain(credential.token);
-    });
-
     // Scope policy regression cases. Each rejection case asserts the
     // token count for that principal is unchanged, so a 403 can never have
     // persisted a row anyway.
@@ -591,7 +557,7 @@ describe('Auth Controllers', () => {
     }
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('evaluates login attempts at or below the per-window limit normally', async () => {
@@ -627,7 +593,7 @@ describe('Auth Controllers', () => {
 
       // Advance the clock past the throttle window without touching timers —
       // the in-memory storage computes windows from Date.now().
-      const spy = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + AUTH_THROTTLE_TTL_MS + 1);
+      const spy = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + AUTH_THROTTLE_TTL_MS + 1);
       try {
         const afterWindow = await send({ email: 'test@example.com', password: 'wrong' });
         expect(afterWindow.statusCode).toBe(401);

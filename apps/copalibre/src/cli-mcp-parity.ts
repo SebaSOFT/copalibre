@@ -93,10 +93,6 @@ export const CLI_MCP_PARITY: readonly ParityEntry[] = [
     cliCommand: 'login',
     exemptReason: 'Mints/stores a personal access token.',
   },
-  {
-    cliCommand: 'revoke-legacy-personal-access-tokens',
-    exemptReason: 'Revokes credentials as a security cutover.',
-  },
 
   // MCP-only, agent-specific authoring ergonomics, not a human capability
   // gap: a human author already has the schema as a source file in

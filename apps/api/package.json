@@ -8,10 +8,10 @@
     "dev": "../../node_modules/.bin/tsx watch src/main.ts",
     "start": "node dist/main.js",
     "openapi:generate": "tsc --build && node dist/openapi/generate.js",
-    "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
-    "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage",
-    "test:integration": "node --env-file-if-exists=../../.env.test --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand",
-    "test:sqlite": "COPALIBRE_TEST_DIALECT=sqlite node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand --testPathPatterns 'shared-throttler-storage'"
+    "test": "../../node_modules/.bin/vitest --config vitest.config.ts run",
+    "test:coverage": "../../node_modules/.bin/vitest --config vitest.config.ts run --coverage",
+    "test:integration": "node --env-file-if-exists=../../.env.test ../../node_modules/.bin/vitest --config vitest.integration.config.ts run",
+    "test:sqlite": "COPALIBRE_TEST_DIALECT=sqlite node --env-file-if-exists=../../.env.test ../../node_modules/.bin/vitest --config vitest.integration.config.ts run src/auth/shared-throttler-storage.integration.test.ts"
   },
   "dependencies": {
     "@copalibre/auth": "workspace:^",
@@ -23,11 +23,11 @@
     "@copalibre/statistics-refold": "workspace:^",
     "@copalibre/tournament-engine": "workspace:^",
     "@fastify/helmet": "^13.1.1",
-    "@nestjs/common": "^11.1.28",
-    "@nestjs/core": "^11.1.28",
-    "@nestjs/platform-fastify": "^11.1.29",
-    "@nestjs/swagger": "^11.4.6",
-    "@nestjs/throttler": "^6",
+    "@nestjs/common": "^12.1.2",
+    "@nestjs/core": "^12.1.2",
+    "@nestjs/platform-fastify": "^12.1.2",
+    "@nestjs/swagger": "^12.0.2",
+    "@nestjs/throttler": "^6.7.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "jose": "^6",
@@ -38,13 +38,13 @@
   "devDependencies": {
     "@copalibre/demo-datasets": "workspace:^",
     "@copalibre/module-catalogue": "workspace:^",
-    "@nestjs/testing": "^11.1.28",
-    "@types/jest": "^30.0.0",
+    "@nestjs/testing": "^12.1.2",
     "@types/supertest": "^7.2.1",
-    "jest": "^30.5.2",
+    "@vitest/coverage-v8": "5.0.3",
     "supertest": "^7.2.2",
-    "ts-jest": "^29.4.12",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "8.1.5",
+    "vitest": "5.0.3"
   },
   "type": "module"
 }
