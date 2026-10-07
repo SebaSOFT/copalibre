@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import { Module, type INestApplication } from '@nestjs/common';
 import { ApiExceptionFilter } from '../http/error-contract.js';
 import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
@@ -557,7 +557,7 @@ describe('Auth Controllers', () => {
     }
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('evaluates login attempts at or below the per-window limit normally', async () => {
@@ -593,7 +593,7 @@ describe('Auth Controllers', () => {
 
       // Advance the clock past the throttle window without touching timers —
       // the in-memory storage computes windows from Date.now().
-      const spy = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + AUTH_THROTTLE_TTL_MS + 1);
+      const spy = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + AUTH_THROTTLE_TTL_MS + 1);
       try {
         const afterWindow = await send({ email: 'test@example.com', password: 'wrong' });
         expect(afterWindow.statusCode).toBe(401);

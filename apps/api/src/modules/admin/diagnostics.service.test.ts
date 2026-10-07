@@ -1,4 +1,5 @@
-import { jest } from '@jest/globals';
+import type { Mock } from 'vitest';
+import { vi } from 'vitest';
 import type { Database } from '@copalibre/persistence';
 import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import type { Kysely } from 'kysely';
@@ -19,21 +20,21 @@ describe('DiagnosticsService', () => {
   let fakeDb: Kysely<Database>;
   let fakeStorage: {
     profile: string;
-    inspect: jest.Mock<() => Promise<{ totalObjects: number; totalBytes: number }>>;
+    inspect: Mock<() => Promise<{ totalObjects: number; totalBytes: number }>>;
   };
-  let fakeOutbox: { summary: jest.Mock<() => Promise<DiagnosticsOutbox>> };
+  let fakeOutbox: { summary: Mock<() => Promise<DiagnosticsOutbox>> };
   let service: DiagnosticsService;
 
   beforeEach(() => {
     fakeDb = {} as unknown as Kysely<Database>;
     fakeStorage = {
       profile: 'filesystem',
-      inspect: jest
+      inspect: vi
         .fn<() => Promise<{ totalObjects: number; totalBytes: number }>>()
         .mockResolvedValue({ totalObjects: 5, totalBytes: 1024 }),
     };
     fakeOutbox = {
-      summary: jest.fn<() => Promise<DiagnosticsOutbox>>().mockResolvedValue({
+      summary: vi.fn<() => Promise<DiagnosticsOutbox>>().mockResolvedValue({
         available: true,
         pending: 0,
         processed24h: 10,
@@ -47,7 +48,7 @@ describe('DiagnosticsService', () => {
       fakeStorage as unknown as ObjectStorageAdapter,
       fakeOutbox as unknown as OutboxInspectorService,
     );
-    (service as unknown as InspectableDiagnosticsService).inspectDatabase = jest
+    (service as unknown as InspectableDiagnosticsService).inspectDatabase = vi
       .fn<() => Promise<DiagnosticsDatabase>>()
       .mockResolvedValue({
         connected: true,
@@ -56,7 +57,7 @@ describe('DiagnosticsService', () => {
         poolIdle: 3,
         poolWaiting: 0,
       });
-    (service as unknown as InspectableDiagnosticsService).inspectRealtime = jest
+    (service as unknown as InspectableDiagnosticsService).inspectRealtime = vi
       .fn<() => Promise<DiagnosticsRealtime>>()
       .mockResolvedValue({
         available: true,
@@ -87,7 +88,7 @@ describe('DiagnosticsService', () => {
         { eventId: '1', eventType: 'test', attempts: 5, error: 'failed', failedAt: '' },
       ],
     });
-    (service as unknown as InspectableDiagnosticsService).inspectRealtime = jest
+    (service as unknown as InspectableDiagnosticsService).inspectRealtime = vi
       .fn<() => Promise<DiagnosticsRealtime>>()
       .mockResolvedValue({
         available: true,
@@ -101,7 +102,7 @@ describe('DiagnosticsService', () => {
   });
 
   it('marks status as critical when database is unreachable', async () => {
-    (service as unknown as InspectableDiagnosticsService).inspectDatabase = jest
+    (service as unknown as InspectableDiagnosticsService).inspectDatabase = vi
       .fn<() => Promise<DiagnosticsDatabase>>()
       .mockResolvedValue({
         connected: false,
