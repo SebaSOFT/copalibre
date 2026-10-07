@@ -120,6 +120,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/check-dependabot-alerts.mjs
+      - name: Report transitive dependency security incidents
+        run: node scripts/dependency-security-incidents.mjs
+      - name: Test transitive dependency security incident register
+        run: node --test scripts/dependency-security-incidents.test.mjs
       - run: node --test scripts/check-dependabot-alerts.test.mjs
       - run: node --test scripts/dependency-security.test.mjs
       - run: node --test apps/copalibre/scripts/build-binary.test.mjs
