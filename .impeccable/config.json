@@ -33,6 +33,24 @@
         "reason": "openspec 0225 task 8.3, found by /impeccable critique: every clamp() value in this stylesheet is deliberately viewport-scaled typography for the /tv/ broadcast kiosk and overlay surface, read at distance on a large screen rather than at arm's length like the rest of the app — a fixed rem scale is the wrong tool for that surface, not an oversight. Recorded as a decision rather than left as 21 recurring, unreviewable findings."
       },
       {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          "apps/web/src/pages/tv/index.astro"
+        ],
+        "createdAt": "2026-10-06T23:57:00Z",
+        "reason": "0330 TV launcher: color literals in this route describe physical broadcast backdrops only — chroma-key green, football-pitch turf and line markings, and indoor-court wood and markings. They are not interface colors or component surfaces; panels and controls continue to use opaque design tokens."
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#00b140",
+        "files": [
+          "apps/web/src/layouts/TvLayout.astro"
+        ],
+        "createdAt": "2026-10-06T23:57:00Z",
+        "reason": "The fallback green is a fixed chroma-key media color consumed by video switchers, not an interface accent. The route accepts an explicitly supplied key color while retaining this protocol default."
+      },
+      {
         "rule": "side-tab",
         "value": "*",
         "files": [

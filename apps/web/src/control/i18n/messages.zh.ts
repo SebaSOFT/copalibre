@@ -12,6 +12,12 @@ export const messages: Record<string, string> = {
   'control.shell.openNavigation': '打开导航菜单',
   'control.shell.language': '语言',
   'control.shell.logout': '退出登录',
+  'control.shell.publicOverview': '组织公开页面',
+  'auth.publicHome': '返回公开网站',
+  'control.tournament.publicSite': '公开网站',
+  'control.tournament.tvDisplay': '电视屏幕',
+  'control.tournament.publicSiteShort': '公开',
+  'control.tournament.tvDisplayShort': '电视',
 
   'control.nav.dashboard': '仪表盘',
   'control.nav.liveConsole': '实时控制台',

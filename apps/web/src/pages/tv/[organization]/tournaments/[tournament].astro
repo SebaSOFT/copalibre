@@ -39,6 +39,7 @@ import {
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import { selectStageLayout } from '../../../../lib/bracket.ts';
 import type { BracketZone } from '../../../../lib/bracket-projection.ts';
+import { TV_BACKGROUNDS, type TvBackground } from '../../../../lib/tv-background.ts';
 
 export const prerender = false;
 
@@ -187,6 +188,10 @@ const overlayMode =
       ? 'full'
       : undefined;
 const chromaKey = Astro.url.searchParams.get('chroma') ?? undefined;
+const requestedBackground =
+  Astro.url.searchParams.get('bg') ?? Astro.url.searchParams.get('background');
+const background = TV_BACKGROUNDS.find((value) => value === requestedBackground) as
+  TvBackground | undefined;
 const presentation = overlayMode ?? 'kiosk';
 
 /*
@@ -196,6 +201,7 @@ const presentation = overlayMode ?? 'kiosk';
 */
 const layoutParam = Astro.url.searchParams.get('layout');
 const gridParam = Astro.url.searchParams.get('grid');
+const initialView = Astro.url.searchParams.get('view') === 'standings' ? 'standings' : undefined;
 const showMultiCourtGrid = presentation === 'kiosk' && layoutParam === 'multicourt';
 const gridSize: 2 | 4 | 6 | 'auto' =
   gridParam === '2' ? 2 : gridParam === '4' ? 4 : gridParam === '6' ? 6 : 'auto';
@@ -265,6 +271,7 @@ const tickerItems =
   title={`TV — ${tournamentName}`}
   overlayMode={overlayMode}
   chromaKey={chromaKey}
+  background={background}
   disciplineImages={disciplineImages}
 >
   <ScoreTicker
@@ -292,6 +299,7 @@ const tickerItems =
       <TvDashboard
         client:load
         presentation={presentation}
+        initialView={initialView}
         initial={dashboard}
         initialBracket={initialBracket}
         streamPath={streamPath}

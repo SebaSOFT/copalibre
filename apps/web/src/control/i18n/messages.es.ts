@@ -12,6 +12,12 @@ export const messages: Record<string, string> = {
   'control.shell.openNavigation': 'Abrir menú de navegación',
   'control.shell.language': 'Idioma',
   'control.shell.logout': 'Cerrar sesión',
+  'control.shell.publicOverview': 'Página pública de la organización',
+  'auth.publicHome': 'Volver al sitio público',
+  'control.tournament.publicSite': 'Sitio público',
+  'control.tournament.tvDisplay': 'Pantalla TV',
+  'control.tournament.publicSiteShort': 'Público',
+  'control.tournament.tvDisplayShort': 'TV',
 
   'control.nav.dashboard': 'Panel',
   'control.nav.liveConsole': 'Consola en vivo',

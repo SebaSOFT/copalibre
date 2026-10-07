@@ -203,6 +203,11 @@ function ControlShellChrome({
           </li>
         )}
       </ul>
+      {organizationAlias && (
+        <a className="cl-focusable" href={`/${organizationAlias}`} style={navLinkStyle}>
+          <FormattedMessage {...messages.shellPublicOverview} />
+        </a>
+      )}
       <LanguageSwitcher onChange={onLocaleChange} value={locale} />
       <Button onClick={logout} style={logoutButtonStyle} type="button" variant="secondary">
         <FormattedMessage {...messages.shellLogout} />
