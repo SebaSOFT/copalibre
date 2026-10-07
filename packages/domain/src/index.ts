@@ -288,6 +288,9 @@ export {
 } from './aggregates/season.js';
 export {
   validateZone,
+  validateZoneFormat,
+  effectiveFormat,
+  producesStandingsTable,
   isImplicitZone,
   ZoneError,
   IMPLICIT_ZONE_NAME,

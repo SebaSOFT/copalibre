@@ -159,6 +159,8 @@ export class CompetitionRepository {
       readonly stageId: string;
       readonly number: number;
       readonly name: string;
+      /** Omitted: the zone inherits its stage's format. */
+      readonly format?: Zone['format'];
     } & AuditContext,
   ): Promise<Zone> {
     await this.assertStageHasNoFixtures(uow, input.stageId);
@@ -172,6 +174,7 @@ export class CompetitionRepository {
         stage_id: zone.stageId,
         number: zone.number,
         name: zone.name,
+        format: zone.format ?? null,
         draw_seed: null,
         draw_constraints: null,
         created_at: new Date(),
@@ -212,6 +215,42 @@ export class CompetitionRepository {
       actor: input.actor,
       authorizationContext: input.authorizationContext,
       resultingState: { name: input.name },
+    });
+    return toZone(row);
+  }
+
+  /**
+   * Sets a zone's own format, or clears it (`null`) so the zone inherits its stage's again.
+   * Refused once the stage holds a fixture: a zone's format decides the fixtures it generates. The
+   * caller validates the format against the discipline's `availableFormats`.
+   */
+  async setZoneFormat(
+    uow: UnitOfWork,
+    input: { readonly zoneId: string; readonly format: Zone['format'] | null } & AuditContext,
+  ): Promise<Zone> {
+    const existing = await uow.tx
+      .selectFrom('zones')
+      .select('stage_id')
+      .where('zone_id', '=', input.zoneId)
+      .executeTakeFirst();
+    if (!existing) {
+      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
+    }
+    await this.assertStageHasNoFixtures(uow, existing.stage_id);
+    const row = await uow.tx
+      .updateTable('zones')
+      .set({ format: input.format })
+      .where('zone_id', '=', input.zoneId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'zone',
+      entityId: input.zoneId,
+      action: 'zone.format-set',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { format: input.format },
     });
     return toZone(row);
   }
@@ -1140,6 +1179,29 @@ export class CompetitionRepository {
    * graph's own node ids (`packages/tournament-engine`'s `match.id`), which
    * are never persisted and never equal a `fixtureId`.
    */
+  /**
+   * The zone one fixture belongs to — all a caller needs to pick the zone's own series declaration
+   * without listing the stage's fixtures. `undefined` for a fixture that does not exist.
+   */
+  async findFixtureZoneId(fixtureId: string, uow?: UnitOfWork): Promise<string | undefined> {
+    const row = await (uow?.tx ?? this.db)
+      .selectFrom('fixtures')
+      .select('zone_id')
+      .where('fixture_id', '=', fixtureId)
+      .executeTakeFirst();
+    return row?.zone_id ?? undefined;
+  }
+
+  /** The zone a group belongs to, or `undefined` for a group that does not exist. */
+  async findGroupZoneId(groupId: string): Promise<string | undefined> {
+    const row = await this.db
+      .selectFrom('groups')
+      .select('zone_id')
+      .where('group_id', '=', groupId)
+      .executeTakeFirst();
+    return row?.zone_id;
+  }
+
   async listFixturesOfStage(stageId: string): Promise<readonly Fixture[]> {
     const rows = await this.db
       .selectFrom('fixtures')

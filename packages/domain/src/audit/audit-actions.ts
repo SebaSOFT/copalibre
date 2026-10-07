@@ -94,6 +94,7 @@ export const AUDIT_ACTIONS = [
   'season.created',
   'zone.created',
   'zone.renamed',
+  'zone.format-set',
   'zone.deleted',
   'group.created',
   'group.renamed',

@@ -376,6 +376,8 @@ export interface ZonesTable {
   stage_id: string;
   number: number;
   name: string;
+  /** The zone's own format; null inherits the stage's. */
+  format: string | null;
   draw_seed: number | null;
   draw_constraints: JSONColumnType<readonly DrawConstraint[]> | null;
   created_at: Timestamp;

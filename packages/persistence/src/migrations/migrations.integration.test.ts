@@ -208,6 +208,23 @@ describe('migrations (integration)', () => {
       ]),
     );
     expect(afterUp).toContain('realtime_replicas');
+    expect(afterUpTables.find((table) => table.name === 'zones')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'format', isNullable: true })]),
+    );
+
+    const zoneFormatDown = await migrateDownOneStep(scratch.db);
+    expect(zoneFormatDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0039-stage-group-configuration',
+    );
+    const afterZoneFormatDownTables = await scratch.db.introspection.getTables();
+    expect(afterZoneFormatDownTables.find((table) => table.name === 'zones')?.columns).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'format' })]),
+    );
+    // The column beneath it survives the step down.
+    expect(
+      afterZoneFormatDownTables.find((table) => table.name === 'stage_configurations')?.columns,
+    ).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'group_configuration' })]));
 
     const stageGroupConfigurationDown = await migrateDownOneStep(scratch.db);
     expect(stageGroupConfigurationDown.error).toBeUndefined();
