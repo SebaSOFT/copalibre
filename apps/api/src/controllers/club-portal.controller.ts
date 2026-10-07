@@ -256,6 +256,7 @@ export class ClubPortalController {
         organizationId,
         actor,
         authorizationContext,
+        origin: 'club-portal',
       }),
     );
     await applyTeamRoster(this.db, people, {
@@ -264,6 +265,7 @@ export class ClubPortalController {
       desiredRoleByPersonId,
       actor,
       authorizationContext,
+      submission: { entrantId: entrant.entrantId, tournamentId: entrant.tournamentId },
     });
 
     return {

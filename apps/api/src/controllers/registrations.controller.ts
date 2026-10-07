@@ -834,6 +834,8 @@ export async function applyTeamRoster(
     readonly desiredRoleByPersonId: ReadonlyMap<string, PlayerRole>;
     readonly actor: string;
     readonly authorizationContext: string;
+    /** Set only when a club submits its squad for a tournament entrant; announces it in the same transaction. */
+    readonly submission?: { readonly entrantId: string; readonly tournamentId: string };
   },
 ): Promise<void> {
   const currentSquad = await people.squadOf(input.teamId);
@@ -876,6 +878,22 @@ export async function applyTeamRoster(
           authorizationContext: input.authorizationContext,
         });
       }
+    }
+    if (input.submission) {
+      await uow.publishEvent({
+        organizationId: input.organizationId,
+        stream: `tournament:${input.submission.tournamentId}`,
+        entityId: input.submission.entrantId,
+        eventType: 'entrant.squad-submitted',
+        projectionVersion: 1,
+        payload: {
+          entrantId: input.submission.entrantId,
+          tournamentId: input.submission.tournamentId,
+          teamId: input.teamId,
+          memberCount: input.desiredRoleByPersonId.size,
+          actor: input.actor,
+        },
+      });
     }
   });
 }
