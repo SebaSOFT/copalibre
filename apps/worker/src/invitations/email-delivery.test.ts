@@ -1,9 +1,9 @@
 import type { ClaimedJob } from '@copalibre/persistence';
 import {
+  EmailRejectedError,
   emailDeliveryConfigFromEnv,
-  invitationEmailHandler,
   invitationMessage,
-  passwordResetEmailHandler,
+  isSmtpRefusal,
   passwordResetMessage,
   sendEmail,
   type EmailDeliveryConfig,
@@ -109,17 +109,11 @@ describe('invitation email delivery', () => {
     expect(body.html).toContain('token=opaque-token');
   });
 
-  it('registers a retryable handler for the invitation outbox event', async () => {
-    const { fetcher, calls } = fetchRecorder();
-    await invitationEmailHandler(base, fetcher)(job());
-    expect(calls).toHaveLength(1);
-  });
-
   it('propagates provider rejection to the outbox relay', async () => {
     const { fetcher } = fetchRecorder(503);
-    await expect(
-      sendEmail(base, invitationMessage(base, job().payload as never), fetcher),
-    ).rejects.toThrow('HTTP 503');
+    const rejection = sendEmail(base, invitationMessage(base, job().payload as never), fetcher);
+    await expect(rejection).rejects.toThrow('HTTP 503');
+    await expect(rejection).rejects.toBeInstanceOf(EmailRejectedError);
   });
 });
 
@@ -158,16 +152,44 @@ describe('password-reset email delivery', () => {
     expect(body.html).toContain('token=opaque-reset-token');
   });
 
-  it('registers a retryable handler for the password-reset outbox event', async () => {
-    const { fetcher, calls } = fetchRecorder();
-    await passwordResetEmailHandler(base, fetcher)(passwordResetJob());
-    expect(calls).toHaveLength(1);
-  });
-
   it('propagates provider rejection to the outbox relay', async () => {
     const { fetcher } = fetchRecorder(503);
     await expect(
       sendEmail(base, passwordResetMessage(base, passwordResetJob().payload as never), fetcher),
     ).rejects.toThrow('HTTP 503');
+  });
+});
+
+describe('invitation and reset emails carry the shared layout', () => {
+  it('speaks the organization language with its header, and signs as Copa Libre', () => {
+    const message = invitationMessage(base, job().payload as never, {
+      language: 'es',
+      organization: { alias: 'liga', name: 'Liga', hasEmblem: true },
+    });
+    expect(message.subject).toBe('Invitación a CopaLibre');
+    expect(message.html).toContain('/organizations/liga/emblem');
+    expect(message.html).toContain('https://copalibre.app');
+    expect(message.text).toContain('token=opaque-token');
+  });
+
+  it('keeps the reset link and expiry, in English, under the Copa Libre mark only', () => {
+    const message = passwordResetMessage(base, passwordResetJob().payload as never);
+    expect(message.subject).toBe('CopaLibre password reset');
+    expect(message.html).not.toContain('/emblem');
+    expect(message.text).toContain('2026-08-13T21:00:00.000Z');
+    expect(message.text).toContain('If you did not request this');
+  });
+});
+
+describe('SMTP refusal classification', () => {
+  it('treats a server reply and a failed connection as a definite refusal', () => {
+    expect(isSmtpRefusal({ responseCode: 550 })).toBe(true);
+    expect(isSmtpRefusal({ command: 'CONN' })).toBe(true);
+  });
+
+  it('treats a timeout or reset mid-conversation as an unknown outcome', () => {
+    expect(isSmtpRefusal({ code: 'ETIMEDOUT', command: 'DATA' })).toBe(false);
+    expect(isSmtpRefusal(new Error('socket hang up'))).toBe(false);
+    expect(isSmtpRefusal(undefined)).toBe(false);
   });
 });
