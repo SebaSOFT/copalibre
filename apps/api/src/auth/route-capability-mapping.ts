@@ -108,6 +108,7 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'ZonesGroupsController.createGroup': 'org.manage-zones-groups',
   'ZonesGroupsController.createZone': 'org.manage-zones-groups',
   'ZonesGroupsController.renameZone': 'org.manage-zones-groups',
+  'ZonesGroupsController.configureZone': 'org.manage-zones-groups',
   'ZonesGroupsController.deleteZone': 'org.manage-zones-groups',
   'ZonesGroupsController.renameGroup': 'org.manage-zones-groups',
   'ZonesGroupsController.deleteGroup': 'org.manage-zones-groups',

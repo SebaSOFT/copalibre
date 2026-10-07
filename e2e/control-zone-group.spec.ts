@@ -449,11 +449,13 @@ test('overrides one zone’s format and series, labels it, and returns it to the
           logRequest(`PUT zone ${number} ${JSON.stringify(body)}`);
           const next = readZones().map((zone) => {
             if (zone.number !== number) return zone;
-            const { format: _format, series: _series, ...rest } = zone;
             const format = body.format === undefined ? zone.format : (body.format ?? undefined);
             const series = body.series === undefined ? zone.series : (body.series ?? undefined);
             return {
-              ...rest,
+              zoneId: zone.zoneId,
+              stageId: zone.stageId,
+              number: zone.number,
+              name: zone.name,
               effectiveFormat: format ?? 'single-elimination',
               ...(format === undefined ? {} : { format }),
               ...(series === undefined ? {} : { series }),
