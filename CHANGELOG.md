@@ -1,3 +1,28 @@
+## [1.2.6](https://github.com/SebaSOFT/copalibre/compare/v1.2.5...v1.2.6) (2026-10-07)
+
+### Infrastructure and supply chain
+
+- Repair the TV soak-test pipeline and build its web dependencies before execution ([737a3082](https://github.com/SebaSOFT/copalibre/commit/737a3082)).
+- Gate releases on Dependabot advisories, absorb verified updates, paginate alert queries, restore the audit gate, grant the required read access, and clear resulting advisories ([b2c44436](https://github.com/SebaSOFT/copalibre/commit/b2c44436), [bb1f14ad](https://github.com/SebaSOFT/copalibre/commit/bb1f14ad), [3c470956](https://github.com/SebaSOFT/copalibre/commit/3c470956), [b2a361f9](https://github.com/SebaSOFT/copalibre/commit/b2a361f9), [eceaae79](https://github.com/SebaSOFT/copalibre/commit/eceaae79), [7f812569](https://github.com/SebaSOFT/copalibre/commit/7f812569)).
+
+### Self-hosted CLI
+
+- Reconcile application upgrades and validate host environment with `doctor` ([d4958b78](https://github.com/SebaSOFT/copalibre/commit/d4958b78)).
+- Repair `init` installations, configure email, and add process lifecycle commands for stop, restart, and status ([ab7d72af](https://github.com/SebaSOFT/copalibre/commit/ab7d72af), [ab65f0e2](https://github.com/SebaSOFT/copalibre/commit/ab65f0e2)).
+
+### Public and control experience
+
+- Fix localized home routing and language switching across public pages ([ff35ce1d](https://github.com/SebaSOFT/copalibre/commit/ff35ce1d), [f812f2bc](https://github.com/SebaSOFT/copalibre/commit/f812f2bc), [eb960bc2](https://github.com/SebaSOFT/copalibre/commit/eb960bc2)).
+- Refine organization dashboard hierarchy, role terminology, and reverse-proxy help; separate operator documentation from public navigation ([0c0423ea](https://github.com/SebaSOFT/copalibre/commit/0c0423ea), [7939ff30](https://github.com/SebaSOFT/copalibre/commit/7939ff30)).
+
+### Tournament authoring
+
+- Add adaptive stage previews, configurable group allocation, and a visual WHEN/THEN rules editor ([405967c4](https://github.com/SebaSOFT/copalibre/commit/405967c4)).
+
+### TV broadcast
+
+- Add the `/tv` launcher, display shortcuts, and direct navigation to tournament broadcasts ([0fdbc730](https://github.com/SebaSOFT/copalibre/commit/0fdbc730), [22dec1a0](https://github.com/SebaSOFT/copalibre/commit/22dec1a0)).
+
 ## [1.2.5](https://github.com/SebaSOFT/copalibre/compare/v1.2.1...v1.2.5) (2026-10-03)
 
 ### Features

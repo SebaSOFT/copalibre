@@ -17,7 +17,7 @@ unter Rosetta) und Windows (x86_64).
 
 ## Schritte
 
-Führen Sie diese Befehle in Bash aus (unter Windows WSL2 oder Git Bash). Der PATH-Export aktiviert das Installationsverzeichnis in der aktuellen Shell. Für eine bestimmte veröffentlichte Version leiten Sie das Skript an `VERSION=1.2.5 bash` weiter; diese Version muss bereits veröffentlicht sein.
+Führen Sie diese Befehle in Bash aus (unter Windows WSL2 oder Git Bash). Der PATH-Export aktiviert das Installationsverzeichnis in der aktuellen Shell. Für eine bestimmte veröffentlichte Version leiten Sie das Skript an `VERSION=1.2.6 bash` weiter; diese Version muss bereits veröffentlicht sein.
 
 ```bash
 curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash

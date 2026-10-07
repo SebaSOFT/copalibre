@@ -78,7 +78,7 @@ Helm (`deploy/helm/copalibre/`) implanta as mesmas imagens, contrato de ambiente
 saúde e processo de migração que a instalação Compose — instalá-lo com valores padrão se comporta de
 forma idêntica ao chart base sozinho.
 
-Execute Helm na raiz do repositório após configurar `my-values.yaml` com banco, identidade, email e URLs públicas. Use uma versão já publicada para ambas as imagens; 1.2.5 ficará disponível após a publicação.
+Execute Helm na raiz do repositório após configurar `my-values.yaml` com banco, identidade, email e URLs públicas. Use uma versão já publicada para ambas as imagens; 1.2.6 ficará disponível após a publicação.
 
 ```bash
 cd ..
@@ -87,8 +87,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6
 ```
 
 Adicione estes grupos aditivos de `values.yaml`, desativados por padrão, conforme necessário —

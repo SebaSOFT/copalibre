@@ -5,11 +5,11 @@ description: >-
   same images, environment contract, health checks, and migration process as
   the Docker Compose Level 1 install.
 type: application
-version: 0.1.0
+version: 1.2.6
 # Tracks apps/copalibre/package.json's "version" field — the same release
 # artifact release.yml tags and publishes to ghcr.io/sebasoft/copalibre and
 # ghcr.io/sebasoft/copalibre-web (see RELEASE.md). Bump alongside that file;
 # re-pin at packaging time for a specific cut with
 # `helm package --app-version=<version>` if you need to package ahead of a
 # version-bump commit landing here.
-appVersion: '1.2.5'
+appVersion: '1.2.6'

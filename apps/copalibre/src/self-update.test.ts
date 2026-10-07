@@ -165,7 +165,7 @@ ${hash}  *copalibre-macos-arm64
 
     it('skips update if current version is already at or above target version', async () => {
       const mockRelease: GitHubRelease = {
-        tag_name: 'v1.2.5',
+        tag_name: 'v1.2.6',
         assets: [],
       };
       const mockFetch = jest.fn<() => Promise<MockResponse>>().mockResolvedValue({
@@ -175,7 +175,7 @@ ${hash}  *copalibre-macos-arm64
 
       const result = await performSelfUpdate({
         forceStandalone: true,
-        currentVersion: '1.2.5',
+        currentVersion: '1.2.6',
         fetchFn: mockFetch as unknown as typeof fetch,
       });
 
