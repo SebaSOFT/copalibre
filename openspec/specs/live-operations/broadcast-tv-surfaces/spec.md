@@ -349,3 +349,61 @@ The system SHALL support a multi-court grid presentation mode (`?layout=multicou
 #### Scenario: Multi-page rotation for large venues
 - **WHEN** more active live matches exist than the selected grid display limit
 - **THEN** the multi-court presentation rotates through groups of matches on a 20-second interval, respecting `prefers-reduced-motion` settings
+
+### Requirement: Root TV kiosk launcher and display configuration
+The system SHALL serve an interactive kiosk launcher at `/tv` allowing operators and unattended kiosk
+displays to configure their destination screen parameters. The launcher SHALL present its controls in
+a floating configuration panel above a full-bleed viewport background layer. The launcher SHALL
+provide selectors for organization alias, active tournament, display view mode (full dashboard,
+standings table, a selected pinned match, or broadcast overlay), background style (blurred discipline
+background, neutral, chroma green, football grass, or basketball court), and interface language. When
+the operator changes the background selection, the underlying full-bleed viewport layer SHALL mutate
+in real time beneath the panel to provide progressive visual feedback. Selecting the pinned-match view
+SHALL expose stage and match selectors and SHALL require a selected match before launch. On submission,
+the launcher SHALL navigate to the fully configured TV surface URL and persist the configuration in
+client storage for automatic recovery on display reboot. Launching an overlay without an explicit
+background SHALL default to transparent output for browser-source compositing.
+
+#### Scenario: Root TV route provides interactive kiosk launcher
+- **WHEN** a user or kiosk device visits `/tv`
+- **THEN** the page renders a floating kiosk launcher popup above a full-bleed background allowing
+  selection of organization, tournament, view mode, background theme, and language rather than
+  returning a 404
+
+#### Scenario: Real-time background mutation beneath launcher popup
+- **WHEN** an operator selects or changes a background style in the `/tv` launcher popup
+- **THEN** the full-screen viewport layer behind the popup updates immediately in real-time to reflect
+  the selected theme
+
+#### Scenario: Kiosk launcher pre-fills persisted display settings
+- **WHEN** a kiosk device that previously launched a TV display reloads `/tv`
+- **THEN** the form inputs pre-populate with the previously selected configuration values
+
+#### Scenario: Pinned-match view requires a selected match
+- **WHEN** an operator selects the `Matches` view
+- **THEN** the launcher presents stage and match selectors from the selected tournament and does not
+  launch until a valid match is selected
+
+#### Scenario: Pinned-match selection launches the existing match route
+- **WHEN** an operator selects a stage and match in the `Matches` view
+- **THEN** the launcher opens that match's existing TV route with the chosen language, presentation,
+  and background parameters
+
+### Requirement: Universal background composition across all TV screens
+The TV broadcast layout SHALL decouple background rendering from specific overlay modes, allowing any TV
+screen and layout mode (full dashboard, multi-court grid, pinned match view, standings table, lower
+third, or full overlay) to be combined with any supported background style: blurred subtle discipline
+imagery (`bg=discipline`), neutral dark surface (`bg=neutral`), solid chroma key color (`bg=chroma`),
+turf green (`bg=football`), hardwood court (`bg=court`), or transparent alpha channel
+(`bg=transparent`).
+
+#### Scenario: Kiosk screen renders with selected background query
+- **WHEN** any `/tv/**` screen is requested with a `?bg=` or `?background=` parameter (e.g.
+  `?bg=court` or `?bg=chroma`)
+- **THEN** the TV layout renders that background style behind the screen content, regardless of whether
+  the route is a full kiosk dashboard or a pinned match view
+
+#### Scenario: Blurred discipline background is applied to arbitrary TV screens
+- **WHEN** a TV route is requested with `?bg=discipline`
+- **THEN** the TV layout renders the blurred, subtle atmospheric discipline backdrop image matching the
+  tournament's declared discipline

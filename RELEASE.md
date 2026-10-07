@@ -9,8 +9,9 @@ and it's what `.github/workflows/release.yml` reads to decide what to tag and pu
 
 1. **Bump the version.** Set the same new version in every `apps/*/package.json`, every
    `packages/*/package.json`, and the root `package.json`. There's no script for this yet — it's a
-   deliberate, reviewable diff, not an automated bump. Prepare these changes on a branch from
-   `develop` (for example, `release/1.2.0`). Update both image tags in
+   deliberate, reviewable diff, not an automated bump. Prepare these changes on the feature branch
+   for the release-preparation OpenSpec change, named `change/NNNN-slug` per repository convention.
+   Update both image tags in
    `apps/copalibre/src/init.ts` and its test expectation, `appVersion` in
    `deploy/helm/copalibre/Chart.yaml`, and `COPALIBRE_VERSION` in
    `.github/workflows/module-validation.yml` alongside the package versions. The Helm chart's

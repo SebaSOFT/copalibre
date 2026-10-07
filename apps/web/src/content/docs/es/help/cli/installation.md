@@ -17,7 +17,7 @@ Rosetta) y Windows (x86_64).
 
 ## Pasos
 
-Ejecute estos comandos en Bash (en Windows, WSL2 o Git Bash). La exportación de PATH habilita el directorio del instalador en la sesión actual. Para elegir una versión publicada, envíe el script a `VERSION=1.2.5 bash`; esa versión debe estar publicada.
+Ejecute estos comandos en Bash (en Windows, WSL2 o Git Bash). La exportación de PATH habilita el directorio del instalador en la sesión actual. Para elegir una versión publicada, envíe el script a `VERSION=1.2.6 bash`; esa versión debe estar publicada.
 
 ```bash
 curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash

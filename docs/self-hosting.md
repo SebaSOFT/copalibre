@@ -188,7 +188,7 @@ copalibre upgrade
 
 To upgrade only the CLI binary itself, run `copalibre upgrade --self`.
 
-### Manual Compose upgrade to 1.2.5
+### Manual Compose upgrade to 1.2.6
 
 Use this procedure after the target images have been published. Keep the existing installation
 directory, Compose project name and named volumes; a new `init` directory is a separate installation,
@@ -212,13 +212,13 @@ against a partially upgraded database to fit the budget.
    storage endpoints; a PostgreSQL backup does not contain those objects.
 3. Set **both** image references in `.env`:
    ```dotenv
-   COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.5
-   COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.5
+   COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.6
+   COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.6
    ```
 4. Pull images and run the target runtime's compatibility check without starting dependencies:
    ```bash
    docker compose pull
-   docker compose run --rm --no-deps upgrade-check --target-version 1.2.5
+   docker compose run --rm --no-deps upgrade-check --target-version 1.2.6
    ```
    The check reports incompatible installed modules and pending migrations without applying them.
    Resolve failures before proceeding. Keep PostgreSQL running for this check.

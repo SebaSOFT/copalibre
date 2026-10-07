@@ -20,7 +20,8 @@ describe('copalibre init', () => {
     const content = await readFile(file, 'utf8');
     expect(content).toContain('COPALIBRE_PORT=8080');
     expect(content).toContain('COPALIBRE_APP_URL=http://localhost:8080');
-    expect(content).toContain('COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.5');
+    expect(content).toContain('COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.6');
+    expect(content).toContain('COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.6');
     expect(content).toContain('COPALIBRE_BOOTSTRAP_TOKEN=');
   });
 

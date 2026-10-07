@@ -178,7 +178,8 @@ only a summary of it.
 Every action that operates on one tournament SHALL be presented inside that tournament's own card, and
 SHALL be ranked rather than presented as a row of equal-weight controls: one primary action, the
 tournament's export actions collected behind a single grouped control, and a destructive action
-separated from both.
+separated from both. Each tournament card SHALL also provide direct navigation shortcuts to view the
+tournament on the public site and launch its live TV display.
 
 #### Scenario: Exports are one grouped control, not four buttons
 - **WHEN** a tournament card is rendered
@@ -194,6 +195,11 @@ separated from both.
 - **WHEN** the dashboard lists two tournaments
 - **THEN** each tournament's actions render within that tournament's own card, so no action sits
   between two cards where the tournament it applies to is ambiguous
+
+#### Scenario: Card provides direct shortcuts to public and TV surfaces
+- **WHEN** an operator views a tournament card
+- **THEN** the card renders direct shortcut links to the tournament's public overview page and its
+  broadcast TV display
 
 ### Requirement: A tournament card offers a way to reach its stage list
 

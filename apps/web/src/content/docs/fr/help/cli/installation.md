@@ -17,7 +17,7 @@ Rosetta), et Windows (x86_64).
 
 ## Étapes
 
-Exécutez ces commandes dans Bash (WSL2 ou Git Bash sous Windows). L’export PATH active le répertoire du binaire dans le shell courant. Pour choisir une version publiée, transmettez le script à `VERSION=1.2.5 bash` ; cette version doit déjà être publiée.
+Exécutez ces commandes dans Bash (WSL2 ou Git Bash sous Windows). L’export PATH active le répertoire du binaire dans le shell courant. Pour choisir une version publiée, transmettez le script à `VERSION=1.2.6 bash` ; cette version doit déjà être publiée.
 
 ```bash
 curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash

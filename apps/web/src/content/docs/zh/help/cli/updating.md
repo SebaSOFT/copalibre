@@ -29,13 +29,13 @@ copalibre backup --file backups/pre-upgrade.tar.gz
 在现有安装目录中审查目标版本的 Compose 和配置变更，然后修改 `.env` 中的两个镜像引用。保留原有 Compose 项目和卷。拉取并检查目标镜像，不启动依赖，也不执行迁移：
 
 ```dotenv
-COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.5
-COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.5
+COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.6
+COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.6
 ```
 
 ```bash
 docker compose pull
-docker compose run --rm --no-deps upgrade-check --target-version 1.2.5
+docker compose run --rm --no-deps upgrade-check --target-version 1.2.6
 ```
 
 检查成功后安排停机，停止应用进程并执行最终备份，再迁移和重启。迁移失败时不要重启应用：

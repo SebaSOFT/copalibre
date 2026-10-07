@@ -74,7 +74,7 @@ mkdir my-league && cd my-league
 Compose 安装相同的镜像、环境约定、健康检查和迁移流程——使用默认值安装它的行为与仅使用基础 chart
 完全一致。
 
-在仓库根目录运行 Helm，事先在 `my-values.yaml` 中配置数据库、身份认证、邮件和公开 URL。两个镜像都必须使用已发布版本；1.2.5 在发布后才可用。
+在仓库根目录运行 Helm，事先在 `my-values.yaml` 中配置数据库、身份认证、邮件和公开 URL。两个镜像都必须使用已发布版本；1.2.6 在发布后才可用。
 
 ```bash
 cd ..
@@ -83,8 +83,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6
 ```
 
 按需叠加以下这些默认关闭的可加性 `values.yaml` 分组——都无需 fork 模板：

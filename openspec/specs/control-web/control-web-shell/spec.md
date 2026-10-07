@@ -356,3 +356,18 @@ be implemented isomorphically.
 - **WHEN** `deterministicTiebreakHash` evaluates the same tournament, stage, and entrant IDs
 - **THEN** it produces the identical integer value in both server-side Node execution and client-side
   browser execution
+
+### Requirement: Public site navigation affordance from control and login surfaces
+The operator login screen (`/control/login`) and control panel shell SHALL provide visible, accessible
+navigation links directing operators back to the public spectator site without requiring manual
+browser URL editing.
+
+#### Scenario: Operator login screen offers return navigation to public site
+- **WHEN** an operator or visitor views `/control/login`
+- **THEN** an accessible "← Volver al sitio público" link is rendered beneath the login container,
+  navigating to the public home route
+
+#### Scenario: Control panel shell navigation links to public site
+- **WHEN** an authenticated operator navigates any control panel screen
+- **THEN** the shared shell navigation renders a "Ver sitio público" navigation link leading to the
+  organization's public overview

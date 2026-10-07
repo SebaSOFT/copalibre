@@ -30,7 +30,7 @@ x-application-environment: &application-environment
   HOST: '0.0.0.0'
 
 x-application-service: &application-service
-  image: ${COPALIBRE_IMAGE:-copalibre:local}
+  image: ${COPALIBRE_IMAGE:-ghcr.io/sebasoft/copalibre:1.2.6}
   build:
     context: .
     target: runtime
@@ -181,7 +181,7 @@ services:
     build:
       context: .
       target: web
-    image: ${COPALIBRE_WEB_IMAGE:-copalibre-web:local}
+    image: ${COPALIBRE_WEB_IMAGE:-ghcr.io/sebasoft/copalibre-web:1.2.6}
     environment:
       COPALIBRE_JWT_ISSUER: ${COPALIBRE_JWT_ISSUER:?Set COPALIBRE_JWT_ISSUER in .env}
       COPALIBRE_OIDC_CLIENT_ID: ${COPALIBRE_OIDC_CLIENT_ID:?Set COPALIBRE_OIDC_CLIENT_ID in .env}
