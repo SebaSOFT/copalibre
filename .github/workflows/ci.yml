@@ -112,6 +112,8 @@ jobs:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
+      - name: Validate NestJS workspace major alignment
+        run: node --test scripts/nestjs-major-alignment.test.mjs
       - name: Audit all workspace dependencies
         run: yarn npm audit --all --recursive --no-deprecations
       - name: Audit GitHub Dependabot alerts
@@ -173,7 +175,7 @@ jobs:
       # role-capabilities (openspec 0165): the declared capability vocabulary
       # and role mapping every guard below resolves through.
       - run: yarn workspace @copalibre/domain test --testPathPatterns 'role-capabilities'
-      - run: yarn workspace @copalibre/api test --testPathPatterns 'access-coverage|capability-guard'
+      - run: yarn workspace @copalibre/api test src/auth/access-coverage.test.ts src/auth/capability-guard-equivalence.test.ts
       # audit-vocabulary/audit-coverage (openspec 0166): the declared audited
       # action vocabulary and the gate failing an aggregate mutation that
       # records no audit entry. tasks.md names the "unit-tests" job for this

@@ -1,5 +1,5 @@
 import { ForbiddenException } from '@nestjs/common';
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import type { AuthenticatedSubject } from '../auth/request-context.js';
 import {
   enforceMatchCommand,
@@ -324,7 +324,7 @@ describe('enforceReportSubmission', () => {
   const participant = subject();
 
   it('allows a participant who is a party to the match, and returns their person id', async () => {
-    const isPartyToMatch = jest
+    const isPartyToMatch = vi
       .fn<(organizationId: string, personId: string, matchId: string) => Promise<boolean>>()
       .mockResolvedValue(true);
     await expect(
@@ -339,7 +339,7 @@ describe('enforceReportSubmission', () => {
   });
 
   it('refuses a match the participant is not a party to (4.2)', async () => {
-    const isPartyToMatch = jest
+    const isPartyToMatch = vi
       .fn<(organizationId: string, personId: string, matchId: string) => Promise<boolean>>()
       .mockResolvedValue(false);
     await expect(
@@ -353,7 +353,7 @@ describe('enforceReportSubmission', () => {
   });
 
   it('refuses across organizations before ever checking match membership', async () => {
-    const isPartyToMatch = jest
+    const isPartyToMatch = vi
       .fn<(organizationId: string, personId: string, matchId: string) => Promise<boolean>>()
       .mockResolvedValue(true);
     await expect(
@@ -368,7 +368,7 @@ describe('enforceReportSubmission', () => {
   });
 
   it('refuses a non-participant (operator) subject with no participant person id', async () => {
-    const isPartyToMatch = jest
+    const isPartyToMatch = vi
       .fn<(organizationId: string, personId: string, matchId: string) => Promise<boolean>>()
       .mockResolvedValue(true);
     await expect(
@@ -392,9 +392,7 @@ describe('enforceReportSubmission', () => {
         organizationId: 'org-1',
         matchId: 'm-1',
         isPartyToMatch:
-          jest.fn<
-            (organizationId: string, personId: string, matchId: string) => Promise<boolean>
-          >(),
+          vi.fn<(organizationId: string, personId: string, matchId: string) => Promise<boolean>>(),
       }),
     ).rejects.toThrow(ForbiddenException);
   });

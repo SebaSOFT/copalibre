@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import type { Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { SharedThrottlerStorage } from './shared-throttler-storage.js';
@@ -26,29 +26,29 @@ function mockDb(
     block_expires_at: null,
     ...overrides.upsertResult,
   };
-  const executeTakeFirstOrThrow = jest.fn().mockResolvedValue(upsertResult as never);
+  const executeTakeFirstOrThrow = vi.fn().mockResolvedValue(upsertResult as never);
   const executeMock = overrides.deleteFails
-    ? jest.fn().mockRejectedValue(new Error('db error') as never)
-    : jest.fn().mockResolvedValue((overrides.deleteResult ?? [{ numDeletedRows: 0n }]) as never);
+    ? vi.fn().mockRejectedValue(new Error('db error') as never)
+    : vi.fn().mockResolvedValue((overrides.deleteResult ?? [{ numDeletedRows: 0n }]) as never);
 
   const db = {
-    insertInto: jest.fn().mockReturnValue({
-      values: jest.fn().mockReturnValue({
-        onConflict: jest.fn().mockReturnValue({
-          returningAll: jest.fn().mockReturnValue({ executeTakeFirstOrThrow }),
+    insertInto: vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        onConflict: vi.fn().mockReturnValue({
+          returningAll: vi.fn().mockReturnValue({ executeTakeFirstOrThrow }),
         }),
       }),
     }),
-    selectFrom: jest.fn().mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        executeTakeFirstOrThrow: jest
+    selectFrom: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        executeTakeFirstOrThrow: vi
           .fn()
           .mockResolvedValue({ count: overrides.countResult ?? '0' } as never),
       }),
     }),
-    deleteFrom: jest.fn().mockReturnValue({
-      where: jest.fn().mockReturnValue({
-        limit: jest.fn().mockReturnValue({ execute: executeMock }),
+    deleteFrom: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockReturnValue({ execute: executeMock }),
       }),
     }),
   } as unknown as Kysely<Database>;
@@ -61,7 +61,7 @@ function mockDb(
 /* ------------------------------------------------------------------ */
 
 describe('SharedThrottlerStorage', () => {
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => vi.restoreAllMocks());
 
   it('maps an atomic counter result to Nest throttle fields and cleans expired counters in bounded batches', async () => {
     const now = new Date('2026-08-26T00:00:00.000Z');
@@ -73,7 +73,7 @@ describe('SharedThrottlerStorage', () => {
       },
       countResult: '1',
     });
-    jest.spyOn(Date, 'now').mockReturnValue(now.getTime());
+    vi.spyOn(Date, 'now').mockReturnValue(now.getTime());
     const storage = new SharedThrottlerStorage(db);
 
     await expect(storage.increment('opaque-key', 60_000, 5, 60_000, 'default')).resolves.toEqual({
@@ -97,7 +97,7 @@ describe('SharedThrottlerStorage', () => {
         block_expires_at: null,
       },
     });
-    jest.spyOn(Date, 'now').mockReturnValue(now.getTime());
+    vi.spyOn(Date, 'now').mockReturnValue(now.getTime());
     const storage = new SharedThrottlerStorage(db);
 
     await expect(storage.increment('key-a', 60_000, 10, 60_000, 'default')).resolves.toEqual({
@@ -117,7 +117,7 @@ describe('SharedThrottlerStorage', () => {
         block_expires_at: new Date(now.getTime() - 1_000),
       },
     });
-    jest.spyOn(Date, 'now').mockReturnValue(now.getTime());
+    vi.spyOn(Date, 'now').mockReturnValue(now.getTime());
     const storage = new SharedThrottlerStorage(db);
 
     await expect(storage.increment('key-b', 60_000, 10, 60_000, 'default')).resolves.toEqual({
@@ -131,7 +131,7 @@ describe('SharedThrottlerStorage', () => {
   it('skips cleanup when the interval has not elapsed', async () => {
     const { db, executeMock } = mockDb();
     const now = new Date('2026-08-26T00:00:00.000Z');
-    jest.spyOn(Date, 'now').mockReturnValue(now.getTime());
+    vi.spyOn(Date, 'now').mockReturnValue(now.getTime());
     const storage = new SharedThrottlerStorage(db);
 
     await storage.increment('key-1', 60_000, 10, 60_000, 'default');
@@ -147,7 +147,7 @@ describe('SharedThrottlerStorage', () => {
       countResult: '5',
     });
     const now = new Date('2026-08-26T00:00:00.000Z');
-    jest.spyOn(Date, 'now').mockReturnValue(now.getTime());
+    vi.spyOn(Date, 'now').mockReturnValue(now.getTime());
     const storage = new SharedThrottlerStorage(db);
 
     await storage.increment('key-x', 60_000, 10, 60_000, 'default');
@@ -162,7 +162,7 @@ describe('SharedThrottlerStorage', () => {
   it('survives cleanup database errors without rejecting increment', async () => {
     const { db } = mockDb({ deleteFails: true, countResult: '1' });
     const now = new Date('2026-08-26T00:00:00.000Z');
-    jest.spyOn(Date, 'now').mockReturnValue(now.getTime());
+    vi.spyOn(Date, 'now').mockReturnValue(now.getTime());
     const storage = new SharedThrottlerStorage(db);
 
     await expect(

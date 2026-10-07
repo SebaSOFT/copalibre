@@ -1,6 +1,6 @@
 import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import {
   IdentityPrincipalRepository,
   OrganizationAccessRepository,
@@ -26,24 +26,24 @@ describe('OrganizationAccessGuard', () => {
       { kind: 'organization-role', roles: ['admin'] },
       handler,
     );
-    jest.spyOn(OrganizationRepository.prototype, 'findByAlias').mockResolvedValue({
+    vi.spyOn(OrganizationRepository.prototype, 'findByAlias').mockResolvedValue({
       organizationId: 'org-b',
       alias: 'org-b',
       name: 'Organization B',
       primaryLanguage: 'es',
       timezone: 'UTC',
     });
-    jest.spyOn(IdentityPrincipalRepository.prototype, 'findByOidcSubject').mockResolvedValue({
+    vi.spyOn(IdentityPrincipalRepository.prototype, 'findByOidcSubject').mockResolvedValue({
       principalId: '01800000-0000-7000-8000-000000000001',
       email: 'admin@example.test',
       oidcSubjectId: 'oidc-admin',
     });
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => vi.restoreAllMocks());
 
   it('does not grant organization B access from an admin assignment in organization A', async () => {
-    const findAssignment = jest
+    const findAssignment = vi
       .spyOn(OrganizationAccessRepository.prototype, 'findAssignment')
       .mockImplementation(async (organizationId) =>
         organizationId === 'org-a'
@@ -73,7 +73,7 @@ describe('OrganizationAccessGuard', () => {
   });
 
   it('accepts only an active assignment in the requested organization', async () => {
-    jest.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
+    vi.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
       assignmentId: '01800000-0000-7000-8000-000000000002',
       organizationId: 'org-b',
       principalId: '01800000-0000-7000-8000-000000000001',
@@ -97,7 +97,7 @@ describe('OrganizationAccessGuard', () => {
   });
 
   it("resolves resourceScope from a club-admin assignment's clubId", async () => {
-    jest.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
+    vi.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
       assignmentId: '01800000-0000-7000-8000-000000000002',
       organizationId: 'org-b',
       principalId: '01800000-0000-7000-8000-000000000001',
@@ -127,7 +127,7 @@ describe('OrganizationAccessGuard', () => {
   });
 
   it('leaves resourceScope empty for an unscoped admin assignment', async () => {
-    jest.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
+    vi.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
       assignmentId: '01800000-0000-7000-8000-000000000002',
       organizationId: 'org-b',
       principalId: '01800000-0000-7000-8000-000000000001',
@@ -156,12 +156,10 @@ describe('OrganizationAccessGuard', () => {
       { kind: 'organization-bootstrap-or-admin' },
       handler,
     );
-    const hasAnyAssignment = jest
+    const hasAnyAssignment = vi
       .spyOn(OrganizationAccessRepository.prototype, 'hasAnyAssignment')
       .mockResolvedValue(true);
-    jest
-      .spyOn(OrganizationAccessRepository.prototype, 'findAssignment')
-      .mockResolvedValue(undefined);
+    vi.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue(undefined);
     const request: RequestWithSubject & { params: Record<string, string> } = {
       headers: {},
       params: { organizationAlias: 'org-b' },
@@ -211,7 +209,7 @@ describe('OrganizationAccessGuard', () => {
       { kind: 'organization-bootstrap-or-admin' },
       handler,
     );
-    jest.spyOn(OrganizationAccessRepository.prototype, 'hasAnyAssignment').mockResolvedValue(false);
+    vi.spyOn(OrganizationAccessRepository.prototype, 'hasAnyAssignment').mockResolvedValue(false);
     const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
     await expect(
       guard.canActivate(
@@ -228,13 +226,14 @@ describe('OrganizationAccessGuard', () => {
     ).resolves.toBe(true);
 
     Reflect.defineMetadata(ACCESS_REQUIREMENT_KEY, { kind: 'participant-self-service' }, handler);
-    jest
-      .spyOn(IdentityPrincipalRepository.prototype, 'findParticipantByOidcSubject')
-      .mockResolvedValue({
-        principalId: '01800000-0000-7000-8000-000000000001',
-        organizationId: 'org-b',
-        personId: '01800000-0000-7000-8000-000000000003',
-      });
+    vi.spyOn(
+      IdentityPrincipalRepository.prototype,
+      'findParticipantByOidcSubject',
+    ).mockResolvedValue({
+      principalId: '01800000-0000-7000-8000-000000000001',
+      organizationId: 'org-b',
+      personId: '01800000-0000-7000-8000-000000000003',
+    });
     const participantRequest: RequestWithSubject & { params: Record<string, string> } = {
       headers: {},
       params: { organizationAlias: 'org-b' },
@@ -259,9 +258,9 @@ describe('OrganizationAccessGuard', () => {
   });
 
   it('leaves principalId unset for a "self" route when no installation principal exists yet', async () => {
-    jest
-      .spyOn(IdentityPrincipalRepository.prototype, 'findByOidcSubject')
-      .mockResolvedValue(undefined);
+    vi.spyOn(IdentityPrincipalRepository.prototype, 'findByOidcSubject').mockResolvedValue(
+      undefined,
+    );
     Reflect.defineMetadata(ACCESS_REQUIREMENT_KEY, { kind: 'self' }, handler);
     const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
     const request: RequestWithSubject = {
@@ -294,7 +293,7 @@ describe('OrganizationAccessGuard', () => {
   });
 
   it('rejects an organization alias that does not resolve to a real organization', async () => {
-    jest.spyOn(OrganizationRepository.prototype, 'findByAlias').mockResolvedValue(undefined);
+    vi.spyOn(OrganizationRepository.prototype, 'findByAlias').mockResolvedValue(undefined);
     const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
     await expect(
       guard.canActivate(
@@ -322,9 +321,10 @@ describe('OrganizationAccessGuard', () => {
 
   it('rejects participant self-service with no participant identity link', async () => {
     Reflect.defineMetadata(ACCESS_REQUIREMENT_KEY, { kind: 'participant-self-service' }, handler);
-    jest
-      .spyOn(IdentityPrincipalRepository.prototype, 'findParticipantByOidcSubject')
-      .mockResolvedValue(undefined);
+    vi.spyOn(
+      IdentityPrincipalRepository.prototype,
+      'findParticipantByOidcSubject',
+    ).mockResolvedValue(undefined);
     const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
     await expect(
       guard.canActivate(
@@ -343,7 +343,7 @@ describe('OrganizationAccessGuard', () => {
       { kind: 'organization-bootstrap-or-admin' },
       handler,
     );
-    jest.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
+    vi.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
       assignmentId: '01800000-0000-7000-8000-000000000002',
       organizationId: 'org-b',
       principalId: '01800000-0000-7000-8000-000000000001',
@@ -367,7 +367,7 @@ describe('OrganizationAccessGuard', () => {
   });
 
   it('rejects an active member whose role is not accepted by the route', async () => {
-    jest.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
+    vi.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
       assignmentId: '01800000-0000-7000-8000-000000000002',
       organizationId: 'org-b',
       principalId: '01800000-0000-7000-8000-000000000001',

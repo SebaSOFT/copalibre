@@ -1,4 +1,5 @@
-import { jest } from '@jest/globals';
+import type { Mock } from 'vitest';
+import { vi } from 'vitest';
 import { ACCESS_REQUIREMENT_KEY, SUPER_ADMIN_SCOPE } from '../../auth/access-requirement.js';
 import { REQUIRED_SCOPES_KEY } from '../../auth/required-scopes.js';
 import { SECURITY_PLANE_KEY } from '../../auth/security-plane.js';
@@ -11,11 +12,11 @@ import type { DiagnosticsSummary, RetryOutboxResponse } from '../../dto/diagnost
 describe('DiagnosticsController', () => {
   let controller: DiagnosticsController;
   let diagnosticsService: {
-    summary: jest.Mock<() => Promise<DiagnosticsSummary>>;
-    invalidate: jest.Mock<() => void>;
+    summary: Mock<() => Promise<DiagnosticsSummary>>;
+    invalidate: Mock<() => void>;
   };
   let outboxService: {
-    retry: jest.Mock<
+    retry: Mock<
       (eventIds: readonly string[], actor: string, auth: string) => Promise<RetryOutboxResponse>
     >;
   };
@@ -33,11 +34,11 @@ describe('DiagnosticsController', () => {
 
   beforeEach(() => {
     diagnosticsService = {
-      summary: jest.fn<() => Promise<DiagnosticsSummary>>().mockResolvedValue(fakeSummary),
-      invalidate: jest.fn<() => void>(),
+      summary: vi.fn<() => Promise<DiagnosticsSummary>>().mockResolvedValue(fakeSummary),
+      invalidate: vi.fn<() => void>(),
     };
     outboxService = {
-      retry: jest
+      retry: vi
         .fn<
           (eventIds: readonly string[], actor: string, auth: string) => Promise<RetryOutboxResponse>
         >()
