@@ -8,6 +8,7 @@ import type {
   WizardStageDraft,
 } from '../lib/stage-authoring.js';
 import { appendStage, removeStage, replaceStage } from '../lib/stage-authoring.js';
+import { SERIES_CLASS_LABELS, STAGE_FORMAT_LABELS } from '../lib/stage-format-labels.js';
 import {
   derivePreviewEntrantCount,
   derivePreviewPlaceholders,
@@ -34,13 +35,6 @@ import {
   emptySeriesDraft,
 } from '../lib/stage-authoring.js';
 
-const SERIES_CLASS_LABELS: Record<SeriesResolutionClass, typeof messages.wizardSeriesClassBestOf> =
-  {
-    'best-of': messages.wizardSeriesClassBestOf,
-    aggregate: messages.wizardSeriesClassAggregate,
-    'points-per-leg': messages.wizardSeriesClassPointsPerLeg,
-  };
-
 const ALLOCATION_MODE_LABELS: Record<
   AllocationMode,
   typeof messages.stageEditorAllocationAutomatic
@@ -56,15 +50,6 @@ const ALLOCATION_DIRECTION_LABELS: Record<
 > = {
   'higher-first': messages.stageEditorAllocationDirectionHigherFirst,
   'lower-first': messages.stageEditorAllocationDirectionLowerFirst,
-};
-
-const STAGE_FORMAT_LABELS: Readonly<Record<string, typeof messages.stageFormatLeague>> = {
-  league: messages.stageFormatLeague,
-  'round-robin': messages.stageFormatRoundRobin,
-  'round-robin-home-away': messages.stageFormatRoundRobinHomeAway,
-  'round-robin-single-leg': messages.stageFormatRoundRobinSingleLeg,
-  'single-elimination': messages.stageFormatSingleElimination,
-  'double-elimination': messages.stageFormatDoubleElimination,
 };
 
 const GROUP_DISTRIBUTION_LABELS: Readonly<

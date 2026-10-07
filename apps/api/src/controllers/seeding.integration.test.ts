@@ -378,8 +378,11 @@ describe('seeding generates fixtures per zone (integration)', () => {
     // A knockout zone has a bracket, not a points table: only the league zone is ranked, and it
     // is headed by its zone's name rather than by the implicit group's storage name.
     expect(
-      (table.json().segments as { groupName?: string }[]).map((segment) => segment.groupName),
-    ).toEqual(['Zona 3']);
+      (table.json().segments as { groupName?: string; zoneName?: string }[]).map((segment) => [
+        segment.groupName,
+        segment.zoneName,
+      ]),
+    ).toEqual([['Zona 3', 'Zona 3']]);
   });
 
   it('refuses a seeded entrant that no zone holds, and writes nothing', async () => {

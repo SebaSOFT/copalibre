@@ -12,6 +12,7 @@ import { aggregateTo } from '@copalibre/tournament-engine';
 import {
   IMPLICIT_GROUP_NAME,
   effectiveFormat,
+  isImplicitZone,
   findTableLayout,
   producesStandingsTable,
   resolveEffectiveTableLayouts,
@@ -81,6 +82,8 @@ export interface TableProjectionSegment {
   /** Absent when the segment covers a stage that has no groups. */
   readonly groupId?: string;
   readonly groupName?: string;
+  /** The zone the group belongs to; absent for a stage that has only its implicit zone. */
+  readonly zoneName?: string;
   readonly rows: readonly TableRow[];
 }
 
@@ -443,7 +446,12 @@ export async function readSegmentedTableProjection(
       // A zone's implicit group is a storage device; its heading is the zone's own name.
       const groupName =
         heterogeneous && group.name === IMPLICIT_GROUP_NAME ? zone.name : group.name;
-      return { groupId: group.groupId, groupName, rows: scoped.rows };
+      return {
+        groupId: group.groupId,
+        groupName,
+        ...(isImplicitZone(zone) ? {} : { zoneName: zone.name }),
+        rows: scoped.rows,
+      };
     }),
   );
   // The merged table of a mixed stage is its table zones' rows, each zone ranked on its own.

@@ -484,6 +484,7 @@ export const messages = defineMessages({
 
   // pages/[organization]/tournaments/[tournament]/stages/[stage].astro
   bracketPageTitle: { id: 'publicWeb.bracketPage.title', defaultMessage: 'Bracket' },
+  stageZonesPageTitle: { id: 'publicWeb.stageZonesPage.title', defaultMessage: 'Stage' },
 
   // Player profile / career popup
   playerProfileHeading: { id: 'publicWeb.playerProfile.heading', defaultMessage: 'Player Profile' },

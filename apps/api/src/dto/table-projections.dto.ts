@@ -72,6 +72,12 @@ export class TableProjectionSegmentResponse {
   @ApiPropertyOptional({ description: 'The group\u2019s own name, e.g. "Group A"' })
   groupName?: string;
 
+  @ApiPropertyOptional({
+    description:
+      'The zone this group belongs to; absent for a stage that has only its implicit zone',
+  })
+  zoneName?: string;
+
   @ApiProperty({ type: TableRowResponse, isArray: true })
   rows!: TableRowResponse[];
 }

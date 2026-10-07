@@ -46,6 +46,34 @@ export function selectStageLayout(format?: string): StageLayout {
   return eliminationFormats.includes(format) ? 'bracket' : 'grid';
 }
 
+/**
+ * How each zone of a stage is drawn, and whether the stage mixes layouts.
+ *
+ * A zone plays its own format when it declares one and its stage's otherwise, so a stage can hold
+ * knockout zones beside a league zone. A stage whose zones all draw the same way keeps the
+ * single-layout page it always had; `mixed` is true only when they differ.
+ */
+export function resolveZoneLayouts(
+  zones: readonly { readonly format?: string | undefined }[],
+  stageFormat?: string,
+): { readonly layouts: readonly StageLayout[]; readonly mixed: boolean } {
+  const layouts = zones.map((zone) => selectStageLayout(zone.format ?? stageFormat));
+  return { layouts, mixed: new Set(layouts).size > 1 };
+}
+
+/**
+ * The zones a bracket widget draws: those playing an elimination format, each with matches to show.
+ * A league zone beside them is a table, not a bracket, so it is left out rather than drawn empty.
+ */
+export function bracketZonesOf<
+  Zone extends { readonly format?: string | undefined; readonly matches: readonly unknown[] },
+>(projection: { readonly format?: string | undefined; readonly zones: readonly Zone[] }): Zone[] {
+  return projection.zones.filter(
+    (zone) =>
+      zone.matches.length > 0 && selectStageLayout(zone.format ?? projection.format) === 'bracket',
+  );
+}
+
 export interface BracketMatch {
   readonly matchId?: string;
   readonly matchNumber: number;

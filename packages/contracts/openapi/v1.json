@@ -15641,6 +15641,10 @@
             "type": "string",
             "description": "The group’s own name, e.g. \"Group A\""
           },
+          "zoneName": {
+            "type": "string",
+            "description": "The zone this group belongs to; absent for a stage that has only its implicit zone"
+          },
           "rows": {
             "type": "array",
             "items": {

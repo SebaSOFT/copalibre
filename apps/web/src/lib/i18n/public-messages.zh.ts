@@ -122,6 +122,7 @@ export const messages: Record<string, string> = {
   'publicWeb.livePage.leadersHeading': '领先者',
 
   'publicWeb.bracketPage.title': '对阵表',
+  'publicWeb.stageZonesPage.title': '阶段',
 
   'publicWeb.playerProfile.heading': '球员档案',
   'publicWeb.playerProfile.age': '年龄: {age}',

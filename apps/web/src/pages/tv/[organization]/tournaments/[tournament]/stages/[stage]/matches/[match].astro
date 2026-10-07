@@ -28,7 +28,7 @@ import type { PublicObjectReference } from '../../../../../../../../lib/discipli
 import type { LiveDashboard } from '../../../../../../../../lib/live-state.ts';
 import type { ResultState } from '../../../../../../../../lib/result-state.ts';
 import type { StandingsRowView } from '../../../../../../../../lib/overview.ts';
-import { selectStageLayout } from '../../../../../../../../lib/bracket.ts';
+import { bracketZonesOf } from '../../../../../../../../lib/bracket.ts';
 import type { BracketZone } from '../../../../../../../../lib/bracket-projection.ts';
 import { TV_BACKGROUNDS, type TvBackground } from '../../../../../../../../lib/tv-background.ts';
 
@@ -165,8 +165,8 @@ if (presentation !== 'lower') {
     const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, stageNumber);
     if (rawBracket) {
       const mapped = mapBracketResponse(rawBracket);
-      const zones = mapped.zones.filter((zone) => zone.matches.length > 0);
-      if (selectStageLayout(mapped.format) === 'bracket' && zones.length > 0) {
+      const zones = bracketZonesOf(mapped);
+      if (zones.length > 0) {
         initialBracket = { stageNumber, zones };
       }
     }

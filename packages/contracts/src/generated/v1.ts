@@ -4480,6 +4480,8 @@ export interface components {
             groupId?: string;
             /** @description The group’s own name, e.g. "Group A" */
             groupName?: string;
+            /** @description The zone this group belongs to; absent for a stage that has only its implicit zone */
+            zoneName?: string;
             rows: components["schemas"]["TableRowResponse"][];
         };
         TableProjectionResponse: {
