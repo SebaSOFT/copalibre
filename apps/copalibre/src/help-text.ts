@@ -265,15 +265,6 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     ],
   },
   {
-    name: 'revoke-legacy-personal-access-tokens',
-    summary: 'Revoke every currently active personal access token as a security cutover',
-    usage: 'copalibre revoke-legacy-personal-access-tokens (--confirm | --dry-run)',
-    flags: [
-      { flag: '--dry-run', description: 'Show the number of active tokens without changing any' },
-      { flag: '--confirm', description: 'Required to revoke every active token' },
-    ],
-  },
-  {
     name: 'module',
     summary: 'Manage installed discipline and tournament-profile modules',
     usage: 'copalibre module <add|list|remove|verify|scaffold|validate-local|submit>',
