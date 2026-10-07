@@ -1,5 +1,5 @@
 import { Reflector } from '@nestjs/core';
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import {
   IdentityPrincipalRepository,
   OrganizationAccessRepository,
@@ -29,21 +29,21 @@ describe('OrganizationAccessGuard — organization-capability requirement', () =
 
   beforeEach(() => {
     Reflect.defineMetadata(SECURITY_PLANE_KEY, 'admin-control', handler);
-    jest.spyOn(OrganizationRepository.prototype, 'findByAlias').mockResolvedValue({
+    vi.spyOn(OrganizationRepository.prototype, 'findByAlias').mockResolvedValue({
       organizationId: 'org-b',
       alias: 'org-b',
       name: 'Organization B',
       primaryLanguage: 'es',
       timezone: 'UTC',
     });
-    jest.spyOn(IdentityPrincipalRepository.prototype, 'findByOidcSubject').mockResolvedValue({
+    vi.spyOn(IdentityPrincipalRepository.prototype, 'findByOidcSubject').mockResolvedValue({
       principalId: '01800000-0000-7000-8000-000000000001',
       email: 'member@example.test',
       oidcSubjectId: 'oidc-subject',
     });
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => vi.restoreAllMocks());
 
   function assignmentFor(role: string) {
     return {
@@ -73,9 +73,9 @@ describe('OrganizationAccessGuard — organization-capability requirement', () =
     const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
 
     for (const role of ['admin', 'club-admin']) {
-      jest
-        .spyOn(OrganizationAccessRepository.prototype, 'findAssignment')
-        .mockResolvedValue(assignmentFor(role));
+      vi.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue(
+        assignmentFor(role),
+      );
       await expect(guard.canActivate(contextFor(requestFor()))).resolves.toBe(true);
     }
   });
@@ -89,9 +89,9 @@ describe('OrganizationAccessGuard — organization-capability requirement', () =
     const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
 
     for (const role of ['viewer', 'referee', 'broadcaster', 'tournament-admin']) {
-      jest
-        .spyOn(OrganizationAccessRepository.prototype, 'findAssignment')
-        .mockResolvedValue(assignmentFor(role));
+      vi.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue(
+        assignmentFor(role),
+      );
       await expect(guard.canActivate(contextFor(requestFor()))).rejects.toThrow(
         'Subject organization role is not authorized',
       );
@@ -107,16 +107,16 @@ describe('OrganizationAccessGuard — organization-capability requirement', () =
     const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
 
     for (const role of ['admin', 'referee', 'tournament-admin']) {
-      jest
-        .spyOn(OrganizationAccessRepository.prototype, 'findAssignment')
-        .mockResolvedValue(assignmentFor(role));
+      vi.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue(
+        assignmentFor(role),
+      );
       await expect(guard.canActivate(contextFor(requestFor()))).resolves.toBe(true);
     }
 
     for (const role of ['club-admin', 'viewer', 'broadcaster']) {
-      jest
-        .spyOn(OrganizationAccessRepository.prototype, 'findAssignment')
-        .mockResolvedValue(assignmentFor(role));
+      vi.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue(
+        assignmentFor(role),
+      );
       await expect(guard.canActivate(contextFor(requestFor()))).rejects.toThrow(
         'Subject organization role is not authorized',
       );

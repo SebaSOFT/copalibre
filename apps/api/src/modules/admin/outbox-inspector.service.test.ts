@@ -1,15 +1,15 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import { OutboxRelay, type Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { OutboxInspectorService } from './outbox-inspector.service.js';
 
 describe('OutboxInspectorService', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('summarizes queue depth, 24h processed counts, and recent dead letters', async () => {
-    jest.spyOn(OutboxRelay.prototype, 'metrics').mockResolvedValue({
+    vi.spyOn(OutboxRelay.prototype, 'metrics').mockResolvedValue({
       queueDepth: 5,
       deadLettered: 2,
       oldestPendingSeconds: 120,
@@ -26,20 +26,18 @@ describe('OutboxInspectorService', () => {
       dead_lettered_at: new Date('2026-09-28T12:00:00Z'),
     };
 
-    const executeTakeFirstOrThrow = jest
+    const executeTakeFirstOrThrow = vi
       .fn<() => Promise<{ count: string }>>()
       .mockResolvedValue({ count: '42' });
-    const executeFailures = jest
-      .fn<() => Promise<(typeof fakeRow)[]>>()
-      .mockResolvedValue([fakeRow]);
+    const executeFailures = vi.fn<() => Promise<(typeof fakeRow)[]>>().mockResolvedValue([fakeRow]);
 
     const fakeDb = {
-      selectFrom: jest.fn().mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          where: jest.fn().mockReturnValue({
+      selectFrom: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
             executeTakeFirstOrThrow,
-            orderBy: jest.fn().mockReturnValue({
-              limit: jest.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({
                 execute: executeFailures,
               }),
             }),
@@ -68,21 +66,21 @@ describe('OutboxInspectorService', () => {
   });
 
   it('retries eligible dead-lettered events and records atomic audit entries', async () => {
-    const executeAudit = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-    const executeOutbox = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const executeAudit = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const executeOutbox = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
 
-    const executeTakeFirst = jest
+    const executeTakeFirst = vi
       .fn<() => Promise<{ organization_id: string; attempts: number } | undefined>>()
       .mockResolvedValueOnce({ organization_id: 'org-1', attempts: 6 })
       .mockResolvedValueOnce(undefined); // second event not dead-lettered/eligible
 
     const fakeTx = {
-      selectFrom: jest.fn().mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          where: jest.fn().mockReturnValue({
-            where: jest.fn().mockReturnValue({
-              where: jest.fn().mockReturnValue({
-                forUpdate: jest.fn().mockReturnValue({
+      selectFrom: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                forUpdate: vi.fn().mockReturnValue({
                   executeTakeFirst,
                 }),
               }),
@@ -90,7 +88,7 @@ describe('OutboxInspectorService', () => {
           }),
         }),
       }),
-      insertInto: jest.fn().mockImplementation((table: unknown) => ({
+      insertInto: vi.fn().mockImplementation((table: unknown) => ({
         values: () => ({
           execute: () => (table === 'audit_log' ? executeAudit() : executeOutbox()),
         }),
@@ -103,7 +101,7 @@ describe('OutboxInspectorService', () => {
       }),
     } as unknown as Kysely<Database>;
 
-    jest.spyOn(OutboxRelay.prototype, 'reEnqueue').mockResolvedValue(true);
+    vi.spyOn(OutboxRelay.prototype, 'reEnqueue').mockResolvedValue(true);
 
     const service = new OutboxInspectorService(fakeDb);
     const result = await service.retry(
