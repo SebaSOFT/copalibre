@@ -117,6 +117,119 @@ describe('repositories (integration)', () => {
     ).resolves.toBeUndefined();
   });
 
+  describe('lifecycle events that notification email is built on', () => {
+    async function eventsOf(eventType: string, entityId: string) {
+      const rows = await scratch.db
+        .selectFrom('outbox_events')
+        .select(['payload', 'stream'])
+        .where('event_type', '=', eventType)
+        .where('entity_id', '=', entityId)
+        .execute();
+      return rows.map((row) => ({
+        stream: row.stream,
+        payload: row.payload as Record<string, unknown>,
+      }));
+    }
+
+    it('publishes club.created with the club and its actor, flagging an import', async () => {
+      const [direct, imported] = await withTransaction(scratch.db, async (uow) => [
+        await participants.createClub(uow, { organizationId, name: 'Club Directo', ...AUDIT }),
+        await participants.createClub(uow, {
+          organizationId,
+          name: 'Club Importado',
+          origin: 'import',
+          ...AUDIT,
+        }),
+      ]);
+
+      const [event] = await eventsOf('club.created', direct.clubId);
+      expect(event?.payload).toEqual({
+        clubId: direct.clubId,
+        alias: direct.alias,
+        name: 'Club Directo',
+        actor: AUDIT.actor,
+      });
+      const [importedEvent] = await eventsOf('club.created', imported.clubId);
+      expect(importedEvent?.payload).toMatchObject({ origin: 'import' });
+    });
+
+    it('publishes no club.created when the creating transaction rolls back', async () => {
+      let clubId = '';
+      await expect(
+        withTransaction(scratch.db, async (uow) => {
+          clubId = (
+            await participants.createClub(uow, { organizationId, name: 'Club Fantasma', ...AUDIT })
+          ).clubId;
+          throw new Error('rolled back');
+        }),
+      ).rejects.toThrow('rolled back');
+      expect(await eventsOf('club.created', clubId)).toHaveLength(0);
+    });
+
+    it('extends tournament.created and entrant.registered without removing a field', async () => {
+      const disciplineDescriptor = descriptor();
+      const { tournament, entrant } = await withTransaction(scratch.db, async (uow) => {
+        await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+        const created = await tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-aviso-importada',
+          name: 'Copa Aviso Importada',
+          descriptor: disciplineDescriptor,
+          origin: 'import',
+          ...AUDIT,
+        });
+        const team = await participants.createTeam(uow, {
+          organizationId,
+          name: 'Equipo Eventos',
+          ...AUDIT,
+        });
+        const registered = await participants.registerEntrant(uow, {
+          tournamentId: created.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          organizationId,
+          origin: 'club-portal',
+          ...AUDIT,
+        });
+        return { tournament: created, entrant: registered };
+      });
+
+      const [tournamentEvent] = await eventsOf('tournament.created', tournament.tournamentId);
+      expect(tournamentEvent?.payload).toEqual({
+        tournamentId: tournament.tournamentId,
+        alias: 'copa-aviso-importada',
+        status: 'draft',
+        name: 'Copa Aviso Importada',
+        actor: AUDIT.actor,
+        origin: 'import',
+      });
+      const [entrantEvent] = await eventsOf('entrant.registered', entrant.entrantId);
+      expect(entrantEvent?.payload).toEqual({
+        entrantId: entrant.entrantId,
+        tournamentId: tournament.tournamentId,
+        status: 'pending',
+        entrantKind: 'team',
+        actor: AUDIT.actor,
+        origin: 'club-portal',
+      });
+    });
+
+    it('leaves origin out of the payload when the mutation was a direct operator action', async () => {
+      const disciplineDescriptor = descriptor();
+      const tournament = await withTransaction(scratch.db, async (uow) => {
+        await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+        return tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-aviso-directa',
+          name: 'Copa Aviso Directa',
+          descriptor: disciplineDescriptor,
+          ...AUDIT,
+        });
+      });
+      const [event] = await eventsOf('tournament.created', tournament.tournamentId);
+      expect(event?.payload).not.toHaveProperty('origin');
+    });
+  });
+
   it('compiles the effective ruleset before persisting a ruleset version', async () => {
     const disciplineDescriptor = descriptor();
     const tournament = await withTransaction(scratch.db, async (uow) => {
