@@ -1,7 +1,7 @@
 # platform/email-notifications Specification
 
 ## Purpose
-TBD - created by archiving change 0337-lifecycle-email-notifications. Update Purpose after archive.
+Tell the people who run a competition when something they manage changes — a tournament or club is created, an entrant registers, a club submits a squad — in the organization's language, with the organization's and the product's branding, and never twice to the same recipient. Also covers the invitation and password-reset emails, which share the layout and the delivery guarantee.
 
 ## Requirements
 

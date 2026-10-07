@@ -3,6 +3,7 @@ title: 'Primeiros passos: auto-hospedagem'
 description: Execute o CopaLibre a partir do código-fonte no Windows, macOS ou Linux, depois escolha uma topologia de implantação com proxy reverso ou Kubernetes.
 capabilities:
   - platform/self-hosted-deployment
+  - platform/email-notifications
 roles:
   - super-admin
 ---

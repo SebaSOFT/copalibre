@@ -3,6 +3,7 @@ title: 'Erste Schritte: Self-Hosting'
 description: Führen Sie CopaLibre aus dem Quellcode unter Windows, macOS oder Linux aus, und wählen Sie dann eine Reverse-Proxy- oder Kubernetes-Bereitstellungstopologie.
 capabilities:
   - platform/self-hosted-deployment
+  - platform/email-notifications
 roles:
   - super-admin
 ---
