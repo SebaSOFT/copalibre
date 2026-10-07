@@ -202,6 +202,8 @@ authentication contract). Every change is planned and tracked as an OpenSpec pro
 - [`docs/security/dependency-remediation.md`](docs/security/dependency-remediation.md) — patched
   dependency advisories and release closure tracking
 - [`docs/TESTING.md`](docs/TESTING.md) — testing conventions
+- [`docs/DEMO-DATA.md`](docs/DEMO-DATA.md) — loading a realistic demo tournament into a development
+  stack with `copalibre dev demo`
 - [`docs/SCREEN-STORY-REVIEW.md`](docs/SCREEN-STORY-REVIEW.md) — operator Storybook coverage,
   fixture boundaries, responsive review evidence, and deferred UX gaps
 - [`docs/reviews/0222-owned-control-coverage.md`](docs/reviews/0222-owned-control-coverage.md) — recursive

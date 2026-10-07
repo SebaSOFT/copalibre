@@ -44,7 +44,8 @@ export const CLI_MCP_PARITY: readonly ParityEntry[] = [
   },
   {
     cliCommand: 'dev',
-    exemptReason: 'A long-running development process, not a request/response tool call.',
+    exemptReason:
+      'A long-running development process (and `dev demo`, which needs a checkout and the host Docker development stack), not a request/response tool call.',
   },
   {
     cliCommand: 'start',

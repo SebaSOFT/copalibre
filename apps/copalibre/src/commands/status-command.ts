@@ -8,7 +8,7 @@ import { readInstallationMarker } from '../installation-marker.js';
 import { DEV_COMPOSE_FILE, resolveDeploymentTopology } from '../process-lifecycle.js';
 import type { ProcessOutput } from '../process-runner.js';
 
-interface ComposeServiceRow {
+export interface ComposeServiceRow {
   readonly Name?: unknown;
   readonly Service?: unknown;
   readonly State?: unknown;

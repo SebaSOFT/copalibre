@@ -129,3 +129,6 @@ packages/design-tokens/generated/
 .codegraph/
 /.codex/
 .tavily/
+
+# Raw scrape cache for demo datasets (never committed)
+packages/demo-datasets/cache/

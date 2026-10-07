@@ -20,6 +20,7 @@ yarn workspace @copalibre/contracts run generate
 yarn workspace @copalibre/web verify:docs
 yarn test:e2e e2e/help-and-api-reference.spec.ts
 yarn workspace @copalibre/seed test:sqlite
+copalibre dev demo panamericano-clubes-2025   # load the committed demo tournament into the running dev stack (docs/DEMO-DATA.md)
 yarn test:verify-discovery
 ```
 

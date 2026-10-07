@@ -1,0 +1,1259 @@
+{
+  "alias": "rink-hockey",
+  "version": "1.1.0",
+  "name": {
+    "en": "Rink Hockey",
+    "es": "Hockey sobre patines"
+  },
+  "description": {
+    "en": "5-a-side rink hockey discipline with 2 timed halves (25m), direct free hits, team fouls, cards, and penalty shootouts."
+  },
+  "images": [
+    {
+      "key": "modules/rink-hockey/1.1.0/rink-hockey-01.jpg"
+    }
+  ],
+  "attribution": {
+    "author": "CopaLibre Community",
+    "licence": "AGPL-3.0-only",
+    "sourceUrl": "https://github.com/SebaSOFT/copalibre-modules"
+  },
+  "participantTypes": ["team"],
+  "rosterConstraints": {
+    "minPlayers": 5,
+    "maxPlayers": 5,
+    "maxSubstitutes": 15
+  },
+  "rosterRoles": [
+    {
+      "code": "goalkeeper",
+      "label": {
+        "en": "Goalkeeper",
+        "es": "Arquero"
+      },
+      "badge": "GK"
+    },
+    {
+      "code": "captain",
+      "label": {
+        "en": "Captain",
+        "es": "Capitán"
+      },
+      "badge": "C"
+    }
+  ],
+  "segmentTypes": [
+    {
+      "name": "half",
+      "label": {
+        "en": "Half",
+        "es": "Tiempo"
+      },
+      "timed": true,
+      "defaultDurationSeconds": 1500
+    },
+    {
+      "name": "extra-time",
+      "label": {
+        "en": "Extra time",
+        "es": "Tiempo suplementario"
+      },
+      "timed": true,
+      "defaultDurationSeconds": 300
+    },
+    {
+      "name": "penalty-shootout",
+      "label": {
+        "en": "Shootout",
+        "es": "Definición por penales"
+      },
+      "timed": false
+    }
+  ],
+  "eventDefinitions": [
+    {
+      "code": "goal",
+      "label": {
+        "en": "Goal",
+        "es": "Gol"
+      },
+      "category": "positive",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "person",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {
+          "assistedBy": {
+            "type": "string"
+          }
+        }
+      },
+      "effects": [
+        {
+          "kind": "score",
+          "awardTo": "actor",
+          "delta": 1
+        },
+        {
+          "kind": "statistic",
+          "statisticCode": "goals-for",
+          "delta": 1
+        },
+        {
+          "kind": "statistic",
+          "statisticCode": "goals-against",
+          "delta": 1,
+          "awardTo": "every-other-side"
+        },
+        {
+          "kind": "statistic",
+          "statisticCode": "assists",
+          "delta": 1,
+          "awardTo": {
+            "payloadField": "assistedBy"
+          }
+        }
+      ],
+      "payloadFieldLabels": {
+        "assistedBy": {
+          "en": "Assisted by",
+          "es": "Asistido por"
+        }
+      }
+    },
+    {
+      "code": "penalty-goal",
+      "label": {
+        "en": "Penalty goal",
+        "es": "Gol de penal"
+      },
+      "category": "positive",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "person",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {
+          "assistedBy": {
+            "type": "string"
+          }
+        }
+      },
+      "effects": [
+        {
+          "kind": "score",
+          "awardTo": "actor",
+          "delta": 1
+        },
+        {
+          "kind": "statistic",
+          "statisticCode": "goals-for",
+          "delta": 1
+        },
+        {
+          "kind": "statistic",
+          "statisticCode": "goals-against",
+          "delta": 1,
+          "awardTo": "every-other-side"
+        },
+        {
+          "kind": "statistic",
+          "statisticCode": "assists",
+          "delta": 1,
+          "awardTo": {
+            "payloadField": "assistedBy"
+          }
+        }
+      ],
+      "payloadFieldLabels": {
+        "assistedBy": {
+          "en": "Assisted by",
+          "es": "Asistido por"
+        }
+      }
+    },
+    {
+      "code": "direct-free-kick-goal",
+      "label": {
+        "en": "Direct free kick goal",
+        "es": "Gol de tiro libre directo"
+      },
+      "category": "positive",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "person",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {
+          "assistedBy": {
+            "type": "string"
+          }
+        }
+      },
+      "effects": [
+        {
+          "kind": "score",
+          "awardTo": "actor",
+          "delta": 1
+        },
+        {
+          "kind": "statistic",
+          "statisticCode": "goals-for",
+          "delta": 1
+        },
+        {
+          "kind": "statistic",
+          "statisticCode": "goals-against",
+          "delta": 1,
+          "awardTo": "every-other-side"
+        },
+        {
+          "kind": "statistic",
+          "statisticCode": "assists",
+          "delta": 1,
+          "awardTo": {
+            "payloadField": "assistedBy"
+          }
+        }
+      ],
+      "payloadFieldLabels": {
+        "assistedBy": {
+          "en": "Assisted by",
+          "es": "Asistido por"
+        }
+      }
+    },
+    {
+      "code": "own-goal",
+      "label": {
+        "en": "Own goal",
+        "es": "Gol en contra"
+      },
+      "category": "negative",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "person",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "effects": [
+        {
+          "kind": "score",
+          "awardTo": "every-other-side",
+          "delta": 1
+        },
+        {
+          "kind": "statistic",
+          "statisticCode": "goals-for",
+          "delta": 1,
+          "awardTo": "every-other-side"
+        },
+        {
+          "kind": "statistic",
+          "statisticCode": "goals-against",
+          "delta": 1
+        }
+      ]
+    },
+    {
+      "code": "blue-card",
+      "label": {
+        "en": "Blue card (2m)",
+        "es": "Tarjeta azul (2m)"
+      },
+      "category": "negative",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "person",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "effects": [
+        {
+          "kind": "statistic",
+          "statisticCode": "blue-cards",
+          "delta": 1
+        }
+      ]
+    },
+    {
+      "code": "red-card",
+      "label": {
+        "en": "Red card",
+        "es": "Tarjeta roja"
+      },
+      "category": "negative",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "person",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "effects": [
+        {
+          "kind": "statistic",
+          "statisticCode": "red-cards",
+          "delta": 1
+        }
+      ]
+    },
+    {
+      "code": "team-foul",
+      "label": {
+        "en": "Team foul",
+        "es": "Falta de equipo"
+      },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "effects": [
+        {
+          "kind": "statistic",
+          "statisticCode": "team-fouls",
+          "delta": 1
+        }
+      ]
+    },
+    {
+      "code": "direct-free-kick",
+      "label": {
+        "en": "Missed direct free kick",
+        "es": "Tiro libre directo fallado"
+      },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "person",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "code": "penalty",
+      "label": {
+        "en": "Missed penalty",
+        "es": "Penal fallado"
+      },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "person",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "code": "timeout",
+      "label": {
+        "en": "Timeout (1m)",
+        "es": "Tiempo muerto (1m)"
+      },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "statistics": [
+    {
+      "code": "goals-for",
+      "label": {
+        "en": "Goals for",
+        "es": "Goles a favor"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "goals-against",
+      "label": {
+        "en": "Goals against",
+        "es": "Goles en contra"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "wins",
+      "label": {
+        "en": "Wins",
+        "es": "Victorias"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "draws",
+      "label": {
+        "en": "Draws",
+        "es": "Empates"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "losses",
+      "label": {
+        "en": "Losses",
+        "es": "Derrotas"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "points",
+      "label": {
+        "en": "Points",
+        "es": "Puntos"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "played",
+      "label": {
+        "en": "Played",
+        "es": "Jugados"
+      },
+      "aggregation": "count"
+    },
+    {
+      "code": "assists",
+      "label": {
+        "en": "Assists",
+        "es": "Asistencias"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "blue-cards",
+      "label": {
+        "en": "Blue cards",
+        "es": "Tarjetas azules"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "red-cards",
+      "label": {
+        "en": "Red cards",
+        "es": "Tarjetas rojas"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "team-fouls",
+      "label": {
+        "en": "Team fouls",
+        "es": "Faltas de equipo"
+      },
+      "aggregation": "sum"
+    }
+  ],
+  "collectors": [
+    {
+      "code": "player-goals",
+      "label": {
+        "en": "Goals",
+        "es": "Goles"
+      },
+      "source": {
+        "kind": "event",
+        "definitionCodes": ["goal", "penalty-goal", "direct-free-kick-goal"],
+        "actorSource": "primary"
+      },
+      "measure": {
+        "kind": "count"
+      },
+      "granularity": {
+        "actor": "person",
+        "competition": "match"
+      }
+    },
+    {
+      "code": "player-assists",
+      "label": {
+        "en": "Assists",
+        "es": "Asistencias"
+      },
+      "source": {
+        "kind": "event",
+        "definitionCodes": ["goal", "penalty-goal", "direct-free-kick-goal"],
+        "actorSource": {
+          "payloadField": "assistedBy"
+        }
+      },
+      "measure": {
+        "kind": "count"
+      },
+      "granularity": {
+        "actor": "person",
+        "competition": "match"
+      }
+    },
+    {
+      "code": "player-appearances",
+      "label": {
+        "en": "Appearances",
+        "es": "Partidos jugados"
+      },
+      "source": {
+        "kind": "participation"
+      },
+      "measure": {
+        "kind": "count"
+      },
+      "granularity": {
+        "actor": "person",
+        "competition": "match"
+      }
+    },
+    {
+      "code": "player-penalty-attempts",
+      "label": {
+        "en": "Penalty attempts",
+        "es": "Penales ejecutados"
+      },
+      "source": {
+        "kind": "event",
+        "definitionCodes": ["penalty", "penalty-goal"],
+        "actorSource": "primary"
+      },
+      "measure": {
+        "kind": "count"
+      },
+      "granularity": {
+        "actor": "person",
+        "competition": "match"
+      }
+    },
+    {
+      "code": "player-penalty-goals",
+      "label": {
+        "en": "Penalty goals",
+        "es": "Goles de penal"
+      },
+      "source": {
+        "kind": "event",
+        "definitionCodes": ["penalty-goal"],
+        "actorSource": "primary"
+      },
+      "measure": {
+        "kind": "count"
+      },
+      "granularity": {
+        "actor": "person",
+        "competition": "match"
+      }
+    },
+    {
+      "code": "player-direct-free-kick-attempts",
+      "label": {
+        "en": "Direct free kicks taken",
+        "es": "Tiros libres directos ejecutados"
+      },
+      "source": {
+        "kind": "event",
+        "definitionCodes": ["direct-free-kick", "direct-free-kick-goal"],
+        "actorSource": "primary"
+      },
+      "measure": {
+        "kind": "count"
+      },
+      "granularity": {
+        "actor": "person",
+        "competition": "match"
+      }
+    },
+    {
+      "code": "player-direct-free-kick-goals",
+      "label": {
+        "en": "Direct free kick goals",
+        "es": "Goles de tiro libre directo"
+      },
+      "source": {
+        "kind": "event",
+        "definitionCodes": ["direct-free-kick-goal"],
+        "actorSource": "primary"
+      },
+      "measure": {
+        "kind": "count"
+      },
+      "granularity": {
+        "actor": "person",
+        "competition": "match"
+      }
+    },
+    {
+      "code": "player-blue-cards",
+      "label": {
+        "en": "Blue cards",
+        "es": "Tarjetas azules"
+      },
+      "source": {
+        "kind": "event",
+        "definitionCodes": ["blue-card"],
+        "actorSource": "primary"
+      },
+      "measure": {
+        "kind": "count"
+      },
+      "granularity": {
+        "actor": "person",
+        "competition": "match"
+      }
+    },
+    {
+      "code": "player-red-cards",
+      "label": {
+        "en": "Red cards",
+        "es": "Tarjetas rojas"
+      },
+      "source": {
+        "kind": "event",
+        "definitionCodes": ["red-card"],
+        "actorSource": "primary"
+      },
+      "measure": {
+        "kind": "count"
+      },
+      "granularity": {
+        "actor": "person",
+        "competition": "match"
+      }
+    }
+  ],
+  "tableLayouts": [
+    {
+      "code": "group-standings-default",
+      "target": "group-phase",
+      "label": {
+        "en": "Group Standings",
+        "es": "Tabla de Posiciones"
+      },
+      "entityGranularity": "team",
+      "defaultSort": [
+        {
+          "columnCode": "points",
+          "direction": "desc"
+        },
+        {
+          "columnCode": "gd",
+          "direction": "desc"
+        },
+        {
+          "columnCode": "goal-average",
+          "direction": "desc"
+        },
+        {
+          "columnCode": "gf",
+          "direction": "desc"
+        }
+      ],
+      "columns": [
+        {
+          "code": "rank",
+          "header": {
+            "en": "Pos",
+            "es": "#"
+          },
+          "source": {
+            "kind": "rank"
+          },
+          "format": "number"
+        },
+        {
+          "code": "name",
+          "header": {
+            "en": "Team",
+            "es": "Equipo"
+          },
+          "source": {
+            "kind": "entrant-name"
+          },
+          "format": "text"
+        },
+        {
+          "code": "played",
+          "header": {
+            "en": "P",
+            "es": "PJ"
+          },
+          "source": {
+            "kind": "collector",
+            "code": "played"
+          },
+          "format": "number"
+        },
+        {
+          "code": "wins",
+          "header": {
+            "en": "W",
+            "es": "PG"
+          },
+          "source": {
+            "kind": "collector",
+            "code": "wins"
+          },
+          "format": "number"
+        },
+        {
+          "code": "draws",
+          "header": {
+            "en": "D",
+            "es": "PE"
+          },
+          "source": {
+            "kind": "collector",
+            "code": "draws"
+          },
+          "format": "number"
+        },
+        {
+          "code": "losses",
+          "header": {
+            "en": "L",
+            "es": "PP"
+          },
+          "source": {
+            "kind": "collector",
+            "code": "losses"
+          },
+          "format": "number"
+        },
+        {
+          "code": "gf",
+          "header": {
+            "en": "GF",
+            "es": "GF"
+          },
+          "source": {
+            "kind": "collector",
+            "code": "goals-for"
+          },
+          "format": "number"
+        },
+        {
+          "code": "ga",
+          "header": {
+            "en": "GA",
+            "es": "GC"
+          },
+          "source": {
+            "kind": "collector",
+            "code": "goals-against"
+          },
+          "format": "number"
+        },
+        {
+          "code": "gd",
+          "header": {
+            "en": "GD",
+            "es": "Dif"
+          },
+          "source": {
+            "kind": "computed",
+            "expression": "gf - ga"
+          },
+          "format": "number"
+        },
+        {
+          "code": "goal-average",
+          "header": {
+            "en": "Avg",
+            "es": "Prom."
+          },
+          "source": {
+            "kind": "computed",
+            "expression": "gf / max(ga, 1)"
+          },
+          "format": "decimal-2"
+        },
+        {
+          "code": "points",
+          "header": {
+            "en": "Pts",
+            "es": "Pts"
+          },
+          "source": {
+            "kind": "collector",
+            "code": "points"
+          },
+          "format": "number"
+        }
+      ]
+    },
+    {
+      "code": "player-statistics",
+      "target": "player-ranking",
+      "label": {
+        "en": "Player Statistics",
+        "es": "Estadísticas de jugadores"
+      },
+      "entityGranularity": "person",
+      "defaultSort": [
+        {
+          "columnCode": "g",
+          "direction": "desc"
+        },
+        {
+          "columnCode": "gpp",
+          "direction": "desc"
+        }
+      ],
+      "columns": [
+        {
+          "code": "rank",
+          "header": {
+            "en": "Rank",
+            "es": "Pos"
+          },
+          "shortHeader": {
+            "en": "#",
+            "es": "#"
+          },
+          "source": {
+            "kind": "rank"
+          },
+          "format": "number"
+        },
+        {
+          "code": "player",
+          "header": {
+            "en": "Player",
+            "es": "Jugador"
+          },
+          "shortHeader": {
+            "en": "Player",
+            "es": "Jugador"
+          },
+          "source": {
+            "kind": "actor-name"
+          },
+          "format": "text"
+        },
+        {
+          "code": "team",
+          "header": {
+            "en": "Team",
+            "es": "Equipo"
+          },
+          "shortHeader": {
+            "en": "Team",
+            "es": "Equipo"
+          },
+          "source": {
+            "kind": "team-name"
+          },
+          "format": "text"
+        },
+        {
+          "code": "g",
+          "header": {
+            "en": "Goals",
+            "es": "Goles"
+          },
+          "shortHeader": {
+            "en": "G",
+            "es": "G"
+          },
+          "source": {
+            "kind": "collector",
+            "code": "player-goals"
+          },
+          "format": "number"
+        },
+        {
+          "code": "pj",
+          "header": {
+            "en": "Matches played",
+            "es": "Partidos jugados"
+          },
+          "shortHeader": {
+            "en": "MP",
+            "es": "PJ"
+          },
+          "source": {
+            "kind": "collector",
+            "code": "player-appearances"
+          },
+          "format": "number"
+        },
+        {
+          "code": "gpp",
+          "header": {
+            "en": "Goals per match (G / MP)",
+            "es": "Goles por partido (G / PJ)"
+          },
+          "shortHeader": {
+            "en": "Gpm",
+            "es": "Gpp"
+          },
+          "source": {
+            "kind": "computed",
+            "expression": "g / max(pj, 1)"
+          },
+          "format": "decimal-2"
+        },
+        {
+          "code": "as",
+          "header": {
+            "en": "Assists",
+            "es": "Asistencias"
+          },
+          "shortHeader": {
+            "en": "A",
+            "es": "As"
+          },
+          "source": {
+            "kind": "collector",
+            "code": "player-assists"
+          },
+          "format": "number"
+        },
+        {
+          "code": "app",
+          "header": {
+            "en": "Assists per match (A / MP)",
+            "es": "Asistencias por partido (As / PJ)"
+          },
+          "shortHeader": {
+            "en": "Apm",
+            "es": "App"
+          },
+          "source": {
+            "kind": "computed",
+            "expression": "as / max(pj, 1)"
+          },
+          "format": "decimal-2"
+        },
+        {
+          "code": "pen",
+          "header": {
+            "en": "Penalty attempts",
+            "es": "Penales ejecutados"
+          },
+          "shortHeader": {
+            "en": "Pen",
+            "es": "Pen"
+          },
+          "source": {
+            "kind": "collector",
+            "code": "player-penalty-attempts"
+          },
+          "format": "number"
+        },
+        {
+          "code": "pen-percent",
+          "header": {
+            "en": "Penalty goal percentage (penalty goals / penalty attempts)",
+            "es": "Porcentaje de goles de penal (goles de penal / penales ejecutados)"
+          },
+          "shortHeader": {
+            "en": "Pen %",
+            "es": "Pen %"
+          },
+          "source": {
+            "kind": "composite",
+            "numerator": "player-penalty-goals",
+            "denominator": "player-penalty-attempts"
+          },
+          "format": "percentage"
+        },
+        {
+          "code": "fd",
+          "header": {
+            "en": "Direct free-kick goals / direct free kicks taken",
+            "es": "Goles de tiro libre directo / tiros libres directos ejecutados"
+          },
+          "shortHeader": {
+            "en": "DFK",
+            "es": "FD"
+          },
+          "source": {
+            "kind": "composite",
+            "numerator": "player-direct-free-kick-goals",
+            "denominator": "player-direct-free-kick-attempts"
+          },
+          "format": "fraction"
+        },
+        {
+          "code": "fd-percent",
+          "header": {
+            "en": "Direct free-kick goal percentage (goals / attempts)",
+            "es": "Porcentaje de goles de tiro libre directo (goles / ejecutados)"
+          },
+          "shortHeader": {
+            "en": "DFK %",
+            "es": "FD %"
+          },
+          "source": {
+            "kind": "composite",
+            "numerator": "player-direct-free-kick-goals",
+            "denominator": "player-direct-free-kick-attempts"
+          },
+          "format": "percentage"
+        },
+        {
+          "code": "az",
+          "header": {
+            "en": "Blue cards",
+            "es": "Tarjetas azules"
+          },
+          "shortHeader": {
+            "en": "BC",
+            "es": "Az"
+          },
+          "source": {
+            "kind": "collector",
+            "code": "player-blue-cards"
+          },
+          "format": "number"
+        },
+        {
+          "code": "azpp",
+          "header": {
+            "en": "Blue cards per match (blue cards / MP)",
+            "es": "Tarjetas azules por partido (Az / PJ)"
+          },
+          "shortHeader": {
+            "en": "BCpm",
+            "es": "Azpp"
+          },
+          "source": {
+            "kind": "computed",
+            "expression": "az / max(pj, 1)"
+          },
+          "format": "decimal-2",
+          "zeroDisplay": "-"
+        },
+        {
+          "code": "rj",
+          "header": {
+            "en": "Red cards",
+            "es": "Tarjetas rojas"
+          },
+          "shortHeader": {
+            "en": "RC",
+            "es": "Rj"
+          },
+          "source": {
+            "kind": "collector",
+            "code": "player-red-cards"
+          },
+          "format": "number"
+        },
+        {
+          "code": "rjpp",
+          "header": {
+            "en": "Red cards per match (red cards / MP)",
+            "es": "Tarjetas rojas por partido (Rj / PJ)"
+          },
+          "shortHeader": {
+            "en": "RCpm",
+            "es": "Rjpp"
+          },
+          "source": {
+            "kind": "computed",
+            "expression": "rj / max(pj, 1)"
+          },
+          "format": "decimal-2",
+          "zeroDisplay": "-"
+        }
+      ]
+    }
+  ],
+  "scoringInputs": [
+    {
+      "code": "goals",
+      "label": {
+        "en": "Goals",
+        "es": "Goles"
+      },
+      "source": "event-derived"
+    }
+  ],
+  "availableFormats": [
+    "league",
+    "round-robin",
+    "round-robin-home-away",
+    "round-robin-single-leg",
+    "single-elimination",
+    "double-elimination"
+  ],
+  "notificationRuleCapabilities": [],
+  "winCondition": {
+    "id": "rink-hockey-goals-win",
+    "rules": [
+      {
+        "id": "most-goals-wins",
+        "type": "simple_rule",
+        "options": {},
+        "conditions": [],
+        "actions": [
+          {
+            "id": "win-match",
+            "type": "winMatch",
+            "options": {},
+            "params": [
+              {
+                "id": "unit",
+                "name": "unit",
+                "type": "simple_string",
+                "value": "goals",
+                "options": {}
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "defaults": {
+    "format": "round-robin",
+    "registration": {
+      "publicOpen": false,
+      "requiresCheckIn": false,
+      "region": null,
+      "capacity": null
+    },
+    "scoring": {
+      "pointsPerWin": 3,
+      "pointsPerDraw": 1,
+      "pointsPerLoss": 0
+    },
+    "tiebreakers": [
+      "points",
+      "score-difference",
+      {
+        "statisticCode": "goal-average",
+        "label": {
+          "en": "Goal Average",
+          "es": "Promedio de goles"
+        },
+        "ratio": {
+          "numerator": "goals-for",
+          "denominator": "goals-against",
+          "zeroDenominator": "numerator-only"
+        }
+      },
+      "goals-for",
+      {
+        "statisticCode": "goals-against",
+        "direction": "lower_wins"
+      }
+    ],
+    "segments": {
+      "regulationCount": 2,
+      "overtimeEnabled": false
+    },
+    "venuePolicy": {
+      "neutralGround": false
+    }
+  },
+  "fieldPolicies": {
+    "tableLayouts": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "safe"
+    },
+    "format": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "blocked_after_results"
+    },
+    "registration.publicOpen": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "safe"
+    },
+    "registration.requiresCheckIn": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "requires_rebuild"
+    },
+    "registration.checkInClosesAt": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "requires_rebuild"
+    },
+    "registration.region": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "safe"
+    },
+    "registration.capacity": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "requires_rebuild"
+    },
+    "scoring.pointsPerWin": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "blocked_after_results"
+    },
+    "scoring.pointsPerDraw": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "blocked_after_results"
+    },
+    "tiebreakers": {
+      "permission": {
+        "kind": "merged",
+        "strategy": "union-list"
+      },
+      "mutationClass": "requires_rebuild"
+    },
+    "segments": {
+      "permission": {
+        "kind": "merged",
+        "strategy": "shallow-object"
+      },
+      "mutationClass": "requires_rebuild"
+    },
+    "venuePolicy.neutralGround": {
+      "permission": {
+        "kind": "inherited"
+      },
+      "mutationClass": "safe"
+    },
+    "winCondition": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "requires_rebuild"
+    },
+    "series.span": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "requires_rebuild"
+    },
+    "series.resolutionClass": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "blocked_after_results"
+    },
+    "series.neutralGround": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "requires_rebuild"
+    },
+    "series.standingsAccounting": {
+      "permission": {
+        "kind": "replaced"
+      },
+      "mutationClass": "requires_rebuild"
+    }
+  }
+}
