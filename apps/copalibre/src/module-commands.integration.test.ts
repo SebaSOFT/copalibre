@@ -5,7 +5,13 @@ import {
   createMigratedDatabase,
   type ScratchDatabase,
 } from '../../../packages/persistence/src/test-support/scratch-database.js';
+import { describeWhenReachable } from '../../../packages/module-distribution/src/test-support/network-probe.js';
 import { moduleAdd } from './module-commands.js';
+
+const describeNetwork = await describeWhenReachable(
+  CURATED_MODULE_REPOSITORY.repositoryUrl,
+  'module add from the curated repository (integration)',
+);
 
 /**
  * The `--source` allow-list gate (module-commands.ts's own
@@ -49,34 +55,38 @@ describe('module add --source allow-list (integration)', () => {
     expect(installed).toHaveLength(0);
   });
 
-  it('installs an allow-listed alternate source, recording it as alternate', async () => {
-    const environment = {
-      ...baseEnvironment(),
-      COPALIBRE_MODULE_SOURCE_ALLOWLIST: CURATED_MODULE_REPOSITORY.repositoryUrl,
-    };
+  // These clone from the curated repository: they skip with a reason when it is unreachable,
+  // and fail instead when COPALIBRE_REQUIRE_NETWORK_TESTS=1 (continuous integration).
+  describeNetwork('from the curated repository', () => {
+    it('installs an allow-listed alternate source, recording it as alternate', async () => {
+      const environment = {
+        ...baseEnvironment(),
+        COPALIBRE_MODULE_SOURCE_ALLOWLIST: CURATED_MODULE_REPOSITORY.repositoryUrl,
+      };
 
-    const exitCode = await moduleAdd(
-      ['orbital-frisbee', '--source', CURATED_MODULE_REPOSITORY.repositoryUrl],
-      environment,
-    );
-    expect(exitCode).toBe(0);
+      const exitCode = await moduleAdd(
+        ['orbital-frisbee', '--source', CURATED_MODULE_REPOSITORY.repositoryUrl],
+        environment,
+      );
+      expect(exitCode).toBe(0);
 
-    const installed = await new InstalledModuleRepository(db).findByAlias('orbital-frisbee');
-    expect(installed).toHaveLength(1);
-    expect(installed[0]?.sourceKind).toBe('alternate');
-    expect(installed[0]?.sourceRepositoryUrl).toBe(CURATED_MODULE_REPOSITORY.repositoryUrl);
-  }, 60_000);
+      const installed = await new InstalledModuleRepository(db).findByAlias('orbital-frisbee');
+      expect(installed).toHaveLength(1);
+      expect(installed[0]?.sourceKind).toBe('alternate');
+      expect(installed[0]?.sourceRepositoryUrl).toBe(CURATED_MODULE_REPOSITORY.repositoryUrl);
+    }, 60_000);
 
-  it('installs a tournament profile module from the curated repository', async () => {
-    const environment = baseEnvironment();
-    const exitCode = await moduleAdd(['double-elimination-bracket'], environment);
-    expect(exitCode).toBe(0);
+    it('installs a tournament profile module from the curated repository', async () => {
+      const environment = baseEnvironment();
+      const exitCode = await moduleAdd(['double-elimination-bracket'], environment);
+      expect(exitCode).toBe(0);
 
-    const installed = await new InstalledModuleRepository(db).findByAlias(
-      'double-elimination-bracket',
-    );
-    expect(installed).toHaveLength(1);
-    expect(installed[0]?.kind).toBe('tournament-profile');
-    expect(installed[0]?.sourceKind).toBe('curated');
-  }, 60_000);
+      const installed = await new InstalledModuleRepository(db).findByAlias(
+        'double-elimination-bracket',
+      );
+      expect(installed).toHaveLength(1);
+      expect(installed[0]?.kind).toBe('tournament-profile');
+      expect(installed[0]?.sourceKind).toBe('curated');
+    }, 60_000);
+  });
 });
