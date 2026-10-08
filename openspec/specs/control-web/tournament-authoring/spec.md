@@ -615,3 +615,23 @@ The tournament setup wizard SHALL provide an intuitive, two-column visual GIVEN/
 #### Scenario: Visual rule builder serializes to valid ruleset schema
 - **WHEN** an operator saves a rule authored in the visual builder
 - **THEN** the rule serializes into a standard, validated tournament ruleset structure compatible with engine evaluation
+
+### Requirement: Wizard declares each stage's zones with optional format and series
+The tournament setup wizard SHALL let an operator declare, per stage, an ordered list of zones before creating the tournament. Each zone SHALL carry a name, an optional format chosen from the formats the selected discipline supports, and an optional series declaration; a zone that declares neither SHALL inherit its stage's. The zone section SHALL be collapsed by default, so a stage with no zones reads and behaves as before. Zone names SHALL be non-empty and unique within the stage, and a zone whose effective format is a placement format SHALL NOT declare a series. The review step SHALL list each stage's zones with their effective formats. The wizard SHALL NOT assign entrants to zones.
+
+#### Scenario: An operator plans two knockout zones and a league zone
+- **WHEN** an operator declares a `single-elimination` stage with three zones, "Copa Oro" and "Copa Plata" inheriting the format and "Liga" overriding it to `round-robin`, and completes the wizard
+- **THEN** the review step lists the three zones with their effective formats
+- **AND** the created tournament has the stage with those three zones in that order
+
+#### Scenario: A stage with no zones is unaffected
+- **WHEN** an operator declares stages without opening the zone section and completes the wizard
+- **THEN** the created tournament has the same stages and no zones, identical to one created before this capability existed
+
+#### Scenario: A duplicate zone name is refused while authoring
+- **WHEN** an operator names two zones of one stage "Zona A"
+- **THEN** the wizard reports the duplicate and does not allow submission
+
+#### Scenario: The profile wizard does not offer zones
+- **WHEN** an operator authors a tournament profile
+- **THEN** the stage editor shows no zone section

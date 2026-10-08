@@ -304,3 +304,25 @@ The `Zone` aggregate and its persistence record SHALL support an optional `forma
 #### Scenario: Locked once fixtures exist
 - **WHEN** a stage holds at least one fixture and a zone's format or override is changed
 - **THEN** the mutation is refused and nothing is persisted
+
+### Requirement: Tournament creation creates the declared zones with their format and series
+Creating a tournament SHALL create, for each declared stage, the zones the request lists, numbered by list position, each with its declared `format` when present. A declared zone series SHALL be stored as zone-scoped entries in the stage's configuration, in the same keys the zone management endpoint writes, so that a zone's format and series resolve exactly as if they had been set after creation. The request SHALL be refused, with nothing stored, when a zone format is not supported by the discipline, when a zone whose effective format is a placement format declares a series, when a series declaration is invalid, or when two zones of a stage share a name. A stage that lists no zones SHALL be created without zones.
+
+#### Scenario: Zones are created with the tournament
+- **WHEN** a tournament is created with a `single-elimination` stage declaring zones "Copa Oro" and "Liga", the latter with format `round-robin` and a best-of-three series
+- **THEN** the stage has two zones numbered 1 and 2
+- **AND** "Liga" has format `round-robin` and "Copa Oro" has none and inherits `single-elimination`
+- **AND** the series resolved for "Liga" is best-of-three while "Copa Oro" resolves the stage's
+
+#### Scenario: An unsupported zone format refuses the whole request
+- **WHEN** a request declares a zone format the discipline does not support
+- **THEN** the request is refused as a bad request
+- **AND** no tournament, stage or zone is created
+
+#### Scenario: A series on a placement-format zone is refused
+- **WHEN** a request declares a series for a zone whose effective format is a placement format
+- **THEN** the request is refused and nothing is stored
+
+#### Scenario: A stage without zones is created as before
+- **WHEN** a tournament is created with stages that list no zones
+- **THEN** it has no zones, exactly as a tournament created before this capability existed
