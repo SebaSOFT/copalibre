@@ -174,3 +174,26 @@ test('lists the league zone’s matches by round and keeps the knockout zone in 
   await expect(drawn).toContainText('BEL');
   await expect(drawn).not.toContainText('Liga A');
 });
+
+test('captures screenshots of the zone-aware kiosk at broadcast size', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  // Reduced motion also stops the rail's rotation and its tab transitions, so a frame is stable.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+
+  await page.goto(`${tvPath}?view=standings`);
+  await expect(page.getByTestId('tv-standings-zone')).toHaveCount(2);
+  await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-standings.png' });
+
+  await page.goto(`${tvPath}?view=fixtures`);
+  await expect(page.getByTestId('tv-fixtures')).toBeVisible();
+  await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-fixtures.png' });
+
+  await page.getByRole('button', { name: 'Bracket' }).click();
+  await expect(page.getByTestId('tv-bracket')).toBeVisible();
+  // The rail tab fades its fill in and out; a frame taken mid-fade shows two tabs highlighted.
+  await expect(page.getByRole('button', { name: 'Fixtures' })).toHaveCSS(
+    'background-color',
+    'rgba(0, 0, 0, 0)',
+  );
+  await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-bracket.png' });
+});

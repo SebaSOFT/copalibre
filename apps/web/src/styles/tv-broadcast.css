@@ -587,6 +587,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Zones of a mixed-format stage are separate tables, so they need room between them. */
+.tv-standings-zone + .tv-standings-zone {
+  margin-block-start: var(--cl-space-5);
+}
+
 /* 4A. Standings Table */
 .tv-standings-table {
   width: 100%;
