@@ -1047,6 +1047,114 @@ describe('repositories (integration)', () => {
     expect(result.first[0]?.groupId).toBe(result.second[0]?.groupId);
   });
 
+  it('stores a zone format, clears it back to inheritance, and locks it once fixtures exist', async () => {
+    const descriptorDocument = descriptor();
+    const setup = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptorDocument, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-formato-zona',
+        name: 'Copa Formato Zona',
+        descriptor: descriptorDocument,
+        ...AUDIT,
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Fase mixta',
+        format: 'single-elimination',
+        organizationId,
+        ...AUDIT,
+      });
+      const inheriting = await competition.createZone(uow, {
+        stageId: stage.stageId,
+        number: 1,
+        name: 'Zona 1',
+        organizationId,
+        ...AUDIT,
+      });
+      const declared = await competition.createZone(uow, {
+        stageId: stage.stageId,
+        number: 2,
+        name: 'Zona 2',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      return { stage, inheriting, declared };
+    });
+
+    expect(setup.inheriting.format).toBeUndefined();
+    expect(setup.declared.format).toBe('round-robin');
+
+    const set = await withTransaction(scratch.db, (uow) =>
+      competition.setZoneFormat(uow, {
+        zoneId: setup.inheriting.zoneId,
+        format: 'league',
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    expect(set.format).toBe('league');
+    await expect(competition.findZoneById(setup.inheriting.zoneId)).resolves.toMatchObject({
+      format: 'league',
+    });
+
+    const cleared = await withTransaction(scratch.db, (uow) =>
+      competition.setZoneFormat(uow, {
+        zoneId: setup.inheriting.zoneId,
+        format: null,
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    expect(cleared.format).toBeUndefined();
+    const [first, second] = await competition.listZonesOfStage(setup.stage.stageId);
+    expect(first?.format).toBeUndefined();
+    expect(second?.format).toBe('round-robin');
+
+    const audited = await scratch.db
+      .selectFrom('audit_log')
+      .select('action')
+      .where('entity_id', '=', setup.inheriting.zoneId)
+      .where('action', '=', 'zone.format-set')
+      .execute();
+    expect(audited).toHaveLength(2);
+
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        competition.setZoneFormat(uow, {
+          zoneId: newId(),
+          format: 'league',
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(NotFoundError);
+
+    await withTransaction(scratch.db, (uow) =>
+      competition.createFixtures(uow, {
+        stageId: setup.stage.stageId,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        competition.setZoneFormat(uow, {
+          zoneId: setup.declared.zoneId,
+          format: null,
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvariantViolationError);
+    await expect(competition.findZoneById(setup.declared.zoneId)).resolves.toMatchObject({
+      format: 'round-robin',
+    });
+  });
+
   it('upserts a zone promotion plan and records its declared rule in the audit trail', async () => {
     const descriptorDocument = descriptor();
     const result = await withTransaction(scratch.db, async (uow) => {

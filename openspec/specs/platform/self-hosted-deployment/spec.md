@@ -153,7 +153,6 @@ exists for its target installation, SHALL operate over an authenticated HTTP cal
 organization-administrator authority for the named organization; without a stored credential, it
 SHALL operate over a direct database connection.
 
-
 copalibre start --dev SHALL start the containerized development Compose profile in the background.
 copalibre start, stop, and restart SHALL refuse a Kubernetes-mode installation with actionable
 Kubernetes-native alternatives and SHALL not mutate the cluster.
@@ -662,3 +661,32 @@ The repository and its associated public documentation (`docs/self-hosting.md` a
 #### Scenario: Truthful CLI commands and terminal examples
 - **WHEN** an operator follows the documented command examples on the self-hosting guide
 - **THEN** the commands match real CLI syntax (`copalibre backup`, `copalibre restore --file <path> --confirm`, `copalibre upgrade-check --target-version <version>`) and do not fail due to fictitious subcommands, missing required flags, or non-existent download endpoints.
+
+### Requirement: Lifecycle email notifications use the configured email provider without extra configuration
+Lifecycle email notifications SHALL be delivered by `apps/worker` through the same email provider
+configuration as invitations and password resets (`COPALIBRE_EMAIL_PROVIDER`, `COPALIBRE_EMAIL_FROM`,
+`COPALIBRE_APP_URL` and the selected provider's credentials), and SHALL NOT require any additional
+environment variable. The development stack SHALL deliver them to Mailpit through the existing SMTP
+configuration. Loading demo data with `copalibre dev demo` SHALL NOT send email.
+
+#### Scenario: Operator needs no new setting
+- **WHEN** an installation already delivers invitations through a configured provider
+- **THEN** lifecycle notification emails are delivered through that provider with no further configuration
+
+#### Scenario: Development stack shows the email in Mailpit
+- **WHEN** a tournament is created in the development stack
+- **THEN** the notification email for the organization's administrators appears in Mailpit
+
+#### Scenario: Demo loading is silent
+- **WHEN** an operator runs `copalibre dev demo panamericano-clubes-2025`
+- **THEN** no email is sent for the clubs, entrants or tournament it creates
+
+### Requirement: Public self-hosting documentation describes notification email behaviour
+The public self-hosting documentation SHALL state which lifecycle events send email, who receives it, that
+the language is the organization's primary language, that every email carries the organization header and
+the Copa Libre signature linking to `copalibre.app`, that imports and demo loading send no email, and that
+a delivery whose outcome is unknown is not retried.
+
+#### Scenario: Documentation matches behaviour
+- **WHEN** the docs verification runs
+- **THEN** the documented events and audiences match the events and audiences this change specifies

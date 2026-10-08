@@ -10,6 +10,7 @@ describe('mapBracketResponse', () => {
         {
           zoneId: 'z1',
           zoneName: 'Zona A',
+          format: 'round-robin',
           matches: [
             {
               matchId: 'm1',
@@ -46,6 +47,7 @@ describe('mapBracketResponse', () => {
     const [zone] = mapped.zones;
     expect(zone?.zoneId).toBe('z1');
     expect(zone?.zoneName).toBe('Zona A');
+    expect(zone?.format).toBe('round-robin');
     const [match] = zone?.matches ?? [];
     expect(match?.state).toBe('final');
     expect(match?.scores).toEqual([2, 1]);
@@ -60,6 +62,7 @@ describe('mapBracketResponse', () => {
     const response: PublicBracketResponse = {
       zones: [
         {
+          format: 'single-elimination',
           zoneId: 'zA',
           matches: [
             {
@@ -84,6 +87,7 @@ describe('mapBracketResponse', () => {
           ],
         },
         {
+          format: 'single-elimination',
           zoneId: 'zB',
           matches: [
             {
@@ -116,6 +120,7 @@ describe('mapBracketResponse', () => {
     const response: PublicBracketResponse = {
       zones: [
         {
+          format: 'single-elimination',
           matches: [
             {
               matchId: 'm9',
@@ -142,6 +147,7 @@ describe('mapBracketResponse', () => {
     const response: PublicBracketResponse = {
       zones: [
         {
+          format: 'single-elimination',
           matches: [
             {
               matchId: 'm1',

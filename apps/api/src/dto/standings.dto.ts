@@ -173,6 +173,11 @@ export class SeedingZoneResponse {
   @ApiPropertyOptional({ description: 'Absent for an un-zoned stage' })
   zoneName?: string;
 
+  @ApiProperty({
+    description: 'The format this zone plays: its own when it declares one, otherwise the stage’s.',
+  })
+  format!: string;
+
   @ApiProperty({ type: BracketMatchResponse, isArray: true })
   matches!: BracketMatchResponse[];
 }

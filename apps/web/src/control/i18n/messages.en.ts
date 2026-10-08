@@ -1877,6 +1877,51 @@ export const messages = defineMessages({
   },
   zoneGroupRename: { id: 'control.zoneGroup.rename', defaultMessage: 'Rename' },
   zoneGroupDelete: { id: 'control.zoneGroup.delete', defaultMessage: 'Delete' },
+  zoneGroupZonePlaysInherited: {
+    id: 'control.zoneGroup.zonePlaysInherited',
+    defaultMessage: 'Plays {format} (the stage’s format)',
+  },
+  zoneGroupZonePlaysOverridden: {
+    id: 'control.zoneGroup.zonePlaysOverridden',
+    defaultMessage: 'Plays {format}',
+  },
+  zoneGroupZoneOverriddenBadge: {
+    id: 'control.zoneGroup.zoneOverriddenBadge',
+    defaultMessage: 'Overridden',
+  },
+  zoneGroupZoneSeriesDeclared: {
+    id: 'control.zoneGroup.zoneSeriesDeclared',
+    defaultMessage: 'Series of {span} matches',
+  },
+  zoneGroupOverrideZoneFormat: {
+    id: 'control.zoneGroup.overrideZoneFormat',
+    defaultMessage: 'Override zone format',
+  },
+  zoneGroupZoneFormatLabel: {
+    id: 'control.zoneGroup.zoneFormatLabel',
+    defaultMessage: 'Format of {name}',
+  },
+  zoneGroupZoneFormatInherit: {
+    id: 'control.zoneGroup.zoneFormatInherit',
+    defaultMessage: 'Stage format ({format})',
+  },
+  zoneGroupZoneSeriesSave: {
+    id: 'control.zoneGroup.zoneSeriesSave',
+    defaultMessage: 'Save series',
+  },
+  zoneGroupZoneSeriesClear: {
+    id: 'control.zoneGroup.zoneSeriesClear',
+    defaultMessage: 'Use the stage’s series',
+  },
+  zoneGroupZoneConfigLocked: {
+    id: 'control.zoneGroup.zoneConfigLocked',
+    defaultMessage:
+      'This stage already has fixtures, so its zones can no longer change format or series.',
+  },
+  zoneGroupZoneConfigSaved: {
+    id: 'control.zoneGroup.zoneConfigSaved',
+    defaultMessage: 'Zone configuration saved',
+  },
   zoneGroupNoEntrantsAssigned: {
     id: 'control.zoneGroup.noEntrantsAssigned',
     defaultMessage: 'No entrants assigned yet',

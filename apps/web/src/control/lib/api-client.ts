@@ -322,6 +322,14 @@ export interface ControlApiClient {
     zoneNumber: number,
     request: RenameRequest,
   ) => Promise<ZoneResponse>;
+  /** Refused once the stage holds a fixture, and for a format the discipline does not offer. */
+  readonly configureZone?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+    request: ZoneConfigurationRequest,
+  ) => Promise<ZoneResponse>;
   readonly deleteZone?: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -1180,6 +1188,8 @@ export interface TableProjectionResponseData {
 export interface SeedingZoneResponse {
   readonly zoneId?: string;
   readonly zoneName?: string;
+  /** The format this zone plays: its own when it declares one, otherwise the stage's. */
+  readonly format?: string;
   readonly matches: readonly CanvasMatch[];
 }
 
@@ -1209,6 +1219,18 @@ export interface ZoneResponse {
   readonly stageId: string;
   readonly number: number;
   readonly name: string;
+  /** The format this zone declares itself; absent means it inherits its stage's. */
+  readonly format?: string;
+  /** The format this zone plays: its own when it declares one, otherwise the stage's. */
+  readonly effectiveFormat?: string;
+  /** The series this zone declares itself; absent means it inherits its stage's. */
+  readonly series?: SeriesDeclaration;
+}
+
+/** Absent leaves a field unchanged; `null` clears it so the zone inherits its stage's again. */
+export interface ZoneConfigurationRequest {
+  readonly format?: string | null;
+  readonly series?: SeriesDeclaration | null;
 }
 
 export interface GroupResponse {
@@ -2478,6 +2500,13 @@ export function createControlApiClient(input: {
         input.fetch,
         zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber),
         { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    configureZone: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
+      requestJson<ZoneResponse>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/configuration`,
+        { method: 'PUT', body, token: input.accessToken?.() },
       ),
 
     deleteZone: (organizationAlias, tournamentAlias, stageNumber, zoneNumber) =>

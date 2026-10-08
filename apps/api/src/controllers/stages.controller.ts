@@ -73,7 +73,12 @@ import {
 } from '../dto/organization.dto.js';
 import { StageFixturesResponse } from '../dto/schedule.dto.js';
 import { resolveTournament } from './standings.controller.js';
-import { guaranteedMatchCount, readStageSeries, resolveFixtureSeries } from './stage-series.js';
+import {
+  guaranteedMatchCount,
+  readSeriesResolver,
+  readStageSeries,
+  resolveFixtureSeries,
+} from './stage-series.js';
 import { DATABASE } from '../database.token.js';
 
 /**
@@ -987,16 +992,16 @@ export class StagesController {
 
     const fixtures = await competition.listFixturesOfStage(stage.stageId);
     const matches = await competition.listMatchesForStage(stage.stageId);
-    const declaration = await readStageSeries(this.db, {
+    // Each fixture resolves against its own zone's declaration.
+    const seriesOf = await readSeriesResolver(this.db, {
       tournamentId: tournament.tournamentId,
       stageId: stage.stageId,
     });
     // Only paid for when a series exists: a stage of single matches anulls nothing, so there is
     // no released slot to look up and no audit scan to run.
-    const releasedSlots =
-      declaration === undefined
-        ? new Map<string, string>()
-        : await competition.listReleasedSlotsOfStage(stage.stageId);
+    const releasedSlots = !seriesOf.declaresAny
+      ? new Map<string, string>()
+      : await competition.listReleasedSlotsOfStage(stage.stageId);
 
     const matchesByFixture = new Map<string, typeof matches>();
     for (const match of matches) {
@@ -1012,6 +1017,7 @@ export class StagesController {
         const own = [...(matchesByFixture.get(fixture.fixtureId) ?? [])].sort(
           (a, b) => a.number - b.number,
         );
+        const declaration = seriesOf.forZone(fixture.zoneId);
         const resolution =
           declaration === undefined
             ? undefined
@@ -1102,6 +1108,16 @@ export class StagesController {
       );
     }
 
+    // Dynamic rounds are paired across the whole stage. A zone playing another format than its
+    // stage's has rounds of its own that this cannot pair, so it is refused rather than mixed.
+    const zones = await competition.listZonesOfStage(stage.stageId);
+    if (zones.some((zone) => zone.format !== undefined && zone.format !== stage.format)) {
+      throw new ConflictException(
+        'This stage has zones playing a different format than the stage, which dynamic round generation does not support',
+        { errorCode: 'stage-zone-formats-differ' },
+      );
+    }
+
     const fixtures = await competition.listFixturesOfStage(stage.stageId);
     if (fixtures.length === 0) {
       throw new ConflictException('Stage has no initial fixtures generated', {
@@ -1147,6 +1163,7 @@ export class StagesController {
     const declaration = await readStageSeries(this.db, {
       tournamentId: tournament.tournamentId,
       stageId: stage.stageId,
+      zoneId: fixtures[0]?.zoneId,
     });
     const seriesSpan = declaration === undefined ? {} : { matchCount: declaration.span };
 

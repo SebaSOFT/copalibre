@@ -298,6 +298,7 @@ export function segmentedTableResponse(
     segments: result.segments.map((segment) => ({
       ...(segment.groupId === undefined ? {} : { groupId: segment.groupId }),
       ...(segment.groupName === undefined ? {} : { groupName: segment.groupName }),
+      ...(segment.zoneName === undefined ? {} : { zoneName: segment.zoneName }),
       rows: segment.rows.map((row) => ({
         actorId: row.actorId,
         ...(row.entrantId === undefined ? {} : { entrantId: row.entrantId }),

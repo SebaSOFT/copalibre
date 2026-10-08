@@ -50,6 +50,7 @@ import {
   ageAt,
   primaryScoreOf,
   compileEffectiveRuleset,
+  effectiveFormat,
   type DisciplineDescriptor,
   type StatisticCollector,
   type Tournament,
@@ -187,11 +188,12 @@ export async function resolveTournamentWinners(
     .orderBy('number')
     .execute();
 
-  const zonesToProcess: { zoneId?: string; zoneName?: string }[] =
+  const zonesToProcess: { zoneId?: string; zoneName?: string; format?: string }[] =
     zoneRows.length > 0
       ? zoneRows.map((z) => ({
           zoneId: z.zone_id,
           zoneName: z.name,
+          ...(z.format === null ? {} : { format: z.format }),
         }))
       : [{ zoneId: undefined, zoneName: undefined }];
 
@@ -203,16 +205,16 @@ export async function resolveTournamentWinners(
     // (openspec 0245 — previously an uncaught error in this loop's duel
     // branch aborted every zone's result, not just the failing one).
     try {
-      const isDuel =
-        terminalStage.format === 'single-elimination' ||
-        terminalStage.format === 'double-elimination';
+      // A zone playing its own format is judged by that format, not by its stage's.
+      const zoneFormat = zone.format ?? terminalStage.format;
+      const isDuel = zoneFormat === 'single-elimination' || zoneFormat === 'double-elimination';
 
       if (isDuel) {
         const readModel = new StageReadModel(db);
         const record = await readModel.stageRecord(terminalStage.stageId, undefined, zone.zoneId);
         const fixtures = await readModel.matches(terminalStage.stageId, undefined, zone.zoneId);
         const generated = generateFixtures({
-          format: terminalStage.format,
+          format: zoneFormat as Parameters<typeof generateFixtures>[0]['format'],
           entrants: (record?.entrantIds ?? []).map((entrantId, index) => ({
             entrantId,
             seed: index + 1,
@@ -603,6 +605,17 @@ export class PublicProjectionsController {
         errorCode: 'public-projection-not-found',
       });
 
+    // The match is shown in the layout of the format its zone plays, which is the stage's unless the
+    // zone declares its own.
+    const zoneFormatOfMatch = (
+      await this.db
+        .selectFrom('fixtures')
+        .innerJoin('zones', 'zones.zone_id', 'fixtures.zone_id')
+        .select('zones.format')
+        .where('fixtures.fixture_id', '=', targetRecord.fixtureId)
+        .executeTakeFirst()
+    )?.format;
+
     const [schedule, officials, rosterRows, segments, events, descriptor] = await Promise.all([
       this.db
         .selectFrom('match_schedule_assignments')
@@ -672,7 +685,7 @@ export class PublicProjectionsController {
         ? {}
         : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),
       stageNumber,
-      stageFormat: stage.format,
+      stageFormat: zoneFormatOfMatch ?? stage.format,
       matchNumber,
       round: match.round,
       status: publicMatchStatus(match.status),
@@ -884,15 +897,16 @@ export class PublicProjectionsController {
         // every stage, an empty bracket the public web then rendered as an empty page. Scoping the
         // entrant list (and every match lookup below) to this one zone is what stops a multi-zone
         // stage's zones from colliding on the same round/position (openspec 0246).
+        const format = effectiveFormat(zone, stage);
         const generated = generateFixtures({
-          format: stage.format as Parameters<typeof generateFixtures>[0]['format'],
+          format: format as Parameters<typeof generateFixtures>[0]['format'],
           entrants: (record?.entrantIds ?? []).map((entrantId, index) => ({
             entrantId,
             seed: index + 1,
           })),
         });
         if (!generated.ok) {
-          return { ...zone, matches: [] };
+          return { ...zone, format, matches: [] };
         }
         const graph = generated.value;
 
@@ -920,11 +934,13 @@ export class PublicProjectionsController {
         const seriesByPosition = await readStageSeriesByPosition(this.db, {
           tournamentId: tournament.tournamentId,
           stageId: stage.stageId,
+          zoneId: zone.zoneId,
           records: stageMatchesMapped,
         });
 
         return {
           ...zone,
+          format,
           matches: bracketMatches.map((m) => {
             const series = seriesByPosition.get(`${m.round}:${m.position}`);
             return {

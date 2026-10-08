@@ -232,4 +232,193 @@ describe('ZoneGroupPage', () => {
       expect(deleteGroup).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1, 1, 1),
     );
   });
+
+  describe('zone format and series', () => {
+    const stage = {
+      stageId: 's-1',
+      seasonId: 'se-1',
+      number: 1,
+      name: 'Fase 1',
+      format: 'single-elimination',
+      seeded: false,
+      availableFormats: ['single-elimination', 'round-robin'],
+    };
+    const zone = (overrides: Record<string, unknown> = {}) => ({
+      zoneId: 'z-1',
+      stageId: 's-1',
+      number: 1,
+      name: 'Zona Campeonato',
+      effectiveFormat: 'single-elimination',
+      ...overrides,
+    });
+    const renderPage = (client: ControlApiClient) =>
+      render(
+        withIntl(
+          <ZoneGroupPage
+            client={client}
+            organizationAlias="liga-mendocina"
+            stageNumber={1}
+            tournamentAlias="apertura-2026"
+          />,
+        ),
+      );
+
+    it('says a zone plays its stage’s format until it declares its own', async () => {
+      renderPage(
+        stubClient({
+          listStages: () => Promise.resolve([stage]),
+          listZones: () => Promise.resolve([zone()]),
+          configureZone: () => Promise.resolve(zone()),
+        } as Partial<ControlApiClient>),
+      );
+
+      await waitFor(() => screen.getByText(/plays single elimination \(the stage’s format\)/i));
+      expect(screen.queryByText('Overridden')).toBeNull();
+    });
+
+    it('labels a zone that overrides its stage', async () => {
+      renderPage(
+        stubClient({
+          listStages: () => Promise.resolve([stage]),
+          listZones: () =>
+            Promise.resolve([zone({ format: 'round-robin', effectiveFormat: 'round-robin' })]),
+          configureZone: () => Promise.resolve(zone()),
+        } as Partial<ControlApiClient>),
+      );
+
+      await waitFor(() => screen.getByText('Overridden'));
+      expect(screen.getByText(/^Plays round robin$/i)).not.toBeNull();
+    });
+
+    it('sets the zone’s format from the formats the discipline offers', async () => {
+      const configureZone = jest.fn(() => Promise.resolve(zone()));
+      renderPage(
+        stubClient({
+          listStages: () => Promise.resolve([stage]),
+          listZones: () => Promise.resolve([zone()]),
+          configureZone,
+        } as Partial<ControlApiClient>),
+      );
+
+      const trigger = await screen.findByRole('combobox', { name: 'Format of Zona Campeonato' });
+      fireEvent.change(trigger, { target: { value: 'round-robin' } });
+
+      await waitFor(() =>
+        expect(configureZone).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1, 1, {
+          format: 'round-robin',
+        }),
+      );
+    });
+
+    it('clears the override with null, back to inheriting', async () => {
+      const configureZone = jest.fn(() => Promise.resolve(zone()));
+      renderPage(
+        stubClient({
+          listStages: () => Promise.resolve([stage]),
+          listZones: () =>
+            Promise.resolve([zone({ format: 'round-robin', effectiveFormat: 'round-robin' })]),
+          configureZone,
+        } as Partial<ControlApiClient>),
+      );
+
+      const trigger = await screen.findByRole('combobox', { name: 'Format of Zona Campeonato' });
+      fireEvent.change(trigger, { target: { value: '__inherit__' } });
+
+      await waitFor(() =>
+        expect(configureZone).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1, 1, {
+          format: null,
+        }),
+      );
+    });
+
+    it('saves and clears a zone series', async () => {
+      const configureZone = jest.fn(
+        (
+          _organization: string,
+          _tournament: string,
+          _stage: number,
+          _zone: number,
+          request: unknown,
+        ) =>
+          Promise.resolve(zone({ series: (request as { series?: unknown }).series ?? undefined })),
+      );
+      renderPage(
+        stubClient({
+          listStages: () => Promise.resolve([stage]),
+          listZones: () =>
+            Promise.resolve([zone({ series: { span: 3, resolutionClass: 'best-of' } })]),
+          configureZone,
+        } as Partial<ControlApiClient>),
+      );
+
+      await waitFor(() => screen.getByText(/Series of 3 matches/));
+      fireEvent.change(screen.getByLabelText('Matches'), { target: { value: '5' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save series' }));
+      await waitFor(() =>
+        expect(configureZone).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1, 1, {
+          series: { span: 5, resolutionClass: 'best-of' },
+        }),
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Use the stage’s series' }));
+      await waitFor(() =>
+        expect(configureZone).toHaveBeenLastCalledWith('liga-mendocina', 'apertura-2026', 1, 1, {
+          series: null,
+        }),
+      );
+    });
+
+    it('does not accept a series shorter than two matches', async () => {
+      renderPage(
+        stubClient({
+          listStages: () => Promise.resolve([stage]),
+          listZones: () => Promise.resolve([zone()]),
+          configureZone: () => Promise.resolve(zone()),
+        } as Partial<ControlApiClient>),
+      );
+
+      await screen.findByLabelText('Matches');
+      fireEvent.change(screen.getByLabelText('Matches'), { target: { value: '1' } });
+      expect(
+        (screen.getByRole('button', { name: 'Save series' }) as HTMLButtonElement).disabled,
+      ).toBe(true);
+    });
+
+    it('locks the controls once the stage holds fixtures', async () => {
+      renderPage(
+        stubClient({
+          listStages: () => Promise.resolve([{ ...stage, seeded: true }]),
+          listZones: () => Promise.resolve([zone()]),
+          configureZone: () => Promise.resolve(zone()),
+        } as Partial<ControlApiClient>),
+      );
+
+      await waitFor(() => screen.getByText(/already has fixtures/i));
+      expect(
+        (await screen.findByRole('combobox', { name: 'Format of Zona Campeonato' })).hasAttribute(
+          'disabled',
+        ),
+      ).toBe(true);
+      expect(
+        (screen.getByRole('button', { name: 'Save series' }) as HTMLButtonElement).disabled,
+      ).toBe(true);
+    });
+
+    it('reports a refused configuration', async () => {
+      renderPage(
+        stubClient({
+          listStages: () => Promise.resolve([stage]),
+          listZones: () => Promise.resolve([zone()]),
+          configureZone: () => Promise.reject(new Error('Cannot change a seeded stage')),
+        } as Partial<ControlApiClient>),
+      );
+
+      const trigger = await screen.findByRole('combobox', { name: 'Format of Zona Campeonato' });
+      fireEvent.change(trigger, { target: { value: 'round-robin' } });
+
+      expect(
+        await screen.findByText('The request could not be completed. Try again.'),
+      ).toBeDefined();
+    });
+  });
 });

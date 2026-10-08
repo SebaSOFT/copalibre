@@ -1,4 +1,5 @@
 import type { Kysely } from 'kysely';
+import type { TournamentFormat } from '@copalibre/domain';
 import type { Database } from '@copalibre/persistence';
 
 /**
@@ -10,6 +11,8 @@ import type { Database } from '@copalibre/persistence';
 export interface StageZone {
   readonly zoneId?: string;
   readonly zoneName?: string;
+  /** The zone's own format; absent means it plays its stage's (`effectiveFormat`). */
+  readonly format?: TournamentFormat;
 }
 
 /**
@@ -29,6 +32,10 @@ export async function resolveStageZones(
     .execute();
 
   return rows.length > 0
-    ? rows.map((row) => ({ zoneId: row.zone_id, zoneName: row.name }))
+    ? rows.map((row) => ({
+        zoneId: row.zone_id,
+        zoneName: row.name,
+        ...(row.format === null ? {} : { format: row.format as TournamentFormat }),
+      }))
     : [{ zoneId: undefined, zoneName: undefined }];
 }

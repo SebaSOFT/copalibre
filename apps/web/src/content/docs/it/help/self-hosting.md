@@ -3,6 +3,7 @@ title: 'Per iniziare: self-hosting'
 description: Esegui CopaLibre dal sorgente su Windows, macOS o Linux, poi scegli tra una topologia di distribuzione con reverse proxy o Kubernetes.
 capabilities:
   - platform/self-hosted-deployment
+  - platform/email-notifications
 roles:
   - super-admin
 ---

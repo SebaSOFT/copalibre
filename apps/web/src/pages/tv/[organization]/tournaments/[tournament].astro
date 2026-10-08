@@ -37,7 +37,7 @@ import {
   fetchPublicTableProjection,
 } from '../../../../lib/public-api-client.ts';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
-import { selectStageLayout } from '../../../../lib/bracket.ts';
+import { bracketZonesOf } from '../../../../lib/bracket.ts';
 import type { BracketZone } from '../../../../lib/bracket-projection.ts';
 import { TV_BACKGROUNDS, type TvBackground } from '../../../../lib/tv-background.ts';
 
@@ -240,8 +240,8 @@ if (presentation !== 'lower' && featuredStage !== undefined) {
     const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, featuredStage);
     if (rawBracket) {
       const mapped = mapBracketResponse(rawBracket);
-      const zones = mapped.zones.filter((zone) => zone.matches.length > 0);
-      if (selectStageLayout(mapped.format) === 'bracket' && zones.length > 0) {
+      const zones = bracketZonesOf(mapped);
+      if (zones.length > 0) {
         initialBracket = { stageNumber: featuredStage, zones };
       }
     }

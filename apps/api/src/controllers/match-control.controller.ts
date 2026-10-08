@@ -1733,6 +1733,7 @@ export class MatchControlController {
     const declaration = await readStageSeries(this.db, {
       tournamentId: tournament.tournamentId,
       stageId,
+      zoneId: await competition.findFixtureZoneId(match.fixtureId),
     });
     if (declaration === undefined) return undefined;
 
@@ -1972,15 +1973,16 @@ export class MatchControlController {
       readonly authorizationContext: string;
     },
   ): Promise<void> {
-    const declaration = await readStageSeries(this.db, {
-      tournamentId: input.tournamentId,
-      stageId: input.stageId,
-    });
-    if (declaration === undefined) return;
-
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(input.matchId, uow);
     if (!match) return;
+
+    const declaration = await readStageSeries(this.db, {
+      tournamentId: input.tournamentId,
+      stageId: input.stageId,
+      zoneId: await competition.findFixtureZoneId(match.fixtureId, uow),
+    });
+    if (declaration === undefined) return;
 
     const fixtures = await competition.listFixturesOfStage(input.stageId);
     const fixture = fixtures.find((candidate) => candidate.fixtureId === match.fixtureId);

@@ -15,31 +15,117 @@ import { ConflictException } from '../http/error-contract.js';
 import type { PublicSeriesStateResponse } from '../dto/public-tournament.dto.js';
 
 /**
- * Reads a stage's effective series declaration out of the dot-path `OverrideSet` it is
- * stored in.
+ * Reads a series declaration out of the dot-path `OverrideSet` it is stored in.
  *
  * There is no `series` table and no `seriesId`: a series is a fixture carrying more than
  * one match, and its declaration is `series.span` / `series.resolutionClass` /
  * `series.neutralGround` entries in the same override set every other configurable field
- * uses (see `0159`'s authoring step). A stage's own `StageConfiguration.overrides` wins;
- * a stage that declares nothing inherits the tournament ruleset's, which is where the
- * authoring wizard writes a series declared at tournament creation.
+ * uses (see `0159`'s authoring step). A zone may declare its own under the `zones.<zoneId>.`
+ * prefix of the stage's override set; a zone that declares none inherits its stage's own
+ * `StageConfiguration.overrides`, and a stage that declares nothing inherits the tournament
+ * ruleset's, which is where the authoring wizard writes a series declared at tournament
+ * creation. Without a `zoneId` the zone step is skipped, exactly as before zones could declare.
  *
- * Returns `undefined` when neither declares one — the overwhelmingly common case, and the
+ * Returns `undefined` when none of them declares one — the overwhelmingly common case, and the
  * one every caller here must leave completely unchanged.
  */
 export async function readStageSeries(
   db: Kysely<Database>,
-  input: { readonly tournamentId: string; readonly stageId: string },
+  input: {
+    readonly tournamentId: string;
+    readonly stageId: string;
+    readonly zoneId?: string | undefined;
+  },
 ): Promise<SeriesDeclaration | undefined> {
+  const resolver = await readSeriesResolver(db, input);
+  return resolver.forZone(input.zoneId);
+}
+
+/**
+ * A stage's series declarations, loaded once and resolvable for any of its zones. For the readers
+ * that cover several zones in one pass and would otherwise load the configuration once per zone.
+ */
+export interface SeriesResolver {
+  /** The declaration governing a zone's fixtures; the stage's own for `undefined` or a zone declaring none. */
+  readonly forZone: (zoneId: string | undefined) => SeriesDeclaration | undefined;
+  /** Whether the stage, its ruleset or any of its zones declares a series: false is the common, cheap case. */
+  readonly declaresAny: boolean;
+}
+
+export async function readSeriesResolver(
+  db: Kysely<Database>,
+  input: { readonly tournamentId: string; readonly stageId: string },
+): Promise<SeriesResolver> {
   const tournaments = new TournamentRepository(db);
   const [stageConfiguration, ruleset] = await Promise.all([
     tournaments.findLatestStageConfiguration(input.stageId),
     tournaments.findLatestRuleset(input.tournamentId),
   ]);
+  const stageOverrides = stageConfiguration?.overrides;
+  const rulesetOverrides = ruleset?.overrides;
 
+  const forZone = (zoneId: string | undefined): SeriesDeclaration | undefined =>
+    seriesDeclarationOf({
+      ...(zoneId === undefined ? {} : { zoneId }),
+      ...(stageOverrides === undefined ? {} : { stageOverrides }),
+      ...(rulesetOverrides === undefined ? {} : { rulesetOverrides }),
+    });
+
+  const zoneDeclared = Object.entries(stageOverrides ?? {}).some(
+    ([key, value]) => key.startsWith('zones.') && key.endsWith('.series.span') && value != null,
+  );
+  return { forZone, declaresAny: zoneDeclared || forZone(undefined) !== undefined };
+}
+
+/** The override-set key prefix under which a zone's own entries live in its stage's overrides. */
+export function zoneOverridePrefix(zoneId: string): string {
+  return `zones.${zoneId}.`;
+}
+
+/** The series a zone declares itself, without falling back to its stage's or the ruleset's. */
+export function ownZoneSeriesOf(
+  stageOverrides: Readonly<Record<string, unknown>> | undefined,
+  zoneId: string,
+): SeriesDeclaration | undefined {
+  const overrides = seriesOverridesOf(stageOverrides, zoneOverridePrefix(zoneId));
+  if (overrides === undefined) return undefined;
+  const validated = validateSeriesDeclaration(overrides);
+  return validated.ok ? validated.value : undefined;
+}
+
+/**
+ * The override-set entries that declare, or with `null` clear, a zone's own series. An append-only
+ * override set cannot delete a key, so clearing writes `null`, which every reader treats as absent.
+ */
+export function zoneSeriesOverrides(
+  zoneId: string,
+  series: SeriesDeclaration | null,
+): Record<string, unknown> {
+  const prefix = `${zoneOverridePrefix(zoneId)}series.`;
+  return {
+    [`${prefix}span`]: series?.span ?? null,
+    [`${prefix}resolutionClass`]: series?.resolutionClass ?? null,
+    [`${prefix}neutralGround`]: series?.neutralGround ?? null,
+    [`${prefix}standingsAccounting`]: series?.standingsAccounting ?? null,
+  };
+}
+
+/**
+ * Resolves the series declaration from already-loaded override sets: the zone's entries first,
+ * then the stage's, then the ruleset's. The first set that declares a `series.span` wins whole —
+ * a zone's `series.neutralGround` never merges into a stage's span.
+ */
+export function seriesDeclarationOf(input: {
+  readonly zoneId?: string;
+  readonly stageOverrides?: Readonly<Record<string, unknown>> | undefined;
+  readonly rulesetOverrides?: Readonly<Record<string, unknown>> | undefined;
+}): SeriesDeclaration | undefined {
   const overrides =
-    seriesOverridesOf(stageConfiguration?.overrides) ?? seriesOverridesOf(ruleset?.overrides);
+    (input.zoneId === undefined
+      ? undefined
+      : seriesOverridesOf(input.stageOverrides, zoneOverridePrefix(input.zoneId))) ??
+    seriesOverridesOf(input.stageOverrides) ??
+    seriesOverridesOf(input.rulesetOverrides);
   if (overrides === undefined) return undefined;
 
   const validated = validateSeriesDeclaration(overrides);
@@ -53,20 +139,24 @@ export async function readStageSeries(
  */
 function seriesOverridesOf(
   overrides: Readonly<Record<string, unknown>> | undefined,
+  prefix = '',
 ): Record<string, unknown> | undefined {
   if (overrides === undefined) return undefined;
-  if (overrides['series.span'] === undefined) return undefined;
+  // A `null` is how an append-only override set clears an entry: absent, not "declared invalid".
+  const entry = (field: string): unknown => {
+    const value = overrides[`${prefix}series.${field}`];
+    return value === null ? undefined : value;
+  };
+  if (entry('span') === undefined) return undefined;
   return {
-    span: overrides['series.span'],
-    ...(overrides['series.resolutionClass'] === undefined
+    span: entry('span'),
+    ...(entry('resolutionClass') === undefined
       ? {}
-      : { resolutionClass: overrides['series.resolutionClass'] }),
-    ...(overrides['series.neutralGround'] === undefined
+      : { resolutionClass: entry('resolutionClass') }),
+    ...(entry('neutralGround') === undefined ? {} : { neutralGround: entry('neutralGround') }),
+    ...(entry('standingsAccounting') === undefined
       ? {}
-      : { neutralGround: overrides['series.neutralGround'] }),
-    ...(overrides['series.standingsAccounting'] === undefined
-      ? {}
-      : { standingsAccounting: overrides['series.standingsAccounting'] }),
+      : { standingsAccounting: entry('standingsAccounting') }),
   };
 }
 
@@ -141,16 +231,18 @@ export async function refuseIfAnulledBySeries(
 ): Promise<void> {
   if (input.match.status !== 'not-required') return;
 
-  const declaration = await readStageSeries(db, {
-    tournamentId: input.tournamentId,
-    stageId: input.stageId,
-  });
   const competition = new CompetitionRepository(db);
   const [fixtures, matches] = await Promise.all([
     competition.listFixturesOfStage(input.stageId),
     competition.listMatchesForStage(input.stageId),
   ]);
   const fixture = fixtures.find((candidate) => candidate.fixtureId === input.match.fixtureId);
+  // The fixture's own zone decides which declaration governs its series.
+  const declaration = await readStageSeries(db, {
+    tournamentId: input.tournamentId,
+    stageId: input.stageId,
+    zoneId: fixture?.zoneId,
+  });
   const own = matches
     .filter((candidate) => candidate.fixtureId === input.match.fixtureId)
     .sort((a, b) => a.number - b.number);
@@ -406,23 +498,36 @@ export async function readStageSeriesByPosition(
   input: {
     readonly tournamentId: string;
     readonly stageId: string;
+    /** The zone whose fixtures `records` are: its own series declaration, if any, applies. */
+    readonly zoneId?: string | undefined;
     readonly records: readonly StageMatchRecord[];
   },
 ): Promise<ReadonlyMap<string, PublicSeriesState>> {
-  const declaration = await readStageSeries(db, {
-    tournamentId: input.tournamentId,
-    stageId: input.stageId,
-  });
-  if (declaration === undefined) return new Map();
+  const resolver = await readSeriesResolver(db, input);
+  if (!resolver.declaresAny) return new Map();
 
-  const matches = await new CompetitionRepository(db).listMatchesForStage(input.stageId);
+  const competition = new CompetitionRepository(db);
+  const matches = await competition.listMatchesForStage(input.stageId);
   const byFixture = new Map<string, typeof matches>();
   for (const match of matches) {
     byFixture.set(match.fixtureId, [...(byFixture.get(match.fixtureId) ?? []), match]);
   }
+  // Records of a single zone resolve for that zone; records spanning the stage resolve each
+  // fixture by the zone it belongs to.
+  const zoneOfFixture =
+    input.zoneId === undefined
+      ? new Map(
+          (await competition.listFixturesOfStage(input.stageId)).map((fixture) => [
+            fixture.fixtureId,
+            fixture.zoneId,
+          ]),
+        )
+      : undefined;
 
   const states = new Map<string, PublicSeriesState>();
   for (const record of input.records) {
+    const declaration = resolver.forZone(input.zoneId ?? zoneOfFixture?.get(record.fixtureId));
+    if (declaration === undefined) continue;
     const games = byFixture.get(record.fixtureId) ?? [];
     const state = publicSeriesState({
       declaration,

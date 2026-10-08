@@ -8,6 +8,8 @@ import type { PublicSeriesState } from './series.js';
 export interface BracketZone {
   readonly zoneId?: string;
   readonly zoneName?: string;
+  /** The format this zone plays (its own, else its stage's); decides how it is drawn. */
+  readonly format?: string;
   readonly matches: readonly BracketMatch[];
 }
 
@@ -65,6 +67,7 @@ export function mapBracketResponse(response: PublicBracketResponse): {
     zones: response.zones.map((zone) => ({
       zoneId: zone.zoneId,
       zoneName: zone.zoneName,
+      format: zone.format,
       matches: mapBracketZoneMatches(zone.matches),
     })),
   };

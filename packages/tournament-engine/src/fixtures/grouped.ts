@@ -7,6 +7,12 @@ export interface FixtureGroupInput {
   readonly zoneId: string;
   readonly groupId: string;
   readonly entrants: GenerateFixturesInput['entrants'];
+  /**
+   * The format this group's zone plays when it differs from the stage's. Absent: the group plays
+   * `GenerateGroupedFixturesInput.format`, so a stage whose zones declare nothing generates what
+   * it always generated.
+   */
+  readonly format?: GenerateFixturesInput['format'];
 }
 
 export interface GenerateGroupedFixturesInput {
@@ -29,9 +35,11 @@ export interface ScopedGeneratedFixture {
 }
 
 /**
- * Runs the existing fixture generator once for each independently drawn group.
- * A single implicit group therefore returns the generator's same matches, only
- * with their persisted scope made explicit.
+ * Runs the existing fixture generator once for each independently drawn group, in the group's own
+ * format when its zone declares one. A single implicit group therefore returns the generator's same
+ * matches, only with their persisted scope made explicit. Each group's matches are numbered within
+ * that group, so a knockout zone and a league zone of one stage keep their own round counts and no
+ * match refers to another group's.
  */
 export function generateGroupedFixtures(
   input: GenerateGroupedFixturesInput,
@@ -42,7 +50,7 @@ export function generateGroupedFixtures(
   const fixtures: ScopedGeneratedFixture[] = [];
   for (const group of input.groups) {
     const generated = generateFixtures({
-      format: input.format,
+      format: group.format ?? input.format,
       entrants: group.entrants,
       homeAndAway: input.homeAndAway,
       placement: input.placement,

@@ -29,6 +29,18 @@ tipo — quello implicito che ogni fase ha già.
 - **Posizionamento manuale**: assegnare ogni partecipante direttamente a un numero di zona o girone,
   registrato esattamente come risulterebbe da un sorteggio automatico.
 
+## Giocare un formato diverso in una zona
+
+Per impostazione predefinita, ogni zona gioca il formato della sua fase. Apri **Cambia il formato della
+zona** su una zona per assegnargliene uno proprio — per esempio due zone a eliminazione diretta e un
+girone all'italiana per i club rimasti — e, se il formato lo richiede, una propria lunghezza di serie.
+La schermata contrassegna la zona personalizzata e mostra il formato ereditato dalle altre; scegliere
+**Formato della fase** riporta la zona a quello della fase. L'elenco dei formati è quello offerto dalla
+disciplina del torneo. Quando la fase ha già delle partite, formato e serie delle zone sono bloccati.
+
+La pagina pubblica della fase disegna poi ogni zona come richiede il suo formato: un tabellone per una zona
+a eliminazione diretta, e le partite con la classifica per una zona a girone.
+
 ## Cosa non puoi fare qui
 
 Rinominare una zona o un girone già creato non è ancora disponibile — assegna il nome con attenzione

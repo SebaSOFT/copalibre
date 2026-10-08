@@ -366,6 +366,123 @@ describe('readStandings (integration)', () => {
     expect(groupB.rows.map((row) => row.entrantId)).toEqual(result.entrantIds.slice(2, 4));
   });
 
+  it('ranks only the table zones of a stage whose zones play different formats', async () => {
+    const AUDIT = { actor: 'user:mixed', authorizationContext: 'seed' } as const;
+    const disciplineDescriptor = descriptor();
+    const result = await withTransaction(scratch.db, async (uow) => {
+      const organization = await new OrganizationRepository(scratch.db).create(uow, {
+        alias: 'org-mixed',
+        name: 'Org Mixed',
+        ...AUDIT,
+      });
+      const organizationId = organization.organizationId;
+      const tournaments = new TournamentRepository(scratch.db);
+      await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        alias: 'standings-mixed',
+        name: 'Standings Mixed',
+        descriptor: disciplineDescriptor,
+        organizationId,
+        ...AUDIT,
+      });
+      const enrollment = new EnrollmentRepository(scratch.db);
+      const entrantIds: string[] = [];
+      for (const name of ['L1', 'L2', 'K1', 'K2']) {
+        const team = await enrollment.createTeam(uow, { name, organizationId, ...AUDIT });
+        const entrant = await enrollment.registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        entrantIds.push(entrant.entrantId);
+      }
+      const competition = new CompetitionRepository(scratch.db);
+      const season = await competition.currentSeason(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        ...AUDIT,
+      });
+      const stage = await competition.createStage(uow, {
+        seasonId: season.seasonId,
+        number: 1,
+        name: 'Mixed',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const leagueZone = await competition.createZone(uow, {
+        stageId: stage.stageId,
+        number: 1,
+        name: 'Liga',
+        organizationId,
+        ...AUDIT,
+      });
+      const knockoutZone = await competition.createZone(uow, {
+        stageId: stage.stageId,
+        number: 2,
+        name: 'Copa',
+        format: 'single-elimination',
+        organizationId,
+        ...AUDIT,
+      });
+      const fixtures = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [
+          {
+            round: 1,
+            zoneId: leagueZone.zoneId,
+            homeEntrantId: entrantIds[0],
+            awayEntrantId: entrantIds[1],
+          },
+          {
+            round: 1,
+            zoneId: knockoutZone.zoneId,
+            homeEntrantId: entrantIds[2],
+            awayEntrantId: entrantIds[3],
+          },
+        ],
+        organizationId,
+        ...AUDIT,
+      });
+      for (const [index, fixture] of fixtures.entries()) {
+        const match = await competition.createMatch(uow, {
+          fixtureId: fixture.fixtureId,
+          number: index + 1,
+          organizationId,
+          ...AUDIT,
+        });
+        const winner = entrantIds[index * 2] as string;
+        const loser = entrantIds[index * 2 + 1] as string;
+        await competition.recordResult(uow, {
+          matchId: match.matchId,
+          result: {
+            sides: [
+              { entrantId: winner, statistics: { points: 3, 'goals-for': 2, played: 1 } },
+              { entrantId: loser, statistics: { points: 0, 'goals-for': 1, played: 1 } },
+            ],
+            winnerEntrantId: winner,
+            recordedAt: new Date().toISOString(),
+          },
+          organizationId,
+          ...AUDIT,
+        });
+      }
+      return { tournament, entrantIds };
+    });
+
+    const tournament = {
+      tournamentId: result.tournament.tournamentId,
+      disciplineRef: {
+        descriptorId: result.tournament.disciplineRef.descriptorId,
+        version: String(result.tournament.disciplineRef.version),
+      },
+    };
+    const stageWide = await readStandings(scratch.db, tournament, 1);
+
+    expect(stageWide.rows.map((row) => row.entrantId)).toEqual(result.entrantIds.slice(0, 2));
+  });
+
   it('resolves tiebreak ranking from community discipline defaults without overrides', async () => {
     const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' } as const;
     const communityDesc: DisciplineDescriptor = {

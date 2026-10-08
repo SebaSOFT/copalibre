@@ -36,7 +36,7 @@ import type { TvClubItem, TvDashboardLabels } from './tv-types.js';
 import type { TvMatchEvent } from '../../lib/tv-match-events.js';
 import { mapBracketResponse } from '../../lib/bracket-projection.js';
 import type { BracketZone } from '../../lib/bracket-projection.js';
-import { selectStageLayout } from '../../lib/bracket.js';
+import { bracketZonesOf } from '../../lib/bracket.js';
 import type { PublicBracketResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { TvMatchIndicators } from './ui/organisms/TvMatchIndicators.js';
 import { TvBracketView } from './ui/organisms/TvBracketView.js';
@@ -345,11 +345,7 @@ export function TvDashboard({
         );
         if (!response.ok) return;
         const mapped = mapBracketResponse((await response.json()) as PublicBracketResponse);
-        if (selectStageLayout(mapped.format) !== 'bracket') {
-          setBracketData(undefined);
-          return;
-        }
-        const zones = mapped.zones.filter((zone) => zone.matches.length > 0);
+        const zones = bracketZonesOf(mapped);
         setBracketData(zones.length > 0 ? { stageNumber: bracketStage, zones } : undefined);
       } catch {
         // The other TV sections retain their last-known projection.

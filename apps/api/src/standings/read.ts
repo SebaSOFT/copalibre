@@ -8,21 +8,72 @@ import {
   TournamentRepository,
   type Database,
 } from '@copalibre/persistence';
+import { effectiveFormat, producesStandingsTable, type TournamentFormat } from '@copalibre/domain';
 import { traceForEntrant, traceLines } from '@copalibre/rules';
 import type { TraceNode } from '@copalibre/rules';
 import { computeStandings } from '@copalibre/tournament-engine';
 import { standingsPipeline } from './pipeline.js';
 import { readStageSeries } from '../controllers/stage-series.js';
 
+type StandingsTournament = {
+  readonly tournamentId: string;
+  readonly disciplineRef: { readonly descriptorId: string; readonly version: string };
+};
+
 /**
  * Returns the standings for a stage, materialised or live-calculated.
+ *
+ * A stage whose zones play different formats has no single table: a knockout zone has a bracket,
+ * not a points table, and ranking its entrants beside a league's would list entrants who never
+ * played each other. A stage-wide read of such a stage is therefore the table zones' standings,
+ * each ranked on its own and read in zone order. A stage whose zones all play its own format, and
+ * every group- or zone-scoped read, is untouched.
  */
 export async function readStandings(
   db: Kysely<Database>,
-  tournament: {
-    readonly tournamentId: string;
-    readonly disciplineRef: { readonly descriptorId: string; readonly version: string };
-  },
+  tournament: StandingsTournament,
+  stageNumber: number,
+  groupId?: string,
+  zoneId?: string,
+) {
+  if (groupId === undefined && zoneId === undefined) {
+    const competition = new CompetitionRepository(db);
+    const stage = (await competition.listStagesOfTournament(tournament.tournamentId)).find(
+      (candidate) => candidate.number === stageNumber,
+    );
+    if (stage) {
+      const stageFormat = stage.format as TournamentFormat;
+      const zones = await competition.listZonesOfStage(stage.stageId);
+      if (zones.some((zone) => zone.format !== undefined && zone.format !== stageFormat)) {
+        const perZone = [];
+        for (const zone of zones) {
+          if (!producesStandingsTable(effectiveFormat(zone, { format: stageFormat }))) continue;
+          perZone.push(
+            await readScopedStandings(db, tournament, stageNumber, undefined, zone.zoneId),
+          );
+        }
+        const version = await new ProjectionStore(db).versionOf('standings', stage.stageId);
+        const grain = perZone.find((result) => 'grain' in result)?.grain;
+        return {
+          stageId: stage.stageId,
+          projectionVersion: version?.version ?? 0,
+          fullyResolved: perZone.every((result) => result.fullyResolved),
+          rows: perZone.flatMap((result) => result.rows),
+          trace: perZone.flatMap((result) => result.trace),
+          rawTrace: perZone.flatMap((result) => [
+            ...result.rawTrace,
+          ]) as (typeof perZone)[number]['rawTrace'],
+          ...(grain === undefined ? {} : { grain }),
+        };
+      }
+    }
+  }
+  return readScopedStandings(db, tournament, stageNumber, groupId, zoneId);
+}
+
+async function readScopedStandings(
+  db: Kysely<Database>,
+  tournament: StandingsTournament,
   stageNumber: number,
   groupId?: string,
   zoneId?: string,
@@ -35,15 +86,19 @@ export async function readStandings(
 
   const stageId = stage.stageId;
 
+  // The zone whose series declaration governs this read: the requested zone, or the one holding the
+  // requested group. A stage-wide read keeps the stage's own declaration.
+  let seriesZoneId = zoneId;
   if (groupId !== undefined) {
     const group = await db
       .selectFrom('groups')
       .innerJoin('zones', 'zones.zone_id', 'groups.zone_id')
-      .select('groups.group_id')
+      .select(['groups.group_id', 'groups.zone_id'])
       .where('groups.group_id', '=', groupId)
       .where('zones.stage_id', '=', stageId)
       .executeTakeFirst();
     if (!group) throw new NotFoundException(`No group ${groupId} in stage ${stageNumber}`);
+    seriesZoneId ??= group.zone_id;
   }
 
   if (zoneId !== undefined) {
@@ -70,6 +125,7 @@ export async function readStandings(
   const seriesDeclaration = await readStageSeries(db, {
     tournamentId: tournament.tournamentId,
     stageId,
+    zoneId: seriesZoneId,
   });
 
   if (stored) {

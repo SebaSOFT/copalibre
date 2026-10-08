@@ -124,6 +124,7 @@ export const messages: Record<string, string> = {
   'publicWeb.livePage.leadersHeading': 'Meneurs',
 
   'publicWeb.bracketPage.title': 'Tableau',
+  'publicWeb.stageZonesPage.title': 'Phase',
 
   'publicWeb.playerProfile.heading': 'Profil du Joueur',
   'publicWeb.playerProfile.age': 'Âge : {age}',

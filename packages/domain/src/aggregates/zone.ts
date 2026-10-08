@@ -1,3 +1,4 @@
+import type { TournamentFormat } from '../descriptors/discipline-descriptor.js';
 import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
@@ -8,6 +9,11 @@ export interface Zone {
   /** 1-based, in the order the stage's zones were declared. */
   readonly number: number;
   readonly name: string;
+  /**
+   * The format this zone plays when it differs from its stage's. Absent means the zone inherits
+   * `Stage.format`, which is every zone of every tournament that predates zone formats.
+   */
+  readonly format?: TournamentFormat;
 }
 
 export class ZoneError extends DomainError {
@@ -27,6 +33,53 @@ export function validateZone(zone: Zone): Result<Zone, ZoneError> {
     );
   }
   return ok(zone);
+}
+
+/** The format a zone plays: its own when it declares one, otherwise its stage's. */
+export function effectiveFormat(
+  zone: Pick<Zone, 'format'>,
+  stage: { readonly format: TournamentFormat },
+): TournamentFormat {
+  return zone.format ?? stage.format;
+}
+
+/** Formats that decide a winner through a bracket and rank nobody in a points table. */
+const KNOCKOUT_ONLY_FORMATS: readonly TournamentFormat[] = [
+  'single-elimination',
+  'double-elimination',
+  'gauntlet',
+  'custom-bracket',
+  'ffa-bracket',
+];
+
+/**
+ * Whether a zone playing this format is ranked in a standings table. Knockout brackets are not;
+ * leagues, round-robins, Swiss and the group phase of group-then-bracket formats are.
+ */
+export function producesStandingsTable(format: TournamentFormat): boolean {
+  return !KNOCKOUT_ONLY_FORMATS.includes(format);
+}
+
+/**
+ * A format declared on a zone must be one the tournament's discipline offers, the same rule a
+ * stage's format is held to.
+ */
+export function validateZoneFormat(
+  zone: Pick<Zone, 'zoneId'>,
+  format: TournamentFormat,
+  availableFormats: readonly TournamentFormat[],
+): Result<TournamentFormat, ZoneError> {
+  if (!availableFormats.includes(format)) {
+    return err(
+      new ZoneError(
+        `Format "${format}" is not offered by the discipline (available: ${
+          availableFormats.join(', ') || '(none)'
+        })`,
+        { zoneId: zone.zoneId, format },
+      ),
+    );
+  }
+  return ok(format);
 }
 
 /** The zone every stage gets when an operator has not declared one. */

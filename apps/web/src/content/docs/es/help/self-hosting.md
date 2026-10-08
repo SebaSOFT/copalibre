@@ -3,6 +3,7 @@ title: 'Primeros pasos: autoalojamiento'
 description: Ejecute CopaLibre desde el código fuente en Windows, macOS o Linux, y elija entre proxy inverso o Kubernetes.
 capabilities:
   - platform/self-hosted-deployment
+  - platform/email-notifications
 roles:
   - super-admin
 ---

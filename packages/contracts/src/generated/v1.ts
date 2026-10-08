@@ -2640,6 +2640,26 @@ export interface paths {
         patch: operations["ZonesGroupsController_renameZone"];
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/configuration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set or clear the format and series a zone declares itself
+         * @description A zone without its own format plays its stage’s. Refused once the stage holds a fixture, and for a format the tournament’s discipline does not offer.
+         */
+        put: operations["ZonesGroupsController_configureZone"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/entrants": {
         parameters: {
             query?: never;
@@ -4460,6 +4480,8 @@ export interface components {
             groupId?: string;
             /** @description The group’s own name, e.g. "Group A" */
             groupName?: string;
+            /** @description The zone this group belongs to; absent for a stage that has only its implicit zone */
+            zoneName?: string;
             rows: components["schemas"]["TableRowResponse"][];
         };
         TableProjectionResponse: {
@@ -4546,6 +4568,8 @@ export interface components {
             zoneId?: string;
             /** @description Absent for an un-zoned stage */
             zoneName?: string;
+            /** @description The format this zone plays: its own when it declares one, otherwise the stage’s. */
+            format: string;
             matches: components["schemas"]["BracketMatchResponse"][];
         };
         SeedingResponse: {
@@ -5309,6 +5333,8 @@ export interface components {
             zoneId?: string;
             /** @description Absent for an un-zoned stage */
             zoneName?: string;
+            /** @description The format this zone plays: its own when it declares one, otherwise the stage’s. Decides how the zone is drawn. */
+            format: string;
             matches: components["schemas"]["PublicBracketMatchResponse"][];
         };
         PublicBracketResponse: {
@@ -6016,6 +6042,18 @@ export interface components {
             number: number;
             /** @example Zona 1 */
             name: string;
+            /**
+             * @description The format this zone declares itself. Absent: the zone inherits its stage’s format.
+             * @example round-robin
+             */
+            format?: string;
+            /**
+             * @description The format this zone plays: its own when it declares one, otherwise the stage’s.
+             * @example single-elimination
+             */
+            effectiveFormat: string;
+            /** @description The series this zone declares itself. Absent: the zone inherits its stage’s declaration, then the ruleset’s. */
+            series?: components["schemas"]["SeriesDeclarationRequest"];
         };
         CreateZoneRequest: {
             /**
@@ -6029,6 +6067,15 @@ export interface components {
         RenameRequest: {
             /** @example Zona Norte (corregida) */
             name: string;
+        };
+        ZoneConfigurationRequest: {
+            /**
+             * @description Sets the zone’s own format; `null` clears it so the zone inherits its stage’s. Absent leaves it unchanged. Must be a format the tournament’s discipline offers.
+             * @example round-robin
+             */
+            format?: Record<string, never> | null;
+            /** @description Sets the zone’s own series; `null` clears it so the zone inherits its stage’s. Absent leaves it unchanged. */
+            series?: components["schemas"]["SeriesDeclarationRequest"] | null;
         };
         GroupResponse: {
             /** Format: uuid */
@@ -11875,6 +11922,74 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    ZonesGroupsController_configureZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+                zoneNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ZoneConfigurationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

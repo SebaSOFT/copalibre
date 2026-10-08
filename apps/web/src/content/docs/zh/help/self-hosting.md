@@ -3,6 +3,7 @@ title: '入门指南：自托管'
 description: 在 Windows、macOS 或 Linux 上从源代码运行 CopaLibre，然后选择反向代理或 Kubernetes 部署拓扑。
 capabilities:
   - platform/self-hosted-deployment
+  - platform/email-notifications
 roles:
   - super-admin
 ---
