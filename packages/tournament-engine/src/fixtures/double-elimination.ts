@@ -165,7 +165,7 @@ export function buildDoubleElimination(
  * Builds one match, or one per series game, for a fixed slot pair — the
  * span>1/span<=1 duplication that previously appeared at all three call
  * sites (losers-bracket round, grand final, bracket reset), extracted
- * verbatim (openspec 0230). `extra` carries the one field that differs
+ * verbatim. `extra` carries the one field that differs
  * between them (`conditional: 'bracket-reset'`); every other field, and the
  * conditional inclusion of `series` only in the multi-game shape, matches
  * each site's original object exactly.

@@ -6,7 +6,7 @@ import type { SupportedLanguage } from '../i18n.js';
  * Display names for dot-paths common enough to appear across many
  * disciplines' own field policies, so an operator sees a translated name
  * instead of a humanized-but-still-English dot-path the moment a specific
- * discipline declares no `label` of its own (openspec 0285). A humanized
+ * discipline declares no `label` of its own. A humanized
  * fallback is still correct for anything discipline-specific this catalogue
  * doesn't name — this is a plain-language upgrade for the handful of
  * genuinely standard paths, not a replacement for `humanizeFieldPath`.

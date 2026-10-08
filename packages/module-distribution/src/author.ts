@@ -6,7 +6,7 @@ import { ARTIFACT_FILENAME, MANIFEST_FILENAME } from './package-format.js';
 import type { ModuleKind, ModuleManifest } from './manifest.js';
 
 /**
- * A module authored through the control-panel builder (openspec 0164),
+ * A module authored through the control-panel builder,
  * ready to be packaged. `document` already carries `alias`, `version`, and
  * `attribution` — the same fields the manifest restates (package-format.ts's
  * "duplicate-free" comment) — so this reads them from `document` rather than

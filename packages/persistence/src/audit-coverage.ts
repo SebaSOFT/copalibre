@@ -1,5 +1,5 @@
 // Enforces the accepted "An unaudited aggregate mutation fails the build"
-// requirement (openspec 0166): a repository method that writes through
+// requirement: a repository method that writes through
 // `uow.tx` (the only way to reach a transaction — see transaction.ts) while
 // holding a `UnitOfWork` must also call `uow.recordAudit`, or be named in
 // `AUDIT_COVERAGE_EXCEPTIONS` with a reason. Pure, testable functions plus a

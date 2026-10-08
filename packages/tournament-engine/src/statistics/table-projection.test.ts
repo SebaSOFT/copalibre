@@ -393,7 +393,7 @@ describe('projectTableLayout', () => {
     expect(projection.rows[0]?.entrantId).toBe('en-atlas');
     // A row's own headline identity survives regardless of granularity — this
     // is the field a client reads instead of guessing which column code the
-    // discipline used for its display column (openspec 0247).
+    // discipline used for its display column.
     expect(projection.rows[0]?.actorName).toBe('Alice Striker');
     expect(projection.rows[0]?.nationality).toBe('AR');
     expect(projection.rows[1]?.nationality).toBeUndefined();

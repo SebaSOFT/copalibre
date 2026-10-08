@@ -157,7 +157,7 @@ export async function validateModulePackage(
 /**
  * The semantic checks specific to a discipline descriptor or a tournament
  * profile — everything `validateModulePackage` used to run inline once it
- * knew `manifest.kind`, extracted verbatim (openspec 0229) so this block's
+ * knew `manifest.kind`, extracted verbatim so this block's
  * own branches count toward its own complexity, not the entry point's.
  */
 function validateDisciplineOrProfileSemantics(

@@ -19,7 +19,7 @@ import { StatisticFoldError } from '../errors.js';
 export type { StatisticAdjustment };
 
 /**
- * Folding facts into figures (0016-statistic-collectors-and-tags).
+ * Folding facts into figures (statistic collectors and tags).
  *
  * One pass produces every declared collector's figures at its own granularity,
  * on both axes at once — so a team table and a player table can never disagree
@@ -99,7 +99,7 @@ export interface FoldInput {
    * actor id already resolved at the collector's own declared granularity —
    * the identity a tag or eligibility check is naturally keyed against — and
    * the collector currently being folded, since a filter's decision (e.g.
-   * `0073`'s `requiresTag`) is a per-collector declaration, not a blanket
+   * `requiresTag`) is a per-collector declaration, not a blanket
    * rule for the whole fold.
    */
   readonly filter?: (fact: FoldFact, actorId: string, collector: StatisticCollector) => boolean;
@@ -107,7 +107,7 @@ export interface FoldInput {
 
 /**
  * Orders collectors so a `collector`-sourced entry always folds after the
- * collector it names (0082's task 2.2).
+ * collector it names.
  *
  * A stable partition, not a topological sort: a `collector`-sourced collector
  * naming another `collector`-sourced one is refused at fold time (see the
@@ -180,8 +180,8 @@ export function foldStatistics(input: FoldInput): readonly CollectedFigure[] {
 type AddFigure = (key: FigureKey, value: number, samples?: number) => void;
 
 /**
- * `foldStatistics`'s `participation`-source handler, extracted verbatim
- * (openspec 0230): one figure per roster member holding an admitted role.
+ * `foldStatistics`'s `participation`-source handler, extracted verbatim:
+ * one figure per roster member holding an admitted role.
  */
 function foldParticipationCollector(
   input: FoldInput,
@@ -200,8 +200,8 @@ function foldParticipationCollector(
 }
 
 /**
- * `foldStatistics`'s `statistic`-source handler, extracted verbatim
- * (openspec 0230): every event declaring a delta against the named
+ * `foldStatistics`'s `statistic`-source handler, extracted verbatim:
+ * every event declaring a delta against the named
  * statistic, awarded to each of its resolved targets.
  */
 function foldStatisticSourcedCollector(
@@ -225,8 +225,8 @@ function foldStatisticSourcedCollector(
 }
 
 /**
- * `foldStatistics`'s `collector`-source handler, extracted verbatim
- * (openspec 0230): folds another collector's already-settled figures through
+ * `foldStatistics`'s `collector`-source handler, extracted verbatim:
+ * folds another collector's already-settled figures through
  * this collector's own measure. `refold` sorts `collector`-sourced entries
  * after everything else, so `figures` is a safe snapshot by the time this
  * runs — iterating the live map would let a collector see partial output
@@ -260,8 +260,7 @@ function foldDerivedCollector(
 }
 
 /**
- * `foldStatistics`'s `event`-source handler, extracted verbatim (openspec
- * 0230): every event this collector watches, awarded to each of its
+ * `foldStatistics`'s `event`-source handler, extracted verbatim: every event this collector watches, awarded to each of its
  * resolved targets.
  */
 function foldEventSourcedCollector(

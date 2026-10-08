@@ -18,7 +18,7 @@ export type ControlRoute =
   | { readonly screen: 'reset-password' }
   | { readonly screen: 'platformAdministration' }
   | {
-      /** An installed discipline's plain-language document detail (openspec 0263). */
+      /** An installed discipline's plain-language document detail. */
       readonly screen: 'disciplineDocument';
       readonly disciplineAlias: string;
     }
@@ -56,7 +56,7 @@ export type ControlRoute =
       readonly tournamentAlias: string;
     }
   | {
-      /** A published tournament's ruleset override fields: edit and preview (openspec 0169). */
+      /** A published tournament's ruleset override fields: edit and preview. */
       readonly screen: 'tournamentRuleset';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
@@ -127,7 +127,7 @@ export type ControlRoute =
     }
   | {
       /**
-       * The matches view (openspec 0172): a flat, filterable card list of
+       * The matches view: a flat, filterable card list of
        * the tournament's matches, `org.view-internal-standings`-gated.
        * Tournament-scoped, not stage-scoped — a stage/group/state filter is
        * a query parameter on this same screen, not a distinct route.
@@ -137,19 +137,19 @@ export type ControlRoute =
       readonly tournamentAlias: string;
     }
   | {
-      /** The streamer self-service console (openspec 0300): OBS URL generation, chroma preview. */
+      /** The streamer self-service console: OBS URL generation, chroma preview. */
       readonly screen: 'broadcaster';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
     }
   | {
-      /** The Club Portal member directory (openspec 0301): a club-admin's own scoped person registry. */
+      /** The Club Portal member directory: a club-admin's own scoped person registry. */
       readonly screen: 'clubPortalMembers';
       readonly organizationAlias: string;
       readonly clubId: string;
     }
   | {
-      /** The Club Portal roster-submission wizard (openspec 0301). */
+      /** The Club Portal roster-submission wizard. */
       readonly screen: 'clubPortalRoster';
       readonly organizationAlias: string;
       readonly clubId: string;
@@ -160,7 +160,7 @@ export type ControlRoute =
  * The reserved-alias and simple org-scoped shapes — every route this module
  * recognizes before it requires `rest[0] === 'tournaments'`. Order matters:
  * evaluated top to bottom, first match wins, exactly like the if-chain this
- * table replaced (openspec 0229). Each `matches`/`build` pair is its own
+ * table replaced. Each `matches`/`build` pair is its own
  * function, so its internal checks don't add to `parseControlPath`'s own
  * branch count — the table only walks a list and calls one.
  */
@@ -176,7 +176,7 @@ const ORG_SCOPED_ROUTES: readonly {
     matches: (organizationAlias, rest) => organizationAlias === 'callback' && rest.length === 0,
     build: () => ({ screen: 'callback' }),
   },
-  // The hidden-iframe target for OIDC silent renewal (openspec 0302): same
+  // The hidden-iframe target for OIDC silent renewal: same
   // reserved-alias shape as `callback`, since it is the same PKCE redirect
   // landing, just posted back to a parent frame instead of navigated to.
   {
@@ -295,8 +295,8 @@ const STAGE_SUFFIX_SCREENS: Readonly<
 };
 
 /**
- * Every route nested under `/control/{org}/tournaments/{tournamentAlias}/...`
- * — evaluated only once that prefix is confirmed and `tournamentAlias` is
+ * Every route nested under `/control/{org}/tournaments/{tournamentAlias}/...` —
+ * evaluated only once that prefix is confirmed and `tournamentAlias` is
  * resolved. Same order-matters, first-match-wins shape as `ORG_SCOPED_ROUTES`.
  */
 const TOURNAMENT_SCOPED_ROUTES: readonly {

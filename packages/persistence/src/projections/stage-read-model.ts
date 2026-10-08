@@ -261,7 +261,7 @@ function resultReasonsOf(
  *
  * Callers must pass the *unscoped* result of `matches(stageId)` (no `groupId`/`zoneId`) — the ordinal
  * a group- or zone-filtered subset would assign does not agree with this one, since a filtered call
- * cannot see how many matches it is missing ahead of a given row (openspec 0249).
+ * cannot see how many matches it is missing ahead of a given row.
  */
 export function stageMatchOrdinals(
   records: readonly StageMatchRecord[],

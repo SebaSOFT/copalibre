@@ -32,8 +32,8 @@ export interface MatchFoldContext {
 }
 
 /**
- * Resolves everything `foldStatistics` needs for one match from persistence
- *: the roster (`match_rosters` + `entrants` + `players` +
+ * Resolves everything `foldStatistics` needs for one match from persistence:
+ * the roster (`match_rosters` + `entrants` + `players` +
  * `teams`), the competition context (stage → season → tournament →
  * organization), the discipline's declared collectors and event definitions,
  * and any hand adjustments recorded against the match.
