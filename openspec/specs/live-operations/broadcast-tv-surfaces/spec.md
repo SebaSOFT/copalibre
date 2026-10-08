@@ -407,3 +407,20 @@ turf green (`bg=football`), hardwood court (`bg=court`), or transparent alpha ch
 - **WHEN** a TV route is requested with `?bg=discipline`
 - **THEN** the TV layout renders the blurred, subtle atmospheric discipline backdrop image matching the
   tournament's declared discipline
+
+### Requirement: TV surfaces present each zone of a mixed-format stage by its effective format
+A full-frame TV surface SHALL present a stage whose zones play different formats zone by zone: every table-producing zone SHALL appear as its own standings table headed by the zone's name, every elimination zone SHALL appear in the bracket view, and a league zone SHALL list its matches grouped by round. Rows of different zones SHALL NOT be interleaved in one table. A stage whose zones all play the stage's own format, and a stage without declared zones, SHALL render exactly as before. The lower-third overlay SHALL be unchanged.
+
+#### Scenario: Two league zones show two headed tables
+- **WHEN** the kiosk shows the standings of a stage with two table-producing zones
+- **THEN** each zone renders as its own table headed by that zone's name
+- **AND** no row of one zone appears in the other zone's table
+
+#### Scenario: A league zone beside knockout zones has a fixtures view
+- **WHEN** a stage has knockout zones and one league zone
+- **THEN** the bracket view draws the knockout zones only
+- **AND** the league zone's matches are available as a view grouped by round, with each match's state and score
+
+#### Scenario: A uniform stage is unchanged
+- **WHEN** every zone plays the stage's own format, or the stage declares no zones
+- **THEN** the standings tab and bracket view render as they did before zone formats could differ
