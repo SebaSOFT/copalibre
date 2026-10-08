@@ -193,6 +193,7 @@ test('captures screenshots of the zone-aware kiosk at broadcast size', async ({ 
   // The rail tab fades its fill in and out; a frame taken mid-fade shows two tabs highlighted.
   await expect(page.getByRole('button', { name: 'Fixtures' })).toHaveCSS(
     'background-color',
+    // eslint-disable-next-line no-restricted-syntax -- asserting a computed browser style value, not an app styling literal
     'rgba(0, 0, 0, 0)',
   );
   await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-bracket.png' });
