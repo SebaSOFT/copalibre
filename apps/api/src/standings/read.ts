@@ -20,14 +20,54 @@ type StandingsTournament = {
   readonly disciplineRef: { readonly descriptorId: string; readonly version: string };
 };
 
+type ScopedStandings = Awaited<ReturnType<typeof readScopedStandings>>;
+
+/**
+ * The table zones of a stage whose zones play different formats, each ranked on its own and in zone
+ * order. `undefined` for every other stage — one whose zones all play its own format, or that has
+ * none — which has a single table and no zone axis.
+ *
+ * A knockout zone has a bracket, not a points table, and ranking its entrants beside a league's
+ * would list entrants who never played each other, so only the table-producing zones appear.
+ */
+export async function readStandingsByZone(
+  db: Kysely<Database>,
+  tournament: StandingsTournament,
+  stageNumber: number,
+): Promise<
+  | {
+      readonly stageId: string;
+      readonly zones: readonly { readonly zoneName: string; readonly result: ScopedStandings }[];
+    }
+  | undefined
+> {
+  const competition = new CompetitionRepository(db);
+  const stage = (await competition.listStagesOfTournament(tournament.tournamentId)).find(
+    (candidate) => candidate.number === stageNumber,
+  );
+  if (!stage) return undefined;
+  const stageFormat = stage.format as TournamentFormat;
+  const zones = await competition.listZonesOfStage(stage.stageId);
+  if (!zones.some((zone) => zone.format !== undefined && zone.format !== stageFormat)) {
+    return undefined;
+  }
+  const perZone = [];
+  for (const zone of zones) {
+    if (!producesStandingsTable(effectiveFormat(zone, { format: stageFormat }))) continue;
+    perZone.push({
+      zoneName: zone.name,
+      result: await readScopedStandings(db, tournament, stageNumber, undefined, zone.zoneId),
+    });
+  }
+  return { stageId: stage.stageId, zones: perZone };
+}
+
 /**
  * Returns the standings for a stage, materialised or live-calculated.
  *
- * A stage whose zones play different formats has no single table: a knockout zone has a bracket,
- * not a points table, and ranking its entrants beside a league's would list entrants who never
- * played each other. A stage-wide read of such a stage is therefore the table zones' standings,
- * each ranked on its own and read in zone order. A stage whose zones all play its own format, and
- * every group- or zone-scoped read, is untouched.
+ * A stage whose zones play different formats has no single table, so a stage-wide read of it is the
+ * table zones' standings read in zone order (see `readStandingsByZone`). A stage whose zones all
+ * play its own format, and every group- or zone-scoped read, is untouched.
  */
 export async function readStandings(
   db: Kysely<Database>,
@@ -37,35 +77,22 @@ export async function readStandings(
   zoneId?: string,
 ) {
   if (groupId === undefined && zoneId === undefined) {
-    const competition = new CompetitionRepository(db);
-    const stage = (await competition.listStagesOfTournament(tournament.tournamentId)).find(
-      (candidate) => candidate.number === stageNumber,
-    );
-    if (stage) {
-      const stageFormat = stage.format as TournamentFormat;
-      const zones = await competition.listZonesOfStage(stage.stageId);
-      if (zones.some((zone) => zone.format !== undefined && zone.format !== stageFormat)) {
-        const perZone = [];
-        for (const zone of zones) {
-          if (!producesStandingsTable(effectiveFormat(zone, { format: stageFormat }))) continue;
-          perZone.push(
-            await readScopedStandings(db, tournament, stageNumber, undefined, zone.zoneId),
-          );
-        }
-        const version = await new ProjectionStore(db).versionOf('standings', stage.stageId);
-        const grain = perZone.find((result) => 'grain' in result)?.grain;
-        return {
-          stageId: stage.stageId,
-          projectionVersion: version?.version ?? 0,
-          fullyResolved: perZone.every((result) => result.fullyResolved),
-          rows: perZone.flatMap((result) => result.rows),
-          trace: perZone.flatMap((result) => result.trace),
-          rawTrace: perZone.flatMap((result) => [
-            ...result.rawTrace,
-          ]) as (typeof perZone)[number]['rawTrace'],
-          ...(grain === undefined ? {} : { grain }),
-        };
-      }
+    const byZone = await readStandingsByZone(db, tournament, stageNumber);
+    if (byZone) {
+      const perZone = byZone.zones.map((zone) => zone.result);
+      const version = await new ProjectionStore(db).versionOf('standings', byZone.stageId);
+      const grain = perZone.find((result) => 'grain' in result)?.grain;
+      return {
+        stageId: byZone.stageId,
+        projectionVersion: version?.version ?? 0,
+        fullyResolved: perZone.every((result) => result.fullyResolved),
+        rows: perZone.flatMap((result) => result.rows),
+        trace: perZone.flatMap((result) => result.trace),
+        rawTrace: perZone.flatMap((result) => [
+          ...result.rawTrace,
+        ]) as (typeof perZone)[number]['rawTrace'],
+        ...(grain === undefined ? {} : { grain }),
+      };
     }
   }
   return readScopedStandings(db, tournament, stageNumber, groupId, zoneId);

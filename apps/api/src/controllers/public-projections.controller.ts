@@ -29,7 +29,7 @@ import {
 import { TableLayoutListResponse, TableProjectionResponse } from '../dto/table-projections.dto.js';
 import { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
-import { readStandings } from '../standings/read.js';
+import { readStandings, readStandingsByZone } from '../standings/read.js';
 import { readMatchesView } from '../matches-view/read.js';
 import {
   listEffectiveTableLayouts,
@@ -459,7 +459,17 @@ export class PublicProjectionsController {
     if (stages.length > 0) {
       const stage = stages[0];
       if (stage) {
-        const standings = await readStandings(this.db, tournament, stage.number);
+        // A stage mixing formats ranks each of its table zones on its own; its rows say which zone
+        // they belong to so a client does not present them as one table.
+        const byZone = await readStandingsByZone(this.db, tournament, stage.number);
+        const standings = byZone
+          ? {
+              rows: byZone.zones.flatMap((zone) =>
+                zone.result.rows.map((row) => ({ ...row, zoneName: zone.zoneName })),
+              ),
+              grain: byZone.zones.find((zone) => 'grain' in zone.result)?.result.grain,
+            }
+          : await readStandings(this.db, tournament, stage.number);
 
         const standingsEntrantIds = standings.rows.map((r) => r.entrantId);
         const standingsNames = await new EnrollmentRepository(this.db).resolveEntrantNames(
@@ -473,6 +483,7 @@ export class PublicProjectionsController {
           abbreviation: standingsNames.get(r.entrantId)?.abbreviation,
           sharedRank: r.sharedRank,
           statistics: r.statistics,
+          ...('zoneName' in r && typeof r.zoneName === 'string' ? { zoneName: r.zoneName } : {}),
         }));
         standingsGrain = standings.grain;
       }

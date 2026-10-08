@@ -5176,6 +5176,8 @@ export interface components {
             statistics: {
                 [key: string]: number;
             };
+            /** @description The zone this row is ranked in. Present only when the stage mixes formats, so each table zone is ranked on its own; absent for a stage with a single table. */
+            zoneName?: string;
         };
         PublicOverviewResponse: {
             organizationAlias: string;

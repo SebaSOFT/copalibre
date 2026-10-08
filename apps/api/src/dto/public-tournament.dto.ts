@@ -23,6 +23,12 @@ export class PublicStandingsRowResponse {
     additionalProperties: { type: 'number' },
   })
   statistics!: Record<string, number>;
+
+  @ApiPropertyOptional({
+    description:
+      'The zone this row is ranked in. Present only when the stage mixes formats, so each table zone is ranked on its own; absent for a stage with a single table.',
+  })
+  zoneName?: string;
 }
 
 export class PublicOverviewMatchResponse {
