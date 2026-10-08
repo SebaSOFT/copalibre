@@ -592,9 +592,10 @@ function ZoneFields({
         <FormattedMessage {...messages.stageEditorZonesSummary} values={{ count: zones.length }} />
       </summary>
       <Stack gap="3">
-        <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
-          <FormattedMessage {...messages.stageEditorZonesHint} />
-        </p>
+        <DecisionHint
+          id={`stage-${stage.number}-zones-hint`}
+          text={intl.formatMessage(messages.stageEditorZonesHint)}
+        />
         {zones.map((zone, index) => {
           const idPrefix = `stage-${stage.number}-zone-${index + 1}`;
           return (
