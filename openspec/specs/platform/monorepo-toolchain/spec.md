@@ -505,3 +505,23 @@ Tracked file content SHALL NOT point at a git-ignored change's planning artifact
 #### Scenario: Workflow documentation may name the files
 - **WHEN** `AGENTS.md` or a skill describes what a change's design or tasks document is for
 - **THEN** the guard does not fail
+
+### Requirement: Slow, networked and port-bound tests declare themselves and fail for a stated reason
+A timeout that a workspace declares for its integration tests SHALL apply however the suites are run, including from the root aggregate run. A test that needs the network SHALL skip with an explicit reason when its remote is unreachable, while remaining required in continuous integration. End-to-end mock services SHALL NOT listen on ports that the local development stack publishes by default. A retry that rescues a test in continuous integration SHALL be surfaced in the run summary as a flake.
+
+#### Scenario: A declared timeout applies in the root run
+- **WHEN** a workspace declares a test timeout longer than the default and its tests run from the root integration command
+- **THEN** a test that takes longer than the default but within the declared timeout passes
+
+#### Scenario: A networked suite skips with a reason when offline
+- **WHEN** an integration suite that clones a remote repository runs on a machine that cannot reach it
+- **THEN** the suite skips and states that the remote was unreachable
+- **AND** the same suite fails, instead of skipping, when the environment requires the network tests to run
+
+#### Scenario: End-to-end mocks do not collide with the development stack
+- **WHEN** the local development stack is running and the end-to-end suite starts
+- **THEN** the per-worker mock services listen on ports the stack does not publish
+
+#### Scenario: A rescued flake is visible
+- **WHEN** a Playwright retry makes a failing test pass in continuous integration
+- **THEN** the run summary lists that test as flaky

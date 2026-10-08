@@ -127,6 +127,61 @@ function StageIdentitySection({
   );
 }
 
+/** A zone whose next round is derived from its previous one, and the act that advances it. */
+export interface RoundZone {
+  readonly zoneNumber: number;
+  readonly zoneName: string;
+  readonly format: string;
+}
+
+/**
+ * One action per zone playing a format with dynamic rounds. Shown only once the stage is seeded,
+ * since there is no round to follow before that; rounds, pairings and results are per zone, so
+ * each zone advances on its own.
+ */
+function StageRoundsSection({
+  zones,
+  onGenerateNextRound,
+}: {
+  readonly zones: readonly RoundZone[];
+  readonly onGenerateNextRound: (zoneNumber: number) => Promise<void>;
+}): React.JSX.Element {
+  const intl = useIntl();
+  return (
+    <Card
+      aria-label={intl.formatMessage(messages.stageRoundsHeading)}
+      className="cl-chamfer cl-chamfer--control"
+    >
+      <header className="cl-card__header">
+        <h2 className="cl-card__title">
+          <FormattedMessage {...messages.stageRoundsHeading} />
+        </h2>
+      </header>
+      <div className="cl-card__content">
+        <p>
+          <FormattedMessage {...messages.stageRoundsExplanation} />
+        </p>
+        <ul>
+          {zones.map((zone) => (
+            <li key={zone.zoneNumber}>
+              <Button
+                onClick={() => void onGenerateNextRound(zone.zoneNumber)}
+                type="button"
+                variant="secondary"
+              >
+                <FormattedMessage
+                  {...messages.stageRoundsGenerate}
+                  values={{ zone: zone.zoneName }}
+                />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Card>
+  );
+}
+
 /**
  * The Stage hub: identity (above) plus a doorway to that same
  * stage's existing seeding, zones-and-groups, standings and schedule tools —
@@ -141,6 +196,8 @@ export function StageHubTemplate({
   availableFormats,
   formatDescriptions,
   seeded,
+  roundZones = [],
+  onGenerateNextRound,
   onRename,
   onChangeFormat,
   onDelete,
@@ -153,6 +210,9 @@ export function StageHubTemplate({
   readonly availableFormats: readonly string[];
   readonly formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
   readonly seeded: boolean;
+  /** Zones that can advance a round; empty hides the rounds section. */
+  readonly roundZones?: readonly RoundZone[];
+  readonly onGenerateNextRound?: (zoneNumber: number) => Promise<void>;
   readonly onRename: (name: string) => Promise<void>;
   readonly onChangeFormat: (format: string) => Promise<void>;
   readonly onDelete: () => Promise<void>;
@@ -189,6 +249,9 @@ export function StageHubTemplate({
         onRename={onRename}
         seeded={seeded}
       />
+      {seeded && roundZones.length > 0 && onGenerateNextRound !== undefined && (
+        <StageRoundsSection onGenerateNextRound={onGenerateNextRound} zones={roundZones} />
+      )}
       <Card
         aria-label={intl.formatMessage(messages.stageHubToolsHeading)}
         className="cl-chamfer cl-chamfer--control"

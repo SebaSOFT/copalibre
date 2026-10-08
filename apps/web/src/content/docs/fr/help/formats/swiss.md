@@ -32,3 +32,12 @@ CopaLibre prend en charge deux modèles de score suisse :
 ## Classements et Progression
 
 Les classements suisses exploitent la force de l'opposition (Buchholz, Sonneborn-Berger) pour départager les ex æquo, permettant souvent de qualifier les 8 ou 16 premiers pour les phases finales.
+
+## Générer la ronde suivante
+
+Les phases suisses et à élimination directe construisent chaque ronde à partir de la précédente ; l’opérateur ne génère donc une ronde qu’une fois la précédente terminée.
+
+- **Par zone** : Les rondes, les appariements et les résultats appartiennent à une zone. Une phase à plusieurs zones fait avancer chaque zone séparément, et une zone n’apparie jamais des participants d’une autre zone.
+- **Où** : Une fois la phase tirée au sort, son écran de phase propose l’action **Générer la ronde suivante** pour chaque zone qui joue en système suisse ou en élimination directe. Les zones d’un autre format, comme le championnat, n’en ont pas.
+- **Quand elle est refusée** : Une zone n’avance pas tant qu’un match de sa ronde en cours n’est pas terminé. Cela ne bloque que cette zone ; les autres peuvent avancer.
+- **Par l’API** : `POST .../stages/{stageNumber}/rounds/next` avec `{ "zoneNumber": 2 }`. La zone est obligatoire si la phase en compte plusieurs ; une phase à zone unique n’a pas besoin de corps.

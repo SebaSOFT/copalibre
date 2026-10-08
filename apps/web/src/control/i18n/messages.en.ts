@@ -2150,6 +2150,23 @@ export const messages = defineMessages({
   },
   stageHubStandingsLink: { id: 'control.stageHub.standingsLink', defaultMessage: 'Standings' },
   stageHubScheduleLink: { id: 'control.stageHub.scheduleLink', defaultMessage: 'Schedule' },
+  stageRoundsHeading: {
+    id: 'control.stageHub.roundsHeading',
+    defaultMessage: 'Rounds',
+  },
+  stageRoundsExplanation: {
+    id: 'control.stageHub.roundsExplanation',
+    defaultMessage:
+      'Swiss and single-elimination zones create each round from the previous one. Finish every match of a zone’s current round, then generate its next round.',
+  },
+  stageRoundsGenerate: {
+    id: 'control.stageHub.roundsGenerate',
+    defaultMessage: 'Generate next round for {zone}',
+  },
+  stageRoundsGenerated: {
+    id: 'control.stageHub.roundsGenerated',
+    defaultMessage: 'Next round generated for {zone}.',
+  },
   stageHubLoading: { id: 'control.stageHub.loading', defaultMessage: 'Loading stage…' },
   stageHubLoadFailed: {
     id: 'control.stageHub.loadFailed',

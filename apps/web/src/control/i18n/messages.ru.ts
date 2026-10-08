@@ -720,6 +720,11 @@ export const messages: Record<string, string> = {
   'control.stageHub.zoneGroupsLink': 'Зоны и группы',
   'control.stageHub.standingsLink': 'Турнирная таблица',
   'control.stageHub.scheduleLink': 'Расписание',
+  'control.stageHub.roundsHeading': 'Раунды',
+  'control.stageHub.roundsExplanation':
+    'В швейцарских зонах и зонах с плей-офф каждый раунд строится по предыдущему. Завершите все матчи текущего раунда зоны и создайте следующий.',
+  'control.stageHub.roundsGenerate': 'Создать следующий раунд для {zone}',
+  'control.stageHub.roundsGenerated': 'Следующий раунд для {zone} создан.',
   'control.stageHub.loading': 'Загрузка этапа…',
   'control.stageHub.loadFailed': 'Не удалось загрузить этот этап.',
   'control.stageHub.notFound': 'Нет этапа {number} в этом турнире.',
