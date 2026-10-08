@@ -1,11 +1,11 @@
 # Testing conventions
 
-Established by change `0001-bootstrap-monorepo-toolchain`; every later phase adds suites
+Established with the monorepo toolchain; every later phase adds suites
 inside these conventions instead of inventing new ones.
 
 ## ES modules
 
-Every workspace is a native ES module (`0006-esm-module-migration`), which imposes two rules on
+Every workspace is a native ES module (the ESM module migration), which imposes two rules on
 test code:
 
 - **Relative imports carry `.js`**, matching the source: `import { x } from './x.js'`. Jest maps
@@ -28,7 +28,7 @@ in CI ahead of the suites.
 
 ## Integration tests (Jest + real PostgreSQL)
 
-First used by phase `0004-persistence-postgres-outbox-audit`.
+First used by the persistence outbox and audit work.
 
 - Location: `src/**/*.integration.test.ts`, picked up by a workspace-level
   `jest.integration.config.cjs` (create it in the phase that first needs it; the root
@@ -87,7 +87,7 @@ Run `node --test scripts/check-ui-ownership.test.mjs` to exercise both direction
 Review every state in German at 1440, 767, 374 and 188px, then all eight languages at 188px.
 Read `docs/SCREEN-STORY-REVIEW.md` before interpreting a loading/error example: several existing
 screens intentionally expose their current incomplete UX rather than a fictional improved layout.
-The [0222 review](reviews/0222-owned-control-coverage.md) records selected/chrome differentiation,
+The [owned-control coverage review](reviews/owned-control-coverage.md) records selected/chrome differentiation,
 broadcast nesting and TV background evidence.
 
 ## CI
@@ -97,7 +97,7 @@ on every pull request. Later phases append integration/e2e/build jobs per their 
 
 ## Bounded Local Execution & CI Resource Allocation
 
-Established by change `0221-conditional-ci-resource-optimization`:
+Established with the conditional CI resource optimization:
 
 - **Jest worker caps**: Cap Jest concurrency (`--maxWorkers=2`) when running suites locally or across parallel jobs to prevent memory pressure and thread contention.
 - **Dynamic worker fixture ports**: E2E mock servers allocate unique ports dynamically based on worker index (`3001 + workerIndex`), managed via `e2e/fixtures.ts`. This eliminates port 3001 `EADDRINUSE` collisions and enables concurrent worker scaling locally (`yarn test:e2e --workers=4`) and across parallel CI shards.

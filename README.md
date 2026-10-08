@@ -208,7 +208,7 @@ authentication contract). Every change is planned and tracked as an OpenSpec pro
   stack with `copalibre dev demo`
 - [`docs/SCREEN-STORY-REVIEW.md`](docs/SCREEN-STORY-REVIEW.md) — operator Storybook coverage,
   fixture boundaries, responsive review evidence, and deferred UX gaps
-- [`docs/reviews/0222-owned-control-coverage.md`](docs/reviews/0222-owned-control-coverage.md) — recursive
+- [`docs/reviews/owned-control-coverage.md`](docs/reviews/owned-control-coverage.md) — recursive
   React story coverage, selected/chrome surfaces, and TV background review
 - [`docs/i18n-glossary.md`](docs/i18n-glossary.md) — domain-term glossary and content-accuracy
   review workflow for translated interface strings

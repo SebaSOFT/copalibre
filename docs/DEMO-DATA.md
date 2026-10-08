@@ -3,7 +3,7 @@
 A fresh development stack has no tournaments. `copalibre dev demo` loads a committed, realistic one so
 every screen, the public site and the broadcast views have something real to render.
 
-Introduced by change `0336-panamericano-demo-dataset`. The data lives in `packages/demo-datasets`.
+Introduced with the Panamericano demo dataset. The data lives in `packages/demo-datasets`.
 
 ## What is in it
 

@@ -1,4 +1,4 @@
-# Impeccable design workflow — 0224 review
+# Impeccable design workflow — review
 
 ## Scope
 

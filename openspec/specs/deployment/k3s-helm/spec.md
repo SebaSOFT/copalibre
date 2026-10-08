@@ -56,7 +56,7 @@ exists in only one of them.
 
 ### Requirement: Health-probe wiring
 Every long-running role's Deployment SHALL configure liveness, readiness, and startup probes against
-that role's `GET /health` endpoint from `0001-bootstrap-monorepo-toolchain`. A role that proxies some of
+that role's `GET /health` endpoint from the bootstrap monorepo toolchain. A role that proxies some of
 its routes to another role SHALL probe a path it serves itself, never one it proxies, so a pod reports
 its own health rather than its upstream's.
 
@@ -80,7 +80,7 @@ migration Job has completed successfully.
 ### Requirement: Single logical scheduler under multiple replicas
 Running the `scheduler` role with more than one replica on K3s SHALL never result in two replicas
 simultaneously holding the distributed lease, matching the lease contract from
-`0017-worker-scheduler-async-jobs`, and SHALL settle into exactly one replica holding it.
+the worker scheduler, and SHALL settle into exactly one replica holding it.
 
 #### Scenario: Two scheduler replicas, never a split-brain
 - **WHEN** `scheduler` is deployed with `replicas: 2` on a validation K3s cluster

@@ -1,4 +1,4 @@
-# NestJS 12 compatibility gate (0333)
+# NestJS 12 compatibility gate
 
 Checked on 2026-10-07 against package metadata published to npm and the repository's
 current manifests, lockfile, and Node runtime. This is the evidence required by task 1.1;
@@ -84,8 +84,7 @@ counters in the application database. Controllers opt into shared buckets with
 storage. Replacing Throttler would still require adapting Nest route metadata and
 decorators, preserving subject-aware keying and its anonymous fallback, and integrating
 the existing durable shared storage with Fastify's hook lifecycle. It is therefore a
-viable future integration, not a drop-in fix for this test-loader issue. Decision for
-0333: retain `@nestjs/throttler` and its current guard/storage behavior; evaluate a
+viable future integration, not a drop-in fix for this test-loader issue. Decision: retain `@nestjs/throttler` and its current guard/storage behavior; evaluate a
 replacement in a separate change if there is a product or operational reason to move
 rate limiting out of the Nest integration.
 

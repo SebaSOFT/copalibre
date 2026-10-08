@@ -2,7 +2,7 @@
 
 Layers autoscaling, disruption protection, network policy, ingress, external
 secrets, and managed external dependencies onto the K3s-validated Helm chart
-(`0034-k3s-helm-deployment`). Every capability below is an additive,
+(the K3s Helm deployment). Every capability below is an additive,
 defaulted-off `values.yaml` group — see `deploy/helm/copalibre/README.md`
 for the full schema of each.
 
@@ -344,7 +344,7 @@ during development and on a schedule in CI (`k8s-enterprise-validate`, see
   healthy node within the documented recovery window.
 - `scripts/validate-backup-restore.sh` — the latest PostgreSQL and
   object-storage backup restores into a clean Kubernetes installation and
-  passes the same integrity checks as `0030-deployment-docker-compose-cli`'s
+  passes the same integrity checks as the Docker Compose deployment's
   Compose-level backup/restore requirement.
 - `scripts/validate-upgrade-safety.sh` — a chart upgrade across two minor
   versions completes with zero downtime and a successful migration Job at

@@ -1,7 +1,7 @@
 # tournament-engine/schedule-slots Specification
 
 ## Purpose
-TBD - created by archiving change 0157-schedule-at-match-grain. Update Purpose after archive.
+TBD - created by archiving the schedule at match grain change. Update Purpose after archive.
 
 ## Requirements
 

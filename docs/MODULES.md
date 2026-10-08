@@ -225,7 +225,7 @@ community-authored and can be retracted.
 ## Distribution
 
 Packaging, `copalibre module add`, asset handling and the module-repository CI are
-`0036-community-module-distribution`. This document covers the model those build on.
+the community module distribution. This document covers the model those build on.
 
 ### Authoring, running, and submitting a new module locally
 
