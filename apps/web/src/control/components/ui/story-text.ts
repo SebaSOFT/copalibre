@@ -5,7 +5,7 @@
  * renders the same characters in all eight languages and the workbench's
  * language selector does nothing. Every story therefore formats its text from
  * these descriptors instead — real catalogue entries, resolved against whichever
- * catalogue the selector has active (design.md Decision 4).
+ * catalogue the selector has active.
  *
  * The keys are picked for how far their length actually moves: `save` is
  * "Save" / "Speichern" / "Сохранить" / "保存", a 2-to-9 character spread on the

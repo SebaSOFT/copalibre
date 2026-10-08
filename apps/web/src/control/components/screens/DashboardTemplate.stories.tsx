@@ -42,7 +42,7 @@ export const Empty: Story = {
     model: buildDashboard({ organizationId: ids.organization, tournaments: [], activity: [] }),
   },
 };
-/** An operator whose role lacks `org.create-tournaments` (design.md Decision 4): the action is omitted from both the section header and the empty state. */
+/** An operator whose role lacks `org.create-tournaments`: the action is omitted from both the section header and the empty state. */
 export const EmptyNoCreatePermission: Story = {
   args: {
     canCreateTournament: false,

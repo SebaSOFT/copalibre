@@ -59,7 +59,7 @@ function createTransparentTestPng(width: number, height: number): Buffer {
   return Buffer.concat([signature, ihdrChunk, idatChunk, iendChunk]);
 }
 
-describe('identity media upload integration (Task 3.1 & 3.2)', () => {
+describe('identity media upload integration', () => {
   const transparentPng = createTransparentTestPng(CROP_OUTPUT_WIDTH, CROP_OUTPUT_HEIGHT);
   const base64Payload = transparentPng.toString('base64');
   const repoRoot = join(import.meta.dirname, '../../..');
@@ -70,7 +70,7 @@ describe('identity media upload integration (Task 3.1 & 3.2)', () => {
   let publicAssetsDir =
     candidateDirs.find((dir) => existsSync(join(dir, 'resources.json'))) ?? candidateDirs[0];
 
-  describe('media client upload flows with transparent PNG payload (Task 3.1)', () => {
+  describe('media client upload flows with transparent PNG payload', () => {
     it('verifies generated PNG payload has 410x512 dimensions and RGBA alpha channel', () => {
       expect(transparentPng.readUInt32BE(16)).toBe(410);
       expect(transparentPng.readUInt32BE(20)).toBe(512);
@@ -164,7 +164,7 @@ describe('identity media upload integration (Task 3.1 & 3.2)', () => {
     });
   });
 
-  describe('same-origin model assets and offline fallback behavior (Task 3.2)', () => {
+  describe('same-origin model assets and offline fallback behavior', () => {
     let server: Server;
     let serverPort: number;
 

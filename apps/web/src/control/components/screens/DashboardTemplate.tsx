@@ -34,7 +34,7 @@ export function DashboardTemplate({
   onExportConfiguration,
   organizationAlias,
 }: {
-  /** Client-side presentation guard only (design.md Decision 4) — the wizard route itself stays server-enforced regardless. Absent while the operator's role has not resolved yet defaults to visible, matching `visibleSidenav`'s own "unknown role sees everything" convention. */
+  /** Client-side presentation guard only — the wizard route itself stays server-enforced regardless. Absent while the operator's role has not resolved yet defaults to visible, matching `visibleSidenav`'s own "unknown role sees everything" convention. */
   readonly canCreateTournament: boolean;
   /** Same guard, gating each tournament card's Broadcaster Studio link. */
   readonly canManageDisplayTokens: boolean;

@@ -29,7 +29,7 @@ export interface SegmentDraft {
 
 /**
  * The one place a manual submission and a CSV import both converge on the
- * exact same `BulkLoadMatchDataRequest` shape (design.md: "an import is a
+ * exact same `BulkLoadMatchDataRequest` shape ("an import is a
  * way to fill the form, not a way to bypass it"). No statistics UI —
  * mirrors `MatchConsolePage.finalize()`'s own submission, which already
  * sends `statistics: {}` per side and lets the server derive the rest from
@@ -64,7 +64,7 @@ export function buildBulkLoadRequest(input: {
 }
 
 /**
- * Column shape for the CSV import (task 3.2). One flat table; `type`
+ * Column shape for the CSV import. One flat table; `type`
  * discriminates which columns a row actually uses — documented here as the
  * single source `matchDataCsvTemplate` and `parseMatchDataCsv` both read
  * against, so the template downloaded by an operator and the parser reading
@@ -106,13 +106,13 @@ export type MatchDataCsvResult =
 
 /**
  * Parses the CSV shape `MATCH_DATA_CSV_COLUMNS` documents into exactly the
- * structured submission the manual builder produces (design.md). A roster or
+ * structured submission the manual builder produces. A roster or
  * event row names a person by `personName`, not a raw id — resolved here
  * against that entrant's already-fetched roster candidates, the same list
  * the manual builder's roster step offers as checkboxes, so a spreadsheet
  * only ever needs names a registrar already recognizes.
  *
- * Every row is checked before any error is reported (task 3.4): a malformed
+ * Every row is checked before any error is reported: a malformed
  * file reports every bad row, not the first one.
  */
 export function parseMatchDataCsv(
@@ -295,7 +295,7 @@ export function buildMatchDataCsv(
   );
 }
 
-/** A downloadable template matching `MATCH_DATA_CSV_COLUMNS` exactly (task 3.7). */
+/** A downloadable template matching `MATCH_DATA_CSV_COLUMNS` exactly. */
 export function matchDataCsvTemplate(): string {
   return buildMatchDataCsv([
     {

@@ -33,7 +33,7 @@ export function slugOf(filename) {
 /**
  * Builds the descriptor field reference from the schema and its
  * explanations directly — never hand-copied prose, so it cannot drift from
- * either (design.md, "The guide drifts from the schema").
+ * either.
  */
 export function buildDescriptorReferenceMarkdown(schema, explanations) {
   const required = new Set(schema.required ?? []);

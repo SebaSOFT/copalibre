@@ -39,7 +39,7 @@ const FIELD_LABEL: Record<string, string> = {
 /**
  * A tournament's editable name/region/capacity/check-in close time, with a
  * preview step reporting each changed field's classification before it is
- * applied — the same shape a series-mutation preview already uses (design.md).
+ * applied — the same shape a series-mutation preview already uses.
  */
 export function TournamentSettingsTemplate({
   organizationAlias,

@@ -58,7 +58,7 @@ export function DashboardPage({
     };
   }, [api, organizationAlias]);
 
-  // Client-side guard only (design.md Decision 4) — `role === undefined`
+  // Client-side guard only — `role === undefined`
   // (not yet resolved) defaults to visible, matching `visibleSidenav`'s own
   // "unknown role sees everything" convention; the wizard route stays
   // server-enforced regardless.
@@ -97,8 +97,7 @@ export function DashboardPage({
               name: tournament.name,
               lifecycle: classifyTournamentLifecycle({ status: tournament.status }),
               // No tournament-wide "matches scheduled today" read exists yet;
-              // building one is backend work this change did not plan for
-              // (design.md: no API change expected) — left at zero rather
+              // building one is backend work this change did not plan for — left at zero rather
               // than guessed, unlike pendingRegistrations below, which an
               // existing read already answers exactly.
               matchesToday: 0,

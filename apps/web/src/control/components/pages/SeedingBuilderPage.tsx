@@ -209,7 +209,7 @@ export function SeedingBuilderPage({
             stageNumber,
           );
           // Server already orders by zoneNumber; concatenating in that order
-          // is the whole "combine per zone" rule (design.md) — each zone's
+          // is the whole "combine per zone" rule — each zone's
           // own `combined` list is already itself in the right order.
           const combined = targeting.flatMap((zone) => zone.combined);
           if (combined.length === 0) return loaded;

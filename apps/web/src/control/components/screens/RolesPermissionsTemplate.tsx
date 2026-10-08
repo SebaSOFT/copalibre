@@ -45,7 +45,7 @@ const ROLE_DESCRIPTION: Record<OrganizationRole, MessageDescriptor> = {
   viewer: messages.rolesDescriptionViewer,
 };
 
-/** The "learn more" link beside a role `DecisionHint` — a plain `<a>`, not a `DecisionHint` prop (design.md - "Role hints link to the full manual page"): a real navigation to a separate Starlight route, the same reason `ControlShell.tsx`'s own help link opens this way. */
+/** The "learn more" link beside a role `DecisionHint` — a plain `<a>`, not a `DecisionHint` prop: a real navigation to a separate Starlight route, the same reason `ControlShell.tsx`'s own help link opens this way. */
 function RoleLearnMoreLink({
   role,
   language,
@@ -131,7 +131,7 @@ export function RolesPermissionsTemplate({
 
   // A load/action failure is an operation result, not an in-progress field
   // validation problem — it belongs to the toast mechanism, never a
-  // screen-local alert (design.md Decision 6). The `error` prop (a load
+  // screen-local alert. The `error` prop (a load
   // failure surfaced by the owning route) is reported the same way.
   useEffect(() => {
     if (error) toast.push({ severity: 'error', message: error });

@@ -4,8 +4,8 @@ import { messages } from '../i18n/messages.en.js';
 /**
  * The stage list both `TournamentSetupWizard` and `ProfileBuilderWizard` author —
  * one shared shape and one shared set of helpers, so the two wizards' stage
- * editors never drift (design.md, "Stage list replaces the single `format`/series
- * fields, not a superset of them").
+ * editors never drift (the stage list replaces the single `format`/series
+ * fields, not a superset of them).
  */
 
 export type SeriesResolutionClass = 'best-of' | 'aggregate' | 'points-per-leg';

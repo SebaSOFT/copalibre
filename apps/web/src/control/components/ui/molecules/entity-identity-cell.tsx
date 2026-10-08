@@ -5,12 +5,11 @@
  * Extracted from an inline `RoleUserCell` definition in
  * `RolesPermissionsTemplate.tsx`: single-use in that screen does not make it a
  * "page" concern — it is a table-row-cell molecule regardless of consumer
- * count (design.md Decision 7). Deliberately typed on generic email/id
+ * count. Deliberately typed on generic email/id
  * strings rather than `OrganizationRoleResponse`, unlike this same screen's
  * role-select/status-toggle cells, which stay page-local because they are
  * genuinely coupled to the organization-role domain shape (the same
- * shaping-layer distinction `table-projections.ts` draws for `DataTable`,
- * design.md Decision 3).
+ * shaping-layer distinction `table-projections.ts` draws for `DataTable`).
  */
 export interface EntityIdentityCellProps {
   readonly email: string;

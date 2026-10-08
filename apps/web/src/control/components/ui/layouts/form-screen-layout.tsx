@@ -1,7 +1,7 @@
 /**
  * Original composition, the templates tier's second shape: header,
  * grouped form-field sections, sticky footer action bar. No data-fetching or
- * business logic lives in this file (design.md Decisions 7-8).
+ * business logic lives in this file.
  */
 import type { ReactNode } from 'react';
 

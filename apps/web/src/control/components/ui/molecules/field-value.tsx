@@ -4,7 +4,7 @@
  * from duplicate inline definitions in `PersonProfilePage.tsx` and
  * `RegistrationReviewTemplate.tsx`: single-use in each host screen does not make
  * it a "page" concern — it is the same reusable-shaped molecule wherever it
- * appears (design.md Decision 7's props-only rule applies here too).
+ * appears (the props-only rule applies here too).
  */
 export interface FieldValueProps {
   readonly label: string;

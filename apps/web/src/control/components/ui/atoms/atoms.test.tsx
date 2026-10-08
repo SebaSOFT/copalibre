@@ -392,7 +392,7 @@ describe('Card compound subparts', () => {
   });
 });
 
-describe('governance rules (design.md Decision 7): atoms hold no state/data access', () => {
+describe('governance rules: atoms hold no state/data access', () => {
   const atomsDir = join(dirname(fileURLToPath(import.meta.url)));
   const sourceFiles = readdirSync(atomsDir).filter(
     (file) => file.endsWith('.tsx') && !file.endsWith('.test.tsx'),

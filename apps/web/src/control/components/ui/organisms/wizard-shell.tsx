@@ -60,8 +60,7 @@ export interface WizardShellProps {
   readonly failuresTestId?: string;
   /**
    * Rendered between the failures alert and the footer — `DescriptorBuilderWizard`'s
-   * only use, for its authored-document `TerminalBlock` preview (the wizard-shell extraction's
-   * design.md, "Shared step-machine helper" sibling decision). Omitted by the
+   * only use, for its authored-document `TerminalBlock` preview. Omitted by the
    * other two wizards.
    */
   readonly afterFailures?: ReactNode;

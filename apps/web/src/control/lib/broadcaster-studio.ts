@@ -47,7 +47,7 @@ export interface ObsResolutionPreset {
   readonly fps: number;
 }
 
-/** Informational only (design.md Decision 1) — never encoded into the URL; OBS's own Browser Source dialog has its own width/height/FPS fields. */
+/** Informational only — never encoded into the URL; OBS's own Browser Source dialog has its own width/height/FPS fields. */
 export const OBS_RESOLUTION_PRESETS: readonly ObsResolutionPreset[] = [
   { id: '1080p', width: 1920, height: 1080, fps: 60 },
   { id: '720p', width: 1280, height: 720, fps: 60 },

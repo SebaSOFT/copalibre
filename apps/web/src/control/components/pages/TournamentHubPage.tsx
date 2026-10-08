@@ -11,8 +11,7 @@ import { messages } from '../../i18n/messages.en.js';
 import { TournamentHubTemplate } from '../screens/TournamentHubTemplate.js';
 
 /**
- * The Tournament hub's own data-fetching (mirrors `ZoneGroupPage`, design.md
- * - "Component shape"): `listStages` is optional, same as every other
+ * The Tournament hub's own data-fetching (mirrors `ZoneGroupPage`): `listStages` is optional, same as every other
  * `ControlApiClient` capability a client may not implement yet.
  */
 export function TournamentHubPage({

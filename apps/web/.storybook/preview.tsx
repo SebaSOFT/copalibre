@@ -128,7 +128,7 @@ const preview: Preview = {
     viewport: { options: VIEWPORTS },
     options: {
       // Surface first, then tier: a component's surface decides what "correct"
-      // looks like (design.md Decision 2).
+      // looks like.
       storySort: {
         order: [
           'Admin',

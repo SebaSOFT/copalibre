@@ -569,7 +569,7 @@ describe('control routes', () => {
         .map((row) => row.textContent),
     ).toEqual([expect.stringContaining('tll')]);
     // Existing seeds are the API's own signal not to look further — the
-    // reverse lookup is never even called (design.md: no override, ever).
+    // reverse lookup is never even called (no override, ever).
     expect(fetchPromotionPlansTargetingStage).not.toHaveBeenCalled();
   });
 

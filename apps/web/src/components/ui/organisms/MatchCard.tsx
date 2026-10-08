@@ -316,7 +316,7 @@ function TracePanel({
 // a per-participant winner flag. Its inline styles and Spanish literal
 // defaults are pre-existing debt (KNOWN_INLINE_LAYOUT/KNOWN_RAW_STYLE_VALUES
 // in check-atomic-composition.mjs), carried over rather than paid down here —
-// that is task 5.2's job, not this file merge's.
+// that is a separate paydown, not this file merge's.
 // ---------------------------------------------------------------------------
 
 export interface ChampionshipParticipant {

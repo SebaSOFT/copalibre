@@ -24,7 +24,7 @@ const CHROMA_LABEL_MESSAGE = {
  * Self-service streamer console: no data-fetching or
  * business logic here — `BroadcasterStudioPage.tsx` issues the token, builds
  * `overlayUrl`, and owns the copy-to-clipboard call; this composes the
- * result from owned primitives only (design.md Decision 1).
+ * result from owned primitives only.
  */
 export function BroadcasterStudioTemplate({
   loading,

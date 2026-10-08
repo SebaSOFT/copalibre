@@ -24,7 +24,7 @@ const pageMessages = defineMessages({
 /**
  * The Stage hub's own data-fetching (mirrors `ZoneGroupPage`): calls the same
  * `listStages` read the Tournament hub uses and finds its own `stageNumber`
- * in the result (design.md - "Stage read": one list, two callers), rather
+ * in the result (one list, two callers), rather
  * than adding a second, narrower endpoint just for this screen.
  */
 export function StageHubPage({
