@@ -653,7 +653,7 @@ test.describe('B2: public tournament page', () => {
     await page.waitForURL(`**/stages/1/matches/2`);
   });
 
-  test('a resolved bracket renders real scores and never NaN or corrupted placeholders (task 5.1)', async ({
+  test('a resolved bracket renders real scores and never NaN or corrupted placeholders', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);

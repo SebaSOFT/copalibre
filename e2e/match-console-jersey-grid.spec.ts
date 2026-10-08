@@ -7,8 +7,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
  * goal, crediting an assist via the `assistedBy` field chip, sanctioning an
  * opponent, swapping on-field status with a substitution (which needs two
  * jersey taps for `playerOutId`/`playerInId`, a declarative
- * `personPayloadFields` field with no behavioral effect of its own — see
- * design.md's 1.6a addendum), and logging an own goal through the same
+ * `personPayloadFields` field with no behavioral effect of its own), and logging an own goal through the same
  * generic event palette a first-class `own-goal` definition already
  * populates, with no dedicated own-goal UI.
  */

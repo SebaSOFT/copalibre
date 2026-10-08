@@ -4,7 +4,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 /**
  * Exercise zone and group management in a real browser: creating a second zone and group on a stage,
  * assigning entrants to them manually, and confirming group-scoped
- * standings reflects it (tasks.md 5.3); and configuring/reviewing a
+ * standings reflects it; and configuring/reviewing a
  * promotion plan for a zone, confirming the reviewed list matches
  * `promotion-preview`'s own response, that nothing is written to the next
  * stage's seeding along the way, and — now that the seeding builder
@@ -376,7 +376,7 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
   await expect(seedList.getByText(/2.*bbbbbbbb/)).toBeVisible();
 
   // Still nothing persisted — pre-fill only changes the builder's initial
-  // client-side state (proposal.md's "no new commit path").
+  // client-side state (no new commit path).
   const seedingRequestLog = await readRequestLog(page);
   expect(
     seedingRequestLog.some(

@@ -534,7 +534,7 @@ test('authors a three-stage tournament with a mix of allocation modes, and every
 
 /**
  * Instantiates a tournament from a profile carrying per-stage allocation
- * defaults (task 5.2's `profile-builder-wizard.test.tsx` proves the other
+ * defaults (`profile-builder-wizard.test.tsx` proves the other
  * half of this journey — declaring an allocation default and having it land
  * in the authored document — directly against `ProfileBuilderWizard`; this
  * test proves the receiving side, `TournamentSetupWizard`'s read-only

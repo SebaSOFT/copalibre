@@ -9,7 +9,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
  * tooltip. Not a pixel comparison against the reference mock
  * (the uploaded reference image):
  * a hand-built mock's font rendering never matches a real browser's, so this
- * spec asserts the structural/behavioural claims the mock and design.md make
+ * spec asserts the structural/behavioural claims the mock makes
  * instead.
  */
 

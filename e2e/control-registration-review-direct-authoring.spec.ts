@@ -96,7 +96,7 @@ test('dismisses a loading alert in the registration control screen and captures 
   });
 });
 
-test('registers a walk-up entrant from the registration review screen, with no CSV file involved (task 4.1)', async ({
+test('registers a walk-up entrant from the registration review screen, with no CSV file involved', async ({
   page,
 }) => {
   await mockRegistrationApi(page);
@@ -135,7 +135,7 @@ test('registers a walk-up entrant from the registration review screen, with no C
   await expect(row.getByText('Pendiente')).toBeVisible();
 });
 
-test("edits a directly-added team's name from the screen and sees the change immediately (task 4.2)", async ({
+test("edits a directly-added team's name from the screen and sees the change immediately", async ({
   page,
 }) => {
   await mockRegistrationApi(page, [
