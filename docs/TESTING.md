@@ -33,7 +33,13 @@ First used by the persistence outbox and audit work.
 - Location: `src/**/*.integration.test.ts`, picked up by a workspace-level
   `jest.integration.config.cjs` (create it in the phase that first needs it; the root
   `jest.integration.config.js` already fans out to that glob).
-- Run: `yarn test:integration`.
+- Run: `yarn test:integration`. From the root, each workspace's own `testTimeout` still applies
+  (`scripts/jest-integration-projects.mjs` carries it into the test environment), so a slow test
+  behaves the same there as in `yarn workspace <name> test:integration`.
+- Network: a suite that clones the curated module repository (`packages/module-distribution`
+  fetch, the `copalibre module add` tests) probes the remote first and skips with a stated reason
+  when it is unreachable. Continuous integration sets `COPALIBRE_REQUIRE_NETWORK_TESTS=1`, which
+  turns that skip into a failure so those suites stay required where the network exists.
 - Database: `docker compose -f docker-compose.dev.yml up -d postgres`, then set
   `DATABASE_URL=postgres://copalibre:copalibre_dev_only@localhost:5432/copalibre`.
   Integration suites must read the connection string from `DATABASE_URL` only — never a
@@ -45,6 +51,14 @@ First used by the persistence outbox and audit work.
 
 - Config: root `playwright.config.ts`, targeting `apps/web`; specs live in `e2e/`.
 - Run: `yarn test:e2e`. The dev server is auto-started by Playwright's `webServer`.
+- Ports: the web server defaults to 4321, the port the development stack's web container
+  publishes, and locally Playwright reuses whatever already answers there. With the stack up, set
+  `PLAYWRIGHT_PORT` (for example `4331`) so the specs run against their own server.
+- Flaky tests: continuous integration retries a failed test twice and lists every test a retry
+  rescued in the shard's job summary (`scripts/summarize-playwright-flaky.mjs`).
+- Known flaky tests: none recorded. A local failure that cites a 404 page, a missing mock
+  response or a 30-second timeout on a first request usually means a port is shared with the
+  development stack; check `lsof -nP -iTCP:<port> -sTCP:LISTEN` before suspecting the spec.
 - Selector convention: prefer `getByRole`/`getByLabel`; use `data-testid` for elements with
   no accessible name (mirrors the pattern proven in sebasoft-app).
 
@@ -100,6 +114,6 @@ on every pull request. Later phases append integration/e2e/build jobs as they ar
 Established with the conditional CI resource optimization:
 
 - **Jest worker caps**: Cap Jest concurrency (`--maxWorkers=2`) when running suites locally or across parallel jobs to prevent memory pressure and thread contention.
-- **Dynamic worker fixture ports**: E2E mock servers allocate unique ports dynamically based on worker index (`3001 + workerIndex`), managed via `e2e/fixtures.ts`. This eliminates port 3001 `EADDRINUSE` collisions and enables concurrent worker scaling locally (`yarn test:e2e --workers=4`) and across parallel CI shards.
+- **Dynamic worker fixture ports**: E2E mock servers allocate unique ports dynamically based on worker index (`3101 + workerIndex` by default, `COPALIBRE_E2E_API_PORT_BASE` overrides it), managed via `e2e/fixtures.ts`. The base sits clear of the ports the local development stack publishes (3001 API, 3002 events, 3005 web SSR), so a mock never answers as the stack's API. This eliminates port collisions and enables concurrent worker scaling locally (`yarn test:e2e --workers=4`) and across parallel CI shards.
 - **Decoupled web build and inspection**: Web production builds output once per configuration. `verify:build` and `verify:docs` can inspect this verified output (`WEB_EXISTING_BUILD=1`), and Playwright E2E can serve it directly (`PLAYWRIGHT_EXISTING_BUILD=1`) without redundant rebuilds. Standalone local invocations continue to build before preview when these flags are omitted. Run build and browser execution in exclusive phases on a single checkout to avoid directory collisions.
 - **Partitioned groups**: Unit tests are partitioned into two balanced workspace groups (max 2 concurrent). Integration tests run in two isolated groups: Group 1 requires only PostgreSQL, while Group 2 initializes PostgreSQL, Garage, and ClamAV. Stable aggregate checks (`Unit tests`, `Integration tests`, `E2E tests`, `Public web build`, `Help docs build`) preserve gate authority and distinguish intentional scope skips from failures.
