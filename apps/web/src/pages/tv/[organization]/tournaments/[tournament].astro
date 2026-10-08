@@ -37,7 +37,7 @@ import {
   fetchPublicTableProjection,
 } from '../../../../lib/public-api-client.ts';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
-import { bracketZonesOf } from '../../../../lib/bracket.ts';
+import { bracketZonesOf, leagueZonesOf } from '../../../../lib/bracket.ts';
 import type { BracketZone } from '../../../../lib/bracket-projection.ts';
 import { TV_BACKGROUNDS, type TvBackground } from '../../../../lib/tv-background.ts';
 
@@ -201,7 +201,8 @@ const presentation = overlayMode ?? 'kiosk';
 */
 const layoutParam = Astro.url.searchParams.get('layout');
 const gridParam = Astro.url.searchParams.get('grid');
-const initialView = Astro.url.searchParams.get('view') === 'standings' ? 'standings' : undefined;
+const viewParam = Astro.url.searchParams.get('view');
+const initialView = viewParam === 'standings' || viewParam === 'fixtures' ? viewParam : undefined;
 const showMultiCourtGrid = presentation === 'kiosk' && layoutParam === 'multicourt';
 const gridSize: 2 | 4 | 6 | 'auto' =
   gridParam === '2' ? 2 : gridParam === '4' ? 4 : gridParam === '6' ? 6 : 'auto';
@@ -231,7 +232,13 @@ if (showMultiCourtGrid) {
   }
 }
 
-let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
+let initialBracket:
+  | {
+      stageNumber: number;
+      zones: readonly BracketZone[];
+      leagueZones?: readonly BracketZone[];
+    }
+  | undefined;
 const featuredStage =
   dashboard.matches.find((match) => match.state === 'live')?.stageNumber ??
   dashboard.matches[0]?.stageNumber;
@@ -241,8 +248,13 @@ if (presentation !== 'lower' && featuredStage !== undefined) {
     if (rawBracket) {
       const mapped = mapBracketResponse(rawBracket);
       const zones = bracketZonesOf(mapped);
-      if (zones.length > 0) {
-        initialBracket = { stageNumber: featuredStage, zones };
+      const leagueZones = leagueZonesOf(mapped);
+      if (zones.length > 0 || leagueZones.length > 0) {
+        initialBracket = {
+          stageNumber: featuredStage,
+          zones,
+          ...(leagueZones.length > 0 ? { leagueZones } : {}),
+        };
       }
     }
   } catch {

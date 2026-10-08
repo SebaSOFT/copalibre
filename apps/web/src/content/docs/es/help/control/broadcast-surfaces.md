@@ -36,6 +36,18 @@ superposición está abierta, un gol, punto o tarjeta registrado en vivo muestra
 el nombre del equipo y el jugador, y se cierra solo — nunca necesita que alguien en la sede lo
 dispare o lo cierre.
 
+## Qué muestra la pantalla del recinto
+
+La pantalla en rotación completa recorre la tabla de posiciones, los destacados, las estadísticas del torneo y, cuando la fase destacada los tiene, las llaves y los partidos de liga. Una dirección con `?view=standings` o `?view=fixtures` fija una de ellas en lugar de rotar.
+
+Una fase puede mezclar formatos, así que la pantalla presenta cada zona según el formato que juega:
+
+- **Posiciones**: Cada zona que ordena participantes en una tabla tiene su propia tabla, encabezada con el nombre de la zona. Las filas de zonas distintas nunca se mezclan en un mismo orden, y cada tabla muestra hasta ocho filas. Una fase cuyas zonas juegan todas el formato de la fase conserva una sola tabla sin encabezado.
+- **Llaves**: Las zonas que juegan un formato de eliminación se dibujan como llave.
+- **Partidos**: Una zona que juega una liga lista sus partidos agrupados por ronda, con el estado y el resultado de cada uno. La pestaña aparece solo cuando la fase destacada tiene una zona así.
+
+La superposición de tercio inferior no cambia: nombra un partido, no una fase.
+
 ## Qué ve un espectador en el sitio público
 
 El sitio público (sin login) muestra las posiciones, la llave y los reportes de partido de un torneo tal

@@ -519,7 +519,8 @@
   flex-direction: column;
 }
 
-.tv-bracket {
+.tv-bracket,
+.tv-fixtures {
   display: grid;
   align-content: start;
   gap: var(--cl-space-4);
@@ -527,13 +528,20 @@
 
 .tv-bracket__zone,
 .tv-bracket__round,
-.tv-bracket__matches {
+.tv-bracket__matches,
+.tv-fixtures__zone,
+.tv-fixtures__round,
+.tv-fixtures__matches,
+.tv-standings-zone {
   display: grid;
   gap: var(--cl-space-2);
 }
 
 .tv-bracket__zone-name,
-.tv-bracket__round-name {
+.tv-bracket__round-name,
+.tv-fixtures__zone-name,
+.tv-fixtures__round-name,
+.tv-standings-zone__name {
   margin: 0;
   color: var(--tv-text-secondary);
   font-family: var(--cl-font-mono);
@@ -577,6 +585,11 @@
 .tv-bracket-card__score {
   color: var(--tv-text-primary);
   font-variant-numeric: tabular-nums;
+}
+
+/* Zones of a mixed-format stage are separate tables, so they need room between them. */
+.tv-standings-zone + .tv-standings-zone {
+  margin-block-start: var(--cl-space-5);
 }
 
 /* 4A. Standings Table */

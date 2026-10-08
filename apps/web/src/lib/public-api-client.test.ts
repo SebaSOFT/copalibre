@@ -564,6 +564,24 @@ describe('public-api-client', () => {
       expect(result.standings[0].played).toBe(0);
     });
 
+    it('carries the zone of a standings row through, omitting it for a single-table stage', () => {
+      const result = mapOverviewResponse({
+        organizationAlias: 'org',
+        tournamentAlias: 't',
+        organizationName: 'Org',
+        tournamentName: 'T',
+        ruleset: {},
+        matches: [],
+        standingsPreview: [
+          { rank: 1, name: 'A', statistics: { played: 1, points: 3 }, zoneName: 'Liga A' },
+          { rank: 1, name: 'B', statistics: { played: 1, points: 3 } },
+        ],
+      } as unknown as Parameters<typeof mapOverviewResponse>[0]);
+
+      expect(result.standings?.[0]?.zoneName).toBe('Liga A');
+      expect(result.standings?.[1] && 'zoneName' in result.standings[1]).toBe(false);
+    });
+
     it('carries the standings grain through, omitting it when the response names none', () => {
       const withoutGrain = mapOverviewResponse({
         organizationAlias: 'org',

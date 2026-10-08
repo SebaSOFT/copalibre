@@ -733,6 +733,10 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.bracketTab',
     defaultMessage: 'Bracket',
   },
+  tvDashboardFixturesTab: {
+    id: 'publicWeb.tvDashboard.fixturesTab',
+    defaultMessage: 'Fixtures',
+  },
   tvDashboardBracketRound: {
     id: 'publicWeb.tvDashboard.bracketRound',
     defaultMessage: 'Round',

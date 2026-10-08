@@ -36,6 +36,18 @@ login. Enquanto essa sobreposição estiver aberta, um gol, ponto ou cartão reg
 um aviso animado com o nome do time e do jogador, e se fecha sozinho — nunca precisa que alguém no
 local o acione ou feche.
 
+## O que a tela do local mostra
+
+A tela em rotação completa percorre a classificação, os destaques, as estatísticas do torneio e, quando a fase em destaque os tem, a chave e os jogos da liga. Um endereço com `?view=standings` ou `?view=fixtures` fixa um deles em vez de girar.
+
+Uma fase pode misturar formatos, então a tela apresenta cada zona pelo formato que ela joga:
+
+- **Classificação**: Cada zona que ordena participantes em uma tabela tem a sua própria tabela, com o nome da zona no cabeçalho. As linhas de zonas diferentes nunca se misturam em uma mesma classificação, e cada tabela mostra até oito linhas. Uma fase cujas zonas jogam todas o formato da fase mantém uma única tabela sem cabeçalho.
+- **Chave**: As zonas que jogam um formato eliminatório são desenhadas como chave.
+- **Jogos**: Uma zona que joga uma liga lista seus jogos agrupados por rodada, com o estado e o placar de cada um. A aba só aparece quando a fase em destaque tem uma zona assim.
+
+A sobreposição do terço inferior não muda: ela nomeia uma partida, não uma fase.
+
 ## O que um espectador vê no site público
 
 O site público (sem login) mostra a classificação, a chave e os relatórios de partida de um torneio

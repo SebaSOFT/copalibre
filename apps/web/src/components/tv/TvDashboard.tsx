@@ -36,10 +36,11 @@ import type { TvClubItem, TvDashboardLabels } from './tv-types.js';
 import type { TvMatchEvent } from '../../lib/tv-match-events.js';
 import { mapBracketResponse } from '../../lib/bracket-projection.js';
 import type { BracketZone } from '../../lib/bracket-projection.js';
-import { bracketZonesOf } from '../../lib/bracket.js';
+import { bracketZonesOf, leagueZonesOf } from '../../lib/bracket.js';
 import type { PublicBracketResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { TvMatchIndicators } from './ui/organisms/TvMatchIndicators.js';
 import { TvBracketView } from './ui/organisms/TvBracketView.js';
+import { TvLeagueFixtures } from './ui/organisms/TvLeagueFixtures.js';
 
 export type { TvClubItem, TvDashboardLabels } from './tv-types.js';
 
@@ -62,7 +63,7 @@ export interface TvDashboardProps {
   /** Set on the pinned-match route; the full-rotation route leaves this unset. */
   readonly pinnedMatchNumber?: number;
   /** Keeps a launcher-selected TV tab fixed instead of entering carousel rotation. */
-  readonly initialView?: 'standings';
+  readonly initialView?: 'standings' | 'fixtures';
   /**
    * The pinned match's own recorded events (goals, cards), set only on the pinned-match route —
    * the full-rotation route leaves this unset, same as `pinnedMatchNumber`.
@@ -79,7 +80,10 @@ export interface TvDashboardProps {
   readonly rosterActors?: Readonly<Record<string, string>>;
   readonly initialBracket?: {
     readonly stageNumber: number;
+    /** Zones playing an elimination format: drawn as a bracket. */
     readonly zones: readonly BracketZone[];
+    /** Zones playing a league beside them: listed by round. Absent for a stage without any. */
+    readonly leagueZones?: readonly BracketZone[];
   };
   readonly branding?: TvBranding;
   readonly tournamentName?: string;
@@ -134,9 +138,9 @@ export function TvDashboard({
   initialView,
 }: TvDashboardProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState<LiveDashboard>(initial);
-  const [activeTab, setActiveTab] = useState<'standings' | 'performers' | 'facts' | 'bracket'>(
-    initialView ?? 'standings',
-  );
+  const [activeTab, setActiveTab] = useState<
+    'standings' | 'performers' | 'facts' | 'bracket' | 'fixtures'
+  >(initialView ?? 'standings');
   const [bracketData, setBracketData] = useState(initialBracket);
   const [currentTime, setCurrentTime] = useState<string>('');
   const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(() => {
@@ -301,7 +305,10 @@ export function TvDashboard({
       setActiveTab((current) => {
         if (current === 'standings') return 'performers';
         if (current === 'performers') return 'facts';
-        if (current === 'facts' && bracketData) return 'bracket';
+        // The bracket and the league fixtures join the rotation only for a stage that has them.
+        if (current === 'facts' && bracketData?.zones.length) return 'bracket';
+        if (current === 'facts' && bracketData?.leagueZones?.length) return 'fixtures';
+        if (current === 'bracket' && bracketData?.leagueZones?.length) return 'fixtures';
         return 'standings';
       });
     }, 10_000);
@@ -346,7 +353,16 @@ export function TvDashboard({
         if (!response.ok) return;
         const mapped = mapBracketResponse((await response.json()) as PublicBracketResponse);
         const zones = bracketZonesOf(mapped);
-        setBracketData(zones.length > 0 ? { stageNumber: bracketStage, zones } : undefined);
+        const leagueZones = leagueZonesOf(mapped);
+        setBracketData(
+          zones.length > 0 || leagueZones.length > 0
+            ? {
+                stageNumber: bracketStage,
+                zones,
+                ...(leagueZones.length > 0 ? { leagueZones } : {}),
+              }
+            : undefined,
+        );
       } catch {
         // The other TV sections retain their last-known projection.
       }
@@ -591,11 +607,18 @@ export function TvDashboard({
                 label={dashboardLabels.statisticsTab}
                 onClick={() => setActiveTab('facts')}
               />
-              {visibleBracket && (
+              {visibleBracket && visibleBracket.zones.length > 0 && (
                 <TvRailTab
                   active={activeTab === 'bracket'}
                   label={dashboardLabels.bracketTab}
                   onClick={() => setActiveTab('bracket')}
+                />
+              )}
+              {visibleBracket?.leagueZones && (
+                <TvRailTab
+                  active={activeTab === 'fixtures'}
+                  label={dashboardLabels.fixturesTab}
+                  onClick={() => setActiveTab('fixtures')}
                 />
               )}
             </nav>
@@ -621,6 +644,9 @@ export function TvDashboard({
               {activeTab === 'facts' && <TvFactsView facts={facts} />}
               {activeTab === 'bracket' && visibleBracket && (
                 <TvBracketView labels={dashboardLabels} zones={visibleBracket.zones} />
+              )}
+              {activeTab === 'fixtures' && visibleBracket?.leagueZones && (
+                <TvLeagueFixtures labels={dashboardLabels} zones={visibleBracket.leagueZones} />
               )}
             </div>
           </aside>

@@ -763,3 +763,159 @@ describe('TvDashboard broadcast alert dispatch', () => {
     expect(screen.queryByRole('status')).toBeNull();
   });
 });
+
+describe('TvDashboard zone presentation', () => {
+  const initial: LiveDashboard = {
+    matches: [
+      {
+        matchId: 'm1',
+        stageNumber: 1,
+        matchNumber: 1,
+        state: 'final',
+        projectionVersion: 1,
+        sides: [
+          { entrantId: 'e1', name: 'Boca Juniors', score: 3, state: 'final' },
+          { entrantId: 'e2', name: 'River Plate', score: 1, state: 'final' },
+        ],
+      },
+    ],
+    standingsVersion: 1,
+    usingLastKnown: true,
+  };
+  const zonedStandings: StandingsRowView[] = [
+    { position: 1, name: 'Boca Juniors', played: 2, points: 6, zoneName: 'Liga A' },
+    { position: 1, name: 'Lanús', played: 2, points: 4, zoneName: 'Liga B' },
+  ];
+  const leagueZone = {
+    zoneId: 'z-league',
+    zoneName: 'Liga A',
+    matches: [
+      {
+        matchId: 'lm1',
+        matchNumber: 1,
+        roundNumber: 1,
+        branch: 'winners',
+        state: 'final' as const,
+        scores: [2, 1],
+        slots: [
+          { kind: 'entrant' as const, entrantId: 'e1', name: 'Boca Juniors' },
+          { kind: 'entrant' as const, entrantId: 'e2', name: 'River Plate' },
+        ],
+      },
+    ],
+  };
+  const knockoutZone = {
+    zoneId: 'z-cup',
+    zoneName: 'Copa',
+    matches: [{ ...leagueZone.matches[0], matchId: 'km1' }],
+  };
+
+  function renderDashboard(
+    overrides: Partial<React.ComponentProps<typeof TvDashboard>> = {},
+  ): ReturnType<typeof render> {
+    return render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={initial}
+        labels={tvLabels}
+        language="en"
+        pollIntervalMs={0}
+        standings={zonedStandings}
+        streamPath="/events/tv/liga/tournaments/apertura"
+        {...overrides}
+      />,
+    );
+  }
+
+  it('heads each zone’s standings with the zone’s name instead of one merged list', () => {
+    renderDashboard();
+
+    const zones = screen.getAllByTestId('tv-standings-zone');
+    expect(zones).toHaveLength(2);
+    expect(zones[0]?.textContent).toContain('Liga A');
+    expect(zones[0]?.textContent).not.toContain('Lanús');
+    expect(zones[1]?.textContent).toContain('Lanús');
+  });
+
+  it('offers the league fixtures as a tab and as a pinned view', () => {
+    renderDashboard({
+      initialBracket: { stageNumber: 1, zones: [knockoutZone], leagueZones: [leagueZone] },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: dashboardLabels.fixturesTab }));
+    expect(screen.getByTestId('tv-fixtures')).toBeDefined();
+    expect(screen.queryByTestId('tv-bracket')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: dashboardLabels.bracketTab }));
+    expect(screen.getByTestId('tv-bracket')).toBeDefined();
+  });
+
+  it('opens straight on the fixtures when the view selector asks for them', () => {
+    renderDashboard({
+      initialView: 'fixtures',
+      initialBracket: { stageNumber: 1, zones: [], leagueZones: [leagueZone] },
+    });
+
+    expect(screen.getByTestId('tv-fixtures')).toBeDefined();
+  });
+
+  it('shows no fixtures tab for a stage without a league zone, and no bracket tab without knockout zones', () => {
+    const { unmount } = renderDashboard({
+      initialBracket: { stageNumber: 1, zones: [knockoutZone] },
+    });
+    expect(screen.queryByRole('button', { name: dashboardLabels.fixturesTab })).toBeNull();
+    expect(screen.getByRole('button', { name: dashboardLabels.bracketTab })).toBeDefined();
+    unmount();
+
+    renderDashboard({ initialBracket: { stageNumber: 1, zones: [], leagueZones: [leagueZone] } });
+    expect(screen.queryByRole('button', { name: dashboardLabels.bracketTab })).toBeNull();
+    expect(screen.getByRole('button', { name: dashboardLabels.fixturesTab })).toBeDefined();
+  });
+
+  describe('rotation', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    const activeTab = (): string | undefined =>
+      screen
+        .getAllByRole('button')
+        .find((button) => button.classList.contains('tv-rail-tab--active'))?.textContent ??
+      undefined;
+    const next = (): void => {
+      act(() => jest.advanceTimersByTime(10_000));
+    };
+
+    it('visits the bracket and then the fixtures for a stage that has both', () => {
+      renderDashboard({
+        initialBracket: { stageNumber: 1, zones: [knockoutZone], leagueZones: [leagueZone] },
+      });
+
+      const visited = [activeTab()];
+      for (let step = 0; step < 5; step += 1) {
+        next();
+        visited.push(activeTab());
+      }
+
+      expect(visited).toEqual([
+        dashboardLabels.standingsTab,
+        dashboardLabels.performersTab,
+        dashboardLabels.statisticsTab,
+        dashboardLabels.bracketTab,
+        dashboardLabels.fixturesTab,
+        dashboardLabels.standingsTab,
+      ]);
+    });
+
+    it('skips the fixtures for a stage without a league zone', () => {
+      renderDashboard({ initialBracket: { stageNumber: 1, zones: [knockoutZone] } });
+
+      const visited = [activeTab()];
+      for (let step = 0; step < 5; step += 1) {
+        next();
+        visited.push(activeTab());
+      }
+
+      expect(visited).not.toContain(dashboardLabels.fixturesTab);
+    });
+  });
+});

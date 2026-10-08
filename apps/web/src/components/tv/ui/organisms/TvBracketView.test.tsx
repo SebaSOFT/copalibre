@@ -27,6 +27,7 @@ const labels: TvDashboardLabels = {
   performersTab: 'Destacados',
   statisticsTab: 'Estadísticas',
   bracketTab: 'Llave',
+  fixturesTab: 'Partidos',
   bracketRound: 'Ronda',
   bracketMatch: 'Partido',
   possession: 'Posesión',

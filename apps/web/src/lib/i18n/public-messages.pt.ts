@@ -253,6 +253,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.performersTab': 'Melhores jogadores',
   'publicWeb.tvDashboard.statisticsTab': 'Estatísticas',
   'publicWeb.tvDashboard.bracketTab': 'Chave',
+  'publicWeb.tvDashboard.fixturesTab': 'Jogos',
   'publicWeb.tvDashboard.bracketRound': 'Rodada',
   'publicWeb.tvDashboard.bracketMatch': 'Partida',
   'publicWeb.tvDashboard.possession': 'Posse',

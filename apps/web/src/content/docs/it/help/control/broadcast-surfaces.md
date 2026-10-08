@@ -36,6 +36,18 @@ proprio accesso. Mentre quell'overlay è aperto, un gol, un punto o un cartellin
 vivo mostra un avviso animato con il nome della squadra e del giocatore, per poi chiudersi da solo
 — non serve mai che qualcuno sul posto lo attivi o lo chiuda.
 
+## Cosa mostra lo schermo della sede
+
+Lo schermo a rotazione completa scorre la classifica, i migliori giocatori, le statistiche del torneo e, quando la fase in evidenza li ha, il tabellone e le partite del girone. Un indirizzo con `?view=standings` o `?view=fixtures` ne blocca una invece di ruotare.
+
+Una fase può mescolare i formati, quindi lo schermo presenta ogni zona secondo il formato che gioca:
+
+- **Classifica**: Ogni zona che ordina i partecipanti in una tabella ha la sua tabella, intestata col nome della zona. Le righe di zone diverse non si mescolano mai in un'unica classifica, e ogni tabella mostra fino a otto righe. Una fase le cui zone giocano tutte il formato della fase mantiene una sola tabella senza intestazione.
+- **Tabellone**: Le zone che giocano un formato a eliminazione sono disegnate come tabellone.
+- **Partite**: Una zona che gioca un girone elenca le sue partite raggruppate per turno, con stato e punteggio di ciascuna. La scheda compare solo quando la fase in evidenza ha una zona così.
+
+La sovrimpressione del terzo inferiore non cambia: nomina una partita, non una fase.
+
 ## Cosa vede uno spettatore sul sito pubblico
 
 Il sito pubblico (senza accesso) mostra le classifiche, il tabellone e i report partita di un torneo

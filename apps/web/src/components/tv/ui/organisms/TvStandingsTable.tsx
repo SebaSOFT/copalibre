@@ -1,4 +1,4 @@
-import type { StandingsRowView } from '../../../../lib/overview.js';
+import { groupStandingsByZone, type StandingsRowView } from '../../../../lib/overview.js';
 import { EntrantName } from '../../../ui/atoms/EntrantName.js';
 import type { TvClubItem, TvDashboardLabels } from '../../tv-types.js';
 
@@ -31,7 +31,39 @@ export function TvStandingsTable({
     );
   }
 
+  const blocks = groupStandingsByZone(standings);
   return (
+    <>
+      {blocks.map((block) => (
+        <StandingsBlock
+          block={block}
+          clubs={clubs}
+          dashboardLabels={dashboardLabels}
+          key={block.zoneName ?? 'stage'}
+          pointsShortLabel={pointsShortLabel}
+        />
+      ))}
+    </>
+  );
+}
+
+/**
+ * One ranked table. A block that names its zone is headed by it, so a viewer can tell which zone a
+ * row belongs to; a stage with a single table carries no heading and renders as it always did. The
+ * eight-row cap applies per table.
+ */
+function StandingsBlock({
+  block,
+  clubs,
+  dashboardLabels,
+  pointsShortLabel,
+}: {
+  readonly block: { readonly zoneName?: string; readonly rows: readonly StandingsRowView[] };
+  readonly clubs?: readonly TvClubItem[];
+  readonly dashboardLabels: TvDashboardLabels;
+  readonly pointsShortLabel: string;
+}): React.JSX.Element {
+  const table = (
     <table className="tv-standings-table">
       <thead>
         <tr>
@@ -42,7 +74,7 @@ export function TvStandingsTable({
         </tr>
       </thead>
       <tbody>
-        {standings.slice(0, 8).map((row) => {
+        {block.rows.slice(0, 8).map((row) => {
           const club = clubs?.find((c) => c.name.toLowerCase() === row.name.toLowerCase());
           return (
             <tr key={row.name}>
@@ -70,5 +102,16 @@ export function TvStandingsTable({
         })}
       </tbody>
     </table>
+  );
+  if (block.zoneName === undefined) return table;
+  return (
+    <section
+      aria-label={block.zoneName}
+      className="tv-standings-zone"
+      data-testid="tv-standings-zone"
+    >
+      <h3 className="tv-standings-zone__name">{block.zoneName}</h3>
+      {table}
+    </section>
   );
 }

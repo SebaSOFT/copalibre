@@ -249,6 +249,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.performersTab': '最佳球员',
   'publicWeb.tvDashboard.statisticsTab': '统计数据',
   'publicWeb.tvDashboard.bracketTab': '对阵表',
+  'publicWeb.tvDashboard.fixturesTab': '赛程',
   'publicWeb.tvDashboard.bracketRound': '轮次',
   'publicWeb.tvDashboard.bracketMatch': '比赛',
   'publicWeb.tvDashboard.possession': '控球',

@@ -25,6 +25,7 @@ export interface TvDashboardLabels {
   readonly performersTab: string;
   readonly statisticsTab: string;
   readonly bracketTab: string;
+  readonly fixturesTab: string;
   readonly bracketRound: string;
   readonly bracketMatch: string;
   readonly possession: string;

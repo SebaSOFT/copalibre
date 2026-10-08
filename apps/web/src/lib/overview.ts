@@ -37,6 +37,29 @@ export interface StandingsRowView {
   readonly abbreviation?: string;
   readonly played: number;
   readonly points: number;
+  /** The zone this row is ranked in; set only when the stage mixes formats and ranks each zone on its own. */
+  readonly zoneName?: string;
+}
+
+/**
+ * Splits standings rows into one block per zone, in the order the zones first appear, so rows of
+ * different zones are never read as one ranking. Rows that name no zone — a stage with a single
+ * table — stay together as one block without a name.
+ */
+export function groupStandingsByZone(
+  rows: readonly StandingsRowView[],
+): readonly { readonly zoneName?: string; readonly rows: readonly StandingsRowView[] }[] {
+  const blocks: { zoneName?: string; rows: StandingsRowView[] }[] = [];
+  for (const row of rows) {
+    const block = blocks.find((candidate) => candidate.zoneName === row.zoneName);
+    if (block) block.rows.push(row);
+    else
+      blocks.push({
+        ...(row.zoneName === undefined ? {} : { zoneName: row.zoneName }),
+        rows: [row],
+      });
+  }
+  return blocks;
 }
 
 export interface ClubView {
