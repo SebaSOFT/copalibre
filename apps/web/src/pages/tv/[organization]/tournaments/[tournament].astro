@@ -14,6 +14,7 @@ import {
   mapOverviewResponse,
   mapMatchesViewResponse,
   mapBracketResponse,
+  clubEmblemUrl,
   tournamentEmblemUrl,
 } from '../../../../lib/public-api-client.ts';
 import type { PublicObjectReference } from '../../../../lib/discipline-background.ts';
@@ -65,7 +66,7 @@ let dashboard: LiveDashboard = {
 let tournamentName = tournamentAlias;
 let organizationName = organizationAlias;
 let tournamentEmblem: string | undefined;
-let clubs: { name: string; emblemObjectId?: string }[] = [];
+let clubs: { name: string; emblemUrl?: string }[] = [];
 /* The kiosk carries the tournament's own discipline imagery, the same source the
  * public pages already render. An overlay never does — see TvLayout. */
 let disciplineImages: PublicObjectReference[] | undefined;
@@ -96,7 +97,7 @@ try {
     if (mappedOverview.clubs) {
       clubs = mappedOverview.clubs.map((c) => ({
         name: c.name,
-        emblemObjectId: c.emblemObjectId,
+        ...(c.emblemObjectId ? { emblemUrl: clubEmblemUrl(organizationAlias, c.clubId) } : {}),
       }));
     }
 
