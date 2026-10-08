@@ -532,7 +532,7 @@ export function normalise(input: NormaliseInput): NormaliseResult {
     alias: config.alias,
     name: config.name,
     discipline: config.discipline,
-    organization: config.organization,
+    organization: { ...config.organization, emblem: 'emblems/organization.png' },
     tournament: { ...config.tournament, emblem: 'emblems/tournament.png' },
     clubs: squad.clubs,
     teams: squad.teams,

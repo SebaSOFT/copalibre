@@ -125,7 +125,7 @@ describePostgres('demo dataset loading (integration)', () => {
       matchesFinalized: 72,
       venues: 7,
       scheduledMatches: 72,
-      emblems: 25,
+      emblems: 26,
     });
     expect(report.counts.goalEvents).toBe(
       dataset.games.reduce((n, game) => n + game.events.length, 0),
@@ -175,8 +175,13 @@ describePostgres('demo dataset loading (integration)', () => {
       .where('emblem_object_id', 'is not', null)
       .execute();
     expect(clubsWithEmblem).toHaveLength(24);
-    await expect(count('object_metadata')).resolves.toBe(25);
-    expect(storage.keys()).toHaveLength(25);
+    const organization = await scratch.db
+      .selectFrom('organizations')
+      .select('emblem_object_id')
+      .executeTakeFirstOrThrow();
+    expect(organization.emblem_object_id).not.toBeNull();
+    await expect(count('object_metadata')).resolves.toBe(26);
+    expect(storage.keys()).toHaveLength(26);
   });
 
   it('records the published score of every game, including the ones without scorers', async () => {
