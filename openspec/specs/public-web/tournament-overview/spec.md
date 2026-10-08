@@ -86,3 +86,19 @@ without requiring a manual page reload, while remaining fully correct and comple
 - **WHEN** a spectator leaves the tournament tab in the background for 10 minutes and then returns
 - **THEN** the score ticker reconnects to the SSE stream and resynchronizes the latest match states
   immediately
+
+### Requirement: Hierarchical Zone Presentation for Heterogeneous Stages
+The public stage overview view (`/stages/[stage]`) SHALL present a hierarchical layout with distinct sections for each zone of the stage. Each zone section SHALL resolve and render the visual presentation component matching that zone's effective format:
+- Elimination formats (`single-elimination`, `double-elimination`, `gauntlet`, `bracket-groups`, `custom-bracket`) SHALL render an interactive bracket tree.
+- Round-robin and league formats (`round-robin`, `league`, `round-robin-single-leg`, `round-robin-home-away`, `swiss`, `ffa-league`) SHALL render a matches grid accompanied by that zone's standings table.
+The stage header SHALL provide quick navigation anchors or tabs allowing spectators to jump between zones.
+
+#### Scenario: Stage renders bracket tree for elimination zones and standings table for round-robin zones
+- **WHEN** a spectator visits a stage containing Zone 1 (single-elimination), Zone 2 (single-elimination), and Zone 3 (round-robin)
+- **THEN** Zone 1 and Zone 2 render bracket knockout trees
+- **AND** Zone 3 renders a match schedule grid and a points standings table
+- **AND** spectators can switch or scroll between the three zones within the same stage page
+
+#### Scenario: TV dashboard highlights zone format accurately
+- **WHEN** the TV display kiosk presents matches or rankings for a zone
+- **THEN** it renders the layout component (bracket view or standings ticker) corresponding to that specific zone's effective format

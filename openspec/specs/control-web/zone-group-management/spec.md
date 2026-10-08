@@ -139,3 +139,19 @@ When reviewing a computed promotion plan, the candidate list SHALL render human-
 #### Scenario: Candidate list renders resolved participant names
 - **WHEN** an operator views the computed promotion plan review list
 - **THEN** each candidate entry renders the participant's full display name rather than a raw hex identifier slice
+
+### Requirement: Operator Authoring of Inheritable Zone Formats
+The control panel's zone management SHALL let an operator override a zone's format and series. It SHALL show the inherited stage default and an explicit control to override it, constrained to the formats the installed discipline supports. An overridden zone SHALL be labeled as such and a zone without an override SHALL indicate inheritance. Overrides SHALL be unavailable once the stage holds a fixture.
+
+#### Scenario: Operator overrides format for a specific zone
+- **WHEN** an operator opens the settings of Zone 3 in a `single-elimination` stage and chooses `round-robin`
+- **THEN** Zone 3 persists `round-robin` as its format
+- **AND** Zone 3 is labeled as overridden while Zones 1 and 2 indicate inheritance
+
+#### Scenario: Operator reverts a zone to the stage default
+- **WHEN** an operator clears a zone's format override
+- **THEN** the zone's stored format is null and it inherits the stage's format
+
+#### Scenario: Overrides locked after fixtures exist
+- **WHEN** the stage already holds fixtures
+- **THEN** the zone override controls are disabled and say why
