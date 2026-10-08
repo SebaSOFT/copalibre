@@ -5,7 +5,7 @@ import { capabilitiesForRole, ORGANIZATION_ROLES } from '@copalibre/domain';
 import { documentedCapabilities, roleManualPages } from './generate-role-manuals.mjs';
 
 // Enforces platform/help-and-api-docs's "documented authority is gated
-// against enforced authority" requirement (openspec 0165, task 4.3): a role
+// against enforced authority" requirement: a role
 // manual page's generated capability list SHALL name exactly the
 // capabilities `capabilitiesForRole` grants that role — nothing missing
 // (an undocumented grant), nothing extra (an over-promised claim). Both

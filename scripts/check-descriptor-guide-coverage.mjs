@@ -1,7 +1,7 @@
 import { DESCRIPTOR_FIELD_EXPLANATIONS, DISCIPLINE_DESCRIPTOR_SCHEMA } from '@copalibre/domain';
 
-// Enforces platform/help-and-api-docs's authoring-guide coverage guarantee
-// (openspec 0163): every top-level field the discipline descriptor schema
+// Enforces platform/help-and-api-docs's authoring-guide coverage guarantee:
+// every top-level field the discipline descriptor schema
 // declares has a non-empty entry in DESCRIPTOR_FIELD_EXPLANATIONS — the same
 // map both copalibre_descriptor_schema (the MCP tool) and the published
 // authoring guide's generated reference page read — and no entry in that

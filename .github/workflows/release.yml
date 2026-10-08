@@ -1,6 +1,6 @@
 name: Release
 
-# Established by 0058-release-process-and-v0-2. Cutting a release is: bump
+# Established with the first release process. Cutting a release is: bump
 # every package.json's version (see RELEASE.md), open a develop->main pull
 # request, merge once its CI (release-gated, see ci.yml's release_candidate)
 # is green. This workflow does the rest — tag, image publish, GitHub Release

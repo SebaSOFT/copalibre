@@ -87,7 +87,7 @@ export default tseslint.config(
     },
   },
 
-  // packages/rules must stay strictly browser-isomorphic (openspec 0279):
+  // packages/rules must stay strictly browser-isomorphic:
   // ControlApp.tsx and other client:* islands import @copalibre/rules
   // directly, so a Node-only built-in import doesn't fail the build — it
   // fatally crashes hydration in the browser with "has been externalized
@@ -104,7 +104,7 @@ export default tseslint.config(
             {
               group: ['node:*'],
               message:
-                '@copalibre/rules must stay browser-isomorphic (openspec 0279) — a Node built-in here crashes every client:* island that imports this package at hydration, instead of failing the build.',
+                '@copalibre/rules must stay browser-isomorphic — a Node built-in here crashes every client:* island that imports this package at hydration, instead of failing the build.',
             },
           ],
         },

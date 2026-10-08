@@ -7,14 +7,14 @@ import { fileURLToPath } from 'node:url';
  * component library instead of using raw un-governed HTML elements or
  * hand-writing the classes an owned component applies.
  *
- * Enforces OpenSpec 0153 (Complete Atomic Component Coverage), extended by 0213
- * (owned class names, story coverage) and 0215 (every surface, the select
+ * Enforces Complete Atomic Component Coverage, extended by the component workbench
+ * (owned class names, story coverage) and atomic design on every surface (the select
  * control, path-keyed registers).
  *
  * "Owned" is expressed by directory for the atom tier only: a file inside
  * `ui/atoms` defines the design language and a file outside one composes it.
  * A molecule, organism or template under `ui/` gets no such exemption merely
- * for living there (openspec 0225 task 8.1) — the handful that genuinely are
+ * for living there — the handful that genuinely are
  * a primitive's own definition (`DataTable`, `Modal`, `FieldSet`, the TV
  * surface's table owner) are named individually below instead. That holds
  * identically for `control/components/ui` and `components/ui`, which is why
@@ -32,8 +32,7 @@ const ALLOWED_INPUT_FILES = new Set(['control/components/JerseyGrid.tsx']);
 
 /**
  * Files that ARE the owner a rule would otherwise tell them to use — the one
- * class of exemption this scanner grants permanently rather than as debt
- * (openspec 0225 task 8.1).
+ * class of exemption this scanner grants permanently rather than as debt.
  *
  * Before this task, every file under a `ui/` directory was exempted from
  * every rule outright, on the theory that "a file inside a `ui/` directory
@@ -75,7 +74,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // shape, and not adopted here for the same reason the icon-only buttons
   // below are recorded rather than fixed.
   //
-  // Both entries were unreachable before openspec 0225 task 8.1 narrowed the
+  // Both entries were unreachable before the owner-file sets narrowed the
   // `ui/` directory skip to the atom tier: everything under `ui/` was exempt
   // outright, so these counts were never actually checked. Narrowing the
   // skip is what surfaced the real counts below for the first time.
@@ -87,7 +86,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // kiosk setup page, so retain these 15 native SSR form elements until the
   // public Astro library provides matching atoms and a Field molecule.
   ['pages/tv/index.astro', 15],
-  // `TvDashboard.tsx`'s entry is gone (openspec 0225 task 7.1): its four
+  // `TvDashboard.tsx`'s entry is gone: its four
   // private sub-components and its table/button ownership moved into their
   // own files, `TvStandingsTable.tsx` and `TvRailTab.tsx`, both named in
   // `TABLE_OWNER_FILES` above as the TV surface's genuine table owner.
@@ -111,8 +110,8 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // recorded alongside the other un-adopted `<form>`s below rather than
   // forced onto an atom built for a different shape.
   ['control/components/ui/layouts/form-screen-layout.tsx', 1],
-  // openspec 0282 replaced raw `<input>`s with `<Input>` atom in SeedingBuilderPage.tsx.
-  // openspec 0264 replaced the per-override-field raw JSON `<input>`s with
+  // Raw `<input>`s were replaced with `<Input>` atom in SeedingBuilderPage.tsx.
+  // The per-override-field raw JSON `<input>`s with
   // `RulesetFieldControl` (typed, owned atoms); only the "add a new field by
   // dot-path" name input remains raw.
   ['control/components/screens/TournamentRulesetTemplate.tsx', 1],
@@ -164,7 +163,7 @@ const RAW_ELEMENT_RULES = [
   { tag: 'button', replacement: '`Button` atom', allowed: ALLOWED_BUTTON_FILES },
   { tag: 'input', replacement: '`Input` atom', allowed: ALLOWED_INPUT_FILES },
   { tag: 'select', replacement: '`Select` atom' },
-  // Form-structure elements (openspec 0225 task 2.4), governed now that
+  // Form-structure elements, governed now that
   // Form, Field/Label and FieldSet own them (task 2.2).
   { tag: 'form', replacement: '`Form` atom' },
   { tag: 'label', replacement: '`Label` atom (via the `Field` molecule)' },
@@ -223,24 +222,24 @@ const OWNED_CLASS_RULES = [
  */
 export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // Operator surface — an owned atom exists for every one of these.
-  // openspec 0280 moved ActivityLog.tsx's and DeviceHeartbeat.tsx's raw
+  // ActivityLog.tsx's and DeviceHeartbeat.tsx's raw
   // cl-badge spans onto the Badge atom — both entries removed at zero.
   ['control/components/BracketCanvas.tsx', 2],
   ['control/components/screens/LiveConsoleTemplate.tsx', 3],
   ['control/components/screens/LoadMatchDataTemplate.tsx', 1],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 2],
-  // openspec 0282 replaced cl-card with Card in SeedingBuilderTemplate.tsx.
-  // openspec 0250 moved `StageSettingsSection`'s hand-written `cl-card` to
+  // cl-card was replaced with Card in SeedingBuilderTemplate.tsx.
+  // `StageSettingsSection`'s hand-written `cl-card` to
   // `StageHubTemplate.tsx`, lowering this file's count from 2 to 1.
   ['control/components/pages/SeedingBuilderPage.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 2],
-  // openspec 0250 added a second `cl-btn`-as-anchor (the Tournament hub
+  // A second `cl-btn`-as-anchor was added (the Tournament hub
   // entry point), the same genuine gap this file's first one is recorded
   // for above — the `Button` atom renders a `<button>`, which cannot link.
   ['control/components/TournamentSummaryCard.tsx', 2],
   // Same gap as `TournamentSummaryCard.tsx` above: an `<a>` styled as a
-  // button, which the `Button` atom cannot render (openspec 0225 task 8.1,
+  // button, which the `Button` atom cannot render (
   // surfaced by narrowing the `ui/` directory skip to the atom tier).
   ['control/components/ui/molecules/callout-banner.tsx', 1],
   // Public and broadcast surfaces.
@@ -255,15 +254,15 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // the day they moved, and these seven entries became unreachable: no path
   // repointed to their new location would ever be reached either, since the
   // scanner excludes the whole `ui/` subtree regardless of which file lives
-  // there. Repointing was therefore not the fix (openspec 0225 task 1.5);
+  // there. Repointing was therefore not the fix;
   // deleting them was, since the violation these entries recorded no longer
   // exists for the scanner to find.
   ['pages/[...locale]/[organization]/tournaments/[tournament]/players/[personId].astro', 1],
-  // pages/index.astro composed owned Card, Badge, and Button atoms (openspec 0315)
-  // — zero hand-written owned classes, entry removed per the ratchet rule.
+  // pages/index.astro composed owned Card, Badge, and Button atoms —
+  // zero hand-written owned classes, entry removed per the ratchet rule.
   // The control-panel CTA: an `<a href="/control/">` styled as a button, the
   // same "`Button` cannot render a link" gap as `TournamentSummaryCard.tsx`
-  // above (openspec 0225 task 8.1, surfaced the same way).
+  // above (surfaced the same way).
   ['components/ui/organisms/PublicHeader.astro', 1],
 ]);
 
@@ -309,7 +308,7 @@ export function withoutStyleBlocks(content) {
  * inserted after the page has already loaded. That string is not this file
  * composing a raw element; it is JavaScript text that happens to look like
  * one, and no `DataTable`/`Modal` organism could replace it, since neither
- * renders outside Astro's own template syntax (openspec 0225 task 8.1,
+ * renders outside Astro's own template syntax (
  * found while narrowing the `ui/` directory skip this replaces).
  */
 export function withoutScriptBlocks(content) {
@@ -506,7 +505,7 @@ export function isScreenExcluded(filename) {
 }
 
 /**
- * Derives screen story coverage directly from the filesystem rather than a static register (0222).
+ * Derives screen story coverage directly from the filesystem rather than a static register.
  * Walks every React surface recursively, including nested library tiers. Explicit
  * exclusions and diagnostics use paths relative to `webSrcDir`, never basenames.
  *
@@ -516,7 +515,7 @@ export function isScreenExcluded(filename) {
  * holds accountable, not this story-coverage rule. `.astro` files at a library
  * tier are not exempt: this function's own scan only ever sees `pages/` files
  * because it walks `.tsx` there directly and defers to `checkStoryCoverage` the
- * moment it enters a `ui/` directory (openspec 0220, extended by 0225 task 7.5),
+ * moment it enters a `ui/` directory (extended to reach `.astro` members),
  * and `checkStoryCoverage` requires every `.astro` library member a preview-seam
  * entry in place of a story it cannot have.
  *
@@ -599,11 +598,11 @@ function readPreviewableIds(webSrcDir) {
 /**
  * Every owned library component has a story or, for a server-rendered
  * component Storybook cannot render, a preview-seam entry — so the workbench
- * cannot silently fall behind the library it exists to show (OpenSpec 0213,
- * extended by 0225 task 7.5 to reach `.astro` members on equal footing).
+ * cannot silently fall behind the library it exists to show (
+ * extended to reach `.astro` members on equal footing).
  *
- * Derived from the directory rather than from a maintained list: `0213` was
- * written when the library had 23 members and `0211` added a 24th before it
+ * Derived from the directory rather than from a maintained list: the workbench was
+ * written when the library had 23 members and a later change added a 24th before it
  * shipped, which is exactly how a hand-kept list goes stale.
  *
  * @param {string} uiPath - Absolute path to the owned `ui/` directory
@@ -689,7 +688,7 @@ export function scanControlComponents(dirPath, rootDir = dirPath) {
       const fullPath = join(current, entry);
 
       if (statSync(fullPath).isDirectory()) {
-        // Only the atom tier is exempt outright (openspec 0225 task 8.1): an
+        // Only the atom tier is exempt outright: an
         // atom legitimately owns the raw element or class it wraps by
         // definition, so there is nothing left for this scan to check once a
         // path descends into `ui/atoms`. Molecules, organisms and templates

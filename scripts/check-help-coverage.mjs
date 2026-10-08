@@ -3,7 +3,7 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 
-// Enforces platform/help-and-api-docs's coverage guarantee (openspec 0162):
+// Enforces platform/help-and-api-docs's coverage guarantee:
 // every operator-facing capability accepted into the specification baseline
 // must be claimed by at least one help page, and every organization or
 // installation role must be named by at least one page. The gate compares

@@ -126,7 +126,7 @@ test('root lockfile and manifest changes force full scope (Task 1.2 / 2.1)', () 
   }
 });
 
-test('shared domain changes affect web consumers and are NOT backend-only (0221 bug fix)', () => {
+test('shared domain changes affect web consumers and are NOT backend-only (regression)', () => {
   // apps/web consumes @copalibre/domain, @copalibre/rules, @copalibre/tournament-engine
   for (const sharedPath of [
     'packages/domain/src/index.ts',
@@ -278,7 +278,7 @@ test('release candidate evaluation truth table (Task 1.4 / 2.2)', () => {
 
 test('job selection plan across scope and release candidate status (Task 1.4 / 2.2)', () => {
   // Scenario 1: Develop PR with broad/workflow changes (non-release candidate)
-  // Full scope is not backend-only, so e2eTests now runs (openspec 0257): a
+  // Full scope is not backend-only, so e2eTests now runs: a
   // develop PR that can affect the web surface gets real Playwright coverage
   // instead of relying on it accidentally targeting main. releaseBuild stays
   // reserved for actual release candidates.
@@ -302,7 +302,7 @@ test('job selection plan across scope and release candidate status (Task 1.4 / 2
   assert.equal(developFullScope.releaseBuild, false, 'Develop PR must skip releaseBuild');
 
   // Scenario 1b: Develop PR confined to backend-only paths still skips
-  // e2eTests entirely (openspec 0257) — nothing Playwright exercises changed.
+  // e2eTests entirely — nothing Playwright exercises changed.
   const developBackendOnly = resolveJobPlan(
     { frontendOnly: false, backendOnly: true, cliOnly: false, docsOnly: false },
     false,

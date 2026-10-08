@@ -1,7 +1,7 @@
 name: K8s Enterprise Validation
 
 # Produces the measured multi-node-failover, backup/restore, and
-# upgrade-safety evidence 0035-kubernetes-enterprise-deployment's
+# upgrade-safety evidence the Kubernetes enterprise deployment's
 # design.md requires before any Kubernetes enterprise-readiness claim —
 # scheduled (not per-PR), same rationale as k3s-validate.yml: this validates
 # infrastructure, not application code, and each script spins up its own
@@ -54,7 +54,7 @@ jobs:
         run: curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
       # validate-backup-restore.sh's object-storage backup/restore step uses
       # the MinIO client (mc) as an ordinary S3-compatible data-plane client
-      # against the Garage bucket (0297) — not preinstalled on GitHub-hosted
+      # against the Garage bucket — not preinstalled on GitHub-hosted
       # runners, unlike the PostgreSQL client tools backup-restore-drill.yml
       # already relies on being present.
       - name: Install MinIO client (mc)

@@ -25,7 +25,7 @@ deploy/helm/copalibre/templates/
 # the only writers, so their output must stay canonical. Prettier reflows the
 # frontmatter's quote style and collapses the config's arrays, which would make
 # every regeneration look like drift and would break the DESIGN.md-vs-token-source
-# comparison that compares values exactly (openspec change 0224).
+# comparison that compares values exactly.
 DESIGN.md
 .impeccable/
 

@@ -1,6 +1,6 @@
 name: CI
 
-# Pipeline established by change 0001-bootstrap-monorepo-toolchain.
+# Pipeline established with the initial monorepo toolchain.
 # Later phases extend this file per their tasks.md (unit/integration/e2e/build/
 # deploy-smoke-test jobs land with the phases that first have something to run).
 
@@ -64,7 +64,7 @@ jobs:
       cli_only: ${{ steps.classify.outputs.cli_only }}
       docs_only: ${{ steps.classify.outputs.docs_only }}
       # A release candidate is a PR targeting main, a push to main (a
-      # develop->main PR merging — see release.yml, 0058), or a manual
+      # develop->main PR merging — see release.yml), or a manual
       # dispatch. Everything else (routine develop-targeting PRs) is not,
       # and skips the expensive e2e/deploy-verification chain below.
       release_candidate: ${{ github.base_ref == 'main' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
@@ -176,11 +176,11 @@ jobs:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
-      # role-capabilities (openspec 0165): the declared capability vocabulary
+      # role-capabilities: the declared capability vocabulary
       # and role mapping every guard below resolves through.
       - run: yarn workspace @copalibre/domain test --testPathPatterns 'role-capabilities'
       - run: yarn workspace @copalibre/api test src/auth/access-coverage.test.ts src/auth/capability-guard-equivalence.test.ts
-      # audit-vocabulary/audit-coverage (openspec 0166): the declared audited
+      # audit-vocabulary/audit-coverage: the declared audited
       # action vocabulary and the gate failing an aggregate mutation that
       # records no audit entry. tasks.md names the "unit-tests" job for this
       # step; access-coverage actually lives here, in guard-coverage — placed
@@ -214,7 +214,7 @@ jobs:
       - uses: actions/checkout@v7
       - run: shellcheck apps/copalibre/install.sh
 
-  # Added by 0035-kubernetes-enterprise-deployment: structurally enforces
+  # Added with the Kubernetes enterprise deployment: structurally enforces
   # design.md's "enterprise-ready is an evidence-gated claim" decision —
   # fails the build if docs/deployment/enterprise-kubernetes.md asserts
   # Kubernetes enterprise-readiness without linking a dated, passing
@@ -243,12 +243,15 @@ jobs:
       - run: node scripts/check-help-locale-parity.mjs
       - run: node --test scripts/check-help-coverage.test.mjs
       - run: node scripts/check-help-coverage.mjs
-      # Interface text that never entered a message catalogue (openspec 0209).
+      # Tracked content never cites a git-ignored OpenSpec change by number.
+      - run: node --test scripts/check-change-number-references.test.mjs
+      - run: node scripts/check-change-number-references.mjs
+      # Interface text that never entered a message catalogue.
       # Blocking, not informational: known findings are recorded in the script's
       # own debt register, so this only fails on a literal nobody has seen yet.
       - run: node --test scripts/check-ui-text-catalogue-coverage.test.mjs
       - run: node scripts/check-ui-text-catalogue-coverage.mjs
-      # Descriptor-authoring guide coverage (openspec 0163): every field the
+      # Descriptor-authoring guide coverage: every field the
       # discipline descriptor schema declares has a non-empty explanation,
       # and no explanation names a field the schema no longer has — the same
       # map copalibre_descriptor_schema returns and the published guide's
@@ -259,7 +262,7 @@ jobs:
       - run: node scripts/check-descriptor-guide-coverage.mjs
       - run: node --test scripts/check-ui-ownership.test.mjs
       - run: node scripts/check-ui-ownership.mjs
-      # Atomic-composition tier contract (openspec 0225): tier membership,
+      # Atomic-composition tier contract: tier membership,
       # import direction, styling/data/i18n placement, orphan resolution and
       # naming, over the resolved component graph. Known findings are
       # recorded in the script's own path-keyed registers, so this only
@@ -268,18 +271,18 @@ jobs:
       - run: node --test scripts/lib/component-graph.test.mjs
       - run: node --test scripts/check-atomic-composition.test.mjs
       - run: node scripts/check-atomic-composition.mjs
-      # Role manual capability lists (openspec 0165): generated from
+      # Role manual capability lists: generated from
       # role-capabilities.ts, gated against it in both directions —
       # an undocumented grant and an over-promised claim both fail.
       - run: node --test scripts/generate-role-manuals.test.mjs
       - run: node scripts/generate-role-manuals.mjs --check
       - run: node --test scripts/check-role-manual-drift.test.mjs
       - run: node scripts/check-role-manual-drift.mjs
-      # Dev environment compose hardening (openspec 0194): verifies
+      # Dev environment compose hardening: verifies
       # docker-compose.dev.yml infrastructure profile supports unattended startup
       - run: node --test scripts/check-dev-compose.test.mjs
       - run: node scripts/check-dev-compose.mjs
-      # CLI compose and reverse-proxy template parity (openspec 0318): verifies
+      # CLI compose and reverse-proxy template parity: verifies
       # copalibre init assets match canonical compose and proxy templates
       - run: yarn workspace @copalibre/copalibre run build
       - run: node --test scripts/check-copalibre-cli-compose-parity.test.mjs
@@ -328,9 +331,9 @@ jobs:
           yarn workspace @copalibre/auth test:coverage --maxWorkers=2
           yarn workspace @copalibre/routing test:coverage --maxWorkers=2
           node --test scripts/tv-soak-test.test.mjs
-          # Change-risk (CRAP) score (openspec 0227): reads this leg's just-produced
+          # Change-risk (CRAP) score: reads this leg's just-produced
           # coverage-final.json files; a workspace this leg doesn't cover is skipped
-          # with a warning, not a failure. --report (openspec 0234) additionally
+          # with a warning, not a failure. --report additionally
           # dumps every scored function (not just gate offenders) for the
           # cross-leg summary rendered by the crap-report job below.
           yarn crap:check --report=crap-report-group-1.json
@@ -350,9 +353,9 @@ jobs:
           yarn workspace @copalibre/design-tokens test:coverage --maxWorkers=2
           yarn workspace @copalibre/realtime test:coverage --maxWorkers=2
           yarn workspace @copalibre/web test:coverage --maxWorkers=2
-          # Change-risk (CRAP) score (openspec 0227): reads this leg's just-produced
+          # Change-risk (CRAP) score: reads this leg's just-produced
           # coverage-final.json files; a workspace this leg doesn't cover is skipped
-          # with a warning, not a failure. --report (openspec 0234) additionally
+          # with a warning, not a failure. --report additionally
           # dumps every scored function (not just gate offenders) for the
           # cross-leg summary rendered by the crap-report job below.
           yarn crap:check --report=crap-report-group-2.json
@@ -436,7 +439,7 @@ jobs:
             --required="1,2" \
             --results='{"1":"${{ needs.unit-tests-group.result == 'success' && 'success' || needs.unit-tests-group.result }}","2":"${{ needs.unit-tests-group.result == 'success' && 'success' || needs.unit-tests-group.result }}"}'
 
-  # Change-risk (CRAP) score report (openspec 0234): merges both matrix legs'
+  # Change-risk (CRAP) score report: merges both matrix legs'
   # full per-function scores (not just gate offenders) into one repo-wide
   # top-N ranking, visible in the run's Job Summary even when the gate above
   # fails. Presentation only — never changes unit-tests-group's exit code.
@@ -683,10 +686,10 @@ jobs:
             --config="production"
       # tv-soak-test.mjs drives a real headless Chromium via Playwright — this
       # job is a fresh runner from e2e-tests-shard's, so its browser install
-      # doesn't carry over. Deliberately kept release-candidate-only (0257):
+      # doesn't carry over. Deliberately kept release-candidate-only:
       # it's a second browser install plus a live `preview` server on top of
       # the shard tests above, and its bug-catching value came specifically
-      # from running rarely — see openspec change 0257's design.md.
+      # from running rarely.
       - run: yarn playwright install --with-deps chromium
         if: needs.detect-changes.outputs.release_candidate == 'true'
       - name: TV soak-test (accelerated proxy)

@@ -1,5 +1,5 @@
 /**
- * OpenSpec 0221 CI Test Inventory & Partitioning Plan.
+ * CI Test Inventory & Partitioning Plan.
  *
  * Records the test inventory for full and focused invocations, defines
  * duration-balanced unit and integration groups, and validates that zero

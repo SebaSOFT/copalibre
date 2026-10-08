@@ -4,7 +4,7 @@ import { withoutComments, withoutStyleBlocks, lineOf } from '../check-ui-ownersh
 
 /**
  * Builds a resolved import/render graph over `apps/web/src`, the single
- * structure every atomic-composition-contract rule (openspec 0225) is
+ * structure every atomic-composition-contract rule is
  * evaluated against.
  *
  * The graph answers structural questions — "does A import B", "does A render
@@ -53,8 +53,8 @@ export function collectSourceFiles(webSrcDir) {
  *
  * Returns `null` for a bare/package specifier (not part of this graph), and
  * `{ resolved: null }`-shaped callers get `undefined` back for a relative
- * specifier this project's conventions say should have resolved but did not
- * — the "unresolved relative import" the graph builder is required to leave
+ * specifier this project's conventions say should have resolved but did not —
+ * the "unresolved relative import" the graph builder is required to leave
  * at zero.
  */
 export function resolveSpecifier(fromFile, specifier) {
@@ -316,8 +316,7 @@ export function surfaceOf(relPath) {
 /**
  * Structural tier, derived from the nearest `ui/<tier-dir>` ancestor, or
  * `'screen'` for a file outside any `ui/` library directory. Rules interpret
- * this label against the declared tier contract (openspec 0225 design.md
- * Decision 1/2); the graph itself makes no judgement about validity.
+ * this label against the declared tier contract; the graph itself makes no judgement about validity.
  */
 export function tierOf(relPath) {
   const segments = relPath.split('/');

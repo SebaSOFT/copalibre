@@ -22,36 +22,36 @@ export const THRESHOLD = 30;
  * it's fully addressed) — debt cannot grow back silently.
  */
 export const KNOWN_CRAP = new Map([
-  // Recorded by openspec 0227's first repository-wide run (tasks.md 1.7). A
+  // Recorded by the first repository-wide run. A
   // score may only fall from here, or the entry be deleted once it does.
-  // seriesStateBarLabels resolved by openspec 0228 (added tests; score 9.01).
-  // titleFor resolved by openspec 0228 (lookup-table refactor; score 2.00).
-  // ControlApp resolved by openspec 0228 (lookup-table refactor; score 12.00).
-  // TournamentSetupWizard resolved by openspec 0228 (extracted NameStep,
+  // seriesStateBarLabels resolved (added tests; score 9.01).
+  // titleFor resolved (lookup-table refactor; score 2.00).
+  // ControlApp resolved (lookup-table refactor; score 12.00).
+  // TournamentSetupWizard resolved (extracted NameStep,
   // DisciplineStep, FormatStep, WindowStep, RulesStep; score 10.00).
-  // MatchConsoleTemplate resolved by openspec 0228 (extracted AlertsSection,
+  // MatchConsoleTemplate resolved (extracted AlertsSection,
   // SyncStatusSection, BreadcrumbSection, StatusSection; score 20.06).
-  // parseControlPath resolved by openspec 0229 (declarative ORG_SCOPED_ROUTES
+  // parseControlPath resolved (declarative ORG_SCOPED_ROUTES
   // / TOURNAMENT_SCOPED_ROUTES tables; score 10.08).
-  // canActivate resolved by openspec 0229 (tests only, no refactor needed:
+  // canActivate resolved (tests only, no refactor needed:
   // complexity 27 was already under threshold; score 27.04).
-  // validateModulePackage resolved by openspec 0229 (extracted
+  // validateModulePackage resolved (extracted
   // validateDisciplineOrProfileSemantics; score 15.00).
-  // computeAccounting resolved by openspec 0230 (extracted
+  // computeAccounting resolved (extracted
   // foldSeriesGrainAccounting/foldMatchGrainAccounting/
   // foldStrengthOfScheduleStatistics/foldCumulativeStatistics; score 3.00).
-  // validateCustomBracket resolved by openspec 0230 (extracted
+  // validateCustomBracket resolved (extracted
   // validateBracketFields/assertTopologicalOrder; score 25.16).
-  // generateNextSwissRoundFixtures resolved by openspec 0230 (extracted its
+  // generateNextSwissRoundFixtures resolved (extracted its
   // four comment-delineated phases: extractSwissHistory/calculateSwissScores/
   // allocateSwissBye/pairSwissRound; score 2.00).
-  // foldStatistics resolved by openspec 0230 (extracted one handler per
+  // foldStatistics resolved (extracted one handler per
   // collector source kind: foldParticipationCollector/
   // foldStatisticSourcedCollector/foldDerivedCollector/
   // foldEventSourcedCollector; score 10.00).
-  // resolveSlot resolved by openspec 0230 (extracted resolveWinnerFromChildren;
+  // resolveSlot resolved (extracted resolveWinnerFromChildren;
   // score 21.25).
-  // buildDoubleElimination resolved by openspec 0230 (extracted
+  // buildDoubleElimination resolved (extracted
   // buildDuelOrSeriesMatches, deduplicating the span>1/span<=1 match-building
   // shape repeated at all three call sites; score 15.10).
 ]);
