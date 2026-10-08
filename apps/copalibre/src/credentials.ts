@@ -44,7 +44,7 @@ export async function readCredential(cwd: string): Promise<StoredCredential | un
 
 /**
  * Replaces any existing credential for this directory — unlike the earlier
- * installation marker, a token is expected to rotate (design.md), so
+ * installation marker, a token is expected to rotate, so
  * re-running `login` in the same directory is intentional, not refused.
  */
 export async function writeCredential(

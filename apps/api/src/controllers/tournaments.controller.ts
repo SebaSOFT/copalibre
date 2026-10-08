@@ -351,9 +351,7 @@ export class TournamentsController {
   /**
    * Backs weighted allocation's attribute picker (`stage-qualification`'s "An operator can
    * discover a tournament's known entrant-attribute keys"). Reads distinct keys off this
-   * tournament's own recorded entrant attributes, never a discipline-level catalogue — see
-   * design.md's "Weighted allocation's attribute comes from the tournament's own recorded
-   * entrant attributes".
+   * tournament's own recorded entrant attributes, never a discipline-level catalogue.
    */
   @Get(':tournamentAlias/entrant-attribute-keys')
   @SecurityPlaneTag('admin-control')
@@ -635,7 +633,7 @@ export class TournamentsController {
                 }),
           };
           // The operator's own declaration overrides the profile's stage default,
-          // per "a tournament instance may override it per-stage" (design.md).
+          // per "a tournament instance may override it per-stage".
           const allocation = (stage.allocation ?? profileDefault?.allocation) as
             StageAllocation | undefined;
 

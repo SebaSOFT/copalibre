@@ -28,7 +28,7 @@ export interface WriteKubernetesInstallationResult {
  * (a copy of the chart's own documented defaults, the same starting point
  * `helm show values` would give) and the installation marker — no compose
  * file, no `.env`, since Kubernetes' own Secret/ConfigMap mechanism stays
- * authoritative for installation configuration (design.md). Every target
+ * authoritative for installation configuration. Every target
  * checked for pre-existence before any write begins, matching
  * `writeInstallationAssets`'s compose-mode behavior exactly.
  */

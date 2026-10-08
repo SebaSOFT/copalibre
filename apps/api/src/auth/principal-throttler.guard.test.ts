@@ -126,7 +126,7 @@ function fakeRequestProps(
 describe('PrincipalThrottlerGuard', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  /* ---------- getTracker (task 2.3) ---------- */
+  /* ---------- getTracker ---------- */
 
   describe('getTracker', () => {
     it('returns principal-prefixed key when principalId is present', async () => {
@@ -162,7 +162,7 @@ describe('PrincipalThrottlerGuard', () => {
     });
   });
 
-  /* ---------- handleRequest route-policy selection (task 2.2) ---------- */
+  /* ---------- handleRequest route-policy selection ---------- */
 
   describe('handleRequest — route-policy selection', () => {
     it('delegates to parent (local storage) when @SharedThrottle is absent', async () => {
@@ -370,7 +370,7 @@ describe('PrincipalThrottlerGuard', () => {
     });
   });
 
-  /* ---------- operational visibility (task 1.5) ---------- */
+  /* ---------- operational visibility ---------- */
 
   describe('sharedStorageSnapshot', () => {
     it('delegates to SharedThrottlerStorage.operationalSnapshot', async () => {

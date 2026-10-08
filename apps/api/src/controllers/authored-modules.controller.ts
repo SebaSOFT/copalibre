@@ -61,8 +61,8 @@ import type { ObjectStorageAdapter } from '@copalibre/object-storage';
  * The first write surface for `discipline_descriptors`/`tournament_profiles` —
  * every other route reads them. Deliberately produces the
  * same module package `module add` does and installs it through
- * `importValidatedModule` unchanged (design.md's "produces a module package,
- * not a database row" decision): there is no second install mechanism to
+ * `importValidatedModule` unchanged ("produces a module package,
+ * not a database row"): there is no second install mechanism to
  * keep in sync, so an authored module is an ordinary module in every respect
  * once it exists.
  */
@@ -181,10 +181,10 @@ export class AuthoredModulesController {
    * Packages the authored document and runs it through the same
    * `validateModulePackage` every other module source uses — the path-
    * carrying failures it already produces (reserved-alias included) are
-   * exactly what task 1.2/1.3 ask for, so nothing here re-implements them.
+   * exactly what is asked for here, so nothing here re-implements them.
    * Adds one authored-specific check: a profile's stage formats against a
    * named installed discipline, which the schema itself cannot express
-   * because a profile never names a discipline (design.md's decision).
+   * because a profile never names a discipline.
    */
   private async packageAndValidate(body: AuthoredModuleRequest): Promise<{
     readonly packaged: Awaited<ReturnType<typeof packageAuthoredModule>>;
@@ -249,8 +249,8 @@ export class AuthoredModulesController {
    * The existing retirement rule (`module remove`'s own check), applied
    * before install rather than after: altering a version a started
    * tournament references is refused, naming the holders, with revising into
-   * a new version offered instead (design.md's "Revision follows the
-   * existing retirement rule").
+   * a new version offered instead (revision follows the
+   * existing retirement rule).
    */
   private async refuseIfAlteringReferencedVersion(
     kind: ModuleKind,

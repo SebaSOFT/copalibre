@@ -139,7 +139,7 @@ describe('audit trail surface (integration)', () => {
     });
   }
 
-  it('an administrator sees applied and refused actions, scoped to their own organization (tasks 6.5, 7.1)', async () => {
+  it('an administrator sees applied and refused actions, scoped to their own organization', async () => {
     const response = await request('admin', `/organizations/${organizationAlias}/audit-trail`);
     expect(response.statusCode).toBe(200);
     const body = response.json();
@@ -242,7 +242,7 @@ describe('audit trail surface (integration)', () => {
     expect(actions).toContain('club.created');
   });
 
-  it('refuses a role without the audit capability, and records the refusal itself (task 4.3, 7.2)', async () => {
+  it('refuses a role without the audit capability, and records the refusal itself', async () => {
     const before = await scratch.db
       .selectFrom('audit_log')
       .select((eb) => eb.fn.countAll<string>().as('count'))

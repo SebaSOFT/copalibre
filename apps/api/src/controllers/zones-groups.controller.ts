@@ -800,7 +800,7 @@ export class ZonesGroupsController {
           };
         } catch {
           // Not yet resolvable (e.g. group standings incomplete) — omitted,
-          // not an error for this reverse lookup as a whole (design.md).
+          // not an error for this reverse lookup as a whole.
           return undefined;
         }
       }),

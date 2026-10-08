@@ -66,7 +66,7 @@ export const SERVER_INSTRUCTIONS =
 /**
  * Uses the SDK's low-level `Server`, not `McpServer`, so every tool's
  * `inputSchema` stays plain JSON Schema validated with `ajv` — this
- * project's standing convention — rather than a zod schema (design.md).
+ * project's standing convention — rather than a zod schema.
  */
 export function buildServer(
   environment: NodeJS.ProcessEnv,

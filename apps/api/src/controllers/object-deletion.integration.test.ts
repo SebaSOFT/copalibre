@@ -76,7 +76,7 @@ async function seedPassedObject(
   return { objectId, storageKey };
 }
 
-describe('unreferenced object listing and deletion (tasks 4.1-4.2, 6.5)', () => {
+describe('unreferenced object listing and deletion', () => {
   it('lists an unreferenced object and deletes it, dropping the usage total by its size', async () => {
     const before = await request({
       method: 'GET',

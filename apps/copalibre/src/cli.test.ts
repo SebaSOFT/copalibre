@@ -43,7 +43,7 @@ async function stageRestorablePacket(copalibreVersion: string): Promise<string> 
   return result.file;
 }
 
-/** Shared by every "banner prints first" case (task 3.1): records write order across both streams. */
+/** Shared by every "banner prints first" case: records write order across both streams. */
 function spyOnOutputOrder(): {
   readonly writes: { readonly stream: 'stdout' | 'stderr'; readonly chunk: string }[];
   restore(): void;

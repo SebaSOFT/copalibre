@@ -3,8 +3,7 @@ import { getAsset, isSea } from 'node:sea';
 
 /**
  * A fixed monogram evoking the chamfered "CL" mark (`apps/web/public/
- * copalibre-logo.svg`) — hand-authored once, not generated (design.md:
- * this is a constant, not a general text-to-ASCII-art problem). Printed on
+ * copalibre-logo.svg`) — hand-authored once, not generated (this is a constant, not a general text-to-ASCII-art problem). Printed on
  * every invocation (`renderBanner`), so it stays this small deliberately —
  * see `readLogoText`/`renderFullLogo` for the larger, `--version`-only mark.
  */
@@ -90,7 +89,7 @@ export function colorizeAscii(text: string, options?: BannerOptions): string {
   return text;
 }
 
-/** Product self-identification printed on every invocation (task 1.1/2.1). */
+/** Product self-identification printed on every invocation. */
 export function renderBanner(options?: BannerOptions): string {
   const { version, license } = readPackageManifest();
   return `${colorizeAscii(MARK, options)}  CopaLibre v${version} · ${license}\n\n`;

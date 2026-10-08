@@ -104,15 +104,14 @@ export function apiErrorResponse(exception: unknown): ApiErrorResponse {
 }
 
 /**
- * Which refusal category a status code represents, per proposal.md's three
+ * Which refusal category a status code represents, per the three
  * illustrative scenarios (a blocked mutation, an authorization refusal, a
  * competition-state refusal) — collapsed to two actions rather than one per
  * refusal reason, so the filter catches "refusals... including ones that
  * will be added later" without a controller ever registering a new one.
  * The specific reason lives in the record's `reason` field, not the action.
  * `undefined` for anything that is not a refusal of a consequential
- * operation (400 validation noise, 404, 500) — design.md, "record every
- * 4xx. Rejected: a validation error on a malformed request body is noise."
+ * operation (400 validation noise, 404, 500) — recording every 4xx was rejected: a validation error on a malformed request body is noise.
  */
 function refusalActionFor(statusCode: number): AuditAction | undefined {
   if (statusCode === HttpStatus.UNAUTHORIZED || statusCode === HttpStatus.FORBIDDEN) {
@@ -160,7 +159,7 @@ export function refusalEntryFor(
     entityId: organizationId,
     action,
     // An unauthenticated refusal names the absence rather than inventing an
-    // actor (task 2.4) — there is no subject to attribute it to.
+    // actor — there is no subject to attribute it to.
     actor: subject ? `user:${subject.principalId ?? subject.subjectId}` : 'unauthenticated',
     authorizationContext: (subject?.scopes ?? []).join(' '),
     reason,
@@ -187,8 +186,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     // "record afterward" can never be observed as done by the time a caller
     // sees the response, only "eventually". Recording first still cannot
     // turn this refusal into a server error: `recordAuditRefusal` swallows
-    // its own failure and reports it to `this.logger`, never rethrowing
-    // (proposal.md, "Risk concentrated in one place").
+    // its own failure and reports it to `this.logger`, never rethrowing.
     await this.recordRefusal(response, host);
     this.adapterHost.httpAdapter.reply(
       host.switchToHttp().getResponse(),

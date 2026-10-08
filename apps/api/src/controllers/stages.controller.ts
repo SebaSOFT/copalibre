@@ -110,7 +110,7 @@ export function assertAllocationRequestComplete(allocation: {
  * gap identified by a walkthrough: `CompetitionRepository.createStageInTournament` was real, tested,
  * and had no caller anywhere in `apps/api`. This endpoint only creates the stage; generating its
  * bracket is `POST .../stages/:stageNumber/seeding` (`seeding.controller.ts`), the same fixture-
- * generation path an operator already uses to reseed a later stage (see design.md).
+ * generation path an operator already uses to reseed a later stage.
  */
 @ApiTags('stages')
 @Controller('organizations/:organizationAlias/tournaments/:tournamentAlias/stages')
@@ -627,7 +627,7 @@ export class StagesController {
           // A classification consulted and found blocking, returned as a
           // 200 decision rather than thrown — the one refusal shape the
           // central exception filter cannot see, so it is recorded here
-          // instead (design.md, "Refusals that never reach the filter").
+          // instead.
           // Awaited, not fire-and-forget: nothing has been sent to the
           // caller yet, so awaiting adds no risk of altering a response
           // already on the wire, and it removes the race a detached write

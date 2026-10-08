@@ -95,7 +95,7 @@ export class DoctorCommand extends Command<CliContext> {
   /**
    * `--fix`/`--interactive`: re-probes the database (the report above is
    * read-only) and walks any fixable anomaly through the decision-support
-   * prompt (design.md Decision 2). Never affects the exit code above —
+   * prompt. Never affects the exit code above —
    * repair is an operator-initiated action, not a readiness gate.
    */
   private async repairDataIntegrity(environment: NodeJS.ProcessEnv): Promise<void> {

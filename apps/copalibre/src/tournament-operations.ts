@@ -9,8 +9,7 @@ interface Credential {
 
 /**
  * `organization`/`tournament` commands never fall back to a direct database
- * connection, unlike `module`/`statistics-rebuild`/`backup` (design.md,
- * CLI tournament operations parity) — a missing credential is an immediate refusal naming
+ * connection, unlike `module`/`statistics-rebuild`/`backup` (CLI tournament operations parity) — a missing credential is an immediate refusal naming
  * `copalibre login`, not an attempt to reach the database.
  */
 async function requireCredential(): Promise<Credential> {
