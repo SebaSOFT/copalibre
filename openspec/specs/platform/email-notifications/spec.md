@@ -140,3 +140,32 @@ failure SHALL be logged with the event id, and the recipient SHALL NOT be retrie
 #### Scenario: Existing emails follow the same rule
 - **WHEN** an invitation or password-reset row is delivered twice
 - **THEN** its recipient receives one email
+
+### Requirement: Email delivery outcomes are observable
+The worker SHALL count every email delivery attempt by outcome (sent, already sent, outcome unknown, refused) and SHALL expose those counts through the worker's metrics surface, so that an operator can see how many recipients may not have received an email. An outcome-unknown delivery SHALL be logged with the event type and a hash of the recipient, and SHALL NOT include the recipient's address. Observability SHALL NOT change the guarantee that the same email is never sent twice to the same recipient.
+
+#### Scenario: An unknown outcome is counted and logged without the address
+- **WHEN** the provider fails in a way that leaves acceptance uncertain
+- **THEN** the unknown-outcome count increases by one
+- **AND** the log line carries the event type and a recipient hash but not the address
+- **AND** the recipient is not retried
+
+#### Scenario: A refused message is counted separately
+- **WHEN** the provider definitely refuses a message
+- **THEN** the refused count increases and the unknown count does not
+
+#### Scenario: A duplicate attempt does not resend
+- **WHEN** the same event and recipient are attempted twice
+- **THEN** the second attempt is counted as already sent and no message is sent
+
+### Requirement: A club-portal submission is announced once
+When a club submits through the club portal, the administrators SHALL receive the squad notice and SHALL NOT also receive a registration notice for the same submission, so that one submission does not produce two emails seconds apart.
+
+#### Scenario: A club-portal submission sends the squad notice only
+- **WHEN** a club submits its squad through the club portal, publishing both a registration and a squad event
+- **THEN** the squad notice is sent to the administrators
+- **AND** no registration notice is sent for that submission
+
+#### Scenario: A registration made by an administrator still sends its notice
+- **WHEN** an entrant is registered by an administrator rather than through the club portal
+- **THEN** the registration notice is sent as before
