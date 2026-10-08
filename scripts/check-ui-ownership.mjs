@@ -111,7 +111,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // forced onto an atom built for a different shape.
   ['control/components/ui/layouts/form-screen-layout.tsx', 1],
   // Raw `<input>`s were replaced with `<Input>` atom in SeedingBuilderPage.tsx.
-  // The per-override-field raw JSON `<input>`s with
+  // The per-override-field raw JSON `<input>`s were replaced with
   // `RulesetFieldControl` (typed, owned atoms); only the "add a new field by
   // dot-path" name input remains raw.
   ['control/components/screens/TournamentRulesetTemplate.tsx', 1],
@@ -223,14 +223,14 @@ const OWNED_CLASS_RULES = [
 export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // Operator surface — an owned atom exists for every one of these.
   // ActivityLog.tsx's and DeviceHeartbeat.tsx's raw
-  // cl-badge spans onto the Badge atom — both entries removed at zero.
+  // cl-badge spans moved onto the Badge atom — both entries removed at zero.
   ['control/components/BracketCanvas.tsx', 2],
   ['control/components/screens/LiveConsoleTemplate.tsx', 3],
   ['control/components/screens/LoadMatchDataTemplate.tsx', 1],
   ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
   ['control/components/RosterRoleSelector.tsx', 2],
   // cl-card was replaced with Card in SeedingBuilderTemplate.tsx.
-  // `StageSettingsSection`'s hand-written `cl-card` to
+  // `StageSettingsSection`'s hand-written `cl-card` moved to
   // `StageHubTemplate.tsx`, lowering this file's count from 2 to 1.
   ['control/components/pages/SeedingBuilderPage.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 2],
@@ -239,8 +239,8 @@ export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // for above — the `Button` atom renders a `<button>`, which cannot link.
   ['control/components/TournamentSummaryCard.tsx', 2],
   // Same gap as `TournamentSummaryCard.tsx` above: an `<a>` styled as a
-  // button, which the `Button` atom cannot render (
-  // surfaced by narrowing the `ui/` directory skip to the atom tier).
+  // button, which the `Button` atom cannot render
+  // (surfaced by narrowing the `ui/` directory skip to the atom tier).
   ['control/components/ui/molecules/callout-banner.tsx', 1],
   // Public and broadcast surfaces.
   //
@@ -308,8 +308,8 @@ export function withoutStyleBlocks(content) {
  * inserted after the page has already loaded. That string is not this file
  * composing a raw element; it is JavaScript text that happens to look like
  * one, and no `DataTable`/`Modal` organism could replace it, since neither
- * renders outside Astro's own template syntax (
- * found while narrowing the `ui/` directory skip this replaces).
+ * renders outside Astro's own template syntax
+ * (found while narrowing the `ui/` directory skip this replaces).
  */
 export function withoutScriptBlocks(content) {
   return content.replace(/<script[\s\S]*?<\/script>/gi, (block) => block.replace(/[^\n]/g, ' '));
@@ -598,8 +598,8 @@ function readPreviewableIds(webSrcDir) {
 /**
  * Every owned library component has a story or, for a server-rendered
  * component Storybook cannot render, a preview-seam entry — so the workbench
- * cannot silently fall behind the library it exists to show (
- * extended to reach `.astro` members on equal footing).
+ * cannot silently fall behind the library it exists to show
+ * (extended to reach `.astro` members on equal footing).
  *
  * Derived from the directory rather than from a maintained list: the workbench was
  * written when the library had 23 members and a later change added a 24th before it

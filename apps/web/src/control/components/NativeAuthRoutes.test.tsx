@@ -24,7 +24,7 @@ describe('NativeAuthRoutes', () => {
   });
 
   // `locale="en"`, not `"es"`: every
-  // `auth.*` defaultMessage in the source language. The public return link
+  // `auth.*` defaultMessage is restated in the source language. The public return link
   // is translated in each control catalog; remaining auth copy still uses
   // English source messages.
 

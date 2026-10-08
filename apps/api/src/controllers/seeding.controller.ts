@@ -114,7 +114,7 @@ export class SeedingController {
     const readModel = new StageReadModel(this.db);
 
     // Seed order/publish stay scoped to the stage's one flat entrant list — only the canvas
-    // *display* below is broken out per zone, matching the per-zone display decision: this display
+    // *display* below is broken out per zone, matching the operator-canvas decision (display fix only, not zone-authoring): this display
     // fix does not touch how a stage is seeded or reseeded.
     const zones = await resolveStageZones(this.db, stageId);
     const zoneResponses = await Promise.all(

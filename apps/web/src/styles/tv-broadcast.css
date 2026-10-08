@@ -868,8 +868,7 @@
    the overlay modes and the chroma key.
    ========================================================================== */
 /**
-   * Sized for a screen read from 5-10m rather than arm's length (the broadcast
-   * 2.3) — a fixed rem scale would be right for one panel size and wrong
+   * Sized for a screen read from 5-10m rather than arm's length — a fixed rem scale would be right for one panel size and wrong
    * for the next, so every measure here is vmin-relative instead.
    */
 .tv-dashboard {

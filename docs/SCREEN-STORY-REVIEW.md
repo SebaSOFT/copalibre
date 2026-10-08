@@ -101,6 +101,6 @@ working tree and are review evidence, not pixel baselines.
 
 ### Review captures
 
-![German match operations at 1440px](assets/screenshots/console-desktop.png)
+![German match operations at 1440px](assets/screenshots/screen-stories-console-desktop.png)
 
-![German navigation drawer at 374px](assets/screenshots/drawer-mobile.png)
+![German navigation drawer at 374px](assets/screenshots/screen-stories-drawer-mobile.png)

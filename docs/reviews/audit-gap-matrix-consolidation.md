@@ -50,7 +50,7 @@ pie title Distribución de Gaps por Dimensión
 
 ### A. Dimensión 1: Integridad de Dominio y Fuga de UUIDs (Impacto Crítico)
 
-- **Problema**: En `SeedingBuilderTemplate` , `ZoneGroupTemplate` y `AuditTrailTemplate` , la interfaz expone UUIDs opacos a los operadores de mesa y coordinadores de torneo.
+- **Problema**: En `SeedingBuilderTemplate`, `ZoneGroupTemplate` y `AuditTrailTemplate`, la interfaz expone UUIDs opacos a los operadores de mesa y coordinadores de torneo.
 - **Causa Raíz**: Los repositorios (`CompetitionRepository`, `EnrollmentRepository`) retornaban IDs sin hidratar las entidades relacionadas (nombres de equipos, personas o emails de actores).
 - **Solución**: Hidratación en backend o batch query de resolución en el controlador correspondiente.
 

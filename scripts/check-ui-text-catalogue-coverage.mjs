@@ -55,7 +55,7 @@ const BRAND_NAMES = new Set(['CopaLibre', 'COPALIBRE', 'COPALIBRE CMD']);
  */
 /** Exported only so the register's ratchet behavior can be pinned in tests without depending on a real entry, which churns to empty as debt is paid off. */
 export const KNOWN_HARDCODED = new Map([
-  // The three owned primitives that carried hardcoded labels are gone: the library-members pass
+  // The three owned primitives that carried hardcoded labels are gone: a later pass
   // made each one a required prop, so the copy comes from the caller's
   // catalogue and follows the interface language like everything else.
   // `pagination.tsx`, `modal.tsx` and `navigation-drawer.tsx` were here.

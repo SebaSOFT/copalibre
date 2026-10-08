@@ -766,7 +766,7 @@ describe('compact match card', () => {
  * last `build:tokens`. Every page in `apps/web` imports it directly, which means
  * a stale copy does not fail anything — it just serves last week's rules, and a
  * change to this file appears to have no effect. That is how an overflow fix in
- * A change read as inert against a browser that was rendering the previous build.
+ * the dashboard tournament section read as inert against a browser that was rendering the previous build.
  *
  * `apps/web`'s own build now regenerates it, so a stale file should be
  * impossible. This is the check that says so out loud if it happens anyway.

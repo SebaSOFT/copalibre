@@ -56,8 +56,8 @@ const goldZoneMatches = [
 
 /**
  * Two matches share this zone's own deepest round (round 1) — `championshipMatch` declines to
- * mark either one as the champion node when that happens (same "don't guess" rule the public tournament pages apply
- * to `resolveTournamentWinners`), so this zone's own ambiguity must not affect gold's marking.
+ * mark either one as the champion node when that happens (same "don't guess" rule applied to
+ * `resolveTournamentWinners`), so this zone's own ambiguity must not affect gold's marking.
  */
 const silverZoneMatches = [
   {
@@ -144,7 +144,7 @@ test('renders one bracket diagram per zone with a jump-list, real entrant data, 
   // Gold's single, structurally-deepest cross is marked as its own zone's champion node
   // (`.cl-bracket-stage__node` is the wrapper `championshipMatch` marks, one level above the
   // match card itself); silver's two concurrent deepest-round crosses are an ambiguous terminal
-  // round — declined, exactly the same "don't guess" rule the public tournament pages apply — unaffected by gold's.
+  // round — declined, exactly the same "don't guess" rule `resolveTournamentWinners` applies — unaffected by gold's.
   const goldNode = page.locator('.cl-bracket-stage__node', {
     has: page.locator('[data-match="1"]', { hasText: 'Talleres' }),
   });

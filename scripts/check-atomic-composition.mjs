@@ -245,7 +245,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/RosterRoleSelector.tsx', 4],
   ['control/components/screens/StandingsTemplate.tsx', 4],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 4],
-  // The GIVEN/WHEN/THEN rule composition into its own organism.
+  // The GIVEN/WHEN/THEN rule composition was extracted into its own organism.
   ['control/components/TournamentSetupWizard.tsx', 9],
   // A stage is genuinely an ordered list; the layout primitives (Stack/
   // Inline/Grid) only ever render a <div> and cannot become an <ol>, the
@@ -756,9 +756,8 @@ export const KNOWN_LITERAL_TEXT = new Map([
   // R10 cannot see, now resolve through the message catalogue via a
   // `data-player-dialog-labels` JSON island (the same mechanism
   // `BracketView.astro` already uses for `data-journey-matches`).
-  // `AcceptInvitationForm.tsx`'s entry is gone (
-  // found by /impeccable critique): every literal moved through
-  // `useIntl`/`FormattedMessage`, the same fix applied across this task.
+  // `AcceptInvitationForm.tsx`'s entry is gone: every literal moved through
+  // `useIntl`/`FormattedMessage`, the same fix applied elsewhere.
   ['control/components/ControlShell.tsx', 1],
   ['control/components/screens/RolesPermissionsTemplate.tsx', 1],
   ['pages/control/[...path].astro', 1],

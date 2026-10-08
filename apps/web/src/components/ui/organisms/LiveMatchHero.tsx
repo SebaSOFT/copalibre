@@ -100,7 +100,7 @@ export function LiveMatchHero({
                   <div aria-live="polite">
                     {/*
                      * The same side-row treatment `MatchCard` composes. Written by
-                     * hand as a bare `<p>` until the missing-library-members pass, which put the name and the
+                     * hand as a bare `<p>` until a later pass, which put the name and the
                      * score on separate lines: `EntrantName` renders `display: block`
                      * so its ResizeObserver has a constrained box to measure, and a
                      * block element in a paragraph takes the whole line. The owned

@@ -73,16 +73,16 @@ production chroma configuration. There is no hosted Storybook build or screensho
 
 These captures document local review, not pixel baselines.
 
-![Selected FilePicker beside neutral chrome on both bands](../assets/screenshots/selection.webp)
+![Selected FilePicker beside neutral chrome on both bands](../assets/screenshots/owned-control-coverage-selection.webp)
 
-![Green chroma behind the transparent TV overlay](../assets/screenshots/chroma.webp)
+![Green chroma behind the transparent TV overlay](../assets/screenshots/owned-control-coverage-chroma.webp)
 
-![Bright football sample](../assets/screenshots/football.webp)
+![Bright football sample](../assets/screenshots/owned-control-coverage-football.webp)
 
-![Dark basketball sample](../assets/screenshots/basketball.webp)
+![Dark basketball sample](../assets/screenshots/owned-control-coverage-basketball.webp)
 
-![Opaque kiosk on the football preview](../assets/screenshots/kiosk.webp)
+![Opaque kiosk on the football preview](../assets/screenshots/owned-control-coverage-kiosk.webp)
 
-![TV preview at 374px](../assets/screenshots/tv-mobile.webp)
+![TV preview at 374px](../assets/screenshots/owned-control-coverage-tv-mobile.webp)
 
-![German comparison at the 188px zoom floor](../assets/screenshots/selection-narrow.webp)
+![German comparison at the 188px zoom floor](../assets/screenshots/owned-control-coverage-selection-narrow.webp)
