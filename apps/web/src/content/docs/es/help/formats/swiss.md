@@ -32,3 +32,12 @@ CopaLibre soporta dos modelos principales de puntuación en formato suizo:
 ## Clasificación y Progresión
 
 Las clasificaciones en etapas suizas se evalúan mediante métricas de dificultad del calendario (Buchholz y Sonneborn-Berger). Comúnmente se utiliza una fase suiza para clasificar a los mejores 8 o 16 competidores a una llave eliminatoria.
+
+## Generar la próxima ronda
+
+Las fases suizas y de eliminación directa arman cada ronda a partir de la anterior, así que la operación genera una ronda recién cuando la previa está completa.
+
+- **Por zona**: Las rondas, los emparejamientos y los resultados pertenecen a una zona. Una fase con varias zonas avanza cada zona por separado y una zona nunca empareja participantes de otra.
+- **Dónde**: Con la fase sembrada, su pantalla de fase ofrece la acción **Generar la próxima ronda** para cada zona que juega suizo o eliminación directa. Las zonas con otro formato, como todos contra todos, no la tienen.
+- **Cuándo se rechaza**: Una zona no avanza mientras quede un partido sin terminar en su ronda actual. Eso bloquea solo a esa zona; las demás pueden avanzar.
+- **Por la API**: `POST .../stages/{stageNumber}/rounds/next` con `{ "zoneNumber": 2 }`. La zona es obligatoria si la fase tiene más de una; una fase con una sola zona no necesita cuerpo.

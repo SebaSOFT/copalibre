@@ -32,3 +32,12 @@ CopaLibre supports two primary Swiss scoring models:
 ## Standings & Progression
 
 Swiss stage standings are evaluated using Strength-of-Schedule tiebreakers such as Buchholz and Sonneborn-Berger. Organizers commonly use Swiss stages to qualify the top 8 or 16 players into a single-elimination playoff bracket.
+
+## Generating the next round
+
+Swiss and single-elimination stages build each round from the one before it, so the operator generates a round only after the previous one is complete.
+
+- **Per zone**: Rounds, pairings and results belong to a zone. A stage with several zones advances each zone on its own, and a zone never pairs entrants from another zone.
+- **Where**: Once a stage is seeded, its Stage hub lists a **Generate next round** action for every zone that plays Swiss or single elimination. Zones playing another format, such as round-robin, have no such action.
+- **When it is refused**: A zone cannot advance while a match of its current round is unfinished. That only blocks that zone; the others can still advance.
+- **Through the API**: `POST .../stages/{stageNumber}/rounds/next` with `{ "zoneNumber": 2 }`. The zone is required when the stage has more than one; a stage with a single zone needs no body.
