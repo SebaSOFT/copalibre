@@ -61,7 +61,7 @@ export class ObjectMetadataRepository {
     };
   }
 
-  /** Records the object and enqueues async processing (task 2.1) in the same transaction. */
+  /** Records the object and enqueues async processing in the same transaction. */
   async save(
     uow: UnitOfWork,
     input: {
@@ -130,7 +130,7 @@ export class ObjectMetadataRepository {
       .execute();
   }
 
-  /** A malware/validation failure (task 2.5) — exactly the kind of fact the audit trail exists for. */
+  /** A malware/validation failure — exactly the kind of fact the audit trail exists for. */
   async markFailed(
     uow: UnitOfWork,
     objectId: string,
@@ -242,8 +242,8 @@ export class ObjectMetadataRepository {
   /**
    * Deletes a stored object's metadata, refusing while any entity still
    * references it — the reference check and the delete run in the same
-   * transaction (design.md, "Object deletion checks reference, not usage
-   * history"), so a concurrent writer either commits its reference first
+   * transaction (object deletion checks reference, not usage
+   * history), so a concurrent writer either commits its reference first
    * (refusing this) or this commits first (the writer's own foreign key
    * then refuses it).
    */

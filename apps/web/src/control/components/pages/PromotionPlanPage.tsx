@@ -41,7 +41,7 @@ function classifyPreviewError(error: unknown, intl: IntlShape): PreviewError {
  * candidate list never writes a next stage's seeding. Only `combination.mode
  * === 'group-order'` is offered here (no config needed); `ranked`/`manual`
  * need a pipeline- or order-authoring UI this screen doesn't build yet
- * (tracked as a follow-up, tasks.md section 6).
+ * (tracked as a follow-up).
  *
  * Fetches and mutates: the zone and preview loads,
  * and the save mutation, live here; `PromotionPlanTemplate` composes the

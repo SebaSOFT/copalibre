@@ -562,7 +562,7 @@ export class PersonRepository {
    * registration, no roster membership, no identity link, no submitted
    * report. Any one of those references refuses the removal by name, an
    * up-front check rather than a caught foreign-key-violation error, so the
-   * refusal says which of four unrelated tables is blocking (design.md).
+   * refusal says which of four unrelated tables is blocking.
    * Requires the caller to have already confirmed the person exists and
    * belongs to this organization, matching `updateIdentity`'s own contract.
    */

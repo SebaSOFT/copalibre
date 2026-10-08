@@ -5,7 +5,7 @@ name: Module validation
 # pull request via `uses: SebaSOFT/copalibre/.github/workflows/
 # module-validation.yml@develop`, so a contribution is checked before review
 # rather than after an operator's failed import. ci.yml's own
-# `module-validation` job (task 8.1) also calls this, pointed at the
+# `module-validation` job also calls this, pointed at the
 # reference repository's fixtures, so a core change that breaks the module
 # contract fails here rather than in the community repository.
 on:

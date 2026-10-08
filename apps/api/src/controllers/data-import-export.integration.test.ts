@@ -469,7 +469,7 @@ describe('team-membership CSV import target', () => {
   });
 
   it('refuses commit, without writing anything, when a validated row’s team no longer resolves', async () => {
-    // Simulates the preview/commit race design.md calls out: the stored
+    // Simulates the preview/commit race: the stored
     // preview says the row is valid (as the worker would have, at the
     // time), but the team it named is not actually a registered entrant in
     // this tournament by commit time.

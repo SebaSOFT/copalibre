@@ -44,13 +44,12 @@ function declaredRoutes(): readonly DeclaredRoute[] {
 }
 
 /**
- * Every route this change identified as role-guarded (task 1.1's
- * enumeration) is converted to `RequireOrganizationCapability` (task 2.2).
+ * Every route this change identified as role-guarded is converted to `RequireOrganizationCapability`.
  * `route-capability-mapping.ts`'s `ROUTE_CAPABILITIES` was the oracle
  * `capability-guard-equivalence.test.ts` checked pre-conversion — it
  * verified, once, that resolving each entry's capability through
  * `rolesForCapability` reproduced the roles that route admitted before this
- * change (deliberate exceptions named and reasoned in `design.md`). That
+ * change, apart from deliberate exceptions. That
  * history does not need re-deriving on every run; what this file guards
  * against now is drift between the two things that must stay in lockstep
  * going forward: no route left on the legacy role-listing guard, and every

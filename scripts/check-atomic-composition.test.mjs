@@ -49,7 +49,7 @@ test("R12 covers check-ui-ownership.mjs registers too, not only this script's ow
   assert.ok(nodes.has('control/components/TournamentSummaryCard.tsx'));
 
   // And the seven paths that moved under ui/ during an earlier tier move are
-  // now gone from the register entirely (task 1.5) rather than repointed —
+  // now gone from the register entirely rather than repointed —
   // repointing them would still be unreachable, since the ownership scanner
   // skips every ui/ directory unconditionally.
   for (const stale of [
@@ -540,8 +540,8 @@ test('R10 catalogue resolution: a descriptor id resolving in the source catalogu
 });
 
 test('R10 catalogue resolution finds no real gap in the French and Italian control catalogues', () => {
-  // Both families reported false gaps (fr 78, it 44) until task 2.6 fixed
-  // MESSAGE_ID_IN_RECORD to accept a double-quoted value — French/Italian
+  // Both families reported false gaps (fr 78, it 44) until
+  // MESSAGE_ID_IN_RECORD was fixed to accept a double-quoted value — French/Italian
   // legitimately double-quote a translation containing an apostrophe.
   const violations = checkCatalogueResolution(webSrc);
   const frMissing = violations.filter((v) => v.path === 'control/i18n/messages.fr.ts');

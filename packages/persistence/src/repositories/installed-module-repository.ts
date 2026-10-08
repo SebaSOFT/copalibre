@@ -43,7 +43,7 @@ export interface InstalledModuleAsset {
 export class InstalledModuleRepository {
   constructor(private readonly db: Kysely<Database>) {}
 
-  /** The attribution already holding `alias`, if any version of it is installed — task 3.6's collision check. */
+  /** The attribution already holding `alias`, if any version of it is installed — used for the collision check. */
   async findHolderByAlias(
     alias: string,
   ): Promise<{ readonly attribution: Attribution } | undefined> {
@@ -205,7 +205,7 @@ export class InstalledModuleRepository {
   }
 
   /**
-   * Removes an installed module and its asset references (task 4.5 checks
+   * Removes an installed module and its asset references (callers check
    * "referenced by a started tournament" before calling this — removal
    * itself does not re-check, so the check and the act cannot race apart).
    * Leaves the underlying `discipline_descriptors`/`tournament_profiles` row

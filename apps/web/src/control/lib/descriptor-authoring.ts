@@ -17,8 +17,8 @@ import type { DisciplineSummaryData, EventSummaryData } from './discipline-summa
  *
  * Produces a plain JSON document matching `DisciplineDescriptorDocument`'s
  * shape — never a typed domain object — because the server is the single
- * validation authority (design.md's "Validation is the domain's, at every
- * step"): this file's job is to compose the document and refuse an
+ * validation authority (validation is the domain's, at every
+ * step): this file's job is to compose the document and refuse an
  * incoherent one *before* it is sent, not to re-implement schema validation.
  *
  * Scope cut, deliberate: tags, rosterRoles, tableLayouts, collectors, series
@@ -203,7 +203,7 @@ export interface EventDefinitionDraft {
   readonly category: EventCategory;
   readonly actorRequirement: ActorRequirement;
   readonly permittedSegmentTypes: readonly string[];
-  /** The one statistic this event's occurrence awards, if any — task 2.3's "relationship between them". */
+  /** The one statistic this event's occurrence awards, if any. */
   readonly awardsStatisticCode?: string;
   readonly awardsDelta: number;
 }

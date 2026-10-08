@@ -3,7 +3,7 @@ name: TV Soak Test
 # A kiosk is never restarted by a person, so a slow leak that no per-PR test
 # run can see is exactly what this exists to catch.
 # GitHub-hosted runners cap a single job well short of the multi-day window
-# design.md describes, so this runs as long as the job timeout below allows
+# the soak design describes, so this runs as long as the job timeout below allows
 # and fails on unbounded growth within that window — the same nightly-cron,
 # fail-the-scheduled-job pattern as backup-restore-drill.yml, at this job's
 # own duration rather than that one's.

@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
 // must not cite an OpenSpec change by number or numbered directory name, and no
 // tracked file name may start with one. Change directories are git-ignored, so a
 // citation points at something a fresh clone does not have. Describe the
-// behavior in words instead.
+// behavior in words instead. The same holds for a change's planning documents
+// (a task number, or its design, tasks or proposal file named as a source).
 //
 // The guard is syntactic. CI cannot read the local change set, so it matches
 // citation vocabulary and shapes rather than asking whether a number is a real
@@ -26,6 +27,24 @@ const CITATION_PATTERNS = [
   ['"NNNN\'s"', new RegExp(`(?<![\\w.:/#-])${NUMBER}'s\\b`)],
   ['"NNNN: " label', new RegExp(`(?:\\/\\/|\\*|#|['"\`])\\s*${NUMBER}:\\s`)],
   ['"// NNNN — " label', new RegExp(`(?:\\/\\/|\\*|#)\\s+${NUMBER}\\s+[—–-]\\s`)],
+];
+
+/**
+ * A change's planning artifacts, cited as the source of a rationale. `DESIGN.md` (the product
+ * design document) is a tracked file and is deliberately not matched: these are case-sensitive
+ * on the file name, and a path such as `docs/design.md` is not a citation.
+ */
+const ARTIFACT_PATTERNS = [
+  ['task number', /(?<![A-Za-z])[Tt]asks?\s+\d+(?:\.\d+)+/],
+  ['change planning document', /(?<![A-Za-z./-])(?:design|tasks|proposal)\.md\b/],
+];
+
+/** Files that describe the OpenSpec workflow itself and so name its documents on purpose. */
+const WORKFLOW_DOCUMENTATION_PATHS = [
+  /^AGENTS\.md$/,
+  /^\.github\/pull_request_template\.md$/,
+  /^openspec\/config\.yaml$/,
+  /^\.claude\//,
 ];
 
 /** A numbered change directory name, e.g. a slug of digits then kebab words. */
@@ -56,6 +75,10 @@ const BINARY_EXTENSIONS = new Set([
   '.pdf',
 ]);
 
+export function isWorkflowDocumentation(path) {
+  return WORKFLOW_DOCUMENTATION_PATHS.some((pattern) => pattern.test(path));
+}
+
 export function isExemptPath(path) {
   return EXEMPT_PATH_PATTERNS.some((pattern) => pattern.test(path));
 }
@@ -84,9 +107,12 @@ export function migrationNames(trackedPaths) {
 export function findCitations(path, text, knownMigrations = new Set()) {
   if (isExemptPath(path)) return [];
   const findings = [];
+  const patterns = isWorkflowDocumentation(path)
+    ? CITATION_PATTERNS
+    : [...CITATION_PATTERNS, ...ARTIFACT_PATTERNS];
   const lines = text.split('\n');
   lines.forEach((line, index) => {
-    for (const [kind, pattern] of CITATION_PATTERNS) {
+    for (const [kind, pattern] of patterns) {
       const match = pattern.exec(line);
       if (match) findings.push({ path, line: index + 1, citation: match[0].trim(), kind });
     }

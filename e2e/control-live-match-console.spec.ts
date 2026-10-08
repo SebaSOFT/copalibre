@@ -388,7 +388,7 @@ test('records a foul, chooses a card outcome, and shows it in the ledger', async
       }),
     );
   // The chosen outcome is what lands in the timeline — the preliminary
-  // "foul" trigger is never itself submitted (design.md).
+  // "foul" trigger is never itself submitted.
   await expect(page.getByLabel('Ledger y estado')).toContainText('yellow-card');
 });
 

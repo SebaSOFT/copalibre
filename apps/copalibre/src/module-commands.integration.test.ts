@@ -8,7 +8,7 @@ import {
 import { moduleAdd } from './module-commands.js';
 
 /**
- * Task 7.6: the `--source` allow-list gate (module-commands.ts's own
+ * The `--source` allow-list gate (module-commands.ts's own
  * resolveSource, not module-distribution's import pipeline, which has no
  * concept of "curated vs. alternate" beyond recording whichever ModuleSource
  * it is given). Reuses the real curated repository's URL as a stand-in

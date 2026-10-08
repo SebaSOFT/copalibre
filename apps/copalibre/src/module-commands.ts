@@ -74,7 +74,7 @@ async function credentialFor(): Promise<
   return stored ? { apiUrl: stored.apiUrl, token: stored.token } : undefined;
 }
 
-/** `copalibre module add <alias>[@range]` (task 4.1). */
+/** `copalibre module add <alias>[@range]`. */
 export async function moduleAdd(
   arguments_: readonly string[],
   environment: NodeJS.ProcessEnv,
@@ -169,7 +169,7 @@ export async function moduleAddDirect(
   }
 }
 
-/** `copalibre module list [--outdated]` (tasks 4.3-4.4). */
+/** `copalibre module list [--outdated]`. */
 export async function moduleList(
   arguments_: readonly string[],
   environment: NodeJS.ProcessEnv,
@@ -242,7 +242,7 @@ export async function moduleList(
   }
 }
 
-/** `copalibre module remove <alias>` (task 4.5). */
+/** `copalibre module remove <alias>`. */
 export async function moduleRemove(
   arguments_: readonly string[],
   environment: NodeJS.ProcessEnv,
@@ -325,7 +325,7 @@ export async function moduleRemoveDirect(
   }
 }
 
-/** `copalibre module verify` (task 4.6). */
+/** `copalibre module verify`. */
 export async function moduleVerify(
   _arguments_: readonly string[],
   environment: NodeJS.ProcessEnv,

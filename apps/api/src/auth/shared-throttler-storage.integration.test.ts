@@ -68,7 +68,7 @@ describe('SharedThrottlerStorage (integration)', () => {
     }
   });
 
-  it('renews expired window and measures latency and query plan under real database (task 3.4)', async () => {
+  it('renews expired window and measures latency and query plan under real database', async () => {
     const scratch = await createMigratedDatabase('shared-throttler-latency');
     try {
       const storage = new SharedThrottlerStorage(scratch.db);

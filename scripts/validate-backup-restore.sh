@@ -17,7 +17,7 @@ set -euo pipefail
 # against Garage as an ordinary S3-compatible data-plane client —
 # this repo has no object-storage backup CLI of its own yet (that's the object-storage adapter's
 # job), and none is needed here: mirroring a bucket with standard S3 tooling
-# is deployment tooling, not new application code, matching design.md's
+# is deployment tooling, not new application code, matching the deployment's
 # non-goals.
 # Always tears the cluster down on exit — this is a validation environment,
 # never a production target.

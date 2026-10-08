@@ -17,7 +17,7 @@ const controller = class Controller {};
 
 /**
  * `RequireOrganizationCapability` resolves through `rolesForCapability`
- * rather than naming roles directly (task 2.1). This asserts the
+ * rather than naming roles directly. This asserts the
  * `organization-capability` requirement kind admits and refuses exactly the
  * roles the equivalent `organization-role` requirement would, for the same
  * assignment — the guard's own behavior mirrors what

@@ -17,7 +17,7 @@ test('recursive story coverage includes every React surface in the repository', 
   assert.deepEqual(checkScreenStoryCoverage(root), []);
 });
 
-test('screens require stories based on the filesystem, excluding categories (design.md)', () => {
+test('screens require stories based on the filesystem, excluding categories', () => {
   const root = mkdtempSync(join(tmpdir(), 'screen-coverage-'));
   writeFileSync(join(root, 'Uncovered.tsx'), 'export function Uncovered() { return null; }');
   const violations = checkScreenStoryCoverage(root);

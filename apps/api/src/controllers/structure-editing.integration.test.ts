@@ -112,7 +112,7 @@ async function acceptedTeamEntrant(tournamentId: string, name: string): Promise<
   });
 }
 
-describe('tournament settings edit and preview (tasks 1.2-1.3, 6.1-6.2)', () => {
+describe('tournament settings edit and preview', () => {
   it('reads back the settings a tournament was seeded with', async () => {
     const { tournamentAlias } = await seedTournament();
     const response = await request({
@@ -199,7 +199,7 @@ describe('tournament settings edit and preview (tasks 1.2-1.3, 6.1-6.2)', () => 
   });
 });
 
-describe('stage editing (tasks 2.1-2.2, 6.3)', () => {
+describe('stage editing', () => {
   async function seedStage(tournamentId: string, number = 1) {
     const competition = new CompetitionRepository(scratch.db);
     return withTransaction(scratch.db as Kysely<Database>, (uow) =>
@@ -320,7 +320,7 @@ describe('stage editing (tasks 2.1-2.2, 6.3)', () => {
   });
 });
 
-describe('zone and group editing (tasks 3.1-3.2, 6.4)', () => {
+describe('zone and group editing', () => {
   async function seedStage(tournamentId: string) {
     const competition = new CompetitionRepository(scratch.db);
     return withTransaction(scratch.db as Kysely<Database>, (uow) =>

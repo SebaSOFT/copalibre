@@ -2,7 +2,7 @@
  * Label + control-atom slot + help/error text (the
  * `Field` molecule, renamed and given a `required` indicator; `Label`
  * moves from a component with one consumer to this molecule's internal).
- * The control-web-shell "no state below organism" rule (design.md Decision 7):
+ * The control-web-shell "no state below organism" rule:
  * this molecule receives everything via props, it fetches nothing.
  *
  * CSS classes stay `cl-form-field*` across the rename — several screens

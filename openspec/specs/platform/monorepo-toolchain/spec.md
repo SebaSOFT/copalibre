@@ -471,3 +471,22 @@ The repository SHALL maintain a versioned, machine-readable register of confirme
 #### Scenario: Security incident reporting preserves the audit gate
 - **WHEN** the report is generated for a CI run
 - **THEN** it does not change dependency audit results or automatically modify dependency manifests, resolutions, or lockfiles
+
+### Requirement: Tracked Content Carries No Change-Number Citation
+Tracked file content and tracked file names SHALL NOT cite an OpenSpec change by number or by its numbered directory name, because change directories are git-ignored and exist only on the machine that created them. Comments, docstrings, test and story names, workflow and script comments, documentation prose, configuration reasons and accepted specs SHALL describe the behavior or rationale in words. Continuous integration SHALL fail when tracked content or a tracked file name contains such a citation. The generated release history, database migration files and their sequence numbers, and lockfiles SHALL be exempt. Four-digit values that are not citations (ports, years, fixtures, version strings) SHALL NOT be reported.
+
+#### Scenario: A comment cites a change by number
+- **WHEN** a tracked source file contains a citation: the word "openspec" or "change" followed by a four-digit change number, a parenthesised four-digit number, or a four-digit number followed by a kebab-case change name
+- **THEN** the change-number guard fails continuous integration and reports the file and line
+
+#### Scenario: A tracked file name starts with a change number
+- **WHEN** a tracked file outside the migrations directory has a basename starting with a four-digit change number followed by a hyphen
+- **THEN** the guard fails and reports the file path
+
+#### Scenario: Non-citation four-digit values are not reported
+- **WHEN** tracked content contains a port number, a year, a migration sequence number or a fixture literal
+- **THEN** the guard reports nothing for it
+
+#### Scenario: Exempt files may keep historical numbers
+- **WHEN** `CHANGELOG.md`, a migration file or a lockfile contains a change number
+- **THEN** the guard does not fail

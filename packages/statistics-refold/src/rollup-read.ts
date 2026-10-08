@@ -81,7 +81,7 @@ async function buildMembership(
       personIds.map(async (personId): Promise<readonly [string, string] | undefined> => {
         // Several team memberships are a real possibility one stored figure
         // cannot disambiguate on its own; the first, ordered by team name, is
-        // a documented limitation (design.md's Decisions section), not a
+        // a documented limitation, not a
         // claim of correctness for a person who changed teams mid-season.
         const memberships = await enrollment.listParticipantTeamMemberships(
           organizationId,

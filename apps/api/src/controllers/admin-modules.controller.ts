@@ -84,7 +84,7 @@ import { OBJECT_STORAGE } from '../object-storage.token.js';
  * Reuses the same domain logic the CLI's direct-database path calls
  * (`fetchModule`/`validateModulePackageOrThrow`/`importValidatedModule`/
  * `InstalledModuleRepository`) unchanged; only the presentation layer (JSON
- * here, stdout text in `module-commands.ts`) differs (design.md's Risk note).
+ * here, stdout text in `module-commands.ts`) differs.
  */
 @ApiTags('admin')
 @ApiExtraModels(InstalledModuleResponse, OutdatedModuleResponse)

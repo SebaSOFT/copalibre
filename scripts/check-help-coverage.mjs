@@ -14,7 +14,7 @@ import { parse as parseYaml } from 'yaml';
 // thin main() doing the file I/O.
 
 /**
- * Vocabulary a scenario is judged "operator-facing" by, per design.md:
+ * Vocabulary a scenario is judged "operator-facing" by, per the help-coverage design:
  * "a capability is operator-facing when its requirements describe something
  * a person does". Deliberately generous — the design's own trade-off is
  * that a false positive costs a page nobody strictly needed, a false

@@ -75,8 +75,8 @@ const GROUP_DISTRIBUTION_LABELS: Readonly<
 
 /**
  * The stage list both `TournamentSetupWizard` and `ProfileBuilderWizard` author —
- * one shared component so their stage editors never drift (design.md's
- * "Profile-picked stages render read-only in `TournamentSetupWizard`" reuses
+ * one shared component so their stage editors never drift (profile-picked stages render read-only in
+ * `TournamentSetupWizard` and reuse
  * the same rendering path via `readOnly`, never a separate preview component).
  *
  * Data the component itself has no way to know — which formats a discipline

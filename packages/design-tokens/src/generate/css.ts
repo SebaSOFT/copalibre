@@ -762,7 +762,7 @@ function components(): string {
     ".cl-dropdown-menu__item[data-variant='destructive'] { color: var(--cl-state-destructive); }",
     '.cl-dropdown-menu__item[data-disabled] { color: var(--cl-text-muted); pointer-events: none; }',
     '',
-    '/* Templates own inter-section spacing (design.md Decision 7) — no component below this tier sets its own external margin. */',
+    '/* Templates own inter-section spacing — no component below this tier sets its own external margin. */',
     '.cl-list-screen, .cl-form-screen, .cl-match-console-screen { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); min-width: 0; }',
     // A grid item's default `min-width: auto` sizes it to its content, which
     // silently defeats a descendant's `overflow-x: auto` (a wide table forces
@@ -1206,7 +1206,7 @@ function components(): string {
     // inline default, and `min-width: 0` so the resize-observer truncation
     // this atom does internally can actually shrink below its content's own
     // width — an atom owns all of its own styling, so this is a class, not
-    // the inline style object task 5.1's primitives exist to replace.
+    // the inline style object the layout primitives exist to replace.
     '.cl-entrant-name { display: block; min-width: 0; }',
     '',
     "/* The matches-view card — shared by MatchCard.tsx on both public-web and control-web, so it lives here rather than in either surface's own page-scoped styles. */",
@@ -1293,7 +1293,7 @@ function components(): string {
     // variant, not MatchCardData's shape: a seed and a per-participant winner
     // flag have no place there. No `box-shadow` here: an `isLive`-only resting
     // glow (`--cl-glow-cyan`) used to mark the live state at the card level
-    // (task 5.4 removed it, DESIGN.md's anti-glow rule) — redundant ornament
+    // (removed under DESIGN.md's anti-glow rule) — redundant ornament
     // even before the ban, since the status pill's own background, colour and
     // "LIVE"/"FINAL" text already carry that fact on their own.
     '.cl-championship-card { background: var(--cl-surface-panel); border: 2px solid var(--cl-state-live); padding: var(--cl-space-4); position: relative; overflow: hidden; }',
@@ -1953,7 +1953,7 @@ function dialog(): string {
 /**
  * Control-web's denser spacing composition, scoped to `[data-density="control"]`
  * so the exact same atoms render tighter there than on the marketing surfaces —
- * a composition choice, not a second component tree (design.md Decision 4).
+ * a composition choice, not a second component tree.
  */
 function density(): string {
   return [

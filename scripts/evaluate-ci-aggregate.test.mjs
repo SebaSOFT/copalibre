@@ -94,7 +94,7 @@ describe('evaluate-ci-aggregate', () => {
     assert.match(result.reason ?? '', /unexpectedly skipped/i);
   });
 
-  // Task 1.9 failure injection test across all 5 families
+  // Failure injection test across all 5 families
   for (const family of STABLE_CHECK_NAMES) {
     it(`failure-injection: ${family} aggregate cannot report success if its worker fails`, () => {
       const result = evaluateAggregateStatus({

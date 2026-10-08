@@ -3,7 +3,7 @@
  * plus the formatted clock text). Extracted from an inline definition in
  * `MatchConsolePage.tsx`: single-use in that screen does not make it a
  * "page" concern — it is a self-contained visual organism regardless of how
- * many screens currently mount it (design.md Decision 7 applies the same way
+ * many screens currently mount it (the props-only rule applies the same way
  * to a one-consumer organism as a many-consumer one).
  */
 import { useIntl } from 'react-intl';

@@ -181,7 +181,7 @@ export class DataImportExportController {
       // given team: avoids an N+1 `squadOf` call per row, and lets a repeated
       // teamAlias within one file (or a re-run of the same file) recognise an
       // already-enlisted person without a second `enlist` call (the
-      // additive-with-idempotent-reimport contract; see design.md).
+      // additive-with-idempotent-reimport contract).
       const squadCache = new Map<string, Set<string>>();
       for (const row of session.preview.rows) {
         const values = row.values;
@@ -244,8 +244,7 @@ export class DataImportExportController {
             : undefined;
           if (!team || !entrant) {
             // The reviewed preview validated `teamAlias` against this
-            // tournament's registered team entrants (worker-side, per
-            // design.md); reaching commit without one resolving means the
+            // tournament's registered team entrants (worker-side); reaching commit without one resolving means the
             // registration this preview relied on no longer holds — the same
             // "what was validated no longer holds" family as a stale
             // sourceHash, not a fresh 404.

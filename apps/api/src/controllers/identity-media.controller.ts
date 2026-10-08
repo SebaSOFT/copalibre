@@ -69,7 +69,7 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
  * check. Each serve route resolves its own entity's stored reference
  * server-side rather than accepting an arbitrary object id, which is what
  * keeps this narrower than a generic `GET /objects/:objectId` reader would
- * be (design.md Decision 2).
+ * be.
  */
 @ApiTags('persons')
 @Controller('organizations/:organizationAlias/persons/:personId')
@@ -607,7 +607,7 @@ async function decodeImage(upload: UploadImageRequest): Promise<Buffer> {
  * `pending` polls (202, no body, matching how a freshly-uploaded row sits
  * until `objectProcessingHandler` picks it up), `failed` never serves
  * (404), `passed` streams through the adapter with a long-lived cache
- * header (design.md Decision 2).
+ * header.
  */
 async function streamStoredObject(
   db: Kysely<Database>,

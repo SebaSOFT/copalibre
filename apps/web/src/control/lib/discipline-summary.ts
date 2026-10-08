@@ -220,7 +220,7 @@ export function observedFieldValue(
 
 /**
  * Which control shape edits a field, derived from its declared policy and
- * observed value — never a new per-field schema (design.md's Non-Goals).
+ * observed value — never a new per-field schema.
  * `undefined` means the field is not editable at all (`forbidden`/`inherited`).
  */
 export type ControlKind =

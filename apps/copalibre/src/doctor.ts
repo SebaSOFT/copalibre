@@ -38,7 +38,7 @@ export interface DoctorDependencies {
   readonly probeDatabase: (connectionString: string) => Promise<void>;
   readonly ensureWritable: (path: string) => Promise<void>;
   readonly fetch: typeof fetch;
-  /** Installed community discipline versions no started/finished tournament references (task 4.7). */
+  /** Installed community discipline versions no started/finished tournament references. */
   readonly retirableModules: (connectionString: string) => Promise<readonly RetirableModule[]>;
   /** Puts, reads back, and deletes a small probe object against the configured profile. */
   readonly objectStorageRoundTrip: (environment: NodeJS.ProcessEnv) => Promise<void>;
@@ -275,7 +275,7 @@ export async function validateDatabase(
   }
 }
 
-/** Reports installed community discipline versions no live tournament references (task 4.7) — informational, never `fail`. */
+/** Reports installed community discipline versions no live tournament references — informational, never `fail`. */
 export async function validateRetirableModules(
   environment: NodeJS.ProcessEnv,
   dependencies: Pick<DoctorDependencies, 'retirableModules'>,

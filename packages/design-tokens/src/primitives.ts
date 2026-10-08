@@ -121,7 +121,7 @@ export const BREAKPOINTS = {
 } as const;
 
 /**
- * A 4px scale (resolves design.md's open question).
+ * A 4px scale.
  *
  * Four rather than eight because operator tables are dense and an 8px floor
  * forces every tight layout to opt out — a scale nobody can honour is a scale

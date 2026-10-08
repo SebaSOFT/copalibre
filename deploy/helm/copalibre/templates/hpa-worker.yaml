@@ -6,6 +6,6 @@
 # Kubernetes External metric. See docs/deployment/enterprise-kubernetes.md
 # for the specific adapter requirement — no fallback to CPU-based scaling is
 # used here by default, since that would silently violate the "exactly
-# these three signals" decision in design.md.
+# these three signals" decision.
 {{ include "copalibre.hpa" (dict "role" "worker" "cfg" .Values.autoscaling.worker "root" .) }}
 {{- end }}

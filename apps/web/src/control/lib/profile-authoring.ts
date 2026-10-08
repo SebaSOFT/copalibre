@@ -39,8 +39,7 @@ export const PROFILE_STEPS: readonly {
 ];
 
 /**
- * A profile's stage shares `TournamentSetupWizard`'s stage shape (design.md,
- * "one shared stage-editor component") but never declares `series` — a
+ * A profile's stage shares `TournamentSetupWizard`'s stage shape (one shared stage-editor component) but never declares `series` — a
  * profile is discipline-neutral and has no per-tournament series concept of
  * its own; it declares only format and a default seeding `allocation`.
  */

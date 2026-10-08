@@ -22,12 +22,12 @@ export const communityModuleInstallation: Migration = {
       // Denormalized from the descriptor/profile document at install time —
       // avoids a join that would otherwise have to pick between two
       // different target tables depending on `kind`, just to answer "who
-      // holds this alias" for the reserved-alias-shadowing check (task 3.6).
+      // holds this alias" for the reserved-alias-shadowing check.
       .addColumn('attribution_author', 'text', (col) => col.notNull())
       .addColumn('attribution_licence', 'text', (col) => col.notNull())
       .addColumn('attribution_source_url', 'text')
       // Snapshotted from the manifest at install time so `module verify`
-      // (task 4.6) can re-check core-version compatibility without needing
+      // can re-check core-version compatibility without needing
       // the original module package on disk.
       .addColumn('requires_copalibre', 'text', (col) => col.notNull())
       .addColumn('source_kind', 'text', (col) => col.notNull())

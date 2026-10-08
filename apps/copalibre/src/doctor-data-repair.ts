@@ -20,7 +20,7 @@ export interface RepairResult {
 /**
  * Corrects one tournament's non-canonical `status` to an operator-confirmed
  * valid one, inside a single `withTransaction` unit of work with an
- * `audit_log` entry — never a silent rewrite (design.md Decision 3).
+ * `audit_log` entry — never a silent rewrite.
  */
 export async function repairTournamentStatus(
   db: Kysely<Database>,
@@ -63,11 +63,11 @@ export function createRepairActions(db: Kysely<Database>): RepairActions {
 }
 
 /**
- * Decision-support prompt (design.md Decision 2): presents each fixable
+ * Decision-support prompt: presents each fixable
  * anomaly, its resolution options, and a confirmation before committing.
  * Node's built-in `readline/promises` rather than a TUI library — the
  * standalone SEA binary externalizes native bindings and stays dependency-thin
- * (design.md "Open gate: interactive prompt library in standalone SEA CLI").
+ * (the choice of an interactive prompt library for the standalone SEA CLI is still open).
  */
 export interface Prompter {
   readonly isInteractive: boolean;
@@ -111,8 +111,7 @@ export function createPrompter(
  * Walks every fixable anomaly in `snapshot`, prompting for a resolution and a
  * confirmation before applying it. Returns the number of repairs actually
  * applied. Requires a TTY (`prompter.isInteractive`) — with none, it reports
- * that and applies nothing, rather than guessing (design.md Non-Goals:
- * `copalibre doctor` never mutates data without explicit confirmation).
+ * that and applies nothing, rather than guessing (`copalibre doctor` never mutates data without explicit confirmation).
  */
 export async function runInteractiveRepair(
   snapshot: DataIntegritySnapshot,

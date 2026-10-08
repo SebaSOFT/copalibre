@@ -1,7 +1,7 @@
 import NodeClam from 'clamscan';
 
 /**
- * `bypassTest: true` (task 2.3): connectivity is checked lazily, on the
+ * `bypassTest: true`: connectivity is checked lazily, on the
  * first real scan, not here — an installation where `clamd` is briefly
  * unreachable at worker startup should still start; the scan job itself
  * fails and retries through the existing outbox backoff/dead-letter path

@@ -1,6 +1,6 @@
 /**
- * Original composition — layout/responsiveness only, no data-fetching
- * (design.md Decision 3). `apps/web/src/control/lib/table-projections.ts`
+ * Original composition — layout/responsiveness only, no data-fetching.
+ * `apps/web/src/control/lib/table-projections.ts`
  * shapes tournament-data columns/rows for this organism; an admin listing
  * (roles, modules) shapes its own columns/rows the same way — one organism,
  * two consumers, neither owning fetching or pagination cursors.

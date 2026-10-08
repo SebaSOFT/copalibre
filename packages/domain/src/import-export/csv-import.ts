@@ -12,7 +12,7 @@ export type ParticipantImportTarget = ParticipantType;
  * registered team's persistent membership — it does not register a new
  * entrant, so it is deliberately not folded into `ParticipantType`: that type
  * gates which entrant *kinds* a discipline accepts, an axis this target has
- * nothing to do with (see design.md, "Type: a new `CsvImportTarget` union").
+ * nothing to do with.
  */
 export type CsvImportTarget = ParticipantImportTarget | 'team-membership';
 

@@ -146,7 +146,7 @@ describe('default module catalogue', () => {
       expect(codes.has(option.definitionCode)).toBe(true);
     }
 
-    // Card outcomes reuse football's existing card events (design.md) rather
+    // Card outcomes reuse football's existing card events rather
     // than declaring foul-scoped copies, so they feed the collectors already
     // wired to `yellow-card`/`red-card` with no new collector.
     const collectorCodes = (football.collectors ?? []).flatMap((collector) =>

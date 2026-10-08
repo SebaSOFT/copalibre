@@ -223,7 +223,7 @@ describe('copalibre statistics-rebuild (integration)', () => {
     expect(rows).toEqual([]);
   });
 
-  it('populates totals for finalized matches with no prior statistic_totals rows, and reproduces them byte-for-byte on a second run (tasks 7.4/5.2)', async () => {
+  it('populates totals for finalized matches with no prior statistic_totals rows, and reproduces them byte-for-byte on a second run', async () => {
     const first = await runStatisticsRebuild(db, { organization: organizationAlias });
     expect(first.matches).toBe(2);
     expect(first.figures).toBeGreaterThan(0);
@@ -289,7 +289,7 @@ describe('copalibre statistics-rebuild (integration)', () => {
  * totals specifically (every collector above is match-scoped), that scoping
  * to one tournament actually excludes another, or that a match with no
  * recorded roster still contributes team figures while contributing no
- * person figures — the exact "backfill has a real limit" design.md states.
+ * person figures — the exact "backfill has a real limit".
  */
 describe('statistics-rebuild — organization granularity, scope, and the no-roster limit', () => {
   let scratch: ScratchDatabase;
@@ -598,8 +598,7 @@ describe('statistics-rebuild — organization granularity, scope, and the no-ros
     // which cannot equal any real UUID `personId` — no real person's career
     // total is ever affected. Changing `resolvedActor` to skip writing that
     // row is a real, worthwhile cleanup, but is a `foldStatistics` change
-    // design.md's own "No change to foldStatistics" ruled out of this
-    // proposal (tracked as 7.4).
+    // the original scope ruled out (tracked as a follow-up).
     const realPersonRows = careerGoalsRows.filter((row) => row.actor_id !== '');
     expect(realPersonRows).toEqual([
       expect.objectContaining({

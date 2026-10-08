@@ -4,7 +4,7 @@
  * 1.1) purely for callers that want to record it (e.g. `packages/persistence`'s
  * object metadata table), never to branch behavior: every caller of `put`/
  * `get`/`delete` sees the same contract regardless of which profile is
- * active (design.md's "callers never see which profile is active").
+ * active (callers never see which profile is active).
  */
 export type StorageProfile = 's3' | 'filesystem';
 

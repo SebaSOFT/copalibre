@@ -92,7 +92,7 @@ describe('copalibre doctor command (integration)', () => {
   /**
    * `--fix` piped through a child process's stdout/stderr has no TTY —
    * exactly the "operator ran this from a script or CI job" case
-   * design.md's Non-Goals rule out ever mutating data for. The real `DATABASE_URL` is required to reach the repair step
+   * in which `doctor` must never mutate data. The real `DATABASE_URL` is required to reach the repair step
    * at all; without it `--fix` is a silent no-op, which is not what this
    * test is verifying.
    */

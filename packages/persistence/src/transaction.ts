@@ -68,7 +68,7 @@ export interface OutboxEvent {
 /**
  * Handed to every repository method. Carries the open transaction plus the
  * audit/outbox writers bound to it — the reason a repository cannot write an
- * audit row outside a transaction (task 3.2) is that it has no other way to
+ * audit row outside a transaction is that it has no other way to
  * reach one.
  */
 export interface UnitOfWork {
@@ -132,8 +132,7 @@ export async function withTransaction<T>(
  * Records a refused attempt outside any mutation transaction — the
  * operation was refused, often before one was ever opened (an authorization
  * check runs before a repository is touched), so there is usually no
- * transaction to write inside. Best-effort by design (proposal.md, "Risk
- * concentrated in one place"): a failure here must never turn the refusal
+ * transaction to write inside. Best-effort by design: a failure here must never turn the refusal
  * the caller already returned into a server error, so it is caught and
  * handed to `onRecordingFailure` rather than re-thrown. Callers that have
  * their own error-reporting channel (the API's `Logger`, for instance)

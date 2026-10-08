@@ -19,7 +19,7 @@ import { buildEliminationTree, nextPowerOfTwo } from './single-elimination.js';
  *   - LB round 1 is minor and consumes the `S/2` losers of WB round 1;
  *   - total LB rounds = `2k - 2`.
  *
- * Note on the design doc: `design.md` states `2*log2(N)-1` LB rounds. That is off
+ * Note: an earlier design draft stated `2*log2(N)-1` LB rounds. That is off
  * by one — verified against S=4 (2 rounds), S=8 (4), S=16 (6). The implementation
  * uses `2k-2`; the golden fixtures encode the verified structure.
  */

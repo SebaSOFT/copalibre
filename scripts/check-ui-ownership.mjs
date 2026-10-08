@@ -115,12 +115,12 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // `RulesetFieldControl` (typed, owned atoms); only the "add a new field by
   // dot-path" name input remains raw.
   ['control/components/screens/TournamentRulesetTemplate.tsx', 1],
-  // Form-structure elements (task 2.4): `<form>`, `<label>`, `<fieldset>`,
+  // Form-structure elements: `<form>`, `<label>`, `<fieldset>`,
   // `<legend>` and table parts outside the table owners, now governed by
-  // `Form`, `Field`/`Label`, `FieldSet` and `DataTable` (tasks 2.2-2.3).
+  // `Form`, `Field`/`Label`, `FieldSet` and `DataTable`.
   // Recorded as debt, not fixed here — adoption is a later task.
   //
-  // Task 4.2 adopted `Form` for every raw `<form>` that was a safe,
+  // `Form` was adopted for every raw `<form>` that was a safe,
   // no-visual-change swap: bare `<form id=… onSubmit=…>` inside a modal
   // (`RegistrationReviewTemplate.tsx`, `RolesPermissionsTemplate.tsx`) and
   // `<form className="cl-platform-form-grid" …>` (`PlatformAdministrationPage.tsx`,
@@ -164,12 +164,12 @@ const RAW_ELEMENT_RULES = [
   { tag: 'input', replacement: '`Input` atom', allowed: ALLOWED_INPUT_FILES },
   { tag: 'select', replacement: '`Select` atom' },
   // Form-structure elements, governed now that
-  // Form, Field/Label and FieldSet own them (task 2.2).
+  // Form, Field/Label and FieldSet own them.
   { tag: 'form', replacement: '`Form` atom' },
   { tag: 'label', replacement: '`Label` atom (via the `Field` molecule)' },
   { tag: 'fieldset', replacement: '`FieldSet` molecule', allowed: FIELDSET_OWNER_FILES },
   { tag: 'legend', replacement: '`FieldSet` molecule', allowed: FIELDSET_OWNER_FILES },
-  // Table parts outside the table owners (task 2.4) — a `<table>` itself is
+  // Table parts outside the table owners — a `<table>` itself is
   // already governed above; this catches a raw `<thead>`/`<tbody>`/`<tr>`/
   // `<th>`/`<td>` composed without one, which the tag-level check alone
   // could not see.
@@ -459,7 +459,7 @@ const REGISTERS = [
 const LIBRARY_TIERS = ['atoms', 'molecules', 'organisms', 'templates'];
 
 /**
- * Exclusion categories for screen story coverage (design.md):
+ * Exclusion categories for screen story coverage:
  * (a) story, test, or test-support modules
  * (b) routers or route tables
  * (c) context providers or composition roots

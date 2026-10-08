@@ -82,8 +82,8 @@ function runCliWithTty(
 }
 
 /**
- * `init` deliberately never writes these (they're secrets — task 2.3/8.1
- * tell the operator to add them by hand), so a bare `docker compose config`
+ * `init` deliberately never writes these (they're secrets — the next-steps output
+ * tells the operator to add them by hand), so a bare `docker compose config`
  * right after `init` correctly fails on the compose file's own `${VAR:?...}`
  * required-interpolation guards. Fake values, supplied as environment
  * overrides here, stand in for "the operator filled in REQUIRED_SECRETS."
@@ -116,7 +116,7 @@ async function withInstanceDirectory<T>(run: (directory: string) => Promise<T>):
 }
 
 /**
- * Task 6.1/6.2: a real `copalibre init` writes a real installation, and a
+ * A real `copalibre init` writes a real installation, and a
  * real `docker compose ... config` (no daemon action — Compose's own
  * client-side YAML merge/interpolation, the same "no-deploy validation"
  * style `helm lint --strict` already gives the Helm chart) confirms the
@@ -220,7 +220,7 @@ describe('copalibre init (integration)', () => {
   });
 
   /**
-   * Task 6.3: `migrate`/`upgrade-check` refuse end-to-end against a real,
+   * `migrate`/`upgrade-check` refuse end-to-end against a real,
    * fabricated version mismatch — not the unit-level `assertVersionCompatible`
    * call already covered in `installation-marker.test.ts`/`cli.test.ts`,
    * but the actual spawned CLI reading its own marker file off disk.

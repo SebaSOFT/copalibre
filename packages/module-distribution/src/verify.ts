@@ -17,10 +17,10 @@ import { buildValidationRegistry } from './registry.js';
 
 /**
  * Re-runs registry-reference, core-version, and asset validation against an
- * already-installed module (task 4.6) — everything that can drift after
+ * already-installed module — everything that can drift after
  * install: the registry's vocabulary can shrink on a core upgrade (task
  * 7.5), the running version can move out of `requiresCopalibre`'s range,
- * and asset limits can tighten (design.md's stated mitigation for exactly
+ * and asset limits can tighten (the stated mitigation for exactly
  * this). Manifest/artifact schema is not re-checked — the stored document
  * already passed it at install time and cannot have changed since; nothing
  * about a schema can drift under an installed, immutable row.

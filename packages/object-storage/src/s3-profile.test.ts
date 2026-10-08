@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 import { describeObjectStorageAdapterContract } from './test-support/adapter-contract-suite.js';
 
 /**
- * Unit-level fake of `@aws-sdk/client-s3` (task 5.1) — an in-memory bucket
+ * Unit-level fake of `@aws-sdk/client-s3` — an in-memory bucket
  * keyed on `${Bucket}/${Key}`, driven by `instanceof` on the same Command
  * classes `s3-profile.ts` constructs, so this exercises the real command
  * shape the adapter builds rather than a hand-waved stub. The real endpoint

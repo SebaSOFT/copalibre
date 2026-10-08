@@ -238,7 +238,7 @@ export class MatchControlController {
 
     // Finalize alone requires a key (irreversible, so "just resend it" must be
     // safe by construction); start/pause/resume accept one but don't require
-    // it — additive only, per design.md's Migration Plan — and fingerprint on
+    // it — additive only — and fingerprint on
     // the command name itself, since they carry no meaningful request body.
     const fingerprint =
       command === 'finalize' ? finalizeFingerprint(body) : fingerprintOf({ command });
@@ -2318,8 +2318,7 @@ export class MatchControlController {
 
   /**
    * A team entrant's roster candidates are its registered players; a person
-   * entrant (an individual competitor) rosters exactly themselves
-   * design.md).
+   * entrant (an individual competitor) rosters exactly themselves.
    */
   private async eligiblePersonIdsFor(entrant: {
     readonly entrant_kind: string;

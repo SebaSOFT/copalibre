@@ -85,7 +85,7 @@ describe('deriveTournamentStatus', () => {
     expect(deriveTournamentStatus('finished', [{ status: 'in-progress' }])).toBe('finished');
   });
 
-  it('classifies a tournament as finished when all matches are finalized (task 3.1)', () => {
+  it('classifies a tournament as finished when all matches are finalized', () => {
     expect(
       deriveTournamentStatus('started', [{ status: 'finalized' }, { status: 'finalized' }]),
     ).toBe('finished');

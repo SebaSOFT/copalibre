@@ -87,7 +87,7 @@ export class AuditReader {
 
   /**
    * What happened in an organization — newest first, paginated so a large
-   * trail is readable without loading it whole (task 4.1). The reader's own
+   * trail is readable without loading it whole. The reader's own
    * authority scopes which organization this is called for; this class has
    * no opinion on authorization.
    */

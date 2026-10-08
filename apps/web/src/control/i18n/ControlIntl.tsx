@@ -18,8 +18,7 @@ import { messages as zhMessages } from './messages.zh.js';
  * rendering — only its alias, from the URL. `'es'` matches the database
  * default for every organization created before this feature, so this
  * placeholder resolves to the same language a real fetch would for the
- * common case today; a real fetch is a natural, separate follow-up
- * design.md).
+ * common case today; a real fetch is a natural, separate follow-up.
  */
 const ORGANIZATION_PRIMARY_LANGUAGE_PLACEHOLDER = 'es';
 

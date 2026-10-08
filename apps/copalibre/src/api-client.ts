@@ -23,7 +23,7 @@ interface ProblemBody {
  * and the CLI's `organization`/`tournament` commands — ~30
  * lines is well within this project's "trivial one-liners are fine to
  * hand-roll" carve-out; a generated OpenAPI client is a larger investment
- * five endpoints don't justify (design.md).
+ * five endpoints don't justify.
  */
 async function request(
   config: ApiClientConfig,
