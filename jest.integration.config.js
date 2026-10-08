@@ -1,6 +1,7 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { integrationProjects } from './scripts/jest-integration-projects.mjs';
+
 export default {
-  projects: [
-    '<rootDir>/apps/*/jest.integration.config.cjs',
-    '<rootDir>/packages/*/jest.integration.config.cjs',
-  ],
+  projects: integrationProjects(path.dirname(fileURLToPath(import.meta.url))),
 };
