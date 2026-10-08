@@ -1,7 +1,7 @@
 name: CI
 
 # Pipeline established with the initial monorepo toolchain.
-# Later phases extend this file per their tasks.md (unit/integration/e2e/build/
+# Later phases extend this file (unit/integration/e2e/build/
 # deploy-smoke-test jobs land with the phases that first have something to run).
 
 on:
@@ -182,7 +182,7 @@ jobs:
       - run: yarn workspace @copalibre/api test src/auth/access-coverage.test.ts src/auth/capability-guard-equivalence.test.ts
       # audit-vocabulary/audit-coverage: the declared audited
       # action vocabulary and the gate failing an aggregate mutation that
-      # records no audit entry. tasks.md names the "unit-tests" job for this
+      # records no audit entry. The "unit-tests" job would be the obvious home for this
       # step; access-coverage actually lives here, in guard-coverage — placed
       # after it to match the task's intent (a build gate a missing audit
       # entry fails) rather than its stale job name.
@@ -215,7 +215,7 @@ jobs:
       - run: shellcheck apps/copalibre/install.sh
 
   # Added with the Kubernetes enterprise deployment: structurally enforces
-  # design.md's "enterprise-ready is an evidence-gated claim" decision —
+  # the decision that "enterprise-ready is an evidence-gated claim" —
   # fails the build if docs/deployment/enterprise-kubernetes.md asserts
   # Kubernetes enterprise-readiness without linking a dated, passing
   # evidence report from both the multi-node-failover and backup-restore

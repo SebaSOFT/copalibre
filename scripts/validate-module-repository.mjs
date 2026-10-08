@@ -7,7 +7,7 @@ import { validateModulePackage } from '@copalibre/module-distribution';
  * module directory in a checked-out module repository — the reusable
  * `module-validation.yml` workflow calls this against a pull request's
  * content, and
- * `k8s`-unrelated `ci.yml`'s `module-validation` job (task 8.1) calls it
+ * `k8s`-unrelated `ci.yml`'s `module-validation` job calls it
  * against the reference repository's fixtures on every PR to this repo, so
  * a core change that breaks the module contract fails here rather than in
  * the community repository.

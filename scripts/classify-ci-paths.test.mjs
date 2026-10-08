@@ -103,7 +103,7 @@ test('an empty diff forces every flag false', () => {
   );
 });
 
-test('root lockfile and manifest changes force full scope (Task 1.2 / 2.1)', () => {
+test('root lockfile and manifest changes force full scope', () => {
   for (const rootFile of [
     'package.json',
     'yarn.lock',
@@ -239,7 +239,7 @@ test('repo-level docs and Starlight content together are still docs-only', () =>
   assert.equal(result.backendOnly, true);
 });
 
-test('unresolved, unmapped, or deleted ambiguous paths trigger conservative fallback (Task 1.3 / 2.1)', () => {
+test('unresolved, unmapped, or deleted ambiguous paths trigger conservative fallback', () => {
   const result = classify(['unknown-directory/unresolved-file.ts']);
   assert.equal(result.frontendOnly, false);
   assert.equal(result.backendOnly, false);
@@ -250,7 +250,7 @@ test('unresolved, unmapped, or deleted ambiguous paths trigger conservative fall
   assert.ok(result.reasons.some((r) => r.includes('Conservative fallback')));
 });
 
-test('release candidate evaluation truth table (Task 1.4 / 2.2)', () => {
+test('release candidate evaluation truth table', () => {
   // develop PR -> never a release candidate
   assert.equal(
     evaluateReleaseEligibility({ eventName: 'pull_request', baseRef: 'develop' }),
@@ -276,7 +276,7 @@ test('release candidate evaluation truth table (Task 1.4 / 2.2)', () => {
   assert.equal(evaluateReleaseEligibility({ eventName: 'workflow_dispatch' }), true);
 });
 
-test('job selection plan across scope and release candidate status (Task 1.4 / 2.2)', () => {
+test('job selection plan across scope and release candidate status', () => {
   // Scenario 1: Develop PR with broad/workflow changes (non-release candidate)
   // Full scope is not backend-only, so e2eTests now runs: a
   // develop PR that can affect the web surface gets real Playwright coverage

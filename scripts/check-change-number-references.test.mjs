@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   findCitations,
   isExemptPath,
+  isWorkflowDocumentation,
   migrationNames,
   numberedFileName,
 } from './check-change-number-references.mjs';
@@ -83,6 +84,51 @@ test('reports a numbered change name embedded in a path', () => {
   assert.deepEqual(kinds(`path: 'docs/assets/screenshots/${num(240)}-series-progress.png'`), [
     'numbered change name',
   ]);
+});
+
+test('reports a task number cited as a source', () => {
+  const task = (label, number) => `${label} ${number}`;
+  assert.deepEqual(kinds(`// the paydown described in ${task('task', '5.1')}`), ['task number']);
+  assert.deepEqual(kinds(`describe('upload flow (${task('Task', '3.2')})', () => {})`), [
+    'task number',
+  ]);
+});
+
+test('reports a change planning document cited as a source', () => {
+  const document = (name) => `${name}.md`;
+  assert.deepEqual(kinds(`// see ${document('design')}'s decision`), ['change planning document']);
+  assert.deepEqual(kinds(`// listed in ${document('tasks')}`), ['change planning document']);
+  assert.deepEqual(kinds(`// per ${document('proposal')}`), ['change planning document']);
+});
+
+test('the product design document and paths to files of that name are not citations', () => {
+  assert.deepEqual(kinds('// the colours come from DESIGN.md'), []);
+  assert.deepEqual(kinds('see docs/design.md for the layout'), []);
+  assert.deepEqual(kinds('const path = new URL(`../../DESIGN.md`, import.meta.url);'), []);
+});
+
+test('runtime uses of the word "task" are not citations', () => {
+  const clean = [
+    'queue a task for the worker',
+    'task 3 of 5 finished',
+    'the scheduler runs each task once',
+    'Task completed in 1.5s',
+  ];
+  for (const line of clean) assert.deepEqual(kinds(line), [], line);
+});
+
+test('workflow documentation may name the planning documents', () => {
+  const text = `Check the boxes in the change's ${'tasks'}.md`;
+  assert.equal(isWorkflowDocumentation('AGENTS.md'), true);
+  assert.equal(isWorkflowDocumentation('.github/pull_request_template.md'), true);
+  assert.equal(isWorkflowDocumentation('openspec/config.yaml'), true);
+  assert.equal(isWorkflowDocumentation('apps/web/src/example.ts'), false);
+  assert.deepEqual(kinds(text, 'AGENTS.md'), []);
+  assert.deepEqual(kinds(text, 'apps/web/src/example.ts'), ['change planning document']);
+});
+
+test('workflow documentation is still held to the change-number rule', () => {
+  assert.deepEqual(kinds(`// ${spec(166)}`, 'AGENTS.md'), ['"openspec NNNN"']);
 });
 
 test('reports the line number of each finding', () => {

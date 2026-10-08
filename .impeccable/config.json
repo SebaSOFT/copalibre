@@ -42,7 +42,7 @@
           "packages/design-tokens/src/generate/css.ts"
         ],
         "createdAt": "2026-09-10T21:46:48.470Z",
-        "reason": "Design-workflow review: DESIGN.md Cards and Inline Alerts prescribe a left state rail paired with a written state label. The auth panel, live scorecard, callout and audit card implement that documented cue; retain it without applying the generic side-tab heuristic. Paths updated: LiveMatchScorecard.tsx merged into MatchCard.tsx; CalloutBanner.tsx and AuditLogCard.tsx renamed to kebab-case and, for the latter, to AuditLogPanel (tasks 3.3/3.4)."
+        "reason": "Design-workflow review: DESIGN.md Cards and Inline Alerts prescribe a left state rail paired with a written state label. The auth panel, live scorecard, callout and audit card implement that documented cue; retain it without applying the generic side-tab heuristic. Paths updated: LiveMatchScorecard.tsx merged into MatchCard.tsx; CalloutBanner.tsx and AuditLogCard.tsx renamed to kebab-case and, for the latter, to AuditLogPanel."
       }
     ]
   },

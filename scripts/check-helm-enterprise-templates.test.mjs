@@ -26,7 +26,7 @@ function byKind(docs, kind) {
   return docs.filter((doc) => doc.kind === kind);
 }
 
-// Task 8.1 — HPA template renders the correct metric type per role when
+// HPA template renders the correct metric type per role when
 // autoscaling.<role>.enabled is true.
 test('api HPA renders an External metric named autoscaling.api.metricName', () => {
   const docs = helmTemplate([['autoscaling.api.enabled', 'true']]);
@@ -63,7 +63,7 @@ test('worker HPA additionally renders a Resource/cpu metric when cpu.enabled is 
   assert.equal(hpa.spec.metrics[1].resource.name, 'cpu');
 });
 
-// Task 8.2 — NetworkPolicy renders default-deny plus only the documented
+// NetworkPolicy renders default-deny plus only the documented
 // allow rules per role.
 test('NetworkPolicy: publicRoles (api, events) allow both intra-release and outside-cluster ingress', () => {
   const docs = helmTemplate([['networkPolicy.enabled', 'true']]);
@@ -113,7 +113,7 @@ test('NetworkPolicy: web is always public-facing regardless of networkPolicy.pub
   assert.deepEqual(web.spec.ingress[1], {});
 });
 
-// Task 8.5 — default install produces zero enterprise-only resources.
+// default install produces zero enterprise-only resources.
 test('default install renders no HPA, PodDisruptionBudget, NetworkPolicy, Ingress, or ExternalSecret', () => {
   const docs = helmTemplate();
   for (const kind of [

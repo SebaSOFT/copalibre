@@ -12,7 +12,7 @@ import {
 // Generates each organization role's manual page's capability list from the
 // declared mapping — the one thing on the page
 // that must never be hand-maintained, since it is also what the
-// documentation-drift gate (task 4.3, check-role-manual-drift.mjs) checks
+// documentation-drift gate (check-role-manual-drift.mjs) checks
 // against. `super-admin` sits outside `ORGANIZATION_ROLES`/the capability
 // mapping entirely (it is an installation role, not an organization one),
 // so its page carries no generated block — its authority is described in
@@ -69,7 +69,7 @@ export function withRegeneratedCapabilities(source, role) {
 
 /**
  * The capability ids a page's generated block currently lists — parsed back
- * out of the rendered markdown, so the documentation-drift gate (task 4.3)
+ * out of the rendered markdown, so the documentation-drift gate
  * checks the one artifact a reader actually sees, not a second hidden
  * source of truth that could itself drift from the visible page.
  */
