@@ -1,125 +1,142 @@
+import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
+import path from 'node:path';
 import { expect, test } from './fixtures.js';
 
 /**
- * The venue kiosk of a stage that mixes formats: a league zone and a knockout zone beside a second
- * league zone. Each table zone is ranked under its own heading, the knockout zone is the bracket
- * and the league zone's matches are listed by round. The API is a per-worker mock the server-side
- * render reads, so the page is built from real responses rather than the sample dashboard.
+ * The venue kiosk of a stage that mixes formats: two league zones and a knockout zone. Each table
+ * zone is ranked under its own heading, the knockout zone is the bracket and a league zone's
+ * matches are listed by round. The API is a per-worker mock the server-side render reads, so the
+ * page is built from real responses rather than the sample dashboard.
+ *
+ * The clubs and their emblems are the committed Panamericano demo dataset's own, so the frames show
+ * what a venue would see; the zones, scores and standings below are invented for the layout.
  */
 
-const tvPath = '/tv/liga-mendocina/tournaments/apertura-2026';
-const base = '/organizations/liga-mendocina/tournaments/apertura-2026';
+const ORGANIZATION = 'panamericano-demo';
+const TOURNAMENT = 'panamericano-clubes-2025';
+const tvPath = `/tv/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const base = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const EMBLEMS = path.resolve(
+  import.meta.dirname,
+  '../packages/demo-datasets/datasets/panamericano-clubes-2025/emblems',
+);
 
-const entrant = (id: string, name: string, abbreviation: string, score?: number) => ({
-  kind: 'entrant',
-  entrantId: id,
-  name,
-  abbreviation,
-  ...(score === undefined ? {} : { score }),
-});
+interface Club {
+  readonly alias: string;
+  readonly name: string;
+  readonly abbreviation: string;
+}
 
-const leagueMatch = (position: number, round: number, home: string[], away: string[]) => ({
-  matchId: `league-${position}`,
+const CLUBS: Readonly<Record<string, Club>> = Object.fromEntries(
+  (
+    [
+      ['andes-talleres', 'Andes Talleres', 'AND'],
+      ['atletico-union', 'Atletico Union', 'CAU'],
+      ['casa-de-italia', 'Casa de Italia', 'CIT'],
+      ['centro-valenciano', 'Centro Valenciano', 'VAL'],
+      ['ciudad-de-buenos-aires', 'Ciudad de Buenos Aires', 'CCBA'],
+      ['club-hispano', 'Club Hispano', 'HIS'],
+      ['club-union-dep-bancaria', 'Club Union Dep Bancaria', 'CUDB'],
+      ['concepcion-patin-club', 'Concepcion Patin Club', 'CON'],
+      ['corazonistas-bogota', 'Corazonistas Bogota', 'BOG'],
+      ['estudiantil-san-miguel', 'Estudiantil San Miguel', 'ESTSM'],
+    ] as const
+  ).map(([alias, name, abbreviation]) => [alias, { alias, name, abbreviation }]),
+);
+
+const entrant = (alias: string, score?: number) => {
+  const club = CLUBS[alias] as Club;
+  return {
+    kind: 'entrant',
+    entrantId: alias,
+    name: club.name,
+    abbreviation: club.abbreviation,
+    ...(score === undefined ? {} : { score }),
+  };
+};
+
+const leagueMatch = (
+  position: number,
+  round: number,
+  home: string,
+  away: string,
+  scores?: readonly [number, number],
+) => ({
+  matchId: `${home}-${away}`,
   bracket: 'winners',
   round,
   position,
   matchNumber: position,
-  status: round === 1 ? 'finalized' : 'scheduled',
-  slots: [
-    entrant(home[0] as string, home[1] as string, home[2] as string, round === 1 ? 2 : undefined),
-    entrant(away[0] as string, away[1] as string, away[2] as string, round === 1 ? 1 : undefined),
-  ],
+  status: scores ? 'finalized' : 'scheduled',
+  slots: [entrant(home, scores?.[0]), entrant(away, scores?.[1])],
 });
 
-/** A club's emblem is an object the page requests by id; each is a plain coloured disc here. */
-const EMBLEM_COLOURS: Readonly<Record<string, string>> = {
-  Talleres: 'royalblue',
-  Independiente: 'crimson',
-  Gimnasia: 'white',
-  Maipú: 'seagreen',
-};
-const emblemSvg = (name: string): string =>
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="${EMBLEM_COLOURS[name]}"/><text x="32" y="42" font-size="30" font-family="sans-serif" font-weight="700" text-anchor="middle" fill="${name === 'Gimnasia' ? 'navy' : 'white'}">${name[0]}</text></svg>`;
+const standing = (
+  alias: string,
+  rank: number,
+  zoneName: string,
+  played: number,
+  points: number,
+) => ({
+  rank,
+  entrantId: alias,
+  name: (CLUBS[alias] as Club).name,
+  abbreviation: (CLUBS[alias] as Club).abbreviation,
+  sharedRank: false,
+  zoneName,
+  statistics: { played, points },
+});
+
+const overviewMatch = (
+  matchNumber: number,
+  status: string,
+  home: string,
+  away: string,
+  homeScore: number,
+  awayScore: number,
+) => ({
+  matchId: `overview-${matchNumber}`,
+  matchNumber,
+  stageNumber: 1,
+  round: 1,
+  status,
+  homeName: (CLUBS[home] as Club).name,
+  homeAbbreviation: (CLUBS[home] as Club).abbreviation,
+  homeScore,
+  awayName: (CLUBS[away] as Club).name,
+  awayAbbreviation: (CLUBS[away] as Club).abbreviation,
+  awayScore,
+});
 
 const overview = {
-  organizationAlias: 'liga-mendocina',
-  organizationName: 'Liga Mendocina',
-  tournamentAlias: 'apertura-2026',
-  tournamentName: 'Apertura 2026',
-  seasonName: '2026',
+  organizationAlias: ORGANIZATION,
+  organizationName: 'Panamericano Demo',
+  tournamentAlias: TOURNAMENT,
+  tournamentName: 'Campeonato Panamericano Clubes Senior Varones',
+  seasonName: '2025/26',
   status: 'in-progress',
+  emblemObjectId: 'tournament',
   ruleset: {},
-  clubs: Object.keys(EMBLEM_COLOURS).map((name) => ({
-    clubId: `club-${name}`,
-    name,
-    emblemObjectId: `emblem-${name}`,
+  clubs: Object.values(CLUBS).map((club) => ({
+    clubId: `club-${club.alias}`,
+    name: club.name,
+    alias: club.alias,
+    emblemObjectId: `emblem-${club.alias}`,
   })),
   matches: [
-    {
-      matchId: 'league-1',
-      matchNumber: 1,
-      stageNumber: 1,
-      round: 1,
-      status: 'in-progress',
-      homeName: 'Talleres',
-      homeAbbreviation: 'TAL',
-      homeScore: 1,
-      awayName: 'Independiente',
-      awayAbbreviation: 'IND',
-      awayScore: 1,
-    },
-    {
-      matchId: 'league-2',
-      matchNumber: 2,
-      stageNumber: 1,
-      round: 1,
-      status: 'finalized',
-      homeName: 'Gimnasia',
-      homeAbbreviation: 'GIM',
-      homeScore: 2,
-      awayName: 'Maipú',
-      awayAbbreviation: 'MAI',
-      awayScore: 0,
-    },
+    overviewMatch(1, 'in-progress', 'andes-talleres', 'atletico-union', 2, 2),
+    overviewMatch(2, 'finalized', 'ciudad-de-buenos-aires', 'club-hispano', 4, 1),
   ],
   standingsPreview: [
-    {
-      rank: 1,
-      entrantId: 'a1',
-      name: 'Talleres',
-      abbreviation: 'TAL',
-      sharedRank: false,
-      zoneName: 'Liga A',
-      statistics: { played: 2, points: 6 },
-    },
-    {
-      rank: 2,
-      entrantId: 'a2',
-      name: 'Independiente',
-      abbreviation: 'IND',
-      sharedRank: false,
-      zoneName: 'Liga A',
-      statistics: { played: 2, points: 3 },
-    },
-    {
-      rank: 1,
-      entrantId: 'b1',
-      name: 'Gimnasia',
-      abbreviation: 'GIM',
-      sharedRank: false,
-      zoneName: 'Liga B',
-      statistics: { played: 2, points: 4 },
-    },
-    {
-      rank: 2,
-      entrantId: 'b2',
-      name: 'Maipú',
-      abbreviation: 'MAI',
-      sharedRank: false,
-      zoneName: 'Liga B',
-      statistics: { played: 2, points: 1 },
-    },
+    standing('andes-talleres', 1, 'Zona A', 3, 7),
+    standing('casa-de-italia', 2, 'Zona A', 3, 5),
+    standing('atletico-union', 3, 'Zona A', 3, 4),
+    standing('centro-valenciano', 4, 'Zona A', 3, 1),
+    standing('ciudad-de-buenos-aires', 1, 'Zona B', 3, 9),
+    standing('club-union-dep-bancaria', 2, 'Zona B', 3, 4),
+    standing('club-hispano', 3, 'Zona B', 3, 3),
+    standing('concepcion-patin-club', 4, 'Zona B', 3, 0),
   ],
 };
 
@@ -128,16 +145,27 @@ const bracket = {
   zones: [
     {
       zoneId: 'zone-a',
-      zoneName: 'Liga A',
+      zoneName: 'Zona A',
       format: 'round-robin',
       matches: [
-        leagueMatch(1, 1, ['a1', 'Talleres', 'TAL'], ['a2', 'Independiente', 'IND']),
-        leagueMatch(2, 2, ['a2', 'Independiente', 'IND'], ['a1', 'Talleres', 'TAL']),
+        leagueMatch(1, 1, 'andes-talleres', 'atletico-union', [2, 2]),
+        leagueMatch(2, 1, 'casa-de-italia', 'centro-valenciano', [3, 1]),
+        leagueMatch(3, 2, 'andes-talleres', 'casa-de-italia'),
+        leagueMatch(4, 2, 'atletico-union', 'centro-valenciano'),
+      ],
+    },
+    {
+      zoneId: 'zone-b',
+      zoneName: 'Zona B',
+      format: 'round-robin',
+      matches: [
+        leagueMatch(1, 1, 'ciudad-de-buenos-aires', 'club-hispano', [4, 1]),
+        leagueMatch(2, 1, 'club-union-dep-bancaria', 'concepcion-patin-club', [2, 0]),
       ],
     },
     {
       zoneId: 'zone-cup',
-      zoneName: 'Copa',
+      zoneName: 'Copa de Oro',
       format: 'single-elimination',
       matches: [
         {
@@ -147,7 +175,7 @@ const bracket = {
           position: 1,
           matchNumber: 1,
           status: 'scheduled',
-          slots: [entrant('c1', 'Belgrano', 'BEL'), entrant('c2', 'Racing', 'RAC')],
+          slots: [entrant('corazonistas-bogota'), entrant('estudiantil-san-miguel')],
         },
       ],
     },
@@ -168,15 +196,23 @@ test.beforeAll(async ({ workerPort }) => {
   });
   await new Promise<void>((resolve) => server.listen(workerPort, '127.0.0.1', resolve));
 });
+
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/objects/emblem-*', (route) => {
-    const name = decodeURIComponent(route.request().url().split('emblem-')[1] ?? '');
+    const alias = decodeURIComponent(route.request().url().split('emblem-')[1] ?? '');
     return route.fulfill({
       status: 200,
-      contentType: 'image/svg+xml',
-      body: emblemSvg(name),
+      contentType: 'image/png',
+      body: readFileSync(path.join(EMBLEMS, 'clubs', `${alias}.png`)),
     });
   });
+  await page.route(`**${base}/emblem`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      body: readFileSync(path.join(EMBLEMS, 'tournament.png')),
+    }),
+  );
 });
 
 test.afterAll(async () => {
@@ -188,29 +224,30 @@ test('ranks each table zone under its own heading instead of one merged list', a
 
   const zones = page.getByTestId('tv-standings-zone');
   await expect(zones).toHaveCount(2);
-  await expect(zones.nth(0).getByRole('heading', { name: 'Liga A' })).toBeVisible();
-  await expect(zones.nth(0)).toContainText('Talleres');
-  await expect(zones.nth(0)).not.toContainText('Gimnasia');
-  await expect(zones.nth(1).getByRole('heading', { name: 'Liga B' })).toBeVisible();
-  await expect(zones.nth(1)).toContainText('Gimnasia');
+  await expect(zones.nth(0).getByRole('heading', { name: 'Zona A' })).toBeVisible();
+  await expect(zones.nth(0)).toContainText('Andes Talleres');
+  await expect(zones.nth(0)).not.toContainText('Ciudad de Buenos Aires');
+  await expect(zones.nth(1).getByRole('heading', { name: 'Zona B' })).toBeVisible();
+  await expect(zones.nth(1)).toContainText('Ciudad de Buenos Aires');
 });
 
-test('lists the league zone’s matches by round and keeps the knockout zone in the bracket', async ({
+test('lists the league zones’ matches by round and keeps the knockout zone in the bracket', async ({
   page,
 }) => {
   await page.goto(`${tvPath}?view=fixtures`);
 
   const fixtures = page.getByTestId('tv-fixtures');
-  await expect(fixtures.getByRole('heading', { name: 'Liga A' })).toBeVisible();
-  await expect(fixtures.getByRole('heading', { name: 'Round 1' })).toBeVisible();
-  await expect(fixtures.getByRole('heading', { name: 'Round 2' })).toBeVisible();
-  await expect(fixtures).not.toContainText('Belgrano');
+  await expect(fixtures.getByRole('heading', { name: 'Zona A' })).toBeVisible();
+  await expect(fixtures.getByRole('heading', { name: 'Zona B' })).toBeVisible();
+  await expect(fixtures.getByRole('heading', { name: 'Round 1' })).toHaveCount(2);
+  await expect(fixtures.getByRole('heading', { name: 'Round 2' })).toHaveCount(1);
+  await expect(fixtures).not.toContainText('BOG');
 
   await page.getByRole('button', { name: 'Bracket' }).click();
   const drawn = page.getByTestId('tv-bracket');
-  await expect(drawn).toContainText('Copa');
-  await expect(drawn).toContainText('BEL');
-  await expect(drawn).not.toContainText('Liga A');
+  await expect(drawn).toContainText('Copa de Oro');
+  await expect(drawn).toContainText('BOG');
+  await expect(drawn).not.toContainText('Zona A');
 });
 
 test('captures screenshots of the zone-aware kiosk at broadcast size', async ({ page }) => {
