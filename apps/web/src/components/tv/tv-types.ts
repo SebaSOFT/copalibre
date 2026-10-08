@@ -7,7 +7,8 @@ import type { ResultStateLabels } from '../../lib/result-state.js';
  */
 export interface TvClubItem {
   readonly name: string;
-  readonly emblemObjectId?: string;
+  /** Same-origin URL of the club's emblem route; absent when the club has none. */
+  readonly emblemUrl?: string;
 }
 
 export interface TvDashboardLabels {

@@ -1,6 +1,7 @@
 import { groupStandingsByZone, type StandingsRowView } from '../../../../lib/overview.js';
 import { EntrantName } from '../../../ui/atoms/EntrantName.js';
 import type { TvClubItem, TvDashboardLabels } from '../../tv-types.js';
+import { TvEmblem } from '../atoms/TvEmblem.js';
 
 /**
  * The broadcast surface's table owner — under a
@@ -81,17 +82,16 @@ function StandingsBlock({
               <td>{row.position}</td>
               <td>
                 <div className="tv-table-club-cell">
-                  {club?.emblemObjectId ? (
-                    <img
-                      alt=""
-                      className="tv-table-club-emblem"
-                      src={`/api/objects/${club.emblemObjectId}`}
-                    />
-                  ) : (
-                    <span className="tv-table-club-monogram">
-                      {row.abbreviation ?? row.name.substring(0, 2).toUpperCase()}
-                    </span>
-                  )}
+                  <TvEmblem
+                    alt=""
+                    className="tv-table-club-emblem"
+                    fallback={
+                      <span className="tv-table-club-monogram">
+                        {row.abbreviation ?? row.name.substring(0, 2).toUpperCase()}
+                      </span>
+                    }
+                    src={club?.emblemUrl}
+                  />
                   <EntrantName abbreviation={row.abbreviation} fullName={row.name} />
                 </div>
               </td>

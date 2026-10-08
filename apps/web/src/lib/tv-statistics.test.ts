@@ -63,7 +63,7 @@ describe('tv-statistics', () => {
         ],
       };
 
-      const clubs = [{ name: 'Inter Miami', emblemObjectId: 'emblem-inter' }];
+      const clubs = [{ name: 'Inter Miami', emblemUrl: 'emblem-inter' }];
 
       const performers = deriveTopPerformers(labels, 'en', projection, undefined, clubs);
       expect(performers).toHaveLength(2);
@@ -72,7 +72,7 @@ describe('tv-statistics', () => {
       expect(performers[0]?.clubName).toBe('Inter Miami');
       expect(performers[0]?.clubAbbreviation).toBe('MIA');
       expect(performers[0]?.nationalityCode).toBe('AR');
-      expect(performers[0]?.clubEmblemObjectId).toBe('emblem-inter');
+      expect(performers[0]?.clubEmblemUrl).toBe('emblem-inter');
       expect(performers[1]?.name).toBe('Julian Alvarez');
       expect(performers[1]?.statValue).toBe('8');
     });
@@ -291,13 +291,13 @@ describe('tv-statistics', () => {
         { position: 1, name: 'Huracán', abbreviation: 'HUR', played: 3, points: 9 },
         { position: 2, name: 'Godoy Cruz', abbreviation: 'GOD', played: 3, points: 6 },
       ];
-      const clubs = [{ name: 'Huracán', emblemObjectId: 'emblem-huracan' }];
+      const clubs = [{ name: 'Huracán', emblemUrl: 'emblem-huracan' }];
 
       const champion = resolveChampion(labels, matches, standings, clubs);
       expect(champion).toBeDefined();
       expect(champion?.name).toBe('Huracán');
       expect(champion?.title).toBe('Tournament champion');
-      expect(champion?.emblemObjectId).toBe('emblem-huracan');
+      expect(champion?.emblemUrl).toBe('emblem-huracan');
     });
 
     it('resolves champion from final knockout match with sides when standings are absent', () => {
@@ -337,12 +337,12 @@ describe('tv-statistics', () => {
         },
       ];
 
-      const clubs = [{ name: 'Real Madrid', emblemObjectId: 'rma-emblem' }];
+      const clubs = [{ name: 'Real Madrid', emblemUrl: 'rma-emblem' }];
       const champion = resolveChampion(labels, matches, undefined, clubs);
       expect(champion).toBeDefined();
       expect(champion?.name).toBe('Real Madrid');
       expect(champion?.abbreviation).toBe('RMA');
-      expect(champion?.emblemObjectId).toBe('rma-emblem');
+      expect(champion?.emblemUrl).toBe('rma-emblem');
       expect(champion?.record).toContain('Grand final winner (3 – 1)');
     });
 
@@ -358,12 +358,12 @@ describe('tv-statistics', () => {
         },
       ];
 
-      const clubs = [{ name: 'Arsenal', emblemObjectId: 'ars-emblem' }];
+      const clubs = [{ name: 'Arsenal', emblemUrl: 'ars-emblem' }];
       const champion = resolveChampion(labels, matches, undefined, clubs);
       expect(champion).toBeDefined();
       expect(champion?.name).toBe('Arsenal');
       expect(champion?.abbreviation).toBe('ARS');
-      expect(champion?.emblemObjectId).toBe('ars-emblem');
+      expect(champion?.emblemUrl).toBe('ars-emblem');
       expect(champion?.record).toContain('Grand final winner (2 – 1)');
     });
 

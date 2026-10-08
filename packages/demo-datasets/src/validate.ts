@@ -212,6 +212,9 @@ export async function validateDatasetDirectory(directory: string): Promise<Datas
   issues.push(
     ...referenceIssues(dataset),
     ...(await emblemIssues(directory, [
+      ...(dataset.organization.emblem === undefined
+        ? []
+        : [{ pointer: '/organization/emblem', file: dataset.organization.emblem }]),
       { pointer: '/tournament/emblem', file: dataset.tournament.emblem },
       ...dataset.clubs.map((club, index) => ({
         pointer: `/clubs/${index}/emblem`,

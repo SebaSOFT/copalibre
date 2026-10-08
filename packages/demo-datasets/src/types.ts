@@ -10,6 +10,8 @@ export interface DemoOrganization {
   readonly description: string;
   readonly primaryLanguage: string;
   readonly timezone: string;
+  /** Path relative to the dataset directory; a dataset may leave its organization without one. */
+  readonly emblem?: string;
 }
 
 export interface DemoClub {

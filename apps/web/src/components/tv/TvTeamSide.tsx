@@ -1,4 +1,5 @@
 import { EntrantName } from '../ui/atoms/EntrantName.js';
+import { TvEmblem } from './ui/atoms/TvEmblem.js';
 import type { TvClubItem } from './tv-types.js';
 
 /**
@@ -22,17 +23,16 @@ export function TvTeamSide({
   return (
     <div className={`tv-team-side ${anchor ? 'tv-team-side--anchor' : ''}`.trim()}>
       <div className="tv-team-side__emblem-wrap">
-        {club?.emblemObjectId ? (
-          <img
-            alt={name}
-            className="tv-team-side__emblem"
-            src={`/api/objects/${club.emblemObjectId}`}
-          />
-        ) : (
-          <div className="tv-team-side__monogram">
-            {abbreviation ?? name.substring(0, 2).toUpperCase()}
-          </div>
-        )}
+        <TvEmblem
+          alt={name}
+          className="tv-team-side__emblem"
+          fallback={
+            <div className="tv-team-side__monogram">
+              {abbreviation ?? name.substring(0, 2).toUpperCase()}
+            </div>
+          }
+          src={club?.emblemUrl}
+        />
       </div>
       <EntrantName abbreviation={abbreviation} className="tv-team-side__name" fullName={name} />
     </div>

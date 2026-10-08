@@ -166,6 +166,38 @@ describe('validateDatasetDirectory', () => {
     ]);
   });
 
+  it('names a missing organization emblem and accepts a present one', async () => {
+    const dataset = {
+      ...minimalDataset(),
+      organization: { ...minimalDataset().organization, emblem: 'emblems/organization.png' },
+    };
+    const missing = await validateDatasetDirectory(
+      await writeDatasetDirectory(dataset, {
+        emblems: [
+          'emblems/tournament.png',
+          'emblems/clubs/club-uno.png',
+          'emblems/clubs/club-dos.png',
+        ],
+      }),
+    );
+    expect(missing).toEqual([
+      expect.objectContaining({
+        path: '/organization/emblem',
+        message: expect.stringContaining('missing'),
+      }),
+    ]);
+
+    const present = await writeDatasetDirectory(dataset, {
+      emblems: [
+        'emblems/organization.png',
+        'emblems/tournament.png',
+        'emblems/clubs/club-uno.png',
+        'emblems/clubs/club-dos.png',
+      ],
+    });
+    expect(await validateDatasetDirectory(present)).toEqual([]);
+  });
+
   it('requires emblems at the product emblem size', async () => {
     const directory = await writeDatasetDirectory(minimalDataset());
     await writeFile(path.join(directory, 'emblems/tournament.png'), pngHeader(100, 100));

@@ -1,6 +1,7 @@
 import type { TopPerformer } from '../../lib/tv-statistics.js';
 import { EntrantName } from '../ui/atoms/EntrantName.js';
 import { ResponsivePlayerName } from '../ui/atoms/ResponsivePlayerName.js';
+import { TvEmblem } from './ui/atoms/TvEmblem.js';
 
 /**
  * Extracted from `TvDashboard.tsx` — the rotating
@@ -27,13 +28,12 @@ export function TvPerformersView({
         <article className="tv-performer-card cl-chamfer" key={`${p.rank}-${p.name}`}>
           <div className="tv-performer-card__left">
             <span className="tv-performer-card__rank">#{p.rank}</span>
-            {p.clubEmblemObjectId ? (
-              <img
-                alt=""
-                className="tv-table-club-emblem"
-                src={`/api/objects/${p.clubEmblemObjectId}`}
-              />
-            ) : null}
+            <TvEmblem
+              alt=""
+              className="tv-table-club-emblem"
+              fallback={null}
+              src={p.clubEmblemUrl}
+            />
             <div className="tv-performer-card__info">
               <ResponsivePlayerName
                 className="tv-performer-card__name"

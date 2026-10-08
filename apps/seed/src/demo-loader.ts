@@ -215,6 +215,14 @@ async function loadInto(
     return metadata.objectId;
   };
 
+  if (dataset.organization.emblem !== undefined) {
+    await new OrganizationRepository(tx).updateSettings(uow, organizationId, {
+      emblemObjectId: await storeEmblem(dataset.organization.emblem, 'emblem', 'organization'),
+      actor,
+      authorizationContext: context,
+    });
+  }
+
   // --- clubs, teams, emblems ---------------------------------------------------
   say(`creating ${dataset.clubs.length} clubs with emblems`);
   const teamIdByAlias = new Map<string, string>();
@@ -651,7 +659,7 @@ async function loadInto(
       venues: dataset.venues.length,
       officials: officialIdByName.size,
       scheduledMatches: assignments.length,
-      emblems: dataset.clubs.length + 1,
+      emblems: dataset.clubs.length + 1 + (dataset.organization.emblem === undefined ? 0 : 1),
     },
   };
 }

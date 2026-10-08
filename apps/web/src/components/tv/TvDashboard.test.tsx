@@ -57,8 +57,8 @@ describe('TvDashboard', () => {
   ];
 
   const sampleClubs = [
-    { name: 'Boca Juniors', emblemObjectId: 'boca-emblem-123' },
-    { name: 'River Plate', emblemObjectId: 'river-emblem-456' },
+    { name: 'Boca Juniors', emblemUrl: '/organizations/o/clubs/boca/emblem' },
+    { name: 'River Plate', emblemUrl: '/organizations/o/clubs/river/emblem' },
   ];
 
   beforeEach(() => {
@@ -135,7 +135,7 @@ describe('TvDashboard', () => {
 
     // Club emblem should be rendered
     const emblem = screen.getByAltText('Boca Juniors');
-    expect(emblem.getAttribute('src')).toBe('/api/objects/boca-emblem-123');
+    expect(emblem.getAttribute('src')).toBe('/organizations/o/clubs/boca/emblem');
   });
 
   it('renders live match spotlight when a live match is in progress', () => {

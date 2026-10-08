@@ -15,6 +15,6 @@ type Story = StoryObj<typeof meta>;
 export const Monogram: Story = {};
 export const WithEmblem: Story = {
   args: {
-    clubs: [{ name: 'Club Atlético Independiente', emblemObjectId: 'obj-1' }],
+    clubs: [{ name: 'Club Atlético Independiente', emblemUrl: 'obj-1' }],
   },
 };

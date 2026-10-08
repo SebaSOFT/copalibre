@@ -101,6 +101,11 @@
           "type": "string",
           "minLength": 3,
           "maxLength": 64
+        },
+        "emblem": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
         }
       }
     },

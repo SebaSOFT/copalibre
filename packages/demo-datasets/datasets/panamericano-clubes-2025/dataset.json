@@ -11,7 +11,8 @@
     "name": "Panamericano Demo",
     "description": "Demo organization holding a copy of a public results portal, with player surnames replaced. Not an official record.",
     "primaryLanguage": "es",
-    "timezone": "America/Argentina/Buenos_Aires"
+    "timezone": "America/Argentina/Buenos_Aires",
+    "emblem": "emblems/organization.png"
   },
   "tournament": {
     "alias": "panamericano-clubes-2025",

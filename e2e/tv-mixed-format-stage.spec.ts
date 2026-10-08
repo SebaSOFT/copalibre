@@ -109,6 +109,12 @@ const overviewMatch = (
   awayScore,
 });
 
+// A 1x1 JPEG: the API's discipline background route answers with image bytes, this stands in for them.
+const BACKDROP = Buffer.from(
+  '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=',
+  'base64',
+);
+
 const overview = {
   organizationAlias: ORGANIZATION,
   organizationName: 'Panamericano Demo',
@@ -117,6 +123,7 @@ const overview = {
   seasonName: '2025/26',
   status: 'in-progress',
   emblemObjectId: 'tournament',
+  disciplineImages: [{ key: 'modules/rink-hockey/1.1.0/rink-hockey-01.jpg' }],
   ruleset: {},
   clubs: Object.values(CLUBS).map((club) => ({
     clubId: `club-${club.alias}`,
@@ -185,6 +192,11 @@ const bracket = {
 let server: Server;
 test.beforeAll(async ({ workerPort }) => {
   server = createServer((req, res) => {
+    if (req.url?.startsWith('/objects/discipline-background-image')) {
+      res.setHeader('content-type', 'image/jpeg');
+      res.end(BACKDROP);
+      return;
+    }
     res.setHeader('content-type', 'application/json');
     if (req.url === `${base}/overview`) res.end(JSON.stringify(overview));
     else if (req.url === `${base}/live`) res.end(JSON.stringify({ matches: [] }));
@@ -198,8 +210,10 @@ test.beforeAll(async ({ workerPort }) => {
 });
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/objects/emblem-*', (route) => {
-    const alias = decodeURIComponent(route.request().url().split('emblem-')[1] ?? '');
+  await page.route(`**/organizations/${ORGANIZATION}/clubs/club-*/emblem`, (route) => {
+    const alias = decodeURIComponent(
+      route.request().url().split('/clubs/club-')[1]?.split('/')[0] ?? '',
+    );
     return route.fulfill({
       status: 200,
       contentType: 'image/png',
@@ -248,6 +262,27 @@ test('lists the league zones’ matches by round and keeps the knockout zone in 
   await expect(drawn).toContainText('Copa de Oro');
   await expect(drawn).toContainText('BOG');
   await expect(drawn).not.toContainText('Zona A');
+});
+
+test('every image the kiosk asks for loads from the web application alone', async ({ page }) => {
+  await page.goto(`${tvPath}?view=standings&bg=discipline`);
+  await expect(page.getByTestId('tv-standings-zone')).toHaveCount(2);
+
+  const emblems = page.locator('img.tv-table-club-emblem');
+  await expect(emblems.first()).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        [...document.images]
+          .filter((image) => !(image.complete && image.naturalWidth > 0))
+          .map((image) => image.src),
+      ),
+    )
+    .toEqual([]);
+  // The discipline backdrop is requested through the web application's own `/objects` route.
+  await expect(
+    page.locator('img[src*="/objects/discipline-background-image"]').first(),
+  ).toBeAttached();
 });
 
 test('captures screenshots of the zone-aware kiosk at broadcast size', async ({ page }) => {

@@ -10,7 +10,7 @@ Introduced with the Panamericano demo dataset. The data lives in `packages/demo-
 `panamericano-clubes-2025` is a copy of the 2025/26 Campeonato Panamericano Clubes Senior Varones, a
 rink hockey championship: 24 clubs, six round-robin groups (`Grupo A` to `Grupo F`), three cups (`Copa
 Oro`, `Copa Plata`, `Copa Bronce`), 72 played games with date, time, venue, referees and goal events,
-a published schedule, the squads, and the club and tournament emblems.
+a published schedule, the squads, and the club, tournament and organization emblems.
 
 It is loaded into its own organization, `panamericano-demo`, whose tournament is published, so the
 public pages work at `/panamericano-demo/tournaments/panamericano-clubes-2025`.
@@ -53,6 +53,8 @@ seconds after the load.
   are cached beside the raw downloads, and `--no-cutout` skips them. The model removes the light parts of
   some logos, so `keepOriginalEmblems` in `scrape/config.ts` lists the emblems that keep their published
   background (the tournament emblem, Casa de Italia and Super Patin).
+- The portal publishes no organization emblem, so the organization carries the tournament's emblem file
+  (`emblems/organization.png`).
 
 Club names, emblems, schedules and results belong to their owners and are reproduced only as
 development sample data; `packages/demo-datasets/datasets/<name>/source.md` records the origin, capture

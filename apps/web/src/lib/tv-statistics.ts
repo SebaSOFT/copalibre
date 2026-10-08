@@ -53,7 +53,7 @@ export interface TopPerformer {
   readonly name: string;
   readonly clubName?: string;
   readonly clubAbbreviation?: string;
-  readonly clubEmblemObjectId?: string;
+  readonly clubEmblemUrl?: string;
   readonly nationalityCode?: string;
   readonly statLabel: string;
   readonly statValue: string | number;
@@ -68,7 +68,7 @@ export interface TournamentFact {
 export interface ChampionInfo {
   readonly name: string;
   readonly abbreviation?: string;
-  readonly emblemObjectId?: string;
+  readonly emblemUrl?: string;
   readonly title: string;
   readonly record?: string;
 }
@@ -112,7 +112,7 @@ export function deriveTopPerformers(
   language: SupportedLanguage,
   tableProjection?: TableProjectionResponse,
   standings?: readonly StandingsRowView[],
-  clubs?: readonly { name: string; emblemObjectId?: string }[],
+  clubs?: readonly { name: string; emblemUrl?: string }[],
 ): readonly TopPerformer[] {
   if (tableProjection && tableProjection.rows.length > 0) {
     const column = primaryColumn(tableProjection);
@@ -144,7 +144,7 @@ export function deriveTopPerformers(
         name,
         clubName: row.entrantName,
         clubAbbreviation: row.entrantAbbreviation,
-        clubEmblemObjectId: clubMatch?.emblemObjectId,
+        clubEmblemUrl: clubMatch?.emblemUrl,
         nationalityCode: row.nationality,
         statLabel: statHeader,
         statValue: rawVal,
@@ -159,7 +159,7 @@ export function deriveTopPerformers(
         rank: s.position,
         name: s.name,
         clubName: s.name,
-        clubEmblemObjectId: clubMatch?.emblemObjectId,
+        clubEmblemUrl: clubMatch?.emblemUrl,
         statLabel: labels.pointsShort,
         statValue: s.points,
       };
@@ -227,7 +227,7 @@ export function resolveChampion(
   labels: TvStatisticsLabels,
   matches: readonly (LiveMatch | OverviewMatch)[],
   standings?: readonly StandingsRowView[],
-  clubs?: readonly { name: string; emblemObjectId?: string }[],
+  clubs?: readonly { name: string; emblemUrl?: string }[],
 ): ChampionInfo | undefined {
   if (matches.length === 0 && (!standings || standings.length === 0)) {
     return undefined;
@@ -243,7 +243,7 @@ export function resolveChampion(
       return {
         name: leader.name,
         abbreviation: leader.abbreviation,
-        emblemObjectId: clubMatch?.emblemObjectId,
+        emblemUrl: clubMatch?.emblemUrl,
         title: labels.championTitle,
         record: fill(labels.standingsRecord, { points: leader.points, played: leader.played }),
       };
@@ -275,7 +275,7 @@ export function resolveChampion(
         return {
           name: homeName,
           abbreviation: homeAbbr,
-          emblemObjectId: clubMatch?.emblemObjectId,
+          emblemUrl: clubMatch?.emblemUrl,
           title: labels.championTitle,
           record: fill(labels.grandFinalRecord, { winner: homeScore, loser: awayScore }),
         };
@@ -285,7 +285,7 @@ export function resolveChampion(
         return {
           name: awayName,
           abbreviation: awayAbbr,
-          emblemObjectId: clubMatch?.emblemObjectId,
+          emblemUrl: clubMatch?.emblemUrl,
           title: labels.championTitle,
           record: fill(labels.grandFinalRecord, { winner: awayScore, loser: homeScore }),
         };
@@ -301,7 +301,7 @@ export function resolveChampion(
       return {
         name: leader.name,
         abbreviation: leader.abbreviation,
-        emblemObjectId: clubMatch?.emblemObjectId,
+        emblemUrl: clubMatch?.emblemUrl,
         title: labels.tableLeaderTitle,
         record: fill(labels.standingsRecord, { points: leader.points, played: leader.played }),
       };

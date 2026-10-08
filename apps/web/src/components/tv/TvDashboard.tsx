@@ -41,6 +41,7 @@ import type { PublicBracketResponse } from '@copalibre/api/src/dto/public-tourna
 import { TvMatchIndicators } from './ui/organisms/TvMatchIndicators.js';
 import { TvBracketView } from './ui/organisms/TvBracketView.js';
 import { TvLeagueFixtures } from './ui/organisms/TvLeagueFixtures.js';
+import { TvEmblem } from './ui/atoms/TvEmblem.js';
 
 export type { TvClubItem, TvDashboardLabels } from './tv-types.js';
 
@@ -507,17 +508,16 @@ export function TvDashboard({
                 <span>★ {champion.title} ★</span>
               </div>
               <div className="tv-champion__emblem-wrap">
-                {champion.emblemObjectId ? (
-                  <img
-                    alt={champion.name}
-                    className="tv-champion__emblem"
-                    src={`/api/objects/${champion.emblemObjectId}`}
-                  />
-                ) : (
-                  <div className="tv-champion__monogram">
-                    {champion.abbreviation ?? champion.name.substring(0, 2).toUpperCase()}
-                  </div>
-                )}
+                <TvEmblem
+                  alt={champion.name}
+                  className="tv-champion__emblem"
+                  fallback={
+                    <div className="tv-champion__monogram">
+                      {champion.abbreviation ?? champion.name.substring(0, 2).toUpperCase()}
+                    </div>
+                  }
+                  src={champion.emblemUrl}
+                />
               </div>
               <h2 className="tv-champion__name">{champion.name}</h2>
               {champion.record && <p className="tv-champion__record">{champion.record}</p>}

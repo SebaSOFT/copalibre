@@ -141,7 +141,7 @@ ${dataset.clubs.length} clubs, ${dataset.players.length} players, ${dataset.phas
 
 - **Player surnames are replaced** with generated ones; given names are kept as published. **Referee names are replaced entirely** (given name and surname), because the portal prints them inconsistently. The replacement is a function of an opaque key and a fixed seed, never of the real name, so it cannot be reversed from this dataset. Club, venue and result data are unchanged.
 - Staff (coaches and delegates) are not included.
-- Club and tournament emblems had their background removed with the control console's process (IMG.LY background removal 1.7.0), except ${config.keepOriginalEmblems.join(', ')}, and were cropped to a centred square on a 410x512 canvas.
+- Club and tournament emblems had their background removed with the control console's process (IMG.LY background removal 1.7.0), except ${config.keepOriginalEmblems.join(', ')}, and were cropped to a centred square on a 410x512 canvas. The organization emblem is the tournament emblem, because the portal publishes none for the organization.
 - Two games were played to 10-2 but officially recorded 8-2 under the regulation goal cap; the official score is kept and their scorers are omitted.
 ${warnings.map((warning) => `- ${warning}`).join('\n')}
 
@@ -213,6 +213,10 @@ export async function runScrape(options: ScrapeOptions): Promise<ScrapeResult> {
     'emblems/tournament.png',
     await conformEmblem(tournament, 'tournament emblem', cutoutFor('tournament')),
   );
+  // The portal publishes no organization emblem; the demo organization only holds this copy, so it
+  // carries the competition's own emblem.
+  const organizationEmblem = emblems.get('emblems/tournament.png');
+  if (organizationEmblem) emblems.set('emblems/organization.png', organizationEmblem);
 
   const datasetJson = `${JSON.stringify(dataset, null, 2)}\n`;
   const source = sourceDocument(config, dataset, options.capturedOn, warnings);
