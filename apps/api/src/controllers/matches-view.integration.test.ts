@@ -22,7 +22,7 @@ import { PublicProjectionsController } from './public-projections.controller.js'
 import { TournamentsController } from './tournaments.controller.js';
 
 /**
- * The public and control-web matches-view endpoints (openspec 0172): a flat,
+ * The public and control-web matches-view endpoints: a flat,
  * filterable card list built from `readMatchesView`, exercised through the
  * real HTTP stack — including the control-web route's real
  * `org.view-internal-standings` authorization (org admin, a correctly-scoped

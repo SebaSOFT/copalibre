@@ -13,7 +13,7 @@ const TRANSCRIPTIONS_DIRECTORY = join(
 );
 
 /**
- * The authoring guide's two worked transcriptions (openspec 0163) are
+ * The authoring guide's two worked transcriptions are
  * proven against the real installation path here, not merely against the
  * schema validator in isolation — the same "propose → validate → revise"
  * loop the guide describes ends with "install", and a schema change that

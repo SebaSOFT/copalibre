@@ -164,7 +164,7 @@ export class BracketMatchResponse {
 /**
  * One zone's own independent bracket in the seeding canvas — or the stage's only bracket, for an
  * un-zoned stage, which always comes back as exactly one zone entry with no
- * `zoneId`/`zoneName` (openspec 0246, mirroring `PublicBracketZoneResponse`).
+ * `zoneId`/`zoneName` (mirroring `PublicBracketZoneResponse`).
  */
 export class SeedingZoneResponse {
   @ApiPropertyOptional({ format: 'uuid', description: 'Absent for an un-zoned stage' })

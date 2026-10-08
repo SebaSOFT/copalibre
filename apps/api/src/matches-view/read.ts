@@ -109,8 +109,8 @@ async function readStageMatchesView(
 
   // The ordinal must come from the stage's full, unscoped match list — a
   // group-filtered `records` here would assign a different ordinal to the
-  // same real match than the unfiltered view and `matchReport()` do
-  // (openspec 0249). No extra query in the common, unfiltered case: `records`
+  // same real match than the unfiltered view and `matchReport()` do.
+  // No extra query in the common, unfiltered case: `records`
   // already is that list.
   const matchOrdinals =
     onlyGroupId === undefined

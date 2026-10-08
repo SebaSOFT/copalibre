@@ -20,8 +20,8 @@ import { DATABASE } from '../database.token.js';
 import { AuditTrailController } from './audit-trail.controller.js';
 
 /**
- * The audit trail's reader-facing surface, through the real HTTP stack
- * (openspec 0166, tasks 4.2-4.3, 6.5, 7.1-7.2): scoped to the reader's
+ * The audit trail's reader-facing surface, through the real HTTP stack:
+ * scoped to the reader's
  * organization, gated by its own capability, and a refused attempt to
  * open it is itself recorded — for free, by the central exception filter
  * every other refusal already goes through.
@@ -171,7 +171,7 @@ describe('audit trail surface (integration)', () => {
     expect(body.offset).toBe(0);
   });
 
-  it('returns real events in chronological newest-first order for populated organizations (openspec 0196 task 4.1)', async () => {
+  it('returns real events in chronological newest-first order for populated organizations', async () => {
     const t0 = new Date(Date.now() - 10000);
     const t1 = new Date(Date.now() - 5000);
     const t2 = new Date();

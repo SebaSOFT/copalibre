@@ -133,7 +133,7 @@ export class PublicOverviewResponse {
     description:
       "Each `ruleset` key's declared display label, when the installed discipline's field " +
       'policy declares one — absent keys fall back to a humanized dot-path client-side ' +
-      '(openspec 0267).',
+      '.',
   })
   rulesetLabels?: Record<string, string | LocalizedLabel>;
 
@@ -515,7 +515,7 @@ export class PublicBracketMatchResponse {
 
 /**
  * One zone's own independent bracket — or the stage's only bracket, for an un-zoned stage, which
- * always comes back as exactly one zone entry with no `zoneId`/`zoneName` (openspec 0246).
+ * always comes back as exactly one zone entry with no `zoneId`/`zoneName`.
  */
 export class PublicBracketZoneResponse {
   @ApiPropertyOptional({ format: 'uuid', description: 'Absent for an un-zoned stage' })

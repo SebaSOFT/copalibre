@@ -392,7 +392,7 @@ export class MatchControlController {
           // In the same transaction as the result that caused it: a series decided by this
           // finalize anulls the games it no longer needs and releases their slots, and a
           // record where the result landed but the anulling did not is exactly the incoherent
-          // state the product refuses. `anullSurplusMatches` is 0158's; deciding *when* to
+          // state the product refuses. `anullSurplusMatches` belongs to the multi-match series logic; deciding *when* to
           // call it is what was missing, and without it every surface downstream of here —
           // the builder's contingency marks, the public bar, the offline conflict — describes
           // a state the engine never reaches.

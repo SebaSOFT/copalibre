@@ -483,7 +483,7 @@ describe('registration review routes', () => {
     expect(after).toHaveLength(before.length);
   });
 
-  it('persists specified roles such as coach and defaults omitted roles to player (openspec 0193 tasks 3.1, 3.2)', async () => {
+  it('persists specified roles such as coach and defaults omitted roles to player', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const enrollment = new EnrollmentRepository(scratch.db);
     const people = new PersonRepository(scratch.db);
@@ -710,7 +710,7 @@ describe('registration review routes', () => {
   });
 });
 
-describe('disciplines listing (openspec 0161)', () => {
+describe('disciplines listing', () => {
   it("exposes each descriptor's field policies so the wizard can warn about hard-to-reverse decisions before it submits", async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = footballDescriptor();
@@ -746,7 +746,7 @@ describe('disciplines listing (openspec 0161)', () => {
     });
   });
 
-  it("exposes each descriptor's own default configuration tree (openspec 0265), so the wizard can infer a starting value for a field with no override yet", async () => {
+  it("exposes each descriptor's own default configuration tree, so the wizard can infer a starting value for a field with no override yet", async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = footballDescriptor();
     await withTransaction(scratch.db as Kysely<Database>, (uow) =>

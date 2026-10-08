@@ -169,7 +169,7 @@ describe('request-body DTO validation rules', () => {
     expect(clock).toHaveLength(0);
   });
 
-  it('validates CreateTournamentRequest.ruleOverrides as an optional object (openspec 0265)', async () => {
+  it('validates CreateTournamentRequest.ruleOverrides as an optional object', async () => {
     const base = {
       alias: 'copa-verano',
       name: 'Copa Verano',

@@ -820,8 +820,8 @@ function toResponse(
  * Reconciles a team's persistent squad (`players`) to a desired
  * `personId -> role` map: enlists who is missing, dismisses who is no longer
  * named, updates the role of anyone named with a different one. Shared by
- * `editTeamMemberships` above and `ClubPortalController`'s roster submission
- * (openspec 0301) — the reconciliation itself does not care who is calling it,
+ * `editTeamMemberships` above and `ClubPortalController`'s roster submission —
+ * the reconciliation itself does not care who is calling it,
  * only that the caller already validated every named person belongs to this
  * organization (and, for a club-scoped caller, to their own club).
  */

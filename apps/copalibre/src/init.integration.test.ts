@@ -101,7 +101,7 @@ function withFakeSecrets(environment: NodeJS.ProcessEnv = process.env): NodeJS.P
     COPALIBRE_EMAIL_FROM: 'noreply@example.invalid',
     // Only required when the optional-adapters profile's object-storage
     // service is active, but `docker compose config` interpolates every
-    // service's variables regardless of active profile (0297).
+    // service's variables regardless of active profile.
     GARAGE_RPC_SECRET: 'fake',
   };
 }

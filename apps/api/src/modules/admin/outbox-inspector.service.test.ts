@@ -110,7 +110,7 @@ describe('OutboxInspectorService', () => {
       'copalibre.super-admin',
     );
 
-    // Sorted and deduplicated order: 0001 then 0002
+    // Sorted and deduplicated order: ascending
     expect(result.retried).toEqual(['019927d0-0000-7000-8000-000000000001']);
     expect(result.skipped).toEqual(['019927d0-0000-7000-8000-000000000002']);
 

@@ -370,8 +370,8 @@ export const MODULE_SUBCOMMAND_HELP: readonly CommandHelp[] = [
  * `copalibre tournament <subcommand>` help table, mirroring
  * `MODULE_SUBCOMMAND_HELP`'s shape — kept separate from `COMMAND_HELP`
  * because these only exist under the `tournament` command. Each subcommand
- * calls the exact same `apps/api` HTTP endpoint its MCP counterpart does
- * (openspec 0252); flag names mirror the MCP tools' input schema field
+ * calls the exact same `apps/api` HTTP endpoint its MCP counterpart does;
+ * flag names mirror the MCP tools' input schema field
  * names translated to kebab-case.
  */
 export const TOURNAMENT_SUBCOMMAND_HELP: readonly CommandHelp[] = [

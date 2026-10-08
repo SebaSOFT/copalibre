@@ -78,8 +78,8 @@ import { DATABASE } from '../database.token.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 
 /**
- * The authenticated HTTP path for `copalibre module add/list/remove/verify`
- * — installation-wide, never organization-scoped, matching
+ * The authenticated HTTP path for `copalibre module add/list/remove/verify` —
+ * installation-wide, never organization-scoped, matching
  * `module-commands.ts`'s own `SYSTEM_ORGANIZATION` audit scoping today.
  * Reuses the same domain logic the CLI's direct-database path calls
  * (`fetchModule`/`validateModulePackageOrThrow`/`importValidatedModule`/
@@ -131,7 +131,7 @@ export class AdminModulesController {
     const latestInstalledByAlias = latestPerAlias(modules);
     const outdatedModules: OutdatedModuleResponse[] = [];
     for (const module_ of latestInstalledByAlias) {
-      // A locally-authored module (openspec 0164) has no upstream repository
+      // A locally-authored module has no upstream repository
       // to check for updates against until it is submitted and merged —
       // at which point it installs again as an ordinary curated update.
       if (module_.sourceKind === 'authored') continue;

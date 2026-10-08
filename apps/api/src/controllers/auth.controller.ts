@@ -61,8 +61,8 @@ import {
 } from '../dto/auth.dto.js';
 
 /**
- * Per-IP rate limit for the unauthenticated, brute-forceable endpoints
- *: tight enough to blunt automated guessing, generous
+ * Per-IP rate limit for the unauthenticated, brute-forceable endpoints:
+ * tight enough to blunt automated guessing, generous
  * enough that a real user retrying a mistyped password or re-requesting a
  * reset email once or twice never notices. Keyed by client IP — see
  * main.ts's trustProxy note for why that is the real client behind this
@@ -72,7 +72,7 @@ export const AUTH_THROTTLE_LIMIT = 5;
 export const AUTH_THROTTLE_TTL_MS = 60_000;
 
 /**
- * Native-login session refresh (openspec 0302). Only native (email/password)
+ * Native-login session refresh. Only native (email/password)
  * sessions get this cookie — an OIDC session's token is issued and refreshed
  * by the external identity provider, never by this API, so it never carries
  * this cookie. `HttpOnly` keeps it out of every browser-storage surface

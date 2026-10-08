@@ -42,7 +42,7 @@ export interface DoctorDependencies {
   readonly retirableModules: (connectionString: string) => Promise<readonly RetirableModule[]>;
   /** Puts, reads back, and deletes a small probe object against the configured profile. */
   readonly objectStorageRoundTrip: (environment: NodeJS.ProcessEnv) => Promise<void>;
-  /** Structural data-integrity snapshot for `evaluateDataIntegrity` (openspec 0296). */
+  /** Structural data-integrity snapshot for `evaluateDataIntegrity`. */
   readonly probeDataIntegrity: (connectionString: string) => Promise<DataIntegritySnapshot>;
 }
 
@@ -299,7 +299,7 @@ export async function validateRetirableModules(
 }
 
 /**
- * Structural data diagnostics (openspec 0296) — non-canonical tournament
+ * Structural data diagnostics — non-canonical tournament
  * statuses. Always `pass` when the probe itself succeeds (see
  * `evaluateDataIntegrity`'s doc comment for why, and for the further checks
  * the proposal named that turned out to have no sound, false-positive-free

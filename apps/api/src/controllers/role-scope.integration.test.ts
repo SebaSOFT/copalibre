@@ -36,8 +36,8 @@ const noopObjectStorage: ObjectStorageAdapter = {
 };
 
 /**
- * Club and tournament resource ownership, through the real HTTP stack
- * (openspec 0165, tasks 6.2–6.5). The mechanism itself is unit-tested
+ * Club and tournament resource ownership, through the real HTTP stack.
+ * The mechanism itself is unit-tested
  * against a fabricated subject in resource-policy.test.ts (task 3.1/3.4);
  * this proves the same refusal reaches a caller who only ever sees an HTTP
  * response, and that admin's inherited reach and a scoped role's

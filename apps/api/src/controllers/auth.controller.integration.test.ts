@@ -259,7 +259,7 @@ describe('Auth Controllers', () => {
     });
   });
 
-  describe('native session silent renewal (openspec 0302)', () => {
+  describe('native session silent renewal', () => {
     const email = 'refresh-target@example.com';
     const password = 'my-secret-password';
 

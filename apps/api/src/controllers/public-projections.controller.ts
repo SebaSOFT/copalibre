@@ -202,7 +202,7 @@ export async function resolveTournamentWinners(
   for (const zone of zonesToProcess) {
     // Each zone is resolved independently: one zone's error or ambiguous
     // terminal round must never prevent the other zones from resolving
-    // (openspec 0245 — previously an uncaught error in this loop's duel
+    // (previously an uncaught error in this loop's duel
     // branch aborted every zone's result, not just the failing one).
     try {
       // A zone playing its own format is judged by that format, not by its stage's.
@@ -442,8 +442,8 @@ export class PublicProjectionsController {
     if (rulesetData) {
       // The compiled *effective* value (discipline default merged with the
       // tournament's overrides, per each field's merge strategy) — never the
-      // raw override delta, which for a `merged` field is only the addition
-      // (openspec 0267). Falls back to the raw delta if compilation fails or
+      // raw override delta, which for a `merged` field is only the addition.
+      // Falls back to the raw delta if compilation fails or
       // the descriptor is unavailable, so the public page never breaks.
       const compiled = descriptor ? compileEffectiveRuleset(descriptor, rulesetData) : undefined;
       for (const [k, v] of Object.entries(rulesetData.overrides)) {
@@ -577,7 +577,7 @@ export class PublicProjectionsController {
     // `matches.number` is a per-fixture series-game index (always 1 for a
     // non-series fixture) — never stage-unique, so this resolves the target
     // match by indexing into the stage's own deterministic order instead of
-    // filtering by that column (openspec 0249).
+    // filtering by that column.
     const stageMatches = await new StageReadModel(this.db).matches(stage.stageId);
     const targetRecord = stageMatches[matchNumber - 1];
     if (!targetRecord)
@@ -883,7 +883,7 @@ export class PublicProjectionsController {
 
     // Computed once, from every zone combined — a per-zone fetch below cannot
     // reconstruct this on its own, since it has no visibility into how many
-    // matches other zones contribute ahead of it (openspec 0249).
+    // matches other zones contribute ahead of it.
     const ordinalByMatchId = stageMatchOrdinals(await readModel.matches(stage.stageId));
 
     const zoneResponses = await Promise.all(
@@ -896,7 +896,7 @@ export class PublicProjectionsController {
         // entrant list produces no graph at all — which is what this endpoint used to return for
         // every stage, an empty bracket the public web then rendered as an empty page. Scoping the
         // entrant list (and every match lookup below) to this one zone is what stops a multi-zone
-        // stage's zones from colliding on the same round/position (openspec 0246).
+        // stage's zones from colliding on the same round/position.
         const format = effectiveFormat(zone, stage);
         const generated = generateFixtures({
           format: format as Parameters<typeof generateFixtures>[0]['format'],

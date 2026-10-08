@@ -347,7 +347,7 @@ describe('standings and seeding routes (integration)', () => {
     expect(notYetMaterialized?.persistedMatchId).toBeUndefined();
   });
 
-  it('projects one correctly-scoped bracket per zone on the operator seeding read (openspec 0246)', async () => {
+  it('projects one correctly-scoped bracket per zone on the operator seeding read', async () => {
     // Reproduces the same cross-zone round/position collision as the public bracket endpoint's
     // own test (public-projections.integration.test.ts): 2 zones, each with a round-1/position-1
     // fixture. Before the fix, `seeding()` generated one flat graph from every zone's entrants
@@ -646,8 +646,7 @@ describe('standings and seeding routes (integration)', () => {
       .execute();
     expect(after).toEqual(before);
 
-    // The refusal itself is recorded — who attempted it, and why (openspec
-    // 0166, task 6.1) — through the central exception filter, with no code
+    // The refusal itself is recorded — who attempted it, and why — through the central exception filter, with no code
     // added at this route.
     const refusal = await scratch.db
       .selectFrom('audit_log')

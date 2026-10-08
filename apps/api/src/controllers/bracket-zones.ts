@@ -5,7 +5,7 @@ import type { Database } from '@copalibre/persistence';
 /**
  * A stage's terminal-stage zone, or the implicit single zone every un-zoned
  * stage has. Shared by every reader that must project one bracket per zone
- * (0245's `resolveTournamentWinners`, 0246's public bracket and operator
+ * (`resolveTournamentWinners`, the public bracket and operator
  * seeding canvas) so the "no zones declared" fallback is defined exactly once.
  */
 export interface StageZone {

@@ -9,7 +9,7 @@ export interface ParityEntry {
  * exemption — the same technique `cli-docs-parity.test.ts` uses one level up
  * (reading the real command/tool lists, not a duplicated list), so a future
  * CLI-only or MCP-only addition fails `cli-mcp-parity.test.ts` instead of
- * silently reopening the asymmetry `0252`-`0254` closed.
+ * silently reopening the asymmetry the CLI/MCP parity work closed.
  *
  * Exactly one of `mcpTool`/`exemptReason` accompanies a given `cliCommand`
  * (and symmetrically for an `mcpTool`-only entry) — enforced by
@@ -40,7 +40,7 @@ export const CLI_MCP_PARITY: readonly ParityEntry[] = [
   {
     cliCommand: 'init',
     exemptReason:
-      "Generates an installation's own secrets (JWT signing material, initial admin bootstrap) — the same class of risk as create-admin/login, per 0253's Why.",
+      "Generates an installation's own secrets (JWT signing material, initial admin bootstrap) — the same class of risk as create-admin/login.",
   },
   {
     cliCommand: 'dev',
@@ -75,7 +75,7 @@ export const CLI_MCP_PARITY: readonly ParityEntry[] = [
   },
 
   // CLI-only, security: mints/bootstraps/revokes credentials, or is an
-  // irreversible data/schema mutation (excluded per 0253's own Why).
+  // irreversible data/schema mutation (excluded from MCP on purpose).
   {
     cliCommand: 'migrate',
     exemptReason:

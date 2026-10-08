@@ -246,8 +246,7 @@ describe('organization-scoped tournament routes', () => {
     expect(document.seasons[0]?.stages[0]?.configuration.rawOverrides).toEqual({});
     expect(document.seasons[0]?.stages[0]?.configuration.effective).toBeDefined();
 
-    // The export itself is a sensitive read, recorded with who and when
-    // (openspec 0166, task 6.3).
+    // The export itself is a sensitive read, recorded with who and when.
     const read = await scratch.db
       .selectFrom('audit_log')
       .selectAll()
@@ -379,7 +378,7 @@ describe('organization-scoped tournament routes', () => {
     );
     expect(vocabulary.entries.every((entry) => entry.authoring !== undefined)).toBe(true);
     expect(vocabulary.entries.some((entry) => entry.type === 'set-guard-outcome')).toBe(false);
-    // Every condition/action carries a phrase template (openspec 0266); a bare
+    // Every condition/action carries a phrase template; a bare
     // vocabulary parameter entry is not rendered directly, so it carries none.
     expect(
       vocabulary.entries
@@ -801,7 +800,7 @@ describe('organization-scoped tournament routes', () => {
     });
   });
 
-  it('creates a tournament with a discipline-declared rule override beyond format/registration (openspec 0265)', async () => {
+  it('creates a tournament with a discipline-declared rule override beyond format/registration', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = footballDescriptor();
     await withTransaction(scratch.db as Kysely<Database>, (uow) =>
@@ -836,7 +835,7 @@ describe('organization-scoped tournament routes', () => {
     expect(ruleset?.overrides).toMatchObject({ 'scoring.pointsPerWin': 4 });
   });
 
-  it('rejects tournament creation with a ruleOverrides entry that violates its field policy, performing no write (openspec 0265)', async () => {
+  it('rejects tournament creation with a ruleOverrides entry that violates its field policy, performing no write', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = footballDescriptor();
     await withTransaction(scratch.db as Kysely<Database>, (uow) =>

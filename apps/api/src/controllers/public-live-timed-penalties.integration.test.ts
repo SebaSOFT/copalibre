@@ -30,7 +30,7 @@ const subjects: Record<string, AuthenticatedSubject> = {
 };
 
 /**
- * The public `/live` route's timed-penalty indicator (openspec 0294), followed
+ * The public `/live` route's timed-penalty indicator, followed
  * end to end: an authorized referee records the discipline's own declared
  * penalty through the real match-control route, the public projection reflects
  * it without a person guessing a remaining duration, and resolution — manual

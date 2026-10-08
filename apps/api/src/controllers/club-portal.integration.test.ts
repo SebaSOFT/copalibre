@@ -24,7 +24,7 @@ import { DATABASE } from '../database.token.js';
 import { ClubPortalController } from './club-portal.controller.js';
 
 /**
- * The Club Portal (openspec 0301) through the real HTTP stack: a club-admin
+ * The Club Portal through the real HTTP stack: a club-admin
  * scoped to one club manages that club's own members and teams and submits a
  * tournament registration, and is refused on another club's resources —
  * exactly the ownership check `role-scope.integration.test.ts` already

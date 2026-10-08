@@ -1161,7 +1161,7 @@ export class GrantableRolesResponse {
     enum: ['super-admin', ...ORGANIZATION_ROLES],
     isArray: true,
     description:
-      'Roles the caller may grant in this organization, per the 0140 role-granting hierarchy.',
+      'Roles the caller may grant in this organization, per the role-granting hierarchy.',
   })
   roles!: readonly ('super-admin' | OrganizationRole)[];
 }

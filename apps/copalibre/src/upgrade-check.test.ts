@@ -34,9 +34,9 @@ describe('evaluateUpgrade', () => {
     const report = evaluateUpgrade(
       '2.0.0',
       [installed('football', '^2.0.0')],
-      ['0012-example-migration'],
+      ['example-migration'],
     );
-    expect(report.pendingMigrations).toEqual(['0012-example-migration']);
+    expect(report.pendingMigrations).toEqual(['example-migration']);
     expect(report.ok).toBe(true);
   });
 });

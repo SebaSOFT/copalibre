@@ -16,7 +16,7 @@ import {
 } from './registrations.controller.js';
 
 /**
- * Direct participant authoring (openspec 0167): a person or team registered
+ * Direct participant authoring: a person or team registered
  * without a CSV file, through the same repository paths a CSV row already
  * takes. Covers tasks.md sections 2 (behavioural coverage of the
  * create/edit/collision paths) and 3 (the CSV-interop and

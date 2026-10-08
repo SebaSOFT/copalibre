@@ -20,7 +20,7 @@ import type { PublicSeriesStateResponse } from '../dto/public-tournament.dto.js'
  * There is no `series` table and no `seriesId`: a series is a fixture carrying more than
  * one match, and its declaration is `series.span` / `series.resolutionClass` /
  * `series.neutralGround` entries in the same override set every other configurable field
- * uses (see `0159`'s authoring step). A zone may declare its own under the `zones.<zoneId>.`
+ * uses (see the series authoring step). A zone may declare its own under the `zones.<zoneId>.`
  * prefix of the stage's override set; a zone that declares none inherits its stage's own
  * `StageConfiguration.overrides`, and a stage that declares nothing inherits the tournament
  * ruleset's, which is where the authoring wizard writes a series declared at tournament
@@ -175,7 +175,7 @@ export function guaranteedMatchCount(declaration: SeriesDeclaration): number {
 
 /**
  * Resolves a fixture's series from the matches that fixture holds, so a caller reporting
- * on a series never re-derives what `0158`'s evaluator already decides.
+ * on a series never re-derives what the series evaluator already decides.
  *
  * Returns `undefined` for a fixture whose two sides are not both known yet: a series
  * between an entrant and a placeholder has nothing to resolve, and reporting it as
