@@ -37,6 +37,34 @@ describe('TournamentSummary', () => {
     expect(screen.getByText('Rules')).not.toBeNull();
   });
 
+  it('lists a stage`s zones with the format each plays, and nothing for a stage without any', () => {
+    render(
+      withIntl(
+        <TournamentSummary
+          discipline={DISCIPLINE}
+          facts={{
+            name: 'Copa Orbital',
+            stages: [
+              {
+                name: 'Copas',
+                format: 'single-elimination',
+                zones: [
+                  { name: 'Copa Oro', format: 'single-elimination' },
+                  { name: 'Liga', format: 'round-robin' },
+                ],
+              },
+              { name: 'Final', format: 'single-elimination', zones: [] },
+            ],
+          }}
+        />,
+      ),
+    );
+    expect(
+      screen.getByText('Zones: Copa Oro (single-elimination), Liga (round-robin)'),
+    ).not.toBeNull();
+    expect(screen.getAllByText(/^Zones:/)).toHaveLength(1);
+  });
+
   it('omits a fact entirely rather than inventing a placeholder when it is absent', () => {
     render(
       withIntl(<TournamentSummary discipline={DISCIPLINE} facts={{ name: 'Copa Orbital' }} />),

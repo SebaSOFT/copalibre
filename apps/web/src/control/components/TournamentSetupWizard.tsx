@@ -436,6 +436,7 @@ function FormatStep({
             showAllocation
             showSeries
             showStructurePreview
+            showZones
             stages={state.stages}
           />
         )}
@@ -949,6 +950,10 @@ function SummaryStep({
     stages: state.stages.map((stage, index) => ({
       name: stage.name.trim() === '' ? `${index + 1}` : stage.name,
       format: stage.format,
+      zones: (stage.zones ?? []).map((zone) => ({
+        name: zone.name,
+        format: zone.format ?? stage.format,
+      })),
     })),
     publicRegistration: state.publicRegistration,
     requiresCheckIn: state.requiresCheckIn,

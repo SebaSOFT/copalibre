@@ -31,6 +31,10 @@ data before any participant is registered.
 - **Format**: the competition format available for the chosen discipline (single elimination, round
   robin, and so on).
 
+## Planning zones
+
+Each stage can be split into zones when you create the tournament. Open **Zones** under a stage, add a zone and name it. A zone plays its stage's format and series unless you pick another format for it (for example, two knockout zones and one round-robin league inside one stage) or give it a series of its own. Zone names must be unique within the stage. The wizard declares the structure only: entrants are assigned to zones after registration, in the zones and groups screen, where the format of each zone can also be changed until the stage has fixtures.
+
 ## Reviewing before you create
 
 The wizard's final step summarizes everything configured so far — discipline, format, stages,

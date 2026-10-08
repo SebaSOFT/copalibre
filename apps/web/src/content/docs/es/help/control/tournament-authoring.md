@@ -30,6 +30,10 @@ antes de que exista ningún participante inscrito.
 - **Formato**: el formato de disputa disponible para la disciplina elegida (eliminación simple,
   round robin, etc.).
 
+## Planificar zonas
+
+Cada fase puede dividirse en zonas al crear el torneo. Abra **Zonas** dentro de una fase, agregue una zona y póngale nombre. Una zona juega con el formato y la serie de su fase, salvo que elija otro formato para ella (por ejemplo, dos zonas de eliminación y una liga de todos contra todos dentro de una misma fase) o le defina una serie propia. Los nombres de zona deben ser únicos dentro de la fase. El asistente solo declara la estructura: los participantes se asignan a las zonas después de la inscripción, en la pantalla de zonas y grupos, donde también se puede cambiar el formato de cada zona hasta que la fase tenga partidos generados.
+
 ## Ciclo de vida
 
 Un torneo recién creado queda en estado **borrador**. Desde ahí sigue un camino lineal:

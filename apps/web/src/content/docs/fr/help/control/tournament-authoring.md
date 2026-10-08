@@ -32,6 +32,10 @@ données de base avant qu'aucun participant ne soit inscrit.
 - **Format** : le format de compétition disponible pour la discipline choisie (élimination directe,
   round robin, etc.).
 
+## Planifier les zones
+
+Chaque phase peut être divisée en zones à la création du tournoi. Ouvrez **Zones** sous une phase, ajoutez une zone et nommez-la. Une zone joue avec le format et la série de sa phase, sauf si vous choisissez un autre format pour elle (par exemple, deux zones à élimination directe et une ligue en championnat au sein d’une même phase) ou lui donnez sa propre série. Les noms de zone doivent être uniques dans la phase. L’assistant ne déclare que la structure : les participants sont affectés aux zones après l’inscription, dans l’écran des zones et groupes, où le format de chaque zone peut aussi être modifié tant que la phase n’a pas de rencontres générées.
+
 ## Cycle de vie
 
 Un tournoi nouvellement créé démarre à l'état **brouillon**. À partir de là, il suit un chemin

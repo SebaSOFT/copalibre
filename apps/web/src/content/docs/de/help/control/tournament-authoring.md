@@ -32,6 +32,10 @@ Grunddaten, bevor ein Teilnehmer angemeldet ist.
 - **Format**: das für die gewählte Disziplin verfügbare Wettbewerbsformat (einfaches
   Ausscheidungsturnier, Rundenturnier usw.).
 
+## Zonen planen
+
+Jede Phase kann beim Anlegen des Turniers in Zonen unterteilt werden. Öffnen Sie **Zonen** unter einer Phase, fügen Sie eine Zone hinzu und benennen Sie sie. Eine Zone spielt im Format und in der Serie ihrer Phase, sofern Sie für sie kein anderes Format wählen (zum Beispiel zwei K.-o.-Zonen und eine Liga im Rundenturnier innerhalb einer Phase) oder ihr eine eigene Serie geben. Zonennamen müssen innerhalb der Phase eindeutig sein. Der Assistent legt nur die Struktur fest: Die Teilnehmer werden nach der Anmeldung im Bildschirm für Zonen und Gruppen den Zonen zugewiesen; dort lässt sich auch das Format jeder Zone ändern, solange die Phase noch keine erzeugten Spiele hat.
+
 ## Lebenszyklus
 
 Ein neu erstelltes Turnier startet im Status **Entwurf**. Von dort folgt es einem linearen Pfad:

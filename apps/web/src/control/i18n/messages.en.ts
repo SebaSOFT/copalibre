@@ -1272,6 +1272,55 @@ export const messages = defineMessages({
   // Shared stage editor (lib/stage-authoring.ts, components/StageListEditor.tsx)
   stageEditorTitle: { id: 'control.stageEditor.title', defaultMessage: 'Stages' },
   stageEditorAddStage: { id: 'control.stageEditor.addStage', defaultMessage: 'Add stage' },
+  stageEditorZonesSummary: {
+    id: 'control.stageEditor.zonesSummary',
+    defaultMessage: 'Zones ({count})',
+  },
+  stageEditorZonesHint: {
+    id: 'control.stageEditor.zonesHint',
+    defaultMessage:
+      'Split this stage into zones. Each zone plays the stage’s format and series unless you change them here. Entrants are assigned to zones after registration, in zone management.',
+  },
+  stageEditorAddZone: {
+    id: 'control.stageEditor.addZone',
+    defaultMessage: 'Add zone',
+  },
+  stageEditorRemoveZone: {
+    id: 'control.stageEditor.removeZone',
+    defaultMessage: 'Remove zone',
+  },
+  stageEditorZoneHeading: {
+    id: 'control.stageEditor.zoneHeading',
+    defaultMessage: 'Zone {number}',
+  },
+  stageEditorZoneName: {
+    id: 'control.stageEditor.zoneName',
+    defaultMessage: 'Zone name',
+  },
+  stageEditorZoneFormat: {
+    id: 'control.stageEditor.zoneFormat',
+    defaultMessage: 'Zone format',
+  },
+  stageEditorZoneFormatInherit: {
+    id: 'control.stageEditor.zoneFormatInherit',
+    defaultMessage: 'Same as the stage ({format})',
+  },
+  stageEditorZoneSeriesToggle: {
+    id: 'control.stageEditor.zoneSeriesToggle',
+    defaultMessage: 'Settle this zone’s crosses with a series',
+  },
+  wizardProblemZoneName: {
+    id: 'control.wizard.problem.zoneName',
+    defaultMessage: 'Every zone needs a name',
+  },
+  wizardProblemZoneDuplicate: {
+    id: 'control.wizard.problem.zoneDuplicate',
+    defaultMessage: 'Two zones of one stage cannot share a name',
+  },
+  tournamentSummaryStageZonesLine: {
+    id: 'control.tournamentSummary.stageZonesLine',
+    defaultMessage: 'Zones: {zones}',
+  },
   stageEditorRemoveStage: { id: 'control.stageEditor.removeStage', defaultMessage: 'Remove' },
   stageEditorStageHeading: {
     id: 'control.stageEditor.stageHeading',

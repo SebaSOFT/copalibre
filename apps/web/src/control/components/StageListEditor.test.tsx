@@ -240,6 +240,76 @@ describe('StageListEditor', () => {
     ]);
   });
 
+  describe('zones (0339)', () => {
+    const zoned: readonly WizardStageDraft[] = [
+      {
+        number: 1,
+        name: 'Copas',
+        format: 'single-elimination',
+        zones: [{ name: 'Copa Oro' }, { name: 'Liga', format: 'round-robin' }],
+      },
+    ];
+
+    it('shows no zone section unless showZones is set', () => {
+      render(withIntl(<StageListEditor formats={formats} stages={zoned} />));
+
+      expect(screen.queryByText(/^Zones \(/)).toBeNull();
+      expect(screen.queryByLabelText('Zone name')).toBeNull();
+    });
+
+    it('lists each zone with its name and format, inheriting by default', () => {
+      render(withIntl(<StageListEditor formats={formats} showZones stages={zoned} />));
+
+      expect(screen.getByText('Zones (2)')).toBeDefined();
+      const names = screen.getAllByLabelText('Zone name') as HTMLInputElement[];
+      expect(names.map((input) => input.value)).toEqual(['Copa Oro', 'Liga']);
+      const zoneFormats = screen.getAllByRole('combobox', { name: 'Zone format' });
+      expect((zoneFormats[0] as HTMLSelectElement).value).toBe('__inherit__');
+      expect((zoneFormats[1] as HTMLSelectElement).value).toBe('round-robin');
+      expect(zoneFormats[0]?.textContent).toContain('Same as the stage (Single elimination)');
+    });
+
+    it('adds, renames and removes zones', () => {
+      const onChange = jest.fn();
+      render(
+        withIntl(
+          <StageListEditor formats={formats} onChange={onChange} showZones stages={zoned} />,
+        ),
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Add zone' }));
+      expect(onChange).toHaveBeenLastCalledWith([
+        expect.objectContaining({
+          zones: [{ name: 'Copa Oro' }, { name: 'Liga', format: 'round-robin' }, { name: '' }],
+        }),
+      ]);
+
+      fireEvent.change(screen.getAllByLabelText('Zone name')[0] as HTMLElement, {
+        target: { value: 'Copa de Oro' },
+      });
+      expect(onChange).toHaveBeenLastCalledWith([
+        expect.objectContaining({
+          zones: [{ name: 'Copa de Oro' }, { name: 'Liga', format: 'round-robin' }],
+        }),
+      ]);
+
+      fireEvent.click(screen.getAllByRole('button', { name: 'Remove zone' })[1] as HTMLElement);
+      expect(onChange).toHaveBeenLastCalledWith([
+        expect.objectContaining({ zones: [{ name: 'Copa Oro' }] }),
+      ]);
+    });
+
+    it('offers a zone series only where the editor declares series', () => {
+      const { rerender } = render(
+        withIntl(<StageListEditor formats={formats} showZones stages={zoned} />),
+      );
+      expect(screen.queryByLabelText('Settle this zone’s crosses with a series')).toBeNull();
+
+      rerender(withIntl(<StageListEditor formats={formats} showSeries showZones stages={zoned} />));
+      expect(screen.getAllByLabelText('Settle this zone’s crosses with a series')).toHaveLength(2);
+    });
+  });
+
   it('does not render structure preview when showStructurePreview is false', () => {
     render(
       withIntl(
