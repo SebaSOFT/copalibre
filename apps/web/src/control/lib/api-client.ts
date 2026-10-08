@@ -290,6 +290,16 @@ export interface ControlApiClient {
     stageNumber: number,
     request: StageConfigurationRequest,
   ) => Promise<StageConfigurationResponse>;
+  /**
+   * Generates the next round of one zone of a Swiss or single-elimination stage. The zone is
+   * required when the stage has several; rounds, pairings and results are per zone.
+   */
+  readonly generateNextRound?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    request: NextRoundRequest,
+  ) => Promise<StageFixturesResponse>;
   /** Zone/Group management, entrant assignment, and promotion plans. */
   readonly listZones?: (
     organizationAlias: string,
@@ -1225,6 +1235,11 @@ export interface ZoneResponse {
   readonly effectiveFormat?: string;
   /** The series this zone declares itself; absent means it inherits its stage's. */
   readonly series?: SeriesDeclaration;
+}
+
+export interface NextRoundRequest {
+  /** The 1-based number of the zone to advance. */
+  readonly zoneNumber?: number;
 }
 
 /** Absent leaves a field unchanged; `null` clears it so the zone inherits its stage's again. */
@@ -2475,6 +2490,13 @@ export function createControlApiClient(input: {
           tournamentAlias,
         )}/ruleset-overrides`,
         { method: 'PUT', body, token: input.accessToken?.() },
+      ),
+
+    generateNextRound: (organizationAlias, tournamentAlias, stageNumber, body) =>
+      requestJson<StageFixturesResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/rounds/next`,
+        { method: 'POST', body, token: input.accessToken?.() },
       ),
 
     listZones: (organizationAlias, tournamentAlias, stageNumber) =>

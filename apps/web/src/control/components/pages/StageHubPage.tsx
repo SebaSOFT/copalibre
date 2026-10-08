@@ -5,12 +5,13 @@ import {
   createControlApiClient,
   type ControlApiClient,
   type StageResponse,
+  type ZoneResponse,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
 import { navigateControl } from '../../lib/control-navigation.js';
 import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
-import { StageHubTemplate } from '../screens/StageHubTemplate.js';
+import { StageHubTemplate, type RoundZone } from '../screens/StageHubTemplate.js';
 
 /**
  * Moved from `SeedingBuilderPage.tsx`'s local `pageMessages` — ids renamed from `control.seedingBuilder.*` to `control.stageHub.*`
@@ -20,6 +21,19 @@ const pageMessages = defineMessages({
   stageDeleted: { id: 'control.stageHub.stageDeleted', defaultMessage: 'Stage deleted.' },
   stageRenamed: { id: 'control.stageHub.stageRenamed', defaultMessage: 'Stage renamed.' },
 });
+
+/** The formats whose next round the API derives from the previous one. */
+const DYNAMIC_ROUND_FORMATS: readonly string[] = ['swiss', 'single-elimination'];
+
+function roundZonesOf(zones: readonly ZoneResponse[], stageFormat: string): readonly RoundZone[] {
+  return zones
+    .map((zone) => ({
+      zoneNumber: zone.number,
+      zoneName: zone.name,
+      format: zone.effectiveFormat ?? zone.format ?? stageFormat,
+    }))
+    .filter((zone) => DYNAMIC_ROUND_FORMATS.includes(zone.format));
+}
 
 /**
  * The Stage hub's own data-fetching (mirrors `ZoneGroupPage`): calls the same
@@ -53,6 +67,7 @@ export function StageHubPage({
   const [stage, setStage] = useState<StageResponse | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | undefined>(undefined);
+  const [zones, setZones] = useState<readonly ZoneResponse[]>([]);
 
   const applyStages = useCallback(
     (stages: readonly StageResponse[]): void => {
@@ -72,6 +87,24 @@ export function StageHubPage({
       Promise.resolve([]));
     applyStages(stages);
   }, [api, organizationAlias, tournamentAlias, applyStages]);
+
+  const seeded = stage?.seeded ?? false;
+  useEffect(() => {
+    if (!seeded || api.listZones === undefined) return undefined;
+    let live = true;
+    api
+      .listZones(organizationAlias, tournamentAlias, stageNumber)
+      .then((listed) => {
+        if (live) setZones(listed);
+      })
+      .catch(() => {
+        // Zones only decide whether the rounds section shows; the hub works without it.
+        if (live) setZones([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, [api, organizationAlias, tournamentAlias, stageNumber, seeded]);
 
   useEffect(() => {
     let live = true;
@@ -109,6 +142,21 @@ export function StageHubPage({
     }
   }
 
+  async function onGenerateNextRound(zoneNumber: number): Promise<void> {
+    const zoneName = zones.find((zone) => zone.number === zoneNumber)?.name ?? String(zoneNumber);
+    try {
+      await api.generateNextRound?.(organizationAlias, tournamentAlias, stageNumber, {
+        zoneNumber,
+      });
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.stageRoundsGenerated, { zone: zoneName }),
+      });
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
   async function onDelete(): Promise<void> {
     try {
       await api.deleteStage?.(organizationAlias, tournamentAlias, stageNumber);
@@ -133,8 +181,10 @@ export function StageHubPage({
       formatDescriptions={stage.formatDescriptions}
       onChangeFormat={onChangeFormat}
       onDelete={onDelete}
+      onGenerateNextRound={onGenerateNextRound}
       onRename={onRename}
       organizationAlias={organizationAlias}
+      roundZones={roundZonesOf(zones, stage.format)}
       seeded={stage.seeded ?? false}
       stageFormat={stage.format}
       stageName={stage.name}

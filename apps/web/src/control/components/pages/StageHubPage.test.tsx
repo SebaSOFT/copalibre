@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { StageHubPage } from './StageHubPage.js';
 import { withIntl } from '../../i18n/test-support.js';
-import type { ControlApiClient, StageResponse } from '../../lib/api-client.js';
+import type { ControlApiClient, StageResponse, ZoneResponse } from '../../lib/api-client.js';
 
 function stage(overrides: Partial<StageResponse> = {}): StageResponse {
   return {
@@ -26,6 +26,134 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
     ...overrides,
   } as unknown as ControlApiClient;
 }
+
+function zone(number: number, name: string, effectiveFormat: string): ZoneResponse {
+  return {
+    zoneId: `zone-${number}`,
+    stageId: 's-1',
+    number,
+    name,
+    effectiveFormat,
+  } as ZoneResponse;
+}
+
+describe('StageHubPage rounds', () => {
+  const props = {
+    organizationAlias: 'liga-mendocina',
+    stageNumber: 1,
+    tournamentAlias: 'apertura-2026',
+  } as const;
+
+  it('offers one next-round action per zone that plays a dynamic format, and none for the others', async () => {
+    render(
+      withIntl(
+        <StageHubPage
+          {...props}
+          client={stubClient({
+            listStages: () => Promise.resolve([stage({ format: 'swiss', seeded: true })]),
+            listZones: () =>
+              Promise.resolve([
+                zone(1, 'Zona A', 'swiss'),
+                zone(2, 'Zona B', 'round-robin'),
+                zone(3, 'Zona C', 'single-elimination'),
+              ]),
+          })}
+        />,
+      ),
+    );
+
+    expect(
+      await screen.findByRole('button', { name: 'Generate next round for Zona A' }),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Generate next round for Zona C' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Zona B/ })).toBeNull();
+  });
+
+  it('advances only the zone whose action was used', async () => {
+    const generateNextRound = jest.fn(() => Promise.resolve({ stageId: 's-1', fixtures: [] }));
+    render(
+      withIntl(
+        <StageHubPage
+          {...props}
+          client={stubClient({
+            listStages: () => Promise.resolve([stage({ format: 'swiss', seeded: true })]),
+            listZones: () =>
+              Promise.resolve([zone(1, 'Zona A', 'swiss'), zone(2, 'Zona B', 'swiss')]),
+            generateNextRound:
+              generateNextRound as unknown as ControlApiClient['generateNextRound'],
+          })}
+        />,
+      ),
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Generate next round for Zona B' }));
+
+    await waitFor(() =>
+      expect(generateNextRound).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1, {
+        zoneNumber: 2,
+      }),
+    );
+    expect(generateNextRound).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('Next round generated for Zona B.')).toBeTruthy();
+  });
+
+  it('reports the refusal and keeps the action when the round is not ready', async () => {
+    render(
+      withIntl(
+        <StageHubPage
+          {...props}
+          client={stubClient({
+            listStages: () => Promise.resolve([stage({ format: 'swiss', seeded: true })]),
+            listZones: () => Promise.resolve([zone(1, 'Zona A', 'swiss')]),
+            generateNextRound: () =>
+              Promise.reject(new Error('Round 1 has 2 match(es) that are not completed')),
+          })}
+        />,
+      ),
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Generate next round for Zona A' }));
+
+    expect(await screen.findByText('The request could not be completed. Try again.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Generate next round for Zona A' })).toBeTruthy();
+  });
+
+  it('shows no rounds section before the stage is seeded', async () => {
+    const listZones = jest.fn(() => Promise.resolve([zone(1, 'Zona A', 'swiss')]));
+    render(
+      withIntl(
+        <StageHubPage
+          {...props}
+          client={stubClient({
+            listStages: () => Promise.resolve([stage({ format: 'swiss', seeded: false })]),
+            listZones,
+          })}
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByLabelText('New stage name'));
+    expect(screen.queryByRole('heading', { name: 'Rounds' })).toBeNull();
+    expect(listZones).not.toHaveBeenCalled();
+  });
+
+  it('shows no rounds section when no zone plays a dynamic format', async () => {
+    render(
+      withIntl(
+        <StageHubPage
+          {...props}
+          client={stubClient({
+            listStages: () => Promise.resolve([stage({ seeded: true })]),
+            listZones: () => Promise.resolve([zone(1, 'Zona A', 'round-robin')]),
+          })}
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByLabelText('New stage name'));
+    expect(screen.queryByRole('heading', { name: 'Rounds' })).toBeNull();
+  });
+});
 
 describe('StageHubPage', () => {
   it("pre-fills the rename field with the stage's current name, not blank", async () => {

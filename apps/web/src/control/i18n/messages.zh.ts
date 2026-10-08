@@ -691,6 +691,11 @@ export const messages: Record<string, string> = {
   'control.stageHub.zoneGroupsLink': '区域和小组',
   'control.stageHub.standingsLink': '积分榜',
   'control.stageHub.scheduleLink': '赛程',
+  'control.stageHub.roundsHeading': '轮次',
+  'control.stageHub.roundsExplanation':
+    '瑞士制和单败淘汰制的分区会根据上一轮生成下一轮。请先完成某个分区当前轮次的所有比赛，再生成下一轮。',
+  'control.stageHub.roundsGenerate': '为 {zone} 生成下一轮',
+  'control.stageHub.roundsGenerated': '已为 {zone} 生成下一轮。',
   'control.stageHub.loading': '正在加载阶段…',
   'control.stageHub.loadFailed': '无法加载该阶段。',
   'control.stageHub.notFound': '该赛事没有阶段 {number}。',

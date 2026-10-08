@@ -716,6 +716,11 @@ export const messages: Record<string, string> = {
   'control.stageHub.zoneGroupsLink': 'Zonas e grupos',
   'control.stageHub.standingsLink': 'Classificação',
   'control.stageHub.scheduleLink': 'Calendário',
+  'control.stageHub.roundsHeading': 'Rodadas',
+  'control.stageHub.roundsExplanation':
+    'As zonas suíças e de eliminatória simples criam cada rodada a partir da anterior. Finalize todas as partidas da rodada atual de uma zona e gere a próxima.',
+  'control.stageHub.roundsGenerate': 'Gerar a próxima rodada de {zone}',
+  'control.stageHub.roundsGenerated': 'Próxima rodada gerada para {zone}.',
   'control.stageHub.loading': 'Carregando fase…',
   'control.stageHub.loadFailed': 'Não foi possível carregar esta fase.',
   'control.stageHub.notFound': 'Não há fase {number} neste torneio.',
