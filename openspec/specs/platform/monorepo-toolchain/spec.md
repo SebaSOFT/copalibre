@@ -490,3 +490,18 @@ Tracked file content and tracked file names SHALL NOT cite an OpenSpec change by
 #### Scenario: Exempt files may keep historical numbers
 - **WHEN** `CHANGELOG.md`, a migration file or a lockfile contains a change number
 - **THEN** the guard does not fail
+
+### Requirement: Tracked Content Does Not Cite A Change's Planning Artifacts
+Tracked file content SHALL NOT point at a git-ignored change's planning artifacts as the source of a rationale: a task number such as "task" followed by a dotted number, or the file names of a change's design, tasks or proposal documents used as a reference. The rationale SHALL be stated in words where it is needed. Continuous integration SHALL fail when tracked content contains such a reference. Documentation that describes the OpenSpec workflow itself, and the guard's own test fixtures, SHALL be exempt through an explicit short allowlist.
+
+#### Scenario: A comment points at a design document
+- **WHEN** a tracked source file says a behavior is explained in a change's design document
+- **THEN** the guard fails continuous integration and reports the file and line
+
+#### Scenario: A comment cites a task number
+- **WHEN** a tracked source file cites "task" followed by a dotted number
+- **THEN** the guard fails continuous integration and reports the file and line
+
+#### Scenario: Workflow documentation may name the files
+- **WHEN** `AGENTS.md` or a skill describes what a change's design or tasks document is for
+- **THEN** the guard does not fail

@@ -45,7 +45,7 @@ export const UNIT_GROUPS = {
 
 export const INTEGRATION_GROUPS = {
   1: {
-    name: 'Integration Group 1 (Persistence & Core API - Postgres)',
+    name: 'Integration Group 1 (Persistence, Core API & Module Distribution - Postgres)',
     services: ['postgres'],
     workspaces: [
       { workspace: '@copalibre/persistence', command: 'test:integration', dialect: 'postgresql' },
@@ -58,6 +58,11 @@ export const INTEGRATION_GROUPS = {
       },
       {
         workspace: '@copalibre/statistics-refold',
+        command: 'test:integration',
+        dialect: 'postgresql',
+      },
+      {
+        workspace: '@copalibre/module-distribution',
         command: 'test:integration',
         dialect: 'postgresql',
       },

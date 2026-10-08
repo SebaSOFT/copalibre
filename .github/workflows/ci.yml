@@ -128,6 +128,8 @@ jobs:
       - run: node --test scripts/dependency-security.test.mjs
       - run: node --test apps/copalibre/scripts/build-binary.test.mjs
       - run: node --test apps/web/scripts/serve-with-security-headers.test.mjs
+      - run: node --test scripts/jest-integration-projects.test.mjs
+      - run: node --test scripts/summarize-playwright-flaky.test.mjs
 
   lint:
     name: Lint (zero warnings)
@@ -647,6 +649,10 @@ jobs:
       - run: yarn playwright install --with-deps chromium
       - name: Run E2E test shard
         run: PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --shard=${{ matrix.shard }}
+      # A retry that rescues a test passes the job, so list those tests where a reviewer looks.
+      - name: List flaky E2E tests
+        if: always()
+        run: node scripts/summarize-playwright-flaky.mjs test-results/playwright-results.json "E2E shard ${{ matrix.shard }} flaky tests"
 
   # Aggregate required gate preserving the stable check name 'E2E tests'.
   # Validates all shards passed; the accelerated TV soak-test proxy step runs
@@ -792,6 +798,11 @@ jobs:
       - run: yarn workspace @copalibre/api test:integration
       - run: yarn workspace @copalibre/tournament-engine test:integration
       - run: yarn workspace @copalibre/statistics-refold test:integration
+      # Clones the curated module repository, so it needs the network: an unreachable
+      # remote fails the suite here instead of skipping it.
+      - run: yarn workspace @copalibre/module-distribution test:integration
+        env:
+          COPALIBRE_REQUIRE_NETWORK_TESTS: '1'
 
   # Group 2: Storage, Worker, Scheduler, Events, CLI (PostgreSQL + Garage + ClamAV).
   integration-tests-g2:
@@ -863,7 +874,10 @@ jobs:
       - run: yarn workspace @copalibre/scheduler test:integration
       - run: yarn workspace @copalibre/events test:integration
       - run: yarn workspace @copalibre/copalibre build
+      # module add clones the curated module repository: an unreachable remote fails, not skips.
       - run: yarn workspace @copalibre/copalibre test:integration
+        env:
+          COPALIBRE_REQUIRE_NETWORK_TESTS: '1'
 
   # Aggregate required gate preserving the stable check name 'Integration tests'.
   integration-tests:
