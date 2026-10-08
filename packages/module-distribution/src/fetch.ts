@@ -33,8 +33,7 @@ export function alternateModuleSource(repositoryUrl: string): ModuleSource {
 }
 
 /**
- * A module authored locally through the control-panel builder (openspec
- * 0164) — never fetched from anywhere, so it carries no repository URL.
+ * A module authored locally through the control-panel builder — never fetched from anywhere, so it carries no repository URL.
  * `sourceFor()` returns this for an installed `'authored'`-kind module
  * rather than attempting to resolve one, since there is nothing to check
  * for updates against until (and unless) it is later submitted and merged

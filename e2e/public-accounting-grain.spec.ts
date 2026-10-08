@@ -3,7 +3,7 @@ import { expect, test } from './fixtures.js';
 
 /**
  * The public standings preview and the live page's leaders table state the
- * accounting grain (0160 tasks 7.3, 7.4).
+ * accounting grain.
  *
  * Both pages are server-rendered — `[tournament].astro` and `live.astro`
  * both declare `prerender = false` and fetch every figure in frontmatter, so
@@ -178,7 +178,7 @@ test('7.4: the grain statement is legible with color disabled', async ({ page })
   await expect(page.getByText('This table counts one result per series.')).toBeVisible();
 });
 
-test('0293: public standings figures and adjacent match cards keep their numeric and surface treatments without JavaScript', async ({
+test('public standings figures and adjacent match cards keep their numeric and surface treatments without JavaScript', async ({
   browser,
 }) => {
   overview = {

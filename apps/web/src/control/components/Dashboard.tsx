@@ -47,7 +47,7 @@ export function Dashboard({
 }
 
 /**
- * Fetches and mutates (openspec 0225 task 6.2): the device-heartbeat poll
+ * Fetches and mutates: the device-heartbeat poll
  * and the archive/export mutations live here; `DashboardTemplate` composes
  * the screen from the resulting data and callbacks, with no API client
  * reference of its own.

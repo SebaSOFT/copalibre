@@ -208,7 +208,7 @@ describe('MatchCard', () => {
     expect(timestamp?.textContent).not.toContain('2025-05-18T');
   });
 
-  it('renders the scheduled timestamp in the locale it is given, not a fixed one (openspec 0272)', () => {
+  it('renders the scheduled timestamp in the locale it is given, not a fixed one', () => {
     const instant = '2025-05-18T15:30:00.000Z';
     const { container } = render(
       <MatchCard match={baseMatch({ scheduledAt: instant })} labels={labels} locale="es-AR" />,
@@ -242,7 +242,7 @@ describe('resolveCompactEntrant', () => {
   });
 });
 
-describe('MatchCard compact presentation (openspec 0299)', () => {
+describe('MatchCard compact presentation', () => {
   it('renders a color-coded state dot, abbreviations, and the score in ticker order while live', () => {
     const { container } = render(
       <MatchCard

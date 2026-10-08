@@ -342,7 +342,7 @@ describe('StandingsTemplate', () => {
     expect(screen.getByText('No data to chart.')).toBeTruthy();
   });
 
-  describe('series accounting grain (0160)', () => {
+  describe('series accounting grain', () => {
     it('states the grain and relabels the counted column under series grain', () => {
       render(
         withIntl(

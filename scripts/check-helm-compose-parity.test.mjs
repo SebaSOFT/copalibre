@@ -113,7 +113,7 @@ roles:
 });
 
 test('catches a Compose service the chart never renders', () => {
-  // The 0212 regression: web-ssr in docker-compose.yml, absent from the chart,
+  // The web-ssr regression: web-ssr in docker-compose.yml, absent from the chart,
   // so the web role proxies to a host Kubernetes cannot resolve.
   const missingRole = `
 roles:

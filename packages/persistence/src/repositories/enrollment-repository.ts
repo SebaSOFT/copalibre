@@ -379,7 +379,7 @@ export class EnrollmentRepository {
     return row ? toTeam(row) : undefined;
   }
 
-  /** Every team belonging to one club — the Club Portal's team picker (openspec 0301). */
+  /** Every team belonging to one club — the Club Portal's team picker. */
   async listTeamsByClub(organizationId: string, clubId: string): Promise<readonly Team[]> {
     const rows = await this.db
       .selectFrom('teams')

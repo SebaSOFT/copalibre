@@ -697,7 +697,7 @@ describe('the registration review route container', () => {
     expect(screen.getByText('Mariano Otero (corrected)')).toBeDefined();
   });
 
-  it('links a participant identity through the route and flips the row to unlink (openspec 0170)', async () => {
+  it('links a participant identity through the route and flips the row to unlink', async () => {
     const linked: unknown[] = [];
 
     await act(async () => {

@@ -12,7 +12,7 @@ import {
 import { isExempt } from './check-ui-text-catalogue-coverage.mjs';
 
 /**
- * Enforces the atomic-composition tier contract (openspec 0225) over the
+ * Enforces the atomic-composition tier contract over the
  * resolved graph `scripts/lib/component-graph.mjs` builds: tier membership,
  * import direction, styling/data/i18n placement, orphan resolution and
  * naming. A regex over lines cannot decide import direction or orphan
@@ -245,7 +245,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/RosterRoleSelector.tsx', 4],
   ['control/components/screens/StandingsTemplate.tsx', 4],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 4],
-  // OpenSpec 0329 extracted the GIVEN/WHEN/THEN rule composition into its own organism.
+  // The GIVEN/WHEN/THEN rule composition was extracted into its own organism.
   ['control/components/TournamentSetupWizard.tsx', 9],
   // A stage is genuinely an ordered list; the layout primitives (Stack/
   // Inline/Grid) only ever render a <div> and cannot become an <ol>, the
@@ -257,7 +257,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/ui/story-matrix.tsx', 2],
   // The step-indicator <ol>/<li>/<span> is the same ordered-list exception
   // StageListEditor.tsx's entry above documents, moved here from the three
-  // wizards' own hand-rolled chrome (openspec 0236) rather than newly added.
+  // wizards' own hand-rolled chrome rather than newly added.
   ['control/components/ui/organisms/wizard-shell.tsx', 2],
 ]);
 
@@ -328,7 +328,7 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['control/components/ui/molecules/callout-banner.tsx', 2],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 2],
   // The step-indicator grid's `minmax(8rem, 1fr)`/`minmax(min(100%, 6rem), 1fr)`
-  // moved here from the three wizards' own hand-rolled chrome (openspec 0236)
+  // moved here from the three wizards' own hand-rolled chrome
   // rather than newly added.
   ['control/components/ui/organisms/wizard-shell.tsx', 1],
 ]);
@@ -365,7 +365,7 @@ export const KNOWN_DATA_BELOW_PAGE = new Map([
   ['components/ui/organisms/StandingsTable.astro', 2],
   ['components/ui/molecules/TournamentHero.astro', 1],
   ['components/ui/organisms/PlayerProfileView.astro', 1],
-  // openspec 0246: bracket entrant slots gain a club emblem, the same
+  // Bracket entrant slots gain a club emblem, the same
   // clubEmblemUrl()-in-the-template pattern StandingsTable.astro already uses above.
   ['components/ui/organisms/MatchNode.astro', 1],
 ]);
@@ -480,8 +480,8 @@ export function checkI18nPlacement(nodes) {
  * `pagination.tsx` was not adopted in task 4.2, despite design.md naming
  * it: the two screens whose `ListScreenLayout.pagination` slot is filled
  * today don't share its shape. `RegistrationReviewTemplate.tsx` renders a
- * bare `{page} / {pageCount}` status with no forward/back controls at all
- * — adopting the molecule would mean building page-navigation that does
+ * bare `{page} / {pageCount}` status with no forward/back controls at all —
+ * adopting the molecule would mean building page-navigation that does
  * not exist yet, a feature addition, not a refactor. `AuditTrailTemplate.tsx`
  * already has forward/back buttons, but shows a translated "{start}–{end}
  * of {total}" status — `Pagination`'s middle slot is fixed as `{page} /
@@ -496,13 +496,13 @@ export const KNOWN_ORPHANS = new Map([
   // them — that is task 5.1's inline-layout paydown. `stack.tsx`/`box.tsx`
   // (AnalyticsPage.tsx) and `inline.tsx` (LiveConsolePage.tsx) gained their
   // first real consumer there and are gone from this register; `grid.tsx`
-  // gained its own first real consumer in `StageListEditor.tsx` (0235) and
+  // gained its own first real consumer in `StageListEditor.tsx` and
   // is gone from this register the same way.
   // Form's own entry is gone: task 4.2 gave it eleven real consumers across
   // the five files named in check-ui-ownership.mjs's KNOWN_RAW_ELEMENTS
   // comment. FieldSet's own entry is gone the same way — task 2.5's
   // finalize-winner control gave it one.
-  // DataTable.astro's and Modal.astro's own entries are gone: openspec 0225
+  // DataTable.astro's and Modal.astro's own entries are gone:
   // task 7.4 gave both a preview-seam consumer (they render in isolation at
   // `/__preview/data-table` and `/__preview/modal`), so they are no longer
   // orphans. Their production adoption — paying down KNOWN_RAW_ELEMENTS'
@@ -668,11 +668,11 @@ export const KNOWN_MULTI_ATOM_OWNERSHIP = new Map([
   ['control/components/ui/atoms/button.tsx', 1],
   ['control/components/ui/atoms/file-picker.tsx', 2], // owns both `button` and `input`
   ['control/components/ui/atoms/input.tsx', 1],
-  // Left unregistered when this atom was added (openspec 0233); its tab
+  // Left unregistered when this atom was added; its tab
   // strip renders its own <button> per language tab, a shape none of the
   // other governed-element owners share (a tab, not a generic click target).
   ['control/components/ui/atoms/localized-field-tabs.tsx', 1],
-  // openspec 0248: `ColumnHeaderTooltip` is a table column header's own
+  // `ColumnHeaderTooltip` is a table column header's own
   // sort/description trigger — borderless, embedded in a `<th>`, a shape
   // distinct from `Button.astro`'s CTA-styled anchor/button and unusable as
   // one, since public-web's Astro atom cannot be imported into this React
@@ -742,33 +742,32 @@ export const KNOWN_LITERAL_TEXT = new Map([
   // of this register.
   ['components/ui/organisms/MatchHero.astro', 1],
   // `MatchOfficials.astro`, `MatchRosters.astro` and `MatchTimeline.astro`'s
-  // entries are gone (openspec 0269): every literal moved into the message
+  // entries are gone: every literal moved into the message
   // catalogue, and every timestamp now renders through `ResponsiveTimestamp`.
-  // `PlayerProfileView.astro`'s entry is gone (openspec 0225 task 8.1): its
+  // `PlayerProfileView.astro`'s entry is gone: its
   // three column headers moved into `DataTable`'s `columns` config as plain
   // JS string literals when the file adopted the owned table, the same way
   // this register's other `DataTable`/`AstroPreview.astro` column configs
   // were never counted here — R10 finds literal text nodes in a template,
   // not string literals in frontmatter.
-  // `StandingsTable.astro`'s entry is gone (openspec 0271): every counted
+  // `StandingsTable.astro`'s entry is gone: every counted
   // template-node literal, plus the competition-history modal's
   // script-template-literal strings this register's own comment above says
   // R10 cannot see, now resolve through the message catalogue via a
   // `data-player-dialog-labels` JSON island (the same mechanism
   // `BracketView.astro` already uses for `data-journey-matches`).
-  // `AcceptInvitationForm.tsx`'s entry is gone (openspec 0225 task 8.3,
-  // found by /impeccable critique): every literal moved through
-  // `useIntl`/`FormattedMessage`, the same fix applied across this task.
+  // `AcceptInvitationForm.tsx`'s entry is gone: every literal moved through
+  // `useIntl`/`FormattedMessage`, the same fix applied elsewhere.
   ['control/components/ControlShell.tsx', 1],
   ['control/components/screens/RolesPermissionsTemplate.tsx', 1],
   ['pages/control/[...path].astro', 1],
   ['pages/control/app.astro', 1],
   // pages/index.astro's hero and empty orientation hub text are now fully
-  // resolved through the message catalogue (openspec 0315) — zero violations,
+  // resolved through the message catalogue — zero violations,
   // entry removed per the ratchet rule.
   // pages/invitations/accept.astro's hardcoded "CopaLibre · Aceptar
-  // invitación" title is now resolved through the message catalogue
-  // (openspec 0278) — zero violations, entry removed per the ratchet rule.
+  // invitación" title is now resolved through the message catalogue —
+  // zero violations, entry removed per the ratchet rule.
 ]);
 
 export function checkLiteralTextNodes(nodes) {
@@ -858,7 +857,7 @@ export function checkCatalogueResolution(webSrcDir) {
  * cue — a glow or shadow with no corresponding interaction (hover, focus,
  * an active/live state already named elsewhere). Detected as a raw property
  * naming them inline, which is the only way an inline style can apply one at
- * all (a class-based ban is `0224`'s detector's job on generated CSS; this
+ * all (a class-based ban is the generated-CSS detector's job on generated CSS; this
  * rule is about the inline escape hatch instead).
  */
 const BANNED_ORNAMENT_TOKENS = [

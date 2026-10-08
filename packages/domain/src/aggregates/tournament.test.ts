@@ -112,14 +112,14 @@ describe('deriveTournamentStatus', () => {
     ).toBe('upcoming');
   });
 
-  it('classifies a tournament decided partly by forfeit as finished (openspec 0270)', () => {
+  it('classifies a tournament decided partly by forfeit as finished', () => {
     expect(
       deriveTournamentStatus('started', [{ status: 'finalized' }, { status: 'forfeited' }]),
     ).toBe('finished');
     expect(deriveTournamentStatus('published', [{ status: 'forfeited' }])).toBe('finished');
   });
 
-  it('excludes not-required matches from the finished check (openspec 0270)', () => {
+  it('excludes not-required matches from the finished check', () => {
     expect(
       deriveTournamentStatus('started', [{ status: 'finalized' }, { status: 'not-required' }]),
     ).toBe('finished');

@@ -136,7 +136,7 @@ because the series ended early SHALL be shown as no longer required rather than 
 Public live cards, badges, image frames, and match presentation SHALL resolve their colour, typography,
 spacing, border, and motion values from declared CopaLibre tokens. State presentation SHALL retain its
 textual or icon cue alongside colour. Where a reusable pattern lives is not constrained by this
-requirement; the component tier that will own it is established by `0220-operational-surface-parity`.
+requirement; the component tier that will own it is established by the operational surface parity work.
 
 #### Scenario: A public live card is styled
 - **WHEN** a public live card or badge declares colour, border, or motion

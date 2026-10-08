@@ -3,7 +3,7 @@ import { EntrantName } from '../ui/atoms/EntrantName.js';
 import { ResponsivePlayerName } from '../ui/atoms/ResponsivePlayerName.js';
 
 /**
- * Extracted from `TvDashboard.tsx` (openspec 0225 task 7.1) — the rotating
+ * Extracted from `TvDashboard.tsx` — the rotating
  * rail's top-performers tab.
  */
 export function TvPerformersView({

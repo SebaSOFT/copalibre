@@ -419,7 +419,7 @@ describe('stage creation routes (integration)', () => {
     expect(unseededStage?.formatDescriptions).toBeUndefined();
   });
 
-  it("exposes the tournament discipline's per-format descriptions, both plain string and localized (0251 task 2.1)", async () => {
+  it("exposes the tournament discipline's per-format descriptions, both plain string and localized", async () => {
     const formatTournamentAlias = 'apertura-0066-formatos';
     const discipline: DisciplineDescriptor = {
       ...descriptor(),
@@ -519,7 +519,7 @@ describe('stage creation routes (integration)', () => {
     },
   );
 
-  describe('series declaration (0159)', () => {
+  describe('series declaration', () => {
     const seriesTournamentAlias = 'apertura-0066-series';
     const seriesBase = `/organizations/${organizationAlias}/tournaments/${seriesTournamentAlias}/stages`;
     let seriesTournamentId = '';
@@ -730,8 +730,7 @@ describe('stage creation routes (integration)', () => {
 
         // A classification consulted and found blocking, but returned as a
         // 200 decision rather than thrown, is still recorded — the one
-        // refusal shape the central exception filter cannot see (openspec
-        // 0166, task 2.2).
+        // refusal shape the central exception filter cannot see.
         const refusal = await scratch.db
           .selectFrom('audit_log')
           .selectAll()
@@ -746,7 +745,7 @@ describe('stage creation routes (integration)', () => {
     );
   });
 
-  describe('stage allocation (0235)', () => {
+  describe('stage allocation', () => {
     const allocationTournamentAlias = 'apertura-0235-allocation';
     const allocationBase = `/organizations/${organizationAlias}/tournaments/${allocationTournamentAlias}/stages`;
     let allocationTournamentId = '';

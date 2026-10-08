@@ -1,6 +1,6 @@
 # Authentication contract
 
-Established by change `0005-api-auth-jwt-openapi-contract` (stateless API nodes, security planes) and extended by `native-identity-provider`. CopaLibre uses a hybrid model:
+Established with the API auth contract (stateless API nodes, security planes) and extended by `native-identity-provider`. CopaLibre uses a hybrid model:
 
 1. **OIDC Providers:** External identity via stateless JWTs.
 2. **Native Identity Provider:** Local email/password authentication using Argon2, and stateful Personal Access Tokens (PATs) for MCP and API integrations.
@@ -103,5 +103,5 @@ again. The server continues to authorize every request independently of browser 
 drift from the implementation. CI regenerates it and fails if it differs from the committed copy,
 then runs contract-lint (every route tagged; authenticated routes advertise bearer; public routes do
 not; every route documented and typed) and a breaking-change check against the published artifact.
-`packages/contracts` publishes TypeScript types generated from it — phase `0020` serves the same file
+`packages/contracts` publishes TypeScript types generated from it — the public web shell serves the same file
 via Scalar.

@@ -1239,7 +1239,7 @@ export const messages: Record<string, string> = {
   'control.dashboard.export': 'Экспорт',
   'control.dashboard.resumeEditing': 'Продолжить редактирование',
 
-  // 0223 — standings panel chrome, metric availability, module updates.
+  // standings panel chrome, metric availability, module updates.
   'control.standings.panelDecidedBy': 'Определил это место',
   'control.standings.tiebreakerSequenceTitle': 'Последовательность тай-брейков',
   'control.standings.rankColumn': 'Место',

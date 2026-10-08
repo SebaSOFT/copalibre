@@ -370,7 +370,7 @@ describe('TournamentRulesetPage', () => {
     expect(await screen.findByText('preview down')).toBeDefined();
   });
 
-  it('folds the sibling tournament-settings fetch into the plain-language summary (openspec 0267)', async () => {
+  it('folds the sibling tournament-settings fetch into the plain-language summary', async () => {
     render(
       withIntl(
         <TournamentRulesetPage

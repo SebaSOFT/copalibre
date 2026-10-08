@@ -4859,7 +4859,7 @@ export interface components {
             tournamentId?: string;
         };
         GrantableRolesResponse: {
-            /** @description Roles the caller may grant in this organization, per the 0140 role-granting hierarchy. */
+            /** @description Roles the caller may grant in this organization, per the role-granting hierarchy. */
             roles: ("super-admin" | "admin" | "club-admin" | "tournament-admin" | "referee" | "broadcaster" | "viewer")[];
         };
         PendingOrganizationInvitationResponse: {
@@ -5188,7 +5188,7 @@ export interface components {
             ruleset: {
                 [key: string]: string;
             };
-            /** @description Each `ruleset` key's declared display label, when the installed discipline's field policy declares one — absent keys fall back to a humanized dot-path client-side (openspec 0267). */
+            /** @description Each `ruleset` key's declared display label, when the installed discipline's field policy declares one — absent keys fall back to a humanized dot-path client-side . */
             rulesetLabels?: {
                 [key: string]: unknown;
             };

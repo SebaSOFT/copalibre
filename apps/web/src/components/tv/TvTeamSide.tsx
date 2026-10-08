@@ -2,7 +2,7 @@ import { EntrantName } from '../ui/atoms/EntrantName.js';
 import type { TvClubItem } from './tv-types.js';
 
 /**
- * Extracted from `TvDashboard.tsx` (openspec 0225 task 7.1) — one side of the
+ * Extracted from `TvDashboard.tsx` — one side of the
  * spotlight match, matched against the roster's club emblem by name.
  */
 export function TvTeamSide({
@@ -14,7 +14,7 @@ export function TvTeamSide({
   readonly name: string;
   readonly abbreviation?: string;
   readonly clubs?: readonly TvClubItem[];
-  /** The home side, on the spotlight's left — the jumbotron's visual anchor (openspec 0247). */
+  /** The home side, on the spotlight's left — the jumbotron's visual anchor. */
   readonly anchor?: boolean;
 }): React.JSX.Element {
   const club = clubs?.find((c) => c.name.toLowerCase() === name.toLowerCase());

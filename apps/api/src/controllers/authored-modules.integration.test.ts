@@ -87,7 +87,7 @@ function profileDocument(overrides: Record<string, unknown> = {}): Record<string
 
 /**
  * The HTTP path for authoring a discipline/profile through the control-panel
- * builder (openspec 0164) — proving an authored module is an ordinary one by
+ * builder — proving an authored module is an ordinary one by
  * installing it and then exercising the ordinary tournament/match path
  * against it, exactly as `admin-modules.integration.test.ts` does for a
  * curated module.

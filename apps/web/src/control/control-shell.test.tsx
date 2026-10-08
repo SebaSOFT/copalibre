@@ -161,7 +161,7 @@ describe('the control shell', () => {
   });
 
   it.each(['native', 'oidc'] as const)(
-    'logout clears the session and its recorded auth method for a %s session (openspec 0302)',
+    'logout clears the session and its recorded auth method for a %s session',
     (method) => {
       recordAuthMethod(method);
       controlTokenStore.write('a-token', Date.now() + 60_000);
@@ -367,7 +367,7 @@ describe('the control routes', () => {
     expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeDefined();
   });
 
-  it('renders the dashboard/tournaments route with the tournament authoring entry point (openspec 0298)', async () => {
+  it('renders the dashboard/tournaments route with the tournament authoring entry point', async () => {
     const client: ControlApiClient = minimalControlClient({
       listActiveTournaments: async () => [],
     });

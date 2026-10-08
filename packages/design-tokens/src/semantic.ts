@@ -89,7 +89,7 @@ export const SEMANTIC_COLORS = {
    * The brand accent as an *action* role, so a link or a primary control names
    * what it is instead of reaching for the cyan primitive.
    *
-   * Calibrated against the reference project (0220). Its primary control fills
+   * Calibrated against the reference project. Its primary control fills
    * with `--cl-state-live` — the same `cyan-400` this role was seeded from — so
    * the base needed no change, and reading that from source rather than sampling
    * a screenshot is what settled it: a flat-region sample of the same button

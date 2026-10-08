@@ -22,7 +22,7 @@ export interface RegistrationRow {
   readonly teamId?: string;
   readonly nationality?: string;
   readonly photoObjectId?: string;
-  /** Whether this person entrant already carries a participant identity link (openspec 0170). */
+  /** Whether this person entrant already carries a participant identity link. */
   readonly hasIdentityLink?: boolean;
 }
 

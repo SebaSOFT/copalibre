@@ -10,7 +10,7 @@ import { controlTokenStore } from '../../session/token-store.js';
 import { AnalyticsTemplate } from '../screens/AnalyticsTemplate.js';
 
 /**
- * Fetches (openspec 0225 task 6.2): the tournament and storage-usage loads
+ * Fetches: the tournament and storage-usage loads
  * live here; `AnalyticsTemplate` composes the screen from the resulting
  * data.
  */

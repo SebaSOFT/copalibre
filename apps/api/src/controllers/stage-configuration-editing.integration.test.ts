@@ -13,8 +13,7 @@ import { TournamentsController } from './tournaments.controller.js';
 
 /**
  * A stage's configuration override fields become editable and previewable
- * for as long as the stage holds no generated fixture (openspec 0169, tasks
- * 2.1-2.3, 6.1).
+ * for as long as the stage holds no generated fixture.
  */
 
 let app: INestApplication;
@@ -83,7 +82,7 @@ async function seedTournamentAndStage(): Promise<{
   return { tournamentAlias, tournamentId, stageId, stageNumber };
 }
 
-describe('stage-configuration edit and preview (openspec 0169)', () => {
+describe('stage-configuration edit and preview', () => {
   it('reads an empty override document for a stage with no configuration yet', async () => {
     const { tournamentAlias, stageNumber } = await seedTournamentAndStage();
     const response = await request({

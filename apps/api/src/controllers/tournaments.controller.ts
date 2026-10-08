@@ -549,7 +549,7 @@ export class TournamentsController {
           descriptor,
           overrides: {
             // Organizer-supplied overrides for any other discipline-declared field
-            // (openspec 0265) go first, so the wizard's own dedicated fields below —
+            // go first, so the wizard's own dedicated fields below —
             // which already exclude these paths from their generic control list —
             // still win if one somehow collides.
             ...(body.ruleOverrides ?? {}),

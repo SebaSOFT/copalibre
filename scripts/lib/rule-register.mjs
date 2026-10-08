@@ -1,8 +1,7 @@
 /**
  * The ratchet semantics `check-ui-ownership.mjs` established for
  * `KNOWN_RAW_ELEMENTS` and `KNOWN_HANDWRITTEN_CLASSES`, generalized for reuse
- * by every rule in `check-atomic-composition.mjs` (openspec 0225 design.md
- * Decision 4).
+ * by every rule in `check-atomic-composition.mjs`.
  *
  * A register is a `Map<path, count>`. Violations for a path up to the
  * recorded count are withheld; anything beyond it is reported; a path that

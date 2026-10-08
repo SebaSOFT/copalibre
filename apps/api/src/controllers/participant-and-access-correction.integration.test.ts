@@ -51,8 +51,8 @@ const subjects: Record<string, AuthenticatedSubject> = {
 };
 
 /**
- * Invitation rescission, participant identity unlink, and person/team removal
- * (openspec 0170): three admin corrections with no prior path, each following
+ * Invitation rescission, participant identity unlink, and person/team removal:
+ * three admin corrections with no prior path, each following
  * an existing soft-delete/hard-delete/reference-check shape already used
  * elsewhere in this codebase.
  */

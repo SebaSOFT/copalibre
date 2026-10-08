@@ -26,7 +26,7 @@ supported email provider configuration. Then run `copalibre start` or
 Lifecycle email uses the provider already configured for invitations (`COPALIBRE_EMAIL_PROVIDER`,
 `COPALIBRE_EMAIL_FROM`, `COPALIBRE_APP_URL` and the provider's credentials); it needs no other
 setting, and the development stack delivers it to Mailpit. `apps/worker` sends it from the
-transactional outbox (change `0337-lifecycle-email-notifications`):
+transactional outbox (lifecycle email notifications):
 
 | Event                                           | Goes to                                                                                                 |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |

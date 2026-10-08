@@ -2,8 +2,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Enforces "The repository README links every living documentation file"
-//: every file under docs/ (excluding docs/deployment/evidence/, which
+// Enforces "The repository README links every living documentation file":
+// every file under docs/ (excluding docs/deployment/evidence/, which
 // is point-in-time audit output, not living documentation) must be reachable
 // from a Markdown link in README.md — directly, or via a link to a
 // containing directory. Mirrors check-enterprise-readiness-docs.mjs's shape:

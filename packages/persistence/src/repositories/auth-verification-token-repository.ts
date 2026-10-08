@@ -13,7 +13,7 @@ import type { UnitOfWork } from '../transaction.js';
  * database stores only its SHA-256 hash.
  *
  * `session-refresh` reuses this table rather than a bespoke
- * `auth_refresh_tokens` one (openspec 0302): `consume()`'s single-use,
+ * `auth_refresh_tokens` one: `consume()`'s single-use,
  * mark-on-consume semantics already give replay protection — presenting an
  * already-consumed token throws the same `NotFoundError` a stolen-and-reused
  * password-reset token would.

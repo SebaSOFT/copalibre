@@ -1,6 +1,6 @@
 /**
- * Russian translations, keyed to match `public-messages.en.ts`'s IDs exactly
- *. Best-effort translation; native-speaker review is a later pass
+ * Russian translations, keyed to match `public-messages.en.ts`'s IDs exactly.
+ * Best-effort translation; native-speaker review is a later pass
  * (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
@@ -214,7 +214,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvStats.standingsRecord': '1-е · {points} очк · {played} сыграно',
   'publicWeb.tvStats.grandFinalRecord': 'Победитель большого финала ({winner} – {loser})',
 
-  // 0223 — ticker conditions, bracket stage chrome, public header.
+  // ticker conditions, bracket stage chrome, public header.
   'publicWeb.ticker.pause': 'Приостановить ленту',
   'publicWeb.ticker.resume': 'Возобновить ленту',
   'publicWeb.ticker.stale': 'Последние известные результаты — прямое соединение потеряно',
@@ -238,7 +238,7 @@ export const messages: Record<string, string> = {
   'publicWeb.header.navApiReference': 'Справочник API',
   'publicWeb.header.controlPanel': 'Панель управления',
 
-  // TvDashboard.tsx's own chrome (openspec 0225 task 2.6).
+  // TvDashboard.tsx's own chrome.
   'publicWeb.tvDashboard.noMatchesScheduled': 'Матчи пока не запланированы',
   'publicWeb.tvDashboard.standingsUnavailable': 'Таблица недоступна',
   'publicWeb.tvDashboard.clubColumn': 'Клуб',

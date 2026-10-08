@@ -1186,7 +1186,7 @@ describe('live match console — real catalogue foul/throw-in vocabulary', () =>
   });
 });
 
-describe('org-admin match authority without prior match assignment (openspec 0193 task 4.2)', () => {
+describe('org-admin match authority without prior match assignment', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId = '';

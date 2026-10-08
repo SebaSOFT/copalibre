@@ -10,7 +10,7 @@ const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' } as const;
 /**
  * `probeDataIntegrity` against a real, migrated PostgreSQL database — the
  * only place `evaluateDataIntegrity`'s pure logic meets real Kysely typing
- * and a real `status not in (...)` query (openspec 0296, task 3.1).
+ * and a real `status not in (...)` query.
  */
 describe('probeDataIntegrity (integration)', () => {
   let scratch: ScratchDatabase;

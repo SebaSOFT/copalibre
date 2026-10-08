@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * OpenSpec 0270: the pinned-match TV route shows recorded goal/card events (entrant, player, time)
+ * The pinned-match TV route shows recorded goal/card events (entrant, player, time)
  * alongside the score, reusing the same match-event data the public match report page already
  * renders — and shows no ticker section at all for a match with no recorded events.
  */
@@ -120,7 +120,7 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test.describe('OpenSpec 0270 TV match view event ticker', () => {
+test.describe('TV match view event ticker', () => {
   test('shows the match’s recorded goal and card events alongside the score', async ({ page }) => {
     currentMatchReport = enrichedMatchReport;
     await page.goto(TV_MATCH_PATH);
@@ -132,7 +132,7 @@ test.describe('OpenSpec 0270 TV match view event ticker', () => {
     await expect(ticker.getByText('Home', { exact: true })).toBeVisible();
     await expect(ticker.getByText('Away', { exact: true })).toBeVisible();
 
-    // Humanized, not a raw ISO-8601 string (matches the rest of the public surface, openspec 0269).
+    // Humanized, not a raw ISO-8601 string (matches the rest of the public surface).
     await expect(page.getByText('2026-09-24T18:12:00.000Z')).toHaveCount(0);
   });
 

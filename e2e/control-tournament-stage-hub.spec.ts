@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * The full Tournament → Stage drill-down in a real browser (openspec 0250):
+ * The full Tournament → Stage drill-down in a real browser:
  * open a tournament's hub, see its stage list, open a stage's hub, see its
  * current name pre-filled (the stage-rename-field-doesn't-show-current-name
  * bug this change fixes), rename it, follow a link to its seeding screen,

@@ -35,7 +35,7 @@ const EMPTY_DRAFT: DraftAssignment = {
  * presents five rows, each with its own slot and officials, grouped under the cross they
  * settle. A fixture declaring no series presents the one row it always has.
  *
- * Fetches and mutates (openspec 0225 task 6.2): every call into the API
+ * Fetches and mutates: every call into the API
  * client lives here — including the manual assignment drafts, which live
  * here rather than in `ScheduleBuilderTemplate` since `reload` reseeds them
  * from the server on every load and after every publish.

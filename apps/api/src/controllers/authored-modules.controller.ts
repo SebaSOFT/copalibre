@@ -58,8 +58,8 @@ import { OBJECT_STORAGE } from '../object-storage.token.js';
 import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 
 /**
- * The first write surface for `discipline_descriptors`/`tournament_profiles`
- * (openspec 0164) — every other route reads them. Deliberately produces the
+ * The first write surface for `discipline_descriptors`/`tournament_profiles` —
+ * every other route reads them. Deliberately produces the
  * same module package `module add` does and installs it through
  * `importValidatedModule` unchanged (design.md's "produces a module package,
  * not a database row" decision): there is no second install mechanism to

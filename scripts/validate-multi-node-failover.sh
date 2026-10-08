@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Produces measured evidence for the "Measured multi-node failover evidence"
-# requirement (0035-kubernetes-enterprise-deployment): api/events/worker run
+# requirement (Kubernetes enterprise deployment): api/events/worker run
 # at replicas >= 2 across at least two nodes, one node is forcibly
 # terminated, and the remaining replica keeps serving while the lost pod
 # reschedules onto a healthy node. Reuses deploy/helm/k3s-dev-cluster.yaml's

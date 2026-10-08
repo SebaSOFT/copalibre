@@ -83,7 +83,7 @@ import { buildTickerItems } from '../lib/ticker-items.ts';
  * Only these render. An id outside the list is a 404 rather than a blank frame,
  * so a typo in a story reads as a missing preview instead of a broken component.
  *
- * `0223` extends this list as it builds each composition; the seam is the
+ * The compositions extend this list as it builds each composition; the seam is the
  * mechanism, not the catalogue.
  */
 const PREVIEWABLE = new Set([
@@ -99,7 +99,7 @@ const PREVIEWABLE = new Set([
   'match-bracket-context-championship',
   'match-bracket-context-unknown-focus',
   'public-header',
-  // openspec 0225 task 7.4 — every remaining server-rendered library component.
+  // Every remaining server-rendered library component.
   'button',
   'emblem-image',
   'emblem-image-matrix',

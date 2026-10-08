@@ -129,7 +129,7 @@ export function deriveTopPerformers(
       // person played for, or a team row's own name again. Matching the
       // club lookup against `entrantName` rather than the performer's own
       // name is what makes it actually resolve for a person row
-      // (openspec 0247 — previously this read `row.entrantName` for both,
+      // (previously this read `row.entrantName` for both,
       // which is never a person's own name, so a player's name always fell
       // through to the "unnamed actor" placeholder and its club never matched).
       const name =

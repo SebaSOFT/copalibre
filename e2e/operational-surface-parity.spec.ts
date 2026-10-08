@@ -137,9 +137,7 @@ test('preview identifiers are unknown paths in the production server', async ({ 
   }
 });
 
-test('ControlApp hydrates without a bundling-crash console error (openspec 0279)', async ({
-  page,
-}) => {
+test('ControlApp hydrates without a bundling-crash console error', async ({ page }) => {
   // General hydration health-check, not a proven regression guard for the
   // specific bug this change fixes (a Node-only `node:crypto` import in
   // @copalibre/rules, transitively imported by ControlApp.tsx, externalized

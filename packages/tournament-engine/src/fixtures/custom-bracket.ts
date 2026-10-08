@@ -23,7 +23,7 @@ const KNOWN_BRACKET_KINDS = new Set<BracketKind>([
 /**
  * Validates each match's own fields (unique id, positive integer round and
  * position) independently of the graph they form — extracted verbatim
- * (openspec 0230) from `validateCustomBracket`'s own field-check loop, kept
+ * from `validateCustomBracket`'s own field-check loop, kept
  * separate from Kahn's-algorithm cycle detection, which stays untouched.
  */
 function validateBracketFields(
@@ -162,7 +162,7 @@ export function validateCustomBracket(
 /**
  * Ensures topological ordering: for every match, any referenced parent must
  * precede it. A post-check over the index Kahn's algorithm already
- * produced, extracted verbatim (openspec 0230) — the topological sort itself
+ * produced, extracted verbatim — the topological sort itself
  * stays untouched in `validateCustomBracket`.
  */
 function assertTopologicalOrder(

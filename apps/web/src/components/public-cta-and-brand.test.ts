@@ -1,6 +1,6 @@
 /**
  * Source-contract tests for the two public-web presentation components
- * introduced by openspec 0198.
+ * introduced by the design language conformance pass.
  *
  * `.astro` components have no unit-render harness in this workspace (they are
  * covered end-to-end by Playwright), so these assert the contract that can be
@@ -15,10 +15,10 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (file: string): string => readFileSync(join(here, file), 'utf8');
 
-/** Any hex literal outside a token fallback — the defect 0198 removes from public CTAs. */
+/** Any hex literal outside a token fallback — the defect removed from public CTAs. */
 const HEX_LITERAL = /#[0-9a-fA-F]{3,8}\b/g;
 
-describe('public-web Button component (openspec 0198)', () => {
+describe('public-web Button component', () => {
   const source = read('ui/atoms/Button.astro');
 
   it('renders the shared button token classes rather than its own styling', () => {
@@ -46,7 +46,7 @@ describe('public-web Button component (openspec 0198)', () => {
   });
 });
 
-describe('public-web Logo lockup (openspec 0198)', () => {
+describe('public-web Logo lockup', () => {
   const source = read('ui/atoms/Logo.astro');
 
   it('renders mark and wordmark as one unit', () => {
@@ -72,7 +72,7 @@ describe('public-web Logo lockup (openspec 0198)', () => {
   });
 });
 
-describe('TournamentCard CTAs consume the shared Button (openspec 0198)', () => {
+describe('TournamentCard CTAs consume the shared Button', () => {
   const source = read('ui/organisms/TournamentCard.astro');
 
   it('renders CTAs through the Button component, not hand-rolled anchors', () => {
@@ -84,8 +84,8 @@ describe('TournamentCard CTAs consume the shared Button (openspec 0198)', () => 
   });
 });
 
-describe('public tables and filter pills (openspec 0199)', () => {
-  // openspec 0245 moved the matches page's filter bar (state, plus the new
+describe('public tables and filter pills', () => {
+  // The matches page's filter bar moved (state, plus the new
   // stage/zone/group facets) into its own MatchScheduleFilters organism.
   const matchesPage = read('ui/organisms/MatchScheduleFilters.astro');
   const overviewPage = readFileSync(
@@ -143,11 +143,11 @@ describe('public tables and filter pills (openspec 0199)', () => {
   });
 });
 
-describe('discipline backdrop (openspec 0200)', () => {
+describe('discipline backdrop', () => {
   const layout = readFileSync(join(here, '../layouts/PublicLayout.astro'), 'utf8');
 
   it('renders the discipline’s own image when one is available', () => {
-    // The backdrop was already data-driven; 0200 keeps that path intact.
+    // The backdrop was already data-driven; the discipline backdrop keeps that path intact.
     expect(layout).toContain('selectDisciplineBackground(disciplineImages)');
     expect(layout).toContain('src={background.url}');
   });
@@ -169,7 +169,7 @@ describe('discipline backdrop (openspec 0200)', () => {
   });
 });
 
-describe('TV backdrop and focal panel (openspec 0202)', () => {
+describe('TV backdrop and focal panel', () => {
   const layout = readFileSync(join(here, '../layouts/TvLayout.astro'), 'utf8');
   const tvCss = readFileSync(join(here, '../styles/tv-broadcast.css'), 'utf8');
 
@@ -203,7 +203,7 @@ describe('TV backdrop and focal panel (openspec 0202)', () => {
   });
 });
 
-describe('public layout, header, and home orientation hub (openspec 0315)', () => {
+describe('public layout, header, and home orientation hub', () => {
   const layout = readFileSync(join(here, '../layouts/PublicLayout.astro'), 'utf8');
   const header = read('ui/organisms/PublicHeader.astro');
   const homeLayout = readFileSync(join(here, '../layouts/PublicHomeLayout.astro'), 'utf8');

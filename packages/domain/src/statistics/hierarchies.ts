@@ -80,7 +80,7 @@ export class HierarchyError extends DomainError {
 }
 
 /**
- * Where each granularity's identifiers come from, and which phase owes any that
+ * Where each granularity's identifiers come from, and which work owes any that
  * nothing populates.
  *
  * The initial projection design was drafted while `season`, `person` and `player` existed only as
@@ -92,19 +92,19 @@ export class HierarchyError extends DomainError {
 export const GRANULARITY_SOURCES: Readonly<
   Record<CompetitionGranularity | ActorGranularity, string>
 > = Object.freeze({
-  event: '0009',
-  segment: '0009',
-  match: '0007',
-  stage: '0007',
-  season: '0015',
-  tournament: '0002',
-  organization: '0002',
-  person: '0015',
-  player: '0015',
-  team: '0002',
-  club: '0002',
-  official: '0072',
-  venue: '0072',
+  event: 'discipline-driven results',
+  segment: 'discipline-driven results',
+  match: 'tournament fixtures and formats',
+  stage: 'tournament fixtures and formats',
+  season: 'competition identity and seasons',
+  tournament: 'domain model core',
+  organization: 'domain model core',
+  person: 'competition identity and seasons',
+  player: 'competition identity and seasons',
+  team: 'domain model core',
+  club: 'domain model core',
+  official: 'actor granularity extension',
+  venue: 'actor granularity extension',
 });
 
 export function isCompetitionGranularity(value: string): value is CompetitionGranularity {

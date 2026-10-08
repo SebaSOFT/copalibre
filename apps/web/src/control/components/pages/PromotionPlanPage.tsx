@@ -19,7 +19,7 @@ import {
 } from '../screens/PromotionPlanTemplate.js';
 
 /**
- * `promotion-plan-not-found` (openspec 0284) names specifically "this zone has
+ * `promotion-plan-not-found` names specifically "this zone has
  * no saved plan yet" — an expected, benign state. Every other error this
  * endpoint can produce (a genuinely missing stage/zone, a network fault, a
  * business-rule refusal) shares the controller's generic `zone-group-not-found`
@@ -43,7 +43,7 @@ function classifyPreviewError(error: unknown, intl: IntlShape): PreviewError {
  * need a pipeline- or order-authoring UI this screen doesn't build yet
  * (tracked as a follow-up, tasks.md section 6).
  *
- * Fetches and mutates (openspec 0225 task 6.2): the zone and preview loads,
+ * Fetches and mutates: the zone and preview loads,
  * and the save mutation, live here; `PromotionPlanTemplate` composes the
  * screen from the resulting data.
  */

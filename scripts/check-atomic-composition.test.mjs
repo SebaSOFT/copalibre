@@ -386,7 +386,7 @@ test('R7 exempts an orphan whose storyId is recorded in the reference index with
   assert.deepEqual(checkOrphans(nodes, edges, referenceIndex), []);
 });
 
-test('R7 matches a story title to a file basename regardless of casing or separators (openspec 0225 task 4.5)', () => {
+test('R7 matches a story title to a file basename regardless of casing or separators', () => {
   const root = fixture();
   writeFileSync(
     join(root, 'ui/atoms/astro-preview.tsx'),
@@ -430,7 +430,7 @@ test('R9 casing: a PascalCase file in the control library is a violation; kebab-
   assert.equal(violations[0].path, 'control/components/ui/atoms/BadName.tsx');
 });
 
-test('R13 reports no <select> violation now that language-selector.tsx is deleted (openspec 0225 task 4.3a)', () => {
+test('R13 reports no <select> violation now that language-selector.tsx is deleted', () => {
   const { nodes } = buildGraph(webSrc);
   const violations = checkSingleAtomOwnership(nodes);
   const paths = violations.filter((v) => v.message.includes('<select>')).map((v) => v.path);
@@ -566,7 +566,7 @@ test('extractCatalogueIds recognizes a double-quoted value, not only single-quot
   assert.ok(ids.has('app.plain'));
 });
 
-test('R11 finds no resting-glow violation in the real tree (openspec 0225 task 5.4)', () => {
+test('R11 finds no resting-glow violation in the real tree', () => {
   const { nodes } = buildGraph(webSrc);
   assert.deepEqual(checkBannedOrnament(nodes), []);
 });

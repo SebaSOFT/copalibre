@@ -275,7 +275,7 @@ export interface PlayerStatisticsDrilldownResult {
 
 /**
  * One player's declared statistics at tournament-total and per-match scope,
- * for the public profile drilldown (openspec 0244).
+ * for the public profile drilldown.
  *
  * The tournament total reuses `readTableProjection` unchanged — it is
  * byte-identical to that player's own leaderboard row, composite/computed
@@ -695,7 +695,7 @@ async function personActors(
   const nameOf = new Map<string, string>();
   const entrantOf = new Map<string, string>();
   const rolesOf = new Map<string, Set<string>>();
-  /** Snapshotted at roster-selection time alongside name/number/roles (openspec 0247). */
+  /** Snapshotted at roster-selection time alongside name/number/roles. */
   const nationalityOf = new Map<string, string>();
 
   for (const row of rows) {

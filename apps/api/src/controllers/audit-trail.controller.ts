@@ -31,7 +31,7 @@ function pageOptions(limit: string | undefined, offset: string | undefined) {
 }
 
 /**
- * The audit trail's reader-facing surface (openspec 0166, tasks 4.2-4.3):
+ * The audit trail's reader-facing surface:
  * what happened to this organization, what a given actor did, and what was
  * attempted and refused — scoped to the reader's own authority, exactly as
  * the accepted requirement describes. Gated by its own capability

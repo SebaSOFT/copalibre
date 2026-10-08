@@ -23,7 +23,7 @@ function descriptor(): DisciplineDescriptor {
   return {
     descriptorId: newId(),
     version: '1.0.0',
-    name: 'Liga de series (0160)',
+    name: 'Liga de series',
     attribution: { author: 'CopaLibre', licence: 'AGPL-3.0-only' },
     participantTypes: ['team'],
     rosterConstraints: { minPlayers: 1, maxPlayers: 11 },
@@ -181,7 +181,7 @@ async function playGame(
   });
 }
 
-describe('series accounting grain (integration, 0160)', () => {
+describe('series accounting grain (integration)', () => {
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
 
   beforeAll(async () => {

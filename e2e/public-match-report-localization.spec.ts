@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * OpenSpec 0269: the match report page's officials, rosters, and event
+ * The match report page's officials, rosters, and event
  * timeline sections render localized text (not hardcoded English) and
  * humanized timestamps (not a raw ISO-8601 string), matching the rest of
  * the public surface.
@@ -90,7 +90,7 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test.describe('OpenSpec 0269 match report localization and timestamps', () => {
+test.describe('Match report localization and timestamps', () => {
   test('renders localized section headings and a humanized timestamp in a non-English locale', async ({
     page,
   }) => {

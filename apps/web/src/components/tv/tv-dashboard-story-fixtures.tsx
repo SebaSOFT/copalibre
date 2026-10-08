@@ -6,8 +6,8 @@ import type { TopPerformer } from '../../lib/tv-statistics.js';
 import type { SupportedLanguage } from '../../lib/language-preference.js';
 
 /**
- * Shared fixtures for the kiosk-monitor and stream-widget story files
- * (openspec 0294) — split across two files so the Storybook sidebar can group
+ * Shared fixtures for the kiosk-monitor and stream-widget story files —
+ * split across two files so the Storybook sidebar can group
  * "TV/Kiosk Monitor" (the standalone venue screen, `presentation="kiosk"`)
  * separately from "TV/Stream Widgets" (the OBS/vMix browser-source overlays,
  * `presentation="lower"` — a compact bug over a live camera — and `"full"` —

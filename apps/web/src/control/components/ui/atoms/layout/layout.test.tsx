@@ -40,7 +40,7 @@ describe('Stack', () => {
     expect((withAlign.firstElementChild as HTMLElement).style.alignItems).toBe('center');
   });
 
-  it('forwards an arbitrary DOM attribute (openspec 0225 task 5.1) so a caller can still associate a hint or a test id', () => {
+  it('forwards an arbitrary DOM attribute so a caller can still associate a hint or a test id', () => {
     const { container } = render(
       <Stack aria-describedby="hint" data-testid="wrapper">
         a

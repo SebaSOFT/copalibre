@@ -1,13 +1,13 @@
-# Operational surface compositions — 0223 parity review
+# Operational surface compositions — parity review
 
 ## Scope
 
-The batched parity pass over every reference `0223` carries, run once across the whole set rather
+The batched parity pass over every reference the compositions carry, run once across the whole set rather
 than per component. It records what was checked, where the evidence is, and — deliberately — what
 was **not** checked, because an unreviewed example reported as parity is worse than one reported as
 unreviewed.
 
-`0220` supplied the foundation: the owned public and TV tiers, the calibrated surface and typography
+The operational surface parity work supplied the foundation: the owned public and TV tiers, the calibrated surface and typography
 roles, the canonical fixtures and the Astro preview seam. Nothing here re-calibrates a token.
 
 ## The reference index is the entry point
@@ -82,7 +82,7 @@ Stated plainly, and **not** recorded as parity achieved:
   containment and token resolution — not likeness.
 - **Broadcast overlays over light and dark backgrounds at 1920×1080** were not exercised for the
   compositions this change adds. The ticker's broadcast presentation is unchanged in layout from
-  `0220`'s, and the TV routes were not otherwise touched, but that is an argument rather than
+  the foundation's, and the TV routes were not otherwise touched, but that is an argument rather than
   evidence.
 - **Hover and focus appearance** is asserted structurally (visible focus is a token-level rule) but
   not compared against the reference by eye.

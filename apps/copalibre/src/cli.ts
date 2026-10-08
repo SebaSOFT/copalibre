@@ -107,7 +107,7 @@ function moduleHelpFor(arguments_: readonly string[]): string | undefined {
 /**
  * Returns rendered help text for a `tournament` help request, or `undefined`
  * when `arguments_` is not a help request and dispatch should proceed
- * normally. Mirrors `moduleHelpFor` exactly (openspec 0252).
+ * normally. Mirrors `moduleHelpFor` exactly.
  */
 function tournamentHelpFor(arguments_: readonly string[]): string | undefined {
   const [sub, next] = arguments_;

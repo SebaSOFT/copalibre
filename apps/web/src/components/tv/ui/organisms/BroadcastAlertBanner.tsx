@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { TvMatchEvent } from '../../../../lib/tv-match-events.js';
 
 /**
- * One live event queued for the broadcast overlay's animated callout
- * (openspec 0300). `kind` is generic and discipline-agnostic — `scoring` when
+ * One live event queued for the broadcast overlay's animated callout.
+ * `kind` is generic and discipline-agnostic — `scoring` when
  * the affected match's score changed as a result of this event, `notable`
  * for everything else (cards, fouls, substitutions, or whatever else the
  * installed discipline records) — never a hardcoded goal/card distinction.

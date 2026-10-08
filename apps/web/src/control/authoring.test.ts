@@ -243,7 +243,7 @@ describe('the wizard gates each step', () => {
     expect(() => toCreateRequest(wizard())).toThrow('not complete');
   });
 
-  describe('discipline rule overrides at creation (openspec 0265)', () => {
+  describe('discipline rule overrides at creation', () => {
     it('positions the ruleset step between format and window, alongside the hook-script rules step', () => {
       expect(WIZARD_STEPS.map((step) => step.id)).toEqual([
         'name',
@@ -309,7 +309,7 @@ describe('the wizard gates each step', () => {
     });
   });
 
-  describe('zone plan (0339)', () => {
+  describe('zone plan', () => {
     const complete = {
       alias: 'copa-zonas',
       name: 'Copa Zonas',
@@ -407,7 +407,7 @@ describe('the wizard gates each step', () => {
     });
   });
 
-  describe('series declaration (0159)', () => {
+  describe('series declaration', () => {
     const complete = {
       alias: 'copa-verano',
       name: 'Copa Verano',
@@ -455,7 +455,7 @@ describe('the wizard gates each step', () => {
       expect(request.stages[0]?.series).toBeUndefined();
     });
 
-    it('preselects match grain, sending no standingsAccounting key when untouched (0160)', () => {
+    it('preselects match grain, sending no standingsAccounting key when untouched', () => {
       const request = toCreateRequest(withSeries({ span: 3, resolutionClass: 'best-of' }));
 
       // Byte-identical to the request a wizard authored before this control
@@ -463,7 +463,7 @@ describe('the wizard gates each step', () => {
       expect(request.stages[0]?.series).toEqual({ span: 3, resolutionClass: 'best-of' });
     });
 
-    it('sends standingsAccounting only once the operator declares series grain (0160)', () => {
+    it('sends standingsAccounting only once the operator declares series grain', () => {
       const request = toCreateRequest(
         withSeries({ span: 5, resolutionClass: 'best-of', standingsAccounting: 'series' }),
       );
@@ -725,7 +725,7 @@ describe('the wizard gates each step', () => {
     ]);
   });
 
-  describe('rendering a configured rule in plain language (openspec 0266)', () => {
+  describe('rendering a configured rule in plain language', () => {
     const CONDITION_WITH_PHRASE: HookVocabularyEntry = {
       kind: 'condition',
       type: 'compare_two_numbers',
@@ -927,7 +927,7 @@ describe('mutation-classification feedback', () => {
   });
 });
 
-describe('decision description resolution (openspec 0161)', () => {
+describe('decision description resolution', () => {
   it('resolves the descriptor-declared description over the platform catalogue for the same field', () => {
     expect(resolveDecisionDescription('Decides the tie on total goals', 'Platform text')).toBe(
       'Decides the tie on total goals',

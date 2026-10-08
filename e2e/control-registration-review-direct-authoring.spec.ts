@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * Direct participant authoring (openspec 0167) from the registration-review
+ * Direct participant authoring from the registration-review
  * screen itself: a walk-up entrant registered with no CSV file, and a
  * directly-added team's name corrected in place.
  */
@@ -85,14 +85,14 @@ test('dismisses a loading alert in the registration control screen and captures 
   await expect(alert).toContainText('Cargando inscripciones...');
   await page.screenshot({
     fullPage: true,
-    path: 'docs/assets/screenshots/0312-control-panel-loading-alert.png',
+    path: 'docs/assets/screenshots/control-panel-loading-alert.png',
   });
 
   await alert.getByRole('button', { name: 'Descartar notificación' }).click();
   await expect(alert).toHaveCount(0);
   await page.screenshot({
     fullPage: true,
-    path: 'docs/assets/screenshots/0312-control-panel-alert-dismissed.png',
+    path: 'docs/assets/screenshots/control-panel-alert-dismissed.png',
   });
 });
 

@@ -211,7 +211,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvStats.standingsRecord': '第 1 名 · {points} 分 · {played} 场',
   'publicWeb.tvStats.grandFinalRecord': '总决赛冠军（{winner} – {loser}）',
 
-  // 0223 — ticker conditions, bracket stage chrome, public header.
+  // ticker conditions, bracket stage chrome, public header.
   'publicWeb.ticker.pause': '暂停滚动栏',
   'publicWeb.ticker.resume': '继续滚动栏',
   'publicWeb.ticker.stale': '最后已知比分 — 实时连接已断开',
@@ -235,7 +235,7 @@ export const messages: Record<string, string> = {
   'publicWeb.header.navApiReference': 'API 参考',
   'publicWeb.header.controlPanel': '控制面板',
 
-  // TvDashboard.tsx's own chrome (openspec 0225 task 2.6).
+  // TvDashboard.tsx's own chrome.
   'publicWeb.tvDashboard.noMatchesScheduled': '目前没有安排比赛',
   'publicWeb.tvDashboard.standingsUnavailable': '积分榜不可用',
   'publicWeb.tvDashboard.clubColumn': '俱乐部',

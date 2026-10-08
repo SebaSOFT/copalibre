@@ -23,7 +23,7 @@ export interface MatchCardData {
   readonly venueName?: string;
   /**
    * Raw ISO instant, rendered client-side via `ResponsiveTimestamp` so "today"
-   * is the viewer's calendar day, not the server's (openspec 0247).
+   * is the viewer's calendar day, not the server's.
    */
   readonly scheduledAt?: string;
   /** The full localized date/time, used only to fill the accessible label's `{time}` placeholder. */
@@ -43,8 +43,7 @@ export interface MatchCardData {
 /**
  * The distinct zone/group names present across a set of match rows, in
  * first-seen order — the facet options `MatchScheduleFilters` renders. A
- * dimension with zero or one distinct value yields no pill for it (openspec
- * 0245): the caller decides whether to render based on `.length > 1`.
+ * dimension with zero or one distinct value yields no pill for it: the caller decides whether to render based on `.length > 1`.
  */
 export function distinctFacetValues(
   rows: readonly Pick<MatchCardData, 'zoneName' | 'groupName'>[],

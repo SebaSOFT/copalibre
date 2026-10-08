@@ -642,7 +642,7 @@ describe('TournamentSettingsPage', () => {
     await waitFor(() => expect(deleteTournamentEmblem).toHaveBeenCalled());
   });
 
-  it('shows the plain-language summary once the sibling ruleset response resolves (openspec 0267)', async () => {
+  it('shows the plain-language summary once the sibling ruleset response resolves', async () => {
     render(
       withIntl(
         <TournamentSettingsPage

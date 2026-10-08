@@ -3,7 +3,7 @@ import { refreshNativeSession } from './native-refresh.js';
 import { renewOidcSessionSilently } from './oidc-silent-renew.js';
 import type { SilentRenewalOutcome } from './renewal-outcome.js';
 
-/** The spec delta's own number (openspec 0302): renew before expiry, not after. */
+/** The spec delta's own number: renew before expiry, not after. */
 const RENEW_BEFORE_EXPIRY_MS = 120_000;
 const MIN_DELAY_MS = 1_000;
 

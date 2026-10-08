@@ -1,7 +1,7 @@
-# 0220 operational surface foundations — apply review
+# Operational surface foundations — apply review
 
 Reviewed 2026-09-09. This change supplies the public/TV owners, calibrated tokens,
-canonical review fixtures and local Astro preview that 0223 compositions consume.
+canonical review fixtures and local Astro preview that the operational surface compositions consume.
 It does not claim the composition parity review assigned to 0223.
 
 ## Corrections made during conclusion
@@ -94,8 +94,8 @@ remain unchanged. Content alternates between ink-950 and ink-900; chrome uses
 ink-850. Opaque rows use ink-930 and ink-940. Badge left-pair cuts deliberately
 diverge from the reference's square badge.
 
-`surface-chrome` and selected/raised surfaces currently share ink-850. Change
-0222 owns their separation and automatic level assignment. Change 0223 owns
+`surface-chrome` and selected/raised surfaces currently share ink-850. The
+owned control coverage work owns their separation and automatic level assignment. The compositions work owns
 composition adoption, its reference index and the batched visual parity review.
 No database migration, API contract, persistence behavior or release configuration
 changes are required. Existing CI jobs discover the tests; full E2E remains

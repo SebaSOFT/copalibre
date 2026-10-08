@@ -11,8 +11,7 @@ import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 type StateFilter = 'all' | 'live' | 'upcoming' | 'final';
 
 /**
- * Composes the screen from the data `MatchesViewPage` supplies (openspec
- * 0225 task 6.2): purely presentational — which filter is active lives in
+ * Composes the screen from the data `MatchesViewPage` supplies: purely presentational — which filter is active lives in
  * the page instead, since selecting one drives a refetch.
  */
 export function MatchesViewTemplate({

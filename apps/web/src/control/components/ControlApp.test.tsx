@@ -124,8 +124,8 @@ describe('ControlApp', () => {
         return json([]);
       },
     });
-    // Every screen except `callback` redirects to login with no session
-    // — these tests render as an authenticated operator.
+    // Every screen except `callback` redirects to login with no session —
+    // these tests render as an authenticated operator.
     controlTokenStore.write('test-access-token', Date.now() + 60_000);
   });
 
@@ -462,7 +462,7 @@ describe('ControlApp default-returnTo login landing', () => {
 
   it('leaves a guard-redirected login (a real returnTo) untouched — the redirect decision itself performs no lookup', async () => {
     // The destination screen fetches organizations on its own, afterward, to
-    // resolve its nav role (openspec 0165) — expected and unrelated to this
+    // resolve its nav role — expected and unrelated to this
     // test. What must stay true is narrower: `CompletingLogin`'s redirect
     // decision for a real (non-default) returnTo never awaits that lookup
     // first, so a request to it before the pathname changes would mean the

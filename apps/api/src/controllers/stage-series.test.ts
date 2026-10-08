@@ -47,7 +47,7 @@ describe('guaranteedMatchCount', () => {
   });
 });
 
-describe('previewSeriesCorrection (0159 tasks 3.1, 3.2)', () => {
+describe('previewSeriesCorrection', () => {
   it('previews a correction that reverses a three-nil: no longer decided, four and five return', () => {
     const outlook = previewSeriesCorrection({
       declaration: BEST_OF_FIVE,
@@ -144,7 +144,7 @@ describe('previewSeriesCorrection (0159 tasks 3.1, 3.2)', () => {
   });
 });
 
-describe('publicSeriesState (0159 tasks 4.1, 4.3, 4.4)', () => {
+describe('publicSeriesState', () => {
   it('reports every game in play order, however out of order they were finalized', () => {
     const state = publicSeriesState({
       declaration: BEST_OF_FIVE,

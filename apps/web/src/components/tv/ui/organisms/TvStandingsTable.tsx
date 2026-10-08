@@ -3,7 +3,7 @@ import { EntrantName } from '../../../ui/atoms/EntrantName.js';
 import type { TvClubItem, TvDashboardLabels } from '../../tv-types.js';
 
 /**
- * The broadcast surface's table owner (openspec 0225 task 7.1) — under a
+ * The broadcast surface's table owner — under a
  * `ui/` directory, exactly like `components/ui/organisms/DataTable.astro`
  * and `StandingsTable.astro`, so this is where `<table>` is composed from
  * scratch for the TV surface, once. `StandingsTable.astro` cannot fill that

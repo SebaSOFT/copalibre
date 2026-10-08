@@ -39,7 +39,7 @@ function resolveEntrantDisplayName(
  * list; the canvas is read-only, because bracket shape is engine-derived and
  * dragging a match somewhere else would be editing a picture of the truth.
  */
-/** One zone's own independent bracket — see `SeedingResponse.zones` (openspec 0246). */
+/** One zone's own independent bracket — see `SeedingResponse.zones`. */
 export interface SeedingCanvasZone {
   readonly zoneId?: string;
   readonly zoneName?: string;
@@ -72,7 +72,7 @@ export function SeedingBuilderTemplate({
   readonly seeds: readonly SeedAssignment[];
   /**
    * One entry per zone the stage's fixtures already declare — always exactly one entry, with no
-   * `zoneId`/`zoneName`, for an un-zoned stage (openspec 0246).
+   * `zoneId`/`zoneName`, for an un-zoned stage.
    */
   readonly zones: readonly SeedingCanvasZone[];
   readonly names?: Readonly<Record<string, string>>;

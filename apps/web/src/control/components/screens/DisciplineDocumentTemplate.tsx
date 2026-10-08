@@ -6,8 +6,7 @@ import { messages } from '../../i18n/messages.en.js';
 
 /**
  * An installed discipline's plain-language document detail — the
- * super-admin-only view an installed-modules list action reaches (openspec
- * 0263). Presentation only: the document arrives already fetched.
+ * super-admin-only view an installed-modules list action reaches. Presentation only: the document arrives already fetched.
  */
 export function DisciplineDocumentTemplate({
   alias,

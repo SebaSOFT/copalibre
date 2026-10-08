@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * The discipline and tournament-profile builders (openspec 0164): authoring
+ * The discipline and tournament-profile builders: authoring
  * end to end, every decision explained, an invalid declaration refused in
  * the surface, and publication refused without authorship or an English
  * name.
@@ -163,7 +163,7 @@ test('authors a discipline with every decision explained, refuses an incomplete 
 
   await wizard.getByLabel('Estadística que decide el partido').fill('points');
 
-  // The final step shows the plain-language summary by default (openspec 0263).
+  // The final step shows the plain-language summary by default.
   await expect(wizard.getByRole('heading', { name: 'Segmentos' })).toBeVisible();
   await expect(wizard.getByRole('heading', { name: 'Reglas' })).toBeVisible();
   await expect(wizard.getByRole('heading', { name: 'Eventos' })).toBeVisible();
@@ -230,7 +230,7 @@ test('refuses to author a profile stage format the discipline does not declare, 
 });
 
 /**
- * The authored document, and the copy that has to admit when it failed (0223).
+ * The authored document, and the copy that has to admit when it failed.
  *
  * A clipboard write is denied outright in a non-secure context and by policy in
  * several browsers, and the old behaviour was to swallow that: the author saw
@@ -271,8 +271,7 @@ test('shows the authored module document as a file, and reports a refused clipbo
   await wizard.getByLabel('round-robin', { exact: true }).check();
   await wizard.getByRole('button', { name: 'Continuar' }).click();
 
-  // The plain-language summary is the default final-step view (openspec
-  // 0263) — the raw-JSON file view is reached through its toggle.
+  // The plain-language summary is the default final-step view — the raw-JSON file view is reached through its toggle.
   await wizard.getByRole('button', { name: 'Mostrar JSON crudo' }).click();
 
   // The file variant: a filename header, no window dots, no prompt.

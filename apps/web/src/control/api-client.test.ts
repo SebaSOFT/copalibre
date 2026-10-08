@@ -304,7 +304,7 @@ describe('the control API client', () => {
     expect(usage).toEqual({ totalBytes: 104857600, objectCount: 12 });
   });
 
-  it('calls the competition-structure-editing and object-cleanup endpoints (openspec 0168)', async () => {
+  it('calls the competition-structure-editing and object-cleanup endpoints', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
       accessToken: () => 'token-admin',
@@ -331,7 +331,7 @@ describe('the control API client', () => {
       !client.listUnreferencedObjects ||
       !client.deleteObject
     ) {
-      throw new Error('openspec 0168 client methods must be available');
+      throw new Error('competition structure editing client methods must be available');
     }
 
     await client.fetchTournamentSettings('liga-orbital', 'copa-verano');
@@ -404,7 +404,7 @@ describe('the control API client', () => {
     ]);
   });
 
-  it("parses a stage's availableFormats/formatDescriptions through unresolved (openspec 0251 task 3.1)", async () => {
+  it("parses a stage's availableFormats/formatDescriptions through unresolved", async () => {
     const client = createControlApiClient({
       accessToken: () => 'token-admin',
       fetch: async () =>
@@ -435,7 +435,7 @@ describe('the control API client', () => {
     });
   });
 
-  it('calls the ruleset-override and stage-configuration editing endpoints (openspec 0169)', async () => {
+  it('calls the ruleset-override and stage-configuration editing endpoints', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
       accessToken: () => 'token-admin',
@@ -456,7 +456,7 @@ describe('the control API client', () => {
       !client.previewStageConfiguration ||
       !client.updateStageConfiguration
     ) {
-      throw new Error('openspec 0169 client methods must be available');
+      throw new Error('ruleset and stage configuration editing client methods must be available');
     }
 
     await client.fetchRulesetOverrides('liga-orbital', 'copa-verano');
@@ -506,7 +506,7 @@ describe('the control API client', () => {
     ]);
   });
 
-  it('calls the invitation-rescission, identity-unlink and person/team removal endpoints (openspec 0170)', async () => {
+  it('calls the invitation-rescission, identity-unlink and person/team removal endpoints', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
       accessToken: () => 'token-admin',
@@ -527,7 +527,7 @@ describe('the control API client', () => {
       !client.removePerson ||
       !client.removeTeam
     ) {
-      throw new Error('openspec 0170 client methods must be available');
+      throw new Error('participant and access correction client methods must be available');
     }
 
     await client.listPendingInvitations('liga-orbital');

@@ -15,14 +15,12 @@ import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
 /**
  * Rename/format-change/delete for the stage this hub is on — relocated from
- * `SeedingBuilderPage.tsx`'s `StageSettingsSection` (openspec 0250, design.md
- * - "Relocation, not duplication"). The rename field now starts from the
+ * `SeedingBuilderPage.tsx`'s `StageSettingsSection`. The rename field now starts from the
  * stage's real current name instead of always blank, since `StageHubPage`
  * only mounts this once that name has actually loaded. The format field is a
  * guided `Select` sourced the same way `StageListEditor.tsx`'s is, with a
  * `DecisionHint` resolving the selected format's own declared description —
- * the first real caller of `formatDescriptions` anywhere in control-web
- * (openspec 0251, design.md - "Stage hub format field").
+ * the first real caller of `formatDescriptions` anywhere in control-web.
  */
 function StageIdentitySection({
   currentName,
@@ -130,7 +128,7 @@ function StageIdentitySection({
 }
 
 /**
- * The Stage hub (openspec 0250): identity (above) plus a doorway to that same
+ * The Stage hub: identity (above) plus a doorway to that same
  * stage's existing seeding, zones-and-groups, standings and schedule tools —
  * each of which links back here (task 6).
  */

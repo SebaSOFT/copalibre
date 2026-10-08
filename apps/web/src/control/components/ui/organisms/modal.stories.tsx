@@ -78,7 +78,7 @@ export const WithDescriptionAndFooter: Story = {
  * The modal's own close control is labelled `"Close"` in English regardless of
  * the selected language — the one hardcoded string
  * `check-ui-text-catalogue-coverage.mjs` records against `modal.tsx`, and
- * `0214`'s work. Visible here rather than hidden.
+ * the library's own work. Visible here rather than hidden.
  */
 export const LongContentAtNarrowWidth: Story = {
   args: { open: true, title: '' },

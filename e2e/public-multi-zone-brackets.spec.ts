@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * OpenSpec 0246: a multi-zone elimination stage renders one independent bracket diagram per
+ * A multi-zone elimination stage renders one independent bracket diagram per
  * zone, with a jump-list, real entrant/score data despite every zone sharing the same
  * round/position numbering, club emblems on resolved entrant slots, and each zone's own
  * champion highlighted independently of the others' completion state. A single-zone (or
@@ -28,8 +28,8 @@ const overview = {
 
 /**
  * Both zones' only round is round 1/position 1 — the exact cross-zone collision shape. Each match
- * also carries the stage-wide `matchNumber` the server now computes across every zone combined
- * (openspec 0249) — gold and silver's round-1/position-1 nodes would build an identical
+ * also carries the stage-wide `matchNumber` the server now computes across every zone combined —
+ * gold and silver's round-1/position-1 nodes would build an identical
  * `/matches/1` report link if the client still synthesized it from `position` alone.
  */
 const goldZoneMatches = [
@@ -56,8 +56,8 @@ const goldZoneMatches = [
 
 /**
  * Two matches share this zone's own deepest round (round 1) — `championshipMatch` declines to
- * mark either one as the champion node when that happens (same "don't guess" rule 0245 applies
- * to `resolveTournamentWinners`), so this zone's own ambiguity must not affect gold's marking.
+ * mark either one as the champion node when that happens (same "don't guess" rule applied to
+ * `resolveTournamentWinners`), so this zone's own ambiguity must not affect gold's marking.
  */
 const silverZoneMatches = [
   {
@@ -144,7 +144,7 @@ test('renders one bracket diagram per zone with a jump-list, real entrant data, 
   // Gold's single, structurally-deepest cross is marked as its own zone's champion node
   // (`.cl-bracket-stage__node` is the wrapper `championshipMatch` marks, one level above the
   // match card itself); silver's two concurrent deepest-round crosses are an ambiguous terminal
-  // round — declined, exactly the same "don't guess" rule 0245 applies — unaffected by gold's.
+  // round — declined, exactly the same "don't guess" rule `resolveTournamentWinners` applies — unaffected by gold's.
   const goldNode = page.locator('.cl-bracket-stage__node', {
     has: page.locator('[data-match="1"]', { hasText: 'Talleres' }),
   });
@@ -155,7 +155,7 @@ test('renders one bracket diagram per zone with a jump-list, real entrant data, 
   await expect(silverNode).not.toHaveClass(/cl-bracket-stage__node--championship/);
 
   // The entrant with a recorded club emblem gets an <img>; the sibling with none gets only the
-  // placeholder shield (0245's existing onerror-fallback markup, never a broken-image icon).
+  // placeholder shield (the existing onerror-fallback markup, never a broken-image icon).
   await expect(page.locator('img[alt="Talleres emblem"]')).toHaveCount(1);
 });
 
@@ -169,7 +169,7 @@ test('a single-zone stage renders exactly as before: no heading, no jump-list', 
   await expect(page.getByRole('link', { name: 'Copa de Oro' })).toHaveCount(0);
 });
 
-test('gold and silver report-page links stay distinct despite sharing round 1 / position 1 (openspec 0249)', async ({
+test('gold and silver report-page links stay distinct despite sharing round 1 / position 1', async ({
   page,
 }) => {
   await page.goto(MULTI_ZONE_ROUTE);

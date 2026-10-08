@@ -61,7 +61,7 @@ const report = (): PublicMatchReportResponse => ({
   ],
 });
 
-describe('buildTvMatchEvents (openspec 0270)', () => {
+describe('buildTvMatchEvents', () => {
   it('resolves each event to its side and player', () => {
     const events = buildTvMatchEvents(report());
 
@@ -134,7 +134,7 @@ describe('buildTvMatchEvents (openspec 0270)', () => {
   });
 });
 
-describe('buildActorDirectory (openspec 0300)', () => {
+describe('buildActorDirectory', () => {
   it('keys display text by personId, across both rosters', () => {
     expect(buildActorDirectory(report().rosters)).toEqual({
       'person-1': '#9 Ada',
@@ -147,7 +147,7 @@ describe('buildActorDirectory (openspec 0300)', () => {
   });
 });
 
-describe('buildEventLabelDirectory (openspec 0300)', () => {
+describe('buildEventLabelDirectory', () => {
   it('keys each label by its definitionCode, from the initial timeline', () => {
     expect(buildEventLabelDirectory(report())).toEqual({
       goal: 'Goal',
@@ -157,7 +157,7 @@ describe('buildEventLabelDirectory (openspec 0300)', () => {
   });
 });
 
-describe('resolveLiveTvMatchEvent (openspec 0300)', () => {
+describe('resolveLiveTvMatchEvent', () => {
   const context = {
     homeEntrantId: 'entrant-home',
     awayEntrantId: 'entrant-away',

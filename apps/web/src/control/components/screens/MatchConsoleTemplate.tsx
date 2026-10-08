@@ -63,8 +63,8 @@ export interface RecordEventContext {
 }
 
 /**
- * Composes the screen from data and callbacks `MatchConsolePage` supplies
- * (openspec 0225 task 6.1): every field, filter and disclosure toggle below
+ * Composes the screen from data and callbacks `MatchConsolePage` supplies:
+ * every field, filter and disclosure toggle below
  * is this component's own screen state, but nothing here reaches the API
  * client or a realtime subscription — a mutation is always a call to one of
  * the `on*` props, which the page turns into a queued, retried write.
@@ -122,7 +122,7 @@ export function MatchConsoleTemplate({
   // react-intl's own IntlShape types it as a bare `string` — narrow it here,
   // once, rather than at every resolveLabel call site.
   const language = isSupportedLanguage(intl.locale) ? intl.locale : 'en';
-  // `typeLabel` is discipline-declared (openspec 0281) — falls back to the raw
+  // `typeLabel` is discipline-declared — falls back to the raw
   // slug only for a descriptor that hasn't set one, never a hardcoded guess.
   const segmentTypeText = (segment: ConsoleSegment): string =>
     resolveLabel(segment.typeLabel ?? segment.type, language);
@@ -848,7 +848,7 @@ export function MatchConsoleTemplate({
 
 /**
  * One component per section `MatchConsoleTemplate` composes into
- * `MatchConsoleLayout`'s slots (openspec 0228): each section's own
+ * `MatchConsoleLayout`'s slots: each section's own
  * conditionals now count toward its own function, not the template's, and
  * the template keeps only the composition itself. No behavior change — each
  * component's body is the section's prior inline JSX, unmodified.
@@ -922,8 +922,8 @@ function AlertsSection({
 }
 
 /**
- * The one glanceable connectivity icon this screen's operator needs mid-match
- * — see its prior inline comment, preserved verbatim below. `syncDetailShown`
+ * The one glanceable connectivity icon this screen's operator needs mid-match —
+ * see its prior inline comment, preserved verbatim below. `syncDetailShown`
  * moved in from the template: nothing outside this section ever read it.
  */
 function SyncStatusSection({

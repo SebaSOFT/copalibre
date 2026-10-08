@@ -41,7 +41,7 @@ export interface ResolvedMatch {
  * Resolves the winner (and whether it was decided by a bye) once both of a
  * match's slots are already known — the inline series/single-match win logic
  * `resolveSlot` used to compute between its recursive calls, extracted
- * verbatim (openspec 0230). Takes no part in the recursion or its
+ * verbatim. Takes no part in the recursion or its
  * cycle-guard stack, both of which stay in `resolveSlot` itself.
  */
 function resolveWinnerFromChildren(

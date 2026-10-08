@@ -21,8 +21,8 @@ const THUMBNAIL_CONTENT_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp'
 const THUMBNAIL_MAX_DIMENSION = 320;
 
 /**
- * Async media processing for the object-storage capability's own registry
- *: malware scan, then — for an image content type — a
+ * Async media processing for the object-storage capability's own registry:
+ * malware scan, then — for an image content type — a
  * thumbnail rendition. `object_metadata` starts every row `pending`; this is
  * the only writer of `passed`/`failed` for a row it owns.
  */

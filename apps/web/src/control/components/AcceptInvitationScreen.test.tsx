@@ -13,7 +13,7 @@ describe('AcceptInvitationScreen', () => {
     //
     // No explicit locale is passed, so `ControlIntl` resolves via
     // `activeControlLanguage()`'s placeholder organization language ('es') —
-    // and since openspec 0278 gave `invitation.*` a real Spanish catalogue,
+    // and since `invitation.*` got a real Spanish catalogue,
     // this now genuinely renders Spanish, not an English fallback.
     const { container } = render(<AcceptInvitationScreen initialToken="invitation-token" />);
 
@@ -40,7 +40,7 @@ describe('AcceptInvitationScreen', () => {
   });
 
   it('provides its own IntlProvider, since accept.astro mounts it outside ControlShell/Dashboard.tsx', () => {
-    // openspec 0225 task 8.3: this screen used to call useIntl() (via the
+    // This screen used to call useIntl() (via the
     // form it composes) with no ancestor IntlProvider at all, since it is a
     // third real route-mount point neither of ControlIntl's two documented
     // mount points reaches. This test exists so removing the self-wrap

@@ -68,7 +68,7 @@ describe('the overview model', () => {
     ).toThrow();
   });
 
-  it('omits standingsGrain for a stage declaring no series, and carries it through when declared (0160)', () => {
+  it('omits standingsGrain for a stage declaring no series, and carries it through when declared', () => {
     expect('standingsGrain' in model).toBe(false);
 
     const seriesGrain = buildOverview({

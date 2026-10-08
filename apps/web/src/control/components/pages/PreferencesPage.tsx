@@ -39,10 +39,10 @@ export interface PatCreatedResponse extends PatResponse {
 }
 
 /**
- * Fetches and mutates (openspec 0225 task 6.2): every call into the API
+ * Fetches and mutates: every call into the API
  * client — including the raw `fetch` calls the personal-access-token
- * section makes directly, since that endpoint predates `ControlApiClient`
- * — lives here; `PreferencesTemplate` composes the four sections from the
+ * section makes directly, since that endpoint predates `ControlApiClient` —
+ * lives here; `PreferencesTemplate` composes the four sections from the
  * resulting data and the callbacks below.
  */
 export function PreferencesPage({

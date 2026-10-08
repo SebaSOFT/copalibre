@@ -1,7 +1,6 @@
 /**
  * One ruleset-override field's typed edit control, dispatched by
- * `chooseControlKind` (openspec 0264 design.md's "Control selection"
- * decision) — never a text input the operator fills with hand-typed JSON.
+ * `chooseControlKind` — never a text input the operator fills with hand-typed JSON.
  *
  * Reports a field's *stored override value* via `onChange` — for a
  * `replaced` field that is the field's full value; for a `merged` field

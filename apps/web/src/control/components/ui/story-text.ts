@@ -1,5 +1,5 @@
 /**
- * Reference strings for the component workbench's stories (OpenSpec 0213).
+ * Reference strings for the component workbench's stories.
  *
  * A library component takes its text as a prop, so a story passing a literal
  * renders the same characters in all eight languages and the workbench's

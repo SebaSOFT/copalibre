@@ -39,7 +39,7 @@ describe('resolveFieldPolicyLabel', () => {
     );
   });
 
-  it('resolves a localized name for a standard dot-path when no label is declared (openspec 0285)', () => {
+  it('resolves a localized name for a standard dot-path when no label is declared', () => {
     expect(resolveFieldPolicyLabel('scoring.pointsPerWin', basePolicy, 'en')).toBe(
       'Points Per Win',
     );

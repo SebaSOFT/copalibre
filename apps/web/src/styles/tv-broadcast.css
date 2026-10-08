@@ -302,7 +302,7 @@
   flex-direction: column;
   /*
    * The panel is as tall as the frame, so centring a small cluster inside it
-   * left most of the height empty (0202). Distributing the blocks uses that
+   * left most of the height empty. Distributing the blocks uses that
    * height instead: the stage label reads at the top, the matchup takes the
    * space it deserves in the middle, and the state sits at the foot.
    */
@@ -340,7 +340,7 @@
 }
 
 /*
- * The home side is the spotlight's visual anchor (openspec 0247): larger
+ * The home side is the spotlight's visual anchor: larger
  * than the away side, and never smaller than 120px even on a cramped
  * viewport where `vmin` alone would shrink below a legible size.
  */
@@ -414,7 +414,7 @@
   color: var(--cl-text-primary);
 }
 
-/* 3C. Pinned-Match Event Ticker (openspec 0270) */
+/* 3C. Pinned-Match Event Ticker */
 .tv-event-ticker {
   display: flex;
   flex-direction: column;
@@ -756,7 +756,7 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Lower third (openspec 0201)
+ * Lower third
  *
  * A strip anchored to the bottom of the frame, sized by its own content, so
  * the footage it is composited over stays visible. Everything here is
@@ -868,8 +868,7 @@
    the overlay modes and the chroma key.
    ========================================================================== */
 /**
-   * Sized for a screen read from 5-10m rather than arm's length (0031
-   * 2.3) — a fixed rem scale would be right for one panel size and wrong
+   * Sized for a screen read from 5-10m rather than arm's length — a fixed rem scale would be right for one panel size and wrong
    * for the next, so every measure here is vmin-relative instead.
    */
 .tv-dashboard {
@@ -997,7 +996,7 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Animated live event alert banner (openspec 0300) — the "Broadcast Command
+ * Animated live event alert banner — the "Broadcast Command
  * Precision" callout for a `match.event-recorded` moment: chamfered, high-
  * contrast dark ink, bold display type. `--scoring`/`--notable` are the only
  * two kinds `BroadcastAlertBanner.tsx` ever asks for — generic across every
@@ -1106,7 +1105,7 @@
   }
 }
 
-/* Multi-court grid (openspec 0303) */
+/* Multi-court grid */
 .tv-multicourt-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));

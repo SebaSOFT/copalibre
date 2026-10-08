@@ -170,7 +170,7 @@ const playerProfileFixtureNoStats = {
   careerStatistics: [],
 };
 
-// 0244: tournament-scoped drilldown for the "top-scorers" layout — the
+// Tournament-scoped drilldown for the "top-scorers" layout — the
 // tournament total keeps the composite `cards` (Y/R Cards) column, but each
 // match row carries only the collector-kind `goals` cell, never `cards`.
 const topScorersStatisticsFixture = {
@@ -603,8 +603,7 @@ test.describe('B2: public tournament page', () => {
     await expect(
       page.locator('astro-island').filter({ has: entrantName }).first(),
     ).not.toHaveAttribute('ssr', '', { timeout: 15_000 });
-    // `flex: none` on top of the existing forced width (openspec 0225 task
-    // 8.1): this span is now a real `flex: 1 1 auto` item of
+    // `flex: none` on top of the existing forced width: this span is now a real `flex: 1 1 auto` item of
     // `.cl-match-card__side` (its ownership-scanner selector fix widened
     // what it matches — the entrant name previously fell outside it
     // entirely, past the `<astro-island>` a `client:load` wrapper inserts),
@@ -719,7 +718,7 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('heading', { name: 'Matches' })).toBeVisible();
   });
 
-  test('0199: standings render a visible header row and never overflow the page at 375px', async ({
+  test('standings render a visible header row and never overflow the page at 375px', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 800 });
@@ -781,7 +780,7 @@ test.describe('B2: public tournament page', () => {
     await expect(page.locator('.cl-image-frame img')).toBeVisible();
   });
 
-  test('0244: shows tournament-total and match-by-match statistics, excluding composite columns from match rows, and switches declared layouts', async ({
+  test('shows tournament-total and match-by-match statistics, excluding composite columns from match rows, and switches declared layouts', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1`);
@@ -804,7 +803,7 @@ test.describe('B2: public tournament page', () => {
     // renders that layout's own columns, without mixing in the previous
     // layout's values. "Assists" is a collector-kind stat, so it legitimately
     // appears as a column header in both the tournament-total and
-    // match-by-match tables (0257) — scope to the total table specifically
+    // match-by-match tables — scope to the total table specifically
     // rather than the ambiguous whole-section text match.
     await page.getByRole('tab', { name: 'Discipline Drilldown' }).click();
     await page.waitForURL(/\?layout=discipline-drilldown/);
@@ -836,7 +835,7 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('heading', { name: 'Goleador Dos' })).toBeVisible();
     await expect(page.getByText('No career statistics recorded.')).toBeVisible();
     await expect(page.getByText('No competition history recorded.')).toBeVisible();
-    // 0244: no inferred tournament-total or zero-valued match rows either.
+    // No inferred tournament-total or zero-valued match rows either.
     await expect(
       page.getByText('No tournament statistics recorded for this player.'),
     ).toBeVisible();
@@ -857,12 +856,12 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('heading', { name: 'Finished & Archive' })).toBeVisible();
 
     // No tournament in this seed carries the organizer's featured flag, so the
-    // block falls back to naming the live one exactly as it did before 0207 —
+    // block falls back to naming the live one exactly as it did before the featured flag —
     // the regression that proves an organization which never touches the toggle
     // sees no change at all.
     await expect(page.getByRole('heading', { name: 'Featured' })).toBeVisible();
 
-    // Live is urgent and comes first; featured is curated and follows it (0207).
+    // Live is urgent and comes first; featured is curated and follows it.
     const sectionHeadings = await page
       .locator('h2.cl-section-title')
       .allTextContents()

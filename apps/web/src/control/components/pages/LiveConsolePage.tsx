@@ -8,7 +8,7 @@ import { controlTokenStore } from '../../session/token-store.js';
 import { LiveConsoleTemplate } from '../screens/LiveConsoleTemplate.js';
 
 /**
- * Fetches (openspec 0225 task 6.2): the active-tournament load lives here;
+ * Fetches: the active-tournament load lives here;
  * `LiveConsoleTemplate` composes the screen from the resulting data.
  */
 export function LiveConsolePage({

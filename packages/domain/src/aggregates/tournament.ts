@@ -101,8 +101,7 @@ export type PublicTournamentStatus = 'upcoming' | 'live' | 'finished';
  * `forfeited` counts as resolved alongside `finalized`, matching the platform's existing
  * "resolved = finalized + forfeited" definition (`stage-completion.ts`). A `not-required` match — a
  * series game never played because the series already decided — never blocks "finished": it is
- * excluded from the check entirely, the same way it is excluded from a completion summary's total
- * (openspec 0270).
+ * excluded from the check entirely, the same way it is excluded from a completion summary's total.
  */
 export function deriveTournamentStatus(
   status: TournamentStatus | string,

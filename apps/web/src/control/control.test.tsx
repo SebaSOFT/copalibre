@@ -505,7 +505,7 @@ describe('what the dashboard renders', () => {
     expect(screen.getByRole('button', { name: 'Export' })).toBeDefined();
   });
 
-  it('offers Broadcaster Studio inside the same export menu when the operator can manage display tokens, never as its own button (openspec 0300)', async () => {
+  it('offers Broadcaster Studio inside the same export menu when the operator can manage display tokens, never as its own button', async () => {
     render(
       withIntl(
         <Card
@@ -734,7 +734,7 @@ describe('what the dashboard renders', () => {
     expect(screen.getByText(/last signal/i)).toBeDefined();
   });
 
-  it('elevates the no-devices state to a structured empty-state card (openspec 0280)', () => {
+  it('elevates the no-devices state to a structured empty-state card', () => {
     const { container } = render(withIntl(<DeviceHeartbeat devices={[]} now={Date.now()} />));
 
     const emptyState = container.querySelector('.cl-empty-state');

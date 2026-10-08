@@ -33,7 +33,7 @@ const preferencesSectionPadding = 'clamp(var(--cl-space-3), 4vw, var(--cl-space-
 
 /**
  * Composes the four preference sections from the data `PreferencesPage`
- * supplies (openspec 0225 task 6.2): the personal-access-token form, the
+ * supplies: the personal-access-token form, the
  * pending emblem crop, and the statistics-rebuild form below are this
  * component's own screen state; every mutation is a call to one of the
  * `on*` props.

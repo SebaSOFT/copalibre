@@ -14,7 +14,7 @@ import { TournamentsController } from './tournaments.controller.js';
 import { ZonesGroupsController } from './zones-groups.controller.js';
 
 /**
- * Competition-structure editing (openspec 0168): a published tournament's
+ * Competition-structure editing: a published tournament's
  * region/capacity/checkInClosesAt can be edited and previewed, a stage can be
  * renamed/reformatted/removed before it holds a fixture, and a zone or group
  * can be renamed/removed before an entrant is assigned into it. Every

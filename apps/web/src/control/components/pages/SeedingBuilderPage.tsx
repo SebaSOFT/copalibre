@@ -15,7 +15,7 @@ import { Field } from '../ui/molecules/field.js';
 import { useToast } from '../ToastProvider.js';
 import { messages } from '../../i18n/messages.en.js';
 
-// openspec 0225 task 8.3 (found by /impeccable critique): every one of these
+// Every one of these
 // was a hardcoded Spanish literal, with no message id at all. Local rather
 // than in `messages.en.ts` — see `LiveConsoleTemplate.tsx`'s identical note
 // on why a local `defineMessages` block, not the shared catalogue, is the
@@ -31,7 +31,7 @@ const pageMessages = defineMessages({
 /**
  * A stage's configuration override fields — the same dot-path-editing shape
  * `TournamentRulesetTemplate` uses one layer up, disabled once the stage is
- * seeded (openspec 0169).
+ * seeded.
  */
 function StageConfigurationSection({
   overrides,
@@ -197,8 +197,8 @@ export function SeedingBuilderPage({
       .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
       .then(async (loaded) => {
         if (!live) return loaded;
-        // Pre-fill only when nothing has been drawn or manually placed yet
-        // — a stage that already has seeds is never overridden by a
+        // Pre-fill only when nothing has been drawn or manually placed yet —
+        // a stage that already has seeds is never overridden by a
         // promotion plan, so this only runs for the empty case, and any
         // failure here just leaves the builder starting empty, as before.
         if (loaded.seeds.length > 0 || !api.fetchPromotionPlansTargetingStage) return loaded;

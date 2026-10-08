@@ -8,8 +8,8 @@ import type { DisciplineDescriptor } from '../descriptors/discipline-descriptor.
 import type { TournamentRuleset } from './tournament-ruleset.js';
 
 /**
- * The built-in disciplines' `scoring.*` field policies (openspec 0169, task 1.1)
- * — every built-in descriptor's `defaults.scoring` declares `pointsPerWin`,
+ * The built-in disciplines' `scoring.*` field policies —
+ * every built-in descriptor's `defaults.scoring` declares `pointsPerWin`,
  * `pointsPerDraw` and `pointsPerLoss`, and each now has a matching
  * `fieldPolicies` entry so an organizer can revise any of them, not only
  * `pointsPerWin`/`pointsPerDraw`.

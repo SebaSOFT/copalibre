@@ -16529,7 +16529,7 @@
         "properties": {
           "roles": {
             "type": "array",
-            "description": "Roles the caller may grant in this organization, per the 0140 role-granting hierarchy.",
+            "description": "Roles the caller may grant in this organization, per the role-granting hierarchy.",
             "items": {
               "type": "string",
               "enum": [
@@ -17482,7 +17482,7 @@
           "rulesetLabels": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Each `ruleset` key's declared display label, when the installed discipline's field policy declares one — absent keys fall back to a humanized dot-path client-side (openspec 0267)."
+            "description": "Each `ruleset` key's declared display label, when the installed discipline's field policy declares one — absent keys fall back to a humanized dot-path client-side ."
           },
           "status": {
             "type": "string",

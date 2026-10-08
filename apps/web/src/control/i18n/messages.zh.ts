@@ -1181,7 +1181,7 @@ export const messages: Record<string, string> = {
   'control.dashboard.export': '导出',
   'control.dashboard.resumeEditing': '继续编辑',
 
-  // 0223 — standings panel chrome, metric availability, module updates.
+  // standings panel chrome, metric availability, module updates.
   'control.standings.panelDecidedBy': '决定了该名次',
   'control.standings.tiebreakerSequenceTitle': '决胜顺序',
   'control.standings.rankColumn': '名次',

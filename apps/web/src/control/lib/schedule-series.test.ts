@@ -36,7 +36,7 @@ function bestOfFive(
 
 const SCHEDULED_FIVE = [1, 2, 3, 4, 5].map((number) => ({ number, status: 'scheduled' }));
 
-describe('builderGroups (0159 task 2.1, 2.2)', () => {
+describe('builderGroups', () => {
   it('renders exactly one row for a single-match fixture', () => {
     const groups = builderGroups([
       { fixtureId: 'fixture-1', matchId: 'match-1', round: 1, matches: [] },
@@ -99,7 +99,7 @@ describe('builderGroups (0159 task 2.1, 2.2)', () => {
   });
 });
 
-describe('contingency (0159 task 2.3)', () => {
+describe('contingency', () => {
   it('marks the first three games of an unstarted best-of-five certain and the rest contingent', () => {
     const groups = builderGroups(bestOfFive(SCHEDULED_FIVE));
 
@@ -166,7 +166,7 @@ describe('contingency (0159 task 2.3)', () => {
   });
 });
 
-describe('pendingReleases (0159 task 2.5)', () => {
+describe('pendingReleases', () => {
   const decidedButUncommitted = bestOfFive(
     [
       { number: 1, status: 'finalized' },

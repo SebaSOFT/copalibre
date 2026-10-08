@@ -1,9 +1,9 @@
-# Operator screen workbench — OpenSpec 0216
+# Operator screen workbench
 
 ## Scope and fixtures
 
 The workbench renders production components, not replicas of the marketing illustrations.
-Brand changes belong to 0217 and operational parity patterns to 0220. This change supplies the
+Brand changes belong to the brand design system parity work and operational parity patterns to the operational surface parity work. This change supplies the
 screen review surface those changes need.
 
 47 sibling story files cover operator routes, presentational screens, and their fragments.
@@ -31,23 +31,23 @@ the `cl-control` sidebar grid and introduces no new provider.
 Shell-owning stories set the isolated Storybook origin's stored language before mounting because the
 real shell owns its own IntlProvider. No access token or personal credential is seeded.
 
-## Original 0216 deferred source files
+## Original deferred source files
 
-This table records the 0216 boundary. Change 0222 subsequently added stories for
+This table records the original boundary. The owned control coverage work subsequently added stories for
 `AcceptInvitationForm`, `AcceptInvitationScreen` and `PreferencesRoute` and removed the opt-in
 coverage register. Current coverage recursively includes operator, public and TV React surfaces;
-see the [0222 follow-up review](reviews/0222-owned-control-coverage.md).
+see the [owned-control coverage follow-up review](reviews/owned-control-coverage.md).
 
-| Source                     | Reason                                                                                                                                                                                                          |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ControlApp.tsx             | Session bootstrap and auth routing; a leaf story cannot represent authentication or redirect behavior.                                                                                                          |
-| ControlRoutes.tsx          | URL-driven route composition; covered leaves and actual navigation e2e tests remain the useful surfaces.                                                                                                        |
-| ControlOrNotFound.tsx      | Session/routing guard rather than a distinct screen.                                                                                                                                                            |
-| ToastProvider.tsx          | Already mounted by the workbench decorator; not a screen.                                                                                                                                                       |
-| NativeAuthRoutes.tsx       | Login, recovery and reset use raw auth fetches, token writes and redirects, not ControlApiClient. A safe interactive story needs an auth transport/navigation seam outside 0216's client-only production scope. |
-| AcceptInvitationForm.tsx   | Raw auth mutation and navigation; same boundary as native auth.                                                                                                                                                 |
-| AcceptInvitationScreen.tsx | Composes AcceptInvitationForm, inheriting that boundary.                                                                                                                                                        |
-| PreferencesRoute.tsx       | Organization reads accept a client, but PAT load/create/revoke bypass it using raw fetch. A client-only story would still reach live auth endpoints.                                                            |
+| Source                     | Reason                                                                                                                                                                                                                       |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ControlApp.tsx             | Session bootstrap and auth routing; a leaf story cannot represent authentication or redirect behavior.                                                                                                                       |
+| ControlRoutes.tsx          | URL-driven route composition; covered leaves and actual navigation e2e tests remain the useful surfaces.                                                                                                                     |
+| ControlOrNotFound.tsx      | Session/routing guard rather than a distinct screen.                                                                                                                                                                         |
+| ToastProvider.tsx          | Already mounted by the workbench decorator; not a screen.                                                                                                                                                                    |
+| NativeAuthRoutes.tsx       | Login, recovery and reset use raw auth fetches, token writes and redirects, not ControlApiClient. A safe interactive story needs an auth transport/navigation seam outside the screen stories' client-only production scope. |
+| AcceptInvitationForm.tsx   | Raw auth mutation and navigation; same boundary as native auth.                                                                                                                                                              |
+| AcceptInvitationScreen.tsx | Composes AcceptInvitationForm, inheriting that boundary.                                                                                                                                                                     |
+| PreferencesRoute.tsx       | Organization reads accept a client, but PAT load/create/revoke bypass it using raw fetch. A client-only story would still reach live auth endpoints.                                                                         |
 
 Do not add fake auth data or override global fetch to hide these dependencies. Keep them outside the
 story coverage until an explicit seam is designed; existing real-route tests remain authoritative.
@@ -58,7 +58,7 @@ story coverage until an explicit seam is designed; existing real-route tests rem
   Their Failed stories represent the failed request, not a distinct production error design.
 - StandingsRoute has hardcoded Spanish loading/error text; ActivityLog uses English relative
   time/action presentation; RosterRoleSelector uses Spanish labels. Analytics/LiveConsole also retain
-  hardcoded Spanish strings. Translate production messages under operational parity (0220), not
+  hardcoded Spanish strings. Translate production messages under operational parity, not
   fixture-only translations.
 - BracketCanvas displays opaque entrant/match identifiers despite names being available on its
   containing seeding page. ScheduleBuilder and PromotionPlan similarly expose identifier-oriented
@@ -67,7 +67,7 @@ story coverage until an explicit seam is designed; existing real-route tests rem
   cannot show the presentational page's complete information from that response; the story keeps
   that omission visible.
 - Import confirmation currently announces success when the returned job is still committing.
-  The ImportCommitting story exposes this ambiguity; a truthful job-progress UX belongs to 0220.
+  The ImportCommitting story exposes this ambiguity; a truthful job-progress UX belongs to the operational surface parity work.
 
 ## Verification
 
@@ -85,7 +85,7 @@ Every render completed without uncaught browser errors. The durable pass found p
 actions overflowing in 24 cases before their wrapping fix; a separate confirmation reran all 44
 platform width/language cases with zero overflow. All remaining cases also have zero page overflow.
 These are local browser measurements and visual spot checks, not a new automated CI gate or a claim
-of real-device testing. Dense 188px layouts still wrap heavily; brand/spacing parity remains 0220 work.
+of real-device testing. Dense 188px layouts still wrap heavily; brand/spacing parity remains operational surface parity work.
 
 Visual inspection included desktop and 188px match operations, the 188px descriptor wizard, 374px
 open navigation, and 767px schedule-conflict/import-committing states. The existing standings bar
@@ -96,11 +96,11 @@ Local gates: root lint, format check, typecheck and unit suite pass; web Astro c
 web coverage passes (103 suites, 1,336 tests, 85.48% branches); the ownership checker and its 32 tests
 pass; strict OpenSpec validation passes. Full end-to-end verification passes with one worker. The
 default parallel run collided on public fixture port 3001 (`EADDRINUSE`), so it is not reported as green.
-Existing unrelated token-generator working-tree edits are not part of 0216; screenshots reflect that
+Existing unrelated token-generator working-tree edits are not part of this change; screenshots reflect that
 working tree and are review evidence, not pixel baselines.
 
 ### Review captures
 
-![German match operations at 1440px](assets/screenshots/0216-console-desktop.png)
+![German match operations at 1440px](assets/screenshots/screen-stories-console-desktop.png)
 
-![German navigation drawer at 374px](assets/screenshots/0216-drawer-mobile.png)
+![German navigation drawer at 374px](assets/screenshots/screen-stories-drawer-mobile.png)

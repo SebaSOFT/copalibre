@@ -5,7 +5,7 @@ export interface ResponsiveTimestampProps {
   /** Defaults to the moment this renders. A fixed value keeps a "5 minutes ago" from drifting mid-render, and keeps tests deterministic. */
   readonly referenceDate?: Date | number;
   /**
-   * Required rather than guessed (openspec 0272): resolving a default from
+   * Required rather than guessed: resolving a default from
    * `navigator` inside this component disagreed between Node's SSR pass
    * (where a minimal global `navigator.language` is `undefined`, silently
    * falling back to the process's own ICU locale) and the real browser
@@ -40,7 +40,7 @@ function timeOnly(date: Date, locale: string): string {
 
 /**
  * `d-MMM`, day first, regardless of the locale's native date-part ordering —
- * this is a fixed broadcast/ticker convention (openspec 0247), not a
+ * this is a fixed broadcast/ticker convention, not a
  * translation of the viewer's locale date format.
  */
 function dateOnly(date: Date, locale: string): string {
@@ -59,8 +59,7 @@ function fullDateTime(date: Date, locale: string): string {
 /**
  * Elapsed time relative to `reference` (e.g. "5 minutes ago"). The sole owner
  * of this logic — previously duplicated as `activity-formatting.ts`'s private
- * `formatRelativeTime`, which this atom's `relative` format replaces
- * (openspec 0247).
+ * `formatRelativeTime`, which this atom's `relative` format replaces.
  */
 function relativeTime(date: Date, reference: Date, locale: string): string {
   const elapsedSeconds = Math.round((date.getTime() - reference.getTime()) / 1000);
@@ -102,7 +101,7 @@ function textFor(
 /**
  * A schedule, event, or log timestamp rendered relative to the viewing date —
  * `HH:mm` for today, `d-MMM HH:mm` for any other day — instead of a raw ISO
- * string or a fixed full-date format that never shortens (openspec 0247).
+ * string or a fixed full-date format that never shortens.
  */
 export function ResponsiveTimestamp({
   timestamp,

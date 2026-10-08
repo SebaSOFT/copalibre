@@ -60,7 +60,7 @@ describe('the taxonomy', () => {
   it('names the phase that owns every hook nothing evaluates yet', () => {
     for (const hook of SCRIPT_HOOKS) {
       if (hook.evaluation.status === 'declared') {
-        expect(hook.evaluation.ownedBy).toMatch(/^\d{4}$/);
+        expect(hook.evaluation.ownedBy.trim()).not.toBe('');
       }
     }
   });
@@ -90,7 +90,10 @@ describe('resolveHookAttachment', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.inert).toBe(false);
-    expect(result.value.hook.evaluation).toEqual({ status: 'evaluated', by: '0133' });
+    expect(result.value.hook.evaluation).toEqual({
+      status: 'evaluated',
+      by: 'per-event rule authoring',
+    });
   });
 
   it('reports an attachment to a declared-but-unevaluated hook as inert', () => {
@@ -99,7 +102,7 @@ describe('resolveHookAttachment', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.inert).toBe(true);
-    expect(result.value.reason).toContain('0014');
+    expect(result.value.reason).toContain('live match operations');
   });
 
   it('says why the scheduling hook is inert', () => {

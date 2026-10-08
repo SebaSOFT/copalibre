@@ -1,7 +1,7 @@
 /**
  * Translates a tournament's own configuration — name, stages, registration
  * settings, and its effective ruleset — into plain language, composed above
- * the discipline's own plain-language summary (openspec 0263/0267).
+ * the discipline's own plain-language summary.
  *
  * Composition, not inheritance: `DisciplineSummary` stays discipline-only
  * (unmodified, still used directly by `DescriptorBuilderWizard`'s

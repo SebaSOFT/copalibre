@@ -1,5 +1,5 @@
 /**
- * Label + control-atom slot + help/error text (openspec 0225 task 2.2: the
+ * Label + control-atom slot + help/error text (the
  * `Field` molecule, renamed and given a `required` indicator; `Label`
  * moves from a component with one consumer to this molecule's internal).
  * The control-web-shell "no state below organism" rule (design.md Decision 7):

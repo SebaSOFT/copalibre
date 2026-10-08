@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * OpenSpec 0294: the TV scorebug's possession/timed-penalty indicators and the
+ * The TV scorebug's possession/timed-penalty indicators and the
  * full-frame bracket rail, rendered from the real public projections (never
  * sample data) — present on the kiosk and full-overlay presentations, the
  * indicator alone (no bracket) on the lower third, and neither indicator nor

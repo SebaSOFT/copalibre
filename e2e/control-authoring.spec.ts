@@ -21,7 +21,7 @@ const disciplineWithBothFormatsFixture = [
   { ...disciplineFixture[0], supportedFormats: ['round-robin', 'single-elimination'] },
 ];
 
-/** Declares a field policy (openspec 0161) so the wizard can render the reversibility sentence. */
+/** Declares a field policy so the wizard can render the reversibility sentence. */
 const disciplineWithFieldPoliciesFixture = [
   {
     descriptorId: 'football.default',
@@ -38,7 +38,7 @@ const disciplineWithFieldPoliciesFixture = [
   },
 ];
 
-/** Declares a non-reserved field with a default (openspec 0265), for the ruleset step. */
+/** Declares a non-reserved field with a default, for the ruleset step. */
 const disciplineWithRulesetFieldFixture = [
   {
     descriptorId: 'football.default',
@@ -63,7 +63,7 @@ const hookVocabularyFixture = {
       type: 'notify',
       description: 'Declare notification',
       // Renders the configured-rules list as a sentence instead of a raw
-      // type identifier (openspec 0266).
+      // type identifier.
       phraseTemplate: 'Notify: {{title}}',
       authoring: {
         parameters: [
@@ -298,7 +298,7 @@ test('downloads tournament configuration JSON from the dashboard', async ({ page
 
   await expect(page.getByText('Apertura 2026')).toBeVisible();
   const downloadPromise = page.waitForEvent('download');
-  // The exports moved into the tournament card's own menu (openspec 0211).
+  // The exports moved into the tournament card's own menu.
   await page.getByRole('button', { name: 'Exportar' }).first().click();
   await page.getByRole('menuitem', { name: 'Exportar configuración JSON' }).click();
   const download = await downloadPromise;
@@ -339,7 +339,7 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   await page.getByLabel('Notification message *').fill('{{ event.definitionCode }}');
   await page.getByRole('button', { name: 'Añadir otra regla' }).click();
 
-  // Renders the phrase template (openspec 0266) against the operator's own
+  // Renders the phrase template against the operator's own
   // values, not the raw condition/action type identifiers.
   await expect(page.getByText('Notify: Actualización del partido')).toBeVisible();
 
@@ -351,7 +351,7 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   // The final step summarizes every choice made so far, in plain language,
-  // before the operator confirms creation (openspec 0267).
+  // before the operator confirms creation.
   await expect(page.getByText('1: round-robin')).toBeVisible();
   await expect(page.getByText('La inscripción pública está abierta.')).toBeVisible();
   await expect(page.getByText('Se requiere check-in.')).toBeVisible();
@@ -403,7 +403,7 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   await expect(page.getByText('Apertura Local')).toBeVisible();
 });
 
-test('sets a discipline-declared rule field during creation, beyond format/registration (openspec 0265)', async ({
+test('sets a discipline-declared rule field during creation, beyond format/registration', async ({
   page,
 }) => {
   await mockControlApi(page, { disciplines: disciplineWithRulesetFieldFixture });
@@ -700,7 +700,7 @@ test('completes tournament authoring via keyboard and without overflow at 375px'
   expect(overflowFinal).toBe(true);
 });
 
-test('explains every decision on every wizard step, reachable by keyboard with no hover, in the accessibility tree (0161)', async ({
+test('explains every decision on every wizard step, reachable by keyboard with no hover, in the accessibility tree', async ({
   page,
 }) => {
   await mockControlApi(page);
@@ -748,7 +748,7 @@ test('explains every decision on every wizard step, reachable by keyboard with n
   await expect(page.locator(`#${capacityHintId}`)).toBeVisible();
 });
 
-test('states a blocked_after_results decision cannot change after the first result before it is chosen (0161)', async ({
+test('states a blocked_after_results decision cannot change after the first result before it is chosen', async ({
   page,
 }) => {
   await mockControlApi(page, { disciplines: disciplineWithFieldPoliciesFixture });

@@ -181,7 +181,7 @@ test('raw <table> triggers violation', () => {
   assert.equal(violations[0].line, 4);
 });
 
-test('raw table parts outside the table owner each trigger their own violation (openspec 0225 task 2.4)', () => {
+test('raw table parts outside the table owner each trigger their own violation', () => {
   const code = `
     export function BadTable() {
       return (
@@ -197,7 +197,7 @@ test('raw table parts outside the table owner each trigger their own violation (
   assert.deepEqual(tags, ['table', 'tbody', 'td', 'th', 'thead', 'tr', 'tr']);
 });
 
-test('raw form-structure elements each trigger their own violation (openspec 0225 task 2.4)', () => {
+test('raw form-structure elements each trigger their own violation', () => {
   const code = `
     export function BadForm() {
       return (

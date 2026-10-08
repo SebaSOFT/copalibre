@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * End-to-end coverage for OpenSpec 0223.
+ * End-to-end coverage for the operational surface compositions.
  *
  * Every case here is one a unit test cannot settle, because the thing being
  * checked is the browser's own behaviour: a menu that has to push the page down
@@ -207,7 +207,7 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test.describe('Public header, expanding in page flow (0223)', () => {
+test.describe('Public header, expanding in page flow', () => {
   test.use({ viewport: { width: 375, height: 720 } });
 
   test('opening the menu pushes the ticker and content down rather than covering them', async ({
@@ -282,7 +282,7 @@ test.describe('Public header, expanding in page flow (0223)', () => {
   });
 });
 
-test.describe('The public page without JavaScript (0223)', () => {
+test.describe('The public page without JavaScript', () => {
   test.use({ javaScriptEnabled: false, viewport: { width: 375, height: 720 } });
 
   test('navigation is already expanded and keeps the public home destination', async ({ page }) => {
@@ -307,7 +307,7 @@ test.describe('The public page without JavaScript (0223)', () => {
   });
 });
 
-test.describe('The ticker in a browser (0223)', () => {
+test.describe('The ticker in a browser', () => {
   test('pause is keyboard-operable and reports its state', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}`);
 
@@ -346,7 +346,7 @@ test.describe('The ticker in a browser (0223)', () => {
   });
 });
 
-test.describe('Standings and bracket in a browser (0223)', () => {
+test.describe('Standings and bracket in a browser', () => {
   test('the tied leaders show the comparator that separated them', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/1`);
 
@@ -412,7 +412,7 @@ test.describe('Standings and bracket in a browser (0223)', () => {
   });
 });
 
-test.describe('Representative widths keep the page inside the viewport (0223)', () => {
+test.describe('Representative widths keep the page inside the viewport', () => {
   for (const width of [375, 768, 1024, 1440]) {
     test(`no body-level horizontal overflow at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -437,7 +437,7 @@ test.describe('Representative widths keep the page inside the viewport (0223)', 
   });
 });
 
-test.describe('Eight languages at the narrow floor (0223)', () => {
+test.describe('Eight languages at the narrow floor', () => {
   // The workbench's declared zoom floor. German and Russian are the cases that
   // actually break at it, and they only break in their own catalogue — which is
   // why this sweeps every language rather than checking the one the reviewer
@@ -469,9 +469,7 @@ test.describe('Eight languages at the narrow floor (0223)', () => {
   }
 });
 
-test('the rendered faces and accent are the ones the token contract declares (0223)', async ({
-  page,
-}) => {
+test('the rendered faces and accent are the ones the token contract declares', async ({ page }) => {
   await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/1`);
 
   // Recorded rather than eyeballed: what a reviewer would otherwise write down

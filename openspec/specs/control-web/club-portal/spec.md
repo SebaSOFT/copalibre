@@ -1,7 +1,7 @@
 # control-web/club-portal Specification
 
 ## Purpose
-TBD - created by archiving change 0301-club-admin-person-management-and-roster-submission. Update Purpose after archive.
+TBD - created by archiving the club admin person management and roster submission change. Update Purpose after archive.
 
 ## Requirements
 

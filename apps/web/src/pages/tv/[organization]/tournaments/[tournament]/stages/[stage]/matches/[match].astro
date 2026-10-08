@@ -42,7 +42,7 @@ const matchNumber = Number(match ?? '1');
 const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
 
 // Reuses the same fetch the public match report page makes (`fetchMatchReport`) — a second
-// consumer of that data, not a new endpoint (openspec 0270). Kept in its own guard, same
+// consumer of that data, not a new endpoint. Kept in its own guard, same
 // reasoning as the ticker/standings fetch on the general kiosk route: a failure here must cost
 // only the event ticker, never replace the whole live dashboard with sample data.
 let matchEvents: readonly TvMatchEvent[] = [];
@@ -56,7 +56,7 @@ try {
   );
   if (report) {
     matchEvents = buildTvMatchEvents(report);
-    // openspec 0300: resolves a *live* event's actor the same way the initial
+    // Resolves a *live* event's actor the same way the initial
     // timeline above already resolves one, for `BroadcastAlertBanner`.
     rosterActors = buildActorDirectory(report.rosters);
   }

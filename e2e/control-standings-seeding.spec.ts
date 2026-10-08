@@ -414,7 +414,7 @@ test('a published seed order survives a page reload', async ({ page }) => {
   const shuffled = await seedList.getByRole('listitem').allTextContents();
 
   await page.getByRole('button', { name: 'Publicar sembrado' }).click();
-  // Several polite live regions now, not one: 0214's Alert atom gives every
+  // Several polite live regions now, not one: the Alert atom gives every
   // informational alert the `role="status"` it previously lacked, so this
   // screen's stage-locked explanations announce alongside the publish result.
   await expect(
@@ -660,13 +660,13 @@ test('captures screenshots of bracket series progress at DESIGN.md breakpoints',
     await page.setViewportSize({ width, height: 900 });
     await page.waitForTimeout(200);
     await canvas.screenshot({
-      path: `docs/assets/screenshots/0240-control-series-progress-${width}.png`,
+      path: `docs/assets/screenshots/control-series-progress-${width}.png`,
     });
   }
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.screenshot({
     fullPage: true,
-    path: 'docs/assets/screenshots/0240-control-series-progress-seeding-builder.png',
+    path: 'docs/assets/screenshots/control-series-progress-seeding-builder.png',
   });
 });

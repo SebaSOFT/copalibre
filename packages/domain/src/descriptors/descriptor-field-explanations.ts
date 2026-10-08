@@ -1,11 +1,11 @@
 /**
  * Execution-time explanations for `DisciplineDescriptor`'s own fields — what
  * the platform does with each declaration, not what an instance of it means
- * (that is 0161's per-instance `description`, declared by a module on its
+ * (that is the per-instance `description`, declared by a module on its
  * own statistics/events/formats). This is the single source both
  * `copalibre_descriptor_schema` (apps/copalibre's MCP server) and the
  * published authoring guide read, so an agent fetching either gets the same
- * text (openspec 0163, design.md "The guide drifts from the schema").
+ * text.
  *
  * Pure data: no behavior, no import beyond this file's own types, framework-
  * free like the rest of `packages/domain`.

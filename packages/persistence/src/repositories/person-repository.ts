@@ -660,7 +660,7 @@ export class PersonRepository {
     return rows.map(toPlayer);
   }
 
-  /** Every person affiliated with one club — the Club Portal member directory (openspec 0301). */
+  /** Every person affiliated with one club — the Club Portal member directory. */
   async listByClub(organizationId: string, clubId: string): Promise<readonly Person[]> {
     const rows = await this.db
       .selectFrom('persons')

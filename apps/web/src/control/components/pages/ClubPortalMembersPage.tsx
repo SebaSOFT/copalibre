@@ -12,7 +12,7 @@ import { useToast } from '../ToastProvider.js';
 import { ClubPortalMembersTemplate } from '../screens/ClubPortalMembersTemplate.js';
 
 /**
- * The Club Portal member directory (openspec 0301): a club-admin's own scoped
+ * The Club Portal member directory: a club-admin's own scoped
  * person registry. Fetches and mutates, the same split `ClubManagementPage`
  * already establishes — every API call lives here, `ClubPortalMembersTemplate`
  * only renders the resulting data and calls back through the `on*` props.

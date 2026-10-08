@@ -6,8 +6,7 @@ import { buildTestApp } from './test-support/integration-harness.js';
 const GUARD_PROVIDERS = [{ provide: APP_GUARD, useClass: OrganizationAccessGuard }];
 
 /**
- * The central exception filter's refusal recording (openspec 0166, tasks
- * 2.1/2.4), exercised through the real HTTP stack rather than at the unit
+ * The central exception filter's refusal recording, exercised through the real HTTP stack rather than at the unit
  * level, so the wiring — DI, the Fastify request shape, the real
  * `audit_log` table — is proven, not just the pure `refusalEntryFor` logic
  * `error-contract.test.ts` already covers.

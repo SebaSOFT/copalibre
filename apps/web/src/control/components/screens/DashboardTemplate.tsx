@@ -19,8 +19,7 @@ interface DeviceEntry {
 }
 
 /**
- * Composes the dashboard from the data `DashboardPage` supplies (openspec
- * 0225 task 6.2): no API client reference here — `onArchive`/`onExport`/
+ * Composes the dashboard from the data `DashboardPage` supplies: no API client reference here — `onArchive`/`onExport`/
  * `onExportConfiguration` are the page's own mutation functions, and which
  * tournaments are archived is filtered before this component ever sees them.
  */
@@ -37,7 +36,7 @@ export function DashboardTemplate({
 }: {
   /** Client-side presentation guard only (design.md Decision 4) — the wizard route itself stays server-enforced regardless. Absent while the operator's role has not resolved yet defaults to visible, matching `visibleSidenav`'s own "unknown role sees everything" convention. */
   readonly canCreateTournament: boolean;
-  /** Same guard, gating each tournament card's Broadcaster Studio link (openspec 0300). */
+  /** Same guard, gating each tournament card's Broadcaster Studio link. */
   readonly canManageDisplayTokens: boolean;
   readonly devices: readonly DeviceEntry[];
   readonly model: DashboardModel;

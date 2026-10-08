@@ -12,7 +12,7 @@ import { OrganizationsController } from './organizations.controller.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 
 /**
- * Object-storage cleanup (openspec 0168): an unreferenced stored object can
+ * Object-storage cleanup: an unreferenced stored object can
  * be listed and deleted, its storage usage total drops by its size, and an
  * object still referenced as an organization's current emblem cannot be
  * deleted until that reference is gone.

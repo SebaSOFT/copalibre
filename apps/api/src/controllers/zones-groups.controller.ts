@@ -731,7 +731,7 @@ export class ZonesGroupsController {
     const saved = await competition.findPromotionPlan(zone.zoneId);
     if (!saved)
       // A distinct code from the shared `zone-group-not-found` this endpoint's
-      // own stage/zone lookups above also throw (openspec 0284) — an operator
+      // own stage/zone lookups above also throw — an operator
       // viewing a zone with no saved plan yet is an expected, benign state,
       // not the same condition as a deleted/renumbered stage or zone, so the
       // console needs to tell the two apart rather than treat every 404 here

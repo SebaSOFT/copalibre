@@ -31,14 +31,14 @@ import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 /**
  * B1, the tournament overview.
  *
- * Everything a spectator needs is server-rendered. The SSE stream from 0018 is
+ * Everything a spectator needs is server-rendered. The SSE stream is
  * an improvement on this page, never a requirement for it: a venue on hotel
  * Wi-Fi still gets the score.
  *
  * `[[locale]]` is an optional Astro route segment: English, the
  * primary locale, is generated with `locale: undefined` (no URL segment);
  * every other supported language is generated with its own locale code
- * (0056 populated the remaining five alongside 0055's Spanish).
+ * (the remaining five locales ship alongside Spanish).
  */
 export const prerender = false;
 
@@ -210,7 +210,7 @@ const structuredData = {
 </PublicLayout>
 
 <script>
-  // Page tier (openspec 0305): the only place on this page allowed to own a
+  // Page tier: the only place on this page allowed to own a
   // RealtimeClient subscription — see check-atomic-composition.mjs's
   // data-access-at-page-tier rule. Patches ScoreTicker's own rendered DOM;
   // never a requirement for the page's content, only an enhancement of it.
@@ -220,7 +220,7 @@ const structuredData = {
 </script>
 
 <style>
-  /* Guarantees clear separation from the hero banner above (openspec 0245). */
+  /* Guarantees clear separation from the hero banner above. */
   :global(.cl-completion-figure) {
     margin-top: var(--cl-space-6);
   }

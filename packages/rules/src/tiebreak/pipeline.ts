@@ -23,9 +23,9 @@ export function deterministicTiebreakHash(
  * Trace labels are deterministic text (`trace/render.ts`'s contract: "no
  * locale formatting... a trace archived today and re-rendered next year must
  * read the same, on any machine"), so this always resolves to English via the
- * platform's canonical `resolveLabel` (openspec 0276) rather than a request
- * locale. Falls back gracefully — never throwing or leaking `[object Object]`
- * — for a `label` that doesn't actually satisfy `LocalizedLabel` at runtime
+ * platform's canonical `resolveLabel` rather than a request
+ * locale. Falls back gracefully — never throwing or leaking `[object Object]` —
+ * for a `label` that doesn't actually satisfy `LocalizedLabel` at runtime
  * (descriptor data is author-provided JSON, not guaranteed by the type
  * checker): a malformed object still yields its first string value, and a
  * non-object still stringifies.

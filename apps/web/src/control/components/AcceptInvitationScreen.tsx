@@ -29,8 +29,7 @@ function AcceptInvitationContent({
  * keeps the form a component the page tier positions, rather than one that
  * centres and margins itself.
  *
- * Wrapped in its own `ControlIntl` (openspec 0225 task 8.3, found by
- * `/impeccable critique`): this is a third real route-mount point,
+ * Wrapped in its own `ControlIntl`: this is a third real route-mount point,
  * `accept.astro`, rendered outside `ControlShell`/`Dashboard.tsx` — the two
  * `ControlIntl` already documented as its only mount points — so every
  * string here fell back to a raw literal with no `useIntl` context to

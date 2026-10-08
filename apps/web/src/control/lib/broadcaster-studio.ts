@@ -1,9 +1,9 @@
 /**
- * The Broadcaster Studio's own pure logic (openspec 0300): turning an issued
+ * The Broadcaster Studio's own pure logic: turning an issued
  * display token's launch URL into a ready-to-paste OBS Browser Source URL.
  * `mode`/`chroma` are query params the overlay route already understands
- * (`?mode=`, `?chroma=`, verified against `[match].astro`/`TvLayout.astro`)
- * — this needed no new backend or route support, only a caller.
+ * (`?mode=`, `?chroma=`, verified against `[match].astro`/`TvLayout.astro`) —
+ * this needed no new backend or route support, only a caller.
  */
 
 export type BroadcastOverlayMode = 'overlay-lower' | 'overlay-full';

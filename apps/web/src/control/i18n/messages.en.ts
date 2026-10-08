@@ -164,7 +164,7 @@ export const messages = defineMessages({
     id: 'control.platform.modules.updatesAvailable',
     defaultMessage: 'Available module updates',
   },
-  // 0223 — the editorial presentation of an update that is already listed here.
+  // the editorial presentation of an update that is already listed here.
   platformUpdateEyebrow: {
     id: 'control.platform.modules.updateEyebrow',
     defaultMessage: 'Module update',
@@ -244,8 +244,8 @@ export const messages = defineMessages({
 
   // Dashboard (QuickStats.tsx, TournamentSummaryCard.tsx, ActivityLog.tsx, Dashboard.tsx)
   dashboardSummary: { id: 'control.dashboard.summary', defaultMessage: 'Summary' },
-  // 0223 — a measurement that does not exist says so, rather than reading as zero.
-  // 0223 — the authored module document, shown as the file it becomes.
+  // a measurement that does not exist says so, rather than reading as zero.
+  // the authored module document, shown as the file it becomes.
   descriptorDocumentRegion: {
     id: 'control.descriptor.documentRegion',
     defaultMessage: 'Authored module document',
@@ -1082,7 +1082,7 @@ export const messages = defineMessages({
   /**
    * Condensed from each role's own "What this role is for" paragraph in
    * apps/web/src/content/docs/help/roles/*.md — never claims authority that
-   * page does not (openspec 0251, control-web/roles-permissions spec).
+   * page does not.
    */
   rolesDescriptionAdmin: {
     id: 'control.roles.description.admin',
@@ -1177,7 +1177,7 @@ export const messages = defineMessages({
     id: 'control.auditTrail.loadFailed',
     defaultMessage: 'Could not load the audit trail.',
   },
-  // 0223 — the ledger entry a corrected record expands into.
+  // the ledger entry a corrected record expands into.
   auditTrailCorrectionTitle: {
     id: 'control.auditTrail.correctionTitle',
     defaultMessage: 'What this record changed',
@@ -1213,7 +1213,7 @@ export const messages = defineMessages({
     defaultMessage: '{start}–{end} of {total}',
   },
 
-  // audit-log-panel.tsx (openspec 0225 task 5.6)
+  // audit-log-panel.tsx
   auditLogPanelEventCount: {
     id: 'control.auditLogPanel.eventCount',
     defaultMessage: '{count, plural, one {# event} other {# events}}',
@@ -1633,7 +1633,7 @@ export const messages = defineMessages({
   wizardCreate: { id: 'control.wizard.create', defaultMessage: 'Create tournament' },
   wizardContinue: { id: 'control.wizard.continue', defaultMessage: 'Continue' },
 
-  // Decision descriptions (openspec 0161) — what each wizard decision does
+  // Decision descriptions — what each wizard decision does
   // during the competition, not what the setting is named.
   wizardDecisionDiscipline: {
     id: 'control.wizard.decision.discipline',
@@ -1822,7 +1822,7 @@ export const messages = defineMessages({
     id: 'control.standings.distributionEmpty',
     defaultMessage: 'No data to chart.',
   },
-  // 0223 — the standings panel's own chrome, distinct from the table's data labels.
+  // the standings panel's own chrome, distinct from the table's data labels.
   standingsPanelDecidedBy: {
     id: 'control.standings.panelDecidedBy',
     defaultMessage: 'Decided this position',
@@ -1976,7 +1976,7 @@ export const messages = defineMessages({
     defaultMessage: 'No entrants assigned yet',
   },
 
-  // TournamentSettingsTemplate.tsx, TournamentSettingsPage.tsx (openspec 0168)
+  // TournamentSettingsTemplate.tsx, TournamentSettingsPage.tsx
   settingsTitle: { id: 'control.settings.title', defaultMessage: 'Tournament settings' },
   settingsLoading: { id: 'control.settings.loading', defaultMessage: 'Loading settings…' },
   settingsLoadFailed: {
@@ -2035,7 +2035,7 @@ export const messages = defineMessages({
     defaultMessage: 'Tournament emblem removed.',
   },
 
-  // file-picker.tsx (openspec 0285) — the atom itself may not call react-intl
+  // file-picker.tsx — the atom itself may not call react-intl
   // (R6), so every caller resolves these via `filePickerLabels(intl)` and
   // passes the result down as props.
   filePickerPrompt: {
@@ -2063,7 +2063,7 @@ export const messages = defineMessages({
     defaultMessage: '{count, plural, one {# file selected} other {# files selected}}',
   },
 
-  // TournamentRulesetTemplate.tsx, TournamentRulesetPage.tsx (openspec 0169)
+  // TournamentRulesetTemplate.tsx, TournamentRulesetPage.tsx
   rulesetOverridesTitle: { id: 'control.rulesetOverrides.title', defaultMessage: 'Ruleset' },
   rulesetOverridesLink: { id: 'control.rulesetOverrides.link', defaultMessage: 'Ruleset' },
   rulesetOverridesFields: {
@@ -2087,7 +2087,7 @@ export const messages = defineMessages({
     defaultMessage: 'Value (JSON)',
   },
 
-  // RulesetFieldControl (ui/molecules/ruleset-field-control.tsx, openspec 0264)
+  // RulesetFieldControl (ui/molecules/ruleset-field-control.tsx)
   rulesetFieldListAdd: { id: 'control.rulesetField.listAdd', defaultMessage: 'Add' },
   rulesetFieldInheritedHeading: {
     id: 'control.rulesetField.inheritedHeading',
@@ -2102,7 +2102,7 @@ export const messages = defineMessages({
     defaultMessage: "This field's value type has no supported editor.",
   },
 
-  // SeedingBuilderPage.tsx — stage rename/format-change/delete (openspec 0168)
+  // SeedingBuilderPage.tsx — stage rename/format-change/delete
   stageSettingsTitle: { id: 'control.stageSettings.title', defaultMessage: 'Stage settings' },
   stageRenameLabel: { id: 'control.stageSettings.renameLabel', defaultMessage: 'New stage name' },
   stageRenameSubmit: { id: 'control.stageSettings.renameSubmit', defaultMessage: 'Rename' },
@@ -2117,7 +2117,7 @@ export const messages = defineMessages({
     defaultMessage: 'This stage already has fixtures, so its format and removal are locked.',
   },
 
-  // TournamentHubTemplate.tsx / StageHubTemplate.tsx (openspec 0250)
+  // TournamentHubTemplate.tsx / StageHubTemplate.tsx
   tournamentHubTitle: { id: 'control.tournamentHub.title', defaultMessage: 'Stages' },
   tournamentHubStagesHeading: {
     id: 'control.tournamentHub.stagesHeading',
@@ -2169,7 +2169,7 @@ export const messages = defineMessages({
     defaultMessage: 'Broadcaster Studio',
   },
 
-  // SeedingBuilderPage.tsx — stage-configuration override editing (openspec 0169)
+  // SeedingBuilderPage.tsx — stage-configuration override editing
   stageConfigurationTitle: {
     id: 'control.stageConfiguration.title',
     defaultMessage: 'Stage configuration',
@@ -2518,7 +2518,7 @@ export const messages = defineMessages({
     defaultMessage: 'Emblem uploaded.',
   },
 
-  // Club Portal (openspec 0301) — a club-admin's own scoped member directory
+  // Club Portal — a club-admin's own scoped member directory
   // and tournament roster submission.
   clubPortalMembersTitle: { id: 'control.clubPortal.membersTitle', defaultMessage: 'Club members' },
   clubPortalMembersLoading: { id: 'control.clubPortal.membersLoading', defaultMessage: 'Loading…' },
@@ -3161,7 +3161,7 @@ export const messages = defineMessages({
     defaultMessage: 'An unexpected server error occurred. Try again.',
   },
 
-  // Discipline descriptor builder (openspec 0164)
+  // Discipline descriptor builder
   descriptorWizardTitle: {
     id: 'control.descriptor.wizardTitle',
     defaultMessage: 'Author a discipline',
@@ -3480,7 +3480,7 @@ export const messages = defineMessages({
     defaultMessage: 'Author and install',
   },
 
-  // Tournament profile builder (openspec 0164)
+  // Tournament profile builder
   profileWizardTitle: {
     id: 'control.profile.wizardTitle',
     defaultMessage: 'Author a tournament profile',
@@ -3590,7 +3590,7 @@ export const messages = defineMessages({
     defaultMessage: 'Author and install',
   },
 
-  // Matches view (openspec 0172) — MatchesViewPage.tsx, shared MatchCard.tsx
+  // Matches view — MatchesViewPage.tsx, shared MatchCard.tsx
   matchesViewControlTitle: { id: 'control.matchesView.title', defaultMessage: 'Matches' },
   matchesViewControlLoadFailed: {
     id: 'control.matchesView.loadFailed',
@@ -3691,7 +3691,7 @@ export const messages = defineMessages({
   },
   matchesViewSeeAll: { id: 'control.matchesView.seeAll', defaultMessage: 'See every match' },
 
-  // Dashboard tournament card (openspec 0211)
+  // Dashboard tournament card
   dashboardOpen: { id: 'control.dashboard.open', defaultMessage: 'Open' },
   dashboardExport: { id: 'control.dashboard.export', defaultMessage: 'Export' },
   dashboardResumeEditing: {
@@ -3699,7 +3699,7 @@ export const messages = defineMessages({
     defaultMessage: 'Resume editing',
   },
 
-  // Live console route (openspec 0225 task 2.6).
+  // Live console route.
   liveConsoleSubtitle: {
     id: 'control.liveConsole.subtitle',
     defaultMessage: 'Live operations console for tournaments and matches in play.',
@@ -3717,7 +3717,7 @@ export const messages = defineMessages({
     defaultMessage: 'Create tournament',
   },
 
-  // Preferences route (openspec 0225 task 2.6) — the personal-access-token
+  // Preferences route — the personal-access-token
   // list's own loading state. Uses the shared catalogue rather than this
   // file's local `defineMessages` block: that block's ids (`preferences.*`)
   // have no locale translations recorded anywhere, only a `defaultMessage`,
@@ -3746,7 +3746,7 @@ export const messages = defineMessages({
   },
   preferencesPatExpiresAt: { id: 'preferences.patExpiresAt', defaultMessage: 'Expires: {date}' },
 
-  // Analytics route (openspec 0225 task 2.6).
+  // Analytics route.
   analyticsSubtitle: {
     id: 'control.analytics.subtitle',
     defaultMessage: 'Performance and operational-volume metrics for the organization.',
@@ -3809,7 +3809,7 @@ export const messages = defineMessages({
   analyticsStatusArchived: { id: 'control.analytics.status.archived', defaultMessage: 'Archived' },
   analyticsStatusUnknown: { id: 'control.analytics.status.unknown', defaultMessage: 'Unknown' },
 
-  // Roster role selector (openspec 0225 task 2.6). `rosterRole*` replace
+  // Roster role selector. `rosterRole*` replace
   // ROSTER_ROLE_LABELS, previously a plain Spanish-only lookup object
   // consumed here and by RegistrationReviewTemplate.tsx.
   rosterRolePlayer: { id: 'control.roster.rolePlayer', defaultMessage: 'Player' },
@@ -3833,7 +3833,7 @@ export const messages = defineMessages({
     defaultMessage: 'Stage {stageNumber}',
   },
 
-  // DisciplineSummary (ui/organisms/discipline-summary.tsx, openspec 0263) —
+  // DisciplineSummary (ui/organisms/discipline-summary.tsx) —
   // translates a DisciplineDescriptor's segments/rules/events to plain
   // language, in place of raw JSON.
   disciplineSummarySegmentsHeading: {
@@ -3929,7 +3929,7 @@ export const messages = defineMessages({
     id: 'control.disciplineSummary.rawJsonToggleHide',
     defaultMessage: 'Hide raw JSON',
   },
-  // TournamentSummary (ui/organisms/tournament-summary.tsx, openspec 0267) —
+  // TournamentSummary (ui/organisms/tournament-summary.tsx) —
   // the tournament-level facts block composed above DisciplineSummary.
   tournamentSummaryFactsHeading: {
     id: 'control.tournamentSummary.factsHeading',
@@ -4040,7 +4040,7 @@ export const messages = defineMessages({
   },
   invitationSubmit: { id: 'invitation.submit', defaultMessage: 'Accept and start' },
 
-  // Broadcaster Studio (openspec 0300)
+  // Broadcaster Studio
   broadcasterStudioTitle: { id: 'broadcasterStudio.title', defaultMessage: 'Broadcaster Studio' },
   broadcasterStudioIntro: {
     id: 'broadcasterStudio.intro',

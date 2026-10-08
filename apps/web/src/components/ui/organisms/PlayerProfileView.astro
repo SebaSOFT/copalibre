@@ -46,7 +46,7 @@ const totalColumns = (statistics?.columns ?? []).map((column) => ({
     (row as Record<string, TableCellResponse | undefined>)[column.code]?.formatted ?? '—',
 }));
 
-// Match rows only ever carry collector-kind cells (openspec 0244) — narrowed
+// Match rows only ever carry collector-kind cells — narrowed
 // to the columns actually present on a match row, in the tournament-total's
 // own declared order, so a composite/computed column never appears here.
 const matchCellCodes = new Set(

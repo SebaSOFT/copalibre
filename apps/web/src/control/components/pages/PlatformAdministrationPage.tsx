@@ -18,7 +18,7 @@ import type { DisciplineOption } from '../../lib/wizard.js';
 import { PlatformAdministrationTemplate } from '../screens/PlatformAdministrationTemplate.js';
 
 /**
- * Fetches and mutates (openspec 0225 task 6.1): every call into the API
+ * Fetches and mutates: every call into the API
  * client lives here, `PlatformAdministrationTemplate` composes the screen
  * from the resulting data and the callbacks below.
  *

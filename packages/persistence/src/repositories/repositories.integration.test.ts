@@ -454,7 +454,7 @@ describe('repositories (integration)', () => {
     const outboxCount = await new OutboxReader(scratch.db).countFor(matchId);
     expect(outboxCount).toBeGreaterThanOrEqual(3);
 
-    // openspec 0300: the outbox payload carries matchId/side/personId/occurredAt
+    // The outbox payload carries matchId/side/personId/occurredAt
     // alongside eventId/definitionCode — every field `PUBLIC_EVENT_FIELDS`
     // allowlists for `match.event-recorded`, previously inert because the
     // payload never actually carried them.
@@ -1356,7 +1356,7 @@ describe('repositories (integration)', () => {
     ).resolves.toEqual([result.entrantIds[3]]);
   });
 
-  it("affiliates a person with a club and lists only that club's members (openspec 0301)", async () => {
+  it("affiliates a person with a club and lists only that club's members", async () => {
     const people = new PersonRepository(scratch.db);
     const club = await withTransaction(scratch.db, (uow) =>
       participants.createClub(uow, { organizationId, name: 'Club Portal FC', ...AUDIT }),
@@ -1390,7 +1390,7 @@ describe('repositories (integration)', () => {
     expect(members[0]?.clubId).toBe(club.clubId);
   });
 
-  it('lists only the teams belonging to one club (openspec 0301)', async () => {
+  it('lists only the teams belonging to one club', async () => {
     const club = await withTransaction(scratch.db, (uow) =>
       participants.createClub(uow, { organizationId, name: 'Roster Club FC', ...AUDIT }),
     );
@@ -1484,8 +1484,8 @@ describe('entrant attributes (integration)', () => {
       }),
     );
 
-    // Ordered by key, and each value comes back as the type it was stored under
-    // — a ranking must never resurface as the string "12".
+    // Ordered by key, and each value comes back as the type it was stored under —
+    // a ranking must never resurface as the string "12".
     await expect(participants.listEntrantAttributes(entrant.entrantId)).resolves.toEqual([
       { key: 'ranking', value: 12, kind: 'numeric' },
       { key: 'region', value: 'san-juan', kind: 'categorical' },

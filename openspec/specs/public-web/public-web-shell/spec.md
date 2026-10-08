@@ -753,7 +753,7 @@ surface happens to use.
 Public Astro document chrome, navigation, cards, badges, and image presentation SHALL resolve their
 colour, typography, spacing, border, and motion values from declared CopaLibre tokens. This requirement
 governs what a public style may reference, not where the component that declares it lives; the owned
-public UI tier is established by `0220-operational-surface-parity`.
+public UI tier is established by the operational surface parity work.
 
 #### Scenario: A public page declares presentation styling
 - **WHEN** a public page or layout declares a card, badge, or image treatment

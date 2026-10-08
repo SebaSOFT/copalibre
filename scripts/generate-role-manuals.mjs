@@ -10,7 +10,7 @@ import {
 } from '@copalibre/domain';
 
 // Generates each organization role's manual page's capability list from the
-// declared mapping (openspec 0165, task 4.1) — the one thing on the page
+// declared mapping — the one thing on the page
 // that must never be hand-maintained, since it is also what the
 // documentation-drift gate (task 4.3, check-role-manual-drift.mjs) checks
 // against. `super-admin` sits outside `ORGANIZATION_ROLES`/the capability

@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * The public matches view (openspec 0172): a flat, filterable card grid of a
+ * The public matches view: a flat, filterable card grid of a
  * tournament's matches, server-rendered so the default and every
  * state-filtered view work with scripting off. The deciding-factor line is
  * deliberately a one-line summary here — the full comparator trace only ever
@@ -120,7 +120,7 @@ test('the Live filter link narrows the server-rendered list with scripting off',
   await expect(page.getByText('Club Andes', { exact: true })).toHaveCount(0);
 });
 
-test('0199: the state filter renders as discrete pills with a visible active state', async ({
+test('the state filter renders as discrete pills with a visible active state', async ({
   page,
   context,
 }) => {
@@ -128,7 +128,7 @@ test('0199: the state filter renders as discrete pills with a visible active sta
   await context.route('**/*.js', (route) => route.abort());
   await page.goto(matchesPath);
 
-  // Scoped by its own aria-label (openspec 0299 added a second
+  // Scoped by its own aria-label (the compact match card added a second
   // `nav.cl-pill-group` for the density toggle): a bare `nav.cl-pill-group`
   // locator now matches two navs and Playwright's strict mode refuses to
   // resolve either.
@@ -151,13 +151,13 @@ test('0199: the state filter renders as discrete pills with a visible active sta
   expect(first.height).toBeGreaterThanOrEqual(40);
 
   await page.getByRole('link', { name: 'Live' }).click();
-  // Scoped to this nav (openspec 0299's density toggle is its own
+  // Scoped to this nav (the density toggle is its own
   // `cl-pill` group with its own always-current selection, so a bare,
   // page-wide `a.cl-pill[aria-current]` now matches two elements).
   await expect(group.locator('a.cl-pill[aria-current]')).toHaveText('Live');
 });
 
-test.describe('0299: density toggle', () => {
+test.describe('density toggle', () => {
   test('the Compact link switches to the ticker card and sets ?compact=true, with scripting off', async ({
     page,
     context,
@@ -212,7 +212,7 @@ test.describe('0299: density toggle', () => {
   });
 });
 
-test.describe('0272: match card timestamp locale', () => {
+test.describe('match card timestamp locale', () => {
   // A browser locale deliberately different from the page's own /es/ route
   // and from any plausible server ICU default. Before the fix,
   // ResponsiveTimestamp resolved its own locale from `navigator` — real on

@@ -1,13 +1,13 @@
 ---
 /**
- * A server-renderable modal owner (openspec 0225 task 2.3): the public and
+ * A server-renderable modal owner: the public and
  * broadcast surfaces' `<dialog>` had "no server-renderable owner" recorded
  * against it in `check-ui-ownership.mjs`'s `KNOWN_RAW_ELEMENTS` register —
  * this is that owner.
  *
  * A native `<dialog>` rather than a Radix `Dialog.Root` (control's `Modal`
- * organism composes Radix — see `control/components/ui/organisms/modal.tsx`
- * — because these surfaces render no client JS framework): the browser's
+ * organism composes Radix — see `control/components/ui/organisms/modal.tsx` —
+ * because these surfaces render no client JS framework): the browser's
  * own dialog element supplies focus trap, `Escape` handling and top-layer
  * stacking once `showModal()` runs it, with no library to ship for it.
  * Reuses `.cl-dialog-surface`/`.cl-modal__*` — the same classes the React

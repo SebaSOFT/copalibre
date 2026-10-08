@@ -166,7 +166,7 @@ async function selectEnglish(page: Page): Promise<void> {
 
 /**
  * The queued count and last-synced time are on-demand detail behind the
- * console's one connectivity icon (0205), so every assertion on them has to
+ * console's one connectivity icon, so every assertion on them has to
  * ask for them the way an operator would — a focus or a hover.
  */
 async function openSyncDetail(page: Page): Promise<void> {

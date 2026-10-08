@@ -122,7 +122,7 @@ describe('loginRedirectUrl', () => {
   });
 });
 
-describe('helpPageUrl (openspec 0251 task 6.1)', () => {
+describe('helpPageUrl', () => {
   it.each(SUPPORTED_LANGUAGES)('emits a canonical path for %s', (locale) => {
     const prefix = locale === 'en' ? '' : `/${locale}`;
     expect(helpPageUrl(locale, 'control/overview')).toBe(`${prefix}/help/control/overview/`);

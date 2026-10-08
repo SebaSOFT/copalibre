@@ -2,7 +2,7 @@ import type { StorybookConfig } from '@storybook/react-vite';
 import react from '@vitejs/plugin-react';
 
 /**
- * The component workbench (OpenSpec 0213).
+ * The component workbench.
  *
  * A local review surface, deliberately: there is no `build-storybook` script
  * and nothing hosted, so what the workbench lists is always what the

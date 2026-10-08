@@ -10,7 +10,7 @@ import type { McpToolDefinition } from '../tool.js';
  * target, and validate a candidate against the exact same validator the
  * installation path applies. Always available — no API token, no HTTP
  * surface, since both operate purely in memory against a module already
- * imported into this process (openspec 0163).
+ * imported into this process.
  */
 export function descriptorAuthoringTools(): readonly McpToolDefinition[] {
   return [descriptorSchemaTool(), descriptorValidateTool()];

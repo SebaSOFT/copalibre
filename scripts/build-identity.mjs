@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * OpenSpec 0221 Build Artifact Identity Validation.
+ * Build Artifact Identity Validation.
  * Tags and validates build artifacts with run, commit, and configuration identity.
  *
  * @typedef {Object} BuildIdentity

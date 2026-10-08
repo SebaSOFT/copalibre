@@ -145,8 +145,8 @@ tier, not by file type — an Astro **page** carries no story requirement becaus
 an Astro **library** component (atom/molecule/organism/template) is not exempt: it needs a story or,
 since Storybook cannot render `.astro`, an entry in the preview seam below. See
 `docs/SCREEN-STORY-REVIEW.md` for fixture boundaries and review findings,
-`docs/reviews/0222-owned-control-coverage.md` for the current coverage and background review, and
-`docs/reviews/0223-operational-surface-compositions.md` for the composition parity pass — including
+`docs/reviews/owned-control-coverage.md` for the current coverage and background review, and
+`docs/reviews/operational-surface-compositions.md` for the composition parity pass — including
 what that pass deliberately leaves unreviewed.
 
 The preview seam, `apps/web/src/preview/AstroPreview.astro` (dev-server only; 404s outside `DEV`),
@@ -267,6 +267,8 @@ Crucially, if you modify **any** infrastructure or deployment file, you MUST exp
 Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes. Git ignore rules are authoritative: never force-add anything under `openspec/changes/`, whether active or archived. Commit only accepted specification deltas under `openspec/specs/`. Never commit `.env` files, credentials, or production connection strings.
 
 Before every commit, run `node --test scripts/lib/component-graph.test.mjs`. When a change alters the web component graph, update the asserted node and edge counts and baseline description in that same commit; keep the zero-unresolved-import assertion passing.
+
+Tracked content never cites an OpenSpec change by number or numbered directory name, and no tracked file name starts with one: `openspec/changes/` is git-ignored, so a citation points at something a fresh clone does not have. Describe the behavior or the rationale in words (comments, test and story titles, docs, workflow notes, accepted specs). Change ids belong only in branch names, the local change directory, PR descriptions and commit history; `CHANGELOG.md`, database migrations and lockfiles are exempt. `node scripts/check-change-number-references.mjs` enforces this (the `enterprise-readiness-doc-lint` job in `ci.yml` runs it); run it before every commit.
 
 ## Tooling Reference
 

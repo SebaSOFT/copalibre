@@ -189,7 +189,7 @@ describe('public projections routes', () => {
     expect(data.matches.map((match) => match.matchId)).not.toContain(scheduledMatchId);
   });
 
-  it("shows a merged-strategy ruleset field's full effective value, not the raw override delta (openspec 0267)", async () => {
+  it("shows a merged-strategy ruleset field's full effective value, not the raw override delta", async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = {
       ...footballDescriptor(),
@@ -1574,7 +1574,7 @@ describe('public projections routes', () => {
       expect(found.winners[0].runnerUp.abbreviation).toBe('BET');
     });
 
-    it('reconstructs the generated final beside a same-round classification fixture, per zone (openspec 0273)', async () => {
+    it('reconstructs the generated final beside a same-round classification fixture, per zone', async () => {
       // Reproduces the panamericano-clubes-2025 shape that surfaced the bug:
       // a multi-zone terminal stage where a generated championship final and
       // a classification fixture share a round, plus one legacy-shaped zone
@@ -2171,7 +2171,7 @@ describe('public projections routes', () => {
     });
   });
 
-  describe('stage bracket projection (openspec 0246)', () => {
+  describe('stage bracket projection', () => {
     it('projects one correctly-scoped bracket per zone, with no cross-zone round/position collision', async () => {
       // Reproduces the shape that surfaced the bug: 2 parallel zones in one
       // single-elimination stage, both with a round-1/position-1 fixture —
@@ -2238,7 +2238,7 @@ describe('public projections routes', () => {
           });
 
           // Both zones must exist before any fixture (createZone refuses once the stage has
-          // fixtures), matching the 0245 test's own setup convention above.
+          // fixtures), matching this file's own setup convention above.
           const gold = await competition.createZone(uow, {
             stageId: stage.stageId,
             number: 1,
@@ -2344,7 +2344,7 @@ describe('public projections routes', () => {
       expect(otherGoldSlot.emblemObjectId).toBeUndefined();
     });
 
-    it('gives every zone a distinct, stage-wide matchNumber that matchReport() resolves back to the same match (openspec 0249)', async () => {
+    it('gives every zone a distinct, stage-wide matchNumber that matchReport() resolves back to the same match', async () => {
       const response = await request({
         method: 'GET',
         url: `/organizations/liga-orbital/tournaments/copa-multizona-bracket/stages/1/bracket`,
@@ -2395,7 +2395,7 @@ describe('public projections routes', () => {
     });
   });
 
-  describe('match report lookup (openspec 0249)', () => {
+  describe('match report lookup', () => {
     let tournamentAlias: string;
     let groupAId: string;
     let groupBId: string;

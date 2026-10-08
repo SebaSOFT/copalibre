@@ -7,7 +7,7 @@ import { messages } from './messages.en.js';
  * Each language's own name, in its own language — never translated.
  *
  * Exported so the workbench's language selector labels its options identically
- * to the application's switcher rather than keeping a second list (0213).
+ * to the application's switcher rather than keeping a second list.
  */
 export const LANGUAGE_NAMES: Readonly<Record<SupportedLanguage, string>> = {
   en: 'English',
@@ -49,8 +49,7 @@ export function LanguageSwitcher({
     <Select
       aria-label={intl.formatMessage(messages.shellLanguage)}
       icon={
-        // Carried over from the deleted LanguageSelector atom (openspec 0225
-        // task 4.3a) — a language glyph, not a state cue, so it takes a
+        // Carried over from the deleted LanguageSelector atom — a language glyph, not a state cue, so it takes a
         // neutral text token instead of the `--cl-state-live` it misused.
         <span
           aria-hidden="true"

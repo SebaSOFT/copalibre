@@ -18,7 +18,7 @@ import { ZoneGroupTemplate, type ManualPlacements } from '../screens/ZoneGroupTe
 
 /**
  * Zone/Group management, entrant assignment, and the doorway to a zone's
- * promotion plan (openspec 0225 task 6.1): every call into the API client —
+ * promotion plan: every call into the API client —
  * including the zone-selection-driven groups/entrants fetch, since which
  * zone is selected gates what this page loads — lives here.
  * `ZoneGroupTemplate` composes the draw and manual-placement forms from the

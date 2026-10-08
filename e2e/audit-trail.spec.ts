@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
-// openspec 0166: the audit trail's control-panel surface (tasks 7.1-7.2).
+// The audit trail's control-panel surface (tasks 7.1-7.2).
 // The correction-history view (task 7.3) has no control-web UI to click
 // through yet — GET .../corrections is API-only — so that scenario is
 // covered at the integration level instead (series-operations.integration.test.ts).

@@ -162,7 +162,7 @@ createAdmin:
 # --- Enterprise (Level 3) additions -------------------------------------
 # Every group below is additive to the base chart above and defaulted OFF, so
 # a default `helm install` with this values.yaml is byte-identical in
-# behavior to 0034-k3s-helm-deployment alone. See
+# behavior to the K3s Helm deployment alone. See
 # docs/deployment/enterprise-kubernetes.md for prerequisites and usage.
 
 # HorizontalPodAutoscaler per role, driven by the three signals named in the

@@ -654,7 +654,7 @@ describe('runCli', () => {
     });
   });
 
-  describe('organization/tournament HTTP-only commands (openspec 0252)', () => {
+  describe('organization/tournament HTTP-only commands', () => {
     it('"tournament --help" lists every tournament subcommand', async () => {
       const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
       try {

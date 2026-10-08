@@ -19,7 +19,7 @@ const HELP_CONTENT_DIRECTORY = resolve(SOURCE_DIRECTORY, '../content/docs/help/c
 describe('every control-panel route links to a real help page', () => {
   // Empty is not a special case: a declared-but-empty helpPath is a route
   // that opted out of documentation, and that opt-out is exactly what this
-  // change closes (openspec 0162) — it must fail the same way a missing
+  // change closes — it must fail the same way a missing
   // path does, not be invisible to the check that catches a missing one.
   const helpPaths = [...CONTROL_ROUTES_SOURCE.matchAll(/helpPath="([\w-]*)"/g)].map(
     (match) => match[1],

@@ -35,7 +35,7 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'ClubsController.list': 'org.manage-clubs',
   'ClubsController.update': 'org.manage-clubs',
 
-  // org.manage-club-members (openspec 0301) — new routes, not a conversion of
+  // org.manage-club-members — new routes, not a conversion of
   // any prior role-guarded route; no DELIBERATE_EQUIVALENCE_EXCEPTIONS entry.
   'ClubPortalController.listMembers': 'org.manage-club-members',
   'ClubPortalController.createMember': 'org.manage-club-members',

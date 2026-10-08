@@ -14,7 +14,7 @@ import { TournamentsController } from './tournaments.controller.js';
 
 /**
  * A published tournament's ruleset override fields become editable and
- * previewable (openspec 0169, tasks 1.2-1.4, 6.1): every field the descriptor
+ * previewable: every field the descriptor
  * marks `replaced`/`merged`, excluding `customScripts` and
  * `registration.capacity`, which keep their own dedicated routes.
  */
@@ -147,7 +147,7 @@ async function recordAResult(tournamentId: string): Promise<void> {
   );
 }
 
-describe('ruleset-override edit and preview (openspec 0169)', () => {
+describe('ruleset-override edit and preview', () => {
   it('reads back the overrides a tournament was seeded with', async () => {
     const { tournamentAlias } = await seedTournament();
     const response = await request({
@@ -209,7 +209,7 @@ describe('ruleset-override edit and preview (openspec 0169)', () => {
     });
   });
 
-  it("stores a union-list field's edit as exactly the delta submitted, never merged with the discipline default at write time (openspec 0264)", async () => {
+  it("stores a union-list field's edit as exactly the delta submitted, never merged with the discipline default at write time", async () => {
     const { tournamentAlias } = await seedTournament();
 
     // football's own tiebreakers default is ['points', 'score-difference',

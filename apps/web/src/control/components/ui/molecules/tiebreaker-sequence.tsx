@@ -31,7 +31,7 @@ export function TiebreakerSequence({
         flexDirection: 'column',
         gap: 'var(--cl-space-2)',
         // Without it this grid item's automatic minimum width defaults to
-        // its content's min-content size (openspec 0225 task 8.3) — the
+        // its content's min-content size — the
         // shared implicit grid column `StandingsPanel` places every section
         // into then locks to that width, wider than the 188px floor allows,
         // even though the wrapped `<ol>` below could render far narrower.
