@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count after zone format and series controls (332/1268)', () => {
+test('the graph resolves the current node/edge count after the TV league fixtures view (333/1272)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 332);
-  assert.equal(graph.edges.length, 1268);
+  assert.equal(graph.nodes.size, 333);
+  assert.equal(graph.edges.length, 1272);
 });
 
 test('a type-only import is not counted as a render', () => {
