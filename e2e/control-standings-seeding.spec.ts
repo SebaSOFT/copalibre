@@ -660,7 +660,7 @@ test('captures screenshots of bracket series progress at DESIGN.md breakpoints',
     await page.setViewportSize({ width, height: 900 });
     await page.waitForTimeout(200);
     await canvas.screenshot({
-      path: `docs/assets/screenshots/0240-control-series-progress-${width}.png`,
+      path: `docs/assets/screenshots/control-series-progress-${width}.png`,
     });
   }
 

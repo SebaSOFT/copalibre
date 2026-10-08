@@ -29,7 +29,7 @@ const CITATION_PATTERNS = [
 ];
 
 /** A numbered change directory name, e.g. a slug of digits then kebab words. */
-const SLUG_PATTERN = new RegExp(`(?<![\\w/.-])(${NUMBER}-[a-z][a-z0-9]*(?:-[a-z0-9]+)+)`, 'g');
+const SLUG_PATTERN = new RegExp(`(?<![\\w.-])(${NUMBER}-[a-z][a-z0-9]*(?:-[a-z0-9]+)+)`, 'g');
 
 const NUMBERED_BASENAME = new RegExp(`^${NUMBER}-`);
 

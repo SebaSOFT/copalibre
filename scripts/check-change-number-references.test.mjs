@@ -79,6 +79,12 @@ test('a tracked file name starting with a change number fails, a migration does 
   );
 });
 
+test('reports a numbered change name embedded in a path', () => {
+  assert.deepEqual(kinds(`path: 'docs/assets/screenshots/${num(240)}-series-progress.png'`), [
+    'numbered change name',
+  ]);
+});
+
 test('reports the line number of each finding', () => {
   const findings = findCitations('a.ts', `ok\nok\n// ${spec(5)}\n`);
   assert.equal(findings.length, 1);

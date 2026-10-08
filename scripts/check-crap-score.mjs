@@ -7,8 +7,7 @@ import ts from 'typescript';
  * Change-risk (CRAP) score: complexity^2 * (1 - coverage)^3 + complexity.
  * A function that is both complex and undertested scores high; either a low
  * complexity or a high coverage collapses the score back toward `complexity`.
- * See openspec/changes/0227-crap-score-reporting/design.md for the formula source
- * and threshold rationale.
+ * The formula source and threshold rationale are in the CRAP-score reporting design.
  */
 export const THRESHOLD = 30;
 
