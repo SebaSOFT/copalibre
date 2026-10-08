@@ -5,6 +5,7 @@ import {
   type FetchLike,
 } from '../invitations/email-delivery.js';
 import { deliverOnce, recipientConsumer } from './delivery.js';
+import { DeliveryOutcomeCounters } from './delivery-outcomes.js';
 
 const config: EmailDeliveryConfig = {
   provider: 'resend',
@@ -111,7 +112,7 @@ describe('deliverOnce', () => {
     ).resolves.toBe('sent');
   });
 
-  it('keeps the reservation, warns and does not retry when the outcome is unknown', async () => {
+  it('keeps the reservation, logs one structured line and does not retry when the outcome is unknown', async () => {
     const relay = memoryRelay();
     const warnings: string[] = [];
     const failing = recorder('throw');
@@ -121,11 +122,18 @@ describe('deliverOnce', () => {
         config,
         'event-1',
         message(),
+        { eventType: 'club.created' },
       ),
     ).resolves.toBe('unknown');
     expect(relay.held.size).toBe(1);
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('event-1');
+    expect(JSON.parse(warnings[0] as string)).toEqual({
+      message: 'Email delivery outcome unknown; not retried',
+      eventType: 'club.created',
+      eventId: 'event-1',
+      recipient: recipientConsumer('admin@liga.example'),
+      errorClass: 'Error',
+    });
     expect(warnings[0]).not.toContain('admin@liga.example');
 
     const accepting = recorder(202);
@@ -133,5 +141,89 @@ describe('deliverOnce', () => {
       deliverOnce({ relay, fetcher: accepting.fetcher }, config, 'event-1', message()),
     ).resolves.toBe('already-sent');
     expect(accepting.calls).toHaveLength(0);
+  });
+
+  it('never logs a provider error message, which can carry the address it failed on', async () => {
+    const warnings: string[] = [];
+    const fetcher = (async () => {
+      throw new Error('connect ETIMEDOUT for admin@liga.example');
+    }) as FetchLike;
+
+    await deliverOnce(
+      { relay: memoryRelay(), fetcher, warn: (line) => warnings.push(line) },
+      config,
+      'event-1',
+      message(),
+    );
+
+    expect(warnings[0]).not.toContain('admin@liga.example');
+    expect(warnings[0]).not.toContain('ETIMEDOUT');
+    expect(JSON.parse(warnings[0] as string).eventType).toBeNull();
+  });
+});
+
+describe('deliverOnce outcome counters', () => {
+  const countsAfter = async (run: (counters: DeliveryOutcomeCounters) => Promise<void>) => {
+    const counters = new DeliveryOutcomeCounters();
+    await run(counters);
+    return counters.snapshot();
+  };
+
+  it('counts a sent email once', async () => {
+    const counts = await countsAfter(async (counters) => {
+      await deliverOnce(
+        { relay: memoryRelay(), fetcher: recorder(202).fetcher, counters },
+        config,
+        'event-1',
+        message(),
+      );
+    });
+    expect(counts).toEqual({ sent: 1, 'already-sent': 0, unknown: 0, rejected: 0 });
+  });
+
+  it('counts a repeated attempt as already sent and sends nothing', async () => {
+    const relay = memoryRelay();
+    const { fetcher, calls } = recorder(202);
+    const counts = await countsAfter(async (counters) => {
+      await deliverOnce({ relay, fetcher, counters }, config, 'event-1', message());
+      await deliverOnce({ relay, fetcher, counters }, config, 'event-1', message());
+    });
+    expect(counts).toEqual({ sent: 1, 'already-sent': 1, unknown: 0, rejected: 0 });
+    expect(calls).toHaveLength(1);
+  });
+
+  it('counts a definite refusal as rejected, not unknown', async () => {
+    const counts = await countsAfter(async (counters) => {
+      await deliverOnce(
+        { relay: memoryRelay(), fetcher: recorder(503).fetcher, counters },
+        config,
+        'event-1',
+        message(),
+      ).catch(() => undefined);
+    });
+    expect(counts).toEqual({ sent: 0, 'already-sent': 0, unknown: 0, rejected: 1 });
+  });
+
+  it('counts a failure that leaves acceptance uncertain as unknown, not rejected', async () => {
+    const counts = await countsAfter(async (counters) => {
+      await deliverOnce(
+        { relay: memoryRelay(), fetcher: recorder('throw').fetcher, counters, warn: () => {} },
+        config,
+        'event-1',
+        message(),
+      );
+    });
+    expect(counts).toEqual({ sent: 0, 'already-sent': 0, unknown: 1, rejected: 0 });
+  });
+
+  it('still delivers when nobody reads the counts', async () => {
+    await expect(
+      deliverOnce(
+        { relay: memoryRelay(), fetcher: recorder(202).fetcher },
+        config,
+        'event-1',
+        message(),
+      ),
+    ).resolves.toBe('sent');
   });
 });

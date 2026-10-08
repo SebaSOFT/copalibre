@@ -21,6 +21,7 @@ import {
   CSV_IMPORT_VALIDATION_EVENT,
 } from './jobs/csv-import-handler.js';
 import { emailDeliveryConfigFromEnv } from './invitations/email-delivery.js';
+import { DeliveryOutcomeCounters } from './notifications/delivery-outcomes.js';
 import {
   invitationEmailHandler,
   passwordResetEmailHandler,
@@ -49,10 +50,14 @@ const providers: Provider[] = [
     provide: DATABASE,
     useFactory: (): Kysely<Database> => createDatabase(databaseConfigFromEnv()),
   },
+  DeliveryOutcomeCounters,
   {
     provide: JobDispatcher,
-    inject: [DATABASE],
-    useFactory: async (db: Kysely<Database>): Promise<JobDispatcher> => {
+    inject: [DATABASE, DeliveryOutcomeCounters],
+    useFactory: async (
+      db: Kysely<Database>,
+      counters: DeliveryOutcomeCounters,
+    ): Promise<JobDispatcher> => {
       const handler = statisticsHandler({ db, refold: createRefold(db) });
       const csvImport = csvImportValidationHandler({ db });
       const emailConfig = emailDeliveryConfigFromEnv();
@@ -61,6 +66,7 @@ const providers: Provider[] = [
         db,
         relay: new OutboxRelay(db),
         warn: (message: string) => logger.warn(message),
+        counters,
       };
       const invitation = invitationEmailHandler(emailConfig, email);
       const passwordReset = passwordResetEmailHandler(emailConfig, email);

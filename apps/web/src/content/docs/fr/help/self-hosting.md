@@ -130,6 +130,7 @@ L'activité des tournois et de l'organisation est signalée par e-mail via le fo
 - Les e-mails utilisent la langue principale de l'organisation, portent son emblème et son nom en en-tête, et sont signés Copa Libre avec un lien vers [copalibre.app](https://copalibre.app).
 - Les importations CSV et `copalibre dev demo` n'envoient aucun e-mail.
 - Le même e-mail n'est jamais envoyé deux fois au même destinataire. Si un fournisseur expire avant de confirmer, cet e-mail n'est pas renvoyé : il peut donc manquer plutôt qu'être dupliqué.
+- Un opérateur peut voir combien d'e-mails ont pu manquer : le worker compte chaque tentative d'envoi par résultat (envoyé, déjà envoyé, refusé, inconnu) dans la réponse de `/jobs/metrics`, sous `emailDelivery`, et journalise chaque résultat inconnu sans l'adresse du destinataire. Un `unknown` non nul mérite une alerte ; les compteurs repartent de zéro au redémarrage du worker.
 
 ## 5. Étapes suivantes
 

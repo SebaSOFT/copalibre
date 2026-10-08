@@ -44,9 +44,18 @@ demo` mark their events `origin: 'import'` and send none.
 `(outbox event, recipient)` pair in `processed_markers` before calling the provider, so a retry, a
 crash and redelivery, two workers, or an operator re-enqueue from the dead-letter inspector cannot
 send it again. The reservation is released only when the provider definitely rejects the message. When
-the outcome is unknown, such as a timeout after the request was sent, the email is not retried and the
-worker logs `Email delivery outcome unknown for event <id>`: a possibly missed email is accepted over
-a possible duplicate, and an operator can resend it by hand.
+the outcome is unknown, such as a timeout after the request was sent, the email is not retried: a
+possibly missed email is accepted over a possible duplicate, and an operator can resend it by hand.
+
+**How many emails may have been missed is visible.** The worker counts every delivery attempt by
+outcome (`sent`, `already-sent`, `rejected` for a definite refusal, `unknown`) and returns the counts
+under `emailDelivery` in `GET /jobs/metrics`, beside the relay's own queue figures. The worker listens on
+port 3003 inside the Compose network and is not published to the host. A non-zero `unknown` is a
+recipient who may have missed an email, so it is the figure to alert on. The counts are per replica and
+start from zero when it restarts. Each unknown outcome is also logged as one JSON line,
+`Email delivery outcome unknown; not retried`, with the event type, the event id, a hash of the recipient
+and the error class. It never carries the address, nor the provider's error message, which can repeat
+the address it failed on.
 
 From the installation directory, `copalibre status` reports container state, the published ingress
 port, and gateway health. `copalibre restart` stops the stack, starts PostgreSQL, runs `doctor`, then

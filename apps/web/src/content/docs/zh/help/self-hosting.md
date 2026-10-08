@@ -121,6 +121,7 @@ k3d cluster create --config deploy/helm/k3s-dev-cluster.yaml
 - 邮件使用组织的主要语言，页眉显示其徽标和名称，并由 Copa Libre 署名，附带指向 [copalibre.app](https://copalibre.app) 的链接。
 - CSV 导入和 `copalibre dev demo` 不发送邮件。
 - 同一封邮件绝不会向同一收件人发送两次。如果服务商在确认前超时，该邮件不会重试，因此可能漏发，但不会重复。
+- 运维人员可以看到有多少邮件可能漏发：worker 按结果（已发送、已发送过、被拒绝、未知）统计每一次发送尝试，位于 `/jobs/metrics` 响应的 `emailDelivery` 下，并在记录每个未知结果时不包含收件人地址。`unknown` 不为零时值得设置告警；worker 重启后计数从零开始。
 
 ## 5. 后续步骤
 

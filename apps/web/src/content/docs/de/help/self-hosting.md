@@ -132,6 +132,7 @@ Aktivitäten von Turnieren und Organisation werden per E-Mail über den für Ein
 - Die E-Mails verwenden die Hauptsprache der Organisation, zeigen deren Emblem und Namen im Kopf und sind von Copa Libre mit einem Link zu [copalibre.app](https://copalibre.app) signiert.
 - CSV-Importe und `copalibre dev demo` versenden keine E-Mails.
 - Dieselbe E-Mail wird nie zweimal an denselben Empfänger gesendet. Läuft ein Anbieter vor der Bestätigung in ein Timeout, wird diese E-Mail nicht erneut gesendet; sie kann also fehlen, statt doppelt anzukommen.
+- Betreiber sehen, wie viele E-Mails womöglich fehlen: Der Worker zählt jeden Sendeversuch nach Ergebnis (gesendet, bereits gesendet, abgelehnt, unbekannt) in der Antwort von `/jobs/metrics` unter `emailDelivery` und protokolliert jedes unbekannte Ergebnis ohne die Adresse des Empfängers. Ein `unknown` ungleich null ist einen Alarm wert; die Zähler beginnen nach einem Neustart des Workers wieder bei null.
 
 ## 5. Nächste Schritte
 

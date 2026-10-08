@@ -130,6 +130,7 @@ La actividad de torneos y de la organización se avisa por correo mediante el pr
 - Los correos usan el idioma principal de la organización, llevan su emblema y nombre en el encabezado, y van firmados por Copa Libre con un enlace a [copalibre.app](https://copalibre.app).
 - Las importaciones CSV y `copalibre dev demo` no envían correo.
 - El mismo correo nunca se envía dos veces al mismo destinatario. Si un proveedor agota el tiempo antes de confirmar, ese correo no se reintenta, así que puede perderse en lugar de duplicarse.
+- Quien opera puede ver cuántos correos pudieron perderse: el worker cuenta cada intento de envío por resultado (enviado, ya enviado, rechazado, desconocido) en la respuesta de `/jobs/metrics`, bajo `emailDelivery`, y registra cada resultado desconocido sin la dirección del destinatario. Un `unknown` distinto de cero merece una alerta; los contadores vuelven a cero cuando el worker se reinicia.
 
 ## 5. Próximos pasos
 

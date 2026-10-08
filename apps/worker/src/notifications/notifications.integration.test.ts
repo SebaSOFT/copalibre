@@ -8,6 +8,7 @@ import type { EmailDeliveryConfig, FetchLike } from '../invitations/email-delive
 import { JobDispatcher } from '../jobs/dispatcher.js';
 import { runRelayPass } from '../jobs/relay-runner.js';
 import { invitationEmailHandler, passwordResetEmailHandler } from './account-handlers.js';
+import { DeliveryOutcomeCounters } from './delivery-outcomes.js';
 import { LIFECYCLE_EMAIL_EVENTS, lifecycleEmailHandlers } from './lifecycle-handlers.js';
 
 /**
@@ -40,6 +41,7 @@ describe('email notifications through the relay (integration)', () => {
   let failFor: Set<string>;
   let hangFor: Set<string>;
   let warnings: string[];
+  let counters: DeliveryOutcomeCounters;
 
   const organizationEs = randomUUID();
   const organizationEn = randomUUID();
@@ -70,6 +72,7 @@ describe('email notifications through the relay (integration)', () => {
       relay,
       fetcher,
       warn: (line: string) => warnings.push(line),
+      counters,
     };
     const lifecycle = lifecycleEmailHandlers(CONFIG, dependencies);
     const dispatch = new JobDispatcher()
@@ -242,6 +245,7 @@ describe('email notifications through the relay (integration)', () => {
     failFor = new Set();
     hangFor = new Set();
     warnings = [];
+    counters = new DeliveryOutcomeCounters();
   });
 
   it('tells every active organization admin about a new club, in the organization language', async () => {
@@ -395,10 +399,17 @@ describe('email notifications through the relay (integration)', () => {
     expect(result).toMatchObject({ processed: 1, failed: 0 });
     expect(warnings).toHaveLength(1);
     expect(recipients()).toEqual(['Admin2@liga.example']);
+    // The timeout is counted, the recipient who did get the email is counted too, and the log line
+    // names the event type and the recipient's hash without the address.
+    expect(counters.snapshot()).toMatchObject({ sent: 1, unknown: 1, rejected: 0 });
+    expect(JSON.parse(warnings[0] as string)).toMatchObject({ eventType: 'club.created' });
+    expect(warnings[0]).not.toContain('admin1@liga.example');
 
     hangFor = new Set();
     await pass();
     expect(recipients()).toEqual(['Admin2@liga.example']);
+    // Not retried: the second pass sends nothing and the unknown count does not grow.
+    expect(counters.snapshot().unknown).toBe(1);
   });
 
   it('sends each recipient exactly once when two workers process the same event', async () => {

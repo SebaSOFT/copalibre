@@ -130,6 +130,7 @@ L'attività di tornei e organizzazione viene segnalata via email tramite il prov
 - Le email usano la lingua principale dell'organizzazione, riportano emblema e nome nell'intestazione e sono firmate Copa Libre con un link a [copalibre.app](https://copalibre.app).
 - Le importazioni CSV e `copalibre dev demo` non inviano email.
 - La stessa email non viene mai inviata due volte allo stesso destinatario. Se un provider va in timeout prima di confermare, quell'email non viene reinviata, quindi può mancare anziché essere duplicata.
+- Chi gestisce l'installazione può vedere quante email potrebbero essere mancate: il worker conta ogni tentativo di invio per esito (inviata, già inviata, rifiutata, sconosciuto) nella risposta di `/jobs/metrics`, sotto `emailDelivery`, e registra ogni esito sconosciuto senza l'indirizzo del destinatario. Un `unknown` diverso da zero merita un allarme; i contatori ripartono da zero al riavvio del worker.
 
 ## 5. Prossimi passi
 
