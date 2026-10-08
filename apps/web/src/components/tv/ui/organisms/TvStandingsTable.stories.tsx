@@ -25,3 +25,43 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
 export const Unavailable: Story = { args: { standings: [] } };
+
+/** A stage mixing formats ranks each table zone on its own, under the zone's name. */
+export const ByZone: Story = {
+  args: {
+    standings: [
+      {
+        position: 1,
+        name: 'Club Atlético Independiente',
+        abbreviation: 'CAI',
+        played: 8,
+        points: 19,
+        zoneName: 'Liga A',
+      },
+      {
+        position: 2,
+        name: 'Deportivo San Juan',
+        abbreviation: 'DSJ',
+        played: 8,
+        points: 17,
+        zoneName: 'Liga A',
+      },
+      {
+        position: 1,
+        name: 'Sportivo Desamparados',
+        abbreviation: 'SDE',
+        played: 8,
+        points: 21,
+        zoneName: 'Liga B',
+      },
+      {
+        position: 2,
+        name: 'Atlético Concepción',
+        abbreviation: 'ACO',
+        played: 8,
+        points: 14,
+        zoneName: 'Liga B',
+      },
+    ],
+  },
+};

@@ -1,4 +1,10 @@
-import { buildOverview, displayName, shortLabel, shouldShowChampionPodium } from './overview.js';
+import {
+  buildOverview,
+  displayName,
+  groupStandingsByZone,
+  shortLabel,
+  shouldShowChampionPodium,
+} from './overview.js';
 import { PUBLIC_ROUTES } from './public-routes.js';
 import { sampleOverview } from './sample-data.js';
 
@@ -92,5 +98,39 @@ describe('what the sitemap advertises', () => {
       expect(JSON.stringify(entry)).not.toContain('control');
       expect(JSON.stringify(entry)).not.toContain('/tv');
     }
+  });
+});
+
+describe('groupStandingsByZone', () => {
+  const row = (name: string, zoneName?: string) => ({
+    position: 1,
+    name,
+    played: 1,
+    points: 3,
+    ...(zoneName === undefined ? {} : { zoneName }),
+  });
+
+  it('keeps rows that name no zone together as one unnamed block', () => {
+    const blocks = groupStandingsByZone([row('A'), row('B')]);
+
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]?.zoneName).toBeUndefined();
+    expect(blocks[0]?.rows.map((r) => r.name)).toEqual(['A', 'B']);
+  });
+
+  it('splits rows by zone in first-seen order and never mixes them', () => {
+    const blocks = groupStandingsByZone([
+      row('A1', 'Liga A'),
+      row('B1', 'Liga B'),
+      row('A2', 'Liga A'),
+    ]);
+
+    expect(blocks.map((block) => block.zoneName)).toEqual(['Liga A', 'Liga B']);
+    expect(blocks[0]?.rows.map((r) => r.name)).toEqual(['A1', 'A2']);
+    expect(blocks[1]?.rows.map((r) => r.name)).toEqual(['B1']);
+  });
+
+  it('returns nothing for no rows', () => {
+    expect(groupStandingsByZone([])).toEqual([]);
   });
 });

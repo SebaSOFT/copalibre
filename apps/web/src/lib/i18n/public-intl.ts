@@ -159,6 +159,7 @@ export function tvDashboardLabels(intl: IntlShape) {
     performersTab: intl.formatMessage(messages.tvDashboardPerformersTab),
     statisticsTab: intl.formatMessage(messages.tvDashboardStatisticsTab),
     bracketTab: intl.formatMessage(messages.tvDashboardBracketTab),
+    fixturesTab: intl.formatMessage(messages.tvDashboardFixturesTab),
     bracketRound: intl.formatMessage(messages.tvDashboardBracketRound),
     bracketMatch: intl.formatMessage(messages.tvDashboardBracketMatch),
     possession: intl.formatMessage(messages.tvDashboardPossession),

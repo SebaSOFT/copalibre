@@ -4,6 +4,7 @@ import {
   championshipMatch,
   describeSlot,
   isResolved,
+  leagueZonesOf,
   matchReportUrl,
   nodeOutcomes,
   stageOutcomes,
@@ -474,5 +475,42 @@ describe('the outcome each side of a cross reads as', () => {
   it('keys the stage’s legend to the outcomes it actually contains', () => {
     expect(stageOutcomes([played([2, 0])])).toEqual(['advancing', 'eliminated']);
     expect(stageOutcomes([played([1, 1], 'live')])).toEqual([]);
+  });
+});
+
+describe('leagueZonesOf', () => {
+  const some = [{ matchId: 'm' }];
+
+  it('keeps the league zone of a mixed stage and drops the elimination zones', () => {
+    const zones = leagueZonesOf({
+      format: 'single-elimination',
+      zones: [
+        { zoneName: 'A', matches: some },
+        { zoneName: 'B', format: 'round-robin', matches: some },
+      ],
+    });
+
+    expect(zones.map((zone) => zone.zoneName)).toEqual(['B']);
+  });
+
+  it('is the exact complement of bracketZonesOf for zones that have matches', () => {
+    const projection = {
+      format: 'round-robin',
+      zones: [
+        { zoneName: 'A', matches: some },
+        { zoneName: 'B', format: 'single-elimination', matches: some },
+        { zoneName: 'C', format: 'swiss', matches: some },
+      ],
+    };
+
+    const drawn = [...bracketZonesOf(projection), ...leagueZonesOf(projection)].map(
+      (zone) => zone.zoneName,
+    );
+
+    expect(drawn.sort()).toEqual(['A', 'B', 'C']);
+  });
+
+  it('drops a league zone with nothing to show', () => {
+    expect(leagueZonesOf({ format: 'round-robin', zones: [{ matches: [] }] })).toEqual([]);
   });
 });

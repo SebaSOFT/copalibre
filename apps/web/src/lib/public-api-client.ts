@@ -258,6 +258,7 @@ export function mapOverviewResponse(
       abbreviation: s.abbreviation,
       played: s.statistics['played'] ?? 0,
       points: s.statistics['points'] ?? 0,
+      ...(s.zoneName === undefined ? {} : { zoneName: s.zoneName }),
     })),
     ...(response.standingsGrain === undefined ? {} : { standingsGrain: response.standingsGrain }),
     clubs: response.clubs?.map((c) => ({
