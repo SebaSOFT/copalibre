@@ -3451,6 +3451,20 @@ export interface components {
              */
             direction?: "higher-first" | "lower-first";
         };
+        CreateTournamentZoneRequest: {
+            /**
+             * @description Unique within its stage.
+             * @example Copa Oro
+             */
+            name: string;
+            /**
+             * @description The zone’s own format. Absent: the zone plays its stage’s. Must be a format the tournament’s discipline offers.
+             * @example round-robin
+             */
+            format?: string;
+            /** @description The zone’s own series. Absent: the zone inherits its stage’s, then the tournament’s. */
+            series?: components["schemas"]["SeriesDeclarationRequest"];
+        };
         CreateTournamentStageRequest: {
             /**
              * @description Defaults to this stage’s 1-based position within `stages`.
@@ -3469,6 +3483,8 @@ export interface components {
             /** @description Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view. */
             allocation?: components["schemas"]["StageAllocationRequest"];
             groupConfiguration?: components["schemas"]["StageGroupConfigurationRequest"];
+            /** @description The stage’s zones, numbered by list position. Absent creates none. Entrants are assigned to zones afterwards. */
+            zones?: components["schemas"]["CreateTournamentZoneRequest"][];
         };
         CreateTournamentRequest: {
             /** @example copa-verano */

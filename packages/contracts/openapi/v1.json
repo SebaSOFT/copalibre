@@ -13069,6 +13069,32 @@
           "mode"
         ]
       },
+      "CreateTournamentZoneRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Unique within its stage.",
+            "example": "Copa Oro"
+          },
+          "format": {
+            "type": "string",
+            "description": "The zone’s own format. Absent: the zone plays its stage’s. Must be a format the tournament’s discipline offers.",
+            "example": "round-robin"
+          },
+          "series": {
+            "description": "The zone’s own series. Absent: the zone inherits its stage’s, then the tournament’s.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
       "CreateTournamentStageRequest": {
         "type": "object",
         "properties": {
@@ -13104,6 +13130,13 @@
           },
           "groupConfiguration": {
             "$ref": "#/components/schemas/StageGroupConfigurationRequest"
+          },
+          "zones": {
+            "description": "The stage’s zones, numbered by list position. Absent creates none. Entrants are assigned to zones afterwards.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateTournamentZoneRequest"
+            }
           }
         },
         "required": [
