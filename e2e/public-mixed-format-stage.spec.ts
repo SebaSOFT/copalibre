@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * openspec 0338: a stage whose zones play different formats — two knockout zones and one
+ * A stage whose zones play different formats — two knockout zones and one
  * round-robin league for the remaining clubs — is drawn zone by zone. Knockout zones show their
  * bracket; the league zone shows its matches and its own standings table.
  */

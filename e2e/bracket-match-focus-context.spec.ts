@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * OpenSpec 0238: the public match report page's bracket-context panel, and its absence
+ * The public match report page's bracket-context panel, and its absence
  * for a stage whose format isn't bracket-shaped.
  */
 

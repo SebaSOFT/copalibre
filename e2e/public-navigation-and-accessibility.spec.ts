@@ -3,7 +3,7 @@ import { expect, test } from './fixtures.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * End-to-end tests for OpenSpec 0174:
+ * End-to-end tests for public navigation and accessibility hardening:
  * - Internal brand navigation preserves current locale
  * - 404 page resolves locale from requested pathname and renders home link
  * - Control-panel Modal close control exposes an accessible name in accessibility tree
@@ -112,8 +112,8 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () => {
-  test('0326: the Spanish home route is localized, flush, and leaves unknown routes as 404s', async ({
+test.describe('Public Navigation & Accessibility Hardening', () => {
+  test('the Spanish home route is localized, flush, and leaves unknown routes as 404s', async ({
     page,
   }) => {
     const response = await page.goto('/es');
@@ -170,9 +170,7 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
     expect(new URL(page.url()).pathname).toBe('/');
   });
 
-  test('0198: the shell header renders the brand lockup, not a default-styled link', async ({
-    page,
-  }) => {
+  test('the shell header renders the brand lockup, not a default-styled link', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
 
     const lockup = page.locator('a.cl-logo');
@@ -185,7 +183,7 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
     await expect(lockup).toHaveCSS('text-decoration-line', 'none');
   });
 
-  test('0198: public CTAs render the shared chamfered button treatment', async ({ page }) => {
+  test('public CTAs render the shared chamfered button treatment', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}`);
 
     const cta = page.locator('a.cl-btn').first();
@@ -282,7 +280,7 @@ test.describe('Public Navigation & Accessibility Hardening (OpenSpec 0174)', () 
     await expect(dialog).toBeVisible();
 
     // The close control has an accessible name, in the interface language.
-    // It was the literal "Close" for every viewer until 0214 made it a required
+    // It was the literal "Close" for every viewer until it became a required
     // prop sourced from the caller's catalogue, so this asserts the name exists
     // and is translated rather than asserting one hardcoded English word.
     const closeButton = dialog.getByRole('button', { name: /cerrar|close/i });

@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * openspec 0248: the canonical table molecule's own behaviour on the operator
+ * The canonical table molecule's own behaviour on the operator
  * standings screen — compact density, a floating sticky header, tri-state
  * bidirectional column sorting with `aria-sort`, and a column description
  * tooltip. Not a pixel comparison against the reference mock

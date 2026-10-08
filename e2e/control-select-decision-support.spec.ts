@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * Full-browser coverage for openspec 0251: a `Select` that explains the
+ * Full-browser coverage for select decision support: a `Select` that explains the
  * selected option, in the two surfaces this change adds it to.
  *
  * - Stage hub: the format `Select` shows the currently-selected format's own

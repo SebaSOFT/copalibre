@@ -2,8 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 /**
  * The invitation-accept screen composes the owned Card atom and the shared auth
- * template, rather than its own rounded, self-centred card (openspec 0204,
- * task 2.1).
+ * template, rather than its own rounded, self-centred card.
  */
 
 const ACCEPT_PATH = '/invitations/accept?token=e2e-invitation-token';
@@ -15,7 +14,7 @@ async function openInvitation(page: Page): Promise<void> {
   // `ControlIntl` resolves via `activeControlLanguage()`, whose placeholder
   // organization language ('es') wins over browser detection with no stored
   // preference — so this screen renders Spanish by default, and does so
-  // genuinely now that `invitation.*` has a real catalogue (openspec 0278),
+  // genuinely now that `invitation.*` has a real catalogue,
   // not an English fallback for a missing translation.
   await expect(page.getByRole('heading', { name: 'Aceptar invitación' })).toBeVisible();
 }

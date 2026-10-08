@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * Ruleset and stage-configuration editing (openspec 0169): a tournament's
+ * Ruleset and stage-configuration editing: a tournament's
  * ruleset override fields are editable and mutation-classified from the
  * dedicated ruleset screen; a blocked field is refused in the UI before any
  * save request is sent; a stage's own configuration override is editable
@@ -84,9 +84,9 @@ test('edits a ruleset override from the tournament ruleset screen and sees the c
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  // The plain-language rule context (openspec 0263) shows alongside the
+  // The plain-language rule context shows alongside the
   // existing edit field, reflecting the tournament's current override, and
-  // its tournament-facts block shows the sibling settings fetch (0267).
+  // its tournament-facts block shows the sibling settings fetch.
   await expect(page.getByText('Reglas')).toBeVisible();
   await expect(page.getByText('Apertura 2026')).toBeVisible();
   // Shown twice now: the read-only summary's label, and the editor field's own label.
@@ -100,7 +100,7 @@ test('edits a ruleset override from the tournament ruleset screen and sees the c
   await expect(page.getByText('Configuración guardada.')).toBeVisible();
 });
 
-test('renders typed controls for boolean/format/union-list fields, saves only the union-list delta, and updates the plain-language summary (openspec 0264)', async ({
+test('renders typed controls for boolean/format/union-list fields, saves only the union-list delta, and updates the plain-language summary', async ({
   page,
 }) => {
   await withTokenEndpoint(page);

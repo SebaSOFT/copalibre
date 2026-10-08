@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * End-to-end tests for OpenSpec 0192 (Public Web & Broadcast Polish):
+ * End-to-end tests for public web (Public Web & Broadcast Polish):
  * - 5.1: Organization home shows a Final section for finished tournaments, with no "LIVE" badge
  * - 5.2: Finished round-robin stage page renders compact grid, not elimination bracket tree
  * - 5.3: Finished tournament overview and organization home visibly present its champion
@@ -183,7 +183,7 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test.describe('OpenSpec 0192 Public Web & Broadcast Polish', () => {
+test.describe('Public Web & Broadcast Polish', () => {
   test('5.1 organization home shows a Final section for finished tournaments, with no LIVE badge', async ({
     page,
   }) => {
@@ -234,7 +234,7 @@ test.describe('OpenSpec 0192 Public Web & Broadcast Polish', () => {
     await expect(cardPodium).toContainText('Club Andes');
     await expect(cardPodium).toContainText('Champion');
 
-    // 0268 keeps the dedicated overview podium for multi-zone tournaments only.
+    // The overview keeps its dedicated podium for multi-zone tournaments only.
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
     const overviewPodium = page.locator('.cl-podium-container.cl-podium-prominent');
     await expect(overviewPodium).toHaveCount(0);

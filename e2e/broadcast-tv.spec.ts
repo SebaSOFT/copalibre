@@ -120,7 +120,7 @@ test('renders a transparent, chrome-free background under ?mode=overlay (8.2)', 
   await page.goto(`${TV_PATH}?mode=overlay&token=kiosk-token`);
 
   // The class sits on the root element now, because that is what the server can
-  // emit in the first response (0201).
+  // emit in the first response.
   await expect(page.locator('html')).toHaveClass(/tv-overlay/);
 
   for (const selector of ['html', 'body', '#tv-root']) {
@@ -158,7 +158,7 @@ test('resumes rendering after a simulated power cycle, with no login prompt (8.3
   await expect(page.getByText(/iniciar sesión|log in|contraseña|password/i)).toHaveCount(0);
 });
 
-test('0201: the overlay is transparent in the first response, before any script runs', async ({
+test('the overlay is transparent in the first response, before any script runs', async ({
   page,
   context,
 }) => {
@@ -176,7 +176,7 @@ test('0201: the overlay is transparent in the first response, before any script 
   expect(['rgba(0, 0, 0, 0)', 'transparent']).toContain(background);
 });
 
-test('0201: bare ?mode=overlay still resolves to the lower third', async ({ page, context }) => {
+test('bare ?mode=overlay still resolves to the lower third', async ({ page, context }) => {
   // An OBS source already configured with the old URL keeps working.
   await context.route('**/*.js', (route) => route.abort());
   await page.goto(`${TV_PATH}?mode=overlay`);
@@ -184,7 +184,7 @@ test('0201: bare ?mode=overlay still resolves to the lower third', async ({ page
   await expect(page.locator('html')).toHaveClass(/tv-overlay--lower/);
 });
 
-test('0201: ?chroma paints a solid key colour for switchers without an alpha channel', async ({
+test('?chroma paints a solid key colour for switchers without an alpha channel', async ({
   page,
   context,
 }) => {
@@ -198,7 +198,7 @@ test('0201: ?chroma paints a solid key colour for switchers without an alpha cha
   expect(background).toBe('rgb(0, 255, 0)');
 });
 
-test('0201: ?mode=overlay-full renders an opaque full-frame scene', async ({ page, context }) => {
+test('?mode=overlay-full renders an opaque full-frame scene', async ({ page, context }) => {
   await context.route('**/*.js', (route) => route.abort());
   await page.goto(`${TV_PATH}?mode=overlay-full`);
 
@@ -211,7 +211,7 @@ test('0201: ?mode=overlay-full renders an opaque full-frame scene', async ({ pag
   expect(['rgba(0, 0, 0, 0)', 'transparent']).not.toContain(background);
 });
 
-test('0202: the kiosk carries the discipline backdrop, the lower third does not', async ({
+test('the kiosk carries the discipline backdrop, the lower third does not', async ({
   page,
   context,
 }) => {

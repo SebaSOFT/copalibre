@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * End-to-end tests for OpenSpec 0173: SEO hardening, canonical-URL locale consistency,
+ * End-to-end tests for SEO hardening, canonical-URL locale consistency,
  * Open Graph & JSON-LD structured data, and dynamic sitemap generation.
  */
 
@@ -124,7 +124,7 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test.describe('SEO & Public Discoverability Hardening (0173)', () => {
+test.describe('SEO & Public Discoverability Hardening', () => {
   test('8.1: homepage renders real organization content instead of placeholder', async ({
     page,
   }) => {

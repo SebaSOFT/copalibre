@@ -2,8 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * Control panel activity feed, roster role editor, and dark-theme form controls
- * (openspec 0196, tasks 5.1, 5.2, 5.3).
+ * Control panel activity feed, roster role editor, and dark-theme form controls.
  */
 
 const ORG_ALIAS = 'liga-mendocina';
@@ -239,7 +238,7 @@ async function setupMockApi(page: Page): Promise<void> {
   );
 }
 
-test.describe('Control Panel Activity Feed and Theme Polish (openspec 0196)', () => {
+test.describe('Control Panel Activity Feed and Theme Polish', () => {
   test('5.1: populated dashboard renders "Actividad reciente" event cards with relative timestamps', async ({
     page,
   }) => {

@@ -4,7 +4,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 /**
  * Selecting a language through the Select atom's styled popover, not the
  * hidden native `<select>` — proves the pointer-interception fix actually
- * opens `.cl-select__content` for a real click (openspec 0295, task 3.1).
+ * opens `.cl-select__content` for a real click.
  */
 
 const ORG_ALIAS = 'liga-mendocina';

@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * Scheduling a series in the builder, end to end (0159 tasks 7.1, 7.2).
+ * Scheduling a series in the builder, end to end.
  *
  * The thing being proven is that a best-of-five is five placeable games and not one cross with
  * a note attached: each has its own row, its own slot at its own venue on its own date, and its

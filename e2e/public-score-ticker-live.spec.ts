@@ -3,8 +3,8 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.js';
 
 /**
- * The live-patched score ticker on the public tournament overview page
- * (openspec 0305) — B1's own philosophy is that the SSE stream is an
+ * The live-patched score ticker on the public tournament overview page —
+ * B1's own philosophy is that the SSE stream is an
  * enhancement, never a requirement, so this checks both: the ticker reacts to
  * a live event, and the page is still fully correct with JavaScript off.
  *

@@ -82,7 +82,7 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test('0268: finished multi-zone overview shows shared champions and known third place', async ({
+test('finished multi-zone overview shows shared champions and known third place', async ({
   page,
   workerPort,
 }) => {
@@ -104,7 +104,7 @@ test('0268: finished multi-zone overview shows shared champions and known third 
   await expect(timestamp).not.toContainText('2025-05-18T');
 });
 
-test('0268: single-zone overview keeps its match card but omits the podium', async ({
+test('single-zone overview keeps its match card but omits the podium', async ({
   page,
   workerPort,
 }) => {

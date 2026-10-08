@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
-// openspec 0165: the capability mapping reaches two surfaces a reader can
+// The capability mapping reaches two surfaces a reader can
 // actually see — the control panel's own navigation (task 7.1), and the
 // help site's role manuals (tasks 7.2, 7.3, 7.4).
 

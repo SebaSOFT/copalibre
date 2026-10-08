@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * openspec 0247: the ResponsiveTimestamp / EntrantName / ResponsivePlayerName
+ * The ResponsiveTimestamp / EntrantName / ResponsivePlayerName
  * atoms adopted across the TV kiosk and a public surface.
  */
 

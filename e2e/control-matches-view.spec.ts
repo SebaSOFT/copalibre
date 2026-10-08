@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * The organizer-facing matches view (openspec 0172): the same card grid the
+ * The organizer-facing matches view: the same card grid the
  * public site renders, plus the full internal comparator trace on a
  * tiebreak-decided match — reached only by a subject holding
  * `org.view-internal-standings` for this tournament, enforced server-side.

@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * End-to-end tests for OpenSpec 0197 (Public Match Presentation and Badge Polish):
+ * End-to-end tests for public match presentation (Public Match Presentation and Badge Polish):
  * - 4.1: Finalized match detail page must NOT contain "Schedule not yet available" or
  *        "Schedule has not yet been published" — those banners are only appropriate for
  *        upcoming matches whose schedule hasn't been published yet.
@@ -100,7 +100,7 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test.describe('OpenSpec 0197 Public Match Presentation and Badge Polish', () => {
+test.describe('Public Match Presentation and Badge Polish', () => {
   test('4.1 finalized match detail page does not show scheduling placeholder banners', async ({
     page,
   }) => {

@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * Participant identity link correction (openspec 0170): a person pre-linked
+ * Participant identity link correction: a person pre-linked
  * to the wrong email is unlinked, then re-linked to the correct one, with the
  * registration-review screen reflecting the final state throughout.
  */

@@ -93,7 +93,7 @@ test.beforeEach(() => {
   liveResponse = { matches: [] };
 });
 
-test('0275: empty live view has a localized next kickoff and owned leaders table without JavaScript', async ({
+test('empty live view has a localized next kickoff and owned leaders table without JavaScript', async ({
   page,
 }) => {
   const response = await page.goto(`/es${PAGE}`);
@@ -111,9 +111,7 @@ test('0275: empty live view has a localized next kickoff and owned leaders table
   await expect(page.locator('.cl-standings-section tbody tr.cl-row')).toHaveCount(1);
 });
 
-test('0275: each active match renders once in the live hero without JavaScript', async ({
-  page,
-}) => {
+test('each active match renders once in the live hero without JavaScript', async ({ page }) => {
   liveResponse = {
     matches: [
       {
