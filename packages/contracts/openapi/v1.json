@@ -5916,7 +5916,7 @@
     },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/rounds/next": {
       "post": {
-        "description": "Validates that all matches in the current round are finalized, calculates standings, and generates pairings for the next round.",
+        "description": "Scoped to one zone: validates that all matches in the zone’s current round are finalized, calculates standings from that zone’s results, and generates pairings among that zone’s entrants only. A stage with several zones requires `zoneNumber`.",
         "operationId": "StagesController_nextRound",
         "parameters": [
           {
@@ -5944,6 +5944,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NextRoundRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -5951,6 +5961,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StageFixturesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             }
@@ -6001,7 +6021,7 @@
             "bearer": []
           }
         ],
-        "summary": "Generate the next round of a Swiss stage",
+        "summary": "Generate the next round of one zone of a Swiss or single-elimination stage",
         "tags": [
           "stages"
         ]
@@ -16394,6 +16414,16 @@
           "stageId",
           "fixtures"
         ]
+      },
+      "NextRoundRequest": {
+        "type": "object",
+        "properties": {
+          "zoneNumber": {
+            "type": "number",
+            "description": "The 1-based number of the zone to generate the next round for. Required when the stage has more than one zone; a stage with a single zone needs no value. Rounds, pairings and results are per zone.",
+            "example": 2
+          }
+        }
       },
       "DisplayTokenResponse": {
         "type": "object",

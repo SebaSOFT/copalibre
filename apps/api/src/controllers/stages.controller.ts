@@ -19,6 +19,7 @@ import {
   NotFoundException,
 } from '../http/error-contract.js';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
@@ -31,6 +32,7 @@ import {
 } from '@nestjs/swagger';
 import {
   compileEffectiveRuleset,
+  effectiveFormat,
   evaluateMutation,
   isPlacementFormat,
   SUPPORTED_FORMATS,
@@ -63,6 +65,7 @@ import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
   CreateStageRequest,
+  NextRoundRequest,
   ProblemResponse,
   SeriesDeclarationRequest,
   SeriesMutationPreviewResponse,
@@ -73,6 +76,7 @@ import {
 } from '../dto/organization.dto.js';
 import { StageFixturesResponse } from '../dto/schedule.dto.js';
 import { resolveTournament } from './standings.controller.js';
+import { chooseRoundZone, inZone, isDynamicRoundFormat } from './stage-rounds.js';
 import {
   guaranteedMatchCount,
   readSeriesResolver,
@@ -1072,11 +1076,13 @@ export class StagesController {
   @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Generate the next round of a Swiss stage',
+    summary: 'Generate the next round of one zone of a Swiss or single-elimination stage',
     description:
-      'Validates that all matches in the current round are finalized, calculates standings, and generates pairings for the next round.',
+      'Scoped to one zone: validates that all matches in the zone’s current round are finalized, calculates standings from that zone’s results, ' +
+      'and generates pairings among that zone’s entrants only. A stage with several zones requires `zoneNumber`.',
   })
   @ApiOkResponse({ type: StageFixturesResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
   @ApiConflictResponse({ type: ProblemResponse })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
@@ -1085,6 +1091,7 @@ export class StagesController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Body() body: NextRoundRequest,
     @Req() request: RequestWithSubject,
   ): Promise<StageFixturesResponse> {
     const { tournament, organizationId } = await resolveTournament(this.db, {
@@ -1101,31 +1108,46 @@ export class StagesController {
         errorCode: 'stage-not-found',
       });
 
-    if (stage.format !== 'swiss' && stage.format !== 'single-elimination') {
-      throw new ConflictException(
-        'Only Swiss and single-elimination stages support dynamic round generation',
-        { errorCode: 'stage-not-swiss' },
-      );
-    }
-
-    // Dynamic rounds are paired across the whole stage. A zone playing another format than its
-    // stage's has rounds of its own that this cannot pair, so it is refused rather than mixed.
+    // Rounds, pairings and results are per zone, so the zone the caller targets decides the format
+    // and every set read below. A stage with no zone yet is read as a whole, as it always was.
     const zones = await competition.listZonesOfStage(stage.stageId);
-    if (zones.some((zone) => zone.format !== undefined && zone.format !== stage.format)) {
+    const choice = chooseRoundZone(zones, stage, body?.zoneNumber);
+    if (choice.kind === 'unknown') {
+      throw new NotFoundException(`No zone ${choice.requested} in stage ${stageNumber}`, {
+        errorCode: 'zone-not-found',
+      });
+    }
+    if (choice.kind === 'required') {
+      throw new BadRequestException(
+        choice.eligible.length === 0
+          ? `Stage ${stageNumber} has several zones and none plays a format with dynamic rounds`
+          : `Stage ${stageNumber} has several zones: name one in zoneNumber (zones that can advance: ${choice.eligible.join(', ')})`,
+        { errorCode: 'stage-zone-required' },
+      );
+    }
+    const zone = choice.kind === 'zone' ? choice.zone : undefined;
+    const format = zone === undefined ? stage.format : effectiveFormat(zone, stage);
+    if (!isDynamicRoundFormat(format)) {
+      // Refused for the zone asked about; a sibling playing a dynamic format is unaffected.
       throw new ConflictException(
-        'This stage has zones playing a different format than the stage, which dynamic round generation does not support',
-        { errorCode: 'stage-zone-formats-differ' },
+        zones.length > 1 && zone !== undefined
+          ? `Zone ${zone.number} plays ${format}, which does not support dynamic round generation`
+          : 'Only Swiss and single-elimination stages support dynamic round generation',
+        { errorCode: zones.length > 1 ? 'zone-not-dynamic' : 'stage-not-swiss' },
       );
     }
 
-    const fixtures = await competition.listFixturesOfStage(stage.stageId);
+    const fixtures = inZone(await competition.listFixturesOfStage(stage.stageId), zone);
     if (fixtures.length === 0) {
       throw new ConflictException('Stage has no initial fixtures generated', {
         errorCode: 'stage-no-fixtures',
       });
     }
 
-    const matches = await competition.listMatchesForStage(stage.stageId);
+    const zoneFixtureIds = new Set(fixtures.map((f) => f.fixtureId));
+    const matches = (await competition.listMatchesForStage(stage.stageId)).filter((m) =>
+      zoneFixtureIds.has(m.fixtureId),
+    );
     const currentRound = Math.max(...fixtures.map((f) => f.round));
     const currentRoundFixtures = fixtures
       .filter((f) => f.round === currentRound)
@@ -1133,7 +1155,7 @@ export class StagesController {
     const currentRoundFixtureIds = new Set(currentRoundFixtures.map((f) => f.fixtureId));
     const currentRoundMatches = matches.filter((m) => currentRoundFixtureIds.has(m.fixtureId));
 
-    if (stage.format === 'single-elimination' && currentRoundFixtures.length <= 1) {
+    if (format === 'single-elimination' && currentRoundFixtures.length <= 1) {
       throw new ConflictException('The single-elimination stage is already fully completed', {
         errorCode: 'stage-already-completed',
       });
@@ -1150,7 +1172,7 @@ export class StagesController {
     }
 
     const readModel = new StageReadModel(this.db);
-    const stageRecord = await readModel.stageRecord(stage.stageId);
+    const stageRecord = await readModel.stageRecord(stage.stageId, undefined, zone?.zoneId);
     const entrantIds = stageRecord?.entrantIds ?? [];
     if (entrantIds.length < 2) {
       throw new ConflictException('Stage has fewer than 2 entrants', {
@@ -1158,7 +1180,7 @@ export class StagesController {
       });
     }
 
-    const outcomes = await readModel.outcomes(stage.stageId);
+    const outcomes = await readModel.outcomes(stage.stageId, undefined, zone?.zoneId);
     const nextRoundNumber = currentRound + 1;
     const declaration = await readStageSeries(this.db, {
       tournamentId: tournament.tournamentId,
@@ -1175,7 +1197,7 @@ export class StagesController {
       readonly groupId?: string;
     }[];
 
-    if (stage.format === 'single-elimination') {
+    if (format === 'single-elimination') {
       const winners: string[] = [];
       for (const f of currentRoundFixtures) {
         const fixtureMatches = currentRoundMatches.filter((m) => m.fixtureId === f.fixtureId);

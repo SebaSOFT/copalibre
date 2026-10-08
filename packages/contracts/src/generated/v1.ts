@@ -1404,8 +1404,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Generate the next round of a Swiss stage
-         * @description Validates that all matches in the current round are finalized, calculates standings, and generates pairings for the next round.
+         * Generate the next round of one zone of a Swiss or single-elimination stage
+         * @description Scoped to one zone: validates that all matches in the zone’s current round are finalized, calculates standings from that zone’s results, and generates pairings among that zone’s entrants only. A stage with several zones requires `zoneNumber`.
          */
         post: operations["StagesController_nextRound"];
         delete?: never;
@@ -4798,6 +4798,13 @@ export interface components {
              */
             stageId: string;
             fixtures: components["schemas"]["FixtureResponse"][];
+        };
+        NextRoundRequest: {
+            /**
+             * @description The 1-based number of the zone to generate the next round for. Required when the stage has more than one zone; a stage with a single zone needs no value. Rounds, pairings and results are per zone.
+             * @example 2
+             */
+            zoneNumber?: number;
         };
         DisplayTokenResponse: {
             /** Format: uuid */
@@ -9585,7 +9592,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NextRoundRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -9593,6 +9604,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StageFixturesResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
             401: {

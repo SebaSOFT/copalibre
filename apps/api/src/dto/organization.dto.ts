@@ -892,6 +892,19 @@ export class CreateStageRequest {
   groupConfiguration?: StageGroupConfigurationRequest;
 }
 
+export class NextRoundRequest {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @ApiPropertyOptional({
+    description:
+      'The 1-based number of the zone to generate the next round for. Required when the stage has more than one zone; ' +
+      'a stage with a single zone needs no value. Rounds, pairings and results are per zone.',
+    example: 2,
+  })
+  zoneNumber?: number;
+}
+
 export class SeriesMutationFieldPreview {
   @ApiProperty({ example: 'series.span' })
   field!: string;
