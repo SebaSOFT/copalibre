@@ -112,6 +112,60 @@ describe('TvDashboard', () => {
     expect(screen.getByText('Torneo Apertura 2026')).toBeDefined();
   });
 
+  it('shows the champions of every zone of the last stage instead of a standings leader', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={sampleInitial}
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        tournamentName="Torneo Apertura 2026"
+        organizationName="Liga Argentina"
+        clubs={sampleClubs}
+        standings={sampleStandings}
+        winners={[
+          { zoneName: 'Gold Cup', champions: [{ name: 'River Plate', abbreviation: 'RIV' }] },
+          {
+            zoneName: 'Bronze Cup',
+            champions: [{ name: 'Racing Club' }, { name: 'Independiente' }],
+          },
+        ]}
+        pollIntervalMs={0}
+      />,
+    );
+
+    const zones = screen.getAllByTestId('tv-champions-zone');
+    expect(zones).toHaveLength(2);
+    expect(zones[0]?.textContent).toContain('Gold Cup');
+    expect(zones[0]?.textContent).toContain('River Plate');
+    expect(zones[1]?.textContent).toContain('Racing Club');
+    expect(zones[1]?.textContent).toContain('Independiente');
+    expect(screen.queryByTestId('tv-champion-panel')).toBeNull();
+    // The standings leader (Boca Juniors) is not presented as a champion.
+    expect(screen.queryByText(/Tournament champion/)).toBeNull();
+  });
+
+  it('keeps the single-champion panel for one unnamed winner', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={sampleInitial}
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        tournamentName="Torneo Apertura 2026"
+        organizationName="Liga Argentina"
+        standings={sampleStandings}
+        winners={[{ champions: [{ name: 'River Plate', abbreviation: 'RIV' }] }]}
+        pollIntervalMs={0}
+      />,
+    );
+
+    expect(screen.getByTestId('tv-champion-panel')).toBeDefined();
+    expect(screen.getAllByText('River Plate').length).toBeGreaterThan(0);
+  });
+
   it('renders champion spotlight when all tournament matches are final', () => {
     render(
       <TvDashboard

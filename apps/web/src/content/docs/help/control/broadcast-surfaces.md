@@ -63,6 +63,8 @@ naming every declared champion and any explicitly resolved runner-up and third p
 invents a rank a zone did not explicitly resolve, and shows no podium at all for a single-zone
 tournament or one that has not finished yet.
 
+On the TV kiosk, the recap of a finished tournament that was decided zone by zone lists the champion or co-champions of each zone of the last stage under the zone's name, the same winners the public overview shows. A tournament with one champion keeps the single-champion presentation, and a standings leader of an earlier stage is never presented as the champion.
+
 ## What you cannot do here
 
 Neither surface accepts input from a spectator or a kiosk device: both are read-only renderings of

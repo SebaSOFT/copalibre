@@ -32,7 +32,7 @@ import { TvFactsView } from './TvFactsView.js';
 import { TvStandingsTable } from './ui/organisms/TvStandingsTable.js';
 import { TvEventTicker } from './ui/organisms/TvEventTicker.js';
 import { TvRailTab } from './ui/atoms/TvRailTab.js';
-import type { TvClubItem, TvDashboardLabels } from './tv-types.js';
+import type { TvClubItem, TvDashboardLabels, TvWinnerZone } from './tv-types.js';
 import type { TvMatchEvent } from '../../lib/tv-match-events.js';
 import { mapBracketResponse } from '../../lib/bracket-projection.js';
 import type { BracketZone } from '../../lib/bracket-projection.js';
@@ -41,9 +41,10 @@ import type { PublicBracketResponse } from '@copalibre/api/src/dto/public-tourna
 import { TvMatchIndicators } from './ui/organisms/TvMatchIndicators.js';
 import { TvBracketView } from './ui/organisms/TvBracketView.js';
 import { TvLeagueFixtures } from './ui/organisms/TvLeagueFixtures.js';
+import { TvChampions } from './ui/organisms/TvChampions.js';
 import { TvEmblem } from './ui/atoms/TvEmblem.js';
 
-export type { TvClubItem, TvDashboardLabels } from './tv-types.js';
+export type { TvClubItem, TvDashboardLabels, TvWinnerZone } from './tv-types.js';
 
 /**
  * `lower` is a compact score bug meant to sit over a camera feed; `full` is a
@@ -92,6 +93,11 @@ export interface TvDashboardProps {
   readonly organizationAlias?: string;
   readonly tournamentAlias?: string;
   readonly clubs?: readonly TvClubItem[];
+  /**
+   * The champions the public projection resolved for each zone of the last stage. When present they
+   * are the recap of a finished tournament; a standings leader of an earlier stage never is.
+   */
+  readonly winners?: readonly TvWinnerZone[];
   readonly standings?: readonly StandingsRowView[];
   readonly topPerformers?: readonly TopPerformer[];
   /**
@@ -129,6 +135,7 @@ export function TvDashboard({
   organizationAlias,
   tournamentAlias,
   clubs,
+  winners,
   standings,
   topPerformers: initialTopPerformers,
   performerProjection,
@@ -327,7 +334,20 @@ export function TvDashboard({
   const allFinal = matches.length > 0 && matches.every((m) => m.state === 'final');
   const isLive = liveMatches.length > 0;
 
-  const champion: ChampionInfo | undefined = resolveChampion(labels, matches, standings, clubs);
+  const winnerZones = winners ?? [];
+  const soleWinner =
+    winnerZones.length === 1 && winnerZones[0]?.zoneName === undefined
+      ? winnerZones[0]?.champions
+      : undefined;
+  // One unnamed zone with one champion keeps the single-champion presentation.
+  const champion: ChampionInfo | undefined =
+    soleWinner?.length === 1 && soleWinner[0]
+      ? { ...soleWinner[0], title: labels.championTitle }
+      : winnerZones.length > 0
+        ? undefined
+        : resolveChampion(labels, matches, standings, clubs);
+  const showZoneChampions = allFinal && winnerZones.length > 0 && champion === undefined;
+  const showRecap = allFinal && (champion !== undefined || showZoneChampions);
   const performers: readonly TopPerformer[] =
     initialTopPerformers && initialTopPerformers.length > 0
       ? initialTopPerformers
@@ -496,11 +516,14 @@ export function TvDashboard({
         <section aria-label={dashboardLabels.focalPanelLabel} className="tv-focal-panel cl-chamfer">
           <div className="tv-focal-panel__header">
             <span className="tv-focal-panel__label">
-              {allFinal && champion ? 'Recapitulativo de Campeonato' : 'Foco del Encuentro'}
+              {showRecap ? 'Recapitulativo de Campeonato' : 'Foco del Encuentro'}
             </span>
           </div>
 
-          {allFinal && champion ? (
+          {showZoneChampions ? (
+            /* The champions of every zone of the last stage */
+            <TvChampions zones={winnerZones} />
+          ) : allFinal && champion ? (
             /* Champion Spotlight Presentation */
             <div className="tv-champion" data-testid="tv-champion-panel">
               <div className="tv-champion__glow" />

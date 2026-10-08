@@ -56,6 +56,8 @@ superficies `/tv/**`. Una [serie](/help/control/series) en curso muestra su marc
 va ganando en la llave pública de la misma forma que en el panel de control, y un partido todavía no
 programado se muestra así, nunca se adivina.
 
+En la pantalla de TV, el recapitulativo de un torneo finalizado que se definió zona por zona lista al campeón o a los campeones compartidos de cada zona de la última fase bajo el nombre de la zona, los mismos ganadores que muestra el resumen público. Un torneo con un único campeón conserva la presentación de campeón único, y el líder de la tabla de una fase anterior nunca se presenta como campeón.
+
 ## Qué no podés hacer acá
 
 Ninguna de las dos superficies acepta entrada de un espectador ni de un dispositivo de TV: ambas son

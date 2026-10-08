@@ -32,3 +32,13 @@ export interface TvDashboardLabels {
   readonly possession: string;
   readonly penalty: string;
 }
+
+/** One zone of the last stage and the club or clubs that won it (several when the title is shared). */
+export interface TvWinnerZone {
+  readonly zoneName?: string;
+  readonly champions: readonly {
+    readonly name: string;
+    readonly abbreviation?: string;
+    readonly emblemUrl?: string;
+  }[];
+}

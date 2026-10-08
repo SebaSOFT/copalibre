@@ -22,6 +22,8 @@ import type { LiveDashboard } from '../../../../lib/live-state.ts';
 import type { ResultState } from '../../../../lib/result-state.ts';
 import type { OverviewMatch, StandingsRowView } from '../../../../lib/overview.ts';
 import type { TopPerformer } from '../../../../lib/tv-statistics.ts';
+import type { TvWinnerZone } from '../../../../components/tv/tv-types.ts';
+import { winnerZonesOf } from '../../../../lib/tv-winners.ts';
 import { buildTickerItems } from '../../../../lib/ticker-items.ts';
 import {
   publicIntl,
@@ -67,6 +69,7 @@ let tournamentName = tournamentAlias;
 let organizationName = organizationAlias;
 let tournamentEmblem: string | undefined;
 let clubs: { name: string; emblemUrl?: string }[] = [];
+let winnerZones: readonly TvWinnerZone[] = [];
 /* The kiosk carries the tournament's own discipline imagery, the same source the
  * public pages already render. An overlay never does — see TvLayout. */
 let disciplineImages: PublicObjectReference[] | undefined;
@@ -94,6 +97,7 @@ try {
     standings = mappedOverview.standings ? [...mappedOverview.standings] : [];
     overviewMatches = mappedOverview.matches;
 
+    winnerZones = winnerZonesOf(organizationAlias, mappedOverview.winners);
     if (mappedOverview.clubs) {
       clubs = mappedOverview.clubs.map((c) => ({
         name: c.name,
@@ -322,6 +326,7 @@ const tickerItems =
         organizationAlias={organizationAlias}
         tournamentAlias={tournamentAlias}
         clubs={clubs}
+        winners={winnerZones}
         standings={standings}
         topPerformers={topPerformers}
         performerProjection={performerProjection}

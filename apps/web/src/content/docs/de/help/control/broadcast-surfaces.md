@@ -57,6 +57,8 @@ Kontrollzentrum und die `/tv/**`-Oberflächen verwenden. Eine laufende [Serie](/
 zeigt ihren Live-Spielstand und welche Seite im öffentlichen Turnierbaum führt, genauso wie im
 Kontrollzentrum, und eine noch nicht geplante Begegnung wird als solche angezeigt, nie geraten.
 
+Auf dem TV-Bildschirm listet die Zusammenfassung eines beendeten Turniers, das zonenweise entschieden wurde, den Sieger oder die gemeinsamen Sieger jeder Zone der letzten Phase unter dem Namen der Zone auf, dieselben Sieger wie die öffentliche Übersicht. Ein Turnier mit einem einzigen Sieger behält die Einzelsieger-Darstellung, und der Tabellenführer einer früheren Phase wird nie als Sieger gezeigt.
+
 ## Was Sie hier nicht tun können
 
 Keine der beiden Oberflächen akzeptiert Eingaben von einem Zuschauer oder einem TV-Gerät: Beide sind

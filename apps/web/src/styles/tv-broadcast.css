@@ -296,6 +296,84 @@
   text-transform: uppercase;
 }
 
+/* 3A-2. Champions of a tournament decided zone by zone */
+.tv-champions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(24vmin, 1fr));
+  align-content: center;
+  gap: 2vmin;
+  height: 100%;
+}
+
+.tv-champions__zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6vmin;
+  padding: 2.4vmin 1.6vmin;
+  background: color-mix(in srgb, var(--tv-bg-elevated) 80%, transparent);
+  border: 1px solid var(--tv-gold);
+  text-align: center;
+}
+
+.tv-champions__zone-name {
+  margin: 0;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.9rem, 1.8vmin, 1.2rem);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--cl-state-upcoming);
+}
+
+.tv-champions__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6vmin;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-champions__champion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1vmin;
+}
+
+.tv-champions__emblem {
+  width: 11vmin;
+  height: 11vmin;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--cl-state-upcoming) 35%, transparent));
+}
+
+.tv-champions__monogram {
+  width: 10vmin;
+  height: 10vmin;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--tv-gold);
+  color: var(--tv-gold);
+  font-family: var(--cl-font-display);
+  font-size: 3.6vmin;
+  font-weight: 800;
+}
+
+.tv-champions__name {
+  font-family: var(--cl-font-display);
+  font-size: clamp(1.2rem, 3vmin, 2.2rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--tv-text-primary);
+  line-height: 1.1;
+}
+
 /* 3B. Live/Featured Match View */
 .tv-match-spotlight {
   display: flex;
