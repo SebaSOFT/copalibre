@@ -23,7 +23,7 @@ type AuthoringStatus =
 
 /**
  * No `ListScreenLayout`/`FormScreenLayout`/`AuthScreenLayout`/
- * `MatchConsoleLayout` here (openspec 0225 task 6.3): a multi-step wizard's
+ * `MatchConsoleLayout` here: a multi-step wizard's
  * shape — step navigation, one step's fields visible at a time — matches
  * none of the four, and `TournamentSetupWizard` is itself the established
  * layout for that shape across the app (`ProfileBuilderWizard`,

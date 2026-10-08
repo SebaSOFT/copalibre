@@ -16,7 +16,7 @@ export interface FilePickerLabels {
  * Builds every localized string the `<FilePicker>` atom needs, from the
  * caller's own `useIntl()` — the atom cannot call `react-intl` itself (R6:
  * no i18n formatting below the organism tier), so every one of its six
- * production call sites spreads this into its props (openspec 0285).
+ * production call sites spreads this into its props.
  */
 export function filePickerLabels(
   intl: IntlShape,

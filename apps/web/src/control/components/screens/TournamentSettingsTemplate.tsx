@@ -54,7 +54,7 @@ export function TournamentSettingsTemplate({
   readonly organizationAlias: string;
   readonly tournamentAlias: string;
   readonly settings: TournamentSettingsResponse;
-  /** Additive context for the plain-language summary below (openspec 0267). */
+  /** Additive context for the plain-language summary below. */
   readonly ruleset?: RulesetOverridesResponse;
   readonly onPreview?: (
     request: TournamentSettingsRequest,

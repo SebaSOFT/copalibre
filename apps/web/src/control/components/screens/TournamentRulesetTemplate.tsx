@@ -41,7 +41,7 @@ function asBoolean(value: unknown): boolean | undefined {
  * discipline descriptor marks `replaced`/`merged`, excluding `customScripts` and
  * `registration.capacity`, which keep their own dedicated screens/routes. Each
  * field renders a control typed to its declared merge behavior and value shape
- * (`RulesetFieldControl`, openspec 0264) instead of hand-typed JSON.
+ * (`RulesetFieldControl`) instead of hand-typed JSON.
  */
 export function TournamentRulesetTemplate({
   organizationAlias,
@@ -61,7 +61,7 @@ export function TournamentRulesetTemplate({
   readonly disciplineDefaults?: RulesetConfig;
   /** Constrains the `format` field's control to the installed discipline's declared formats. */
   readonly availableFormats?: readonly string[];
-  /** Additive context for the plain-language summary below (openspec 0267). */
+  /** Additive context for the plain-language summary below. */
   readonly settings?: TournamentSettingsResponse;
   readonly onPreview?: (
     request: RulesetOverridesRequest,

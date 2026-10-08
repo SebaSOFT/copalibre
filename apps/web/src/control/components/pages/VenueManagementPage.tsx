@@ -15,7 +15,7 @@ import { useToast } from '../ToastProvider.js';
 import { VenueManagementTemplate } from '../screens/VenueManagementTemplate.js';
 
 /**
- * Fetches and mutates (openspec 0225 task 6.1): every call into the API
+ * Fetches and mutates: every call into the API
  * client lives here, `VenueManagementTemplate` composes the venue, schedule
  * and official sections from the resulting data and the callbacks below.
  */

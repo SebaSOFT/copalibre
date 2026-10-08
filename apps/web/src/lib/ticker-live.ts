@@ -4,7 +4,7 @@ import { applyEvent, markConnected, type LiveDashboard, type LiveMatch } from '.
 const PULSE_MS = 480;
 
 /**
- * Live-patches the server-rendered score ticker in place (openspec 0305).
+ * Live-patches the server-rendered score ticker in place.
  *
  * `ScoreTicker.astro`'s markup is the only markup — this never re-renders it,
  * only mutates the `'match'`-kind items it already produced, correlated by

@@ -197,7 +197,7 @@ describe('the series bar', () => {
     expect(seriesDecided({ bestOf: 5, results: ['home', 'home'] })).toBe(false);
   });
 
-  it('marks a game that will not be played, in its own position (0159 task 4.5)', () => {
+  it('marks a game that will not be played, in its own position', () => {
     // Not the same as `upcoming`, and not appended on the end: game five of a series decided
     // in four is the fifth segment, because that is where a spectator looks for it.
     expect(
@@ -220,7 +220,7 @@ describe('the series bar', () => {
   });
 });
 
-describe('wiring the series bar to a projection (0159 tasks 4.2, 4.3, 4.4)', () => {
+describe('wiring the series bar to a projection', () => {
   function state(overrides: Partial<PublicSeriesState> = {}): PublicSeriesState {
     return {
       span: 5,

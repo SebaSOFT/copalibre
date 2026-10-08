@@ -44,7 +44,7 @@ export function TournamentRulesetPage({
       .catch(() => {
         if (live) setFailed(true);
       });
-    // Additive context for the plain-language summary (openspec 0267) —
+    // Additive context for the plain-language summary —
     // never gates loading/failed state, which stays keyed to `ruleset` only.
     api
       .fetchTournamentSettings?.(organizationAlias, tournamentAlias)

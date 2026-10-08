@@ -11,8 +11,7 @@ import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
 /**
- * Composes the screen from the data `PersonProfilePage` supplies (openspec
- * 0225 task 6.2): purely presentational, no API client reference — read
+ * Composes the screen from the data `PersonProfilePage` supplies: purely presentational, no API client reference — read
  * only, with no screen state of its own.
  */
 export function PersonProfileTemplate({

@@ -1,6 +1,6 @@
 ---
 /**
- * Extracted from the match report page (openspec 0225 task 7.2): the
+ * Extracted from the match report page: the
  * badge/scoreboard/venue header, unchanged in markup and styling.
  */
 import { Badge } from '../atoms/Badge.tsx';
@@ -81,7 +81,7 @@ const { model, locale } = Astro.props;
     align-items: center;
     gap: 1rem;
     flex: 1;
-    /* No `min-width: 0` here (openspec 0225 task 7.4): that would let this
+    /* No `min-width: 0` here: that would let this
        side shrink and squeeze its own content instead of wrapping to its own
        line, which is what `.cl-scoreboard`'s `flex-wrap` is there to do at
        the 188px floor. */

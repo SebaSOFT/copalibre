@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { OutcomeLegend } from './OutcomeLegend.js';
 
 /**
- * The bracket's key, and 0223's reference scenario for it.
+ * The bracket's key, and its reference scenario.
  *
  * Consumed by the public bracket stage. Read every story here in greyscale:
  * if advancing and eliminated are still separable, the three channels are

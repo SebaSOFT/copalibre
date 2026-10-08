@@ -1,9 +1,9 @@
 /**
- * openspec 0248 task 1.4/2.3: the operator standings screen's Phase → Zone →
+ * The operator standings screen's Phase → Zone →
  * Group navigation was already implemented (`StandingsPage.tsx`'s
  * `listZones`/`listGroups` load effect, flattening every zone's groups into
- * one selector, labelled `Zone / Group` only once more than one zone exists)
- * — this change did not add that mechanism, it only found it undocumented.
+ * one selector, labelled `Zone / Group` only once more than one zone exists) —
+ * this change did not add that mechanism, it only found it undocumented.
  * These tests are the coverage that mechanism never had.
  */
 import { act, render, screen } from '@testing-library/react';

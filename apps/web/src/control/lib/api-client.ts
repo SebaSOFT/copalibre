@@ -163,7 +163,7 @@ export interface ControlApiClient {
     stageNumber: number,
   ) => Promise<StandingsData>;
   /**
-   * The matches view (openspec 0172): tournament-scoped by default, one
+   * The matches view: tournament-scoped by default, one
    * stage/group/state when filtered — a query, not a distinct route.
    */
   readonly fetchMatchesView?: (
@@ -176,7 +176,7 @@ export interface ControlApiClient {
     },
   ) => Promise<{ readonly matches: readonly MatchCardData[] }>;
   /**
-   * Tournament completion aggregate summary (openspec 0241).
+   * Tournament completion aggregate summary.
    */
   readonly fetchCompletion?: (
     organizationAlias: string,
@@ -427,7 +427,7 @@ export interface ControlApiClient {
     organizationAlias: string,
     request: InviteOrganizationUserRequest,
   ) => Promise<InvitationResponse>;
-  /** Not yet accepted, not rescinded, not expired (openspec 0170). */
+  /** Not yet accepted, not rescinded, not expired. */
   readonly listPendingInvitations?: (
     organizationAlias: string,
   ) => Promise<readonly PendingOrganizationInvitationResponse[]>;
@@ -481,7 +481,7 @@ export interface ControlApiClient {
     tournamentAlias: string,
   ) => Promise<readonly DisplayTokenResponse[]>;
   /**
-   * Issues a device-scoped `/tv/**` token (openspec 0300's Broadcaster
+   * Issues a device-scoped `/tv/**` token (the Broadcaster
    * Studio, but not exclusive to it — a kiosk device uses the same call).
    * The raw token and its ready-to-use launch URL are returned once; neither
    * is retrievable again afterward.
@@ -578,7 +578,7 @@ export interface ControlApiClient {
     request: UploadImageRequest,
   ) => Promise<{ readonly objectId: string }>;
   /**
-   * The Club Portal (openspec 0301): a club-admin's own scoped member
+   * The Club Portal: a club-admin's own scoped member
    * directory, team list, and tournament roster submission.
    */
   readonly listClubMembers?: (
@@ -1183,7 +1183,7 @@ export interface TableProjectionResponseData {
 /**
  * One zone's own independent bracket in the seeding canvas — or the stage's only bracket, for an
  * un-zoned stage, which always comes back as exactly one zone entry with no
- * `zoneId`/`zoneName` (openspec 0246).
+ * `zoneId`/`zoneName`.
  */
 export interface SeedingZoneResponse {
   readonly zoneId?: string;
@@ -1280,10 +1280,10 @@ export interface TournamentSettingsResponse {
 
 export type TournamentSettingsRequest = Partial<TournamentSettingsResponse>;
 
-/** Dot-path → value for a tournament ruleset's override fields (openspec 0169). */
+/** Dot-path → value for a tournament ruleset's override fields. */
 export interface RulesetOverridesResponse {
   readonly overrides: Readonly<Record<string, unknown>>;
-  /** The installed discipline's field policies — context for the plain-language summary (0263). */
+  /** The installed discipline's field policies — context for the plain-language summary. */
   readonly fieldPolicies: Readonly<Record<string, unknown>>;
   /** The installed discipline's own default configuration tree, before any override. */
   readonly disciplineDefaults: Readonly<Record<string, unknown>>;
@@ -1293,7 +1293,7 @@ export interface RulesetOverridesRequest {
   readonly overrides: Readonly<Record<string, unknown>>;
 }
 
-/** Same shape one layer down: a stage's own configuration overrides (openspec 0169). */
+/** Same shape one layer down: a stage's own configuration overrides. */
 export interface StageConfigurationResponse {
   readonly overrides: Readonly<Record<string, unknown>>;
   readonly groupConfiguration?: StageGroupConfigurationDeclaration;
@@ -1560,7 +1560,7 @@ export interface RegistrationResponse {
   readonly nationality?: string;
   readonly photoObjectId?: string;
   readonly teamMembers?: readonly TeamMemberResponse[];
-  /** Whether this person entrant already carries a participant identity link (openspec 0170). */
+  /** Whether this person entrant already carries a participant identity link. */
   readonly hasIdentityLink?: boolean;
 }
 
@@ -1701,7 +1701,7 @@ export interface InvitationResponse {
   readonly expiresAt: string;
 }
 
-/** A pending (not yet accepted, not rescinded, not expired) invitation (openspec 0170). */
+/** A pending (not yet accepted, not rescinded, not expired) invitation. */
 export interface PendingOrganizationInvitationResponse {
   readonly invitationId: string;
   readonly recipientEmail: string;

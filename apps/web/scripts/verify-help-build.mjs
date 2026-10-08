@@ -92,7 +92,7 @@ for (const [locale, heading] of Object.entries(LOCALE_HEADINGS)) {
   check(`the ${locale} locale builds and is reachable at /${locale}/`, page.includes(heading));
 }
 
-// openspec 0163: the agent-facing authoring contract is a separate pipeline
+// The agent-facing authoring contract is a separate pipeline
 // from the operator help site's llms.txt/llms-full.txt (starlight-llms-txt
 // reads only src/content/docs/, never src/authoring-docs/), so the two must
 // never mix — proven here against the real built output, not merely

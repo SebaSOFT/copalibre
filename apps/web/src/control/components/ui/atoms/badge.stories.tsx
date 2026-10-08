@@ -45,7 +45,7 @@ export const Matrix: Story = {
   },
 };
 
-/** All six product tones resolve through generated badge tokens (0268). */
+/** All six product tones resolve through generated badge tokens. */
 export const Tones: Story = {
   args: { label: '' },
   render: function Render() {
@@ -73,7 +73,7 @@ export const LongLabel: Story = {
 };
 
 /**
- * The operational-tag family — 0223's reference scenario.
+ * The operational-tag family — its reference scenario.
  *
  * A section label carrying a German compound at 188px is the case the variant
  * exists to survive: it wraps and stays complete rather than being clipped,

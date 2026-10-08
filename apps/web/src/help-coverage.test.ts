@@ -11,8 +11,7 @@ import {
 } from '../../../scripts/check-help-coverage.mjs';
 
 // Runs the same real-tree assertion as scripts/check-help-coverage.test.mjs,
-// inside the web workspace's own jest run — the currency gate (openspec
-// 0162) is exercised from both entry points a reviewer might check.
+// inside the web workspace's own jest run — the currency gate is exercised from both entry points a reviewer might check.
 describe('help page capability and role coverage', () => {
   const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 

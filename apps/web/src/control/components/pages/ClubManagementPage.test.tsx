@@ -36,7 +36,7 @@ describe('ClubManagementPage', () => {
     expect(screen.getByText('Club Atlético Huracán Las Heras')).toBeDefined();
   });
 
-  it('shows the Club Portal link when the role is unresolved (openspec 0301)', async () => {
+  it('shows the Club Portal link when the role is unresolved', async () => {
     render(
       withIntl(<ClubManagementPage client={stubClient()} organizationAlias="liga-mendocina" />),
     );

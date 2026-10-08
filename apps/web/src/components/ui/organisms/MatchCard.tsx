@@ -18,18 +18,18 @@ import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 export interface MatchCardProps {
   readonly match: MatchCardData;
   readonly labels: MatchCardLabels;
-  /** Required (openspec 0272): threaded straight into `ResponsiveTimestamp`, which no longer guesses one. */
+  /** Required: threaded straight into `ResponsiveTimestamp`, which no longer guesses one. */
   readonly locale: string;
   /** Wraps the card in a link when present — the public site's report page. */
   readonly reportUrl?: string;
   /** Opaque band assigned by a public list; other surfaces retain their default card surface. */
   readonly band?: 'panel' | 'base';
-  /** Single-line ticker presentation (openspec 0299) — a dense listing's own row shape, not a smaller version of the full card. */
+  /** Single-line ticker presentation — a dense listing's own row shape, not a smaller version of the full card. */
   readonly compact?: boolean;
 }
 
 /**
- * The compact ticker's entrant text (openspec 0299): a persisted abbreviation
+ * The compact ticker's entrant text: a persisted abbreviation
  * always wins — this never overrides an organizer's own choice, the same
  * rule `EntrantName` follows for its overflow fallback. Absent one, it
  * derives dotted initials from a multi-word name ("San Juan" -> "S.J.") or
@@ -310,13 +310,13 @@ function TracePanel({
 }
 
 // ---------------------------------------------------------------------------
-// ChampionshipMatchCard — a match renderer variant (openspec 0225 task 4.3):
+// ChampionshipMatchCard — a match renderer variant:
 // the grand-final spotlight presentation, merged in from its own file rather
 // than sharing MatchCardProps' data shape, which has no place for a seed or
 // a per-participant winner flag. Its inline styles and Spanish literal
 // defaults are pre-existing debt (KNOWN_INLINE_LAYOUT/KNOWN_RAW_STYLE_VALUES
-// in check-atomic-composition.mjs), carried over rather than paid down here
-// — that is task 5.2's job, not this file merge's.
+// in check-atomic-composition.mjs), carried over rather than paid down here —
+// that is task 5.2's job, not this file merge's.
 // ---------------------------------------------------------------------------
 
 export interface ChampionshipParticipant {
@@ -422,7 +422,7 @@ export function ChampionshipMatchCard({
 }
 
 // ---------------------------------------------------------------------------
-// LiveMatchScorecard — a match renderer variant (openspec 0225 task 4.3):
+// LiveMatchScorecard — a match renderer variant:
 // the tactical live-broadcast presentation, merged in for the same reason
 // as ChampionshipMatchCard above — its data shape (per-team colour, goal
 // events, a comparator trace) has no correspondence in MatchCardData.

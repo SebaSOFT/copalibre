@@ -98,7 +98,7 @@ export const LongLabel: Story = {
 
 /**
  * Each variant paired with the state it is most often reviewed without —
- * 0223's reference scenario for the action control.
+ * The reference scenario for the action control.
  *
  * Disabled is the pair that matters. A primary action and a disabled primary
  * action sit next to each other here because the question a reviewer has to be

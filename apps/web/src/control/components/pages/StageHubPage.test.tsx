@@ -212,7 +212,7 @@ describe('StageHubPage', () => {
     expect(await screen.findByText('The request could not be completed. Try again.')).toBeTruthy();
   });
 
-  it('offers the format Select built from the stage’s own availableFormats (openspec 0251 task 4.1)', async () => {
+  it('offers the format Select built from the stage’s own availableFormats', async () => {
     render(
       withIntl(
         <StageHubPage
@@ -234,7 +234,7 @@ describe('StageHubPage', () => {
     expect(optionValues).toEqual(['round-robin', 'single-elimination', 'swiss']);
   });
 
-  it('shows a plain-string format description as the DecisionHint (openspec 0251 task 4.2)', async () => {
+  it('shows a plain-string format description as the DecisionHint', async () => {
     render(
       withIntl(
         <StageHubPage
@@ -258,7 +258,7 @@ describe('StageHubPage', () => {
     expect(await screen.findByText('Every entrant plays every other entrant once')).toBeTruthy();
   });
 
-  it('shows a LocalizedLabel format description resolved to the interface locale (openspec 0251 task 4.2)', async () => {
+  it('shows a LocalizedLabel format description resolved to the interface locale', async () => {
     render(
       withIntl(
         <StageHubPage
@@ -286,7 +286,7 @@ describe('StageHubPage', () => {
     expect(screen.queryByText('Todos contra todos')).toBeNull();
   });
 
-  it('renders no hint for a format the discipline declares no description for (openspec 0251 task 4.2)', async () => {
+  it('renders no hint for a format the discipline declares no description for', async () => {
     const { container } = render(
       withIntl(
         <StageHubPage

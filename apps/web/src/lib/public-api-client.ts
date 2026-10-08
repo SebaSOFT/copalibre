@@ -184,7 +184,7 @@ export async function fetchPlayerStatistics(
 }
 
 /**
- * `language` resolves each ruleset field's declared label (openspec 0267) —
+ * `language` resolves each ruleset field's declared label —
  * the field's own `FieldPolicy.label` when the descriptor declares one,
  * humanized from its dot-path otherwise. Never English-only regardless of
  * `language`: this is the same fallback `resolveFieldPolicyLabel` uses on
@@ -197,7 +197,7 @@ export async function fetchPlayerStatistics(
  * never needed playing (its series already decided), so it is equally closed, not pending. Mapping
  * both to `'final'` keeps every `matches.every((m) => m.state === 'final')` check (TV's own
  * `allFinal`, `deriveTournamentStatus`) from treating a tournament decided partly by forfeit as
- * still in progress (openspec 0270).
+ * still in progress.
  */
 function publicMatchState(status: string): MatchState {
   if (status === 'scheduled') return 'upcoming';

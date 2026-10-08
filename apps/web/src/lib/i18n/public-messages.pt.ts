@@ -215,7 +215,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvStats.standingsRecord': '1.º · {points} pts · {played} jogadas',
   'publicWeb.tvStats.grandFinalRecord': 'Vencedor da grande final ({winner} – {loser})',
 
-  // 0223 — ticker conditions, bracket stage chrome, public header.
+  // ticker conditions, bracket stage chrome, public header.
   'publicWeb.ticker.pause': 'Pausar o placar',
   'publicWeb.ticker.resume': 'Retomar o placar',
   'publicWeb.ticker.stale': 'Últimos resultados conhecidos — a ligação ao vivo foi perdida',
@@ -239,7 +239,7 @@ export const messages: Record<string, string> = {
   'publicWeb.header.navApiReference': 'Referência da API',
   'publicWeb.header.controlPanel': 'Painel de controlo',
 
-  // TvDashboard.tsx's own chrome (openspec 0225 task 2.6).
+  // TvDashboard.tsx's own chrome.
   'publicWeb.tvDashboard.noMatchesScheduled': 'Nenhuma partida agendada no momento',
   'publicWeb.tvDashboard.standingsUnavailable': 'Tabela de classificação indisponível',
   'publicWeb.tvDashboard.clubColumn': 'Clube',

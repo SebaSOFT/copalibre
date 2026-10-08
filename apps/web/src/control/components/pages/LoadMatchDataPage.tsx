@@ -21,7 +21,7 @@ type LoadStatus =
 /**
  * The bulk/structured entry screen: a match's roster, its full event
  * history, and its result, submitted together — for a match played with no
- * live console present (openspec 0225 task 6.1). The initial projection and
+ * live console present. The initial projection and
  * roster-candidate load, and the final bulk-load submit, live here;
  * `LoadMatchDataTemplate` owns the roster/segment/event form state and
  * builds the submit request from it. Client-side only until "Submit match

@@ -194,7 +194,7 @@ describe('form-control atoms', () => {
     expect(input.getAttribute('aria-describedby')).toContain('avatar-error');
   });
 
-  it('renders localized copy when a caller passes it, never a hardcoded English fallback (openspec 0285)', () => {
+  it('renders localized copy when a caller passes it, never a hardcoded English fallback', () => {
     render(
       <FilePicker
         id="avatar-es"
@@ -290,7 +290,7 @@ describe('form-control atoms', () => {
     }
   });
 
-  it('shows the active option badge on the styled trigger (openspec 0295 task 1.2/1.7)', () => {
+  it('shows the active option badge on the styled trigger', () => {
     const { container } = render(
       <Select
         aria-label="Language"
@@ -432,7 +432,7 @@ describe('form-control dark theming contract', () => {
   });
 });
 
-describe('Button atom CTA treatments (openspec 0198)', () => {
+describe('Button atom CTA treatments', () => {
   const VARIANTS = ['primary', 'secondary', 'destructive', 'destructive-outline'] as const;
 
   it.each(VARIANTS)('renders the %s variant class', (variant) => {
@@ -474,7 +474,7 @@ describe('Button atom CTA treatments (openspec 0198)', () => {
   });
 });
 
-describe('LinkButton atom (openspec 0298): Button styling on a real anchor', () => {
+describe('LinkButton atom: Button styling on a real anchor', () => {
   const VARIANTS = ['primary', 'secondary', 'destructive', 'destructive-outline'] as const;
 
   it.each(VARIANTS)('renders the %s variant class on an <a>', (variant) => {

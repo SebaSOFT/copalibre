@@ -361,8 +361,7 @@ function renderForScreen(route: ControlRoute): React.JSX.Element {
 }
 
 /**
- * Restated in English (openspec 0225 task 8.3, found by `/impeccable
- * critique`) — exact titles from the eight `.astro` files this replaced were
+ * Restated in English — exact titles from the eight `.astro` files this replaced were
  * hardcoded Spanish, the same `auth.*`/`invitation.*` namespace gap task 2.6
  * and this task's own AcceptInvitationForm fix already restated in English
  * elsewhere. Not routed through `react-intl` here: `document.title` is set

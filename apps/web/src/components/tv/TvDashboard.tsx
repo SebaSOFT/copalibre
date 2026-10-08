@@ -64,14 +64,14 @@ export interface TvDashboardProps {
   /** Keeps a launcher-selected TV tab fixed instead of entering carousel rotation. */
   readonly initialView?: 'standings';
   /**
-   * The pinned match's own recorded events (goals, cards), set only on the pinned-match route
-   * (openspec 0270) — the full-rotation route leaves this unset, same as `pinnedMatchNumber`.
+   * The pinned match's own recorded events (goals, cards), set only on the pinned-match route —
+   * the full-rotation route leaves this unset, same as `pinnedMatchNumber`.
    * Empty or unset renders no ticker section at all, rather than an empty-state placeholder.
    */
   readonly matchEvents?: readonly TvMatchEvent[];
   /**
-   * `personId -> display text`, from the pinned match's own rosters
-   * (openspec 0300) — set only alongside `matchEvents`, on the pinned-match
+   * `personId -> display text`, from the pinned match's own rosters —
+   * set only alongside `matchEvents`, on the pinned-match
    * route. Resolves a live alert's actor the same way the initial
    * `matchEvents` ticker already resolves one; a `Map` would not survive
    * this island's own JSON prop serialization.
@@ -98,7 +98,7 @@ export interface TvDashboardProps {
   readonly performerProjection?: TableProjectionResponse;
   readonly labels: TvStatisticsLabels;
   /**
-   * The dashboard's own chrome text (openspec 0225 task 2.6) — separate
+   * The dashboard's own chrome text — separate
    * from `labels`, which is `tv-statistics.ts`'s derived-stat vocabulary.
    * No client-side react-intl is threaded into this component: every
    * string it renders arrives pre-formatted, the same as `labels` already
@@ -186,7 +186,7 @@ export function TvDashboard({
   }, []);
 
   // 3. Polling Refresh Handler (Fallback when tokenless or projection out of sync)
-  // Returns the freshly-fetched matches (openspec 0300's alert banner diffs
+  // Returns the freshly-fetched matches (the alert banner diffs
   // scores against this return value directly, rather than racing React's
   // own state-update timing) — every existing caller already discards it.
   const refreshProjection = useCallback(async (): Promise<readonly LiveMatch[] | undefined> => {
@@ -513,7 +513,7 @@ export function TvDashboard({
                 Etapa {spotlightMatch.stageNumber} · Partido {spotlightMatch.matchNumber}
               </div>
               <div className="tv-match-spotlight__vs-grid">
-                {/* Home Side — the spotlight's visual anchor (openspec 0247) */}
+                {/* Home Side — the spotlight's visual anchor */}
                 <TvTeamSide
                   anchor
                   clubs={clubs}

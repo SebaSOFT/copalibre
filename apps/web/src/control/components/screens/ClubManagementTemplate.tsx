@@ -16,8 +16,7 @@ import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
 /**
- * Composes the screen from the data `ClubManagementPage` supplies (openspec
- * 0225 task 6.2): the new-club form, which club is selected, its edit
+ * Composes the screen from the data `ClubManagementPage` supplies: the new-club form, which club is selected, its edit
  * fields, and the pending emblem crop below are this component's own screen
  * state; every mutation is a call to one of the `on*` props.
  */
@@ -31,7 +30,7 @@ export function ClubManagementTemplate({
   organizationAlias,
 }: {
   readonly api: ControlApiClient;
-  /** Gates the per-club "Club Portal" link (openspec 0301) — the same capability its backend routes require. */
+  /** Gates the per-club "Club Portal" link — the same capability its backend routes require. */
   readonly canManageClubMembers: boolean;
   readonly clubs: readonly ClubResponse[];
   readonly onCreateClub: (name: string, alias: string, abbreviation: string) => Promise<boolean>;

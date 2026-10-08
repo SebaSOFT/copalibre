@@ -1,6 +1,6 @@
 import { buildOverlayUrl, OBS_RESOLUTION_PRESETS } from './broadcaster-studio.js';
 
-describe('buildOverlayUrl (openspec 0300)', () => {
+describe('buildOverlayUrl', () => {
   const issuedUrl = 'https://example.test/tv/liga-mendocina/tournaments/apertura-2026?token=abc';
 
   it('appends the mode and preserves the existing token param', () => {
@@ -40,7 +40,7 @@ describe('buildOverlayUrl (openspec 0300)', () => {
   });
 });
 
-describe('OBS_RESOLUTION_PRESETS (openspec 0300)', () => {
+describe('OBS_RESOLUTION_PRESETS', () => {
   it('lists 1080p, 720p, and a 9:16 vertical preset, each at 60 FPS', () => {
     expect(OBS_RESOLUTION_PRESETS).toEqual([
       { id: '1080p', width: 1920, height: 1080, fps: 60 },

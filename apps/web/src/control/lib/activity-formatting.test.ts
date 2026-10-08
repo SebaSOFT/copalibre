@@ -53,8 +53,8 @@ describe('activity-formatting', () => {
       expect(formatActivityAction('season.created', 'es')).toBe('Temporada creada');
     });
 
-    it('localizes a pre-existing action into a non-es/en language (openspec 0280)', () => {
-      // Before openspec 0280, every locale other than es/en silently rendered
+    it('localizes a pre-existing action into a non-es/en language', () => {
+      // Previously, every locale other than es/en silently rendered
       // the English defaultMessage — this asserts the previously-blind
       // languages now genuinely resolve their own translation.
       expect(formatActivityAction('segment.completed', 'fr')).toBe('Segment terminé');
@@ -94,7 +94,7 @@ describe('activity-formatting', () => {
       expect(formatActivityReason(undefined, 'es')).toBe('');
     });
 
-    it('localizes a refusal reason into a non-es/en language (openspec 0280)', () => {
+    it('localizes a refusal reason into a non-es/en language', () => {
       expect(formatActivityReason('Subject is not scoped to this organization', 'fr')).toBe(
         "L'utilisateur n'appartient pas à cette organisation",
       );

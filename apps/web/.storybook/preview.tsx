@@ -15,7 +15,7 @@ import footballField from './assets/football-field.webp';
 import basketballCourt from './assets/basketball-court.webp';
 
 /**
- * Widths the codebase declares, not device presets (0213 design.md Decision 5).
+ * Widths the codebase declares, not device presets.
  *
  * `control.css:207` and `control.css:236` are the layout's own breakpoints, and
  * 188px — the width a 375px review viewport exposes at 200% browser zoom — is

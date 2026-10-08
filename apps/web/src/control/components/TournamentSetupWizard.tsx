@@ -265,7 +265,7 @@ export function TournamentSetupWizard({
 
 /**
  * One component per wizard step, extracted from `TournamentSetupWizard`'s
- * render body (openspec 0228): each step's own conditionals now count toward
+ * render body: each step's own conditionals now count toward
  * its own function, not the wizard shell's, and the shell keeps only the
  * `state.step === '<name>' &&` gate that chooses among them.
  */
@@ -447,7 +447,7 @@ function FormatStep({
 
 /**
  * A typed control per discipline-declared ruleset field beyond format/
- * registration.* (openspec 0265), reusing 0264's `RulesetFieldControl`
+ * registration.*, reusing the typed `RulesetFieldControl`
  * unmodified. Distinct from `RulesStep` below: that step authors hook-script
  * automation (condition/action pairs); this one sets `RulesetConfig` values
  * the discipline itself declares (`scoring.pointsPerWin`, `tiebreakers`, …).
@@ -928,7 +928,7 @@ function RulesStep({
 
 /**
  * The wizard's final step: everything configured on every prior step,
- * rendered in plain language via `TournamentSummary` (openspec 0267) — no
+ * rendered in plain language via `TournamentSummary` — no
  * new fetch, since every fact it needs is already in `state`/the selected
  * `DisciplineOption`. Only the `rules` section is available here (the
  * discipline's `defaults`/`fieldPolicies`, the wizard's own overlay via

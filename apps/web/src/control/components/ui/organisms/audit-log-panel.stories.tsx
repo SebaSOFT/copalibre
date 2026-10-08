@@ -53,7 +53,7 @@ export const SingleCorrection: Story = {
 };
 
 /**
- * The canonical correction — 0223's reference scenario for this predecessor.
+ * The canonical correction — the reference scenario for this predecessor.
  *
  * Two events on one match, in the order they were recorded: the table referee
  * enters 1-1, and three minutes later the tournament director corrects it to
@@ -91,8 +91,7 @@ export const NothingRecorded: Story = {
 };
 
 /**
- * A non-score correction (openspec 0225 task 8.3, found by
- * `/impeccable critique`): every other story here only ever diffs `score`,
+ * A non-score correction: every other story here only ever diffs `score`,
  * so `audit-log-panel.tsx`'s field-label resolution had never actually
  * rendered a schedule/venue change — the case the panel's own field-naming
  * bug (hardcoded "Score" for every diff, now fixed) would have hidden.

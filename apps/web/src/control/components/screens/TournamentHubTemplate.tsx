@@ -7,7 +7,7 @@ import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
 /**
- * The Tournament hub (openspec 0250): the first real Tournament → Stage link
+ * The Tournament hub: the first real Tournament → Stage link
  * control-web has ever had. Purely presentational — `TournamentHubPage` owns
  * the `listStages` fetch — so a stage with no fixtures yet renders exactly
  * like one that already has them, distinguished only by its seeded badge.

@@ -74,8 +74,8 @@ const GROUP_DISTRIBUTION_LABELS: Readonly<
 };
 
 /**
- * The stage list both `TournamentSetupWizard` and `ProfileBuilderWizard` author
- * — one shared component so their stage editors never drift (design.md's
+ * The stage list both `TournamentSetupWizard` and `ProfileBuilderWizard` author —
+ * one shared component so their stage editors never drift (design.md's
  * "Profile-picked stages render read-only in `TournamentSetupWizard`" reuses
  * the same rendering path via `readOnly`, never a separate preview component).
  *
@@ -109,7 +109,7 @@ export function StageListEditor({
   readonly readOnly?: boolean;
   /** The discipline's own format decision hint (description, reversibility) — same for every stage. */
   readonly formatHintText?: string;
-  /** Previews the first stage's bracket structure (openspec 0242). */
+  /** Previews the first stage's bracket structure. */
   readonly showStructurePreview?: boolean;
   /** Registration capacity used to determine preview entrant count. */
   readonly capacity?: number;

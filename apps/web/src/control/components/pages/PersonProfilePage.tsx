@@ -19,7 +19,7 @@ type LoadStatus = 'loading' | 'ready' | 'failed';
  * screen's expanded row (design.md's non-goal rules out a separate "edit person"
  * screen).
  *
- * Fetches (openspec 0225 task 6.2): the person load lives here;
+ * Fetches: the person load lives here;
  * `PersonProfileTemplate` composes the screen from the resulting data.
  */
 export function PersonProfilePage({

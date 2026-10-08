@@ -222,7 +222,7 @@ export interface MatchCardLabels {
   readonly seriesPending: string;
   readonly seriesDecided: string;
   readonly seriesAggregate: string;
-  /** The compact ticker's separator (openspec 0299), e.g. "CPC 4 vs 3 UVT". Absent means `MatchCard` falls back to the literal `vs`. */
+  /** The compact ticker's separator, e.g. "CPC 4 vs 3 UVT". Absent means `MatchCard` falls back to the literal `vs`. */
   readonly versus?: string;
 }
 
@@ -435,8 +435,8 @@ function rulesetValue(intl: IntlShape, value: string): string {
 
 /**
  * `RulesetBriefing.astro`'s rows, fully resolved — the field's label (already
- * localized by `mapOverviewResponse`) paired with its localized display value
- * (openspec 0267). i18n formatting stays at this organism-and-above tier
+ * localized by `mapOverviewResponse`) paired with its localized display value.
+ * I18n formatting stays at this organism-and-above tier
  * (`check-atomic-composition.mjs` R6); the molecule only ever renders strings.
  */
 export function rulesetBriefingRows(

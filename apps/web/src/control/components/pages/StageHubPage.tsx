@@ -13,8 +13,7 @@ import { useToast } from '../ToastProvider.js';
 import { StageHubTemplate } from '../screens/StageHubTemplate.js';
 
 /**
- * Moved from `SeedingBuilderPage.tsx`'s local `pageMessages` (openspec 0250
- * task 5.1) — ids renamed from `control.seedingBuilder.*` to `control.stageHub.*`
+ * Moved from `SeedingBuilderPage.tsx`'s local `pageMessages` — ids renamed from `control.seedingBuilder.*` to `control.stageHub.*`
  * to match this screen's new home, same as the component itself.
  */
 const pageMessages = defineMessages({

@@ -18,7 +18,7 @@ async function mockLoginApi(page: Page): Promise<void> {
   });
 }
 
-test.describe('Brand Design System Parity (0217)', () => {
+test.describe('Brand Design System Parity', () => {
   test('primary buttons render uppercase condensed display typography and chamfer geometry', async ({
     page,
   }) => {

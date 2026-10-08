@@ -38,7 +38,7 @@ const EMPTY_ORGANIZATION: CreateOrganizationRequest = {
 
 /**
  * Composes the screen from data and callbacks `PlatformAdministrationPage`
- * supplies (openspec 0225 task 6.1): every form field, wizard toggle and the
+ * supplies: every form field, wizard toggle and the
  * "which organization am I managing" flow state below is this component's
  * own screen state; every actual mutation is a call to one of the `on*`
  * props.

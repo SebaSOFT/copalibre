@@ -23,7 +23,7 @@ describe('NativeAuthRoutes', () => {
     globalThis.fetch = jest.fn() as any;
   });
 
-  // `locale="en"`, not `"es"`: openspec 0225 task 2.6 restated every
+  // `locale="en"`, not `"es"`: every
   // `auth.*` defaultMessage in the source language. The public return link
   // is translated in each control catalog; remaining auth copy still uses
   // English source messages.
@@ -52,12 +52,12 @@ describe('NativeAuthRoutes', () => {
     fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
-    // openspec 0302: a successful native login records which mechanism
+    // A successful native login records which mechanism
     // established the session, so a later silent renewal knows which one to use.
     expect(readAuthMethod()).toBe('native');
   });
 
-  it('shows an info toast when reached after a session-expired redirect (openspec 0302)', () => {
+  it('shows an info toast when reached after a session-expired redirect', () => {
     window.history.pushState(
       {},
       '',

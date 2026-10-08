@@ -15,7 +15,7 @@ type LoadStatus = 'loading' | 'ready' | 'failed';
  * on a submission does so through the existing correction workflow
  * separately, citing this report's id.
  *
- * Fetches and mutates (openspec 0225 task 6.2): the pending-reports load and
+ * Fetches and mutates: the pending-reports load and
  * the dismiss mutation live here; `ReportReviewTemplate` composes the screen
  * from the resulting data.
  */

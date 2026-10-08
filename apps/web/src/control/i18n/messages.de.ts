@@ -1258,7 +1258,7 @@ export const messages: Record<string, string> = {
   'control.dashboard.export': 'Exportieren',
   'control.dashboard.resumeEditing': 'Bearbeitung fortsetzen',
 
-  // 0223 — standings panel chrome, metric availability, module updates.
+  // standings panel chrome, metric availability, module updates.
   'control.standings.panelDecidedBy': 'Hat diese Platzierung entschieden',
   'control.standings.tiebreakerSequenceTitle': 'Reihenfolge der Tiebreaker',
   'control.standings.rankColumn': 'Platz',

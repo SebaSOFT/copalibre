@@ -25,7 +25,7 @@ const { rows, heading } = Astro.props;
 <style>
   .cl-ruleset-grid {
     display: grid;
-    /* `min(200px, 100%)`, not a bare `200px` floor (openspec 0225 task 7.4):
+    /* `min(200px, 100%)`, not a bare `200px` floor:
        a bare floor wider than the 188px zoom viewport forces the grid itself
        past the container, since no track may shrink below its minimum. */
     grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));

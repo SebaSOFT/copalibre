@@ -3,7 +3,7 @@ import { ResponsiveTimestamp } from '../../../ui/atoms/ResponsiveTimestamp.js';
 import type { TvMatchEvent } from '../../../../lib/tv-match-events.js';
 
 /**
- * The pinned-match TV view's compact event ticker (openspec 0270): a venue screen showing what
+ * The pinned-match TV view's compact event ticker: a venue screen showing what
  * happened in the match, not only the score. Generic over event type — it renders whatever
  * `TvMatchEvent`s the match recorded (goal, card, or anything else the installed discipline
  * declares), never a hardcoded goal/card list. `TvDashboard.tsx` renders nothing at all when

@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DESCRIPTOR_FIELD_EXPLANATIONS, DISCIPLINE_DESCRIPTOR_SCHEMA } from '@copalibre/domain';
 
-// Generates the agent-facing authoring contract (openspec 0163) as a
+// Generates the agent-facing authoring contract as a
 // separate pipeline from Starlight's `docs` content collection and the
 // `starlight-llms-txt` plugin that reads it — the source files under
 // src/authoring-docs/ are never part of that collection, so llms.txt and

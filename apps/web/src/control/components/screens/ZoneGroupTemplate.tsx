@@ -29,8 +29,8 @@ type AssignMode = 'draw' | 'manual';
 export type ManualPlacements = Readonly<Record<string, string>>;
 
 /**
- * Composes the screen from data and callbacks `ZoneGroupPage` supplies
- * (openspec 0225 task 6.1): the new-zone/group forms, draw parameters,
+ * Composes the screen from data and callbacks `ZoneGroupPage` supplies:
+ * the new-zone/group forms, draw parameters,
  * manual placements, and preview results below are this component's own
  * screen state; every mutation is a call to one of the `on*` props. Which
  * zone is selected lives in the page instead, since selecting one drives a

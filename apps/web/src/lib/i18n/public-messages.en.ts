@@ -25,7 +25,7 @@ export const messages = defineMessages({
   // Layout chrome (layouts/PublicLayout.astro)
   layoutSkipToContent: { id: 'publicWeb.layout.skipToContent', defaultMessage: 'Skip to content' },
   layoutNavAriaLabel: { id: 'publicWeb.layout.navAriaLabel', defaultMessage: 'Main' },
-  // 0223 — the public header's own controls and destinations.
+  // the public header's own controls and destinations.
   headerOpenMenu: { id: 'publicWeb.header.openMenu', defaultMessage: 'Open the menu' },
   headerCloseMenu: { id: 'publicWeb.header.closeMenu', defaultMessage: 'Close the menu' },
   headerLanguage: { id: 'publicWeb.header.language', defaultMessage: 'Language' },
@@ -228,7 +228,7 @@ export const messages = defineMessages({
     id: 'publicWeb.standings.column.series.shortLabel',
     defaultMessage: 'S',
   },
-  // StandingsTable.astro's player quick-view dialog (openspec 0271) — its
+  // StandingsTable.astro's player quick-view dialog — its
   // fallback title, career-stats/history headings, and empty states reuse
   // PlayerProfileView.astro's own playerProfile* messages below, since both
   // present the same profile content.
@@ -275,9 +275,9 @@ export const messages = defineMessages({
     defaultMessage: '{branch} — round {round}',
   },
   bracketRoundHeading: { id: 'publicWeb.bracket.roundHeading', defaultMessage: 'Round {round}' },
-  // 0223 — the bracket stage's own chrome, its key, and its textual view.
+  // the bracket stage's own chrome, its key, and its textual view.
   bracketStageAriaLabel: { id: 'publicWeb.bracket.stageAriaLabel', defaultMessage: 'Bracket' },
-  // 0246 — jump-to-zone navigation, shown only when a stage has more than one zone.
+  // jump-to-zone navigation, shown only when a stage has more than one zone.
   bracketZoneJumpAriaLabel: {
     id: 'publicWeb.bracket.zoneJumpAriaLabel',
     defaultMessage: 'Jump to a zone’s bracket',
@@ -523,7 +523,7 @@ export const messages = defineMessages({
     defaultMessage: 'No photo uploaded',
   },
 
-  // Player statistics drilldown (0244)
+  // Player statistics drilldown
   playerProfileTournamentStatsHeading: {
     id: 'publicWeb.playerProfile.tournamentStatsHeading',
     defaultMessage: 'Tournament Statistics',
@@ -627,7 +627,7 @@ export const messages = defineMessages({
   tickerLabel: { id: 'publicWeb.ticker.label', defaultMessage: 'Tournament ticker' },
   tickerLeader: { id: 'publicWeb.ticker.leader', defaultMessage: 'Leader' },
   tickerVersus: { id: 'publicWeb.ticker.versus', defaultMessage: 'VS' },
-  // 0223 — the ticker's own controls and conditions.
+  // the ticker's own controls and conditions.
   tickerPause: { id: 'publicWeb.ticker.pause', defaultMessage: 'Pause the ticker' },
   tickerResume: { id: 'publicWeb.ticker.resume', defaultMessage: 'Resume the ticker' },
   tickerStale: {
@@ -676,7 +676,7 @@ export const messages = defineMessages({
     defaultMessage: 'Grand final winner ({winner} – {loser})',
   },
 
-  // TvDashboard.tsx's own chrome (openspec 0225 task 2.6) — separate from
+  // TvDashboard.tsx's own chrome — separate from
   // tv-statistics.ts's derived-stat labels above. No intl was threaded into
   // this component at all before; these cross into its client:load island
   // as plain string props, the same as every `tvStats*` label already does.
@@ -704,7 +704,7 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.focalPanelLabel',
     defaultMessage: 'Main broadcast panel',
   },
-  // Pinned-match compact event ticker (openspec 0270).
+  // Pinned-match compact event ticker.
   tvDashboardMatchEventsLabel: {
     id: 'publicWeb.tvDashboard.matchEventsLabel',
     defaultMessage: 'Match events',
@@ -778,7 +778,7 @@ export const messages = defineMessages({
     defaultMessage: 'No matches scheduled',
   },
 
-  // Match report sections (openspec 0269): MatchTimeline.astro, MatchOfficials.astro,
+  // Match report sections: MatchTimeline.astro, MatchOfficials.astro,
   // MatchRosters.astro. Each component gets its own namespace rather than a shared
   // "match report" bucket, so a future change to one section's copy touches only it.
   matchTimelineHeading: {

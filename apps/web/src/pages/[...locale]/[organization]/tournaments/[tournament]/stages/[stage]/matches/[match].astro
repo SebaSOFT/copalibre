@@ -45,7 +45,7 @@ const model = buildMatchReport(response);
 const localePrefix = locale ? `/${locale}` : '';
 // The current match's own zone only — flattening every zone's matches back together would
 // reintroduce the cross-zone matchNumber collision the zone-scoped bracket endpoint exists to
-// avoid (openspec 0246).
+// avoid.
 let bracketMatches: ReturnType<typeof mapBracketResponse>['zones'][number]['matches'] = [];
 if (selectStageLayout(response.stageFormat) === 'bracket') {
   const rawBracket = await fetchBracket(organization!, tournament!, stageNumber);

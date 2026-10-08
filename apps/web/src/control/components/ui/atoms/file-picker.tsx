@@ -22,7 +22,7 @@ export interface FilePickerProps {
    * Localized copy this atom itself may not resolve (R6: no react-intl call
    * in an atom/molecule) — every caller builds this via `filePickerLabels(intl)`
    * and passes it down, the same way `matchCardLabels`/`seriesStateBarLabels`
-   * pre-resolve a shared component's copy for its consumer (openspec 0285).
+   * pre-resolve a shared component's copy for its consumer.
    * English defaults keep every existing call site working unchanged.
    */
   readonly promptText?: string;
@@ -42,7 +42,7 @@ export function formatFileSize(bytes: number): string {
 }
 
 /**
- * Extracted from `FilePicker` itself (openspec 0285) so this logic's own
+ * Extracted from `FilePicker` itself so this logic's own
  * branches score separately rather than adding to that component's already
  * substantial complexity — the same remediation this file's own CRAP-score
  * register already applies elsewhere in this codebase.

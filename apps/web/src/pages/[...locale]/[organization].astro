@@ -51,7 +51,7 @@ const orgClubs = (listData?.clubs ?? []).map((club) => ({
 const organizationEmblemSrc = listData?.organizationEmblemObjectId
   ? organizationEmblemUrl(listData.organizationAlias)
   : undefined;
-// Live first, featured second: live is urgent, featured is curated (0207).
+// Live first, featured second: live is urgent, featured is curated.
 const featured = listData ? featuredTournaments(listData.tournaments) : [];
 
 const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgPageNotFoundTitle);

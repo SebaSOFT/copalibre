@@ -76,7 +76,7 @@ export const WIZARD_STEPS: readonly {
 
 export interface DisciplineOption {
   readonly descriptorId: string;
-  /** The discipline's catalogue alias — used to validate an authored profile's stage formats against it (openspec 0164). */
+  /** The discipline's catalogue alias — used to validate an authored profile's stage formats against it. */
   readonly alias?: string;
   readonly version: string;
   readonly name: string | LocalizedLabel;
@@ -391,7 +391,7 @@ export function elementOptionsKey(kind: 'condition' | 'action', type: string): s
 
 /**
  * A configured rule's condition or action, rendered as a plain-language
- * sentence via the entry's own `phraseTemplate` (openspec 0266) — never a
+ * sentence via the entry's own `phraseTemplate` — never a
  * second type-inference or merge implementation, just the shared
  * `renderTemplate` (`@copalibre/rules`) fed this side's own parameter values
  * and options, keyed the same way `scriptElement`/`invalidAuthoringInput`

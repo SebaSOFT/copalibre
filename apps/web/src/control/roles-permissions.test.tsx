@@ -471,7 +471,7 @@ describe('roles and permissions control', () => {
     expect(select.options.length).toBeGreaterThan(3);
   });
 
-  it('renders pending invitations and rescinds one (openspec 0170)', async () => {
+  it('renders pending invitations and rescinds one', async () => {
     const rescinded: string[] = [];
     render(
       withIntl(
@@ -595,7 +595,7 @@ describe('roles and permissions control', () => {
     await waitFor(() => expect(screen.queryByText('nuevo@example.test')).toBeNull());
   });
 
-  it('shows the row’s role hint, changing once a different role is assigned (openspec 0251 task 7.1)', () => {
+  it('shows the row’s role hint, changing once a different role is assigned', () => {
     // RoleSelect is fully controlled by `row.role` (a change submits
     // immediately, task 1's own test above proves that) — so "a different
     // role selected" is exercised the same way the real app shows it: by the
@@ -646,7 +646,7 @@ describe('roles and permissions control', () => {
     ).toBeNull();
   });
 
-  it('links "learn more" to each role’s own help page, opening in a new tab (openspec 0251 task 7.2)', () => {
+  it('links "learn more" to each role’s own help page, opening in a new tab', () => {
     const rolesToPaths: Record<string, string> = {
       admin: '/help/roles/admin/',
       'club-admin': '/help/roles/club-admin/',
@@ -678,7 +678,7 @@ describe('roles and permissions control', () => {
     }
   });
 
-  it('shows the invite dialog’s role hint and link, matching the selected role (openspec 0251 task 7.3)', () => {
+  it('shows the invite dialog’s role hint and link, matching the selected role', () => {
     render(
       withIntl(
         <RolesPermissionsTemplate

@@ -81,13 +81,13 @@ describe('the tournament setup wizard screen', () => {
     fireEvent.click(add);
 
     // The `notify` entry declares no phraseTemplate here, so the row falls
-    // back to `type — description` (openspec 0266) rather than the raw type.
+    // back to `type — description` rather than the raw type.
     expect(screen.getByText(/notify — Declare notification/)).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
     expect(screen.queryByText(/notify — Declare notification/)).toBeNull();
   });
 
-  it('renders a configured rule using its phrase template rendered against the operator’s own values (openspec 0266)', () => {
+  it('renders a configured rule using its phrase template rendered against the operator’s own values', () => {
     const vocabularyWithPhrase: HookScriptVocabulary = {
       hooks: ['event.recorded'],
       entries: [
@@ -356,7 +356,7 @@ describe('the tournament setup wizard screen', () => {
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Liga San Rafael');
   });
 
-  it('offers the accounting-grain control only once series is enabled, preselecting match grain (0160)', () => {
+  it('offers the accounting-grain control only once series is enabled, preselecting match grain', () => {
     render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Grano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-grano' } });
@@ -376,7 +376,7 @@ describe('the tournament setup wizard screen', () => {
     expect(screen.queryByLabelText('Count standings per series, not per match')).toBeNull();
   });
 
-  it('captures an explicit choice of series grain in the control’s own value (0160)', () => {
+  it('captures an explicit choice of series grain in the control’s own value', () => {
     render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Grano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-grano' } });
@@ -402,7 +402,7 @@ describe('the tournament setup wizard screen', () => {
   });
 });
 
-describe('discipline rule overrides at creation (openspec 0265)', () => {
+describe('discipline rule overrides at creation', () => {
   const DISCIPLINE_WITH_RULESET_FIELDS = [
     {
       descriptorId: 'd-ruleset',
@@ -488,7 +488,7 @@ describe('discipline rule overrides at creation (openspec 0265)', () => {
   });
 });
 
-describe('decision descriptions (openspec 0161)', () => {
+describe('decision descriptions', () => {
   const DISCIPLINE_WITH_DESCRIPTIONS = [
     {
       descriptorId: '01890000-0000-7000-8000-000000000010',

@@ -178,7 +178,7 @@ describe('TvDashboard', () => {
     expect(screen.getAllByText(dashboardLabels.resultState.live).length).toBeGreaterThan(0);
   });
 
-  describe('pinned-match event ticker (openspec 0270)', () => {
+  describe('pinned-match event ticker', () => {
     // Not all-final, unlike `sampleInitial` — an all-final dashboard renders the champion
     // presentation instead of the match spotlight the ticker sits inside.
     const pinnedDashboard: LiveDashboard = {
@@ -332,7 +332,7 @@ describe('TvDashboard', () => {
   });
 });
 
-describe('overlay presentations (openspec 0201)', () => {
+describe('overlay presentations', () => {
   const baseProps = {
     initial: { matches: [], standingsVersion: 0, usingLastKnown: true },
     streamPath: '/stream',
@@ -424,7 +424,7 @@ describe('overlay presentations (openspec 0201)', () => {
   });
 });
 
-describe('scorebug clock (openspec 0225 task 2.7)', () => {
+describe('scorebug clock', () => {
   it('formats the clock for the selected locale, not a fixed presentation', () => {
     const spy = jest.spyOn(Date.prototype, 'toLocaleTimeString');
 
@@ -484,7 +484,7 @@ describe('scorebug clock (openspec 0225 task 2.7)', () => {
   });
 });
 
-describe('TvDashboard broadcast alert dispatch (openspec 0300)', () => {
+describe('TvDashboard broadcast alert dispatch', () => {
   const pinnedMatch: LiveMatch = {
     matchId: 'm-pinned',
     stageNumber: 1,

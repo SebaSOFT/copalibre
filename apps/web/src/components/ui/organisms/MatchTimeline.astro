@@ -1,8 +1,7 @@
 ---
 /**
- * Extracted from the match report page (openspec 0225 task 7.2), unchanged
- * in markup and styling except for localization and timestamp handling
- * (openspec 0269).
+ * Extracted from the match report page, unchanged
+ * in markup and styling except for localization and timestamp handling.
  */
 import type { IntlShape } from 'react-intl';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
@@ -92,7 +91,7 @@ const { model, intl } = Astro.props;
     font-family: var(--cl-font-mono);
     color: var(--cl-primary);
     font-size: 0.8125rem;
-    /* An ISO timestamp has no space to wrap at (openspec 0225 task 7.4); at
+    /* An ISO timestamp has no space to wrap at; at
        the 188px floor it needs an in-word break rather than pushing the row
        past the viewport. */
     overflow-wrap: anywhere;

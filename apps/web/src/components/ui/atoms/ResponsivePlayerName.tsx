@@ -63,9 +63,9 @@ function textFor(tier: Tier, first: string, last: string): string {
 }
 
 /**
- * A player identity that degrades across four tiers as its container narrows
- * — `[Flag] First Last` → `First Last` → `F. Last` → `F. L.` — instead of
- * overflowing or ellipsis-truncating (openspec 0247).
+ * A player identity that degrades across four tiers as its container narrows —
+ * `[Flag] First Last` → `First Last` → `F. Last` → `F. L.` — instead of
+ * overflowing or ellipsis-truncating.
  */
 export function ResponsivePlayerName({
   firstName,

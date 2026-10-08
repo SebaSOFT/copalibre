@@ -22,7 +22,7 @@ type Story = StoryObj<typeof meta>;
  *
  * Its close button is labelled `"Cerrar menú"` in Spanish whatever the selected
  * language, which is the hardcoded string recorded against
- * `navigation-drawer.tsx` and owned by `0214`.
+ * `navigation-drawer.tsx` and owned by the library.
  */
 export const Open: Story = {
   args: { open: true, title: '' },

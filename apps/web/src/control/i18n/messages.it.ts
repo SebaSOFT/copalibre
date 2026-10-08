@@ -1246,7 +1246,7 @@ export const messages: Record<string, string> = {
   'control.dashboard.export': 'Esporta',
   'control.dashboard.resumeEditing': 'Riprendi modifica',
 
-  // 0223 — standings panel chrome, metric availability, module updates.
+  // standings panel chrome, metric availability, module updates.
   'control.standings.panelDecidedBy': 'Ha deciso questa posizione',
   'control.standings.tiebreakerSequenceTitle': 'Sequenza di spareggio',
   'control.standings.rankColumn': 'Posizione',

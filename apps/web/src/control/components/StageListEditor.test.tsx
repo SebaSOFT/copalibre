@@ -240,7 +240,7 @@ describe('StageListEditor', () => {
     ]);
   });
 
-  describe('zones (0339)', () => {
+  describe('zones', () => {
     const zoned: readonly WizardStageDraft[] = [
       {
         number: 1,

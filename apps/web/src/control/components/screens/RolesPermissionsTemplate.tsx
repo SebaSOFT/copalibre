@@ -35,7 +35,7 @@ const ROLE_LABEL: Record<OrganizationRole, MessageDescriptor> = {
   viewer: messages.rolesRoleViewer,
 };
 
-/** Condensed from each role's own "What this role is for" help page (openspec 0251). */
+/** Condensed from each role's own "What this role is for" help page. */
 const ROLE_DESCRIPTION: Record<OrganizationRole, MessageDescriptor> = {
   admin: messages.rolesDescriptionAdmin,
   'club-admin': messages.rolesDescriptionClubAdmin,
@@ -104,7 +104,7 @@ export function RolesPermissionsTemplate({
   readonly clubs?: readonly ClubResponse[];
   /** Tournaments in this organization, for the tournament-admin invite picker. Empty until loaded. */
   readonly tournaments?: readonly TournamentResponse[];
-  /** Invitations not yet accepted, not rescinded, not expired (openspec 0170). */
+  /** Invitations not yet accepted, not rescinded, not expired. */
   readonly pendingInvitations?: readonly PendingOrganizationInvitationResponse[];
   readonly onChange: (
     assignmentId: string,

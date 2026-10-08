@@ -65,7 +65,7 @@ export function DashboardPage({
   const canCreateTournament =
     role === undefined || capabilitiesForRole(role).includes('org.create-tournaments');
   // Same guard, same capability the Broadcaster Studio's own backend
-  // endpoints already require (openspec 0300) — gates the dashboard's
+  // endpoints already require — gates the dashboard's
   // per-tournament entry point into it.
   const canManageDisplayTokens =
     role === undefined || capabilitiesForRole(role).includes('org.manage-display-tokens');

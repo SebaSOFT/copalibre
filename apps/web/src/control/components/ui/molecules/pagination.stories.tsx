@@ -56,7 +56,7 @@ export const Playground: Story = {
  * `previousLabel`/`nextLabel` to the literals `'Previous'` and `'Next'` and
  * hardcodes `aria-label="Pagination"`, so it stays English under every
  * selection — the debt `scripts/check-ui-text-catalogue-coverage.mjs` records
- * against this file and `0214` owns. Left visible on purpose: a story that
+ * against this file and the library owns. Left visible on purpose: a story that
  * passed translated labels in would hide the only evidence.
  */
 export const Boundaries: Story = {

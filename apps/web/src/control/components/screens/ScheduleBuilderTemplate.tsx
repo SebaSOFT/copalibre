@@ -57,7 +57,7 @@ function assignmentFrom(
 
 /**
  * Composes the calendar view, the list view, and the preview/publish panel
- * from the data `ScheduleBuilderPage` supplies (openspec 0225 task 6.2):
+ * from the data `ScheduleBuilderPage` supplies:
  * every derived computation below (groups, slots, the assignment batch) is
  * a pure read of the page's fixtures/schedules/drafts, and `onPreview`/
  * `onPublish` are the only calls back to the page.

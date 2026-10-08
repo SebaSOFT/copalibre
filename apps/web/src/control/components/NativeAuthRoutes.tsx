@@ -10,7 +10,7 @@ import { Field } from './ui/molecules/field.js';
 import { useToast } from './ToastProvider.js';
 import { AuthScreenLayout } from './ui/layouts/auth-screen-layout.js';
 
-// openspec 0225 task 2.6: every defaultMessage here was Spanish and fell back
+// Every defaultMessage here was Spanish and fell back
 // incorrectly across locales. Restated in English; the return link has a
 // localized override in each control catalog, while the remaining auth copy
 // uses the source language until that namespace receives its own translations.
@@ -54,8 +54,8 @@ export function LoginRoute(): React.JSX.Element {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // A failed silent renewal (openspec 0302) redirects here with this reason
-  // — surfaced once, on the query string this screen was actually reached
+  // A failed silent renewal redirects here with this reason —
+  // surfaced once, on the query string this screen was actually reached
   // with, never re-triggered by anything the operator does on this screen.
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('reason') === 'session_expired') {

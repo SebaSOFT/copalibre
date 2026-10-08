@@ -3,10 +3,10 @@
  *
  * Relative-time formatting used to live here (`formatRelativeTime`); it now
  * lives in `components/ui/atoms/ResponsiveTimestamp.tsx`'s `relative` format,
- * which `ActivityLog.tsx` renders through directly (openspec 0247).
+ * which `ActivityLog.tsx` renders through directly.
  *
  * Resolves through the platform's canonical `resolveLabel`/`LocalizedLabel`
- * (openspec 0280) rather than a bespoke `{es, en}` pair — both dictionaries
+ * rather than a bespoke `{es, en}` pair — both dictionaries
  * used to only distinguish Spanish from an English-for-everything-else
  * fallback, silently rendering English for the other 6 supported languages.
  */

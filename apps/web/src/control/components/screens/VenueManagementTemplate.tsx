@@ -28,7 +28,7 @@ const OFFICIAL_ROLES: readonly OfficialRole[] = [
 
 /**
  * Composes the screen from data and callbacks `VenueManagementPage`
- * supplies (openspec 0225 task 6.1): the new-record forms, the selected
+ * supplies: the new-record forms, the selected
  * record being edited, and the venue/role checkbox toggles below are this
  * component's own screen state; every mutation is a call to one of the
  * `on*` props.

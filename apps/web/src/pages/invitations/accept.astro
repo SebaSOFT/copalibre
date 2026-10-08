@@ -11,8 +11,7 @@ export const prerender = false;
 const token = Astro.url.searchParams.get('token') ?? '';
 
 /**
- * Control-web has no cookie/query-param locale mechanism (openspec 0278
- * design.md) — its one persisted signal, `localStorage`, is unreachable from
+ * Control-web has no cookie/query-param locale mechanism — its one persisted signal, `localStorage`, is unreachable from
  * this SSR pass. `Accept-Language` is the only server-visible signal, so it
  * stands in for `resolveLanguage`'s `browserLanguages` input; a q-value-aware
  * parse is unnecessary precision for a document `lang`/`title` that a

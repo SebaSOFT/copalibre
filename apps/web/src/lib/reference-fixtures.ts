@@ -8,7 +8,7 @@
  * disagree.
  *
  * These are demonstrations, not records. They never reach a production surface:
- * the compositions that consume them (`0223`) read real projections, and the
+ * the compositions that consume them read real projections, and the
  * workbench labels every value here as fixture data.
  *
  * Identifiers follow the repository's contract — UUIDv7 for entities, kebab-case

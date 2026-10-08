@@ -3,8 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import styleGuideHtml from '@copalibre/design-tokens/generated/style-guide.html?raw';
 
 /**
- * The generated token style guide, presented rather than reimplemented
- * (OpenSpec 0213, design.md Decision 7).
+ * The generated token style guide, presented rather than reimplemented.
  *
  * `packages/design-tokens` writes `generated/style-guide.html` from the token
  * source. Restating those values as stories would reintroduce exactly the drift

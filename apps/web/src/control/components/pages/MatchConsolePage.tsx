@@ -47,7 +47,7 @@ export type ConsoleStatus =
   | { readonly kind: 'error'; readonly message: string };
 
 /**
- * Fetches, subscribes, and queues (openspec 0225 task 6.1): every effect and
+ * Fetches, subscribes, and queues: every effect and
  * every function that reaches the API client or the durable offline queue
  * lives here. `MatchConsoleTemplate` composes the screen from the data and
  * callbacks this passes down, and holds none of its own — the split the
@@ -126,7 +126,7 @@ export function MatchConsolePage({
       .then((seeding) => {
         // This match's own zone only — flattening every zone's matches back together would
         // reintroduce the cross-zone round/position collision the zone-scoped canvas exists to
-        // avoid (openspec 0246), inside the journey-highlight/context logic instead of the
+        // avoid, inside the journey-highlight/context logic instead of the
         // canvas itself.
         const ownZone = seeding.zones.find((zone) =>
           zone.matches.some((m) => m.persistedMatchId === matchId),
@@ -256,8 +256,8 @@ export function MatchConsolePage({
 
   // Write-ahead (design.md's own decision, by name): persisted to the
   // durable queue *before* any send is attempted, so a dropped connection —
-  // whether detected up front or discovered only when the send itself fails
-  // — never loses the action. `drain()` performs (and reports) the actual
+  // whether detected up front or discovered only when the send itself fails —
+  // never loses the action. `drain()` performs (and reports) the actual
   // attempt; this only ever queues, applies the optimistic patch, and then
   // asks for a drain.
   async function mutate(action: QueuedAction, optimistic?: () => void): Promise<void> {
@@ -269,7 +269,7 @@ export function MatchConsolePage({
   }
 
   /**
-   * Queued like every other mutating command (0123's requirement covers these
+   * Queued like every other mutating command (the offline-resilience requirement covers these
    * too), so a whistle blown in a dead zone is replayed rather than lost. The
    * optimistic patch mirrors what the server does: only one segment runs, so
    * starting one stops whichever was running.

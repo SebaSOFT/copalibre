@@ -31,7 +31,7 @@ const node = toNode(Astro.props.match, resultStateLabels(intl));
 const highlight = Astro.props.highlightEntrants === true;
 const Wrapper = highlight ? 'div' : 'a';
 const reasonLabels = resultReasonLabels(intl);
-// Every card links, resolved or not — 0102's report page already
+// Every card links, resolved or not — the match report page already
 // renders correctly for a not-yet-played match, so a winner-of/loser-of
 // placeholder still points somewhere real, not a dead end.
 const reportUrl = matchReportUrl({

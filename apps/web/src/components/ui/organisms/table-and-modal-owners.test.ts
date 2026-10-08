@@ -1,5 +1,5 @@
 /**
- * `DataTable.astro` and `Modal.astro` (openspec 0225 task 2.3), checked at
+ * `DataTable.astro` and `Modal.astro`, checked at
  * the source the way `preview-seam.test.ts` checks `AstroPreview.astro`:
  * these ship no unit-test harness for `.astro` rendering, so the concrete
  * claims — server-rendered with no client JS required, an accessibly-named

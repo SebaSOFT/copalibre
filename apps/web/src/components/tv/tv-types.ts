@@ -1,8 +1,8 @@
 import type { ResultStateLabels } from '../../lib/result-state.js';
 
 /**
- * Shared types for the TV/broadcast surface's split-out sub-components
- * (openspec 0225 task 7.1) — kept separate from `TvDashboard.tsx` so a
+ * Shared types for the TV/broadcast surface's split-out sub-components —
+ * kept separate from `TvDashboard.tsx` so a
  * sub-component doesn't import back into the file that composes it.
  */
 export interface TvClubItem {

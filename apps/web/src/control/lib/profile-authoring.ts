@@ -16,7 +16,7 @@ import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
 export { renumbered } from './stage-authoring.js';
 
 /**
- * The tournament profile builder wizard (openspec 0164).
+ * The tournament profile builder wizard.
  *
  * A profile is discipline-neutral by schema — it never names a discipline —
  * but this wizard asks for one anyway, purely to check each stage's format
