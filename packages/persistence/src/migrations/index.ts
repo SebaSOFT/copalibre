@@ -168,7 +168,7 @@ export async function readAppliedSchemaVersion(db: Kysely<Database>): Promise<st
 }
 
 /**
- * Readiness contract consumed by `apps/api` (task 4.3): refuse to serve
+ * Readiness contract consumed by `apps/api`: refuse to serve
  * traffic unless the database is migrated to the version this release expects.
  */
 export async function isSchemaReady(db: Kysely<Database>): Promise<boolean> {

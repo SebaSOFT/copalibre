@@ -8,10 +8,9 @@ import semver from 'semver';
 const execFileAsync = promisify(execFile);
 
 /**
- * Modules live in Git, fetched by tag — never a bespoke registry (design.md's
- * "Git repositories, not a bespoke registry" decision). A tag names one
+ * Modules live in Git, fetched by tag — never a bespoke registry (Git repositories, not a bespoke registry). A tag names one
  * module's one published version as `<alias>@<version>` — the monorepo
- * layout `copalibre-modules` uses (task 5.2) needs a per-module tag scheme
+ * layout `copalibre-modules` uses needs a per-module tag scheme
  * to avoid two modules' versions colliding on one tag name.
  */
 
@@ -90,7 +89,7 @@ export interface FetchedModule {
   readonly source: ModuleSource;
 }
 
-/** Every version of `alias` published to `source` — `module list --outdated` (task 4.3) uses this without checking anything out. */
+/** Every version of `alias` published to `source` — `module list --outdated` uses this without checking anything out. */
 export async function listPublishedVersions(
   source: ModuleSource,
   alias: string,
@@ -106,9 +105,9 @@ export async function listPublishedVersions(
 
 /**
  * Resolves `alias`[`@range`] against `source` and checks out that tag's
- * module directory into a fresh temp directory under `workspaceDirectory`
- * (task 3.1). Tries `disciplines/<alias>` then `profiles/<alias>` within the
- * checkout — the layout `copalibre-modules` uses (task 5.2) — since the
+ * module directory into a fresh temp directory under `workspaceDirectory`.
+ * Tries `disciplines/<alias>` then `profiles/<alias>` within the
+ * checkout — the layout `copalibre-modules` uses — since the
  * fetch itself does not yet know the module's kind.
  */
 export interface FetchModuleDependencies {
@@ -157,9 +156,9 @@ async function tryManifestFallback(
 
 /**
  * Resolves `alias`[`@range`] against `source` and checks out that tag's
- * module directory into a fresh temp directory under `workspaceDirectory`
- * (task 3.1). Tries `disciplines/<alias>` then `profiles/<alias>` within the
- * checkout — the layout `copalibre-modules` uses (task 5.2) — since the
+ * module directory into a fresh temp directory under `workspaceDirectory`.
+ * Tries `disciplines/<alias>` then `profiles/<alias>` within the
+ * checkout — the layout `copalibre-modules` uses — since the
  * fetch itself does not yet know the module's kind.
  *
  * If an exact Git tag is missing from the repository, attempts manifest

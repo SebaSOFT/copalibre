@@ -1,7 +1,7 @@
 import type { ObjectStorageAdapter } from '../types.js';
 
 /**
- * The behavior every profile SHALL provide identically (task 5.1) — run
+ * The behavior every profile SHALL provide identically — run
  * against both the S3 and filesystem profiles so neither can silently
  * diverge from the shared adapter contract.
  */

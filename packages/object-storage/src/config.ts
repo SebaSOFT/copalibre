@@ -4,7 +4,7 @@ import type { S3StorageConfig } from './s3-profile.js';
 export type ObjectStorageConfig = S3StorageConfig | FilesystemStorageConfig;
 
 /**
- * Resolves the active profile from the environment (task 1.1/1.3): a fully
+ * Resolves the active profile from the environment: a fully
  * configured S3-compatible endpoint takes precedence, otherwise the
  * filesystem fallback is used, rooted under `COPALIBRE_DATA_DIR` (the same
  * persistent path `copalibre doctor`'s own `persistent-path` check already

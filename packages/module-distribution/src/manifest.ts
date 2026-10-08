@@ -81,7 +81,7 @@ export interface ManifestValidationFailure {
 const manifestAjv = new Ajv({ allErrors: false, coerceTypes: false, strict: false });
 let manifestValidator: ValidateFunction | undefined;
 
-/** Structural validation only (task 1.1/2.1) — cross-checks against the artifact document happen in `validate.ts`. */
+/** Structural validation only — cross-checks against the artifact document happen in `validate.ts`. */
 export function validateModuleManifest(
   document: unknown,
 ):

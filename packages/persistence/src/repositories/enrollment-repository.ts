@@ -308,7 +308,7 @@ export class EnrollmentRepository {
    * Removes a team that has never been used for anything — no entrant
    * registration, no rostered player. Either reference refuses the removal
    * by name, an up-front check rather than a caught foreign-key-violation
-   * error (design.md, mirroring `PersonRepository.remove`). Requires the
+   * error (mirroring `PersonRepository.remove`). Requires the
    * caller to have already confirmed the team exists and belongs to this
    * organization, matching `updateTeam`'s own contract.
    */

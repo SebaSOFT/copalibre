@@ -3,7 +3,7 @@ import { recordAuditRefusal, withTransaction } from './transaction.js';
 import { createMigratedDatabase, type ScratchDatabase } from './test-support/scratch-database.js';
 import { OrganizationRepository } from './repositories/organization-repository.js';
 
-describe('AuditReader — organization/actor-scoped pagination (task 4.1)', () => {
+describe('AuditReader — organization/actor-scoped pagination', () => {
   let scratch: ScratchDatabase;
   let orgA: string;
   let orgB: string;
@@ -96,7 +96,7 @@ describe('AuditReader — organization/actor-scoped pagination (task 4.1)', () =
   });
 });
 
-describe('AuditReader.historyFor — a refused attempt alongside applied changes (task 6.4)', () => {
+describe('AuditReader.historyFor — a refused attempt alongside applied changes', () => {
   let scratch: ScratchDatabase;
   let organizationId: string;
 

@@ -126,7 +126,7 @@ export class OrganizationAccessRepository {
    * principal has a role in, rather than every principal in *one* organization.
    * Filtered to active, non-deleted assignments — an inactive or soft-deleted
    * one already fails every other admin-control route's guard check, so it
-   * would be a dead end if surfaced here (design.md).
+   * would be a dead end if surfaced here.
    */
   async listOrganizationsForPrincipal(
     principalId: string,

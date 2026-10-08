@@ -3,7 +3,7 @@ import type { SupportedLanguage } from '../i18n.js';
 /**
  * Organization is the tenancy boundary. Whether a separate multi-tenant
  * "tenant" concept ever exists is an explicitly open naming-conventions item;
- * this phase treats Organization as the only boundary (see design.md).
+ * this phase treats Organization as the only boundary.
  */
 export interface Organization {
   readonly organizationId: string;

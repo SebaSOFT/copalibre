@@ -396,7 +396,7 @@ export function resolveHookAttachment(id: string): Result<HookAttachment, Script
   return ok({ hook, inert: false });
 }
 
-/** The contract a script author reads instead of guessing (task 1.6). */
+/** The contract a script author reads instead of guessing. */
 export function publishedContextPaths(id: ScriptHookId): readonly string[] {
   return HOOK_DEFINITIONS[id].context;
 }

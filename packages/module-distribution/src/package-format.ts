@@ -2,8 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /**
- * A module package's on-disk layout,
- * task 1.2):
+ * A module package's on-disk layout:
  *
  *   <module-directory>/
  *     manifest.json      — the ModuleManifest (manifest.ts)

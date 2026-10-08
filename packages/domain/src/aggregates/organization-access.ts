@@ -181,7 +181,7 @@ export interface GrantorContext {
  * - an organization admin may grant any organization role except super-admin
  *   (which is not itself an organization role) — this reuses the existing,
  *   unchanged authority an organization admin already has to grant
- *   broadcaster/viewer (design.md Non-Goals: "not changing how
+ *   broadcaster/viewer ("not changing how
  *   broadcaster/viewer are granted"), scoped to their own organization.
  * - club-admin and referee (no `organizationAdminOf`, not super-admin) may
  *   grant nothing.
