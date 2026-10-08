@@ -56,6 +56,8 @@ controllo e dalle superfici `/tv/**`. Una [serie](/help/control/series) in corso
 punteggio dal vivo e quale parte sta vincendo sul tabellone pubblico nello stesso modo del pannello di
 controllo, e una partita non ancora programmata è mostrata come tale, mai indovinata.
 
+Sullo schermo TV, il riepilogo di un torneo concluso deciso zona per zona elenca il campione o i campioni a pari merito di ogni zona dell’ultima fase sotto il nome della zona, gli stessi vincitori mostrati dalla panoramica pubblica. Un torneo con un solo campione mantiene la presentazione del campione unico, e il leader della classifica di una fase precedente non viene mai presentato come campione.
+
 ## Cosa non puoi fare qui
 
 Nessuna delle due superfici accetta input da uno spettatore o da un dispositivo TV: entrambe sono

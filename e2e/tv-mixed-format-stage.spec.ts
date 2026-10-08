@@ -147,6 +147,43 @@ const overview = {
   ],
 };
 
+// A finished tournament decided zone by zone: three cups, the Bronze one with a shared title.
+const FINISHED_TOURNAMENT = 'copas-finalizadas';
+const podium = (alias: string) => {
+  const club = CLUBS[alias] as Club;
+  return {
+    entrantId: alias,
+    name: club.name,
+    abbreviation: club.abbreviation,
+    clubId: `club-${alias}`,
+    emblemObjectId: `emblem-${alias}`,
+  };
+};
+const finishedOverview = {
+  ...overview,
+  tournamentAlias: FINISHED_TOURNAMENT,
+  status: 'finished',
+  matches: [overviewMatch(1, 'finalized', 'andes-talleres', 'atletico-union', 3, 1)],
+  standingsPreview: overview.standingsPreview,
+  winners: [
+    {
+      zoneName: 'Copa Oro',
+      champion: podium('andes-talleres'),
+      champions: [podium('andes-talleres')],
+    },
+    {
+      zoneName: 'Copa Plata',
+      champion: podium('concepcion-patin-club'),
+      champions: [podium('concepcion-patin-club')],
+    },
+    {
+      zoneName: 'Copa Bronce',
+      champion: podium('atletico-union'),
+      champions: [podium('atletico-union'), podium('estudiantil-san-miguel')],
+    },
+  ],
+};
+
 const bracket = {
   format: 'round-robin',
   zones: [
@@ -199,6 +236,14 @@ test.beforeAll(async ({ workerPort }) => {
     }
     res.setHeader('content-type', 'application/json');
     if (req.url === `${base}/overview`) res.end(JSON.stringify(overview));
+    else if (
+      req.url === `/organizations/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}/overview`
+    )
+      res.end(JSON.stringify(finishedOverview));
+    else if (
+      req.url?.startsWith(`/organizations/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}/`)
+    )
+      res.end(JSON.stringify({ matches: [] }));
     else if (req.url === `${base}/live`) res.end(JSON.stringify({ matches: [] }));
     else if (req.url === `${base}/stages/1/bracket`) res.end(JSON.stringify(bracket));
     else {
@@ -283,6 +328,34 @@ test('every image the kiosk asks for loads from the web application alone', asyn
   await expect(
     page.locator('img[src*="/objects/discipline-background-image"]').first(),
   ).toBeAttached();
+});
+
+test('the recap of a finished tournament lists the champions of every zone of the last stage', async ({
+  page,
+}) => {
+  await page.goto(`/tv/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}`);
+
+  const zones = page.getByTestId('tv-champions-zone');
+  await expect(zones).toHaveCount(3);
+  await expect(zones.nth(0)).toContainText('Copa Oro');
+  await expect(zones.nth(0)).toContainText('Andes Talleres');
+  await expect(zones.nth(2)).toContainText('Atletico Union');
+  await expect(zones.nth(2)).toContainText('Estudiantil San Miguel');
+  // The group-stage leader (the first standings row) is not presented as the champion.
+  await expect(page.getByTestId('tv-champion-panel')).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          [...document.querySelectorAll('.tv-champions__emblem')].filter(
+            (image) =>
+              !(
+                (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0
+              ),
+          ).length,
+      ),
+    )
+    .toBe(0);
 });
 
 test('captures screenshots of the zone-aware kiosk at broadcast size', async ({ page }) => {

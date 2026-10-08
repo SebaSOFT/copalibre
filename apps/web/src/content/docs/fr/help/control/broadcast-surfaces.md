@@ -56,6 +56,8 @@ contrôle et les surfaces `/tv/**`. Une [série](/help/control/series) en cours 
 direct et quel camp mène sur le tableau public de la même façon que dans le panneau de contrôle, et un
 match pas encore planifié est affiché comme tel, jamais deviné.
 
+Sur l’écran TV, le récapitulatif d’un tournoi terminé décidé zone par zone liste le champion ou les co-champions de chaque zone de la dernière phase sous le nom de la zone, les mêmes vainqueurs que ceux de l’aperçu public. Un tournoi à champion unique garde la présentation du champion unique, et le leader du classement d’une phase précédente n’est jamais présenté comme champion.
+
 ## Ce que vous ne pouvez pas faire ici
 
 Aucune des deux surfaces n'accepte de saisie d'un spectateur ou d'un appareil TV : les deux sont des

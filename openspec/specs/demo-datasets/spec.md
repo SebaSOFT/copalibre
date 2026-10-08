@@ -210,3 +210,14 @@ load demo data into an installation.
 
 - **WHEN** the dev API container is rebuilt after a dataset was loaded
 - **THEN** the emblems still render, because dev object storage is the shared Garage service
+
+### Requirement: The Panamericano dataset carries an organization emblem
+The Panamericano dataset SHALL include an organization emblem image, SHALL declare it in the dataset document and its schema, SHALL name its origin in `source.md`, and loading the dataset SHALL attach it to the organization so the public organization page shows it.
+
+#### Scenario: The organization header shows the emblem
+- **WHEN** the dataset is loaded and the organization page is opened
+- **THEN** the organization header shows the emblem instead of the placeholder
+
+#### Scenario: Loading stays idempotent
+- **WHEN** the dataset is loaded twice
+- **THEN** the organization has one emblem

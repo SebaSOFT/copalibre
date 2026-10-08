@@ -1968,6 +1968,185 @@ describe('public projections routes', () => {
       expect(bronzeZone.runnerUp).toBeUndefined();
     });
 
+    it('lists the champion of every cup of a stage whose cups also play classification games', async () => {
+      // Twelve fixtures per cup: quarter-finals, semi-finals, a fifth-to-eighth round and the
+      // final beside the third, fifth and seventh place games. The fifth-place game's entrants pass
+      // the same lineage test as the finalists, so only the unbeaten finalists identify the final.
+      const tournaments = new TournamentRepository(scratch.db);
+      const competition = new CompetitionRepository(scratch.db);
+      const enrollments = new EnrollmentRepository(scratch.db);
+      const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+      const db = scratch.db as Kysely<Database>;
+
+      const created = await withTransaction(db, (uow) =>
+        tournaments.create(uow, {
+          organizationId,
+          alias: 'copas-clasificatorias',
+          name: 'Copas Clasificatorias',
+          descriptor: footballDescriptor(),
+          ...audit,
+        }),
+      );
+      await withTransaction(db, (uow) =>
+        tournaments.publish(uow, { tournamentId: created.tournamentId, organizationId, ...audit }),
+      );
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'started' })
+        .where('tournament_id', '=', created.tournamentId)
+        .execute();
+
+      // [round, home, home score, away, away score]; a drawn game records no winner.
+      const cupGames: readonly (readonly [number, number, number, number, number])[] = [
+        [1, 1, 2, 2, 7],
+        [1, 3, 1, 4, 5],
+        [1, 5, 3, 6, 3],
+        [1, 7, 2, 8, 4],
+        [2, 2, 3, 8, 1],
+        [2, 6, 1, 4, 2],
+        [2, 1, 5, 7, 3],
+        [2, 5, 7, 3, 1],
+        [3, 2, 0, 4, 3],
+        [3, 8, 5, 6, 4],
+        [3, 1, 3, 5, 3],
+        [3, 7, 4, 3, 9],
+      ];
+      const champions: Record<string, string> = {};
+
+      await withTransaction(db, async (uow) => {
+        const stage = await competition.createStageInTournament(uow, {
+          tournamentId: created.tournamentId,
+          number: 1,
+          name: 'Copas',
+          format: 'single-elimination',
+          organizationId,
+          ...audit,
+        });
+        const zones = [
+          await competition.createZone(uow, {
+            stageId: stage.stageId,
+            number: 1,
+            name: 'Copa Uno',
+            organizationId,
+            ...audit,
+          }),
+          await competition.createZone(uow, {
+            stageId: stage.stageId,
+            number: 2,
+            name: 'Copa Dos',
+            organizationId,
+            ...audit,
+          }),
+        ];
+
+        const entrantsOf = new Map<string, { entrantId: string }[]>();
+        for (const zone of zones) {
+          const entrants: { entrantId: string }[] = [];
+          for (let slot = 1; slot <= 8; slot += 1) {
+            const alias = `${zone.name.replace(' ', '-').toLowerCase()}-${slot}`;
+            const club = await enrollments.createClub(uow, {
+              organizationId,
+              alias: `club-${alias}`,
+              name: `Club ${alias}`,
+              ...audit,
+            });
+            const team = await enrollments.createTeam(uow, {
+              organizationId,
+              alias: `team-${alias}`,
+              name: `${zone.name} ${slot}`,
+              clubId: club.clubId,
+              ...audit,
+            });
+            entrants.push(
+              await enrollments.registerEntrant(uow, {
+                tournamentId: created.tournamentId,
+                organizationId,
+                entrantRef: { kind: 'team', teamId: team.teamId },
+                ...audit,
+              }),
+            );
+          }
+          entrantsOf.set(zone.zoneId, entrants);
+        }
+        const slotOf = (zoneId: string, slot: number) =>
+          (entrantsOf.get(zoneId)?.[slot - 1] as { entrantId: string }).entrantId;
+
+        // Every fixture of the stage is created in one call: a zone cannot be added once the
+        // stage holds a fixture.
+        const fixtures = await competition.createFixtures(uow, {
+          stageId: stage.stageId,
+          fixtures: zones.flatMap((zone) =>
+            cupGames.map(([round, home, , away]) => ({
+              round,
+              homeEntrantId: slotOf(zone.zoneId, home),
+              awayEntrantId: slotOf(zone.zoneId, away),
+              zoneId: zone.zoneId,
+            })),
+          ),
+          organizationId,
+          ...audit,
+        });
+        for (const [zoneIndex, zone] of zones.entries()) {
+          for (const [index, [, home, homeScore, away, awayScore]] of cupGames.entries()) {
+            const fixture = fixtures[zoneIndex * cupGames.length + index];
+            if (!fixture) throw new Error('Expected fixture');
+            const homeId = slotOf(zone.zoneId, home);
+            const awayId = slotOf(zone.zoneId, away);
+            const match = await competition.createMatch(uow, {
+              fixtureId: fixture.fixtureId,
+              number: 1,
+              organizationId,
+              ...audit,
+            });
+            await competition.recordResult(uow, {
+              matchId: match.matchId,
+              result: {
+                sides: [
+                  { entrantId: homeId, statistics: { score: homeScore } },
+                  { entrantId: awayId, statistics: { score: awayScore } },
+                ],
+                ...(homeScore === awayScore
+                  ? {}
+                  : { winnerEntrantId: homeScore > awayScore ? homeId : awayId }),
+                recordedAt: new Date().toISOString(),
+              },
+              organizationId,
+              ...audit,
+            });
+          }
+          // The final is the first fixture of the third round: seed 2 against seed 4.
+          champions[zone.name] = slotOf(zone.zoneId, 4);
+        }
+      });
+
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'finished' })
+        .where('tournament_id', '=', created.tournamentId)
+        .execute();
+
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/public/tournaments`,
+      });
+      expect(response.statusCode).toBe(200);
+      const found = JSON.parse(response.payload as string).tournaments.find(
+        (t: { tournamentId: string }) => t.tournamentId === created.tournamentId,
+      );
+      expect(found.winners.map((zone: { zoneName?: string }) => zone.zoneName)).toEqual([
+        'Copa Uno',
+        'Copa Dos',
+      ]);
+      for (const zone of found.winners as {
+        zoneName: string;
+        champions: { entrantId: string }[];
+      }[]) {
+        expect(zone.champions.map((champion) => champion.entrantId)).toEqual([
+          champions[zone.zoneName],
+        ]);
+      }
+    });
+
     it('resolves an explicit third place for a finished ranked tournament', async () => {
       const tournaments = new TournamentRepository(scratch.db);
       const competition = new CompetitionRepository(scratch.db);

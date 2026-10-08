@@ -415,6 +415,40 @@ describe('tv-statistics', () => {
       expect(res?.name).toBe('Team Two');
     });
 
+    it('does not name the standings leader of an earlier stage the champion of a staged tournament', () => {
+      const matches: LiveMatch[] = [
+        {
+          matchId: 'group-1',
+          stageNumber: 1,
+          matchNumber: 1,
+          state: 'final',
+          projectionVersion: 1,
+          sides: [
+            { entrantId: 'e1', name: 'Group Leader', score: 3, state: 'final' },
+            { entrantId: 'e2', name: 'Other', score: 0, state: 'final' },
+          ],
+        },
+        {
+          matchId: 'cup-final',
+          stageNumber: 2,
+          matchNumber: 1,
+          state: 'final',
+          projectionVersion: 1,
+          sides: [
+            { entrantId: 'e2', name: 'Other', score: 2, state: 'final' },
+            { entrantId: 'e3', name: 'Third', score: 2, state: 'final' },
+          ],
+        },
+      ];
+      const standings = [
+        { position: 1, name: 'Group Leader', abbreviation: 'GRL', played: 1, points: 3 },
+      ];
+
+      const champion = resolveChampion(labels, matches, standings);
+
+      expect(champion?.title).not.toBe(labels.championTitle);
+    });
+
     it('handles LiveMatch with partial or empty sides in resolveChampion', () => {
       const matches: LiveMatch[] = [
         {

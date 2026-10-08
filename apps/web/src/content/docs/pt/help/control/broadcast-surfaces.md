@@ -56,6 +56,8 @@ superfícies `/tv/**`. Uma [série](/help/control/series) em andamento mostra se
 lado está vencendo na chave pública da mesma forma que no painel de controle, e uma partida ainda não
 agendada é mostrada como tal, nunca é adivinhada.
 
+No ecrã de TV, o resumo de um torneio terminado decidido zona a zona lista o campeão ou os campeões partilhados de cada zona da última fase sob o nome da zona, os mesmos vencedores que a visão geral pública mostra. Um torneio com um único campeão mantém a apresentação de campeão único, e o líder da tabela de uma fase anterior nunca é apresentado como campeão.
+
 ## O que você não pode fazer aqui
 
 Nenhuma das duas superfícies aceita entrada de um espectador ou de um dispositivo de TV: ambas são

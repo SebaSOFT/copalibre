@@ -234,9 +234,13 @@ export function resolveChampion(
   }
 
   const allFinal = matches.length > 0 && matches.every((m) => m.state === 'final');
+  // A tournament that played several stages is decided by its last one, so the standings leader of
+  // an earlier stage is never named its champion; the final match below or the resolved winners
+  // the dashboard is given name it instead.
+  const stagesPlayed = new Set(matches.map((m) => m.stageNumber ?? 0)).size;
 
   // Check 1: Standings rank 1 if all matches are final
-  if (allFinal && standings && standings.length > 0) {
+  if (allFinal && stagesPlayed <= 1 && standings && standings.length > 0) {
     const leader = standings.find((s) => s.position === 1) ?? standings[0];
     if (leader) {
       const clubMatch = clubs?.find((c) => c.name.toLowerCase() === leader.name.toLowerCase());
