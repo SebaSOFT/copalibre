@@ -36,6 +36,18 @@ Pendant que cette superposition est ouverte, un but, un point ou un carton enreg
 affiche une bannière animée nommant l'équipe et le joueur, puis se referme automatiquement —
 personne sur place n'a besoin de la déclencher ou de la fermer.
 
+## Ce qu’affiche l’écran de la salle
+
+L’écran en rotation complète parcourt le classement, les meilleurs joueurs, les statistiques du tournoi et, lorsque la phase mise en avant en a, le tableau et les matchs de championnat. Une adresse avec `?view=standings` ou `?view=fixtures` en fixe un au lieu de faire tourner.
+
+Une phase peut mélanger les formats ; l’écran présente donc chaque zone selon le format qu’elle joue :
+
+- **Classement** : Chaque zone qui classe ses participants dans un tableau a son propre tableau, titré du nom de la zone. Les lignes de zones différentes ne sont jamais mêlées dans un même classement, et chaque tableau montre jusqu’à huit lignes. Une phase dont toutes les zones jouent le format de la phase garde un seul tableau sans titre.
+- **Tableau** : Les zones qui jouent un format à élimination sont dessinées en tableau.
+- **Matchs** : Une zone qui joue un championnat liste ses matchs par ronde, avec l’état et le score de chacun. L’onglet n’apparaît que si la phase mise en avant a une telle zone.
+
+L’incrustation du tiers inférieur ne change pas : elle nomme un match, pas une phase.
+
 ## Ce que voit un spectateur sur le site public
 
 Le site public (sans connexion) affiche les classements, le tableau et les rapports de match d'un

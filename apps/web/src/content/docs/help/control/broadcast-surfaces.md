@@ -36,6 +36,18 @@ administrator has to hand you a token or share their own login. While that overl
 point, or card recorded live pops an animated callout naming the entrant and player, then dismisses
 itself automatically; it never needs anyone at the venue to trigger or clear it.
 
+## What the venue display shows
+
+The full-rotation display cycles through the standings, the top performers, the tournament statistics and, when the featured stage has them, the bracket and the league fixtures. A `?view=standings` or `?view=fixtures` address pins one of them instead of rotating.
+
+A stage can mix formats, so the display presents each zone by the format it plays:
+
+- **Standings**: Every zone that ranks entrants in a table gets its own table, headed by the zone's name. Rows of different zones are never mixed in one ranking, and each table shows up to eight rows. A stage whose zones all play the stage's own format keeps a single table without a heading.
+- **Bracket**: Zones that play an elimination format are drawn as a bracket.
+- **Fixtures**: A zone that plays a league lists its matches grouped by round, with each match's state and score. The tab appears only when the featured stage has such a zone.
+
+The lower-third overlay is not affected: it names a match, not a stage.
+
 ## What a spectator sees on the public site
 
 The public site (no login) shows a tournament's standings, bracket, and match reports as they are

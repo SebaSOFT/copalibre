@@ -37,6 +37,18 @@ ein live erfasstes Tor, ein Punkt oder eine Karte einen animierten Hinweis mit M
 Spieler an und blendet sich danach automatisch aus — niemand vor Ort muss ihn auslösen oder
 schließen.
 
+## Was die Anzeige in der Halle zeigt
+
+Die Anzeige mit vollständiger Rotation zeigt nacheinander die Tabelle, die besten Spielenden, die Turnierstatistik und – wenn die hervorgehobene Phase sie hat – den Turnierbaum und die Ligaspiele. Eine Adresse mit `?view=standings` oder `?view=fixtures` hält eine davon fest, statt zu rotieren.
+
+Eine Phase kann Formate mischen, daher stellt die Anzeige jede Zone nach dem Format dar, das sie spielt:
+
+- **Tabelle**: Jede Zone, die Teilnehmende in einer Tabelle rangiert, erhält eine eigene Tabelle mit dem Zonennamen als Überschrift. Zeilen verschiedener Zonen werden nie in einer Rangliste vermischt, und jede Tabelle zeigt bis zu acht Zeilen. Eine Phase, deren Zonen alle das Format der Phase spielen, behält eine einzelne Tabelle ohne Überschrift.
+- **Turnierbaum**: Zonen mit einem K.-o.-Format werden als Turnierbaum gezeichnet.
+- **Spiele**: Eine Zone mit Ligaformat listet ihre Spiele nach Runden gruppiert, mit Status und Ergebnis jedes Spiels. Der Reiter erscheint nur, wenn die hervorgehobene Phase eine solche Zone hat.
+
+Die Bauchbinde bleibt unverändert: Sie nennt ein Spiel, keine Phase.
+
 ## Was ein Zuschauer auf der öffentlichen Website sieht
 
 Die öffentliche Website (ohne Anmeldung) zeigt Tabellen, Turnierbaum und Spielberichte eines Turniers so,
