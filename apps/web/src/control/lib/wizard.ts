@@ -12,11 +12,13 @@ import type {
   CreateTournamentRequest,
   HookScriptVocabulary,
   HookVocabularyEntry,
+  SeriesDeclaration,
 } from './api-client.js';
 import {
   initialStages,
   stageProblems,
   type StageAllocationDraft,
+  type StageSeriesDraft,
   type WizardStageDraft,
 } from './stage-authoring.js';
 import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
@@ -341,24 +343,37 @@ function stageRequestFrom(stage: WizardStageDraft): CreateTournamentRequest['sta
     number: stage.number,
     ...(stage.name.trim() === '' ? {} : { name: stage.name }),
     format: stage.format,
-    ...(stage.series === undefined || stage.series.span === undefined
-      ? {}
-      : {
-          series: {
-            span: stage.series.span,
-            ...(stage.series.resolutionClass === undefined
-              ? {}
-              : { resolutionClass: stage.series.resolutionClass }),
-            ...(stage.series.neutralGround ? { neutralGround: true } : {}),
-            ...(stage.series.standingsAccounting === 'series'
-              ? { standingsAccounting: 'series' as const }
-              : {}),
-          },
-        }),
+    ...seriesRequestFrom(stage.series),
     ...(stage.allocation === undefined ? {} : { allocation: stage.allocation }),
     ...(stage.groupConfiguration === undefined
       ? {}
       : { groupConfiguration: stage.groupConfiguration }),
+    ...((stage.zones ?? []).length === 0
+      ? {}
+      : {
+          zones: (stage.zones ?? []).map((zone) => ({
+            name: zone.name.trim(),
+            ...(zone.format === undefined ? {} : { format: zone.format }),
+            ...seriesRequestFrom(zone.series),
+          })),
+        }),
+  };
+}
+
+/** The `series` request entry for a draft, or nothing while the draft has no span. */
+function seriesRequestFrom(
+  series: StageSeriesDraft | undefined,
+): { readonly series: SeriesDeclaration } | Record<string, never> {
+  if (series === undefined || series.span === undefined) return {};
+  return {
+    series: {
+      span: series.span,
+      ...(series.resolutionClass === undefined ? {} : { resolutionClass: series.resolutionClass }),
+      ...(series.neutralGround ? { neutralGround: true } : {}),
+      ...(series.standingsAccounting === 'series'
+        ? { standingsAccounting: 'series' as const }
+        : {}),
+    },
   };
 }
 

@@ -961,3 +961,55 @@ test('setting registration capacity updates preview entrant count and removes il
 
   await expect(page.locator('.cl-bracket-node__title-skeleton')).toHaveCount(3);
 });
+
+test('declares a stage zone plan with a league zone overriding the stage format', async ({
+  page,
+}) => {
+  await mockControlApi(page, {
+    disciplines: disciplineWithBothFormatsFixture,
+  });
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Copa Zonas');
+  await page.getByLabel('Alias').fill('copa-zonas');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  await page.getByLabel('Formato de la fase').selectOption('single-elimination');
+  await page.getByText('Zonas (0)').click();
+  await page.getByRole('button', { name: 'Agregar zona' }).click();
+  await page.getByRole('button', { name: 'Agregar zona' }).click();
+  await page.getByLabel('Nombre de la zona').nth(0).fill('Copa Oro');
+  await page.getByLabel('Nombre de la zona').nth(1).fill('Liga');
+  await page.getByLabel('Formato de la zona').nth(1).selectOption('round-robin');
+
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(
+    page.getByText('Zonas: Copa Oro (single-elimination) y Liga (round-robin)'),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Crear torneo' }).click();
+
+  await expect(page.getByText('Torneo creado: copa-zonas')).toBeVisible();
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({
+        url: '/organizations/liga-mendocina/tournaments',
+        method: 'POST',
+        body: expect.objectContaining({
+          stages: [
+            expect.objectContaining({
+              format: 'single-elimination',
+              zones: [{ name: 'Copa Oro' }, { name: 'Liga', format: 'round-robin' }],
+            }),
+          ],
+        }),
+      }),
+    );
+});

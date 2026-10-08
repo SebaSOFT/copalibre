@@ -278,3 +278,29 @@ declared before this requirement existed SHALL continue to compile a ruleset exa
 - **THEN** ruleset compilation, override validation, and mutation classification behave exactly as
   they did before this requirement — the absence of these fields never affects override permission
   or enforcement
+
+### Requirement: Inheritable Zone Format and Overrides
+The `Zone` aggregate and its persistence record SHALL support an optional `format: TournamentFormat`. When a zone leaves `format` unset, its effective format SHALL be its parent `Stage.format`; when set, that format SHALL take precedence for the zone and every group within it. A format declared on a zone SHALL be one of the tournament discipline's `availableFormats`. A zone's series and rule overrides SHALL be held in the stage configuration's override set under a `zones.<zoneId>.` prefix, resolved zone entry first, then the stage's, then the ruleset's, and SHALL NOT be stored in a separate column or table. Changing a zone's format or overrides SHALL be refused once its stage holds a fixture.
+
+#### Scenario: Zone inherits stage format by default
+- **WHEN** a zone is created or queried without a format
+- **THEN** its effective format resolves to the parent `Stage.format`
+- **AND** existing tournaments without zone formats operate identically
+
+#### Scenario: Zone overrides stage format for heterogeneous entrant pools
+- **WHEN** a stage has the default format `single-elimination` and Zone 3 declares `round-robin`
+- **THEN** Zone 1 and Zone 2 resolve to `single-elimination`
+- **AND** Zone 3 resolves to `round-robin`
+
+#### Scenario: Zone format must be supported by the discipline
+- **WHEN** a format that is not in the installed discipline's `availableFormats` is assigned to a zone
+- **THEN** the mutation is rejected with an invalid format error
+
+#### Scenario: Zone series falls back to the stage's
+- **WHEN** Zone 3 has a `zones.<zoneId>.series.span` entry and Zone 1 has none
+- **THEN** Zone 3 resolves its own series declaration
+- **AND** Zone 1 resolves the stage's declaration, or the ruleset's, or none, exactly as before this change
+
+#### Scenario: Locked once fixtures exist
+- **WHEN** a stage holds at least one fixture and a zone's format or override is changed
+- **THEN** the mutation is refused and nothing is persisted

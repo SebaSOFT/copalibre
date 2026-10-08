@@ -5,9 +5,18 @@ import type {
   AllocationMode,
   SeedDirection,
   SeriesResolutionClass,
+  StageSeriesDraft,
   WizardStageDraft,
+  WizardZoneDraft,
 } from '../lib/stage-authoring.js';
-import { appendStage, removeStage, replaceStage } from '../lib/stage-authoring.js';
+import {
+  addZone,
+  appendStage,
+  removeStage,
+  removeZone,
+  replaceStage,
+  replaceZone,
+} from '../lib/stage-authoring.js';
 import { SERIES_CLASS_LABELS, STAGE_FORMAT_LABELS } from '../lib/stage-format-labels.js';
 import {
   derivePreviewEntrantCount,
@@ -80,6 +89,7 @@ export function StageListEditor({
   formats,
   onChange,
   showSeries = false,
+  showZones = false,
   showAllocation = false,
   attributeKeys = [],
   readOnly = false,
@@ -92,6 +102,8 @@ export function StageListEditor({
   readonly onChange?: (stages: readonly WizardStageDraft[]) => void;
   /** `TournamentSetupWizard` declares per-stage series; `ProfileBuilderWizard` does not. */
   readonly showSeries?: boolean;
+  /** `TournamentSetupWizard` declares each stage's zones; `ProfileBuilderWizard` does not. */
+  readonly showZones?: boolean;
   readonly showAllocation?: boolean;
   readonly attributeKeys?: readonly string[];
   readonly readOnly?: boolean;
@@ -198,10 +210,12 @@ export function StageListEditor({
 
                   {showSeries && (
                     <SeriesFields
+                      idPrefix={`stage-${stage.number}`}
                       intl={intl}
                       onChange={(series) => patchStage(stage.number, { series })}
                       readOnly={readOnly}
-                      stage={stage}
+                      series={stage.series}
+                      toggleLabel={messages.stageEditorSeriesToggle}
                     />
                   )}
 
@@ -223,6 +237,17 @@ export function StageListEditor({
                     readOnly={readOnly}
                     stage={stage}
                   />
+
+                  {showZones && (
+                    <ZoneFields
+                      formats={formats}
+                      intl={intl}
+                      onChange={(zones) => patchStage(stage.number, { zones })}
+                      readOnly={readOnly}
+                      showSeries={showSeries}
+                      stage={stage}
+                    />
+                  )}
 
                   {showStructurePreview && stage.number === 1 && (
                     <StageStructurePreview
@@ -396,49 +421,53 @@ function GroupConfigurationFields({
 }
 
 function SeriesFields({
-  stage,
+  idPrefix,
+  series,
+  toggleLabel,
   intl,
   onChange,
   readOnly,
 }: {
-  readonly stage: WizardStageDraft;
+  readonly idPrefix: string;
+  readonly series: StageSeriesDraft | undefined;
+  readonly toggleLabel: typeof messages.stageEditorSeriesToggle;
   readonly intl: IntlShape;
-  readonly onChange: (series: WizardStageDraft['series']) => void;
+  readonly onChange: (series: StageSeriesDraft | undefined) => void;
   readonly readOnly: boolean;
 }): React.JSX.Element {
-  const enabled = stage.series !== undefined;
+  const enabled = series !== undefined;
   // Toggling off declares no series, but the operator's own values survive
   // the round trip — re-enabling restores them rather than a blank draft,
   // the same way span and resolution class always have.
-  const lastSeries = useRef<WizardStageDraft['series']>(stage.series);
+  const lastSeries = useRef<StageSeriesDraft | undefined>(series);
   useEffect(() => {
-    if (stage.series !== undefined) lastSeries.current = stage.series;
-  }, [stage.series]);
+    if (series !== undefined) lastSeries.current = series;
+  }, [series]);
 
   return (
     <Stack gap="3">
       <Inline align="center" className="cl-toggle cl-focusable" gap="2">
         <Checkbox
-          aria-label={intl.formatMessage(messages.stageEditorSeriesToggle)}
+          aria-label={intl.formatMessage(toggleLabel)}
           checked={enabled}
           disabled={readOnly}
-          id={`stage-${stage.number}-series-enable`}
+          id={`${idPrefix}-series-enable`}
           onCheckedChange={(checked) =>
             onChange(checked ? (lastSeries.current ?? emptySeriesDraft()) : undefined)
           }
         />
         <span>
-          <FormattedMessage {...messages.stageEditorSeriesToggle} />
+          <FormattedMessage {...toggleLabel} />
         </span>
       </Inline>
 
-      {enabled && stage.series && (
+      {series && (
         <SeriesValueFields
+          idPrefix={idPrefix}
           intl={intl}
           onChange={onChange}
           readOnly={readOnly}
-          series={stage.series}
-          stageNumber={stage.number}
+          series={series}
         />
       )}
     </Stack>
@@ -447,27 +476,27 @@ function SeriesFields({
 
 function SeriesValueFields({
   series,
-  stageNumber,
+  idPrefix,
   intl,
   onChange,
   readOnly,
 }: {
-  readonly series: NonNullable<WizardStageDraft['series']>;
-  readonly stageNumber: number;
+  readonly series: StageSeriesDraft;
+  readonly idPrefix: string;
   readonly intl: IntlShape;
-  readonly onChange: (series: WizardStageDraft['series']) => void;
+  readonly onChange: (series: StageSeriesDraft | undefined) => void;
   readonly readOnly: boolean;
 }): React.JSX.Element {
   return (
     <Stack gap="3">
       <Grid columns={2} gap="3">
         <Field
-          id={`stage-${stageNumber}-series-span`}
+          id={`${idPrefix}-series-span`}
           label={intl.formatMessage(messages.stageEditorSeriesSpan)}
         >
           <Input
             disabled={readOnly}
-            id={`stage-${stageNumber}-series-span`}
+            id={`${idPrefix}-series-span`}
             inputMode="numeric"
             min={2}
             onChange={(event) =>
@@ -482,13 +511,13 @@ function SeriesValueFields({
           />
         </Field>
         <Field
-          id={`stage-${stageNumber}-series-class`}
+          id={`${idPrefix}-series-class`}
           label={intl.formatMessage(messages.stageEditorSeriesResolutionClass)}
         >
           <Select
             aria-label={intl.formatMessage(messages.stageEditorSeriesResolutionClass)}
             disabled={readOnly}
-            id={`stage-${stageNumber}-series-class`}
+            id={`${idPrefix}-series-class`}
             onValueChange={(val) =>
               onChange({ ...series, resolutionClass: val as SeriesResolutionClass })
             }
@@ -505,7 +534,7 @@ function SeriesValueFields({
           aria-label={intl.formatMessage(messages.stageEditorSeriesNeutralGround)}
           checked={series.neutralGround}
           disabled={readOnly}
-          id={`stage-${stageNumber}-series-neutral`}
+          id={`${idPrefix}-series-neutral`}
           onCheckedChange={(checked) => onChange({ ...series, neutralGround: checked })}
         />
         <span>
@@ -517,7 +546,7 @@ function SeriesValueFields({
           aria-label={intl.formatMessage(messages.stageEditorSeriesAccountPerSeries)}
           checked={series.standingsAccounting === 'series'}
           disabled={readOnly}
-          id={`stage-${stageNumber}-series-per-series`}
+          id={`${idPrefix}-series-per-series`}
           onCheckedChange={(checked) =>
             onChange({ ...series, standingsAccounting: checked ? 'series' : 'match' })
           }
@@ -527,6 +556,139 @@ function SeriesValueFields({
         </span>
       </Inline>
     </Stack>
+  );
+}
+
+const INHERIT_ZONE_FORMAT = '__inherit__';
+
+/**
+ * The stage's zones, behind a disclosure so a stage that declares none reads as it always has. A zone
+ * inherits its stage's format and series unless it declares its own; entrants are assigned to zones
+ * after registration, so this only declares structure.
+ */
+function ZoneFields({
+  stage,
+  formats,
+  intl,
+  onChange,
+  readOnly,
+  showSeries,
+}: {
+  readonly stage: WizardStageDraft;
+  readonly formats: readonly string[];
+  readonly intl: IntlShape;
+  readonly onChange: (zones: readonly WizardZoneDraft[]) => void;
+  readonly readOnly: boolean;
+  readonly showSeries: boolean;
+}): React.JSX.Element {
+  const zones = stage.zones ?? [];
+  const stageFormatLabel = STAGE_FORMAT_LABELS[stage.format];
+  const stageFormat =
+    stageFormatLabel === undefined ? stage.format : intl.formatMessage(stageFormatLabel);
+
+  return (
+    <details>
+      <summary>
+        <FormattedMessage {...messages.stageEditorZonesSummary} values={{ count: zones.length }} />
+      </summary>
+      <Stack gap="3">
+        <DecisionHint
+          id={`stage-${stage.number}-zones-hint`}
+          text={intl.formatMessage(messages.stageEditorZonesHint)}
+        />
+        {zones.map((zone, index) => {
+          const idPrefix = `stage-${stage.number}-zone-${index + 1}`;
+          return (
+            <Card key={idPrefix}>
+              <CardContent>
+                <Stack gap="3">
+                  <Inline align="center" justify="between" gap="3">
+                    <strong>
+                      <FormattedMessage
+                        {...messages.stageEditorZoneHeading}
+                        values={{ number: index + 1 }}
+                      />
+                    </strong>
+                    {!readOnly && (
+                      <Button
+                        onClick={() => onChange(removeZone(stage, index))}
+                        type="button"
+                        variant="secondary"
+                      >
+                        <FormattedMessage {...messages.stageEditorRemoveZone} />
+                      </Button>
+                    )}
+                  </Inline>
+                  <div className="cl-platform-form-grid">
+                    <Field
+                      id={`${idPrefix}-name`}
+                      label={intl.formatMessage(messages.stageEditorZoneName)}
+                    >
+                      <Input
+                        disabled={readOnly}
+                        id={`${idPrefix}-name`}
+                        onChange={(event) =>
+                          onChange(replaceZone(stage, index, { name: event.target.value }))
+                        }
+                        value={zone.name}
+                      />
+                    </Field>
+                    <Field
+                      id={`${idPrefix}-format`}
+                      label={intl.formatMessage(messages.stageEditorZoneFormat)}
+                    >
+                      <Select
+                        aria-label={intl.formatMessage(messages.stageEditorZoneFormat)}
+                        disabled={readOnly}
+                        id={`${idPrefix}-format`}
+                        onValueChange={(val) =>
+                          onChange(
+                            replaceZone(stage, index, {
+                              format: val === INHERIT_ZONE_FORMAT ? undefined : val,
+                            }),
+                          )
+                        }
+                        options={[
+                          {
+                            value: INHERIT_ZONE_FORMAT,
+                            label: intl.formatMessage(messages.stageEditorZoneFormatInherit, {
+                              format: stageFormat,
+                            }),
+                          },
+                          ...formats.map((format) => {
+                            const label = STAGE_FORMAT_LABELS[format];
+                            return {
+                              value: format,
+                              label: label === undefined ? format : intl.formatMessage(label),
+                            };
+                          }),
+                        ]}
+                        value={zone.format ?? INHERIT_ZONE_FORMAT}
+                      />
+                    </Field>
+                  </div>
+                  {showSeries && (
+                    <SeriesFields
+                      idPrefix={idPrefix}
+                      intl={intl}
+                      onChange={(series) => onChange(replaceZone(stage, index, { series }))}
+                      readOnly={readOnly}
+                      series={zone.series}
+                      toggleLabel={messages.stageEditorZoneSeriesToggle}
+                    />
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+          );
+        })}
+        {!readOnly && (
+          <Button onClick={() => onChange(addZone(stage))} type="button" variant="secondary">
+            <FormattedMessage {...messages.stageEditorAddZone} />
+          </Button>
+        )}
+      </Stack>
+    </details>
   );
 }
 

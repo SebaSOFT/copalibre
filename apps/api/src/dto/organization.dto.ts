@@ -643,6 +643,33 @@ export class StageAllocationRequest {
   direction?: 'higher-first' | 'lower-first';
 }
 
+/** One zone of a stage declared at creation time — see `CreateTournamentStageRequest.zones`. */
+export class CreateTournamentZoneRequest {
+  @IsString()
+  @ApiProperty({ description: 'Unique within its stage.', example: 'Copa Oro' })
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description:
+      'The zone’s own format. Absent: the zone plays its stage’s. Must be a format the ' +
+      'tournament’s discipline offers.',
+    example: 'round-robin',
+  })
+  format?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SeriesDeclarationRequest)
+  @ApiPropertyOptional({
+    type: SeriesDeclarationRequest,
+    description:
+      'The zone’s own series. Absent: the zone inherits its stage’s, then the tournament’s.',
+  })
+  series?: SeriesDeclarationRequest;
+}
+
 /** One stage of a tournament declared at creation time — see `CreateTournamentRequest.stages`. */
 export class CreateTournamentStageRequest {
   @IsOptional()
@@ -689,6 +716,18 @@ export class CreateTournamentStageRequest {
   @Type(() => StageGroupConfigurationRequest)
   @ApiPropertyOptional({ type: () => StageGroupConfigurationRequest })
   groupConfiguration?: StageGroupConfigurationRequest;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateTournamentZoneRequest)
+  @ApiPropertyOptional({
+    type: [CreateTournamentZoneRequest],
+    description:
+      'The stage’s zones, numbered by list position. Absent creates none. Entrants are assigned ' +
+      'to zones afterwards.',
+  })
+  zones?: CreateTournamentZoneRequest[];
 }
 
 export class CreateTournamentRequest {

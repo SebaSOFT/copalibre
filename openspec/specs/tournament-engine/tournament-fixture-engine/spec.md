@@ -371,3 +371,30 @@ The engine SHALL support the `ffa-league` placement format, generating a multi-r
 - **WHEN** fixtures are generated
 - **THEN** 10 total placement matches are generated (1 match per division per round)
 - **AND** standings compute cumulative placement and performance points independently per division across all 5 rounds
+
+### Requirement: Heterogeneous Zone Fixture Generation and Standings Accounting
+Seeding and fixture generation SHALL build one fixture graph per zone from that zone's effective format and series declaration, and persist each fixture with its zone and group scope. A stage whose zones have differing formats SHALL produce knockout brackets for elimination formats and round-robin matrices for league formats, with rounds numbered 1-based within each zone so zones may have different round counts. No fixture or advancement edge SHALL cross a zone boundary. A stage without declared zones SHALL generate exactly the fixtures it generated before this change. Points-based standings SHALL be projected only for zones whose effective format produces tables.
+
+#### Scenario: Stage generates knockout fixtures for some zones and round-robin for others
+- **WHEN** seeding publishes a stage where Zone 1 and Zone 2 are `single-elimination` and Zone 3 is `round-robin`
+- **THEN** Zone 1 and Zone 2 persist bracket fixtures with progression edges
+- **AND** Zone 3 persists a complete round-robin schedule among its own entrants
+- **AND** no fixture or edge references an entrant or fixture of another zone
+
+#### Scenario: Stage without declared zones is unchanged
+- **WHEN** seeding publishes a stage that has only its implicit zone
+- **THEN** the persisted fixtures are identical to those generated before this change
+
+#### Scenario: Per-zone series
+- **WHEN** Zone 1 declares a best-of-three series and Zone 3 declares none
+- **THEN** Zone 1's fixtures carry three matches each and Zone 3's carry one
+
+#### Scenario: Standings calculation respects zone format
+- **WHEN** standings and table projections are requested for a heterogeneous stage
+- **THEN** a points table is returned for Zone 3
+- **AND** Zone 1 and Zone 2 return bracket progression and no points table
+
+#### Scenario: Stage-wide standings of a heterogeneous stage
+- **WHEN** the stage's standings are read without naming a zone or group, as the tournament overview and the TV display do
+- **THEN** the rows are those of the zones whose effective format produces a table, each zone ranked on its own
+- **AND** no entrant of a bracket zone appears in them

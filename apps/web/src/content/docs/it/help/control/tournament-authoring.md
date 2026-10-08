@@ -32,6 +32,10 @@ base prima che esista alcun partecipante iscritto.
 - **Formato**: il formato di gioco disponibile per la disciplina scelta (eliminazione diretta, girone
   all'italiana, ecc.).
 
+## Pianificare le zone
+
+Ogni fase può essere divisa in zone durante la creazione del torneo. Apri **Zone** sotto una fase, aggiungi una zona e dagli un nome. Una zona gioca con il formato e la serie della sua fase, a meno che tu scelga un altro formato per essa (ad esempio, due zone a eliminazione diretta e un girone all’italiana nella stessa fase) o le dia una serie propria. I nomi delle zone devono essere unici all’interno della fase. La procedura guidata dichiara solo la struttura: i partecipanti vengono assegnati alle zone dopo l’iscrizione, nella schermata di zone e gruppi, dove si può anche cambiare il formato di ogni zona finché la fase non ha partite generate.
+
 ## Ciclo di vita
 
 Un torneo appena creato parte in stato **bozza**. Da lì segue un percorso lineare: bozza →

@@ -309,6 +309,104 @@ describe('the wizard gates each step', () => {
     });
   });
 
+  describe('zone plan (0339)', () => {
+    const complete = {
+      alias: 'copa-zonas',
+      name: 'Copa Zonas',
+      descriptorId: 'd-football',
+      descriptorVersion: '1.2.0',
+    } as const;
+
+    function withZones(
+      zones: NonNullable<WizardState['stages'][number]['zones']>,
+      format = 'single-elimination',
+    ) {
+      return wizard({ ...complete, stages: [{ number: 1, name: '', format, zones }] });
+    }
+
+    it('submits the declared zones with only what each overrides', () => {
+      const request = toCreateRequest(
+        withZones([
+          { name: ' Copa Oro ' },
+          {
+            name: 'Liga',
+            format: 'round-robin',
+            series: {
+              span: 3,
+              resolutionClass: 'best-of',
+              neutralGround: false,
+              standingsAccounting: 'match',
+            },
+          },
+        ]),
+      );
+
+      expect(request.stages[0]?.zones).toEqual([
+        { name: 'Copa Oro' },
+        { name: 'Liga', format: 'round-robin', series: { span: 3, resolutionClass: 'best-of' } },
+      ]);
+    });
+
+    it('sends no zones key for a stage that declares none or an empty list', () => {
+      expect(toCreateRequest(withZones([])).stages[0]).not.toHaveProperty('zones');
+      expect(
+        toCreateRequest(
+          wizard({ ...complete, stages: [{ number: 1, name: '', format: 'round-robin' }] }),
+        ).stages[0],
+      ).not.toHaveProperty('zones');
+    });
+
+    it('refuses an empty or duplicate zone name', () => {
+      const ids = (zones: Parameters<typeof withZones>[0]) =>
+        stepProblems({ ...withZones(zones), step: 'format' }, DISCIPLINES).map((p) => p.id);
+
+      expect(ids([{ name: '  ' }])).toContain('control.wizard.problem.zoneName');
+      expect(ids([{ name: 'A' }, { name: 'A' }])).toContain('control.wizard.problem.zoneDuplicate');
+      expect(ids([{ name: 'A' }, { name: 'B' }])).toEqual([]);
+    });
+
+    it('judges a zone series against the zone`s effective format', () => {
+      const series = {
+        span: 3,
+        resolutionClass: 'best-of' as const,
+        neutralGround: false,
+        standingsAccounting: 'match' as const,
+      };
+      const ids = (
+        zones: Parameters<typeof withZones>[0],
+        format: string,
+        disciplines: readonly DisciplineOption[],
+        descriptorId: string,
+      ) =>
+        stepProblems(
+          { ...withZones(zones, format), descriptorId, step: 'format' },
+          disciplines,
+        ).map((p) => p.id);
+
+      // Overriding a league stage's zone to a placement format makes its series incoherent.
+      expect(
+        ids(
+          [{ name: 'A', format: 'free-for-all', series }],
+          'round-robin',
+          DISCIPLINES,
+          'd-football',
+        ),
+      ).toContain('control.wizard.problem.seriesOnPlacementFormat');
+      // Inheriting a placement stage's format does too.
+      expect(
+        ids([{ name: 'A', series }], 'free-for-all', PLACEMENT_DISCIPLINES, 'd-placement'),
+      ).toContain('control.wizard.problem.seriesOnPlacementFormat');
+      expect(
+        ids(
+          [{ name: 'A', format: 'round-robin', series }],
+          'round-robin',
+          DISCIPLINES,
+          'd-football',
+        ),
+      ).toEqual([]);
+    });
+  });
+
   describe('series declaration (0159)', () => {
     const complete = {
       alias: 'copa-verano',

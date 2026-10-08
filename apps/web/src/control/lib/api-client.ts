@@ -1450,6 +1450,16 @@ export interface CreateTournamentStageRequest {
   readonly series?: SeriesDeclaration;
   readonly allocation?: StageAllocationDeclaration;
   readonly groupConfiguration?: StageGroupConfigurationDeclaration;
+  /** The stage's zones, numbered by position; absent creates none. */
+  readonly zones?: readonly CreateTournamentZoneRequest[];
+}
+
+export interface CreateTournamentZoneRequest {
+  readonly name: string;
+  /** Absent: the zone plays its stage's format. */
+  readonly format?: string;
+  /** Absent: the zone inherits its stage's series. */
+  readonly series?: SeriesDeclaration;
 }
 
 export interface StageGroupConfigurationDeclaration {

@@ -105,3 +105,21 @@ export const ManualGroupsPreview: Story = {
     ],
   },
 };
+
+export const ZonePlan: Story = {
+  args: {
+    showZones: true,
+    stages: [
+      {
+        number: 1,
+        name: 'Copas',
+        format: 'single-elimination',
+        zones: [
+          { name: 'Copa Oro' },
+          { name: 'Copa Plata' },
+          { name: 'Liga', format: 'round-robin' },
+        ],
+      },
+    ],
+  },
+};
