@@ -32,6 +32,16 @@ const leagueMatch = (position: number, round: number, home: string[], away: stri
   ],
 });
 
+/** A club's emblem is an object the page requests by id; each is a plain coloured disc here. */
+const EMBLEM_COLOURS: Readonly<Record<string, string>> = {
+  Talleres: 'royalblue',
+  Independiente: 'crimson',
+  Gimnasia: 'white',
+  Maipú: 'seagreen',
+};
+const emblemSvg = (name: string): string =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="${EMBLEM_COLOURS[name]}"/><text x="32" y="42" font-size="30" font-family="sans-serif" font-weight="700" text-anchor="middle" fill="${name === 'Gimnasia' ? 'navy' : 'white'}">${name[0]}</text></svg>`;
+
 const overview = {
   organizationAlias: 'liga-mendocina',
   organizationName: 'Liga Mendocina',
@@ -40,20 +50,37 @@ const overview = {
   seasonName: '2026',
   status: 'in-progress',
   ruleset: {},
-  clubs: [],
+  clubs: Object.keys(EMBLEM_COLOURS).map((name) => ({
+    clubId: `club-${name}`,
+    name,
+    emblemObjectId: `emblem-${name}`,
+  })),
   matches: [
     {
       matchId: 'league-1',
       matchNumber: 1,
       stageNumber: 1,
       round: 1,
-      status: 'finalized',
+      status: 'in-progress',
       homeName: 'Talleres',
       homeAbbreviation: 'TAL',
-      homeScore: 2,
+      homeScore: 1,
       awayName: 'Independiente',
       awayAbbreviation: 'IND',
       awayScore: 1,
+    },
+    {
+      matchId: 'league-2',
+      matchNumber: 2,
+      stageNumber: 1,
+      round: 1,
+      status: 'finalized',
+      homeName: 'Gimnasia',
+      homeAbbreviation: 'GIM',
+      homeScore: 2,
+      awayName: 'Maipú',
+      awayAbbreviation: 'MAI',
+      awayScore: 0,
     },
   ],
   standingsPreview: [
@@ -141,6 +168,17 @@ test.beforeAll(async ({ workerPort }) => {
   });
   await new Promise<void>((resolve) => server.listen(workerPort, '127.0.0.1', resolve));
 });
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/objects/emblem-*', (route) => {
+    const name = decodeURIComponent(route.request().url().split('emblem-')[1] ?? '');
+    return route.fulfill({
+      status: 200,
+      contentType: 'image/svg+xml',
+      body: emblemSvg(name),
+    });
+  });
+});
+
 test.afterAll(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
 });
