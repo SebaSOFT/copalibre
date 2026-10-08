@@ -152,7 +152,7 @@ export function lifecycleEmailHandlers(
 async function notify(
   dependencies: EmailHandlerDependencies,
   config: EmailDeliveryConfig,
-  job: { readonly eventId: string; readonly organizationId: string },
+  job: { readonly eventId: string; readonly eventType: string; readonly organizationId: string },
   input: {
     readonly audience: { readonly tournamentId?: string; readonly actor?: unknown };
     readonly content: (
@@ -176,7 +176,7 @@ async function notify(
       language,
       organization,
     });
-    await deliverOnce(dependencies, config, job.eventId, message);
+    await deliverOnce(dependencies, config, job.eventId, message, { eventType: job.eventType });
   }
 }
 

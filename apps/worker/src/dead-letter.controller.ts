@@ -1,6 +1,13 @@
 import { Controller, Get, Inject, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import type { DeadLetter, RelayMetrics } from '@copalibre/persistence';
 import { RelayService } from './relay.service.js';
+import {
+  DeliveryOutcomeCounters,
+  type DeliveryOutcomeCounts,
+} from './notifications/delivery-outcomes.js';
+
+/** The relay's own figures, plus the email delivery outcomes this replica has seen since it started. */
+export type WorkerMetrics = RelayMetrics & { readonly emailDelivery: DeliveryOutcomeCounts };
 
 /**
  * The operator's view of what failed.
@@ -13,7 +20,10 @@ import { RelayService } from './relay.service.js';
  */
 @Controller('jobs')
 export class DeadLetterController {
-  constructor(@Inject(RelayService) private readonly relay: RelayService) {}
+  constructor(
+    @Inject(RelayService) private readonly relay: RelayService,
+    @Inject(DeliveryOutcomeCounters) private readonly deliveries: DeliveryOutcomeCounters,
+  ) {}
 
   @Get('dead-letters')
   async deadLetters(@Query('limit') limit?: string): Promise<readonly DeadLetter[]> {
@@ -29,9 +39,14 @@ export class DeadLetterController {
     return { reEnqueued: eventId };
   }
 
-  /** Queue depth, oldest pending age, retries and failure rate. */
+  /**
+   * Queue depth, oldest pending age, retries and failure rate, plus `emailDelivery`: how many email
+   * attempts were sent, skipped as already sent, refused, or left with an unknown outcome. A non-zero
+   * `unknown` is a recipient who may have missed an email. The counts are this replica's, since it
+   * started.
+   */
   @Get('metrics')
-  async metrics(): Promise<RelayMetrics> {
-    return this.relay.outbox().metrics();
+  async metrics(): Promise<WorkerMetrics> {
+    return { ...(await this.relay.outbox().metrics()), emailDelivery: this.deliveries.snapshot() };
   }
 }

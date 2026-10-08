@@ -24,6 +24,7 @@ export function invitationEmailHandler(
       config,
       job.eventId,
       invitationMessage(config, payload, branding ?? {}),
+      { eventType: job.eventType },
     );
   };
 }
@@ -36,7 +37,9 @@ export function passwordResetEmailHandler(
   return async (job) => {
     const payload = payloadOf<PasswordResetPayload>(job);
     assertPasswordResetPayload(payload);
-    await deliverOnce(dependencies, config, job.eventId, passwordResetMessage(config, payload));
+    await deliverOnce(dependencies, config, job.eventId, passwordResetMessage(config, payload), {
+      eventType: job.eventType,
+    });
   };
 }
 
