@@ -219,7 +219,7 @@ replacement credentials.
 The chart has no `module-dev` values group — `init --kubernetes` never sets one up. A `hostPath`
 volume only reaches a laptop's filesystem when the pod is guaranteed to run on that one machine,
 true for a local single-node `kind`/`minikube` cluster but never a real multi-node one, so this
-isn't a chart feature (see `design.md`'s Decisions). Against a local cluster anyway, the same
+isn't a chart feature. Against a local cluster anyway, the same
 bind-mount idea works as a manual patch:
 
 1. Mount your module workspace into the cluster node:
@@ -266,8 +266,8 @@ nothing in this chart installs them.
   queue depth/age) has no off-the-shelf adapter — it requires a
   custom-metrics adapter configured to read the outbox table/queue directly
   and publish it under `autoscaling.worker.metricName`. There is no
-  CPU-based fallback for this signal by default (see `design.md`'s "exactly
-  these three signals" decision); `autoscaling.worker.cpu.enabled` exists
+  CPU-based fallback for this signal by default (the chart deliberately exposes "exactly
+  these three signals"); `autoscaling.worker.cpu.enabled` exists
   only as an explicit opt-in, not a silent substitute.
 - **cert-manager**, required by `ingress.enabled` when
   `ingress.tls.enabled` is true (the default annotation targets a

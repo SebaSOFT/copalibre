@@ -93,7 +93,7 @@ broadcast nesting and TV background evidence.
 ## CI
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, and the dependency license scan
-on every pull request. Later phases append integration/e2e/build jobs per their tasks.md.
+on every pull request. Later phases append integration/e2e/build jobs as they are added.
 
 ## Bounded Local Execution & CI Resource Allocation
 

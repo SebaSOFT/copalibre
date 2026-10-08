@@ -134,7 +134,7 @@ Avoid: reusing the same word chosen for `standings` — the two are related but 
 in the product (ongoing table vs. final rank), and collapsing them in translation loses that
 distinction even where the source English also reuses similar wording.
 
-### `draw` (additional term found via task 1.2 grep)
+### `draw` (additional term found by a catalogue grep)
 
 English meaning: **two unrelated senses that must not share a translation** —
 (1) the random/seeded process that assigns entrants to bracket slots or groups
@@ -160,10 +160,10 @@ translation contains a glossary term, the report's `concern` field names the glo
 its expected rendering so the human confirming the flag can check it directly against this
 document rather than trusting the review's paraphrase.
 
-## Review workflow (task 2.3)
+## Review workflow
 
 1. Run `node scripts/i18n-content-review.mjs --locale <code> --catalogue <path-to-catalogue.ts> --flags <path-to-flags.json>` (see `--help` for all flags). The script loads the target locale's catalogue, `en` as source, and this glossary, and writes a JSON report to the path given by `--out` (defaults to `docs/i18n-reports/<catalogue-basename>.<locale>.json`).
 2. The `--flags` file supplies the actual flagged entries for this run (`{ key, concern, proposedReplacement? }[]`) — the script does not call an LLM itself; a reviewer (human or an LLM-assisted session working through the catalogue against this glossary) supplies that list out of band, and the script's job is validating it against the catalogue/glossary and writing it out in the fixed report shape. A future change may wire the script to call an LLM API directly to produce `--flags` automatically; not required today.
 3. A human fluent in the target locale opens the report and, per flagged key, does exactly one of: **confirm** the proposed replacement (mark `status: "confirmed"` and copy the replacement into the message catalogue file by hand), **edit** it (supply their own replacement text, still `status: "confirmed"`), or **reject** it as a false positive (`status: "rejected"`, with a one-line reason).
 4. A flagged entry with no recorded confirmation stays `status: "unconfirmed"` in the report and the message catalogue is **not** edited for that key. An unconfirmed entry is not a defect — a locale with no fluent reviewer available on the project today stays unconfirmed indefinitely; that is the documented safe failure mode (stale-but-known-adequate beats a confidently wrong replacement applied without confirmation).
-5. Re-running the script for the same locale/catalogue after edits regenerates the report from the current catalogue state; it does not remember prior confirmations, so keep the confirmed report as the record referenced by task 3.3's per-locale count until the next review pass.
+5. Re-running the script for the same locale/catalogue after edits regenerates the report from the current catalogue state; it does not remember prior confirmations, so keep the confirmed report as the record referenced by the per-locale count until the next review pass.

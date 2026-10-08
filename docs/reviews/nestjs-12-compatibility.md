@@ -1,7 +1,7 @@
 # NestJS 12 compatibility gate
 
 Checked on 2026-10-07 against package metadata published to npm and the repository's
-current manifests, lockfile, and Node runtime. This is the evidence required by task 1.1;
+current manifests, lockfile, and Node runtime. This is the evidence the compatibility gate requires;
 all selected peers support the proposed migration without overrides or forks.
 
 ## Compatibility matrix
