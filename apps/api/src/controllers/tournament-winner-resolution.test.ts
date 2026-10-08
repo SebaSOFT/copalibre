@@ -121,6 +121,97 @@ describe('reconstructChampionshipFixture', () => {
     expect(result?.runnerUpEntrantId).toBe('entrant-2');
   });
 
+  describe('a cup whose deepest round also plays classification games', () => {
+    // The shape of a twelve-fixture cup: quarter-finals, semi-finals, a fifth-to-eighth round and
+    // the final beside the third, fifth and seventh place games. The generated bracket has seven
+    // matches, so the graph cannot be mapped and the outcome-lineage reading decides.
+    type Game = readonly [number, string, number, string, number];
+    const GAMES: readonly Game[] = [
+      [1, 'casa', 2, 'hispano', 7],
+      [1, 'murialdo', 1, 'andes', 5],
+      [1, 'uvt', 3, 'huracan', 3],
+      [1, 'richet', 2, 'lomas', 4],
+      [2, 'hispano', 3, 'lomas', 1],
+      [2, 'huracan', 1, 'andes', 2],
+      [2, 'casa', 5, 'richet', 3],
+      [2, 'uvt', 7, 'murialdo', 1],
+      [3, 'hispano', 0, 'andes', 3],
+      [3, 'lomas', 5, 'huracan', 4],
+      [3, 'casa', 3, 'uvt', 3],
+      [3, 'richet', 4, 'murialdo', 9],
+    ];
+
+    function cup(games: readonly Game[] = GAMES) {
+      const positions = new Map<number, number>();
+      const winners = new Map<string, string>();
+      const records: StageMatchRecord[] = games.map(([round, home, homeGoals, away, awayGoals]) => {
+        const position = (positions.get(round) ?? 0) + 1;
+        positions.set(round, position);
+        const fixtureId = `${round}-${home}-${away}`;
+        if (homeGoals !== awayGoals) winners.set(fixtureId, homeGoals > awayGoals ? home : away);
+        return {
+          matchId: fixtureId,
+          fixtureId,
+          round,
+          position,
+          status: 'finalized',
+          homeEntrantId: home,
+          awayEntrantId: away,
+          scores: [homeGoals, awayGoals],
+          games: [],
+        };
+      });
+      const entrants = [
+        ...new Set(
+          records.filter((r) => r.round === 1).flatMap((r) => [r.homeEntrantId, r.awayEntrantId]),
+        ),
+      ];
+      const generated = generateFixtures({
+        format: 'single-elimination',
+        entrants: entrants.map((entrantId, index) => ({
+          entrantId: entrantId as string,
+          seed: index + 1,
+        })),
+      });
+      if (!generated.ok) throw new Error('Expected a generated bracket');
+      return { graph: generated.value, records, winners };
+    }
+
+    it('resolves the final, not the fifth-place game that passes the same lineage test', () => {
+      const data = cup();
+      const result = reconstructChampionshipFixture({
+        graph: data.graph,
+        records: data.records,
+        winnerByFixtureId: data.winners,
+      });
+
+      expect(result?.fixture.fixtureId).toBe('3-hispano-andes');
+      expect(result?.championEntrantIds).toEqual(['andes']);
+      expect(result?.runnerUpEntrantId).toBe('hispano');
+    });
+
+    it('resolves nothing when two deepest-round fixtures are played by unbeaten entrants', () => {
+      const data = cup();
+      const final = data.records.find((record) => record.fixtureId === '3-hispano-andes');
+      if (!final) throw new Error('Expected the final');
+      const duplicate = {
+        ...final,
+        fixtureId: 'duplicate-final',
+        matchId: 'duplicate-final',
+        position: 5,
+      };
+      const winners = new Map(data.winners).set('duplicate-final', 'andes');
+
+      expect(
+        reconstructChampionshipFixture({
+          graph: data.graph,
+          records: [...data.records, duplicate],
+          winnerByFixtureId: winners,
+        }),
+      ).toBeUndefined();
+    });
+  });
+
   it('reports both entrants as champions for a tied generated single-elimination final', () => {
     const graph = graphOf('single-elimination');
     const data = finalizedBracket(graph);
