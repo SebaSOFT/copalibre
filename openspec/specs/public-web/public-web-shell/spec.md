@@ -951,3 +951,14 @@ The public-web header (`.cl-public-header`) SHALL attach flush to the top edge o
 #### Scenario: Header navigation links are streamlined to core destinations
 - **WHEN** the public header renders on any public page
 - **THEN** its primary navigation links focus on public spectator destinations ("Home" and language selection) without exposing operator-facing "Help" or "API Reference" navigation links
+
+### Requirement: Every public image URL resolves without gateway-specific routing
+Every image URL a public page builds, including the discipline backdrop, SHALL resolve through the web application's own origin on a deployment that runs only the web application and the API, and SHALL resolve unchanged behind the Docker Compose gateway and the Kubernetes ingress.
+
+#### Scenario: The backdrop loads on a bare web process
+- **WHEN** a tournament page for a tournament of a discipline with background images is opened on the web application with no gateway in front
+- **THEN** the backdrop image request returns an image and the page shows it
+
+#### Scenario: A gateway keeps working
+- **WHEN** the same page is opened behind a gateway that forwards `/objects` to the API
+- **THEN** the backdrop request returns the same image

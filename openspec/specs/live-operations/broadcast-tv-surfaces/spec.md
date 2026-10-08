@@ -424,3 +424,14 @@ A full-frame TV surface SHALL present a stage whose zones play different formats
 #### Scenario: A uniform stage is unchanged
 - **WHEN** every zone plays the stage's own format, or the stage declares no zones
 - **THEN** the standings tab and bracket view render as they did before zone formats could differ
+
+### Requirement: TV club emblems resolve through the same-origin club emblem route
+A TV surface SHALL request a club's emblem from the same-origin club emblem route built from the club's identifier, SHALL NOT build image URLs from an object identifier, and SHALL show the club's monogram when the club has no emblem or the request fails.
+
+#### Scenario: Standings, spotlight, performers and the recap show emblems
+- **WHEN** the kiosk shows standings, the match spotlight, the performers view or the champion recap for clubs that have emblems
+- **THEN** each emblem image loads from the club emblem route
+
+#### Scenario: A missing emblem shows a monogram
+- **WHEN** a club has no emblem or its request fails
+- **THEN** the surface shows the club's abbreviation instead of a broken image
