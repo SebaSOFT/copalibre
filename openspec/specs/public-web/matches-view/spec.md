@@ -265,3 +265,51 @@ The public matches view (`matches.astro`) SHALL support a `compact` query parame
 #### Scenario: Preserving filter parameters across density changes
 - **WHEN** a spectator toggles between detailed and compact views while filtering by stage, zone, group, or match state
 - **THEN** all active filter parameters are preserved in the resulting URL
+
+### Requirement: A large schedule renders as tables grouped by stage, zone or group, and round
+When a matches-view scope holds more than twelve matches, the view SHALL render them as table rows grouped under headings for stage, then zone or group, then round, omitting any level that has a single member. Each row SHALL show the round or date, kick-off, home side, score, away side, state and venue. A scope of twelve matches or fewer SHALL offer a choice between rows and cards. Rows of different stages, zones or groups SHALL NOT share a round heading.
+
+#### Scenario: Six groups render six tables
+- **WHEN** a stage has six groups with six matches each
+- **THEN** the view renders one table per group, each with its rounds as sub-headings
+
+#### Scenario: Round headings do not mix competitions
+- **WHEN** a group stage and a cup stage both have a first round
+- **THEN** each first round appears under its own stage and zone or group heading
+
+#### Scenario: A short scope offers the choice
+- **WHEN** the scope holds twelve matches or fewer
+- **THEN** the viewer can choose cards or rows
+
+#### Scenario: A large scope is only a table
+- **WHEN** the scope holds more than twelve matches
+- **THEN** no cards option is offered
+
+### Requirement: A knockout scope in the schedule renders as a bracket
+A zone or group whose effective format selects the bracket layout SHALL render as that zone's bracket in the schedule, and its matches SHALL NOT also be listed as rows.
+
+#### Scenario: A state filter lists the matches
+- **WHEN** a match-state filter is active
+- **THEN** a knockout zone is listed as rows instead of drawn as a bracket
+
+#### Scenario: Three cups render as three brackets
+- **WHEN** the scope is a stage whose three zones are elimination zones
+- **THEN** each zone renders as a bracket under its zone heading
+
+### Requirement: Schedule filter rows are titled
+Each filter row of the matches view SHALL carry a visible title naming what it filters — stage, zone, group, state, view — in the page's language, and SHALL show only the rows that apply to the tournament.
+
+#### Scenario: Titles name each row
+- **WHEN** a tournament with stages, zones, groups and states is shown
+- **THEN** each filter row has a visible title in the page's language
+
+#### Scenario: A row that does not apply is omitted
+- **WHEN** a tournament has no zones
+- **THEN** no zone filter row or title is shown
+
+### Requirement: The tournament page shows the schedule opening on the relevant stage
+The tournament overview SHALL show the same grouped schedule with each stage collapsed except the one with a live match, else the first with matches still to play; once every match is played no stage opens.
+
+#### Scenario: Nothing opens when everything is played
+- **WHEN** every match is final
+- **THEN** every stage is collapsed and opens with one click, so the standings stay within reach
