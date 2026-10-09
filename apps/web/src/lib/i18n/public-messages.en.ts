@@ -861,6 +861,22 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.pageOf',
     defaultMessage: 'Page {page} of {total}',
   },
+  tvDashboardSeriesState: {
+    id: 'publicWeb.tvDashboard.seriesState',
+    defaultMessage: 'Series {home}–{away} · Game {game} of {span}',
+  },
+  tvDashboardSetsLabel: {
+    id: 'publicWeb.tvDashboard.setsLabel',
+    defaultMessage: 'Sets',
+  },
+  tvDashboardOverlayNoMatch: {
+    id: 'publicWeb.tvDashboard.overlayNoMatch',
+    defaultMessage: 'No match selected',
+  },
+  tvDashboardOverlayNoCourtMatch: {
+    id: 'publicWeb.tvDashboard.overlayNoCourtMatch',
+    defaultMessage: 'No live match on this court',
+  },
   tvMultiCourtGridNoMatches: {
     id: 'publicWeb.tvMultiCourtGrid.noMatches',
     defaultMessage: 'No matches currently live',

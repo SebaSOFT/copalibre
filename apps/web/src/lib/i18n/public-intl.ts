@@ -170,6 +170,15 @@ export function tvDashboardLabels(intl: IntlShape) {
     finishedOn: intl.formatMessage(messages.tvDashboardFinishedOn, { date: '{date}' }),
     matchNotFound: intl.formatMessage(messages.tvDashboardMatchNotFound),
     pageOf: intl.formatMessage(messages.tvDashboardPageOf, { page: '{page}', total: '{total}' }),
+    seriesState: intl.formatMessage(messages.tvDashboardSeriesState, {
+      home: '{home}',
+      away: '{away}',
+      game: '{game}',
+      span: '{span}',
+    }),
+    setsLabel: intl.formatMessage(messages.tvDashboardSetsLabel),
+    overlayNoMatch: intl.formatMessage(messages.tvDashboardOverlayNoMatch),
+    overlayNoCourtMatch: intl.formatMessage(messages.tvDashboardOverlayNoCourtMatch),
   };
 }
 

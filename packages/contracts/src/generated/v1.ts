@@ -5297,6 +5297,22 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        PublicSegmentSummaryResponse: {
+            /** @description 1-based order within the match */
+            number: number;
+            /** @description The discipline's own segment type name */
+            type: string;
+            /** @description The segment type's display label in every language the discipline wrote it in. */
+            label?: {
+                [key: string]: unknown;
+            };
+            /** @description Whether the segment runs against a clock; false for one played to a target */
+            timed?: boolean;
+            /** @enum {string} */
+            state: "pending" | "active" | "completed";
+            /** @description What each side scored in this segment alone, home first */
+            scores?: number[];
+        };
         PublicMatchReportResponse: {
             organizationAlias: string;
             organizationName: string;
@@ -5329,6 +5345,8 @@ export interface components {
             /** @description The discipline's declared roster roles, so a client can label each member's role codes. */
             rosterRoles?: components["schemas"]["PublicRosterRoleResponse"][];
             timeline: components["schemas"]["PublicMatchEventResponse"][];
+            /** @description The match’s segments and what each side scored in each */
+            segments?: components["schemas"]["PublicSegmentSummaryResponse"][];
         };
         PublicLiveMatchSideResponse: {
             /** Format: uuid */
@@ -5352,6 +5370,8 @@ export interface components {
             matchNumber: number;
             /** @description The 1-based ordinal of the match within its stage, the one the public match route addresses it by. */
             stageOrdinal?: number;
+            /** @description The match’s segments and what each side scored in each */
+            segments?: components["schemas"]["PublicSegmentSummaryResponse"][];
             state: string;
             projectionVersion: number;
             sides: components["schemas"]["PublicLiveMatchSideResponse"][];

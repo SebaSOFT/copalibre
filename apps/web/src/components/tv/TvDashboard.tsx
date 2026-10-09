@@ -44,6 +44,9 @@ import type { PublicBracketResponse } from '@copalibre/api/src/dto/public-tourna
 import { TvMatchIndicators } from './ui/organisms/TvMatchIndicators.js';
 import { TvBracketView } from './ui/organisms/TvBracketView.js';
 import { TvMatchList } from './ui/organisms/TvMatchList.js';
+import { TvSeriesAndSets } from './ui/organisms/TvSeriesAndSets.js';
+import { tvMatchProgress } from '../../lib/tv-match-progress.js';
+import type { PublicSeriesState } from '../../lib/series.js';
 import { TvChampions } from './ui/organisms/TvChampions.js';
 import { TvEmblem } from './ui/atoms/TvEmblem.js';
 
@@ -75,6 +78,15 @@ export interface TvDashboardProps {
    * `standings` fills the frame with the table, `matches` with the paged match list.
    */
   readonly initialView?: 'standings' | 'matches';
+  /**
+   * An overlay follows the live match of this court (a venue name) instead of a pinned match: the
+   * match whose venue, by `venueNameByMatchId`, is it. Without a pinned match or a court an overlay
+   * shows no match at all, never an arbitrary one.
+   */
+  readonly court?: string;
+  readonly venueNameByMatchId?: Readonly<Record<string, string>>;
+  /** The series state of each match that is part of one, by match id. */
+  readonly seriesByMatchId?: Readonly<Record<string, PublicSeriesState>>;
   /** The organization's IANA zone, in which the header's clock is read. */
   readonly timeZone?: string;
   /** The date of the tournament's last match, shown as the day a finished tournament ended. */
@@ -142,6 +154,9 @@ export function TvDashboard({
   streamPath,
   presentation = 'kiosk',
   pinnedMatch: pinnedRef,
+  court,
+  venueNameByMatchId,
+  seriesByMatchId,
   timeZone,
   lastMatchAt,
   matchEvents,
@@ -397,7 +412,31 @@ export function TvDashboard({
   };
 
   // Spotlight Match (pinned match or active live match or first match)
-  const spotlightMatch = pinnedRef === undefined ? (liveMatches[0] ?? matches[0]) : pinnedMatch;
+  // An overlay is composited over one match: the pinned one, or the live match of its court. With
+  // neither it shows no match, since a guess would put the same match on every overlay.
+  const isOverlayPresentation = presentation === 'lower' || presentation === 'full';
+  const courtMatch =
+    court === undefined
+      ? undefined
+      : liveMatches.find((match) => venueNameByMatchId?.[match.matchId] === court);
+  const spotlightMatch =
+    pinnedRef !== undefined
+      ? pinnedMatch
+      : court !== undefined
+        ? courtMatch
+        : isOverlayPresentation
+          ? undefined
+          : (liveMatches[0] ?? matches[0]);
+  const noMatchMessage = pinnedMissing
+    ? dashboardLabels.matchNotFound
+    : court !== undefined
+      ? dashboardLabels.overlayNoCourtMatch
+      : dashboardLabels.overlayNoMatch;
+  const progress = tvMatchProgress(
+    spotlightMatch,
+    spotlightMatch === undefined ? undefined : seriesByMatchId?.[spotlightMatch.matchId],
+    language,
+  );
   const bracketStage = spotlightMatch?.stageNumber;
   useEffect(() => {
     if (presentation === 'lower' || !organizationAlias || !tournamentAlias || !bracketStage) return;
@@ -489,13 +528,18 @@ export function TvDashboard({
                 aria-label={displayedClock}
               />
             )}
+            <TvSeriesAndSets labels={dashboardLabels} progress={progress} />
             <TvMatchIndicators
               match={spotlightMatch}
               possessionLabel={dashboardLabels.possession}
               penaltyLabel={dashboardLabels.penalty}
             />
           </div>
-        ) : null}
+        ) : (
+          <div className="tv-lower-third__bug cl-chamfer" data-testid="tv-overlay-no-match">
+            <span className="tv-lower-third__empty">{noMatchMessage}</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -651,6 +695,8 @@ export function TvDashboard({
                   />
                 </div>
 
+                <TvSeriesAndSets labels={dashboardLabels} progress={progress} />
+
                 {matchEvents && matchEvents.length > 0 ? (
                   <TvEventTicker
                     ariaLabel={dashboardLabels.matchEventsLabel}
@@ -660,6 +706,10 @@ export function TvDashboard({
                     language={language}
                   />
                 ) : null}
+              </div>
+            ) : isOverlayPresentation && !pinnedMissing ? (
+              <div className="tv-champion" data-testid="tv-overlay-no-match">
+                <h2 className="tv-champion__name">{noMatchMessage}</h2>
               </div>
             ) : pinnedMissing ? (
               <div className="tv-champion" data-testid="tv-match-not-found">

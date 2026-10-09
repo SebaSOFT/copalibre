@@ -41,6 +41,7 @@ import {
 } from '../../../../lib/public-api-client.ts';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import { bracketZonesOf } from '../../../../lib/bracket.ts';
+import type { PublicSeriesState } from '../../../../lib/series.ts';
 import { tvMatchEntriesOf, type TvMatchEntry } from '../../../../lib/tv-match-list.ts';
 import type { BracketZone } from '../../../../lib/bracket-projection.ts';
 import { TV_BACKGROUNDS, type TvBackground } from '../../../../lib/tv-background.ts';
@@ -195,31 +196,6 @@ const showMultiCourtGrid = presentation === 'kiosk' && layoutParam === 'multicou
 const gridSize: 2 | 4 | 6 | 'auto' =
   gridParam === '2' ? 2 : gridParam === '4' ? 4 : gridParam === '6' ? 6 : 'auto';
 
-/*
-  Court/venue names are not present on the live/SSE projection — the
-  matches-view endpoint already carries them (the public schedule listing
-  needs the same field), fetched once here rather than adding it to the live
-  projection's own contract.
-*/
-let venueNameByMatchId: Record<string, string> = {};
-if (showMultiCourtGrid) {
-  try {
-    const matchesView = await fetchMatchesView(organizationAlias, tournamentAlias, {
-      state: 'live',
-    });
-    if (matchesView) {
-      const { matches } = mapMatchesViewResponse(matchesView);
-      venueNameByMatchId = Object.fromEntries(
-        matches
-          .filter((match) => match.venueName !== undefined)
-          .map((match) => [match.matchId, match.venueName as string]),
-      );
-    }
-  } catch {
-    // No court names is a degraded grid, not a broken one.
-  }
-}
-
 let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
 const featuredStage =
   dashboard.matches.find((match) => match.state === 'live')?.stageNumber ??
@@ -237,24 +213,35 @@ if (presentation !== 'lower' && featuredStage !== undefined) {
 }
 
 /*
-  Every match of the tournament, as the entries the match list pages through. Read from the same
-  matches view the public schedule uses, in its own guard: a failure costs the list its section and
-  nothing else. A lower third has no rail to put it in.
+  The matches view, read once and in its own guard (a failure costs the sections below their data and
+  nothing else): every match with its venue, its series and its place in the list. The live projection
+  carries none of the three, and the venue is what a court overlay follows a match by. A lower third
+  has no rail to put the match list in.
 */
+const court = Astro.url.searchParams.get('court') ?? undefined;
+let venueNameByMatchId: Record<string, string> = {};
+let seriesByMatchId: Record<string, PublicSeriesState> = {};
 let matchList: readonly TvMatchEntry[] = [];
-if (presentation !== 'lower') {
-  try {
-    const view = await fetchMatchesView(organizationAlias, tournamentAlias, { state: 'all' });
-    if (view) {
+try {
+  const view = await fetchMatchesView(organizationAlias, tournamentAlias, { state: 'all' });
+  if (view) {
+    const rows = mapMatchesViewResponse(view).matches;
+    venueNameByMatchId = Object.fromEntries(
+      rows.flatMap((row) => (row.venueName === undefined ? [] : [[row.matchId, row.venueName]])),
+    );
+    seriesByMatchId = Object.fromEntries(
+      rows.flatMap((row) => (row.series === undefined ? [] : [[row.matchId, row.series]])),
+    );
+    if (presentation !== 'lower') {
       const dashboardText = tvDashboardLabels(intl);
-      matchList = tvMatchEntriesOf(mapMatchesViewResponse(view).matches, {
+      matchList = tvMatchEntriesOf(rows, {
         state: dashboardText.resultState,
         round: dashboardText.bracketRound,
       });
     }
-  } catch {
-    matchList = [];
   }
+} catch {
+  // No court names, no series and no list is a degraded kiosk, not a broken one.
 }
 
 /*
@@ -311,6 +298,9 @@ const tickerItems =
         initial={dashboard}
         initialBracket={initialBracket}
         matchList={matchList}
+        court={court}
+        venueNameByMatchId={venueNameByMatchId}
+        seriesByMatchId={seriesByMatchId}
         streamPath={streamPath}
         branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
         tournamentName={tournamentName}

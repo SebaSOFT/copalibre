@@ -3,6 +3,7 @@ title: Surfaces de diffusion et publiques
 description: Jetons d'affichage pour les écrans TV en salle et les overlays de streaming, et ce que voit un spectateur sur le site public.
 capabilities:
   - live-operations/broadcast-tv-surfaces
+  - live-operations/tv-dashboard-localization
   - live-operations/public-live-surfaces
   - public-web/public-web-shell
 roles:
@@ -50,9 +51,13 @@ Une phase peut mélanger les formats ; l’écran présente donc chaque zone sel
 
 L’incrustation du tiers inférieur ne change pas : elle nomme un match, pas une phase.
 
+### Incrustations : un match, séries et sets
+
+Une incrustation (`?mode=overlay`) ne montre que le match qu’on lui a donné : celui que nomme son adresse (`/tv/<organisation>/tournaments/<tournoi>/stages/<phase>/matches/<numéro>?mode=overlay`) ou, avec `?court=<terrain>`, le match en direct de ce terrain. Ouverte sans aucun des deux, elle indique qu’aucun match n’est sélectionné et n’affiche aucun score, si bien que deux incrustations ne montrent jamais le même match par hasard. Un match dans une série montre où en est la série (matchs gagnés par chaque côté et match en cours) à côté du score, et un match joué en sets montre les sets déjà joués et celui en cours, le côté domicile d’abord, avec le libellé de set de la discipline dans la langue de la page. Le segment en cours est nommé par sa place dans le match (« 2e mi-temps », « 2e tour », « 3e set ») quand la discipline en joue plusieurs du même type, et sans numéro quand elle n’en joue qu’un. Un match sans rien de cela s’affiche comme avant.
+
 ### Le lanceur d’écran
 
-`/tv` est un lanceur qui compose l’adresse d’un écran de salle ou d’une incrustation : choisissez l’organisation, le tournoi et l’affichage (rotation, classement, liste des matchs, un match épinglé ou l’incrustation de diffusion), le fond et la langue. La langue change aussitôt les libellés du lanceur, sans rechargement. Les phases sont listées avec leur numéro et leur nom, et les matchs regroupés par zone et groupe avec leur ronde, les deux participants et leur numéro (`#34`). Les affichages match épinglé et incrustation demandent un match et le lien de lancement le porte, si bien que plusieurs incrustations peuvent montrer chacune leur match ; une incrustation laissée en automatique montre le match en direct du terrain.
+`/tv` est un lanceur qui compose l’adresse d’un écran de salle ou d’une incrustation : choisissez l’organisation, le tournoi et l’affichage (rotation, classement, liste des matchs, un match épinglé ou l’incrustation de diffusion), le fond et la langue. La langue change aussitôt les libellés du lanceur, sans rechargement. Les phases sont listées avec leur numéro et leur nom, et les matchs regroupés par zone et groupe avec leur ronde, les deux participants et leur numéro (`#34`). Les affichages match épinglé et incrustation demandent un match et le lien de lancement le porte, si bien que plusieurs incrustations peuvent montrer chacune leur match ; une incrustation peut au contraire suivre le match en direct d’un terrain (`court=`).
 
 ## Ce que voit un spectateur sur le site public
 

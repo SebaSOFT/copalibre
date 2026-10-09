@@ -39,6 +39,14 @@ export interface TvDashboardLabels {
   readonly matchNotFound: string;
   /** Raw `{page}`/`{total}` template for the match list's pager. */
   readonly pageOf: string;
+  /** Raw `{home}`/`{away}`/`{game}`/`{span}` template naming where a series stands. */
+  readonly seriesState: string;
+  /** Names the strip of sets already played and the one being played. */
+  readonly setsLabel: string;
+  /** What an overlay says when it was given no match. */
+  readonly overlayNoMatch: string;
+  /** What an overlay following a court says when that court has no live match. */
+  readonly overlayNoCourtMatch: string;
 }
 
 /** One zone of the last stage and the club or clubs that won it (several when the title is shared). */

@@ -13,6 +13,8 @@ import { selectDisciplineBackground } from '../../lib/discipline-background.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import { TV_LAUNCHER_LABELS } from '../../lib/tv-launcher-labels.ts';
 import {
+  courtOptions,
+  COURT_VALUE_PREFIX,
   matchOptionGroups,
   stageOptions,
   viewShowsMatch,
@@ -91,6 +93,7 @@ if (selectedOrganization && selectedTournament) {
       ...(match.groupName === undefined ? {} : { group: match.groupName }),
       home: match.homeName ?? 'TBD',
       away: match.awayName ?? 'TBD',
+      ...(match.venueName === undefined ? {} : { venue: match.venueName }),
     }));
   } catch {
     loadFailed = true;
@@ -109,6 +112,8 @@ const background =
 const stages = stageOptions(matchChoices);
 const initialStage = Number(params.get('stage')) || stages[0]?.stage;
 const initialMatch = Number(params.get('match')) || undefined;
+const courts = courtOptions(matchChoices);
+const initialCourt = params.get('court') ?? undefined;
 const matchGroups =
   initialStage === undefined ? [] : matchOptionGroups(matchChoices, initialStage, t.round ?? '');
 const matchFieldsShown = viewShowsMatch(view);
@@ -206,15 +211,18 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
               <label>
                 <span data-i18n="match">{t.match}</span>
                 <select class="cl-chamfer cl-chamfer--control" data-launcher-match>
-                  <option
-                    value=""
-                    data-i18n="liveMatchAuto"
-                    data-overlay-only
-                    hidden={view !== 'overlay'}
-                    disabled={view !== 'overlay'}
-                  >
-                    {t.liveMatchAuto}
-                  </option>
+                  {view === 'overlay' && courts.length > 0 && (
+                    <optgroup label={t.courtGroup} data-i18n="courtGroup">
+                      {courts.map((venue) => (
+                        <option
+                          value={`${COURT_VALUE_PREFIX}${venue}`}
+                          selected={venue === initialCourt && initialMatch === undefined}
+                        >
+                          {venue}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                   {matchGroups.map((group) => (
                     <optgroup label={group.heading}>
                       {group.options.map((item) => (
@@ -293,6 +301,8 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
   import { TV_LAUNCHER_LABELS } from '../../lib/tv-launcher-labels.js';
   import {
     buildTvLauncherDestination,
+    courtOptions,
+    COURT_VALUE_PREFIX,
     matchOptionGroups,
     parseTvLauncherPreset,
     viewShowsMatch,
@@ -333,12 +343,17 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
       const labels = labelsFor();
       const previous = match.value;
       const overlay = view.value === 'overlay';
-      const automatic = document.createElement('option');
-      automatic.value = '';
-      automatic.dataset.i18n = 'liveMatchAuto';
-      automatic.textContent = labels.liveMatchAuto ?? '';
-      automatic.hidden = !overlay;
-      automatic.disabled = !overlay;
+      const courtGroup = document.createElement('optgroup');
+      courtGroup.dataset.i18n = 'courtGroup';
+      courtGroup.label = labels.courtGroup ?? '';
+      courtGroup.append(
+        ...courtOptions(choices).map((venue) => {
+          const option = document.createElement('option');
+          option.value = `${COURT_VALUE_PREFIX}${venue}`;
+          option.textContent = venue;
+          return option;
+        }),
+      );
       const groups = matchOptionGroups(choices, Number(stage.value), labels.round ?? '').map(
         (group) => {
           const element = document.createElement('optgroup');
@@ -354,7 +369,10 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
           return element;
         },
       );
-      match.replaceChildren(automatic, ...groups);
+      match.replaceChildren(
+        ...(overlay && courtGroup.children.length > 0 ? [courtGroup] : []),
+        ...groups,
+      );
       const usable = [...match.options].filter((option) => !option.disabled);
       match.value = usable.some((option) => option.value === previous)
         ? previous
@@ -367,7 +385,9 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
       const labels = labelsFor();
       for (const element of root.querySelectorAll<HTMLElement>('[data-i18n]')) {
         const text = labels[element.dataset.i18n ?? ''];
-        if (text !== undefined) element.textContent = text;
+        if (text === undefined) continue;
+        if (element instanceof HTMLOptGroupElement) element.label = text;
+        else element.textContent = text;
       }
       document.documentElement.lang = language?.value ?? 'en';
       if (labels.title) document.title = labels.title;
@@ -385,7 +405,11 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
         return;
       const showsMatch = viewShowsMatch(view.value);
       const stageNumber = Number(stage?.value);
-      const matchNumber = Number(match?.value);
+      const matchValue = match?.value ?? '';
+      const court = matchValue.startsWith(COURT_VALUE_PREFIX)
+        ? matchValue.slice(COURT_VALUE_PREFIX.length)
+        : undefined;
+      const matchNumber = court === undefined ? Number(matchValue) : Number.NaN;
       const preset = {
         organization: organization.value,
         tournament: tournament.value,
@@ -395,6 +419,7 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
         ...(showsMatch && stageNumber > 0 && matchNumber > 0
           ? { stage: stageNumber, match: matchNumber }
           : {}),
+        ...(view.value === 'overlay' && court !== undefined ? { court } : {}),
       };
       try {
         localStorage.setItem('copalibre.tv.launcher_preset', JSON.stringify(preset));
@@ -441,6 +466,7 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
               lang: saved.language,
               ...(saved.stage === undefined ? {} : { stage: String(saved.stage) }),
               ...(saved.match === undefined ? {} : { match: String(saved.match) }),
+              ...(saved.court === undefined ? {} : { court: saved.court }),
             });
             window.location.replace(`/tv?${restored}`);
           }
@@ -457,6 +483,7 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
         choose(stage, String(saved.stage));
         applyLabels();
         if (saved.match !== undefined) choose(match, String(saved.match));
+        if (saved.court !== undefined) choose(match, `${COURT_VALUE_PREFIX}${saved.court}`);
       } catch {
         /* Invalid or unavailable local storage leaves server defaults in place. */
       }
@@ -470,8 +497,9 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
     let shownView = view?.value;
     view?.addEventListener('change', () => {
       renderMatches();
-      // Arriving at the overlay from another view starts it unpinned, on the live match.
-      if (match && view.value === 'overlay' && shownView !== 'overlay') match.value = '';
+      // Arriving at the overlay starts it on its first choice: a court when there are any.
+      if (match && view.value === 'overlay' && shownView !== 'overlay')
+        match.value = [...match.options].find((option) => !option.disabled)?.value ?? '';
       shownView = view.value;
     });
     language?.addEventListener('change', () => {

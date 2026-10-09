@@ -3,6 +3,7 @@ title: Superficies de transmisión y públicas
 description: Tokens de display para pantallas de TV en sede y overlays de streaming, y qué ve un espectador en el sitio público.
 capabilities:
   - live-operations/broadcast-tv-surfaces
+  - live-operations/tv-dashboard-localization
   - live-operations/public-live-surfaces
   - public-web/public-web-shell
 roles:
@@ -50,9 +51,13 @@ Una fase puede mezclar formatos, así que la pantalla presenta cada zona según 
 
 La superposición de tercio inferior no cambia: nombra un partido, no una fase.
 
+### Superposiciones: un partido, series y sets
+
+Una superposición (`?mode=overlay`) muestra solo el partido que se le dio: el que nombra su dirección (`/tv/<organización>/tournaments/<torneo>/stages/<fase>/matches/<número>?mode=overlay`) o, con `?court=<cancha>`, el partido en vivo de esa cancha. Abierta sin ninguno, dice que no hay partido seleccionado y no muestra ningún resultado, de modo que dos superposiciones nunca muestran el mismo partido por casualidad. Un partido dentro de una serie muestra cómo va la serie (partidos ganados por cada lado y el partido en juego) junto al resultado, y un partido jugado por sets muestra los sets ya jugados y el que está en juego, con el lado local primero y la etiqueta de set de la disciplina en el idioma de la página. El segmento en juego se nombra por su lugar en el partido («2.º tiempo», «2.ª vuelta», «3.er set») cuando la disciplina juega varios del mismo tipo, y sin número cuando juega uno solo. Un partido sin nada de esto se ve como antes.
+
 ### El lanzador de pantalla
 
-`/tv` es un lanzador que arma la dirección de una pantalla del recinto o de una superposición: elegí la organización, el torneo y la vista (panel rotativo, tabla de posiciones, lista de partidos, un partido fijado o la superposición de transmisión), el fondo y el idioma. El idioma cambia de inmediato los textos del propio lanzador, sin recargar. Las etapas se listan con su número y su nombre, y los partidos se agrupan por zona y grupo con su ronda, los dos participantes y su número (`#34`). Las vistas de partido fijado y de superposición piden un partido y el enlace de lanzamiento lo lleva, de modo que varias superposiciones pueden mostrar cada una su partido; una superposición en la opción automática muestra el partido en vivo de la cancha.
+`/tv` es un lanzador que arma la dirección de una pantalla del recinto o de una superposición: elegí la organización, el torneo y la vista (panel rotativo, tabla de posiciones, lista de partidos, un partido fijado o la superposición de transmisión), el fondo y el idioma. El idioma cambia de inmediato los textos del propio lanzador, sin recargar. Las etapas se listan con su número y su nombre, y los partidos se agrupan por zona y grupo con su ronda, los dos participantes y su número (`#34`). Las vistas de partido fijado y de superposición piden un partido y el enlace de lanzamiento lo lleva, de modo que varias superposiciones pueden mostrar cada una su partido; una superposición puede en cambio seguir el partido en vivo de una cancha (`court=`).
 
 ## Qué ve un espectador en el sitio público
 

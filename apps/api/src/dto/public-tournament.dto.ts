@@ -195,6 +195,39 @@ export class PublicLivePenaltyResponse {
   remainingSeconds!: number;
 }
 
+/**
+ * One segment of a match (a half, a set, a frame), with what each side scored in it. `timed` tells a
+ * segment played against a clock from one played to a target, which is what makes a set a set.
+ */
+export class PublicSegmentSummaryResponse {
+  @ApiProperty({ description: '1-based order within the match' })
+  number!: number;
+
+  @ApiProperty({ description: "The discipline's own segment type name" })
+  type!: string;
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    description: "The segment type's display label in every language the discipline wrote it in.",
+  })
+  label?: string | LocalizedLabel;
+
+  @ApiPropertyOptional({
+    description: 'Whether the segment runs against a clock; false for one played to a target',
+  })
+  timed?: boolean;
+
+  @ApiProperty({ enum: ['pending', 'active', 'completed'] })
+  state!: 'pending' | 'active' | 'completed';
+
+  @ApiPropertyOptional({
+    type: [Number],
+    description: 'What each side scored in this segment alone, home first',
+  })
+  scores?: number[];
+}
+
 export class PublicLiveMatchResponse {
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
@@ -210,6 +243,12 @@ export class PublicLiveMatchResponse {
       'The 1-based ordinal of the match within its stage, the one the public match route addresses it by.',
   })
   stageOrdinal?: number;
+
+  @ApiPropertyOptional({
+    type: () => [PublicSegmentSummaryResponse],
+    description: 'The match’s segments and what each side scored in each',
+  })
+  segments?: PublicSegmentSummaryResponse[];
 
   @ApiProperty()
   state!: string;
@@ -412,6 +451,12 @@ export class PublicMatchReportResponse {
 
   @ApiProperty({ type: [PublicMatchEventResponse] })
   timeline!: PublicMatchEventResponse[];
+
+  @ApiPropertyOptional({
+    type: () => [PublicSegmentSummaryResponse],
+    description: 'The match’s segments and what each side scored in each',
+  })
+  segments?: PublicSegmentSummaryResponse[];
 }
 
 export class PublicBracketSlotResponse {

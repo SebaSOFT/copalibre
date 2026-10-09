@@ -3,6 +3,7 @@ title: Superfícies de transmissão e públicas
 description: Tokens de exibição para telas de TV no local e overlays de streaming, e o que um espectador vê no site público.
 capabilities:
   - live-operations/broadcast-tv-surfaces
+  - live-operations/tv-dashboard-localization
   - live-operations/public-live-surfaces
   - public-web/public-web-shell
 roles:
@@ -50,9 +51,13 @@ Uma fase pode misturar formatos, então a tela apresenta cada zona pelo formato 
 
 A sobreposição do terço inferior não muda: ela nomeia uma partida, não uma fase.
 
+### Sobreposições: um jogo, séries e sets
+
+Uma sobreposição (`?mode=overlay`) mostra só o jogo que lhe foi dado: o nomeado em seu endereço (`/tv/<organização>/tournaments/<torneio>/stages/<fase>/matches/<número>?mode=overlay`) ou, com `?court=<quadra>`, o jogo ao vivo dessa quadra. Aberta sem nenhum dos dois, informa que nenhum jogo está selecionado e não mostra placar, de modo que duas sobreposições nunca mostram o mesmo jogo por acaso. Um jogo dentro de uma série mostra como está a série (jogos ganhos por cada lado e o jogo em andamento) junto ao placar, e um jogo disputado em sets mostra os sets já jogados e o que está em andamento, com o lado mandante primeiro e o rótulo de set da disciplina no idioma da página. O segmento em andamento é nomeado por seu lugar no jogo («2º tempo», «2ª volta», «3º set») quando a disciplina joga vários do mesmo tipo, e sem número quando joga só um. Um jogo sem nada disso aparece como antes.
+
 ### O lançador de tela
 
-`/tv` é um lançador que monta o endereço de uma tela do local ou de uma sobreposição: escolha a organização, o torneio e a visão (rotativa, classificação, lista de jogos, um jogo fixado ou a sobreposição de transmissão), o fundo e o idioma. O idioma muda na hora os textos do próprio lançador, sem recarregar. As fases aparecem com número e nome, e os jogos são agrupados por zona e grupo com a rodada, os dois participantes e o número (`#34`). As visões de jogo fixado e de sobreposição pedem um jogo e o link de lançamento o leva, de modo que várias sobreposições podem mostrar cada uma o seu jogo; uma sobreposição na opção automática mostra o jogo ao vivo da quadra.
+`/tv` é um lançador que monta o endereço de uma tela do local ou de uma sobreposição: escolha a organização, o torneio e a visão (rotativa, classificação, lista de jogos, um jogo fixado ou a sobreposição de transmissão), o fundo e o idioma. O idioma muda na hora os textos do próprio lançador, sem recarregar. As fases aparecem com número e nome, e os jogos são agrupados por zona e grupo com a rodada, os dois participantes e o número (`#34`). As visões de jogo fixado e de sobreposição pedem um jogo e o link de lançamento o leva, de modo que várias sobreposições podem mostrar cada uma o seu jogo; uma sobreposição pode, em vez disso, seguir o jogo ao vivo de uma quadra (`court=`).
 
 ## O que um espectador vê no site público
 

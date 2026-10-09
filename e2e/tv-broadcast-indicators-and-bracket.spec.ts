@@ -36,6 +36,7 @@ function liveMatchWithFacts(stageNumber: number) {
         matchId: 'live-match-1',
         stageNumber,
         matchNumber: 1,
+        stageOrdinal: 1,
         state: 'in-progress',
         projectionVersion: 1,
         possessionEntrantId: HOME_ID,
@@ -56,6 +57,7 @@ function liveMatchWithoutFacts(stageNumber: number) {
         matchId: 'live-match-1',
         stageNumber,
         matchNumber: 1,
+        stageOrdinal: 1,
         state: 'in-progress',
         projectionVersion: 1,
         sides: [
@@ -156,7 +158,8 @@ test('kiosk shows possession and timed-penalty indicators, and the published bra
 });
 
 test('full overlay carries the same indicators and bracket as the kiosk', async ({ page }) => {
-  await page.goto(`${TV_PATH}?mode=overlay-full`);
+  // An overlay shows the match it is given, so it is pinned to the live one.
+  await page.goto(`${TV_PATH}/stages/1/matches/1?mode=overlay-full`);
 
   const indicators = page.locator('.tv-match-indicators').first();
   await expect(indicators.getByText('Possession')).toBeVisible();
@@ -165,7 +168,7 @@ test('full overlay carries the same indicators and bracket as the kiosk', async 
 });
 
 test('lower third keeps the indicator but never shows a bracket section', async ({ page }) => {
-  await page.goto(`${TV_PATH}?mode=overlay-lower`);
+  await page.goto(`${TV_PATH}/stages/1/matches/1?mode=overlay-lower`);
 
   const indicators = page.locator('.tv-match-indicators').first();
   await expect(indicators.getByText('Possession')).toBeVisible();

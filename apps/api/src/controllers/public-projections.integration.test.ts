@@ -171,6 +171,21 @@ describe('public projections routes', () => {
           .set({ status: 'in-progress' })
           .where('match_id', '=', liveMatch.matchId)
           .execute();
+        const half = await competition.createSegment(uow, {
+          matchId: liveMatch.matchId,
+          type: 'half',
+          number: 1,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        await competition.setSegmentState(uow, {
+          segmentId: half.segmentId,
+          state: 'active',
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
         return { liveMatchId: liveMatch.matchId, scheduledMatchId: scheduledMatch.matchId };
       },
     );
@@ -184,7 +199,14 @@ describe('public projections routes', () => {
       matches: { matchId: string; state: string }[];
     };
     expect(data.matches).toContainEqual(
-      expect.objectContaining({ matchId: liveMatchId, state: 'live', stageOrdinal: 1 }),
+      expect.objectContaining({
+        matchId: liveMatchId,
+        state: 'live',
+        stageOrdinal: 1,
+        segments: [
+          expect.objectContaining({ number: 1, type: 'half', timed: true, state: 'active' }),
+        ],
+      }),
     );
     expect(data.matches.map((match) => match.matchId)).not.toContain(scheduledMatchId);
   });
@@ -583,6 +605,17 @@ describe('public projections routes', () => {
       officials: [{ name: 'María Referee', roles: ['referee'] }],
       rosters: { home: [{ personId: playerId, name: 'Lucía Gómez', number: 9 }], away: [] },
       timeline: [{ definitionCode: 'goal', label: 'Goal', personId: playerId }],
+      // The half the goal was scored in: timed, labelled in every language, scored by its own events.
+      segments: [
+        {
+          number: 1,
+          type: 'half',
+          timed: true,
+          label: { en: 'Half' },
+          state: 'active',
+          scores: [1, 0],
+        },
+      ],
     });
   });
 

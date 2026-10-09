@@ -20,3 +20,10 @@ default independent of the configured language.
 #### Scenario: Status badge matches the configured language
 - **WHEN** a TV kiosk route's top-level status badge renders for any match/tournament state
 - **THEN** its label is sourced from the same localized vocabulary as every other label on the screen
+
+### Requirement: The launcher's own labels follow the language selection immediately
+Choosing a language in the TV display launcher SHALL change every label of the launcher to that language without reloading the page, SHALL keep the other selections, and SHALL carry the language into the launch link.
+
+#### Scenario: Switching to Spanish updates the form
+- **WHEN** the viewer selects Spanish in the launcher
+- **THEN** the field labels and button text appear in Spanish immediately and the other selections are unchanged

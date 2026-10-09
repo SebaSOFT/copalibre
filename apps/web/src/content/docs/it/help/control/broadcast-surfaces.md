@@ -3,6 +3,7 @@ title: Superfici di trasmissione e pubbliche
 description: Token di visualizzazione per schermi TV in sede e overlay di streaming, e cosa vede uno spettatore sul sito pubblico.
 capabilities:
   - live-operations/broadcast-tv-surfaces
+  - live-operations/tv-dashboard-localization
   - live-operations/public-live-surfaces
   - public-web/public-web-shell
 roles:
@@ -50,9 +51,13 @@ Una fase può mescolare i formati, quindi lo schermo presenta ogni zona secondo 
 
 La sovrimpressione del terzo inferiore non cambia: nomina una partita, non una fase.
 
+### Sovrimpressioni: una partita, serie e set
+
+Una sovrimpressione (`?mode=overlay`) mostra solo la partita che le è stata data: quella nominata dal suo indirizzo (`/tv/<organizzazione>/tournaments/<torneo>/stages/<fase>/matches/<numero>?mode=overlay`) o, con `?court=<campo>`, la partita in diretta di quel campo. Aperta senza nessuna delle due, dice che nessuna partita è selezionata e non mostra alcun risultato, così due sovrimpressioni non mostrano mai la stessa partita per caso. Una partita in una serie mostra a che punto è la serie (partite vinte da ciascun lato e partita in corso) accanto al risultato, e una partita giocata a set mostra i set già giocati e quello in corso, con il lato di casa per primo e l’etichetta di set della disciplina nella lingua della pagina. Il segmento in corso è nominato dal suo posto nella partita («2º tempo», «2º giro», «3º set») quando la disciplina ne gioca più d’uno dello stesso tipo, e senza numero quando ne gioca uno solo. Una partita senza nulla di questo appare come prima.
+
 ### Il lanciatore dello schermo
 
-`/tv` è un lanciatore che compone l’indirizzo di uno schermo del locale o di una sovrimpressione: scegli organizzazione, torneo e vista (rotazione, classifica, elenco delle partite, una partita fissata o la sovrimpressione di trasmissione), sfondo e lingua. La lingua cambia subito le etichette del lanciatore, senza ricaricare. Le fasi sono elencate con numero e nome, e le partite raggruppate per zona e girone con il turno, i due partecipanti e il loro numero (`#34`). Le viste partita fissata e sovrimpressione chiedono una partita e il link di avvio la porta con sé, così più sovrimpressioni possono mostrare ciascuna la propria partita; una sovrimpressione lasciata su automatico mostra la partita in diretta del campo.
+`/tv` è un lanciatore che compone l’indirizzo di uno schermo del locale o di una sovrimpressione: scegli organizzazione, torneo e vista (rotazione, classifica, elenco delle partite, una partita fissata o la sovrimpressione di trasmissione), sfondo e lingua. La lingua cambia subito le etichette del lanciatore, senza ricaricare. Le fasi sono elencate con numero e nome, e le partite raggruppate per zona e girone con il turno, i due partecipanti e il loro numero (`#34`). Le viste partita fissata e sovrimpressione chiedono una partita e il link di avvio la porta con sé, così più sovrimpressioni possono mostrare ciascuna la propria partita; una sovrimpressione può invece seguire la partita in diretta di un campo (`court=`).
 
 ## Cosa vede uno spettatore sul sito pubblico
 

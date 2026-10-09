@@ -958,6 +958,53 @@
     width: 100%;
     justify-content: space-between;
     gap: 1.5vmin;
+    /* Two rows at most: the score, then the series and sets on a row of their own. */
+    flex-wrap: wrap;
+  }
+
+  /* The segment joins the score's row; the series and the sets take a row of their own. */
+  .tv-lower-third__bug .tv-progress {
+    display: contents;
+  }
+
+  .tv-lower-third__bug .tv-progress__row {
+    display: flex;
+    order: 1;
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .tv-lower-third__bug .tv-progress__series {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .tv-lower-third__bug .tv-progress__series-text {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .tv-lower-third__bug .tv-progress__sets {
+    flex: 0 0 auto;
+  }
+
+  .tv-lower-third__bug .tv-progress__row {
+    font-size: 0.72rem;
+    gap: 1vmin;
+  }
+
+  .tv-lower-third__bug .tv-progress__sets {
+    gap: 0.6vmin;
+  }
+
+  .tv-lower-third__bug .tv-progress__set {
+    min-width: 0;
+    padding-inline: 1.2vmin;
   }
 
   .tv-overlay--lower #tv-root {
@@ -1511,5 +1558,107 @@
   .tv-match-list__round {
     grid-column: 1 / -1;
     text-align: center;
+  }
+}
+
+/* The series and the sets beside a broadcast score. Fixed sizes: nothing shifts when a set ends. */
+.tv-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1vmin 2vmin;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.8rem, 1.6vmin, 1.15rem);
+  text-transform: uppercase;
+}
+
+.tv-progress__row {
+  display: contents;
+}
+
+.tv-progress__series {
+  display: inline-flex;
+  align-items: center;
+  gap: 1vmin;
+  color: var(--tv-text-secondary);
+}
+
+.tv-progress__pips {
+  display: inline-flex;
+  gap: 0.6vmin;
+}
+
+.tv-progress__pip {
+  width: 1.6vmin;
+  min-width: 10px;
+  height: 1.6vmin;
+  min-height: 10px;
+  border: 1px solid var(--tv-border-active);
+  background: transparent;
+}
+
+.tv-progress__pip--won-home,
+.tv-progress__pip--won-away {
+  background: var(--tv-live-cyan);
+}
+
+.tv-progress__pip--current {
+  background: color-mix(in srgb, var(--tv-live-cyan) 40%, transparent);
+  animation: tvPulseDot 1.6s ease-in-out infinite;
+}
+
+.tv-progress__pip--not-required {
+  opacity: 0.25;
+}
+
+.tv-progress__sets {
+  display: inline-flex;
+  gap: 0.8vmin;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-progress__set {
+  display: grid;
+  min-width: 9vmin;
+  padding: 0.6vmin 1vmin;
+  text-align: center;
+  background: var(--cl-surface-chrome);
+  border: 1px solid var(--tv-border);
+}
+
+.tv-progress__set--current {
+  border-color: var(--tv-border-active);
+  color: var(--tv-live-cyan);
+}
+
+.tv-progress__set-label {
+  color: var(--tv-text-muted);
+  font-size: 0.75em;
+}
+
+.tv-progress__set-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--cl-weight-bold);
+}
+
+.tv-progress__segment {
+  color: var(--tv-live-cyan);
+  letter-spacing: 0.08em;
+}
+
+.tv-lower-third__empty {
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.8rem, 1.6vmin, 1.1rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-progress__pip--current {
+    animation: none;
   }
 }

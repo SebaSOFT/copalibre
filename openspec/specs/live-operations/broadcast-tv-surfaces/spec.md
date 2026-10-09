@@ -504,3 +504,29 @@ The kiosk's client-side refreshes of live matches and of the featured stage's br
 #### Scenario: A live refresh is answered
 - **WHEN** the kiosk's refresh interval elapses
 - **THEN** it requests the tournament's live matches at an address that answers with the live projection
+
+### Requirement: The launcher names stages and pins a match for the overlay
+The TV display launcher SHALL show each stage with its number and name, SHALL list match choices grouped by stage and zone or group with the round and the entrants' names, and SHALL offer the match choice for the overlay view and put the explicit match in the launch link. The launcher SHALL use the TV typography and control styles.
+
+#### Scenario: Stages have names
+- **WHEN** the viewer opens the stage select for a tournament with a group stage and cups
+- **THEN** each option shows its number and name
+
+#### Scenario: The overlay view asks for a match
+- **WHEN** the viewer selects the overlay view
+- **THEN** the match fields are shown and the launch link carries the chosen match
+
+#### Scenario: The overlay may stay on the live match
+- **WHEN** the overlay's match is left on the automatic choice
+- **THEN** the launch link names no match and the overlay shows the court's live match
+
+#### Scenario: Two overlays, two matches
+- **WHEN** two overlay links are launched with different matches
+- **THEN** each overlay shows its own match
+
+### Requirement: The public main menu links to the TV display launcher
+The public site's main navigation SHALL include a "TV Streaming" link to the TV display launcher, carrying the page's language.
+
+#### Scenario: The menu reaches the launcher
+- **WHEN** a spectator opens the main menu of any public page
+- **THEN** a TV Streaming link leads to the launcher in the page's language
