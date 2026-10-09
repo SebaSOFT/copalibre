@@ -15,8 +15,13 @@ import {
   runInteractiveRepair,
 } from '../doctor-data-repair.js';
 
+/**
+ * `missing`, not `never`: an image already on the host is never refreshed by a diagnostic run, but a
+ * clean host that has not pulled PostgreSQL yet (`init` then `doctor` then `start`) must still be
+ * able to start the one dependency the doctor service waits for.
+ */
 export function dockerComposeDoctorRunArgs(arguments_: readonly string[]): readonly string[] {
-  return ['compose', 'run', '--pull', 'never', '--rm', 'doctor', ...arguments_];
+  return ['compose', 'run', '--pull', 'missing', '--rm', 'doctor', ...arguments_];
 }
 
 export class DoctorCommand extends Command<CliContext> {
