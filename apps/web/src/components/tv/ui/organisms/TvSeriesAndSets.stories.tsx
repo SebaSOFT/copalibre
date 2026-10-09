@@ -30,13 +30,14 @@ export const Sets: Story = {
         { number: 2, label: 'Set', scores: [3, 6], current: false },
         { number: 3, label: 'Set', scores: [2, 1], current: true },
       ],
+      segmentLabel: '3er Set',
     },
   },
 };
 
-/** A discipline played in timed segments names the one in play instead of listing sets. */
+/** A discipline played in timed segments names the one in play by its place instead of listing sets. */
 export const SegmentInPlay: Story = {
-  args: { progress: { sets: [], segmentLabel: 'Segundo tiempo' } },
+  args: { progress: { sets: [], segmentLabel: '2do Tiempo' } },
 };
 
 /** A plain match has neither a series nor sets: the component renders nothing. */

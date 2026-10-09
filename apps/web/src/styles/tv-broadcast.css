@@ -958,6 +958,53 @@
     width: 100%;
     justify-content: space-between;
     gap: 1.5vmin;
+    /* Two rows at most: the score, then the series and sets on a row of their own. */
+    flex-wrap: wrap;
+  }
+
+  /* The segment joins the score's row; the series and the sets take a row of their own. */
+  .tv-lower-third__bug .tv-progress {
+    display: contents;
+  }
+
+  .tv-lower-third__bug .tv-progress__row {
+    display: flex;
+    order: 1;
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .tv-lower-third__bug .tv-progress__series {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .tv-lower-third__bug .tv-progress__series-text {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .tv-lower-third__bug .tv-progress__sets {
+    flex: 0 0 auto;
+  }
+
+  .tv-lower-third__bug .tv-progress__row {
+    font-size: 0.72rem;
+    gap: 1vmin;
+  }
+
+  .tv-lower-third__bug .tv-progress__sets {
+    gap: 0.6vmin;
+  }
+
+  .tv-lower-third__bug .tv-progress__set {
+    min-width: 0;
+    padding-inline: 1.2vmin;
   }
 
   .tv-overlay--lower #tv-root {
@@ -1524,6 +1571,10 @@
   font-family: var(--cl-font-mono);
   font-size: clamp(0.8rem, 1.6vmin, 1.15rem);
   text-transform: uppercase;
+}
+
+.tv-progress__row {
+  display: contents;
 }
 
 .tv-progress__series {

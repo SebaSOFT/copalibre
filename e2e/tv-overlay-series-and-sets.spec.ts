@@ -222,6 +222,22 @@ test('a match in sets shows the sets played and the one in play', async ({ page 
   await expect(sets.locator('.tv-progress__set-score')).toHaveText(['6–4', '3–6', '2–1']);
   await expect(sets.locator('[aria-current="true"]')).toHaveCount(1);
   await expect(sets.locator('.tv-progress__set-label').first()).toHaveText('Set 1');
+  // The segment in play is named by its place among the sets.
+  await expect(page.getByTestId('tv-segment')).toHaveText('3rd Set');
+});
+
+test('on a phone-shaped frame the lower third keeps the score and the sets on two rows', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${TV}/stages/1/matches/2?mode=overlay&bg=neutral`);
+
+  const series = await page.getByTestId('tv-series').boundingBox();
+  const score = await page.locator('.tv-lower-third__clock').boundingBox();
+  if (series === null || score === null) throw new Error('the overlay did not render');
+  // Series on the second row, below the score's row and never wrapped to a third.
+  expect(series.y).toBeGreaterThan(score.y + score.height - 1);
+  expect(series.height).toBeLessThan(30);
 });
 
 test('a match in a series shows where the series stands next to the score', async ({ page }) => {

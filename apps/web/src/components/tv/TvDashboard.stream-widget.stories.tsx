@@ -76,6 +76,11 @@ const SCORED_LAPS = dashboardWithSegments([
   { number: 2, type: 'lap', label: 'Lap', timed: false, state: 'active', scores: [1, 1] },
 ]);
 
+const HALVES = dashboardWithSegments([
+  { number: 1, type: 'half', label: 'Half', timed: true, state: 'completed' },
+  { number: 2, type: 'half', label: 'Half', timed: true, state: 'active' },
+]);
+
 const SERIES_BY_MATCH = { 'm-1': SERIES };
 
 /** The pinned match's series: pips and "Series 1–0 · Game 2 of 3" beside the score. */
@@ -101,7 +106,12 @@ export const LowerThirdSeriesAndSets: Story = {
   }),
 };
 
-/** Laps run against a clock: the lap in play is named. */
+/** The half in play, named by its place. */
+export const LowerThirdSecondHalf: Story = {
+  render: renderDashboard('lower', { initial: HALVES, pinnedMatch: PINNED }),
+};
+
+/** Laps run against a clock: the lap in play is named by its place. */
 export const LowerThirdLapInPlay: Story = {
   render: renderDashboard('lower', { initial: TIMED_LAP, pinnedMatch: PINNED }),
 };

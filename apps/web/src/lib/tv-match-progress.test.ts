@@ -16,10 +16,10 @@ const set = (
   ...(scores === undefined ? {} : { scores }),
 });
 
-const half = (state: LiveSegment['state']): LiveSegment => ({
-  number: 2,
+const half = (number: number, state: LiveSegment['state']): LiveSegment => ({
+  number,
   type: 'half',
-  label: { en: 'Second half', es: 'Segundo tiempo' },
+  label: { en: 'Half', es: 'Tiempo' },
   timed: true,
   state,
 });
@@ -62,7 +62,7 @@ describe('tvMatchProgress', () => {
     ]);
     expect(progress.sets.map((chip) => chip.current)).toEqual([false, false, true]);
     expect(progress.sets[0]?.label).toBe('Set');
-    expect(progress.segmentLabel).toBeUndefined();
+    expect(progress.segmentLabel).toBe('3rd Set');
   });
 
   it('labels a set in the viewer’s language', () => {
@@ -83,15 +83,53 @@ describe('tvMatchProgress', () => {
     expect(progress.sets).toHaveLength(1);
   });
 
-  it('names the segment in play when it is a timed one, and shows no sets', () => {
+  it('names the segment in play by its place, and shows no sets for a timed one', () => {
     const progress = tvMatchProgress(
-      { state: 'live', segments: [half('active')] },
+      { state: 'live', segments: [half(1, 'completed'), half(2, 'active')] },
       undefined,
       'es',
     );
 
     expect(progress.sets).toEqual([]);
-    expect(progress.segmentLabel).toBe('Segundo tiempo');
+    expect(progress.segmentLabel).toBe('2do Tiempo');
+  });
+
+  it('numbers a lap by its place among the laps, not among every segment', () => {
+    const lap = (number: number, state: LiveSegment['state']): LiveSegment => ({
+      number,
+      type: 'lap',
+      label: { es: 'Vuelta' },
+      timed: true,
+      state,
+    });
+    const progress = tvMatchProgress(
+      { state: 'live', segments: [half(1, 'completed'), lap(2, 'completed'), lap(3, 'active')] },
+      undefined,
+      'es',
+    );
+    expect(progress.segmentLabel).toBe('2da Vuelta');
+  });
+
+  it('leaves a segment the match plays once without a number', () => {
+    const progress = tvMatchProgress(
+      {
+        state: 'live',
+        segments: [
+          half(1, 'completed'),
+          half(2, 'completed'),
+          {
+            number: 3,
+            type: 'overtime',
+            label: { en: 'Overtime' },
+            timed: true,
+            state: 'active',
+          },
+        ],
+      },
+      undefined,
+      'en',
+    );
+    expect(progress.segmentLabel).toBe('Overtime');
   });
 
   it('is empty for a match with neither segments nor a series', () => {
