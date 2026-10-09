@@ -33,6 +33,19 @@ describe('DataTable.astro', () => {
   });
 });
 
+describe('DataTable.astro sections and cell links', () => {
+  it('renders each section as its own row group headed by one spanning row', () => {
+    expect(dataTable).toContain('sections');
+    expect(dataTable).toContain('scope="rowgroup"');
+    expect(dataTable).toContain('colspan={columns.length}');
+  });
+
+  it('wraps a cell in a link or a time only when its column asks', () => {
+    expect(dataTable).toContain('column.href?.(row)');
+    expect(dataTable).toContain('column.datetime?.(row)');
+  });
+});
+
 describe('Modal.astro', () => {
   it('renders its content unconditionally — a script only wires interaction on top of it', () => {
     // The header/body/footer markup sits directly in the template, not

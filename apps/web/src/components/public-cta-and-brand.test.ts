@@ -98,11 +98,11 @@ describe('public tables and filter pills', () => {
   it('renders every filter facet as a bounded pill group, not bare anchors', () => {
     expect(matchesPage).toContain('class="cl-pill-group"');
     // Four facet groups (stage, zone, group, state), each an "All" reset plus
-    // one templated per-option pill, and the state group's four literal
-    // options — every option is a pill, and the active one is marked for
-    // assistive tech too.
-    expect(matchesPage.match(/class="cl-pill cl-focusable"/g)).toHaveLength(10);
-    expect(matchesPage.match(/aria-current=/g)).toHaveLength(10);
+    // one templated per-option pill, the state group's four literal options and
+    // the view choice's two — every option is a pill, and the active one is
+    // marked for assistive tech too.
+    expect(matchesPage.match(/class="cl-pill cl-focusable"/g)).toHaveLength(12);
+    expect(matchesPage.match(/aria-current=/g)).toHaveLength(12);
   });
 
   it('renders standings through the shared table treatment', () => {

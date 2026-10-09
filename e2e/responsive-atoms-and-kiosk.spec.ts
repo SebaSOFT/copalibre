@@ -168,7 +168,7 @@ test.describe('TV kiosk', () => {
 
 test.describe('public matches page', () => {
   test('a same-day kickoff renders as a bare HH:mm, not a raw ISO string', async ({ page }) => {
-    await page.goto(`${PUBLIC_BASE}/matches`);
+    await page.goto(`${PUBLIC_BASE}/matches?view=cards`);
     const now = new Date();
     const expected = new Intl.DateTimeFormat('en', {
       hour: '2-digit',

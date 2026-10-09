@@ -17,6 +17,8 @@
  */
 import { humanizeCode } from './descriptor-label.ts';
 import type { BracketMatch } from './bracket.js';
+import type { MatchCardData } from './matches-view.js';
+import type { ScheduleStage } from './match-schedule.js';
 import type { LiveDashboard } from './live-state.js';
 import type { MatchReportModel, MatchReportTimelineGroup } from './match-report.js';
 import {
@@ -917,6 +919,66 @@ export function referencePlacementBracket(): readonly BracketMatch[] {
         { kind: 'loser-of', matchNumber: semiLosers[1] },
       ],
       scores: [1, 0],
+    },
+  ];
+}
+
+/**
+ * A two-stage schedule: a group stage of two groups and a cup stage drawn as its bracket, so the
+ * schedule organism's tables, round sub-headings and bracket zone each have something to show.
+ */
+export function referenceSchedule(): readonly ScheduleStage[] {
+  const [meridian, ironclad, obsidian, echo] = REFERENCE_ENTRANTS;
+  const row = (
+    matchNumber: number,
+    round: number,
+    groupName: string,
+    home: (typeof REFERENCE_ENTRANTS)[number],
+    away: (typeof REFERENCE_ENTRANTS)[number],
+    scores?: readonly [number, number],
+  ): MatchCardData => ({
+    matchId: `reference-${matchNumber}`,
+    stageNumber: 1,
+    matchNumber,
+    round,
+    state: scores ? 'final' : 'upcoming',
+    homeName: home.name,
+    homeAbbreviation: home.abbreviation,
+    awayName: away.name,
+    awayAbbreviation: away.abbreviation,
+    ...(scores ? { homeScore: scores[0], awayScore: scores[1] } : {}),
+    venueName: 'Reference Arena',
+    scheduledAt: `2026-09-0${round}T18:00:00.000Z`,
+    zoneName: 'Groups',
+    groupName,
+  });
+  return [
+    {
+      stageNumber: 1,
+      stageName: 'Group stage',
+      zones: [
+        {
+          kind: 'rows',
+          groups: [
+            {
+              name: 'Group A',
+              rounds: [
+                { round: 1, matches: [row(1, 1, 'Group A', meridian, obsidian, [2, 1])] },
+                { round: 2, matches: [row(3, 2, 'Group A', meridian, ironclad)] },
+              ],
+            },
+            {
+              name: 'Group B',
+              rounds: [{ round: 1, matches: [row(2, 1, 'Group B', ironclad, echo, [0, 0])] }],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      stageNumber: 2,
+      stageName: 'Cup',
+      zones: [{ kind: 'bracket', name: 'Gold Cup', matches: referenceBracket() }],
     },
   ];
 }

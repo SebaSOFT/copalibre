@@ -136,6 +136,11 @@ export const EmblemImage: Story = {
   args: { component: 'emblem-image', height: 180 },
 };
 
+/** The schedule: group tables with round sub-headings, then a cup drawn as its bracket. */
+export const MatchSchedule: Story = {
+  args: { component: 'match-schedule', height: 640 },
+};
+
 /** The `bare` emblem: no background, border, chamfer or inset, only the 1:1 image for inline use. */
 export const EmblemImageBare: Story = {
   args: { component: 'emblem-image-bare', height: 120 },

@@ -238,7 +238,7 @@ test.describe('Public Web & Broadcast Polish', () => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
     const overviewPodium = page.locator('.cl-podium-container.cl-podium-prominent');
     await expect(overviewPodium).toHaveCount(0);
-    await expect(page.locator('.cl-match-card').first()).toContainText('Club Andes');
+    await expect(page.locator('.cl-match-schedule').first()).toContainText('Club Andes');
   });
 
   test('5.4 player profile page shows non-empty career statistics and uses design token palette', async ({

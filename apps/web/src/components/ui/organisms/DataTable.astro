@@ -26,11 +26,23 @@ export interface DataTableColumn {
   readonly render: (row: unknown) => unknown;
   /** Set only by a caller driving its own re-sort script; absent leaves the header a plain label. */
   readonly ariaSort?: 'none' | 'ascending' | 'descending';
+  /** Wraps the cell's text in a link when it returns an address: a score that opens its match. */
+  readonly href?: (row: unknown) => string | undefined;
+  /** Wraps the cell's text in `<time datetime>` when it returns an ISO instant. */
+  readonly datetime?: (row: unknown) => string | undefined;
+}
+
+/** Rows under a sub-heading, rendered as a row group of the same table. */
+export interface DataTableSection {
+  readonly heading?: string;
+  readonly rows: readonly unknown[];
 }
 
 export interface Props {
   readonly columns: readonly DataTableColumn[];
   readonly rows: readonly unknown[];
+  /** When given, replaces `rows`: each section is a `<tbody>` headed by one spanning row. */
+  readonly sections?: readonly DataTableSection[];
   readonly caption?: string;
   readonly emptyMessage?: string;
   readonly ariaLabel?: string;
@@ -40,7 +52,10 @@ export interface Props {
   readonly stickyHeader?: boolean;
 }
 
-const { columns, rows, caption, emptyMessage, ariaLabel, compact, stickyHeader } = Astro.props;
+const { columns, rows, sections, caption, emptyMessage, ariaLabel, compact, stickyHeader } =
+  Astro.props;
+const bodies: readonly DataTableSection[] = sections ?? [{ rows }];
+const rowCount = bodies.reduce((total, body) => total + body.rows.length, 0);
 const modifiers = [
   compact ? 'cl-data-table--compact' : '',
   stickyHeader ? 'cl-data-table--sticky' : '',
@@ -60,7 +75,7 @@ const modifiers = [
     <thead>
       <tr>
         {
-          columns.map((column) => (
+          columns.map((column: DataTableColumn) => (
             <th aria-sort={column.ariaSort} scope="col">
               {column.header}
             </th>
@@ -68,17 +83,30 @@ const modifiers = [
         }
       </tr>
     </thead>
-    <tbody>
-      {
-        rows.map((row) => (
-          <tr>
-            {columns.map((column) => (
-              <td>{column.render(row)}</td>
-            ))}
-          </tr>
-        ))
-      }
-    </tbody>
+    {
+      bodies.map((body) => (
+        <tbody>
+          {body.heading ? (
+            <tr class="cl-data-table__section">
+              <th colspan={columns.length} scope="rowgroup">
+                {body.heading}
+              </th>
+            </tr>
+          ) : null}
+          {body.rows.map((row) => (
+            <tr>
+              {columns.map((column: DataTableColumn) => {
+                const text = column.render(row) as string;
+                const address = column.href?.(row);
+                const instant = column.datetime?.(row);
+                const content = instant ? <time datetime={instant}>{text}</time> : text;
+                return <td>{address ? <a href={address}>{content}</a> : content}</td>;
+              })}
+            </tr>
+          ))}
+        </tbody>
+      ))
+    }
   </table>
-  {rows.length === 0 && emptyMessage ? <p class="cl-data-table__empty">{emptyMessage}</p> : null}
+  {rowCount === 0 && emptyMessage ? <p class="cl-data-table__empty">{emptyMessage}</p> : null}
 </div>

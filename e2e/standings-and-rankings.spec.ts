@@ -491,6 +491,10 @@ test.describe('B2: public tournament page', () => {
         res.end(JSON.stringify(overview));
         return;
       }
+      if (req.url?.split('?')[0] === `${TOURNAMENT}/matches-view`) {
+        res.end(JSON.stringify({ matches: overview.matches }));
+        return;
+      }
       if (req.url === `${TOURNAMENT}/live`) {
         res.end(JSON.stringify(liveFixture));
         return;
@@ -596,7 +600,10 @@ test.describe('B2: public tournament page', () => {
   test('switches a constrained entrant name to its persisted abbreviation with a tooltip', async ({
     page,
   }) => {
-    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    // A state filter asks for a list of matches rather than a bracket; this mock's stage has no format.
+    await page.goto(
+      `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches?view=cards&state=final`,
+    );
 
     const entrantName = page.getByTestId('entrant-name').first();
     await expect(entrantName).toBeVisible({ timeout: 15_000 });
