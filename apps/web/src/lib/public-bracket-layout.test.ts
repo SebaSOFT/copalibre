@@ -69,17 +69,44 @@ describe('layoutPublicBracket', () => {
     ).toBeLessThanOrEqual(PUBLIC_GEOMETRY.grid);
   });
 
-  it('links played and unplayed matches alike, with loser links told apart', () => {
+  it('links played and unplayed matches alike', () => {
     const pairs = layout.connectors.map((c) => `${c.fromMatchId}>${c.toMatchId}:${c.kind}`);
     expect(pairs).toContain('R1-M1>R2-M1:winner-of');
     expect(pairs).toContain('R1-M3>R2-M2:winner-of');
-    expect(pairs).toContain('R2-M1>PL-R3-M1:loser-of');
-    expect(pairs).toContain('R2-M2>PL-R3-M1:loser-of');
   });
 
-  it('puts the placement games in their own band below the bracket', () => {
+  it('leaves out the links that drop a loser from one side to the other', () => {
+    const pairs = layout.connectors.map((c) => `${c.fromMatchId}>${c.toMatchId}`);
+    expect(pairs).not.toContain('R2-M1>PL-R3-M1');
+    expect(pairs).not.toContain('R2-M2>PL-R3-M1');
+  });
+
+  it('draws the winners’ bracket on the left and the placement bracket on the right', () => {
     expect(layout.bands.map((band) => band.branch)).toEqual(['winners', 'placement']);
-    expect(at('PL-R3-M1').y).toBeGreaterThan(at('R1-M4').y + at('R1-M4').height);
+    const winnersRight = Math.max(
+      ...layout.nodes
+        .filter((node) => node.match.branch === 'winners')
+        .map((node) => node.x + node.width),
+    );
+    expect(at('PL-R3-M1').x).toBeGreaterThan(winnersRight);
+    // Both start at the top, side by side rather than stacked.
+    expect(layout.bands[1]?.y).toBe(layout.bands[0]?.y);
+  });
+
+  it('mirrors the right side, so its last round is the one next to the middle', () => {
+    const placement = [
+      match('P1', 2, 1, 'placement', [entrant('X'), entrant('Y')]),
+      match('P2', 3, 1, 'placement', [
+        entrant('X', { matchId: 'P1', outcome: 'winner' }),
+        entrant('Z', { matchId: 'P1', outcome: 'loser' }),
+      ]),
+    ];
+    const placed = layoutPublicBracket([...bracket, ...placement]);
+    const x = (id: string) => placed.nodes.find((n) => n.match.matchId === id)?.x ?? Number.NaN;
+    expect(x('P2')).toBeLessThan(x('P1'));
+    const link = placed.connectors.find((c) => c.fromMatchId === 'P1' && c.toMatchId === 'P2');
+    // It runs leftward: from the left edge of the first round to the right edge of the next.
+    expect(link?.points[0]?.x ?? 0).toBeGreaterThan(link?.points.at(-1)?.x ?? 0);
   });
 
   it('never draws two matches on top of each other', () => {

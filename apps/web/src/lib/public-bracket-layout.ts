@@ -15,10 +15,10 @@ import type { BracketMatch, SlotSource } from './bracket.ts';
  */
 export const PUBLIC_GEOMETRY: BracketGeometry = {
   ...DEFAULT_GEOMETRY,
-  nodeWidth: 256,
-  nodeHeight: 120,
-  columnGap: 56,
-  rowGap: 32,
+  nodeWidth: 248,
+  nodeHeight: 140,
+  columnGap: 32,
+  rowGap: 28,
   bracketGap: 128,
 };
 const SERIES_NODE_HEIGHT = 200;
@@ -36,8 +36,8 @@ export interface PublicBracketLayout {
   readonly connectors: readonly Connector[];
   readonly width: number;
   readonly height: number;
-  /** One entry per distinct bracket band, with the top edge it starts at. */
-  readonly bands: readonly { readonly branch: string; readonly y: number }[];
+  /** One entry per distinct bracket band, with the top-left corner it starts at. */
+  readonly bands: readonly { readonly branch: string; readonly x: number; readonly y: number }[];
 }
 
 /** The id a match goes by in the layout: the engine's own, else one built from where it sits. */
@@ -70,7 +70,7 @@ export function layoutPublicBracket(matches: readonly BracketMatch[]): PublicBra
     position: match.position ?? match.matchNumber,
     slots: match.slots.map((slot) => layoutSlot(slot, idByNumber)),
   }));
-  const placed = placeBracket(input, geometry);
+  const placed = placeBracket(input, geometry, { sides: true });
   const byId = new Map(matches.map((match) => [layoutIdOf(match), match]));
 
   const nodes = placed.nodes.map((node): PublicBracketNode => ({
@@ -80,10 +80,14 @@ export function layoutPublicBracket(matches: readonly BracketMatch[]): PublicBra
     width: node.width,
     height: node.height,
   }));
-  const bands = [...new Set(nodes.map((node) => node.match.branch))].map((branch) => ({
-    branch,
-    y: Math.min(...nodes.filter((node) => node.match.branch === branch).map((node) => node.y)),
-  }));
+  const bands = [...new Set(nodes.map((node) => node.match.branch))].map((branch) => {
+    const inBand = nodes.filter((node) => node.match.branch === branch);
+    return {
+      branch,
+      x: Math.min(...inBand.map((node) => node.x)),
+      y: Math.min(...inBand.map((node) => node.y)),
+    };
+  });
 
   return {
     nodes,

@@ -98,9 +98,24 @@ const BRACKET_ORDER: readonly string[] = [
   'placement',
 ];
 
+/** The brackets a reader follows from the right edge inward: what the winners' side sends them. */
+const MIRRORED_BRACKETS: ReadonlySet<string> = new Set(['losers', 'placement']);
+
+export interface PlaceOptions {
+  /**
+   * Draw the winners' bracket on the left and the losers' (or placement) bracket on the right,
+   * mirrored so each reads from its own outer edge toward the middle, instead of stacking one
+   * under the other. The links that drop a loser across from one side to the other are left out:
+   * they would cross the whole drawing, and each game on the far side names where its sides came
+   * from.
+   */
+  readonly sides?: boolean;
+}
+
 export function placeBracket(
   matches: readonly LayoutMatch[],
   geometry: BracketGeometry = DEFAULT_GEOMETRY,
+  options: PlaceOptions = {},
 ): PlacedBracket {
   const placed = new Map<string, PlacedNode & { readonly bracket: string }>();
   const columns = new Map<string, number>();
@@ -148,16 +163,45 @@ export function placeBracket(
       }
     }
 
-    cursorY = bottom + geometry.bracketGap;
+    // Side by side, every bracket starts at the top; stacked, the next one starts below this one.
+    if (!options.sides) cursorY = bottom + geometry.bracketGap;
   }
+
+  if (options.sides) mirrorSides(placed, geometry);
 
   const nodes = [...placed.values()];
   return {
     nodes,
-    connectors: connectorsOf(matches, placed),
+    connectors: connectorsOf(matches, placed, options.sides === true),
     width: nodes.reduce((widest, node) => Math.max(widest, node.x + node.width), 0),
     height: nodes.reduce((tallest, node) => Math.max(tallest, node.y + node.height), 0),
   };
+}
+
+/**
+ * Moves the mirrored brackets to the right of everything else and flips them, so their first round
+ * lies on the outer edge and their last one next to the middle.
+ */
+function mirrorSides(
+  placed: Map<string, PlacedNode & { readonly bracket: string }>,
+  geometry: BracketGeometry,
+): void {
+  const all = [...placed.values()];
+  const mirrored = all.filter((node) => MIRRORED_BRACKETS.has(node.bracket));
+  if (mirrored.length === 0) return;
+  const leftEdge = all
+    .filter((node) => !MIRRORED_BRACKETS.has(node.bracket))
+    .reduce((widest, node) => Math.max(widest, node.x + node.width), 0);
+  const last = Math.max(...mirrored.map((node) => node.x));
+  // The two sides are one column gap apart, with a gap more where they meet.
+  const start = leftEdge + geometry.columnGap * 2;
+
+  for (const node of mirrored) {
+    placed.set(node.matchId, {
+      ...node,
+      x: snap(start + (last - node.x), geometry.grid),
+    });
+  }
 }
 
 /**
@@ -248,7 +292,8 @@ function sourceCentre(
 
 function connectorsOf(
   matches: readonly LayoutMatch[],
-  placed: ReadonlyMap<string, PlacedNode>,
+  placed: ReadonlyMap<string, PlacedNode & { readonly bracket?: string }>,
+  sides: boolean,
 ): readonly Connector[] {
   const connectors: Connector[] = [];
 
@@ -260,9 +305,20 @@ function connectorsOf(
       const link = sourceOfSlot(slot);
       const source = link === undefined ? undefined : placed.get(link.matchId);
       if (link === undefined || !source) continue;
+      // Across the two sides a link would run the width of the drawing; skip it (see `sides`).
+      if (sides && link.kind === 'loser-of' && source.bracket !== match.bracket) continue;
 
-      const from = { x: source.x + source.width, y: source.y + source.height / 2 };
-      const to = { x: target.x, y: target.slotYs[index] ?? target.y + target.height / 2 };
+      // A link runs from the edge of the source that faces the target to the facing edge of the
+      // target: rightward on the winners' side, leftward on the mirrored one.
+      const leftward = source.x > target.x;
+      const from = {
+        x: leftward ? source.x : source.x + source.width,
+        y: source.y + source.height / 2,
+      };
+      const to = {
+        x: leftward ? target.x + target.width : target.x,
+        y: target.slotYs[index] ?? target.y + target.height / 2,
+      };
       // An elbow rather than a diagonal: two lines crossing at a right angle stay readable where a
       // dozen diagonals become a cat's cradle. A loser's link turns earlier than a winner's, so the
       // two kinds leaving one column never share a vertical run.

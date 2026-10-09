@@ -198,20 +198,25 @@ test.describe('public knockout bracket', () => {
     await page.goto(STAGE);
 
     const links = page.locator('.cl-bracket-link');
-    // Four quarter-finals and two semi-finals feed forward; four placement games hang off them.
+    // Quarter-finals and semi-finals feed forward on the left; the placement games feed each other on the right.
     await expect(page.locator('[data-link-from="SE-R1-M1"][data-link-to="SE-R2-M1"]')).toHaveCount(
       1,
     );
     await expect(page.locator('[data-link-from="SE-R1-M4"][data-link-to="SE-R2-M1"]')).toHaveCount(
       1,
     );
-    await expect(page.locator('[data-link-from="SE-R2-M1"][data-link-to="PL-R3-M1"]')).toHaveClass(
+    // Within the placement side the loser's link is dashed and the winner's is solid.
+    await expect(page.locator('[data-link-from="PL-R2-M1"][data-link-to="PL-R3-M3"]')).toHaveClass(
       /cl-bracket-link--loser/,
     );
     await expect(
       page.locator('[data-link-from="PL-R2-M1"][data-link-to="PL-R3-M2"]'),
     ).not.toHaveClass(/cl-bracket-link--loser/);
-    expect(await links.count()).toBeGreaterThanOrEqual(16);
+    // The drop from one side to the other is not drawn across the whole bracket.
+    await expect(page.locator('[data-link-from="SE-R2-M1"][data-link-to="PL-R3-M1"]')).toHaveCount(
+      0,
+    );
+    expect(await links.count()).toBeGreaterThanOrEqual(10);
 
     const boxes = await page
       .locator('.cl-bracket-stage__canvas .cl-bracket-stage__node')

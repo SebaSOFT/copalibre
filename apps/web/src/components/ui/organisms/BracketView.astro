@@ -144,7 +144,7 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
       {
         layout.bands.length > 1 &&
           layout.bands.map((band) => (
-            <h3 class="cl-bracket-stage__band" style={`top: ${band.y + HEAD - 100}px;`}>
+            <h3 class="cl-bracket-stage__band" style={`left: ${band.x}px; top: ${HEAD - 100}px;`}>
               {bracketBranchLabel(intl, band.branch)}
             </h3>
           ))
