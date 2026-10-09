@@ -150,6 +150,20 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     expect(missingRouteResponse?.status()).toBe(404);
   });
 
+  test('the main menu links to the TV display launcher in the page’s language', async ({
+    page,
+  }) => {
+    await page.goto('/es');
+    const spanish = page.locator('#cl-public-nav').getByRole('link', { name: 'TV Streaming' });
+    await expect(spanish).toHaveAttribute('href', '/tv?lang=es');
+
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    const english = page.locator('#cl-public-nav').getByRole('link', { name: 'TV Streaming' });
+    await expect(english).toHaveAttribute('href', '/tv?lang=en');
+    await english.click();
+    await expect(page).toHaveURL(/\/tv\?lang=en/);
+  });
+
   test('8.1: from a /es/ tournament page, brand link navigates to /es/ root', async ({ page }) => {
     await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
     await expect(page.locator('a.cl-logo')).toHaveAttribute('href', '/es/');
