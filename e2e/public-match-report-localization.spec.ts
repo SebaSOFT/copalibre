@@ -34,6 +34,10 @@ const populatedMatchReport = {
   scheduledAt: '2025-11-02T11:17:30.000Z',
   schedulePublished: true,
   officials: [{ name: 'Marta Gómez', roles: ['referee'] }],
+  rosterRoles: [
+    { code: 'captain', badge: 'C', label: { en: 'Captain', es: 'Capitán' } },
+    { code: 'goalkeeper', badge: 'GK', label: { en: 'Goalkeeper', es: 'Arquero' } },
+  ],
   rosters: {
     home: [
       {
@@ -58,7 +62,8 @@ const populatedMatchReport = {
     {
       eventId: '00000000-0000-7000-8000-000000000201',
       definitionCode: 'goal',
-      label: 'Goal — Julián Pérez',
+      label: 'Goal',
+      labels: { en: 'Goal', es: 'Gol' },
       occurredAt: '2025-11-02T11:17:30.000Z',
       sequence: 1,
       personId: '00000000-0000-7000-8000-000000000101',
@@ -115,5 +120,47 @@ test.describe('Match report localization and timestamps', () => {
     await expect(timelineTime).toBeVisible();
     await expect(timelineTime).not.toContainText('2025-11-02T11:17:30');
     await expect(page.getByText('2025-11-02T11:17:30.000Z')).toHaveCount(0);
+  });
+
+  test('shows the descriptor labels in the page language and never a raw code', async ({
+    page,
+  }) => {
+    await page.goto(
+      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${MATCH}`,
+    );
+
+    await expect(page.locator('.cl-timeline-label')).toHaveText('Gol');
+    await expect(page.getByRole('cell', { name: 'Capitán' })).toBeVisible();
+    await expect(page.locator('.cl-official-roles')).toHaveText('Árbitro');
+    for (const raw of ['captain', 'referee', 'goalkeeper']) {
+      await expect(page.getByText(raw, { exact: true })).toHaveCount(0);
+    }
+  });
+
+  test('falls back to English labels on a page language the descriptor does not ship', async ({
+    page,
+  }) => {
+    await page.goto(
+      `/de/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${MATCH}`,
+    );
+
+    await expect(page.locator('.cl-timeline-label')).toHaveText('Goal');
+    await expect(page.getByRole('cell', { name: 'Captain' })).toBeVisible();
+  });
+
+  test('uses the full public width and chamfered sections on a wide screen', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(
+      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${MATCH}`,
+    );
+
+    const widthOf = async (selector: string) =>
+      (await page.locator(selector).first().boundingBox())?.width ?? 0;
+    expect(await widthOf('.cl-match-page')).toBeGreaterThan(1200);
+    const sections = page.locator('section.cl-section-card');
+    await expect(sections).toHaveCount(3);
+    for (const section of await sections.all()) {
+      await expect(section).toHaveClass(/cl-chamfer/);
+    }
   });
 });

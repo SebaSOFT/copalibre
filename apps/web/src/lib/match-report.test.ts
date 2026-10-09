@@ -93,3 +93,64 @@ describe('buildMatchReport', () => {
     expect(model.scheduledAt).toBeUndefined();
   });
 });
+
+describe('buildMatchReport labels', () => {
+  const localized = (): PublicMatchReportResponse => ({
+    ...report(),
+    officials: [{ name: 'María', roles: ['referee', 'table-official'] }],
+    rosterRoles: [
+      { code: 'goalkeeper', badge: 'GK', label: { en: 'Goalkeeper', es: 'Arquero' } },
+      { code: 'captain', label: 'Captain' },
+    ],
+    rosters: {
+      home: [
+        {
+          personId: 'person-1',
+          number: 1,
+          name: 'Ada',
+          onField: true,
+          roles: ['goalkeeper', 'captain', 'unlisted-role'],
+        },
+      ],
+      away: [],
+    },
+    timeline: [
+      {
+        eventId: 'event-1',
+        definitionCode: 'goal',
+        label: 'Goal',
+        labels: { en: 'Goal', es: 'Gol' },
+        occurredAt: '2026-08-19T12:00:00.000Z',
+        sequence: 1,
+        payload: {},
+      },
+    ],
+  });
+
+  it('shows the descriptor labels in the page language', () => {
+    const model = buildMatchReport(localized(), { locale: 'es' });
+
+    expect(model.timeline[0]?.events[0]?.label).toBe('Gol');
+    expect(model.home.roster[0]?.roleLabels).toEqual(['Arquero', 'Captain', 'Unlisted role']);
+  });
+
+  it('keeps English when no language is requested', () => {
+    const model = buildMatchReport(localized());
+
+    expect(model.timeline[0]?.events[0]?.label).toBe('Goal');
+    expect(model.home.roster[0]?.roleLabels[0]).toBe('Goalkeeper');
+  });
+
+  it('names official roles through the supplied resolver, humanizing unknown codes', () => {
+    const model = buildMatchReport(localized(), {
+      locale: 'es',
+      officialRoleLabel: (code) => (code === 'referee' ? 'Árbitro' : `?${code}`),
+    });
+
+    expect(model.officials[0]?.roleLabels).toEqual(['Árbitro', '?table-official']);
+    expect(buildMatchReport(localized()).officials[0]?.roleLabels).toEqual([
+      'Referee',
+      'Table official',
+    ]);
+  });
+});
