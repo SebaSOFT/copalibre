@@ -47,6 +47,8 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.heading': '排名',
   'publicWeb.standings.tableLayouts': '表格布局',
   'publicWeb.standings.filterByClub': '按俱乐部筛选',
+  'publicWeb.standings.filterClubLabel': '俱乐部',
+  'publicWeb.standings.columnLegend': '表格缩写说明',
   'publicWeb.standings.closeDialog': '关闭对话框',
   'publicWeb.home.pageTitle': 'CopaLibre — 赛事运营',
   'publicWeb.home.organizationsLabel': '组织',

@@ -78,6 +78,11 @@ export function generateCss(): string {
     // Derived from the action role rather than restating its channels: a glow
     // that keeps its own copy of the accent stops matching the moment the operational surface parity work
     // calibrates `--cl-primary`.
+    // A table's column guide: the row rule thinned to a hairline of itself, so a
+    // numeric column can be followed across a wide row without competing with the
+    // figures. Derived from `border-muted` for the same reason the glow is
+    // derived from `primary`: a second copy of the channels drifts.
+    `  --cl-table-column-rule: color-mix(in srgb, var(--cl-border-muted) 55%, transparent);`,
     `  --cl-glow-cyan: 0 0 20px color-mix(in srgb, var(--cl-primary) 40%, transparent);`,
     `}`,
     '',
@@ -715,6 +720,7 @@ function components(): string {
     '.cl-data-table__table { min-width: 100%; width: max-content; border-collapse: collapse; }',
     '.cl-data-table__table th { text-align: left; padding: var(--cl-space-3) var(--cl-space-4); border-bottom: 1px solid var(--cl-border-muted); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
     '.cl-data-table__table td { padding: var(--cl-space-3) var(--cl-space-4); }',
+    '.cl-data-table__table th + th, .cl-data-table__table td + td { border-inline-start: 1px solid var(--cl-table-column-rule); }',
     '.cl-data-table__empty { padding: var(--cl-space-4); color: var(--cl-text-muted); }',
     '@media (max-width: 767px) { .cl-data-table { -webkit-overflow-scrolling: touch; } }',
     '',
@@ -1008,6 +1014,11 @@ function components(): string {
     '  padding: var(--cl-space-2) var(--cl-space-3);',
     '  text-align: left;',
     '  border-block-end: 1px solid var(--cl-border-muted);',
+    '}',
+    '/* A rule on the left of every column but the first. */',
+    '.cl-table th + th,',
+    '.cl-table td + td {',
+    '  border-inline-start: 1px solid var(--cl-table-column-rule);',
     '}',
     '.cl-table thead th {',
     '  background: var(--cl-surface-chrome);',

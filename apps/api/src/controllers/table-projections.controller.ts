@@ -262,6 +262,9 @@ export function tableResponse(result: TableProjectionResult): TableProjectionRes
       code: column.code,
       header: column.header,
       ...(column.shortHeader === undefined ? {} : { shortHeader: column.shortHeader }),
+      ...(result.columnDescriptions[column.code] === undefined
+        ? {}
+        : { description: result.columnDescriptions[column.code] }),
       ...(column.zeroDisplay === undefined ? {} : { zeroDisplay: column.zeroDisplay }),
       format: column.format,
     })),

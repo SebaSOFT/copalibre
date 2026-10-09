@@ -19,6 +19,7 @@ import {
   type ActorGranularity,
   type CompetitionGranularity,
   type DisciplineDescriptor,
+  type LocalizedLabel,
   type SeriesAccountingGrain,
   type StatisticCollector,
   type TableLayoutDefinition,
@@ -34,6 +35,7 @@ import {
 } from '@copalibre/persistence';
 import { standingsPipeline } from '../standings/pipeline.js';
 import { readStageSeries } from '../controllers/stage-series.js';
+import { describeColumns } from './column-descriptions.js';
 
 export interface TableProjectionScope {
   readonly organizationId: string;
@@ -66,6 +68,8 @@ export interface TableProjectionResult {
    * changes the unit of.
    */
   readonly countColumnCode?: string;
+  /** The full wording behind abbreviated headers, keyed by column code; a column with none is absent. */
+  readonly columnDescriptions: Readonly<Record<string, string | LocalizedLabel>>;
 }
 
 /**
@@ -251,6 +255,7 @@ export async function readTableProjection(
     layout,
     rows,
     projectionVersion,
+    columnDescriptions: describeColumns(layout, descriptor),
     ...(bridged?.grain === undefined ? {} : { grain: bridged.grain, countColumnCode }),
   };
 }

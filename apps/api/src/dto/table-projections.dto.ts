@@ -92,6 +92,12 @@ export class TableColumnResponse {
   @ApiPropertyOptional()
   shortHeader?: string | LocalizedLabel;
 
+  @ApiPropertyOptional({
+    description:
+      'The full wording behind an abbreviated header, from the discipline descriptor’s own statistic labels',
+  })
+  description?: string | LocalizedLabel;
+
   @ApiPropertyOptional({ description: 'Displayed text when the numeric value is exactly zero' })
   zeroDisplay?: string;
 

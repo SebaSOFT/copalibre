@@ -49,7 +49,7 @@ const groupStandingsFixture = {
   label: 'Group Standings',
   columns: [
     { code: 'name', header: 'Team', format: 'text' },
-    { code: 'gf', header: 'GF', format: 'number' },
+    { code: 'gf', header: 'GF', description: 'Goals for', format: 'number' },
     { code: 'ga', header: 'GA', shortHeader: 'GC', format: 'number' },
     { code: 'gd', header: 'GD', shortHeader: 'Dif', format: 'number' },
     { code: 'goal-average', header: 'Avg', format: 'decimal-2' },
@@ -636,6 +636,80 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByText('No officials assigned.')).toBeVisible();
     await expect(page.getByText('Rosters are not yet available.')).toBeVisible();
     await expect(page.getByText('Events are not yet available.')).toBeVisible();
+  });
+
+  test('a tab and a club chip change the table in place, without a reload or a scroll jump', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 320 });
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    await page.evaluate(() => {
+      (window as unknown as { __sameDocument: boolean }).__sameDocument = true;
+      document.querySelector('.cl-standings-section')?.scrollIntoView();
+    });
+    const scrolled = await page.evaluate(() => window.scrollY);
+    expect(scrolled).toBeGreaterThan(0);
+
+    await page.getByRole('tab', { name: 'Top Scorers' }).click();
+    await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toBeVisible();
+    await expect(page).toHaveURL(/tab=top-scorers/);
+    expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+
+    const chip = page.getByRole('link', { name: 'Club Atlético Independiente' });
+    await chip.click();
+    await expect(page).toHaveURL(/clubId=club-independiente/);
+    await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toHaveCount(0);
+    expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+
+    // Same document throughout: nothing reloaded, and the selection is still exposed.
+    expect(
+      await page.evaluate(() => (window as unknown as { __sameDocument?: boolean }).__sameDocument),
+    ).toBe(true);
+    await expect(page.getByRole('link', { name: 'Club Atlético Independiente' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.getByRole('tab', { name: 'Top Scorers' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  test('an abbreviated header explains itself on focus, and the legend lists every abbreviation', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    // `ga` declares a short header: it shows GC, its long header is the hint.
+    await page.getByRole('button', { name: 'GC', exact: true }).focus();
+    await expect(page.getByRole('tooltip', { name: 'GA' })).toBeVisible();
+    // `gf` is explained by its own description.
+    await page.getByRole('button', { name: 'GF', exact: true }).focus();
+    await expect(page.getByRole('tooltip', { name: 'Goals for' })).toBeVisible();
+
+    const legend = page.getByRole('group', { name: 'Table abbreviations' });
+    await expect(legend).toContainText('GF');
+    await expect(legend).toContainText('Goals for');
+    await expect(legend).toContainText('GC');
+    // A header that already says everything gets no legend entry.
+    await expect(legend).not.toContainText('Team');
+  });
+
+  test('club chips are compact, show an emblem or initials, and mark the selection by more than colour', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const chip = page.locator('a[data-club-filter="club-talleres"]');
+    // No emblem uploaded in this fixture: the club's initials stand in.
+    await expect(chip.locator('.cl-club-chip__monogram')).toHaveText('CA');
+
+    const primary = page.locator('a.cl-pill').first();
+    const [chipBox, primaryBox] = await Promise.all([chip.boundingBox(), primary.boundingBox()]);
+    expect(chipBox && primaryBox && chipBox.height < primaryBox.height).toBe(true);
+
+    await expect(page.locator('a[data-club-filter="all"]')).toContainText('✓');
+    await expect(chip).not.toContainText('✓');
   });
 
   test('a bracket match card links to its report page', async ({ page }) => {

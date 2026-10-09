@@ -47,6 +47,8 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.heading': 'Турнирная таблица',
   'publicWeb.standings.tableLayouts': 'Виды таблиц',
   'publicWeb.standings.filterByClub': 'Фильтр по клубу',
+  'publicWeb.standings.filterClubLabel': 'Клуб',
+  'publicWeb.standings.columnLegend': 'Сокращения в таблице',
   'publicWeb.standings.closeDialog': 'Закрыть диалог',
   'publicWeb.home.pageTitle': 'CopaLibre — Управление турнирами',
   'publicWeb.home.organizationsLabel': 'Организации',
