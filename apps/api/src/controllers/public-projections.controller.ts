@@ -44,6 +44,7 @@ import { resolveStageZones } from './bracket-zones.js';
 import { readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
 import { reconstructChampionshipFixture } from './tournament-winner-resolution.js';
 import { segmentedTableResponse, tableResponse } from './table-projections.controller.js';
+import { eventLabelFields, rosterRolesOf } from './public-match-labels.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
 import {
   resolveLabel,
@@ -685,6 +686,7 @@ export class PublicProjectionsController {
     const result = match.result as unknown as {
       readonly sides?: readonly { readonly statistics?: Record<string, number> }[];
     } | null;
+    const rosterRoles = rosterRolesOf(descriptor);
     const scores = result?.sides === undefined ? undefined : publicScores(result.sides, descriptor);
 
     return {
@@ -725,6 +727,7 @@ export class PublicProjectionsController {
         name: official.display_name,
         roles: [...official.roles],
       })),
+      ...(rosterRoles === undefined ? {} : { rosterRoles }),
       rosters: {
         home: match.home_entrant_id
           ? (rosterByEntrant.get(match.home_entrant_id) ?? []).map(({ roles, ...member }) => ({
@@ -747,7 +750,7 @@ export class PublicProjectionsController {
         return {
           eventId: event.eventId,
           definitionCode: event.definitionCode,
-          label: definition ? resolveLabel(definition.label, 'en') : event.definitionCode,
+          ...eventLabelFields(definition, event.definitionCode),
           ...(workflowOutcomeCodes === undefined ? {} : { workflowOutcomeCodes }),
           occurredAt: event.occurredAt,
           sequence: event.sequence,

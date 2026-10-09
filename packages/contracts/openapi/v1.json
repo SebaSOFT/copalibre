@@ -17626,6 +17626,26 @@
           "away"
         ]
       },
+      "PublicRosterRoleResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "badge": {
+            "type": "string"
+          },
+          "label": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The role label: a plain string, or a localized label with `en` always present."
+          }
+        },
+        "required": [
+          "code",
+          "label"
+        ]
+      },
       "PublicMatchEventResponse": {
         "type": "object",
         "properties": {
@@ -17637,7 +17657,15 @@
             "type": "string"
           },
           "label": {
-            "type": "string"
+            "type": "string",
+            "description": "The English label; `labels` carries every language the descriptor ships."
+          },
+          "labels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The event definition's label in every language the discipline descriptor declares (`en` always present); absent when the descriptor declares a plain string."
           },
           "workflowOutcomeCodes": {
             "type": "array",
@@ -17763,6 +17791,13 @@
           },
           "rosters": {
             "$ref": "#/components/schemas/PublicMatchRostersResponse"
+          },
+          "rosterRoles": {
+            "description": "The discipline's declared roster roles, so a client can label each member's role codes.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicRosterRoleResponse"
+            }
           },
           "timeline": {
             "type": "array",

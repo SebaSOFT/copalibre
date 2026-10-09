@@ -5227,11 +5227,24 @@ export interface components {
             home: components["schemas"]["PublicMatchRosterMemberResponse"][];
             away: components["schemas"]["PublicMatchRosterMemberResponse"][];
         };
+        PublicRosterRoleResponse: {
+            code: string;
+            badge?: string;
+            /** @description The role label: a plain string, or a localized label with `en` always present. */
+            label: {
+                [key: string]: unknown;
+            };
+        };
         PublicMatchEventResponse: {
             /** Format: uuid */
             eventId: string;
             definitionCode: string;
+            /** @description The English label; `labels` carries every language the descriptor ships. */
             label: string;
+            /** @description The event definition's label in every language the discipline descriptor declares (`en` always present); absent when the descriptor declares a plain string. */
+            labels?: {
+                [key: string]: string;
+            };
             workflowOutcomeCodes?: string[];
             /** Format: date-time */
             occurredAt: string;
@@ -5274,6 +5287,8 @@ export interface components {
             schedulePublished: boolean;
             officials: components["schemas"]["PublicMatchOfficialResponse"][];
             rosters: components["schemas"]["PublicMatchRostersResponse"];
+            /** @description The discipline's declared roster roles, so a client can label each member's role codes. */
+            rosterRoles?: components["schemas"]["PublicRosterRoleResponse"][];
             timeline: components["schemas"]["PublicMatchEventResponse"][];
         };
         PublicLiveMatchSideResponse: {

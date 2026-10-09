@@ -243,6 +243,21 @@ export class PublicMatchRosterMemberResponse {
   onField!: boolean;
 }
 
+export class PublicRosterRoleResponse {
+  @ApiProperty()
+  code!: string;
+
+  @ApiPropertyOptional()
+  badge?: string;
+
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    description: 'The role label: a plain string, or a localized label with `en` always present.',
+  })
+  label!: string | LocalizedLabel;
+}
+
 export class PublicMatchRostersResponse {
   @ApiProperty({ type: [PublicMatchRosterMemberResponse] })
   home!: PublicMatchRosterMemberResponse[];
@@ -258,8 +273,19 @@ export class PublicMatchEventResponse {
   @ApiProperty()
   definitionCode!: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'The English label; `labels` carries every language the descriptor ships.',
+  })
   label!: string;
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: { type: 'string' },
+    description:
+      "The event definition's label in every language the discipline descriptor declares " +
+      '(`en` always present); absent when the descriptor declares a plain string.',
+  })
+  labels?: LocalizedLabel;
 
   @ApiPropertyOptional({ type: [String] })
   workflowOutcomeCodes?: string[];
@@ -356,6 +382,13 @@ export class PublicMatchReportResponse {
 
   @ApiProperty({ type: PublicMatchRostersResponse })
   rosters!: PublicMatchRostersResponse;
+
+  @ApiPropertyOptional({
+    type: [PublicRosterRoleResponse],
+    description:
+      "The discipline's declared roster roles, so a client can label each member's role codes.",
+  })
+  rosterRoles?: PublicRosterRoleResponse[];
 
   @ApiProperty({ type: [PublicMatchEventResponse] })
   timeline!: PublicMatchEventResponse[];
