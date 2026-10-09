@@ -69,6 +69,41 @@ function scoreEvent(matchId: string, scores: Record<string, number>, projectionV
   } as const;
 }
 
+describe('mountLiveTicker connection notice', () => {
+  const failure = { kind: 'recoverable', reason: 'stream closed', renewToken: false } as const;
+
+  function renderWithNotice(): HTMLElement {
+    renderTicker();
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<p role="status" data-connection-notice hidden>Connection lost</p>',
+    );
+    return document.querySelector<HTMLElement>('[data-connection-notice]') as HTMLElement;
+  }
+
+  it('stays hidden while the connection is healthy', () => {
+    const notice = renderWithNotice();
+    mountLiveTicker();
+    capturedHandlers?.onOpen?.();
+    expect(notice.hidden).toBe(true);
+  });
+
+  it('appears when the connection fails and clears when it recovers', () => {
+    const notice = renderWithNotice();
+    mountLiveTicker();
+    capturedHandlers?.onFailure?.(failure);
+    expect(notice.hidden).toBe(false);
+    capturedHandlers?.onOpen?.();
+    expect(notice.hidden).toBe(true);
+  });
+
+  it('is harmless on a page that renders no notice', () => {
+    renderTicker();
+    mountLiveTicker();
+    expect(() => capturedHandlers?.onFailure?.(failure)).not.toThrow();
+  });
+});
+
 describe('mountLiveTicker', () => {
   it('does nothing when there is no stream path', () => {
     document.body.innerHTML = `<div data-ticker></div>`;

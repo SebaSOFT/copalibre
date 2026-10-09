@@ -12379,6 +12379,38 @@
           "status"
         ]
       },
+      "SegmentCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "segmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The group id, or the zone id when it has no groups"
+          },
+          "name": {
+            "type": "string",
+            "description": "The group name, or the zone name when it has no groups"
+          },
+          "zoneName": {
+            "type": "string",
+            "description": "The zone a named group belongs to"
+          },
+          "totalMatches": {
+            "type": "number",
+            "example": 6
+          },
+          "resolvedMatches": {
+            "type": "number",
+            "example": 4
+          }
+        },
+        "required": [
+          "segmentId",
+          "name",
+          "totalMatches",
+          "resolvedMatches"
+        ]
+      },
       "StageCompletionResponse": {
         "type": "object",
         "properties": {
@@ -12426,6 +12458,13 @@
             "type": "number",
             "description": "Forfeited matches",
             "example": 1
+          },
+          "segments": {
+            "description": "Per declared zone/group progress; empty when the stage declared none",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SegmentCompletionResponse"
+            }
           }
         },
         "required": [
@@ -12437,7 +12476,8 @@
           "liveMatches",
           "scheduledMatches",
           "finalizedMatches",
-          "forfeitedMatches"
+          "forfeitedMatches",
+          "segments"
         ]
       },
       "TournamentCompletionResponse": {

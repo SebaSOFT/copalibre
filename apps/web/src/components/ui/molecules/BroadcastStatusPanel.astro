@@ -11,10 +11,24 @@ const { model, statusText } = Astro.props;
 {
   /*
   The stream this page would subscribe to, derived from the same input as the
-  page's own path. Announced politely: a score arriving mid-sentence should not
-  interrupt a screen reader.
+  page's own path. The notice is the only thing it ever shows, and only while the
+  live connection is down: a page that is working says nothing about it. Announced
+  politely, since a lost connection is information, not an interruption.
 */
 }
-<section class="cl-inline-alert cl-chamfer" aria-live="polite" data-stream={model.streamPath}>
+<section
+  class="cl-inline-alert cl-chamfer"
+  role="status"
+  aria-live="polite"
+  data-stream={model.streamPath}
+  data-connection-notice
+  hidden
+>
   <p>{statusText}</p>
 </section>
+
+<style>
+  .cl-inline-alert[hidden] {
+    display: none;
+  }
+</style>

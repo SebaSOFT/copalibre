@@ -1,5 +1,29 @@
-import { ApiProperty } from '@nestjs/swagger';
-import type { StageCompletionSummary, TournamentCompletionSummary } from '@copalibre/domain';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import type {
+  SegmentCompletionSummary,
+  StageCompletionSummary,
+  TournamentCompletionSummary,
+} from '@copalibre/domain';
+
+export class SegmentCompletionResponse implements SegmentCompletionSummary {
+  @ApiProperty({
+    format: 'uuid',
+    description: 'The group id, or the zone id when it has no groups',
+  })
+  segmentId!: string;
+
+  @ApiProperty({ description: 'The group name, or the zone name when it has no groups' })
+  name!: string;
+
+  @ApiPropertyOptional({ description: 'The zone a named group belongs to' })
+  zoneName?: string;
+
+  @ApiProperty({ example: 6 })
+  totalMatches!: number;
+
+  @ApiProperty({ example: 4 })
+  resolvedMatches!: number;
+}
 
 export class StageCompletionResponse implements StageCompletionSummary {
   @ApiProperty({ format: 'uuid', description: 'UUIDv7 identifier' })
@@ -31,6 +55,12 @@ export class StageCompletionResponse implements StageCompletionSummary {
 
   @ApiProperty({ description: 'Forfeited matches', example: 1 })
   forfeitedMatches!: number;
+
+  @ApiProperty({
+    type: [SegmentCompletionResponse],
+    description: 'Per declared zone/group progress; empty when the stage declared none',
+  })
+  segments!: readonly SegmentCompletionResponse[];
 }
 
 export class TournamentCompletionResponse implements TournamentCompletionSummary {

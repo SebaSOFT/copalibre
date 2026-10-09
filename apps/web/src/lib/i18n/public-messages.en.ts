@@ -326,10 +326,9 @@ export const messages = defineMessages({
   },
 
   // BroadcastStatusPanel.astro
-  broadcastStatusNote: {
-    id: 'publicWeb.broadcastStatus.note',
-    defaultMessage:
-      'Results update automatically when connected. Otherwise, this page already has everything.',
+  broadcastStatusDisconnected: {
+    id: 'publicWeb.broadcastStatus.disconnected',
+    defaultMessage: 'Live updates are unavailable. This page shows the latest known results.',
   },
 
   // MatchCardGrid.astro

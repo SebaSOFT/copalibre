@@ -147,6 +147,7 @@ describe('foldTournamentCompletion', () => {
         scheduledMatches: 0,
         finalizedMatches: 0,
         forfeitedMatches: 0,
+        segments: [],
       },
     ]);
   });
@@ -205,5 +206,100 @@ describe('foldTournamentCompletion', () => {
     expect(summary.stages[2]?.stageName).toBe('Placement');
     expect(summary.stages[2]?.totalMatches).toBe(0);
     expect(summary.stages[2]?.resolvedMatches).toBe(0);
+  });
+});
+
+describe('foldTournamentCompletion segments', () => {
+  const stage = { stageId: 's1', stageNumber: 1, stageName: 'Groups' };
+  const stageRows = [{ ...stage, status: 'finalized', count: 3 }];
+  const segment = (
+    over: Partial<{
+      zoneId: string;
+      zoneName: string;
+      zoneNumber: number;
+      groupId: string;
+      groupName: string;
+      groupNumber: number;
+      status: string;
+      count: number;
+    }>,
+  ) => ({
+    stageId: 's1',
+    zoneId: 'z1',
+    zoneName: 'Zona única',
+    zoneNumber: 1,
+    groupId: 'g1',
+    groupName: 'Grupo único',
+    groupNumber: 1,
+    status: 'finalized',
+    count: 1,
+    ...over,
+  });
+
+  it('reports no segments for a stage whose zone and group are both implicit', () => {
+    const summary = foldTournamentCompletion(stageRows, [segment({})]);
+    expect(summary.stages[0]?.segments).toEqual([]);
+  });
+
+  it('reports one segment per declared group of an implicit zone, ordered by group number', () => {
+    const summary = foldTournamentCompletion(stageRows, [
+      segment({ groupId: 'gb', groupName: 'Grupo B', groupNumber: 2, count: 2 }),
+      segment({ groupId: 'ga', groupName: 'Grupo A', groupNumber: 1, count: 1 }),
+      segment({
+        groupId: 'ga',
+        groupName: 'Grupo A',
+        groupNumber: 1,
+        status: 'scheduled',
+        count: 2,
+      }),
+    ]);
+    expect(summary.stages[0]?.segments).toEqual([
+      { segmentId: 'ga', name: 'Grupo A', totalMatches: 3, resolvedMatches: 1 },
+      { segmentId: 'gb', name: 'Grupo B', totalMatches: 2, resolvedMatches: 2 },
+    ]);
+  });
+
+  it('names a declared zone with an implicit group by the zone, and omits not-required matches', () => {
+    const summary = foldTournamentCompletion(stageRows, [
+      segment({ zoneId: 'zo', zoneName: 'Copa Oro', zoneNumber: 1, groupId: 'go' }),
+      segment({
+        zoneId: 'zo',
+        zoneName: 'Copa Oro',
+        zoneNumber: 1,
+        groupId: 'go',
+        status: 'not-required',
+        count: 5,
+      }),
+    ]);
+    expect(summary.stages[0]?.segments).toEqual([
+      { segmentId: 'zo', name: 'Copa Oro', totalMatches: 1, resolvedMatches: 1 },
+    ]);
+  });
+
+  it('keeps the zone beside a named group only when the stage has several zones', () => {
+    const north = segment({
+      zoneId: 'zn',
+      zoneName: 'Norte',
+      zoneNumber: 1,
+      groupId: 'gx',
+      groupName: 'A',
+      groupNumber: 1,
+    });
+    const south = segment({
+      zoneId: 'zs',
+      zoneName: 'Sur',
+      zoneNumber: 2,
+      groupId: 'gy',
+      groupName: 'A',
+      groupNumber: 1,
+    });
+
+    expect(foldTournamentCompletion(stageRows, [north]).stages[0]?.segments).toEqual([
+      { segmentId: 'gx', name: 'A', totalMatches: 1, resolvedMatches: 1 },
+    ]);
+    expect(foldTournamentCompletion(stageRows, [north, south]).stages[0]?.segments).toEqual([
+      { segmentId: 'gx', name: 'A', zoneName: 'Norte', totalMatches: 1, resolvedMatches: 1 },
+      { segmentId: 'gy', name: 'A', zoneName: 'Sur', totalMatches: 1, resolvedMatches: 1 },
+    ]);
   });
 });

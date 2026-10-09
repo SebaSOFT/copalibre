@@ -51,6 +51,7 @@ function Screen({
                   scheduledMatches: 0,
                   finalizedMatches: 32,
                   forfeitedMatches: 0,
+                  segments: [],
                 },
               ],
             }
@@ -73,6 +74,7 @@ function Screen({
                     scheduledMatches: 0,
                     finalizedMatches: 24,
                     forfeitedMatches: 0,
+                    segments: [],
                   },
                   {
                     stageId: '019927d0-0000-7000-8000-00000000000e',
@@ -84,6 +86,7 @@ function Screen({
                     scheduledMatches: 10,
                     finalizedMatches: 10,
                     forfeitedMatches: 2,
+                    segments: [],
                   },
                 ],
               }
@@ -105,6 +108,7 @@ function Screen({
                     scheduledMatches: 12,
                     finalizedMatches: 16,
                     forfeitedMatches: 2,
+                    segments: [],
                   },
                 ],
               };

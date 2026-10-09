@@ -96,8 +96,8 @@ export const messages: Record<string, string> = {
   'publicWeb.bracket.roundAriaLabel': '{branch} — ronda {round}',
   'publicWeb.bracket.roundHeading': 'Ronda {round}',
 
-  'publicWeb.broadcastStatus.note':
-    'Los resultados se actualizan solos cuando hay conexión. Si no, esta página ya trae todo.',
+  'publicWeb.broadcastStatus.disconnected':
+    'Las actualizaciones en vivo no están disponibles. Esta página muestra los últimos resultados conocidos.',
 
   'publicWeb.matchGrid.heading': 'Partidos',
   'publicWeb.matchGrid.empty': 'Todavía no hay partidos programados.',

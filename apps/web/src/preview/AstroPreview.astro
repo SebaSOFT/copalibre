@@ -383,7 +383,16 @@ const tournaments = referenceTournamentListing();
     {component === 'state-badge' && <StateBadge intl={intl} state="final" />}
     {
       component === 'broadcast-status-panel' && (
-        <BroadcastStatusPanel model={overview} statusText="Connected — live updates streaming." />
+        <>
+          <BroadcastStatusPanel
+            model={overview}
+            statusText="Live updates are unavailable. This page shows the latest known results."
+          />
+          {/* The notice is hidden until the stream fails; the preview shows it as a failure would. */}
+          <script is:inline>
+            document.querySelector('[data-connection-notice]')?.removeAttribute('hidden');
+          </script>
+        </>
       )
     }
     {
