@@ -39,13 +39,15 @@ schließen.
 
 ## Was die Anzeige in der Halle zeigt
 
-Die Anzeige mit vollständiger Rotation zeigt nacheinander die Tabelle, die besten Spielenden, die Turnierstatistik und – wenn die hervorgehobene Phase sie hat – den Turnierbaum und die Ligaspiele. Eine Adresse mit `?view=standings` oder `?view=fixtures` hält eine davon fest, statt zu rotieren.
+Die Anzeige mit vollständiger Rotation zeigt nacheinander die Tabelle, die besten Spielenden, die Turnierstatistik und – wenn die hervorgehobene Phase ihn hat – den Turnierbaum, danach die Spielliste. Eine Adresse mit `?view=standings` oder `?view=matches` hält diesen einen Bereich im Vollbild fest, statt zu rotieren (`?view=fixtures` funktioniert weiter als alter Name von `matches`). Die Meister-Zusammenfassung eines beendeten Turniers gehört allein zur rotierenden Anzeige. Die Kopfzeile nennt den Turnierstatus: Ein laufendes Turnier zeigt eine beschriftete Uhr auf die Minute in der Zeitzone der Organisation, ein beendetes den Tag seines letzten Spiels, ohne laufende Uhr.
+
+Ein angeheftetes Spiel – `/tv/<Organisation>/tournaments/<Turnier>/stages/<Phase>/matches/<Nummer>` – wird wie auf der öffentlichen Spielseite über seine Nummer innerhalb der Phase angesprochen und zeigt immer Ergebnis, Seiten und erfasste Ereignisse, beendet oder nicht. Eine Nummer, die die Phase nicht hat, wird als nicht existierendes Spiel gemeldet.
 
 Eine Phase kann Formate mischen, daher stellt die Anzeige jede Zone nach dem Format dar, das sie spielt:
 
 - **Tabelle**: Jede Zone, die Teilnehmende in einer Tabelle rangiert, erhält eine eigene Tabelle mit dem Zonennamen als Überschrift. Zeilen verschiedener Zonen werden nie in einer Rangliste vermischt, und jede Tabelle zeigt bis zu acht Zeilen. Eine Phase, deren Zonen alle das Format der Phase spielen, behält eine einzelne Tabelle ohne Überschrift.
 - **Turnierbaum**: Zonen mit einem K.-o.-Format werden als Turnierbaum gezeichnet.
-- **Spiele**: Eine Zone mit Ligaformat listet ihre Spiele nach Runden gruppiert, mit Status und Ergebnis jedes Spiels. Der Reiter erscheint nur, wenn die hervorgehobene Phase eine solche Zone hat.
+- **Spiele**: Listet alle Spiele des Turniers in einer kompakten Tabelle, zwei pro Zeile mit Kürzeln und Ergebnis, Seite für Seite; die Seiten wechseln mit der Rotation, eine feste `matches`-Ansicht blättert weiter.
 
 Die Bauchbinde bleibt unverändert: Sie nennt ein Spiel, keine Phase.
 

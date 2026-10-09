@@ -381,12 +381,30 @@ export class PublicProjectionsController {
     }
     const organization = await this.db
       .selectFrom('organizations')
-      .select('name')
+      .select(['name', 'timezone'])
       .where('organization_id', '=', tournament.organizationId)
       .executeTakeFirst();
     if (!organization) throw new NotFoundException({ errorCode: 'public-projection-not-found' });
 
-    return { tournament, organizationName: organization.name };
+    return {
+      tournament,
+      organizationName: organization.name,
+      organizationTimeZone: organization.timezone,
+    };
+  }
+
+  /**
+   * The stage ordinal of every match of a tournament, keyed by match id: the same 1-based position
+   * the public match route and the matches view address a match by, taken from each stage's full,
+   * unscoped match list. `matches.number` cannot stand in for it, being a per-fixture series index.
+   */
+  private async stageOrdinalsOf(tournamentId: string): Promise<ReadonlyMap<string, number>> {
+    const stages = await new CompetitionRepository(this.db).listStagesOfTournament(tournamentId);
+    const readModel = new StageReadModel(this.db);
+    const perStage = await Promise.all(
+      stages.map(async (stage) => stageMatchOrdinals(await readModel.matches(stage.stageId))),
+    );
+    return new Map(perStage.flatMap((ordinals) => [...ordinals]));
   }
 
   @Get('overview')
@@ -397,10 +415,8 @@ export class PublicProjectionsController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
   ): Promise<PublicOverviewResponse> {
-    const { tournament, organizationName } = await this.resolvePublishedTournament(
-      organizationAlias,
-      tournamentAlias,
-    );
+    const { tournament, organizationName, organizationTimeZone } =
+      await this.resolvePublishedTournament(organizationAlias, tournamentAlias);
     const season = await withTransaction(this.db, (uow) =>
       new CompetitionRepository(this.db).currentSeason(uow, {
         tournamentId: tournament.tournamentId,
@@ -413,6 +429,7 @@ export class PublicProjectionsController {
     const matches = await new PublicOverviewReadModel(this.db).matchesForTournament(
       tournament.tournamentId,
     );
+    const ordinalByMatchId = await this.stageOrdinalsOf(tournament.tournamentId);
 
     const entrantIds = new Set<string>();
     for (const match of matches) {
@@ -495,6 +512,7 @@ export class PublicProjectionsController {
     return {
       organizationAlias,
       organizationName,
+      organizationTimeZone,
       tournamentAlias,
       tournamentName: tournament.name,
       seasonName: season.name,
@@ -507,6 +525,9 @@ export class PublicProjectionsController {
       matches: matches.map((m) => ({
         matchId: m.matchId,
         matchNumber: m.matchNumber,
+        ...(ordinalByMatchId.has(m.matchId)
+          ? { stageOrdinal: ordinalByMatchId.get(m.matchId) }
+          : {}),
         stageNumber: m.stageNumber,
         round: m.round,
         status: m.status as PublicOverviewMatchResponse['status'],
@@ -762,6 +783,7 @@ export class PublicProjectionsController {
       tournament.tournamentId,
     );
     const liveMatches = matches.filter((m) => m.status === 'in-progress');
+    const ordinalByMatchId = await this.stageOrdinalsOf(tournament.tournamentId);
 
     const entrantIds = new Set<string>();
     for (const match of liveMatches) {
@@ -815,6 +837,9 @@ export class PublicProjectionsController {
         matchId: m.matchId,
         stageNumber: m.stageNumber,
         matchNumber: m.matchNumber ?? m.round,
+        ...(ordinalByMatchId.has(m.matchId)
+          ? { stageOrdinal: ordinalByMatchId.get(m.matchId) }
+          : {}),
         state: 'live',
         projectionVersion: 1,
         sides: [

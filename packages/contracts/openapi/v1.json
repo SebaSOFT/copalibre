@@ -17443,7 +17443,11 @@
           },
           "matchNumber": {
             "type": "number",
-            "description": "1-based sequential number within the stage"
+            "description": "The match number as persisted: a per-fixture series-game index"
+          },
+          "stageOrdinal": {
+            "type": "number",
+            "description": "The 1-based ordinal of the match within its stage, the one the public match route addresses it by. Absent before a fixture becomes a match."
           },
           "stageNumber": {
             "type": "number"
@@ -17543,6 +17547,10 @@
           },
           "organizationName": {
             "type": "string"
+          },
+          "organizationTimeZone": {
+            "type": "string",
+            "description": "The IANA time zone of the organization, in which its schedule times are read."
           },
           "tournamentAlias": {
             "type": "string"
@@ -17957,6 +17965,10 @@
           },
           "matchNumber": {
             "type": "number"
+          },
+          "stageOrdinal": {
+            "type": "number",
+            "description": "The 1-based ordinal of the match within its stage, the one the public match route addresses it by."
           },
           "state": {
             "type": "string"

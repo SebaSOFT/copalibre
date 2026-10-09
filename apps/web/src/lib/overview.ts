@@ -15,6 +15,8 @@ export interface OverviewMatch {
   readonly matchId?: string;
   /** Absent while a generated fixture has not become a persisted match. */
   readonly matchNumber?: number;
+  /** The match's 1-based position in its stage, which the public and TV match routes address it by. */
+  readonly stageOrdinal?: number;
   readonly stageNumber: number;
   readonly home: SideView;
   readonly away: SideView;
@@ -82,6 +84,8 @@ export interface OverviewModel {
   readonly organizationAlias?: string;
   readonly tournamentAlias?: string;
   readonly organizationName: string;
+  /** The IANA zone the organization's schedule is read in. */
+  readonly organizationTimeZone?: string;
   readonly tournamentName: string;
   readonly seasonName?: string;
   readonly status?: 'upcoming' | 'live' | 'finished';
@@ -100,6 +104,7 @@ export interface OverviewModel {
 
 export interface OverviewInput extends RouteInput {
   readonly organizationName: string;
+  readonly organizationTimeZone?: string;
   readonly tournamentName: string;
   readonly seasonName?: string;
   readonly status?: 'upcoming' | 'live' | 'finished';
@@ -117,6 +122,9 @@ export function buildOverview(input: OverviewInput): OverviewModel {
     organizationAlias: input.organizationAlias,
     tournamentAlias: input.tournamentAlias,
     organizationName: input.organizationName,
+    ...(input.organizationTimeZone === undefined
+      ? {}
+      : { organizationTimeZone: input.organizationTimeZone }),
     tournamentName: input.tournamentName,
     ...(input.seasonName === undefined ? {} : { seasonName: input.seasonName }),
     ...(input.status === undefined ? {} : { status: input.status }),

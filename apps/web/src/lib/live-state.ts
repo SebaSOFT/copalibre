@@ -23,6 +23,8 @@ export interface LiveMatch {
   readonly matchId: string;
   readonly stageNumber: number;
   readonly matchNumber: number;
+  /** The match's 1-based position in its stage; absent from a source that does not know it. */
+  readonly stageOrdinal?: number;
   readonly state: ResultState;
   readonly sides: readonly LiveSide[];
   /** What the last applied event said; a lower one is stale and ignored. */

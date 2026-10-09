@@ -149,7 +149,7 @@ test.describe('TV kiosk', () => {
   }) => {
     await page.setViewportSize({ width: 480, height: 900 });
     await page.goto(TV_PATH);
-    await expect(page.locator('.tv-team-side__name abbr', { hasText: 'CAI' })).toBeVisible();
+    await expect(page.locator('abbr.tv-team-side__short', { hasText: 'CAI' })).toBeVisible();
   });
 
   test('top performers shows a responsive player name, nationality flag, and club', async ({

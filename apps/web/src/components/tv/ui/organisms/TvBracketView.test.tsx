@@ -32,6 +32,10 @@ const labels: TvDashboardLabels = {
   bracketMatch: 'Partido',
   possession: 'Posesión',
   penalty: 'Sanción',
+  clockLabel: 'Hora local',
+  finishedOn: 'Finalizado el {date}',
+  matchNotFound: 'Este partido no existe',
+  pageOf: 'Página {page} de {total}',
 };
 
 function zones(): readonly BracketZone[] {

@@ -21,7 +21,8 @@
   height: 100%;
   max-width: 100%;
   margin: 0;
-  padding: 2.5vmin 4vmin;
+  /* The outer margin belongs to the layout shell (`#tv-root`), so every route keeps the same one. */
+  padding: 0;
   background-color: var(--tv-bg-base);
   color: var(--tv-text-primary);
   font-family: var(--cl-font-body);
@@ -29,6 +30,23 @@
   flex-direction: column;
   gap: 2.5vmin;
   overflow: hidden;
+}
+
+/*
+ * The shell lays its children out in a column: the score ticker above, the dashboard filling what is
+ * left. Sizing the dashboard to 100% of the shell instead pushed its lower panels past the bottom
+ * edge by the ticker's own height, on the one route that has a ticker.
+ */
+#tv-root {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5vmin;
+}
+
+#tv-root .tv-root-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
 }
 
 /* 1. Score-bug / Top Status Bar */
@@ -1310,5 +1328,188 @@
   }
   100% {
     background: transparent;
+  }
+}
+
+/* The compact match list: two matches to a row, one page at a time. */
+.tv-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2vmin;
+  min-height: 0;
+}
+
+.tv-match-list__entries {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8vmin 1.6vmin;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-match-list__entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1vmin;
+  min-width: 0;
+  padding: 0.8vmin 1.2vmin;
+  background: var(--cl-surface-chrome);
+  border: 1px solid var(--tv-border);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.8rem, 1.5vmin, 1.1rem);
+}
+
+.tv-match-list__round {
+  color: var(--tv-text-muted);
+  font-size: 0.8em;
+  text-transform: uppercase;
+}
+
+.tv-match-list__side {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-match-list__side--home {
+  text-align: right;
+}
+
+.tv-match-list__score {
+  color: var(--tv-text-primary);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--cl-weight-bold);
+}
+
+.tv-match-list__pager {
+  margin: 0;
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.7rem, 1.3vmin, 0.95rem);
+  text-align: right;
+  text-transform: uppercase;
+}
+
+/* A fixed view fills the frame: the rail takes the whole stage. */
+.tv-main-stage--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tv-scorebug__clock-label {
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: 0.7em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/*
+ * Narrow or portrait frames stack the zones' champions one under another: with many final zones a
+ * row of columns shrinks each to a sliver, while a column keeps every champion readable and the
+ * panel scrolls for whatever does not fit.
+ */
+@media (max-width: 768px), (orientation: portrait) {
+  .tv-champions {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    height: auto;
+    max-height: 100%;
+    overflow-y: auto;
+  }
+
+  .tv-champions__zone {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1.6vmin 3vmin;
+    padding: 2vmin 3vmin;
+    text-align: left;
+  }
+
+  .tv-champions__list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1.6vmin 3vmin;
+  }
+
+  .tv-champions__champion {
+    flex-direction: row;
+    gap: 2vmin;
+  }
+
+  .tv-champions__emblem,
+  .tv-champions__monogram {
+    width: 9vmin;
+    height: 9vmin;
+  }
+}
+
+/* The abbreviation stands in for the name on a narrow frame; wide frames show the name. */
+.tv-team-side__short {
+  display: none;
+  text-decoration: none;
+}
+
+/*
+ * Narrow or portrait frames: the title card stacks (brand and titles above, status and clock
+ * below) instead of splitting its width in two, the pinned match shows abbreviations, smaller
+ * emblems and a score that stays on one line, and each entry of the match list is two lines.
+ */
+@media (max-width: 768px), (orientation: portrait) {
+  .tv-scorebug {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.6vmin;
+    padding: 2.4vmin 3vmin;
+  }
+
+  .tv-scorebug__right {
+    justify-content: flex-start;
+  }
+
+  .tv-match-spotlight__vs-grid {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 2vmin;
+  }
+
+  .tv-match-spotlight__vs-grid .tv-team-side__emblem-wrap,
+  .tv-match-spotlight__vs-grid .tv-team-side--anchor .tv-team-side__emblem-wrap {
+    width: 64px;
+    height: 64px;
+  }
+
+  .tv-team-side__full {
+    display: none;
+  }
+
+  .tv-team-side__short {
+    display: block;
+    max-width: 100%;
+    font-size: clamp(1.1rem, 5vw, 1.6rem);
+  }
+
+  .tv-score-center__digits {
+    font-size: clamp(2.2rem, 11vw, 3.5rem);
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+
+  .tv-match-list__entries {
+    gap: 0.8vmin;
+  }
+
+  .tv-match-list__entry {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    row-gap: 0.4vmin;
+    padding: 1vmin 1.2vmin;
+  }
+
+  /* The zone and round take a row of their own, so the sides keep the width of the cell. */
+  .tv-match-list__round {
+    grid-column: 1 / -1;
+    text-align: center;
   }
 }

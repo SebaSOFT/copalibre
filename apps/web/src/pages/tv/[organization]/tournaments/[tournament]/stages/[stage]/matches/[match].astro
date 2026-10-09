@@ -27,7 +27,11 @@ import {
 } from '../../../../../../../../lib/tv-match-events.ts';
 import type { PublicObjectReference } from '../../../../../../../../lib/discipline-background.ts';
 import type { LiveDashboard } from '../../../../../../../../lib/live-state.ts';
-import type { ResultState } from '../../../../../../../../lib/result-state.ts';
+import {
+  dashboardFromOverview,
+  lastMatchAt,
+  overlayLive,
+} from '../../../../../../../../lib/tv-dashboard-source.ts';
 import type { StandingsRowView } from '../../../../../../../../lib/overview.ts';
 import type { TvWinnerZone } from '../../../../../../../../components/tv/tv-types.ts';
 import { winnerZonesOf } from '../../../../../../../../lib/tv-winners.ts';
@@ -41,7 +45,8 @@ const { organization, tournament, stage, match } = Astro.params;
 const organizationAlias = organization ?? 'liga-mendocina';
 const tournamentAlias = tournament ?? 'apertura-2026';
 const stageNumber = Number(stage ?? '1');
-const matchNumber = Number(match ?? '1');
+// Named the way the public match route names it: by its ordinal within the stage.
+const matchOrdinal = Number(match ?? '1');
 const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
 
 // Reuses the same fetch the public match report page makes (`fetchMatchReport`) — a second
@@ -55,7 +60,7 @@ try {
     organizationAlias,
     tournamentAlias,
     stageNumber,
-    matchNumber,
+    matchOrdinal,
   );
   if (report) {
     matchEvents = buildTvMatchEvents(report);
@@ -81,6 +86,8 @@ let winnerZones: readonly TvWinnerZone[] = [];
  * public pages already render. An overlay never does — see TvLayout. */
 let disciplineImages: PublicObjectReference[] | undefined;
 let standings: StandingsRowView[] = [];
+let organizationTimeZone: string | undefined;
+let overviewLastMatchAt: string | undefined;
 
 try {
   const [live, overview] = await Promise.all([
@@ -104,37 +111,16 @@ try {
       }));
     }
     standings = mappedOverview.standings ? [...mappedOverview.standings] : [];
+    organizationTimeZone = mappedOverview.organizationTimeZone;
+    overviewLastMatchAt = lastMatchAt(mappedOverview.matches);
 
+    // The pinned match need not be in progress, so the live projection is laid over every match
+    // of the overview rather than standing in for them.
+    const fromOverview = dashboardFromOverview(mappedOverview.matches);
     if (live && live.matches.length > 0) {
-      dashboard = mapLiveResponse(live);
+      dashboard = overlayLive(fromOverview, mapLiveResponse(live));
     } else if (mappedOverview.matches.length > 0) {
-      dashboard = {
-        standingsVersion: 0,
-        usingLastKnown: true,
-        matches: mappedOverview.matches.map((m, idx) => ({
-          matchId: `overview-${m.stageNumber}-${m.matchNumber ?? idx + 1}`,
-          stageNumber: m.stageNumber,
-          matchNumber: m.matchNumber ?? idx + 1,
-          state: m.state as ResultState,
-          projectionVersion: 0,
-          sides: [
-            {
-              entrantId: `home-${idx}`,
-              name: m.home.name,
-              abbreviation: m.home.abbreviation,
-              score: m.home.score ?? 0,
-              state: m.state as ResultState,
-            },
-            {
-              entrantId: `away-${idx}`,
-              name: m.away.name,
-              abbreviation: m.away.abbreviation,
-              score: m.away.score ?? 0,
-              state: m.state as ResultState,
-            },
-          ],
-        })),
-      };
+      dashboard = fromOverview;
     } else if (organizationAlias === 'liga-mendocina') {
       dashboard = sampleDashboard();
     }
@@ -186,7 +172,7 @@ const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam :
 ---
 
 <TvLayout
-  title={`TV — ${tournamentName} — Partido ${matchNumber}`}
+  title={`TV — ${tournamentName} — Partido ${matchOrdinal}`}
   overlayMode={overlayMode}
   chromaKey={chromaKey}
   background={background}
@@ -202,7 +188,9 @@ const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam :
     initialBracket={initialBracket}
     streamPath={streamPath}
     branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
-    pinnedMatchNumber={matchNumber}
+    pinnedMatch={{ stageNumber, ordinal: matchOrdinal }}
+    timeZone={organizationTimeZone}
+    lastMatchAt={overviewLastMatchAt}
     matchEvents={matchEvents}
     rosterActors={rosterActors}
     tournamentName={tournamentName}

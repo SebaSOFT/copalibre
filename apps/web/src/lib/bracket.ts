@@ -76,19 +76,6 @@ export function bracketZonesOf<
   );
 }
 
-/**
- * The zones a fixtures list draws: those playing a league or round-robin style format, each with
- * matches to show. The counterpart of {@link bracketZonesOf}: together they cover every zone once.
- */
-export function leagueZonesOf<
-  Zone extends { readonly format?: string | undefined; readonly matches: readonly unknown[] },
->(projection: { readonly format?: string | undefined; readonly zones: readonly Zone[] }): Zone[] {
-  return projection.zones.filter(
-    (zone) =>
-      zone.matches.length > 0 && selectStageLayout(zone.format ?? projection.format) === 'grid',
-  );
-}
-
 export interface BracketMatch {
   readonly matchId?: string;
   readonly matchNumber: number;

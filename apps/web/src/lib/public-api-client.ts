@@ -220,6 +220,9 @@ export function mapOverviewResponse(
     organizationAlias: response.organizationAlias,
     tournamentAlias: response.tournamentAlias,
     organizationName: response.organizationName,
+    ...(response.organizationTimeZone === undefined
+      ? {}
+      : { organizationTimeZone: response.organizationTimeZone }),
     tournamentName: response.tournamentName,
     seasonName: response.seasonName,
     status: response.status,
@@ -236,6 +239,7 @@ export function mapOverviewResponse(
     matches: response.matches.map((m: PublicOverviewMatchResponse) => ({
       matchId: m.matchId,
       matchNumber: m.matchNumber,
+      ...(m.stageOrdinal === undefined ? {} : { stageOrdinal: m.stageOrdinal }),
       stageNumber: m.stageNumber,
       home: {
         name: m.homeName ?? 'TBD',
@@ -280,6 +284,7 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
         matchId: m.matchId,
         stageNumber: m.stageNumber,
         matchNumber: m.matchNumber,
+        ...(m.stageOrdinal === undefined ? {} : { stageOrdinal: m.stageOrdinal }),
         state,
         projectionVersion: m.projectionVersion,
         ...(m.possessionEntrantId === undefined ||

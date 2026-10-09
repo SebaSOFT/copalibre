@@ -34,7 +34,21 @@ export function TvTeamSide({
           src={club?.emblemUrl}
         />
       </div>
-      <EntrantName abbreviation={abbreviation} className="tv-team-side__name" fullName={name} />
+      {/* A narrow frame shows the abbreviation instead (the stylesheet swaps them); the name stays the tooltip. */}
+      <EntrantName
+        abbreviation={abbreviation}
+        className={
+          abbreviation === undefined
+            ? 'tv-team-side__name'
+            : 'tv-team-side__name tv-team-side__full'
+        }
+        fullName={name}
+      />
+      {abbreviation !== undefined && (
+        <abbr className="tv-team-side__name tv-team-side__short" title={name}>
+          {abbreviation}
+        </abbr>
+      )}
     </div>
   );
 }

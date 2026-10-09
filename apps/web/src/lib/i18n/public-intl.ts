@@ -165,6 +165,11 @@ export function tvDashboardLabels(intl: IntlShape) {
     bracketMatch: intl.formatMessage(messages.tvDashboardBracketMatch),
     possession: intl.formatMessage(messages.tvDashboardPossession),
     penalty: intl.formatMessage(messages.tvDashboardPenalty),
+    clockLabel: intl.formatMessage(messages.tvDashboardClockLabel),
+    // Raw templates, filled in the island: a function would not survive its JSON props.
+    finishedOn: intl.formatMessage(messages.tvDashboardFinishedOn, { date: '{date}' }),
+    matchNotFound: intl.formatMessage(messages.tvDashboardMatchNotFound),
+    pageOf: intl.formatMessage(messages.tvDashboardPageOf, { page: '{page}', total: '{total}' }),
   };
 }
 

@@ -142,6 +142,7 @@ const tickerItems = buildTickerItems({
   ...(leaderProjection === undefined ? {} : { leaders: leaderProjection }),
   labels: tickerLabels(intl),
   language: resolvedLocale,
+  ...(model.organizationTimeZone === undefined ? {} : { timeZone: model.organizationTimeZone }),
 });
 
 const localePrefix = locale ? `/${locale}` : '';

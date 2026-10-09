@@ -826,7 +826,7 @@ export const messages = defineMessages({
   },
   tvDashboardFixturesTab: {
     id: 'publicWeb.tvDashboard.fixturesTab',
-    defaultMessage: 'Fixtures',
+    defaultMessage: 'Matches',
   },
   tvDashboardBracketRound: {
     id: 'publicWeb.tvDashboard.bracketRound',
@@ -843,6 +843,22 @@ export const messages = defineMessages({
   tvDashboardPenalty: {
     id: 'publicWeb.tvDashboard.penalty',
     defaultMessage: 'Penalty',
+  },
+  tvDashboardClockLabel: {
+    id: 'publicWeb.tvDashboard.clockLabel',
+    defaultMessage: 'Local time',
+  },
+  tvDashboardFinishedOn: {
+    id: 'publicWeb.tvDashboard.finishedOn',
+    defaultMessage: 'Finished {date}',
+  },
+  tvDashboardMatchNotFound: {
+    id: 'publicWeb.tvDashboard.matchNotFound',
+    defaultMessage: 'This match does not exist',
+  },
+  tvDashboardPageOf: {
+    id: 'publicWeb.tvDashboard.pageOf',
+    defaultMessage: 'Page {page} of {total}',
   },
   tvMultiCourtGridNoMatches: {
     id: 'publicWeb.tvMultiCourtGrid.noMatches',

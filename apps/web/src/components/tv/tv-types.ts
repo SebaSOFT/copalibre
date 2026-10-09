@@ -31,6 +31,14 @@ export interface TvDashboardLabels {
   readonly bracketMatch: string;
   readonly possession: string;
   readonly penalty: string;
+  /** Names the wall clock the header shows for a tournament still being played. */
+  readonly clockLabel: string;
+  /** Raw `{date}` template: the header of a finished tournament, naming the day it ended. */
+  readonly finishedOn: string;
+  /** Said by a pinned route whose match does not exist. */
+  readonly matchNotFound: string;
+  /** Raw `{page}`/`{total}` template for the match list's pager. */
+  readonly pageOf: string;
 }
 
 /** One zone of the last stage and the club or clubs that won it (several when the title is shared). */
