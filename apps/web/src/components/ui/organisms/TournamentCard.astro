@@ -1,12 +1,12 @@
 ---
 import type { IntlShape } from 'react-intl';
-import type { PublicTournamentListingItemResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type { PodiumListingItem } from '../../../lib/podium-emblems.ts';
 import ChampionPodium from './ChampionPodium.astro';
 import Button from '../atoms/Button.astro';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 interface Props {
-  readonly tournament: PublicTournamentListingItemResponse;
+  readonly tournament: PodiumListingItem;
   readonly organizationAlias: string;
   readonly localePrefix?: string;
   readonly intl: IntlShape;
@@ -196,112 +196,21 @@ const winners = tournament.winners ?? [];
     min-width: 0;
   }
 
+  /* A long name wraps to two lines before it is cut, so "Copa de Oro de ..." is not "Co…". */
   .cl-tournament-link {
-    display: block;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     overflow: hidden;
+    overflow-wrap: anywhere;
     color: var(--cl-text-primary);
     text-decoration: none;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .cl-tournament-link:hover {
     color: var(--cl-primary-hover);
     text-decoration: underline;
-  }
-
-  .cl-podium-container {
-    background-color: color-mix(in srgb, var(--cl-color-ink-950) 25%, transparent);
-    border: 1px solid color-mix(in srgb, var(--cl-text-primary) 7%, transparent);
-    border-radius: 8px;
-    padding: 0.85rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .cl-zone-title {
-    font-size: var(--cl-font-size-sm);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--cl-state-upcoming);
-    margin-bottom: 0.35rem;
-  }
-
-  .cl-podium-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.6rem;
-  }
-
-  @media (min-width: 480px) {
-    .cl-podium-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  .cl-podium-spot {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    padding: 0.5rem;
-    border-radius: var(--cl-radius-md);
-    background-color: color-mix(in srgb, var(--cl-text-primary) 3%, transparent);
-    min-width: 0;
-  }
-
-  .cl-medal-badge {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--cl-font-size-xs);
-    font-weight: 800;
-    flex-shrink: 0;
-  }
-
-  .cl-gold-medal {
-    background: linear-gradient(135deg, var(--cl-state-upcoming), var(--cl-color-amber-800));
-    color: var(--cl-color-ink-950);
-    box-shadow: 0 0 8px color-mix(in srgb, var(--cl-state-upcoming) 40%, transparent);
-  }
-
-  .cl-silver-medal {
-    background: linear-gradient(135deg, var(--cl-text-secondary), var(--cl-text-muted));
-    color: var(--cl-surface-base);
-    box-shadow: 0 0 6px color-mix(in srgb, var(--cl-text-secondary) 30%, transparent);
-  }
-
-  .cl-entrant-info {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
-  .cl-podium-label {
-    font-size: var(--cl-font-size-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--cl-text-muted);
-  }
-
-  .cl-entrant-name {
-    font-size: var(--cl-font-size-sm);
-    font-weight: 600;
-    color: var(--cl-text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .cl-entrant-abbr {
-    color: var(--cl-text-muted);
-    font-weight: normal;
-    margin-left: 0.25rem;
   }
 
   .cl-card-footer {

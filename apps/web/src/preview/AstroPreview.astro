@@ -114,6 +114,9 @@ const PREVIEWABLE = new Set([
   'champion-podium',
   'champion-podium-shared-title',
   'champion-podium-empty',
+  'champion-podium-narrow',
+  'champion-podium-medium',
+  'tournament-card-finished-narrow',
   'data-table',
   'match-card-grid',
   'match-hero',
@@ -400,6 +403,34 @@ const tournaments = referenceTournamentListing();
       )
     }
     {component === 'champion-podium-empty' && <ChampionPodium intl={intl} winners={[]} />}
+    {
+      component === 'champion-podium-narrow' && (
+        <div style="width: 16rem">
+          <ChampionPodium intl={intl} winners={referenceWinnerZones()} />
+        </div>
+      )
+    }
+    {
+      component === 'champion-podium-medium' && (
+        <div style="width: 26rem">
+          <ChampionPodium intl={intl} winners={referenceWinnerZones()} />
+        </div>
+      )
+    }
+    {
+      component === 'tournament-card-finished-narrow' && (
+        <div style="width: 22rem">
+          <TournamentCard
+            intl={intl}
+            organizationAlias="reference-league"
+            tournament={{
+              ...(tournaments.find((t) => t.status === 'finished') ?? tournaments[0]),
+              name: 'Campeonato Panamericano de Clubes de Hockey Patines',
+            }}
+          />
+        </div>
+      )
+    }
     {
       component === 'data-table' && (
         <DataTable
