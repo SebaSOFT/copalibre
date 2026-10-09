@@ -128,9 +128,10 @@ describe('public tables and filter pills', () => {
     expect(standings).toContain("header.setAttribute('aria-sort'");
   });
 
-  it('renders the standings club filter through the shared pill, not a local duplicate', () => {
-    expect(standings).toContain('cl-pill');
+  it('renders the standings club filter through the shared chip, not a local duplicate', () => {
+    expect(standings).toContain('<ClubFilterChip');
     expect(standings).not.toContain('.cl-club-filter__btn {');
+    expect(standings).not.toContain('class={`cl-pill');
   });
 
   it('renders match-report rosters through the shared table, with no page-local duplicate', () => {

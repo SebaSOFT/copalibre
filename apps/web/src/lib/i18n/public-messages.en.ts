@@ -124,6 +124,14 @@ export const messages = defineMessages({
     id: 'publicWeb.standings.filterByClub',
     defaultMessage: 'Filter by club',
   },
+  standingsFilterClubLabel: {
+    id: 'publicWeb.standings.filterClubLabel',
+    defaultMessage: 'Club',
+  },
+  standingsColumnLegend: {
+    id: 'publicWeb.standings.columnLegend',
+    defaultMessage: 'Table abbreviations',
+  },
   standingsCloseDialog: {
     id: 'publicWeb.standings.closeDialog',
     defaultMessage: 'Close dialog',

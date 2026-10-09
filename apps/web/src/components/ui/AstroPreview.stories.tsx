@@ -60,6 +60,20 @@ export const BreadcrumbCollapsed: Story = {
   args: { component: 'breadcrumb-collapsed', height: 120 },
 };
 
+/** The compact club filter: initials stand in without an emblem, and the selected chip carries a check and a fill. */
+export const ClubFilterChips: Story = {
+  args: { component: 'club-filter-chip', height: 120 },
+};
+
+/**
+ * Abbreviated headers carry their full wording (hover or focus a header; the legend below the table
+ * repeats it for touch), and the club filter is a row of compact chips: emblem or initials, selected
+ * state by fill, border and check.
+ */
+export const StandingsTableHints: Story = {
+  args: { component: 'standings-table', height: 760 },
+};
+
 /** A podium squeezed into a quarter-width card stacks its placings instead of breaking names. */
 export const ChampionPodiumNarrow: Story = {
   args: { component: 'champion-podium-narrow', height: 760 },

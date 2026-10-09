@@ -1,0 +1,128 @@
+---
+import { clubMonogram } from '../../../lib/club-monogram.ts';
+
+/**
+ * One option of a table's club filter: a compact, chamfered link that reads as
+ * a filter of the table beside it, never as a page-level action.
+ *
+ * It stays a plain link to the same page with the choice in the query string,
+ * so it works without JavaScript; the standings script upgrades it to an
+ * in-place swap. The club's emblem sits on a light plate so a dark crest stays
+ * legible, and the club's initials stand in when there is no emblem or it
+ * fails to load. The selected state is a filled chip, a border and a check
+ * mark, not colour alone.
+ */
+interface Props {
+  readonly href: string;
+  readonly label: string;
+  readonly active: boolean;
+  /** The `data-club-filter` value: a club id, or `all`. */
+  readonly filter: string;
+  /** Absent for the "all" option, which carries no emblem. */
+  readonly club?: boolean;
+  readonly emblemSrc?: string;
+}
+const { href, label, active, filter, club = false, emblemSrc } = Astro.props;
+const monogram = clubMonogram(label);
+---
+
+<a
+  href={href}
+  class={`cl-club-chip cl-chamfer cl-focusable${active ? ' cl-club-chip--active' : ''}`}
+  aria-pressed={active ? 'true' : 'false'}
+  data-club-filter={filter}
+  title={club ? label : undefined}
+>
+  {
+    active && (
+      <span class="cl-club-chip__check" aria-hidden="true">
+        ✓
+      </span>
+    )
+  }
+  {
+    club && (
+      <span class="cl-club-chip__plate" aria-hidden="true">
+        {emblemSrc && (
+          <img
+            class="cl-club-chip__emblem"
+            src={emblemSrc}
+            alt=""
+            loading="lazy"
+            onerror="this.hidden = true; this.nextElementSibling.hidden = false;"
+          />
+        )}
+        <span class="cl-club-chip__monogram" hidden={emblemSrc !== undefined}>
+          {monogram}
+        </span>
+      </span>
+    )
+  }
+  <span class="cl-club-chip__name">{label}</span>
+</a>
+
+<style>
+  .cl-club-chip {
+    --cl-chamfer-size: var(--cl-space-2);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+    min-height: 2rem;
+    padding: var(--cl-space-1) var(--cl-space-3) var(--cl-space-1) var(--cl-space-1);
+    border: 1px solid var(--cl-border-muted);
+    background: var(--cl-surface-chrome);
+    color: var(--cl-text-secondary);
+    font-family: var(--cl-font-body);
+    font-size: var(--cl-font-size-xs);
+    font-weight: var(--cl-weight-semibold);
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .cl-club-chip:not(:has(.cl-club-chip__plate)) {
+    padding-inline-start: var(--cl-space-3);
+  }
+  .cl-club-chip:hover {
+    background: var(--cl-surface-hover);
+    border-color: var(--cl-border-hover);
+  }
+  .cl-club-chip--active {
+    background: var(--cl-state-live);
+    border-color: var(--cl-state-live);
+    color: var(--cl-surface-base);
+  }
+  .cl-club-chip--active:hover {
+    background: var(--cl-state-live);
+  }
+  .cl-club-chip__check {
+    font-size: var(--cl-font-size-xs);
+    margin-inline-start: var(--cl-space-1);
+  }
+  .cl-club-chip__plate {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+    background: var(--cl-text-primary);
+    color: var(--cl-surface-base);
+    overflow: hidden;
+  }
+  .cl-club-chip__emblem {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: contain;
+    padding: 2px;
+    box-sizing: border-box;
+  }
+  .cl-club-chip__monogram {
+    font-family: var(--cl-font-display);
+    font-size: 0.625rem;
+    font-weight: var(--cl-weight-bold);
+    letter-spacing: 0;
+  }
+  .cl-club-chip__monogram[hidden] {
+    display: none;
+  }
+</style>

@@ -15564,6 +15564,10 @@
           "shortHeader": {
             "type": "object"
           },
+          "description": {
+            "type": "object",
+            "description": "The full wording behind an abbreviated header, from the discipline descriptor’s own statistic labels"
+          },
           "zeroDisplay": {
             "type": "string",
             "description": "Displayed text when the numeric value is exactly zero"

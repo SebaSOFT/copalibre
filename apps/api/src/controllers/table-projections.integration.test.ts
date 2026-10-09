@@ -468,6 +468,14 @@ describe('table projections (integration)', () => {
     expect(body.rows[0].entrantName).toBe('Talleres');
     expect(body.rows[0].entrantAbbreviation).toBe('TALR');
     expect(body.rows[0].nationality).toBe('AR');
+    // A collector column carries the full wording its collector declares, so an
+    // abbreviated header can be explained without a glossary of the platform's own.
+    expect(body.columns.find((column: { code: string }) => column.code === 'goals')).toMatchObject({
+      description: 'Goals',
+    });
+    expect(
+      body.columns.find((column: { code: string }) => column.code === 'player').description,
+    ).toBeUndefined();
   });
 
   it('serves the same tournament-wide table as CSV', async () => {

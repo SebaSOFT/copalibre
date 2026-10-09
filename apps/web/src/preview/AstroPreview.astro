@@ -31,6 +31,7 @@ import TournamentHero from '../components/ui/molecules/TournamentHero.astro';
 import BracketView from '../components/ui/organisms/BracketView.astro';
 import Breadcrumb from '../components/ui/organisms/Breadcrumb.astro';
 import ChampionPodium from '../components/ui/organisms/ChampionPodium.astro';
+import ClubFilterChip from '../components/ui/molecules/ClubFilterChip.astro';
 import DataTable from '../components/ui/organisms/DataTable.astro';
 import MatchCardGrid from '../components/ui/organisms/MatchCardGrid.astro';
 import MatchBracketContext from '../components/ui/organisms/MatchBracketContext.astro';
@@ -132,6 +133,7 @@ const PREVIEWABLE = new Set([
   'organization-clubs',
   'organization-header',
   'player-profile-view',
+  'club-filter-chip',
   'standings-table',
   'tournament-card',
   'tournament-section',
@@ -569,10 +571,29 @@ const tournaments = referenceTournamentListing();
       )
     }
     {
+      component === 'club-filter-chip' && (
+        <div class="cl-preview-chip-row">
+          <ClubFilterChip active={true} filter="all" href="#" label="All" />
+          <ClubFilterChip
+            active={false}
+            club
+            emblemSrc="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M8 6h32l-4 4v14c0 12-8 18-12 20-4-2-12-8-12-20V10z' fill='%23243049'/%3E%3C/svg%3E"
+            filter="meridian"
+            href="#"
+            label="Meridian Athletic"
+          />
+          <ClubFilterChip active={false} club filter="ironclad" href="#" label="Ironclad Union" />
+          <ClubFilterChip active={true} club filter="harbor" href="#" label="Harbor Rovers" />
+        </div>
+      )
+    }
+    {
       component === 'standings-table' && (
         <StandingsTable
           activeLayoutCode="group-table"
+          activeClubId={referenceClubs()[1]?.clubId}
           canonicalPath="/reference-league/tournaments/reference-cup/standings"
+          clubs={referenceClubs()}
           intl={intl}
           layout={referenceTableLayouts()[0]}
           layouts={referenceTableLayouts()}
@@ -608,6 +629,11 @@ const tournaments = referenceTournamentListing();
 </html>
 
 <style>
+  .cl-preview-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cl-space-2);
+  }
   .cl-preview-emblem-matrix {
     display: flex;
     align-items: center;

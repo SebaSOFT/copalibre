@@ -707,6 +707,18 @@ describe('public table and pill treatments', () => {
     expect(css).toContain('.cl-table__num { text-align: right; }');
   });
 
+  it('draws a column rule from a token on every column but the first', () => {
+    expect(css).toMatch(
+      /--cl-table-column-rule: color-mix\(in srgb, var\(--cl-border-muted\) \d+%, transparent\)/,
+    );
+    expect(css).toMatch(
+      /\.cl-table th \+ th,\n\.cl-table td \+ td \{[^}]*border-inline-start: 1px solid var\(--cl-table-column-rule\)/,
+    );
+    expect(css).toMatch(
+      /\.cl-data-table__table th \+ th, \.cl-data-table__table td \+ td \{[^}]*var\(--cl-table-column-rule\)/,
+    );
+  });
+
   it('scrolls a wide table inside its own container', () => {
     expect(css).toMatch(/\.cl-table-scroll \{[^}]*overflow-x: auto/);
   });
