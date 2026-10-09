@@ -1,14 +1,14 @@
 ---
 import type { IntlShape } from 'react-intl';
-import MatchNode from './MatchNode.astro';
-import { stagePath, toRounds, type BracketMatch } from '../../../lib/bracket.ts';
+import BracketView from './BracketView.astro';
+import { stagePath, type BracketMatch } from '../../../lib/bracket.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 /**
- * A condensed, read-only rendering of one stage's bracket, emphasizing the match a match report
- * page is already about — orientation, not a second bracket page. Reuses `toRounds`/`MatchNode`
- * exactly as `BracketView.astro` does (no lower-detail "minimap"
- * vocabulary for the same structure), constrained to a fixed-height scroll region instead.
+ * The whole bracket of the zone a match report is about, with that match marked — orientation,
+ * drawn by the same `BracketView` the stage page uses, so the two can never disagree about how a
+ * bracket looks. It has no height of its own: the bracket is shown in full, and scrolls sideways
+ * only when it is wider than the page.
  */
 interface Props {
   readonly matches: readonly BracketMatch[];
@@ -20,6 +20,7 @@ interface Props {
   readonly localePrefix?: string;
 }
 const {
+  matches,
   currentMatchNumber,
   intl,
   organizationAlias,
@@ -27,53 +28,21 @@ const {
   stageNumber,
   localePrefix = '',
 } = Astro.props;
-const rounds = toRounds(Astro.props.matches);
-
-const roundLabel = (round: (typeof rounds)[number]): string =>
-  `${round.branch} · ${intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}`;
 ---
 
-<section aria-label={intl.formatMessage(messages.bracketContextAriaLabel)} class="cl-bracket-stage">
-  <div
-    aria-label={intl.formatMessage(messages.bracketScrollAriaLabel)}
-    class="cl-bracket-context__scroll"
-    role="group"
-    tabindex="0"
-  >
-    <div class="cl-bracket-stage__rounds cl-bracket">
-      {
-        rounds.map((round) => (
-          <section
-            aria-label={intl.formatMessage(messages.bracketRoundAriaLabel, {
-              branch: round.branch,
-              round: round.roundNumber,
-            })}
-            class="cl-bracket-stage__round"
-          >
-            <h3 class="cl-bracket-stage__round-label">{roundLabel(round)}</h3>
-            {round.matches.map((match) => (
-              <div
-                class:list={[
-                  'cl-bracket-stage__node',
-                  match.matchNumber === currentMatchNumber && 'cl-bracket-stage__node--focused',
-                ]}
-              >
-                <MatchNode
-                  intl={intl}
-                  localePrefix={localePrefix}
-                  match={match}
-                  organizationAlias={organizationAlias}
-                  stageNumber={stageNumber}
-                  tournamentAlias={tournamentAlias}
-                />
-              </div>
-            ))}
-          </section>
-        ))
-      }
-    </div>
-  </div>
-
+<section
+  aria-label={intl.formatMessage(messages.bracketContextAriaLabel)}
+  class="cl-bracket-context"
+>
+  <BracketView
+    highlightMatchNumber={currentMatchNumber}
+    intl={intl}
+    localePrefix={localePrefix}
+    matches={matches}
+    organizationAlias={organizationAlias}
+    stageNumber={stageNumber}
+    tournamentAlias={tournamentAlias}
+  />
   <a
     class="cl-bracket-context__view-full"
     href={stagePath({ organizationAlias, tournamentAlias, stageNumber, localePrefix })}
@@ -83,25 +52,11 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
 </section>
 
 <style>
-  /*
-    Its own scroll class, not `.cl-bracket-stage__scroll` — that one hides below the `sm`
-    breakpoint in favour of the full stage page's textual outline, which this condensed panel
-    has no equivalent of. A horizontally-scrolling region stays the right small-viewport
-    behavior here (the same pattern the control bracket canvas already uses at every width).
-  */
-  .cl-bracket-context__scroll {
-    overflow-x: auto;
-    scrollbar-gutter: stable;
-    max-width: 100%;
-    max-height: 320px;
+  .cl-bracket-context {
+    display: grid;
+    gap: var(--cl-space-3);
+    min-width: 0;
   }
-
-  /* Same treatment BracketView.astro's championship node uses — one "look here" cue. */
-  .cl-bracket-stage__node--focused :global(.cl-card) {
-    border-width: 2px;
-    border-color: var(--cl-primary);
-  }
-
   .cl-bracket-context__view-full {
     justify-self: start;
   }

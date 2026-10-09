@@ -41,6 +41,7 @@ import {
 
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
 import { resolveStageZones } from './bracket-zones.js';
+import { bracketLinks, graphRecordsOf, placementMatchOf } from './bracket-placements.js';
 import { readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
 import { reconstructChampionshipFixture } from './tournament-winner-resolution.js';
 import { segmentedTableResponse, tableResponse } from './table-projections.controller.js';
@@ -882,7 +883,9 @@ export class PublicProjectionsController {
 
     const zoneResponses = await Promise.all(
       zones.map(async (zone) => {
-        const stageMatchesMapped = await readModel.matches(stage.stageId, undefined, zone.zoneId);
+        const zoneRecords = await readModel.matches(stage.stageId, undefined, zone.zoneId);
+        // Placement games sit beside the generated graph, not on it.
+        const stageMatchesMapped = graphRecordsOf(zoneRecords);
         const record = await readModel.stageRecord(stage.stageId, undefined, zone.zoneId);
 
         // Seeded from this zone's own entrants, the same way the control panel's bracket is: the
@@ -913,10 +916,21 @@ export class PublicProjectionsController {
           }),
         );
 
+        const { placements, sourcesOf } = bracketLinks(
+          bracketMatches,
+          zoneRecords,
+          stageMatchesMapped,
+        );
+
         const entrantIds = new Set<string>();
         for (const match of bracketMatches) {
           for (const slot of match.slots) {
             if (slot.entrantId) entrantIds.add(slot.entrantId);
+          }
+        }
+        for (const node of placements) {
+          for (const id of [node.record.homeEntrantId, node.record.awayEntrantId]) {
+            if (id) entrantIds.add(id);
           }
         }
         const details = await enrollmentRepo.resolveEntrantPodiumDetails(Array.from(entrantIds));
@@ -935,35 +949,60 @@ export class PublicProjectionsController {
         return {
           ...zone,
           format,
-          matches: bracketMatches.map((m) => {
-            const series = seriesByPosition.get(`${m.round}:${m.position}`);
-            return {
-              matchId: m.matchId,
-              bracket: m.bracket,
-              round: m.round,
-              position: m.position,
-              status: m.status,
-              format: m.format,
-              ...(m.persistedMatchId === undefined
-                ? {}
-                : { matchNumber: ordinalByMatchId.get(m.persistedMatchId) }),
-              slots: m.slots.map((s) => {
-                const detail = s.entrantId ? details.get(s.entrantId) : undefined;
-                return {
-                  kind: s.kind,
-                  entrantId: s.entrantId,
-                  name: s.entrantId ? (detail?.name ?? 'Unknown') : undefined,
-                  abbreviation: detail?.abbreviation,
-                  clubId: detail?.clubId,
-                  emblemObjectId: detail?.emblemObjectId,
-                  matchId: s.matchId,
-                  score: s.score,
-                  resultReason: s.resultReason,
-                };
-              }),
-              ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
-            };
-          }),
+          matches: [
+            ...bracketMatches.map((m) => {
+              const series = seriesByPosition.get(`${m.round}:${m.position}`);
+              return {
+                matchId: m.matchId,
+                bracket: m.bracket,
+                round: m.round,
+                position: m.position,
+                status: m.status,
+                format: m.format,
+                ...(m.persistedMatchId === undefined
+                  ? {}
+                  : { matchNumber: ordinalByMatchId.get(m.persistedMatchId) }),
+                slots: m.slots.map((s, slotIndex) => {
+                  const detail = s.entrantId ? details.get(s.entrantId) : undefined;
+                  const from = s.kind === 'entrant' ? sourcesOf(m)[slotIndex] : undefined;
+                  return {
+                    kind: s.kind,
+                    entrantId: s.entrantId,
+                    name: s.entrantId ? (detail?.name ?? 'Unknown') : undefined,
+                    abbreviation: detail?.abbreviation,
+                    clubId: detail?.clubId,
+                    emblemObjectId: detail?.emblemObjectId,
+                    matchId: s.matchId,
+                    ...(from === undefined ? {} : { from }),
+                    score: s.score,
+                    resultReason: s.resultReason,
+                  };
+                }),
+                ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
+              };
+            }),
+            ...placements.map((node) => ({
+              ...placementMatchOf(node),
+              matchNumber: ordinalByMatchId.get(node.record.matchId),
+              slots: [node.record.homeEntrantId, node.record.awayEntrantId].map(
+                (entrantId, index) => {
+                  const detail = entrantId ? details.get(entrantId) : undefined;
+                  const source = node.sources[index];
+                  return {
+                    kind: 'entrant' as const,
+                    entrantId,
+                    name: entrantId ? (detail?.name ?? 'Unknown') : undefined,
+                    abbreviation: detail?.abbreviation,
+                    clubId: detail?.clubId,
+                    emblemObjectId: detail?.emblemObjectId,
+                    ...(source === undefined ? {} : { from: source }),
+                    score: node.record.scores?.[index],
+                    resultReason: node.record.resultReasons?.[index],
+                  };
+                },
+              ),
+            })),
+          ],
         };
       }),
     );

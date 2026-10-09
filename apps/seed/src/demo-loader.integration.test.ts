@@ -134,6 +134,20 @@ describePostgres('demo dataset loading (integration)', () => {
     await expect(count('clubs')).resolves.toBe(24);
     await expect(count('entrants')).resolves.toBe(24);
     await expect(count('fixtures')).resolves.toBe(72);
+    // The cups' placement games (third, fifth and seventh place, and the 5th–8th rounds) carry the
+    // role their round label published, so the bracket can draw them beside the generated graph.
+    const roles = await scratch.db
+      .selectFrom('fixtures')
+      .select(['role', (eb) => eb.fn.countAll<string>().as('total')])
+      .where('role', 'is not', null)
+      .groupBy('role')
+      .execute();
+    expect(Object.fromEntries(roles.map((row) => [row.role, Number(row.total)]))).toEqual({
+      'place-3': 3,
+      'place-5': 3,
+      'place-7': 3,
+      'places-5-8': 6,
+    });
     await expect(count('match_events')).resolves.toBe(report.counts.goalEvents);
     const finalized = await scratch.db
       .selectFrom('matches')

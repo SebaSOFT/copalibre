@@ -136,6 +136,11 @@ export const EmblemImage: Story = {
   args: { component: 'emblem-image', height: 180 },
 };
 
+/** The `bare` emblem: no background, border, chamfer or inset, only the 1:1 image for inline use. */
+export const EmblemImageBare: Story = {
+  args: { component: 'emblem-image-bare', height: 120 },
+};
+
 /** The same emblem at three `size` values; every frame remains square. */
 export const EmblemImageMatrix: Story = {
   args: { component: 'emblem-image-matrix', height: 200 },
@@ -186,6 +191,26 @@ export const MatchBracketContextUnknownFocus: Story = {
  */
 export const UnknownComponent: Story = {
   args: { component: 'not-a-component', height: 220 },
+};
+
+/** A zone with a third-place game: the final in the middle with a half on each side, the game listed beneath. */
+export const BracketPlacementGame: Story = {
+  args: { component: 'bracket-placement', height: 900 },
+};
+
+/** The whole bracket at the compact density a narrow screen draws. */
+export const BracketGraphCompact: Story = {
+  args: { component: 'bracket-graph', height: 420 },
+};
+
+/** The card a bracket draws on a narrow screen: abbreviations and scores only. */
+export const MatchNodeCompactCard: Story = {
+  args: { component: 'match-node-compact', height: 120 },
+};
+
+/** The placement games listed under what each decides, the current one marked. */
+export const PlacementGamesList: Story = {
+  args: { component: 'placement-games', height: 260 },
 };
 
 export const BracketJourneyAlive: Story = {

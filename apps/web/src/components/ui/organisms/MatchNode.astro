@@ -66,7 +66,12 @@ const legScores =
     <ol>
       {
         node.slots.map((slot) => (
-          <li class={slot.pending ? 'cl-slot--pending' : 'cl-slot'}>
+          <li
+            class:list={[
+              slot.pending ? 'cl-slot--pending' : 'cl-slot',
+              slot.winner && 'cl-slot--winner',
+            ]}
+          >
             {/* Named, never blank: a blank cell reads as a bug, "Ganador del 3"
                 tells a spectator what has to happen first. */}
             {slot.fullName === undefined ? (
@@ -77,6 +82,7 @@ const legScores =
                   <EmblemImage
                     alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: slot.fullName })}
                     placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                    bare
                     size={20}
                     src={
                       slot.clubId && slot.emblemObjectId
@@ -88,11 +94,7 @@ const legScores =
                 {highlight && slot.entrantId !== undefined ? (
                   <>
                     <span data-journey-fallback>
-                      <EntrantName
-                        abbreviation={slot.abbreviation}
-                        client:load
-                        fullName={slot.fullName}
-                      />
+                      <EntrantName client:load fullName={slot.fullName} />
                     </span>
                     <Button
                       hidden
@@ -102,17 +104,14 @@ const legScores =
                       aria-pressed="false"
                       class="cl-journey-name"
                       data-entrant-id={slot.entrantId}
+                      title={slot.fullName}
                       variant="secondary"
                     >
                       {slot.fullName}
                     </Button>
                   </>
                 ) : (
-                  <EntrantName
-                    abbreviation={slot.abbreviation}
-                    client:load
-                    fullName={slot.fullName}
-                  />
+                  <EntrantName client:load fullName={slot.fullName} />
                 )}
               </>
             )}
@@ -162,5 +161,22 @@ const legScores =
     display: flex;
     align-items: center;
     gap: var(--cl-space-2);
+  }
+  /* The name takes the row's slack and reads from the left, next to its emblem. */
+  .cl-slot :global(.cl-entrant-name),
+  .cl-slot--pending :global(.cl-entrant-name),
+  .cl-slot :global(.cl-journey-name) {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    /* One line, always: a long club name is cut with an ellipsis and read in full on hover. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cl-slot--winner,
+  .cl-slot--winner :global(.cl-entrant-name),
+  .cl-slot--winner :global(.cl-stat-tile__value) {
+    font-weight: var(--cl-weight-bold);
   }
 </style>

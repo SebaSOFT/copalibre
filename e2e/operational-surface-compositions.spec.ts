@@ -392,7 +392,7 @@ test.describe('Standings and bracket in a browser', () => {
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/1`);
 
-    await expect(page.locator('.cl-bracket-stage__scroll')).toHaveCSS('overflow-x', 'auto');
+    await expect(page.locator('.cl-bracket-stage__scroll--full')).toHaveCSS('overflow-x', 'auto');
     const overflows = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     );
@@ -406,7 +406,9 @@ test.describe('Standings and bracket in a browser', () => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/1`);
 
     await expect(page.locator('.cl-bracket-stage__outline')).toBeVisible();
-    await expect(page.locator('.cl-bracket-stage__scroll')).toBeHidden();
+    // Both drawings (full and compact) give way to the textual view at this width.
+    await expect(page.locator('.cl-bracket-stage__scroll').first()).toBeHidden();
+    await expect(page.locator('.cl-bracket-stage__scroll').last()).toBeHidden();
     // The sources a pending cross is waiting on are named, not blank.
     await expect(page.locator('.cl-bracket-stage__outline')).toContainText('Ganador');
   });

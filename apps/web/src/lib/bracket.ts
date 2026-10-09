@@ -21,6 +21,8 @@ export type SlotSource =
       readonly entrantId?: string;
       readonly clubId?: string;
       readonly emblemObjectId?: string;
+      /** Where this entrant came from, so a played match stays linked to the ones that fed it. */
+      readonly from?: { readonly matchId: string; readonly outcome: 'winner' | 'loser' };
     }
   | { readonly kind: 'winner-of'; readonly matchNumber?: number; readonly matchId?: string }
   | { readonly kind: 'loser-of'; readonly matchNumber?: number; readonly matchId?: string }
@@ -91,7 +93,11 @@ export interface BracketMatch {
   readonly matchId?: string;
   readonly matchNumber: number;
   readonly roundNumber: number;
-  /** `winners`, `losers`, `final` — a label, not an enum the engine owns. */
+  /** 1-based position within the round, in fixture order. */
+  readonly position?: number;
+  /** A placement game's part in its zone (`place-3`, `places-5-8`); absent for the graph's own matches. */
+  readonly role?: string;
+  /** `winners`, `losers`, `final`, `placement` — a label, not an enum the engine owns. */
   readonly branch: string;
   readonly slots: readonly SlotSource[];
   readonly scores?: readonly (number | undefined)[];
@@ -124,6 +130,8 @@ export interface NodeSlotView {
   /** Absent, or `played`, renders nothing — only an unusual reason is shown. */
   readonly resultReason?: Exclude<ResultReason, 'played'>;
   readonly state: ResultState;
+  /** True on the side that won a decided match: both cards mark it in bold. */
+  readonly winner?: boolean;
   /** True while the entrant is not known yet: rendered dashed, never blank. */
   readonly pending: boolean;
 }
@@ -160,6 +168,10 @@ export function toRounds(matches: readonly BracketMatch[]): readonly BracketRoun
  * has to happen before their team plays.
  */
 export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNodeView {
+  const scored = (match.scores ?? []).filter((score): score is number => score !== undefined);
+  const top = Math.max(...scored);
+  const decided =
+    match.state === 'final' && scored.length > 1 && scored.some((score) => score !== top);
   return {
     matchNumber: match.matchNumber,
     state: match.state,
@@ -182,6 +194,7 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
         ...(score === undefined ? {} : { score }),
         ...(resultReason === undefined || resultReason === 'played' ? {} : { resultReason }),
         state: pending ? 'tbd' : match.state,
+        ...(decided && score === top ? { winner: true } : {}),
         pending,
       };
     }),
@@ -280,9 +293,11 @@ export function stagePath(input: {
  * chosen by guessing which of them matters more.
  */
 export function championshipMatch(matches: readonly BracketMatch[]): BracketMatch | undefined {
-  if (matches.length === 0) return undefined;
-  const last = Math.max(...matches.map((match) => match.roundNumber));
-  const final = matches.filter((match) => match.roundNumber === last);
+  // Placement games play beside the final, in the same round; they do not contest the title.
+  const contested = matches.filter((match) => match.branch !== 'placement');
+  if (contested.length === 0) return undefined;
+  const last = Math.max(...contested.map((match) => match.roundNumber));
+  const final = contested.filter((match) => match.roundNumber === last);
   return final.length === 1 ? final[0] : undefined;
 }
 

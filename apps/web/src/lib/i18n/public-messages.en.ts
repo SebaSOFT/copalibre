@@ -283,6 +283,28 @@ export const messages = defineMessages({
     defaultMessage: '{branch} — round {round}',
   },
   bracketRoundHeading: { id: 'publicWeb.bracket.roundHeading', defaultMessage: 'Round {round}' },
+  bracketBranchWinners: { id: 'publicWeb.bracket.branch.winners', defaultMessage: 'Main bracket' },
+  bracketBranchLosers: {
+    id: 'publicWeb.bracket.branch.losers',
+    defaultMessage: "Losers' bracket",
+  },
+  bracketBranchGrandFinal: {
+    id: 'publicWeb.bracket.branch.grandFinal',
+    defaultMessage: 'Grand final',
+  },
+  bracketBranchPlacement: {
+    id: 'publicWeb.bracket.branch.placement',
+    defaultMessage: 'Placement games',
+  },
+  // A placement game: the single place it decides, or the range it sorts.
+  bracketRolePlace: {
+    id: 'publicWeb.bracket.role.place',
+    defaultMessage: '{place, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} place',
+  },
+  bracketRolePlaces: {
+    id: 'publicWeb.bracket.role.places',
+    defaultMessage: 'Places {from}–{to}',
+  },
   // the bracket stage's own chrome, its key, and its textual view.
   bracketStageAriaLabel: { id: 'publicWeb.bracket.stageAriaLabel', defaultMessage: 'Bracket' },
   // jump-to-zone navigation, shown only when a stage has more than one zone.

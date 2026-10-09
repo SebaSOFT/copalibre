@@ -1,0 +1,152 @@
+---
+import type { IntlShape } from 'react-intl';
+import { matchReportUrl, type BracketMatch } from '../../../lib/bracket.ts';
+import { bracketBranchLabel, bracketRoleLabel } from '../../../lib/i18n/public-intl.ts';
+
+/**
+ * The games a bracket does not draw: third place, fifth and seventh place, the round that sorts the
+ * fifth to eighth. Each is listed under the label of what it decides, the way a results sheet
+ * reads, and the row of the match a report page is about is marked.
+ */
+interface Props {
+  readonly games: readonly BracketMatch[];
+  readonly intl: IntlShape;
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly localePrefix?: string;
+  readonly highlightMatchNumber?: number;
+}
+const {
+  games,
+  intl,
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  localePrefix = '',
+  highlightMatchNumber,
+} = Astro.props;
+
+const nameOf = (slot: BracketMatch['slots'][number]): string =>
+  slot.kind === 'entrant' ? slot.name : '—';
+const groups = games.reduce<{ role: string; games: BracketMatch[] }[]>((acc, game) => {
+  const role = game.role ?? '';
+  const last = acc.at(-1);
+  if (last?.role === role) last.games.push(game);
+  else acc.push({ role, games: [game] });
+  return acc;
+}, []);
+---
+
+{
+  games.length > 0 && (
+    <section class="cl-placement-games" aria-labelledby="placement-games-heading">
+      <h3 id="placement-games-heading">{bracketBranchLabel(intl, 'placement')}</h3>
+      {groups.map((group) => (
+        <div class="cl-placement-games__group">
+          <h4 class="cl-placement-games__role">
+            {group.role === ''
+              ? bracketBranchLabel(intl, 'placement')
+              : bracketRoleLabel(intl, group.role)}
+          </h4>
+          <ul class="cl-placement-games__list">
+            {group.games.map((game) => {
+              const [home, away] = game.slots;
+              const [homeScore, awayScore] = game.scores ?? [];
+              const homeName = home ? nameOf(home) : '—';
+              const awayName = away ? nameOf(away) : '—';
+              const score =
+                homeScore !== undefined && awayScore !== undefined
+                  ? `${homeScore} – ${awayScore}`
+                  : '—';
+              const current = game.matchNumber === highlightMatchNumber;
+              return (
+                <li
+                  aria-current={current ? 'true' : undefined}
+                  class:list={[
+                    'cl-placement-games__game',
+                    current && 'cl-placement-games__game--current',
+                  ]}
+                >
+                  <span class="cl-placement-games__side cl-placement-games__side--home">
+                    {homeName}
+                  </span>
+                  <a
+                    aria-label={`${homeName} ${score} ${awayName}`}
+                    class="cl-placement-games__score cl-tabular-nums cl-focusable"
+                    href={matchReportUrl({
+                      organizationAlias,
+                      tournamentAlias,
+                      stageNumber,
+                      matchNumber: game.matchNumber,
+                      localePrefix,
+                    })}
+                  >
+                    {score}
+                  </a>
+                  <span class="cl-placement-games__side">{awayName}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </section>
+  )
+}
+
+<style>
+  .cl-placement-games {
+    display: grid;
+    max-width: 56rem;
+    gap: var(--cl-space-3);
+    min-width: 0;
+  }
+  .cl-placement-games h3 {
+    margin: 0;
+  }
+  .cl-placement-games__group {
+    display: grid;
+    border: 1px solid var(--cl-border-muted);
+    background: var(--cl-surface-panel);
+  }
+  .cl-placement-games__role {
+    margin: 0;
+    padding: var(--cl-space-2) var(--cl-space-3);
+    background: var(--cl-surface-chrome);
+    color: var(--cl-text-secondary);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    font-weight: var(--cl-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--cl-tracking-wide);
+  }
+  .cl-placement-games__list {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .cl-placement-games__game {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--cl-space-3);
+    padding: var(--cl-space-2) var(--cl-space-3);
+    border-top: 1px solid var(--cl-border-muted);
+    overflow-wrap: anywhere;
+  }
+  .cl-placement-games__side--home {
+    text-align: end;
+  }
+  .cl-placement-games__score {
+    white-space: nowrap;
+    text-align: center;
+  }
+  /* The match a report page is about: a heavier edge as well as a tint, so it reads without colour. */
+  .cl-placement-games__game--current {
+    border-inline-start: 4px solid var(--cl-primary);
+    background: var(--cl-surface-chrome);
+    font-weight: var(--cl-weight-semibold);
+  }
+</style>

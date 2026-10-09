@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { BracketSlotSourceResponse } from './bracket-slot-source.dto.js';
 import { TableCellResponse, TableColumnResponse } from './table-projections.dto.js';
 import type { LocalizedLabel } from '@copalibre/domain';
 
@@ -422,6 +423,14 @@ export class PublicBracketSlotResponse {
   @ApiPropertyOptional({ description: 'Match this slot sources its participant from' })
   matchId?: string;
 
+  @ApiPropertyOptional({
+    type: () => BracketSlotSourceResponse,
+    description:
+      'Where this side came from, kept once the slot holds the entrant that got here, so the ' +
+      'link between the two matches can still be drawn',
+  })
+  from?: BracketSlotSourceResponse;
+
   @ApiPropertyOptional({ description: 'Score recorded for this side, when the match is finalized' })
   score?: number;
 
@@ -541,6 +550,12 @@ export class PublicBracketMatchResponse {
       'placeholder has none yet',
   })
   matchNumber?: number;
+
+  @ApiPropertyOptional({
+    description: 'A placement game’s part in its zone, such as `place-3` or `places-5-8`',
+    example: 'place-3',
+  })
+  role?: string;
 
   @ApiProperty({ type: [PublicBracketSlotResponse] })
   slots!: PublicBracketSlotResponse[];

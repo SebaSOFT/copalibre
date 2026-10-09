@@ -48,6 +48,7 @@ import { personClubAffiliation } from './0037-person-club-affiliation.js';
 import { realtimeReplicas } from './0038-realtime-replicas.js';
 import { stageGroupConfiguration } from './0039-stage-group-configuration.js';
 import { zoneFormat } from './0040-zone-format.js';
+import { fixtureRole } from './0041-fixture-role.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -96,6 +97,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0038-realtime-replicas': realtimeReplicas,
   '0039-stage-group-configuration': stageGroupConfiguration,
   '0040-zone-format': zoneFormat,
+  '0041-fixture-role': fixtureRole,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

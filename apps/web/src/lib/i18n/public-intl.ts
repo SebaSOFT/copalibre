@@ -10,6 +10,7 @@ import { messages as zhMessages } from './public-messages.zh.js';
 import { messages } from './public-messages.en.js';
 import type { ResultReason } from '@copalibre/domain';
 import type { ResultState, ResultStateLabels } from '../result-state.js';
+import { parseBracketRole } from '../bracket-role.js';
 import { seriesScore, seriesSegments, type SegmentState, type SeriesInput } from '../series.js';
 import { displayName, type OverviewModel } from '../overview.js';
 
@@ -490,4 +491,33 @@ export function completionFigureLabels(
     stateGlyph,
     unmeasuredLabel: intl.formatMessage(messages.completionUnmeasured),
   };
+}
+
+/** A bracket band's name: the engine's own branch code, said in the page's language. */
+export function bracketBranchLabel(intl: IntlShape, branch: string): string {
+  switch (branch) {
+    case 'winners':
+      return intl.formatMessage(messages.bracketBranchWinners);
+    case 'losers':
+      return intl.formatMessage(messages.bracketBranchLosers);
+    case 'grand-final':
+      return intl.formatMessage(messages.bracketBranchGrandFinal);
+    case 'placement':
+      return intl.formatMessage(messages.bracketBranchPlacement);
+    default:
+      return branch;
+  }
+}
+
+/** What a placement game decides, in the page's language: "3rd place", "Places 5–8". */
+export function bracketRoleLabel(intl: IntlShape, role: string): string {
+  const parsed = parseBracketRole(role);
+  switch (parsed.kind) {
+    case 'place':
+      return intl.formatMessage(messages.bracketRolePlace, { place: parsed.place });
+    case 'places':
+      return intl.formatMessage(messages.bracketRolePlaces, { from: parsed.from, to: parsed.to });
+    default:
+      return parsed.code;
+  }
 }

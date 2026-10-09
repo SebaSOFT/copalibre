@@ -96,6 +96,12 @@ export const messages: Record<string, string> = {
 
   'publicWeb.bracket.roundAriaLabel': '{branch} — turno {round}',
   'publicWeb.bracket.roundHeading': 'Turno {round}',
+  'publicWeb.bracket.branch.winners': 'Tabellone principale',
+  'publicWeb.bracket.branch.losers': 'Tabellone dei perdenti',
+  'publicWeb.bracket.branch.grandFinal': 'Gran finale',
+  'publicWeb.bracket.branch.placement': 'Partite di classificazione',
+  'publicWeb.bracket.role.place': '{place}º posto',
+  'publicWeb.bracket.role.places': 'Posti {from}–{to}',
 
   'publicWeb.broadcastStatus.disconnected':
     'Gli aggiornamenti in diretta non sono disponibili. Questa pagina mostra gli ultimi risultati noti.',

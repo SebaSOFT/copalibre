@@ -175,7 +175,8 @@ test('gold and silver report-page links stay distinct despite sharing round 1 / 
   await page.goto(MULTI_ZONE_ROUTE);
 
   const hrefs = await page
-    .locator('.cl-bracket-stage a[href*="/matches/"]')
+    // The compact drawing repeats every card, so count one density.
+    .locator('.cl-bracket-stage__canvas[data-density="full"] a[href*="/matches/"]')
     .evaluateAll((elements) => elements.map((element) => element.getAttribute('href')));
 
   // Three real matches (gold's one, silver's two) — the bug this guards against built the same

@@ -1,0 +1,199 @@
+---
+import type { IntlShape } from 'react-intl';
+import MatchNode from './MatchNode.astro';
+import MatchNodeCompact from '../molecules/MatchNodeCompact.astro';
+import {
+  championshipMatch,
+  bracketMatchId,
+  toRounds,
+  type BracketMatch,
+} from '../../../lib/bracket.ts';
+import { layoutPublicBracket, type BracketDensity } from '../../../lib/public-bracket-layout.ts';
+import { bracketBranchLabel, bracketRoleLabel } from '../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
+
+/**
+ * One drawing of a bracket: matches placed absolutely over an SVG of the links between them. The
+ * full density carries each match as a card with emblems and highlight controls; the compact one
+ * is abbreviations and scores, for a narrow screen. The stylesheet shows whichever fits.
+ */
+interface Props {
+  readonly matches: readonly BracketMatch[];
+  readonly intl: IntlShape;
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly localePrefix?: string;
+  readonly highlightMatchNumber?: number;
+  readonly density: BracketDensity;
+}
+const {
+  intl,
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  localePrefix = '',
+  highlightMatchNumber,
+  density,
+} = Astro.props;
+const rounds = toRounds(Astro.props.matches);
+const championship = championshipMatch(Astro.props.matches);
+const layout = layoutPublicBracket(Astro.props.matches, density);
+// Room above the first band for its column headings (and its name, when a zone draws several).
+const HEAD = layout.bands.length > 1 ? 104 : 64;
+const bandTop = new Map(layout.bands.map((band) => [band.branch, band.y]));
+// A round is the matches of one branch and round number; its column is where the first of them sits.
+const placedRounds = rounds
+  .map((round) => {
+    const nodes = layout.nodes.filter(
+      (node) => node.match.branch === round.branch && node.match.roundNumber === round.roundNumber,
+    );
+    // A split bracket has the same round on both sides, so a round can have several columns.
+    const heads = [...new Set(nodes.map((node) => node.x))].map((x) => ({
+      x,
+      width: nodes.find((node) => node.x === x)?.width ?? 0,
+    }));
+    return { round, nodes, heads };
+  })
+  .filter((entry) => entry.nodes.length > 0);
+const captionOf = (match: (typeof layout.nodes)[number]['match']): string | undefined =>
+  match.role !== undefined
+    ? bracketRoleLabel(intl, match.role)
+    : championship?.matchNumber === match.matchNumber && championship?.branch === match.branch
+      ? intl.formatMessage(messages.bracketChampionshipTitle)
+      : undefined;
+---
+
+<div
+  class="cl-bracket-stage__canvas cl-bracket"
+  data-density={density}
+  style={`width: ${layout.width}px; height: ${layout.height + HEAD}px;`}
+>
+  {
+    /*
+        Nodes and links on two layers of one fixed-size box, the links as polylines from the right
+        edge of a match to the left edge of the one it feeds. A solid line carries a winner, a dashed
+        one a loser, so nothing leans on colour, and it all prints as drawn.
+      */
+  }
+  <svg
+    aria-hidden="true"
+    class="cl-bracket-stage__links"
+    height={layout.height + HEAD}
+    viewBox={`0 0 ${layout.width} ${layout.height + HEAD}`}
+    width={layout.width}
+  >
+    <g transform={`translate(0 ${HEAD})`}>
+      {
+        layout.connectors.map((connector) => (
+          <polyline
+            class:list={[
+              'cl-bracket-link',
+              connector.kind === 'loser-of' && 'cl-bracket-link--loser',
+            ]}
+            data-link-from={connector.fromMatchId}
+            data-link-to={connector.toMatchId}
+            points={connector.points.map((point) => `${point.x},${point.y}`).join(' ')}
+          />
+        ))
+      }
+    </g>
+  </svg>
+  {
+    layout.bands.length > 1 &&
+      layout.bands.map((band) => (
+        <h3 class="cl-bracket-stage__band" style={`left: ${band.x}px; top: ${HEAD - 100}px;`}>
+          {bracketBranchLabel(intl, band.branch)}
+        </h3>
+      ))
+  }
+  {
+    placedRounds.map(({ round, nodes, heads }) => (
+      <section
+        aria-label={intl.formatMessage(messages.bracketRoundAriaLabel, {
+          branch: round.branch,
+          round: round.roundNumber,
+        })}
+        class="cl-bracket-stage__round"
+      >
+        {heads.map((head) => (
+          <h3
+            class="cl-bracket-stage__round-label"
+            style={`left: ${head.x}px; top: ${(bandTop.get(round.branch) ?? 0) + HEAD - 56}px; width: ${head.width}px;`}
+          >
+            {intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}
+          </h3>
+        ))}
+        {nodes.map((node) => {
+          const caption = captionOf(node.match);
+          const focused = highlightMatchNumber === node.match.matchNumber;
+          return (
+            <div
+              aria-current={focused ? 'true' : undefined}
+              data-journey-match={density === 'full' ? bracketMatchId(node.match) : undefined}
+              class:list={[
+                'cl-bracket-stage__node',
+                championship?.matchNumber === node.match.matchNumber &&
+                  championship?.branch === node.match.branch &&
+                  'cl-bracket-stage__node--championship',
+                focused && 'cl-bracket-stage__node--focused',
+              ]}
+              style={`left: ${node.x}px; top: ${node.y + HEAD}px; width: ${node.width}px; height: ${node.height}px;`}
+            >
+              {caption !== undefined && <p class="cl-bracket-stage__caption">{caption}</p>}
+              {density === 'compact' ? (
+                <MatchNodeCompact
+                  intl={intl}
+                  localePrefix={localePrefix}
+                  match={node.match}
+                  organizationAlias={organizationAlias}
+                  stageNumber={stageNumber}
+                  tournamentAlias={tournamentAlias}
+                />
+              ) : (
+                <MatchNode
+                  highlightEntrants
+                  intl={intl}
+                  localePrefix={localePrefix}
+                  match={node.match}
+                  organizationAlias={organizationAlias}
+                  stageNumber={stageNumber}
+                  tournamentAlias={tournamentAlias}
+                />
+              )}
+            </div>
+          );
+        })}
+      </section>
+    ))
+  }
+</div>
+
+<style>
+  /*
+    The championship node reads as the stage's last cross: a heavier edge, not a
+    different card. Emphasis only — `championshipMatch` marks it from the
+    structure the projection produced, and declines to mark anything where the
+    last round holds more than one match.
+  */
+  .cl-bracket-stage__node--championship :global(.cl-card),
+  .cl-bracket-stage__node--championship :global(.cl-match-compact) {
+    border-width: 2px;
+    border-color: var(--cl-primary);
+  }
+  /* The match a report page is about: a heavier edge and an outline, so it reads without colour. */
+  .cl-bracket-stage__node--focused :global(.cl-card),
+  .cl-bracket-stage__node--focused :global(.cl-match-compact) {
+    border-width: 3px;
+    border-color: var(--cl-primary);
+    outline: 2px dashed var(--cl-primary);
+    outline-offset: 3px;
+  }
+  .cl-bracket-stage__node :global(article),
+  .cl-bracket-stage__node > :global(a:not(.cl-match-compact)) {
+    display: block;
+    box-sizing: border-box;
+    height: 100%;
+    overflow: hidden;
+  }
+</style>

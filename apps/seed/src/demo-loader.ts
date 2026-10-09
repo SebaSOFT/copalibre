@@ -30,6 +30,7 @@ import {
   type UnitOfWork,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
+import { placementRole } from './placement-role.js';
 import { localToEpoch } from './zoned-time.js';
 
 /** What a demo load did, for the operator and for tests. */
@@ -411,6 +412,9 @@ async function loadInto(
   const isCup = (game: DemoGame): boolean => zoneIdByPhase.has(game.phaseAlias);
   const fixtureSpec = (game: DemoGame) => ({
     round: game.roundNumber,
+    ...(isCup(game) && placementRole(game.round) !== undefined
+      ? { role: placementRole(game.round) as string }
+      : {}),
     homeEntrantId: entrantByTeam.get(game.homeTeamAlias) as string,
     awayEntrantId: entrantByTeam.get(game.awayTeamAlias) as string,
     ...(isCup(game)

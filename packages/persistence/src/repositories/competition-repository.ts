@@ -1085,6 +1085,7 @@ export class CompetitionRepository {
         readonly awayEntrantId?: string;
         readonly zoneId?: string;
         readonly groupId?: string;
+        readonly role?: string;
         readonly matchCount?: number;
       }[];
     } & AuditContext,
@@ -1116,6 +1117,7 @@ export class CompetitionRepository {
           zone_id: fixture.zoneId,
           group_id: fixture.groupId,
           round: fixture.round,
+          role: fixture.role ?? null,
           home_entrant_id: fixture.homeEntrantId ?? null,
           away_entrant_id: fixture.awayEntrantId ?? null,
           created_at: new Date(),
