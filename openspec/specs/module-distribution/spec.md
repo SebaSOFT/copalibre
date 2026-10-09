@@ -239,3 +239,18 @@ scope.
 #### Scenario: A caller without super-admin scope is refused
 - **WHEN** a caller without `copalibre.super-admin` requests an installed discipline's full document
 - **THEN** the API rejects the request
+
+### Requirement: Verification reports module assets stored under another profile or missing
+Verifying an installed module SHALL compare each asset's recorded storage profile with the active profile and SHALL read each asset through the active storage. A differing profile SHALL be reported as a verification failure naming the asset, the recorded profile and the active profile. An asset that cannot be read SHALL be reported as a verification failure naming the asset, and SHALL NOT end the command with an unhandled error.
+
+#### Scenario: An asset imported under another profile is reported
+- **WHEN** an installed module's asset was recorded under the filesystem profile and verification runs with the object-storage profile active
+- **THEN** verification fails for that asset and names both profiles
+
+#### Scenario: A missing object is a failure, not a crash
+- **WHEN** an asset's record exists but the object is absent from the active storage
+- **THEN** verification reports that asset as failed and continues with the others
+
+#### Scenario: Matching profile and present object pass
+- **WHEN** every asset is recorded under the active profile and readable
+- **THEN** verification reports no asset failure

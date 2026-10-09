@@ -101,7 +101,45 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test('the hero renders the discipline backdrop image behind its content', async ({ page }) => {
+for (const viewport of [
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'mobile', width: 390, height: 844 },
+]) {
+  test(`the page has one fixed, faint, blurred discipline image and the hero has none (${viewport.name})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.route(/\/objects\/discipline-background-image\?key=/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'image/png',
+        body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+      }),
+    );
+    await page.goto(PUBLIC_TOURNAMENT_PATH);
+
+    const backdrop = page.locator('img.cl-discipline-background');
+    await expect(backdrop).toHaveCount(1);
+    await expect(backdrop).toHaveAttribute(
+      'src',
+      /\/objects\/discipline-background-image\?key=modules%2Ffootball%2F1\.0\.0%2Ffootball-01\.jpg/,
+    );
+    await expect(backdrop).toHaveJSProperty('naturalWidth', 1);
+    await expect(backdrop).toHaveCSS('position', 'fixed');
+    await expect(backdrop).toHaveCSS('opacity', '0.06');
+    await expect(backdrop).toHaveCSS('filter', 'blur(8px)');
+
+    // The hero draws no image of its own, and its content stays legible.
+    await expect(
+      page.locator('.cl-tournament-hero img[src*="discipline-background-image"]'),
+    ).toHaveCount(0);
+    await expect(page.locator('img[src*="discipline-background-image"]')).toHaveCount(1);
+    await expect(page.getByRole('heading', { name: 'Apertura 2026' })).toBeVisible();
+  });
+}
+
+test('the discipline backdrop stays put while the page scrolls', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 600 });
   await page.route(/\/objects\/discipline-background-image\?key=/, (route) =>
     route.fulfill({
       status: 200,
@@ -110,17 +148,16 @@ test('the hero renders the discipline backdrop image behind its content', async 
     }),
   );
   await page.goto(PUBLIC_TOURNAMENT_PATH);
+  const backdrop = page.locator('img.cl-discipline-background');
+  const before = await backdrop.boundingBox();
 
-  const backdrop = page.locator('img.cl-tournament-hero__backdrop');
-  await expect(backdrop).toBeVisible();
-  await expect(backdrop).toHaveAttribute(
-    'src',
-    /\/objects\/discipline-background-image\?key=modules%2Ffootball%2F1\.0\.0%2Ffootball-01\.jpg/,
-  );
-  await expect(backdrop).toHaveJSProperty('naturalWidth', 1);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  const scrolled = await page.evaluate(() => window.scrollY);
+  const after = await backdrop.boundingBox();
 
-  // The hero's own content (title, live badge) stays above the backdrop.
-  await expect(page.getByRole('heading', { name: 'Apertura 2026' })).toBeVisible();
+  expect(scrolled).toBeGreaterThan(0);
+  expect(after?.y).toBe(before?.y);
+  expect(after?.height).toBe(before?.height);
 });
 
 test('the ruleset section renders localized labels and values in a non-English locale', async ({

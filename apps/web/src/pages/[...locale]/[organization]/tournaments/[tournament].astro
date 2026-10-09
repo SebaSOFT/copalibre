@@ -193,11 +193,7 @@ const trail = publicTrail(trailBase, []);
     resumeLabel={tickerChrome.resume}
     staleLabel={tickerChrome.stale}
   />
-  <TournamentHero
-    disciplineImages={overviewData.disciplineImages}
-    labels={tournamentHeroLabels(intl, model)}
-    model={model}
-  />
+  <TournamentHero labels={tournamentHeroLabels(intl, model)} model={model} />
   <CompletionFigure
     totalMatches={completion.totalMatches}
     resolvedMatches={completion.resolvedMatches}

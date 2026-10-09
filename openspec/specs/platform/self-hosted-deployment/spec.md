@@ -690,3 +690,18 @@ a delivery whose outcome is unknown is not retried.
 #### Scenario: Documentation matches behaviour
 - **WHEN** the docs verification runs
 - **THEN** the documented events and audiences match the events and audiences this change specifies
+
+### Requirement: Doctor inspects installed module assets in the active storage
+`copalibre doctor` SHALL, when the database is reachable, check that every installed module asset is recorded under the active object-storage profile and readable through it, and SHALL report a mismatch or a missing object as a warning that names the module, the asset and the remedy, without printing any storage credential.
+
+#### Scenario: A host-side import into the filesystem profile is flagged
+- **WHEN** a module was added with the filesystem profile while the stack serves from object storage
+- **THEN** doctor warns that the module's asset is stored under the filesystem profile and says to add the module again with the stack's object-storage variables
+
+#### Scenario: A healthy installation passes
+- **WHEN** every installed module asset is recorded under the active profile and readable
+- **THEN** the module-assets check passes
+
+#### Scenario: Doctor without a database skips the check
+- **WHEN** the database is not reachable
+- **THEN** the module-assets check is skipped with the reason
