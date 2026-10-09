@@ -44,6 +44,12 @@ describe('DataTable.astro sections and cell links', () => {
     expect(dataTable).toContain('column.href?.(row)');
     expect(dataTable).toContain('column.datetime?.(row)');
   });
+
+  it('swaps a cell for its abbreviation on a narrow screen and keeps the full text as the tooltip', () => {
+    expect(dataTable).toContain('column.abbreviation?.(row)');
+    expect(dataTable).toContain('<abbr class="cl-data-table__short" title={text}>');
+    expect(dataTable).toMatch(/@media \(max-width: 767px\)[\s\S]*cl-data-table__short/);
+  });
 });
 
 describe('Modal.astro', () => {

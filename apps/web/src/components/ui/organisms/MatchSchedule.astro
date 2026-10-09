@@ -82,6 +82,7 @@ const columns: readonly DataTableColumn[] = [
     key: 'home',
     header: intl.formatMessage(messages.scheduleColumnHome),
     render: (row) => (row as MatchCardData).homeName ?? '—',
+    abbreviation: (row) => (row as MatchCardData).homeAbbreviation,
   },
   {
     key: 'score',
@@ -101,6 +102,7 @@ const columns: readonly DataTableColumn[] = [
     key: 'away',
     header: intl.formatMessage(messages.scheduleColumnAway),
     render: (row) => (row as MatchCardData).awayName ?? '—',
+    abbreviation: (row) => (row as MatchCardData).awayAbbreviation,
   },
   {
     key: 'state',
