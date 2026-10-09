@@ -50,6 +50,21 @@ export const ChampionPodiumSharedTitle: Story = {
   args: { component: 'champion-podium-shared-title', height: 260 },
 };
 
+/** A podium squeezed into a quarter-width card stacks its placings instead of breaking names. */
+export const ChampionPodiumNarrow: Story = {
+  args: { component: 'champion-podium-narrow', height: 760 },
+};
+
+/** Between the stacked and the three-column layouts the placings still read in one column. */
+export const ChampionPodiumMedium: Story = {
+  args: { component: 'champion-podium-medium', height: 640 },
+};
+
+/** A finished listing card with a long tournament name at the width of a three-up grid. */
+export const TournamentCardFinishedNarrow: Story = {
+  args: { component: 'tournament-card-finished-narrow', height: 640 },
+};
+
 export const ChampionPodiumEmpty: Story = {
   args: { component: 'champion-podium-empty', height: 220 },
 };

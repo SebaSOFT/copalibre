@@ -1,15 +1,58 @@
 ---
 import type { IntlShape } from 'react-intl';
-import type { PublicTournamentWinnerZoneResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import EmblemImage from '../atoms/EmblemImage.astro';
+import type { PodiumEntrant, PodiumZone } from '../../../lib/podium-emblems.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 interface Props {
-  readonly winners: readonly PublicTournamentWinnerZoneResponse[];
+  readonly winners: readonly PodiumZone[];
   readonly intl: IntlShape;
   readonly prominent?: boolean;
 }
 
 const { winners, intl, prominent = false } = Astro.props;
+
+type Spot = {
+  readonly key: 'champion' | 'runner' | 'third';
+  readonly place: 1 | 2 | 3;
+  readonly label: string;
+  readonly entrant: PodiumEntrant;
+};
+
+const spotsOf = (zone: PodiumZone): readonly Spot[] => [
+  ...(zone.champions?.length ? zone.champions : [zone.champion]).map((entrant): Spot => ({
+    key: 'champion',
+    place: 1,
+    label: intl.formatMessage(messages.tournamentsChampion),
+    entrant,
+  })),
+  ...(zone.runnerUp
+    ? [
+        {
+          key: 'runner',
+          place: 2,
+          label: intl.formatMessage(messages.tournamentsRunnerUp),
+          entrant: zone.runnerUp,
+        } satisfies Spot,
+      ]
+    : []),
+  ...(zone.thirdPlace
+    ? [
+        {
+          key: 'third',
+          place: 3,
+          label: intl.formatMessage(messages.tournamentsThirdPlace),
+          entrant: zone.thirdPlace,
+        } satisfies Spot,
+      ]
+    : []),
+];
+
+const MEDAL_CLASS = {
+  champion: 'cl-gold-medal',
+  runner: 'cl-silver-medal',
+  third: 'cl-bronze-medal',
+};
 ---
 
 {
@@ -22,71 +65,34 @@ const { winners, intl, prominent = false } = Astro.props;
         <div class="cl-zone-podium cl-chamfer">
           {zone.zoneName && <div class="cl-zone-title">{zone.zoneName}</div>}
           <div class="cl-podium-grid">
-            {(zone.champions?.length ? zone.champions : [zone.champion]).map((champion) => (
-              <div class="cl-podium-spot cl-champion-spot" data-entrant-id={champion.entrantId}>
-                <div class="cl-medal-badge cl-gold-medal" aria-hidden="true">
-                  1
+            {spotsOf(zone).map((spot) => (
+              <div
+                class:list={['cl-podium-spot', `cl-${spot.key}-spot`]}
+                data-entrant-id={spot.entrant.entrantId}
+              >
+                <div class={`cl-medal-badge ${MEDAL_CLASS[spot.key]}`} aria-hidden="true">
+                  {spot.place}
                 </div>
+                <EmblemImage
+                  alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: spot.entrant.name })}
+                  placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                  size={40}
+                  src={spot.entrant.emblemSrc}
+                />
                 <div class="cl-entrant-info">
-                  <span class="cl-podium-label">
-                    {intl.formatMessage(messages.tournamentsChampion)}
-                  </span>
-                  <span class="cl-entrant-name" title={champion.name}>
-                    {champion.name}
-                    {champion.abbreviation && (
-                      <span class="cl-entrant-abbr" title={champion.name}>
+                  <span class="cl-podium-label">{spot.label}</span>
+                  <span class="cl-entrant-name" title={spot.entrant.name}>
+                    {spot.entrant.name}
+                    {spot.entrant.abbreviation && (
+                      <span class="cl-entrant-abbr" title={spot.entrant.name}>
                         {' '}
-                        ({champion.abbreviation})
+                        ({spot.entrant.abbreviation})
                       </span>
                     )}
                   </span>
                 </div>
               </div>
             ))}
-
-            {/* Runner-Up */}
-            {zone.runnerUp && (
-              <div class="cl-podium-spot cl-runner-spot" data-entrant-id={zone.runnerUp.entrantId}>
-                <div class="cl-medal-badge cl-silver-medal" aria-hidden="true">
-                  2
-                </div>
-                <div class="cl-entrant-info">
-                  <span class="cl-podium-label">
-                    {intl.formatMessage(messages.tournamentsRunnerUp)}
-                  </span>
-                  <span class="cl-entrant-name" title={zone.runnerUp.name}>
-                    {zone.runnerUp.name}
-                    {zone.runnerUp.abbreviation && (
-                      <span class="cl-entrant-abbr" title={zone.runnerUp.name}>
-                        {' '}
-                        ({zone.runnerUp.abbreviation})
-                      </span>
-                    )}
-                  </span>
-                </div>
-              </div>
-            )}
-            {zone.thirdPlace && (
-              <div class="cl-podium-spot" data-entrant-id={zone.thirdPlace.entrantId}>
-                <div class="cl-medal-badge cl-bronze-medal" aria-hidden="true">
-                  3
-                </div>
-                <div class="cl-entrant-info">
-                  <span class="cl-podium-label">
-                    {intl.formatMessage(messages.tournamentsThirdPlace)}
-                  </span>
-                  <span class="cl-entrant-name" title={zone.thirdPlace.name}>
-                    {zone.thirdPlace.name}
-                    {zone.thirdPlace.abbreviation && (
-                      <span class="cl-entrant-abbr" title={zone.thirdPlace.name}>
-                        {' '}
-                        ({zone.thirdPlace.abbreviation})
-                      </span>
-                    )}
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       ))}
@@ -122,16 +128,13 @@ const { winners, intl, prominent = false } = Astro.props;
     min-width: 0;
   }
 
+  /* Columns by the room the podium is given, not by the viewport: the same component sits in a
+     narrow listing card and in a full-width overview. A column is never narrower than 15rem, so a
+     name is never broken inside a word; below that the placings stack. */
   .cl-podium-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
     gap: var(--cl-space-2);
-  }
-
-  @media (min-width: 768px) {
-    .cl-podium-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
   }
 
   .cl-podium-spot {

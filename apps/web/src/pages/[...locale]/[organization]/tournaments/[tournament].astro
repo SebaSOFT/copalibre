@@ -8,6 +8,7 @@ import StandingsTable from '../../../../components/ui/organisms/StandingsTable.a
 import BroadcastStatusPanel from '../../../../components/ui/molecules/BroadcastStatusPanel.astro';
 import RulesetBriefing from '../../../../components/ui/molecules/RulesetBriefing.astro';
 import { CompletionFigure } from '../../../../components/ui/molecules/CompletionFigure.tsx';
+import { withPodiumEmblems } from '../../../../lib/podium-emblems.ts';
 import { buildOverview, displayName, shouldShowChampionPodium } from '../../../../lib/overview.ts';
 import {
   fetchOverview,
@@ -175,7 +176,11 @@ const structuredData = {
   />
   {
     shouldShowChampionPodium(model) && model.winners && (
-      <ChampionPodium winners={model.winners} intl={intl} prominent={true} />
+      <ChampionPodium
+        winners={withPodiumEmblems(organization!, model.winners)}
+        intl={intl}
+        prominent={true}
+      />
     )
   }
   <BroadcastStatusPanel
@@ -200,7 +205,7 @@ const structuredData = {
     clubs={model.clubs}
     intl={intl}
     canonicalPath={`${locale ? `/${locale}` : ''}${model.canonicalPath}`}
-    organizationAlias={organization}
+    organizationAlias={organization!}
     tournamentAlias={tournament}
   />
   <RulesetBriefing
