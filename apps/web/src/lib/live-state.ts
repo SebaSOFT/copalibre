@@ -19,12 +19,26 @@ export interface LiveSide {
   readonly state: ResultState;
 }
 
+/** One segment of a live match (a half, a set) and what each side scored in it, home first. */
+export interface LiveSegment {
+  readonly number: number;
+  readonly type: string;
+  /** The discipline's label for the segment type, in every language it was written in. */
+  readonly label?: string | Readonly<Record<string, string>>;
+  /** False for a segment played to a target (a set), true for one played against a clock. */
+  readonly timed?: boolean;
+  readonly state: 'pending' | 'active' | 'completed';
+  readonly scores?: readonly number[];
+}
+
 export interface LiveMatch {
   readonly matchId: string;
   readonly stageNumber: number;
   readonly matchNumber: number;
   /** The match's 1-based position in its stage; absent from a source that does not know it. */
   readonly stageOrdinal?: number;
+  /** Absent for a match that has none: nothing about segments is guessed. */
+  readonly segments?: readonly LiveSegment[];
   readonly state: ResultState;
   readonly sides: readonly LiveSide[];
   /** What the last applied event said; a lower one is stale and ignored. */

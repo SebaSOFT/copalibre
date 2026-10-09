@@ -12,6 +12,8 @@ import { sampleDashboard } from '../../../../../../../../lib/live-sample.ts';
 import {
   fetchLive,
   fetchMatchReport,
+  fetchMatchesView,
+  mapMatchesViewResponse,
   fetchOverview,
   fetchBracket,
   mapLiveResponse,
@@ -26,6 +28,8 @@ import {
   type TvMatchEvent,
 } from '../../../../../../../../lib/tv-match-events.ts';
 import type { PublicObjectReference } from '../../../../../../../../lib/discipline-background.ts';
+import type { PublicMatchReportResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type { PublicSeriesState } from '../../../../../../../../lib/series.ts';
 import type { LiveDashboard } from '../../../../../../../../lib/live-state.ts';
 import {
   dashboardFromOverview,
@@ -54,6 +58,7 @@ const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
 // reasoning as the ticker/standings fetch on the general kiosk route: a failure here must cost
 // only the event ticker, never replace the whole live dashboard with sample data.
 let matchEvents: readonly TvMatchEvent[] = [];
+let pinnedSegments: PublicMatchReportResponse['segments'];
 let rosterActors: Readonly<Record<string, string>> = {};
 try {
   const report = await fetchMatchReport(
@@ -67,6 +72,7 @@ try {
     // Resolves a *live* event's actor the same way the initial
     // timeline above already resolves one, for `BroadcastAlertBanner`.
     rosterActors = buildActorDirectory(report.rosters);
+    pinnedSegments = report.segments;
   }
 } catch {
   matchEvents = [];
@@ -132,6 +138,38 @@ try {
 }
 
 /*
+  The pinned match's segments (the sets of a set-based match, the half in play) come from its match
+  report, which names them for a match that is not in progress too; the live projection, when it has
+  the match, is fresher and is left as it is. The series it belongs to comes from the matches view of
+  its stage, in its own guard so that a failure costs the series indication and nothing else.
+*/
+if (pinnedSegments !== undefined) {
+  dashboard = {
+    ...dashboard,
+    matches: dashboard.matches.map((candidate) =>
+      candidate.stageNumber === stageNumber &&
+      candidate.stageOrdinal === matchOrdinal &&
+      candidate.segments === undefined
+        ? { ...candidate, segments: pinnedSegments }
+        : candidate,
+    ),
+  };
+}
+let seriesByMatchId: Record<string, PublicSeriesState> = {};
+try {
+  const view = await fetchMatchesView(organizationAlias, tournamentAlias, { stageNumber });
+  if (view) {
+    seriesByMatchId = Object.fromEntries(
+      mapMatchesViewResponse(view).matches.flatMap((row) =>
+        row.series === undefined ? [] : [[row.matchId, row.series]],
+      ),
+    );
+  }
+} catch {
+  seriesByMatchId = {};
+}
+
+/*
  * The presentation is a property of the request, resolved here so the very
  * first response already carries it. `overlay` stays valid as the name an
  * existing OBS browser source is already configured with.
@@ -189,6 +227,7 @@ const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam :
     streamPath={streamPath}
     branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
     pinnedMatch={{ stageNumber, ordinal: matchOrdinal }}
+    seriesByMatchId={seriesByMatchId}
     timeZone={organizationTimeZone}
     lastMatchAt={overviewLastMatchAt}
     matchEvents={matchEvents}

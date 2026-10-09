@@ -285,6 +285,7 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
         stageNumber: m.stageNumber,
         matchNumber: m.matchNumber,
         ...(m.stageOrdinal === undefined ? {} : { stageOrdinal: m.stageOrdinal }),
+        ...(m.segments === undefined || m.segments.length === 0 ? {} : { segments: m.segments }),
         state,
         projectionVersion: m.projectionVersion,
         ...(m.possessionEntrantId === undefined ||

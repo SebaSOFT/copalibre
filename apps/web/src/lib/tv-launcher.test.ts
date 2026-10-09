@@ -3,6 +3,7 @@ import {
   buildTvLauncherDestination,
   matchOptionGroups,
   parseTvLauncherPreset,
+  courtOptions,
   stageOptionLabel,
   stageOptions,
   viewShowsMatch,
@@ -43,6 +44,27 @@ describe('buildTvLauncherDestination', () => {
       '/tv/liga-norte/tournaments/copa-2026/stages/1/matches/3?lang=es&bg=court&mode=overlay',
     );
     expect(second).not.toBe(first);
+  });
+
+  it('follows a court: an overlay with a court and no match names the court', () => {
+    expect(buildTvLauncherDestination({ ...base, view: 'overlay', court: 'Cancha 2' })).toBe(
+      '/tv/liga-norte/tournaments/copa-2026?lang=es&bg=court&mode=overlay&court=Cancha+2',
+    );
+  });
+
+  it('prefers a pinned match to a court, and ignores a court on any other view', () => {
+    expect(
+      buildTvLauncherDestination({
+        ...base,
+        view: 'overlay',
+        stage: 1,
+        match: 3,
+        court: 'Cancha 2',
+      }),
+    ).not.toContain('court=');
+    expect(
+      buildTvLauncherDestination({ ...base, view: 'dashboard', court: 'Cancha 2' }),
+    ).not.toContain('court=');
   });
 
   it('names the kiosk view in the address: standings and the match list', () => {
@@ -87,6 +109,14 @@ describe('parseTvLauncherPreset', () => {
     });
   });
 
+  it('restores an overlay’s court, and drops a court from any other view', () => {
+    expect(parseTvLauncherPreset({ ...base, view: 'overlay', court: 'Cancha 2' })?.court).toBe(
+      'Cancha 2',
+    );
+    expect(parseTvLauncherPreset({ ...validPreset, court: 'Cancha 2' })?.court).toBeUndefined();
+    expect(parseTvLauncherPreset({ ...base, view: 'overlay', court: '' })?.court).toBeUndefined();
+  });
+
   it('reads a preset saved when `matches` meant the pinned match as `match`', () => {
     expect(parseTvLauncherPreset({ ...validPreset, view: 'matches' })?.view).toBe('match');
     expect(parseTvLauncherPreset({ ...base, view: 'matches' })).toEqual({
@@ -126,6 +156,17 @@ describe('stages and match options', () => {
   it('labels a stage with its number and name, and with the number alone when it has no name', () => {
     expect(stageOptionLabel({ stage: 2, stageName: 'Copas' })).toBe('2 · Copas');
     expect(stageOptionLabel({ stage: 2, stageName: '' })).toBe('2');
+  });
+
+  it('lists the venues once each, in alphabetical order, for an overlay that follows a court', () => {
+    expect(
+      courtOptions([
+        choice({ stage: 1, match: 1, venue: 'Cancha 2' }),
+        choice({ stage: 1, match: 2, venue: 'Cancha 1' }),
+        choice({ stage: 1, match: 3, venue: 'Cancha 2' }),
+        choice({ stage: 1, match: 4 }),
+      ]),
+    ).toEqual(['Cancha 1', 'Cancha 2']);
   });
 
   it('lists each stage once, in stage order', () => {

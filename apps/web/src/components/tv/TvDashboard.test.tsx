@@ -3,6 +3,7 @@ import { act, render, screen, fireEvent } from '@testing-library/react';
 import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
 import { TvDashboard } from './TvDashboard.js';
 import type { LiveDashboard, LiveMatch } from '../../lib/live-state.js';
+import type { PublicSeriesState } from '../../lib/series.js';
 import type { StandingsRowView } from '../../lib/overview.js';
 import { publicIntl, tvDashboardLabels, tvStatisticsLabels } from '../../lib/i18n/public-intl.js';
 
@@ -442,6 +443,7 @@ describe('overlay presentations', () => {
         labels={tvLabels}
         language="en"
         {...matchProps}
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
         presentation="lower"
       />,
     );
@@ -590,6 +592,7 @@ describe('scorebug clock', () => {
         language="en"
         initial={liveMatchWithClock}
         streamPath="/stream"
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
         presentation="lower"
       />,
     );
@@ -1194,6 +1197,193 @@ describe('TvDashboard pinned match and views', () => {
       } finally {
         window.matchMedia = original;
       }
+    });
+  });
+});
+
+describe('TvDashboard overlays', () => {
+  const dashboardLabels = tvDashboardLabels(publicIntl('en'));
+  const tvLabels = tvStatisticsLabels(publicIntl('en'));
+
+  const liveMatch = (ordinal: number, home: string, away: string): LiveMatch => ({
+    matchId: `m${ordinal}`,
+    stageNumber: 1,
+    matchNumber: 1,
+    stageOrdinal: ordinal,
+    state: 'live',
+    projectionVersion: 1,
+    sides: [
+      {
+        entrantId: `h${ordinal}`,
+        name: home,
+        abbreviation: home.slice(0, 3).toUpperCase(),
+        score: 1,
+        state: 'live',
+      },
+      {
+        entrantId: `a${ordinal}`,
+        name: away,
+        abbreviation: away.slice(0, 3).toUpperCase(),
+        score: 0,
+        state: 'live',
+      },
+    ],
+  });
+  const twoLive: LiveDashboard = {
+    standingsVersion: 0,
+    usingLastKnown: true,
+    matches: [liveMatch(1, 'Talleres', 'Andes'), liveMatch(2, 'Boca', 'River')],
+  };
+
+  function renderOverlay(
+    overrides: Partial<React.ComponentProps<typeof TvDashboard>> = {},
+    presentation: 'lower' | 'full' = 'lower',
+  ): ReturnType<typeof render> {
+    return render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={twoLive}
+        labels={tvLabels}
+        language="en"
+        pollIntervalMs={0}
+        presentation={presentation}
+        streamPath="/stream"
+        {...overrides}
+      />,
+    );
+  }
+
+  it.each(['lower', 'full'] as const)(
+    'shows no match, and no score, for a %s overlay given neither a match nor a court',
+    (presentation) => {
+      renderOverlay({}, presentation);
+
+      expect(screen.getByTestId('tv-overlay-no-match').textContent).toContain(
+        dashboardLabels.overlayNoMatch,
+      );
+      expect(document.body.textContent).not.toContain('Talleres');
+      expect(document.body.textContent).not.toContain('TAL');
+    },
+  );
+
+  it('shows only the match each overlay was given: two overlays, two matches', () => {
+    const { unmount } = renderOverlay({ pinnedMatch: { stageNumber: 1, ordinal: 1 } });
+    expect(screen.getByTestId('tv-lower-third').textContent).toContain('TAL');
+    expect(screen.getByTestId('tv-lower-third').textContent).not.toContain('BOC');
+    unmount();
+
+    renderOverlay({ pinnedMatch: { stageNumber: 1, ordinal: 2 } });
+    expect(screen.getByTestId('tv-lower-third').textContent).toContain('BOC');
+    expect(screen.getByTestId('tv-lower-third').textContent).not.toContain('TAL');
+  });
+
+  it('follows the live match of its court, and says so when the court has none', () => {
+    const venues = { m1: 'Cancha 1', m2: 'Cancha 2' };
+    const { unmount } = renderOverlay({ court: 'Cancha 2', venueNameByMatchId: venues });
+    expect(screen.getByTestId('tv-lower-third').textContent).toContain('BOC');
+    unmount();
+
+    renderOverlay({ court: 'Cancha 3', venueNameByMatchId: venues });
+    expect(screen.getByTestId('tv-overlay-no-match').textContent).toContain(
+      dashboardLabels.overlayNoCourtMatch,
+    );
+  });
+
+  it('keeps showing a first live match on the kiosk, which is not an overlay', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={twoLive}
+        labels={tvLabels}
+        language="en"
+        pollIntervalMs={0}
+        streamPath="/stream"
+      />,
+    );
+    expect(screen.getByTestId('tv-match-spotlight').textContent).toContain('Talleres');
+  });
+
+  describe('series and sets', () => {
+    const best3: PublicSeriesState = {
+      span: 3,
+      resolutionClass: 'best-of',
+      games: [
+        { number: 1, status: 'finalized', winner: 'home' },
+        { number: 2, status: 'in-progress' },
+        { number: 3, status: 'scheduled' },
+      ],
+      homeGamesWon: 1,
+      awayGamesWon: 0,
+      status: 'undecided',
+      explanation: '',
+    };
+    const withSets = (): LiveDashboard => ({
+      ...twoLive,
+      matches: [
+        {
+          ...liveMatch(1, 'Talleres', 'Andes'),
+          segments: [
+            {
+              number: 1,
+              type: 'set',
+              label: { en: 'Set' },
+              timed: false,
+              state: 'completed',
+              scores: [6, 4],
+            },
+            {
+              number: 2,
+              type: 'set',
+              label: { en: 'Set' },
+              timed: false,
+              state: 'completed',
+              scores: [3, 6],
+            },
+            {
+              number: 3,
+              type: 'set',
+              label: { en: 'Set' },
+              timed: false,
+              state: 'active',
+              scores: [2, 1],
+            },
+          ],
+        },
+      ],
+    });
+
+    it('shows the series: games won by each side and the game in play', () => {
+      renderOverlay({
+        pinnedMatch: { stageNumber: 1, ordinal: 1 },
+        seriesByMatchId: { m1: best3 },
+      });
+
+      expect(screen.getByTestId('tv-series').getAttribute('title')).toBe(
+        'Series 1–0 · Game 2 of 3',
+      );
+      expect(document.querySelectorAll('.tv-progress__pip')).toHaveLength(3);
+      expect(document.querySelector('.tv-progress__pip--current')).not.toBeNull();
+    });
+
+    it('shows the two completed sets and the current one', () => {
+      renderOverlay({ initial: withSets(), pinnedMatch: { stageNumber: 1, ordinal: 1 } });
+
+      const sets = screen.getByTestId('tv-sets');
+      const scores = [...sets.querySelectorAll('.tv-progress__set-score')].map(
+        (node) => node.textContent,
+      );
+      expect(scores).toEqual(['6–4', '3–6', '2–1']);
+      expect(sets.querySelectorAll('[aria-current="true"]')).toHaveLength(1);
+    });
+
+    it('shows the kiosk’s spotlight the same series and sets', () => {
+      renderOverlay({ initial: withSets(), pinnedMatch: { stageNumber: 1, ordinal: 1 } }, 'full');
+      expect(screen.getByTestId('tv-sets')).toBeDefined();
+    });
+
+    it('renders a plain match as before: no progress strip at all', () => {
+      renderOverlay({ pinnedMatch: { stageNumber: 1, ordinal: 1 } });
+      expect(screen.queryByTestId('tv-match-progress')).toBeNull();
     });
   });
 });

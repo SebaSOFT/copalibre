@@ -34,7 +34,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     publicSite: 'Public site',
     emptyOrganizations: 'No organizations are available.',
     matchList: 'Match list',
-    liveMatchAuto: 'Live match (automatic)',
+    courtGroup: 'Follow the live match of a court',
     round: 'Round',
   },
   es: {
@@ -63,7 +63,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     publicSite: 'Sitio público',
     emptyOrganizations: 'No hay organizaciones disponibles.',
     matchList: 'Lista de partidos',
-    liveMatchAuto: 'Partido en vivo (automático)',
+    courtGroup: 'Seguir el partido en vivo de una cancha',
     round: 'Ronda',
   },
   fr: {
@@ -92,7 +92,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     publicSite: 'Site public',
     emptyOrganizations: 'Aucune organisation disponible.',
     matchList: 'Liste des matchs',
-    liveMatchAuto: 'Match en direct (automatique)',
+    courtGroup: 'Suivre le match en direct d’un terrain',
     round: 'Ronde',
   },
   pt: {
@@ -121,7 +121,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     publicSite: 'Site público',
     emptyOrganizations: 'Nenhuma organização disponível.',
     matchList: 'Lista de jogos',
-    liveMatchAuto: 'Jogo ao vivo (automático)',
+    courtGroup: 'Seguir o jogo ao vivo de uma quadra',
     round: 'Rodada',
   },
   it: {
@@ -150,7 +150,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     publicSite: 'Sito pubblico',
     emptyOrganizations: 'Nessuna organizzazione disponibile.',
     matchList: 'Elenco delle partite',
-    liveMatchAuto: 'Partita in diretta (automatico)',
+    courtGroup: 'Seguire la partita in diretta di un campo',
     round: 'Turno',
   },
   de: {
@@ -179,7 +179,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     publicSite: 'Öffentliche Website',
     emptyOrganizations: 'Keine Organisationen verfügbar.',
     matchList: 'Spielliste',
-    liveMatchAuto: 'Live-Spiel (automatisch)',
+    courtGroup: 'Dem Live-Spiel eines Platzes folgen',
     round: 'Runde',
   },
   ru: {
@@ -208,7 +208,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     publicSite: 'Публичный сайт',
     emptyOrganizations: 'Организации недоступны.',
     matchList: 'Список матчей',
-    liveMatchAuto: 'Матч в эфире (автоматически)',
+    courtGroup: 'Следить за матчем в эфире на площадке',
     round: 'Раунд',
   },
   zh: {
@@ -237,7 +237,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     publicSite: '公开网站',
     emptyOrganizations: '没有可用组织。',
     matchList: '比赛列表',
-    liveMatchAuto: '直播比赛（自动）',
+    courtGroup: '跟随某个场地的直播比赛',
     round: '轮次',
   },
 };

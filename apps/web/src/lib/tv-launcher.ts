@@ -16,6 +16,8 @@ export interface TvLauncherDestination {
   readonly stage?: number;
   /** The match's ordinal within its stage. */
   readonly match?: number;
+  /** An overlay's court: a venue whose live match it follows, in place of a pinned match. */
+  readonly court?: string;
 }
 
 export type TvLauncherPreset = TvLauncherDestination;
@@ -34,10 +36,12 @@ export function buildTvLauncherDestination(input: TvLauncherDestination): string
     viewShowsMatch(input.view) && isOrdinal(input.stage) && isOrdinal(input.match)
       ? `${root}/stages/${input.stage}/matches/${input.match}`
       : undefined;
+  const court = input.view === 'overlay' && pinned === undefined ? input.court : undefined;
   const params = new URLSearchParams({
     lang: input.language,
     bg: input.background,
     ...(input.view === 'overlay' ? { mode: 'overlay' } : {}),
+    ...(court === undefined || court === '' ? {} : { court }),
     ...(input.view === 'standings' ? { view: 'standings' } : {}),
     ...(input.view === 'matches' ? { view: 'matches' } : {}),
   });
@@ -46,24 +50,44 @@ export function buildTvLauncherDestination(input: TvLauncherDestination): string
 
 const VIEWS: readonly TvLauncherView[] = ['dashboard', 'standings', 'matches', 'match', 'overlay'];
 
+const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const LANGUAGES = ['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'];
+
+/** Whether a stored value is a launch destination's own fields: addresses and choices, nothing else. */
+function hasValidFields(preset: Record<string, unknown>): boolean {
+  const slug = (value: unknown): boolean => typeof value === 'string' && SLUG.test(value);
+  const member = (value: unknown, allowed: readonly string[]): boolean =>
+    typeof value === 'string' && allowed.includes(value);
+  return (
+    slug(preset.organization) &&
+    slug(preset.tournament) &&
+    member(preset.view, VIEWS) &&
+    member(preset.background, TV_BACKGROUNDS) &&
+    preset.background !== 'transparent' &&
+    member(preset.language, LANGUAGES)
+  );
+}
+
+/** An overlay's court: a venue name of a sensible length, and only where no match is pinned. */
+function courtOf(
+  preset: Record<string, unknown>,
+  view: TvLauncherView,
+  named: boolean,
+): string | undefined {
+  const court = preset.court;
+  return view === 'overlay' &&
+    !named &&
+    typeof court === 'string' &&
+    court.length > 0 &&
+    court.length <= 120
+    ? court
+    : undefined;
+}
+
 export function parseTvLauncherPreset(value: unknown): TvLauncherPreset | undefined {
   if (typeof value !== 'object' || value === null) return undefined;
   const preset = value as Record<string, unknown>;
-  if (
-    typeof preset.organization !== 'string' ||
-    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(preset.organization) ||
-    typeof preset.tournament !== 'string' ||
-    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(preset.tournament) ||
-    typeof preset.view !== 'string' ||
-    !VIEWS.includes(preset.view as TvLauncherView) ||
-    typeof preset.background !== 'string' ||
-    !TV_BACKGROUNDS.includes(preset.background as TvBackground) ||
-    preset.background === 'transparent' ||
-    typeof preset.language !== 'string' ||
-    !['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'].includes(preset.language)
-  ) {
-    return undefined;
-  }
+  if (!hasValidFields(preset)) return undefined;
 
   const stage = Number(preset.stage);
   const match = Number(preset.match);
@@ -72,16 +96,16 @@ export function parseTvLauncherPreset(value: unknown): TvLauncherPreset | undefi
   const view: TvLauncherView =
     preset.view === 'matches' && named ? 'match' : (preset.view as TvLauncherView);
   if (view === 'match' && !named) return undefined;
-  if (preset.view === 'overlay' && preset.stage !== undefined && !named && Number(preset.match) > 0)
-    return undefined;
+  const court = courtOf(preset, view, named);
 
   return {
-    organization: preset.organization,
-    tournament: preset.tournament,
+    organization: preset.organization as string,
+    tournament: preset.tournament as string,
     view,
     background: preset.background as Exclude<TvBackground, 'transparent'>,
-    language: preset.language,
+    language: preset.language as string,
     ...(viewShowsMatch(view) && named ? { stage, match } : {}),
+    ...(court === undefined ? {} : { court }),
   };
 }
 
@@ -96,7 +120,19 @@ export interface TvLauncherMatchChoice {
   readonly group?: string;
   readonly home: string;
   readonly away: string;
+  /** Where it is played, when the schedule says. */
+  readonly venue?: string;
 }
+
+/** The venues the choices are played in, once each, for an overlay that follows a court. */
+export function courtOptions(choices: readonly TvLauncherMatchChoice[]): readonly string[] {
+  return [
+    ...new Set(choices.flatMap((choice) => (choice.venue === undefined ? [] : [choice.venue]))),
+  ].sort((a, b) => a.localeCompare(b));
+}
+
+/** The value a court takes in the match select, which is otherwise a match ordinal. */
+export const COURT_VALUE_PREFIX = 'court:';
 
 /** A stage as the stage select shows it: its number and its name. */
 export function stageOptionLabel(

@@ -3,6 +3,7 @@ title: Übertragungs- und öffentliche Oberflächen
 description: Anzeige-Tokens für TV-Bildschirme vor Ort und Streaming-Overlays, und was ein Zuschauer auf der öffentlichen Website sieht.
 capabilities:
   - live-operations/broadcast-tv-surfaces
+  - live-operations/tv-dashboard-localization
   - live-operations/public-live-surfaces
   - public-web/public-web-shell
 roles:
@@ -51,9 +52,13 @@ Eine Phase kann Formate mischen, daher stellt die Anzeige jede Zone nach dem For
 
 Die Bauchbinde bleibt unverändert: Sie nennt ein Spiel, keine Phase.
 
+### Overlays: ein Spiel, Serien und Sätze
+
+Ein Overlay (`?mode=overlay`) zeigt nur das Spiel, das ihm genannt wurde: das in seiner Adresse (`/tv/<Organisation>/tournaments/<Turnier>/stages/<Phase>/matches/<Nummer>?mode=overlay`) oder mit `?court=<Platz>` das Live-Spiel dieses Platzes. Ohne beides meldet es, dass kein Spiel gewählt ist, und zeigt kein Ergebnis, sodass zwei Overlays nie zufällig dasselbe Spiel zeigen. Ein Spiel innerhalb einer Serie zeigt neben dem Ergebnis den Stand der Serie (Siege je Seite und das laufende Spiel), ein in Sätzen gespieltes Spiel die bereits gespielten Sätze und den laufenden, die Heimseite zuerst, mit der Satzbezeichnung der Disziplin in der Sprache der Seite. Eine Disziplin mit Zeitabschnitten nennt stattdessen den laufenden Abschnitt. Ein Spiel ohne all das sieht aus wie zuvor.
+
 ### Der Anzeige-Starter
 
-`/tv` ist ein Starter, der die Adresse einer Hallenanzeige oder eines Overlays zusammenstellt: Organisation, Turnier und Ansicht (rotierende Anzeige, Tabelle, Spielliste, ein angeheftetes Spiel oder das Übertragungs-Overlay), Hintergrund und Sprache wählen. Die Sprache ändert die Beschriftungen des Starters sofort, ohne Neuladen. Phasen erscheinen mit Nummer und Name, Spiele nach Zone und Gruppe gruppiert mit Runde, beiden Teilnehmenden und ihrer Nummer (`#34`). Die Ansichten für ein angeheftetes Spiel und das Overlay fragen nach einem Spiel, und der Startlink trägt es, sodass mehrere Overlays je ein eigenes Spiel zeigen können; ein Overlay mit der automatischen Auswahl zeigt das Live-Spiel des Platzes.
+`/tv` ist ein Starter, der die Adresse einer Hallenanzeige oder eines Overlays zusammenstellt: Organisation, Turnier und Ansicht (rotierende Anzeige, Tabelle, Spielliste, ein angeheftetes Spiel oder das Übertragungs-Overlay), Hintergrund und Sprache wählen. Die Sprache ändert die Beschriftungen des Starters sofort, ohne Neuladen. Phasen erscheinen mit Nummer und Name, Spiele nach Zone und Gruppe gruppiert mit Runde, beiden Teilnehmenden und ihrer Nummer (`#34`). Die Ansichten für ein angeheftetes Spiel und das Overlay fragen nach einem Spiel, und der Startlink trägt es, sodass mehrere Overlays je ein eigenes Spiel zeigen können; ein Overlay kann stattdessen dem Live-Spiel eines Platzes folgen (`court=`).
 
 ## Was ein Zuschauer auf der öffentlichen Website sieht
 

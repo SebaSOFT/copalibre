@@ -46,6 +46,7 @@ import { readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
 import { reconstructChampionshipFixture } from './tournament-winner-resolution.js';
 import { segmentedTableResponse, tableResponse } from './table-projections.controller.js';
 import { eventLabelFields, rosterRolesOf } from './public-match-labels.js';
+import { segmentSummariesOf } from './public-segments.js';
 import { publicRuleset } from './public-ruleset.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
 import {
@@ -764,6 +765,14 @@ export class PublicProjectionsController {
           payload: event.payload,
         };
       }),
+      ...(segments.length === 0
+        ? {}
+        : {
+            segments: segmentSummariesOf(descriptor, segments, events, [
+              match.home_entrant_id ?? undefined,
+              match.away_entrant_id ?? undefined,
+            ]),
+          }),
     };
   }
 
@@ -805,16 +814,17 @@ export class PublicProjectionsController {
       ),
     );
     const competition = new CompetitionRepository(this.db);
-    const penaltiesByMatch = await Promise.all(
+    const detailByMatch = await Promise.all(
       liveMatches.map(async (match) => {
-        const [events, resolvedTimerIds] = await Promise.all([
+        const [events, resolvedTimerIds, segments] = await Promise.all([
           competition.listEvents(match.matchId),
           competition.resolvedTimerIds(match.matchId),
+          competition.listSegments(match.matchId),
         ]);
         const participants = new Set(
           [match.homeEntrantId, match.awayEntrantId].filter((id): id is string => !!id),
         );
-        return runningTimers(
+        const penalties = runningTimers(
           events,
           { starts: timerStarts, stops: [] },
           Date.now(),
@@ -829,8 +839,19 @@ export class PublicProjectionsController {
             },
           ];
         });
+        return {
+          penalties,
+          segments:
+            descriptor === null || descriptor === undefined || segments.length === 0
+              ? []
+              : segmentSummariesOf(descriptor, segments, events, [
+                  match.homeEntrantId,
+                  match.awayEntrantId,
+                ]),
+        };
       }),
     );
+    const penaltiesByMatch = detailByMatch.map((detail) => detail.penalties);
 
     return {
       matches: liveMatches.map((m, index) => ({
@@ -865,6 +886,9 @@ export class PublicProjectionsController {
             : []),
         ],
         ...(penaltiesByMatch[index]?.length ? { activePenalties: penaltiesByMatch[index] } : {}),
+        ...(detailByMatch[index]?.segments.length
+          ? { segments: detailByMatch[index]?.segments }
+          : {}),
       })),
     };
   }

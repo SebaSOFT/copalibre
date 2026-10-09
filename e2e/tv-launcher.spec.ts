@@ -13,6 +13,7 @@ const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const LAUNCHER = `/tv?organization=${ORGANIZATION}&tournament=${TOURNAMENT}`;
 
 const row = (
+  venue: string | undefined,
   stageNumber: number,
   ordinal: number,
   round: number,
@@ -30,14 +31,15 @@ const row = (
   awayName: away,
   zoneName: zone,
   ...(group === undefined ? {} : { groupName: group }),
+  ...(venue === undefined ? {} : { venueName: venue }),
 });
 
 const matchesView = {
   matches: [
-    row(1, 1, 1, 'Grupos', 'Grupo A', 'Talleres', 'Andes'),
-    row(1, 2, 1, 'Grupos', 'Grupo B', 'Boca', 'River'),
-    row(1, 3, 2, 'Grupos', 'Grupo A', 'Talleres', 'Boca'),
-    row(2, 1, 1, 'Copa Oro', undefined, 'Andes', 'River'),
+    row('Cancha 1', 1, 1, 1, 'Grupos', 'Grupo A', 'Talleres', 'Andes'),
+    row('Cancha 2', 1, 2, 1, 'Grupos', 'Grupo B', 'Boca', 'River'),
+    row('Cancha 1', 1, 3, 2, 'Grupos', 'Grupo A', 'Talleres', 'Boca'),
+    row(undefined, 2, 1, 1, 'Copa Oro', undefined, 'Andes', 'River'),
   ],
 };
 
@@ -160,22 +162,29 @@ test('the pinned match view launches that match', async ({ page }) => {
   );
 });
 
-test('the overlay view asks for a match and the link carries it; unpinned it follows the live one', async ({
-  page,
-}) => {
+test('the overlay view asks for a match or a court, and the link carries it', async ({ page }) => {
   await page.goto(LAUNCHER);
   await expect(page.locator('[data-launcher-match]')).toBeHidden();
 
   await page.locator('[data-launcher-view]').selectOption('overlay');
   await expect(page.locator('[data-launcher-match]')).toBeVisible();
   const launch = page.getByRole('link', { name: /Launch TV display/ });
-  // Left unpinned the overlay shows the court's live match, and the option says so.
-  await expect(page.locator('[data-launcher-match]')).toHaveValue('');
-  await expect(launch).toHaveAttribute('href', /tournaments\/apertura-2026\?.*mode=overlay/);
+  // An overlay starts on a court when the tournament has any: it follows that court's live match.
+  await expect(page.locator('[data-launcher-match] optgroup').first()).toHaveAttribute(
+    'label',
+    'Follow the live match of a court',
+  );
+  await expect(page.locator('[data-launcher-match]')).toHaveValue('court:Cancha 1');
+  await expect(launch).toHaveAttribute('href', /mode=overlay&court=Cancha\+1/);
   await expect(launch).not.toHaveAttribute('href', /stages/);
 
+  await page.locator('[data-launcher-match]').selectOption('court:Cancha 2');
+  await expect(launch).toHaveAttribute('href', /court=Cancha\+2/);
+
+  // A pinned match replaces the court: two overlays, two matches.
   await page.locator('[data-launcher-match]').selectOption('2');
   await expect(launch).toHaveAttribute('href', /stages\/1\/matches\/2\?.*mode=overlay/);
+  await expect(launch).not.toHaveAttribute('href', /court=/);
   await page.locator('[data-launcher-match]').selectOption('3');
   await expect(launch).toHaveAttribute('href', /stages\/1\/matches\/3\?.*mode=overlay/);
 });

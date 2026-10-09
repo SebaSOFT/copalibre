@@ -17791,6 +17791,48 @@
           "payload"
         ]
       },
+      "PublicSegmentSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "1-based order within the match"
+          },
+          "type": {
+            "type": "string",
+            "description": "The discipline's own segment type name"
+          },
+          "label": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The segment type's display label in every language the discipline wrote it in."
+          },
+          "timed": {
+            "type": "boolean",
+            "description": "Whether the segment runs against a clock; false for one played to a target"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "active",
+              "completed"
+            ]
+          },
+          "scores": {
+            "description": "What each side scored in this segment alone, home first",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "number",
+          "type",
+          "state"
+        ]
+      },
       "PublicMatchReportResponse": {
         "type": "object",
         "properties": {
@@ -17890,6 +17932,13 @@
             "items": {
               "$ref": "#/components/schemas/PublicMatchEventResponse"
             }
+          },
+          "segments": {
+            "description": "The match’s segments and what each side scored in each",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicSegmentSummaryResponse"
+            }
           }
         },
         "required": [
@@ -17969,6 +18018,13 @@
           "stageOrdinal": {
             "type": "number",
             "description": "The 1-based ordinal of the match within its stage, the one the public match route addresses it by."
+          },
+          "segments": {
+            "description": "The match’s segments and what each side scored in each",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicSegmentSummaryResponse"
+            }
           },
           "state": {
             "type": "string"

@@ -36,6 +36,10 @@ const labels: TvDashboardLabels = {
   finishedOn: 'Finalizado el {date}',
   matchNotFound: 'Este partido no existe',
   pageOf: 'Página {page} de {total}',
+  seriesState: 'Serie {home}–{away} · Partido {game} de {span}',
+  setsLabel: 'Sets',
+  overlayNoMatch: 'Ningún partido seleccionado',
+  overlayNoCourtMatch: 'Ningún partido en vivo en esta cancha',
 };
 
 function zones(): readonly BracketZone[] {
