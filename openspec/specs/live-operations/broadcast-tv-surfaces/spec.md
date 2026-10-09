@@ -435,3 +435,18 @@ A TV surface SHALL request a club's emblem from the same-origin club emblem rout
 #### Scenario: A missing emblem shows a monogram
 - **WHEN** a club has no emblem or its request fails
 - **THEN** the surface shows the club's abbreviation instead of a broken image
+
+### Requirement: The TV recap of a finished tournament names the resolved champions
+When every match of a tournament is final and the tournament has resolved winners, the kiosk's recap SHALL present each resolved zone's champion or co-champions under the zone's name, and SHALL NOT present a standings leader of an earlier stage as the tournament's champion. A tournament without resolved winners (such as a single league) MAY present its first-ranked entrant as champion.
+
+#### Scenario: Three cups show three champions
+- **WHEN** a finished tournament has resolved winners for three zones of its last stage
+- **THEN** the recap shows each zone's champion headed by that zone's name
+
+#### Scenario: A group-stage leader is not the champion
+- **WHEN** the first stage's standings leader did not win a final
+- **THEN** the recap does not name that entrant as champion
+
+#### Scenario: A league tournament keeps its champion
+- **WHEN** a finished tournament is one league with no elimination stage
+- **THEN** the recap names the first-ranked entrant as champion
