@@ -530,3 +530,48 @@ The public site's main navigation SHALL include a "TV Streaming" link to the TV 
 #### Scenario: The menu reaches the launcher
 - **WHEN** a spectator opens the main menu of any public page
 - **THEN** a TV Streaming link leads to the launcher in the page's language
+
+### Requirement: The overlay shows only the match it was given
+The broadcast overlay SHALL show the match named in its address, SHALL show a "no match selected" state when none is named, and SHALL NOT choose an arbitrary match. An overlay addressed to a court MAY follow that court's live match.
+
+#### Scenario: No match, no guess
+- **WHEN** the overlay is opened without a match and without a court
+- **THEN** it shows the no-match state and no match's score
+
+#### Scenario: Two overlays show two matches
+- **WHEN** two overlays are opened for different matches
+- **THEN** each shows only its own match
+
+#### Scenario: A court overlay follows its live match
+- **WHEN** the overlay is addressed to a court that has a live match
+- **THEN** it shows that match
+
+### Requirement: The overlay presents series and set state
+For a match inside a series the overlay SHALL show the series state next to the score, and for a match played in sets it SHALL show the sets already played and the current one, with labels from the discipline descriptor in the viewer's language. A match with neither SHALL render as before.
+
+#### Scenario: A best-of-three shows the series
+- **WHEN** the overlay shows the second game of a best-of-three series
+- **THEN** it shows games won by each side and the game number
+
+#### Scenario: A set-based match shows its sets
+- **WHEN** the overlay shows a match in its third set
+- **THEN** it shows the two completed sets and the current one
+
+### Requirement: The overlay names the segment in play by its place
+The overlay SHALL name the segment in play with the viewer's language's ordinal and the discipline's label for the segment type ("2nd Half", "2da vuelta", "3er Set"), counting among the segments of that type. A type the match plays once SHALL be named without a number. On a portrait frame the lower third SHALL use at most two rows, the score and the segment on the first and the series and sets on the second, none of them wrapping.
+
+#### Scenario: The second half
+- **WHEN** the overlay shows a match in the second of two halves
+- **THEN** it names the segment "2nd Half", in the viewer's language
+
+#### Scenario: A lap is counted among laps
+- **WHEN** the active segment is the second lap of a match that also played a half
+- **THEN** it is named "2nd Lap", not "3rd Lap"
+
+#### Scenario: A phone-shaped frame keeps two rows
+- **WHEN** the lower third shows a series, sets and a segment in a portrait frame
+- **THEN** the score and segment share one row, the series and sets another, and nothing wraps
+
+#### Scenario: A plain match is unchanged
+- **WHEN** the match is neither in a series nor played in sets
+- **THEN** the overlay renders as before

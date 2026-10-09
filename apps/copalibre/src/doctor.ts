@@ -13,9 +13,15 @@ import { sql } from 'kysely';
 import { createRemoteJWKSet, customFetch, type FetchImplementation } from 'jose';
 import { LOCAL_DEFAULTS } from './init.js';
 import { evaluateDataIntegrity, type DataIntegritySnapshot } from './doctor-data.js';
+import {
+  evaluateModuleAssets,
+  probeModuleAssets,
+  type ModuleAssetsSnapshot,
+} from './doctor-module-assets.js';
 import { probeDataIntegrity } from './doctor-data-probe.js';
 
-export type DoctorCheckStatus = 'pass' | 'fail' | 'skip';
+/** `warn` reports something an operator should fix without blocking: it never fails the run. */
+export type DoctorCheckStatus = 'pass' | 'warn' | 'fail' | 'skip';
 
 export interface DoctorCheck {
   readonly name: string;
@@ -44,6 +50,11 @@ export interface DoctorDependencies {
   readonly objectStorageRoundTrip: (environment: NodeJS.ProcessEnv) => Promise<void>;
   /** Structural data-integrity snapshot for `evaluateDataIntegrity`. */
   readonly probeDataIntegrity: (connectionString: string) => Promise<DataIntegritySnapshot>;
+  /** Every installed module asset, read through the active storage profile. */
+  readonly probeModuleAssets: (
+    connectionString: string,
+    environment: NodeJS.ProcessEnv,
+  ) => Promise<ModuleAssetsSnapshot>;
 }
 
 export interface DoctorOptions {
@@ -78,6 +89,7 @@ export async function runDoctor(
   checks.push(...(await validateDatabase(environment, dependencies)));
   checks.push(await validateRetirableModules(environment, dependencies));
   checks.push(...(await validateDataIntegrity(environment, dependencies)));
+  checks.push(await validateModuleAssets(environment, dependencies));
   checks.push(await validateObjectStorage(environment, dependencies));
   checks.push(...(await validatePersistentPath(environment, dependencies)));
   if (options.checkProxy) checks.push(await validateReverseProxy(options, dependencies));
@@ -329,6 +341,28 @@ export async function validateDataIntegrity(
 }
 
 /**
+ * Whether every installed module asset is where the active storage looks for it. Skipped without a
+ * database, or when the probe itself fails — the same "never block startup on this" treatment the
+ * data checks get.
+ */
+export async function validateModuleAssets(
+  environment: NodeJS.ProcessEnv,
+  dependencies: Pick<DoctorDependencies, 'probeModuleAssets'>,
+): Promise<DoctorCheck> {
+  const connectionString = environment.DATABASE_URL;
+  if (!connectionString) {
+    return skip('data:module-assets', 'DATABASE_URL is not configured');
+  }
+  try {
+    return evaluateModuleAssets(
+      await dependencies.probeModuleAssets(connectionString, environment),
+    );
+  } catch (error) {
+    return skip('data:module-assets', `Could not inspect module assets: ${errorMessage(error)}`);
+  }
+}
+
+/**
  * A real write/read/delete round-trip, replacing the
  * former URL-reachability-only check — reachability passes on a bucket that
  * exists but denies writes, or credentials that resolve DNS fine and then
@@ -505,6 +539,17 @@ function systemDoctorDependencies(): DoctorDependencies {
       const database = createDatabase({ connectionString, maxConnections: 1 });
       try {
         return await probeDataIntegrity(database);
+      } finally {
+        await database.destroy();
+      }
+    },
+    probeModuleAssets: async (connectionString, environment) => {
+      const database = createDatabase({ connectionString, maxConnections: 1 });
+      try {
+        return await probeModuleAssets(
+          database,
+          createObjectStorageAdapter(objectStorageConfigFromEnv(environment)),
+        );
       } finally {
         await database.destroy();
       }

@@ -21,7 +21,22 @@ public pages work at `/panamericano-demo/tournaments/panamericano-clubes-2025`.
 --profile infrastructure up --detach --wait` for just the infrastructure).
 2. Install the `rink-hockey` discipline once. The dataset needs it and loading never installs modules:
    `copalibre module add rink-hockey` (or, from a sibling checkout of the modules repository,
-   `copalibre module add rink-hockey --source file:///abs/path/to/copalibre-modules`).
+   `copalibre module add rink-hockey --source file:///abs/path/to/copalibre-modules`). Run it with the
+   development stack's object-storage variables, the ones `copalibre dev demo` injects itself:
+
+   ```sh
+   COPALIBRE_OBJECT_STORAGE_URL=http://localhost:9000 \
+   COPALIBRE_OBJECT_STORAGE_ACCESS_KEY=GK636f70616c69627265646576 \
+   COPALIBRE_OBJECT_STORAGE_SECRET_KEY=636f70616c696272655f6465765f6f6e6c795f6f626a6563745f73746f726521 \
+   COPALIBRE_OBJECT_STORAGE_BUCKET=copalibre-dev \
+   COPALIBRE_OBJECT_STORAGE_REGION=garage \
+   copalibre module add rink-hockey
+   ```
+
+   Without them the host falls back to the filesystem profile and writes the discipline's background image
+   under `data/objects/`, which the containerised API never reads: every public and TV page loses its
+   backdrop. `copalibre module verify` and `copalibre doctor` report that mismatch.
+
 3. `copalibre dev demo panamericano-clubes-2025`. `copalibre dev demo --list` shows what is available.
 
 Loading is one transaction, so a failure leaves nothing behind, and it is safe to repeat: a dataset that

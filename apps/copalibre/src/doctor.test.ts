@@ -4,6 +4,7 @@ import {
   validateDatabase,
   validateHostEnvironment,
   validateJwksContent,
+  validateModuleAssets,
   validateObjectStorage,
   validatePersistentPath,
   validatePublicUrls,
@@ -33,6 +34,7 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
     ensureWritable: jest.fn(async () => undefined),
     retirableModules: jest.fn(async () => []),
     probeDataIntegrity: jest.fn(async () => ({ invalidStatusTournaments: [] })),
+    probeModuleAssets: jest.fn(async () => ({ inspected: 0, problems: [] })),
     objectStorageRoundTrip: jest.fn(async () => undefined),
     fetch: jest.fn(async (input: string | URL | Request) => {
       // The JWKS content check and the SSE proxy-conformance check share this
@@ -562,5 +564,53 @@ describe('copalibre doctor', () => {
     );
     expect(reportPlain.checks.find((c) => c.name === 'smoke:events-sse')?.status).toBe('pass');
     expect(reportPlain.checks.find((c) => c.name === 'smoke:auth')?.status).toBe('fail');
+  });
+});
+
+describe('validateModuleAssets', () => {
+  it('skips without a database', async () => {
+    const check = await validateModuleAssets({}, dependencies());
+    expect(check).toMatchObject({ name: 'data:module-assets', status: 'skip' });
+    expect(check.message).toContain('DATABASE_URL');
+  });
+
+  it('skips with the reason when the probe fails', async () => {
+    const check = await validateModuleAssets(
+      environment,
+      dependencies({
+        probeModuleAssets: jest.fn(async () => {
+          throw new Error('relation "installed_modules" does not exist');
+        }),
+      }),
+    );
+    expect(check.status).toBe('skip');
+    expect(check.message).toContain('installed_modules');
+  });
+
+  it('warns without failing the run when an asset is stored under another profile', async () => {
+    const report = await runDoctor(
+      environment,
+      dependencies({
+        probeModuleAssets: jest.fn(async () => ({
+          inspected: 1,
+          problems: [
+            {
+              alias: 'rink-hockey',
+              version: '1.0.0',
+              path: 'background.jpg',
+              problem: {
+                kind: 'profile-mismatch' as const,
+                recordedProfile: 'filesystem',
+                activeProfile: 's3',
+              },
+            },
+          ],
+        })),
+      }),
+    );
+    const check = report.checks.find((candidate) => candidate.name === 'data:module-assets');
+    expect(check?.status).toBe('warn');
+    expect(check?.message).toContain('rink-hockey@1.0.0 background.jpg');
+    expect(report.ok).toBe(report.checks.every((candidate) => candidate.status !== 'fail'));
   });
 });

@@ -57,7 +57,15 @@ export {
   type ImportModuleReport,
 } from './import.js';
 
-export { evaluateCoreVersionCompatibility, verifyInstalledModule } from './verify.js';
+export {
+  ASSET_STORAGE_REMEDY,
+  describeAssetStorageProblem,
+  evaluateCoreVersionCompatibility,
+  readInstalledAsset,
+  verifyAssets,
+  verifyInstalledModule,
+  type AssetStorageProblem,
+} from './verify.js';
 
 export {
   allowListedSources,
