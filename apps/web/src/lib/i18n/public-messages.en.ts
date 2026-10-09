@@ -30,6 +30,7 @@ export const messages = defineMessages({
   headerCloseMenu: { id: 'publicWeb.header.closeMenu', defaultMessage: 'Close the menu' },
   headerLanguage: { id: 'publicWeb.header.language', defaultMessage: 'Language' },
   headerNavHome: { id: 'publicWeb.header.navHome', defaultMessage: 'Home' },
+  headerNavTv: { id: 'publicWeb.header.navTv', defaultMessage: 'TV Streaming' },
   headerNavHelp: { id: 'publicWeb.header.navHelp', defaultMessage: 'Help' },
   headerNavApiReference: {
     id: 'publicWeb.header.navApiReference',

@@ -42,7 +42,11 @@ const homeUrl = getLocaleHomePath(locale);
   This is spectator navigation. Operator documentation lives in the Control
   Panel and its own help surface, so it does not belong in the public header.
 */
-const links = [{ href: homeUrl, label: intl.formatMessage(messages.headerNavHome) }];
+const links = [
+  { href: homeUrl, label: intl.formatMessage(messages.headerNavHome) },
+  // The TV display launcher: it has no locale segment, so the language travels as its query.
+  { href: `/tv?lang=${locale}`, label: intl.formatMessage(messages.headerNavTv) },
+];
 
 const controlLabel = intl.formatMessage(messages.headerControlPanel);
 const navLabel = intl.formatMessage(messages.layoutNavAriaLabel);

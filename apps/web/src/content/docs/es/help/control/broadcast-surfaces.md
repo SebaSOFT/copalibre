@@ -50,6 +50,10 @@ Una fase puede mezclar formatos, así que la pantalla presenta cada zona según 
 
 La superposición de tercio inferior no cambia: nombra un partido, no una fase.
 
+### El lanzador de pantalla
+
+`/tv` es un lanzador que arma la dirección de una pantalla del recinto o de una superposición: elegí la organización, el torneo y la vista (panel rotativo, tabla de posiciones, lista de partidos, un partido fijado o la superposición de transmisión), el fondo y el idioma. El idioma cambia de inmediato los textos del propio lanzador, sin recargar. Las etapas se listan con su número y su nombre, y los partidos se agrupan por zona y grupo con su ronda, los dos participantes y su número (`#34`). Las vistas de partido fijado y de superposición piden un partido y el enlace de lanzamiento lo lleva, de modo que varias superposiciones pueden mostrar cada una su partido; una superposición en la opción automática muestra el partido en vivo de la cancha.
+
 ## Qué ve un espectador en el sitio público
 
 El sitio público (sin login) muestra las posiciones, la llave y los reportes de partido de un torneo tal

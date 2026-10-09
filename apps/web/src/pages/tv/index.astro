@@ -1,6 +1,7 @@
 ---
 import TvLayout from '../../layouts/TvLayout.astro';
 import {
+  fetchCompletion,
   fetchOrganizations,
   fetchOrganizationTournaments,
   fetchOverview,
@@ -10,224 +11,30 @@ import {
 import { TV_BACKGROUNDS } from '../../lib/tv-background.ts';
 import { selectDisciplineBackground } from '../../lib/discipline-background.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { TV_LAUNCHER_LABELS } from '../../lib/tv-launcher-labels.ts';
+import {
+  matchOptionGroups,
+  stageOptions,
+  viewShowsMatch,
+  type TvLauncherMatchChoice,
+} from '../../lib/tv-launcher.ts';
 
 export const prerender = false;
 
-const messages: Record<SupportedLanguage, Record<string, string>> = {
-  en: {
-    title: 'TV display launcher',
-    intro: 'Configure a venue screen or broadcast overlay.',
-    organization: 'Organization',
-    tournament: 'Tournament',
-    view: 'View',
-    dashboard: 'Rotating dashboard',
-    standings: 'Standings',
-    matches: 'Pinned match',
-    overlay: 'Broadcast overlay',
-    stage: 'Stage',
-    match: 'Match',
-    background: 'Background',
-    discipline: 'Discipline',
-    neutral: 'Neutral',
-    chroma: 'Chroma green',
-    football: 'Football pitch',
-    court: 'Indoor court',
-    language: 'Language',
-    launch: 'Launch TV display',
-    unavailable: 'No published tournaments are available for this organization.',
-    loadError: 'Tournament data is temporarily unavailable.',
-    noMatches: 'No matches are available to pin for this tournament.',
-    publicSite: 'Public site',
-    emptyOrganizations: 'No organizations are available.',
-  },
-  es: {
-    title: 'Lanzador de pantalla TV',
-    intro: 'Configura una pantalla del recinto o una superposición de transmisión.',
-    organization: 'Organización',
-    tournament: 'Torneo',
-    view: 'Vista',
-    dashboard: 'Panel rotativo',
-    standings: 'Tabla de posiciones',
-    matches: 'Partido fijado',
-    overlay: 'Superposición de transmisión',
-    stage: 'Etapa',
-    match: 'Partido',
-    background: 'Fondo',
-    discipline: 'Disciplina',
-    neutral: 'Neutro',
-    chroma: 'Verde chroma',
-    football: 'Cancha de fútbol',
-    court: 'Cancha cubierta',
-    language: 'Idioma',
-    launch: 'Lanzar pantalla TV',
-    unavailable: 'No hay torneos publicados disponibles para esta organización.',
-    loadError: 'Los datos del torneo no están disponibles temporalmente.',
-    noMatches: 'No hay partidos disponibles para fijar en este torneo.',
-    publicSite: 'Sitio público',
-    emptyOrganizations: 'No hay organizaciones disponibles.',
-  },
-  fr: {
-    title: 'Lanceur d’écran TV',
-    intro: 'Configurez un écran de salle ou une incrustation de diffusion.',
-    organization: 'Organisation',
-    tournament: 'Tournoi',
-    view: 'Vue',
-    dashboard: 'Tableau tournant',
-    standings: 'Classement',
-    matches: 'Match épinglé',
-    overlay: 'Incrustation de diffusion',
-    stage: 'Étape',
-    match: 'Match',
-    background: 'Arrière-plan',
-    discipline: 'Discipline',
-    neutral: 'Neutre',
-    chroma: 'Vert chroma',
-    football: 'Terrain de football',
-    court: 'Terrain couvert',
-    language: 'Langue',
-    launch: 'Lancer l’écran TV',
-    unavailable: 'Aucun tournoi publié pour cette organisation.',
-    loadError: 'Données du tournoi temporairement indisponibles.',
-    noMatches: 'Aucun match à épingler pour ce tournoi.',
-    publicSite: 'Site public',
-    emptyOrganizations: 'Aucune organisation disponible.',
-  },
-  pt: {
-    title: 'Lançador de tela TV',
-    intro: 'Configure uma tela do local ou uma sobreposição de transmissão.',
-    organization: 'Organização',
-    tournament: 'Torneio',
-    view: 'Visualização',
-    dashboard: 'Painel rotativo',
-    standings: 'Classificação',
-    matches: 'Partida fixada',
-    overlay: 'Sobreposição de transmissão',
-    stage: 'Etapa',
-    match: 'Partida',
-    background: 'Plano de fundo',
-    discipline: 'Modalidade',
-    neutral: 'Neutro',
-    chroma: 'Verde chroma',
-    football: 'Campo de futebol',
-    court: 'Quadra coberta',
-    language: 'Idioma',
-    launch: 'Iniciar tela TV',
-    unavailable: 'Não há torneios publicados disponíveis para esta organização.',
-    loadError: 'Dados do torneio indisponíveis temporariamente.',
-    noMatches: 'Não há partidas disponíveis para fixar neste torneio.',
-    publicSite: 'Site público',
-    emptyOrganizations: 'Nenhuma organização disponível.',
-  },
-  it: {
-    title: 'Avvio schermo TV',
-    intro: 'Configura uno schermo per la sede o una sovrapposizione broadcast.',
-    organization: 'Organizzazione',
-    tournament: 'Torneo',
-    view: 'Vista',
-    dashboard: 'Pannello a rotazione',
-    standings: 'Classifica',
-    matches: 'Partita fissata',
-    overlay: 'Sovrapposizione broadcast',
-    stage: 'Fase',
-    match: 'Partita',
-    background: 'Sfondo',
-    discipline: 'Disciplina',
-    neutral: 'Neutro',
-    chroma: 'Verde chroma',
-    football: 'Campo da calcio',
-    court: 'Campo indoor',
-    language: 'Lingua',
-    launch: 'Avvia schermo TV',
-    unavailable: 'Nessun torneo pubblicato disponibile per questa organizzazione.',
-    loadError: 'Dati del torneo temporaneamente non disponibili.',
-    noMatches: 'Non ci sono partite da fissare per questo torneo.',
-    publicSite: 'Sito pubblico',
-    emptyOrganizations: 'Nessuna organizzazione disponibile.',
-  },
-  de: {
-    title: 'TV-Bildschirm starten',
-    intro: 'Richten Sie einen Hallenbildschirm oder eine Broadcast-Einblendung ein.',
-    organization: 'Organisation',
-    tournament: 'Turnier',
-    view: 'Ansicht',
-    dashboard: 'Rotierendes Dashboard',
-    standings: 'Tabelle',
-    matches: 'Fixiertes Spiel',
-    overlay: 'Broadcast-Einblendung',
-    stage: 'Phase',
-    match: 'Spiel',
-    background: 'Hintergrund',
-    discipline: 'Disziplin',
-    neutral: 'Neutral',
-    chroma: 'Chroma-Grün',
-    football: 'Fußballfeld',
-    court: 'Hallenfeld',
-    language: 'Sprache',
-    launch: 'TV-Bildschirm starten',
-    unavailable: 'Für diese Organisation sind keine veröffentlichten Turniere verfügbar.',
-    loadError: 'Turnierdaten sind vorübergehend nicht verfügbar.',
-    noMatches: 'Für dieses Turnier gibt es keine fixierbaren Spiele.',
-    publicSite: 'Öffentliche Website',
-    emptyOrganizations: 'Keine Organisationen verfügbar.',
-  },
-  ru: {
-    title: 'Запуск ТВ-экрана',
-    intro: 'Настройте экран площадки или эфирную накладку.',
-    organization: 'Организация',
-    tournament: 'Турнир',
-    view: 'Вид',
-    dashboard: 'Сменяемая панель',
-    standings: 'Таблица',
-    matches: 'Закреплённый матч',
-    overlay: 'Эфирная накладка',
-    stage: 'Этап',
-    match: 'Матч',
-    background: 'Фон',
-    discipline: 'Дисциплина',
-    neutral: 'Нейтральный',
-    chroma: 'Зелёный хромакей',
-    football: 'Футбольное поле',
-    court: 'Зал',
-    language: 'Язык',
-    launch: 'Запустить ТВ-экран',
-    unavailable: 'Для этой организации нет опубликованных турниров.',
-    loadError: 'Данные турнира временно недоступны.',
-    noMatches: 'В этом турнире нет матчей для закрепления.',
-    publicSite: 'Публичный сайт',
-    emptyOrganizations: 'Организации недоступны.',
-  },
-  zh: {
-    title: '电视屏幕启动器',
-    intro: '配置场馆屏幕或直播叠加层。',
-    organization: '组织',
-    tournament: '赛事',
-    view: '视图',
-    dashboard: '轮播面板',
-    standings: '排名',
-    matches: '固定比赛',
-    overlay: '直播叠加层',
-    stage: '阶段',
-    match: '比赛',
-    background: '背景',
-    discipline: '项目',
-    neutral: '中性',
-    chroma: '色键绿',
-    football: '足球场',
-    court: '室内球场',
-    language: '语言',
-    launch: '启动电视屏幕',
-    unavailable: '此组织没有已发布的赛事。',
-    loadError: '赛事数据暂时不可用。',
-    noMatches: '此赛事没有可固定的比赛。',
-    publicSite: '公开网站',
-    emptyOrganizations: '没有可用组织。',
-  },
-};
+const VIEWS = ['dashboard', 'standings', 'matches', 'match', 'overlay'] as const;
+/** The label key each view's option reads. */
+const VIEW_LABEL = {
+  dashboard: 'dashboard',
+  standings: 'standings',
+  matches: 'matchList',
+  match: 'pinnedMatch',
+  overlay: 'overlay',
+} as const;
 
 const params = Astro.url.searchParams;
 const langParam = params.get('lang');
 const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
-const t = messages[language];
+const t = TV_LAUNCHER_LABELS[language];
 let organizationsResponse;
 try {
   organizationsResponse = await fetchOrganizations();
@@ -255,43 +62,57 @@ if (selectedOrganization) {
 const requestedTournament = params.get('tournament');
 const selectedTournament =
   tournaments.find((item) => item.alias === requestedTournament) ?? tournaments[0];
-let matchChoices: { stage: number; match: number; label: string }[] = [];
+
+/*
+  The matches the launcher can pin, each with its stage's name, its zone and group and its round.
+  A match is named the way the public match route names it, by stage and ordinal in the stage,
+  which the matches view already reports as `matchNumber`.
+*/
+let matchChoices: TvLauncherMatchChoice[] = [];
 let selectedDisciplineBackground: ReturnType<typeof selectDisciplineBackground>;
 if (selectedOrganization && selectedTournament) {
   try {
-    const [overview, matchesView] = await Promise.all([
+    const [overview, matchesView, completion] = await Promise.all([
       fetchOverview(selectedOrganization.alias, selectedTournament.alias),
       fetchMatchesView(selectedOrganization.alias, selectedTournament.alias),
+      fetchCompletion(selectedOrganization.alias, selectedTournament.alias),
     ]);
     if (!overview || !matchesView) loadFailed = true;
-    const stages = new Set((overview?.matches ?? []).map((item) => item.stageNumber));
     selectedDisciplineBackground = selectDisciplineBackground(overview?.disciplineImages);
-    const matches = mapMatchesViewResponse(matchesView ?? { matches: [] }).matches;
-    for (const item of matches) stages.add(item.stageNumber);
-    for (const stage of stages) {
-      for (const match of matches.filter((item) => item.stageNumber === stage)) {
-        matchChoices.push({
-          stage,
-          match: match.matchNumber,
-          label: `#${match.matchNumber} · ${match.homeName ?? 'TBD'} — ${match.awayName ?? 'TBD'}`,
-        });
-      }
-    }
+    const stageNames = new Map(
+      (completion?.stages ?? []).map((stage) => [stage.stageNumber, stage.stageName]),
+    );
+    matchChoices = mapMatchesViewResponse(matchesView ?? { matches: [] }).matches.map((match) => ({
+      stage: match.stageNumber,
+      stageName: stageNames.get(match.stageNumber) ?? '',
+      match: match.matchNumber,
+      ...(match.round === undefined ? {} : { round: match.round }),
+      ...(match.zoneName === undefined ? {} : { zone: match.zoneName }),
+      ...(match.groupName === undefined ? {} : { group: match.groupName }),
+      home: match.homeName ?? 'TBD',
+      away: match.awayName ?? 'TBD',
+    }));
   } catch {
     loadFailed = true;
   }
 }
 const viewParam = params.get('view');
-const view = ['dashboard', 'standings', 'matches', 'overlay'].includes(viewParam ?? '')
-  ? viewParam!
-  : 'dashboard';
+// An address made when `matches` meant the pinned match still means it.
+const view: (typeof VIEWS)[number] =
+  viewParam === 'matches' && params.has('stage') && params.has('match')
+    ? 'match'
+    : (VIEWS.find((item) => item === viewParam) ?? 'dashboard');
 const requestedBackground = params.get('bg') ?? params.get('background');
 const background =
   TV_BACKGROUNDS.find((value) => value === requestedBackground && value !== 'transparent') ??
   'discipline';
-const initialStage = Number(params.get('stage')) || matchChoices[0]?.stage;
-const stageMatches = matchChoices.filter((item) => item.stage === initialStage);
-const initialMatch = Number(params.get('match')) || stageMatches[0]?.match;
+const stages = stageOptions(matchChoices);
+const initialStage = Number(params.get('stage')) || stages[0]?.stage;
+const initialMatch = Number(params.get('match')) || undefined;
+const matchGroups =
+  initialStage === undefined ? [] : matchOptionGroups(matchChoices, initialStage, t.round ?? '');
+const matchFieldsShown = viewShowsMatch(view);
+const noMatchesShown = matchFieldsShown && matchChoices.length === 0;
 const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'football';
 ---
 
@@ -317,20 +138,26 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
       )
     }
     <div class="tv-launcher__backdrop" aria-hidden="true"></div>
-    <section class="tv-launcher__panel" aria-labelledby="tv-launcher-title">
-      <h1 id="tv-launcher-title">{t.title}</h1>
-      <p class="tv-launcher__intro">{t.intro}</p>
+    <section class="tv-launcher__panel cl-chamfer" aria-labelledby="tv-launcher-title">
+      <h1 id="tv-launcher-title" data-i18n="title">{t.title}</h1>
+      <p class="tv-launcher__intro" data-i18n="intro">{t.intro}</p>
       {
         organizations.length === 0 ? (
-          <p role="status">{loadFailed ? t.loadError : t.emptyOrganizations}</p>
+          <p role="status" data-i18n={loadFailed ? 'loadError' : 'emptyOrganizations'}>
+            {loadFailed ? t.loadError : t.emptyOrganizations}
+          </p>
         ) : (
           <form
             class="tv-launcher__form"
             data-match-options={encodeURIComponent(JSON.stringify(matchChoices))}
           >
             <label>
-              {t.organization}
-              <select name="organization" data-launcher-organization>
+              <span data-i18n="organization">{t.organization}</span>
+              <select
+                class="cl-chamfer cl-chamfer--control"
+                name="organization"
+                data-launcher-organization
+              >
                 {organizations.map((org) => (
                   <option value={org.alias} selected={org.alias === selectedOrganization?.alias}>
                     {org.name}
@@ -339,8 +166,12 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
               </select>
             </label>
             <label>
-              {t.tournament}
-              <select name="tournament" data-launcher-tournament>
+              <span data-i18n="tournament">{t.tournament}</span>
+              <select
+                class="cl-chamfer cl-chamfer--control"
+                name="tournament"
+                data-launcher-tournament
+              >
                 {tournaments.map((tournament) => (
                   <option
                     value={tournament.alias}
@@ -352,59 +183,72 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
               </select>
             </label>
             <label>
-              {t.view}
-              <select name="view" data-launcher-view>
-                {(['dashboard', 'standings', 'matches', 'overlay'] as const).map((item) => (
-                  <option value={item} selected={item === view}>
-                    {t[item]}
+              <span data-i18n="view">{t.view}</span>
+              <select class="cl-chamfer cl-chamfer--control" name="view" data-launcher-view>
+                {VIEWS.map((item) => (
+                  <option value={item} selected={item === view} data-i18n={VIEW_LABEL[item]}>
+                    {t[VIEW_LABEL[item]]}
                   </option>
                 ))}
               </select>
             </label>
-            <div
-              class="tv-launcher__match-fields"
-              data-match-fields
-              hidden={!['matches'].includes(view)}
-            >
+            <div class="tv-launcher__match-fields" data-match-fields hidden={!matchFieldsShown}>
               <label>
-                {t.stage}
-                <select data-launcher-stage>
-                  {Array.from(new Set(matchChoices.map((item) => item.stage))).map((stage) => (
-                    <option value={stage} selected={stage === initialStage}>
-                      {stage}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                {t.match}
-                <select data-launcher-match>
-                  {stageMatches.map((item) => (
-                    <option value={item.match} selected={item.match === initialMatch}>
+                <span data-i18n="stage">{t.stage}</span>
+                <select class="cl-chamfer cl-chamfer--control" data-launcher-stage>
+                  {stages.map((item) => (
+                    <option value={item.stage} selected={item.stage === initialStage}>
                       {item.label}
                     </option>
                   ))}
                 </select>
               </label>
+              <label>
+                <span data-i18n="match">{t.match}</span>
+                <select class="cl-chamfer cl-chamfer--control" data-launcher-match>
+                  <option
+                    value=""
+                    data-i18n="liveMatchAuto"
+                    data-overlay-only
+                    hidden={view !== 'overlay'}
+                    disabled={view !== 'overlay'}
+                  >
+                    {t.liveMatchAuto}
+                  </option>
+                  {matchGroups.map((group) => (
+                    <optgroup label={group.heading}>
+                      {group.options.map((item) => (
+                        <option value={item.match} selected={item.match === initialMatch}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
             </div>
-            {view === 'matches' && matchChoices.length === 0 && (
-              <p role="status" class="tv-launcher__notice">
-                {t.noMatches}
-              </p>
-            )}
+            <p
+              role="status"
+              class="tv-launcher__notice"
+              data-i18n="noMatches"
+              data-no-matches
+              hidden={!noMatchesShown}
+            >
+              {t.noMatches}
+            </p>
             <label>
-              {t.background}
-              <select name="bg" data-launcher-background>
+              <span data-i18n="background">{t.background}</span>
+              <select class="cl-chamfer cl-chamfer--control" name="bg" data-launcher-background>
                 {(['discipline', 'neutral', 'chroma', 'football', 'court'] as const).map((item) => (
-                  <option value={item} selected={item === background}>
+                  <option value={item} selected={item === background} data-i18n={item}>
                     {t[item]}
                   </option>
                 ))}
               </select>
             </label>
             <label>
-              {t.language}
-              <select name="lang" data-launcher-language>
+              <span data-i18n="language">{t.language}</span>
+              <select class="cl-chamfer cl-chamfer--control" name="lang" data-launcher-language>
                 {(['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const).map((item) => (
                   <option value={item} selected={item === language}>
                     {item.toUpperCase()}
@@ -413,17 +257,21 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
               </select>
             </label>
             {loadFailed && (
-              <p role="status" class="tv-launcher__notice">
+              <p role="status" class="tv-launcher__notice" data-i18n="loadError">
                 {t.loadError}
               </p>
             )}
             {selectedOrganization && tournaments.length === 0 && !loadFailed && (
-              <p role="status" class="tv-launcher__notice">
+              <p role="status" class="tv-launcher__notice" data-i18n="unavailable">
                 {t.unavailable}
               </p>
             )}
-            <a class="tv-launcher__launch" data-launcher-link href="#">
-              {t.launch}
+            <a
+              class="tv-launcher__launch cl-chamfer cl-chamfer--control"
+              data-launcher-link
+              href="#"
+            >
+              <span data-i18n="launch">{t.launch}</span>
               <span aria-hidden="true">↗</span>
             </a>
             {selectedOrganization && (
@@ -431,7 +279,7 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
                 class="tv-launcher__public"
                 href={`/${encodeURIComponent(selectedOrganization.alias)}`}
               >
-                {t.publicSite} ↗
+                <span data-i18n="publicSite">{t.publicSite}</span> ↗
               </a>
             )}
           </form>
@@ -442,8 +290,18 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
 </TvLayout>
 
 <script>
-  import { buildTvLauncherDestination, parseTvLauncherPreset } from '../../lib/tv-launcher.js';
+  import { TV_LAUNCHER_LABELS } from '../../lib/tv-launcher-labels.js';
+  import {
+    buildTvLauncherDestination,
+    matchOptionGroups,
+    parseTvLauncherPreset,
+    viewShowsMatch,
+    type TvLauncherMatchChoice,
+    type TvLauncherView,
+  } from '../../lib/tv-launcher.js';
   import type { TvBackground } from '../../lib/tv-background.js';
+
+  type Language = keyof typeof TV_LAUNCHER_LABELS;
 
   const root = document.querySelector<HTMLElement>('[data-tv-launcher]');
   const form = root?.querySelector<HTMLFormElement>('.tv-launcher__form');
@@ -456,13 +314,65 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
     const stage = form.querySelector<HTMLSelectElement>('[data-launcher-stage]');
     const match = form.querySelector<HTMLSelectElement>('[data-launcher-match]');
     const matchFields = form.querySelector<HTMLElement>('[data-match-fields]');
+    const noMatches = form.querySelector<HTMLElement>('[data-no-matches]');
     const launch = form.querySelector<HTMLAnchorElement>('[data-launcher-link]');
-    let matchChoices: { stage: number; match: number; label: string }[] = [];
+    let choices: TvLauncherMatchChoice[] = [];
     try {
-      matchChoices = JSON.parse(decodeURIComponent(form.dataset.matchOptions ?? ''));
+      choices = JSON.parse(decodeURIComponent(form.dataset.matchOptions ?? ''));
     } catch {
-      matchChoices = [];
+      choices = [];
     }
+
+    const labelsFor = (): Readonly<Record<string, string>> =>
+      TV_LAUNCHER_LABELS[(language?.value ?? 'en') as Language] ?? TV_LAUNCHER_LABELS.en;
+
+    // The match options of the chosen stage, grouped by zone and group, with the round's word in the
+    // chosen language. The overlay alone may leave the match to the live one, so only it has that option.
+    const renderMatches = (): void => {
+      if (!stage || !match || !view) return;
+      const labels = labelsFor();
+      const previous = match.value;
+      const overlay = view.value === 'overlay';
+      const automatic = document.createElement('option');
+      automatic.value = '';
+      automatic.dataset.i18n = 'liveMatchAuto';
+      automatic.textContent = labels.liveMatchAuto ?? '';
+      automatic.hidden = !overlay;
+      automatic.disabled = !overlay;
+      const groups = matchOptionGroups(choices, Number(stage.value), labels.round ?? '').map(
+        (group) => {
+          const element = document.createElement('optgroup');
+          element.label = group.heading;
+          element.append(
+            ...group.options.map((item) => {
+              const option = document.createElement('option');
+              option.value = String(item.match);
+              option.textContent = item.label;
+              return option;
+            }),
+          );
+          return element;
+        },
+      );
+      match.replaceChildren(automatic, ...groups);
+      const usable = [...match.options].filter((option) => !option.disabled);
+      match.value = usable.some((option) => option.value === previous)
+        ? previous
+        : (usable[0]?.value ?? '');
+    };
+
+    // Every label the page rendered, again in the chosen language: no reload, so the other
+    // selections stay as they are.
+    const applyLabels = (): void => {
+      const labels = labelsFor();
+      for (const element of root.querySelectorAll<HTMLElement>('[data-i18n]')) {
+        const text = labels[element.dataset.i18n ?? ''];
+        if (text !== undefined) element.textContent = text;
+      }
+      document.documentElement.lang = language?.value ?? 'en';
+      if (labels.title) document.title = labels.title;
+      renderMatches();
+    };
 
     const readPreset = (): void => {
       if (
@@ -473,14 +383,18 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
         !language?.value
       )
         return;
+      const showsMatch = viewShowsMatch(view.value);
+      const stageNumber = Number(stage?.value);
+      const matchNumber = Number(match?.value);
       const preset = {
         organization: organization.value,
         tournament: tournament.value,
-        view: view.value,
-        background: background.value,
+        view: view.value as TvLauncherView,
+        background: background.value as Exclude<TvBackground, 'transparent'>,
         language: language.value,
-        stage: Number(stage?.value),
-        match: Number(match?.value),
+        ...(showsMatch && stageNumber > 0 && matchNumber > 0
+          ? { stage: stageNumber, match: matchNumber }
+          : {}),
       };
       try {
         localStorage.setItem('copalibre.tv.launcher_preset', JSON.stringify(preset));
@@ -491,36 +405,15 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
       document.documentElement.dataset.tvBackground = background.value as TvBackground;
       const disciplineImage = root.querySelector<HTMLElement>('[data-discipline-image]');
       disciplineImage?.setAttribute('data-active', String(background.value === 'discipline'));
-      matchFields?.toggleAttribute('hidden', view.value !== 'matches');
-      const href = buildTvLauncherDestination({
-        ...preset,
-        view: view.value as 'dashboard' | 'standings' | 'matches' | 'overlay',
-        background: background.value as Exclude<TvBackground, 'transparent'>,
-        language: language.value,
-        ...(view.value === 'matches'
-          ? { stage: Number(stage?.value), match: Number(match?.value) }
-          : {}),
-      });
-      const matchUnavailable = view.value === 'matches' && (!stage?.value || !match?.value);
+      matchFields?.toggleAttribute('hidden', !showsMatch);
+      noMatches?.toggleAttribute('hidden', !(showsMatch && choices.length === 0));
+      // The pinned view cannot launch without a match; the overlay may, and then shows the live one.
+      const matchUnavailable = view.value === 'match' && !(stageNumber > 0 && matchNumber > 0);
+      const href = buildTvLauncherDestination(preset);
       if (launch) {
         launch.href = matchUnavailable ? '#' : href;
         launch.setAttribute('aria-disabled', String(matchUnavailable));
       }
-      root.dataset.tvBackground = background.value;
-    };
-    const refreshMatches = (): void => {
-      if (!stage || !match) return;
-      const selectedStage = Number(stage.value);
-      const options = matchChoices.filter((item) => item.stage === selectedStage);
-      match.replaceChildren(
-        ...options.map((item) => {
-          const option = document.createElement('option');
-          option.value = String(item.match);
-          option.textContent = item.label;
-          return option;
-        }),
-      );
-      readPreset();
     };
     const restore = (): void => {
       try {
@@ -535,10 +428,7 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
           )
         )
           return;
-        if (
-          !url.searchParams.has('organization') &&
-          (organization?.value !== saved.organization || tournament?.value !== saved.tournament)
-        ) {
+        if (organization?.value !== saved.organization || tournament?.value !== saved.tournament) {
           if (
             organization &&
             [...organization.options].some((option) => option.value === saved.organization)
@@ -556,36 +446,41 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
           }
           return;
         }
-        if (view && [...view.options].some((option) => option.value === saved.view))
-          view.value = saved.view;
-        if (
-          background &&
-          [...background.options].some((option) => option.value === saved.background)
-        )
-          background.value = saved.background;
-        if (language && [...language.options].some((option) => option.value === saved.language))
-          language.value = saved.language;
-        if (
-          tournament &&
-          [...tournament.options].some((option) => option.value === saved.tournament)
-        )
-          tournament.value = saved.tournament;
-        if (stage && [...stage.options].some((option) => Number(option.value) === saved.stage))
-          stage.value = String(saved.stage);
-        refreshMatches();
-        if (
-          match &&
-          saved.match !== undefined &&
-          [...match.options].some((option) => Number(option.value) === saved.match)
-        )
-          match.value = String(saved.match);
+        const choose = (select: HTMLSelectElement | null, value: string): void => {
+          if (select && [...select.options].some((option) => option.value === value))
+            select.value = value;
+        };
+        choose(view, saved.view);
+        choose(background, saved.background);
+        choose(language, saved.language);
+        choose(tournament, saved.tournament);
+        choose(stage, String(saved.stage));
+        applyLabels();
+        if (saved.match !== undefined) choose(match, String(saved.match));
       } catch {
         /* Invalid or unavailable local storage leaves server defaults in place. */
       }
     };
     organization?.addEventListener('change', () => form.requestSubmit());
     tournament?.addEventListener('change', () => form.requestSubmit());
-    stage?.addEventListener('change', refreshMatches);
+    stage?.addEventListener('change', () => {
+      renderMatches();
+      readPreset();
+    });
+    let shownView = view?.value;
+    view?.addEventListener('change', () => {
+      renderMatches();
+      // Arriving at the overlay from another view starts it unpinned, on the live match.
+      if (match && view.value === 'overlay' && shownView !== 'overlay') match.value = '';
+      shownView = view.value;
+    });
+    language?.addEventListener('change', () => {
+      applyLabels();
+      // The address keeps the language, so a reload or a shared link opens in it.
+      const url = new URL(window.location.href);
+      url.searchParams.set('lang', language.value);
+      window.history.replaceState(null, '', url);
+    });
     form.addEventListener('change', readPreset);
     launch?.addEventListener('click', (event) => {
       if (launch.getAttribute('aria-disabled') === 'true') event.preventDefault();
@@ -596,7 +491,10 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
 </script>
 
 <style>
+  /* The document sets no typeface of its own (the dashboard sets its own on its container), so
+     everything here inherited the browser's default serif: the launcher names its faces. */
   .tv-launcher {
+    font-family: var(--cl-font-body);
     position: relative;
     display: grid;
     place-items: center;
@@ -690,11 +588,13 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
     color: var(--cl-text-primary);
     background: var(--cl-surface-panel);
     border: 1px solid var(--cl-border-muted);
-    border-radius: var(--cl-radius-md);
     box-shadow: 0 24px 48px -12px color-mix(in srgb, var(--cl-surface-base) 55%, transparent);
   }
   .tv-launcher h1 {
     margin: 0;
+    font-family: var(--cl-font-display);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
     font-size: clamp(var(--cl-font-size-xl), 4vw, var(--cl-font-size-3xl));
   }
   .tv-launcher__intro {
@@ -710,7 +610,10 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
     display: grid;
     gap: 0.4rem;
     color: var(--cl-text-secondary);
-    font-size: var(--cl-font-size-sm);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
   .tv-launcher select {
     min-width: 0;
@@ -719,8 +622,11 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
     color: var(--cl-text-primary);
     background: var(--cl-surface-base);
     border: 1px solid var(--cl-border-muted);
-    border-radius: var(--cl-radius-sm);
     font: inherit;
+    font-family: var(--cl-font-body);
+    font-size: var(--cl-font-size-base);
+    letter-spacing: normal;
+    text-transform: none;
   }
   .tv-launcher__match-fields {
     display: contents;
@@ -737,8 +643,10 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
     padding: 0 1rem;
     color: var(--cl-surface-base);
     background: var(--cl-primary);
-    border-radius: var(--cl-radius-sm);
+    font-family: var(--cl-font-display);
     font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
     text-decoration: none;
   }
   .tv-launcher__launch[aria-disabled='true'] {

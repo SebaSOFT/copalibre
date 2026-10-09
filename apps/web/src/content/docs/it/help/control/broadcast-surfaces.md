@@ -50,6 +50,10 @@ Una fase può mescolare i formati, quindi lo schermo presenta ogni zona secondo 
 
 La sovrimpressione del terzo inferiore non cambia: nomina una partita, non una fase.
 
+### Il lanciatore dello schermo
+
+`/tv` è un lanciatore che compone l’indirizzo di uno schermo del locale o di una sovrimpressione: scegli organizzazione, torneo e vista (rotazione, classifica, elenco delle partite, una partita fissata o la sovrimpressione di trasmissione), sfondo e lingua. La lingua cambia subito le etichette del lanciatore, senza ricaricare. Le fasi sono elencate con numero e nome, e le partite raggruppate per zona e girone con il turno, i due partecipanti e il loro numero (`#34`). Le viste partita fissata e sovrimpressione chiedono una partita e il link di avvio la porta con sé, così più sovrimpressioni possono mostrare ciascuna la propria partita; una sovrimpressione lasciata su automatico mostra la partita in diretta del campo.
+
 ## Cosa vede uno spettatore sul sito pubblico
 
 Il sito pubblico (senza accesso) mostra le classifiche, il tabellone e i report partita di un torneo

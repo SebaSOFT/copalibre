@@ -256,6 +256,7 @@ export const messages: Record<string, string> = {
   'publicWeb.header.closeMenu': '关闭菜单',
   'publicWeb.header.language': '语言',
   'publicWeb.header.navHome': '首页',
+  'publicWeb.header.navTv': '电视直播',
   'publicWeb.header.navHelp': '帮助',
   'publicWeb.header.navApiReference': 'API 参考',
   'publicWeb.header.controlPanel': '控制面板',

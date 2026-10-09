@@ -260,6 +260,7 @@ export const messages: Record<string, string> = {
   'publicWeb.header.closeMenu': 'Chiudi il menu',
   'publicWeb.header.language': 'Lingua',
   'publicWeb.header.navHome': 'Home',
+  'publicWeb.header.navTv': 'TV Streaming',
   'publicWeb.header.navHelp': 'Guida',
   'publicWeb.header.navApiReference': 'Riferimento API',
   'publicWeb.header.controlPanel': 'Pannello di controllo',

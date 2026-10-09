@@ -50,6 +50,10 @@ A stage can mix formats, so the display presents each zone by the format it play
 
 The lower-third overlay is not affected: it names a match, not a stage.
 
+### The display launcher
+
+`/tv` is a launcher that builds the address of a venue screen or an overlay: pick the organization, tournament and view (rotating dashboard, standings, match list, a pinned match, or the broadcast overlay), the background and the language. The language changes the launcher's own labels immediately, without reloading. Stages are listed with their number and name, and matches are grouped by zone and group with their round, the two entrants and their number (`#34`). The pinned-match and overlay views ask for a match, and the launch link carries it, so several overlays can each show their own match; an overlay left on the automatic choice shows the court's live match.
+
 ## What a spectator sees on the public site
 
 The public site (no login) shows a tournament's standings, bracket, and match reports as they are

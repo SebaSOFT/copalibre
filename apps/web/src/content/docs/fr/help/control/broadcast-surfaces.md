@@ -50,6 +50,10 @@ Une phase peut mélanger les formats ; l’écran présente donc chaque zone sel
 
 L’incrustation du tiers inférieur ne change pas : elle nomme un match, pas une phase.
 
+### Le lanceur d’écran
+
+`/tv` est un lanceur qui compose l’adresse d’un écran de salle ou d’une incrustation : choisissez l’organisation, le tournoi et l’affichage (rotation, classement, liste des matchs, un match épinglé ou l’incrustation de diffusion), le fond et la langue. La langue change aussitôt les libellés du lanceur, sans rechargement. Les phases sont listées avec leur numéro et leur nom, et les matchs regroupés par zone et groupe avec leur ronde, les deux participants et leur numéro (`#34`). Les affichages match épinglé et incrustation demandent un match et le lien de lancement le porte, si bien que plusieurs incrustations peuvent montrer chacune leur match ; une incrustation laissée en automatique montre le match en direct du terrain.
+
 ## Ce que voit un spectateur sur le site public
 
 Le site public (sans connexion) affiche les classements, le tableau et les rapports de match d'un

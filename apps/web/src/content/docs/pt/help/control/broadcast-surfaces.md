@@ -50,6 +50,10 @@ Uma fase pode misturar formatos, então a tela apresenta cada zona pelo formato 
 
 A sobreposição do terço inferior não muda: ela nomeia uma partida, não uma fase.
 
+### O lançador de tela
+
+`/tv` é um lançador que monta o endereço de uma tela do local ou de uma sobreposição: escolha a organização, o torneio e a visão (rotativa, classificação, lista de jogos, um jogo fixado ou a sobreposição de transmissão), o fundo e o idioma. O idioma muda na hora os textos do próprio lançador, sem recarregar. As fases aparecem com número e nome, e os jogos são agrupados por zona e grupo com a rodada, os dois participantes e o número (`#34`). As visões de jogo fixado e de sobreposição pedem um jogo e o link de lançamento o leva, de modo que várias sobreposições podem mostrar cada uma o seu jogo; uma sobreposição na opção automática mostra o jogo ao vivo da quadra.
+
 ## O que um espectador vê no site público
 
 O site público (sem login) mostra a classificação, a chave e os relatórios de partida de um torneio
