@@ -41,6 +41,7 @@ seconds after the load.
   surname, so it cannot be reversed from the dataset. Anyone holding both the dataset and the source
   site can still re-link a person by club, dorsal and given name; the aim is that no real surname is
   committed, not anonymity against the source.
+- The cups' placement games (`3º puesto`, `5º puesto`, `7º puesto`, `5º al 8º puesto`) are stored with a fixture role (`place-3`, `place-5`, `place-7`, `places-5-8`) read from the published round label, which is what lets the public bracket draw them beside the generated graph. A demo loaded before that role existed has none and needs a reload (`docker compose -f docker-compose.dev.yml down -v`, then load again).
 - Staff (coaches and delegates) are not included.
 - Two games were played to 10-2 but officially recorded 8-2 under the regulation goal cap; the
   official score is kept and their scorers are omitted. One game has no report on the source, so it has

@@ -94,6 +94,12 @@ export const messages: Record<string, string> = {
 
   'publicWeb.bracket.roundAriaLabel': '{branch} — 第 {round} 轮',
   'publicWeb.bracket.roundHeading': '第 {round} 轮',
+  'publicWeb.bracket.branch.winners': '主赛程',
+  'publicWeb.bracket.branch.losers': '败者组',
+  'publicWeb.bracket.branch.grandFinal': '总决赛',
+  'publicWeb.bracket.branch.placement': '排位赛',
+  'publicWeb.bracket.role.place': '第{place}名',
+  'publicWeb.bracket.role.places': '第{from}–{to}名',
 
   'publicWeb.broadcastStatus.disconnected': '实时更新不可用，本页显示的是最近已知的结果。',
 

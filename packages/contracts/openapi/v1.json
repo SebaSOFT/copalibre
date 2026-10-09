@@ -15843,6 +15843,27 @@
           "entrantId"
         ]
       },
+      "BracketSlotSourceResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "description": "The bracket match this side advanced or dropped from"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "winner",
+              "loser"
+            ],
+            "description": "Whether the side won or lost that match, which is what carried it here"
+          }
+        },
+        "required": [
+          "matchId",
+          "outcome"
+        ]
+      },
       "BracketSlotResponse": {
         "type": "object",
         "properties": {
@@ -15863,6 +15884,14 @@
           "matchId": {
             "type": "string",
             "description": "Match this slot sources its participant from"
+          },
+          "from": {
+            "description": "Where this side came from, kept once the slot holds the entrant that got here, so the link between the two matches can still be drawn",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BracketSlotSourceResponse"
+              }
+            ]
           },
           "score": {
             "type": "number",
@@ -15928,6 +15957,11 @@
             "type": "string",
             "description": "Declared match format, e.g. BO3 — absent when the stage declares none",
             "example": "BO3"
+          },
+          "role": {
+            "type": "string",
+            "description": "A placement game’s part in its zone, such as `place-3` or `places-5-8`",
+            "example": "place-3"
           },
           "slots": {
             "type": "array",
@@ -18007,6 +18041,14 @@
             "type": "string",
             "description": "Match this slot sources its participant from"
           },
+          "from": {
+            "description": "Where this side came from, kept once the slot holds the entrant that got here, so the link between the two matches can still be drawn",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BracketSlotSourceResponse"
+              }
+            ]
+          },
           "score": {
             "type": "number",
             "description": "Score recorded for this side, when the match is finalized"
@@ -18057,6 +18099,11 @@
           "matchNumber": {
             "type": "number",
             "description": "The match's stage-unique ordinal for the public report page's URL — present only when this graph node resolved to a real persisted match; a purely theoretical winner-of/loser-of placeholder has none yet"
+          },
+          "role": {
+            "type": "string",
+            "description": "A placement game’s part in its zone, such as `place-3` or `places-5-8`",
+            "example": "place-3"
           },
           "slots": {
             "type": "array",

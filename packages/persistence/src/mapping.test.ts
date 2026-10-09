@@ -442,6 +442,7 @@ describe('mapping edge cases', () => {
         zone_id: null,
         group_id: null,
         round: 2,
+        role: null,
         home_entrant_id: null,
         away_entrant_id: null,
         scheduled_at: null,

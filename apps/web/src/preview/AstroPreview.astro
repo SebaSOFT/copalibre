@@ -65,6 +65,7 @@ import { messages } from '../lib/i18n/public-messages.en.ts';
 import {
   referenceBracket,
   referenceJourneyBracket,
+  referencePlacementBracket,
   referenceClubs,
   referenceGroupMatches,
   referenceMatchReportModel,
@@ -94,6 +95,7 @@ const PREVIEWABLE = new Set([
   'score-ticker-empty',
   'score-ticker-stale',
   'bracket-stage',
+  'bracket-placement',
   'bracket-journey-alive',
   'bracket-journey-champion',
   'bracket-journey-eliminated',
@@ -246,6 +248,18 @@ const tournaments = referenceTournamentListing();
         <BracketView
           intl={intl}
           matches={referenceJourneyBracket(component === 'bracket-journey-champion')}
+          organizationAlias="reference-league"
+          stageNumber={1}
+          tournamentAlias="reference-cup"
+        />
+      )
+    }
+    {
+      /* A third-place game drawn as its own branch, fed by the semi-final losers with dashed links. */
+      component === 'bracket-placement' && (
+        <BracketView
+          intl={intl}
+          matches={referencePlacementBracket()}
           organizationAlias="reference-league"
           stageNumber={1}
           tournamentAlias="reference-cup"

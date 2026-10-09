@@ -58,6 +58,7 @@ import {
 } from '../dto/standings.dto.js';
 import { resolveTournament } from './standings.controller.js';
 import { resolveStageZones } from './bracket-zones.js';
+import { bracketLinks, graphRecordsOf, placementMatchOf } from './bracket-placements.js';
 import {
   planZoneFixtures,
   ZoneFixturePlanError,
@@ -127,7 +128,9 @@ export class SeedingController {
           zone.zoneId === undefined
             ? record
             : await readModel.stageRecord(stageId, undefined, zone.zoneId);
-        const persisted = await readModel.matches(stageId, undefined, zone.zoneId);
+        const zoneRecords = await readModel.matches(stageId, undefined, zone.zoneId);
+        // Placement games sit beside the generated graph, not on it.
+        const persisted = graphRecordsOf(zoneRecords);
         const format = effectiveFormat(zone, { format: record.format as TournamentFormat });
         const graph = this.graphOf(format, zoneRecord?.entrantIds ?? []);
         const ambiguousPositions = ambiguousRoundPositions(graph.matches);
@@ -138,17 +141,41 @@ export class SeedingController {
           records: persisted,
         });
 
+        const graphMatches = graph.matches.map((match) => {
+          const series = seriesByPosition.get(roundPositionKey(match));
+          return toBracketMatch(match, persisted, {
+            ambiguousPositions,
+            matchFormat,
+            ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
+          });
+        });
+        const { placements, sourcesOf } = bracketLinks(graphMatches, zoneRecords, persisted);
+
         return {
           ...zone,
           format,
-          matches: graph.matches.map((match) => {
-            const series = seriesByPosition.get(roundPositionKey(match));
-            return toBracketMatch(match, persisted, {
-              ambiguousPositions,
-              matchFormat,
-              ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
-            });
-          }),
+          matches: [
+            ...graphMatches.map((match) => ({
+              ...match,
+              slots: match.slots.map((slot, slotIndex) => {
+                const from = slot.kind === 'entrant' ? sourcesOf(match)[slotIndex] : undefined;
+                return from === undefined ? slot : { ...slot, from };
+              }),
+            })),
+            ...placements.map((node) => ({
+              ...placementMatchOf(node),
+              slots: [node.record.homeEntrantId, node.record.awayEntrantId].map(
+                (entrantId, index) => ({
+                  kind: 'entrant' as const,
+                  ...(entrantId === undefined ? {} : { entrantId }),
+                  ...(node.sources[index] === undefined ? {} : { from: node.sources[index] }),
+                  ...(node.record.scores?.[index] === undefined
+                    ? {}
+                    : { score: node.record.scores[index] }),
+                }),
+              ),
+            })),
+          ],
         };
       }),
     );

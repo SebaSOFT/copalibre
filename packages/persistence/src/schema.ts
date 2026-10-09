@@ -417,6 +417,8 @@ export interface FixturesTable {
   zone_id: string | null;
   group_id: string | null;
   round: number;
+  /** A placement game's part in its zone (`place-3`, `places-5-8`); null for the generated graph's own matches. */
+  role: string | null;
   home_entrant_id: string | null;
   away_entrant_id: string | null;
   created_at: Timestamp;

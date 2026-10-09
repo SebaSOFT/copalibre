@@ -13,6 +13,8 @@ import {
   toRounds,
   type BracketMatch,
 } from '../../../lib/bracket.ts';
+import { layoutPublicBracket } from '../../../lib/public-bracket-layout.ts';
+import { bracketBranchLabel, bracketRoleLabel } from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 interface Props {
@@ -22,10 +24,36 @@ interface Props {
   readonly tournamentAlias: string;
   readonly stageNumber: number;
   readonly localePrefix?: string;
+  /** The match a report page is about; drawn with a heavier edge and `aria-current`. */
+  readonly highlightMatchNumber?: number;
 }
-const { intl, organizationAlias, tournamentAlias, stageNumber, localePrefix = '' } = Astro.props;
+const {
+  intl,
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  localePrefix = '',
+  highlightMatchNumber,
+} = Astro.props;
 const rounds = toRounds(Astro.props.matches);
 const championship = championshipMatch(Astro.props.matches);
+const layout = layoutPublicBracket(Astro.props.matches);
+// Room above the first band for its column headings (and its name, when a zone draws several).
+const HEAD = layout.bands.length > 1 ? 104 : 64;
+const bandTop = new Map(layout.bands.map((band) => [band.branch, band.y]));
+// A round is the matches of one branch and round number; its column is where the first of them sits.
+const placedRounds = rounds.map((round) => {
+  const nodes = layout.nodes.filter(
+    (node) => node.match.branch === round.branch && node.match.roundNumber === round.roundNumber,
+  );
+  return { round, nodes, x: Math.min(...nodes.map((node) => node.x)), width: nodes[0]?.width ?? 0 };
+});
+const captionOf = (match: (typeof layout.nodes)[number]['match']): string | undefined =>
+  match.role !== undefined
+    ? bracketRoleLabel(intl, match.role)
+    : championship?.matchNumber === match.matchNumber && championship?.branch === match.branch
+      ? intl.formatMessage(messages.bracketChampionshipTitle)
+      : undefined;
 
 const outcomeLabels: Readonly<Record<BracketOutcome, string>> = {
   advancing: intl.formatMessage(messages.bracketOutcomeAdvancing),
@@ -44,7 +72,7 @@ const legend = stageOutcomes(Astro.props.matches).map((outcome) => ({
 }));
 
 const roundLabel = (round: (typeof rounds)[number]): string =>
-  `${round.branch} · ${intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}`;
+  `${bracketBranchLabel(intl, round.branch)} · ${intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}`;
 ---
 
 {
@@ -79,9 +107,50 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
     role="group"
     tabindex="0"
   >
-    <div class="cl-bracket-stage__rounds cl-bracket">
+    <div
+      class="cl-bracket-stage__canvas cl-bracket"
+      style={`width: ${layout.width}px; height: ${layout.height + HEAD}px;`}
+    >
       {
-        rounds.map((round) => (
+        /*
+        Nodes and links on two layers of one fixed-size box, the links as polylines from the right
+        edge of a match to the left edge of the one it feeds. A solid line carries a winner, a dashed
+        one a loser, so nothing leans on colour, and it all prints as drawn.
+      */
+      }
+      <svg
+        aria-hidden="true"
+        class="cl-bracket-stage__links"
+        height={layout.height + HEAD}
+        viewBox={`0 0 ${layout.width} ${layout.height + HEAD}`}
+        width={layout.width}
+      >
+        <g transform={`translate(0 ${HEAD})`}>
+          {
+            layout.connectors.map((connector) => (
+              <polyline
+                class:list={[
+                  'cl-bracket-link',
+                  connector.kind === 'loser-of' && 'cl-bracket-link--loser',
+                ]}
+                data-link-from={connector.fromMatchId}
+                data-link-to={connector.toMatchId}
+                points={connector.points.map((point) => `${point.x},${point.y}`).join(' ')}
+              />
+            ))
+          }
+        </g>
+      </svg>
+      {
+        layout.bands.length > 1 &&
+          layout.bands.map((band) => (
+            <h3 class="cl-bracket-stage__band" style={`top: ${band.y + HEAD - 100}px;`}>
+              {bracketBranchLabel(intl, band.branch)}
+            </h3>
+          ))
+      }
+      {
+        placedRounds.map(({ round, nodes, x, width }) => (
           <section
             aria-label={intl.formatMessage(messages.bracketRoundAriaLabel, {
               branch: round.branch,
@@ -89,27 +158,41 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
             })}
             class="cl-bracket-stage__round"
           >
-            <h3 class="cl-bracket-stage__round-label">{roundLabel(round)}</h3>
-            {round.matches.map((match) => (
-              <div
-                data-journey-match={bracketMatchId(match)}
-                class:list={[
-                  'cl-bracket-stage__node',
-                  championship?.matchNumber === match.matchNumber &&
-                    'cl-bracket-stage__node--championship',
-                ]}
-              >
-                <MatchNode
-                  highlightEntrants
-                  intl={intl}
-                  localePrefix={localePrefix}
-                  match={match}
-                  organizationAlias={organizationAlias}
-                  stageNumber={stageNumber}
-                  tournamentAlias={tournamentAlias}
-                />
-              </div>
-            ))}
+            <h3
+              class="cl-bracket-stage__round-label"
+              style={`left: ${x}px; top: ${(bandTop.get(round.branch) ?? 0) + HEAD - 56}px; width: ${width}px;`}
+            >
+              {intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}
+            </h3>
+            {nodes.map((node) => {
+              const caption = captionOf(node.match);
+              const focused = highlightMatchNumber === node.match.matchNumber;
+              return (
+                <div
+                  aria-current={focused ? 'true' : undefined}
+                  data-journey-match={bracketMatchId(node.match)}
+                  class:list={[
+                    'cl-bracket-stage__node',
+                    championship?.matchNumber === node.match.matchNumber &&
+                      championship?.branch === node.match.branch &&
+                      'cl-bracket-stage__node--championship',
+                    focused && 'cl-bracket-stage__node--focused',
+                  ]}
+                  style={`left: ${node.x}px; top: ${node.y + HEAD}px; width: ${node.width}px; height: ${node.height}px;`}
+                >
+                  {caption !== undefined && <p class="cl-bracket-stage__caption">{caption}</p>}
+                  <MatchNode
+                    highlightEntrants
+                    intl={intl}
+                    localePrefix={localePrefix}
+                    match={node.match}
+                    organizationAlias={organizationAlias}
+                    stageNumber={stageNumber}
+                    tournamentAlias={tournamentAlias}
+                  />
+                </div>
+              );
+            })}
           </section>
         ))
       }
@@ -134,6 +217,9 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
               const outcomes = nodeOutcomes(match);
               return (
                 <li data-journey-match={bracketMatchId(match)}>
+                  {match.role !== undefined && (
+                    <strong>{bracketRoleLabel(intl, match.role)}: </strong>
+                  )}
                   {match.slots.map((slot, index) => (
                     <>
                       {index > 0 && ' — '}
@@ -193,5 +279,19 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
   .cl-bracket-stage__node--championship :global(.cl-card) {
     border-width: 2px;
     border-color: var(--cl-primary);
+  }
+  /* The match a report page is about: a heavier edge and an outline, so it reads without colour. */
+  .cl-bracket-stage__node--focused :global(.cl-card) {
+    border-width: 3px;
+    border-color: var(--cl-primary);
+    outline: 2px dashed var(--cl-primary);
+    outline-offset: 3px;
+  }
+  .cl-bracket-stage__node :global(article),
+  .cl-bracket-stage__node > :global(a) {
+    display: block;
+    box-sizing: border-box;
+    height: 100%;
+    overflow: hidden;
   }
 </style>

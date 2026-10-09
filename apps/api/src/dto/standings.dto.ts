@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsArray, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PublicSeriesStateResponse } from './public-tournament.dto.js';
+import { BracketSlotSourceResponse } from './bracket-slot-source.dto.js';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 
@@ -103,6 +104,14 @@ export class BracketSlotResponse {
   @ApiPropertyOptional({ description: 'Match this slot sources its participant from' })
   matchId?: string;
 
+  @ApiPropertyOptional({
+    type: () => BracketSlotSourceResponse,
+    description:
+      'Where this side came from, kept once the slot holds the entrant that got here, so the ' +
+      'link between the two matches can still be drawn',
+  })
+  from?: BracketSlotSourceResponse;
+
   @ApiPropertyOptional({ description: 'Score recorded for this side, when the match is finalized' })
   score?: number;
 
@@ -150,6 +159,12 @@ export class BracketMatchResponse {
     example: 'BO3',
   })
   format?: string;
+
+  @ApiPropertyOptional({
+    description: 'A placement game’s part in its zone, such as `place-3` or `places-5-8`',
+    example: 'place-3',
+  })
+  role?: string;
 
   @ApiProperty({ type: BracketSlotResponse, isArray: true })
   slots!: BracketSlotResponse[];

@@ -28,6 +28,8 @@ function mapBracketZoneMatches(
     matchId: m.matchId,
     matchNumber: m.matchNumber ?? m.position,
     roundNumber: m.round,
+    position: m.position,
+    ...(m.role === undefined ? {} : { role: m.role }),
     branch: m.bracket,
     state: (m.status === 'finalized' || m.status === 'forfeited'
       ? 'final'
@@ -52,6 +54,9 @@ function mapBracketZoneMatches(
         abbreviation: s.abbreviation,
         clubId: s.clubId,
         emblemObjectId: s.emblemObjectId,
+        ...(s.from === undefined
+          ? {}
+          : { from: { matchId: s.from.matchId, outcome: s.from.outcome } }),
       };
     }),
     ...(m.series === undefined ? {} : { series: m.series as PublicSeriesState }),

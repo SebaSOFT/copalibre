@@ -188,6 +188,11 @@ export const UnknownComponent: Story = {
   args: { component: 'not-a-component', height: 220 },
 };
 
+/** A zone with a third-place game: its own labelled branch, linked from the semi-final losers by dashed lines. */
+export const BracketPlacementGame: Story = {
+  args: { component: 'bracket-placement', height: 900 },
+};
+
 export const BracketJourneyAlive: Story = {
   args: { component: 'bracket-journey-alive', height: 640 },
 };

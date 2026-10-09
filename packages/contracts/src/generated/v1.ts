@@ -4549,6 +4549,15 @@ export interface components {
             /** Format: uuid */
             entrantId: string;
         };
+        BracketSlotSourceResponse: {
+            /** @description The bracket match this side advanced or dropped from */
+            matchId: string;
+            /**
+             * @description Whether the side won or lost that match, which is what carried it here
+             * @enum {string}
+             */
+            outcome: "winner" | "loser";
+        };
         BracketSlotResponse: {
             /**
              * @description Where this side comes from
@@ -4559,6 +4568,8 @@ export interface components {
             entrantId?: string;
             /** @description Match this slot sources its participant from */
             matchId?: string;
+            /** @description Where this side came from, kept once the slot holds the entrant that got here, so the link between the two matches can still be drawn */
+            from?: components["schemas"]["BracketSlotSourceResponse"];
             /** @description Score recorded for this side, when the match is finalized */
             score?: number;
             /**
@@ -4591,6 +4602,11 @@ export interface components {
              * @example BO3
              */
             format?: string;
+            /**
+             * @description A placement game’s part in its zone, such as `place-3` or `places-5-8`
+             * @example place-3
+             */
+            role?: string;
             slots: components["schemas"]["BracketSlotResponse"][];
             /** @description Present only on a cross settled by a series */
             series?: components["schemas"]["PublicSeriesStateResponse"];
@@ -5362,6 +5378,8 @@ export interface components {
             emblemObjectId?: string;
             /** @description Match this slot sources its participant from */
             matchId?: string;
+            /** @description Where this side came from, kept once the slot holds the entrant that got here, so the link between the two matches can still be drawn */
+            from?: components["schemas"]["BracketSlotSourceResponse"];
             /** @description Score recorded for this side, when the match is finalized */
             score?: number;
             /**
@@ -5380,6 +5398,11 @@ export interface components {
             format?: string;
             /** @description The match's stage-unique ordinal for the public report page's URL — present only when this graph node resolved to a real persisted match; a purely theoretical winner-of/loser-of placeholder has none yet */
             matchNumber?: number;
+            /**
+             * @description A placement game’s part in its zone, such as `place-3` or `places-5-8`
+             * @example place-3
+             */
+            role?: string;
             slots: components["schemas"]["PublicBracketSlotResponse"][];
             /** @description Present only on a cross settled by a series */
             series?: components["schemas"]["PublicSeriesStateResponse"];

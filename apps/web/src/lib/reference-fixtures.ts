@@ -896,3 +896,27 @@ export function referenceJourneyBracket(complete = false): readonly BracketMatch
     return match;
   });
 }
+
+/** The reference bracket with its two semi-final losers' third-place game, drawn as a placement branch. */
+export function referencePlacementBracket(): readonly BracketMatch[] {
+  const bracket = referenceJourneyBracket(true);
+  const semiLosers = bracket
+    .filter((match) => match.roundNumber === 2)
+    .map((match) => match.matchNumber);
+  return [
+    ...bracket,
+    {
+      matchNumber: 8,
+      roundNumber: 3,
+      position: 1,
+      role: 'place-3',
+      branch: 'placement',
+      state: 'final',
+      slots: [
+        { kind: 'loser-of', matchNumber: semiLosers[0] },
+        { kind: 'loser-of', matchNumber: semiLosers[1] },
+      ],
+      scores: [1, 0],
+    },
+  ];
+}

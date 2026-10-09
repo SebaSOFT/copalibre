@@ -2556,6 +2556,103 @@ describe('public projections routes', () => {
       expect(otherGoldSlot.emblemObjectId).toBeUndefined();
     });
 
+    it('draws a placement game as its own branch and keeps it off the generated final', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const competition = new CompetitionRepository(scratch.db);
+      const enrollments = new EnrollmentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+
+      const created = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-placement-bracket',
+          name: 'Copa Placement Bracket',
+          descriptor,
+          ...audit,
+        }),
+      );
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.publish(uow, { tournamentId: created.tournamentId, organizationId, ...audit }),
+      );
+
+      const entrants = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        const register = async (alias: string): Promise<string> => {
+          const team = await enrollments.createTeam(uow, {
+            organizationId,
+            alias: `team-${alias}`,
+            name: `Team ${alias}`,
+            ...audit,
+          });
+          const entrant = await enrollments.registerEntrant(uow, {
+            tournamentId: created.tournamentId,
+            organizationId,
+            entrantRef: { kind: 'team', teamId: team.teamId },
+            ...audit,
+          });
+          return entrant.entrantId;
+        };
+        const [a, b, c, d] = [
+          await register('pa'),
+          await register('pb'),
+          await register('pc'),
+          await register('pd'),
+        ] as [string, string, string, string];
+        const stage = await competition.createStageInTournament(uow, {
+          tournamentId: created.tournamentId,
+          number: 1,
+          name: 'Copa con puestos',
+          format: 'single-elimination',
+          organizationId,
+          ...audit,
+        });
+        const zone = await competition.createZone(uow, {
+          stageId: stage.stageId,
+          number: 1,
+          name: 'Copa Unica',
+          organizationId,
+          ...audit,
+        });
+        // Two semi-finals, then a final and a third-place game in the same round. Fixtures are
+        // matched to the graph by round and position, so the placement game must not take the
+        // final's place even though it is created first.
+        await competition.createFixtures(uow, {
+          stageId: stage.stageId,
+          fixtures: [
+            { round: 1, homeEntrantId: a, awayEntrantId: b, zoneId: zone.zoneId },
+            { round: 1, homeEntrantId: c, awayEntrantId: d, zoneId: zone.zoneId },
+            { round: 2, homeEntrantId: b, awayEntrantId: d, zoneId: zone.zoneId, role: 'place-3' },
+            { round: 2, homeEntrantId: a, awayEntrantId: c, zoneId: zone.zoneId },
+          ],
+          organizationId,
+          ...audit,
+        });
+        return { a, b, c, d };
+      });
+
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${created.alias}/stages/1/bracket`,
+      });
+      expect(response.statusCode).toBe(200);
+      const zone = response.json().zones[0];
+      expect(zone.matches).toHaveLength(4);
+
+      const final = zone.matches.find((m: { matchId: string }) => m.matchId === 'SE-R2-M1');
+      expect(final.slots.map((slot: { entrantId: string }) => slot.entrantId)).toEqual([
+        entrants.a,
+        entrants.c,
+      ]);
+
+      const placement = zone.matches.find((m: { role?: string }) => m.role === 'place-3');
+      expect(placement).toMatchObject({ bracket: 'placement', round: 2, position: 1 });
+      expect(placement.slots.map((slot: { entrantId: string }) => slot.entrantId)).toEqual([
+        entrants.b,
+        entrants.d,
+      ]);
+      expect(placement.matchNumber).toEqual(expect.any(Number));
+    });
+
     it('gives every zone a distinct, stage-wide matchNumber that matchReport() resolves back to the same match', async () => {
       const response = await request({
         method: 'GET',

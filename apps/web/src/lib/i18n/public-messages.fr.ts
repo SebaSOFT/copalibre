@@ -95,6 +95,12 @@ export const messages: Record<string, string> = {
 
   'publicWeb.bracket.roundAriaLabel': '{branch} — tour {round}',
   'publicWeb.bracket.roundHeading': 'Tour {round}',
+  'publicWeb.bracket.branch.winners': 'Tableau principal',
+  'publicWeb.bracket.branch.losers': 'Tableau des perdants',
+  'publicWeb.bracket.branch.grandFinal': 'Grande finale',
+  'publicWeb.bracket.branch.placement': 'Matchs de classement',
+  'publicWeb.bracket.role.place': 'Place {place}',
+  'publicWeb.bracket.role.places': 'Places {from} à {to}',
 
   'publicWeb.broadcastStatus.disconnected':
     'Les mises à jour en direct sont indisponibles. Cette page affiche les derniers résultats connus.',

@@ -212,6 +212,22 @@ describe('migrations (integration)', () => {
       expect.arrayContaining([expect.objectContaining({ name: 'format', isNullable: true })]),
     );
 
+    expect(afterUpTables.find((table) => table.name === 'fixtures')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'role', isNullable: true })]),
+    );
+
+    const fixtureRoleDown = await migrateDownOneStep(scratch.db);
+    expect(fixtureRoleDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0040-zone-format');
+    const afterFixtureRoleDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterFixtureRoleDownTables.find((table) => table.name === 'fixtures')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'role' })]));
+    // The column beneath it survives the step down.
+    expect(afterFixtureRoleDownTables.find((table) => table.name === 'zones')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'format' })]),
+    );
+
     const zoneFormatDown = await migrateDownOneStep(scratch.db);
     expect(zoneFormatDown.error).toBeUndefined();
     await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
