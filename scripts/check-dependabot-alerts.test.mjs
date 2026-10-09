@@ -20,9 +20,10 @@ const lock = `
 `;
 
 test('the unpatched advisory register records exact package, GHSA and exposure context', () => {
-  assert.deepEqual(Object.keys(KNOWN_UNPATCHED_ADVISORIES), ['71', '72']);
+  assert.deepEqual(Object.keys(KNOWN_UNPATCHED_ADVISORIES), ['71', '72', '73']);
   assert.equal(KNOWN_UNPATCHED_ADVISORIES[71].package, 'braces');
   assert.equal(KNOWN_UNPATCHED_ADVISORIES[72].package, 'http-cache-semantics');
+  assert.equal(KNOWN_UNPATCHED_ADVISORIES[73].package, 'sprintf-js');
   for (const entry of Object.values(KNOWN_UNPATCHED_ADVISORIES)) {
     assert.match(entry.dependencyPath, / -> /);
     assert.match(entry.runtimeExposure, /^none;/);
@@ -128,6 +129,11 @@ test('the API audit fails unknown alerts and detects a patch below current lock 
       token: 'test-token',
       fetchImpl,
       lockText: lock,
+      // The responses above are scripted for these two entries, not for the whole register.
+      known: {
+        71: KNOWN_UNPATCHED_ADVISORIES[71],
+        72: KNOWN_UNPATCHED_ADVISORIES[72],
+      },
     }),
     /braces: locked 3\.0\.3 is below upstream patched version 3\.0\.4/,
   );
