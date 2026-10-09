@@ -154,11 +154,11 @@ describe('discipline backdrop', () => {
   });
 
   it('draws the one backdrop fixed, blurred and oversized, sized to the dynamic viewport', () => {
-    expect(layout).toContain('--cl-discipline-background-blur');
+    expect(layout).toContain('--discipline-backdrop-blur');
     expect(layout).toMatch(/\.cl-discipline-background \{[\s\S]*?position: fixed;/);
     expect(layout).toMatch(/height: 100dvh;/);
     expect(layout).toMatch(
-      /img\.cl-discipline-background \{[\s\S]*?filter: blur\(var\(--cl-discipline-background-blur[\s\S]*?scale\(1\.06\)/,
+      /img\.cl-discipline-background \{[\s\S]*?filter: blur\(var\(--discipline-backdrop-blur[\s\S]*?scale\(1\.06\)/,
     );
   });
 

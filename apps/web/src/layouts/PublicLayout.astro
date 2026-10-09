@@ -96,7 +96,7 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
           alt=""
           aria-hidden="true"
           decoding="async"
-          style={`opacity: ${background.opacity}; --cl-discipline-background-blur: ${background.blurPx ?? 0}px;`}
+          style={`opacity: ${background.opacity}; --discipline-backdrop-blur: ${background.blurPx ?? 0}px;`}
         />
       ) : (
         /*
@@ -199,7 +199,7 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
    * showing as a transparent rim. The neutral ground is a gradient, not an image, and takes no filter.
    */
   img.cl-discipline-background {
-    filter: blur(var(--cl-discipline-background-blur, 0px));
+    filter: blur(var(--discipline-backdrop-blur, 0px));
     transform: scale(1.06);
   }
 
