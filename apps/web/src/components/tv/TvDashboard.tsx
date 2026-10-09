@@ -329,7 +329,11 @@ export function TvDashboard({
   // rotating dashboard pages the list too before it moves to the next section.
   const matchPages = useMemo(() => pageTvMatches(matchList ?? []), [matchList]);
   useEffect(() => {
-    if (prefersReducedMotion || initialView === 'standings') return;
+    if (initialView === 'standings') return;
+    // Paging a list is how a screen with no input reaches its later pages, not decoration, so a
+    // fixed `matches` view pages whatever the motion preference is; only the rotation between
+    // sections is held still by it.
+    if (prefersReducedMotion && initialView !== 'matches') return;
     const interval = setInterval(() => {
       setRail((current) => {
         if (current.tab === 'fixtures' && current.page < matchPages.length - 1) {

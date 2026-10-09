@@ -1446,3 +1446,70 @@
     height: 9vmin;
   }
 }
+
+/* The abbreviation stands in for the name on a narrow frame; wide frames show the name. */
+.tv-team-side__short {
+  display: none;
+  text-decoration: none;
+}
+
+/*
+ * Narrow or portrait frames: the title card stacks (brand and titles above, status and clock
+ * below) instead of splitting its width in two, the pinned match shows abbreviations, smaller
+ * emblems and a score that stays on one line, and each entry of the match list is two lines.
+ */
+@media (max-width: 768px), (orientation: portrait) {
+  .tv-scorebug {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.6vmin;
+    padding: 2.4vmin 3vmin;
+  }
+
+  .tv-scorebug__right {
+    justify-content: flex-start;
+  }
+
+  .tv-match-spotlight__vs-grid {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 2vmin;
+  }
+
+  .tv-match-spotlight__vs-grid .tv-team-side__emblem-wrap,
+  .tv-match-spotlight__vs-grid .tv-team-side--anchor .tv-team-side__emblem-wrap {
+    width: 64px;
+    height: 64px;
+  }
+
+  .tv-team-side__full {
+    display: none;
+  }
+
+  .tv-team-side__short {
+    display: block;
+    max-width: 100%;
+    font-size: clamp(1.1rem, 5vw, 1.6rem);
+  }
+
+  .tv-score-center__digits {
+    font-size: clamp(2.2rem, 11vw, 3.5rem);
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+
+  .tv-match-list__entries {
+    gap: 0.8vmin;
+  }
+
+  .tv-match-list__entry {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    row-gap: 0.4vmin;
+    padding: 1vmin 1.2vmin;
+  }
+
+  /* The zone and round take a row of their own, so the sides keep the width of the cell. */
+  .tv-match-list__round {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+}

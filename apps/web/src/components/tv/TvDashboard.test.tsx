@@ -1176,5 +1176,24 @@ describe('TvDashboard pinned match and views', () => {
       act(() => jest.advanceTimersByTime(10_000));
       expect(entries()).toBe(24);
     });
+
+    it('keeps paging a fixed match view when the viewer prefers reduced motion', () => {
+      const original = window.matchMedia;
+      window.matchMedia = ((query: string) => ({
+        matches: query.includes('prefers-reduced-motion'),
+        media: query,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      })) as unknown as typeof window.matchMedia;
+      try {
+        renderTv({ initialView: 'matches', matchList });
+
+        expect(screen.getByText('Page 1 of 2')).toBeDefined();
+        act(() => jest.advanceTimersByTime(10_000));
+        expect(screen.getByText('Page 2 of 2')).toBeDefined();
+      } finally {
+        window.matchMedia = original;
+      }
+    });
   });
 });
