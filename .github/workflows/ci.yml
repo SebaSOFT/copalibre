@@ -771,6 +771,9 @@ jobs:
     services:
       postgres:
         image: postgres:17
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           POSTGRES_USER: copalibre
           POSTGRES_PASSWORD: copalibre_ci_only
@@ -813,6 +816,9 @@ jobs:
     services:
       postgres:
         image: postgres:17
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           POSTGRES_USER: copalibre
           POSTGRES_PASSWORD: copalibre_ci_only
@@ -826,6 +832,9 @@ jobs:
           --health-retries 10
       clamd:
         image: clamav/clamav:1.5.4-debian13-slim
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
         ports:
           - 3310:3310
     env:
@@ -971,9 +980,21 @@ jobs:
       needs.integration-tests.result != 'cancelled' &&
       needs.e2e-tests.result != 'failure' &&
       needs.e2e-tests.result != 'cancelled'
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v4
+      # Anonymous Docker Hub pulls share one rate limit across GitHub's runner pool. Authenticating
+      # lifts it; without the secret (a fork's or Dependabot's run) the pull stays anonymous, and a
+      # failed login never fails the job.
+      - name: Log in to Docker Hub
+        if: env.DOCKERHUB_USERNAME != ''
+        continue-on-error: true
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       # buildx's own GitHub Actions cache backend (type=gha) — no extra
       # action needed beyond setup-buildx-action, it talks to the runner's
       # built-in cache API directly. Every GitHub-hosted runner is a fresh
@@ -1018,6 +1039,7 @@ jobs:
     if: "!cancelled() && needs.build.result == 'success'"
     timeout-minutes: 30
     env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       COPALIBRE_IMAGE: copalibre:ci
       COPALIBRE_WEB_IMAGE: copalibre-web:ci
       POSTGRES_PASSWORD: copalibre_e2e_only
@@ -1053,6 +1075,16 @@ jobs:
         with:
           name: copalibre-images
       - run: gzip --decompress --stdout copalibre-images.tar.gz | docker load
+      # Anonymous Docker Hub pulls share one rate limit across GitHub's runner pool. Authenticating
+      # lifts it; without the secret (a fork's or Dependabot's run) the pull stays anonymous, and a
+      # failed login never fails the job.
+      - name: Log in to Docker Hub
+        if: env.DOCKERHUB_USERNAME != ''
+        continue-on-error: true
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Start JWKS stub
         run: docker compose -f docker-compose.yml -f docker-compose.jwks-test.yml --profile jwks-test up --detach jwks-stub
       - run: mkdir -p ci-e2e-install
@@ -1096,6 +1128,7 @@ jobs:
     # same !cancelled() requirement, for the same reason.
     if: "!cancelled() && needs.build.result == 'success' && needs.deployment-e2e.result == 'success'"
     env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       COPALIBRE_IMAGE: copalibre:ci
       COPALIBRE_WEB_IMAGE: copalibre-web:ci
       POSTGRES_PASSWORD: copalibre_ci_only
@@ -1120,6 +1153,16 @@ jobs:
           name: copalibre-images
       - name: Load tested images
         run: gzip --decompress --stdout copalibre-images.tar.gz | docker load
+      # Anonymous Docker Hub pulls share one rate limit across GitHub's runner pool. Authenticating
+      # lifts it; without the secret (a fork's or Dependabot's run) the pull stays anonymous, and a
+      # failed login never fails the job.
+      - name: Log in to Docker Hub
+        if: env.DOCKERHUB_USERNAME != ''
+        continue-on-error: true
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Start all runtime roles
         run: docker compose up --detach --wait
       - name: Start JWKS stub
