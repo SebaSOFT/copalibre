@@ -467,12 +467,12 @@ describe('runCli', () => {
       });
     });
 
-    it('runs the doctor service without pulling a remote image', () => {
+    it('runs the doctor service pulling only an image the host does not have', () => {
       expect(dockerComposeDoctorRunArgs(['--smoke'])).toEqual([
         'compose',
         'run',
         '--pull',
-        'never',
+        'missing',
         '--rm',
         'doctor',
         '--smoke',

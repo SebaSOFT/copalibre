@@ -1068,6 +1068,12 @@ jobs:
         working-directory: ci-e2e-install
         run: |
           ../copalibre init
+          # `init` writes placeholder secrets and `doctor` refuses them, as it should on a
+          # real host: put this job's own unique values in the installation's .env first.
+          for key in POSTGRES_PASSWORD COPALIBRE_BOOTSTRAP_TOKEN; do
+            sed "s|^${key}=.*|${key}=${!key}|" .env > .env.next
+            mv .env.next .env
+          done
           ../copalibre doctor
           ../copalibre start
           ../copalibre create-admin --organization-alias integrity-league --organization-name "Integrity League" --email admin@example.test
