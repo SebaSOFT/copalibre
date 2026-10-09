@@ -14,7 +14,10 @@ import {
 } from './ui/organisms/BroadcastAlertBanner.js';
 import { resolveLiveTvMatchEvent } from '../../lib/tv-match-events.js';
 import { presentState } from '../../lib/result-state.js';
-import { formatClock } from '../../lib/matches-view.js';
+import { applyTemplate, formatClock } from '../../lib/matches-view.js';
+import { formatTimestamp } from '../../lib/format-timestamp.js';
+import { findPinnedMatch, type PinnedMatchRef } from '../../lib/tv-dashboard-source.js';
+import { pageTvMatches, type TvMatchEntry } from '../../lib/tv-match-list.js';
 import { resolveTvBranding, tvStateColor, type TvBranding } from '../../lib/tv-branding.js';
 import type { StandingsRowView } from '../../lib/overview.js';
 import {
@@ -36,11 +39,11 @@ import type { TvClubItem, TvDashboardLabels, TvWinnerZone } from './tv-types.js'
 import type { TvMatchEvent } from '../../lib/tv-match-events.js';
 import { mapBracketResponse } from '../../lib/bracket-projection.js';
 import type { BracketZone } from '../../lib/bracket-projection.js';
-import { bracketZonesOf, leagueZonesOf } from '../../lib/bracket.js';
+import { bracketZonesOf } from '../../lib/bracket.js';
 import type { PublicBracketResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { TvMatchIndicators } from './ui/organisms/TvMatchIndicators.js';
 import { TvBracketView } from './ui/organisms/TvBracketView.js';
-import { TvLeagueFixtures } from './ui/organisms/TvLeagueFixtures.js';
+import { TvMatchList } from './ui/organisms/TvMatchList.js';
 import { TvChampions } from './ui/organisms/TvChampions.js';
 import { TvEmblem } from './ui/atoms/TvEmblem.js';
 
@@ -62,10 +65,20 @@ export interface TvDashboardProps {
    * consumer actually captures — never carried the overlay presentation.
    */
   readonly presentation?: TvPresentation;
-  /** Set on the pinned-match route; the full-rotation route leaves this unset. */
-  readonly pinnedMatchNumber?: number;
-  /** Keeps a launcher-selected TV tab fixed instead of entering carousel rotation. */
-  readonly initialView?: 'standings' | 'fixtures';
+  /**
+   * Set on the pinned-match route; the full-rotation route leaves this unset. The match is named
+   * the way the public match route names it, by its stage and its ordinal within that stage.
+   */
+  readonly pinnedMatch?: PinnedMatchRef;
+  /**
+   * Keeps a launcher-selected view fixed and full-frame instead of entering carousel rotation:
+   * `standings` fills the frame with the table, `matches` with the paged match list.
+   */
+  readonly initialView?: 'standings' | 'matches';
+  /** The organization's IANA zone, in which the header's clock is read. */
+  readonly timeZone?: string;
+  /** The date of the tournament's last match, shown as the day a finished tournament ended. */
+  readonly lastMatchAt?: string;
   /**
    * The pinned match's own recorded events (goals, cards), set only on the pinned-match route —
    * the full-rotation route leaves this unset, same as `pinnedMatchNumber`.
@@ -84,9 +97,12 @@ export interface TvDashboardProps {
     readonly stageNumber: number;
     /** Zones playing an elimination format: drawn as a bracket. */
     readonly zones: readonly BracketZone[];
-    /** Zones playing a league beside them: listed by round. Absent for a stage without any. */
-    readonly leagueZones?: readonly BracketZone[];
   };
+  /**
+   * Every match of the tournament as list entries, for the `matches` section: it pages through
+   * them. Absent or empty leaves the dashboard without that section.
+   */
+  readonly matchList?: readonly TvMatchEntry[];
   readonly branding?: TvBranding;
   readonly tournamentName?: string;
   readonly organizationName?: string;
@@ -125,10 +141,13 @@ export function TvDashboard({
   initial,
   streamPath,
   presentation = 'kiosk',
-  pinnedMatchNumber,
+  pinnedMatch: pinnedRef,
+  timeZone,
+  lastMatchAt,
   matchEvents,
   rosterActors,
   initialBracket,
+  matchList,
   branding,
   tournamentName,
   organizationName,
@@ -146,9 +165,12 @@ export function TvDashboard({
   initialView,
 }: TvDashboardProps): React.JSX.Element {
   const [dashboard, setDashboard] = useState<LiveDashboard>(initial);
-  const [activeTab, setActiveTab] = useState<
-    'standings' | 'performers' | 'facts' | 'bracket' | 'fixtures'
-  >(initialView ?? 'standings');
+  const [rail, setRail] = useState<{
+    readonly tab: 'standings' | 'performers' | 'facts' | 'bracket' | 'fixtures';
+    readonly page: number;
+  }>({ tab: initialView === 'matches' ? 'fixtures' : 'standings', page: 0 });
+  const activeTab = rail.tab;
+  const setActiveTab = (tab: typeof rail.tab): void => setRail({ tab, page: 0 });
   const [bracketData, setBracketData] = useState(initialBracket);
   const [currentTime, setCurrentTime] = useState<string>('');
   const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(() => {
@@ -171,22 +193,18 @@ export function TvDashboard({
     [matchEvents],
   );
 
-  // 1. Digital Clock (JetBrains Mono formatting)
+  // 1. Wall clock, to the minute, in the organization's zone: a venue screen watched from across
+  // the room has no use for seconds, and a finished tournament shows no clock at all.
   useEffect(() => {
     const updateClock = () => {
-      const now = new Date();
       setCurrentTime(
-        now.toLocaleTimeString(language, {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        }),
+        formatTimestamp(new Date(), { locale: language, format: 'time-only', timeZone }),
       );
     };
     updateClock();
-    const timer = setInterval(updateClock, 1000);
+    const timer = setInterval(updateClock, 15_000);
     return () => clearInterval(timer);
-  }, [language]);
+  }, [language, timeZone]);
 
   // 2. Motion Preference Listener
   useEffect(() => {
@@ -205,7 +223,7 @@ export function TvDashboard({
     if (!organizationAlias || !tournamentAlias) return undefined;
     try {
       const res = await fetch(
-        `/api/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/live`,
+        `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/live`,
       );
       if (res.ok) {
         const liveData = await res.json();
@@ -253,9 +271,9 @@ export function TvDashboard({
       onEvent: (event) => {
         setDashboard((current) => applyEvent(current, event));
         const before =
-          pinnedMatchNumber === undefined
+          pinnedRef === undefined
             ? undefined
-            : dashboardRef.current.matches.find((m) => m.matchNumber === pinnedMatchNumber);
+            : findPinnedMatch(dashboardRef.current.matches, pinnedRef);
         void refreshProjection().then((updated) => {
           if (
             !showBroadcastAlerts ||
@@ -303,32 +321,41 @@ export function TvDashboard({
     });
 
     return () => client.close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reconnecting SSE on every render of a prop that changes is worse than a stale closure here: pinnedMatchNumber/rosterActors/showBroadcastAlerts are server-supplied once at mount (same treatment matchEvents itself already gets), and eventLabelsByCode only grows from the same static matchEvents.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reconnecting SSE on every render of a prop that changes is worse than a stale closure here: pinnedRef/rosterActors/showBroadcastAlerts are server-supplied once at mount (same treatment matchEvents itself already gets), and eventLabelsByCode only grows from the same static matchEvents.
   }, [streamPath, refreshProjection, presentation]);
 
   // 5. Automatic Carousel Rotation (respects prefers-reduced-motion)
+  // A fixed `standings` view has nothing to rotate; a fixed `matches` view only pages its list; the
+  // rotating dashboard pages the list too before it moves to the next section.
+  const matchPages = useMemo(() => pageTvMatches(matchList ?? []), [matchList]);
   useEffect(() => {
-    if (prefersReducedMotion || initialView) return;
+    if (prefersReducedMotion || initialView === 'standings') return;
     const interval = setInterval(() => {
-      setActiveTab((current) => {
-        if (current === 'standings') return 'performers';
-        if (current === 'performers') return 'facts';
-        // The bracket and the league fixtures join the rotation only for a stage that has them.
-        if (current === 'facts' && bracketData?.zones.length) return 'bracket';
-        if (current === 'facts' && bracketData?.leagueZones?.length) return 'fixtures';
-        if (current === 'bracket' && bracketData?.leagueZones?.length) return 'fixtures';
-        return 'standings';
+      setRail((current) => {
+        if (current.tab === 'fixtures' && current.page < matchPages.length - 1) {
+          return { tab: 'fixtures', page: current.page + 1 };
+        }
+        if (initialView === 'matches') return { tab: 'fixtures', page: 0 };
+        const next = (tab: typeof current.tab): typeof current.tab => {
+          if (tab === 'standings') return 'performers';
+          if (tab === 'performers') return 'facts';
+          // The bracket and the match list join the rotation only for a stage that has them.
+          if (tab === 'facts' && bracketData?.zones.length) return 'bracket';
+          if (tab === 'facts' && matchPages.length > 0) return 'fixtures';
+          if (tab === 'bracket' && matchPages.length > 0) return 'fixtures';
+          return 'standings';
+        };
+        return { tab: next(current.tab), page: 0 };
       });
     }, 10_000);
     return () => clearInterval(interval);
-  }, [prefersReducedMotion, bracketData, initialView]);
+  }, [prefersReducedMotion, bracketData, initialView, matchPages.length]);
 
   // 6. Data Computations
   const matches = dashboard.matches;
-  const pinnedMatch =
-    pinnedMatchNumber === undefined
-      ? undefined
-      : matches.find((m) => m.matchNumber === pinnedMatchNumber);
+  const pinnedMatch = pinnedRef === undefined ? undefined : findPinnedMatch(matches, pinnedRef);
+  // A pinned route names one match; one that does not exist is said so, never swapped for another.
+  const pinnedMissing = pinnedRef !== undefined && pinnedMatch === undefined;
 
   const liveMatches = matches.filter((m) => m.state === 'live');
   const allFinal = matches.length > 0 && matches.every((m) => m.state === 'final');
@@ -347,7 +374,11 @@ export function TvDashboard({
         ? undefined
         : resolveChampion(labels, matches, standings, clubs);
   const showZoneChampions = allFinal && winnerZones.length > 0 && champion === undefined;
-  const showRecap = allFinal && (champion !== undefined || showZoneChampions);
+  // The recap belongs to the rotating dashboard alone: a pinned match and a fixed view mean what
+  // they say, finished tournament or not.
+  const isRotatingDashboard = pinnedRef === undefined && initialView === undefined;
+  const showRecap =
+    isRotatingDashboard && allFinal && (champion !== undefined || showZoneChampions);
   const performers: readonly TopPerformer[] =
     initialTopPerformers && initialTopPerformers.length > 0
       ? initialTopPerformers
@@ -362,28 +393,19 @@ export function TvDashboard({
   };
 
   // Spotlight Match (pinned match or active live match or first match)
-  const spotlightMatch = pinnedMatch ?? liveMatches[0] ?? matches[0];
+  const spotlightMatch = pinnedRef === undefined ? (liveMatches[0] ?? matches[0]) : pinnedMatch;
   const bracketStage = spotlightMatch?.stageNumber;
   useEffect(() => {
     if (presentation === 'lower' || !organizationAlias || !tournamentAlias || !bracketStage) return;
     const refreshBracket = async () => {
       try {
         const response = await fetch(
-          `/api/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${bracketStage}/bracket`,
+          `/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${bracketStage}/bracket`,
         );
         if (!response.ok) return;
         const mapped = mapBracketResponse((await response.json()) as PublicBracketResponse);
         const zones = bracketZonesOf(mapped);
-        const leagueZones = leagueZonesOf(mapped);
-        setBracketData(
-          zones.length > 0 || leagueZones.length > 0
-            ? {
-                stageNumber: bracketStage,
-                zones,
-                ...(leagueZones.length > 0 ? { leagueZones } : {}),
-              }
-            : undefined,
-        );
+        setBracketData(zones.length > 0 ? { stageNumber: bracketStage, zones } : undefined);
       } catch {
         // The other TV sections retain their last-known projection.
       }
@@ -393,10 +415,22 @@ export function TvDashboard({
     return () => window.clearInterval(timer);
   }, [organizationAlias, tournamentAlias, bracketStage, presentation, pollIntervalMs]);
   const visibleBracket = bracketData?.stageNumber === bracketStage ? bracketData : undefined;
+  // The match's own clock when it has one; otherwise the wall clock of a tournament still being
+  // played. A finished tournament carries a date instead, below.
   const displayedClock =
     spotlightMatch?.clockSeconds !== undefined
       ? formatClock(spotlightMatch.clockSeconds)
-      : currentTime;
+      : allFinal
+        ? ''
+        : currentTime;
+  const showsWallClock =
+    spotlightMatch?.clockSeconds === undefined && !allFinal && currentTime !== '';
+  const finishedText =
+    allFinal && lastMatchAt !== undefined
+      ? applyTemplate(dashboardLabels.finishedOn, {
+          date: formatTimestamp(lastMatchAt, { locale: language, format: 'date-long', timeZone }),
+        })
+      : undefined;
 
   /*
    * A lower third is a strip, not a scene: it names the two sides, their score
@@ -417,6 +451,10 @@ export function TvDashboard({
       queue={alertQueue}
     />
   ) : null;
+
+  const fixedView = initialView !== undefined;
+  const labelStage = (ref: PinnedMatchRef | undefined): string =>
+    ref === undefined ? '' : `${ref.stageNumber} · ${ref.ordinal}`;
 
   if (presentation === 'lower') {
     return (
@@ -499,11 +537,25 @@ export function TvDashboard({
               <span className="tv-scorebug__dot" />
               <span>{statusBadge.label}</span>
             </div>
+            {showsWallClock && (
+              <span className="tv-scorebug__clock-label">{dashboardLabels.clockLabel}</span>
+            )}
             {displayedClock && (
               <span
                 className="tv-scorebug__clock"
                 data-time={displayedClock}
-                aria-label={displayedClock}
+                aria-label={
+                  showsWallClock
+                    ? `${dashboardLabels.clockLabel} ${displayedClock}`
+                    : displayedClock
+                }
+              />
+            )}
+            {finishedText !== undefined && (
+              <span
+                className="tv-scorebug__clock"
+                data-time={finishedText}
+                aria-label={finishedText}
               />
             )}
           </div>
@@ -511,101 +563,115 @@ export function TvDashboard({
       )}
 
       {/* 2. Main Stage (Dominant Focal Panel + Secondary Rotating Rail) */}
-      <main className="tv-main-stage">
+      <main className={fixedView ? 'tv-main-stage tv-main-stage--single' : 'tv-main-stage'}>
         {/* DOMINANT FOCAL PANEL */}
-        <section aria-label={dashboardLabels.focalPanelLabel} className="tv-focal-panel cl-chamfer">
-          <div className="tv-focal-panel__header">
-            <span className="tv-focal-panel__label">
-              {showRecap ? 'Recapitulativo de Campeonato' : 'Foco del Encuentro'}
-            </span>
-          </div>
-
-          {showZoneChampions ? (
-            /* The champions of every zone of the last stage */
-            <TvChampions zones={winnerZones} />
-          ) : allFinal && champion ? (
-            /* Champion Spotlight Presentation */
-            <div className="tv-champion" data-testid="tv-champion-panel">
-              <div className="tv-champion__glow" />
-              <div className="tv-champion__badge cl-chamfer">
-                <span>★ {champion.title} ★</span>
-              </div>
-              <div className="tv-champion__emblem-wrap">
-                <TvEmblem
-                  alt={champion.name}
-                  className="tv-champion__emblem"
-                  fallback={
-                    <div className="tv-champion__monogram">
-                      {champion.abbreviation ?? champion.name.substring(0, 2).toUpperCase()}
-                    </div>
-                  }
-                  src={champion.emblemUrl}
-                />
-              </div>
-              <h2 className="tv-champion__name">{champion.name}</h2>
-              {champion.record && <p className="tv-champion__record">{champion.record}</p>}
+        {!fixedView && (
+          <section
+            aria-label={dashboardLabels.focalPanelLabel}
+            className="tv-focal-panel cl-chamfer"
+          >
+            <div className="tv-focal-panel__header">
+              <span className="tv-focal-panel__label">
+                {showRecap ? 'Recapitulativo de Campeonato' : 'Foco del Encuentro'}
+              </span>
             </div>
-          ) : spotlightMatch ? (
-            /* Spotlight Match Presentation */
-            <div className="tv-match-spotlight" data-testid="tv-match-spotlight">
-              <div className="tv-match-spotlight__stage">
-                Etapa {spotlightMatch.stageNumber} · Partido {spotlightMatch.matchNumber}
-              </div>
-              <div className="tv-match-spotlight__vs-grid">
-                {/* Home Side — the spotlight's visual anchor */}
-                <TvTeamSide
-                  anchor
-                  clubs={clubs}
-                  name={spotlightMatch.sides[0]?.name ?? 'Local'}
-                  abbreviation={spotlightMatch.sides[0]?.abbreviation}
-                />
 
-                {/* Score Center */}
-                <div className="tv-score-center">
-                  <div className="tv-score-center__digits">
-                    {spotlightMatch.sides[0]?.score ?? 0} : {spotlightMatch.sides[1]?.score ?? 0}
+            {isRotatingDashboard && showZoneChampions ? (
+              /* The champions of every zone of the last stage */
+              <TvChampions zones={winnerZones} />
+            ) : isRotatingDashboard && allFinal && champion ? (
+              /* Champion Spotlight Presentation */
+              <div className="tv-champion" data-testid="tv-champion-panel">
+                <div className="tv-champion__glow" />
+                <div className="tv-champion__badge cl-chamfer">
+                  <span>★ {champion.title} ★</span>
+                </div>
+                <div className="tv-champion__emblem-wrap">
+                  <TvEmblem
+                    alt={champion.name}
+                    className="tv-champion__emblem"
+                    fallback={
+                      <div className="tv-champion__monogram">
+                        {champion.abbreviation ?? champion.name.substring(0, 2).toUpperCase()}
+                      </div>
+                    }
+                    src={champion.emblemUrl}
+                  />
+                </div>
+                <h2 className="tv-champion__name">{champion.name}</h2>
+                {champion.record && <p className="tv-champion__record">{champion.record}</p>}
+              </div>
+            ) : spotlightMatch ? (
+              /* Spotlight Match Presentation */
+              <div className="tv-match-spotlight" data-testid="tv-match-spotlight">
+                <div className="tv-match-spotlight__stage">
+                  Etapa {spotlightMatch.stageNumber} · Partido{' '}
+                  {spotlightMatch.stageOrdinal ?? spotlightMatch.matchNumber}
+                </div>
+                <div className="tv-match-spotlight__vs-grid">
+                  {/* Home Side — the spotlight's visual anchor */}
+                  <TvTeamSide
+                    anchor
+                    clubs={clubs}
+                    name={spotlightMatch.sides[0]?.name ?? 'Local'}
+                    abbreviation={spotlightMatch.sides[0]?.abbreviation}
+                  />
+
+                  {/* Score Center */}
+                  <div className="tv-score-center">
+                    <div className="tv-score-center__digits">
+                      {spotlightMatch.sides[0]?.score ?? 0} : {spotlightMatch.sides[1]?.score ?? 0}
+                    </div>
+                    <div
+                      className="cl-chamfer"
+                      style={{
+                        padding: '0.4vmin 1.4vmin',
+                        background: 'var(--tv-bg-elevated)',
+                        border: `1px solid ${tvStateColor(spotlightMatch.state)}`,
+                        fontFamily: 'var(--cl-font-mono)',
+                        fontSize:
+                          'clamp(var(--cl-font-size-xs), 1.4vmin, var(--cl-font-size-base))',
+                        color: tvStateColor(spotlightMatch.state),
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {presentState(spotlightMatch.state, dashboardLabels.resultState).label}
+                    </div>
                   </div>
-                  <div
-                    className="cl-chamfer"
-                    style={{
-                      padding: '0.4vmin 1.4vmin',
-                      background: 'var(--tv-bg-elevated)',
-                      border: `1px solid ${tvStateColor(spotlightMatch.state)}`,
-                      fontFamily: 'var(--cl-font-mono)',
-                      fontSize: 'clamp(var(--cl-font-size-xs), 1.4vmin, var(--cl-font-size-base))',
-                      color: tvStateColor(spotlightMatch.state),
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {presentState(spotlightMatch.state, dashboardLabels.resultState).label}
-                  </div>
+
+                  {/* Away Side */}
+                  <TvTeamSide
+                    clubs={clubs}
+                    name={spotlightMatch.sides[1]?.name ?? 'Visitante'}
+                    abbreviation={spotlightMatch.sides[1]?.abbreviation}
+                  />
                 </div>
 
-                {/* Away Side */}
-                <TvTeamSide
-                  clubs={clubs}
-                  name={spotlightMatch.sides[1]?.name ?? 'Visitante'}
-                  abbreviation={spotlightMatch.sides[1]?.abbreviation}
-                />
+                {matchEvents && matchEvents.length > 0 ? (
+                  <TvEventTicker
+                    ariaLabel={dashboardLabels.matchEventsLabel}
+                    awayLabel={labels.awaySide}
+                    events={matchEvents}
+                    homeLabel={labels.homeSide}
+                    language={language}
+                  />
+                ) : null}
               </div>
-
-              {matchEvents && matchEvents.length > 0 ? (
-                <TvEventTicker
-                  ariaLabel={dashboardLabels.matchEventsLabel}
-                  awayLabel={labels.awaySide}
-                  events={matchEvents}
-                  homeLabel={labels.homeSide}
-                  language={language}
-                />
-              ) : null}
-            </div>
-          ) : (
-            <div className="tv-champion">
-              <h2 className="tv-champion__name">{tournamentName}</h2>
-              <p className="tv-champion__record">{dashboardLabels.noMatchesScheduled}</p>
-            </div>
-          )}
-        </section>
+            ) : pinnedMissing ? (
+              <div className="tv-champion" data-testid="tv-match-not-found">
+                <h2 className="tv-champion__name">{dashboardLabels.matchNotFound}</h2>
+                <p className="tv-champion__record">
+                  {tournamentName} · {labelStage(pinnedRef)}
+                </p>
+              </div>
+            ) : (
+              <div className="tv-champion">
+                <h2 className="tv-champion__name">{tournamentName}</h2>
+                <p className="tv-champion__record">{dashboardLabels.noMatchesScheduled}</p>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* SECONDARY ROTATING RAIL */}
         {!isOverlay && (
@@ -613,38 +679,40 @@ export function TvDashboard({
             aria-label={dashboardLabels.statsAndTablesLabel}
             className="tv-rail-panel cl-chamfer"
           >
-            {/* Navigation Tabs */}
-            <nav aria-label={dashboardLabels.sidebarSectionsLabel} className="tv-rail-nav">
-              <TvRailTab
-                active={activeTab === 'standings'}
-                label={dashboardLabels.standingsTab}
-                onClick={() => setActiveTab('standings')}
-              />
-              <TvRailTab
-                active={activeTab === 'performers'}
-                label={dashboardLabels.performersTab}
-                onClick={() => setActiveTab('performers')}
-              />
-              <TvRailTab
-                active={activeTab === 'facts'}
-                label={dashboardLabels.statisticsTab}
-                onClick={() => setActiveTab('facts')}
-              />
-              {visibleBracket && visibleBracket.zones.length > 0 && (
+            {/* Navigation Tabs: a fixed view is that one section, so there is nothing to choose between. */}
+            {!fixedView && (
+              <nav aria-label={dashboardLabels.sidebarSectionsLabel} className="tv-rail-nav">
                 <TvRailTab
-                  active={activeTab === 'bracket'}
-                  label={dashboardLabels.bracketTab}
-                  onClick={() => setActiveTab('bracket')}
+                  active={activeTab === 'standings'}
+                  label={dashboardLabels.standingsTab}
+                  onClick={() => setActiveTab('standings')}
                 />
-              )}
-              {visibleBracket?.leagueZones && (
                 <TvRailTab
-                  active={activeTab === 'fixtures'}
-                  label={dashboardLabels.fixturesTab}
-                  onClick={() => setActiveTab('fixtures')}
+                  active={activeTab === 'performers'}
+                  label={dashboardLabels.performersTab}
+                  onClick={() => setActiveTab('performers')}
                 />
-              )}
-            </nav>
+                <TvRailTab
+                  active={activeTab === 'facts'}
+                  label={dashboardLabels.statisticsTab}
+                  onClick={() => setActiveTab('facts')}
+                />
+                {visibleBracket && visibleBracket.zones.length > 0 && (
+                  <TvRailTab
+                    active={activeTab === 'bracket'}
+                    label={dashboardLabels.bracketTab}
+                    onClick={() => setActiveTab('bracket')}
+                  />
+                )}
+                {matchPages.length > 0 && (
+                  <TvRailTab
+                    active={activeTab === 'fixtures'}
+                    label={dashboardLabels.fixturesTab}
+                    onClick={() => setActiveTab('fixtures')}
+                  />
+                )}
+              </nav>
+            )}
 
             {/* Tab Content */}
             <div className="tv-rail-content" data-testid="tv-rail-content">
@@ -668,8 +736,8 @@ export function TvDashboard({
               {activeTab === 'bracket' && visibleBracket && (
                 <TvBracketView labels={dashboardLabels} zones={visibleBracket.zones} />
               )}
-              {activeTab === 'fixtures' && visibleBracket?.leagueZones && (
-                <TvLeagueFixtures labels={dashboardLabels} zones={visibleBracket.leagueZones} />
+              {activeTab === 'fixtures' && matchPages.length > 0 && (
+                <TvMatchList labels={dashboardLabels} page={rail.page} pages={matchPages} />
               )}
             </div>
           </aside>

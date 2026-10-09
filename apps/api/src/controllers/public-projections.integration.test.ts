@@ -184,7 +184,7 @@ describe('public projections routes', () => {
       matches: { matchId: string; state: string }[];
     };
     expect(data.matches).toContainEqual(
-      expect.objectContaining({ matchId: liveMatchId, state: 'live' }),
+      expect.objectContaining({ matchId: liveMatchId, state: 'live', stageOrdinal: 1 }),
     );
     expect(data.matches.map((match) => match.matchId)).not.toContain(scheduledMatchId);
   });
@@ -2852,6 +2852,37 @@ describe('public projections routes', () => {
         url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/1/matches/4`,
       });
       expect(notFound.statusCode).toBe(404);
+    });
+
+    it('carries on the overview the stage ordinal the public match route addresses each match by', async () => {
+      const overview = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/overview`,
+      });
+      expect(overview.statusCode).toBe(200);
+      const body = overview.json() as {
+        organizationTimeZone?: string;
+        matches: {
+          stageNumber: number;
+          stageOrdinal?: number;
+          homeEntrantId?: string;
+          awayEntrantId?: string;
+        }[];
+      };
+      expect(typeof body.organizationTimeZone).toBe('string');
+
+      const stageOne = body.matches.filter((match) => match.stageNumber === 1);
+      expect(stageOne.map((match) => match.stageOrdinal).sort()).toEqual([1, 2, 3]);
+      for (const match of stageOne) {
+        const report = await request({
+          method: 'GET',
+          url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/1/matches/${match.stageOrdinal}`,
+        });
+        expect(report.statusCode).toBe(200);
+        const reported = report.json();
+        expect(reported.homeEntrantId).toBe(match.homeEntrantId);
+        expect(reported.awayEntrantId).toBe(match.awayEntrantId);
+      }
     });
 
     it('reports the same matchNumber for a match whether the matches-view request is group-filtered or not', async () => {

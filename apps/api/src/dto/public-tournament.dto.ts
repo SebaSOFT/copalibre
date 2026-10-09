@@ -36,8 +36,16 @@ export class PublicOverviewMatchResponse {
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
 
-  @ApiPropertyOptional({ description: '1-based sequential number within the stage' })
+  @ApiPropertyOptional({
+    description: 'The match number as persisted: a per-fixture series-game index',
+  })
   matchNumber?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'The 1-based ordinal of the match within its stage, the one the public match route addresses it by. Absent before a fixture becomes a match.',
+  })
+  stageOrdinal?: number;
 
   @ApiProperty()
   stageNumber!: number;
@@ -101,6 +109,11 @@ export class PublicOverviewResponse {
 
   @ApiProperty()
   organizationName!: string;
+
+  @ApiPropertyOptional({
+    description: 'The IANA time zone of the organization, in which its schedule times are read.',
+  })
+  organizationTimeZone?: string;
 
   @ApiProperty()
   tournamentAlias!: string;
@@ -191,6 +204,12 @@ export class PublicLiveMatchResponse {
 
   @ApiProperty()
   matchNumber!: number;
+
+  @ApiPropertyOptional({
+    description:
+      'The 1-based ordinal of the match within its stage, the one the public match route addresses it by.',
+  })
+  stageOrdinal?: number;
 
   @ApiProperty()
   state!: string;

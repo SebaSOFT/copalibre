@@ -29,6 +29,7 @@ const live = {
       matchId: 'match-1',
       stageNumber: 1,
       matchNumber: 1,
+      stageOrdinal: 1,
       state: 'live',
       projectionVersion: 1,
       sides: [

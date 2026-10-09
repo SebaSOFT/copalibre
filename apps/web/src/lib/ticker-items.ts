@@ -1,6 +1,7 @@
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import { resolveLabel, type SupportedLanguage } from '@copalibre/domain';
 import type { OverviewMatch } from './overview.js';
+import { formatTimestamp } from './format-timestamp.js';
 import { primaryColumn } from './tv-statistics.js';
 
 /**
@@ -71,6 +72,7 @@ export function matchItem(
   index: number,
   labels: TickerLabels,
   overtimeFor?: OvertimeResolver,
+  time?: { readonly language: string; readonly timeZone?: string },
 ): TickerItem {
   const played = match.home.score !== undefined && match.away.score !== undefined;
   const overtime = overtimeFor?.(match);
@@ -93,7 +95,18 @@ export function matchItem(
     subject: match.home.name,
     opponent: match.away.name,
     figure: played ? `${match.home.score} : ${match.away.score}` : labels.versus,
-    ...(match.startsAt === '' ? {} : { meta: match.startsAt }),
+    // Read as a person reads a time, in the organization's zone: never the ISO instant itself.
+    ...(match.startsAt === ''
+      ? {}
+      : {
+          meta:
+            time === undefined
+              ? match.startsAt
+              : formatTimestamp(match.startsAt, {
+                  locale: time.language,
+                  ...(time.timeZone === undefined ? {} : { timeZone: time.timeZone }),
+                }),
+        }),
     ...(overtime === undefined ? {} : { overtime }),
     ...(liveCorrelatable
       ? {
@@ -125,10 +138,15 @@ export function buildTickerItems(input: {
   readonly language: SupportedLanguage;
   /** Supplied only by a surface whose discipline declares an extra period. */
   readonly overtimeFor?: OvertimeResolver;
+  /** The organization's IANA zone, in which each kick-off is read. */
+  readonly timeZone?: string;
 }): readonly TickerItem[] {
-  const { matches, performers, leaders, labels, language, overtimeFor } = input;
+  const { matches, performers, leaders, labels, language, overtimeFor, timeZone } = input;
   const items: TickerItem[] = matches.map((match, index) =>
-    matchItem(match, index, labels, overtimeFor),
+    matchItem(match, index, labels, overtimeFor, {
+      language,
+      ...(timeZone === undefined ? {} : { timeZone }),
+    }),
   );
 
   if (performers && performers.rows.length > 0) {

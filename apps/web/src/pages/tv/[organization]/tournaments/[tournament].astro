@@ -19,12 +19,12 @@ import {
 } from '../../../../lib/public-api-client.ts';
 import type { PublicObjectReference } from '../../../../lib/discipline-background.ts';
 import type { LiveDashboard } from '../../../../lib/live-state.ts';
-import type { ResultState } from '../../../../lib/result-state.ts';
 import type { OverviewMatch, StandingsRowView } from '../../../../lib/overview.ts';
 import type { TopPerformer } from '../../../../lib/tv-statistics.ts';
 import type { TvWinnerZone } from '../../../../components/tv/tv-types.ts';
 import { winnerZonesOf } from '../../../../lib/tv-winners.ts';
 import { buildTickerItems } from '../../../../lib/ticker-items.ts';
+import { dashboardFromOverview, lastMatchAt } from '../../../../lib/tv-dashboard-source.ts';
 import {
   publicIntl,
   tickerChromeLabels,
@@ -40,7 +40,8 @@ import {
   fetchPublicTableProjection,
 } from '../../../../lib/public-api-client.ts';
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
-import { bracketZonesOf, leagueZonesOf } from '../../../../lib/bracket.ts';
+import { bracketZonesOf } from '../../../../lib/bracket.ts';
+import { tvMatchEntriesOf, type TvMatchEntry } from '../../../../lib/tv-match-list.ts';
 import type { BracketZone } from '../../../../lib/bracket-projection.ts';
 import { TV_BACKGROUNDS, type TvBackground } from '../../../../lib/tv-background.ts';
 
@@ -79,6 +80,7 @@ let topPerformers: TopPerformer[] = [];
 let performerProjection: TableProjectionResponse | undefined;
 let leaderProjection: TableProjectionResponse | undefined;
 let overviewMatches: readonly OverviewMatch[] = [];
+let organizationTimeZone: string | undefined;
 
 try {
   const [live, overview] = await Promise.all([
@@ -96,6 +98,7 @@ try {
     }
     standings = mappedOverview.standings ? [...mappedOverview.standings] : [];
     overviewMatches = mappedOverview.matches;
+    organizationTimeZone = mappedOverview.organizationTimeZone;
 
     winnerZones = winnerZonesOf(organizationAlias, mappedOverview.winners);
     if (mappedOverview.clubs) {
@@ -108,33 +111,7 @@ try {
     if (live && live.matches.length > 0) {
       dashboard = mapLiveResponse(live);
     } else if (mappedOverview.matches.length > 0) {
-      dashboard = {
-        standingsVersion: 0,
-        usingLastKnown: true,
-        matches: mappedOverview.matches.map((m, idx) => ({
-          matchId: `overview-${m.stageNumber}-${m.matchNumber ?? idx + 1}`,
-          stageNumber: m.stageNumber,
-          matchNumber: m.matchNumber ?? idx + 1,
-          state: m.state as ResultState,
-          projectionVersion: 0,
-          sides: [
-            {
-              entrantId: `home-${idx}`,
-              name: m.home.name,
-              abbreviation: m.home.abbreviation,
-              score: m.home.score ?? 0,
-              state: m.state as ResultState,
-            },
-            {
-              entrantId: `away-${idx}`,
-              name: m.away.name,
-              abbreviation: m.away.abbreviation,
-              score: m.away.score ?? 0,
-              state: m.state as ResultState,
-            },
-          ],
-        })),
-      };
+      dashboard = dashboardFromOverview(mappedOverview.matches);
     } else if (organizationAlias === 'liga-mendocina') {
       dashboard = sampleDashboard();
     }
@@ -207,7 +184,13 @@ const presentation = overlayMode ?? 'kiosk';
 const layoutParam = Astro.url.searchParams.get('layout');
 const gridParam = Astro.url.searchParams.get('grid');
 const viewParam = Astro.url.searchParams.get('view');
-const initialView = viewParam === 'standings' || viewParam === 'fixtures' ? viewParam : undefined;
+// `matches` is the name a launcher and an operator use; `fixtures` is the name this view had before.
+const initialView =
+  viewParam === 'standings'
+    ? 'standings'
+    : viewParam === 'matches' || viewParam === 'fixtures'
+      ? 'matches'
+      : undefined;
 const showMultiCourtGrid = presentation === 'kiosk' && layoutParam === 'multicourt';
 const gridSize: 2 | 4 | 6 | 'auto' =
   gridParam === '2' ? 2 : gridParam === '4' ? 4 : gridParam === '6' ? 6 : 'auto';
@@ -237,13 +220,7 @@ if (showMultiCourtGrid) {
   }
 }
 
-let initialBracket:
-  | {
-      stageNumber: number;
-      zones: readonly BracketZone[];
-      leagueZones?: readonly BracketZone[];
-    }
-  | undefined;
+let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
 const featuredStage =
   dashboard.matches.find((match) => match.state === 'live')?.stageNumber ??
   dashboard.matches[0]?.stageNumber;
@@ -251,19 +228,32 @@ if (presentation !== 'lower' && featuredStage !== undefined) {
   try {
     const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, featuredStage);
     if (rawBracket) {
-      const mapped = mapBracketResponse(rawBracket);
-      const zones = bracketZonesOf(mapped);
-      const leagueZones = leagueZonesOf(mapped);
-      if (zones.length > 0 || leagueZones.length > 0) {
-        initialBracket = {
-          stageNumber: featuredStage,
-          zones,
-          ...(leagueZones.length > 0 ? { leagueZones } : {}),
-        };
-      }
+      const zones = bracketZonesOf(mapBracketResponse(rawBracket));
+      if (zones.length > 0) initialBracket = { stageNumber: featuredStage, zones };
     }
   } catch {
     // A bracket outage does not replace the scorebug with sample data.
+  }
+}
+
+/*
+  Every match of the tournament, as the entries the match list pages through. Read from the same
+  matches view the public schedule uses, in its own guard: a failure costs the list its section and
+  nothing else. A lower third has no rail to put it in.
+*/
+let matchList: readonly TvMatchEntry[] = [];
+if (presentation !== 'lower') {
+  try {
+    const view = await fetchMatchesView(organizationAlias, tournamentAlias, { state: 'all' });
+    if (view) {
+      const dashboardText = tvDashboardLabels(intl);
+      matchList = tvMatchEntriesOf(mapMatchesViewResponse(view).matches, {
+        state: dashboardText.resultState,
+        round: dashboardText.bracketRound,
+      });
+    }
+  } catch {
+    matchList = [];
   }
 }
 
@@ -280,6 +270,7 @@ const tickerItems =
         ...(leaderProjection === undefined ? {} : { leaders: leaderProjection }),
         labels: tickerLabels(intl),
         language,
+        ...(organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone }),
       })
     : [];
 ---
@@ -319,6 +310,7 @@ const tickerItems =
         initialView={initialView}
         initial={dashboard}
         initialBracket={initialBracket}
+        matchList={matchList}
         streamPath={streamPath}
         branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
         tournamentName={tournamentName}
@@ -333,6 +325,8 @@ const tickerItems =
         labels={tvStatisticsLabels(intl)}
         dashboardLabels={tvDashboardLabels(intl)}
         language={language}
+        timeZone={organizationTimeZone}
+        lastMatchAt={lastMatchAt(overviewMatches)}
       />
     )
   }

@@ -38,13 +38,15 @@ dispare o lo cierre.
 
 ## Qué muestra la pantalla del recinto
 
-La pantalla en rotación completa recorre la tabla de posiciones, los destacados, las estadísticas del torneo y, cuando la fase destacada los tiene, las llaves y los partidos de liga. Una dirección con `?view=standings` o `?view=fixtures` fija una de ellas en lugar de rotar.
+La pantalla en rotación completa recorre la tabla de posiciones, los destacados, las estadísticas del torneo y, cuando la fase destacada la tiene, la llave y luego la lista de partidos. Una dirección con `?view=standings` o `?view=matches` fija esa sección a pantalla completa en lugar de rotar (`?view=fixtures` sigue funcionando como el nombre anterior de `matches`). El recapitulativo de campeón de un torneo finalizado pertenece solo a la pantalla en rotación. El encabezado nombra el estado del torneo: uno en juego muestra un reloj rotulado, al minuto, en la zona horaria de la organización; uno finalizado muestra el día en que se jugó su último partido, sin reloj corriendo.
+
+Un partido fijado — `/tv/<organización>/tournaments/<torneo>/stages/<fase>/matches/<número>` — se identifica como en la página pública del partido, por su número dentro de la fase, y siempre muestra su resultado, sus lados y sus eventos registrados, esté o no finalizado. Un número que la fase no tiene se informa como un partido que no existe.
 
 Una fase puede mezclar formatos, así que la pantalla presenta cada zona según el formato que juega:
 
 - **Posiciones**: Cada zona que ordena participantes en una tabla tiene su propia tabla, encabezada con el nombre de la zona. Las filas de zonas distintas nunca se mezclan en un mismo orden, y cada tabla muestra hasta ocho filas. Una fase cuyas zonas juegan todas el formato de la fase conserva una sola tabla sin encabezado.
 - **Llaves**: Las zonas que juegan un formato de eliminación se dibujan como llave.
-- **Partidos**: Una zona que juega una liga lista sus partidos agrupados por ronda, con el estado y el resultado de cada uno. La pestaña aparece solo cuando la fase destacada tiene una zona así.
+- **Partidos**: Lista todos los partidos del torneo en una tabla compacta, de a dos por fila con abreviaturas y resultado, una página por vez; las páginas avanzan con la rotación y una vista `matches` fija sigue paginando.
 
 La superposición de tercio inferior no cambia: nombra un partido, no una fase.
 

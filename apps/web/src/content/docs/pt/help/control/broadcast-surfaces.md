@@ -38,13 +38,15 @@ local o acione ou feche.
 
 ## O que a tela do local mostra
 
-A tela em rotação completa percorre a classificação, os destaques, as estatísticas do torneio e, quando a fase em destaque os tem, a chave e os jogos da liga. Um endereço com `?view=standings` ou `?view=fixtures` fixa um deles em vez de girar.
+A tela em rotação completa percorre a classificação, os destaques, as estatísticas do torneio e, quando a fase em destaque a tem, a chave e depois a lista de jogos. Um endereço com `?view=standings` ou `?view=matches` fixa essa única seção em tela cheia em vez de girar (`?view=fixtures` continua funcionando como o nome antigo de `matches`). O resumo do campeão de um torneio encerrado pertence somente à tela em rotação. O cabeçalho nomeia o estado do torneio: um em andamento mostra um relógio rotulado, ao minuto, no fuso horário da organização; um encerrado mostra o dia do seu último jogo, sem relógio correndo.
+
+Um jogo fixado — `/tv/<organização>/tournaments/<torneio>/stages/<fase>/matches/<número>` — é identificado como na página pública do jogo, pelo seu número dentro da fase, e sempre mostra placar, lados e eventos registrados, encerrado ou não. Um número que a fase não tem é informado como um jogo que não existe.
 
 Uma fase pode misturar formatos, então a tela apresenta cada zona pelo formato que ela joga:
 
 - **Classificação**: Cada zona que ordena participantes em uma tabela tem a sua própria tabela, com o nome da zona no cabeçalho. As linhas de zonas diferentes nunca se misturam em uma mesma classificação, e cada tabela mostra até oito linhas. Uma fase cujas zonas jogam todas o formato da fase mantém uma única tabela sem cabeçalho.
 - **Chave**: As zonas que jogam um formato eliminatório são desenhadas como chave.
-- **Jogos**: Uma zona que joga uma liga lista seus jogos agrupados por rodada, com o estado e o placar de cada um. A aba só aparece quando a fase em destaque tem uma zona assim.
+- **Jogos**: Lista todos os jogos do torneio em uma tabela compacta, dois por linha com abreviações e placar, uma página por vez; as páginas avançam com a rotação e uma visão `matches` fixa continua paginando.
 
 A sobreposição do terço inferior não muda: ela nomeia uma partida, não uma fase.
 

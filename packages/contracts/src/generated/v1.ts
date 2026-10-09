@@ -5182,8 +5182,10 @@ export interface components {
         PublicOverviewMatchResponse: {
             /** Format: uuid */
             matchId: string;
-            /** @description 1-based sequential number within the stage */
+            /** @description The match number as persisted: a per-fixture series-game index */
             matchNumber?: number;
+            /** @description The 1-based ordinal of the match within its stage, the one the public match route addresses it by. Absent before a fixture becomes a match. */
+            stageOrdinal?: number;
             stageNumber: number;
             round: number;
             /** @enum {string} */
@@ -5217,6 +5219,8 @@ export interface components {
         PublicOverviewResponse: {
             organizationAlias: string;
             organizationName: string;
+            /** @description The IANA time zone of the organization, in which its schedule times are read. */
+            organizationTimeZone?: string;
             tournamentAlias: string;
             tournamentName: string;
             seasonName: string;
@@ -5346,6 +5350,8 @@ export interface components {
             matchId: string;
             stageNumber: number;
             matchNumber: number;
+            /** @description The 1-based ordinal of the match within its stage, the one the public match route addresses it by. */
+            stageOrdinal?: number;
             state: string;
             projectionVersion: number;
             sides: components["schemas"]["PublicLiveMatchSideResponse"][];

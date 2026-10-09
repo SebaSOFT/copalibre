@@ -38,13 +38,15 @@ personne sur place n'a besoin de la déclencher ou de la fermer.
 
 ## Ce qu’affiche l’écran de la salle
 
-L’écran en rotation complète parcourt le classement, les meilleurs joueurs, les statistiques du tournoi et, lorsque la phase mise en avant en a, le tableau et les matchs de championnat. Une adresse avec `?view=standings` ou `?view=fixtures` en fixe un au lieu de faire tourner.
+L’écran en rotation complète parcourt le classement, les meilleurs joueurs, les statistiques du tournoi et, lorsque la phase mise en avant en a un, le tableau, puis la liste des matchs. Une adresse avec `?view=standings` ou `?view=matches` fixe cette seule section en plein écran au lieu de faire tourner (`?view=fixtures` fonctionne toujours comme ancien nom de `matches`). Le récapitulatif du champion d’un tournoi terminé appartient à l’écran en rotation seul. L’en-tête nomme l’état du tournoi : un tournoi en cours affiche une horloge étiquetée, à la minute, dans le fuseau de l’organisation ; un tournoi terminé affiche le jour de son dernier match, sans horloge qui défile.
+
+Un match épinglé — `/tv/<organisation>/tournaments/<tournoi>/stages/<phase>/matches/<numéro>` — est désigné comme sur la page publique du match, par son numéro dans la phase, et montre toujours son score, ses côtés et ses événements enregistrés, terminé ou non. Un numéro que la phase n’a pas est signalé comme un match qui n’existe pas.
 
 Une phase peut mélanger les formats ; l’écran présente donc chaque zone selon le format qu’elle joue :
 
 - **Classement** : Chaque zone qui classe ses participants dans un tableau a son propre tableau, titré du nom de la zone. Les lignes de zones différentes ne sont jamais mêlées dans un même classement, et chaque tableau montre jusqu’à huit lignes. Une phase dont toutes les zones jouent le format de la phase garde un seul tableau sans titre.
 - **Tableau** : Les zones qui jouent un format à élimination sont dessinées en tableau.
-- **Matchs** : Une zone qui joue un championnat liste ses matchs par ronde, avec l’état et le score de chacun. L’onglet n’apparaît que si la phase mise en avant a une telle zone.
+- **Matchs** : Liste tous les matchs du tournoi dans un tableau compact, deux par ligne avec abréviations et score, une page à la fois ; les pages avancent avec la rotation, et une vue `matches` fixe continue de paginer.
 
 L’incrustation du tiers inférieur ne change pas : elle nomme un match, pas une phase.
 

@@ -21,7 +21,8 @@
   height: 100%;
   max-width: 100%;
   margin: 0;
-  padding: 2.5vmin 4vmin;
+  /* The outer margin belongs to the layout shell (`#tv-root`), so every route keeps the same one. */
+  padding: 0;
   background-color: var(--tv-bg-base);
   color: var(--tv-text-primary);
   font-family: var(--cl-font-body);
@@ -29,6 +30,23 @@
   flex-direction: column;
   gap: 2.5vmin;
   overflow: hidden;
+}
+
+/*
+ * The shell lays its children out in a column: the score ticker above, the dashboard filling what is
+ * left. Sizing the dashboard to 100% of the shell instead pushed its lower panels past the bottom
+ * edge by the ticker's own height, on the one route that has a ticker.
+ */
+#tv-root {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5vmin;
+}
+
+#tv-root .tv-root-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
 }
 
 /* 1. Score-bug / Top Status Bar */
@@ -1311,4 +1329,79 @@
   100% {
     background: transparent;
   }
+}
+
+/* The compact match list: two matches to a row, one page at a time. */
+.tv-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2vmin;
+  min-height: 0;
+}
+
+.tv-match-list__entries {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8vmin 1.6vmin;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-match-list__entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1vmin;
+  min-width: 0;
+  padding: 0.8vmin 1.2vmin;
+  background: var(--cl-surface-chrome);
+  border: 1px solid var(--tv-border);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.8rem, 1.5vmin, 1.1rem);
+}
+
+.tv-match-list__round {
+  color: var(--tv-text-muted);
+  font-size: 0.8em;
+  text-transform: uppercase;
+}
+
+.tv-match-list__side {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-match-list__side--home {
+  text-align: right;
+}
+
+.tv-match-list__score {
+  color: var(--tv-text-primary);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--cl-weight-bold);
+}
+
+.tv-match-list__pager {
+  margin: 0;
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.7rem, 1.3vmin, 0.95rem);
+  text-align: right;
+  text-transform: uppercase;
+}
+
+/* A fixed view fills the frame: the rail takes the whole stage. */
+.tv-main-stage--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tv-scorebug__clock-label {
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: 0.7em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }

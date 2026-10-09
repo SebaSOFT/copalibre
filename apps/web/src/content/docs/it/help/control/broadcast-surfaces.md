@@ -38,13 +38,15 @@ vivo mostra un avviso animato con il nome della squadra e del giocatore, per poi
 
 ## Cosa mostra lo schermo della sede
 
-Lo schermo a rotazione completa scorre la classifica, i migliori giocatori, le statistiche del torneo e, quando la fase in evidenza li ha, il tabellone e le partite del girone. Un indirizzo con `?view=standings` o `?view=fixtures` ne blocca una invece di ruotare.
+Lo schermo a rotazione completa scorre la classifica, i migliori giocatori, le statistiche del torneo e, quando la fase in evidenza lo ha, il tabellone, poi l’elenco delle partite. Un indirizzo con `?view=standings` o `?view=matches` blocca quell’unica sezione a schermo intero invece di ruotare (`?view=fixtures` continua a funzionare come vecchio nome di `matches`). Il riepilogo del campione di un torneo concluso appartiene solo allo schermo a rotazione. L’intestazione indica lo stato del torneo: uno in corso mostra un orologio con etichetta, al minuto, nel fuso orario dell’organizzazione; uno concluso mostra il giorno dell’ultima partita, senza orologio che scorre.
+
+Una partita fissata — `/tv/<organizzazione>/tournaments/<torneo>/stages/<fase>/matches/<numero>` — è indicata come nella pagina pubblica della partita, dal suo numero nella fase, e mostra sempre punteggio, lati ed eventi registrati, conclusa o no. Un numero che la fase non ha è segnalato come partita inesistente.
 
 Una fase può mescolare i formati, quindi lo schermo presenta ogni zona secondo il formato che gioca:
 
 - **Classifica**: Ogni zona che ordina i partecipanti in una tabella ha la sua tabella, intestata col nome della zona. Le righe di zone diverse non si mescolano mai in un'unica classifica, e ogni tabella mostra fino a otto righe. Una fase le cui zone giocano tutte il formato della fase mantiene una sola tabella senza intestazione.
 - **Tabellone**: Le zone che giocano un formato a eliminazione sono disegnate come tabellone.
-- **Partite**: Una zona che gioca un girone elenca le sue partite raggruppate per turno, con stato e punteggio di ciascuna. La scheda compare solo quando la fase in evidenza ha una zona così.
+- **Partite**: Elenca tutte le partite del torneo in una tabella compatta, due per riga con sigle e punteggio, una pagina alla volta; le pagine avanzano con la rotazione e una vista `matches` fissa continua a scorrere.
 
 La sovrimpressione del terzo inferiore non cambia: nomina una partita, non una fase.
 

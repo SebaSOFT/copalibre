@@ -88,6 +88,39 @@ const standing = (
   statistics: { played, points },
 });
 
+/** The matches view's own row for a league match: what the kiosk's match list reads. */
+const viewRow = (
+  zoneName: string,
+  ordinal: number,
+  round: number,
+  home: string,
+  away: string,
+  scores?: readonly [number, number],
+) => ({
+  matchId: `${home}-${away}`,
+  stageNumber: 1,
+  matchNumber: ordinal,
+  round,
+  status: scores ? 'final' : 'upcoming',
+  homeName: (CLUBS[home] as Club).name,
+  homeAbbreviation: (CLUBS[home] as Club).abbreviation,
+  ...(scores ? { homeScore: scores[0] } : {}),
+  awayName: (CLUBS[away] as Club).name,
+  awayAbbreviation: (CLUBS[away] as Club).abbreviation,
+  ...(scores ? { awayScore: scores[1] } : {}),
+  zoneName,
+});
+const matchesView = {
+  matches: [
+    viewRow('Zona A', 1, 1, 'andes-talleres', 'atletico-union', [2, 2]),
+    viewRow('Zona A', 2, 1, 'casa-de-italia', 'centro-valenciano', [3, 1]),
+    viewRow('Zona A', 3, 2, 'andes-talleres', 'casa-de-italia'),
+    viewRow('Zona A', 4, 2, 'atletico-union', 'centro-valenciano'),
+    viewRow('Zona B', 5, 1, 'ciudad-de-buenos-aires', 'club-hispano', [4, 1]),
+    viewRow('Zona B', 6, 1, 'club-union-dep-bancaria', 'concepcion-patin-club', [2, 0]),
+  ],
+};
+
 const overviewMatch = (
   matchNumber: number,
   status: string,
@@ -245,6 +278,8 @@ test.beforeAll(async ({ workerPort }) => {
     )
       res.end(JSON.stringify({ matches: [] }));
     else if (req.url === `${base}/live`) res.end(JSON.stringify({ matches: [] }));
+    else if (req.url?.split('?')[0] === `${base}/matches-view`)
+      res.end(JSON.stringify(matchesView));
     else if (req.url === `${base}/stages/1/bracket`) res.end(JSON.stringify(bracket));
     else {
       res.statusCode = 404;
@@ -290,18 +325,22 @@ test('ranks each table zone under its own heading instead of one merged list', a
   await expect(zones.nth(1)).toContainText('Ciudad de Buenos Aires');
 });
 
-test('lists the league zones’ matches by round and keeps the knockout zone in the bracket', async ({
+test('lists the matches two to a row with their zone and round, and keeps the knockout zone in the bracket', async ({
   page,
 }) => {
-  await page.goto(`${tvPath}?view=fixtures`);
+  await page.goto(`${tvPath}?view=matches`);
 
-  const fixtures = page.getByTestId('tv-fixtures');
-  await expect(fixtures.getByRole('heading', { name: 'Zona A' })).toBeVisible();
-  await expect(fixtures.getByRole('heading', { name: 'Zona B' })).toBeVisible();
-  await expect(fixtures.getByRole('heading', { name: 'Round 1' })).toHaveCount(2);
-  await expect(fixtures.getByRole('heading', { name: 'Round 2' })).toHaveCount(1);
-  await expect(fixtures).not.toContainText('BOG');
+  const list = page.getByTestId('tv-match-list');
+  const entries = list.getByRole('listitem');
+  await expect(entries).toHaveCount(6);
+  await expect(entries.first()).toHaveAccessibleName(
+    /Zona A · Round 1: Andes Talleres 2 – 2 Atletico Union/,
+  );
+  await expect(list).toContainText('Zona B · Round 1');
+  await expect(list).not.toContainText('BOG');
 
+  // The knockout zone is the bracket, reached from the rotating dashboard's own tab.
+  await page.goto(tvPath);
   await page.getByRole('button', { name: 'Bracket' }).click();
   const drawn = page.getByTestId('tv-bracket');
   await expect(drawn).toContainText('Copa de Oro');
@@ -367,14 +406,15 @@ test('captures screenshots of the zone-aware kiosk at broadcast size', async ({ 
   await expect(page.getByTestId('tv-standings-zone')).toHaveCount(2);
   await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-standings.png' });
 
-  await page.goto(`${tvPath}?view=fixtures`);
-  await expect(page.getByTestId('tv-fixtures')).toBeVisible();
-  await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-fixtures.png' });
+  await page.goto(`${tvPath}?view=matches`);
+  await expect(page.getByTestId('tv-match-list')).toBeVisible();
+  await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-matches.png' });
 
+  await page.goto(tvPath);
   await page.getByRole('button', { name: 'Bracket' }).click();
   await expect(page.getByTestId('tv-bracket')).toBeVisible();
   // The rail tab fades its fill in and out; a frame taken mid-fade shows two tabs highlighted.
-  await expect(page.getByRole('button', { name: 'Fixtures' })).toHaveCSS(
+  await expect(page.getByRole('button', { name: 'Matches' })).toHaveCSS(
     'background-color',
     // eslint-disable-next-line no-restricted-syntax -- asserting a computed browser style value, not an app styling literal
     'rgba(0, 0, 0, 0)',
