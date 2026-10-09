@@ -43,7 +43,7 @@ const spoken = `${sides[0]?.name ?? ''} ${sides[0]?.score ?? '—'} – ${sides[
 
 <a
   aria-label={spoken}
-  class="cl-match-compact cl-focusable"
+  class="cl-match-compact cl-chamfer cl-chamfer--control cl-focusable"
   data-match={node.matchNumber}
   href={matchReportUrl({
     organizationAlias,
