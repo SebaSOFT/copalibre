@@ -3,7 +3,7 @@ import type { IntlShape } from 'react-intl';
 import '@copalibre/design-tokens/generated/copalibre.css';
 import { messages } from '../lib/i18n/public-messages.en.ts';
 import {
-  selectDisciplineBackground,
+  selectPublicDisciplineBackground,
   type PublicObjectReference,
 } from '../lib/discipline-background.ts';
 import { buildHreflangAlternates, serializeJsonLd, type JsonLdStructuredData } from '../lib/seo.ts';
@@ -39,7 +39,7 @@ const {
 } = Astro.props;
 
 const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
-const background = selectDisciplineBackground(disciplineImages);
+const background = selectPublicDisciplineBackground(disciplineImages);
 const resolvedOgImage =
   ogImage ??
   (background?.url
@@ -96,7 +96,7 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
           alt=""
           aria-hidden="true"
           decoding="async"
-          style={`opacity: ${background.opacity};`}
+          style={`opacity: ${background.opacity}; --cl-discipline-background-blur: ${background.blurPx ?? 0}px;`}
         />
       ) : (
         /*
@@ -187,9 +187,20 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
     z-index: 0;
     width: 100%;
     height: 100%;
+    /* A mobile browser's collapsing toolbar neither reveals a gap nor resizes the image. */
+    height: 100dvh;
     object-fit: cover;
     pointer-events: none;
     user-select: none;
+  }
+
+  /*
+   * Blurred and slightly oversized, so the blur's soft edge falls outside the viewport instead of
+   * showing as a transparent rim. The neutral ground is a gradient, not an image, and takes no filter.
+   */
+  img.cl-discipline-background {
+    filter: blur(var(--cl-discipline-background-blur, 0px));
+    transform: scale(1.06);
   }
 
   /*

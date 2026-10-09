@@ -149,8 +149,25 @@ describe('discipline backdrop', () => {
 
   it('renders the discipline’s own image when one is available', () => {
     // The backdrop was already data-driven; the discipline backdrop keeps that path intact.
-    expect(layout).toContain('selectDisciplineBackground(disciplineImages)');
+    expect(layout).toContain('selectPublicDisciplineBackground(disciplineImages)');
     expect(layout).toContain('src={background.url}');
+  });
+
+  it('draws the one backdrop fixed, blurred and oversized, sized to the dynamic viewport', () => {
+    expect(layout).toContain('--cl-discipline-background-blur');
+    expect(layout).toMatch(/\.cl-discipline-background \{[\s\S]*?position: fixed;/);
+    expect(layout).toMatch(/height: 100dvh;/);
+    expect(layout).toMatch(
+      /img\.cl-discipline-background \{[\s\S]*?filter: blur\(var\(--cl-discipline-background-blur[\s\S]*?scale\(1\.06\)/,
+    );
+  });
+
+  it('leaves the tournament hero without an image, a scrim or a fill of its own', () => {
+    const hero = readFileSync(join(here, './ui/molecules/TournamentHero.astro'), 'utf8');
+    expect(hero).not.toContain('<img');
+    expect(hero).not.toContain('selectDisciplineBackground');
+    expect(hero).not.toContain('scrim');
+    expect(hero).not.toMatch(/background:/);
   });
 
   it('falls back to a deliberate neutral ground, never another discipline’s picture', () => {
