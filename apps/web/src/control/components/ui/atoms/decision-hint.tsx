@@ -2,8 +2,7 @@
  * Original composition — the explanation an authored decision carries,
  * rendered as persistent text rather than a tooltip: unreachable by keyboard
  * on most implementations, invisible on touch, and absent from the
- * accessible tree unless deliberately wired (design.md, "Rendered as
- * persistent text, never a tooltip").
+ * accessible tree unless deliberately wired.
  *
  * Renders nothing when there is no text — a field whose declaration carries
  * no description stays byte-identical to a wizard step authored before

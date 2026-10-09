@@ -44,6 +44,14 @@ uso único: `docs/deployment/enterprise-kubernetes.md` no repositório.
 - `--release <nome>`: nome do release do Helm a registrar (padrão: `copalibre`)
 - `--context <ctx>`: kube-context a registrar (padrão: nenhum — forneça explicitamente a cada vez)
 
+Opções de e-mail e reparo:
+
+- `--repair`: faz backup de `.env` e `docker-compose.yml`, adiciona valores e recursos ausentes e preserva o Compose existente. Serviços padrão ausentes são exibidos com trechos YAML para revisão e aplicação manual.
+- `--email-provider <provider>`: `smtp`, `resend`, `brevo` ou `mailgun` (padrão: SMTP local).
+- `--email-from <address>`: endereço do remetente (padrão: `noreply@copalibre.local`).
+- `--email-credential <value>`: URL de conexão SMTP ou chave de API do provedor.
+- `--email-domain <domain>`: obrigatório para Mailgun.
+
 ## doctor
 
 `copalibre doctor [--check-proxy] [--proxy-url <url>]`
@@ -63,9 +71,27 @@ Executa um ambiente de desenvolvimento, containerizado ou híbrido.
 
 ## start
 
-`copalibre start`
+`copalibre start [--dev]`
 
-Sobe o PostgreSQL, executa doctor, e inicia todos os papéis de processo.
+Inicia o PostgreSQL, executa doctor e depois inicia todos os papéis de processo. Em uma instalação Kubernetes, mostra instruções do Helm. Com --dev, inicia o perfil de desenvolvimento em contêineres.
+
+## stop
+
+`copalibre stop [--dev] [--down]`
+
+Para os contêineres Compose sem remover volumes. --down remove contêineres e redes. No modo Kubernetes, mostra instruções do kubectl/Helm. --dev controla apenas contêineres Compose, não processos Yarn iniciados no host.
+
+## restart
+
+`copalibre restart [--dev] [--no-doctor]`
+
+Para o Compose, inicia o PostgreSQL, executa doctor e depois inicia os demais serviços aguardando a saúde. --no-doctor ignora doctor; --dev reinicia os perfil de infraestrutura Compose de desenvolvimento.
+
+## status
+
+`copalibre status [--json] [--dev]`
+
+Mostra estado dos contêineres, portas de entrada publicadas e saúde do gateway. --json gera JSON legível por máquinas e --dev consulta o Compose de desenvolvimento. No Kubernetes, mostra release, namespace e contexto e consulta pods se kubectl estiver disponível.
 
 ## migrate
 

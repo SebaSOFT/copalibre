@@ -33,13 +33,14 @@ const preferencesSectionPadding = 'clamp(var(--cl-space-3), 4vw, var(--cl-space-
 
 /**
  * Composes the four preference sections from the data `PreferencesPage`
- * supplies (openspec 0225 task 6.2): the personal-access-token form, the
+ * supplies: the personal-access-token form, the
  * pending emblem crop, and the statistics-rebuild form below are this
  * component's own screen state; every mutation is a call to one of the
  * `on*` props.
  */
 export function PreferencesTemplate({
   api,
+  isOrganizationPage,
   loading,
   newToken,
   onChangeOrgName,
@@ -62,6 +63,7 @@ export function PreferencesTemplate({
   unreferencedObjects,
 }: {
   readonly api: ControlApiClient;
+  readonly isOrganizationPage?: boolean;
   readonly loading: boolean;
   readonly newToken: PatCreatedResponse | null;
   readonly onChangeOrgName: (name: string) => void;
@@ -110,6 +112,213 @@ export function PreferencesTemplate({
 
   const listingNode = (
     <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto' }}>
+      {organizationAlias !== undefined && (
+        <Card
+          aria-label={intl.formatMessage(controlMessages.orgIdentityHeading)}
+          className="cl-chamfer cl-chamfer--control"
+          style={{
+            marginTop: '2rem',
+            padding: preferencesSectionPadding,
+          }}
+        >
+          <h2>
+            <FormattedMessage {...controlMessages.orgIdentityHeading} />
+          </h2>
+
+          {orgLoading ? (
+            <p>
+              <FormattedMessage {...controlMessages.orgIdentityLoading} />
+            </p>
+          ) : orgLoadError ? (
+            <Alert tone="destructive">{orgLoadError}</Alert>
+          ) : (
+            <Stack gap="4">
+              <FramedImage
+                key={optimisticEmblemSrc ? 'optimistic' : (organization?.emblemObjectId ?? 'none')}
+                alt={intl.formatMessage(controlMessages.orgIdentityEmblemAlt)}
+                placeholder={
+                  <ClubEmblemPlaceholder
+                    size={64}
+                    title={intl.formatMessage(controlMessages.orgIdentityEmblemPlaceholderAlt)}
+                  />
+                }
+                size={64}
+                src={
+                  optimisticEmblemSrc ??
+                  (organization?.emblemObjectId !== undefined
+                    ? organizationEmblemUrl(organizationAlias)
+                    : undefined)
+                }
+              />
+
+              {api.uploadOrganizationEmblem && (
+                <FilePicker
+                  accept="image/*"
+                  aria-label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
+                  id="org-emblem-upload"
+                  label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
+                  onChange={(files) => {
+                    const file = files?.[0];
+                    if (file) setEmblemCropSrc(URL.createObjectURL(file));
+                  }}
+                  {...filePickerLabels(intl, { accept: 'image/*' })}
+                />
+              )}
+
+              <Inline align="end" gap="4" wrap>
+                <Field id="org-name" label={intl.formatMessage(controlMessages.orgIdentityName)}>
+                  <Input
+                    id="org-name"
+                    onChange={(event) => onChangeOrgName(event.target.value)}
+                    type="text"
+                    value={orgName}
+                  />
+                </Field>
+                <Button onClick={() => void onSaveOrganizationName()} type="button">
+                  <FormattedMessage {...controlMessages.orgIdentitySave} />
+                </Button>
+              </Inline>
+            </Stack>
+          )}
+        </Card>
+      )}
+
+      {organizationAlias !== undefined && (
+        <Card
+          aria-label={intl.formatMessage(controlMessages.storageUsageHeading)}
+          className="cl-chamfer cl-chamfer--control"
+          style={{
+            marginTop: '2rem',
+            padding: preferencesSectionPadding,
+          }}
+        >
+          <h2>
+            <FormattedMessage {...controlMessages.storageUsageHeading} />
+          </h2>
+          <p>
+            <FormattedMessage {...controlMessages.storageUsageDescription} />
+          </p>
+
+          {storageLoading ? (
+            <p>
+              <FormattedMessage {...controlMessages.storageUsageLoading} />
+            </p>
+          ) : storageError ? (
+            <Alert tone="destructive">{storageError}</Alert>
+          ) : storageUsage !== undefined ? (
+            <p style={{ marginTop: '1rem', fontWeight: 600 }}>
+              <FormattedMessage
+                {...controlMessages.storageUsageSummary}
+                values={{
+                  formattedBytes: formatStorageBytes(storageUsage.totalBytes),
+                  objectCount: storageUsage.objectCount,
+                }}
+              />
+            </p>
+          ) : null}
+
+          {unreferencedObjects.length > 0 && (
+            <ul aria-label={intl.formatMessage(controlMessages.storageUsageUnreferencedHeading)}>
+              {unreferencedObjects.map((object) => (
+                <li key={object.objectId} className="cl-role-user">
+                  <span>{formatStorageBytes(object.sizeBytes)}</span>
+                  <span className="cl-label">{object.contentType}</span>
+                  <Button
+                    onClick={() => void onDeleteUnreferencedObject(object.objectId)}
+                    type="button"
+                    variant="destructive-outline"
+                  >
+                    <FormattedMessage {...controlMessages.storageUsageDeleteObject} />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
+
+      {organizationAlias !== undefined && (
+        <Card
+          aria-label={intl.formatMessage(controlMessages.statisticsRebuildHeading)}
+          className="cl-chamfer cl-chamfer--control"
+          style={{
+            marginTop: '2rem',
+            padding: preferencesSectionPadding,
+          }}
+        >
+          <h2>
+            <FormattedMessage {...controlMessages.statisticsRebuildHeading} />
+          </h2>
+          <p>
+            <FormattedMessage {...controlMessages.statisticsRebuildDescription} />
+          </p>
+
+          {rebuildResult && !dismissedRebuildResult && (
+            <Alert
+              dismissLabel={intl.formatMessage(controlMessages.toastDismiss)}
+              onDismiss={() => setDismissedRebuildResult(true)}
+              tone="info"
+            >
+              {intl.formatMessage(controlMessages.statisticsRebuildResult, {
+                matches: rebuildResult.matches,
+              })}
+            </Alert>
+          )}
+
+          <div
+            style={{
+              display: 'flex',
+              gap: '1rem',
+              alignItems: 'flex-end',
+              marginTop: '1rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            <Field
+              id="rebuild-tournament"
+              label={intl.formatMessage(controlMessages.statisticsRebuildTournamentLabel)}
+            >
+              <Input
+                id="rebuild-tournament"
+                onChange={(event) => setRebuildTournamentAlias(event.target.value)}
+                placeholder={intl.formatMessage(
+                  controlMessages.statisticsRebuildTournamentPlaceholder,
+                )}
+                type="text"
+                value={rebuildTournamentAlias}
+              />
+            </Field>
+            {!rebuildConfirming ? (
+              <Button
+                disabled={!api.rebuildStatistics}
+                onClick={() => setRebuildConfirming(true)}
+                type="button"
+              >
+                <FormattedMessage {...controlMessages.statisticsRebuildTrigger} />
+              </Button>
+            ) : (
+              <>
+                <Button onClick={() => void runStatisticsRebuild()} type="button">
+                  <FormattedMessage {...controlMessages.statisticsRebuildConfirm} />
+                </Button>
+                <Button
+                  onClick={() => setRebuildConfirming(false)}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage {...controlMessages.statisticsRebuildCancel} />
+                </Button>
+              </>
+            )}
+          </div>
+          {rebuildConfirming && (
+            <Alert tone="destructive">
+              <FormattedMessage {...controlMessages.statisticsRebuildConfirmPrompt} />
+            </Alert>
+          )}
+        </Card>
+      )}
+
       <Card
         className="cl-chamfer cl-chamfer--control"
         style={{
@@ -241,213 +450,6 @@ export function PreferencesTemplate({
         </div>
       </Card>
 
-      {organizationAlias !== undefined && (
-        <Card
-          aria-label={intl.formatMessage(controlMessages.orgIdentityHeading)}
-          className="cl-chamfer cl-chamfer--control"
-          style={{
-            marginTop: '2rem',
-            padding: preferencesSectionPadding,
-          }}
-        >
-          <h2>
-            <FormattedMessage {...controlMessages.orgIdentityHeading} />
-          </h2>
-
-          {orgLoading ? (
-            <p>
-              <FormattedMessage {...controlMessages.orgIdentityLoading} />
-            </p>
-          ) : orgLoadError ? (
-            <Alert tone="destructive">{orgLoadError}</Alert>
-          ) : (
-            <Stack gap="4">
-              <FramedImage
-                key={optimisticEmblemSrc ? 'optimistic' : (organization?.emblemObjectId ?? 'none')}
-                alt={intl.formatMessage(controlMessages.orgIdentityEmblemAlt)}
-                placeholder={
-                  <ClubEmblemPlaceholder
-                    size={64}
-                    title={intl.formatMessage(controlMessages.orgIdentityEmblemPlaceholderAlt)}
-                  />
-                }
-                size={64}
-                src={
-                  optimisticEmblemSrc ??
-                  (organization?.emblemObjectId !== undefined
-                    ? organizationEmblemUrl(organizationAlias)
-                    : undefined)
-                }
-              />
-
-              {api.uploadOrganizationEmblem && (
-                <FilePicker
-                  accept="image/*"
-                  aria-label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
-                  id="org-emblem-upload"
-                  label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
-                  onChange={(files) => {
-                    const file = files?.[0];
-                    if (file) setEmblemCropSrc(URL.createObjectURL(file));
-                  }}
-                  {...filePickerLabels(intl, { accept: 'image/*' })}
-                />
-              )}
-
-              <Inline align="end" gap="4" wrap>
-                <Field id="org-name" label={intl.formatMessage(controlMessages.orgIdentityName)}>
-                  <Input
-                    id="org-name"
-                    onChange={(event) => onChangeOrgName(event.target.value)}
-                    type="text"
-                    value={orgName}
-                  />
-                </Field>
-                <Button onClick={() => void onSaveOrganizationName()} type="button">
-                  <FormattedMessage {...controlMessages.orgIdentitySave} />
-                </Button>
-              </Inline>
-            </Stack>
-          )}
-        </Card>
-      )}
-
-      {organizationAlias !== undefined && (
-        <Card
-          aria-label={intl.formatMessage(controlMessages.statisticsRebuildHeading)}
-          className="cl-chamfer cl-chamfer--control"
-          style={{
-            marginTop: '2rem',
-            padding: preferencesSectionPadding,
-          }}
-        >
-          <h2>
-            <FormattedMessage {...controlMessages.statisticsRebuildHeading} />
-          </h2>
-          <p>
-            <FormattedMessage {...controlMessages.statisticsRebuildDescription} />
-          </p>
-
-          {rebuildResult && !dismissedRebuildResult && (
-            <Alert
-              dismissLabel={intl.formatMessage(controlMessages.toastDismiss)}
-              onDismiss={() => setDismissedRebuildResult(true)}
-              tone="info"
-            >
-              {intl.formatMessage(controlMessages.statisticsRebuildResult, {
-                matches: rebuildResult.matches,
-              })}
-            </Alert>
-          )}
-
-          <div
-            style={{
-              display: 'flex',
-              gap: '1rem',
-              alignItems: 'flex-end',
-              marginTop: '1rem',
-              flexWrap: 'wrap',
-            }}
-          >
-            <Field
-              id="rebuild-tournament"
-              label={intl.formatMessage(controlMessages.statisticsRebuildTournamentLabel)}
-            >
-              <Input
-                id="rebuild-tournament"
-                onChange={(event) => setRebuildTournamentAlias(event.target.value)}
-                placeholder={intl.formatMessage(
-                  controlMessages.statisticsRebuildTournamentPlaceholder,
-                )}
-                type="text"
-                value={rebuildTournamentAlias}
-              />
-            </Field>
-            {!rebuildConfirming ? (
-              <Button
-                disabled={!api.rebuildStatistics}
-                onClick={() => setRebuildConfirming(true)}
-                type="button"
-              >
-                <FormattedMessage {...controlMessages.statisticsRebuildTrigger} />
-              </Button>
-            ) : (
-              <>
-                <Button onClick={() => void runStatisticsRebuild()} type="button">
-                  <FormattedMessage {...controlMessages.statisticsRebuildConfirm} />
-                </Button>
-                <Button
-                  onClick={() => setRebuildConfirming(false)}
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage {...controlMessages.statisticsRebuildCancel} />
-                </Button>
-              </>
-            )}
-          </div>
-          {rebuildConfirming && (
-            <Alert tone="destructive">
-              <FormattedMessage {...controlMessages.statisticsRebuildConfirmPrompt} />
-            </Alert>
-          )}
-        </Card>
-      )}
-
-      {organizationAlias !== undefined && (
-        <Card
-          aria-label={intl.formatMessage(controlMessages.storageUsageHeading)}
-          className="cl-chamfer cl-chamfer--control"
-          style={{
-            marginTop: '2rem',
-            padding: preferencesSectionPadding,
-          }}
-        >
-          <h2>
-            <FormattedMessage {...controlMessages.storageUsageHeading} />
-          </h2>
-          <p>
-            <FormattedMessage {...controlMessages.storageUsageDescription} />
-          </p>
-
-          {storageLoading ? (
-            <p>
-              <FormattedMessage {...controlMessages.storageUsageLoading} />
-            </p>
-          ) : storageError ? (
-            <Alert tone="destructive">{storageError}</Alert>
-          ) : storageUsage !== undefined ? (
-            <p style={{ marginTop: '1rem', fontWeight: 600 }}>
-              <FormattedMessage
-                {...controlMessages.storageUsageSummary}
-                values={{
-                  formattedBytes: formatStorageBytes(storageUsage.totalBytes),
-                  objectCount: storageUsage.objectCount,
-                }}
-              />
-            </p>
-          ) : null}
-
-          {unreferencedObjects.length > 0 && (
-            <ul aria-label={intl.formatMessage(controlMessages.storageUsageUnreferencedHeading)}>
-              {unreferencedObjects.map((object) => (
-                <li key={object.objectId} className="cl-role-user">
-                  <span>{formatStorageBytes(object.sizeBytes)}</span>
-                  <span className="cl-label">{object.contentType}</span>
-                  <Button
-                    onClick={() => void onDeleteUnreferencedObject(object.objectId)}
-                    type="button"
-                    variant="destructive-outline"
-                  >
-                    <FormattedMessage {...controlMessages.storageUsageDeleteObject} />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      )}
-
       {emblemCropSrc !== undefined && (
         <ImageCropModal
           imageSrc={emblemCropSrc}
@@ -471,7 +473,9 @@ export function PreferencesTemplate({
   return (
     <ListScreenLayout
       listing={listingNode}
-      title={intl.formatMessage(controlMessages.preferencesTitle)}
+      title={intl.formatMessage(
+        isOrganizationPage ? controlMessages.navOrganization : controlMessages.preferencesTitle,
+      )}
     />
   );
 }

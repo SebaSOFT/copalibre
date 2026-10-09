@@ -6,6 +6,7 @@ import { createBackupPacket } from './backup-packet.js';
 import { readCopalibreVersion, renderBanner, renderFullLogo } from './banner.js';
 import { runCli } from './cli.js';
 import { COMMAND_HELP, MODULE_SUBCOMMAND_HELP, TOURNAMENT_SUBCOMMAND_HELP } from './help-text.js';
+import { dockerComposeDoctorRunArgs } from './commands/doctor-command.js';
 import { writeCredential } from './credentials.js';
 import { writeInstallationMarker } from './installation-marker.js';
 import type { ProcessRunner } from './process-runner.js';
@@ -42,7 +43,7 @@ async function stageRestorablePacket(copalibreVersion: string): Promise<string> 
   return result.file;
 }
 
-/** Shared by every "banner prints first" case (task 3.1): records write order across both streams. */
+/** Shared by every "banner prints first" case: records write order across both streams. */
 function spyOnOutputOrder(): {
   readonly writes: { readonly stream: 'stdout' | 'stderr'; readonly chunk: string }[];
   restore(): void;
@@ -410,34 +411,13 @@ describe('runCli', () => {
     });
   });
 
-  describe('revoke-legacy-personal-access-tokens', () => {
-    it('refuses without confirmation before opening a database connection', async () => {
-      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
-      try {
-        const result = await runCli(
-          ['revoke-legacy-personal-access-tokens'],
-          {},
-          { run: jest.fn(async () => 0) },
-        );
-        expect(result).toBe(1);
-        expect(stderr).toHaveBeenCalledWith(
-          'copalibre revoke-legacy-personal-access-tokens failed: ' +
-            'revoke-legacy-personal-access-tokens requires --confirm (or use --dry-run)\n',
-        );
-      } finally {
-        stderr.mockRestore();
-      }
-    });
-  });
-
   describe('marker-aware compose dispatch', () => {
-    it('an installation marker alone (no discoverable compose file) is enough for doctor/start/migrate/upgrade-check to proceed', async () => {
+    it('an installation marker alone (no discoverable compose file) is enough for start/migrate/upgrade-check to proceed', async () => {
       await withTemporaryWorkingDirectory(async () => {
         await writeInstallationMarker(process.cwd(), readCopalibreVersion());
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
         const processes = { run };
 
-        expect(await runCli(['doctor'], {}, processes)).toBe(0);
         expect(await runCli(['start'], {}, processes)).toBe(0);
         expect(await runCli(['migrate'], {}, processes)).toBe(0);
         expect(await runCli(['upgrade-check', '--target-version', '2.0.0'], {}, processes)).toBe(0);
@@ -471,11 +451,32 @@ describe('runCli', () => {
 
     it('an explicit COMPOSE_FILE environment variable also counts as a valid target', async () => {
       await withTemporaryWorkingDirectory(async () => {
+        await writeFile('.env', 'COPALIBRE_APP_URL=\n', 'utf8');
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
-        const result = await runCli(['doctor'], { COMPOSE_FILE: 'docker-compose.yml' }, { run });
-        expect(result).toBe(0);
-        expect(run).toHaveBeenCalled();
+        const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(['doctor'], { COMPOSE_FILE: 'docker-compose.yml' }, { run });
+          expect(result).toBe(1);
+          expect(stdout.mock.calls.some((call) => String(call[0]).includes('FAIL host-env:'))).toBe(
+            true,
+          );
+          expect(run).not.toHaveBeenCalled();
+        } finally {
+          stdout.mockRestore();
+        }
       });
+    });
+
+    it('runs the doctor service pulling only an image the host does not have', () => {
+      expect(dockerComposeDoctorRunArgs(['--smoke'])).toEqual([
+        'compose',
+        'run',
+        '--pull',
+        'missing',
+        '--rm',
+        'doctor',
+        '--smoke',
+      ]);
     });
 
     it('migrate refuses on a version mismatch against the marker, naming both versions', async () => {
@@ -653,7 +654,7 @@ describe('runCli', () => {
     });
   });
 
-  describe('organization/tournament HTTP-only commands (openspec 0252)', () => {
+  describe('organization/tournament HTTP-only commands', () => {
     it('"tournament --help" lists every tournament subcommand', async () => {
       const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
       try {

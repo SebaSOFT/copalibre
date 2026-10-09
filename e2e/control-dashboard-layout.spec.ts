@@ -3,7 +3,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 
 /**
  * Organization dashboard layout: summary-tile grid, page gutters, and mobile
- * scrolling (openspec 0203, tasks 4.1 and 4.2).
+ * scrolling.
  */
 
 const ORG_ALIAS = 'liga-mendocina';
@@ -111,8 +111,8 @@ async function openDashboard(page: Page): Promise<void> {
   // `display=swap` (packages/design-tokens/src/primitives.ts): text renders
   // in the fallback stack first, then reflows once the real font swaps in.
   // Several tests in this file measure flex-wrap boundaries (row counts at a
-  // specific viewport width), which is exactly what that reflow can tip over
-  // — waiting here, once, keeps every layout assertion below from racing it.
+  // specific viewport width), which is exactly what that reflow can tip over —
+  // waiting here, once, keeps every layout assertion below from racing it.
   await page.evaluate(() => document.fonts.ready);
 }
 
@@ -181,14 +181,14 @@ test('4.2: the dashboard scrolls to its last section at a mobile viewport', asyn
 });
 
 /**
- * The tournament section (openspec 0211).
+ * The tournament section.
  *
  * Its cards used to be a hand-rolled article with the exports sitting beside it
  * in a `<p>` styled as a flex row — five equal-weight buttons that at 375px
  * wrapped into four ragged rows per tournament, pushing the rest of the
  * dashboard a full screen down.
  */
-test('0211: the section is titled, its cards share rows on desktop and stack on mobile', async ({
+test('the section is titled, its cards share rows on desktop and stack on mobile', async ({
   page,
 }) => {
   await page.setViewportSize(DESKTOP);
@@ -213,7 +213,7 @@ test('0211: the section is titled, its cards share rows on desktop and stack on 
   expect(new Set(mobileRows).size).toBe(TOURNAMENT_COUNT);
 });
 
-test('0211: a card’s actions stay one row at 375px rather than a stack of export buttons', async ({
+test('tournament actions stay within two rows at 375px with public and TV shortcuts', async ({
   page,
 }) => {
   await page.setViewportSize(MOBILE);
@@ -228,13 +228,22 @@ test('0211: a card’s actions stay one row at 375px rather than a stack of expo
     );
     return new Set(tops).size;
   });
-  expect(rows).toBe(1);
+  expect(rows).toBeLessThanOrEqual(2);
+
+  await expect(footer.getByRole('link', { name: 'Sitio público' })).toHaveAttribute(
+    'href',
+    '/liga-mendocina/tournaments/torneo-1',
+  );
+  await expect(footer.getByRole('link', { name: 'Pantalla TV' })).toHaveAttribute(
+    'href',
+    '/tv/liga-mendocina/tournaments/torneo-1',
+  );
 
   // And the exports are not buttons of their own any more.
   await expect(page.getByRole('button', { name: 'Participantes CSV' })).toHaveCount(0);
 });
 
-test('0211: the export menu works from the keyboard and gives focus back to its trigger', async ({
+test('the export menu works from the keyboard and gives focus back to its trigger', async ({
   page,
 }) => {
   await openDashboard(page);
@@ -258,7 +267,7 @@ test('0211: the export menu works from the keyboard and gives focus back to its 
   await expect(trigger).toBeFocused();
 });
 
-test('0211: a card title opens that tournament’s matches view', async ({ page }) => {
+test('a card title opens that tournament’s matches view', async ({ page }) => {
   await openDashboard(page);
 
   await page.getByRole('link', { name: 'Torneo Apertura 1' }).click();
@@ -269,7 +278,7 @@ test('0211: a card title opens that tournament’s matches view', async ({ page 
   );
 });
 
-test('0298: clicking "Crear torneo" from the dashboard arrives at the tournament setup wizard', async ({
+test('clicking "Crear torneo" from the dashboard arrives at the tournament setup wizard', async ({
   page,
 }) => {
   await openDashboard(page);

@@ -262,6 +262,9 @@ export function tableResponse(result: TableProjectionResult): TableProjectionRes
       code: column.code,
       header: column.header,
       ...(column.shortHeader === undefined ? {} : { shortHeader: column.shortHeader }),
+      ...(result.columnDescriptions[column.code] === undefined
+        ? {}
+        : { description: result.columnDescriptions[column.code] }),
       ...(column.zeroDisplay === undefined ? {} : { zeroDisplay: column.zeroDisplay }),
       format: column.format,
     })),
@@ -298,6 +301,7 @@ export function segmentedTableResponse(
     segments: result.segments.map((segment) => ({
       ...(segment.groupId === undefined ? {} : { groupId: segment.groupId }),
       ...(segment.groupName === undefined ? {} : { groupName: segment.groupName }),
+      ...(segment.zoneName === undefined ? {} : { zoneName: segment.zoneName }),
       rows: segment.rows.map((row) => ({
         actorId: row.actorId,
         ...(row.entrantId === undefined ? {} : { entrantId: row.entrantId }),

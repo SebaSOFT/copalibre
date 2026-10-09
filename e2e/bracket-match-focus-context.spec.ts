@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * OpenSpec 0238: the public match report page's bracket-context panel, and its absence
+ * The public match report page's bracket-context panel, and its absence
  * for a stage whose format isn't bracket-shaped.
  */
 
@@ -154,18 +154,20 @@ test('shows the bracket-context panel with the current match emphasized, and lin
 
   const panel = page.getByRole('region', { name: /this match in the bracket/i });
   await expect(panel).toBeVisible();
-  await expect(panel.getByText('Talleres')).toBeVisible();
-  await expect(panel.getByText('Independiente')).toBeVisible();
-  await expect(panel.getByText('Gimnasia')).toBeVisible();
-  await expect(panel.getByText('Maipú')).toBeVisible();
+  // The shared bracket also holds each name as a (hidden) highlight control, so take the shown one.
+  await expect(panel.getByText('Talleres').first()).toBeVisible();
+  await expect(panel.getByText('Independiente').first()).toBeVisible();
+  await expect(panel.getByText('Gimnasia').first()).toBeVisible();
+  await expect(panel.getByText('Maipú').first()).toBeVisible();
   expect(bracketRequests).toBe(1);
 
-  // The current match's node (Talleres vs Independiente, round one) carries the emphasis
-  // class — the same treatment BracketView.astro's own championship node uses.
+  // The current match's node (Talleres vs Independiente, round one) is marked with a heavier edge
+  // and `aria-current`, so the mark does not rest on colour.
   const focusedNode = panel
     .locator('.cl-bracket-stage__node--focused')
     .filter({ hasText: 'Talleres' });
   await expect(focusedNode).toHaveCount(1);
+  await expect(focusedNode).toHaveAttribute('aria-current', 'true');
 
   const viewFullLink = panel.getByRole('link', { name: /view full bracket/i });
   await viewFullLink.click();

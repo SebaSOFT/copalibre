@@ -281,7 +281,7 @@ SHALL be closed by adding the owner rather than by exempting the surface.
   organisms, and it introduces no inline style object duplicating a library pattern
 
 ### Requirement: Template migration for remaining Control-web screens
-Every Control-web screen that shipped in 0141-admin-atomic-design-system SHALL use `ListScreenTemplate` or `FormScreenTemplate` when their shape matches. The 11 remaining screens identified in 0141-admin-atomic-design-system SHALL be migrated onto the atomic tier system and SHALL NOT hand-roll layouts, tables, cards, or alerts after this change is complete. `MatchConsoleRoute.tsx` SHALL introduce its own template and SHALL consume it rather than constructing category rows or extended-match headers directly. Migrated screens SHALL assert their template-derived DOM shape in their updated `*.test.tsx` suites.
+Every Control-web screen that shipped in the admin atomic design system SHALL use `ListScreenTemplate` or `FormScreenTemplate` when their shape matches. The 11 remaining screens identified in the admin atomic design system SHALL be migrated onto the atomic tier system and SHALL NOT hand-roll layouts, tables, cards, or alerts after this change is complete. `MatchConsoleRoute.tsx` SHALL introduce its own template and SHALL consume it rather than constructing category rows or extended-match headers directly. Migrated screens SHALL assert their template-derived DOM shape in their updated `*.test.tsx` suites.
 
 #### Scenario: Group A list screen loads data
 - **WHEN** `PromotionPlanRoute` loads data

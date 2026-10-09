@@ -1,5 +1,5 @@
 /**
- * OpenSpec 0221 Aggregate Status Evaluator.
+ * Aggregate Status Evaluator.
  *
  * Preserves stable required aggregate check names:
  * - 'Unit tests'

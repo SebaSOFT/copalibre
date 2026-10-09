@@ -218,7 +218,7 @@ Every piece of user-facing interface text rendered by a public-web, Control-web,
 template SHALL be sourced from the platform's message-catalogue system (`intl.formatMessage`,
 `resolveLabel`, or an equivalent catalogue lookup), never hardcoded as a literal in component or
 template source. A repository-wide scan SHALL exist to detect a literal that bypasses the catalogue
-system and report it, distinct from `0136`'s translation-accuracy review, which assumes a catalogue key
+system and report it, distinct from the translation-accuracy review, which assumes a catalogue key
 already exists and reviews only whether its translated value is correct.
 
 #### Scenario: A hardcoded literal is flagged

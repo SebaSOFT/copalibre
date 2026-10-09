@@ -1,7 +1,7 @@
 /**
  * Translates a tournament's own configuration — name, stages, registration
  * settings, and its effective ruleset — into plain language, composed above
- * the discipline's own plain-language summary (openspec 0263/0267).
+ * the discipline's own plain-language summary.
  *
  * Composition, not inheritance: `DisciplineSummary` stays discipline-only
  * (unmodified, still used directly by `DescriptorBuilderWizard`'s
@@ -18,6 +18,8 @@ import type { DisciplineSummaryData } from '../../../lib/discipline-summary.js';
 export interface TournamentSummaryStage {
   readonly name: string;
   readonly format: string;
+  /** Each declared zone with the format it plays (its own, else its stage's). */
+  readonly zones?: readonly { readonly name: string; readonly format: string }[];
 }
 
 /**
@@ -70,12 +72,24 @@ export function TournamentSummary({
                 </p>
                 <Stack gap="1">
                   {facts.stages.map((stage, index) => (
-                    <p key={`${stage.name}-${index}`}>
-                      {intl.formatMessage(messages.tournamentSummaryStageLine, {
-                        name: stage.name,
-                        format: stage.format,
-                      })}
-                    </p>
+                    <div key={`${stage.name}-${index}`}>
+                      <p>
+                        {intl.formatMessage(messages.tournamentSummaryStageLine, {
+                          name: stage.name,
+                          format: stage.format,
+                        })}
+                      </p>
+                      {stage.zones !== undefined && stage.zones.length > 0 && (
+                        <p>
+                          {intl.formatMessage(messages.tournamentSummaryStageZonesLine, {
+                            zones: intl.formatList(
+                              stage.zones.map((zone) => `${zone.name} (${zone.format})`),
+                              { type: 'unit' },
+                            ),
+                          })}
+                        </p>
+                      )}
+                    </div>
                   ))}
                 </Stack>
               </div>

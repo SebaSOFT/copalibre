@@ -33,7 +33,7 @@ export interface DataIntegritySnapshot {
  * information for the operator, not a reason to block `copalibre start`.
  * `copalibre doctor --fix` is the separate, explicit path that acts on it.
  *
- * Scope note (openspec 0296): the proposal named three further checks —
+ * Scope note: the proposal named three further checks —
  * fixture/bracket completeness, discipline-descriptor/tournament-profile
  * drift, and broader entity completeness (club emblems, group/zone entrant
  * assignment) — all investigated and dropped before implementation, each for

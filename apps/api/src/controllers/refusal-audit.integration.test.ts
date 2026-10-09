@@ -6,14 +6,13 @@ import { buildTestApp } from './test-support/integration-harness.js';
 const GUARD_PROVIDERS = [{ provide: APP_GUARD, useClass: OrganizationAccessGuard }];
 
 /**
- * The central exception filter's refusal recording (openspec 0166, tasks
- * 2.1/2.4), exercised through the real HTTP stack rather than at the unit
+ * The central exception filter's refusal recording, exercised through the real HTTP stack rather than at the unit
  * level, so the wiring — DI, the Fastify request shape, the real
  * `audit_log` table — is proven, not just the pure `refusalEntryFor` logic
  * `error-contract.test.ts` already covers.
  */
 describe('refusal audit recording (integration)', () => {
-  it('records an authorization refusal naming the actor and reason (task 6.2)', async () => {
+  it('records an authorization refusal naming the actor and reason', async () => {
     const { scratch, organizationId, request, app } = await buildTestApp(
       [ClubsController],
       GUARD_PROVIDERS,
@@ -45,7 +44,7 @@ describe('refusal audit recording (integration)', () => {
     }
   });
 
-  it('names the absence rather than an invented actor for an unauthenticated refusal (task 2.4)', async () => {
+  it('names the absence rather than an invented actor for an unauthenticated refusal', async () => {
     const { scratch, request, app } = await buildTestApp([ClubsController], GUARD_PROVIDERS);
     try {
       const response = await request({

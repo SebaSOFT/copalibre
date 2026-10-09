@@ -439,7 +439,7 @@ The audit trail screen SHALL resolve actor identifiers into human-readable user 
 - **THEN** the action name and field transitions render in human-readable plain language matching the active locale
 
 ### Requirement: Roles and permissions UI ownership and scope selection
-The roles and permissions screen SHALL compose owned design-system primitives without raw unstyled form tags. Scope selectors for club-admin and tournament-admin roles SHALL render localized placeholders rather than blank options.
+The roles and permissions screen SHALL compose owned design-system primitives without raw unstyled form tags. All user-facing terminology across the screen SHALL refer to platform participants as users ("usuarios") rather than recipients ("destinatarios"). In the member listing table, the role selection control SHALL be constrained in width (`max-width: 220px`) with its concise capability description positioned directly to its right within the cell. Scope selectors for club-admin and tournament-admin roles SHALL render localized placeholders rather than blank options.
 
 #### Scenario: Scope selectors present localized prompt
 - **WHEN** an operator selects club-admin or tournament-admin in the invite dialog
@@ -449,3 +449,10 @@ The roles and permissions screen SHALL compose owned design-system primitives wi
 - **WHEN** an operator interacts with status toggles or checkboxes on the roles screen
 - **THEN** all controls are rendered using owned primitives with visible focus states and accessible labels
 
+#### Scenario: User administration terminology reflects users
+- **WHEN** an operator views the roles and permissions screen
+- **THEN** the primary invite action and table headers use user terminology ("Invitar usuario", "Usuarios") rather than recipient terminology
+
+#### Scenario: Role selector in table is constrained with inline description
+- **WHEN** the roles table renders a member's role assignment
+- **THEN** the role `<Select>` dropdown is constrained in width and its capability explanation is positioned to its right rather than expanding across the entire cell

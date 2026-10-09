@@ -1,6 +1,6 @@
 # Dependency remediation — 2026-09-09
 
-OpenSpec change `0218-dependabot-vulnerability-remediation` patches nine open
+The Dependabot vulnerability remediation patches nine open
 Dependabot alerts reported against `yarn.lock`. The GitHub API was checked on
 2026-09-09; closure remains pending release to the default branch, `main`.
 Merging to `develop` does not establish that GitHub has closed these alerts.

@@ -1,11 +1,10 @@
 ---
 import type { IntlShape } from 'react-intl';
-import MatchNode from './MatchNode.astro';
+import BracketGraph from './BracketGraph.astro';
 import Button from '../atoms/Button.astro';
 import '../../../styles/entrant-path.css';
 import { OutcomeLegend, type BracketOutcome } from '../molecules/OutcomeLegend.tsx';
 import {
-  championshipMatch,
   bracketMatchId,
   describeSlot,
   nodeOutcomes,
@@ -13,6 +12,9 @@ import {
   toRounds,
   type BracketMatch,
 } from '../../../lib/bracket.ts';
+import PlacementGames from '../molecules/PlacementGames.astro';
+import { placementGamesOf } from '../../../lib/public-bracket-layout.ts';
+import { bracketBranchLabel, bracketRoleLabel } from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 interface Props {
@@ -22,10 +24,19 @@ interface Props {
   readonly tournamentAlias: string;
   readonly stageNumber: number;
   readonly localePrefix?: string;
+  /** The match a report page is about; drawn with a heavier edge and `aria-current`. */
+  readonly highlightMatchNumber?: number;
 }
-const { intl, organizationAlias, tournamentAlias, stageNumber, localePrefix = '' } = Astro.props;
+const {
+  intl,
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  localePrefix = '',
+  highlightMatchNumber,
+} = Astro.props;
 const rounds = toRounds(Astro.props.matches);
-const championship = championshipMatch(Astro.props.matches);
+const placementGames = placementGamesOf(Astro.props.matches);
 
 const outcomeLabels: Readonly<Record<BracketOutcome, string>> = {
   advancing: intl.formatMessage(messages.bracketOutcomeAdvancing),
@@ -44,7 +55,7 @@ const legend = stageOutcomes(Astro.props.matches).map((outcome) => ({
 }));
 
 const roundLabel = (round: (typeof rounds)[number]): string =>
-  `${round.branch} · ${intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}`;
+  `${bracketBranchLabel(intl, round.branch)} · ${intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}`;
 ---
 
 {
@@ -73,48 +84,43 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
     )
   }
 
-  <div
-    aria-label={intl.formatMessage(messages.bracketScrollAriaLabel)}
-    class="cl-bracket-stage__scroll"
-    role="group"
-    tabindex="0"
-  >
-    <div class="cl-bracket-stage__rounds cl-bracket">
-      {
-        rounds.map((round) => (
-          <section
-            aria-label={intl.formatMessage(messages.bracketRoundAriaLabel, {
-              branch: round.branch,
-              round: round.roundNumber,
-            })}
-            class="cl-bracket-stage__round"
-          >
-            <h3 class="cl-bracket-stage__round-label">{roundLabel(round)}</h3>
-            {round.matches.map((match) => (
-              <div
-                data-journey-match={bracketMatchId(match)}
-                class:list={[
-                  'cl-bracket-stage__node',
-                  championship?.matchNumber === match.matchNumber &&
-                    'cl-bracket-stage__node--championship',
-                ]}
-              >
-                <MatchNode
-                  highlightEntrants
-                  intl={intl}
-                  localePrefix={localePrefix}
-                  match={match}
-                  organizationAlias={organizationAlias}
-                  stageNumber={stageNumber}
-                  tournamentAlias={tournamentAlias}
-                />
-              </div>
-            ))}
-          </section>
-        ))
-      }
-    </div>
-  </div>
+  {
+    /*
+    The same bracket twice, each at a density: cards with emblems and highlight controls where
+    there is room, abbreviations and scores where there is not. The stylesheet shows one.
+  */
+  }
+  {
+    (['full', 'compact'] as const).map((density) => (
+      <div
+        aria-label={intl.formatMessage(messages.bracketScrollAriaLabel)}
+        class={`cl-bracket-stage__scroll cl-bracket-stage__scroll--${density}`}
+        role="group"
+        tabindex="0"
+      >
+        <BracketGraph
+          density={density}
+          highlightMatchNumber={highlightMatchNumber}
+          intl={intl}
+          localePrefix={localePrefix}
+          matches={Astro.props.matches}
+          organizationAlias={organizationAlias}
+          stageNumber={stageNumber}
+          tournamentAlias={tournamentAlias}
+        />
+      </div>
+    ))
+  }
+
+  <PlacementGames
+    games={placementGames}
+    highlightMatchNumber={highlightMatchNumber}
+    intl={intl}
+    localePrefix={localePrefix}
+    organizationAlias={organizationAlias}
+    stageNumber={stageNumber}
+    tournamentAlias={tournamentAlias}
+  />
 
   {
     /*
@@ -134,6 +140,9 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
               const outcomes = nodeOutcomes(match);
               return (
                 <li data-journey-match={bracketMatchId(match)}>
+                  {match.role !== undefined && (
+                    <strong>{bracketRoleLabel(intl, match.role)}: </strong>
+                  )}
                   {match.slots.map((slot, index) => (
                     <>
                       {index > 0 && ' — '}
@@ -182,16 +191,3 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
   initialize();
   document.addEventListener('astro:page-load', initialize);
 </script>
-
-<style>
-  /*
-    The championship node reads as the stage's last cross: a heavier edge, not a
-    different card. Emphasis only — `championshipMatch` marks it from the
-    structure the projection produced, and declines to mark anything where the
-    last round holds more than one match.
-  */
-  .cl-bracket-stage__node--championship :global(.cl-card) {
-    border-width: 2px;
-    border-color: var(--cl-primary);
-  }
-</style>

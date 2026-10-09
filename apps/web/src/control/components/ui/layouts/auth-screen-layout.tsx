@@ -8,7 +8,7 @@
  * that only three of the four auth screens could reach: the invitation screen
  * centred its own card in a bare <body> instead, which is why it alone ran
  * flush to both edges on mobile. Layout and spacing only — no data-fetching or
- * business logic (design.md Decisions 7-8).
+ * business logic.
  */
 import type { ReactNode } from 'react';
 

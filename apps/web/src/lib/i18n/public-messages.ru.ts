@@ -1,6 +1,6 @@
 /**
- * Russian translations, keyed to match `public-messages.en.ts`'s IDs exactly
- *. Best-effort translation; native-speaker review is a later pass
+ * Russian translations, keyed to match `public-messages.en.ts`'s IDs exactly.
+ * Best-effort translation; native-speaker review is a later pass
  * (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
@@ -47,6 +47,8 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.heading': 'Турнирная таблица',
   'publicWeb.standings.tableLayouts': 'Виды таблиц',
   'publicWeb.standings.filterByClub': 'Фильтр по клубу',
+  'publicWeb.standings.filterClubLabel': 'Клуб',
+  'publicWeb.standings.columnLegend': 'Сокращения в таблице',
   'publicWeb.standings.closeDialog': 'Закрыть диалог',
   'publicWeb.home.pageTitle': 'CopaLibre — Управление турнирами',
   'publicWeb.home.organizationsLabel': 'Организации',
@@ -93,9 +95,15 @@ export const messages: Record<string, string> = {
 
   'publicWeb.bracket.roundAriaLabel': '{branch} — раунд {round}',
   'publicWeb.bracket.roundHeading': 'Раунд {round}',
+  'publicWeb.bracket.branch.winners': 'Основная сетка',
+  'publicWeb.bracket.branch.losers': 'Сетка проигравших',
+  'publicWeb.bracket.branch.grandFinal': 'Гранд-финал',
+  'publicWeb.bracket.branch.placement': 'Матчи за места',
+  'publicWeb.bracket.role.place': 'Матч за {place}-е место',
+  'publicWeb.bracket.role.places': 'Места {from}–{to}',
 
-  'publicWeb.broadcastStatus.note':
-    'Результаты обновляются автоматически при наличии соединения. В противном случае на этой странице уже есть все данные.',
+  'publicWeb.broadcastStatus.disconnected':
+    'Обновления в реальном времени недоступны. На странице показаны последние известные результаты.',
 
   'publicWeb.matchGrid.heading': 'Матчи',
   'publicWeb.matchGrid.empty': 'Пока нет запланированных матчей.',
@@ -116,6 +124,9 @@ export const messages: Record<string, string> = {
 
   'publicWeb.livePage.title': 'В эфире',
   'publicWeb.livePage.breadcrumb': 'Навигационная цепочка',
+  'publicWeb.breadcrumb.stage': 'Этап {stage}',
+  'publicWeb.breadcrumb.match': 'Матч {match}',
+  'publicWeb.breadcrumb.collapsed': 'Показать скрытые уровни',
   'publicWeb.livePage.noMatches': 'Сейчас нет матчей в эфире',
   'publicWeb.livePage.nextKickoff': 'Следующий запланированный матч',
   'publicWeb.livePage.noUpcoming': 'Предстоящих матчей нет.',
@@ -124,6 +135,7 @@ export const messages: Record<string, string> = {
   'publicWeb.livePage.leadersHeading': 'Лидеры',
 
   'publicWeb.bracketPage.title': 'Сетка',
+  'publicWeb.stageZonesPage.title': 'Этап',
 
   'publicWeb.playerProfile.heading': 'Профиль игрока',
   'publicWeb.playerProfile.age': 'Возраст: {age}',
@@ -176,6 +188,20 @@ export const messages: Record<string, string> = {
   'publicWeb.matchesView.zoneFilterAriaLabel': 'Фильтр по зоне',
   'publicWeb.matchesView.groupFilterAriaLabel': 'Фильтр по группе',
   'publicWeb.matchesView.stateFilterAriaLabel': 'Фильтр по статусу',
+  'publicWeb.schedule.columnKickoff': 'Начало',
+  'publicWeb.schedule.columnHome': 'Хозяева',
+  'publicWeb.schedule.columnScore': 'Счёт',
+  'publicWeb.schedule.columnAway': 'Гости',
+  'publicWeb.schedule.columnState': 'Статус',
+  'publicWeb.schedule.columnVenue': 'Место',
+  'publicWeb.matchesView.stageFilterTitle': 'Этап',
+  'publicWeb.matchesView.zoneFilterTitle': 'Зона',
+  'publicWeb.matchesView.groupFilterTitle': 'Группа',
+  'publicWeb.matchesView.stateFilterTitle': 'Статус',
+  'publicWeb.matchesView.viewFilterTitle': 'Вид',
+  'publicWeb.matchesView.viewFilterAriaLabel': 'Выберите вид отображения матчей',
+  'publicWeb.matchesView.viewRows': 'Таблица',
+  'publicWeb.matchesView.viewCards': 'Карточки',
   'publicWeb.matchesView.positionInGroup': '{group} — позиция №{position}',
   'publicWeb.matchesView.position': 'Позиция №{position}',
   'publicWeb.matchesView.decidedBy': 'Решено по: {factor}',
@@ -213,7 +239,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvStats.standingsRecord': '1-е · {points} очк · {played} сыграно',
   'publicWeb.tvStats.grandFinalRecord': 'Победитель большого финала ({winner} – {loser})',
 
-  // 0223 — ticker conditions, bracket stage chrome, public header.
+  // ticker conditions, bracket stage chrome, public header.
   'publicWeb.ticker.pause': 'Приостановить ленту',
   'publicWeb.ticker.resume': 'Возобновить ленту',
   'publicWeb.ticker.stale': 'Последние известные результаты — прямое соединение потеряно',
@@ -233,11 +259,12 @@ export const messages: Record<string, string> = {
   'publicWeb.header.closeMenu': 'Закрыть меню',
   'publicWeb.header.language': 'Язык',
   'publicWeb.header.navHome': 'Главная',
+  'publicWeb.header.navTv': 'ТВ-трансляция',
   'publicWeb.header.navHelp': 'Справка',
   'publicWeb.header.navApiReference': 'Справочник API',
   'publicWeb.header.controlPanel': 'Панель управления',
 
-  // TvDashboard.tsx's own chrome (openspec 0225 task 2.6).
+  // TvDashboard.tsx's own chrome.
   'publicWeb.tvDashboard.noMatchesScheduled': 'Матчи пока не запланированы',
   'publicWeb.tvDashboard.standingsUnavailable': 'Таблица недоступна',
   'publicWeb.tvDashboard.clubColumn': 'Клуб',
@@ -251,10 +278,19 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.performersTab': 'Лучшие игроки',
   'publicWeb.tvDashboard.statisticsTab': 'Статистика',
   'publicWeb.tvDashboard.bracketTab': 'Сетка',
+  'publicWeb.tvDashboard.fixturesTab': 'Матчи',
   'publicWeb.tvDashboard.bracketRound': 'Раунд',
   'publicWeb.tvDashboard.bracketMatch': 'Матч',
   'publicWeb.tvDashboard.possession': 'Владение',
   'publicWeb.tvDashboard.penalty': 'Штраф',
+  'publicWeb.tvDashboard.clockLabel': 'Местное время',
+  'publicWeb.tvDashboard.finishedOn': 'Завершён {date}',
+  'publicWeb.tvDashboard.matchNotFound': 'Такого матча нет',
+  'publicWeb.tvDashboard.pageOf': 'Страница {page} из {total}',
+  'publicWeb.tvDashboard.seriesState': 'Серия {home}–{away} · Игра {game} из {span}',
+  'publicWeb.tvDashboard.setsLabel': 'Сеты',
+  'publicWeb.tvDashboard.overlayNoMatch': 'Матч не выбран',
+  'publicWeb.tvDashboard.overlayNoCourtMatch': 'На этой площадке нет матча в эфире',
   'publicWeb.tvMultiCourtGrid.noMatches': 'Сейчас нет матчей в прямом эфире',
   'publicWeb.tvMultiCourtGrid.ariaLabel': 'Матчи в прямом эфире, вид на несколько площадок',
   'publicWeb.completion.heading': 'Прогресс турнира',
@@ -268,6 +304,10 @@ export const messages: Record<string, string> = {
   'publicWeb.matchOfficials.heading': 'Официальные лица',
   'publicWeb.matchOfficials.scheduleNotPublished': 'Расписание ещё не опубликовано.',
   'publicWeb.matchOfficials.noneAssigned': 'Официальные лица не назначены.',
+  'publicWeb.matchOfficials.role.referee': 'Судья',
+  'publicWeb.matchOfficials.role.assistant': 'Помощник судьи',
+  'publicWeb.matchOfficials.role.tableOfficial': 'Судья за столиком',
+  'publicWeb.matchOfficials.role.observer': 'Наблюдатель',
   'publicWeb.matchRosters.heading': 'Составы',
   'publicWeb.matchRosters.empty': 'Составы пока недоступны.',
   'publicWeb.matchRosters.teamEmpty': 'Состав пока недоступен.',

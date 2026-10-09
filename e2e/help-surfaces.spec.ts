@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-// openspec 0162: every control-panel route's helpPath must resolve to a
+// Every control-panel route's helpPath must resolve to a
 // page describing that screen, including platform administration (whose
 // route previously declared an empty helpPath and was invisible to the
 // existing link check).
@@ -46,7 +46,7 @@ test('a help page renders its declared roles visibly, not only in frontmatter (6
   // The role badge is real page content in the accessible tree, not a
   // tooltip or attribute a reader would never see. Scoped to the article
   // body: the left sidebar also links to every role's own manual page by
-  // the same name (openspec 0165), which would otherwise match twice.
+  // the same name, which would otherwise match twice.
   const main = page.locator('main');
   await expect(main.getByText('For roles:')).toBeVisible();
   await expect(main.getByText('Super-admin', { exact: true })).toBeVisible();

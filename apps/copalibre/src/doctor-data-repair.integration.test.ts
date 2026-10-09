@@ -15,7 +15,7 @@ const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' } as const;
 /**
  * `repairTournamentStatus` against a real, migrated PostgreSQL database:
  * the status column is corrected transactionally and an `audit_log` entry
- * records what changed and why (design.md Decision 3, task 3.2).
+ * records what changed and why.
  */
 describe('repairTournamentStatus (integration)', () => {
   let scratch: ScratchDatabase;

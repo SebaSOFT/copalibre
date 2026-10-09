@@ -340,8 +340,8 @@ describe('series operations (integration)', () => {
     expect(committed.statusCode).toBe(201);
 
     // The correction-history view's own shape is untouched by openspec
-    // 0166 — it whitelists exactly these five fields from AuditReader
-    // (task 4.4), unaffected by the reader gaining forOrganization/forActor.
+    // it whitelists exactly these five fields from AuditReader,
+    // unaffected by the reader gaining forOrganization/forActor.
     const history = await request({
       method: 'GET',
       url: `${matchBase(thirdGame)}/corrections`,

@@ -174,6 +174,32 @@ export class OutboxRelay {
   }
 
   /**
+   * Atomically claims one `(consumer, eventId)` pair for a side effect that must not happen twice,
+   * and reports whether this caller now owns it.
+   *
+   * The insert itself is the lock: `processed_markers` is keyed `(consumer, event_id)`, so of two
+   * workers reserving the same pair only one inserts. Unlike `complete`, it leaves the outbox row
+   * alone, so one row can carry many independent reservations (one per email recipient).
+   */
+  async reserve(consumer: string, eventId: string): Promise<boolean> {
+    const result = await this.db
+      .insertInto('processed_markers')
+      .values({ consumer, event_id: eventId, processed_at: new Date() })
+      .onConflict((conflict) => conflict.doNothing())
+      .executeTakeFirst();
+    return Number(result.numInsertedOrUpdatedRows ?? 0) > 0;
+  }
+
+  /** Gives a reservation back, so a later attempt may reserve the same pair again. */
+  async release(consumer: string, eventId: string): Promise<void> {
+    await this.db
+      .deleteFrom('processed_markers')
+      .where('consumer', '=', consumer)
+      .where('event_id', '=', eventId)
+      .execute();
+  }
+
+  /**
    * Records a failure and schedules the next attempt, or dead-letters when the
    * caller says the attempts are spent.
    *

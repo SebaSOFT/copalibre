@@ -171,6 +171,21 @@ describe('public projections routes', () => {
           .set({ status: 'in-progress' })
           .where('match_id', '=', liveMatch.matchId)
           .execute();
+        const half = await competition.createSegment(uow, {
+          matchId: liveMatch.matchId,
+          type: 'half',
+          number: 1,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        await competition.setSegmentState(uow, {
+          segmentId: half.segmentId,
+          state: 'active',
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
         return { liveMatchId: liveMatch.matchId, scheduledMatchId: scheduledMatch.matchId };
       },
     );
@@ -184,12 +199,19 @@ describe('public projections routes', () => {
       matches: { matchId: string; state: string }[];
     };
     expect(data.matches).toContainEqual(
-      expect.objectContaining({ matchId: liveMatchId, state: 'live' }),
+      expect.objectContaining({
+        matchId: liveMatchId,
+        state: 'live',
+        stageOrdinal: 1,
+        segments: [
+          expect.objectContaining({ number: 1, type: 'half', timed: true, state: 'active' }),
+        ],
+      }),
     );
     expect(data.matches.map((match) => match.matchId)).not.toContain(scheduledMatchId);
   });
 
-  it("shows a merged-strategy ruleset field's full effective value, not the raw override delta (openspec 0267)", async () => {
+  it("shows a merged-strategy ruleset field's full effective value, not the raw override delta", async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = {
       ...footballDescriptor(),
@@ -230,6 +252,39 @@ describe('public projections routes', () => {
     expect(response.statusCode).toBe(200);
     const data = JSON.parse(response.payload as string);
     expect(data.ruleset.tiebreakers).toBe('points,score-difference,goals-for,golden-goal');
+  });
+
+  it('lists the discipline defaults, with standard labels, for a tournament that overrides nothing', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    const created = await withTransaction(scratch.db as Kysely<Database>, async (uow) =>
+      tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-public-default-ruleset',
+        name: 'Copa Public Default Ruleset',
+        descriptor,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+    const published = await withTransaction(scratch.db as Kysely<Database>, async (uow) =>
+      tournaments.publish(uow, {
+        tournamentId: created.tournamentId,
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const response = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${published.alias}/overview`,
+    });
+    const data = JSON.parse(response.payload as string);
+    expect(Object.keys(data.ruleset).length).toBeGreaterThan(0);
+    expect(data.ruleset['scoring.pointsPerWin']).toBe('3');
+    expect(data.rulesetLabels['scoring.pointsPerWin']).toMatchObject({ es: 'Puntos Por Victoria' });
+    expect(Object.keys(data.ruleset).some((key) => key.startsWith('registration.'))).toBe(false);
   });
 
   it('returns an upcoming stage-scoped match report and 404s for unknown stage or match numbers', async () => {
@@ -550,6 +605,17 @@ describe('public projections routes', () => {
       officials: [{ name: 'María Referee', roles: ['referee'] }],
       rosters: { home: [{ personId: playerId, name: 'Lucía Gómez', number: 9 }], away: [] },
       timeline: [{ definitionCode: 'goal', label: 'Goal', personId: playerId }],
+      // The half the goal was scored in: timed, labelled in every language, scored by its own events.
+      segments: [
+        {
+          number: 1,
+          type: 'half',
+          timed: true,
+          label: { en: 'Half' },
+          state: 'active',
+          scores: [1, 0],
+        },
+      ],
     });
   });
 
@@ -1574,7 +1640,7 @@ describe('public projections routes', () => {
       expect(found.winners[0].runnerUp.abbreviation).toBe('BET');
     });
 
-    it('reconstructs the generated final beside a same-round classification fixture, per zone (openspec 0273)', async () => {
+    it('reconstructs the generated final beside a same-round classification fixture, per zone', async () => {
       // Reproduces the panamericano-clubes-2025 shape that surfaced the bug:
       // a multi-zone terminal stage where a generated championship final and
       // a classification fixture share a round, plus one legacy-shaped zone
@@ -1968,6 +2034,185 @@ describe('public projections routes', () => {
       expect(bronzeZone.runnerUp).toBeUndefined();
     });
 
+    it('lists the champion of every cup of a stage whose cups also play classification games', async () => {
+      // Twelve fixtures per cup: quarter-finals, semi-finals, a fifth-to-eighth round and the
+      // final beside the third, fifth and seventh place games. The fifth-place game's entrants pass
+      // the same lineage test as the finalists, so only the unbeaten finalists identify the final.
+      const tournaments = new TournamentRepository(scratch.db);
+      const competition = new CompetitionRepository(scratch.db);
+      const enrollments = new EnrollmentRepository(scratch.db);
+      const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+      const db = scratch.db as Kysely<Database>;
+
+      const created = await withTransaction(db, (uow) =>
+        tournaments.create(uow, {
+          organizationId,
+          alias: 'copas-clasificatorias',
+          name: 'Copas Clasificatorias',
+          descriptor: footballDescriptor(),
+          ...audit,
+        }),
+      );
+      await withTransaction(db, (uow) =>
+        tournaments.publish(uow, { tournamentId: created.tournamentId, organizationId, ...audit }),
+      );
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'started' })
+        .where('tournament_id', '=', created.tournamentId)
+        .execute();
+
+      // [round, home, home score, away, away score]; a drawn game records no winner.
+      const cupGames: readonly (readonly [number, number, number, number, number])[] = [
+        [1, 1, 2, 2, 7],
+        [1, 3, 1, 4, 5],
+        [1, 5, 3, 6, 3],
+        [1, 7, 2, 8, 4],
+        [2, 2, 3, 8, 1],
+        [2, 6, 1, 4, 2],
+        [2, 1, 5, 7, 3],
+        [2, 5, 7, 3, 1],
+        [3, 2, 0, 4, 3],
+        [3, 8, 5, 6, 4],
+        [3, 1, 3, 5, 3],
+        [3, 7, 4, 3, 9],
+      ];
+      const champions: Record<string, string> = {};
+
+      await withTransaction(db, async (uow) => {
+        const stage = await competition.createStageInTournament(uow, {
+          tournamentId: created.tournamentId,
+          number: 1,
+          name: 'Copas',
+          format: 'single-elimination',
+          organizationId,
+          ...audit,
+        });
+        const zones = [
+          await competition.createZone(uow, {
+            stageId: stage.stageId,
+            number: 1,
+            name: 'Copa Uno',
+            organizationId,
+            ...audit,
+          }),
+          await competition.createZone(uow, {
+            stageId: stage.stageId,
+            number: 2,
+            name: 'Copa Dos',
+            organizationId,
+            ...audit,
+          }),
+        ];
+
+        const entrantsOf = new Map<string, { entrantId: string }[]>();
+        for (const zone of zones) {
+          const entrants: { entrantId: string }[] = [];
+          for (let slot = 1; slot <= 8; slot += 1) {
+            const alias = `${zone.name.replace(' ', '-').toLowerCase()}-${slot}`;
+            const club = await enrollments.createClub(uow, {
+              organizationId,
+              alias: `club-${alias}`,
+              name: `Club ${alias}`,
+              ...audit,
+            });
+            const team = await enrollments.createTeam(uow, {
+              organizationId,
+              alias: `team-${alias}`,
+              name: `${zone.name} ${slot}`,
+              clubId: club.clubId,
+              ...audit,
+            });
+            entrants.push(
+              await enrollments.registerEntrant(uow, {
+                tournamentId: created.tournamentId,
+                organizationId,
+                entrantRef: { kind: 'team', teamId: team.teamId },
+                ...audit,
+              }),
+            );
+          }
+          entrantsOf.set(zone.zoneId, entrants);
+        }
+        const slotOf = (zoneId: string, slot: number) =>
+          (entrantsOf.get(zoneId)?.[slot - 1] as { entrantId: string }).entrantId;
+
+        // Every fixture of the stage is created in one call: a zone cannot be added once the
+        // stage holds a fixture.
+        const fixtures = await competition.createFixtures(uow, {
+          stageId: stage.stageId,
+          fixtures: zones.flatMap((zone) =>
+            cupGames.map(([round, home, , away]) => ({
+              round,
+              homeEntrantId: slotOf(zone.zoneId, home),
+              awayEntrantId: slotOf(zone.zoneId, away),
+              zoneId: zone.zoneId,
+            })),
+          ),
+          organizationId,
+          ...audit,
+        });
+        for (const [zoneIndex, zone] of zones.entries()) {
+          for (const [index, [, home, homeScore, away, awayScore]] of cupGames.entries()) {
+            const fixture = fixtures[zoneIndex * cupGames.length + index];
+            if (!fixture) throw new Error('Expected fixture');
+            const homeId = slotOf(zone.zoneId, home);
+            const awayId = slotOf(zone.zoneId, away);
+            const match = await competition.createMatch(uow, {
+              fixtureId: fixture.fixtureId,
+              number: 1,
+              organizationId,
+              ...audit,
+            });
+            await competition.recordResult(uow, {
+              matchId: match.matchId,
+              result: {
+                sides: [
+                  { entrantId: homeId, statistics: { score: homeScore } },
+                  { entrantId: awayId, statistics: { score: awayScore } },
+                ],
+                ...(homeScore === awayScore
+                  ? {}
+                  : { winnerEntrantId: homeScore > awayScore ? homeId : awayId }),
+                recordedAt: new Date().toISOString(),
+              },
+              organizationId,
+              ...audit,
+            });
+          }
+          // The final is the first fixture of the third round: seed 2 against seed 4.
+          champions[zone.name] = slotOf(zone.zoneId, 4);
+        }
+      });
+
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'finished' })
+        .where('tournament_id', '=', created.tournamentId)
+        .execute();
+
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/public/tournaments`,
+      });
+      expect(response.statusCode).toBe(200);
+      const found = JSON.parse(response.payload as string).tournaments.find(
+        (t: { tournamentId: string }) => t.tournamentId === created.tournamentId,
+      );
+      expect(found.winners.map((zone: { zoneName?: string }) => zone.zoneName)).toEqual([
+        'Copa Uno',
+        'Copa Dos',
+      ]);
+      for (const zone of found.winners as {
+        zoneName: string;
+        champions: { entrantId: string }[];
+      }[]) {
+        expect(zone.champions.map((champion) => champion.entrantId)).toEqual([
+          champions[zone.zoneName],
+        ]);
+      }
+    });
+
     it('resolves an explicit third place for a finished ranked tournament', async () => {
       const tournaments = new TournamentRepository(scratch.db);
       const competition = new CompetitionRepository(scratch.db);
@@ -2171,7 +2416,7 @@ describe('public projections routes', () => {
     });
   });
 
-  describe('stage bracket projection (openspec 0246)', () => {
+  describe('stage bracket projection', () => {
     it('projects one correctly-scoped bracket per zone, with no cross-zone round/position collision', async () => {
       // Reproduces the shape that surfaced the bug: 2 parallel zones in one
       // single-elimination stage, both with a round-1/position-1 fixture —
@@ -2238,7 +2483,7 @@ describe('public projections routes', () => {
           });
 
           // Both zones must exist before any fixture (createZone refuses once the stage has
-          // fixtures), matching the 0245 test's own setup convention above.
+          // fixtures), matching this file's own setup convention above.
           const gold = await competition.createZone(uow, {
             stageId: stage.stageId,
             number: 1,
@@ -2344,7 +2589,104 @@ describe('public projections routes', () => {
       expect(otherGoldSlot.emblemObjectId).toBeUndefined();
     });
 
-    it('gives every zone a distinct, stage-wide matchNumber that matchReport() resolves back to the same match (openspec 0249)', async () => {
+    it('draws a placement game as its own branch and keeps it off the generated final', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const competition = new CompetitionRepository(scratch.db);
+      const enrollments = new EnrollmentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      const audit = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+
+      const created = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-placement-bracket',
+          name: 'Copa Placement Bracket',
+          descriptor,
+          ...audit,
+        }),
+      );
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.publish(uow, { tournamentId: created.tournamentId, organizationId, ...audit }),
+      );
+
+      const entrants = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        const register = async (alias: string): Promise<string> => {
+          const team = await enrollments.createTeam(uow, {
+            organizationId,
+            alias: `team-${alias}`,
+            name: `Team ${alias}`,
+            ...audit,
+          });
+          const entrant = await enrollments.registerEntrant(uow, {
+            tournamentId: created.tournamentId,
+            organizationId,
+            entrantRef: { kind: 'team', teamId: team.teamId },
+            ...audit,
+          });
+          return entrant.entrantId;
+        };
+        const [a, b, c, d] = [
+          await register('pa'),
+          await register('pb'),
+          await register('pc'),
+          await register('pd'),
+        ] as [string, string, string, string];
+        const stage = await competition.createStageInTournament(uow, {
+          tournamentId: created.tournamentId,
+          number: 1,
+          name: 'Copa con puestos',
+          format: 'single-elimination',
+          organizationId,
+          ...audit,
+        });
+        const zone = await competition.createZone(uow, {
+          stageId: stage.stageId,
+          number: 1,
+          name: 'Copa Unica',
+          organizationId,
+          ...audit,
+        });
+        // Two semi-finals, then a final and a third-place game in the same round. Fixtures are
+        // matched to the graph by round and position, so the placement game must not take the
+        // final's place even though it is created first.
+        await competition.createFixtures(uow, {
+          stageId: stage.stageId,
+          fixtures: [
+            { round: 1, homeEntrantId: a, awayEntrantId: b, zoneId: zone.zoneId },
+            { round: 1, homeEntrantId: c, awayEntrantId: d, zoneId: zone.zoneId },
+            { round: 2, homeEntrantId: b, awayEntrantId: d, zoneId: zone.zoneId, role: 'place-3' },
+            { round: 2, homeEntrantId: a, awayEntrantId: c, zoneId: zone.zoneId },
+          ],
+          organizationId,
+          ...audit,
+        });
+        return { a, b, c, d };
+      });
+
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${created.alias}/stages/1/bracket`,
+      });
+      expect(response.statusCode).toBe(200);
+      const zone = response.json().zones[0];
+      expect(zone.matches).toHaveLength(4);
+
+      const final = zone.matches.find((m: { matchId: string }) => m.matchId === 'SE-R2-M1');
+      expect(final.slots.map((slot: { entrantId: string }) => slot.entrantId)).toEqual([
+        entrants.a,
+        entrants.c,
+      ]);
+
+      const placement = zone.matches.find((m: { role?: string }) => m.role === 'place-3');
+      expect(placement).toMatchObject({ bracket: 'placement', round: 2, position: 1 });
+      expect(placement.slots.map((slot: { entrantId: string }) => slot.entrantId)).toEqual([
+        entrants.b,
+        entrants.d,
+      ]);
+      expect(placement.matchNumber).toEqual(expect.any(Number));
+    });
+
+    it('gives every zone a distinct, stage-wide matchNumber that matchReport() resolves back to the same match', async () => {
       const response = await request({
         method: 'GET',
         url: `/organizations/liga-orbital/tournaments/copa-multizona-bracket/stages/1/bracket`,
@@ -2395,7 +2737,7 @@ describe('public projections routes', () => {
     });
   });
 
-  describe('match report lookup (openspec 0249)', () => {
+  describe('match report lookup', () => {
     let tournamentAlias: string;
     let groupAId: string;
     let groupBId: string;
@@ -2545,6 +2887,37 @@ describe('public projections routes', () => {
       expect(notFound.statusCode).toBe(404);
     });
 
+    it('carries on the overview the stage ordinal the public match route addresses each match by', async () => {
+      const overview = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/overview`,
+      });
+      expect(overview.statusCode).toBe(200);
+      const body = overview.json() as {
+        organizationTimeZone?: string;
+        matches: {
+          stageNumber: number;
+          stageOrdinal?: number;
+          homeEntrantId?: string;
+          awayEntrantId?: string;
+        }[];
+      };
+      expect(typeof body.organizationTimeZone).toBe('string');
+
+      const stageOne = body.matches.filter((match) => match.stageNumber === 1);
+      expect(stageOne.map((match) => match.stageOrdinal).sort()).toEqual([1, 2, 3]);
+      for (const match of stageOne) {
+        const report = await request({
+          method: 'GET',
+          url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/1/matches/${match.stageOrdinal}`,
+        });
+        expect(report.statusCode).toBe(200);
+        const reported = report.json();
+        expect(reported.homeEntrantId).toBe(match.homeEntrantId);
+        expect(reported.awayEntrantId).toBe(match.awayEntrantId);
+      }
+    });
+
     it('reports the same matchNumber for a match whether the matches-view request is group-filtered or not', async () => {
       const unfiltered = await request({
         method: 'GET',
@@ -2586,5 +2959,139 @@ describe('public projections routes', () => {
       const allNumbers = [...filteredMatches, ...otherGroupMatches].map((m) => m.matchNumber);
       expect(new Set(allNumbers).size).toBe(allNumbers.length);
     });
+  });
+});
+
+describe('overview standings of a mixed-format stage', () => {
+  const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' } as const;
+
+  async function publishedTournamentWith(
+    alias: string,
+    zones: readonly { readonly name: string; readonly format?: 'swiss' | 'single-elimination' }[],
+  ) {
+    const tournaments = new TournamentRepository(scratch.db);
+    const enrollment = new EnrollmentRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    const tournament = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...AUDIT });
+      const created = await tournaments.create(uow, {
+        organizationId,
+        alias,
+        name: alias,
+        descriptor,
+        ...AUDIT,
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: created.tournamentId,
+        number: 1,
+        name: 'Fase',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const declared = [];
+      for (const [index, zone] of zones.entries()) {
+        declared.push(
+          await competition.createZone(uow, {
+            stageId: stage.stageId,
+            number: index + 1,
+            name: zone.name,
+            ...(zone.format === undefined ? {} : { format: zone.format }),
+            organizationId,
+            ...AUDIT,
+          }),
+        );
+      }
+      const fixtures = [];
+      for (const [index, zone] of declared.entries()) {
+        const entrantIds: string[] = [];
+        for (const side of ['uno', 'dos']) {
+          const team = await enrollment.createTeam(uow, {
+            organizationId,
+            name: `${alias} ${index} ${side}`,
+            ...AUDIT,
+          });
+          const entrant = await enrollment.registerEntrant(uow, {
+            tournamentId: created.tournamentId,
+            entrantRef: { kind: 'team', teamId: team.teamId },
+            organizationId,
+            ...AUDIT,
+          });
+          entrantIds.push(entrant.entrantId);
+        }
+        fixtures.push({
+          round: 1,
+          zoneId: zone.zoneId,
+          homeEntrantId: entrantIds[0] as string,
+          awayEntrantId: entrantIds[1] as string,
+        });
+      }
+      const persisted = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures,
+        organizationId,
+        ...AUDIT,
+      });
+      for (const [index, fixture] of persisted.entries()) {
+        const match = await competition.createMatch(uow, {
+          fixtureId: fixture.fixtureId,
+          number: index + 1,
+          organizationId,
+          ...AUDIT,
+        });
+        await competition.recordResult(uow, {
+          matchId: match.matchId,
+          result: {
+            sides: [
+              { entrantId: fixture.homeEntrantId as string, statistics: { points: 3, played: 1 } },
+              { entrantId: fixture.awayEntrantId as string, statistics: { points: 0, played: 1 } },
+            ],
+            winnerEntrantId: fixture.homeEntrantId as string,
+            recordedAt: new Date().toISOString(),
+          },
+          organizationId,
+          ...AUDIT,
+        });
+      }
+      return created;
+    });
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.publish(uow, { tournamentId: tournament.tournamentId, organizationId, ...AUDIT }),
+    );
+  }
+
+  const overviewStandings = async (alias: string) => {
+    const response = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${alias}/overview`,
+    });
+    expect(response.statusCode).toBe(200);
+    return JSON.parse(response.payload as string).standingsPreview as {
+      name: string;
+      zoneName?: string;
+    }[];
+  };
+
+  it('names the zone of every row, in zone order, and leaves a knockout zone out', async () => {
+    await publishedTournamentWith('overview-mixed', [
+      { name: 'Liga A' },
+      { name: 'Liga B', format: 'swiss' },
+      { name: 'Copa', format: 'single-elimination' },
+    ]);
+
+    const rows = await overviewStandings('overview-mixed');
+
+    expect(rows.map((row) => row.zoneName)).toEqual(['Liga A', 'Liga A', 'Liga B', 'Liga B']);
+    expect(rows.map((row) => row.name).join(' ')).not.toContain('overview-mixed 2');
+  });
+
+  it('carries no zone on the rows of a stage whose zones all play its own format', async () => {
+    await publishedTournamentWith('overview-uniform', [{ name: 'Zona A' }, { name: 'Zona B' }]);
+
+    const rows = await overviewStandings('overview-uniform');
+
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => row.zoneName === undefined)).toBe(true);
   });
 });

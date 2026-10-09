@@ -177,6 +177,19 @@ describe('buildTickerItems', () => {
     expect(items[0]?.subject).toBe('Kinetic Apex');
   });
 
+  it('reads a kick-off instant as a time in the organization’s zone, never as an ISO string', () => {
+    const [first] = matches;
+    if (first === undefined) throw new Error('Fixture must declare a match');
+    const items = buildTickerItems({
+      matches: [{ ...first, startsAt: '2025-11-02T22:00:00.000Z' }],
+      labels,
+      language: 'en',
+      timeZone: 'America/Argentina/San_Juan',
+    });
+    expect(items[0]?.meta).toBe('2-Nov 19:00');
+    expect(items[0]?.meta).not.toContain('T22:00');
+  });
+
   it('omits the meta when a fixture carries no kickoff time', () => {
     const items = buildTickerItems({
       matches: [

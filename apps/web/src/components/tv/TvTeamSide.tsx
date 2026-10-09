@@ -1,8 +1,9 @@
 import { EntrantName } from '../ui/atoms/EntrantName.js';
+import { TvEmblem } from './ui/atoms/TvEmblem.js';
 import type { TvClubItem } from './tv-types.js';
 
 /**
- * Extracted from `TvDashboard.tsx` (openspec 0225 task 7.1) — one side of the
+ * Extracted from `TvDashboard.tsx` — one side of the
  * spotlight match, matched against the roster's club emblem by name.
  */
 export function TvTeamSide({
@@ -14,7 +15,7 @@ export function TvTeamSide({
   readonly name: string;
   readonly abbreviation?: string;
   readonly clubs?: readonly TvClubItem[];
-  /** The home side, on the spotlight's left — the jumbotron's visual anchor (openspec 0247). */
+  /** The home side, on the spotlight's left — the jumbotron's visual anchor. */
   readonly anchor?: boolean;
 }): React.JSX.Element {
   const club = clubs?.find((c) => c.name.toLowerCase() === name.toLowerCase());
@@ -22,19 +23,32 @@ export function TvTeamSide({
   return (
     <div className={`tv-team-side ${anchor ? 'tv-team-side--anchor' : ''}`.trim()}>
       <div className="tv-team-side__emblem-wrap">
-        {club?.emblemObjectId ? (
-          <img
-            alt={name}
-            className="tv-team-side__emblem"
-            src={`/api/objects/${club.emblemObjectId}`}
-          />
-        ) : (
-          <div className="tv-team-side__monogram">
-            {abbreviation ?? name.substring(0, 2).toUpperCase()}
-          </div>
-        )}
+        <TvEmblem
+          alt={name}
+          className="tv-team-side__emblem"
+          fallback={
+            <div className="tv-team-side__monogram">
+              {abbreviation ?? name.substring(0, 2).toUpperCase()}
+            </div>
+          }
+          src={club?.emblemUrl}
+        />
       </div>
-      <EntrantName abbreviation={abbreviation} className="tv-team-side__name" fullName={name} />
+      {/* A narrow frame shows the abbreviation instead (the stylesheet swaps them); the name stays the tooltip. */}
+      <EntrantName
+        abbreviation={abbreviation}
+        className={
+          abbreviation === undefined
+            ? 'tv-team-side__name'
+            : 'tv-team-side__name tv-team-side__full'
+        }
+        fullName={name}
+      />
+      {abbreviation !== undefined && (
+        <abbr className="tv-team-side__name tv-team-side__short" title={name}>
+          {abbreviation}
+        </abbr>
+      )}
     </div>
   );
 }

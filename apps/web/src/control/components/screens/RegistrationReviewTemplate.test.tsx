@@ -186,7 +186,7 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
     await waitFor(() => expect(onUploadPhoto).toHaveBeenCalled());
   });
 
-  it('links a participant identity through the link dialog (openspec 0170)', async () => {
+  it('links a participant identity through the link dialog', async () => {
     const onLinkIdentity = jest.fn(async () => undefined);
     render(
       withIntl(

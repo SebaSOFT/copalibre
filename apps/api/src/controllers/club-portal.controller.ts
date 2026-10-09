@@ -35,7 +35,7 @@ import {
 import { applyTeamRoster } from './registrations.controller.js';
 
 /**
- * The Club Portal (openspec 0301): a `club-admin`'s self-service surface over
+ * The Club Portal: a `club-admin`'s self-service surface over
  * their own club's member directory and tournament roster submissions.
  *
  * No new guard class. `OrganizationAccessGuard` already admits the caller by
@@ -256,6 +256,7 @@ export class ClubPortalController {
         organizationId,
         actor,
         authorizationContext,
+        origin: 'club-portal',
       }),
     );
     await applyTeamRoster(this.db, people, {
@@ -264,6 +265,7 @@ export class ClubPortalController {
       desiredRoleByPersonId,
       actor,
       authorizationContext,
+      submission: { entrantId: entrant.entrantId, tournamentId: entrant.tournamentId },
     });
 
     return {

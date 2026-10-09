@@ -49,7 +49,7 @@ export const WithoutEvents: Story = {
 };
 
 /**
- * The canonical live match — 0223's reference scenario for this predecessor.
+ * The canonical live match — the reference scenario for this predecessor.
  *
  * Meridian Seven leading Ironclad Five 3:1, seventy-four minutes in, taken from
  * `referenceLiveDashboard()` rather than written out here. That is the point of

@@ -139,7 +139,7 @@ describe('AuthScreenLayout', () => {
   });
 });
 
-describe('governance rules (design.md Decision 7): templates hold no state/data access', () => {
+describe('governance rules: templates hold no state/data access', () => {
   const dir = dirname(fileURLToPath(import.meta.url));
   const sourceFiles = readdirSync(dir).filter(
     (file) => file.endsWith('.tsx') && !file.endsWith('.test.tsx'),

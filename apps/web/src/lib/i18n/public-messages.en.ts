@@ -25,11 +25,12 @@ export const messages = defineMessages({
   // Layout chrome (layouts/PublicLayout.astro)
   layoutSkipToContent: { id: 'publicWeb.layout.skipToContent', defaultMessage: 'Skip to content' },
   layoutNavAriaLabel: { id: 'publicWeb.layout.navAriaLabel', defaultMessage: 'Main' },
-  // 0223 — the public header's own controls and destinations.
+  // the public header's own controls and destinations.
   headerOpenMenu: { id: 'publicWeb.header.openMenu', defaultMessage: 'Open the menu' },
   headerCloseMenu: { id: 'publicWeb.header.closeMenu', defaultMessage: 'Close the menu' },
   headerLanguage: { id: 'publicWeb.header.language', defaultMessage: 'Language' },
   headerNavHome: { id: 'publicWeb.header.navHome', defaultMessage: 'Home' },
+  headerNavTv: { id: 'publicWeb.header.navTv', defaultMessage: 'TV Streaming' },
   headerNavHelp: { id: 'publicWeb.header.navHelp', defaultMessage: 'Help' },
   headerNavApiReference: {
     id: 'publicWeb.header.navApiReference',
@@ -123,6 +124,14 @@ export const messages = defineMessages({
   standingsFilterByClub: {
     id: 'publicWeb.standings.filterByClub',
     defaultMessage: 'Filter by club',
+  },
+  standingsFilterClubLabel: {
+    id: 'publicWeb.standings.filterClubLabel',
+    defaultMessage: 'Club',
+  },
+  standingsColumnLegend: {
+    id: 'publicWeb.standings.columnLegend',
+    defaultMessage: 'Table abbreviations',
   },
   standingsCloseDialog: {
     id: 'publicWeb.standings.closeDialog',
@@ -228,7 +237,7 @@ export const messages = defineMessages({
     id: 'publicWeb.standings.column.series.shortLabel',
     defaultMessage: 'S',
   },
-  // StandingsTable.astro's player quick-view dialog (openspec 0271) — its
+  // StandingsTable.astro's player quick-view dialog — its
   // fallback title, career-stats/history headings, and empty states reuse
   // PlayerProfileView.astro's own playerProfile* messages below, since both
   // present the same profile content.
@@ -275,9 +284,31 @@ export const messages = defineMessages({
     defaultMessage: '{branch} — round {round}',
   },
   bracketRoundHeading: { id: 'publicWeb.bracket.roundHeading', defaultMessage: 'Round {round}' },
-  // 0223 — the bracket stage's own chrome, its key, and its textual view.
+  bracketBranchWinners: { id: 'publicWeb.bracket.branch.winners', defaultMessage: 'Main bracket' },
+  bracketBranchLosers: {
+    id: 'publicWeb.bracket.branch.losers',
+    defaultMessage: "Losers' bracket",
+  },
+  bracketBranchGrandFinal: {
+    id: 'publicWeb.bracket.branch.grandFinal',
+    defaultMessage: 'Grand final',
+  },
+  bracketBranchPlacement: {
+    id: 'publicWeb.bracket.branch.placement',
+    defaultMessage: 'Placement games',
+  },
+  // A placement game: the single place it decides, or the range it sorts.
+  bracketRolePlace: {
+    id: 'publicWeb.bracket.role.place',
+    defaultMessage: '{place, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} place',
+  },
+  bracketRolePlaces: {
+    id: 'publicWeb.bracket.role.places',
+    defaultMessage: 'Places {from}–{to}',
+  },
+  // the bracket stage's own chrome, its key, and its textual view.
   bracketStageAriaLabel: { id: 'publicWeb.bracket.stageAriaLabel', defaultMessage: 'Bracket' },
-  // 0246 — jump-to-zone navigation, shown only when a stage has more than one zone.
+  // jump-to-zone navigation, shown only when a stage has more than one zone.
   bracketZoneJumpAriaLabel: {
     id: 'publicWeb.bracket.zoneJumpAriaLabel',
     defaultMessage: 'Jump to a zone’s bracket',
@@ -318,10 +349,9 @@ export const messages = defineMessages({
   },
 
   // BroadcastStatusPanel.astro
-  broadcastStatusNote: {
-    id: 'publicWeb.broadcastStatus.note',
-    defaultMessage:
-      'Results update automatically when connected. Otherwise, this page already has everything.',
+  broadcastStatusDisconnected: {
+    id: 'publicWeb.broadcastStatus.disconnected',
+    defaultMessage: 'Live updates are unavailable. This page shows the latest known results.',
   },
 
   // MatchCardGrid.astro
@@ -376,6 +406,62 @@ export const messages = defineMessages({
   matchesViewStateFilterAriaLabel: {
     id: 'publicWeb.matchesView.stateFilterAriaLabel',
     defaultMessage: 'Filter by match state',
+  },
+  scheduleColumnKickoff: {
+    id: 'publicWeb.schedule.columnKickoff',
+    defaultMessage: 'Kick-off',
+  },
+  scheduleColumnHome: {
+    id: 'publicWeb.schedule.columnHome',
+    defaultMessage: 'Home',
+  },
+  scheduleColumnScore: {
+    id: 'publicWeb.schedule.columnScore',
+    defaultMessage: 'Score',
+  },
+  scheduleColumnAway: {
+    id: 'publicWeb.schedule.columnAway',
+    defaultMessage: 'Away',
+  },
+  scheduleColumnState: {
+    id: 'publicWeb.schedule.columnState',
+    defaultMessage: 'State',
+  },
+  scheduleColumnVenue: {
+    id: 'publicWeb.schedule.columnVenue',
+    defaultMessage: 'Venue',
+  },
+  matchesViewStageFilterTitle: {
+    id: 'publicWeb.matchesView.stageFilterTitle',
+    defaultMessage: 'Stage',
+  },
+  matchesViewZoneFilterTitle: {
+    id: 'publicWeb.matchesView.zoneFilterTitle',
+    defaultMessage: 'Zone',
+  },
+  matchesViewGroupFilterTitle: {
+    id: 'publicWeb.matchesView.groupFilterTitle',
+    defaultMessage: 'Group',
+  },
+  matchesViewStateFilterTitle: {
+    id: 'publicWeb.matchesView.stateFilterTitle',
+    defaultMessage: 'State',
+  },
+  matchesViewViewFilterTitle: {
+    id: 'publicWeb.matchesView.viewFilterTitle',
+    defaultMessage: 'View',
+  },
+  matchesViewViewFilterAriaLabel: {
+    id: 'publicWeb.matchesView.viewFilterAriaLabel',
+    defaultMessage: 'Choose how matches are shown',
+  },
+  matchesViewViewRows: {
+    id: 'publicWeb.matchesView.viewRows',
+    defaultMessage: 'Table',
+  },
+  matchesViewViewCards: {
+    id: 'publicWeb.matchesView.viewCards',
+    defaultMessage: 'Cards',
   },
   matchesViewPositionInGroup: {
     id: 'publicWeb.matchesView.positionInGroup',
@@ -466,6 +552,12 @@ export const messages = defineMessages({
   // pages/[organization]/tournaments/[tournament]/live.astro
   livePageTitle: { id: 'publicWeb.livePage.title', defaultMessage: 'Live' },
   livePageBreadcrumb: { id: 'publicWeb.livePage.breadcrumb', defaultMessage: 'Breadcrumb' },
+  breadcrumbStage: { id: 'publicWeb.breadcrumb.stage', defaultMessage: 'Stage {stage}' },
+  breadcrumbMatch: { id: 'publicWeb.breadcrumb.match', defaultMessage: 'Match {match}' },
+  breadcrumbCollapsed: {
+    id: 'publicWeb.breadcrumb.collapsed',
+    defaultMessage: 'Show the hidden levels',
+  },
   livePageNoMatches: {
     id: 'publicWeb.livePage.noMatches',
     defaultMessage: 'No live matches in progress',
@@ -484,6 +576,7 @@ export const messages = defineMessages({
 
   // pages/[organization]/tournaments/[tournament]/stages/[stage].astro
   bracketPageTitle: { id: 'publicWeb.bracketPage.title', defaultMessage: 'Bracket' },
+  stageZonesPageTitle: { id: 'publicWeb.stageZonesPage.title', defaultMessage: 'Stage' },
 
   // Player profile / career popup
   playerProfileHeading: { id: 'publicWeb.playerProfile.heading', defaultMessage: 'Player Profile' },
@@ -522,7 +615,7 @@ export const messages = defineMessages({
     defaultMessage: 'No photo uploaded',
   },
 
-  // Player statistics drilldown (0244)
+  // Player statistics drilldown
   playerProfileTournamentStatsHeading: {
     id: 'publicWeb.playerProfile.tournamentStatsHeading',
     defaultMessage: 'Tournament Statistics',
@@ -626,7 +719,7 @@ export const messages = defineMessages({
   tickerLabel: { id: 'publicWeb.ticker.label', defaultMessage: 'Tournament ticker' },
   tickerLeader: { id: 'publicWeb.ticker.leader', defaultMessage: 'Leader' },
   tickerVersus: { id: 'publicWeb.ticker.versus', defaultMessage: 'VS' },
-  // 0223 — the ticker's own controls and conditions.
+  // the ticker's own controls and conditions.
   tickerPause: { id: 'publicWeb.ticker.pause', defaultMessage: 'Pause the ticker' },
   tickerResume: { id: 'publicWeb.ticker.resume', defaultMessage: 'Resume the ticker' },
   tickerStale: {
@@ -675,7 +768,7 @@ export const messages = defineMessages({
     defaultMessage: 'Grand final winner ({winner} – {loser})',
   },
 
-  // TvDashboard.tsx's own chrome (openspec 0225 task 2.6) — separate from
+  // TvDashboard.tsx's own chrome — separate from
   // tv-statistics.ts's derived-stat labels above. No intl was threaded into
   // this component at all before; these cross into its client:load island
   // as plain string props, the same as every `tvStats*` label already does.
@@ -703,7 +796,7 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.focalPanelLabel',
     defaultMessage: 'Main broadcast panel',
   },
-  // Pinned-match compact event ticker (openspec 0270).
+  // Pinned-match compact event ticker.
   tvDashboardMatchEventsLabel: {
     id: 'publicWeb.tvDashboard.matchEventsLabel',
     defaultMessage: 'Match events',
@@ -732,6 +825,10 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.bracketTab',
     defaultMessage: 'Bracket',
   },
+  tvDashboardFixturesTab: {
+    id: 'publicWeb.tvDashboard.fixturesTab',
+    defaultMessage: 'Matches',
+  },
   tvDashboardBracketRound: {
     id: 'publicWeb.tvDashboard.bracketRound',
     defaultMessage: 'Round',
@@ -747,6 +844,38 @@ export const messages = defineMessages({
   tvDashboardPenalty: {
     id: 'publicWeb.tvDashboard.penalty',
     defaultMessage: 'Penalty',
+  },
+  tvDashboardClockLabel: {
+    id: 'publicWeb.tvDashboard.clockLabel',
+    defaultMessage: 'Local time',
+  },
+  tvDashboardFinishedOn: {
+    id: 'publicWeb.tvDashboard.finishedOn',
+    defaultMessage: 'Finished {date}',
+  },
+  tvDashboardMatchNotFound: {
+    id: 'publicWeb.tvDashboard.matchNotFound',
+    defaultMessage: 'This match does not exist',
+  },
+  tvDashboardPageOf: {
+    id: 'publicWeb.tvDashboard.pageOf',
+    defaultMessage: 'Page {page} of {total}',
+  },
+  tvDashboardSeriesState: {
+    id: 'publicWeb.tvDashboard.seriesState',
+    defaultMessage: 'Series {home}–{away} · Game {game} of {span}',
+  },
+  tvDashboardSetsLabel: {
+    id: 'publicWeb.tvDashboard.setsLabel',
+    defaultMessage: 'Sets',
+  },
+  tvDashboardOverlayNoMatch: {
+    id: 'publicWeb.tvDashboard.overlayNoMatch',
+    defaultMessage: 'No match selected',
+  },
+  tvDashboardOverlayNoCourtMatch: {
+    id: 'publicWeb.tvDashboard.overlayNoCourtMatch',
+    defaultMessage: 'No live match on this court',
   },
   tvMultiCourtGridNoMatches: {
     id: 'publicWeb.tvMultiCourtGrid.noMatches',
@@ -777,7 +906,7 @@ export const messages = defineMessages({
     defaultMessage: 'No matches scheduled',
   },
 
-  // Match report sections (openspec 0269): MatchTimeline.astro, MatchOfficials.astro,
+  // Match report sections: MatchTimeline.astro, MatchOfficials.astro,
   // MatchRosters.astro. Each component gets its own namespace rather than a shared
   // "match report" bucket, so a future change to one section's copy touches only it.
   matchTimelineHeading: {
@@ -799,6 +928,22 @@ export const messages = defineMessages({
   matchOfficialsNoneAssigned: {
     id: 'publicWeb.matchOfficials.noneAssigned',
     defaultMessage: 'No officials assigned.',
+  },
+  matchOfficialRoleReferee: {
+    id: 'publicWeb.matchOfficials.role.referee',
+    defaultMessage: 'Referee',
+  },
+  matchOfficialRoleAssistant: {
+    id: 'publicWeb.matchOfficials.role.assistant',
+    defaultMessage: 'Assistant referee',
+  },
+  matchOfficialRoleTableOfficial: {
+    id: 'publicWeb.matchOfficials.role.tableOfficial',
+    defaultMessage: 'Table official',
+  },
+  matchOfficialRoleObserver: {
+    id: 'publicWeb.matchOfficials.role.observer',
+    defaultMessage: 'Observer',
   },
   matchRostersHeading: {
     id: 'publicWeb.matchRosters.heading',

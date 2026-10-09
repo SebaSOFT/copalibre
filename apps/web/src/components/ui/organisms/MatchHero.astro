@@ -1,6 +1,6 @@
 ---
 /**
- * Extracted from the match report page (openspec 0225 task 7.2): the
+ * Extracted from the match report page: the
  * badge/scoreboard/venue header, unchanged in markup and styling.
  */
 import { Badge } from '../atoms/Badge.tsx';
@@ -10,18 +10,17 @@ import type { MatchReportModel } from '../../../lib/match-report.ts';
 export interface Props {
   readonly model: MatchReportModel;
   readonly locale: string;
+  /** The match state in the page language. The stage/round/match position lives in the breadcrumb. */
+  readonly statusLabel: string;
 }
 
-const { model, locale } = Astro.props;
+const { model, locale, statusLabel } = Astro.props;
 ---
 
 <header class="cl-match-hero">
   <div class="cl-match-hero__meta">
-    <Badge className="cl-badge--stage">
-      Stage {model.stageNumber} · Round {model.round} · Match {model.matchNumber}
-    </Badge>
     <Badge className={`cl-badge--${model.status.toLowerCase()}`}>
-      {model.status}
+      {statusLabel}
     </Badge>
   </div>
 
@@ -81,7 +80,7 @@ const { model, locale } = Astro.props;
     align-items: center;
     gap: 1rem;
     flex: 1;
-    /* No `min-width: 0` here (openspec 0225 task 7.4): that would let this
+    /* No `min-width: 0` here: that would let this
        side shrink and squeeze its own content instead of wrapping to its own
        line, which is what `.cl-scoreboard`'s `flex-wrap` is there to do at
        the 188px floor. */

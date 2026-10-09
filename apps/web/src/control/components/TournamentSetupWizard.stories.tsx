@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TournamentSetupWizard } from './TournamentSetupWizard.js';
 import { discipline } from './screen-story-fixtures.js';
+import type { HookScriptVocabulary } from '../lib/api-client.js';
 import type { DisciplineOption } from '../lib/wizard.js';
 
 const disciplineWithDoubleElimination: DisciplineOption = {
@@ -117,5 +118,55 @@ export const RulesetStepEmpty: Story = {
       descriptorId: discipline.descriptorId,
       descriptorVersion: discipline.version,
     },
+  },
+};
+
+export const RulesStepGivenWhenThen: Story = {
+  args: {
+    initialState: {
+      step: 'rules',
+      customRuleEnabled: true,
+      customRules: [],
+      customRuleConditions: [
+        { type: 'condition-one', values: {}, options: {} },
+        { type: 'condition-two', values: {}, options: {} },
+      ],
+      customRuleActions: [
+        { type: 'action-one', values: {}, options: {} },
+        { type: 'action-two', values: {}, options: {} },
+      ],
+    },
+  },
+  render: function Render(args) {
+    const vocabulary: HookScriptVocabulary = {
+      hooks: ['event.recorded'],
+      entries: [
+        {
+          kind: 'condition',
+          type: 'condition-one',
+          description: 'The recorded event is a score',
+          phraseTemplate: 'The recorded event is a score',
+        },
+        {
+          kind: 'condition',
+          type: 'condition-two',
+          description: 'The recorded event is in the final segment',
+          phraseTemplate: 'The recorded event is in the final segment',
+        },
+        {
+          kind: 'action',
+          type: 'action-one',
+          description: 'Send a notification',
+          phraseTemplate: 'Send a notification',
+        },
+        {
+          kind: 'action',
+          type: 'action-two',
+          description: 'Write an audit record',
+          phraseTemplate: 'Write an audit record',
+        },
+      ],
+    };
+    return <TournamentSetupWizard {...args} vocabulary={vocabulary} />;
   },
 };

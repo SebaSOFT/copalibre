@@ -1,5 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { HookScriptAttachmentRequest, ProfileRefResponse } from './organization.dto.js';
+import {
+  HookScriptAttachmentRequest,
+  ProfileRefResponse,
+  StageGroupConfigurationRequest,
+} from './organization.dto.js';
 
 export class TournamentConfigurationDescriptorRefResponse {
   @ApiProperty({ format: 'uuid' })
@@ -49,6 +53,9 @@ export class TournamentConfigurationStageLayerResponse {
 
   @ApiProperty({ type: Object, additionalProperties: true })
   effective!: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: StageGroupConfigurationRequest })
+  groupConfiguration?: StageGroupConfigurationRequest;
 }
 
 export class TournamentConfigurationStageResponse {

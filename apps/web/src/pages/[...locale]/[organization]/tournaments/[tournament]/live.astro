@@ -1,4 +1,6 @@
 ---
+import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
+import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
 import ResultLegend from '../../../../../components/ui/molecules/ResultLegend.astro';
 import StateBadge from '../../../../../components/ui/atoms/StateBadge.astro';
@@ -44,7 +46,6 @@ if (!overviewData || !dashboard) {
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
 const localePrefix = locale ? `/${locale}` : '';
 const canonicalPath = `${localePrefix}${model.canonicalPath}/live`;
-const tournamentPath = `${localePrefix}${model.canonicalPath}`;
 const reportPath = (stageNumber: number, matchNumber: number) =>
   `${localePrefix}${model.canonicalPath}/stages/${stageNumber}/matches/${matchNumber}`;
 const upcomingMatches = model.matches.filter((match) => match.state === 'upcoming');
@@ -58,6 +59,14 @@ const structuredData = {
   name: `${intl.formatMessage(messages.livePageTitle)} — ${displayName(model)}`,
   url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${canonicalPath}`,
 };
+const trailBase = trailBaseOf({
+  organizationAlias: organization!,
+  organizationName: model.organizationName,
+  tournamentName: displayName(model),
+  canonicalPath: model.canonicalPath,
+  localePrefix,
+});
+const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.livePageTitle) }]);
 ---
 
 <PublicLayout
@@ -67,11 +76,11 @@ const structuredData = {
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
-  <nav aria-label={intl.formatMessage(messages.livePageBreadcrumb)} class="cl-live-breadcrumb">
-    <a href={tournamentPath}>{displayName(model)}</a>
-    <span aria-hidden="true">/</span>
-    <span aria-current="page">{intl.formatMessage(messages.livePageTitle)}</span>
-  </nav>
+  <Breadcrumb
+    items={trail}
+    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+  />
   <h1>{intl.formatMessage(messages.livePageTitle)}</h1>
   {/* The island server-renders its initial state, including the zero-live state. */}
   <LiveMatchHero
@@ -134,16 +143,3 @@ const structuredData = {
     labels={resultStateLabels(intl)}
   />
 </PublicLayout>
-
-<style>
-  .cl-live-breadcrumb {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--cl-space-2);
-    margin-block-end: var(--cl-space-4);
-    color: var(--cl-text-muted);
-  }
-  .cl-live-breadcrumb a {
-    color: var(--cl-text-primary);
-  }
-</style>

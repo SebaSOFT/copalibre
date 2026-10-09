@@ -56,7 +56,11 @@ export type {
   RulesetConfig,
   OverrideSet,
 } from './descriptors/override-policy.js';
-export { humanizeFieldPath, resolveFieldPolicyLabel } from './descriptors/field-policy-label.js';
+export {
+  humanizeFieldPath,
+  resolveFieldPolicyLabel,
+  standardFieldLabel,
+} from './descriptors/field-policy-label.js';
 export type { Attribution } from './descriptors/attribution.js';
 export {
   CANONICAL_STATISTICS,
@@ -288,6 +292,9 @@ export {
 } from './aggregates/season.js';
 export {
   validateZone,
+  validateZoneFormat,
+  effectiveFormat,
+  producesStandingsTable,
   isImplicitZone,
   ZoneError,
   IMPLICIT_ZONE_NAME,
@@ -374,6 +381,10 @@ export {
   type SeedDirection,
   type SeedPlacement,
 } from './rulesets/stage-allocation.js';
+export {
+  validateStageGroupConfiguration,
+  type StageGroupConfiguration,
+} from './rulesets/tournament-ruleset.js';
 export { compileEffectiveRuleset, mergeWithStrategy } from './rulesets/compiler.js';
 export {
   evaluateMutation,
@@ -407,6 +418,8 @@ export {
   type StageCompletionPreconditions,
   type NextStagePreconditions,
   type RawStageStatusCount,
+  type RawSegmentStatusCount,
+  type SegmentCompletionSummary,
   type StageCompletionSummary,
   type TournamentCompletionSummary,
 } from './aggregates/stage-completion.js';

@@ -27,10 +27,19 @@ const labels: TvDashboardLabels = {
   performersTab: 'Destacados',
   statisticsTab: 'Estadísticas',
   bracketTab: 'Llave',
+  fixturesTab: 'Partidos',
   bracketRound: 'Ronda',
   bracketMatch: 'Partido',
   possession: 'Posesión',
   penalty: 'Sanción',
+  clockLabel: 'Hora local',
+  finishedOn: 'Finalizado el {date}',
+  matchNotFound: 'Este partido no existe',
+  pageOf: 'Página {page} de {total}',
+  seriesState: 'Serie {home}–{away} · Partido {game} de {span}',
+  setsLabel: 'Sets',
+  overlayNoMatch: 'Ningún partido seleccionado',
+  overlayNoCourtMatch: 'Ningún partido en vivo en esta cancha',
 };
 
 function zones(): readonly BracketZone[] {

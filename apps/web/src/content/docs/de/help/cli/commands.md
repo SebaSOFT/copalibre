@@ -46,6 +46,14 @@ einmaliger Helm-Job: `docs/deployment/enterprise-kubernetes.md` im Repository.
 - `--release <name>`: zu erfassender Helm-Release-Name (Standard: `copalibre`)
 - `--context <ctx>`: zu erfassender kube-context (Standard: keiner — jedes Mal explizit angeben)
 
+E-Mail- und Reparaturoptionen:
+
+- `--repair`: sichert `.env` und `docker-compose.yml`, ergänzt fehlende Standardwerte und Dateien und erhält die vorhandene Compose-Datei. Fehlende Standarddienste werden mit YAML-Snippets zur manuellen Prüfung angezeigt.
+- `--email-provider <provider>`: `smtp`, `resend`, `brevo` oder `mailgun` (Standard: lokales SMTP).
+- `--email-from <address>`: Absenderadresse (Standard: `noreply@copalibre.local`).
+- `--email-credential <value>`: SMTP-Verbindungs-URL oder API-Schlüssel des Anbieters.
+- `--email-domain <domain>`: für Mailgun erforderlich.
+
 ## doctor
 
 `copalibre doctor [--check-proxy] [--proxy-url <url>]`
@@ -65,9 +73,27 @@ Führt eine Entwicklungsumgebung aus, containerisiert oder hybrid.
 
 ## start
 
-`copalibre start`
+`copalibre start [--dev]`
 
-Startet PostgreSQL, führt doctor aus und startet alle Prozessrollen.
+Startet PostgreSQL, führt doctor aus und startet danach alle Prozessrollen. Bei einer Kubernetes-Installation zeigt der Befehl Helm-Hinweise. Mit --dev startet er das containerisierte Entwicklungsprofil.
+
+## stop
+
+`copalibre stop [--dev] [--down]`
+
+Stoppt Compose-Container, ohne Volumes zu entfernen. --down entfernt Container und Netzwerke. Bei Kubernetes zeigt der Befehl kubectl-/Helm-Hinweise. --dev steuert nur Compose-Container, keine lokal gestarteten Yarn-Prozesse.
+
+## restart
+
+`copalibre restart [--dev] [--no-doctor]`
+
+Stoppt den Compose-Stack, startet PostgreSQL, führt doctor aus und startet danach die übrigen Dienste mit Bereitschaftsprüfung. --no-doctor überspringt doctor; --dev startet Compose-Infrastrukturprofil für die Entwicklung neu.
+
+## status
+
+`copalibre status [--json] [--dev]`
+
+Zeigt Containerstatus, veröffentlichte Eingangsports und den Gateway-Status. --json liefert maschinenlesbares JSON, --dev zeigt die Entwicklungs-Compose-Umgebung. Bei Kubernetes zeigt der Befehl Release, Namespace und Kontext und fragt Pods ab, wenn kubectl verfügbar ist.
 
 ## migrate
 

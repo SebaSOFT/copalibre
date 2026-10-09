@@ -46,6 +46,14 @@ monouso: `docs/deployment/enterprise-kubernetes.md` nel repository.
 - `--context <ctx>`: kube-context da registrare (predefinito: nessuno — passalo esplicitamente ogni
   volta)
 
+Opzioni email e riparazione:
+
+- `--repair`: crea backup di `.env` e `docker-compose.yml`, aggiunge valori e risorse mancanti e preserva il Compose esistente. I servizi predefiniti assenti vengono mostrati con snippet YAML da verificare e applicare manualmente.
+- `--email-provider <provider>`: `smtp`, `resend`, `brevo` o `mailgun` (predefinito: SMTP locale).
+- `--email-from <address>`: indirizzo mittente (predefinito: `noreply@copalibre.local`).
+- `--email-credential <value>`: URL di connessione SMTP o chiave API del provider.
+- `--email-domain <domain>`: obbligatorio per Mailgun.
+
 ## doctor
 
 `copalibre doctor [--check-proxy] [--proxy-url <url>]`
@@ -65,9 +73,27 @@ Esegue un ambiente di sviluppo, containerizzato o ibrido.
 
 ## start
 
-`copalibre start`
+`copalibre start [--dev]`
 
-Avvia PostgreSQL, esegue doctor, e avvia tutti i ruoli di processo.
+Avvia PostgreSQL, esegue doctor e poi avvia tutti i ruoli di processo. In un’installazione Kubernetes mostra istruzioni Helm. Con --dev avvia il profilo di sviluppo containerizzato.
+
+## stop
+
+`copalibre stop [--dev] [--down]`
+
+Arresta i container Compose senza rimuovere i volumi. --down rimuove container e reti. In modalità Kubernetes mostra istruzioni kubectl/Helm. --dev gestisce solo Compose, non i processi Yarn avviati sull’host.
+
+## restart
+
+`copalibre restart [--dev] [--no-doctor]`
+
+Arresta Compose, avvia PostgreSQL, esegue doctor e poi riavvia gli altri servizi attendendo la salute. --no-doctor salta doctor; --dev riavvia i profilo infrastrutturale Compose di sviluppo.
+
+## status
+
+`copalibre status [--json] [--dev]`
+
+Mostra stato dei container, porte di ingresso pubblicate e salute del gateway. --json produce JSON leggibile dalle macchine e --dev controlla Compose di sviluppo. In Kubernetes mostra release, namespace e contesto e interroga i pod se kubectl è disponibile.
 
 ## migrate
 

@@ -48,7 +48,7 @@ export class RestoreCommand extends Command<CliContext> {
       }
       // migrateResult === 0 already means the applied schema matches what
       // this installation expects — apps/migrate's own entrypoint checks
-      // that and sets a non-zero exit code otherwise (design.md). A second,
+      // that and sets a non-zero exit code otherwise. A second,
       // host-side connection to re-confirm it would need DATABASE_URL set on
       // the host, which nothing about running this CLI against a
       // Compose-hosted Postgres requires or provides.

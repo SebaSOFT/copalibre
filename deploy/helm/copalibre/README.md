@@ -2,8 +2,8 @@
 
 Deploys the CopaLibre release artifact to a K3s/Kubernetes cluster using the
 same images, environment contract, health checks, and migration process as
-the Docker Compose Level 1 install (`0030-deployment-docker-compose-cli`).
-See `0034-k3s-helm-deployment` for the base K3s contract this chart validates
+the Docker Compose Level 1 install (the Docker Compose deployment).
+See the K3s Helm deployment for the base K3s contract this chart validates
 (rolling update, health probes, migration-blocks-rollout, single-logical-
 scheduler).
 

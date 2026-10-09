@@ -5,7 +5,7 @@
 import type { HTMLAttributes } from 'react';
 
 /**
- * `eyebrow` and `section` are the operational-tag family (0223): chrome, not
+ * `eyebrow` and `section` are the operational-tag family: chrome, not
  * state. They resolve to the chrome surface level, carry a border and set their
  * label in the mono face, which is what separates a label naming a region from
  * a badge reporting a condition. They are variants rather than components

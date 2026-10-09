@@ -46,6 +46,9 @@ import { tournamentFeatured } from './0035-tournament-featured.js';
 import { stageAllocation } from './0036-stage-allocation.js';
 import { personClubAffiliation } from './0037-person-club-affiliation.js';
 import { realtimeReplicas } from './0038-realtime-replicas.js';
+import { stageGroupConfiguration } from './0039-stage-group-configuration.js';
+import { zoneFormat } from './0040-zone-format.js';
+import { fixtureRole } from './0041-fixture-role.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -92,6 +95,9 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0036-stage-allocation': stageAllocation,
   '0037-person-club-affiliation': personClubAffiliation,
   '0038-realtime-replicas': realtimeReplicas,
+  '0039-stage-group-configuration': stageGroupConfiguration,
+  '0040-zone-format': zoneFormat,
+  '0041-fixture-role': fixtureRole,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */
@@ -164,7 +170,7 @@ export async function readAppliedSchemaVersion(db: Kysely<Database>): Promise<st
 }
 
 /**
- * Readiness contract consumed by `apps/api` (task 4.3): refuse to serve
+ * Readiness contract consumed by `apps/api`: refuse to serve
  * traffic unless the database is migrated to the version this release expects.
  */
 export async function isSchemaReady(db: Kysely<Database>): Promise<boolean> {

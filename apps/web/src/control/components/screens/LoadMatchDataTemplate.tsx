@@ -85,8 +85,7 @@ function downloadCsvTemplate(): void {
 }
 
 /**
- * Composes the screen from the data `LoadMatchDataPage` supplies (openspec
- * 0225 task 6.1): the roster selections, segment/event rows, CSV import
+ * Composes the screen from the data `LoadMatchDataPage` supplies: the roster selections, segment/event rows, CSV import
  * errors, winner choice and submit-in-flight flag below are this
  * component's own screen state; `onSubmit` is the only call back to the
  * page, receiving the fully-built request.

@@ -1,13 +1,16 @@
 ---
+import Breadcrumb from '../../../../components/ui/organisms/Breadcrumb.astro';
+import { publicTrail, trailBaseOf } from '../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../layouts/PublicLayout.astro';
 import TournamentHero from '../../../../components/ui/molecules/TournamentHero.astro';
 import ChampionPodium from '../../../../components/ui/organisms/ChampionPodium.astro';
-import MatchCardGrid from '../../../../components/ui/organisms/MatchCardGrid.astro';
+import MatchSchedule from '../../../../components/ui/organisms/MatchSchedule.astro';
 import ScoreTicker from '../../../../components/ui/organisms/ScoreTicker.astro';
 import StandingsTable from '../../../../components/ui/organisms/StandingsTable.astro';
 import BroadcastStatusPanel from '../../../../components/ui/molecules/BroadcastStatusPanel.astro';
 import RulesetBriefing from '../../../../components/ui/molecules/RulesetBriefing.astro';
 import { CompletionFigure } from '../../../../components/ui/molecules/CompletionFigure.tsx';
+import { withPodiumEmblems } from '../../../../lib/podium-emblems.ts';
 import { buildOverview, displayName, shouldShowChampionPodium } from '../../../../lib/overview.ts';
 import {
   fetchOverview,
@@ -25,20 +28,22 @@ import {
   rulesetBriefingRows,
 } from '../../../../lib/i18n/public-intl.ts';
 import { buildTickerItems } from '../../../../lib/ticker-items.ts';
+import { defaultOpenStage } from '../../../../lib/match-schedule.ts';
+import { loadSchedule } from '../../../../lib/schedule-loader.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
 /**
  * B1, the tournament overview.
  *
- * Everything a spectator needs is server-rendered. The SSE stream from 0018 is
+ * Everything a spectator needs is server-rendered. The SSE stream is
  * an improvement on this page, never a requirement for it: a venue on hotel
  * Wi-Fi still gets the score.
  *
  * `[[locale]]` is an optional Astro route segment: English, the
  * primary locale, is generated with `locale: undefined` (no URL segment);
  * every other supported language is generated with its own locale code
- * (0056 populated the remaining five alongside 0055's Spanish).
+ * (the remaining five locales ship alongside Spanish).
  */
 export const prerender = false;
 
@@ -118,6 +123,18 @@ const [performerProjection, leaderProjection] = await Promise.all([
     : Promise.resolve(undefined),
 ]);
 
+// The schedule opens the stage a viewer most likely wants (the live or next one); the rest are
+// one click away, so the standings below stay within reach.
+const schedule = await loadSchedule({
+  organization: organization!,
+  tournament: tournament!,
+  state: 'all',
+});
+const openStage = defaultOpenStage(
+  schedule?.stageRows ?? [],
+  (schedule?.stageOptions ?? []).map((one) => one.stageNumber),
+);
+
 const tickerChrome = tickerChromeLabels(intl);
 const tickerItems = buildTickerItems({
   matches: model.matches,
@@ -125,6 +142,7 @@ const tickerItems = buildTickerItems({
   ...(leaderProjection === undefined ? {} : { leaders: leaderProjection }),
   labels: tickerLabels(intl),
   language: resolvedLocale,
+  ...(model.organizationTimeZone === undefined ? {} : { timeZone: model.organizationTimeZone }),
 });
 
 const localePrefix = locale ? `/${locale}` : '';
@@ -143,6 +161,14 @@ const structuredData = {
   ...(earliestStart ? { startDate: earliestStart } : {}),
   description,
 };
+const trailBase = trailBaseOf({
+  organizationAlias: organization!,
+  organizationName: model.organizationName,
+  tournamentName: displayName(model),
+  canonicalPath: model.canonicalPath,
+  localePrefix,
+});
+const trail = publicTrail(trailBase, []);
 ---
 
 <PublicLayout
@@ -153,6 +179,11 @@ const structuredData = {
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
+  <Breadcrumb
+    items={trail}
+    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+  />
   <ScoreTicker
     emptyLabel={tickerChrome.empty}
     items={tickerItems}
@@ -162,11 +193,7 @@ const structuredData = {
     resumeLabel={tickerChrome.resume}
     staleLabel={tickerChrome.stale}
   />
-  <TournamentHero
-    disciplineImages={overviewData.disciplineImages}
-    labels={tournamentHeroLabels(intl, model)}
-    model={model}
-  />
+  <TournamentHero labels={tournamentHeroLabels(intl, model)} model={model} />
   <CompletionFigure
     totalMatches={completion.totalMatches}
     resolvedMatches={completion.resolvedMatches}
@@ -175,14 +202,31 @@ const structuredData = {
   />
   {
     shouldShowChampionPodium(model) && model.winners && (
-      <ChampionPodium winners={model.winners} intl={intl} prominent={true} />
+      <ChampionPodium
+        winners={withPodiumEmblems(organization!, model.winners)}
+        intl={intl}
+        prominent={true}
+      />
     )
   }
   <BroadcastStatusPanel
     model={model}
-    statusText={intl.formatMessage(messages.broadcastStatusNote)}
+    statusText={intl.formatMessage(messages.broadcastStatusDisconnected)}
   />
-  <MatchCardGrid model={model} intl={intl} localePrefix={locale ? `/${locale}` : ''} />
+  <section aria-labelledby="match-schedule-heading">
+    <h2 id="match-schedule-heading">{intl.formatMessage(messages.matchGridHeading)}</h2>
+    <MatchSchedule
+      collapsible
+      emptyLabel={intl.formatMessage(messages.matchGridEmpty)}
+      headingLevel={3}
+      intl={intl}
+      localePrefix={localePrefix}
+      openStage={openStage}
+      organizationAlias={organization!}
+      stages={schedule?.stages ?? []}
+      tournamentAlias={tournament!}
+    />
+  </section>
   <p>
     <a
       class="cl-pill cl-focusable"
@@ -200,7 +244,7 @@ const structuredData = {
     clubs={model.clubs}
     intl={intl}
     canonicalPath={`${locale ? `/${locale}` : ''}${model.canonicalPath}`}
-    organizationAlias={organization}
+    organizationAlias={organization!}
     tournamentAlias={tournament}
   />
   <RulesetBriefing
@@ -210,7 +254,7 @@ const structuredData = {
 </PublicLayout>
 
 <script>
-  // Page tier (openspec 0305): the only place on this page allowed to own a
+  // Page tier: the only place on this page allowed to own a
   // RealtimeClient subscription — see check-atomic-composition.mjs's
   // data-access-at-page-tier rule. Patches ScoreTicker's own rendered DOM;
   // never a requirement for the page's content, only an enhancement of it.
@@ -220,7 +264,7 @@ const structuredData = {
 </script>
 
 <style>
-  /* Guarantees clear separation from the hero banner above (openspec 0245). */
+  /* Guarantees clear separation from the hero banner above. */
   :global(.cl-completion-figure) {
     margin-top: var(--cl-space-6);
   }

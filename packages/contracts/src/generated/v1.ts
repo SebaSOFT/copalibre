@@ -1404,8 +1404,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Generate the next round of a Swiss stage
-         * @description Validates that all matches in the current round are finalized, calculates standings, and generates pairings for the next round.
+         * Generate the next round of one zone of a Swiss or single-elimination stage
+         * @description Scoped to one zone: validates that all matches in the zone’s current round are finalized, calculates standings from that zone’s results, and generates pairings among that zone’s entrants only. A stage with several zones requires `zoneNumber`.
          */
         post: operations["StagesController_nextRound"];
         delete?: never;
@@ -2640,6 +2640,26 @@ export interface paths {
         patch: operations["ZonesGroupsController_renameZone"];
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/configuration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set or clear the format and series a zone declares itself
+         * @description A zone without its own format plays its stage’s. Refused once the stage holds a fixture, and for a format the tournament’s discipline does not offer.
+         */
+        put: operations["ZonesGroupsController_configureZone"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/entrants": {
         parameters: {
             query?: never;
@@ -3115,6 +3135,21 @@ export interface components {
              */
             emblemObjectId?: string;
         };
+        SegmentCompletionResponse: {
+            /**
+             * Format: uuid
+             * @description The group id, or the zone id when it has no groups
+             */
+            segmentId: string;
+            /** @description The group name, or the zone name when it has no groups */
+            name: string;
+            /** @description The zone a named group belongs to */
+            zoneName?: string;
+            /** @example 6 */
+            totalMatches: number;
+            /** @example 4 */
+            resolvedMatches: number;
+        };
         StageCompletionResponse: {
             /**
              * Format: uuid
@@ -3161,6 +3196,8 @@ export interface components {
              * @example 1
              */
             forfeitedMatches: number;
+            /** @description Per declared zone/group progress; empty when the stage declared none */
+            segments: components["schemas"]["SegmentCompletionResponse"][];
         };
         TournamentCompletionResponse: {
             /**
@@ -3229,6 +3266,23 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        StageGroupConfigurationRequest: {
+            /** @example 4 */
+            groupCount: number;
+            /** @example 5 */
+            groupSize: number;
+            /** @enum {string} */
+            distribution: "balanced" | "exact-size" | "overflow-last" | "manual";
+            /**
+             * @example [
+             *       4,
+             *       5,
+             *       5,
+             *       4
+             *     ]
+             */
+            manualGroupSizes?: number[];
+        };
         TournamentConfigurationStageLayerResponse: {
             version?: number;
             rawOverrides: {
@@ -3237,6 +3291,7 @@ export interface components {
             effective: {
                 [key: string]: unknown;
             };
+            groupConfiguration?: components["schemas"]["StageGroupConfigurationRequest"];
         };
         TournamentConfigurationStageResponse: {
             number: number;
@@ -3413,6 +3468,20 @@ export interface components {
              */
             direction?: "higher-first" | "lower-first";
         };
+        CreateTournamentZoneRequest: {
+            /**
+             * @description Unique within its stage.
+             * @example Copa Oro
+             */
+            name: string;
+            /**
+             * @description The zone’s own format. Absent: the zone plays its stage’s. Must be a format the tournament’s discipline offers.
+             * @example round-robin
+             */
+            format?: string;
+            /** @description The zone’s own series. Absent: the zone inherits its stage’s, then the tournament’s. */
+            series?: components["schemas"]["SeriesDeclarationRequest"];
+        };
         CreateTournamentStageRequest: {
             /**
              * @description Defaults to this stage’s 1-based position within `stages`.
@@ -3430,6 +3499,9 @@ export interface components {
             series?: components["schemas"]["SeriesDeclarationRequest"];
             /** @description Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view. */
             allocation?: components["schemas"]["StageAllocationRequest"];
+            groupConfiguration?: components["schemas"]["StageGroupConfigurationRequest"];
+            /** @description The stage’s zones, numbered by list position. Absent creates none. Entrants are assigned to zones afterwards. */
+            zones?: components["schemas"]["CreateTournamentZoneRequest"][];
         };
         CreateTournamentRequest: {
             /** @example copa-verano */
@@ -4390,6 +4462,8 @@ export interface components {
             code: string;
             header: Record<string, never>;
             shortHeader?: Record<string, never>;
+            /** @description The full wording behind an abbreviated header, from the discipline descriptor’s own statistic labels */
+            description?: Record<string, never>;
             /** @description Displayed text when the numeric value is exactly zero */
             zeroDisplay?: string;
             /** @enum {string} */
@@ -4441,6 +4515,8 @@ export interface components {
             groupId?: string;
             /** @description The group’s own name, e.g. "Group A" */
             groupName?: string;
+            /** @description The zone this group belongs to; absent for a stage that has only its implicit zone */
+            zoneName?: string;
             rows: components["schemas"]["TableRowResponse"][];
         };
         TableProjectionResponse: {
@@ -4473,6 +4549,15 @@ export interface components {
             /** Format: uuid */
             entrantId: string;
         };
+        BracketSlotSourceResponse: {
+            /** @description The bracket match this side advanced or dropped from */
+            matchId: string;
+            /**
+             * @description Whether the side won or lost that match, which is what carried it here
+             * @enum {string}
+             */
+            outcome: "winner" | "loser";
+        };
         BracketSlotResponse: {
             /**
              * @description Where this side comes from
@@ -4483,6 +4568,8 @@ export interface components {
             entrantId?: string;
             /** @description Match this slot sources its participant from */
             matchId?: string;
+            /** @description Where this side came from, kept once the slot holds the entrant that got here, so the link between the two matches can still be drawn */
+            from?: components["schemas"]["BracketSlotSourceResponse"];
             /** @description Score recorded for this side, when the match is finalized */
             score?: number;
             /**
@@ -4515,6 +4602,11 @@ export interface components {
              * @example BO3
              */
             format?: string;
+            /**
+             * @description A placement game’s part in its zone, such as `place-3` or `places-5-8`
+             * @example place-3
+             */
+            role?: string;
             slots: components["schemas"]["BracketSlotResponse"][];
             /** @description Present only on a cross settled by a series */
             series?: components["schemas"]["PublicSeriesStateResponse"];
@@ -4527,6 +4619,8 @@ export interface components {
             zoneId?: string;
             /** @description Absent for an un-zoned stage */
             zoneName?: string;
+            /** @description The format this zone plays: its own when it declares one, otherwise the stage’s. */
+            format: string;
             matches: components["schemas"]["BracketMatchResponse"][];
         };
         SeedingResponse: {
@@ -4634,6 +4728,7 @@ export interface components {
             series?: components["schemas"]["SeriesDeclarationRequest"];
             /** @description Where this stage’s seed order comes from. Absent leaves the caller to supply seeds explicitly when opening the stage’s seeding view. */
             allocation?: components["schemas"]["StageAllocationRequest"];
+            groupConfiguration?: components["schemas"]["StageGroupConfigurationRequest"];
         };
         UpdateStageRequest: {
             /** @example Fase de grupos (corregida) */
@@ -4649,6 +4744,7 @@ export interface components {
         StageConfigurationResponse: {
             /** @description The full stage-configuration override document, not only the changed fields. */
             overrides: Record<string, never>;
+            groupConfiguration?: components["schemas"]["StageGroupConfigurationRequest"];
         };
         StageConfigurationRequest: {
             /**
@@ -4658,6 +4754,7 @@ export interface components {
              *     }
              */
             overrides: Record<string, never>;
+            groupConfiguration?: components["schemas"]["StageGroupConfigurationRequest"] | null;
         };
         FixtureMatchResponse: {
             /** Format: uuid */
@@ -4737,6 +4834,13 @@ export interface components {
             stageId: string;
             fixtures: components["schemas"]["FixtureResponse"][];
         };
+        NextRoundRequest: {
+            /**
+             * @description The 1-based number of the zone to generate the next round for. Required when the stage has more than one zone; a stage with a single zone needs no value. Rounds, pairings and results are per zone.
+             * @example 2
+             */
+            zoneNumber?: number;
+        };
         DisplayTokenResponse: {
             /** Format: uuid */
             displayTokenId: string;
@@ -4797,7 +4901,7 @@ export interface components {
             tournamentId?: string;
         };
         GrantableRolesResponse: {
-            /** @description Roles the caller may grant in this organization, per the 0140 role-granting hierarchy. */
+            /** @description Roles the caller may grant in this organization, per the role-granting hierarchy. */
             roles: ("super-admin" | "admin" | "club-admin" | "tournament-admin" | "referee" | "broadcaster" | "viewer")[];
         };
         PendingOrganizationInvitationResponse: {
@@ -5078,8 +5182,10 @@ export interface components {
         PublicOverviewMatchResponse: {
             /** Format: uuid */
             matchId: string;
-            /** @description 1-based sequential number within the stage */
+            /** @description The match number as persisted: a per-fixture series-game index */
             matchNumber?: number;
+            /** @description The 1-based ordinal of the match within its stage, the one the public match route addresses it by. Absent before a fixture becomes a match. */
+            stageOrdinal?: number;
             stageNumber: number;
             round: number;
             /** @enum {string} */
@@ -5107,10 +5213,14 @@ export interface components {
             statistics: {
                 [key: string]: number;
             };
+            /** @description The zone this row is ranked in. Present only when the stage mixes formats, so each table zone is ranked on its own; absent for a stage with a single table. */
+            zoneName?: string;
         };
         PublicOverviewResponse: {
             organizationAlias: string;
             organizationName: string;
+            /** @description The IANA time zone of the organization, in which its schedule times are read. */
+            organizationTimeZone?: string;
             tournamentAlias: string;
             tournamentName: string;
             seasonName: string;
@@ -5126,7 +5236,7 @@ export interface components {
             ruleset: {
                 [key: string]: string;
             };
-            /** @description Each `ruleset` key's declared display label, when the installed discipline's field policy declares one — absent keys fall back to a humanized dot-path client-side (openspec 0267). */
+            /** @description Each `ruleset` key's declared display label, when the installed discipline's field policy declares one — absent keys fall back to a humanized dot-path client-side . */
             rulesetLabels?: {
                 [key: string]: unknown;
             };
@@ -5156,11 +5266,24 @@ export interface components {
             home: components["schemas"]["PublicMatchRosterMemberResponse"][];
             away: components["schemas"]["PublicMatchRosterMemberResponse"][];
         };
+        PublicRosterRoleResponse: {
+            code: string;
+            badge?: string;
+            /** @description The role label: a plain string, or a localized label with `en` always present. */
+            label: {
+                [key: string]: unknown;
+            };
+        };
         PublicMatchEventResponse: {
             /** Format: uuid */
             eventId: string;
             definitionCode: string;
+            /** @description The English label; `labels` carries every language the descriptor ships. */
             label: string;
+            /** @description The event definition's label in every language the discipline descriptor declares (`en` always present); absent when the descriptor declares a plain string. */
+            labels?: {
+                [key: string]: string;
+            };
             workflowOutcomeCodes?: string[];
             /** Format: date-time */
             occurredAt: string;
@@ -5173,6 +5296,22 @@ export interface components {
             payload: {
                 [key: string]: unknown;
             };
+        };
+        PublicSegmentSummaryResponse: {
+            /** @description 1-based order within the match */
+            number: number;
+            /** @description The discipline's own segment type name */
+            type: string;
+            /** @description The segment type's display label in every language the discipline wrote it in. */
+            label?: {
+                [key: string]: unknown;
+            };
+            /** @description Whether the segment runs against a clock; false for one played to a target */
+            timed?: boolean;
+            /** @enum {string} */
+            state: "pending" | "active" | "completed";
+            /** @description What each side scored in this segment alone, home first */
+            scores?: number[];
         };
         PublicMatchReportResponse: {
             organizationAlias: string;
@@ -5203,7 +5342,11 @@ export interface components {
             schedulePublished: boolean;
             officials: components["schemas"]["PublicMatchOfficialResponse"][];
             rosters: components["schemas"]["PublicMatchRostersResponse"];
+            /** @description The discipline's declared roster roles, so a client can label each member's role codes. */
+            rosterRoles?: components["schemas"]["PublicRosterRoleResponse"][];
             timeline: components["schemas"]["PublicMatchEventResponse"][];
+            /** @description The match’s segments and what each side scored in each */
+            segments?: components["schemas"]["PublicSegmentSummaryResponse"][];
         };
         PublicLiveMatchSideResponse: {
             /** Format: uuid */
@@ -5225,6 +5368,10 @@ export interface components {
             matchId: string;
             stageNumber: number;
             matchNumber: number;
+            /** @description The 1-based ordinal of the match within its stage, the one the public match route addresses it by. */
+            stageOrdinal?: number;
+            /** @description The match’s segments and what each side scored in each */
+            segments?: components["schemas"]["PublicSegmentSummaryResponse"][];
             state: string;
             projectionVersion: number;
             sides: components["schemas"]["PublicLiveMatchSideResponse"][];
@@ -5257,6 +5404,8 @@ export interface components {
             emblemObjectId?: string;
             /** @description Match this slot sources its participant from */
             matchId?: string;
+            /** @description Where this side came from, kept once the slot holds the entrant that got here, so the link between the two matches can still be drawn */
+            from?: components["schemas"]["BracketSlotSourceResponse"];
             /** @description Score recorded for this side, when the match is finalized */
             score?: number;
             /**
@@ -5275,6 +5424,11 @@ export interface components {
             format?: string;
             /** @description The match's stage-unique ordinal for the public report page's URL — present only when this graph node resolved to a real persisted match; a purely theoretical winner-of/loser-of placeholder has none yet */
             matchNumber?: number;
+            /**
+             * @description A placement game’s part in its zone, such as `place-3` or `places-5-8`
+             * @example place-3
+             */
+            role?: string;
             slots: components["schemas"]["PublicBracketSlotResponse"][];
             /** @description Present only on a cross settled by a series */
             series?: components["schemas"]["PublicSeriesStateResponse"];
@@ -5287,6 +5441,8 @@ export interface components {
             zoneId?: string;
             /** @description Absent for an un-zoned stage */
             zoneName?: string;
+            /** @description The format this zone plays: its own when it declares one, otherwise the stage’s. Decides how the zone is drawn. */
+            format: string;
             matches: components["schemas"]["PublicBracketMatchResponse"][];
         };
         PublicBracketResponse: {
@@ -5994,6 +6150,18 @@ export interface components {
             number: number;
             /** @example Zona 1 */
             name: string;
+            /**
+             * @description The format this zone declares itself. Absent: the zone inherits its stage’s format.
+             * @example round-robin
+             */
+            format?: string;
+            /**
+             * @description The format this zone plays: its own when it declares one, otherwise the stage’s.
+             * @example single-elimination
+             */
+            effectiveFormat: string;
+            /** @description The series this zone declares itself. Absent: the zone inherits its stage’s declaration, then the ruleset’s. */
+            series?: components["schemas"]["SeriesDeclarationRequest"];
         };
         CreateZoneRequest: {
             /**
@@ -6007,6 +6175,15 @@ export interface components {
         RenameRequest: {
             /** @example Zona Norte (corregida) */
             name: string;
+        };
+        ZoneConfigurationRequest: {
+            /**
+             * @description Sets the zone’s own format; `null` clears it so the zone inherits its stage’s. Absent leaves it unchanged. Must be a format the tournament’s discipline offers.
+             * @example round-robin
+             */
+            format?: Record<string, never> | null;
+            /** @description Sets the zone’s own series; `null` clears it so the zone inherits its stage’s. Absent leaves it unchanged. */
+            series?: components["schemas"]["SeriesDeclarationRequest"] | null;
         };
         GroupResponse: {
             /** Format: uuid */
@@ -9500,7 +9677,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NextRoundRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -9508,6 +9689,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StageFixturesResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
             401: {
@@ -11853,6 +12042,74 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    ZonesGroupsController_configureZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+                zoneNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ZoneConfigurationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

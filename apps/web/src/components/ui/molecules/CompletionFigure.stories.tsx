@@ -22,6 +22,10 @@ const SAMPLE_STAGES = [
     stageName: 'Group Stage',
     totalMatches: 24,
     resolvedMatches: 18,
+    segments: [
+      { segmentId: 'g-a', name: 'Group A', totalMatches: 12, resolvedMatches: 12 },
+      { segmentId: 'g-b', name: 'Group B', totalMatches: 12, resolvedMatches: 6 },
+    ],
   },
   {
     stageId: '01936f4a-0001-7000-8000-000000000002',
@@ -29,6 +33,10 @@ const SAMPLE_STAGES = [
     stageName: 'Championship Bracket',
     totalMatches: 8,
     resolvedMatches: 0,
+    segments: [
+      { segmentId: 'z-gold', name: 'Gold Cup', totalMatches: 4, resolvedMatches: 0 },
+      { segmentId: 'z-silver', name: 'Silver Cup', totalMatches: 4, resolvedMatches: 0 },
+    ],
   },
 ];
 

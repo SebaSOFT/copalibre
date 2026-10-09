@@ -17,7 +17,7 @@ test('recursive story coverage includes every React surface in the repository', 
   assert.deepEqual(checkScreenStoryCoverage(root), []);
 });
 
-test('screens require stories based on the filesystem, excluding categories (design.md)', () => {
+test('screens require stories based on the filesystem, excluding categories', () => {
   const root = mkdtempSync(join(tmpdir(), 'screen-coverage-'));
   writeFileSync(join(root, 'Uncovered.tsx'), 'export function Uncovered() { return null; }');
   const violations = checkScreenStoryCoverage(root);
@@ -181,7 +181,7 @@ test('raw <table> triggers violation', () => {
   assert.equal(violations[0].line, 4);
 });
 
-test('raw table parts outside the table owner each trigger their own violation (openspec 0225 task 2.4)', () => {
+test('raw table parts outside the table owner each trigger their own violation', () => {
   const code = `
     export function BadTable() {
       return (
@@ -197,7 +197,7 @@ test('raw table parts outside the table owner each trigger their own violation (
   assert.deepEqual(tags, ['table', 'tbody', 'td', 'th', 'thead', 'tr', 'tr']);
 });
 
-test('raw form-structure elements each trigger their own violation (openspec 0225 task 2.4)', () => {
+test('raw form-structure elements each trigger their own violation', () => {
   const code = `
     export function BadForm() {
       return (

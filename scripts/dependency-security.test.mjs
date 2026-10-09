@@ -2,10 +2,16 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { parse } from 'yaml';
+import {
+  checkPatchedFloor,
+  KNOWN_UNPATCHED_ADVISORIES,
+  lockVersions,
+} from './check-dependabot-alerts.mjs';
 
 const root = new URL('../', import.meta.url);
 const manifest = JSON.parse(readFileSync(new URL('package.json', root), 'utf8'));
 const lock = parse(readFileSync(new URL('yarn.lock', root), 'utf8'));
+const lockText = readFileSync(new URL('yarn.lock', root), 'utf8');
 
 // Supported stable major lines only. A new major needs its own advisory review;
 // a numerically larger prerelease is not evidence that a security fix is present.
@@ -14,7 +20,11 @@ const patchedFloors = {
   'fast-uri': { 3: '3.1.8', 4: '4.2.1' },
   qs: { 6: '6.16.0' },
   'js-yaml': { 3: '3.15.2', 4: '4.3.2', 5: '5.4.1' },
+  'postcss-selector-parser': { 7: '7.1.6' },
+  'proxy-addr': { 2: '2.0.8' },
   svgo: { 4: '4.1.0' },
+  'smol-toml': { 1: '1.9.0' },
+  'source-map-js': { 1: '1.2.2' },
   nodemailer: { 10: '10.0.2' },
   astro: { 7: '7.2.8' },
   hono: { 4: '4.13.5' },
@@ -62,6 +72,13 @@ for (const [selector, name] of [
   ['fast-uri@npm:^3.0.1', 'fast-uri'],
   ['fast-uri@npm:^4.0.0', 'fast-uri'],
   ['js-yaml@npm:4.2.0', 'js-yaml'],
+  ['postcss-selector-parser@npm:^7.0.0', 'postcss-selector-parser'],
+  ['postcss-selector-parser@npm:^7.1.0', 'postcss-selector-parser'],
+  ['postcss-selector-parser@npm:^7.1.4', 'postcss-selector-parser'],
+  ['proxy-addr@npm:^2.0.7', 'proxy-addr'],
+  ['smol-toml@npm:^1.6.0', 'smol-toml'],
+  ['source-map-js@npm:^1.0.1', 'source-map-js'],
+  ['source-map-js@npm:^1.2.1', 'source-map-js'],
   ['nanoid@npm:^3.3.16', 'nanoid'],
   ['ip-address', 'ip-address'],
   ['undici@npm:^6.25.0', 'undici'],
@@ -74,6 +91,44 @@ for (const [selector, name] of [
     assert.ok(
       Object.values(lock).some((entry) => entry.resolution === `${name}@npm:${version}`),
       `${selector}: pinned version is absent from yarn.lock`,
+    );
+  });
+}
+
+test('postcss-nested uses the parser 7 line to avoid vulnerable parser 6', () => {
+  assert.equal(manifest.resolutions['postcss-nested@npm:^6.0.1'], '8.0.1');
+  assert.ok(
+    Object.values(lock).some((entry) => entry.resolution === 'postcss-nested@npm:8.0.1'),
+    'postcss-nested 8.0.1 is absent from yarn.lock',
+  );
+  assert.ok(
+    Object.values(lock).every(
+      (entry) => !entry.resolution?.startsWith('postcss-selector-parser@npm:6.'),
+    ),
+    'vulnerable postcss-selector-parser 6.x remains in yarn.lock',
+  );
+});
+
+for (const advisory of Object.values(KNOWN_UNPATCHED_ADVISORIES)) {
+  test(`${advisory.package}: tracked advisory lock entries enforce any upstream patched floor`, () => {
+    const versions = lockVersions(lockText, advisory.package);
+    assert.ok(
+      versions.length > 0,
+      `${advisory.package}: no locked instances; review the advisory register`,
+    );
+
+    const [major, minor, patch] = versions[0].split('.').map(Number);
+    const nextPatch = `${major}.${minor}.${patch + 1}`;
+    assert.equal(
+      checkPatchedFloor(advisory.package, versions, nextPatch).length,
+      versions.filter((version) => version.localeCompare(nextPatch, 'en', { numeric: true }) < 0)
+        .length,
+      `${advisory.package}: every locked instance below an upstream fix must be reported`,
+    );
+    assert.deepEqual(
+      checkPatchedFloor(advisory.package, [nextPatch], nextPatch),
+      [],
+      `${advisory.package}: a lock updated to the fix must pass`,
     );
   });
 }

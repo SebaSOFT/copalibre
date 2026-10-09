@@ -124,7 +124,7 @@ describe('the control shell', () => {
     // Locale-prefixed: the test environment's default resolved
     // language is 'es' (see the block comment above), so the link matches
     // Starlight's own `/es/...` routing for that locale.
-    expect(help.getAttribute('href')).toBe('/es/help/control/seeding');
+    expect(help.getAttribute('href')).toBe('/es/help/control/seeding/');
     expect(help.getAttribute('target')).toBe('_blank');
     expect(help.getAttribute('rel')).toBe('noopener noreferrer');
   });
@@ -154,14 +154,14 @@ describe('the control shell', () => {
       const help = screen
         .getAllByRole('link')
         .find((link) => link.getAttribute('href')?.includes('/help/control/seeding'));
-      expect(help?.getAttribute('href')).toBe(expectedHref);
+      expect(help?.getAttribute('href')).toBe(`${expectedHref}/`);
       unmount();
       localStorage.removeItem('copalibre.language');
     }
   });
 
   it.each(['native', 'oidc'] as const)(
-    'logout clears the session and its recorded auth method for a %s session (openspec 0302)',
+    'logout clears the session and its recorded auth method for a %s session',
     (method) => {
       recordAuthMethod(method);
       controlTokenStore.write('a-token', Date.now() + 60_000);
@@ -367,7 +367,7 @@ describe('the control routes', () => {
     expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeDefined();
   });
 
-  it('renders the dashboard/tournaments route with the tournament authoring entry point (openspec 0298)', async () => {
+  it('renders the dashboard/tournaments route with the tournament authoring entry point', async () => {
     const client: ControlApiClient = minimalControlClient({
       listActiveTournaments: async () => [],
     });

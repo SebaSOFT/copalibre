@@ -15,8 +15,13 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
             mutationClass: 'blocked_after_results',
             label: 'Points per win',
           },
+          'scoring.pointsPerLoss': {
+            permission: { kind: 'replaced' },
+            mutationClass: 'safe',
+            label: 'Points per loss',
+          },
         },
-        disciplineDefaults: { scoring: { pointsPerWin: 2 } },
+        disciplineDefaults: { scoring: { pointsPerWin: 2, pointsPerLoss: 0 } },
       }),
     ...overrides,
   } as unknown as ControlApiClient;
@@ -36,7 +41,8 @@ describe('TournamentRulesetPage', () => {
 
     expect(await screen.findByLabelText('Points per win')).toBeDefined();
     expect((screen.getByLabelText('Points per win') as HTMLInputElement).value).toBe('3');
-    expect((screen.getByLabelText('scoring.pointsPerDraw') as HTMLInputElement).value).toBe('1');
+    expect(screen.getByText('scoring.pointsPerDraw')).toBeDefined();
+    expect(screen.queryByRole('spinbutton', { name: 'scoring.pointsPerDraw' })).toBeNull();
   });
 
   it("shows the discipline's plain-language rule context alongside the edit fields", async () => {
@@ -142,7 +148,7 @@ describe('TournamentRulesetPage', () => {
     expect(updateRulesetOverrides).not.toHaveBeenCalled();
   });
 
-  it('adds a new field and saves it', async () => {
+  it('adds a declared numeric field and saves it', async () => {
     const updateRulesetOverrides = jest.fn<NonNullable<ControlApiClient['updateRulesetOverrides']>>(
       () =>
         Promise.resolve({
@@ -163,15 +169,15 @@ describe('TournamentRulesetPage', () => {
 
     await screen.findByLabelText('Points per win');
     fireEvent.change(screen.getByLabelText('Field (dot-path)'), {
-      target: { value: 'winCondition' },
+      target: { value: 'scoring.pointsPerLoss' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add field' }));
-    fireEvent.change(screen.getByLabelText('winCondition'), { target: { value: '{}' } });
+    fireEvent.change(screen.getByLabelText('Points per loss'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() =>
       expect(updateRulesetOverrides).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', {
-        overrides: { winCondition: {} },
+        overrides: { 'scoring.pointsPerLoss': 2 },
       }),
     );
     expect(await screen.findByText('Settings saved.')).toBeDefined();
@@ -201,7 +207,7 @@ describe('TournamentRulesetPage', () => {
     expect(screen.getAllByLabelText('Points per win')).toHaveLength(1);
   });
 
-  it('holds an invalid raw-JSON edit locally without applying it', async () => {
+  it('does not offer a raw-JSON editor for a field without a declared policy', async () => {
     render(
       withIntl(
         <TournamentRulesetPage
@@ -212,19 +218,11 @@ describe('TournamentRulesetPage', () => {
       ),
     );
 
-    // scoring.pointsPerDraw has no declared field policy, so it renders as
-    // raw JSON — the fallback this repo has always used for undeclared data.
-    await screen.findByLabelText('scoring.pointsPerDraw');
-    fireEvent.change(screen.getByLabelText('scoring.pointsPerDraw'), {
-      target: { value: 'not-json' },
-    });
-    // The invalid text stays visible for the operator to correct...
-    expect((screen.getByLabelText('scoring.pointsPerDraw') as HTMLInputElement).value).toBe(
-      'not-json',
-    );
-    // ...but the underlying draft value never changed, so saving sends nothing for it.
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-    expect(screen.queryByText('Settings saved.')).toBeNull();
+    await screen.findByText('scoring.pointsPerDraw');
+    expect(
+      screen.getByText('Not governed by a known rule policy; editing is unavailable.'),
+    ).toBeDefined();
+    expect(screen.queryByRole('textbox', { name: 'scoring.pointsPerDraw' })).toBeNull();
   });
 
   it('does nothing when preview/save are unavailable on the client', async () => {
@@ -272,7 +270,7 @@ describe('TournamentRulesetPage', () => {
     expect(updateRulesetOverrides).not.toHaveBeenCalled();
   });
 
-  it('adds an undeclared field defaulting to an empty raw-JSON value', async () => {
+  it('does not expose an undeclared null value as raw JSON', async () => {
     render(
       withIntl(
         <TournamentRulesetPage
@@ -289,9 +287,9 @@ describe('TournamentRulesetPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add field' }));
 
-    expect((screen.getByLabelText('venuePolicy.neutralGround') as HTMLInputElement).value).toBe(
-      'null',
-    );
+    expect(screen.getByText('venuePolicy.neutralGround')).toBeDefined();
+    expect(screen.queryByDisplayValue('null')).toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'venuePolicy.neutralGround' })).toBeNull();
   });
 
   it('renders a field with neither mutationClass nor blocked as safe', async () => {
@@ -372,7 +370,7 @@ describe('TournamentRulesetPage', () => {
     expect(await screen.findByText('preview down')).toBeDefined();
   });
 
-  it('folds the sibling tournament-settings fetch into the plain-language summary (openspec 0267)', async () => {
+  it('folds the sibling tournament-settings fetch into the plain-language summary', async () => {
     render(
       withIntl(
         <TournamentRulesetPage

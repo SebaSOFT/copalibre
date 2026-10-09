@@ -1,20 +1,28 @@
 ---
 /**
  * An organization's or club's emblem, or a placeholder shield outline when
- * none has been uploaded (0093's rule: never a broken image or an empty
+ * none has been uploaded (the rule: never a broken image or an empty
  * gap) — the public-web sibling of control-web's `ClubEmblemPlaceholder`.
+ *
+ * `bare` drops the frame (background, border, chamfer and inset) and leaves only the 1:1 image:
+ * the mode for an emblem that sits inline with a club's name, where a framed badge reads as a
+ * second control beside the text.
  */
 interface Props {
   readonly src?: string;
   readonly alt: string;
   readonly placeholderAlt: string;
   readonly size?: number;
+  readonly bare?: boolean;
 }
 
-const { src, alt, placeholderAlt, size = 48 } = Astro.props;
+const { src, alt, placeholderAlt, size = 48, bare = false } = Astro.props;
 ---
 
-<div class="cl-image-frame cl-emblem-frame" style={`width: ${size}px`}>
+<div
+  class:list={['cl-image-frame', 'cl-emblem-frame', bare && 'cl-emblem-frame--bare']}
+  style={`width: ${size}px`}
+>
   {
     src && (
       <img
@@ -52,6 +60,23 @@ const { src, alt, placeholderAlt, size = 48 } = Astro.props;
     box-sizing: border-box;
     object-fit: contain;
     padding: var(--cl-space-2);
+  }
+
+  .cl-emblem-frame--bare {
+    border: 0;
+    background: none;
+    border-radius: 0;
+    corner-shape: round;
+    overflow: visible;
+  }
+
+  .cl-emblem-frame--bare img {
+    padding: 0;
+  }
+
+  .cl-emblem-frame--bare svg {
+    width: 100%;
+    height: 100%;
   }
 
   .cl-emblem-placeholder {

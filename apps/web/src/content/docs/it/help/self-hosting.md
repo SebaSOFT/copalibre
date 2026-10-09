@@ -3,6 +3,7 @@ title: 'Per iniziare: self-hosting'
 description: Esegui CopaLibre dal sorgente su Windows, macOS o Linux, poi scegli tra una topologia di distribuzione con reverse proxy o Kubernetes.
 capabilities:
   - platform/self-hosted-deployment
+  - platform/email-notifications
 roles:
   - super-admin
 ---
@@ -51,8 +52,13 @@ Prima dell’avvio modifica `.env`: usa `COPALIBRE_IMAGE=copalibre:local` e `COP
 ```bash
 ../copalibre doctor
 ../copalibre start
+../copalibre status
+../copalibre restart
+../copalibre stop
 ../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
+
+Usa copalibre status per controllare container e gateway. copalibre restart verifica PostgreSQL e doctor prima di avviare di nuovo i servizi. copalibre stop mantiene i volumi; --down rimuove container e reti. In modalità Kubernetes, start/stop/restart mostrano istruzioni Helm o kubectl.
 
 Il gateway espone HTTP su `http://localhost:8080` (`COPALIBRE_PORT`). Compose espone anche le porte dei servizi; limitane l’accesso sull’host e sulla rete. TLS termina al proxy perimetrale.
 
@@ -73,7 +79,7 @@ Per distribuzioni multi-nodo, scalate orizzontalmente, o su infrastruttura gesti
 salute e processo di migrazione dell'installazione Compose — installarlo con i valori predefiniti si
 comporta in modo identico al solo chart base.
 
-Esegui Helm dalla radice del repository dopo aver configurato `my-values.yaml` con database, identità, email e URL pubblici. Usa una versione già pubblicata per entrambe le immagini; 1.2.5 sarà disponibile dopo la pubblicazione.
+Esegui Helm dalla radice del repository dopo aver configurato `my-values.yaml` con database, identità, email e URL pubblici. Usa una versione già pubblicata per entrambe le immagini; 1.2.6 sarà disponibile dopo la pubblicazione.
 
 ```bash
 cd ..
@@ -82,8 +88,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6
 ```
 
 Aggiungi questi gruppi `values.yaml` additivi, disattivati per impostazione predefinita, secondo le
@@ -115,7 +121,18 @@ Elenco completo dei prerequisiti e le evidenze misurate di failover multi-nodo, 
 sicurezza degli upgrade su cui si basa questa affermazione: `docs/deployment/enterprise-kubernetes.md`
 nel repository.
 
-## 4. Prossimi passi
+## 4. Email di notifica
+
+L'attività di tornei e organizzazione viene segnalata via email tramite il provider configurato per gli inviti (`COPALIBRE_EMAIL_PROVIDER`); non serve alcuna altra impostazione. Nell'ambiente di sviluppo le email arrivano in Mailpit.
+
+- Un nuovo torneo e un nuovo club vengono segnalati agli amministratori dell'organizzazione.
+- Una nuova iscrizione, e un club che invia la propria rosa, vengono segnalati agli amministratori dell'organizzazione e agli amministratori di quel torneo. Chi ha causato l'evento non riceve l'email.
+- Le email usano la lingua principale dell'organizzazione, riportano emblema e nome nell'intestazione e sono firmate Copa Libre con un link a [copalibre.app](https://copalibre.app).
+- Le importazioni CSV e `copalibre dev demo` non inviano email.
+- La stessa email non viene mai inviata due volte allo stesso destinatario. Se un provider va in timeout prima di confermare, quell'email non viene reinviata, quindi può mancare anziché essere duplicata.
+- Chi gestisce l'installazione può vedere quante email potrebbero essere mancate: il worker conta ogni tentativo di invio per esito (inviata, già inviata, rifiutata, sconosciuto) nella risposta di `/jobs/metrics`, sotto `emailDelivery`, e registra ogni esito sconosciuto senza l'indirizzo del destinatario. Un `unknown` diverso da zero merita un allarme; i contatori ripartono da zero al riavvio del worker.
+
+## 5. Prossimi passi
 
 - [Il tuo primo torneo](/help/getting-started/) — crea e pubblica una competizione una volta attiva
   l'installazione.

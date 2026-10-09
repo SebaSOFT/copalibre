@@ -23,10 +23,10 @@ import { runRelayPass } from './relay-runner.js';
 const EICAR = 'X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*';
 
 /**
- * Real Postgres, a real filesystem storage root, and real `clamd`
- * tasks 6.1-6.3) — through the actual outbox/relay/dispatcher path, not a
+ * Real Postgres, a real filesystem storage root, and real `clamd` —
+ * through the actual outbox/relay/dispatcher path, not a
  * direct handler call, so this proves "dispatched through the existing
- * outbox/job path" (task 2.1) rather than assuming it.
+ * outbox/job path" rather than assuming it.
  */
 describe('object processing through the relay, against real clamd (integration)', () => {
   let scratch: ScratchDatabase;

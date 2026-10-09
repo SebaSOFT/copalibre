@@ -16,6 +16,15 @@ x-development-environment: &development-environment
   COPALIBRE_DATA_DIR: /var/lib/copalibre
   COPALIBRE_IN_CONTAINER: 'true'
 
+# The dev Garage service, bucket and key (created by object-storage-init). api and worker share it so an upload
+# or a `copalibre dev demo` load made from the host is the object the API serves, and survives container rebuilds.
+x-development-object-storage: &development-object-storage
+  COPALIBRE_OBJECT_STORAGE_URL: http://object-storage:3900
+  COPALIBRE_OBJECT_STORAGE_ACCESS_KEY: GK636f70616c69627265646576
+  COPALIBRE_OBJECT_STORAGE_SECRET_KEY: 636f70616c696272655f6465765f6f6e6c795f6f626a6563745f73746f726521
+  COPALIBRE_OBJECT_STORAGE_BUCKET: copalibre-dev
+  COPALIBRE_OBJECT_STORAGE_REGION: garage
+
 x-application-build: &application-build
   context: .
   target: runtime
@@ -145,12 +154,14 @@ services:
   api:
     build: *application-build
     environment:
-      <<: *development-environment
+      <<: [*development-environment, *development-object-storage]
       PRODUCT_ROLE: api
       PORT: 3001
     depends_on:
       migrate:
         condition: service_completed_successfully
+      object-storage-init:
+        condition: service_healthy
     ports:
       - '3001:3001'
     develop:
@@ -183,12 +194,14 @@ services:
   worker:
     build: *application-build
     environment:
-      <<: *development-environment
+      <<: [*development-environment, *development-object-storage]
       PRODUCT_ROLE: worker
       PORT: 3003
     depends_on:
       migrate:
         condition: service_completed_successfully
+      object-storage-init:
+        condition: service_healthy
     develop:
       watch:
         - path: ./apps/worker

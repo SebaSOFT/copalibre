@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * Competition-structure editing (openspec 0168): renaming a stage and a
+ * Competition-structure editing: renaming a stage and a
  * zone from their respective screens, a capacity reduction refused in the
  * tournament-settings screen before the save request is ever sent, and
  * deleting an unreferenced upload from the storage-usage screen.
@@ -35,7 +35,7 @@ async function withTokenEndpoint(page: Page): Promise<void> {
 
 test('renames a stage from the stage hub and sees the change immediately', async ({ page }) => {
   // Stage identity (rename/format/delete) moved from the seeding screen to
-  // the stage hub (openspec 0250) — this exercises the same fact
+  // the stage hub — this exercises the same fact
   // (a rename shows immediately) at its new location.
   await withTokenEndpoint(page);
   let stageName = 'Fase de grupos';
@@ -163,7 +163,7 @@ test('refuses a capacity reduction below the current entrant count before the sa
   expect(updateCalled).toBe(false);
 });
 
-test('shows the plain-language summary on the settings screen and updates it after a save (openspec 0267)', async ({
+test('shows the plain-language summary on the settings screen and updates it after a save', async ({
   page,
 }) => {
   await withTokenEndpoint(page);

@@ -520,21 +520,18 @@ describe('public-api-client', () => {
       ['completed', 'final'],
       ['forfeited', 'final'],
       ['not-required', 'final'],
-    ])(
-      'maps persisted %s status to %s (openspec 0270 for forfeited/not-required)',
-      (status, state) => {
-        const result = mapOverviewResponse({
-          organizationAlias: 'org',
-          tournamentAlias: 'cup',
-          organizationName: 'Org',
-          tournamentName: 'Cup',
-          seasonName: '2026',
-          ruleset: {},
-          matches: [{ stageNumber: 1, status, homeName: 'A', awayName: 'B' }],
-        } as Parameters<typeof mapOverviewResponse>[0]);
-        expect(result.matches[0].state).toBe(state);
-      },
-    );
+    ])('maps persisted %s status to %s (forfeited/not-required)', (status, state) => {
+      const result = mapOverviewResponse({
+        organizationAlias: 'org',
+        tournamentAlias: 'cup',
+        organizationName: 'Org',
+        tournamentName: 'Cup',
+        seasonName: '2026',
+        ruleset: {},
+        matches: [{ stageNumber: 1, status, homeName: 'A', awayName: 'B' }],
+      } as Parameters<typeof mapOverviewResponse>[0]);
+      expect(result.matches[0].state).toBe(state);
+    });
 
     it('handles missing fields gracefully', () => {
       const response = {
@@ -567,7 +564,25 @@ describe('public-api-client', () => {
       expect(result.standings[0].played).toBe(0);
     });
 
-    it('carries the standings grain through, omitting it when the response names none (0160)', () => {
+    it('carries the zone of a standings row through, omitting it for a single-table stage', () => {
+      const result = mapOverviewResponse({
+        organizationAlias: 'org',
+        tournamentAlias: 't',
+        organizationName: 'Org',
+        tournamentName: 'T',
+        ruleset: {},
+        matches: [],
+        standingsPreview: [
+          { rank: 1, name: 'A', statistics: { played: 1, points: 3 }, zoneName: 'Liga A' },
+          { rank: 1, name: 'B', statistics: { played: 1, points: 3 } },
+        ],
+      } as unknown as Parameters<typeof mapOverviewResponse>[0]);
+
+      expect(result.standings?.[0]?.zoneName).toBe('Liga A');
+      expect(result.standings?.[1] && 'zoneName' in result.standings[1]).toBe(false);
+    });
+
+    it('carries the standings grain through, omitting it when the response names none', () => {
       const withoutGrain = mapOverviewResponse({
         organizationAlias: 'org',
         tournamentAlias: 't',
@@ -773,7 +788,7 @@ describe('public-api-client', () => {
       expect(matches[0].scores).toEqual([1, 0, 0, undefined]);
     });
 
-    it('prefers the wire matchNumber (a real stage-wide ordinal) over the per-round position (openspec 0249)', () => {
+    it('prefers the wire matchNumber (a real stage-wide ordinal) over the per-round position', () => {
       const response = {
         zones: [
           {

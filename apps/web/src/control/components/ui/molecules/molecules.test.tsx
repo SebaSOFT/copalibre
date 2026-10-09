@@ -259,7 +259,7 @@ describe('EntityIdentityCell', () => {
   });
 });
 
-describe('governance rules (design.md Decision 7): molecules hold no state/data access', () => {
+describe('governance rules: molecules hold no state/data access', () => {
   const dir = dirname(fileURLToPath(import.meta.url));
   const sourceFiles = readdirSync(dir).filter(
     (file) => file.endsWith('.tsx') && !file.endsWith('.test.tsx'),

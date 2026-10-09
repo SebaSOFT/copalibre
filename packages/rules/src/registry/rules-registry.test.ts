@@ -156,7 +156,7 @@ describe('RulesRegistry', () => {
     );
   });
 
-  it('round-trips an entry registered with a phrase template through list() (openspec 0266)', () => {
+  it('round-trips an entry registered with a phrase template through list()', () => {
     class NoopCondition extends AbstractCondition {
       static readonly TYPE = 'noop-condition';
       execute(context: ExecutionContext) {

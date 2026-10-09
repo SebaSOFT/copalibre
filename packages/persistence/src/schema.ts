@@ -229,6 +229,7 @@ export interface StageConfigurationsTable {
   ruleset_id: string;
   overrides: JSONColumnType<Record<string, unknown>>;
   allocation: JSONColumnType<Record<string, unknown>> | null;
+  group_configuration: JSONColumnType<Record<string, unknown>> | null;
   created_at: Timestamp;
 }
 
@@ -375,6 +376,8 @@ export interface ZonesTable {
   stage_id: string;
   number: number;
   name: string;
+  /** The zone's own format; null inherits the stage's. */
+  format: string | null;
   draw_seed: number | null;
   draw_constraints: JSONColumnType<readonly DrawConstraint[]> | null;
   created_at: Timestamp;
@@ -414,6 +417,8 @@ export interface FixturesTable {
   zone_id: string | null;
   group_id: string | null;
   round: number;
+  /** A placement game's part in its zone (`place-3`, `places-5-8`); null for the generated graph's own matches. */
+  role: string | null;
   home_entrant_id: string | null;
   away_entrant_id: string | null;
   created_at: Timestamp;

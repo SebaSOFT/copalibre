@@ -1,19 +1,19 @@
 ---
 /**
- * Extracted from the organization page (openspec 0225 task 7.2): the live,
+ * Extracted from the organization page: the live,
  * featured, upcoming and finished tournament listings were four
  * near-identical copies of this same section shape — one organism,
  * parameterized by heading, count visibility, the live-dot marker, the
  * featured-grid sizing, and whether each card renders `featured`.
  */
 import type { IntlShape } from 'react-intl';
-import type { PublicTournamentListingItemResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type { PodiumListingItem } from '../../../lib/podium-emblems.ts';
 import TournamentCard from './TournamentCard.astro';
 
 export interface Props {
   readonly headingId: string;
   readonly heading: string;
-  readonly tournaments: readonly PublicTournamentListingItemResponse[];
+  readonly tournaments: readonly PodiumListingItem[];
   readonly organizationAlias: string;
   readonly localePrefix: string;
   readonly intl: IntlShape;
@@ -82,7 +82,7 @@ const {
     margin: 0;
     color: var(--cl-text-primary);
     /* Lets the row wrap instead of forcing the header wider than a narrow
-       viewport (openspec 0225 task 7.4) — a flex child's minimum width
+       viewport — a flex child's minimum width
        otherwise defaults to its unbroken text width. */
     min-width: 0;
     overflow-wrap: anywhere;

@@ -2,7 +2,9 @@ import { jest } from '@jest/globals';
 import {
   runDoctor,
   validateDatabase,
+  validateHostEnvironment,
   validateJwksContent,
+  validateModuleAssets,
   validateObjectStorage,
   validatePersistentPath,
   validatePublicUrls,
@@ -32,6 +34,7 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
     ensureWritable: jest.fn(async () => undefined),
     retirableModules: jest.fn(async () => []),
     probeDataIntegrity: jest.fn(async () => ({ invalidStatusTournaments: [] })),
+    probeModuleAssets: jest.fn(async () => ({ inspected: 0, problems: [] })),
     objectStorageRoundTrip: jest.fn(async () => undefined),
     fetch: jest.fn(async (input: string | URL | Request) => {
       // The JWKS content check and the SSE proxy-conformance check share this
@@ -58,6 +61,56 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
 }
 
 describe('copalibre doctor', () => {
+  it('validates host .env values and accepts a configured database and provider credential', () => {
+    const report = validateHostEnvironment({
+      ...environment,
+      GARAGE_RPC_SECRET: 'generated-garage-secret',
+      POSTGRES_PASSWORD: 'operator-chosen-database-secret',
+    });
+
+    expect(report.ok).toBe(true);
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ name: 'host-env:email', status: 'pass' }),
+    );
+  });
+
+  it('reports missing values and default placeholder secrets without exposing their values', () => {
+    const report = validateHostEnvironment({
+      ...environment,
+      COPALIBRE_APP_URL: '  ',
+      COPALIBRE_BOOTSTRAP_TOKEN: 'copalibre_bootstrap_token_secret',
+      COPALIBRE_SMTP_URL: '',
+      GARAGE_RPC_SECRET: 'copalibre_garage_rpc_secret_change_me',
+    });
+
+    expect(report.ok).toBe(false);
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ name: 'host-env:COPALIBRE_APP_URL', status: 'fail' }),
+    );
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ name: 'host-env:COPALIBRE_BOOTSTRAP_TOKEN', status: 'fail' }),
+    );
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ name: 'host-env:email', status: 'fail' }),
+    );
+    expect(report.checks.map((check) => check.message).join(' ')).not.toContain(
+      'copalibre_bootstrap_token_secret',
+    );
+  });
+
+  it('accepts POSTGRES_PASSWORD when DATABASE_URL is omitted', () => {
+    const report = validateHostEnvironment({
+      ...environment,
+      DATABASE_URL: '',
+      POSTGRES_PASSWORD: 'operator-chosen-database-secret',
+      GARAGE_RPC_SECRET: 'generated-garage-secret',
+    });
+
+    expect(report.checks).not.toContainEqual(
+      expect.objectContaining({ name: 'host-env:database', status: 'fail' }),
+    );
+  });
+
   it('reports a specific missing dependency and exits non-zero', async () => {
     const report = await runDoctor({}, dependencies());
 
@@ -511,5 +564,53 @@ describe('copalibre doctor', () => {
     );
     expect(reportPlain.checks.find((c) => c.name === 'smoke:events-sse')?.status).toBe('pass');
     expect(reportPlain.checks.find((c) => c.name === 'smoke:auth')?.status).toBe('fail');
+  });
+});
+
+describe('validateModuleAssets', () => {
+  it('skips without a database', async () => {
+    const check = await validateModuleAssets({}, dependencies());
+    expect(check).toMatchObject({ name: 'data:module-assets', status: 'skip' });
+    expect(check.message).toContain('DATABASE_URL');
+  });
+
+  it('skips with the reason when the probe fails', async () => {
+    const check = await validateModuleAssets(
+      environment,
+      dependencies({
+        probeModuleAssets: jest.fn(async () => {
+          throw new Error('relation "installed_modules" does not exist');
+        }),
+      }),
+    );
+    expect(check.status).toBe('skip');
+    expect(check.message).toContain('installed_modules');
+  });
+
+  it('warns without failing the run when an asset is stored under another profile', async () => {
+    const report = await runDoctor(
+      environment,
+      dependencies({
+        probeModuleAssets: jest.fn(async () => ({
+          inspected: 1,
+          problems: [
+            {
+              alias: 'rink-hockey',
+              version: '1.0.0',
+              path: 'background.jpg',
+              problem: {
+                kind: 'profile-mismatch' as const,
+                recordedProfile: 'filesystem',
+                activeProfile: 's3',
+              },
+            },
+          ],
+        })),
+      }),
+    );
+    const check = report.checks.find((candidate) => candidate.name === 'data:module-assets');
+    expect(check?.status).toBe('warn');
+    expect(check?.message).toContain('rink-hockey@1.0.0 background.jpg');
+    expect(report.ok).toBe(report.checks.every((candidate) => candidate.status !== 'fail'));
   });
 });

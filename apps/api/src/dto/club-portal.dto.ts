@@ -4,7 +4,7 @@ import { Type } from 'class-transformer';
 import { TeamMembershipMemberInput } from './organization.dto.js';
 
 /**
- * A club-scoped member of the person directory (openspec 0301). Mirrors the
+ * A club-scoped member of the person directory. Mirrors the
  * fields `PersonIdentityResponse`/`TeamMemberResponse` already expose for the
  * organizer-facing registration review screen — this is the same person
  * record, viewed through a club-admin's scoped lens.

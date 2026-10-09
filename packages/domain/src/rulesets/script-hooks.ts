@@ -216,65 +216,65 @@ const HOOK_DEFINITIONS = {
   'draw.assign-group': {
     context: [...DRAW_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
-    evaluation: { status: 'evaluated', by: '0010' },
+    evaluation: { status: 'evaluated', by: 'stage qualification and seeding' },
   },
   'draw.pair-round': {
     context: [...DRAW_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
-    evaluation: { status: 'evaluated', by: '0010' },
+    evaluation: { status: 'evaluated', by: 'stage qualification and seeding' },
   },
   'seed.order': {
     context: [...DRAW_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
-    evaluation: { status: 'evaluated', by: '0010' },
+    evaluation: { status: 'evaluated', by: 'stage qualification and seeding' },
   },
   'schedule.assign-slot': {
     context: [...DRAW_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
     evaluation: {
       status: 'declared',
-      ownedBy: '0012',
+      ownedBy: 'resource scheduling and conflicts',
       note: 'Rest rules and venue conflicts are detected natively; the scripted form is unevaluated',
     },
   },
   'entrant.eligibility': {
     context: [...GUARD_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'default-deny',
-    evaluation: { status: 'declared', ownedBy: '0021' },
+    evaluation: { status: 'declared', ownedBy: 'public live and bracket surfaces' },
   },
   'stage.advance': {
     context: [...GUARD_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'default-deny',
     evaluation: {
       status: 'declared',
-      ownedBy: '0010',
+      ownedBy: 'stage qualification and seeding',
       note: 'Qualification admissibility is computed natively; the scripted form is unevaluated',
     },
   },
   'match.started': {
     context: [...MATCH_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
-    evaluation: { status: 'declared', ownedBy: '0014' },
+    evaluation: { status: 'declared', ownedBy: 'live match operations' },
   },
   'match.paused': {
     context: [...MATCH_CONTEXT_PATHS, ...PAUSE_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
-    evaluation: { status: 'declared', ownedBy: '0014' },
+    evaluation: { status: 'declared', ownedBy: 'live match operations' },
   },
   'match.resumed': {
     context: [...MATCH_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
-    evaluation: { status: 'declared', ownedBy: '0014' },
+    evaluation: { status: 'declared', ownedBy: 'live match operations' },
   },
   'match.finished': {
     context: [...MATCH_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
-    evaluation: { status: 'declared', ownedBy: '0014' },
+    evaluation: { status: 'declared', ownedBy: 'live match operations' },
   },
   'segment.started': {
     context: [...MATCH_CONTEXT_PATHS, ...SEGMENT_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
-    evaluation: { status: 'declared', ownedBy: '0014' },
+    evaluation: { status: 'declared', ownedBy: 'live match operations' },
   },
   'segment.paused': {
     context: [
@@ -284,12 +284,12 @@ const HOOK_DEFINITIONS = {
       ...ENVIRONMENT_CONTEXT_PATHS,
     ],
     polarity: 'permissive',
-    evaluation: { status: 'declared', ownedBy: '0014' },
+    evaluation: { status: 'declared', ownedBy: 'live match operations' },
   },
   'segment.finished': {
     context: [...MATCH_CONTEXT_PATHS, ...SEGMENT_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
-    evaluation: { status: 'declared', ownedBy: '0014' },
+    evaluation: { status: 'declared', ownedBy: 'live match operations' },
   },
   'score.changed': {
     context: [
@@ -299,7 +299,7 @@ const HOOK_DEFINITIONS = {
       ...ENVIRONMENT_CONTEXT_PATHS,
     ],
     polarity: 'permissive',
-    evaluation: { status: 'declared', ownedBy: '0014' },
+    evaluation: { status: 'declared', ownedBy: 'live match operations' },
   },
   'event.recorded': {
     context: [
@@ -310,31 +310,31 @@ const HOOK_DEFINITIONS = {
       ...ENVIRONMENT_CONTEXT_PATHS,
     ],
     polarity: 'permissive',
-    evaluation: { status: 'evaluated', by: '0133' },
+    evaluation: { status: 'evaluated', by: 'per-event rule authoring' },
   },
   'stage.started': {
     context: [...STAGE_LIFECYCLE_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
-    evaluation: { status: 'declared', ownedBy: '0014' },
+    evaluation: { status: 'declared', ownedBy: 'live match operations' },
   },
   'stage.finished': {
     context: [...STAGE_LIFECYCLE_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
-    evaluation: { status: 'declared', ownedBy: '0014' },
+    evaluation: { status: 'declared', ownedBy: 'live match operations' },
   },
   'alert.raised': {
     context: [...MATCH_CONTEXT_PATHS, ...ALERT_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
     evaluation: {
       status: 'declared',
-      ownedBy: '0023',
+      ownedBy: 'tournament authoring and registration review',
       note: 'What an operator configures an alert from is the console phase’s open gate',
     },
   },
   'series.resolved': {
     context: [...SERIES_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
     polarity: 'permissive',
-    evaluation: { status: 'evaluated', by: '0158' },
+    evaluation: { status: 'evaluated', by: 'multi-match series' },
   },
 } as const satisfies Record<string, HookDefinition>;
 
@@ -388,7 +388,7 @@ export function resolveHookAttachment(id: string): Result<HookAttachment, Script
       hook,
       inert: true,
       reason:
-        `Hook "${hook.id}" is declared but nothing evaluates it yet; it lands with phase ${ownedBy}` +
+        `Hook "${hook.id}" is declared but nothing evaluates it yet; it lands with ${ownedBy}` +
         (note ? `. ${note}` : ''),
     });
   }
@@ -396,7 +396,7 @@ export function resolveHookAttachment(id: string): Result<HookAttachment, Script
   return ok({ hook, inert: false });
 }
 
-/** The contract a script author reads instead of guessing (task 1.6). */
+/** The contract a script author reads instead of guessing. */
 export function publishedContextPaths(id: ScriptHookId): readonly string[] {
   return HOOK_DEFINITIONS[id].context;
 }

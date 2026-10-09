@@ -11,6 +11,7 @@ import {
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { buildTestApp } from './test-support/integration-harness.js';
+import { readStageSeries } from './stage-series.js';
 import { TournamentsController } from './tournaments.controller.js';
 import { TournamentProfilesController } from './tournament-profiles.controller.js';
 
@@ -245,8 +246,7 @@ describe('organization-scoped tournament routes', () => {
     expect(document.seasons[0]?.stages[0]?.configuration.rawOverrides).toEqual({});
     expect(document.seasons[0]?.stages[0]?.configuration.effective).toBeDefined();
 
-    // The export itself is a sensitive read, recorded with who and when
-    // (openspec 0166, task 6.3).
+    // The export itself is a sensitive read, recorded with who and when.
     const read = await scratch.db
       .selectFrom('audit_log')
       .selectAll()
@@ -378,7 +378,7 @@ describe('organization-scoped tournament routes', () => {
     );
     expect(vocabulary.entries.every((entry) => entry.authoring !== undefined)).toBe(true);
     expect(vocabulary.entries.some((entry) => entry.type === 'set-guard-outcome')).toBe(false);
-    // Every condition/action carries a phrase template (openspec 0266); a bare
+    // Every condition/action carries a phrase template; a bare
     // vocabulary parameter entry is not rendered directly, so it carries none.
     expect(
       vocabulary.entries
@@ -800,7 +800,7 @@ describe('organization-scoped tournament routes', () => {
     });
   });
 
-  it('creates a tournament with a discipline-declared rule override beyond format/registration (openspec 0265)', async () => {
+  it('creates a tournament with a discipline-declared rule override beyond format/registration', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = footballDescriptor();
     await withTransaction(scratch.db as Kysely<Database>, (uow) =>
@@ -835,7 +835,7 @@ describe('organization-scoped tournament routes', () => {
     expect(ruleset?.overrides).toMatchObject({ 'scoring.pointsPerWin': 4 });
   });
 
-  it('rejects tournament creation with a ruleOverrides entry that violates its field policy, performing no write (openspec 0265)', async () => {
+  it('rejects tournament creation with a ruleOverrides entry that violates its field policy, performing no write', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = footballDescriptor();
     await withTransaction(scratch.db as Kysely<Database>, (uow) =>
@@ -935,6 +935,119 @@ describe('organization-scoped tournament routes', () => {
     expect(playoffsConfig?.allocation).toEqual({ mode: 'manual' });
     const finalConfig = await tournaments.findLatestStageConfiguration(finalStage.stageId);
     expect(finalConfig?.overrides).toMatchObject({ 'series.span': 3 });
+  });
+
+  describe('zone plan declared at creation', () => {
+    async function installFootball() {
+      const descriptor = footballDescriptor();
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        new TournamentRepository(scratch.db).saveDescriptor(uow, descriptor, {
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      );
+      return descriptor;
+    }
+
+    function create(
+      alias: string,
+      descriptor: ReturnType<typeof footballDescriptor>,
+      stages: unknown,
+    ) {
+      return request({
+        method: 'POST',
+        url: '/organizations/liga-orbital/tournaments',
+        token: 'organizer-org1',
+        payload: {
+          alias,
+          name: alias,
+          descriptorId: descriptor.descriptorId,
+          descriptorVersion: descriptor.version,
+          stages,
+          publicRegistration: false,
+          requiresCheckIn: false,
+          customScripts: [],
+        },
+      });
+    }
+
+    it('creates the declared zones with their own format and series, the rest inheriting', async () => {
+      const descriptor = await installFootball();
+      const response = await create('copa-zonas', descriptor, [
+        {
+          name: 'Copas',
+          format: 'single-elimination',
+          series: { span: 3, resolutionClass: 'best-of' },
+          zones: [
+            { name: 'Copa Oro' },
+            {
+              name: 'Liga',
+              format: 'round-robin',
+              series: { span: 5, resolutionClass: 'best-of' },
+            },
+          ],
+        },
+      ]);
+
+      expect(response.statusCode).toBe(201);
+      const created = response.json() as { tournamentId: string };
+      const competition = new CompetitionRepository(scratch.db);
+      const [stage] = await competition.listStagesOfTournament(created.tournamentId);
+      if (!stage) throw new Error('Expected a stage');
+      const zones = await competition.listZonesOfStage(stage.stageId);
+      expect(
+        zones.map((zone) => ({ number: zone.number, name: zone.name, format: zone.format })),
+      ).toEqual([
+        { number: 1, name: 'Copa Oro', format: undefined },
+        { number: 2, name: 'Liga', format: 'round-robin' },
+      ]);
+
+      const [oro, liga] = zones;
+      if (!oro || !liga) throw new Error('Expected two zones');
+      const seriesOf = (zoneId: string) =>
+        readStageSeries(scratch.db, {
+          tournamentId: created.tournamentId,
+          stageId: stage.stageId,
+          zoneId,
+        });
+      expect((await seriesOf(oro.zoneId))?.span).toBe(3);
+      expect((await seriesOf(liga.zoneId))?.span).toBe(5);
+    });
+
+    it('creates a stage that lists no zones without any', async () => {
+      const descriptor = await installFootball();
+      const response = await create('copa-sin-zonas', descriptor, [
+        { name: 'Liga', format: 'round-robin' },
+      ]);
+
+      expect(response.statusCode).toBe(201);
+      const created = response.json() as { tournamentId: string };
+      const competition = new CompetitionRepository(scratch.db);
+      const [stage] = await competition.listStagesOfTournament(created.tournamentId);
+      if (!stage) throw new Error('Expected a stage');
+      expect(await competition.listZonesOfStage(stage.stageId)).toEqual([]);
+    });
+
+    it.each([
+      ['an unsupported zone format', [{ name: 'A', format: 'not-a-format' }]],
+      ['a format the discipline does not offer', [{ name: 'A', format: 'free-for-all' }]],
+      ['a series on a placement format', [{ name: 'A', format: 'heats', series: { span: 3 } }]],
+      ['an invalid series', [{ name: 'A', series: { span: 1 } }]],
+      ['an empty name', [{ name: '  ' }]],
+      ['a duplicate name', [{ name: 'A' }, { name: 'A' }]],
+    ])('refuses %s and stores nothing', async (_label, zones) => {
+      const descriptor = await installFootball();
+      const alias = `copa-refused-${_label.replace(/\W+/g, '-')}`;
+      const response = await create(alias, descriptor, [
+        { name: 'Copas', format: 'single-elimination', zones },
+      ]);
+
+      expect(response.statusCode).toBe(400);
+      expect(
+        await new TournamentRepository(scratch.db).findByScopedAlias('liga-orbital', alias),
+      ).toBeUndefined();
+    });
   });
 
   it('creates a tournament instantiating a tournament profile and pre-creating declared stages', async () => {

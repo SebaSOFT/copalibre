@@ -17,6 +17,7 @@ import { InvariantViolationError } from '../errors.js';
 import { newId } from '../ids.js';
 import { toClub, toEntrant, toEntrantAttribute, toTeam } from '../mapping.js';
 import type { Database } from '../schema.js';
+import type { EventOrigin } from '../outbox.js';
 import type { UnitOfWork } from '../transaction.js';
 
 export interface AuditContext {
@@ -57,6 +58,7 @@ export class EnrollmentRepository {
       readonly name: string;
       readonly alias?: string;
       readonly abbreviation?: string;
+      readonly origin?: EventOrigin;
     } & Omit<AuditContext, 'organizationId'>,
   ): Promise<Club> {
     assertAbbreviation(input.abbreviation);
@@ -92,6 +94,20 @@ export class EnrollmentRepository {
       actor: input.actor,
       authorizationContext: input.authorizationContext,
       resultingState: { ...club },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `club:${clubId}`,
+      entityId: clubId,
+      eventType: 'club.created',
+      projectionVersion: 1,
+      payload: {
+        clubId,
+        alias: club.alias,
+        name: club.name,
+        actor: input.actor,
+        ...(input.origin === undefined ? {} : { origin: input.origin }),
+      },
     });
     return club;
   }
@@ -292,7 +308,7 @@ export class EnrollmentRepository {
    * Removes a team that has never been used for anything — no entrant
    * registration, no rostered player. Either reference refuses the removal
    * by name, an up-front check rather than a caught foreign-key-violation
-   * error (design.md, mirroring `PersonRepository.remove`). Requires the
+   * error (mirroring `PersonRepository.remove`). Requires the
    * caller to have already confirmed the team exists and belongs to this
    * organization, matching `updateTeam`'s own contract.
    */
@@ -363,7 +379,7 @@ export class EnrollmentRepository {
     return row ? toTeam(row) : undefined;
   }
 
-  /** Every team belonging to one club — the Club Portal's team picker (openspec 0301). */
+  /** Every team belonging to one club — the Club Portal's team picker. */
   async listTeamsByClub(organizationId: string, clubId: string): Promise<readonly Team[]> {
     const rows = await this.db
       .selectFrom('teams')
@@ -468,6 +484,7 @@ export class EnrollmentRepository {
       readonly entrantRef: Entrant['entrantRef'];
       readonly abbreviation?: string;
       readonly seed?: number;
+      readonly origin?: EventOrigin;
     } & AuditContext,
   ): Promise<Entrant> {
     const entrantId = newId();
@@ -504,7 +521,14 @@ export class EnrollmentRepository {
       entityId: entrantId,
       eventType: 'entrant.registered',
       projectionVersion: 1,
-      payload: { entrantId, tournamentId: input.tournamentId, status: entrant.status },
+      payload: {
+        entrantId,
+        tournamentId: input.tournamentId,
+        status: entrant.status,
+        entrantKind: input.entrantRef.kind,
+        actor: input.actor,
+        ...(input.origin === undefined ? {} : { origin: input.origin }),
+      },
     });
     return entrant;
   }

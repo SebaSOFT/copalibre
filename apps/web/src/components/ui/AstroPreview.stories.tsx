@@ -50,6 +50,45 @@ export const ChampionPodiumSharedTitle: Story = {
   args: { component: 'champion-podium-shared-title', height: 260 },
 };
 
+/** Organization › tournament › current stage: every ancestor a link, the page itself plain text. */
+export const BreadcrumbTrail: Story = {
+  args: { component: 'breadcrumb', height: 120 },
+};
+
+/** Five levels; below 768px the first and the last two stay and the middle folds behind an ellipsis link. */
+export const BreadcrumbCollapsed: Story = {
+  args: { component: 'breadcrumb-collapsed', height: 120 },
+};
+
+/** The compact club filter: initials stand in without an emblem, and the selected chip carries a check and a fill. */
+export const ClubFilterChips: Story = {
+  args: { component: 'club-filter-chip', height: 120 },
+};
+
+/**
+ * Abbreviated headers carry their full wording (hover or focus a header; the legend below the table
+ * repeats it for touch), and the club filter is a row of compact chips: emblem or initials, selected
+ * state by fill, border and check.
+ */
+export const StandingsTableHints: Story = {
+  args: { component: 'standings-table', height: 760 },
+};
+
+/** A podium squeezed into a quarter-width card stacks its placings instead of breaking names. */
+export const ChampionPodiumNarrow: Story = {
+  args: { component: 'champion-podium-narrow', height: 760 },
+};
+
+/** Between the stacked and the three-column layouts the placings still read in one column. */
+export const ChampionPodiumMedium: Story = {
+  args: { component: 'champion-podium-medium', height: 640 },
+};
+
+/** A finished listing card with a long tournament name at the width of a three-up grid. */
+export const TournamentCardFinishedNarrow: Story = {
+  args: { component: 'tournament-card-finished-narrow', height: 640 },
+};
+
 export const ChampionPodiumEmpty: Story = {
   args: { component: 'champion-podium-empty', height: 220 },
 };
@@ -81,7 +120,7 @@ export const ScoreTickerStale: Story = {
 };
 
 /**
- * The public header, and the reason it is worth framing rather than imitating.
+ * Public spectator navigation: Home and locale selection, without operator help.
  *
  * With the frame below 768px the menu expands into the page: the content
  * beneath it moves down instead of being covered. Reload with JavaScript
@@ -95,6 +134,16 @@ export const PublicHeader: Story = {
 /** A 4:5 transparent emblem contained within a square chamfer-safe frame. */
 export const EmblemImage: Story = {
   args: { component: 'emblem-image', height: 180 },
+};
+
+/** The schedule: group tables with round sub-headings, then a cup drawn as its bracket. */
+export const MatchSchedule: Story = {
+  args: { component: 'match-schedule', height: 640 },
+};
+
+/** The `bare` emblem: no background, border, chamfer or inset, only the 1:1 image for inline use. */
+export const EmblemImageBare: Story = {
+  args: { component: 'emblem-image-bare', height: 120 },
 };
 
 /** The same emblem at three `size` values; every frame remains square. */
@@ -147,6 +196,26 @@ export const MatchBracketContextUnknownFocus: Story = {
  */
 export const UnknownComponent: Story = {
   args: { component: 'not-a-component', height: 220 },
+};
+
+/** A zone with a third-place game: the final in the middle with a half on each side, the game listed beneath. */
+export const BracketPlacementGame: Story = {
+  args: { component: 'bracket-placement', height: 900 },
+};
+
+/** The whole bracket at the compact density a narrow screen draws. */
+export const BracketGraphCompact: Story = {
+  args: { component: 'bracket-graph', height: 420 },
+};
+
+/** The card a bracket draws on a narrow screen: abbreviations and scores only. */
+export const MatchNodeCompactCard: Story = {
+  args: { component: 'match-node-compact', height: 120 },
+};
+
+/** The placement games listed under what each decides, the current one marked. */
+export const PlacementGamesList: Story = {
+  args: { component: 'placement-games', height: 260 },
 };
 
 export const BracketJourneyAlive: Story = {

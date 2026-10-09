@@ -30,3 +30,12 @@ Il sistema svizzero abbina i partecipanti su più turni senza eliminazione diret
 ## Classifica e Avanzamento
 
 Le classifiche applicano criteri di difficoltà del calendario (Buchholz, Sonneborn-Berger) per determinare l'accesso ai playoff a eliminazione diretta.
+
+## Generare il turno successivo
+
+Le fasi svizzere e a eliminazione diretta costruiscono ogni turno da quello precedente, quindi l’operatore genera un turno solo quando il precedente è concluso.
+
+- **Per zona**: Turni, abbinamenti e risultati appartengono a una zona. Una fase con più zone fa avanzare ogni zona per conto suo, e una zona non abbina mai partecipanti di un’altra.
+- **Dove**: A fase sorteggiata, la schermata della fase offre l’azione **Genera il turno successivo** per ogni zona che gioca con il sistema svizzero o a eliminazione diretta. Le zone con un altro formato, come il girone all’italiana, non ce l’hanno.
+- **Quando viene rifiutata**: Una zona non avanza finché una partita del suo turno corrente non è conclusa. Questo blocca solo quella zona; le altre possono avanzare.
+- **Tramite API**: `POST .../stages/{stageNumber}/rounds/next` con `{ "zoneNumber": 2 }`. La zona è obbligatoria se la fase ne ha più di una; una fase con una sola zona non richiede corpo.

@@ -564,3 +564,74 @@ or broken row.
   declared
 - **THEN** that side of the rule's row falls back to its type identifier and description, and the
   row as a whole still renders
+
+### Requirement: Tournament wizard layout, stage format localization, and format-adaptive skeleton preview
+The tournament setup wizard SHALL render its progress metrics with proper typographic spacing, and localize all stage format identifiers across supported languages. Entrant assignment controls and schedule slot assignment rows SHALL use constrained, responsive layouts on their existing authoring screens. In the stage structure preview, the system SHALL adapt its structural presentation to the selected stage format using lightweight matchcard skeletons (`cl-match-card--skeleton`):
+- Single-elimination formats SHALL render as responsive bracket trees (llaves) showing round progression.
+- Double-elimination formats SHALL render distinct upper and lower brackets, a grand final and a conditional reset final when the lower-bracket winner wins the grand final.
+- League and round-robin formats SHALL render as wrapped matchday grids without horizontal scrollbar overflow.
+- Stages with explicit group configuration SHALL render the configured number of group cards with entrant slot skeletons; format alone SHALL NOT imply a group count.
+Ruleset fields SHALL NOT render raw JSON editors or literal "null" values, and tiebreaker criteria SHALL be presented as ordered human-readable badges.
+
+#### Scenario: Entrant assignment and schedule slot rows remain constrained
+- **WHEN** an operator assigns entrants to zones/groups or assigns fixtures to schedule slots
+- **THEN** entrant controls remain within their form container and schedule assignment rows align without stretching the page horizontally
+
+#### Scenario: Stage formats render with localized display names
+- **WHEN** an operator reaches the stage setup step of the wizard
+- **THEN** the format selector displays translated names (e.g. "Liga", "Todos contra todos", "Eliminación directa") rather than raw programmatic slugs
+
+#### Scenario: Single-elimination format renders bracket tree preview
+- **WHEN** an operator selects a single-elimination stage format
+- **THEN** the preview renders an elimination bracket tree with matchcard skeletons showing round progression and connectors
+
+#### Scenario: Double-elimination format renders both brackets and finals
+- **WHEN** an operator selects a double-elimination stage format
+- **THEN** the preview renders upper and lower brackets, the grand final, and a reset final only in the fixture where the lower-bracket winner takes the grand final
+
+#### Scenario: League formats render wrapped matchday grid
+- **WHEN** an operator selects a league or round-robin stage format
+- **THEN** the preview renders a responsive grid of matchday cards containing matchcard skeletons without horizontal overflow
+
+#### Scenario: Explicit group configuration renders group cards
+- **WHEN** an operator sets a group count for a stage
+- **THEN** the preview renders exactly that many group cards with slot skeleton placeholders, independently of the stage format slug
+
+#### Scenario: Rules and tiebreakers render cleanly without raw JSON
+- **WHEN** an operator reviews stage rules and tiebreakers
+- **THEN** tiebreakers display as readable badges, and unconfigured optional fields do not display raw "null" textareas or JSON editor warnings
+
+### Requirement: Visual condition-action rule authoring builder
+The tournament setup wizard SHALL provide an intuitive, two-column visual GIVEN/WHEN/THEN rule builder for configuring custom stage scripts and rules. GIVEN SHALL display the discipline event supplied by the system at the `event.recorded` hook as read-only context; organizers SHALL NOT select or author trigger events. WHEN SHALL provide guided condition controls with AND composition only. THEN SHALL provide the supported action controls. The builder SHALL serialize rules into the existing validated ruleset structure.
+
+#### Scenario: Authoring a custom rule through the visual builder
+- **WHEN** an operator creates a custom rule in Step 5 of the wizard
+- **THEN** conditions are constructed via guided parameter/operator pickers with visual accent cards, and actions are added as a numbered outcome list
+
+#### Scenario: System supplies the GIVEN event context
+- **WHEN** a discipline-defined match event is recorded
+- **THEN** the system evaluates the attached rule at `event.recorded` and supplies that event as read-only GIVEN context, with no organizer trigger selector
+
+#### Scenario: Visual rule builder serializes to valid ruleset schema
+- **WHEN** an operator saves a rule authored in the visual builder
+- **THEN** the rule serializes into a standard, validated tournament ruleset structure compatible with engine evaluation
+
+### Requirement: Wizard declares each stage's zones with optional format and series
+The tournament setup wizard SHALL let an operator declare, per stage, an ordered list of zones before creating the tournament. Each zone SHALL carry a name, an optional format chosen from the formats the selected discipline supports, and an optional series declaration; a zone that declares neither SHALL inherit its stage's. The zone section SHALL be collapsed by default, so a stage with no zones reads and behaves as before. Zone names SHALL be non-empty and unique within the stage, and a zone whose effective format is a placement format SHALL NOT declare a series. The review step SHALL list each stage's zones with their effective formats. The wizard SHALL NOT assign entrants to zones.
+
+#### Scenario: An operator plans two knockout zones and a league zone
+- **WHEN** an operator declares a `single-elimination` stage with three zones, "Copa Oro" and "Copa Plata" inheriting the format and "Liga" overriding it to `round-robin`, and completes the wizard
+- **THEN** the review step lists the three zones with their effective formats
+- **AND** the created tournament has the stage with those three zones in that order
+
+#### Scenario: A stage with no zones is unaffected
+- **WHEN** an operator declares stages without opening the zone section and completes the wizard
+- **THEN** the created tournament has the same stages and no zones, identical to one created before this capability existed
+
+#### Scenario: A duplicate zone name is refused while authoring
+- **WHEN** an operator names two zones of one stage "Zona A"
+- **THEN** the wizard reports the duplicate and does not allow submission
+
+#### Scenario: The profile wizard does not offer zones
+- **WHEN** an operator authors a tournament profile
+- **THEN** the stage editor shows no zone section

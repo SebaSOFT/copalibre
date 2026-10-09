@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Produces measured evidence that a chart upgrade across two minor versions
 # is zero-downtime and completes its migration Job successfully
-# (0035-kubernetes-enterprise-deployment task 6.3).
+# (Kubernetes enterprise deployment).
 #
 # This repo's Helm chart (deploy/helm/copalibre) has never been packaged or
 # published to a registry, so there is no real "previous minor version" to

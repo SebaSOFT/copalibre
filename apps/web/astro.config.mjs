@@ -112,6 +112,7 @@ export default defineConfig({
           },
           items: [
             'help/control',
+            'help/control/overview',
             'help/control/tournament-authoring',
             'help/control/series',
             'help/control/schedule',

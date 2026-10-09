@@ -29,7 +29,7 @@ export interface SelectProps {
   /**
    * A leading glyph rendered inside the trigger, before the value —
    * presentational only, no i18n and no business logic, exactly what an
-   * atom may hold (openspec 0225 design.md Decision 3). Omitting it leaves
+   * atom may hold. Omitting it leaves
    * the trigger exactly as it renders today.
    */
   readonly icon?: React.ReactNode;

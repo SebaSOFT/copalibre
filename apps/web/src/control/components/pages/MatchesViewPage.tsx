@@ -10,7 +10,7 @@ import { MatchesViewTemplate } from '../screens/MatchesViewTemplate.js';
 type StateFilter = 'all' | 'live' | 'upcoming' | 'final';
 
 /**
- * The organizer-facing matches view (openspec 0172): the same card grid the
+ * The organizer-facing matches view: the same card grid the
  * public site shows, plus the full internal comparator trace on a
  * tiebreak-decided match — reached only by a subject already holding
  * `org.view-internal-standings` for this tournament, enforced server-side;
@@ -23,7 +23,7 @@ type StateFilter = 'all' | 'live' | 'upcoming' | 'final';
  * own query-string scoping, so a caller narrows scope with a plain link
  * rather than a dedicated route per stage.
  *
- * Fetches (openspec 0225 task 6.2): the state filter lives here rather than
+ * Fetches: the state filter lives here rather than
  * in `MatchesViewTemplate`, since selecting one drives a refetch.
  */
 export function MatchesViewPage({

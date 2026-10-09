@@ -3,6 +3,7 @@ title: 'Getting started: self-hosting'
 description: Run CopaLibre from source on Windows, macOS, or Linux, then choose a reverse-proxy or Kubernetes deployment topology.
 capabilities:
   - platform/self-hosted-deployment
+  - platform/email-notifications
 roles:
   - super-admin
 ---
@@ -50,8 +51,13 @@ Edit `.env` before starting: set `COPALIBRE_IMAGE=copalibre:local` and `COPALIBR
 ```bash
 ../copalibre doctor
 ../copalibre start
+../copalibre status
+../copalibre restart
+../copalibre stop
 ../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
+
+Use copalibre status to inspect containers and gateway health. copalibre restart checks PostgreSQL and doctor before bringing services back. copalibre stop preserves volumes; add --down to remove containers and networks. In Kubernetes mode, start/stop/restart print Helm or kubectl guidance.
 
 The gateway publishes HTTP at `http://localhost:8080` (`COPALIBRE_PORT`). Compose also publishes service ports; restrict their exposure at the host/network boundary. TLS belongs at the edge proxy.
 
@@ -72,7 +78,7 @@ For multi-node, horizontally-scaled, or managed-infrastructure deployments, a He
 migration process as the Compose install — installing it with default values behaves identically to
 the base chart alone.
 
-Run Helm from the checkout root, after creating and configuring `my-values.yaml` with database, identity, email and public URL settings. Use an already published version for both images; 1.2.5 becomes available after release publication.
+Run Helm from the checkout root, after creating and configuring `my-values.yaml` with database, identity, email and public URL settings. Use an already published version for both images; 1.2.6 becomes available after release publication.
 
 ```bash
 cd ..
@@ -81,8 +87,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6
 ```
 
 Layer these additive, defaulted-off `values.yaml` groups on top as needed — none require a template
@@ -112,7 +118,18 @@ k3d cluster create --config deploy/helm/k3s-dev-cluster.yaml
 Full prerequisite list and the measured multi-node-failover, backup-restore, and upgrade-safety
 evidence this claim is gated on: `docs/deployment/enterprise-kubernetes.md` in the repository.
 
-## 4. Next steps
+## 4. Notification email
+
+Tournament and organization activity is announced by email through the provider you configured for invitations (`COPALIBRE_EMAIL_PROVIDER`); no extra setting is needed. In the development stack the emails arrive in Mailpit.
+
+- A new tournament and a new club go to the organization's administrators.
+- A new registration, and a club submitting its squad, go to the organization's administrators and to the tournament administrators of that tournament. The person who caused the event is not emailed.
+- Emails use the organization's primary language, carry its emblem and name in the header, and are signed by Copa Libre with a link to [copalibre.app](https://copalibre.app).
+- CSV imports and `copalibre dev demo` send no email.
+- The same email is never sent twice to the same recipient. If a provider times out before confirming, that email is not retried, so one may be missed rather than duplicated.
+- An operator can see how many emails may have been missed: the worker counts every delivery attempt by outcome (sent, already sent, refused, unknown) in its `/jobs/metrics` response under `emailDelivery`, and logs each unknown outcome without the recipient's address. A non-zero `unknown` is worth an alert; the counts start from zero when the worker restarts.
+
+## 5. Next steps
 
 - [Your first tournament](/help/getting-started/) — create and publish a competition once the
   installation is up.

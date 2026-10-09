@@ -4,7 +4,7 @@
 chart deploys to Kubernetes, but to plain managed VMs over SSH instead of a
 cluster. Per the architecture doc, this is explicitly **not a second product
 architecture** — it reuses the identical images and environment contract
-validated by `0034-k3s-helm-deployment` and this phase. No Kamal-specific
+validated by the K3s Helm deployment and this phase. No Kamal-specific
 Dockerfile, image tag, or environment variable exists or is permitted; if a
 future change needs one, that's a signal the two paths have started to
 diverge and should be treated as a regression against this decision.
@@ -54,7 +54,7 @@ compares Compose against Helm today.
   to `roles.<name>.probePath`/`readinessPath` in `values.yaml`.
 - The `migrate` role must run to completion before any `api`/`worker` traffic
   cutover, the same migration-blocks-rollout guarantee
-  `0034-k3s-helm-deployment`'s pre-install/pre-upgrade Helm hook (weight
+  the K3s Helm deployment's pre-install/pre-upgrade Helm hook (weight
   `-5`) provides. Kamal has no native pre-deploy migration Job primitive —
   run migration via a `kamal app exec` (or an equivalent pre-deploy hook)
   against the `runtime` image with `PRODUCT_ROLE=migrate` _before_ triggering
@@ -64,6 +64,6 @@ compares Compose against Helm today.
 ## Image digest parity
 
 A release deployed via Kamal must use the exact same image digest validated
-by `0034-k3s-helm-deployment`'s rolling-update test for that release — build
+by the K3s Helm deployment's rolling-update test for that release — build
 once, deploy the same artifact everywhere, never rebuild per deployment
 target.

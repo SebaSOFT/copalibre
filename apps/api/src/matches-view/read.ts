@@ -18,11 +18,7 @@ import {
   type Tournament,
 } from '@copalibre/domain';
 import { readStandings } from '../standings/read.js';
-import {
-  readStageSeries,
-  publicSeriesState,
-  type PublicSeriesState,
-} from '../controllers/stage-series.js';
+import { readStageSeriesByPosition, type PublicSeriesState } from '../controllers/stage-series.js';
 import { elapsedSecondsOf } from '../controllers/segment-clock.js';
 
 /**
@@ -113,8 +109,8 @@ async function readStageMatchesView(
 
   // The ordinal must come from the stage's full, unscoped match list — a
   // group-filtered `records` here would assign a different ordinal to the
-  // same real match than the unfiltered view and `matchReport()` do
-  // (openspec 0249). No extra query in the common, unfiltered case: `records`
+  // same real match than the unfiltered view and `matchReport()` do.
+  // No extra query in the common, unfiltered case: `records`
   // already is that list.
   const matchOrdinals =
     onlyGroupId === undefined
@@ -319,27 +315,9 @@ async function seriesStatesByPosition(
   stageId: string,
   records: readonly StageMatchRecord[],
 ): Promise<ReadonlyMap<string, PublicSeriesState>> {
-  const declaration = await readStageSeries(db, { tournamentId, stageId });
-  if (declaration === undefined) return new Map();
-
-  const matches = await new CompetitionRepository(db).listMatchesForStage(stageId);
-  const byFixture = new Map<string, typeof matches>();
-  for (const match of matches) {
-    byFixture.set(match.fixtureId, [...(byFixture.get(match.fixtureId) ?? []), match]);
-  }
-
-  const states = new Map<string, PublicSeriesState>();
-  for (const record of records) {
-    const games = byFixture.get(record.fixtureId) ?? [];
-    const state = publicSeriesState({
-      declaration,
-      ...(record.homeEntrantId === undefined ? {} : { homeEntrantId: record.homeEntrantId }),
-      ...(record.awayEntrantId === undefined ? {} : { awayEntrantId: record.awayEntrantId }),
-      games,
-    });
-    if (state !== undefined) states.set(`${record.round}:${record.position}`, state);
-  }
-  return states;
+  // Each fixture resolves against its own zone's declaration, so a stage whose zones declare
+  // different series reports each correctly.
+  return readStageSeriesByPosition(db, { tournamentId, stageId, records });
 }
 
 /**

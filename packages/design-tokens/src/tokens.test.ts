@@ -295,8 +295,8 @@ describe('the CSS output', () => {
 
   it('keeps TV possession and timed-penalty text readable on their opaque ink-950 well', () => {
     // The TV scorebug and lower third render each marker as `state-positive` or
-    // `state-upcoming` text over an opaque `ink-950` background (openspec 0294)
-    // — never a translucent scrim, since that inherits unpredictable video
+    // `state-upcoming` text over an opaque `ink-950` background —
+    // never a translucent scrim, since that inherits unpredictable video
     // color behind it. Both must clear normal-text AA on their own, not just
     // the non-text gate, since the marker's text is the fact being broadcast.
     const well = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-base'].primitive];
@@ -523,7 +523,7 @@ describe('the CSS output', () => {
   });
 
   it('keeps exactly one rule laying out a row of tiles', () => {
-    // `.cl-stat-grid` was the dashboard's own copy of this; 0223 folded it in.
+    // `.cl-stat-grid` was the dashboard's own copy of this; the compositions folded it in.
     expect(css).not.toContain('.cl-stat-grid');
   });
 
@@ -534,7 +534,7 @@ describe('the CSS output', () => {
     }
   });
 
-  it('gives the custom select popover the control chamfer, mono typography, and a cyan active cue (openspec 0295)', () => {
+  it('gives the custom select popover the control chamfer, mono typography, and a cyan active cue', () => {
     expect(css).toContain('.cl-select { font-family: var(--cl-font-mono); }');
     expect(css).toContain('.cl-select__content {');
     expect(css).toContain('font-family: var(--cl-font-mono)');
@@ -547,7 +547,7 @@ describe('the CSS output', () => {
     expect(css).toContain('font-size: 10px');
   });
 
-  it('stops the native select shim from intercepting pointer events (openspec 0295 task 1.1)', () => {
+  it('stops the native select shim from intercepting pointer events', () => {
     const nativeSelectRule = css.slice(css.indexOf('.cl-select-native {'));
     expect(nativeSelectRule).toContain('pointer-events: none');
     expect(nativeSelectRule.slice(0, nativeSelectRule.indexOf('}'))).not.toContain(
@@ -655,7 +655,7 @@ describe('the style guide', () => {
   });
 });
 
-describe('button CTA treatments (openspec 0198)', () => {
+describe('button CTA treatments', () => {
   const css = generateCss();
 
   it('renders hover, active and disabled states distinctly from the default', () => {
@@ -692,7 +692,7 @@ describe('button CTA treatments (openspec 0198)', () => {
   });
 });
 
-describe('public table and pill treatments (openspec 0199)', () => {
+describe('public table and pill treatments', () => {
   const css = generateCss();
 
   it('gives every table a header treatment and tabular figures', () => {
@@ -705,6 +705,18 @@ describe('public table and pill treatments (openspec 0199)', () => {
   it('separates rows with a muted border and right-aligns numeric columns', () => {
     expect(css).toMatch(/\.cl-table th,\n\.cl-table td \{[^}]*var\(--cl-border-muted\)/);
     expect(css).toContain('.cl-table__num { text-align: right; }');
+  });
+
+  it('draws a column rule from a token on every column but the first', () => {
+    expect(css).toMatch(
+      /--cl-table-column-rule: color-mix\(in srgb, var\(--cl-border-muted\) \d+%, transparent\)/,
+    );
+    expect(css).toMatch(
+      /\.cl-table th \+ th,\n\.cl-table td \+ td \{[^}]*border-inline-start: 1px solid var\(--cl-table-column-rule\)/,
+    );
+    expect(css).toMatch(
+      /\.cl-data-table__table th \+ th, \.cl-data-table__table td \+ td \{[^}]*var\(--cl-table-column-rule\)/,
+    );
   });
 
   it('scrolls a wide table inside its own container', () => {
@@ -725,7 +737,7 @@ describe('public table and pill treatments (openspec 0199)', () => {
   });
 });
 
-describe('compact match card (openspec 0299)', () => {
+describe('compact match card', () => {
   const css = generateCss();
 
   it('lays the compact card out as a dense flex row, not the full card grid', () => {
@@ -766,7 +778,7 @@ describe('compact match card (openspec 0299)', () => {
  * last `build:tokens`. Every page in `apps/web` imports it directly, which means
  * a stale copy does not fail anything — it just serves last week's rules, and a
  * change to this file appears to have no effect. That is how an overflow fix in
- * 0211 read as inert against a browser that was rendering the previous build.
+ * the dashboard tournament section read as inert against a browser that was rendering the previous build.
  *
  * `apps/web`'s own build now regenerates it, so a stale file should be
  * impossible. This is the check that says so out loud if it happens anyway.

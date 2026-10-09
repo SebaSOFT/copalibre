@@ -1,5 +1,5 @@
 /**
- * `DataTable.astro` and `Modal.astro` (openspec 0225 task 2.3), checked at
+ * `DataTable.astro` and `Modal.astro`, checked at
  * the source the way `preview-seam.test.ts` checks `AstroPreview.astro`:
  * these ship no unit-test harness for `.astro` rendering, so the concrete
  * claims — server-rendered with no client JS required, an accessibly-named
@@ -30,6 +30,25 @@ describe('DataTable.astro', () => {
     expect(dataTable).toContain('cl-data-table__table');
     expect(dataTable).toContain('cl-data-table__caption');
     expect(dataTable).toContain('cl-data-table__empty');
+  });
+});
+
+describe('DataTable.astro sections and cell links', () => {
+  it('renders each section as its own row group headed by one spanning row', () => {
+    expect(dataTable).toContain('sections');
+    expect(dataTable).toContain('scope="rowgroup"');
+    expect(dataTable).toContain('colspan={columns.length}');
+  });
+
+  it('wraps a cell in a link or a time only when its column asks', () => {
+    expect(dataTable).toContain('column.href?.(row)');
+    expect(dataTable).toContain('column.datetime?.(row)');
+  });
+
+  it('swaps a cell for its abbreviation on a narrow screen and keeps the full text as the tooltip', () => {
+    expect(dataTable).toContain('column.abbreviation?.(row)');
+    expect(dataTable).toContain('<abbr class="cl-data-table__short" title={text}>');
+    expect(dataTable).toMatch(/@media \(max-width: 767px\)[\s\S]*cl-data-table__short/);
   });
 });
 

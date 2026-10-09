@@ -109,7 +109,39 @@ function singleEliminationOutcomeLineageFinal(
     }
   }
 
-  return candidates.length === 1 ? candidates[0] : undefined;
+  if (candidates.length === 1) return candidates[0];
+  // A cup also plays classification games (fifth place and so on) in its deepest round, and their
+  // entrants pass the same latest-prior-round test. Only the finalists never lost before the final.
+  const unbeaten = candidates.filter((candidate) =>
+    [candidate.fixture.homeEntrantId, candidate.fixture.awayEntrantId].every(
+      (entrantId) =>
+        entrantId !== undefined &&
+        !hasLostBefore(records, winnerByFixtureId, entrantId, candidate.fixture.round),
+    ),
+  );
+  return unbeaten.length === 1 ? unbeaten[0] : undefined;
+}
+
+/**
+ * Whether an entrant lost a finalized match of an earlier round of the zone. A drawn match with no
+ * recorded winner is not a loss: the entrant may have advanced from it.
+ */
+function hasLostBefore(
+  records: readonly StageMatchRecord[],
+  winnerByFixtureId: ReadonlyMap<string, string>,
+  entrantId: string,
+  round: number,
+): boolean {
+  return records.some((record) => {
+    if (record.status !== 'finalized' || record.round >= round) return false;
+    const isHome = record.homeEntrantId === entrantId;
+    if (!isHome && record.awayEntrantId !== entrantId) return false;
+    const winner = winnerByFixtureId.get(record.fixtureId);
+    if (winner !== undefined) return winner !== entrantId;
+    const own = record.scores?.[isHome ? 0 : 1];
+    const other = record.scores?.[isHome ? 1 : 0];
+    return own !== undefined && other !== undefined && own < other;
+  });
 }
 
 function latestPriorFinalizedMatches(

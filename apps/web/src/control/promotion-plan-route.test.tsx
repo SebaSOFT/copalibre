@@ -84,7 +84,7 @@ describe('PromotionPlanPage', () => {
     expect(screen.queryByRole('status')).toBeNull();
   });
 
-  it('localizes the real server 404 the backend sends for an unconfigured plan (openspec 0284)', async () => {
+  it('localizes the real server 404 the backend sends for an unconfigured plan', async () => {
     // The bug this change fixes: the backend really does throw a
     // `ControlApiError` for this case (`promotion-plan-not-found`,
     // apps/api/src/controllers/zones-groups.controller.ts) — every other test
@@ -116,7 +116,7 @@ describe('PromotionPlanPage', () => {
     expect(screen.queryByText('No promotion plan for zone 1')).toBeNull();
   });
 
-  it('treats a genuinely missing zone as a destructive error, not an unconfigured plan (openspec 0284)', async () => {
+  it('treats a genuinely missing zone as a destructive error, not an unconfigured plan', async () => {
     // `zone-group-not-found` is the SAME error code the controller's stage/zone
     // lookups throw for this endpoint — a real 404 for a different reason must
     // not be swallowed into the benign "not configured yet" reading.
@@ -141,7 +141,7 @@ describe('PromotionPlanPage', () => {
     expect(alert.textContent).toContain('No zone 5');
   });
 
-  it('renders resolved entrant display names instead of raw id tails (openspec 0284)', async () => {
+  it('renders resolved entrant display names instead of raw id tails', async () => {
     const client = stubClient({
       listZones: () => Promise.resolve([zone]),
       fetchPromotionPreview: () => Promise.resolve(preview),

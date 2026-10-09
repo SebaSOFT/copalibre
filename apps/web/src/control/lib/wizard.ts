@@ -12,11 +12,13 @@ import type {
   CreateTournamentRequest,
   HookScriptVocabulary,
   HookVocabularyEntry,
+  SeriesDeclaration,
 } from './api-client.js';
 import {
   initialStages,
   stageProblems,
   type StageAllocationDraft,
+  type StageSeriesDraft,
   type WizardStageDraft,
 } from './stage-authoring.js';
 import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
@@ -74,7 +76,7 @@ export const WIZARD_STEPS: readonly {
 
 export interface DisciplineOption {
   readonly descriptorId: string;
-  /** The discipline's catalogue alias — used to validate an authored profile's stage formats against it (openspec 0164). */
+  /** The discipline's catalogue alias — used to validate an authored profile's stage formats against it. */
   readonly alias?: string;
   readonly version: string;
   readonly name: string | LocalizedLabel;
@@ -93,6 +95,7 @@ export interface ProfileStageOption {
   readonly name: string;
   readonly format: string;
   readonly allocation?: StageAllocationDraft;
+  readonly groupConfiguration?: WizardStageDraft['groupConfiguration'];
 }
 
 export interface TournamentProfileOption {
@@ -104,11 +107,15 @@ export interface TournamentProfileOption {
   readonly stages: readonly ProfileStageOption[];
 }
 
-export interface WizardRuleDraft {
-  readonly conditionType?: string;
-  readonly actionType: string;
+export interface WizardRuleElementDraft {
+  readonly type: string;
   readonly values: Readonly<Record<string, string>>;
   readonly options: Readonly<Record<string, string>>;
+}
+
+export interface WizardRuleDraft {
+  readonly conditions: readonly WizardRuleElementDraft[];
+  readonly actions: readonly WizardRuleElementDraft[];
 }
 
 export interface WizardState {
@@ -131,8 +138,12 @@ export interface WizardState {
   readonly customRuleEnabled: boolean;
   readonly customRuleConditionType?: string;
   readonly customRuleActionType?: string;
-  readonly customRuleValues: Readonly<Record<string, string>>;
-  readonly customRuleOptions: Readonly<Record<string, string>>;
+  readonly customRuleConditions: readonly WizardRuleElementDraft[];
+  readonly customRuleActions: readonly WizardRuleElementDraft[];
+  readonly customRuleConditionValues: Readonly<Record<string, string>>;
+  readonly customRuleConditionOptions: Readonly<Record<string, string>>;
+  readonly customRuleActionValues: Readonly<Record<string, string>>;
+  readonly customRuleActionOptions: Readonly<Record<string, string>>;
   readonly customRules: readonly WizardRuleDraft[];
 }
 
@@ -144,8 +155,12 @@ export function initialWizard(): WizardState {
     requiresCheckIn: false,
     ruleOverrides: {},
     customRuleEnabled: false,
-    customRuleValues: {},
-    customRuleOptions: {},
+    customRuleConditions: [],
+    customRuleActions: [],
+    customRuleConditionValues: {},
+    customRuleConditionOptions: {},
+    customRuleActionValues: {},
+    customRuleActionOptions: {},
     customRules: [],
   };
 }
@@ -242,9 +257,14 @@ export function stepProblems(
     case 'rules': {
       if (!state.customRuleEnabled) return [];
       const hasDraft =
-        state.customRuleActionType !== undefined || state.customRuleConditionType !== undefined;
+        state.customRuleActionType !== undefined ||
+        state.customRuleConditionType !== undefined ||
+        state.customRuleConditions.length > 0 ||
+        state.customRuleActions.length > 0;
       if (!hasDraft && state.customRules.length > 0) return [];
-      if (state.customRuleActionType === undefined) return [messages.wizardProblemChooseAction];
+      if (state.customRuleActionType === undefined && state.customRuleActions.length === 0) {
+        return [messages.wizardProblemChooseAction];
+      }
       return invalidRuleDraft(currentRuleDraft(state), vocabulary) ||
         state.customRules.some((rule) => invalidRuleDraft(rule, vocabulary))
         ? [messages.wizardProblemCompleteRule]
@@ -323,21 +343,37 @@ function stageRequestFrom(stage: WizardStageDraft): CreateTournamentRequest['sta
     number: stage.number,
     ...(stage.name.trim() === '' ? {} : { name: stage.name }),
     format: stage.format,
-    ...(stage.series === undefined || stage.series.span === undefined
+    ...seriesRequestFrom(stage.series),
+    ...(stage.allocation === undefined ? {} : { allocation: stage.allocation }),
+    ...(stage.groupConfiguration === undefined
+      ? {}
+      : { groupConfiguration: stage.groupConfiguration }),
+    ...((stage.zones ?? []).length === 0
       ? {}
       : {
-          series: {
-            span: stage.series.span,
-            ...(stage.series.resolutionClass === undefined
-              ? {}
-              : { resolutionClass: stage.series.resolutionClass }),
-            ...(stage.series.neutralGround ? { neutralGround: true } : {}),
-            ...(stage.series.standingsAccounting === 'series'
-              ? { standingsAccounting: 'series' as const }
-              : {}),
-          },
+          zones: (stage.zones ?? []).map((zone) => ({
+            name: zone.name.trim(),
+            ...(zone.format === undefined ? {} : { format: zone.format }),
+            ...seriesRequestFrom(zone.series),
+          })),
         }),
-    ...(stage.allocation === undefined ? {} : { allocation: stage.allocation }),
+  };
+}
+
+/** The `series` request entry for a draft, or nothing while the draft has no span. */
+function seriesRequestFrom(
+  series: StageSeriesDraft | undefined,
+): { readonly series: SeriesDeclaration } | Record<string, never> {
+  if (series === undefined || series.span === undefined) return {};
+  return {
+    series: {
+      span: series.span,
+      ...(series.resolutionClass === undefined ? {} : { resolutionClass: series.resolutionClass }),
+      ...(series.neutralGround ? { neutralGround: true } : {}),
+      ...(series.standingsAccounting === 'series'
+        ? { standingsAccounting: 'series' as const }
+        : {}),
+    },
   };
 }
 
@@ -355,7 +391,7 @@ export function elementOptionsKey(kind: 'condition' | 'action', type: string): s
 
 /**
  * A configured rule's condition or action, rendered as a plain-language
- * sentence via the entry's own `phraseTemplate` (openspec 0266) — never a
+ * sentence via the entry's own `phraseTemplate` — never a
  * second type-inference or merge implementation, just the shared
  * `renderTemplate` (`@copalibre/rules`) fed this side's own parameter values
  * and options, keyed the same way `scriptElement`/`invalidAuthoringInput`
@@ -369,7 +405,7 @@ export function renderRulePhrase(
   kind: 'condition' | 'action',
   type: string,
   entry: HookVocabularyEntry | undefined,
-  draft: WizardRuleDraft,
+  draft: WizardRuleElementDraft,
 ): string {
   if (entry === undefined) return type;
   if (entry.phraseTemplate === undefined) return `${entry.type} — ${entry.description}`;
@@ -385,22 +421,135 @@ export function renderRulePhrase(
 
 export function addCustomRule(state: WizardState, vocabulary?: HookScriptVocabulary): WizardState {
   const draft = currentRuleDraft(state);
-  if (draft.actionType === '' || invalidRuleDraft(draft, vocabulary)) {
+  if (draft.actions.length === 0 || invalidRuleDraft(draft, vocabulary)) {
     throw new Error('The custom rule is not complete');
   }
   return {
     ...state,
     customRules: [...state.customRules, draft],
+    customRuleConditions: [],
+    customRuleActions: [],
     customRuleConditionType: undefined,
     customRuleActionType: undefined,
-    customRuleValues: {},
-    customRuleOptions: {},
+    customRuleConditionValues: {},
+    customRuleConditionOptions: {},
+    customRuleActionValues: {},
+    customRuleActionOptions: {},
   };
 }
 
 export function canAddCustomRule(state: WizardState, vocabulary?: HookScriptVocabulary): boolean {
   const draft = currentRuleDraft(state);
-  return draft.actionType !== '' && !invalidRuleDraft(draft, vocabulary);
+  return draft.actions.length > 0 && !invalidRuleDraft(draft, vocabulary);
+}
+
+export function addRuleCondition(
+  state: WizardState,
+  vocabulary?: HookScriptVocabulary,
+): WizardState {
+  const type = state.customRuleConditionType;
+  if (type === undefined) throw new Error('Choose a condition before adding it');
+  const entry = vocabulary?.entries.find(
+    (candidate) => candidate.kind === 'condition' && candidate.type === type,
+  );
+  const element = {
+    type,
+    values: state.customRuleConditionValues,
+    options: state.customRuleConditionOptions,
+  };
+  if (!entry || invalidAuthoringInput('condition', entry, element)) {
+    throw new Error('Complete the condition before adding it');
+  }
+  return {
+    ...state,
+    customRuleConditions: [...state.customRuleConditions, element],
+    customRuleConditionType: undefined,
+    customRuleConditionValues: {},
+    customRuleConditionOptions: {},
+  };
+}
+
+export function canAddRuleCondition(
+  state: WizardState,
+  vocabulary?: HookScriptVocabulary,
+): boolean {
+  const type = state.customRuleConditionType;
+  if (type === undefined) return false;
+  const entry = vocabulary?.entries.find(
+    (candidate) => candidate.kind === 'condition' && candidate.type === type,
+  );
+  return (
+    entry !== undefined &&
+    !invalidAuthoringInput('condition', entry, {
+      type,
+      values: state.customRuleConditionValues,
+      options: state.customRuleConditionOptions,
+    })
+  );
+}
+
+export function addRuleAction(state: WizardState, vocabulary?: HookScriptVocabulary): WizardState {
+  const type = state.customRuleActionType;
+  if (type === undefined) throw new Error('Choose an action before adding it');
+  const entry = vocabulary?.entries.find(
+    (candidate) => candidate.kind === 'action' && candidate.type === type,
+  );
+  const element = {
+    type,
+    values: state.customRuleActionValues,
+    options: state.customRuleActionOptions,
+  };
+  if (!entry || invalidAuthoringInput('action', entry, element)) {
+    throw new Error('Complete the action before adding it');
+  }
+  return {
+    ...state,
+    customRuleActions: [...state.customRuleActions, element],
+    customRuleActionType: undefined,
+    customRuleActionValues: {},
+    customRuleActionOptions: {},
+  };
+}
+
+export function canAddRuleAction(state: WizardState, vocabulary?: HookScriptVocabulary): boolean {
+  const type = state.customRuleActionType;
+  if (type === undefined) return false;
+  const entry = vocabulary?.entries.find(
+    (candidate) => candidate.kind === 'action' && candidate.type === type,
+  );
+  return (
+    entry !== undefined &&
+    !invalidAuthoringInput('action', entry, {
+      type,
+      values: state.customRuleActionValues,
+      options: state.customRuleActionOptions,
+    })
+  );
+}
+
+export function removeRuleCondition(state: WizardState, index: number): WizardState {
+  return {
+    ...state,
+    customRuleConditions: state.customRuleConditions.filter((_, candidate) => candidate !== index),
+  };
+}
+
+export function removeRuleAction(state: WizardState, index: number): WizardState {
+  return {
+    ...state,
+    customRuleActions: state.customRuleActions.filter((_, candidate) => candidate !== index),
+  };
+}
+
+export function moveRuleAction(state: WizardState, index: number, offset: -1 | 1): WizardState {
+  const destination = index + offset;
+  if (index < 0 || destination < 0 || destination >= state.customRuleActions.length) return state;
+  const actions = [...state.customRuleActions];
+  const current = actions[index];
+  const next = actions[destination];
+  if (current === undefined || next === undefined) return state;
+  [actions[index], actions[destination]] = [next, current];
+  return { ...state, customRuleActions: actions };
 }
 
 export function removeCustomRule(state: WizardState, index: number): WizardState {
@@ -412,7 +561,7 @@ const schemaValidator = new Ajv({ allErrors: true, strict: false });
 function invalidAuthoringInput(
   kind: 'condition' | 'action',
   entry: HookVocabularyEntry | undefined,
-  draft: WizardRuleDraft,
+  draft: WizardRuleElementDraft,
 ): boolean {
   if (!entry) return false;
   const invalidParameter = (entry.authoring?.parameters ?? []).some((parameter) => {
@@ -436,13 +585,25 @@ function invalidAuthoringInput(
 }
 
 function currentRuleDraft(state: WizardState): WizardRuleDraft {
+  const conditions = [...state.customRuleConditions];
+  const actions = [...state.customRuleActions];
+  if (state.customRuleConditionType !== undefined) {
+    conditions.push({
+      type: state.customRuleConditionType,
+      values: state.customRuleConditionValues,
+      options: state.customRuleConditionOptions,
+    });
+  }
+  if (state.customRuleActionType !== undefined) {
+    actions.push({
+      type: state.customRuleActionType,
+      values: state.customRuleActionValues,
+      options: state.customRuleActionOptions,
+    });
+  }
   return {
-    ...(state.customRuleConditionType === undefined
-      ? {}
-      : { conditionType: state.customRuleConditionType }),
-    actionType: state.customRuleActionType ?? '',
-    values: state.customRuleValues,
-    options: state.customRuleOptions,
+    conditions,
+    actions,
   };
 }
 
@@ -450,16 +611,20 @@ function invalidRuleDraft(
   draft: WizardRuleDraft,
   vocabulary: HookScriptVocabulary | undefined,
 ): boolean {
-  const action = vocabulary?.entries.find(
-    (entry) => entry.kind === 'action' && entry.type === draft.actionType,
-  );
-  const condition = vocabulary?.entries.find(
-    (entry) => entry.kind === 'condition' && entry.type === draft.conditionType,
-  );
   return (
-    action === undefined ||
-    invalidAuthoringInput('action', action, draft) ||
-    invalidAuthoringInput('condition', condition, draft)
+    draft.actions.length === 0 ||
+    draft.actions.some((element) => {
+      const entry = vocabulary?.entries.find(
+        (candidate) => candidate.kind === 'action' && candidate.type === element.type,
+      );
+      return entry === undefined || invalidAuthoringInput('action', entry, element);
+    }) ||
+    draft.conditions.some((element) => {
+      const entry = vocabulary?.entries.find(
+        (candidate) => candidate.kind === 'condition' && candidate.type === element.type,
+      );
+      return entry === undefined || invalidAuthoringInput('condition', entry, element);
+    })
   );
 }
 
@@ -470,7 +635,9 @@ function customScriptsFrom(
   if (!state.customRuleEnabled) return [];
   const drafts = [
     ...state.customRules,
-    ...(state.customRuleActionType === undefined ? [] : [currentRuleDraft(state)]),
+    ...(state.customRuleActionType === undefined && state.customRuleActions.length === 0
+      ? []
+      : [currentRuleDraft(state)]),
   ];
   if (drafts.length === 0) return [];
 
@@ -480,18 +647,16 @@ function customScriptsFrom(
       script: {
         id: `${state.alias ?? 'tournament'}-event-recorded`,
         rules: drafts.map((draft, index) => {
-          const action = vocabulary?.entries.find(
-            (entry) => entry.kind === 'action' && entry.type === draft.actionType,
-          );
-          const condition = vocabulary?.entries.find(
-            (entry) => entry.kind === 'condition' && entry.type === draft.conditionType,
-          );
           return {
             id: `event-recorded-rule-${index + 1}`,
             type: 'simple_rule',
             options: {},
-            conditions: condition ? [scriptElement('condition', condition, draft)] : [],
-            actions: [scriptElement('action', action, draft)],
+            conditions: draft.conditions.map((element, elementIndex) =>
+              scriptElement('condition', element, vocabulary, elementIndex),
+            ),
+            actions: draft.actions.map((element, elementIndex) =>
+              scriptElement('action', element, vocabulary, elementIndex),
+            ),
           };
         }),
       },
@@ -501,21 +666,25 @@ function customScriptsFrom(
 
 function scriptElement(
   kind: 'condition' | 'action',
-  entry: HookVocabularyEntry | undefined,
-  draft: WizardRuleDraft,
+  element: WizardRuleElementDraft,
+  vocabulary: HookScriptVocabulary | undefined,
+  index: number,
 ): Readonly<Record<string, unknown>> {
-  const type = entry?.type ?? draft.actionType;
+  const entry = vocabulary?.entries.find(
+    (candidate) => candidate.kind === kind && candidate.type === element.type,
+  );
+  const type = element.type;
   return {
-    id: `${type}-${kind}`,
+    id: `${type}-${kind}-${index + 1}`,
     type,
-    options: optionsFrom(draft.options[elementOptionsKey(kind, type)]),
+    options: optionsFrom(element.options[elementOptionsKey(kind, type)]),
     params: (entry?.authoring?.parameters ?? []).flatMap((parameter) => {
-      const raw = draft.values[parameterValueKey(kind, type, parameter.name)] ?? '';
+      const raw = element.values[parameterValueKey(kind, type, parameter.name)] ?? '';
       if (!parameter.required && raw.trim() === '') return [];
       const expression = parameter.allowExpression && /\{\{.+\}\}/.test(raw);
       return [
         {
-          id: `${type}-${parameter.name}`,
+          id: `${type}-${parameter.name}-${index + 1}`,
           name: parameter.name,
           type: parameter.parameterTypes[0],
           value: expression ? raw : valueFromSchema(raw, parameter.valueSchema),

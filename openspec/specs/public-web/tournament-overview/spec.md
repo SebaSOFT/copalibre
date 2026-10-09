@@ -86,3 +86,106 @@ without requiring a manual page reload, while remaining fully correct and comple
 - **WHEN** a spectator leaves the tournament tab in the background for 10 minutes and then returns
 - **THEN** the score ticker reconnects to the SSE stream and resynchronizes the latest match states
   immediately
+
+### Requirement: Hierarchical Zone Presentation for Heterogeneous Stages
+The public stage overview view (`/stages/[stage]`) SHALL present a hierarchical layout with distinct sections for each zone of the stage. Each zone section SHALL resolve and render the visual presentation component matching that zone's effective format:
+- Elimination formats (`single-elimination`, `double-elimination`, `gauntlet`, `bracket-groups`, `custom-bracket`) SHALL render an interactive bracket tree.
+- Round-robin and league formats (`round-robin`, `league`, `round-robin-single-leg`, `round-robin-home-away`, `swiss`, `ffa-league`) SHALL render a matches grid accompanied by that zone's standings table.
+The stage header SHALL provide quick navigation anchors or tabs allowing spectators to jump between zones.
+
+#### Scenario: Stage renders bracket tree for elimination zones and standings table for round-robin zones
+- **WHEN** a spectator visits a stage containing Zone 1 (single-elimination), Zone 2 (single-elimination), and Zone 3 (round-robin)
+- **THEN** Zone 1 and Zone 2 render bracket knockout trees
+- **AND** Zone 3 renders a match schedule grid and a points standings table
+- **AND** spectators can switch or scroll between the three zones within the same stage page
+
+#### Scenario: TV dashboard highlights zone format accurately
+- **WHEN** the TV display kiosk presents matches or rankings for a zone
+- **THEN** it renders the layout component (bracket view or standings ticker) corresponding to that specific zone's effective format
+
+### Requirement: Tournament progress is shown per stage, zone and group
+The tournament page's progress card SHALL show an overall bar and one bar per stage, and for a stage with zones or groups one bar per zone or group, each labelled with its name and its played and total counts. Every bar SHALL have a text alternative and SHALL NOT convey state by colour alone. The card SHALL size to its content and SHALL NOT span the page width when it has little to show.
+
+#### Scenario: A staged tournament shows nested progress
+- **WHEN** a tournament has a group stage of six groups and a cup stage of three zones
+- **THEN** the card shows the overall bar, one bar for each stage and one bar for each group and zone with its counts
+
+#### Scenario: A tournament with no matches stays unmeasured
+- **WHEN** the tournament has no matches
+- **THEN** the card states that progress is unmeasured and shows no bar
+
+### Requirement: A connection alert appears only when the live connection fails
+The tournament page SHALL NOT show an informational note describing normal behaviour. It SHALL show a status notice only while its live connection is lost or its data is known to be stale, and SHALL remove the notice when the connection recovers.
+
+#### Scenario: Normal operation shows no note
+- **WHEN** the live connection is healthy or the page is rendered without JavaScript
+- **THEN** no connection note is shown
+
+#### Scenario: A lost connection is announced and cleared
+- **WHEN** the live connection drops and later recovers
+- **THEN** a status notice appears while it is down and disappears when it recovers
+
+### Requirement: The ruleset section lists every effective rule, not only overrides
+The ruleset section SHALL list each rule field the tournament's discipline declares with a printable value with its effective value, whether the value is the discipline default or the tournament's override. A tournament that overrides nothing SHALL still list its defaults. The section SHALL NOT render empty when the discipline declares labelled fields.
+
+#### Scenario: A tournament on defaults shows its rules
+- **WHEN** a tournament has no overrides and its discipline declares labelled rule fields
+- **THEN** the section lists those fields with their default values
+
+#### Scenario: An override replaces its default
+- **WHEN** a tournament overrides one field
+- **THEN** that field shows the effective value and the others show their defaults
+
+### Requirement: The public bracket draws the dependencies between matches
+An elimination zone's bracket SHALL draw a visible connector from every match to the match its winner advances to, and from a classification match's feeding round to it, without relying on colour and without JavaScript.
+
+#### Scenario: A quarter-final is connected to its semi-final
+- **WHEN** a zone's bracket is shown
+- **THEN** each quarter-final has a connector to the semi-final its winner plays
+
+#### Scenario: Connectors print
+- **WHEN** the page is printed
+- **THEN** the connectors are still drawn
+
+### Requirement: A knockout bracket is drawn as two halves meeting at the final
+A single-elimination zone's bracket SHALL draw the final in the middle, the match that feeds one side of it with its own earlier rounds on the left reading left to right, and the one that feeds the other side with its rounds on the right reading right to left, each match centred between the two that feed it.
+
+#### Scenario: Two halves meet at the final
+- **WHEN** a cup with quarter-finals, semi-finals and a final is shown on a desktop viewport
+- **THEN** each semi-final sits on its own side with its two quarter-finals beside it, and the final stands between them
+
+### Requirement: A narrow screen draws a reduced match card
+Below the tablet breakpoint the bracket SHALL be drawn with a reduced card showing each side's abbreviation and score and a state mark, small enough that a split bracket's columns fit a phone's width, and each card SHALL be one link to the match report whose accessible name states both sides and the score.
+
+#### Scenario: A phone shows the compact bracket
+- **WHEN** a three-round cup is shown at 390 px
+- **THEN** the compact drawing is shown instead of the full one, every match is a one-link card, and the page does not scroll sideways
+
+### Requirement: The API computes the precedence of an elimination
+For every recorded side of a knockout game the API SHALL state the earlier game it came from and whether it won or lost there, taken from the games the entrants played; a tied game SHALL be settled by where each side went next.
+
+#### Scenario: A drawn quarter-final still links forward
+- **WHEN** a quarter-final ended level and one side then plays a semi-final while the other plays a placement game
+- **THEN** the first side is stated as the winner of that quarter-final and the other as its loser
+
+### Requirement: Classification games appear in the bracket
+Every persisted fixture of an elimination zone SHALL appear in that zone's bracket. A classification game — third place, fifth place, a placement round — SHALL be listed beneath the bracket under the label of what it decides, and SHALL NOT be drawn in the bracket.
+
+#### Scenario: A cup with twelve fixtures shows twelve matches
+- **WHEN** a zone has quarter-finals, semi-finals, a 5th–8th round, a final and three placement games
+- **THEN** the bracket shows its seven matches and the five placement games are listed beneath it, each under its own label
+
+#### Scenario: A zone without roles renders as before
+- **WHEN** a zone's fixtures carry no role
+- **THEN** its bracket renders from the generated structure only
+
+### Requirement: The match page shows its zone's whole bracket
+The match page SHALL show the complete bracket of the match's zone with the current match highlighted, SHALL NOT cap its height, and SHALL scroll horizontally only when the bracket is wider than its container.
+
+#### Scenario: Nothing is cut off
+- **WHEN** a match page of a three-round zone is opened on a desktop viewport
+- **THEN** every match of the zone is fully visible without vertical scrolling inside the bracket panel
+
+#### Scenario: The current match is marked
+- **WHEN** the match page is shown
+- **THEN** the bracket highlights that match with a non-colour indicator

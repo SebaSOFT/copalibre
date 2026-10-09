@@ -15,9 +15,9 @@ import { messages as catalog } from '../i18n/messages.en.js';
  * component tier is not allowed to own. It now composes the same atoms its
  * sibling auth screens already use, inside the shared auth template.
  *
- * Every string here was hardcoded Spanish (found by `/impeccable critique`,
- * openspec 0225 task 8.3). `invitation.*` now has a real per-locale
- * catalogue (openspec 0278) — its descriptors live in the central
+ * Every string here was hardcoded Spanish (found by `/impeccable critique`).
+ * `invitation.*` now has a real per-locale
+ * catalogue — its descriptors live in the central
  * `messages.en.ts`, like every other Control-web screen's, rather than in a
  * local `defineMessages` block only this file could see.
  */

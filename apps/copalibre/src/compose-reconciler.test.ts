@@ -33,6 +33,17 @@ COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.1
       expect(result.content).toContain('NEW_SETTING=default_val');
     });
 
+    it('updates COPALIBRE_VERSION to the requested release', () => {
+      const result = reconcileEnvContent(
+        'COPALIBRE_VERSION=1.2.5 # set by deployment automation',
+        'v1.3.0',
+        {},
+      );
+
+      expect(result.updatedKeys).toEqual(['COPALIBRE_VERSION']);
+      expect(result.content).toBe('COPALIBRE_VERSION=1.3.0 # set by deployment automation\n');
+    });
+
     it('generates random secret for GARAGE_RPC_SECRET if newly added', () => {
       const existing = 'COPALIBRE_PORT=8080\n';
       const result = reconcileEnvContent(existing, '1.3.0', {
@@ -70,6 +81,19 @@ COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.1
       expect(result.content).toContain('"8888:3001"');
       expect(result.content).toContain('./custom-volume:/var/custom:ro');
       expect(result.content).toContain('"4444:4321"');
+    });
+
+    it('updates COPALIBRE_VERSION interpolation defaults', () => {
+      const composeYaml = [
+        'services:',
+        '  api:',
+        '    labels:',
+        '      version: copalibre-${COPALIBRE_VERSION:-1.2.5}',
+      ].join('\n');
+
+      const result = reconcileComposeContent(composeYaml, 'v1.3.0');
+
+      expect(result.content).toContain('copalibre-${COPALIBRE_VERSION:-1.3.0}');
     });
   });
 

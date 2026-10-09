@@ -12,6 +12,7 @@ import { Field } from './ui/molecules/field.js';
 import { StepHeading } from './ui/molecules/step-heading.js';
 import { WizardShell } from './ui/organisms/wizard-shell.js';
 import { StageListEditor } from './StageListEditor.js';
+import { VisualRuleBuilder } from './ui/organisms/visual-rule-builder.js';
 import { RulesetFieldControl } from './ui/molecules/ruleset-field-control.js';
 import {
   TournamentSummary,
@@ -21,7 +22,11 @@ import { fieldValueAt, mergeOverrides } from '../lib/discipline-summary.js';
 import { isSupportedLanguage, resolveFieldPolicyLabel } from '@copalibre/domain';
 import {
   WIZARD_STEPS,
+  addRuleAction,
+  addRuleCondition,
   addCustomRule,
+  canAddRuleAction,
+  canAddRuleCondition,
   canContinue,
   canAddCustomRule,
   elementOptionsKey,
@@ -29,10 +34,13 @@ import {
   initialWizard,
   mutationClassOf,
   nextStep,
+  moveRuleAction,
   parameterValueKey,
   previousStep,
   progress,
   removeCustomRule,
+  removeRuleAction,
+  removeRuleCondition,
   renderRulePhrase,
   resolveDecisionDescription,
   reversibilityMessageKey,
@@ -185,7 +193,7 @@ export function TournamentSetupWizard({
       }
       problems={problems.map((problem) => intl.formatMessage(problem))}
       progress={progress(state)}
-      progressCaption={intl.formatMessage(messages.wizardConfigured)}
+      progressCaption={` ${intl.formatMessage(messages.wizardConfigured)}`}
       progressTestId="wizard-progress"
       stepIndicatorVariant="badge"
       steps={WIZARD_STEPS.map((step) => ({ id: step.id, label: intl.formatMessage(step.label) }))}
@@ -257,7 +265,7 @@ export function TournamentSetupWizard({
 
 /**
  * One component per wizard step, extracted from `TournamentSetupWizard`'s
- * render body (openspec 0228): each step's own conditionals now count toward
+ * render body: each step's own conditionals now count toward
  * its own function, not the wizard shell's, and the shell keeps only the
  * `state.step === '<name>' &&` gate that chooses among them.
  */
@@ -376,6 +384,9 @@ function FormatStep({
                     name: stage.name,
                     format: stage.format,
                     ...(stage.allocation === undefined ? {} : { allocation: stage.allocation }),
+                    ...(stage.groupConfiguration === undefined
+                      ? {}
+                      : { groupConfiguration: stage.groupConfiguration }),
                   })),
                 });
               } else {
@@ -425,6 +436,7 @@ function FormatStep({
             showAllocation
             showSeries
             showStructurePreview
+            showZones
             stages={state.stages}
           />
         )}
@@ -435,7 +447,7 @@ function FormatStep({
 
 /**
  * A typed control per discipline-declared ruleset field beyond format/
- * registration.* (openspec 0265), reusing 0264's `RulesetFieldControl`
+ * registration.*, reusing the typed `RulesetFieldControl`
  * unmodified. Distinct from `RulesStep` below: that step authors hook-script
  * automation (condition/action pairs); this one sets `RulesetConfig` values
  * the discipline itself declares (`scoring.pointsPerWin`, `tiebreakers`, …).
@@ -659,29 +671,32 @@ function RulesStep({
       </label>
       {state.customRuleEnabled && (
         <>
-          <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
-            <FormattedMessage {...messages.wizardRuleHookHelp} />
-          </p>
           {state.customRules.length > 0 && (
             <ol style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
               {state.customRules.map((rule, index) => {
-                const ruleCondition =
-                  rule.conditionType === undefined
-                    ? undefined
-                    : vocabulary.entries.find(
-                        (entry) => entry.kind === 'condition' && entry.type === rule.conditionType,
-                      );
-                const ruleAction = vocabulary.entries.find(
-                  (entry) => entry.kind === 'action' && entry.type === rule.actionType,
-                );
                 const conditionPhrase =
-                  rule.conditionType === undefined
-                    ? 'always'
-                    : renderRulePhrase('condition', rule.conditionType, ruleCondition, rule);
-                const actionPhrase = renderRulePhrase('action', rule.actionType, ruleAction, rule);
+                  rule.conditions.length === 0
+                    ? intl.formatMessage(messages.wizardRuleConditionAlways)
+                    : rule.conditions
+                        .map((condition) => {
+                          const entry = vocabulary.entries.find(
+                            (candidate) =>
+                              candidate.kind === 'condition' && candidate.type === condition.type,
+                          );
+                          return renderRulePhrase('condition', condition.type, entry, condition);
+                        })
+                        .join(` ${intl.formatMessage(messages.wizardRuleAnd)} `);
+                const actionPhrase = rule.actions
+                  .map((action) => {
+                    const entry = vocabulary.entries.find(
+                      (candidate) => candidate.kind === 'action' && candidate.type === action.type,
+                    );
+                    return renderRulePhrase('action', action.type, entry, action);
+                  })
+                  .join('; ');
                 return (
                   <li
-                    key={`${rule.actionType}-${index}`}
+                    key={`rule-${index}`}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -704,86 +719,199 @@ function RulesStep({
               })}
             </ol>
           )}
-          <div className="cl-platform-form-grid">
-            <Field
-              id="wizard-rule-condition"
-              label={intl.formatMessage(messages.wizardRuleCondition)}
-            >
-              <Select
-                aria-describedby="wizard-rule-condition-hint"
-                aria-label={intl.formatMessage(messages.wizardRuleCondition)}
-                id="wizard-rule-condition"
-                onValueChange={(val) => patch({ customRuleConditionType: val || undefined })}
-                options={[
-                  {
-                    value: '',
-                    label: intl.formatMessage(messages.wizardRuleConditionAlways),
-                  },
-                  ...conditions.map((entry) => ({
-                    value: entry.type,
-                    label: `${entry.type} — ${entry.description}`,
-                  })),
-                ]}
-                value={state.customRuleConditionType ?? ''}
-              />
-              <DecisionHint id="wizard-rule-condition-hint" text={selectedCondition?.description} />
-            </Field>
-            <Field id="wizard-rule-action" label={intl.formatMessage(messages.wizardRuleAction)}>
-              <Select
-                aria-describedby="wizard-rule-action-hint"
-                aria-label={intl.formatMessage(messages.wizardRuleAction)}
-                id="wizard-rule-action"
-                onValueChange={(val) => patch({ customRuleActionType: val || undefined })}
-                options={[
-                  {
-                    value: '',
-                    label: intl.formatMessage(messages.wizardRuleChooseAction),
-                  },
-                  ...actions.map((entry) => ({
-                    value: entry.type,
-                    label: `${entry.type} — ${entry.description}`,
-                  })),
-                ]}
-                value={state.customRuleActionType ?? ''}
-              />
-              <DecisionHint id="wizard-rule-action-hint" text={selectedAction?.description} />
-            </Field>
-          </div>
-          {selectedCondition === undefined && (
-            <Alert tone="info">
-              <FormattedMessage {...messages.wizardRuleConditionlessExplanation} />
-            </Alert>
-          )}
-          {selectedCondition && (
-            <ElementAuthoringFields
-              entry={selectedCondition}
-              kind="condition"
-              onOptionsChange={(key, value) =>
-                patch({ customRuleOptions: { ...state.customRuleOptions, [key]: value } })
-              }
-              onValueChange={(key, value) =>
-                patch({ customRuleValues: { ...state.customRuleValues, [key]: value } })
-              }
-              options={state.customRuleOptions}
-              optionsLabel={intl.formatMessage(messages.wizardRuleOptions)}
-              values={state.customRuleValues}
-            />
-          )}
-          {selectedAction && (
-            <ElementAuthoringFields
-              entry={selectedAction}
-              kind="action"
-              onOptionsChange={(key, value) =>
-                patch({ customRuleOptions: { ...state.customRuleOptions, [key]: value } })
-              }
-              onValueChange={(key, value) =>
-                patch({ customRuleValues: { ...state.customRuleValues, [key]: value } })
-              }
-              options={state.customRuleOptions}
-              optionsLabel={intl.formatMessage(messages.wizardRuleOptions)}
-              values={state.customRuleValues}
-            />
-          )}
+          <VisualRuleBuilder
+            given={<FormattedMessage {...messages.wizardRuleGivenEvent} />}
+            givenLabel={intl.formatMessage(messages.wizardRuleGiven)}
+            when={
+              <Stack gap="3">
+                <Field
+                  id="wizard-rule-condition"
+                  label={intl.formatMessage(messages.wizardRuleCondition)}
+                >
+                  <Select
+                    aria-describedby="wizard-rule-condition-hint"
+                    aria-label={intl.formatMessage(messages.wizardRuleCondition)}
+                    id="wizard-rule-condition"
+                    onValueChange={(val) => patch({ customRuleConditionType: val || undefined })}
+                    options={[
+                      {
+                        value: '',
+                        label: intl.formatMessage(messages.wizardRuleConditionAlways),
+                      },
+                      ...conditions.map((entry) => ({
+                        value: entry.type,
+                        label: entry.description,
+                      })),
+                    ]}
+                    value={state.customRuleConditionType ?? ''}
+                  />
+                  <DecisionHint
+                    id="wizard-rule-condition-hint"
+                    text={selectedCondition?.description}
+                  />
+                </Field>
+                {selectedCondition && (
+                  <ElementAuthoringFields
+                    entry={selectedCondition}
+                    kind="condition"
+                    onOptionsChange={(key, value) =>
+                      patch({
+                        customRuleConditionOptions: {
+                          ...state.customRuleConditionOptions,
+                          [key]: value,
+                        },
+                      })
+                    }
+                    onValueChange={(key, value) =>
+                      patch({
+                        customRuleConditionValues: {
+                          ...state.customRuleConditionValues,
+                          [key]: value,
+                        },
+                      })
+                    }
+                    options={state.customRuleConditionOptions}
+                    optionsLabel={intl.formatMessage(messages.wizardRuleOptions)}
+                    values={state.customRuleConditionValues}
+                  />
+                )}
+                {state.customRuleConditions.map((condition, index) => {
+                  const entry = conditions.find((candidate) => candidate.type === condition.type);
+                  return (
+                    <div
+                      className="cl-visual-rule-builder__element"
+                      key={`${condition.type}-${index}`}
+                    >
+                      <span>
+                        {index > 0 && (
+                          <strong>{intl.formatMessage(messages.wizardRuleAnd)} </strong>
+                        )}
+                        {renderRulePhrase('condition', condition.type, entry, condition)}
+                      </span>
+                      <Button
+                        onClick={() => setState((current) => removeRuleCondition(current, index))}
+                        type="button"
+                        variant="secondary"
+                      >
+                        <FormattedMessage {...messages.wizardRuleRemove} />
+                      </Button>
+                    </div>
+                  );
+                })}
+                {selectedCondition === undefined && state.customRuleConditions.length === 0 && (
+                  <Alert tone="info">
+                    <FormattedMessage {...messages.wizardRuleConditionlessExplanation} />
+                  </Alert>
+                )}
+                {selectedCondition !== undefined && (
+                  <Button
+                    disabled={!canAddRuleCondition(state, vocabulary)}
+                    onClick={() => setState((current) => addRuleCondition(current, vocabulary))}
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FormattedMessage {...messages.wizardRuleAddCondition} />
+                  </Button>
+                )}
+              </Stack>
+            }
+            whenLabel={intl.formatMessage(messages.wizardRuleWhen)}
+            then={
+              <Stack gap="3">
+                <Field
+                  id="wizard-rule-action"
+                  label={intl.formatMessage(messages.wizardRuleAction)}
+                >
+                  <Select
+                    aria-describedby="wizard-rule-action-hint"
+                    aria-label={intl.formatMessage(messages.wizardRuleAction)}
+                    id="wizard-rule-action"
+                    onValueChange={(val) => patch({ customRuleActionType: val || undefined })}
+                    options={[
+                      {
+                        value: '',
+                        label: intl.formatMessage(messages.wizardRuleChooseAction),
+                      },
+                      ...actions.map((entry) => ({
+                        value: entry.type,
+                        label: entry.description,
+                      })),
+                    ]}
+                    value={state.customRuleActionType ?? ''}
+                  />
+                  <DecisionHint id="wizard-rule-action-hint" text={selectedAction?.description} />
+                </Field>
+                {selectedAction && (
+                  <ElementAuthoringFields
+                    entry={selectedAction}
+                    kind="action"
+                    onOptionsChange={(key, value) =>
+                      patch({
+                        customRuleActionOptions: { ...state.customRuleActionOptions, [key]: value },
+                      })
+                    }
+                    onValueChange={(key, value) =>
+                      patch({
+                        customRuleActionValues: { ...state.customRuleActionValues, [key]: value },
+                      })
+                    }
+                    options={state.customRuleActionOptions}
+                    optionsLabel={intl.formatMessage(messages.wizardRuleOptions)}
+                    values={state.customRuleActionValues}
+                  />
+                )}
+                {state.customRuleActions.map((action, index) => {
+                  const entry = actions.find((candidate) => candidate.type === action.type);
+                  return (
+                    <div
+                      className="cl-visual-rule-builder__element"
+                      key={`${action.type}-${index}`}
+                    >
+                      <span>
+                        {index + 1}. {renderRulePhrase('action', action.type, entry, action)}
+                      </span>
+                      <Button
+                        aria-label={intl.formatMessage(messages.wizardRuleMoveActionUp)}
+                        disabled={index === 0}
+                        onClick={() => setState((current) => moveRuleAction(current, index, -1))}
+                        type="button"
+                        variant="secondary"
+                      >
+                        ↑
+                      </Button>
+                      <Button
+                        aria-label={intl.formatMessage(messages.wizardRuleMoveActionDown)}
+                        disabled={index === state.customRuleActions.length - 1}
+                        onClick={() => setState((current) => moveRuleAction(current, index, 1))}
+                        type="button"
+                        variant="secondary"
+                      >
+                        ↓
+                      </Button>
+                      <Button
+                        onClick={() => setState((current) => removeRuleAction(current, index))}
+                        type="button"
+                        variant="secondary"
+                      >
+                        <FormattedMessage {...messages.wizardRuleRemove} />
+                      </Button>
+                    </div>
+                  );
+                })}
+                {selectedAction !== undefined && (
+                  <Button
+                    disabled={!canAddRuleAction(state, vocabulary)}
+                    onClick={() => setState((current) => addRuleAction(current, vocabulary))}
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FormattedMessage {...messages.wizardRuleAddAction} />
+                  </Button>
+                )}
+              </Stack>
+            }
+            thenLabel={intl.formatMessage(messages.wizardRuleThen)}
+          />
           <Button
             disabled={!canAddCustomRule(state, vocabulary)}
             onClick={() => setState((current) => addCustomRule(current, vocabulary))}
@@ -800,7 +928,7 @@ function RulesStep({
 
 /**
  * The wizard's final step: everything configured on every prior step,
- * rendered in plain language via `TournamentSummary` (openspec 0267) — no
+ * rendered in plain language via `TournamentSummary` — no
  * new fetch, since every fact it needs is already in `state`/the selected
  * `DisciplineOption`. Only the `rules` section is available here (the
  * discipline's `defaults`/`fieldPolicies`, the wizard's own overlay via
@@ -822,6 +950,10 @@ function SummaryStep({
     stages: state.stages.map((stage, index) => ({
       name: stage.name.trim() === '' ? `${index + 1}` : stage.name,
       format: stage.format,
+      zones: (stage.zones ?? []).map((zone) => ({
+        name: zone.name,
+        format: zone.format ?? stage.format,
+      })),
     })),
     publicRegistration: state.publicRegistration,
     requiresCheckIn: state.requiresCheckIn,

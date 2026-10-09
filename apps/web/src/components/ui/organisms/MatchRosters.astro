@@ -1,7 +1,7 @@
 ---
 /**
- * Extracted from the match report page (openspec 0225 task 7.2), unchanged
- * in markup and styling except for localization (openspec 0269).
+ * Extracted from the match report page, unchanged
+ * in markup and styling except for localization.
  *
  * Does not compose `DataTable` (this surface's declared table owner, task
  * 2.3): its `render` callback returns a plain value per cell, with no way
@@ -27,7 +27,7 @@ export interface Props {
 const { model, intl, locale, organization, tournament } = Astro.props;
 ---
 
-<section class="cl-section-card" aria-labelledby="rosters-heading">
+<section class="cl-section-card cl-chamfer" aria-labelledby="rosters-heading">
   <h2 id="rosters-heading" class="cl-section-title">
     {intl.formatMessage(messages.matchRostersHeading)}
   </h2>
@@ -68,7 +68,7 @@ const { model, intl, locale, organization, tournament } = Astro.props;
                             {member.name}
                           </a>
                         </td>
-                        <td>{member.roles?.join(', ') ?? '—'}</td>
+                        <td>{member.roleLabels.length > 0 ? member.roleLabels.join(', ') : '—'}</td>
                         <td>
                           <span
                             class={`cl-indicator ${member.onField ? 'cl-indicator--active' : ''}`}
@@ -95,7 +95,6 @@ const { model, intl, locale, organization, tournament } = Astro.props;
   .cl-section-card {
     background: var(--cl-surface-panel);
     border: 1px solid var(--cl-border-muted);
-    border-radius: var(--cl-radius-lg);
     padding: var(--cl-space-5);
   }
 

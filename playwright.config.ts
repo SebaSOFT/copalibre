@@ -14,7 +14,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  // The JSON report lets CI list tests a retry rescued; see scripts/summarize-playwright-flaky.mjs.
+  reporter: process.env.CI
+    ? [['html'], ['json', { outputFile: 'test-results/playwright-results.json' }]]
+    : 'html',
   use: {
     baseURL,
     trace: 'on-first-retry',

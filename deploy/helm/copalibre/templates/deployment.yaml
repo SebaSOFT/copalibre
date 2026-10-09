@@ -64,7 +64,7 @@ spec:
               # SIGTERM would otherwise reach the process at the same moment
               # the Service's endpoint list is still catching up to the pod's
               # termination, not strictly after — confirmed empirically
-              # against a real k3d cluster (0034 validation). This sleep just
+              # against a real k3d cluster (K3s validation). This sleep just
               # buys kube-proxy time to remove the endpoint before the
               # container actually stops accepting connections.
               exec:

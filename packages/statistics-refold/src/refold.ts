@@ -32,8 +32,8 @@ export interface MatchFoldContext {
 }
 
 /**
- * Resolves everything `foldStatistics` needs for one match from persistence
- *: the roster (`match_rosters` + `entrants` + `players` +
+ * Resolves everything `foldStatistics` needs for one match from persistence:
+ * the roster (`match_rosters` + `entrants` + `players` +
  * `teams`), the competition context (stage → season → tournament →
  * organization), the discipline's declared collectors and event definitions,
  * and any hand adjustments recorded against the match.
@@ -151,8 +151,8 @@ async function requiresTagFilter(
 }
 
 /**
- * The real `refold(matchId)` `StatisticProjection` calls (task 1.1/1.2) — the
- * same function the rebuild command (task 5.1) drives via
+ * The real `refold(matchId)` `StatisticProjection` calls — the
+ * same function the rebuild command drives via
  * `StatisticProjection.apply`, so the write path is identical either way.
  */
 export function createRefold(db: Kysely<Database>): Refold {

@@ -226,6 +226,17 @@ describe('CSV import routes', () => {
       { alias: 'casa-italia-b', abbreviation: null },
       { alias: 'club-milan', abbreviation: 'CM' },
     ]);
+
+    // Every entrant an import registers is flagged, so notification email stays silent for a bulk write.
+    const registrations = await scratch.db
+      .selectFrom('outbox_events')
+      .select('payload')
+      .where('event_type', '=', 'entrant.registered')
+      .execute();
+    const imported = registrations.filter(
+      (row) => (row.payload as { origin?: string }).origin === 'import',
+    );
+    expect(imported.length).toBeGreaterThanOrEqual(3);
   });
 
   it('rejects a source larger than 4 MiB before creating a durable job', async () => {
@@ -365,7 +376,7 @@ describe('team-membership CSV import target', () => {
     expect(squadB.map((player) => player.personId)).toEqual([personB?.personId]);
   });
 
-  it('correctly assigns coach and staff roles when role column is included in CSV (openspec 0193 task 4.1)', async () => {
+  it('correctly assigns coach and staff roles when role column is included in CSV', async () => {
     const people = new PersonRepository(scratch.db);
     const seeded = await seedTwoRegisteredTeams('copa-membresia-roles-csv');
     const teamAAlias = seeded.teamA.alias ?? '';
@@ -458,7 +469,7 @@ describe('team-membership CSV import target', () => {
   });
 
   it('refuses commit, without writing anything, when a validated row’s team no longer resolves', async () => {
-    // Simulates the preview/commit race design.md calls out: the stored
+    // Simulates the preview/commit race: the stored
     // preview says the row is valid (as the worker would have, at the
     // time), but the team it named is not actually a registered entrant in
     // this tournament by commit time.

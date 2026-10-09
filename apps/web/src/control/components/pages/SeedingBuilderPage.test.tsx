@@ -68,7 +68,7 @@ describe('SeedingBuilderPage', () => {
   });
 });
 
-describe('SeedingBuilderPage — stage configuration (openspec 0169)', () => {
+describe('SeedingBuilderPage — stage configuration', () => {
   it('loads and shows the current configuration override fields', async () => {
     render(
       withIntl(

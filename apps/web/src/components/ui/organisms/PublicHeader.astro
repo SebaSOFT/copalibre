@@ -16,11 +16,11 @@
 import type { IntlShape } from 'react-intl';
 import Logo from '../atoms/Logo.astro';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
-import { getLocaleHomePath, getLocalePrefix } from '../../../lib/locale.ts';
+import { getLocaleHomePath } from '../../../lib/locale.ts';
+import { swapLocale } from '../../../lib/locale-routing.ts';
 
 export interface LocaleOption {
   readonly locale: string;
-  readonly href: string;
 }
 
 interface Props {
@@ -35,17 +35,17 @@ interface Props {
 const { intl, localeOptions = [] } = Astro.props;
 
 const locale = intl.locale;
-const prefix = getLocalePrefix(locale);
+const currentPathname = Astro.url.pathname;
 const homeUrl = getLocaleHomePath(locale);
 
 /*
-  Destinations the application actually serves. Nothing here is borrowed from
-  the reference project's marketing navigation: a header link to a page that
-  does not exist is a dead link shipped on every page at once.
+  This is spectator navigation. Operator documentation lives in the Control
+  Panel and its own help surface, so it does not belong in the public header.
 */
 const links = [
   { href: homeUrl, label: intl.formatMessage(messages.headerNavHome) },
-  { href: `${prefix}/help/`, label: intl.formatMessage(messages.headerNavHelp) },
+  // The TV display launcher: it has no locale segment, so the language travels as its query.
+  { href: `/tv?lang=${locale}`, label: intl.formatMessage(messages.headerNavTv) },
 ];
 
 const controlLabel = intl.formatMessage(messages.headerControlPanel);
@@ -94,16 +94,21 @@ const languageName = (code: string): string => {
       {
         localeOptions.length > 1 && (
           <details class="cl-public-header__locale">
-            <summary aria-label={intl.formatMessage(messages.headerLanguage)} class="cl-focusable">
-              {locale.toUpperCase()}
+            <summary
+              aria-label={intl.formatMessage(messages.headerLanguage)}
+              class="cl-chamfer cl-chamfer--control cl-focusable"
+            >
+              <span aria-hidden="true" class="cl-public-header__translation-mark" />
+              <span>{locale.toUpperCase()}</span>
+              <span aria-hidden="true">⌄</span>
             </summary>
-            <ul class="cl-public-header__locale-list">
+            <ul class="cl-public-header__locale-list cl-chamfer cl-chamfer--control">
               {localeOptions.map((option) => (
                 <li>
                   <a
                     aria-current={option.locale === locale ? 'true' : undefined}
                     class="cl-public-header__link cl-focusable"
-                    href={option.href}
+                    href={swapLocale(currentPathname, option.locale)}
                     hreflang={option.locale}
                     lang={option.locale}
                   >
@@ -227,3 +232,9 @@ const languageName = (code: string): string => {
     enhanceHeader(toggle);
   }
 </script>
+
+<style>
+  .cl-public-header__translation-mark::before {
+    content: '文A';
+  }
+</style>

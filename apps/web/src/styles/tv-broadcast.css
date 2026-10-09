@@ -21,7 +21,8 @@
   height: 100%;
   max-width: 100%;
   margin: 0;
-  padding: 2.5vmin 4vmin;
+  /* The outer margin belongs to the layout shell (`#tv-root`), so every route keeps the same one. */
+  padding: 0;
   background-color: var(--tv-bg-base);
   color: var(--tv-text-primary);
   font-family: var(--cl-font-body);
@@ -29,6 +30,23 @@
   flex-direction: column;
   gap: 2.5vmin;
   overflow: hidden;
+}
+
+/*
+ * The shell lays its children out in a column: the score ticker above, the dashboard filling what is
+ * left. Sizing the dashboard to 100% of the shell instead pushed its lower panels past the bottom
+ * edge by the ticker's own height, on the one route that has a ticker.
+ */
+#tv-root {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5vmin;
+}
+
+#tv-root .tv-root-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
 }
 
 /* 1. Score-bug / Top Status Bar */
@@ -296,13 +314,91 @@
   text-transform: uppercase;
 }
 
+/* 3A-2. Champions of a tournament decided zone by zone */
+.tv-champions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(24vmin, 1fr));
+  align-content: center;
+  gap: 2vmin;
+  height: 100%;
+}
+
+.tv-champions__zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6vmin;
+  padding: 2.4vmin 1.6vmin;
+  background: color-mix(in srgb, var(--tv-bg-elevated) 80%, transparent);
+  border: 1px solid var(--tv-gold);
+  text-align: center;
+}
+
+.tv-champions__zone-name {
+  margin: 0;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.9rem, 1.8vmin, 1.2rem);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--cl-state-upcoming);
+}
+
+.tv-champions__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6vmin;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-champions__champion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1vmin;
+}
+
+.tv-champions__emblem {
+  width: 11vmin;
+  height: 11vmin;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--cl-state-upcoming) 35%, transparent));
+}
+
+.tv-champions__monogram {
+  width: 10vmin;
+  height: 10vmin;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--tv-gold);
+  color: var(--tv-gold);
+  font-family: var(--cl-font-display);
+  font-size: 3.6vmin;
+  font-weight: 800;
+}
+
+.tv-champions__name {
+  font-family: var(--cl-font-display);
+  font-size: clamp(1.2rem, 3vmin, 2.2rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--tv-text-primary);
+  line-height: 1.1;
+}
+
 /* 3B. Live/Featured Match View */
 .tv-match-spotlight {
   display: flex;
   flex-direction: column;
   /*
    * The panel is as tall as the frame, so centring a small cluster inside it
-   * left most of the height empty (0202). Distributing the blocks uses that
+   * left most of the height empty. Distributing the blocks uses that
    * height instead: the stage label reads at the top, the matchup takes the
    * space it deserves in the middle, and the state sits at the foot.
    */
@@ -340,7 +436,7 @@
 }
 
 /*
- * The home side is the spotlight's visual anchor (openspec 0247): larger
+ * The home side is the spotlight's visual anchor: larger
  * than the away side, and never smaller than 120px even on a cramped
  * viewport where `vmin` alone would shrink below a legible size.
  */
@@ -414,7 +510,7 @@
   color: var(--cl-text-primary);
 }
 
-/* 3C. Pinned-Match Event Ticker (openspec 0270) */
+/* 3C. Pinned-Match Event Ticker */
 .tv-event-ticker {
   display: flex;
   flex-direction: column;
@@ -519,7 +615,8 @@
   flex-direction: column;
 }
 
-.tv-bracket {
+.tv-bracket,
+.tv-fixtures {
   display: grid;
   align-content: start;
   gap: var(--cl-space-4);
@@ -527,13 +624,20 @@
 
 .tv-bracket__zone,
 .tv-bracket__round,
-.tv-bracket__matches {
+.tv-bracket__matches,
+.tv-fixtures__zone,
+.tv-fixtures__round,
+.tv-fixtures__matches,
+.tv-standings-zone {
   display: grid;
   gap: var(--cl-space-2);
 }
 
 .tv-bracket__zone-name,
-.tv-bracket__round-name {
+.tv-bracket__round-name,
+.tv-fixtures__zone-name,
+.tv-fixtures__round-name,
+.tv-standings-zone__name {
   margin: 0;
   color: var(--tv-text-secondary);
   font-family: var(--cl-font-mono);
@@ -577,6 +681,11 @@
 .tv-bracket-card__score {
   color: var(--tv-text-primary);
   font-variant-numeric: tabular-nums;
+}
+
+/* Zones of a mixed-format stage are separate tables, so they need room between them. */
+.tv-standings-zone + .tv-standings-zone {
+  margin-block-start: var(--cl-space-5);
 }
 
 /* 4A. Standings Table */
@@ -756,7 +865,7 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Lower third (openspec 0201)
+ * Lower third
  *
  * A strip anchored to the bottom of the frame, sized by its own content, so
  * the footage it is composited over stays visible. Everything here is
@@ -849,6 +958,53 @@
     width: 100%;
     justify-content: space-between;
     gap: 1.5vmin;
+    /* Two rows at most: the score, then the series and sets on a row of their own. */
+    flex-wrap: wrap;
+  }
+
+  /* The segment joins the score's row; the series and the sets take a row of their own. */
+  .tv-lower-third__bug .tv-progress {
+    display: contents;
+  }
+
+  .tv-lower-third__bug .tv-progress__row {
+    display: flex;
+    order: 1;
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .tv-lower-third__bug .tv-progress__series {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .tv-lower-third__bug .tv-progress__series-text {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .tv-lower-third__bug .tv-progress__sets {
+    flex: 0 0 auto;
+  }
+
+  .tv-lower-third__bug .tv-progress__row {
+    font-size: 0.72rem;
+    gap: 1vmin;
+  }
+
+  .tv-lower-third__bug .tv-progress__sets {
+    gap: 0.6vmin;
+  }
+
+  .tv-lower-third__bug .tv-progress__set {
+    min-width: 0;
+    padding-inline: 1.2vmin;
   }
 
   .tv-overlay--lower #tv-root {
@@ -868,8 +1024,7 @@
    the overlay modes and the chroma key.
    ========================================================================== */
 /**
-   * Sized for a screen read from 5-10m rather than arm's length (0031
-   * 2.3) — a fixed rem scale would be right for one panel size and wrong
+   * Sized for a screen read from 5-10m rather than arm's length — a fixed rem scale would be right for one panel size and wrong
    * for the next, so every measure here is vmin-relative instead.
    */
 .tv-dashboard {
@@ -997,7 +1152,7 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Animated live event alert banner (openspec 0300) — the "Broadcast Command
+ * Animated live event alert banner — the "Broadcast Command
  * Precision" callout for a `match.event-recorded` moment: chamfered, high-
  * contrast dark ink, bold display type. `--scoring`/`--notable` are the only
  * two kinds `BroadcastAlertBanner.tsx` ever asks for — generic across every
@@ -1106,7 +1261,7 @@
   }
 }
 
-/* Multi-court grid (openspec 0303) */
+/* Multi-court grid */
 .tv-multicourt-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
@@ -1220,5 +1375,290 @@
   }
   100% {
     background: transparent;
+  }
+}
+
+/* The compact match list: two matches to a row, one page at a time. */
+.tv-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2vmin;
+  min-height: 0;
+}
+
+.tv-match-list__entries {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8vmin 1.6vmin;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-match-list__entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1vmin;
+  min-width: 0;
+  padding: 0.8vmin 1.2vmin;
+  background: var(--cl-surface-chrome);
+  border: 1px solid var(--tv-border);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.8rem, 1.5vmin, 1.1rem);
+}
+
+.tv-match-list__round {
+  color: var(--tv-text-muted);
+  font-size: 0.8em;
+  text-transform: uppercase;
+}
+
+.tv-match-list__side {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-match-list__side--home {
+  text-align: right;
+}
+
+.tv-match-list__score {
+  color: var(--tv-text-primary);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--cl-weight-bold);
+}
+
+.tv-match-list__pager {
+  margin: 0;
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.7rem, 1.3vmin, 0.95rem);
+  text-align: right;
+  text-transform: uppercase;
+}
+
+/* A fixed view fills the frame: the rail takes the whole stage. */
+.tv-main-stage--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tv-scorebug__clock-label {
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: 0.7em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/*
+ * Narrow or portrait frames stack the zones' champions one under another: with many final zones a
+ * row of columns shrinks each to a sliver, while a column keeps every champion readable and the
+ * panel scrolls for whatever does not fit.
+ */
+@media (max-width: 768px), (orientation: portrait) {
+  .tv-champions {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    height: auto;
+    max-height: 100%;
+    overflow-y: auto;
+  }
+
+  .tv-champions__zone {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1.6vmin 3vmin;
+    padding: 2vmin 3vmin;
+    text-align: left;
+  }
+
+  .tv-champions__list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1.6vmin 3vmin;
+  }
+
+  .tv-champions__champion {
+    flex-direction: row;
+    gap: 2vmin;
+  }
+
+  .tv-champions__emblem,
+  .tv-champions__monogram {
+    width: 9vmin;
+    height: 9vmin;
+  }
+}
+
+/* The abbreviation stands in for the name on a narrow frame; wide frames show the name. */
+.tv-team-side__short {
+  display: none;
+  text-decoration: none;
+}
+
+/*
+ * Narrow or portrait frames: the title card stacks (brand and titles above, status and clock
+ * below) instead of splitting its width in two, the pinned match shows abbreviations, smaller
+ * emblems and a score that stays on one line, and each entry of the match list is two lines.
+ */
+@media (max-width: 768px), (orientation: portrait) {
+  .tv-scorebug {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.6vmin;
+    padding: 2.4vmin 3vmin;
+  }
+
+  .tv-scorebug__right {
+    justify-content: flex-start;
+  }
+
+  .tv-match-spotlight__vs-grid {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 2vmin;
+  }
+
+  .tv-match-spotlight__vs-grid .tv-team-side__emblem-wrap,
+  .tv-match-spotlight__vs-grid .tv-team-side--anchor .tv-team-side__emblem-wrap {
+    width: 64px;
+    height: 64px;
+  }
+
+  .tv-team-side__full {
+    display: none;
+  }
+
+  .tv-team-side__short {
+    display: block;
+    max-width: 100%;
+    font-size: clamp(1.1rem, 5vw, 1.6rem);
+  }
+
+  .tv-score-center__digits {
+    font-size: clamp(2.2rem, 11vw, 3.5rem);
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+
+  .tv-match-list__entries {
+    gap: 0.8vmin;
+  }
+
+  .tv-match-list__entry {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    row-gap: 0.4vmin;
+    padding: 1vmin 1.2vmin;
+  }
+
+  /* The zone and round take a row of their own, so the sides keep the width of the cell. */
+  .tv-match-list__round {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+}
+
+/* The series and the sets beside a broadcast score. Fixed sizes: nothing shifts when a set ends. */
+.tv-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1vmin 2vmin;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.8rem, 1.6vmin, 1.15rem);
+  text-transform: uppercase;
+}
+
+.tv-progress__row {
+  display: contents;
+}
+
+.tv-progress__series {
+  display: inline-flex;
+  align-items: center;
+  gap: 1vmin;
+  color: var(--tv-text-secondary);
+}
+
+.tv-progress__pips {
+  display: inline-flex;
+  gap: 0.6vmin;
+}
+
+.tv-progress__pip {
+  width: 1.6vmin;
+  min-width: 10px;
+  height: 1.6vmin;
+  min-height: 10px;
+  border: 1px solid var(--tv-border-active);
+  background: transparent;
+}
+
+.tv-progress__pip--won-home,
+.tv-progress__pip--won-away {
+  background: var(--tv-live-cyan);
+}
+
+.tv-progress__pip--current {
+  background: color-mix(in srgb, var(--tv-live-cyan) 40%, transparent);
+  animation: tvPulseDot 1.6s ease-in-out infinite;
+}
+
+.tv-progress__pip--not-required {
+  opacity: 0.25;
+}
+
+.tv-progress__sets {
+  display: inline-flex;
+  gap: 0.8vmin;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-progress__set {
+  display: grid;
+  min-width: 9vmin;
+  padding: 0.6vmin 1vmin;
+  text-align: center;
+  background: var(--cl-surface-chrome);
+  border: 1px solid var(--tv-border);
+}
+
+.tv-progress__set--current {
+  border-color: var(--tv-border-active);
+  color: var(--tv-live-cyan);
+}
+
+.tv-progress__set-label {
+  color: var(--tv-text-muted);
+  font-size: 0.75em;
+}
+
+.tv-progress__set-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--cl-weight-bold);
+}
+
+.tv-progress__segment {
+  color: var(--tv-live-cyan);
+  letter-spacing: 0.08em;
+}
+
+.tv-lower-third__empty {
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.8rem, 1.6vmin, 1.1rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-progress__pip--current {
+    animation: none;
   }
 }

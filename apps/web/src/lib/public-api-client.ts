@@ -184,7 +184,7 @@ export async function fetchPlayerStatistics(
 }
 
 /**
- * `language` resolves each ruleset field's declared label (openspec 0267) —
+ * `language` resolves each ruleset field's declared label —
  * the field's own `FieldPolicy.label` when the descriptor declares one,
  * humanized from its dot-path otherwise. Never English-only regardless of
  * `language`: this is the same fallback `resolveFieldPolicyLabel` uses on
@@ -197,7 +197,7 @@ export async function fetchPlayerStatistics(
  * never needed playing (its series already decided), so it is equally closed, not pending. Mapping
  * both to `'final'` keeps every `matches.every((m) => m.state === 'final')` check (TV's own
  * `allFinal`, `deriveTournamentStatus`) from treating a tournament decided partly by forfeit as
- * still in progress (openspec 0270).
+ * still in progress.
  */
 function publicMatchState(status: string): MatchState {
   if (status === 'scheduled') return 'upcoming';
@@ -220,6 +220,9 @@ export function mapOverviewResponse(
     organizationAlias: response.organizationAlias,
     tournamentAlias: response.tournamentAlias,
     organizationName: response.organizationName,
+    ...(response.organizationTimeZone === undefined
+      ? {}
+      : { organizationTimeZone: response.organizationTimeZone }),
     tournamentName: response.tournamentName,
     seasonName: response.seasonName,
     status: response.status,
@@ -236,6 +239,7 @@ export function mapOverviewResponse(
     matches: response.matches.map((m: PublicOverviewMatchResponse) => ({
       matchId: m.matchId,
       matchNumber: m.matchNumber,
+      ...(m.stageOrdinal === undefined ? {} : { stageOrdinal: m.stageOrdinal }),
       stageNumber: m.stageNumber,
       home: {
         name: m.homeName ?? 'TBD',
@@ -258,6 +262,7 @@ export function mapOverviewResponse(
       abbreviation: s.abbreviation,
       played: s.statistics['played'] ?? 0,
       points: s.statistics['points'] ?? 0,
+      ...(s.zoneName === undefined ? {} : { zoneName: s.zoneName }),
     })),
     ...(response.standingsGrain === undefined ? {} : { standingsGrain: response.standingsGrain }),
     clubs: response.clubs?.map((c) => ({
@@ -279,6 +284,8 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
         matchId: m.matchId,
         stageNumber: m.stageNumber,
         matchNumber: m.matchNumber,
+        ...(m.stageOrdinal === undefined ? {} : { stageOrdinal: m.stageOrdinal }),
+        ...(m.segments === undefined || m.segments.length === 0 ? {} : { segments: m.segments }),
         state,
         projectionVersion: m.projectionVersion,
         ...(m.possessionEntrantId === undefined ||

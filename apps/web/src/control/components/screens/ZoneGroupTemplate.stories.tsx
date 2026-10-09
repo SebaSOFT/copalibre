@@ -4,6 +4,7 @@ import type { ControlApiClient } from '../../lib/api-client.js';
 import { ORG, TOURNAMENT, ids, registrations, storyClient } from '../screen-story-fixtures.js';
 
 const client = storyClient<ControlApiClient>({
+  configureZone: undefined,
   renameZone: undefined,
   deleteZone: undefined,
   createZone: undefined,
@@ -21,6 +22,7 @@ const meta = {
       registrations.find((row) => row.entrantId === entrantId)?.displayName ?? entrantId,
     entrants: registrations.filter((row) => row.status === 'accepted'),
     groups: [],
+    onConfigureZone: async () => undefined,
     onConfirmGroupDraw: async () => true,
     onConfirmZoneDraw: async () => true,
     onCreateGroup: async () => true,
@@ -83,4 +85,51 @@ export const WithGroupEntrants: Story = {
       },
     ],
   },
+};
+
+/** Two zones inherit the stage's knockout format; the third overrides it with a league and a series. */
+export const MixedFormats: Story = {
+  args: {
+    api: storyClient<ControlApiClient>({
+      configureZone: async () => ({}) as never,
+      renameZone: undefined,
+      deleteZone: undefined,
+      createZone: undefined,
+      renameGroup: undefined,
+      deleteGroup: undefined,
+      createGroup: undefined,
+    }),
+    availableFormats: ['single-elimination', 'round-robin'],
+    stageFormat: 'single-elimination',
+    zones: [
+      {
+        zoneId: ids.third,
+        stageId: ids.stage,
+        number: 1,
+        name: 'Zona 1',
+        effectiveFormat: 'single-elimination',
+      },
+      {
+        zoneId: ids.second,
+        stageId: ids.stage,
+        number: 2,
+        name: 'Zona 2',
+        effectiveFormat: 'single-elimination',
+      },
+      {
+        zoneId: ids.first,
+        stageId: ids.stage,
+        number: 3,
+        name: 'Zona 3',
+        format: 'round-robin',
+        effectiveFormat: 'round-robin',
+        series: { span: 3, resolutionClass: 'best-of' },
+      },
+    ],
+  },
+};
+
+/** Once the stage holds fixtures, a zone's format and series can no longer change. */
+export const MixedFormatsLocked: Story = {
+  args: { ...MixedFormats.args, stageSeeded: true },
 };

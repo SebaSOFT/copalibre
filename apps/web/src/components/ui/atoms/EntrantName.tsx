@@ -31,6 +31,7 @@ export function EntrantName({
       className={`cl-entrant-name ${className ?? ''}`.trim()}
       data-testid="entrant-name"
       ref={ref}
+      title={compact ? undefined : fullName}
     >
       {compact && abbreviation !== undefined ? (
         <abbr title={fullName}>{abbreviation}</abbr>

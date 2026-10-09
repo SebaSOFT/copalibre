@@ -9,13 +9,13 @@ type LoadStatus = 'loading' | 'ready' | 'failed';
 /**
  * The pending participant reports/disputes queue.
  *
- * Deliberately without a bulk action: design.md's mitigation for "a flood of
+ * Deliberately without a bulk action: the mitigation for "a flood of
  * low-quality disputes" is that this queue is reviewed one at a time, and a
  * dismiss here never touches a match result — an operator who wants to act
  * on a submission does so through the existing correction workflow
  * separately, citing this report's id.
  *
- * Fetches and mutates (openspec 0225 task 6.2): the pending-reports load and
+ * Fetches and mutates: the pending-reports load and
  * the dismiss mutation live here; `ReportReviewTemplate` composes the screen
  * from the resulting data.
  */

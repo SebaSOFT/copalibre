@@ -3,6 +3,7 @@ title: 'Erste Schritte: Self-Hosting'
 description: Führen Sie CopaLibre aus dem Quellcode unter Windows, macOS oder Linux aus, und wählen Sie dann eine Reverse-Proxy- oder Kubernetes-Bereitstellungstopologie.
 capabilities:
   - platform/self-hosted-deployment
+  - platform/email-notifications
 roles:
   - super-admin
 ---
@@ -53,8 +54,13 @@ Bearbeiten Sie vor dem Start `.env`: Setzen Sie `COPALIBRE_IMAGE=copalibre:local
 ```bash
 ../copalibre doctor
 ../copalibre start
+../copalibre status
+../copalibre restart
+../copalibre stop
 ../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
+
+Mit copalibre status prüfen Sie Container und Gateway. copalibre restart prüft PostgreSQL und doctor, bevor es die Dienste startet. copalibre stop behält Volumes; --down entfernt Container und Netzwerke. Im Kubernetes-Modus zeigen start/stop/restart Hinweise zu Helm oder kubectl.
 
 Das Gateway veröffentlicht HTTP unter `http://localhost:8080` (`COPALIBRE_PORT`). Compose veröffentlicht auch Dienstports; beschränken Sie deren Erreichbarkeit auf Host- und Netzwerkebene. TLS endet am vorgeschalteten Proxy.
 
@@ -75,7 +81,7 @@ stellt ein Helm-Chart (`deploy/helm/copalibre/`) dieselben Images, den Umgebungs
 Gesundheitschecks und den Migrationsprozess wie die Compose-Installation bereit — die Installation mit
 Standardwerten verhält sich identisch zum reinen Basis-Chart.
 
-Führen Sie Helm im Repository-Stamm aus, nachdem Sie `my-values.yaml` mit Datenbank, Identität, E-Mail und öffentlichen URLs konfiguriert haben. Verwenden Sie eine veröffentlichte Version für beide Images; 1.2.5 ist erst nach Veröffentlichung verfügbar.
+Führen Sie Helm im Repository-Stamm aus, nachdem Sie `my-values.yaml` mit Datenbank, Identität, E-Mail und öffentlichen URLs konfiguriert haben. Verwenden Sie eine veröffentlichte Version für beide Images; 1.2.6 ist erst nach Veröffentlichung verfügbar.
 
 ```bash
 cd ..
@@ -84,8 +90,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6
 ```
 
 Legen Sie diese additiven, standardmäßig deaktivierten `values.yaml`-Gruppen bei Bedarf oben drauf —
@@ -117,7 +123,18 @@ Vollständige Voraussetzungsliste und die gemessenen Nachweise zu Multi-Node-Fai
 Backup-Wiederherstellung und Upgrade-Sicherheit, auf denen diese Behauptung beruht:
 `docs/deployment/enterprise-kubernetes.md` im Repository.
 
-## 4. Nächste Schritte
+## 4. Benachrichtigungs-E-Mails
+
+Aktivitäten von Turnieren und Organisation werden per E-Mail über den für Einladungen konfigurierten Anbieter gemeldet (`COPALIBRE_EMAIL_PROVIDER`); eine weitere Einstellung ist nicht nötig. In der Entwicklungsumgebung landen die E-Mails in Mailpit.
+
+- Ein neues Turnier und ein neuer Verein werden den Administratoren der Organisation gemeldet.
+- Eine neue Anmeldung und ein Verein, der seinen Kader einreicht, werden den Administratoren der Organisation und den Administratoren dieses Turniers gemeldet. Wer das Ereignis ausgelöst hat, erhält keine E-Mail.
+- Die E-Mails verwenden die Hauptsprache der Organisation, zeigen deren Emblem und Namen im Kopf und sind von Copa Libre mit einem Link zu [copalibre.app](https://copalibre.app) signiert.
+- CSV-Importe und `copalibre dev demo` versenden keine E-Mails.
+- Dieselbe E-Mail wird nie zweimal an denselben Empfänger gesendet. Läuft ein Anbieter vor der Bestätigung in ein Timeout, wird diese E-Mail nicht erneut gesendet; sie kann also fehlen, statt doppelt anzukommen.
+- Betreiber sehen, wie viele E-Mails womöglich fehlen: Der Worker zählt jeden Sendeversuch nach Ergebnis (gesendet, bereits gesendet, abgelehnt, unbekannt) in der Antwort von `/jobs/metrics` unter `emailDelivery` und protokolliert jedes unbekannte Ergebnis ohne die Adresse des Empfängers. Ein `unknown` ungleich null ist einen Alarm wert; die Zähler beginnen nach einem Neustart des Workers wieder bei null.
+
+## 5. Nächste Schritte
 
 - [Ihr erstes Turnier](/help/getting-started/) — eine Competition erstellen und veröffentlichen,
   sobald die Installation läuft.

@@ -51,3 +51,19 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## `packages/demo-datasets/datasets/`
+
+Demo data copied from a public results portal for use as development sample data, with player surnames and
+referee names replaced. These are third-party materials, not AGPL-licensed code: they belong to their
+respective clubs, federations and organisers, and are reproduced here only so a development stack has a realistic
+tournament. Each dataset's `source.md` records its origin, capture date and removal contact; this is not an
+official record.
+
+| Material                                       | Source                                                      | Owner                                  |
+| ---------------------------------------------- | ----------------------------------------------------------- | -------------------------------------- |
+| Club emblems (`emblems/clubs/*.png`), 24 files | https://www.wsa.sidgad.com/league/273 (captured 2026-10-07) | The respective clubs                   |
+| Tournament emblem (`emblems/tournament.png`)   | https://www.wsa.sidgad.com/league/273 (captured 2026-10-07) | The competition's organisers           |
+| Club names, schedules and results              | https://www.wsa.sidgad.com/league/273 (captured 2026-10-07) | The competition's organisers and clubs |
+
+On request from an owner, the material is removed.

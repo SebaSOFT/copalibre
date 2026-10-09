@@ -50,6 +50,8 @@ export interface StageMatchRecord {
   readonly matchId: string;
   readonly fixtureId: string;
   readonly round: number;
+  /** A placement game's part in its zone (`place-3`); absent for the generated graph's own matches. */
+  readonly role?: string;
   /** 1-based position within the round, in fixture order. */
   readonly position: number;
   readonly status: string;
@@ -130,6 +132,7 @@ export class StageReadModel {
       .select([
         'fixtures.fixture_id',
         'fixtures.round',
+        'fixtures.role',
         'fixtures.home_entrant_id',
         'fixtures.away_entrant_id',
         'fixtures.created_at',
@@ -172,6 +175,7 @@ export class StageReadModel {
         matchId: first.match_id ?? first.fixture_id,
         fixtureId: first.fixture_id,
         round: first.round,
+        ...(first.role === null ? {} : { role: first.role }),
         position,
         status: first.status ?? 'scheduled',
         ...(first.home_entrant_id === null ? {} : { homeEntrantId: first.home_entrant_id }),
@@ -261,7 +265,7 @@ function resultReasonsOf(
  *
  * Callers must pass the *unscoped* result of `matches(stageId)` (no `groupId`/`zoneId`) — the ordinal
  * a group- or zone-filtered subset would assign does not agree with this one, since a filtered call
- * cannot see how many matches it is missing ahead of a given row (openspec 0249).
+ * cannot see how many matches it is missing ahead of a given row.
  */
 export function stageMatchOrdinals(
   records: readonly StageMatchRecord[],

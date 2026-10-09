@@ -293,6 +293,7 @@ export function toZone(row: ZoneRow): Zone {
     stageId: row.stage_id,
     number: row.number,
     name: row.name,
+    ...(row.format === null ? {} : { format: row.format as Zone['format'] }),
   };
 }
 

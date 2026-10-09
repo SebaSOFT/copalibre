@@ -16,6 +16,14 @@ module.exports = {
   collectCoverageFrom: [
     'src/jobs/**/*.ts',
     '!src/jobs/**/*.test.ts',
+    // The email layout, copy and delivery guarantee are pure and unit-tested here; the handlers that
+    // resolve recipients and organizations are SQL, proven against PostgreSQL in the integration suite.
+    'src/notifications/**/*.ts',
+    '!src/notifications/**/*.test.ts',
+    '!src/notifications/account-handlers.ts',
+    '!src/notifications/lifecycle-handlers.ts',
+    '!src/notifications/organization.ts',
+    '!src/notifications/recipients.ts',
     // Every line of it is a database call in a transaction; the integration
     // suite runs it against real PostgreSQL, where it can actually fail.
     '!src/jobs/statistics-handler.ts',

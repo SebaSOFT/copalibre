@@ -1,6 +1,6 @@
 /**
  * Shared chrome for `TournamentSetupWizard`/`ProfileBuilderWizard`/
- * `DescriptorBuilderWizard` (openspec 0236): the title/progress header, the
+ * `DescriptorBuilderWizard`: the title/progress header, the
  * step-indicator list, the problems alert, an optional server-failures alert,
  * and the Back/primary-action footer. The step content itself is the
  * `children` slot — this component never knows what a step contains.
@@ -60,8 +60,7 @@ export interface WizardShellProps {
   readonly failuresTestId?: string;
   /**
    * Rendered between the failures alert and the footer — `DescriptorBuilderWizard`'s
-   * only use, for its authored-document `TerminalBlock` preview (openspec 0236's
-   * design.md, "Shared step-machine helper" sibling decision). Omitted by the
+   * only use, for its authored-document `TerminalBlock` preview. Omitted by the
    * other two wizards.
    */
   readonly afterFailures?: ReactNode;

@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * Openspec 0245: the tournament overview's discipline hero backdrop and its
+ * The tournament overview's discipline hero backdrop and its
  * spacing from the progress figure below it. The consolidated match-schedule
  * filter bar's own zone/group facet behavior is covered alongside the rest
  * of the matches view in `e2e/public-matches-view.spec.ts`.
@@ -33,7 +33,7 @@ const overviewWithBackground = {
   seasonName: 'Apertura 2026',
   matches: [],
   clubs: [],
-  // A declared label (openspec 0267) plus two fields with no declared label
+  // A declared label plus two fields with no declared label
   // (humanized-dot-path fallback, English-based regardless of locale — the
   // documented fallback, not a localization bug) and a boolean/format value
   // to exercise `RulesetBriefing.astro`'s localized value formatting.
@@ -45,7 +45,7 @@ const overviewWithBackground = {
 };
 
 // Two zones, one group each — the facet-switching scenario `resolveTournamentWinners`'s own bug
-// report was shaped like (openspec 0245 design.md decision 3).
+// report was shaped like.
 const goldMatch = {
   matchId: '00000000-0000-7000-8000-000000000030',
   stageNumber: 1,
@@ -101,9 +101,45 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test('0245: the hero renders the discipline backdrop image behind its content', async ({
-  page,
-}) => {
+for (const viewport of [
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'mobile', width: 390, height: 844 },
+]) {
+  test(`the page has one fixed, faint, blurred discipline image and the hero has none (${viewport.name})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.route(/\/objects\/discipline-background-image\?key=/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'image/png',
+        body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+      }),
+    );
+    await page.goto(PUBLIC_TOURNAMENT_PATH);
+
+    const backdrop = page.locator('img.cl-discipline-background');
+    await expect(backdrop).toHaveCount(1);
+    await expect(backdrop).toHaveAttribute(
+      'src',
+      /\/objects\/discipline-background-image\?key=modules%2Ffootball%2F1\.0\.0%2Ffootball-01\.jpg/,
+    );
+    await expect(backdrop).toHaveJSProperty('naturalWidth', 1);
+    await expect(backdrop).toHaveCSS('position', 'fixed');
+    await expect(backdrop).toHaveCSS('opacity', '0.06');
+    await expect(backdrop).toHaveCSS('filter', 'blur(8px)');
+
+    // The hero draws no image of its own, and its content stays legible.
+    await expect(
+      page.locator('.cl-tournament-hero img[src*="discipline-background-image"]'),
+    ).toHaveCount(0);
+    await expect(page.locator('img[src*="discipline-background-image"]')).toHaveCount(1);
+    await expect(page.getByRole('heading', { name: 'Apertura 2026' })).toBeVisible();
+  });
+}
+
+test('the discipline backdrop stays put while the page scrolls', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 600 });
   await page.route(/\/objects\/discipline-background-image\?key=/, (route) =>
     route.fulfill({
       status: 200,
@@ -112,20 +148,19 @@ test('0245: the hero renders the discipline backdrop image behind its content', 
     }),
   );
   await page.goto(PUBLIC_TOURNAMENT_PATH);
+  const backdrop = page.locator('img.cl-discipline-background');
+  const before = await backdrop.boundingBox();
 
-  const backdrop = page.locator('img.cl-tournament-hero__backdrop');
-  await expect(backdrop).toBeVisible();
-  await expect(backdrop).toHaveAttribute(
-    'src',
-    /\/objects\/discipline-background-image\?key=modules%2Ffootball%2F1\.0\.0%2Ffootball-01\.jpg/,
-  );
-  await expect(backdrop).toHaveJSProperty('naturalWidth', 1);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  const scrolled = await page.evaluate(() => window.scrollY);
+  const after = await backdrop.boundingBox();
 
-  // The hero's own content (title, live badge) stays above the backdrop.
-  await expect(page.getByRole('heading', { name: 'Apertura 2026' })).toBeVisible();
+  expect(scrolled).toBeGreaterThan(0);
+  expect(after?.y).toBe(before?.y);
+  expect(after?.height).toBe(before?.height);
 });
 
-test('0267: the ruleset section renders localized labels and values in a non-English locale', async ({
+test('the ruleset section renders localized labels and values in a non-English locale', async ({
   page,
 }) => {
   await page.goto(`/es/${PUBLIC_TOURNAMENT_PATH.replace(/^\//, '')}`);
@@ -138,7 +173,7 @@ test('0267: the ruleset section renders localized labels and values in a non-Eng
   await expect(page.getByText('Todos contra todos')).toBeVisible();
 });
 
-test('0267: the ruleset section falls back to English for a field with no declared label', async ({
+test('the ruleset section falls back to English for a field with no declared label', async ({
   page,
 }) => {
   await page.goto(PUBLIC_TOURNAMENT_PATH);
@@ -148,7 +183,7 @@ test('0267: the ruleset section falls back to English for a field with no declar
   await expect(page.getByText('Round Robin')).toBeVisible();
 });
 
-test('0245: the progress figure keeps a 24px gap from the hero above it', async ({ page }) => {
+test('the progress figure keeps a 24px gap from the hero above it', async ({ page }) => {
   await page.goto(PUBLIC_TOURNAMENT_PATH);
 
   const marginTop = await page
@@ -157,7 +192,7 @@ test('0245: the progress figure keeps a 24px gap from the hero above it', async 
   expect(marginTop).toBe('24px');
 });
 
-test('0245: switching the zone facet on the matches page narrows the list and updates the URL', async ({
+test('switching the zone facet on the matches page narrows the list and updates the URL', async ({
   page,
   context,
 }) => {

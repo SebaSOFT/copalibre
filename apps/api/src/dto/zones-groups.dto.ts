@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { SeriesDeclarationRequest } from './organization.dto.js';
 import {
   IsArray,
   IsDefined,
@@ -24,6 +25,27 @@ export class ZoneResponse {
 
   @ApiProperty({ example: 'Zona 1' })
   name!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'The format this zone declares itself. Absent: the zone inherits its stage’s format.',
+    example: 'round-robin',
+  })
+  format?: string;
+
+  @ApiProperty({
+    description: 'The format this zone plays: its own when it declares one, otherwise the stage’s.',
+    example: 'single-elimination',
+  })
+  effectiveFormat!: string;
+
+  @ApiPropertyOptional({
+    type: SeriesDeclarationRequest,
+    description:
+      'The series this zone declares itself. Absent: the zone inherits its stage’s declaration, ' +
+      'then the ruleset’s.',
+  })
+  series?: SeriesDeclarationRequest;
 }
 
 export class GroupResponse {
@@ -63,6 +85,30 @@ export class CreateZoneRequest {
   @ApiProperty({ example: 'Zona Norte' })
   @IsString()
   name!: string;
+}
+
+export class ZoneConfigurationRequest {
+  @ApiPropertyOptional({
+    nullable: true,
+    description:
+      'Sets the zone’s own format; `null` clears it so the zone inherits its stage’s. Absent leaves it unchanged. ' +
+      'Must be a format the tournament’s discipline offers.',
+    example: 'round-robin',
+  })
+  @IsOptional()
+  @IsString()
+  format?: string | null;
+
+  @ApiPropertyOptional({
+    type: SeriesDeclarationRequest,
+    nullable: true,
+    description:
+      'Sets the zone’s own series; `null` clears it so the zone inherits its stage’s. Absent leaves it unchanged.',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SeriesDeclarationRequest)
+  series?: SeriesDeclarationRequest | null;
 }
 
 export class CreateGroupRequest {

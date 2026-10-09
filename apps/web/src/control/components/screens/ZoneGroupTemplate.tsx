@@ -5,8 +5,12 @@ import type {
   DrawAssignmentResponse,
   GroupResponse,
   RegistrationResponse,
+  SeriesResolutionClass,
+  ZoneConfigurationRequest,
   ZoneResponse,
 } from '../../lib/api-client.js';
+import { SERIES_RESOLUTION_CLASSES } from '../../lib/stage-authoring.js';
+import { SERIES_CLASS_LABELS, STAGE_FORMAT_LABELS } from '../../lib/stage-format-labels.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
@@ -25,8 +29,8 @@ type AssignMode = 'draw' | 'manual';
 export type ManualPlacements = Readonly<Record<string, string>>;
 
 /**
- * Composes the screen from data and callbacks `ZoneGroupPage` supplies
- * (openspec 0225 task 6.1): the new-zone/group forms, draw parameters,
+ * Composes the screen from data and callbacks `ZoneGroupPage` supplies:
+ * the new-zone/group forms, draw parameters,
  * manual placements, and preview results below are this component's own
  * screen state; every mutation is a call to one of the `on*` props. Which
  * zone is selected lives in the page instead, since selecting one drives a
@@ -34,9 +38,11 @@ export type ManualPlacements = Readonly<Record<string, string>>;
  */
 export function ZoneGroupTemplate({
   api,
+  availableFormats = [],
   entrantLabel,
   entrants,
   groups,
+  onConfigureZone,
   onConfirmGroupDraw,
   onConfirmZoneDraw,
   onCreateGroup,
@@ -52,15 +58,23 @@ export function ZoneGroupTemplate({
   onSelectZone,
   organizationAlias,
   selectedZoneNumber,
+  stageFormat,
   stageNumber,
+  stageSeeded = false,
   tournamentAlias,
   zoneEntrantIds,
   zones,
 }: {
   readonly api: ControlApiClient;
+  /** The formats the tournament's discipline offers; a zone's format is chosen from these. */
+  readonly availableFormats?: readonly string[];
   readonly entrantLabel: (entrantId: string) => string;
   readonly entrants: readonly RegistrationResponse[];
   readonly groups: readonly GroupResponse[];
+  readonly onConfigureZone?: (
+    zoneNumber: number,
+    request: ZoneConfigurationRequest,
+  ) => Promise<void>;
   readonly onConfirmGroupDraw: (groupCount: number, seed: number) => Promise<boolean>;
   readonly onConfirmZoneDraw: (zoneCount: number, seed: number) => Promise<boolean>;
   readonly onCreateGroup: (name: string) => Promise<boolean>;
@@ -88,7 +102,11 @@ export function ZoneGroupTemplate({
   readonly onSelectZone: (zoneNumber: number) => void;
   readonly organizationAlias: string;
   readonly selectedZoneNumber: number | undefined;
+  /** The stage's own format, which a zone without an override plays. */
+  readonly stageFormat?: string | undefined;
   readonly stageNumber: number;
+  /** Whether the stage already holds fixtures; a zone's format and series are locked then. */
+  readonly stageSeeded?: boolean;
   readonly tournamentAlias: string;
   readonly zoneEntrantIds: readonly string[];
   readonly zones: readonly ZoneResponse[];
@@ -209,6 +227,15 @@ export function ZoneGroupTemplate({
                     <FormattedMessage {...messages.zoneGroupDelete} />
                   </Button>
                 )}
+                {api.configureZone && onConfigureZone && stageFormat !== undefined && (
+                  <ZoneConfiguration
+                    availableFormats={availableFormats}
+                    locked={stageSeeded}
+                    onConfigure={(request) => onConfigureZone(zone.number, request)}
+                    stageFormat={stageFormat}
+                    zone={zone}
+                  />
+                )}
               </li>
             ))}
           </ul>
@@ -259,7 +286,7 @@ export function ZoneGroupTemplate({
           </RadioGroup>
 
           {zoneMode === 'draw' ? (
-            <div className="cl-platform-form-grid">
+            <div className="cl-platform-form-grid cl-zone-group__assignment-controls">
               <Field id="zone-draw-count" label={intl.formatMessage(messages.zoneGroupZoneCount)}>
                 <Input
                   aria-label={intl.formatMessage(messages.zoneGroupZoneCount)}
@@ -290,7 +317,7 @@ export function ZoneGroupTemplate({
             <div>
               <ul>
                 {entrants.map((entrant) => (
-                  <li key={entrant.entrantId} className="cl-role-user">
+                  <li key={entrant.entrantId} className="cl-zone-group__entrant-assignment">
                     <span>{entrantLabel(entrant.entrantId)}</span>
                     <Input
                       aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {
@@ -456,7 +483,7 @@ export function ZoneGroupTemplate({
               </RadioGroup>
 
               {groupMode === 'draw' ? (
-                <div className="cl-platform-form-grid">
+                <div className="cl-platform-form-grid cl-zone-group__assignment-controls">
                   <Field
                     id="group-draw-count"
                     label={intl.formatMessage(messages.zoneGroupGroupCount)}
@@ -494,7 +521,7 @@ export function ZoneGroupTemplate({
                 <div>
                   <ul>
                     {zoneEntrantIds.map((entrantId) => (
-                      <li key={entrantId} className="cl-role-user">
+                      <li key={entrantId} className="cl-zone-group__entrant-assignment">
                         <span>{entrantLabel(entrantId)}</span>
                         <Input
                           aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {
@@ -546,4 +573,152 @@ export function ZoneGroupTemplate({
   );
 
   return <ListScreenLayout breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+}
+
+const INHERIT = '__inherit__';
+
+/**
+ * One zone's format and series: which format it plays and why, and — behind a toggle, so the stage
+ * default stays the primary path — the controls to override either. Both are locked once the stage
+ * holds fixtures, because they decide the fixtures a zone generates.
+ */
+function ZoneConfiguration({
+  availableFormats,
+  locked,
+  onConfigure,
+  stageFormat,
+  zone,
+}: {
+  readonly availableFormats: readonly string[];
+  readonly locked: boolean;
+  readonly onConfigure: (request: ZoneConfigurationRequest) => Promise<void>;
+  readonly stageFormat: string;
+  readonly zone: ZoneResponse;
+}): React.JSX.Element {
+  const intl = useIntl();
+  const [span, setSpan] = useState(zone.series === undefined ? '' : String(zone.series.span));
+  const [resolutionClass, setResolutionClass] = useState<SeriesResolutionClass>(
+    zone.series?.resolutionClass ?? 'best-of',
+  );
+  const formatName = (format: string): string => {
+    const label = STAGE_FORMAT_LABELS[format];
+    return label === undefined ? format : intl.formatMessage(label);
+  };
+  const playing = formatName(zone.effectiveFormat ?? zone.format ?? stageFormat);
+  const spanValue = Number.parseInt(span, 10);
+  const idPrefix = `zone-${zone.number}`;
+
+  return (
+    <div className="cl-zone-configuration">
+      <p>
+        {zone.format === undefined ? (
+          <FormattedMessage
+            {...messages.zoneGroupZonePlaysInherited}
+            values={{ format: playing }}
+          />
+        ) : (
+          <>
+            <Badge label={intl.formatMessage(messages.zoneGroupZoneOverriddenBadge)} />{' '}
+            <FormattedMessage
+              {...messages.zoneGroupZonePlaysOverridden}
+              values={{ format: playing }}
+            />
+          </>
+        )}
+        {zone.series !== undefined && (
+          <>
+            {' '}
+            <FormattedMessage
+              {...messages.zoneGroupZoneSeriesDeclared}
+              values={{ span: zone.series.span }}
+            />
+          </>
+        )}
+      </p>
+      <details>
+        <summary>
+          <FormattedMessage {...messages.zoneGroupOverrideZoneFormat} />
+        </summary>
+        {locked && (
+          <p>
+            <FormattedMessage {...messages.zoneGroupZoneConfigLocked} />
+          </p>
+        )}
+        <Field
+          id={`${idPrefix}-format`}
+          label={intl.formatMessage(messages.zoneGroupZoneFormatLabel, { name: zone.name })}
+        >
+          <Select
+            aria-label={intl.formatMessage(messages.zoneGroupZoneFormatLabel, { name: zone.name })}
+            disabled={locked}
+            id={`${idPrefix}-format`}
+            onValueChange={(value) =>
+              void onConfigure({ format: value === INHERIT ? null : value })
+            }
+            options={[
+              {
+                value: INHERIT,
+                label: intl.formatMessage(messages.zoneGroupZoneFormatInherit, {
+                  format: formatName(stageFormat),
+                }),
+              },
+              ...availableFormats.map((format) => ({ value: format, label: formatName(format) })),
+            ]}
+            value={zone.format ?? INHERIT}
+          />
+        </Field>
+        <Field
+          id={`${idPrefix}-series-span`}
+          label={intl.formatMessage(messages.stageEditorSeriesSpan)}
+        >
+          <Input
+            disabled={locked}
+            id={`${idPrefix}-series-span`}
+            inputMode="numeric"
+            min={2}
+            onChange={(event) => setSpan(event.target.value)}
+            type="number"
+            value={span}
+          />
+        </Field>
+        <Field
+          id={`${idPrefix}-series-class`}
+          label={intl.formatMessage(messages.stageEditorSeriesResolutionClass)}
+        >
+          <Select
+            aria-label={intl.formatMessage(messages.stageEditorSeriesResolutionClass)}
+            disabled={locked}
+            id={`${idPrefix}-series-class`}
+            onValueChange={(value) => setResolutionClass(value as SeriesResolutionClass)}
+            options={SERIES_RESOLUTION_CLASSES.map((one) => ({
+              value: one,
+              label: intl.formatMessage(SERIES_CLASS_LABELS[one]),
+            }))}
+            value={resolutionClass}
+          />
+        </Field>
+        <Button
+          disabled={locked || !Number.isInteger(spanValue) || spanValue < 2}
+          onClick={() => void onConfigure({ series: { span: spanValue, resolutionClass } })}
+          type="button"
+          variant="secondary"
+        >
+          <FormattedMessage {...messages.zoneGroupZoneSeriesSave} />
+        </Button>
+        {zone.series !== undefined && (
+          <Button
+            disabled={locked}
+            onClick={() => {
+              setSpan('');
+              void onConfigure({ series: null });
+            }}
+            type="button"
+            variant="secondary"
+          >
+            <FormattedMessage {...messages.zoneGroupZoneSeriesClear} />
+          </Button>
+        )}
+      </details>
+    </div>
+  );
 }

@@ -7,6 +7,8 @@ import {
   type DrawAssignmentResponse,
   type GroupResponse,
   type RegistrationResponse,
+  type StageResponse,
+  type ZoneConfigurationRequest,
   type ZoneResponse,
 } from '../../lib/api-client.js';
 import { controlTokenStore } from '../../session/token-store.js';
@@ -16,7 +18,7 @@ import { ZoneGroupTemplate, type ManualPlacements } from '../screens/ZoneGroupTe
 
 /**
  * Zone/Group management, entrant assignment, and the doorway to a zone's
- * promotion plan (openspec 0225 task 6.1): every call into the API client —
+ * promotion plan: every call into the API client —
  * including the zone-selection-driven groups/entrants fetch, since which
  * zone is selected gates what this page loads — lives here.
  * `ZoneGroupTemplate` composes the draw and manual-placement forms from the
@@ -52,16 +54,20 @@ export function ZoneGroupPage({
   const [selectedZoneNumber, setSelectedZoneNumber] = useState<number | undefined>(undefined);
   const [groups, setGroups] = useState<readonly GroupResponse[]>([]);
   const [zoneEntrantIds, setZoneEntrantIds] = useState<readonly string[]>([]);
+  // The stage's own format and discipline-offered formats, which a zone's override is chosen from.
+  const [stage, setStage] = useState<StageResponse | undefined>(undefined);
 
   const reload = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      const [loadedZones, loadedEntrants] = await Promise.all([
+      const [loadedZones, loadedEntrants, loadedStages] = await Promise.all([
         api.listZones?.(organizationAlias, tournamentAlias, stageNumber) ?? Promise.resolve([]),
         api.listRegistrations(organizationAlias, tournamentAlias, 'accepted'),
+        api.listStages?.(organizationAlias, tournamentAlias).catch(() => []) ?? Promise.resolve([]),
       ]);
       setZones(loadedZones);
       setEntrants(loadedEntrants);
+      setStage(loadedStages.find((candidate) => candidate.number === stageNumber));
       setSelectedZoneNumber((current) => current ?? loadedZones[0]?.number);
       setLoadError(undefined);
     } catch {
@@ -76,11 +82,13 @@ export function ZoneGroupPage({
     Promise.all([
       api.listZones?.(organizationAlias, tournamentAlias, stageNumber) ?? Promise.resolve([]),
       api.listRegistrations(organizationAlias, tournamentAlias, 'accepted'),
+      api.listStages?.(organizationAlias, tournamentAlias).catch(() => []) ?? Promise.resolve([]),
     ])
-      .then(([loadedZones, loadedEntrants]) => {
+      .then(([loadedZones, loadedEntrants, loadedStages]) => {
         if (!live) return;
         setZones(loadedZones);
         setEntrants(loadedEntrants);
+        setStage(loadedStages.find((candidate) => candidate.number === stageNumber));
         setSelectedZoneNumber((current) => current ?? loadedZones[0]?.number);
         setLoadError(undefined);
       })
@@ -151,6 +159,30 @@ export function ZoneGroupPage({
         name: name.trim(),
       });
       void reload();
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
+  async function configureZone(
+    zoneNumber: number,
+    request: ZoneConfigurationRequest,
+  ): Promise<void> {
+    if (!api.configureZone) return;
+    try {
+      const updated = await api.configureZone(
+        organizationAlias,
+        tournamentAlias,
+        stageNumber,
+        zoneNumber,
+        request,
+      );
+      push({ severity: 'success', message: intl.formatMessage(messages.zoneGroupZoneConfigSaved) });
+      // Replaced in place rather than reloaded, so the override section the operator is working in
+      // stays open and keeps what they typed.
+      setZones((current) =>
+        current.map((zone) => (zone.number === updated.number ? updated : zone)),
+      );
     } catch (error) {
       pushError(error);
     }
@@ -350,6 +382,8 @@ export function ZoneGroupPage({
       entrantLabel={entrantLabel}
       entrants={entrants}
       groups={groups}
+      availableFormats={stage?.availableFormats ?? []}
+      onConfigureZone={configureZone}
       onConfirmGroupDraw={confirmGroupDraw}
       onConfirmZoneDraw={confirmZoneDraw}
       onCreateGroup={createGroup}
@@ -365,7 +399,9 @@ export function ZoneGroupPage({
       onSelectZone={setSelectedZoneNumber}
       organizationAlias={organizationAlias}
       selectedZoneNumber={selectedZoneNumber}
+      stageFormat={stage?.format}
       stageNumber={stageNumber}
+      stageSeeded={stage?.seeded ?? false}
       tournamentAlias={tournamentAlias}
       zoneEntrantIds={zoneEntrantIds}
       zones={zones}

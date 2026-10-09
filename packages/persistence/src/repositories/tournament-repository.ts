@@ -19,6 +19,7 @@ import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
 import { toTournament } from '../mapping.js';
 import type { Database } from '../schema.js';
+import type { EventOrigin } from '../outbox.js';
 import type { UnitOfWork } from '../transaction.js';
 
 export interface CreateTournamentInput {
@@ -29,6 +30,7 @@ export interface CreateTournamentInput {
   readonly profile?: { readonly profileId: string; readonly version: string };
   readonly actor: string;
   readonly authorizationContext: string;
+  readonly origin?: EventOrigin;
 }
 
 export interface CreateRulesetInput {
@@ -252,7 +254,14 @@ export class TournamentRepository {
       entityId: tournamentId,
       eventType: 'tournament.created',
       projectionVersion: 1,
-      payload: { tournamentId, alias: tournament.alias, status: tournament.status },
+      payload: {
+        tournamentId,
+        alias: tournament.alias,
+        status: tournament.status,
+        name: tournament.name,
+        actor: input.actor,
+        ...(input.origin === undefined ? {} : { origin: input.origin }),
+      },
     });
 
     return tournament;
@@ -478,6 +487,7 @@ export class TournamentRepository {
       readonly organizationId: string;
       readonly overrides: OverrideSet;
       readonly allocation?: StageAllocation;
+      readonly groupConfiguration?: import('@copalibre/domain').StageGroupConfiguration;
       readonly actor: string;
       readonly authorizationContext: string;
     },
@@ -490,6 +500,9 @@ export class TournamentRepository {
       rulesetId: input.rulesetId,
       overrides: input.overrides,
       ...(input.allocation === undefined ? {} : { allocation: input.allocation }),
+      ...(input.groupConfiguration === undefined
+        ? {}
+        : { groupConfiguration: input.groupConfiguration }),
     };
 
     await uow.tx
@@ -501,6 +514,8 @@ export class TournamentRepository {
         ruleset_id: input.rulesetId,
         overrides: JSON.stringify(input.overrides),
         allocation: input.allocation === undefined ? null : JSON.stringify(input.allocation),
+        group_configuration:
+          input.groupConfiguration === undefined ? null : JSON.stringify(input.groupConfiguration),
         created_at: new Date(),
       })
       .execute();
@@ -539,6 +554,8 @@ export class TournamentRepository {
       readonly changedOverrides: OverrideSet;
       /** Absent leaves the prior version's allocation unchanged; `null` clears it. */
       readonly allocation?: StageAllocation | null;
+      /** Absent preserves the prior group configuration; `null` clears it. */
+      readonly groupConfiguration?: import('@copalibre/domain').StageGroupConfiguration | null;
       readonly actor: string;
       readonly authorizationContext: string;
     },
@@ -566,6 +583,15 @@ export class TournamentRepository {
         ? (JSON.parse(rawPreviousAllocation) as StageAllocation)
         : ((rawPreviousAllocation ?? undefined) as StageAllocation | undefined);
     const nextAllocation = input.allocation === undefined ? previousAllocation : input.allocation;
+    const rawGroupConfiguration = previous.group_configuration;
+    const previousGroupConfiguration =
+      typeof rawGroupConfiguration === 'string'
+        ? JSON.parse(rawGroupConfiguration)
+        : (rawGroupConfiguration ?? undefined);
+    const nextGroupConfiguration =
+      input.groupConfiguration === undefined
+        ? previousGroupConfiguration
+        : (input.groupConfiguration ?? undefined);
     const version = previous.version + 1;
     const stageConfigurationId = newId();
     const configuration: StageConfiguration = {
@@ -577,6 +603,9 @@ export class TournamentRepository {
       ...(nextAllocation === null || nextAllocation === undefined
         ? {}
         : { allocation: nextAllocation }),
+      ...(nextGroupConfiguration === undefined
+        ? {}
+        : { groupConfiguration: nextGroupConfiguration }),
     };
 
     await uow.tx
@@ -591,6 +620,8 @@ export class TournamentRepository {
           nextAllocation === null || nextAllocation === undefined
             ? null
             : JSON.stringify(nextAllocation),
+        group_configuration:
+          nextGroupConfiguration === undefined ? null : JSON.stringify(nextGroupConfiguration),
         created_at: new Date(),
       })
       .execute();
@@ -608,8 +639,20 @@ export class TournamentRepository {
       action: 'stage-configuration.updated',
       actor: input.actor,
       authorizationContext: input.authorizationContext,
-      previousState: { version: previous.version, overrides: previousOverrides },
-      resultingState: { version, overrides: mergedOverrides },
+      previousState: {
+        version: previous.version,
+        overrides: previousOverrides,
+        ...(previousGroupConfiguration === undefined
+          ? {}
+          : { groupConfiguration: previousGroupConfiguration }),
+      },
+      resultingState: {
+        version,
+        overrides: mergedOverrides,
+        ...(nextGroupConfiguration === undefined
+          ? {}
+          : { groupConfiguration: nextGroupConfiguration }),
+      },
     });
 
     return configuration;
@@ -928,6 +971,14 @@ export class TournamentRepository {
       rulesetId: row.ruleset_id,
       overrides: overrides as Record<string, unknown>,
       ...(allocation === null || allocation === undefined ? {} : { allocation }),
+      ...(row.group_configuration === null || row.group_configuration === undefined
+        ? {}
+        : {
+            groupConfiguration:
+              typeof row.group_configuration === 'string'
+                ? JSON.parse(row.group_configuration)
+                : row.group_configuration,
+          }),
     };
   }
 

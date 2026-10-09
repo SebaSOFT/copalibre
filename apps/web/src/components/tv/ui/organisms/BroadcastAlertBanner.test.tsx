@@ -21,7 +21,7 @@ function advance(ms: number): void {
   act(() => jest.advanceTimersByTime(ms));
 }
 
-describe('BroadcastAlertBanner (openspec 0300)', () => {
+describe('BroadcastAlertBanner', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
 

@@ -34,7 +34,7 @@ export interface ValidateModulePackageOptions {
 }
 
 /**
- * The single validation entry point (task 2.6): manifest schema, artifact
+ * The single validation entry point: manifest schema, artifact
  * schema, registry references (which already covers the expression
  * checks via `validateScriptReferences` — never reimplemented here),
  * `compileEffectiveRuleset`, asset limits, `requiresCopalibre`, and reserved
@@ -157,7 +157,7 @@ export async function validateModulePackage(
 /**
  * The semantic checks specific to a discipline descriptor or a tournament
  * profile — everything `validateModulePackage` used to run inline once it
- * knew `manifest.kind`, extracted verbatim (openspec 0229) so this block's
+ * knew `manifest.kind`, extracted verbatim so this block's
  * own branches count toward its own complexity, not the entry point's.
  */
 function validateDisciplineOrProfileSemantics(
@@ -253,7 +253,7 @@ function validateDisciplineOrProfileSemantics(
     // Profiles have no `defaults` tree of their own — `compileEffectiveRuleset`
     // only validates override-layer application against a discipline's field
     // policies, which do not exist until this profile is bound to one. That
-    // binding, and the capability report it produces, is task 3.5's job at
+    // binding, and the capability report it produces, are done at
     // import time, not this structural, discipline-independent check.
   }
 

@@ -24,6 +24,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { effectiveFormat, type TournamentFormat } from '@copalibre/domain';
 import {
   AllocationError,
   allocateSeeds,
@@ -57,6 +58,13 @@ import {
 } from '../dto/standings.dto.js';
 import { resolveTournament } from './standings.controller.js';
 import { resolveStageZones } from './bracket-zones.js';
+import { bracketLinks, graphRecordsOf, placementMatchOf } from './bracket-placements.js';
+import {
+  planZoneFixtures,
+  ZoneFixturePlanError,
+  type PlannedZoneInput,
+  type ZoneFixturePlan,
+} from './zone-fixture-plan.js';
 import { readStageSeries, readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
 import { PublicSeriesStateResponse } from '../dto/public-tournament.dto.js';
 import { DATABASE } from '../database.token.js';
@@ -107,7 +115,7 @@ export class SeedingController {
     const readModel = new StageReadModel(this.db);
 
     // Seed order/publish stay scoped to the stage's one flat entrant list — only the canvas
-    // *display* below is broken out per zone, matching design.md 0246 Decision 3b: this display
+    // *display* below is broken out per zone, matching the operator-canvas decision (display fix only, not zone-authoring): this display
     // fix does not touch how a stage is seeded or reseeded.
     const zones = await resolveStageZones(this.db, stageId);
     const zoneResponses = await Promise.all(
@@ -120,25 +128,54 @@ export class SeedingController {
           zone.zoneId === undefined
             ? record
             : await readModel.stageRecord(stageId, undefined, zone.zoneId);
-        const persisted = await readModel.matches(stageId, undefined, zone.zoneId);
-        const graph = this.graphOf(record.format, zoneRecord?.entrantIds ?? []);
+        const zoneRecords = await readModel.matches(stageId, undefined, zone.zoneId);
+        // Placement games sit beside the generated graph, not on it.
+        const persisted = graphRecordsOf(zoneRecords);
+        const format = effectiveFormat(zone, { format: record.format as TournamentFormat });
+        const graph = this.graphOf(format, zoneRecord?.entrantIds ?? []);
         const ambiguousPositions = ambiguousRoundPositions(graph.matches);
         const seriesByPosition = await readStageSeriesByPosition(this.db, {
           tournamentId,
           stageId,
+          zoneId: zone.zoneId,
           records: persisted,
         });
 
+        const graphMatches = graph.matches.map((match) => {
+          const series = seriesByPosition.get(roundPositionKey(match));
+          return toBracketMatch(match, persisted, {
+            ambiguousPositions,
+            matchFormat,
+            ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
+          });
+        });
+        const { placements, sourcesOf } = bracketLinks(graphMatches, zoneRecords, persisted);
+
         return {
           ...zone,
-          matches: graph.matches.map((match) => {
-            const series = seriesByPosition.get(roundPositionKey(match));
-            return toBracketMatch(match, persisted, {
-              ambiguousPositions,
-              matchFormat,
-              ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
-            });
-          }),
+          format,
+          matches: [
+            ...graphMatches.map((match) => ({
+              ...match,
+              slots: match.slots.map((slot, slotIndex) => {
+                const from = slot.kind === 'entrant' ? sourcesOf(match)[slotIndex] : undefined;
+                return from === undefined ? slot : { ...slot, from };
+              }),
+            })),
+            ...placements.map((node) => ({
+              ...placementMatchOf(node),
+              slots: [node.record.homeEntrantId, node.record.awayEntrantId].map(
+                (entrantId, index) => ({
+                  kind: 'entrant' as const,
+                  ...(entrantId === undefined ? {} : { entrantId }),
+                  ...(node.sources[index] === undefined ? {} : { from: node.sources[index] }),
+                  ...(node.record.scores?.[index] === undefined
+                    ? {}
+                    : { score: node.record.scores[index] }),
+                }),
+              ),
+            })),
+          ],
         };
       }),
     );
@@ -238,13 +275,36 @@ export class SeedingController {
     }
     validateSeedOrder(seeds, record.entrantIds);
 
+    const zones = await this.plannedZones(stageId);
+    const stageFormat = record.format as TournamentFormat;
+    const orderedEntrantIds = [...seeds]
+      .sort((a, b) => a.seed - b.seed)
+      .map((entry) => entry.entrantId);
+
+    let currentPlans: readonly ZoneFixturePlan[];
+    let newPlans: readonly ZoneFixturePlan[];
+    try {
+      currentPlans = planZoneFixtures({
+        stageFormat,
+        zones,
+        orderedEntrantIds: record.entrantIds,
+      });
+      newPlans = planZoneFixtures({ stageFormat, zones, orderedEntrantIds });
+    } catch (error) {
+      if (error instanceof ZoneFixturePlanError)
+        throw new UnprocessableEntityException(error.message, {
+          errorCode: 'seeding-unprocessable-entity',
+        });
+      throw error;
+    }
+
     const classification = classifyEngineMutation(
       { kind: 'seeding' },
       {
         hasRecordedResults: record.hasRecordedResults,
         hasGeneratedFixtures: record.hasGeneratedFixtures,
       },
-      this.graphOf(record.format, record.entrantIds),
+      this.graphOfPlans(currentPlans),
     );
 
     // The console disables the button; this refuses the request. A tab left
@@ -254,19 +314,41 @@ export class SeedingController {
       throw new ConflictException(classification.reason, { errorCode: 'seeding-conflict' });
     }
 
-    const orderedEntrantIds = [...seeds]
-      .sort((a, b) => a.seed - b.seed)
-      .map((entry) => entry.entrantId);
-    const newGraph = this.graphOf(record.format, orderedEntrantIds);
-    const fixtures = resolvedFixtureInputs(newGraph);
-
-    // A stage declaring a series materializes its whole span up front, so every game of a
-    // best-of-five is a real match with its own id from the moment the bracket exists — that
-    // is what the schedule builder places in slots, and what the engine later anulls if the
-    // series decides early. A stage declaring none passes no `matchCount` at all and gets the
-    // one match per fixture it has always got.
-    const declaration = await readStageSeries(this.db, { tournamentId, stageId });
-    const seriesSpan = declaration === undefined ? {} : { matchCount: declaration.span };
+    // Every zone is generated in its own format from its own entrants. A stage with no entrants
+    // drawn into zones has one un-zoned plan and takes the path it always took. A stage declaring a
+    // series materializes its whole span up front, so every game of a best-of-five is a real match
+    // with its own id from the moment the bracket exists — that is what the schedule builder places
+    // in slots, and what the engine later anulls if the series decides early. A zone declaring none
+    // (or a stage declaring none) passes no `matchCount` at all and gets the one match per fixture
+    // it has always got.
+    const fixtures: {
+      round: number;
+      homeEntrantId?: string;
+      awayEntrantId?: string;
+      zoneId?: string;
+      matchCount?: number;
+    }[] = [];
+    let seriesSpan: { readonly matchCount?: number } = {};
+    for (const plan of newPlans) {
+      const declaration = await readStageSeries(this.db, {
+        tournamentId,
+        stageId,
+        zoneId: plan.zoneId,
+      });
+      const graph = this.graphOf(plan.format, plan.entrantIds);
+      if (plan.zoneId === undefined) {
+        seriesSpan = declaration === undefined ? {} : { matchCount: declaration.span };
+        fixtures.push(...resolvedFixtureInputs(graph));
+        continue;
+      }
+      for (const fixture of resolvedFixtureInputs(graph)) {
+        fixtures.push({
+          ...fixture,
+          zoneId: plan.zoneId,
+          ...(declaration === undefined ? {} : { matchCount: declaration.span }),
+        });
+      }
+    }
 
     const competition = new CompetitionRepository(this.db);
     try {
@@ -300,6 +382,31 @@ export class SeedingController {
       reason: classification.reason,
       invalidates: [...classification.invalidates],
       persisted: true,
+    };
+  }
+
+  /** The stage's zones with the entrants drawn into each, in the shape the fixture planner reads. */
+  private async plannedZones(stageId: string): Promise<readonly PlannedZoneInput[]> {
+    const competition = new CompetitionRepository(this.db);
+    const zones = await competition.listZonesOfStage(stageId);
+    return Promise.all(
+      zones.map(async (zone) => ({
+        zoneId: zone.zoneId,
+        zoneName: zone.name,
+        ...(zone.format === undefined ? {} : { format: zone.format }),
+        entrantIds: new Set(await competition.listEntrantIdsOfZone(zone.zoneId)),
+      })),
+    );
+  }
+
+  /** The plans' graphs as one, for the parts of the engine that only need its match ids. */
+  private graphOfPlans(plans: readonly ZoneFixturePlan[]): FixtureGraph {
+    const graphs = plans.map((plan) => this.graphOf(plan.format, plan.entrantIds));
+    return {
+      format: graphs[0]?.format ?? 'single-elimination',
+      entrantCount: graphs.reduce((total, graph) => total + graph.entrantCount, 0),
+      matches: graphs.flatMap((graph) => graph.matches),
+      rounds: graphs.flatMap((graph) => graph.rounds),
     };
   }
 

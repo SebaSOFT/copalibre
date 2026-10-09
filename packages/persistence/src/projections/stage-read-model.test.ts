@@ -14,7 +14,7 @@ function record(matchId: string, round: number, position: number): StageMatchRec
 describe('stageMatchOrdinals', () => {
   it('assigns a distinct 1..N ordinal to every match, even when they all share matches.number = 1', () => {
     // Every fixture here is a single, non-series game — `matches.number` would
-    // be 1 for all of them (openspec 0249's root cause). The ordinal must not
+    // be 1 for all of them (the root cause). The ordinal must not
     // collide the way that column does.
     const records = [
       record('m-1', 1, 1),

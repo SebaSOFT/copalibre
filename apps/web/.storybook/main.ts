@@ -2,11 +2,11 @@ import type { StorybookConfig } from '@storybook/react-vite';
 import react from '@vitejs/plugin-react';
 
 /**
- * The component workbench (OpenSpec 0213).
+ * The component workbench.
  *
  * A local review surface, deliberately: there is no `build-storybook` script
  * and nothing hosted, so what the workbench lists is always what the
- * checked-out branch contains (design.md Decision 1 / Non-Goals).
+ * checked-out branch contains.
  *
  * `react-vite` rather than a second bundler: Astro 7 already builds this
  * workspace with Vite 8, which is inside Storybook 10's declared peer range.

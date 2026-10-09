@@ -4,7 +4,7 @@
  *
  * Radix Dialog supplies focus trap, `aria-modal`, Escape handling and portal
  * rendering — exactly what a hand-built `role="dialog"` div (the previous
- * `InviteDialog` pattern) lacked (design.md Decision 5).
+ * `InviteDialog` pattern) lacked.
  */
 import type { ReactNode } from 'react';
 import * as RadixDialog from '@radix-ui/react-dialog';

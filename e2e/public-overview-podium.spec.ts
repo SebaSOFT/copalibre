@@ -58,6 +58,10 @@ test.beforeAll(async ({ workerPort }) => {
       );
       return;
     }
+    if (path === `${route}/matches-view`) {
+      res.end(JSON.stringify({ matches: [match] }));
+      return;
+    }
     if (path === `${route}/completion`) {
       res.end(
         JSON.stringify({
@@ -82,7 +86,7 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test('0268: finished multi-zone overview shows shared champions and known third place', async ({
+test('finished multi-zone overview shows shared champions and known third place', async ({
   page,
   workerPort,
 }) => {
@@ -97,14 +101,14 @@ test('0268: finished multi-zone overview shows shared champions and known third 
   await expect(podium.getByText('Bronze Club', { exact: true })).toBeVisible();
   await expect(podium.getByText('Runner Club', { exact: true })).toBeVisible();
 
-  const card = page.locator('.cl-match-card').first();
-  await expect(card.locator('.cl-badge')).toContainText('FINAL');
-  const timestamp = card.locator('time.cl-responsive-timestamp');
+  const row = page.locator('.cl-match-schedule').getByRole('row').filter({ hasText: 'Andes' });
+  await expect(row).toContainText('FINAL');
+  const timestamp = row.locator('time');
   await expect(timestamp).toHaveAttribute('datetime', match.scheduledAt);
   await expect(timestamp).not.toContainText('2025-05-18T');
 });
 
-test('0268: single-zone overview keeps its match card but omits the podium', async ({
+test('single-zone overview keeps its match schedule but omits the podium', async ({
   page,
   workerPort,
 }) => {
@@ -112,5 +116,5 @@ test('0268: single-zone overview keeps its match card but omits the podium', asy
   await page.goto(`${basePath}/single-zone`);
 
   await expect(page.locator('.cl-podium-container')).toHaveCount(0);
-  await expect(page.locator('.cl-match-card')).toHaveCount(1);
+  await expect(page.locator('.cl-match-schedule').getByRole('table')).toHaveCount(1);
 });

@@ -7,7 +7,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
  * every mocked API call rejects with a network-level error while the flag
  * is set — deliberately not Playwright's `context.setOffline(true)`, which
  * would also block the page's own reload in this environment (no service
- * worker ships here, by design.md's own non-goal).
+ * worker ships here, by design).
  */
 
 const matchId = '00000000-0000-7000-8000-000000000003';
@@ -166,7 +166,7 @@ async function selectEnglish(page: Page): Promise<void> {
 
 /**
  * The queued count and last-synced time are on-demand detail behind the
- * console's one connectivity icon (0205), so every assertion on them has to
+ * console's one connectivity icon, so every assertion on them has to
  * ask for them the way an operator would — a focus or a hover.
  */
 async function openSyncDetail(page: Page): Promise<void> {
@@ -217,7 +217,7 @@ test('a queued action survives a refresh while offline, and drains once back onl
   // Reload while still offline. Fetching the console's own authoritative
   // state also fails offline (an orthogonal, pre-existing read-side gap —
   // not what this proposal covers), so the console UI itself doesn't
-  // render this round; what design.md's "survives a hard refresh"
+  // render this round; what the "survives a hard refresh"
   // guarantee actually promises is durability, checked directly against
   // IndexedDB here rather than through UI text that can't paint yet.
   await seedLoginTransaction(page, target);

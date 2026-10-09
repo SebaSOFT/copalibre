@@ -16,10 +16,10 @@ type LoadStatus = 'loading' | 'ready' | 'failed';
  * A minimal person-profile view:
  * photo-or-placeholder, display name, nationality flag, natural key. No edit
  * affordances here — nationality and photo are set from the registration review
- * screen's expanded row (design.md's non-goal rules out a separate "edit person"
- * screen).
+ * screen's expanded row (a separate "edit person"
+ * screen is deliberately out of scope).
  *
- * Fetches (openspec 0225 task 6.2): the person load lives here;
+ * Fetches: the person load lives here;
  * `PersonProfileTemplate` composes the screen from the resulting data.
  */
 export function PersonProfilePage({

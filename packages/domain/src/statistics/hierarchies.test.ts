@@ -34,7 +34,7 @@ describe('the two axes', () => {
 
   it('names where every granularity gets its identifiers, so none is declared over nothing', () => {
     for (const granularity of [...COMPETITION_GRANULARITIES, ...ACTOR_GRANULARITIES]) {
-      expect(GRANULARITY_SOURCES[granularity]).toMatch(/^\d{4}$/);
+      expect(GRANULARITY_SOURCES[granularity].trim()).not.toBe('');
     }
   });
 
@@ -45,7 +45,11 @@ describe('the two axes', () => {
       GRANULARITY_SOURCES.season,
       GRANULARITY_SOURCES.person,
       GRANULARITY_SOURCES.player,
-    ]).toEqual(['0015', '0015', '0015']);
+    ]).toEqual([
+      'competition identity and seasons',
+      'competition identity and seasons',
+      'competition identity and seasons',
+    ]);
   });
 });
 

@@ -1,7 +1,7 @@
 ## Summary
 
 <!-- What does this PR change and why? Link the OpenSpec change it implements, e.g.
-     openspec/changes/0001-bootstrap-monorepo-toolchain -->
+     openspec/changes/<id>-<slug> -->
 
 ## OpenSpec change
 

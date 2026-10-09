@@ -17,10 +17,10 @@ import { buildValidationRegistry } from './registry.js';
 
 /**
  * Re-runs registry-reference, core-version, and asset validation against an
- * already-installed module (task 4.6) — everything that can drift after
+ * already-installed module — everything that can drift after
  * install: the registry's vocabulary can shrink on a core upgrade (task
  * 7.5), the running version can move out of `requiresCopalibre`'s range,
- * and asset limits can tighten (design.md's stated mitigation for exactly
+ * and asset limits can tighten (the stated mitigation for exactly
  * this). Manifest/artifact schema is not re-checked — the stored document
  * already passed it at install time and cannot have changed since; nothing
  * about a schema can drift under an installed, immutable row.
@@ -89,26 +89,89 @@ export function evaluateCoreVersionCompatibility(
   };
 }
 
-async function verifyAssets(
+/** Why an installed module asset is not served by the active storage. */
+export interface AssetStorageProblem {
+  readonly kind: 'profile-mismatch' | 'unreadable';
+  readonly recordedProfile: string;
+  readonly activeProfile: string;
+  /** What the read failed with, for an unreadable asset; never a credential. */
+  readonly reason?: string;
+}
+
+/**
+ * Whether an installed asset is where the active storage looks for it: first the recorded profile
+ * against the active one (a certain signal, and a stale object left in the other profile cannot hide
+ * it), then a read to confirm the object is there. On success the bytes come back for the caller to
+ * validate. Shared by `module verify` and `copalibre doctor`, so both name the same cause.
+ */
+export async function readInstalledAsset(
+  storage: ObjectStorageAdapter,
+  asset: Pick<InstalledModuleAsset, 'storageBucket' | 'storageKey'>,
+): Promise<
+  | { readonly problem: AssetStorageProblem }
+  | { readonly body: Uint8Array; readonly problem?: never }
+> {
+  const base = { recordedProfile: asset.storageBucket, activeProfile: storage.profile };
+  if (asset.storageBucket !== storage.profile) {
+    return { problem: { kind: 'profile-mismatch', ...base } };
+  }
+  try {
+    return { body: (await storage.get({ key: asset.storageKey })).body };
+  } catch (error) {
+    return {
+      problem: {
+        kind: 'unreadable',
+        ...base,
+        reason: error instanceof Error ? error.name : 'unknown error',
+      },
+    };
+  }
+}
+
+/** The one-line remedy for either problem; it names the variables, never their values. */
+export const ASSET_STORAGE_REMEDY =
+  "add the module again with the stack's object-storage variables (COPALIBRE_OBJECT_STORAGE_URL, _ACCESS_KEY, _SECRET_KEY and _BUCKET)";
+
+export function describeAssetStorageProblem(problem: AssetStorageProblem): string {
+  return problem.kind === 'profile-mismatch'
+    ? `stored under the "${problem.recordedProfile}" storage profile, but the active profile is "${problem.activeProfile}"; ${ASSET_STORAGE_REMEDY}`
+    : `missing or unreadable in the active "${problem.activeProfile}" storage (${problem.reason ?? 'unknown error'}); ${ASSET_STORAGE_REMEDY}`;
+}
+
+export async function verifyAssets(
   storage: ObjectStorageAdapter,
   assets: readonly InstalledModuleAsset[],
 ): Promise<readonly ModuleValidationFailure[]> {
   const directory = await mkdtemp(join(tmpdir(), 'copalibre-module-verify-'));
   try {
     await mkdir(join(directory, ASSETS_DIRECTORY_NAME));
+    const unavailable: ModuleValidationFailure[] = [];
+    const readable: InstalledModuleAsset[] = [];
     for (const asset of assets) {
-      const stored = await storage.get({ key: asset.storageKey });
-      await writeFile(join(directory, ASSETS_DIRECTORY_NAME, asset.path), stored.body);
+      const read = await readInstalledAsset(storage, asset);
+      if (read.problem !== undefined) {
+        unavailable.push({
+          stage: 'asset',
+          field: asset.path,
+          message: `${asset.path}: ${describeAssetStorageProblem(read.problem)}`,
+        });
+        continue;
+      }
+      await writeFile(join(directory, ASSETS_DIRECTORY_NAME, asset.path), read.body);
+      readable.push(asset);
     }
     const failures = await validateModuleAssets(
       directory,
-      assets.map((asset) => ({ path: asset.path, kind: asset.kind })),
+      readable.map((asset) => ({ path: asset.path, kind: asset.kind })),
     );
-    return failures.map((failure) => ({
-      stage: 'asset',
-      field: failure.path,
-      message: failure.message,
-    }));
+    return [
+      ...unavailable,
+      ...failures.map((failure) => ({
+        stage: 'asset',
+        field: failure.path,
+        message: failure.message,
+      })),
+    ];
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

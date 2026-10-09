@@ -8,6 +8,7 @@ import {
 import { controlLinkClick, navigateControl } from '../lib/control-navigation.js';
 import { messages } from '../i18n/messages.en.js';
 import { Button } from './ui/atoms/button.js';
+import { LinkButton } from './ui/atoms/link-button.js';
 import { DataEntityCard, type DataEntityCardAccent } from './ui/molecules/data-entity-card.js';
 import { DropdownMenu } from './ui/organisms/dropdown-menu.js';
 
@@ -33,15 +34,15 @@ export interface TournamentSummaryCardProps {
   readonly onExport: (alias: string, kind: TournamentExportKind) => void;
   readonly onExportConfiguration: (alias: string) => void;
   readonly onArchive: (alias: string) => void;
-  /** Gates the Broadcaster Studio link (openspec 0300) — the same capability its backend endpoints already require. */
+  /** Gates the Broadcaster Studio link — the same capability its backend endpoints already require. */
   readonly canManageDisplayTokens: boolean;
 }
 
 /**
  * One tournament on the dashboard.
  *
- * The accent bar is the state's colour and the badge is its word. Both, always
- * — an operator scanning twenty cards in a noisy venue is exactly the person a
+ * The accent bar is the state's colour and the badge is its word. Both, always —
+ * an operator scanning twenty cards in a noisy venue is exactly the person a
  * colour-only cue fails.
  *
  * Its actions live in the card rather than beside it. They used to sit in a
@@ -72,10 +73,12 @@ export function TournamentSummaryCard({
   // A draft has nothing to open yet; its own requirement asks for a way back
   // into editing, which is its settings screen.
   const primaryHref = card.lifecycle === 'draft' ? `${base}/settings` : matchesHref;
-  // The Tournament hub (openspec 0250): a second entry point alongside the
+  // The Tournament hub: a second entry point alongside the
   // title, since it leads somewhere the title never has — the tournament's
   // stage list, not its matches.
   const stagesHref = base;
+  const publicHref = `/${organizationAlias}/tournaments/${card.alias}`;
+  const tvHref = `/tv/${organizationAlias}/tournaments/${card.alias}`;
   const primaryLabel =
     card.lifecycle === 'draft'
       ? intl.formatMessage(messages.dashboardResumeEditing)
@@ -105,7 +108,7 @@ export function TournamentSummaryCard({
     // Not an export, but the same overflow menu — a fourth standalone button
     // here (like the four exports before this menu existed) wraps this row
     // into two at 375px, exactly the layout defect this menu already exists
-    // to prevent (openspec 0300). `navigateControl` directly, not
+    // to prevent. `navigateControl` directly, not
     // `controlLinkClick`: a menu item is a Radix `onSelect`, not an `<a>`
     // click, and carries no `MouseEvent` to read modifier keys from.
     ...(canManageDisplayTokens
@@ -138,6 +141,22 @@ export function TournamentSummaryCard({
           >
             {intl.formatMessage(messages.dashboardStages)}
           </a>
+          <LinkButton
+            aria-label={intl.formatMessage(messages.tournamentPublicSite)}
+            href={publicHref}
+            title={intl.formatMessage(messages.tournamentPublicSite)}
+            variant="secondary"
+          >
+            {intl.formatMessage(messages.tournamentPublicSiteShort)}
+          </LinkButton>
+          <LinkButton
+            aria-label={intl.formatMessage(messages.tournamentTvDisplay)}
+            href={tvHref}
+            title={intl.formatMessage(messages.tournamentTvDisplay)}
+            variant="secondary"
+          >
+            {intl.formatMessage(messages.tournamentTvDisplayShort)}
+          </LinkButton>
           <DropdownMenu
             items={exports.map((one) => ({
               id: one.id,

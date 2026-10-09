@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { BracketSlotSourceResponse } from './bracket-slot-source.dto.js';
 import { TableCellResponse, TableColumnResponse } from './table-projections.dto.js';
 import type { LocalizedLabel } from '@copalibre/domain';
 
@@ -23,14 +24,28 @@ export class PublicStandingsRowResponse {
     additionalProperties: { type: 'number' },
   })
   statistics!: Record<string, number>;
+
+  @ApiPropertyOptional({
+    description:
+      'The zone this row is ranked in. Present only when the stage mixes formats, so each table zone is ranked on its own; absent for a stage with a single table.',
+  })
+  zoneName?: string;
 }
 
 export class PublicOverviewMatchResponse {
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
 
-  @ApiPropertyOptional({ description: '1-based sequential number within the stage' })
+  @ApiPropertyOptional({
+    description: 'The match number as persisted: a per-fixture series-game index',
+  })
   matchNumber?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'The 1-based ordinal of the match within its stage, the one the public match route addresses it by. Absent before a fixture becomes a match.',
+  })
+  stageOrdinal?: number;
 
   @ApiProperty()
   stageNumber!: number;
@@ -95,6 +110,11 @@ export class PublicOverviewResponse {
   @ApiProperty()
   organizationName!: string;
 
+  @ApiPropertyOptional({
+    description: 'The IANA time zone of the organization, in which its schedule times are read.',
+  })
+  organizationTimeZone?: string;
+
   @ApiProperty()
   tournamentAlias!: string;
 
@@ -133,7 +153,7 @@ export class PublicOverviewResponse {
     description:
       "Each `ruleset` key's declared display label, when the installed discipline's field " +
       'policy declares one — absent keys fall back to a humanized dot-path client-side ' +
-      '(openspec 0267).',
+      '.',
   })
   rulesetLabels?: Record<string, string | LocalizedLabel>;
 
@@ -175,6 +195,39 @@ export class PublicLivePenaltyResponse {
   remainingSeconds!: number;
 }
 
+/**
+ * One segment of a match (a half, a set, a frame), with what each side scored in it. `timed` tells a
+ * segment played against a clock from one played to a target, which is what makes a set a set.
+ */
+export class PublicSegmentSummaryResponse {
+  @ApiProperty({ description: '1-based order within the match' })
+  number!: number;
+
+  @ApiProperty({ description: "The discipline's own segment type name" })
+  type!: string;
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    description: "The segment type's display label in every language the discipline wrote it in.",
+  })
+  label?: string | LocalizedLabel;
+
+  @ApiPropertyOptional({
+    description: 'Whether the segment runs against a clock; false for one played to a target',
+  })
+  timed?: boolean;
+
+  @ApiProperty({ enum: ['pending', 'active', 'completed'] })
+  state!: 'pending' | 'active' | 'completed';
+
+  @ApiPropertyOptional({
+    type: [Number],
+    description: 'What each side scored in this segment alone, home first',
+  })
+  scores?: number[];
+}
+
 export class PublicLiveMatchResponse {
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
@@ -184,6 +237,18 @@ export class PublicLiveMatchResponse {
 
   @ApiProperty()
   matchNumber!: number;
+
+  @ApiPropertyOptional({
+    description:
+      'The 1-based ordinal of the match within its stage, the one the public match route addresses it by.',
+  })
+  stageOrdinal?: number;
+
+  @ApiPropertyOptional({
+    type: () => [PublicSegmentSummaryResponse],
+    description: 'The match’s segments and what each side scored in each',
+  })
+  segments?: PublicSegmentSummaryResponse[];
 
   @ApiProperty()
   state!: string;
@@ -237,6 +302,21 @@ export class PublicMatchRosterMemberResponse {
   onField!: boolean;
 }
 
+export class PublicRosterRoleResponse {
+  @ApiProperty()
+  code!: string;
+
+  @ApiPropertyOptional()
+  badge?: string;
+
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    description: 'The role label: a plain string, or a localized label with `en` always present.',
+  })
+  label!: string | LocalizedLabel;
+}
+
 export class PublicMatchRostersResponse {
   @ApiProperty({ type: [PublicMatchRosterMemberResponse] })
   home!: PublicMatchRosterMemberResponse[];
@@ -252,8 +332,19 @@ export class PublicMatchEventResponse {
   @ApiProperty()
   definitionCode!: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'The English label; `labels` carries every language the descriptor ships.',
+  })
   label!: string;
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: { type: 'string' },
+    description:
+      "The event definition's label in every language the discipline descriptor declares " +
+      '(`en` always present); absent when the descriptor declares a plain string.',
+  })
+  labels?: LocalizedLabel;
 
   @ApiPropertyOptional({ type: [String] })
   workflowOutcomeCodes?: string[];
@@ -351,8 +442,21 @@ export class PublicMatchReportResponse {
   @ApiProperty({ type: PublicMatchRostersResponse })
   rosters!: PublicMatchRostersResponse;
 
+  @ApiPropertyOptional({
+    type: [PublicRosterRoleResponse],
+    description:
+      "The discipline's declared roster roles, so a client can label each member's role codes.",
+  })
+  rosterRoles?: PublicRosterRoleResponse[];
+
   @ApiProperty({ type: [PublicMatchEventResponse] })
   timeline!: PublicMatchEventResponse[];
+
+  @ApiPropertyOptional({
+    type: () => [PublicSegmentSummaryResponse],
+    description: 'The match’s segments and what each side scored in each',
+  })
+  segments?: PublicSegmentSummaryResponse[];
 }
 
 export class PublicBracketSlotResponse {
@@ -382,6 +486,14 @@ export class PublicBracketSlotResponse {
 
   @ApiPropertyOptional({ description: 'Match this slot sources its participant from' })
   matchId?: string;
+
+  @ApiPropertyOptional({
+    type: () => BracketSlotSourceResponse,
+    description:
+      'Where this side came from, kept once the slot holds the entrant that got here, so the ' +
+      'link between the two matches can still be drawn',
+  })
+  from?: BracketSlotSourceResponse;
 
   @ApiPropertyOptional({ description: 'Score recorded for this side, when the match is finalized' })
   score?: number;
@@ -503,6 +615,12 @@ export class PublicBracketMatchResponse {
   })
   matchNumber?: number;
 
+  @ApiPropertyOptional({
+    description: 'A placement game’s part in its zone, such as `place-3` or `places-5-8`',
+    example: 'place-3',
+  })
+  role?: string;
+
   @ApiProperty({ type: [PublicBracketSlotResponse] })
   slots!: PublicBracketSlotResponse[];
 
@@ -515,7 +633,7 @@ export class PublicBracketMatchResponse {
 
 /**
  * One zone's own independent bracket — or the stage's only bracket, for an un-zoned stage, which
- * always comes back as exactly one zone entry with no `zoneId`/`zoneName` (openspec 0246).
+ * always comes back as exactly one zone entry with no `zoneId`/`zoneName`.
  */
 export class PublicBracketZoneResponse {
   @ApiPropertyOptional({ format: 'uuid', description: 'Absent for an un-zoned stage' })
@@ -523,6 +641,12 @@ export class PublicBracketZoneResponse {
 
   @ApiPropertyOptional({ description: 'Absent for an un-zoned stage' })
   zoneName?: string;
+
+  @ApiProperty({
+    description:
+      'The format this zone plays: its own when it declares one, otherwise the stage’s. Decides how the zone is drawn.',
+  })
+  format!: string;
 
   @ApiProperty({ type: [PublicBracketMatchResponse] })
   matches!: PublicBracketMatchResponse[];

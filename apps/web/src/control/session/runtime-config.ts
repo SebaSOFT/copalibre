@@ -1,8 +1,8 @@
 import type { SessionMode } from './token-store.js';
 
 /**
- * `/runtime-config.json` is deployment-provided — served by the edge proxy
- * (openspec 0062), never built by this repo — so every field is optional
+ * `/runtime-config.json` is deployment-provided — served by the edge proxy,
+ * never built by this repo — so every field is optional
  * and read defensively.
  */
 export interface RuntimeConfig {
@@ -24,8 +24,8 @@ export async function readRuntimeConfig(
 }
 
 /**
- * A deployment that says nothing about session mode gets the strict default
- * — an assumed silent session is a worse failure than an assumed
+ * A deployment that says nothing about session mode gets the strict default —
+ * an assumed silent session is a worse failure than an assumed
  * reauthentication prompt.
  */
 export function resolveSessionMode(config: RuntimeConfig): SessionMode {

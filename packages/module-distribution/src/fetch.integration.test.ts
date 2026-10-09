@@ -7,16 +7,22 @@ import {
   fetchModule,
   listPublishedVersions,
 } from './fetch.js';
+import { describeWhenReachable } from './test-support/network-probe.js';
+
+const SUITE = 'fetchModule / listPublishedVersions (integration, real repository)';
+const describeNetwork = await describeWhenReachable(CURATED_MODULE_REPOSITORY.repositoryUrl, SUITE);
 
 /**
- * Exercises fetch.ts's git I/O against the real curated repository (task
- * 5 built and tagged `orbital-frisbee@1.0.0`/`weekend-cup@1.0.0` there) — the
+ * Exercises fetch.ts's git I/O against the real curated repository, where
+ * `orbital-frisbee@1.0.0` and `weekend-cup@1.0.0` are tagged — the
  * same real-infrastructure verification this repo's other integration
  * suites give a real PostgreSQL, given here to a real `git clone`. Requires
- * network access; skipped in the plain unit run via jest.config.cjs's
+ * network access: it skips with a reason when the repository is unreachable,
+ * and fails instead when COPALIBRE_REQUIRE_NETWORK_TESTS=1 (continuous
+ * integration). Excluded from the plain unit run via jest.config.cjs's
  * testPathIgnorePatterns.
  */
-describe('fetchModule / listPublishedVersions (integration, real repository)', () => {
+describeNetwork(SUITE, () => {
   const checkoutRoots: string[] = [];
   let workspaceDirectory: string;
 
@@ -141,5 +147,5 @@ describe('fetchModule / listPublishedVersions (integration, real repository)', (
     await expect(
       fetchModule(CURATED_MODULE_REPOSITORY, 'no-such-module-alias', undefined, workspaceDirectory),
     ).rejects.toThrow(/No published version/);
-  });
+  }, 30_000);
 });

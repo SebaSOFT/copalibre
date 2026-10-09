@@ -3,6 +3,7 @@ title: Übertragungs- und öffentliche Oberflächen
 description: Anzeige-Tokens für TV-Bildschirme vor Ort und Streaming-Overlays, und was ein Zuschauer auf der öffentlichen Website sieht.
 capabilities:
   - live-operations/broadcast-tv-surfaces
+  - live-operations/tv-dashboard-localization
   - live-operations/public-live-surfaces
   - public-web/public-web-shell
 roles:
@@ -37,6 +38,28 @@ ein live erfasstes Tor, ein Punkt oder eine Karte einen animierten Hinweis mit M
 Spieler an und blendet sich danach automatisch aus — niemand vor Ort muss ihn auslösen oder
 schließen.
 
+## Was die Anzeige in der Halle zeigt
+
+Die Anzeige mit vollständiger Rotation zeigt nacheinander die Tabelle, die besten Spielenden, die Turnierstatistik und – wenn die hervorgehobene Phase ihn hat – den Turnierbaum, danach die Spielliste. Eine Adresse mit `?view=standings` oder `?view=matches` hält diesen einen Bereich im Vollbild fest, statt zu rotieren (`?view=fixtures` funktioniert weiter als alter Name von `matches`). Die Meister-Zusammenfassung eines beendeten Turniers gehört allein zur rotierenden Anzeige. Die Kopfzeile nennt den Turnierstatus: Ein laufendes Turnier zeigt eine beschriftete Uhr auf die Minute in der Zeitzone der Organisation, ein beendetes den Tag seines letzten Spiels, ohne laufende Uhr.
+
+Ein angeheftetes Spiel – `/tv/<Organisation>/tournaments/<Turnier>/stages/<Phase>/matches/<Nummer>` – wird wie auf der öffentlichen Spielseite über seine Nummer innerhalb der Phase angesprochen und zeigt immer Ergebnis, Seiten und erfasste Ereignisse, beendet oder nicht. Eine Nummer, die die Phase nicht hat, wird als nicht existierendes Spiel gemeldet.
+
+Eine Phase kann Formate mischen, daher stellt die Anzeige jede Zone nach dem Format dar, das sie spielt:
+
+- **Tabelle**: Jede Zone, die Teilnehmende in einer Tabelle rangiert, erhält eine eigene Tabelle mit dem Zonennamen als Überschrift. Zeilen verschiedener Zonen werden nie in einer Rangliste vermischt, und jede Tabelle zeigt bis zu acht Zeilen. Eine Phase, deren Zonen alle das Format der Phase spielen, behält eine einzelne Tabelle ohne Überschrift.
+- **Turnierbaum**: Zonen mit einem K.-o.-Format werden als Turnierbaum gezeichnet.
+- **Spiele**: Listet alle Spiele des Turniers in einer kompakten Tabelle, zwei pro Zeile mit Kürzeln und Ergebnis, Seite für Seite; die Seiten wechseln mit der Rotation, eine feste `matches`-Ansicht blättert weiter.
+
+Die Bauchbinde bleibt unverändert: Sie nennt ein Spiel, keine Phase.
+
+### Overlays: ein Spiel, Serien und Sätze
+
+Ein Overlay (`?mode=overlay`) zeigt nur das Spiel, das ihm genannt wurde: das in seiner Adresse (`/tv/<Organisation>/tournaments/<Turnier>/stages/<Phase>/matches/<Nummer>?mode=overlay`) oder mit `?court=<Platz>` das Live-Spiel dieses Platzes. Ohne beides meldet es, dass kein Spiel gewählt ist, und zeigt kein Ergebnis, sodass zwei Overlays nie zufällig dasselbe Spiel zeigen. Ein Spiel innerhalb einer Serie zeigt neben dem Ergebnis den Stand der Serie (Siege je Seite und das laufende Spiel), ein in Sätzen gespieltes Spiel die bereits gespielten Sätze und den laufenden, die Heimseite zuerst, mit der Satzbezeichnung der Disziplin in der Sprache der Seite. Der laufende Abschnitt wird nach seiner Stelle im Spiel benannt („2. Halbzeit“, „2. Runde“, „3. Satz“), wenn die Disziplin mehrere vom selben Typ spielt, sonst ohne Nummer. Ein Spiel ohne all das sieht aus wie zuvor.
+
+### Der Anzeige-Starter
+
+`/tv` ist ein Starter, der die Adresse einer Hallenanzeige oder eines Overlays zusammenstellt: Organisation, Turnier und Ansicht (rotierende Anzeige, Tabelle, Spielliste, ein angeheftetes Spiel oder das Übertragungs-Overlay), Hintergrund und Sprache wählen. Die Sprache ändert die Beschriftungen des Starters sofort, ohne Neuladen. Phasen erscheinen mit Nummer und Name, Spiele nach Zone und Gruppe gruppiert mit Runde, beiden Teilnehmenden und ihrer Nummer (`#34`). Die Ansichten für ein angeheftetes Spiel und das Overlay fragen nach einem Spiel, und der Startlink trägt es, sodass mehrere Overlays je ein eigenes Spiel zeigen können; ein Overlay kann stattdessen dem Live-Spiel eines Platzes folgen (`court=`).
+
 ## Was ein Zuschauer auf der öffentlichen Website sieht
 
 Die öffentliche Website (ohne Anmeldung) zeigt Tabellen, Turnierbaum und Spielberichte eines Turniers so,
@@ -44,6 +67,8 @@ wie sie veröffentlicht werden, unter derselben Organisation/Turnier-Adresse, di
 Kontrollzentrum und die `/tv/**`-Oberflächen verwenden. Eine laufende [Serie](/help/control/series)
 zeigt ihren Live-Spielstand und welche Seite im öffentlichen Turnierbaum führt, genauso wie im
 Kontrollzentrum, und eine noch nicht geplante Begegnung wird als solche angezeigt, nie geraten.
+
+Auf dem TV-Bildschirm listet die Zusammenfassung eines beendeten Turniers, das zonenweise entschieden wurde, den Sieger oder die gemeinsamen Sieger jeder Zone der letzten Phase unter dem Namen der Zone auf, dieselben Sieger wie die öffentliche Übersicht. Ein Turnier mit einem einzigen Sieger behält die Einzelsieger-Darstellung, und der Tabellenführer einer früheren Phase wird nie als Sieger gezeigt.
 
 ## Was Sie hier nicht tun können
 

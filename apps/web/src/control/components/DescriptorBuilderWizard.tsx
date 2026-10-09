@@ -59,8 +59,7 @@ export function DescriptorBuilderWizard({
   // moves them all together, so translating the pair means picking the
   // language once rather than clicking through each field's own tabs.
   const [activeLanguage, setActiveLanguage] = useState<SupportedLanguage>('en');
-  // The plain-language summary is the default final-step view (openspec
-  // 0263); raw JSON stays one click away for an author who wants the
+  // The plain-language summary is the default final-step view; raw JSON stays one click away for an author who wants the
   // literal document.
   const [showRawJson, setShowRawJson] = useState(false);
   const problems = stepProblems(state).filter(

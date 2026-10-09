@@ -3,6 +3,7 @@ title: '入门指南：自托管'
 description: 在 Windows、macOS 或 Linux 上从源代码运行 CopaLibre，然后选择反向代理或 Kubernetes 部署拓扑。
 capabilities:
   - platform/self-hosted-deployment
+  - platform/email-notifications
 roles:
   - super-admin
 ---
@@ -48,8 +49,13 @@ mkdir my-league && cd my-league
 ```bash
 ../copalibre doctor
 ../copalibre start
+../copalibre status
+../copalibre restart
+../copalibre stop
 ../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
+
+使用 copalibre status 检查容器和网关。copalibre restart 会检查 PostgreSQL 和 doctor，然后重新启动服务。copalibre stop 会保留卷；--down 会移除容器和网络。Kubernetes 模式下，start/stop/restart 会显示 Helm 或 kubectl 操作说明。
 
 网关在 `http://localhost:8080`（`COPALIBRE_PORT`）提供 HTTP。Compose 也会发布服务端口；请在主机和网络层限制访问。TLS 由边缘代理终止。
 
@@ -69,7 +75,7 @@ mkdir my-league && cd my-league
 Compose 安装相同的镜像、环境约定、健康检查和迁移流程——使用默认值安装它的行为与仅使用基础 chart
 完全一致。
 
-在仓库根目录运行 Helm，事先在 `my-values.yaml` 中配置数据库、身份认证、邮件和公开 URL。两个镜像都必须使用已发布版本；1.2.5 在发布后才可用。
+在仓库根目录运行 Helm，事先在 `my-values.yaml` 中配置数据库、身份认证、邮件和公开 URL。两个镜像都必须使用已发布版本；1.2.6 在发布后才可用。
 
 ```bash
 cd ..
@@ -78,8 +84,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6
 ```
 
 按需叠加以下这些默认关闭的可加性 `values.yaml` 分组——都无需 fork 模板：
@@ -106,7 +112,18 @@ k3d cluster create --config deploy/helm/k3s-dev-cluster.yaml
 完整的先决条件清单，以及支撑这一说法的多节点故障切换、备份恢复和升级安全性的实测证据：见仓库中的
 `docs/deployment/enterprise-kubernetes.md`。
 
-## 4. 后续步骤
+## 4. 通知邮件
+
+赛事和组织的动态会通过为邀请配置的邮件服务商（`COPALIBRE_EMAIL_PROVIDER`）以邮件通知，无需额外设置。在开发环境中，邮件会进入 Mailpit。
+
+- 新赛事和新俱乐部会通知组织管理员。
+- 新报名以及俱乐部提交名单，会通知组织管理员和该赛事的管理员。触发该事件的人不会收到邮件。
+- 邮件使用组织的主要语言，页眉显示其徽标和名称，并由 Copa Libre 署名，附带指向 [copalibre.app](https://copalibre.app) 的链接。
+- CSV 导入和 `copalibre dev demo` 不发送邮件。
+- 同一封邮件绝不会向同一收件人发送两次。如果服务商在确认前超时，该邮件不会重试，因此可能漏发，但不会重复。
+- 运维人员可以看到有多少邮件可能漏发：worker 按结果（已发送、已发送过、被拒绝、未知）统计每一次发送尝试，位于 `/jobs/metrics` 响应的 `emailDelivery` 下，并在记录每个未知结果时不包含收件人地址。`unknown` 不为零时值得设置告警；worker 重启后计数从零开始。
+
+## 5. 后续步骤
 
 - [您的第一场赛事](/help/getting-started/)——安装启动后创建并发布一项赛事。
 - [运营与可追溯性](/help/operations/)——安全地进行比赛和更正结果。

@@ -11,8 +11,7 @@ import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 type LoadStatus = 'loading' | 'ready' | 'failed';
 
 /**
- * Composes the screen from the data `ReportReviewPage` supplies (openspec
- * 0225 task 6.2): no API client reference — `onDismiss` is the only call
+ * Composes the screen from the data `ReportReviewPage` supplies: no API client reference — `onDismiss` is the only call
  * back to the page.
  */
 export function ReportReviewTemplate({

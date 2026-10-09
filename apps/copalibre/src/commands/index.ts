@@ -3,6 +3,7 @@ import type { CliContext } from '../cli-context.js';
 import { BackupCommand } from './backup-command.js';
 import { CreateAdminCommand } from './create-admin-command.js';
 import { DevCommand } from './dev-command.js';
+import { DevDemoCommand } from './dev-demo-command.js';
 import { DoctorCommand } from './doctor-command.js';
 import { InitCommand } from './init-command.js';
 import { LoginCommand } from './login-command.js';
@@ -16,10 +17,12 @@ import { ModuleSubmitCommand } from './module-submit-command.js';
 import { ModuleValidateLocalCommand } from './module-validate-local-command.js';
 import { ModuleVerifyCommand } from './module-verify-command.js';
 import { OrganizationGetCommand } from './organization-get-command.js';
+import { RestartCommand } from './restart-command.js';
 import { RestoreCommand } from './restore-command.js';
-import { RevokeLegacyPersonalAccessTokensCommand } from './revoke-legacy-personal-access-tokens-command.js';
 import { StartCommand } from './start-command.js';
 import { StatisticsRebuildCommand } from './statistics-rebuild-command.js';
+import { StatusCommand } from './status-command.js';
+import { StopCommand } from './stop-command.js';
 import { TournamentCreateCommand } from './tournament-create-command.js';
 import { TournamentGetCommand } from './tournament-get-command.js';
 import { TournamentListCommand } from './tournament-list-command.js';
@@ -32,11 +35,14 @@ export const commandClasses: readonly CommandClass<CliContext>[] = [
   InitCommand,
   DoctorCommand,
   DevCommand,
+  DevDemoCommand,
   StartCommand,
+  StopCommand,
+  RestartCommand,
+  StatusCommand,
   MigrateCommand,
   BackupCommand,
   RestoreCommand,
-  RevokeLegacyPersonalAccessTokensCommand,
   UpgradeCheckCommand,
   UpgradeCommand,
   CreateAdminCommand,

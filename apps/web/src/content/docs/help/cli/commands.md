@@ -52,6 +52,14 @@ including bootstrapping the first administrator as a one-shot Helm Job:
 - `--release <name>`: Helm release name to record (default: `copalibre`)
 - `--context <ctx>`: kube-context to record (default: none — supply it explicitly each time)
 
+Email and repair options:
+
+- `--repair`: back up `.env` and `docker-compose.yml`, add missing defaults and assets, and preserve the existing Compose file. Missing default services are reported with YAML snippets for manual review.
+- `--email-provider <provider>`: `smtp`, `resend`, `brevo`, or `mailgun` (default: local SMTP).
+- `--email-from <address>`: sender address (default: `noreply@copalibre.local`).
+- `--email-credential <value>`: SMTP connection URL or provider API key.
+- `--email-domain <domain>`: required for Mailgun.
+
 ## doctor
 
 `copalibre doctor [--check-proxy] [--proxy-url <url>] [--smoke] [--fix | --interactive]`
@@ -78,11 +86,42 @@ Runs a development environment, containerized or hybrid.
 
 - `--hybrid`: infrastructure in Docker, application processes on the host
 
+### dev demo
+
+`copalibre dev demo [--list] [<dataset>]`
+
+Loads a committed demo dataset (for example `panamericano-clubes-2025`, a 24-club rink hockey
+championship with groups, cups, schedule, results and emblems) into the running development stack.
+Run it from your checkout with the stack up (`copalibre dev`). The `rink-hockey` discipline must
+already be installed; loading never installs modules, and a dataset already loaded is left
+untouched. Player surnames in the datasets are generated, not real.
+
+- `--list`: print the available datasets and exit
+- reset the demo data with `docker compose -f docker-compose.dev.yml down -v`
+
 ## start
 
-`copalibre start`
+`copalibre start [--dev]`
 
-Brings up PostgreSQL, runs doctor, and starts every process role.
+Starts PostgreSQL, runs doctor, then starts every process role. In a Kubernetes installation it prints Helm guidance instead. Use --dev to start the containerized development profile.
+
+## stop
+
+`copalibre stop [--dev] [--down]`
+
+Stops Compose containers without removing volumes. Add --down to remove containers and networks. In Kubernetes mode it prints kubectl/Helm guidance. The --dev form only controls Compose containers, not host-run Yarn processes.
+
+## restart
+
+`copalibre restart [--dev] [--no-doctor]`
+
+Stops the Compose stack, starts PostgreSQL, runs doctor, then starts the remaining services and waits for health. Add --no-doctor to skip the doctor check, or --dev to restart development Compose containers.
+
+## status
+
+`copalibre status [--json] [--dev]`
+
+Shows container state, published ingress ports, and gateway health. Add --json for machine-readable output or --dev for development Compose. Kubernetes status reports the recorded release, namespace, and context, then queries pods when kubectl is available.
 
 ## migrate
 
@@ -196,21 +235,6 @@ uses, so running it twice in a row produces byte-identical `statistic_totals` ro
 `updated_at`/the internal projection version). Use it to backfill history recorded before the fold
 engine existed, or to verify totals against the facts at any time. Requires organization-administrator
 authority once logged in via [`login`](#login).
-
-## revoke-legacy-personal-access-tokens
-
-`copalibre revoke-legacy-personal-access-tokens (--confirm | --dry-run)`
-
-Performs one irreversible security cutover for currently active Personal Access Tokens (PATs).
-Run `--dry-run`, verify resulting aggregate count, then run with `--confirm`. Command writes one
-audit record per revoked credential and prints aggregate counts only.
-
-- `--dry-run`: shows active-token count without changing credentials
-- `--confirm`: required to revoke active credentials
-
-Perform and verify this cutover before deploying repaired PAT authentication. Existing integrations
-must create replacement credentials afterward; repeating completed cutover reports zero newly
-revoked credentials.
 
 ## module
 

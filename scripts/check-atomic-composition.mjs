@@ -12,12 +12,12 @@ import {
 import { isExempt } from './check-ui-text-catalogue-coverage.mjs';
 
 /**
- * Enforces the atomic-composition tier contract (openspec 0225) over the
+ * Enforces the atomic-composition tier contract over the
  * resolved graph `scripts/lib/component-graph.mjs` builds: tier membership,
  * import direction, styling/data/i18n placement, orphan resolution and
  * naming. A regex over lines cannot decide import direction or orphan
  * status, which is why this script asks structural questions of a graph
- * instead — see design.md Decision 4.
+ * instead.
  *
  * Ownership counts *bypasses of an owner* (`check-ui-ownership.mjs`); this
  * script counts *contract violations*. The two keep separate registers so a
@@ -39,14 +39,12 @@ const DECLARED_UI_TIERS = new Set(['atoms', 'molecules', 'organisms', 'layouts']
  * components, and `component-graph.mjs`'s `isComponent` already excludes
  * plain data/utility files from the tier system.
  *
- * `AstroPreview.tsx` is the development preview seam (design.md Decision 5:
- * "exempt, dev-only preview seam, recorded with reason"): it renders every
+ * `AstroPreview.tsx` is the development preview seam ("exempt, dev-only preview seam, recorded with reason"): it renders every
  * library component through the production renderer for review and ships to
  * no surface, so it belongs at the library root rather than in a tier it is
  * not a member of.
  *
- * `story-matrix.tsx` is workbench-only infrastructure (design.md Decision
- * 5's "reference-index: exempt, a registry, not a component" applies to the
+ * `story-matrix.tsx` is workbench-only infrastructure (the reference-index rule "exempt, a registry, not a component" applies to the
  * same directory's story-support files by the same reasoning): it renders
  * story variants side by side for review and ships to no production
  * surface, so it is not a member of the production tier system either.
@@ -87,7 +85,7 @@ export function checkTierMembership(nodes) {
  * Ascending rank — a file may import its own rank or lower, never higher.
  * `screen` covers every file outside a `ui/` library directory: today's
  * `*Page.tsx` (screen template role) and `*Route.tsx` (page-controller role)
- * sit in the same flat directory pending the tier rename in task 3.2, so
+ * sit in the same flat directory pending the tier rename, so
  * they share one rank until that split exists on disk to check against.
  */
 const TIER_RANK = { atoms: 0, molecules: 1, organisms: 2, layouts: 3, screen: 4 };
@@ -127,7 +125,7 @@ export function checkImportDirection(nodes, edges) {
 
 // ---------------------------------------------------------------------------
 // R3 — no inline style carries a layout property outside ui/atoms/layout/,
-// the directory the layout primitives (task 2.1) land in.
+// the directory the layout primitives land in.
 // ---------------------------------------------------------------------------
 
 const LAYOUT_PROPERTIES = new Set([
@@ -195,13 +193,13 @@ function isLayoutPrimitive(path) {
 /**
  * Debt recorded 2026-09-11, the day this gate first ran: every file with an
  * inline `style={{…}}` object carrying at least one layout property, counted
- * per file. Paid down by task 5.1/5.2 as inline layout is replaced by the
- * `Stack`/`Inline`/`Grid`/`Box` primitives task 2.1 adds.
+ * per file. Paid down as inline layout is replaced by the
+ * `Stack`/`Inline`/`Grid`/`Box` primitives.
  *
- * Task 5.2 surveyed the two remaining public/broadcast entries above
- * `MatchCard.tsx` and found neither occurrence primitive-convertible, for
- * reasons specific to each: `TvDashboard.tsx`'s three (task 7.1 split two of
- * them out into `TvPerformersView.tsx` and `TvStandingsTable.tsx` alongside
+ * The two remaining public/broadcast entries above
+ * `MatchCard.tsx` were surveyed and neither occurrence is primitive-convertible, for
+ * reasons specific to each: `TvDashboard.tsx`'s three (two of
+ * them were split out into `TvPerformersView.tsx` and `TvStandingsTable.tsx` alongside
  * the components carrying them) are `vmin`-scaled padding for
  * broadcast-continuous sizing, which the fixed token scale `Box`'s
  * `padding` resolves to cannot express without changing how the overlay
@@ -210,19 +208,19 @@ function isLayoutPrimitive(path) {
  *
  * `MatchCard.tsx`'s count fell from 22 to 1 the other way: not through a
  * primitive, but by giving its merged `ChampionshipMatchCard`/
- * `LiveMatchScorecard` variants (task 4.3) the named CSS classes
+ * `LiveMatchScorecard` variants the named CSS classes
  * `MatchCard`'s own `cl-match-card*` family already has — `cl-scorecard__*`
  * existed as classNames with no rule behind them; `cl-championship-card*` is
  * new. Two properties stay deliberately inline: `box-shadow` on
  * `.cl-championship-card`, set only under `isLive` (it reaches the banned
- * `--cl-glow-cyan` resting ornament task 5.4 replaces, so it is left where
- * that task will find it rather than baked into the stylesheet first), and
+ * `--cl-glow-cyan` resting ornament, so it is left where
+ * its replacement will find it rather than baked into the stylesheet first), and
  * `.cl-scorecard__events`' `margin-bottom`, which depends on whether
  * `comparatorTrace` was passed — genuinely per-render data, not a design
  * constant a class can state.
  *
- * Task 5.7 paid down the three atom-tier entries this register carried
- * (`EntrantName.tsx`, `terminal-block.tsx`, `select.tsx`) to zero: each was a
+ * The three atom-tier entries this register carried
+ * (`EntrantName.tsx`, `terminal-block.tsx`, `select.tsx`) were paid down to zero: each was a
  * static, per-instance-identical style, so each moved into a named CSS class
  * in `packages/design-tokens/src/generate/css.ts` instead — an atom owns its
  * own styling once, not once per render.
@@ -245,7 +243,8 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/RosterRoleSelector.tsx', 4],
   ['control/components/screens/StandingsTemplate.tsx', 4],
   ['control/components/screens/TournamentSettingsTemplate.tsx', 4],
-  ['control/components/TournamentSetupWizard.tsx', 10],
+  // The GIVEN/WHEN/THEN rule composition was extracted into its own organism.
+  ['control/components/TournamentSetupWizard.tsx', 9],
   // A stage is genuinely an ordered list; the layout primitives (Stack/
   // Inline/Grid) only ever render a <div> and cannot become an <ol>, the
   // same class of exception as AstroPreview.tsx's <iframe> above.
@@ -256,7 +255,7 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/ui/story-matrix.tsx', 2],
   // The step-indicator <ol>/<li>/<span> is the same ordered-list exception
   // StageListEditor.tsx's entry above documents, moved here from the three
-  // wizards' own hand-rolled chrome (openspec 0236) rather than newly added.
+  // wizards' own hand-rolled chrome rather than newly added.
   ['control/components/ui/organisms/wizard-shell.tsx', 2],
 ]);
 
@@ -300,18 +299,18 @@ function withoutVarCalls(text) {
  * broadcast-continuous scaling, no token expresses it; `AstroPreview.tsx`
  * styles a raw `<iframe>` — neither is this rule's concern to convert.
  *
- * `MatchCard.tsx`'s entry is gone: its 13 raw values (task 5.2) were bespoke
+ * `MatchCard.tsx`'s entry is gone: its 13 raw values were bespoke
  * pixel choices — `1px 6px` padding, hairline border widths — that don't
  * correspond to any step the token scale declares. Rather than invent a new
  * step or round to the nearest existing one and change the rendered size,
  * they moved into the `cl-championship-card*`/`cl-scorecard*` CSS classes
- * this task's `KNOWN_INLINE_LAYOUT` comment describes: this rule scans
+ * the `KNOWN_INLINE_LAYOUT` comment describes: this rule scans
  * inline style objects, the same as R3, so a value a stylesheet states
  * outright is not this rule's concern either way — the design system's own
  * stylesheet is where a bespoke, precisely-tuned value belongs, same as the
  * many raw hairline widths already in `packages/design-tokens/src/generate/css.ts`.
  *
- * `terminal-block.tsx`'s entry is gone the same way (task 5.7): its raw
+ * `terminal-block.tsx`'s entry is gone the same way: its raw
  * pixel/hex values moved into the `.cl-terminal-block*` CSS classes alongside
  * its `KNOWN_INLINE_LAYOUT` paydown above.
  */
@@ -327,7 +326,7 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['control/components/ui/molecules/callout-banner.tsx', 2],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 2],
   // The step-indicator grid's `minmax(8rem, 1fr)`/`minmax(min(100%, 6rem), 1fr)`
-  // moved here from the three wizards' own hand-rolled chrome (openspec 0236)
+  // moved here from the three wizards' own hand-rolled chrome
   // rather than newly added.
   ['control/components/ui/organisms/wizard-shell.tsx', 1],
 ]);
@@ -364,7 +363,7 @@ export const KNOWN_DATA_BELOW_PAGE = new Map([
   ['components/ui/organisms/StandingsTable.astro', 2],
   ['components/ui/molecules/TournamentHero.astro', 1],
   ['components/ui/organisms/PlayerProfileView.astro', 1],
-  // openspec 0246: bracket entrant slots gain a club emblem, the same
+  // Bracket entrant slots gain a club emblem, the same
   // clubEmblemUrl()-in-the-template pattern StandingsTable.astro already uses above.
   ['components/ui/organisms/MatchNode.astro', 1],
 ]);
@@ -398,9 +397,9 @@ export function checkDataAccess(nodes) {
 // ---------------------------------------------------------------------------
 
 /**
- * Debt recorded 2026-09-11: the five public molecules design.md names as
- * calling `react-intl` to format their own labels. Paid down by task 5.3,
- * which moved the formatting to each molecule's consumer:
+ * Debt recorded 2026-09-11: the five public molecules calling
+ * `react-intl` to format their own labels. Paid down by
+ * moving the formatting to each molecule's consumer:
  * `ResultLegend`/`TournamentHero`/`BroadcastStatusPanel`/`RulesetBriefing`
  * now take pre-formatted strings as props, and `SeriesStateBar` takes a
  * `seriesStateBarLabels(intl, series, …)`-resolved props object — the
@@ -434,11 +433,11 @@ export function checkI18nPlacement(nodes) {
  * consumer and no reference-index row. One of the nine orphans the survey
  * found (`LiveMatchScorecard`) already carries a reference-index row with a
  * stated reason and is exempted by the rule itself rather than this
- * register (task 4.4 repoints that row at the `MatchCard` variant that now
+ * register (that row now points at the `MatchCard` variant that now
  * carries it). `table-toolbar`/`pagination`/`form-screen-template` are
- * adopted (tasks 4.1-4.2).
+ * adopted.
  *
- * `AstroPreview.tsx`'s entry is gone: task 4.5 recorded it in the reference
+ * `AstroPreview.tsx`'s entry is gone: it is recorded in the reference
  * index instead (`Astro preview seam`, `Public/Astro preview —
  * ResultLegend`) — a genuine standing exemption, not debt pending a future
  * adoption task, so it belongs in the permanent mechanism rather than this
@@ -450,15 +449,15 @@ export function checkI18nPlacement(nodes) {
  * the only mechanism that can record its exemption. Both are equally
  * permanent; only one can be expressed the newer way.
  *
- * `DisciplineCard.tsx`'s entry is gone: task 4.3 deleted the file outright,
+ * `DisciplineCard.tsx`'s entry is gone: the file was deleted outright,
  * along with its public-to-operator `TerminalBlock` import. `ChampionshipMatchCard.tsx`'s
- * entry is gone the same way task 4.1's `table-toolbar.tsx` entry did — task
- * 4.3 merged its implementation into `MatchCard.tsx` (a file with real
+ * entry is gone the same way `table-toolbar.tsx`'s entry did — its
+ * implementation was merged into `MatchCard.tsx` (a file with real
  * production consumers), so R7 no longer sees it as a separate,
  * unconsumed file at all; its stories and tests are untouched, only
  * repointed to import from `./MatchCard.js`.
  *
- * `table-toolbar.tsx`'s entry is gone: task 4.1 gave it a real consumer
+ * `table-toolbar.tsx`'s entry is gone: it gained a real consumer
  * (`RegistrationReviewTemplate.tsx`'s filter/actions row). `StandingsTemplate.tsx`
  * was not adopted the same way — its `cl-table-toolbar__filters` usage
  * borrows one BEM child class for an unrelated `role="tablist"` group inside
@@ -470,17 +469,17 @@ export function checkI18nPlacement(nodes) {
  * regression) or nest an extra flex wrapper inside the grid (a visual
  * change) — either violates this change's own non-goal.
  *
- * `language-selector.tsx`'s entry is gone: task 4.3a deleted the file
+ * `language-selector.tsx`'s entry is gone: the file was deleted
  * outright, carrying only its language glyph forward onto `LanguageSwitcher`
- * (via the icon slot task 2.0 adds to `Select`) — nothing else survived, since
+ * (via the icon slot `Select` gained) — nothing else survived, since
  * the raw `<select>`, the inline-styled chrome and the glyph's non-semantic
  * `--cl-state-live` use were exactly the drift this change removes elsewhere.
  *
- * `pagination.tsx` was not adopted in task 4.2, despite design.md naming
- * it: the two screens whose `ListScreenLayout.pagination` slot is filled
+ * `pagination.tsx` was not adopted, despite being a
+ * candidate: the two screens whose `ListScreenLayout.pagination` slot is filled
  * today don't share its shape. `RegistrationReviewTemplate.tsx` renders a
- * bare `{page} / {pageCount}` status with no forward/back controls at all
- * — adopting the molecule would mean building page-navigation that does
+ * bare `{page} / {pageCount}` status with no forward/back controls at all —
+ * adopting the molecule would mean building page-navigation that does
  * not exist yet, a feature addition, not a refactor. `AuditTrailTemplate.tsx`
  * already has forward/back buttons, but shows a translated "{start}–{end}
  * of {total}" status — `Pagination`'s middle slot is fixed as `{page} /
@@ -491,18 +490,18 @@ export const KNOWN_ORPHANS = new Map([
   ['control/components/ui/molecules/pagination.tsx', 1],
   ['control/components/ui/story-matrix.tsx', 1],
   ['control/components/ui/layouts/form-screen-layout.tsx', 1],
-  // The layout primitives (task 2.1) shipped before their consumers adopted
-  // them — that is task 5.1's inline-layout paydown. `stack.tsx`/`box.tsx`
+  // The layout primitives shipped before their consumers adopted
+  // them — that is the inline-layout paydown. `stack.tsx`/`box.tsx`
   // (AnalyticsPage.tsx) and `inline.tsx` (LiveConsolePage.tsx) gained their
   // first real consumer there and are gone from this register; `grid.tsx`
-  // gained its own first real consumer in `StageListEditor.tsx` (0235) and
+  // gained its own first real consumer in `StageListEditor.tsx` and
   // is gone from this register the same way.
-  // Form's own entry is gone: task 4.2 gave it eleven real consumers across
+  // Form's own entry is gone: it gained eleven real consumers across
   // the five files named in check-ui-ownership.mjs's KNOWN_RAW_ELEMENTS
-  // comment. FieldSet's own entry is gone the same way — task 2.5's
+  // comment. FieldSet's own entry is gone the same way — the
   // finalize-winner control gave it one.
-  // DataTable.astro's and Modal.astro's own entries are gone: openspec 0225
-  // task 7.4 gave both a preview-seam consumer (they render in isolation at
+  // DataTable.astro's and Modal.astro's own entries are gone:
+  // both gained a preview-seam consumer (they render in isolation at
   // `/__preview/data-table` and `/__preview/modal`), so they are no longer
   // orphans. Their production adoption — paying down KNOWN_RAW_ELEMENTS'
   // StandingsTable.astro/PlayerProfileView.astro entries in
@@ -512,8 +511,8 @@ export const KNOWN_ORPHANS = new Map([
 /**
  * Case- and separator-insensitive: a story title names a component the way
  * Storybook titles do ("Astro preview", a human phrase) while a file
- * basename names it the way the filesystem does ("AstroPreview" or, since
- * task 3.3, "astro-preview" in kebab-case) — never the same string, even
+ * basename names it the way the filesystem does ("AstroPreview" or, since the kebab-case rename,
+ * "astro-preview") — never the same string, even
  * when they mean the same component. `checkOrphans` normalizes both sides
  * before comparing rather than requiring the two conventions to coincide.
  */
@@ -565,13 +564,13 @@ export function checkOrphans(nodes, edges, referenceIndex) {
 
 /**
  * Debt recorded 2026-09-11: control-library files still in PascalCase.
- * Empty: task 3.3 renamed all ten to kebab-case.
+ * Empty: all ten were renamed to kebab-case.
  */
 export const KNOWN_CASING_VIOLATIONS = new Map();
 
 /**
- * Debt recorded 2026-09-11: two components sharing a base name. Task 3.4
- * resolved the `TournamentCard` pair by renaming the control screen
+ * Debt recorded 2026-09-11: two components sharing a base name. The
+ * `TournamentCard` pair was resolved by renaming the control screen
  * component to `TournamentSummaryCard`, leaving
  * `components/ui/organisms/TournamentCard.astro` the sole owner of that
  * name. The `AstroPreview` pair remains: the dev-only preview seam
@@ -651,15 +650,15 @@ export function checkDuplicateNames(nodes) {
 /**
  * Debt recorded 2026-09-11: atom pairs within one surface both rendering a
  * raw `<select>`, `<button>` or `<input>` from scratch. `select` was the pair
- * design.md names explicitly (`language-selector.tsx` and `select.tsx`) —
- * resolved by task 4.3a deleting `language-selector.tsx` outright, which
+ * named explicitly (`language-selector.tsx` and `select.tsx`) —
+ * resolved by deleting `language-selector.tsx` outright, which
  * leaves `select.tsx` the surface's only raw-`<select>` owner and pays down
  * its entry too, since one owner is no longer a multi-atom-ownership finding.
  * The `button` and `input` entries are genuine findings this rule surfaces
  * beyond that named case — an atom's own dismiss control, copy affordance or
  * file-picker trigger, each composing the raw element directly rather than
- * the `Button`/`Input` atom — recorded rather than resolved here, since no
- * task in this change disposes of them.
+ * the `Button`/`Input` atom — recorded rather than resolved here, since nothing in the original scope
+ * disposes of them.
  */
 export const KNOWN_MULTI_ATOM_OWNERSHIP = new Map([
   ['control/components/ui/atoms/terminal-block.tsx', 1],
@@ -667,11 +666,11 @@ export const KNOWN_MULTI_ATOM_OWNERSHIP = new Map([
   ['control/components/ui/atoms/button.tsx', 1],
   ['control/components/ui/atoms/file-picker.tsx', 2], // owns both `button` and `input`
   ['control/components/ui/atoms/input.tsx', 1],
-  // Left unregistered when this atom was added (openspec 0233); its tab
+  // Left unregistered when this atom was added; its tab
   // strip renders its own <button> per language tab, a shape none of the
   // other governed-element owners share (a tab, not a generic click target).
   ['control/components/ui/atoms/localized-field-tabs.tsx', 1],
-  // openspec 0248: `ColumnHeaderTooltip` is a table column header's own
+  // `ColumnHeaderTooltip` is a table column header's own
   // sort/description trigger — borderless, embedded in a `<th>`, a shape
   // distinct from `Button.astro`'s CTA-styled anchor/button and unusable as
   // one, since public-web's Astro atom cannot be imported into this React
@@ -718,56 +717,55 @@ export function checkSingleAtomOwnership(nodes) {
 
 /**
  * Debt recorded 2026-09-11: literal (non-catalogue) text nodes, per file.
- * Paid down by task 2.6 (the eleven Spanish literals it names) and task
- * 2.7's sibling gate for anything this rule finds beyond that list — several
+ * Paid down for the eleven Spanish literals originally named, with a
+ * sibling gate for anything this rule finds beyond that list — several
  * entries here (`TvDashboard.tsx`, `AstroPreview.tsx`, the public organisms
- * and Astro pages) are English or Spanish literals task 2.6 does not name,
+ * and Astro pages) are English or Spanish literals outside that list,
  * recorded rather than silently exempted.
  *
- * `MatchCard.tsx`'s one entry (task 5.2) is `LiveMatchScorecard`'s "VAR
+ * `MatchCard.tsx`'s one entry is `LiveMatchScorecard`'s "VAR
  * CONFIRMED" tag — pre-existing, not introduced: this scanner only matches a
  * single-line text node (component-graph.mjs's own documented limitation),
  * and the literal sat on its own line, inside a multi-line `<span style=…>`,
- * until task 5.2's CSS-class extraction collapsed it onto one. No i18n
+ * until a CSS-class extraction collapsed it onto one. No i18n
  * exists anywhere in this component's merged variants to route it through;
- * adding one is out of this styling task's scope.
+ * adding one is out of that styling scope.
  */
 export const KNOWN_LITERAL_TEXT = new Map([
   ['components/ui/AstroPreview.tsx', 1],
   ['components/ui/organisms/MatchCard.tsx', 1],
-  // These four carry the match report page's literals (task 7.2 split them
-  // out of `[match].astro`, whose entry is now gone): English text task 2.6
-  // did not name, recorded rather than silently exempted, same as the rest
+  // These four carry the match report page's literals (they were split
+  // out of `[match].astro`, whose entry is now gone): English text outside the
+  // original list, recorded rather than silently exempted, same as the rest
   // of this register.
   ['components/ui/organisms/MatchHero.astro', 1],
   // `MatchOfficials.astro`, `MatchRosters.astro` and `MatchTimeline.astro`'s
-  // entries are gone (openspec 0269): every literal moved into the message
+  // entries are gone: every literal moved into the message
   // catalogue, and every timestamp now renders through `ResponsiveTimestamp`.
-  // `PlayerProfileView.astro`'s entry is gone (openspec 0225 task 8.1): its
+  // `PlayerProfileView.astro`'s entry is gone: its
   // three column headers moved into `DataTable`'s `columns` config as plain
   // JS string literals when the file adopted the owned table, the same way
   // this register's other `DataTable`/`AstroPreview.astro` column configs
   // were never counted here — R10 finds literal text nodes in a template,
   // not string literals in frontmatter.
-  // `StandingsTable.astro`'s entry is gone (openspec 0271): every counted
+  // `StandingsTable.astro`'s entry is gone: every counted
   // template-node literal, plus the competition-history modal's
   // script-template-literal strings this register's own comment above says
   // R10 cannot see, now resolve through the message catalogue via a
   // `data-player-dialog-labels` JSON island (the same mechanism
   // `BracketView.astro` already uses for `data-journey-matches`).
-  // `AcceptInvitationForm.tsx`'s entry is gone (openspec 0225 task 8.3,
-  // found by /impeccable critique): every literal moved through
-  // `useIntl`/`FormattedMessage`, the same fix applied across this task.
+  // `AcceptInvitationForm.tsx`'s entry is gone: every literal moved through
+  // `useIntl`/`FormattedMessage`, the same fix applied elsewhere.
   ['control/components/ControlShell.tsx', 1],
   ['control/components/screens/RolesPermissionsTemplate.tsx', 1],
   ['pages/control/[...path].astro', 1],
   ['pages/control/app.astro', 1],
   // pages/index.astro's hero and empty orientation hub text are now fully
-  // resolved through the message catalogue (openspec 0315) — zero violations,
+  // resolved through the message catalogue — zero violations,
   // entry removed per the ratchet rule.
   // pages/invitations/accept.astro's hardcoded "CopaLibre · Aceptar
-  // invitación" title is now resolved through the message catalogue
-  // (openspec 0278) — zero violations, entry removed per the ratchet rule.
+  // invitación" title is now resolved through the message catalogue —
+  // zero violations, entry removed per the ratchet rule.
 ]);
 
 export function checkLiteralTextNodes(nodes) {
@@ -817,7 +815,7 @@ const CATALOGUE_LOCALES = ['de', 'en', 'es', 'fr', 'it', 'pt', 'ru', 'zh'];
  * recognized a single-quoted value, and French/Italian legitimately
  * double-quote a translation containing an apostrophe ("l'organisation").
  * Every id in every family resolves in all eight catalogues once the
- * extractor accepts either quote style; task 2.6 found and fixed this
+ * extractor accepts either quote style; this was found and fixed
  * while adding new ids to these same files.
  */
 export const KNOWN_CATALOGUE_GAPS = new Map();
@@ -857,7 +855,7 @@ export function checkCatalogueResolution(webSrcDir) {
  * cue — a glow or shadow with no corresponding interaction (hover, focus,
  * an active/live state already named elsewhere). Detected as a raw property
  * naming them inline, which is the only way an inline style can apply one at
- * all (a class-based ban is `0224`'s detector's job on generated CSS; this
+ * all (a class-based ban is the generated-CSS detector's job on generated CSS; this
  * rule is about the inline escape hatch instead).
  */
 const BANNED_ORNAMENT_TOKENS = [
@@ -867,15 +865,15 @@ const BANNED_ORNAMENT_TOKENS = [
 
 /**
  * Debt recorded 2026-09-11: `tiebreaker-sequence.tsx:86` used `--cl-glow-cyan`
- * as a resting indicator (design.md's one genuine ornament defect the
+ * as a resting indicator (the one genuine ornament defect the
  * critique found) and the former `ChampionshipMatchCard.tsx:36` carried the
  * identical pattern (`isLive ? 'var(--cl-glow-cyan)' : 'none'`) — a second
  * instance this rule found that the manual critique did not name, carried
- * into `MatchCard.tsx` by task 4.3's merge. Both are gone: task 5.4 replaced
- * the tiebreaker's glow with a doubled border width (the triggered state
+ * into `MatchCard.tsx` by the merge. Both are gone: the
+ * tiebreaker's glow was replaced with a doubled border width (the triggered state
  * already reads from background, text colour and a "Triggered" badge; the
- * border was a fourth cue, not the only one) and removed the championship
- * card's glow outright, since its own state was already fully carried by the
+ * border was a fourth cue, not the only one) and the championship
+ * card's glow was removed outright, since its own state was already fully carried by the
  * status pill's background, colour and text.
  */
 export const KNOWN_BANNED_ORNAMENT = new Map();
@@ -1100,7 +1098,7 @@ export function loadReferenceIndex(path) {
 
 /**
  * Every register this script ratchets, named for R12's report — plus
- * `check-ui-ownership.mjs`'s two registers (design.md Decision 4: "every
+ * `check-ui-ownership.mjs`'s two registers ("every
  * register entry in *either* script names a path that exists"). One R12
  * check covers both scripts rather than each carrying its own, so a path
  * that moves is caught wherever it was recorded.

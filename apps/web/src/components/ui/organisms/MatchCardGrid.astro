@@ -11,7 +11,7 @@ interface Props {
   readonly intl: IntlShape;
   /** Optional non-default locale segment from the enclosing public route. */
   readonly localePrefix?: string;
-  /** Single-line ticker presentation (openspec 0299); defaults to the full detailed card. */
+  /** Single-line ticker presentation; defaults to the full detailed card. */
   readonly compact?: boolean;
 }
 const { model, intl, localePrefix = '', compact = false } = Astro.props;

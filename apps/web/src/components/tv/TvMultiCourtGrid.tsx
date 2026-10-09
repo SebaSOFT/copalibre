@@ -46,7 +46,7 @@ function totalScore(match: LiveMatch): number {
 }
 
 /**
- * The multi-court kiosk grid (openspec 0303): several live matches at once,
+ * The multi-court kiosk grid: several live matches at once,
  * each in its own card, independently reactive. Reuses this surface's
  * existing live-data mechanism verbatim — the same `RealtimeClient`,
  * `applyEvent`/`LiveDashboard`/`markConnected` every other live surface

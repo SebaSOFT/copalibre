@@ -69,6 +69,9 @@ export async function runCli(
       process.stderr.write(renderTournamentHelp());
       return 64;
     }
+  } else if (command === 'dev' && arguments_[1] === 'demo' && HELP_FLAGS.has(arguments_[2] ?? '')) {
+    process.stdout.write(renderCommandHelp('dev', COMMAND_HELP));
+    return 0;
   } else if (
     HELP_FLAGS.has(arguments_[1] ?? '') &&
     COMMAND_HELP.some((candidate) => candidate.name === command)
@@ -104,7 +107,7 @@ function moduleHelpFor(arguments_: readonly string[]): string | undefined {
 /**
  * Returns rendered help text for a `tournament` help request, or `undefined`
  * when `arguments_` is not a help request and dispatch should proceed
- * normally. Mirrors `moduleHelpFor` exactly (openspec 0252).
+ * normally. Mirrors `moduleHelpFor` exactly.
  */
 function tournamentHelpFor(arguments_: readonly string[]): string | undefined {
   const [sub, next] = arguments_;

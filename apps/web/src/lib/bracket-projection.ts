@@ -8,6 +8,8 @@ import type { PublicSeriesState } from './series.js';
 export interface BracketZone {
   readonly zoneId?: string;
   readonly zoneName?: string;
+  /** The format this zone plays (its own, else its stage's); decides how it is drawn. */
+  readonly format?: string;
   readonly matches: readonly BracketMatch[];
 }
 
@@ -26,6 +28,8 @@ function mapBracketZoneMatches(
     matchId: m.matchId,
     matchNumber: m.matchNumber ?? m.position,
     roundNumber: m.round,
+    position: m.position,
+    ...(m.role === undefined ? {} : { role: m.role }),
     branch: m.bracket,
     state: (m.status === 'finalized' || m.status === 'forfeited'
       ? 'final'
@@ -50,6 +54,9 @@ function mapBracketZoneMatches(
         abbreviation: s.abbreviation,
         clubId: s.clubId,
         emblemObjectId: s.emblemObjectId,
+        ...(s.from === undefined
+          ? {}
+          : { from: { matchId: s.from.matchId, outcome: s.from.outcome } }),
       };
     }),
     ...(m.series === undefined ? {} : { series: m.series as PublicSeriesState }),
@@ -65,6 +72,7 @@ export function mapBracketResponse(response: PublicBracketResponse): {
     zones: response.zones.map((zone) => ({
       zoneId: zone.zoneId,
       zoneName: zone.zoneName,
+      format: zone.format,
       matches: mapBracketZoneMatches(zone.matches),
     })),
   };

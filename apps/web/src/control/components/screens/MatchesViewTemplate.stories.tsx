@@ -24,6 +24,7 @@ const partialCompletion: TournamentCompletionResponse = {
       scheduledMatches: 12,
       finalizedMatches: 16,
       forfeitedMatches: 2,
+      segments: [],
     },
   ],
 };
@@ -77,6 +78,7 @@ export const FullyComplete: Story = {
           scheduledMatches: 0,
           finalizedMatches: 32,
           forfeitedMatches: 0,
+          segments: [],
         },
       ],
     },
@@ -102,6 +104,7 @@ export const MultiStageBreakdown: Story = {
           scheduledMatches: 0,
           finalizedMatches: 24,
           forfeitedMatches: 0,
+          segments: [],
         },
         {
           stageId: '019927d0-0000-7000-8000-00000000000e',
@@ -113,6 +116,7 @@ export const MultiStageBreakdown: Story = {
           scheduledMatches: 10,
           finalizedMatches: 10,
           forfeitedMatches: 2,
+          segments: [],
         },
       ],
     },

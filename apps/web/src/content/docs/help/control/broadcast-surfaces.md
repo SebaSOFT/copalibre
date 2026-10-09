@@ -3,6 +3,7 @@ title: Broadcast and public surfaces
 description: Display tokens for venue-TV and streaming-overlay rendering, and what the public site shows a spectator.
 capabilities:
   - live-operations/broadcast-tv-surfaces
+  - live-operations/tv-dashboard-localization
   - live-operations/public-live-surfaces
   - public-web/public-web-shell
   - public-web/tournament-winner-resolution
@@ -36,6 +37,28 @@ administrator has to hand you a token or share their own login. While that overl
 point, or card recorded live pops an animated callout naming the entrant and player, then dismisses
 itself automatically; it never needs anyone at the venue to trigger or clear it.
 
+## What the venue display shows
+
+The full-rotation display cycles through the standings, the top performers, the tournament statistics and, when the featured stage has it, the bracket, then the match list. A `?view=standings` or `?view=matches` address pins that one section full-frame instead of rotating (`?view=fixtures` still works as the old name of `matches`). The champion recap of a finished tournament belongs to the rotating display alone. The header names the tournament's status: a tournament still being played shows a labelled clock to the minute in the organization's time zone, and a finished one shows the day its last match was played, with no running clock.
+
+A pinned match — `/tv/<organization>/tournaments/<tournament>/stages/<stage>/matches/<number>` — is addressed the way the public match page is, by the match's number within its stage, and always shows that match's score, sides and recorded events, finished or not. A number the stage does not have is reported as a match that does not exist.
+
+A stage can mix formats, so the display presents each zone by the format it plays:
+
+- **Standings**: Every zone that ranks entrants in a table gets its own table, headed by the zone's name. Rows of different zones are never mixed in one ranking, and each table shows up to eight rows. A stage whose zones all play the stage's own format keeps a single table without a heading.
+- **Bracket**: Zones that play an elimination format are drawn as a bracket.
+- **Matches**: Lists every match of the tournament in a compact table, two to a row with abbreviations and score, one page at a time; the pages advance with the rotation, and a fixed `matches` view keeps paging.
+
+The lower-third overlay is not affected: it names a match, not a stage.
+
+### Overlays: one match, series and sets
+
+An overlay (`?mode=overlay`) shows only the match it was given: the one named in its address (`/tv/<organization>/tournaments/<tournament>/stages/<stage>/matches/<number>?mode=overlay`) or, with `?court=<venue>`, the live match of that court. Opened with neither it says that no match is selected and shows no score, so two overlays never show the same match by accident. A match inside a series shows where the series stands (games won by each side and the game in play) next to the score, and a match played in sets shows the sets already played and the one in play, scored home side first, with the set label of the discipline in the page's language. The segment in play is named by its place in the match (“2nd half”, “2nd lap”, “3rd set”) when the discipline plays several of the same type, and without a number when it plays only one. A match with none of these looks as before.
+
+### The display launcher
+
+`/tv` is a launcher that builds the address of a venue screen or an overlay: pick the organization, tournament and view (rotating dashboard, standings, match list, a pinned match, or the broadcast overlay), the background and the language. The language changes the launcher's own labels immediately, without reloading. Stages are listed with their number and name, and matches are grouped by zone and group with their round, the two entrants and their number (`#34`). The pinned-match and overlay views ask for a match, and the launch link carries it, so several overlays can each show their own match; an overlay may instead follow the live match of a court (`court=`).
+
 ## What a spectator sees on the public site
 
 The public site (no login) shows a tournament's standings, bracket, and match reports as they are
@@ -50,6 +73,8 @@ example — shows a champions podium on its overview page once finished: one ent
 naming every declared champion and any explicitly resolved runner-up and third place. The page never
 invents a rank a zone did not explicitly resolve, and shows no podium at all for a single-zone
 tournament or one that has not finished yet.
+
+On the TV kiosk, the recap of a finished tournament that was decided zone by zone lists the champion or co-champions of each zone of the last stage under the zone's name, the same winners the public overview shows. A tournament with one champion keeps the single-champion presentation, and a standings leader of an earlier stage is never presented as the champion.
 
 ## What you cannot do here
 

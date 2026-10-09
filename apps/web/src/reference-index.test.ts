@@ -30,7 +30,7 @@ function declaredStoryTitles(directory: string): readonly string[] {
 
 const titles = declaredStoryTitles(here);
 
-describe('the 0223 reference index', () => {
+describe('the reference index', () => {
   it('lists every reference exactly once', () => {
     const names = REFERENCE_INDEX.map((entry) => entry.reference);
     expect(new Set(names).size).toBe(names.length);
@@ -72,14 +72,14 @@ describe('the 0223 reference index', () => {
     // discovered by a reviewer. A standing exemption (the preview seam) is
     // never expected to leave this list at all.
     //
-    // 'Locale control' left this list in openspec 0225 task 4.3a: it now
+    // 'Locale control' left this list: it now
     // points at LanguageSwitcher's own story, and LanguageSwitcher is a real,
     // consumed component (ControlShell.tsx), not a predecessor recorded for
     // want of one. 'Live match scorecard' stays — merging LiveMatchScorecard's
-    // implementation into MatchCard.tsx (task 4.3) resolved its file-level
+    // implementation into MatchCard.tsx resolved its file-level
     // orphan status, not this: the live page still renders LiveMatchHero, so
     // this specific presentation still ships nowhere. 'Astro preview seam'
-    // joined in task 4.5: the development preview seam itself, permanently
+    // joined: the development preview seam itself, permanently
     // unconsumed by design (it answers 404 in a build).
     expect(
       REFERENCE_INDEX.filter((entry) => entry.consumers.length === 0).map(

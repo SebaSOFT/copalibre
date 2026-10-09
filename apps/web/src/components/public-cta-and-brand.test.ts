@@ -1,6 +1,6 @@
 /**
  * Source-contract tests for the two public-web presentation components
- * introduced by openspec 0198.
+ * introduced by the design language conformance pass.
  *
  * `.astro` components have no unit-render harness in this workspace (they are
  * covered end-to-end by Playwright), so these assert the contract that can be
@@ -15,10 +15,10 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (file: string): string => readFileSync(join(here, file), 'utf8');
 
-/** Any hex literal outside a token fallback — the defect 0198 removes from public CTAs. */
+/** Any hex literal outside a token fallback — the defect removed from public CTAs. */
 const HEX_LITERAL = /#[0-9a-fA-F]{3,8}\b/g;
 
-describe('public-web Button component (openspec 0198)', () => {
+describe('public-web Button component', () => {
   const source = read('ui/atoms/Button.astro');
 
   it('renders the shared button token classes rather than its own styling', () => {
@@ -46,7 +46,7 @@ describe('public-web Button component (openspec 0198)', () => {
   });
 });
 
-describe('public-web Logo lockup (openspec 0198)', () => {
+describe('public-web Logo lockup', () => {
   const source = read('ui/atoms/Logo.astro');
 
   it('renders mark and wordmark as one unit', () => {
@@ -72,7 +72,7 @@ describe('public-web Logo lockup (openspec 0198)', () => {
   });
 });
 
-describe('TournamentCard CTAs consume the shared Button (openspec 0198)', () => {
+describe('TournamentCard CTAs consume the shared Button', () => {
   const source = read('ui/organisms/TournamentCard.astro');
 
   it('renders CTAs through the Button component, not hand-rolled anchors', () => {
@@ -84,8 +84,8 @@ describe('TournamentCard CTAs consume the shared Button (openspec 0198)', () => 
   });
 });
 
-describe('public tables and filter pills (openspec 0199)', () => {
-  // openspec 0245 moved the matches page's filter bar (state, plus the new
+describe('public tables and filter pills', () => {
+  // The matches page's filter bar moved (state, plus the new
   // stage/zone/group facets) into its own MatchScheduleFilters organism.
   const matchesPage = read('ui/organisms/MatchScheduleFilters.astro');
   const overviewPage = readFileSync(
@@ -98,11 +98,11 @@ describe('public tables and filter pills (openspec 0199)', () => {
   it('renders every filter facet as a bounded pill group, not bare anchors', () => {
     expect(matchesPage).toContain('class="cl-pill-group"');
     // Four facet groups (stage, zone, group, state), each an "All" reset plus
-    // one templated per-option pill, and the state group's four literal
-    // options — every option is a pill, and the active one is marked for
-    // assistive tech too.
-    expect(matchesPage.match(/class="cl-pill cl-focusable"/g)).toHaveLength(10);
-    expect(matchesPage.match(/aria-current=/g)).toHaveLength(10);
+    // one templated per-option pill, the state group's four literal options and
+    // the view choice's two — every option is a pill, and the active one is
+    // marked for assistive tech too.
+    expect(matchesPage.match(/class="cl-pill cl-focusable"/g)).toHaveLength(12);
+    expect(matchesPage.match(/aria-current=/g)).toHaveLength(12);
   });
 
   it('renders standings through the shared table treatment', () => {
@@ -128,9 +128,10 @@ describe('public tables and filter pills (openspec 0199)', () => {
     expect(standings).toContain("header.setAttribute('aria-sort'");
   });
 
-  it('renders the standings club filter through the shared pill, not a local duplicate', () => {
-    expect(standings).toContain('cl-pill');
+  it('renders the standings club filter through the shared chip, not a local duplicate', () => {
+    expect(standings).toContain('<ClubFilterChip');
     expect(standings).not.toContain('.cl-club-filter__btn {');
+    expect(standings).not.toContain('class={`cl-pill');
   });
 
   it('renders match-report rosters through the shared table, with no page-local duplicate', () => {
@@ -143,13 +144,30 @@ describe('public tables and filter pills (openspec 0199)', () => {
   });
 });
 
-describe('discipline backdrop (openspec 0200)', () => {
+describe('discipline backdrop', () => {
   const layout = readFileSync(join(here, '../layouts/PublicLayout.astro'), 'utf8');
 
   it('renders the discipline’s own image when one is available', () => {
-    // The backdrop was already data-driven; 0200 keeps that path intact.
-    expect(layout).toContain('selectDisciplineBackground(disciplineImages)');
+    // The backdrop was already data-driven; the discipline backdrop keeps that path intact.
+    expect(layout).toContain('selectPublicDisciplineBackground(disciplineImages)');
     expect(layout).toContain('src={background.url}');
+  });
+
+  it('draws the one backdrop fixed, blurred and oversized, sized to the dynamic viewport', () => {
+    expect(layout).toContain('--discipline-backdrop-blur');
+    expect(layout).toMatch(/\.cl-discipline-background \{[\s\S]*?position: fixed;/);
+    expect(layout).toMatch(/height: 100dvh;/);
+    expect(layout).toMatch(
+      /img\.cl-discipline-background \{[\s\S]*?filter: blur\(var\(--discipline-backdrop-blur[\s\S]*?scale\(1\.06\)/,
+    );
+  });
+
+  it('leaves the tournament hero without an image, a scrim or a fill of its own', () => {
+    const hero = readFileSync(join(here, './ui/molecules/TournamentHero.astro'), 'utf8');
+    expect(hero).not.toContain('<img');
+    expect(hero).not.toContain('selectDisciplineBackground');
+    expect(hero).not.toContain('scrim');
+    expect(hero).not.toMatch(/background:/);
   });
 
   it('falls back to a deliberate neutral ground, never another discipline’s picture', () => {
@@ -169,20 +187,19 @@ describe('discipline backdrop (openspec 0200)', () => {
   });
 });
 
-describe('TV backdrop and focal panel (openspec 0202)', () => {
+describe('TV backdrop and focal panel', () => {
   const layout = readFileSync(join(here, '../layouts/TvLayout.astro'), 'utf8');
   const tvCss = readFileSync(join(here, '../styles/tv-broadcast.css'), 'utf8');
 
-  it('carries the discipline backdrop on non-overlay presentations only', () => {
-    // A lower third is meant to be keyed out; imagery is what must not survive the key.
+  it('renders discipline imagery only when the selected backdrop is discipline', () => {
     expect(layout).toContain(
-      "const backdrop = overlayMode === 'lower' ? undefined : selectDisciplineBackground(disciplineImages)",
+      "background === 'discipline' ? selectDisciplineBackground(disciplineImages) : undefined",
     );
   });
 
   it('reuses the public pages’ backdrop source and opacity rather than a second mechanism', () => {
     expect(layout).toContain("from '../lib/discipline-background.ts'");
-    expect(layout).toContain('opacity: ${backdrop.opacity}');
+    expect(layout).toContain('opacity: ${disciplineBackdrop.opacity}');
   });
 
   it('blurs the backdrop so it reads as ground, not as a picture', () => {
@@ -204,10 +221,10 @@ describe('TV backdrop and focal panel (openspec 0202)', () => {
   });
 });
 
-describe('public layout, header, and home orientation hub (openspec 0315)', () => {
+describe('public layout, header, and home orientation hub', () => {
   const layout = readFileSync(join(here, '../layouts/PublicLayout.astro'), 'utf8');
   const header = read('ui/organisms/PublicHeader.astro');
-  const indexPage = readFileSync(join(here, '../pages/index.astro'), 'utf8');
+  const homeLayout = readFileSync(join(here, '../layouts/PublicHomeLayout.astro'), 'utf8');
 
   it('resets margin and padding to zero on html and body', () => {
     expect(layout).toMatch(
@@ -215,20 +232,32 @@ describe('public layout, header, and home orientation hub (openspec 0315)', () =
     );
   });
 
-  it('streamlines header navigation to Home and Help, omitting API Reference', () => {
+  it('keeps public header navigation focused on spectator destinations', () => {
     expect(header).toContain('messages.headerNavHome');
-    expect(header).toContain('messages.headerNavHelp');
+    expect(header).not.toContain('messages.headerNavHelp');
     expect(header).not.toContain('headerNavApiReference');
     expect(header).not.toContain('/help/api-reference/');
   });
 
+  it('chamfers the closed language selector with the control treatment', () => {
+    expect(header).toMatch(
+      /<summary[\s\S]*?class="cl-chamfer cl-chamfer--control cl-focusable"[\s\S]*?<\/summary>/,
+    );
+  });
+
+  it('chamfers the open language popover with the matching control treatment', () => {
+    expect(header).toContain(
+      '<ul class="cl-public-header__locale-list cl-chamfer cl-chamfer--control">',
+    );
+  });
+
   it('renders index page orientation hub with tactical grid, badges, and owned CTA buttons', () => {
-    expect(indexPage).toContain('cl-tactical-grid');
-    expect(indexPage).toContain("import Button from '../components/ui/atoms/Button.astro'");
-    expect(indexPage).toContain("import { Card } from '../components/ui/atoms/Card.tsx'");
-    expect(indexPage).toContain("import { Badge } from '../components/ui/atoms/Badge.tsx'");
-    expect(indexPage).toMatch(/<Button\b[^>]*href="\/control\/"[^>]*variant="primary"/);
-    expect(indexPage).toMatch(/<Button\b[^>]*href="\/help\/"[^>]*variant="secondary"/);
-    expect(indexPage.match(HEX_LITERAL)).toBeNull();
+    expect(homeLayout).toContain('cl-tactical-grid');
+    expect(homeLayout).toContain("import Button from '../components/ui/atoms/Button.astro'");
+    expect(homeLayout).toContain("import { Card } from '../components/ui/atoms/Card.tsx'");
+    expect(homeLayout).toContain("import { Badge } from '../components/ui/atoms/Badge.tsx'");
+    expect(homeLayout).toMatch(/<Button\b[^>]*href="\/control\/"[^>]*variant="primary"/);
+    expect(homeLayout).toContain('href="/help/"');
+    expect(homeLayout.match(HEX_LITERAL)).toBeNull();
   });
 });

@@ -1,10 +1,13 @@
 import {
+  addRuleAction,
+  addRuleCondition,
   addCustomRule,
   canAddCustomRule,
   canContinue,
   elementOptionsKey,
   formatsFor,
   initialWizard,
+  moveRuleAction,
   mutationClassOf,
   nextStep,
   parameterValueKey,
@@ -240,7 +243,7 @@ describe('the wizard gates each step', () => {
     expect(() => toCreateRequest(wizard())).toThrow('not complete');
   });
 
-  describe('discipline rule overrides at creation (openspec 0265)', () => {
+  describe('discipline rule overrides at creation', () => {
     it('positions the ruleset step between format and window, alongside the hook-script rules step', () => {
       expect(WIZARD_STEPS.map((step) => step.id)).toEqual([
         'name',
@@ -306,7 +309,105 @@ describe('the wizard gates each step', () => {
     });
   });
 
-  describe('series declaration (0159)', () => {
+  describe('zone plan', () => {
+    const complete = {
+      alias: 'copa-zonas',
+      name: 'Copa Zonas',
+      descriptorId: 'd-football',
+      descriptorVersion: '1.2.0',
+    } as const;
+
+    function withZones(
+      zones: NonNullable<WizardState['stages'][number]['zones']>,
+      format = 'single-elimination',
+    ) {
+      return wizard({ ...complete, stages: [{ number: 1, name: '', format, zones }] });
+    }
+
+    it('submits the declared zones with only what each overrides', () => {
+      const request = toCreateRequest(
+        withZones([
+          { name: ' Copa Oro ' },
+          {
+            name: 'Liga',
+            format: 'round-robin',
+            series: {
+              span: 3,
+              resolutionClass: 'best-of',
+              neutralGround: false,
+              standingsAccounting: 'match',
+            },
+          },
+        ]),
+      );
+
+      expect(request.stages[0]?.zones).toEqual([
+        { name: 'Copa Oro' },
+        { name: 'Liga', format: 'round-robin', series: { span: 3, resolutionClass: 'best-of' } },
+      ]);
+    });
+
+    it('sends no zones key for a stage that declares none or an empty list', () => {
+      expect(toCreateRequest(withZones([])).stages[0]).not.toHaveProperty('zones');
+      expect(
+        toCreateRequest(
+          wizard({ ...complete, stages: [{ number: 1, name: '', format: 'round-robin' }] }),
+        ).stages[0],
+      ).not.toHaveProperty('zones');
+    });
+
+    it('refuses an empty or duplicate zone name', () => {
+      const ids = (zones: Parameters<typeof withZones>[0]) =>
+        stepProblems({ ...withZones(zones), step: 'format' }, DISCIPLINES).map((p) => p.id);
+
+      expect(ids([{ name: '  ' }])).toContain('control.wizard.problem.zoneName');
+      expect(ids([{ name: 'A' }, { name: 'A' }])).toContain('control.wizard.problem.zoneDuplicate');
+      expect(ids([{ name: 'A' }, { name: 'B' }])).toEqual([]);
+    });
+
+    it('judges a zone series against the zone`s effective format', () => {
+      const series = {
+        span: 3,
+        resolutionClass: 'best-of' as const,
+        neutralGround: false,
+        standingsAccounting: 'match' as const,
+      };
+      const ids = (
+        zones: Parameters<typeof withZones>[0],
+        format: string,
+        disciplines: readonly DisciplineOption[],
+        descriptorId: string,
+      ) =>
+        stepProblems(
+          { ...withZones(zones, format), descriptorId, step: 'format' },
+          disciplines,
+        ).map((p) => p.id);
+
+      // Overriding a league stage's zone to a placement format makes its series incoherent.
+      expect(
+        ids(
+          [{ name: 'A', format: 'free-for-all', series }],
+          'round-robin',
+          DISCIPLINES,
+          'd-football',
+        ),
+      ).toContain('control.wizard.problem.seriesOnPlacementFormat');
+      // Inheriting a placement stage's format does too.
+      expect(
+        ids([{ name: 'A', series }], 'free-for-all', PLACEMENT_DISCIPLINES, 'd-placement'),
+      ).toContain('control.wizard.problem.seriesOnPlacementFormat');
+      expect(
+        ids(
+          [{ name: 'A', format: 'round-robin', series }],
+          'round-robin',
+          DISCIPLINES,
+          'd-football',
+        ),
+      ).toEqual([]);
+    });
+  });
+
+  describe('series declaration', () => {
     const complete = {
       alias: 'copa-verano',
       name: 'Copa Verano',
@@ -354,7 +455,7 @@ describe('the wizard gates each step', () => {
       expect(request.stages[0]?.series).toBeUndefined();
     });
 
-    it('preselects match grain, sending no standingsAccounting key when untouched (0160)', () => {
+    it('preselects match grain, sending no standingsAccounting key when untouched', () => {
       const request = toCreateRequest(withSeries({ span: 3, resolutionClass: 'best-of' }));
 
       // Byte-identical to the request a wizard authored before this control
@@ -362,7 +463,7 @@ describe('the wizard gates each step', () => {
       expect(request.stages[0]?.series).toEqual({ span: 3, resolutionClass: 'best-of' });
     });
 
-    it('sends standingsAccounting only once the operator declares series grain (0160)', () => {
+    it('sends standingsAccounting only once the operator declares series grain', () => {
       const request = toCreateRequest(
         withSeries({ span: 5, resolutionClass: 'best-of', standingsAccounting: 'series' }),
       );
@@ -453,13 +554,16 @@ describe('the wizard gates each step', () => {
       step: 'rules',
       customRuleEnabled: true,
       customRuleActionType: 'notify',
-      customRuleValues: { [titleKey]: 'Match update' },
+      customRuleActionValues: { [titleKey]: 'Match update' },
     });
     expect(canContinue(state, DISCIPLINES, HOOK_VOCABULARY)).toBe(false);
 
     state = {
       ...state,
-      customRuleValues: { ...state.customRuleValues, [messageKey]: '{{ event.definitionCode }}' },
+      customRuleActionValues: {
+        ...state.customRuleActionValues,
+        [messageKey]: '{{ event.definitionCode }}',
+      },
     };
     expect(canContinue(state, DISCIPLINES, HOOK_VOCABULARY)).toBe(true);
     state = addCustomRule(state, HOOK_VOCABULARY);
@@ -468,7 +572,7 @@ describe('the wizard gates each step', () => {
     state = {
       ...state,
       customRuleActionType: 'notify',
-      customRuleValues: { [titleKey]: 'Second', [messageKey]: 'Second rule' },
+      customRuleActionValues: { [titleKey]: 'Second', [messageKey]: 'Second rule' },
       alias: 'copa-reglas',
       name: 'Copa Reglas',
       descriptorId: 'd-football',
@@ -487,12 +591,12 @@ describe('the wizard gates each step', () => {
 
     const saved = wizard({
       customRules: [
-        { actionType: 'notify', values: {}, options: {} },
-        { actionType: 'startTimer', values: {}, options: {} },
+        { conditions: [], actions: [{ type: 'notify', values: {}, options: {} }] },
+        { conditions: [], actions: [{ type: 'startTimer', values: {}, options: {} }] },
       ],
     });
     expect(removeCustomRule(saved, 0).customRules).toEqual([
-      { actionType: 'startTimer', values: {}, options: {} },
+      { conditions: [], actions: [{ type: 'startTimer', values: {}, options: {} }] },
     ]);
   });
 
@@ -552,8 +656,8 @@ describe('the wizard gates each step', () => {
       customRuleEnabled: true,
       customRuleConditionType: 'configured',
       customRuleActionType: 'startTimer',
-      customRuleValues: { [timerKey]: 'discipline-clock', [durationKey]: '30' },
-      customRuleOptions: {
+      customRuleActionValues: { [timerKey]: 'discipline-clock', [durationKey]: '30' },
+      customRuleConditionOptions: {
         [elementOptionsKey('condition', 'configured')]: '"primitive"',
       },
     });
@@ -575,7 +679,53 @@ describe('the wizard gates each step', () => {
     expect(rules?.[0]?.actions[0]?.params).toHaveLength(2);
   });
 
-  describe('rendering a configured rule in plain language (openspec 0266)', () => {
+  it('serializes every condition as AND and preserves ordered actions in one engine rule', () => {
+    const vocabulary: HookScriptVocabulary = {
+      hooks: ['event.recorded'],
+      entries: [
+        { kind: 'condition', type: 'condition-a', description: 'Condition A' },
+        { kind: 'condition', type: 'condition-b', description: 'Condition B' },
+        { kind: 'action', type: 'action-a', description: 'Action A' },
+        { kind: 'action', type: 'action-b', description: 'Action B' },
+      ],
+    };
+    let state = wizard({
+      alias: 'copa-reglas',
+      name: 'Copa Reglas',
+      descriptorId: 'd-football',
+      descriptorVersion: '1.2.0',
+      stages: [{ number: 1, name: 'Final', format: 'round-robin' }],
+      customRuleEnabled: true,
+      customRuleConditionType: 'condition-a',
+      customRuleActionType: 'action-a',
+    });
+    state = addRuleCondition(state, vocabulary);
+    state = { ...state, customRuleConditionType: 'condition-b' };
+    state = addRuleCondition(state, vocabulary);
+    state = addRuleAction(state, vocabulary);
+    state = { ...state, customRuleActionType: 'action-b' };
+    state = addRuleAction(state, vocabulary);
+    state = moveRuleAction(state, 1, -1);
+
+    const rules = toCreateRequest(state, vocabulary).customScripts[0]?.script['rules'] as
+      | readonly {
+          conditions: readonly { type: string; id: string }[];
+          actions: readonly { type: string; id: string }[];
+        }[]
+      | undefined;
+    expect(rules?.[0]?.conditions.map(({ type }) => type)).toEqual(['condition-a', 'condition-b']);
+    expect(rules?.[0]?.conditions.map(({ id }) => id)).toEqual([
+      'condition-a-condition-1',
+      'condition-b-condition-2',
+    ]);
+    expect(rules?.[0]?.actions.map(({ type }) => type)).toEqual(['action-b', 'action-a']);
+    expect(rules?.[0]?.actions.map(({ id }) => id)).toEqual([
+      'action-b-action-1',
+      'action-a-action-2',
+    ]);
+  });
+
+  describe('rendering a configured rule in plain language', () => {
     const CONDITION_WITH_PHRASE: HookVocabularyEntry = {
       kind: 'condition',
       type: 'compare_two_numbers',
@@ -618,7 +768,7 @@ describe('the wizard gates each step', () => {
 
     it('renders a template with the operator-chosen values substituted', () => {
       const draft = {
-        actionType: 'notify',
+        type: 'compare_two_numbers',
         values: {
           [parameterValueKey('condition', 'compare_two_numbers', 'op1')]: 'shots',
           [parameterValueKey('condition', 'compare_two_numbers', 'comp')]: '>',
@@ -633,7 +783,7 @@ describe('the wizard gates each step', () => {
 
     it('leaves a missing value literal rather than blanking the row', () => {
       const draft = {
-        actionType: 'notify',
+        type: 'compare_two_numbers',
         values: {
           [parameterValueKey('condition', 'compare_two_numbers', 'op1')]: 'shots',
         },
@@ -645,14 +795,14 @@ describe('the wizard gates each step', () => {
     });
 
     it('falls back to type — description when the entry declares no phraseTemplate', () => {
-      const draft = { actionType: 'notify', values: {}, options: {} };
+      const draft = { type: 'notify', values: {}, options: {} };
       expect(renderRulePhrase('action', 'notify', ACTION_NO_PHRASE, draft)).toBe(
         'notify — Declare notification',
       );
     });
 
     it('falls back to the raw type identifier when no vocabulary entry resolves', () => {
-      const draft = { actionType: 'stale-action', values: {}, options: {} };
+      const draft = { type: 'stale-action', values: {}, options: {} };
       expect(renderRulePhrase('action', 'stale-action', undefined, draft)).toBe('stale-action');
     });
   });
@@ -777,7 +927,7 @@ describe('mutation-classification feedback', () => {
   });
 });
 
-describe('decision description resolution (openspec 0161)', () => {
+describe('decision description resolution', () => {
   it('resolves the descriptor-declared description over the platform catalogue for the same field', () => {
     expect(resolveDecisionDescription('Decides the tie on total goals', 'Platform text')).toBe(
       'Decides the tie on total goals',

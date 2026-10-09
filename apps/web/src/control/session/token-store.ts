@@ -149,7 +149,7 @@ export const controlTokenStore: TokenStore = createTokenStore(Date.now, {
   storage: defaultSessionStorage,
 });
 
-/** Which mechanism established the current session — decides how a silent renewal must be attempted (openspec 0302). */
+/** Which mechanism established the current session — decides how a silent renewal must be attempted. */
 export type AuthMethod = 'native' | 'oidc';
 
 const AUTH_METHOD_STORAGE_KEY = 'copalibre:session:authMethod:v1';

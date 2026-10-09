@@ -6,7 +6,7 @@ module.exports = {
   collectCoverageFrom: ['src/**/*.ts', '!src/index.ts', '!src/**/*.test.ts'],
   coverageThreshold: {
     // Statements at 94, not 95: control-path-parser.ts's Club Portal routes
-    // (openspec 0301) each need a `noUncheckedIndexedAccess`-mandated
+    // each need a `noUncheckedIndexedAccess`-mandated
     // `if (x === undefined) return undefined` guard on a segment `matches()`
     // has already length-checked — structurally unreachable through any real
     // pathname (segments come from a `.filter((s) => s.length > 0)` split, so

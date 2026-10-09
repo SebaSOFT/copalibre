@@ -1,7 +1,7 @@
 import type { TournamentFact } from '../../lib/tv-statistics.js';
 
 /**
- * Extracted from `TvDashboard.tsx` (openspec 0225 task 7.1) — the rotating
+ * Extracted from `TvDashboard.tsx` — the rotating
  * rail's tournament-facts tab.
  */
 export function TvFactsView({

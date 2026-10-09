@@ -462,6 +462,48 @@ describe('importValidatedModule (integration)', () => {
     expect(failures).toEqual([]);
   });
 
+  it('module verify names both profiles for a module imported under the filesystem profile and verified under S3 (7.6)', async () => {
+    const alias = `orbital-frisbee-${newId()}`;
+    const directory = await makeModuleDirectory(
+      validManifest({ alias, assets: [{ path: 'logo.png', kind: 'logo' }] }),
+      validDisciplineDocument({ alias }),
+    );
+    directories.push(directory);
+    await addAsset(directory);
+    const validated = await validateModulePackageOrThrow(directory, OPTIONS);
+    // The host-side `module add` with no object-storage variables: the filesystem profile.
+    const imported = new FakeObjectStorage();
+    await importValidatedModule(db, imported, directory, validated, {
+      source: CURATED_MODULE_REPOSITORY,
+      actor: 'integration-test',
+    });
+    const modules = new InstalledModuleRepository(db);
+    const [installed] = await modules.findByAlias(alias);
+    if (!installed) throw new Error('expected an installed module row');
+    const descriptor = await new TournamentRepository(db).findDescriptor(
+      installed.documentId,
+      installed.version,
+    );
+    if (!descriptor) throw new Error('expected the imported descriptor to be found');
+    const assets = await modules.findAssetsByModuleId(installed.moduleId);
+
+    // The containerised API's storage: a different profile, with nothing in it.
+    const s3: ObjectStorageAdapter = {
+      profile: 's3',
+      put: async (key) => ({ key }),
+      get: async () => {
+        throw new Error('NoSuchKey');
+      },
+      delete: async () => undefined,
+    };
+    const failures = await verifyInstalledModule(s3, '1.0.0', installed, descriptor, assets);
+
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatchObject({ stage: 'asset', field: 'logo.png' });
+    expect(failures[0]?.message).toContain('"filesystem"');
+    expect(failures[0]?.message).toContain('"s3"');
+  });
+
   it('refuses installing over an alias held under different attribution, leaving the holder untouched (7.7)', async () => {
     const alias = `orbital-frisbee-${newId()}`;
     await importFixture(validManifest({ alias }), validDisciplineDocument({ alias }));

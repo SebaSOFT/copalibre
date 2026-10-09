@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * End-to-end tests for OpenSpec 0210: the tournament ticker.
+ * End-to-end tests for the tournament ticker.
  *
  * The reduced-motion case is the one worth an e2e rather than a unit test.
  * `@copalibre/design-tokens` emits a global rule collapsing every animation to
@@ -132,7 +132,7 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test.describe('Tournament ticker (OpenSpec 0210)', () => {
+test.describe('Tournament ticker', () => {
   test('the public tournament page shows the ticker with live match content', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
 
@@ -150,7 +150,7 @@ test.describe('Tournament ticker (OpenSpec 0210)', () => {
   });
 
   /*
-    0223 replaced 0210's stepping with a static list.
+    A static list replaced the ticker's stepping.
 
     Stepping was still motion — the rail jumped between items on a timer, which
     is exactly what a reader who asked for no motion did not ask for. The

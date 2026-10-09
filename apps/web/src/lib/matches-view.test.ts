@@ -29,7 +29,7 @@ describe('applyTemplate', () => {
   });
 });
 
-describe('distinctFacetValues (openspec 0245)', () => {
+describe('distinctFacetValues', () => {
   it('returns no values for a single implicit zone/group, so the caller renders no pill', () => {
     const rows = [
       { zoneName: undefined, groupName: undefined },
@@ -61,7 +61,7 @@ describe('distinctFacetValues (openspec 0245)', () => {
   });
 });
 
-describe('groupMatchesByRound (openspec 0245)', () => {
+describe('groupMatchesByRound', () => {
   it('groups by round ascending and sorts each round by match number', () => {
     const rows = [
       { round: 2, matchNumber: 2 },

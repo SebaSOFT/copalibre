@@ -8,11 +8,11 @@ import { Stack } from '../ui/atoms/layout/stack.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
 
-// openspec 0225 task 8.3 (found by /impeccable critique): these two link
+// These two link
 // labels were hardcoded Spanish literals with no message id at all. Local
 // rather than in `messages.en.ts` — the same `auth.*`/`invitation.*`
-// namespace gap task 2.6 and this task's own AcceptInvitationForm fix
-// already restated in English: no locale catalogue has these ids, so every
+// namespace gap already restated in English
+// elsewhere (`AcceptInvitationForm` among them): no locale catalogue has these ids, so every
 // locale falls back to `defaultMessage`, and `check-atomic-composition.mjs`'s
 // catalogue-completeness rule only walks the shared `messages.en.ts` file,
 // not a component's own local descriptors.
@@ -22,8 +22,7 @@ const localMessages = defineMessages({
 });
 
 /**
- * Composes the screen from the data `LiveConsolePage` supplies (openspec
- * 0225 task 6.2): purely presentational, no API client reference and no
+ * Composes the screen from the data `LiveConsolePage` supplies: purely presentational, no API client reference and no
  * screen state of its own.
  */
 export function LiveConsoleTemplate({

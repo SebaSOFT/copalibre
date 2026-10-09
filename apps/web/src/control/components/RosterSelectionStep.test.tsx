@@ -196,7 +196,7 @@ describe('RosterSelectionStep', () => {
 
     // Queued for later retry, not lost — the console shell's own
     // always-visible sync-status area is what surfaces this, not an error
-    // message here (design.md's "Reachability" decision: a network failure
+    // message here (a network failure
     // re-pauses rather than reporting a failure to the operator).
     await waitFor(() => expect(setMatchRoster).toHaveBeenCalled());
     expect(screen.queryByText('Could not save the roster.')).toBeNull();

@@ -2,7 +2,7 @@
 
 Layers autoscaling, disruption protection, network policy, ingress, external
 secrets, and managed external dependencies onto the K3s-validated Helm chart
-(`0034-k3s-helm-deployment`). Every capability below is an additive,
+(the K3s Helm deployment). Every capability below is an additive,
 defaulted-off `values.yaml` group — see `deploy/helm/copalibre/README.md`
 for the full schema of each.
 
@@ -18,12 +18,12 @@ automatically; `--namespace`/`--release` default to `default`/`copalibre` when o
 Bootstrapping the first administrator runs as a one-shot Job instead of `kubectl exec` into a
 running pod. Run the example from the checkout root after configuring `values.yaml` with the
 required database, identity, email and public URL settings. These image tags are available only
-after the 1.2.5 release is published; for an earlier installation, use its released version:
+after the 1.2.6 release is published; for an earlier installation, use its released version:
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre -f values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5 \
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6 \
   --set createAdmin.enabled=true \
   --set createAdmin.organizationAlias=my-league \
   --set createAdmin.organizationName="My League" \
@@ -102,9 +102,9 @@ spec:
       restartPolicy: Never
       containers:
         - name: upgrade-check
-          image: ghcr.io/sebasoft/copalibre:1.2.5
+          image: ghcr.io/sebasoft/copalibre:1.2.6
           command: [node, apps/copalibre/dist/main.js]
-          args: [upgrade-check, --target-version, 1.2.5]
+          args: [upgrade-check, --target-version, 1.2.6]
           envFrom:
             - configMapRef:
                 name: my-copalibre-env
@@ -142,8 +142,8 @@ replicas and configuration in `upgrade-values.yaml`:
 ```bash
 helm upgrade my-copalibre deploy/helm/copalibre -n default \
   -f upgrade-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5 \
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6 \
   --set createAdmin.enabled=false --set doctor.enabled=true \
   --wait --wait-for-jobs --timeout 10m
 ```
@@ -219,7 +219,7 @@ replacement credentials.
 The chart has no `module-dev` values group — `init --kubernetes` never sets one up. A `hostPath`
 volume only reaches a laptop's filesystem when the pod is guaranteed to run on that one machine,
 true for a local single-node `kind`/`minikube` cluster but never a real multi-node one, so this
-isn't a chart feature (see `design.md`'s Decisions). Against a local cluster anyway, the same
+isn't a chart feature. Against a local cluster anyway, the same
 bind-mount idea works as a manual patch:
 
 1. Mount your module workspace into the cluster node:
@@ -266,8 +266,8 @@ nothing in this chart installs them.
   queue depth/age) has no off-the-shelf adapter — it requires a
   custom-metrics adapter configured to read the outbox table/queue directly
   and publish it under `autoscaling.worker.metricName`. There is no
-  CPU-based fallback for this signal by default (see `design.md`'s "exactly
-  these three signals" decision); `autoscaling.worker.cpu.enabled` exists
+  CPU-based fallback for this signal by default (the chart deliberately exposes "exactly
+  these three signals"); `autoscaling.worker.cpu.enabled` exists
   only as an explicit opt-in, not a silent substitute.
 - **cert-manager**, required by `ingress.enabled` when
   `ingress.tls.enabled` is true (the default annotation targets a
@@ -344,7 +344,7 @@ during development and on a schedule in CI (`k8s-enterprise-validate`, see
   healthy node within the documented recovery window.
 - `scripts/validate-backup-restore.sh` — the latest PostgreSQL and
   object-storage backup restores into a clean Kubernetes installation and
-  passes the same integrity checks as `0030-deployment-docker-compose-cli`'s
+  passes the same integrity checks as the Docker Compose deployment's
   Compose-level backup/restore requirement.
 - `scripts/validate-upgrade-safety.sh` — a chart upgrade across two minor
   versions completes with zero downtime and a successful migration Job at

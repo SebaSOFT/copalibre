@@ -1,9 +1,10 @@
-import { generateKeyPairSync, createPublicKey, randomBytes } from 'node:crypto';
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { generateKeyPairSync, createPrivateKey, createPublicKey, randomBytes } from 'node:crypto';
+import { chmod, copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { getAsset, isSea } from 'node:sea';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parse, stringify } from 'yaml';
 import { readCopalibreVersion } from './banner.js';
 import { writeInstallationMarker, type InstallationMarker } from './installation-marker.js';
 
@@ -15,8 +16,8 @@ export const LOCAL_DEFAULTS = {
   COPALIBRE_PORT: '8080',
   COPALIBRE_APP_URL: 'http://localhost:8080',
   COPALIBRE_API_URL: 'http://localhost:8080',
-  COPALIBRE_IMAGE: 'ghcr.io/sebasoft/copalibre:1.2.5',
-  COPALIBRE_WEB_IMAGE: 'ghcr.io/sebasoft/copalibre-web:1.2.5',
+  COPALIBRE_IMAGE: 'ghcr.io/sebasoft/copalibre:1.2.6',
+  COPALIBRE_WEB_IMAGE: 'ghcr.io/sebasoft/copalibre-web:1.2.6',
   POSTGRES_USER: 'copalibre',
   POSTGRES_PASSWORD: 'copalibre_dev_password',
   POSTGRES_DB: 'copalibre',
@@ -236,6 +237,10 @@ export interface WriteInstallationAssetsOptions {
   readonly appUrl?: string;
   readonly apiUrl?: string;
   readonly starterDisciplines?: readonly string[];
+  readonly emailProvider?: 'smtp' | 'resend' | 'brevo' | 'mailgun';
+  readonly emailFrom?: string;
+  readonly emailCredential?: string;
+  readonly emailDomain?: string;
 }
 
 export interface WriteInstallationAssetsResult {
@@ -339,6 +344,7 @@ export async function writeInstallationAssets(
   } else if (options.apiUrl) {
     overrides.COPALIBRE_API_URL = options.apiUrl;
   }
+  Object.assign(overrides, emailEnvironmentOverrides(options));
 
   const extraLines = options.moduleDev
     ? ['COMPOSE_FILE=docker-compose.yml:docker-compose.module-dev.yml']
@@ -430,4 +436,214 @@ server {
     ...(proxyConfigFile ? { proxyConfigFile } : {}),
     marker,
   };
+}
+
+function emailEnvironmentOverrides(
+  options: WriteInstallationAssetsOptions,
+): Record<string, string> {
+  const overrides: Record<string, string> = {};
+  if (options.emailProvider) overrides.COPALIBRE_EMAIL_PROVIDER = options.emailProvider;
+  if (options.emailFrom) overrides.COPALIBRE_EMAIL_FROM = options.emailFrom;
+  if (options.emailCredential) {
+    const credentialKey = {
+      smtp: 'COPALIBRE_SMTP_URL',
+      resend: 'COPALIBRE_RESEND_API_KEY',
+      brevo: 'COPALIBRE_BREVO_API_KEY',
+      mailgun: 'COPALIBRE_MAILGUN_API_KEY',
+    }[options.emailProvider ?? 'smtp'];
+    overrides[credentialKey] = options.emailCredential;
+  }
+  if (options.emailProvider === 'mailgun' && options.emailDomain) {
+    overrides.COPALIBRE_MAILGUN_DOMAIN = options.emailDomain;
+  }
+  return overrides;
+}
+
+export interface RepairInstallationAssetsOptions {
+  readonly assetsDir?: string;
+  readonly starterDisciplines?: readonly string[];
+}
+
+export interface RepairInstallationAssetsResult {
+  readonly directory: string;
+  readonly backups: readonly string[];
+  readonly createdAssets: readonly string[];
+  readonly missingServices: readonly string[];
+  readonly serviceSnippets: readonly string[];
+  readonly preservedCompose: boolean;
+  readonly envFile: string;
+  readonly composeFile: string;
+}
+
+/** Repairs absent installation assets while preserving operator-owned configuration. */
+export async function repairInstallationAssets(
+  cwd: string,
+  options: RepairInstallationAssetsOptions = {},
+): Promise<RepairInstallationAssetsResult> {
+  const envFile = join(cwd, '.env');
+  const composeFile = join(cwd, 'docker-compose.yml');
+  const privateKeyFile = join(cwd, 'jwt-private.pem');
+  const jwksFile = join(cwd, 'jwks.json');
+  const createdAssets: string[] = [];
+  const backups = await backupExistingConfigFiles([envFile, composeFile]);
+
+  await mkdir(cwd, { recursive: true });
+  const shippedCompose = await readAsset('docker-compose.yml', options.assetsDir);
+  const existingCompose = existsSync(composeFile) ? await readFile(composeFile, 'utf8') : undefined;
+  if (existingCompose === undefined) {
+    await writeFile(composeFile, shippedCompose, 'utf8');
+    createdAssets.push(composeFile);
+  }
+
+  const composeReport = findMissingComposeServices(
+    existingCompose ?? shippedCompose,
+    shippedCompose,
+  );
+  createdAssets.push(...(await ensureSigningKeys(privateKeyFile, jwksFile)));
+  createdAssets.push(...(await reconcileEnvDefaults(envFile)));
+  createdAssets.push(...(await ensureRepairAssets(cwd, options)));
+
+  const markerFile = join(cwd, '.copalibre', 'installation.json');
+  if (!existsSync(markerFile)) {
+    await writeInstallationMarker(cwd, readCopalibreVersion());
+    createdAssets.push(markerFile);
+  }
+
+  return {
+    directory: cwd,
+    backups,
+    createdAssets,
+    missingServices: composeReport.missingServices,
+    serviceSnippets: composeReport.serviceSnippets,
+    preservedCompose: existingCompose !== undefined,
+    envFile,
+    composeFile,
+  };
+}
+
+async function backupExistingConfigFiles(targets: readonly string[]): Promise<string[]> {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backups: string[] = [];
+  for (const target of targets) {
+    if (!existsSync(target)) continue;
+    const backup = `${target}.backup.${timestamp}`;
+    await copyFile(target, backup);
+    backups.push(backup);
+  }
+  return backups;
+}
+
+async function reconcileEnvDefaults(envFile: string): Promise<string[]> {
+  const existed = existsSync(envFile);
+  const existingEnv = existed ? await readFile(envFile, 'utf8') : '';
+  const defaults = localDefaultsEnvFile();
+  const configuredKeys = new Set(
+    existingEnv
+      .split(/\r?\n/)
+      .map((line) => /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/.exec(line)?.[1])
+      .filter((key): key is string => key !== undefined),
+  );
+  const missingDefaults = defaults.split(/\r?\n/).filter((line) => {
+    const key = /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(line)?.[1];
+    return key !== undefined && !configuredKeys.has(key);
+  });
+  if (existed && missingDefaults.length === 0) return [];
+
+  const separator = existingEnv.length > 0 && !existingEnv.endsWith('\n') ? '\n' : '';
+  const additions = existed ? `${separator}${missingDefaults.join('\n')}\n` : defaults;
+  await writeFile(envFile, `${existingEnv}${additions}`, { encoding: 'utf8', mode: 0o600 });
+  await chmod(envFile, 0o600);
+  return [envFile];
+}
+
+async function ensureSigningKeys(privateKeyFile: string, jwksFile: string): Promise<string[]> {
+  const privateKeyExists = existsSync(privateKeyFile);
+  const jwksExists = existsSync(jwksFile);
+  if (!privateKeyExists && jwksExists) {
+    throw new Error(
+      `Cannot repair incomplete signing keypair: "${jwksFile}" exists but "${privateKeyFile}" is missing. Restore the matching private key from backup; repair preserved the existing JWKS.`,
+    );
+  }
+  if (privateKeyExists && jwksExists) return [];
+  if (privateKeyExists) {
+    const privateKeyPem = await readFile(privateKeyFile, 'utf8');
+    await writeFile(jwksFile, jwksFromPrivateKey(privateKeyPem), {
+      encoding: 'utf8',
+      mode: 0o644,
+    });
+    return [jwksFile];
+  }
+
+  const { privateKeyPem, jwksJson } = generateRsaKeypair();
+  await writeFile(privateKeyFile, privateKeyPem, { encoding: 'utf8', mode: 0o600 });
+  await chmod(privateKeyFile, 0o600);
+  await writeFile(jwksFile, jwksJson, { encoding: 'utf8', mode: 0o644 });
+  return [privateKeyFile, jwksFile];
+}
+
+async function ensureRepairAssets(
+  cwd: string,
+  options: RepairInstallationAssetsOptions,
+): Promise<string[]> {
+  const createdAssets: string[] = [];
+  const gatewayCaddyFile = join(cwd, 'deploy', 'gateway', 'Caddyfile');
+  if (!existsSync(gatewayCaddyFile)) {
+    await mkdir(dirname(gatewayCaddyFile), { recursive: true });
+    await writeFile(gatewayCaddyFile, await readAsset('Caddyfile', options.assetsDir), 'utf8');
+    createdAssets.push(gatewayCaddyFile);
+  }
+
+  const modulesDir = join(cwd, 'modules');
+  const readmeFile = join(modulesDir, 'README.md');
+  const missingModulesReadme = !existsSync(readmeFile);
+  if (!existsSync(modulesDir)) {
+    await scaffoldLocalModules(cwd, options.starterDisciplines ?? ['football', 'tennis']);
+    createdAssets.push(modulesDir);
+  } else {
+    await mkdir(join(modulesDir, 'disciplines'), { recursive: true });
+    await mkdir(join(modulesDir, 'profiles'), { recursive: true });
+    if (missingModulesReadme) {
+      await scaffoldLocalModules(cwd, options.starterDisciplines ?? ['football', 'tennis']);
+      createdAssets.push(readmeFile);
+    }
+  }
+  return createdAssets;
+}
+
+function findMissingComposeServices(
+  existingCompose: string,
+  shippedCompose: string,
+): { missingServices: string[]; serviceSnippets: string[] } {
+  const existingDocument = parse(existingCompose) as { services?: Record<string, unknown> };
+  const shippedDocument = parse(shippedCompose) as { services?: Record<string, unknown> };
+  const installedServices = new Set(Object.keys(existingDocument.services ?? {}));
+  const missingServiceEntries = Object.entries(shippedDocument.services ?? {}).filter(
+    ([name, service]) => {
+      if (installedServices.has(name)) return false;
+      if (!service || typeof service !== 'object' || !('profiles' in service)) return true;
+      const profiles = (service as { profiles?: unknown }).profiles;
+      return !Array.isArray(profiles) || profiles.length === 0;
+    },
+  );
+  const serviceSnippets = missingServiceEntries.map(([name, service]) => {
+    const serviceYaml = stringify(service).trimEnd();
+    return `services:\n  ${name}:\n${serviceYaml
+      .split('\n')
+      .map((line) => `    ${line}`)
+      .join('\n')}`;
+  });
+  return {
+    missingServices: missingServiceEntries.map(([name]) => name),
+    serviceSnippets,
+  };
+}
+
+function jwksFromPrivateKey(privateKeyPem: string): string {
+  const privateKey = createPrivateKey(privateKeyPem);
+  const jwk = createPublicKey(privateKey).export({ format: 'jwk' });
+  return JSON.stringify(
+    { keys: [{ ...jwk, kid: 'copalibre-local-key-1', use: 'sig', alg: 'RS256' }] },
+    null,
+    2,
+  );
 }

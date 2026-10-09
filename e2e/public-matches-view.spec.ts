@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * The public matches view (openspec 0172): a flat, filterable card grid of a
+ * The public matches view: a flat, filterable card grid of a
  * tournament's matches, server-rendered so the default and every
  * state-filtered view work with scripting off. The deciding-factor line is
  * deliberately a one-line summary here — the full comparator trace only ever
@@ -90,11 +90,13 @@ test.afterAll(async () => {
 });
 
 const matchesPath = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches`;
+// A short scope is a table by default; the cards are the viewer's choice.
+const cardsPath = `${matchesPath}?view=cards`;
 
 test('shows every match with venue, clock, and a one-line deciding-factor summary — no full trace', async ({
   page,
 }) => {
-  await page.goto(matchesPath);
+  await page.goto(cardsPath);
 
   await expect(page.getByText('Club Andes', { exact: true })).toBeVisible();
   await expect(page.getByText('Talleres', { exact: true })).toBeVisible();
@@ -104,6 +106,56 @@ test('shows every match with venue, clock, and a one-line deciding-factor summar
   // The public card never carries the internal comparator trace lines.
   await expect(page.getByText(/ahead by|behind by/)).toHaveCount(0);
   await expect(page.getByText('Full standings comparator trace')).toHaveCount(0);
+});
+
+test('lists the matches as table rows by default, with the score linking to its match', async ({
+  page,
+}) => {
+  await page.goto(matchesPath);
+
+  // The two matches sit in different zones, so each zone lists its own table.
+  const table = page.getByRole('table').first();
+  await expect(table).toBeVisible();
+  await expect(table.getByRole('columnheader')).toHaveText([
+    'Kick-off',
+    'Home',
+    'Score',
+    'Away',
+    'State',
+    'Venue',
+  ]);
+  const finished = table.getByRole('row').filter({ hasText: 'Club Andes' });
+  await expect(finished.getByRole('cell').nth(3)).toHaveText('Deportivo Sur');
+  await expect(finished.getByRole('link', { name: '2 – 1' })).toHaveAttribute(
+    'href',
+    /\/stages\/1\/matches\/3$/,
+  );
+  await expect(page.locator('.cl-match-card')).toHaveCount(0);
+});
+
+test('every filter row carries a visible title, and only the rows that apply appear', async ({
+  page,
+}) => {
+  await page.goto(matchesPath);
+
+  await expect(page.locator('.cl-filter-row__title')).toHaveText(['State', 'View']);
+  await expect(
+    page.getByRole('navigation', { name: 'Choose how matches are shown' }),
+  ).toBeVisible();
+});
+
+test('the view toggle switches between the table and the cards and keeps the filter', async ({
+  page,
+}) => {
+  await page.goto(`${matchesPath}?state=live`);
+  await expect(page.getByRole('table').first()).toBeVisible();
+
+  await page.getByRole('link', { name: 'Cards' }).click();
+  const url = new URL(page.url());
+  expect(url.searchParams.get('view')).toBe('cards');
+  expect(url.searchParams.get('state')).toBe('live');
+  await expect(page.locator('.cl-match-card').first()).toBeVisible();
+  await expect(page.getByRole('table')).toHaveCount(0);
 });
 
 test('the Live filter link narrows the server-rendered list with scripting off', async ({
@@ -120,7 +172,7 @@ test('the Live filter link narrows the server-rendered list with scripting off',
   await expect(page.getByText('Club Andes', { exact: true })).toHaveCount(0);
 });
 
-test('0199: the state filter renders as discrete pills with a visible active state', async ({
+test('the state filter renders as discrete pills with a visible active state', async ({
   page,
   context,
 }) => {
@@ -128,7 +180,7 @@ test('0199: the state filter renders as discrete pills with a visible active sta
   await context.route('**/*.js', (route) => route.abort());
   await page.goto(matchesPath);
 
-  // Scoped by its own aria-label (openspec 0299 added a second
+  // Scoped by its own aria-label (the compact match card added a second
   // `nav.cl-pill-group` for the density toggle): a bare `nav.cl-pill-group`
   // locator now matches two navs and Playwright's strict mode refuses to
   // resolve either.
@@ -151,19 +203,19 @@ test('0199: the state filter renders as discrete pills with a visible active sta
   expect(first.height).toBeGreaterThanOrEqual(40);
 
   await page.getByRole('link', { name: 'Live' }).click();
-  // Scoped to this nav (openspec 0299's density toggle is its own
+  // Scoped to this nav (the density toggle is its own
   // `cl-pill` group with its own always-current selection, so a bare,
   // page-wide `a.cl-pill[aria-current]` now matches two elements).
   await expect(group.locator('a.cl-pill[aria-current]')).toHaveText('Live');
 });
 
-test.describe('0299: density toggle', () => {
+test.describe('density toggle', () => {
   test('the Compact link switches to the ticker card and sets ?compact=true, with scripting off', async ({
     page,
     context,
   }) => {
     await context.route('**/*.js', (route) => route.abort());
-    await page.goto(matchesPath);
+    await page.goto(cardsPath);
 
     await expect(page.locator('.cl-match-card--compact')).toHaveCount(0);
     await page.getByRole('link', { name: 'Compact' }).click();
@@ -180,7 +232,7 @@ test.describe('0299: density toggle', () => {
     context,
   }) => {
     await context.route('**/*.js', (route) => route.abort());
-    await page.goto(matchesPath);
+    await page.goto(cardsPath);
 
     await page.getByRole('link', { name: 'Live' }).click();
     expect(new URL(page.url()).searchParams.get('state')).toBe('live');
@@ -198,7 +250,7 @@ test.describe('0299: density toggle', () => {
   });
 
   test('marks the active density with aria-current', async ({ page }) => {
-    await page.goto(`${matchesPath}?compact=true`);
+    await page.goto(`${cardsPath}&compact=true`);
 
     const toggle = page.locator('nav.cl-pill-group[aria-label="Switch view density"]');
     await expect(toggle.getByRole('link', { name: 'Compact' })).toHaveAttribute(
@@ -212,7 +264,7 @@ test.describe('0299: density toggle', () => {
   });
 });
 
-test.describe('0272: match card timestamp locale', () => {
+test.describe('match card timestamp locale', () => {
   // A browser locale deliberately different from the page's own /es/ route
   // and from any plausible server ICU default. Before the fix,
   // ResponsiveTimestamp resolved its own locale from `navigator` — real on
@@ -238,14 +290,14 @@ test.describe('0272: match card timestamp locale', () => {
     );
 
     await page.route('**/*.js', (route) => route.abort());
-    await page.goto(`/es${matchesPath}`);
+    await page.goto(`/es${cardsPath}`);
     const ssrText = await page
       .locator('.cl-match-card__venue time.cl-responsive-timestamp')
       .first()
       .textContent();
 
     await page.unroute('**/*.js');
-    await page.goto(`/es${matchesPath}`);
+    await page.goto(`/es${cardsPath}`);
     const hydratedText = await page
       .locator('.cl-match-card__venue time.cl-responsive-timestamp')
       .first()

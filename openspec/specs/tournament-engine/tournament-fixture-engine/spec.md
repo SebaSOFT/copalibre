@@ -371,3 +371,65 @@ The engine SHALL support the `ffa-league` placement format, generating a multi-r
 - **WHEN** fixtures are generated
 - **THEN** 10 total placement matches are generated (1 match per division per round)
 - **AND** standings compute cumulative placement and performance points independently per division across all 5 rounds
+
+### Requirement: Heterogeneous Zone Fixture Generation and Standings Accounting
+Seeding and fixture generation SHALL build one fixture graph per zone from that zone's effective format and series declaration, and persist each fixture with its zone and group scope. A stage whose zones have differing formats SHALL produce knockout brackets for elimination formats and round-robin matrices for league formats, with rounds numbered 1-based within each zone so zones may have different round counts. No fixture or advancement edge SHALL cross a zone boundary. A stage without declared zones SHALL generate exactly the fixtures it generated before this change. Points-based standings SHALL be projected only for zones whose effective format produces tables.
+
+#### Scenario: Stage generates knockout fixtures for some zones and round-robin for others
+- **WHEN** seeding publishes a stage where Zone 1 and Zone 2 are `single-elimination` and Zone 3 is `round-robin`
+- **THEN** Zone 1 and Zone 2 persist bracket fixtures with progression edges
+- **AND** Zone 3 persists a complete round-robin schedule among its own entrants
+- **AND** no fixture or edge references an entrant or fixture of another zone
+
+#### Scenario: Stage without declared zones is unchanged
+- **WHEN** seeding publishes a stage that has only its implicit zone
+- **THEN** the persisted fixtures are identical to those generated before this change
+
+#### Scenario: Per-zone series
+- **WHEN** Zone 1 declares a best-of-three series and Zone 3 declares none
+- **THEN** Zone 1's fixtures carry three matches each and Zone 3's carry one
+
+#### Scenario: Standings calculation respects zone format
+- **WHEN** standings and table projections are requested for a heterogeneous stage
+- **THEN** a points table is returned for Zone 3
+- **AND** Zone 1 and Zone 2 return bracket progression and no points table
+
+#### Scenario: Stage-wide standings of a heterogeneous stage
+- **WHEN** the stage's standings are read without naming a zone or group, as the tournament overview and the TV display do
+- **THEN** the rows are those of the zones whose effective format produces a table, each zone ranked on its own
+- **AND** no entrant of a bracket zone appears in them
+
+### Requirement: Dynamic round generation is scoped to one zone
+Generating the next round of a Swiss or single-elimination stage SHALL pair only the entrants of the targeted zone, SHALL derive the current round and the completion check from that zone's fixtures alone, SHALL feed Swiss pairing only that zone's results, and SHALL persist the new fixtures with that zone's identity. A stage with more than one zone SHALL require the request to name the zone by its number; a stage with one zone or none SHALL behave as it did before. A zone whose effective format does not support dynamic rounds SHALL be refused without affecting other zones. No fixture SHALL pair entrants of different zones.
+
+#### Scenario: Two Swiss zones advance independently
+- **WHEN** zone A has finished round 2 and zone B has finished round 1, and the next round is requested for zone B
+- **THEN** zone B receives round 2 pairings among its own entrants only
+- **AND** zone A is unchanged
+
+#### Scenario: A zone with an incomplete round blocks only itself
+- **WHEN** the next round is requested for a zone that has an unfinished match in its current round
+- **THEN** the request is refused with the round-incomplete error
+- **AND** another zone of the same stage can still generate its next round
+
+#### Scenario: A mixed-format stage can advance its dynamic zone
+- **WHEN** a stage has a Swiss zone and a round-robin zone and the next round is requested for the Swiss zone
+- **THEN** the round is generated for that zone
+- **AND** the round-robin zone is untouched
+
+#### Scenario: A multi-zone stage requires the zone
+- **WHEN** the next round is requested for a stage with several zones without naming a zone
+- **THEN** the request is refused with an error saying which zones are eligible
+
+#### Scenario: A single-zone stage is unchanged
+- **WHEN** the next round is requested for a stage with no declared zones
+- **THEN** the behavior is the one it had before zone scoping
+
+#### Scenario: A zone the stage does not have is refused
+- **WHEN** the next round is requested for a zone number the stage does not have
+- **THEN** the request is refused as not found and nothing is generated
+
+#### Scenario: A zone without dynamic rounds is refused alone
+- **WHEN** the next round is requested for a zone whose effective format is round-robin
+- **THEN** the request is refused naming the zone
+- **AND** the stage's other zones are unaffected

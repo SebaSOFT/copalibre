@@ -202,9 +202,56 @@ describe('migrations (integration)', () => {
       expect.arrayContaining([expect.objectContaining({ name: 'featured' })]),
     );
     expect(afterUpTables.find((table) => table.name === 'stage_configurations')?.columns).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'allocation' })]),
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'allocation' }),
+        expect.objectContaining({ name: 'group_configuration' }),
+      ]),
     );
     expect(afterUp).toContain('realtime_replicas');
+    expect(afterUpTables.find((table) => table.name === 'zones')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'format', isNullable: true })]),
+    );
+
+    expect(afterUpTables.find((table) => table.name === 'fixtures')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'role', isNullable: true })]),
+    );
+
+    const fixtureRoleDown = await migrateDownOneStep(scratch.db);
+    expect(fixtureRoleDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0040-zone-format');
+    const afterFixtureRoleDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterFixtureRoleDownTables.find((table) => table.name === 'fixtures')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'role' })]));
+    // The column beneath it survives the step down.
+    expect(afterFixtureRoleDownTables.find((table) => table.name === 'zones')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'format' })]),
+    );
+
+    const zoneFormatDown = await migrateDownOneStep(scratch.db);
+    expect(zoneFormatDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0039-stage-group-configuration',
+    );
+    const afterZoneFormatDownTables = await scratch.db.introspection.getTables();
+    expect(afterZoneFormatDownTables.find((table) => table.name === 'zones')?.columns).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'format' })]),
+    );
+    // The column beneath it survives the step down.
+    expect(
+      afterZoneFormatDownTables.find((table) => table.name === 'stage_configurations')?.columns,
+    ).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'group_configuration' })]));
+
+    const stageGroupConfigurationDown = await migrateDownOneStep(scratch.db);
+    expect(stageGroupConfigurationDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0038-realtime-replicas');
+    const afterStageGroupConfigurationDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterStageGroupConfigurationDownTables.find((table) => table.name === 'stage_configurations')
+        ?.columns,
+    ).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'group_configuration' })]),
+    );
 
     const realtimeReplicasDown = await migrateDownOneStep(scratch.db);
     expect(realtimeReplicasDown.error).toBeUndefined();

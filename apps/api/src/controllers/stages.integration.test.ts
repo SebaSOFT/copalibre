@@ -73,7 +73,7 @@ function descriptor(): DisciplineDescriptor {
     statistics: [{ code: 'points', label: 'Puntos', aggregation: 'sum' }],
     scoringInputs: [],
     // 'free-for-all' is declared alongside 'round-robin' so a series-on-placement
-    // refusal (task 1.2) can be proven without a second descriptor fixture.
+    // refusal can be proven without a second descriptor fixture.
     availableFormats: ['round-robin', 'free-for-all', 'swiss', 'single-elimination'],
     notificationRuleCapabilities: [],
     winCondition: {},
@@ -226,7 +226,7 @@ describe('stage creation routes (integration)', () => {
     expect(body).toMatchObject({ number: 1, name: 'Stage 1', format: 'round-robin' });
     expect(typeof body.stageId).toBe('string');
     expect(typeof body.seasonId).toBe('string');
-    // Task 1.1: declaring no series is the default and stays untouched — no
+    // Declaring no series is the default and stays untouched — no
     // `series` key at all, and no stage_configuration row is written for it.
     expect(body.series).toBeUndefined();
     const row = await scratch.db
@@ -410,7 +410,7 @@ describe('stage creation routes (integration)', () => {
     const unseededStage = stages.find((stage) => stage.name !== 'Fase E2E');
     expect(unseededStage?.seeded).toBe(false);
 
-    // Task 2.1: `availableFormats` comes from the tournament's own discipline
+    // `availableFormats` comes from the tournament's own discipline
     // (`descriptor()` above declares no `formatDescriptions`, so that field
     // stays absent — the "discipline declares none" half of the contract).
     expect(unseededStage?.availableFormats).toEqual(
@@ -419,7 +419,7 @@ describe('stage creation routes (integration)', () => {
     expect(unseededStage?.formatDescriptions).toBeUndefined();
   });
 
-  it("exposes the tournament discipline's per-format descriptions, both plain string and localized (0251 task 2.1)", async () => {
+  it("exposes the tournament discipline's per-format descriptions, both plain string and localized", async () => {
     const formatTournamentAlias = 'apertura-0066-formatos';
     const discipline: DisciplineDescriptor = {
       ...descriptor(),
@@ -519,7 +519,7 @@ describe('stage creation routes (integration)', () => {
     },
   );
 
-  describe('series declaration (0159)', () => {
+  describe('series declaration', () => {
     const seriesTournamentAlias = 'apertura-0066-series';
     const seriesBase = `/organizations/${organizationAlias}/tournaments/${seriesTournamentAlias}/stages`;
     let seriesTournamentId = '';
@@ -578,7 +578,7 @@ describe('stage creation routes (integration)', () => {
       }
     });
 
-    it('persists a declared series as stage-configuration overrides and echoes it back (task 1.1)', async () => {
+    it('persists a declared series as stage-configuration overrides and echoes it back', async () => {
       const response = await request({
         method: 'POST',
         url: seriesBase,
@@ -604,7 +604,7 @@ describe('stage creation routes (integration)', () => {
       expect(overrides).toEqual({ 'series.span': 5, 'series.resolutionClass': 'best-of' });
     });
 
-    it('refuses a series on a placement-format stage before storing anything (task 1.2)', async () => {
+    it('refuses a series on a placement-format stage before storing anything', async () => {
       const before = await new CompetitionRepository(scratch.db).listStagesOfTournament(
         seriesTournamentId,
       );
@@ -622,7 +622,7 @@ describe('stage creation routes (integration)', () => {
       expect(after).toHaveLength(before.length);
     });
 
-    it('refuses an even-span best-of, naming aggregate and points-per-leg (task 1.3)', async () => {
+    it('refuses an even-span best-of, naming aggregate and points-per-leg', async () => {
       const response = await request({
         method: 'POST',
         url: seriesBase,
@@ -637,7 +637,7 @@ describe('stage creation routes (integration)', () => {
 
     it(
       'previews a series mutation’s classification without applying it, and blocks a ' +
-        'shortening naming the audited correction workflow once a result exists (task 1.4)',
+        'shortening naming the audited correction workflow once a result exists',
       async () => {
         const created = await request({
           method: 'POST',
@@ -730,8 +730,7 @@ describe('stage creation routes (integration)', () => {
 
         // A classification consulted and found blocking, but returned as a
         // 200 decision rather than thrown, is still recorded — the one
-        // refusal shape the central exception filter cannot see (openspec
-        // 0166, task 2.2).
+        // refusal shape the central exception filter cannot see.
         const refusal = await scratch.db
           .selectFrom('audit_log')
           .selectAll()
@@ -746,7 +745,7 @@ describe('stage creation routes (integration)', () => {
     );
   });
 
-  describe('stage allocation (0235)', () => {
+  describe('stage allocation', () => {
     const allocationTournamentAlias = 'apertura-0235-allocation';
     const allocationBase = `/organizations/${organizationAlias}/tournaments/${allocationTournamentAlias}/stages`;
     let allocationTournamentId = '';

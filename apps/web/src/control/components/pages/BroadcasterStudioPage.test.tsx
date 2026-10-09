@@ -67,7 +67,7 @@ function issued(overrides: Partial<DisplayTokenIssuedResponse> = {}): DisplayTok
   };
 }
 
-describe('BroadcasterStudioPage (openspec 0300)', () => {
+describe('BroadcasterStudioPage', () => {
   it('issues a token on mount and shows the resulting overlay URL with the default mode/chroma', async () => {
     render(
       withIntl(

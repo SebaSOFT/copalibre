@@ -13,7 +13,7 @@ import { useToast } from '../ToastProvider.js';
 import { ClubPortalRosterTemplate } from '../screens/ClubPortalRosterTemplate.js';
 
 /**
- * The Club Portal roster-submission wizard (openspec 0301): loads the club's
+ * The Club Portal roster-submission wizard: loads the club's
  * own members and teams once, then submits the assembled squad. All fetches
  * and the one mutation live here; the template only renders the resulting
  * data and calls back through `onCreateTeam`/`onSubmit`.

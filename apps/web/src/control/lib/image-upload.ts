@@ -91,8 +91,8 @@ function canvasToBase64Png(canvas: HTMLCanvasElement): Promise<string> {
  * Crops `imageSrc` to `croppedAreaPixels` (react-easy-crop's own output) at
  * `rotationDegrees`, and renders the result to a fixed 410×512 canvas — the
  * crop is scaled to fill that canvas exactly, up or down, regardless of its
- * own resolution (design.md's "always exactly 410×512, source scaled to
- * fit"). Adapted from react-easy-crop's documented rotate-then-crop
+ * own resolution (always exactly 410×512, source scaled to
+ * fit). Adapted from react-easy-crop's documented rotate-then-crop
  * technique — translate to center, rotate, draw, crop — not hand-rolled
  * from nothing; only the fixed output size is this proposal's own addition.
  */

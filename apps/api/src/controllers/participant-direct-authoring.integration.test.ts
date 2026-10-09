@@ -16,11 +16,11 @@ import {
 } from './registrations.controller.js';
 
 /**
- * Direct participant authoring (openspec 0167): a person or team registered
+ * Direct participant authoring: a person or team registered
  * without a CSV file, through the same repository paths a CSV row already
- * takes. Covers tasks.md sections 2 (behavioural coverage of the
- * create/edit/collision paths) and 3 (the CSV-interop and
- * association-preservation guarantees) together — both need the same real
+ * takes. Covers the behavioural coverage of the
+ * create/edit/collision paths and the CSV-interop and
+ * association-preservation guarantees together — both need the same real
  * Postgres harness, so nothing is gained by splitting the file. Wired into
  * the `integration-tests` CI job only: there is no Postgres-free unit-level
  * version of this behaviour to test, since every path here writes through
@@ -66,7 +66,7 @@ afterAll(async () => {
   await scratch?.drop();
 });
 
-describe('direct-add a person (task 1.1)', () => {
+describe('direct-add a person', () => {
   it('registers a person as a pending entrant, and a later import recognises them by natural key', async () => {
     const response = await request({
       method: 'POST',
@@ -110,7 +110,7 @@ describe('direct-add a person (task 1.1)', () => {
   });
 });
 
-describe('direct-add a team (task 1.2)', () => {
+describe('direct-add a team', () => {
   it('registers a team as a pending entrant, and a later import recognises them by alias', async () => {
     const response = await request({
       method: 'POST',
@@ -137,7 +137,7 @@ describe('direct-add a team (task 1.2)', () => {
   });
 });
 
-describe('identity edit preserves existing associations (task 1.3)', () => {
+describe('identity edit preserves existing associations', () => {
   it("corrects a directly-added team's name without disturbing its entrant registration", async () => {
     const created = await request({
       method: 'POST',
@@ -186,7 +186,7 @@ describe('identity edit preserves existing associations (task 1.3)', () => {
   });
 });
 
-describe('alias collision is refused, on create and on edit (task 1.4)', () => {
+describe('alias collision is refused, on create and on edit', () => {
   it('refuses creating a team whose explicit alias is already claimed', async () => {
     const first = await request({
       method: 'POST',

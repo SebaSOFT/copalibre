@@ -19,6 +19,7 @@ import {
   NotFoundException,
 } from '../http/error-contract.js';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
@@ -31,12 +32,15 @@ import {
 } from '@nestjs/swagger';
 import {
   compileEffectiveRuleset,
+  effectiveFormat,
   evaluateMutation,
   isPlacementFormat,
   SUPPORTED_FORMATS,
   validateAllocation,
   validateSeriesDeclaration,
+  validateStageGroupConfiguration,
   type StageAllocation,
+  type StageGroupConfiguration,
   type TournamentFormat,
   type TournamentRuleset,
 } from '@copalibre/domain';
@@ -61,6 +65,7 @@ import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
   CreateStageRequest,
+  NextRoundRequest,
   ProblemResponse,
   SeriesDeclarationRequest,
   SeriesMutationPreviewResponse,
@@ -71,7 +76,13 @@ import {
 } from '../dto/organization.dto.js';
 import { StageFixturesResponse } from '../dto/schedule.dto.js';
 import { resolveTournament } from './standings.controller.js';
-import { guaranteedMatchCount, readStageSeries, resolveFixtureSeries } from './stage-series.js';
+import { chooseRoundZone, inZone, isDynamicRoundFormat } from './stage-rounds.js';
+import {
+  guaranteedMatchCount,
+  readSeriesResolver,
+  readStageSeries,
+  resolveFixtureSeries,
+} from './stage-series.js';
 import { DATABASE } from '../database.token.js';
 
 /**
@@ -103,7 +114,7 @@ export function assertAllocationRequestComplete(allocation: {
  * gap identified by a walkthrough: `CompetitionRepository.createStageInTournament` was real, tested,
  * and had no caller anywhere in `apps/api`. This endpoint only creates the stage; generating its
  * bracket is `POST .../stages/:stageNumber/seeding` (`seeding.controller.ts`), the same fixture-
- * generation path an operator already uses to reseed a later stage (see design.md).
+ * generation path an operator already uses to reseed a later stage.
  */
 @ApiTags('stages')
 @Controller('organizations/:organizationAlias/tournaments/:tournamentAlias/stages')
@@ -212,6 +223,17 @@ export class StagesController {
         throw new BadRequestException(validated.error.message, { errorCode: 'stage-bad-request' });
       }
     }
+    if (body.groupConfiguration == null && body.groupConfiguration !== undefined) {
+      throw new BadRequestException('Group configuration cannot be null', {
+        errorCode: 'stage-bad-request',
+      });
+    }
+    if (body.groupConfiguration !== undefined) {
+      const groupError = validateStageGroupConfiguration(
+        body.groupConfiguration as StageGroupConfiguration,
+      );
+      if (groupError) throw new BadRequestException(groupError, { errorCode: 'stage-bad-request' });
+    }
 
     let ruleset: TournamentRuleset | undefined;
     if (body.series !== undefined) {
@@ -230,7 +252,11 @@ export class StagesController {
       }
     }
 
-    if (body.series !== undefined || body.allocation !== undefined) {
+    if (
+      body.series !== undefined ||
+      body.allocation !== undefined ||
+      body.groupConfiguration !== undefined
+    ) {
       const found = await new TournamentRepository(this.db).findLatestRuleset(
         tournament.tournamentId,
       );
@@ -288,6 +314,9 @@ export class StagesController {
             ...(body.allocation === undefined
               ? {}
               : { allocation: body.allocation as StageAllocation }),
+            ...(body.groupConfiguration === undefined
+              ? {}
+              : { groupConfiguration: body.groupConfiguration as StageGroupConfiguration }),
             actor: actorOf(request),
             authorizationContext: authorizationContextOf(request),
           });
@@ -602,7 +631,7 @@ export class StagesController {
           // A classification consulted and found blocking, returned as a
           // 200 decision rather than thrown — the one refusal shape the
           // central exception filter cannot see, so it is recorded here
-          // instead (design.md, "Refusals that never reach the filter").
+          // instead.
           // Awaited, not fire-and-forget: nothing has been sent to the
           // caller yet, so awaiting adds no risk of altering a response
           // already on the wire, and it removes the race a detached write
@@ -661,7 +690,12 @@ export class StagesController {
     const configuration = await new TournamentRepository(this.db).findLatestStageConfiguration(
       stage.stageId,
     );
-    return { overrides: { ...(configuration?.overrides ?? {}) } };
+    return {
+      overrides: { ...(configuration?.overrides ?? {}) },
+      ...(configuration?.groupConfiguration === undefined
+        ? {}
+        : { groupConfiguration: configuration.groupConfiguration }),
+    };
   }
 
   @Post(':stageNumber/configuration/preview')
@@ -790,6 +824,13 @@ export class StagesController {
     const { hasRecordedResults, generatedFixtures, previousValues } =
       await this.stageMutationContext(stage.stageId);
 
+    if (body.groupConfiguration !== undefined && body.groupConfiguration !== null) {
+      const groupError = validateStageGroupConfiguration(body.groupConfiguration);
+      if (groupError) {
+        throw new BadRequestException(groupError, { errorCode: 'stage-bad-request' });
+      }
+    }
+
     const fields = Object.entries(body.overrides);
     for (const [field, nextValue] of fields) {
       const decision = evaluateMutation(descriptor.fieldPolicies, field, {
@@ -823,7 +864,15 @@ export class StagesController {
     try {
       return await withTransaction(this.db, async (uow) => {
         await competition.assertStageHasNoFixtures(uow, stage.stageId);
-        if (fields.length === 0) return { overrides: mergedOverrides };
+        if (fields.length === 0 && body.groupConfiguration === undefined) {
+          const current = await tournaments.findLatestStageConfiguration(stage.stageId);
+          return {
+            overrides: mergedOverrides,
+            ...(current?.groupConfiguration === undefined
+              ? {}
+              : { groupConfiguration: current.groupConfiguration }),
+          };
+        }
 
         const currentConfiguration = await tournaments.findLatestStageConfiguration(stage.stageId);
         const ruleset = await tournaments.findLatestRuleset(tournament.tournamentId);
@@ -839,6 +888,9 @@ export class StagesController {
               stageId: stage.stageId,
               organizationId,
               changedOverrides: Object.fromEntries(fields),
+              ...(body.groupConfiguration === undefined
+                ? {}
+                : { groupConfiguration: body.groupConfiguration }),
               actor: actorOf(request),
               authorizationContext: authorizationContextOf(request),
             })
@@ -847,6 +899,9 @@ export class StagesController {
               rulesetId: ruleset.rulesetId,
               organizationId,
               overrides: mergedOverrides,
+              ...(body.groupConfiguration == null
+                ? {}
+                : { groupConfiguration: body.groupConfiguration }),
               actor: actorOf(request),
               authorizationContext: authorizationContextOf(request),
             });
@@ -862,7 +917,12 @@ export class StagesController {
             authorizationContext: authorizationContextOf(request),
           });
         }
-        return { overrides: mergedOverrides };
+        return {
+          overrides: mergedOverrides,
+          ...(stageConfiguration.groupConfiguration === undefined
+            ? {}
+            : { groupConfiguration: stageConfiguration.groupConfiguration }),
+        };
       });
     } catch (error) {
       if (error instanceof InvariantViolationError) {
@@ -936,16 +996,16 @@ export class StagesController {
 
     const fixtures = await competition.listFixturesOfStage(stage.stageId);
     const matches = await competition.listMatchesForStage(stage.stageId);
-    const declaration = await readStageSeries(this.db, {
+    // Each fixture resolves against its own zone's declaration.
+    const seriesOf = await readSeriesResolver(this.db, {
       tournamentId: tournament.tournamentId,
       stageId: stage.stageId,
     });
     // Only paid for when a series exists: a stage of single matches anulls nothing, so there is
     // no released slot to look up and no audit scan to run.
-    const releasedSlots =
-      declaration === undefined
-        ? new Map<string, string>()
-        : await competition.listReleasedSlotsOfStage(stage.stageId);
+    const releasedSlots = !seriesOf.declaresAny
+      ? new Map<string, string>()
+      : await competition.listReleasedSlotsOfStage(stage.stageId);
 
     const matchesByFixture = new Map<string, typeof matches>();
     for (const match of matches) {
@@ -961,6 +1021,7 @@ export class StagesController {
         const own = [...(matchesByFixture.get(fixture.fixtureId) ?? [])].sort(
           (a, b) => a.number - b.number,
         );
+        const declaration = seriesOf.forZone(fixture.zoneId);
         const resolution =
           declaration === undefined
             ? undefined
@@ -1015,11 +1076,13 @@ export class StagesController {
   @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Generate the next round of a Swiss stage',
+    summary: 'Generate the next round of one zone of a Swiss or single-elimination stage',
     description:
-      'Validates that all matches in the current round are finalized, calculates standings, and generates pairings for the next round.',
+      'Scoped to one zone: validates that all matches in the zone’s current round are finalized, calculates standings from that zone’s results, ' +
+      'and generates pairings among that zone’s entrants only. A stage with several zones requires `zoneNumber`.',
   })
   @ApiOkResponse({ type: StageFixturesResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
   @ApiConflictResponse({ type: ProblemResponse })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
@@ -1028,6 +1091,7 @@ export class StagesController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Body() body: NextRoundRequest,
     @Req() request: RequestWithSubject,
   ): Promise<StageFixturesResponse> {
     const { tournament, organizationId } = await resolveTournament(this.db, {
@@ -1044,21 +1108,46 @@ export class StagesController {
         errorCode: 'stage-not-found',
       });
 
-    if (stage.format !== 'swiss' && stage.format !== 'single-elimination') {
+    // Rounds, pairings and results are per zone, so the zone the caller targets decides the format
+    // and every set read below. A stage with no zone yet is read as a whole, as it always was.
+    const zones = await competition.listZonesOfStage(stage.stageId);
+    const choice = chooseRoundZone(zones, stage, body?.zoneNumber);
+    if (choice.kind === 'unknown') {
+      throw new NotFoundException(`No zone ${choice.requested} in stage ${stageNumber}`, {
+        errorCode: 'zone-not-found',
+      });
+    }
+    if (choice.kind === 'required') {
+      throw new BadRequestException(
+        choice.eligible.length === 0
+          ? `Stage ${stageNumber} has several zones and none plays a format with dynamic rounds`
+          : `Stage ${stageNumber} has several zones: name one in zoneNumber (zones that can advance: ${choice.eligible.join(', ')})`,
+        { errorCode: 'stage-zone-required' },
+      );
+    }
+    const zone = choice.kind === 'zone' ? choice.zone : undefined;
+    const format = zone === undefined ? stage.format : effectiveFormat(zone, stage);
+    if (!isDynamicRoundFormat(format)) {
+      // Refused for the zone asked about; a sibling playing a dynamic format is unaffected.
       throw new ConflictException(
-        'Only Swiss and single-elimination stages support dynamic round generation',
-        { errorCode: 'stage-not-swiss' },
+        zones.length > 1 && zone !== undefined
+          ? `Zone ${zone.number} plays ${format}, which does not support dynamic round generation`
+          : 'Only Swiss and single-elimination stages support dynamic round generation',
+        { errorCode: zones.length > 1 ? 'zone-not-dynamic' : 'stage-not-swiss' },
       );
     }
 
-    const fixtures = await competition.listFixturesOfStage(stage.stageId);
+    const fixtures = inZone(await competition.listFixturesOfStage(stage.stageId), zone);
     if (fixtures.length === 0) {
       throw new ConflictException('Stage has no initial fixtures generated', {
         errorCode: 'stage-no-fixtures',
       });
     }
 
-    const matches = await competition.listMatchesForStage(stage.stageId);
+    const zoneFixtureIds = new Set(fixtures.map((f) => f.fixtureId));
+    const matches = (await competition.listMatchesForStage(stage.stageId)).filter((m) =>
+      zoneFixtureIds.has(m.fixtureId),
+    );
     const currentRound = Math.max(...fixtures.map((f) => f.round));
     const currentRoundFixtures = fixtures
       .filter((f) => f.round === currentRound)
@@ -1066,7 +1155,7 @@ export class StagesController {
     const currentRoundFixtureIds = new Set(currentRoundFixtures.map((f) => f.fixtureId));
     const currentRoundMatches = matches.filter((m) => currentRoundFixtureIds.has(m.fixtureId));
 
-    if (stage.format === 'single-elimination' && currentRoundFixtures.length <= 1) {
+    if (format === 'single-elimination' && currentRoundFixtures.length <= 1) {
       throw new ConflictException('The single-elimination stage is already fully completed', {
         errorCode: 'stage-already-completed',
       });
@@ -1083,7 +1172,7 @@ export class StagesController {
     }
 
     const readModel = new StageReadModel(this.db);
-    const stageRecord = await readModel.stageRecord(stage.stageId);
+    const stageRecord = await readModel.stageRecord(stage.stageId, undefined, zone?.zoneId);
     const entrantIds = stageRecord?.entrantIds ?? [];
     if (entrantIds.length < 2) {
       throw new ConflictException('Stage has fewer than 2 entrants', {
@@ -1091,11 +1180,12 @@ export class StagesController {
       });
     }
 
-    const outcomes = await readModel.outcomes(stage.stageId);
+    const outcomes = await readModel.outcomes(stage.stageId, undefined, zone?.zoneId);
     const nextRoundNumber = currentRound + 1;
     const declaration = await readStageSeries(this.db, {
       tournamentId: tournament.tournamentId,
       stageId: stage.stageId,
+      zoneId: fixtures[0]?.zoneId,
     });
     const seriesSpan = declaration === undefined ? {} : { matchCount: declaration.span };
 
@@ -1107,7 +1197,7 @@ export class StagesController {
       readonly groupId?: string;
     }[];
 
-    if (stage.format === 'single-elimination') {
+    if (format === 'single-elimination') {
       const winners: string[] = [];
       for (const f of currentRoundFixtures) {
         const fixtureMatches = currentRoundMatches.filter((m) => m.fixtureId === f.fixtureId);

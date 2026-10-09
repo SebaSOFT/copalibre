@@ -27,6 +27,27 @@ test('navigates help content and searches through Starlight', async ({ page }) =
   await expect(page.getByRole('link', { name: /Roster/ }).first()).toBeVisible();
 });
 
+test('serves the dashboard-specific help article under each locale prefix', async ({ page }) => {
+  const localizedPages = [
+    ['/help/control/overview/', 'Organization dashboard'],
+    ['/es/help/control/overview/', 'Panel de la organización'],
+    ['/fr/help/control/overview/', 'Tableau de bord de l’organisation'],
+    ['/pt/help/control/overview/', 'Painel da organização'],
+    ['/it/help/control/overview/', 'Dashboard dell’organizzazione'],
+    ['/de/help/control/overview/', 'Organisationsübersicht'],
+    ['/ru/help/control/overview/', 'Панель организации'],
+    ['/zh/help/control/overview/', '组织控制面板'],
+  ] as const;
+
+  await page.goto('/help/control/');
+  await expect(page.getByRole('heading', { name: 'Control panel', level: 1 })).toBeVisible();
+
+  for (const [path, title] of localizedPages) {
+    await page.goto(path);
+    await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible();
+  }
+});
+
 test('public home page renders hero orientation hub with zero organizations', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'CopaLibre', level: 1 })).toBeVisible();
@@ -44,6 +65,6 @@ test('public home page renders hero orientation hub with zero organizations', as
 
   const nav = page.getByRole('navigation', { name: 'Main' });
   await expect(nav.getByRole('link', { name: 'Home' })).toBeVisible();
-  await expect(nav.getByRole('link', { name: 'Help' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Help' })).toHaveCount(0);
   await expect(nav.getByRole('link', { name: /API reference/i })).toHaveCount(0);
 });

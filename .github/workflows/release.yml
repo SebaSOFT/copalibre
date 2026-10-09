@@ -1,6 +1,6 @@
 name: Release
 
-# Established by 0058-release-process-and-v0-2. Cutting a release is: bump
+# Established with the first release process. Cutting a release is: bump
 # every package.json's version (see RELEASE.md), open a develop->main pull
 # request, merge once its CI (release-gated, see ci.yml's release_candidate)
 # is green. This workflow does the rest — tag, image publish, GitHub Release
@@ -27,6 +27,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      vulnerability-alerts: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -74,6 +75,12 @@ jobs:
       - name: Audit all workspace dependencies
         if: steps.check.outputs.exists != 'true'
         run: yarn npm audit --all --recursive --no-deprecations
+
+      - name: Audit GitHub Dependabot alerts
+        if: steps.check.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check-dependabot-alerts.mjs
 
       - uses: docker/setup-qemu-action@v4
         if: steps.check.outputs.exists != 'true'

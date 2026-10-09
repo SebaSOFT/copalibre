@@ -423,7 +423,7 @@ The toolchain SHALL pin supported stable major lines of packages with known advi
 - **THEN** the dependency security guard fails and identifies the package and locked descriptor
 
 ### Requirement: Continuous integration audits the full dependency graph
-Continuous integration SHALL check direct and transitive dependencies from every workspace against current package registry security advisories. Any reported security advisory SHALL fail the check, while package deprecation notices alone SHALL NOT count as security advisories.
+Continuous integration SHALL check direct and transitive dependencies from every workspace against package registry security advisories and the GitHub Advisory Database. Any open, unreviewed security advisory SHALL fail the check, while package deprecation notices alone SHALL NOT count as security advisories. Transitive build-time dependencies without upstream patches SHALL require explicit documented architectural blast-radius assessment before release.
 
 #### Scenario: Pull request dependency graph has no security advisories
 - **WHEN** CI installs dependencies for a pull request
@@ -440,3 +440,88 @@ Continuous integration SHALL check direct and transitive dependencies from every
 #### Scenario: Deprecation notices do not fail the vulnerability gate
 - **WHEN** the registry reports only package deprecation notices and no security advisories
 - **THEN** the dependency audit check passes
+
+#### Scenario: Supply-chain audit detects GitHub security advisories
+- **WHEN** CI runs security verification on a pull request
+- **THEN** it audits the dependency graph against open repository advisories and fails if an unreviewed advisory exists
+
+#### Scenario: Unpatched build-time dependencies require recorded blast-radius assessment
+- **WHEN** a transitive dependency carries an open advisory with no upstream patch available
+- **THEN** CI requires an explicit entry in the verified unpatched register documenting zero runtime exposure, failing if the advisory is unreviewed or if an upstream patch has been released but not adopted
+
+### Requirement: Transitive security remediations are attributed to direct dependencies
+The repository SHALL maintain a versioned, machine-readable register of confirmed security remediation events caused by vulnerable transitive dependencies. Each event SHALL identify the advisory, affected transitive package, remediation action, and all direct dependency package roots that lead to the affected package, with the consuming workspaces and evidence needed to verify those paths. A single event SHALL count once for each distinct direct dependency root, regardless of how many workspaces consume that root or how many duplicate paths occur beneath it. CI SHALL validate the register and publish cumulative event, advisory, and transitive-package counts grouped by direct dependency root. The report SHALL identify the historical coverage window and mark an incomplete baseline as partial; missing historical entries SHALL NOT be presented as zero incidents. This report SHALL inform maintainer decisions and SHALL NOT automatically replace dependencies or weaken the dependency audit gate.
+
+#### Scenario: One advisory remediation is counted once per direct root
+- **WHEN** one transitive advisory affects the same direct dependency package in multiple workspaces and through duplicate nested paths
+- **THEN** the report counts one event for that direct dependency package and lists all affected workspaces
+
+#### Scenario: One advisory remediation is attributed to multiple direct roots
+- **WHEN** two distinct direct dependency packages introduce the same vulnerable transitive package
+- **THEN** the report attributes one event to each direct dependency package and links both attributions to the same remediation evidence
+
+#### Scenario: A new transitive remediation updates the lifetime counts
+- **WHEN** maintainers add a verified remediation event to the register
+- **THEN** CI validates its advisory, transitive package, remediation, direct roots, affected workspaces, and evidence, then includes it in grouped counts
+
+#### Scenario: Incomplete historical coverage is visible
+- **WHEN** the register includes only remediations that can be confirmed from repository evidence
+- **THEN** the report identifies its coverage start and marks the historical baseline partial rather than treating earlier omissions as zero incidents
+
+#### Scenario: Security incident reporting preserves the audit gate
+- **WHEN** the report is generated for a CI run
+- **THEN** it does not change dependency audit results or automatically modify dependency manifests, resolutions, or lockfiles
+
+### Requirement: Tracked Content Carries No Change-Number Citation
+Tracked file content and tracked file names SHALL NOT cite an OpenSpec change by number or by its numbered directory name, because change directories are git-ignored and exist only on the machine that created them. Comments, docstrings, test and story names, workflow and script comments, documentation prose, configuration reasons and accepted specs SHALL describe the behavior or rationale in words. Continuous integration SHALL fail when tracked content or a tracked file name contains such a citation. The generated release history, database migration files and their sequence numbers, and lockfiles SHALL be exempt. Four-digit values that are not citations (ports, years, fixtures, version strings) SHALL NOT be reported.
+
+#### Scenario: A comment cites a change by number
+- **WHEN** a tracked source file contains a citation: the word "openspec" or "change" followed by a four-digit change number, a parenthesised four-digit number, or a four-digit number followed by a kebab-case change name
+- **THEN** the change-number guard fails continuous integration and reports the file and line
+
+#### Scenario: A tracked file name starts with a change number
+- **WHEN** a tracked file outside the migrations directory has a basename starting with a four-digit change number followed by a hyphen
+- **THEN** the guard fails and reports the file path
+
+#### Scenario: Non-citation four-digit values are not reported
+- **WHEN** tracked content contains a port number, a year, a migration sequence number or a fixture literal
+- **THEN** the guard reports nothing for it
+
+#### Scenario: Exempt files may keep historical numbers
+- **WHEN** `CHANGELOG.md`, a migration file or a lockfile contains a change number
+- **THEN** the guard does not fail
+
+### Requirement: Tracked Content Does Not Cite A Change's Planning Artifacts
+Tracked file content SHALL NOT point at a git-ignored change's planning artifacts as the source of a rationale: a task number such as "task" followed by a dotted number, or the file names of a change's design, tasks or proposal documents used as a reference. The rationale SHALL be stated in words where it is needed. Continuous integration SHALL fail when tracked content contains such a reference. Documentation that describes the OpenSpec workflow itself, and the guard's own test fixtures, SHALL be exempt through an explicit short allowlist.
+
+#### Scenario: A comment points at a design document
+- **WHEN** a tracked source file says a behavior is explained in a change's design document
+- **THEN** the guard fails continuous integration and reports the file and line
+
+#### Scenario: A comment cites a task number
+- **WHEN** a tracked source file cites "task" followed by a dotted number
+- **THEN** the guard fails continuous integration and reports the file and line
+
+#### Scenario: Workflow documentation may name the files
+- **WHEN** `AGENTS.md` or a skill describes what a change's design or tasks document is for
+- **THEN** the guard does not fail
+
+### Requirement: Slow, networked and port-bound tests declare themselves and fail for a stated reason
+A timeout that a workspace declares for its integration tests SHALL apply however the suites are run, including from the root aggregate run. A test that needs the network SHALL skip with an explicit reason when its remote is unreachable, while remaining required in continuous integration. End-to-end mock services SHALL NOT listen on ports that the local development stack publishes by default. A retry that rescues a test in continuous integration SHALL be surfaced in the run summary as a flake.
+
+#### Scenario: A declared timeout applies in the root run
+- **WHEN** a workspace declares a test timeout longer than the default and its tests run from the root integration command
+- **THEN** a test that takes longer than the default but within the declared timeout passes
+
+#### Scenario: A networked suite skips with a reason when offline
+- **WHEN** an integration suite that clones a remote repository runs on a machine that cannot reach it
+- **THEN** the suite skips and states that the remote was unreachable
+- **AND** the same suite fails, instead of skipping, when the environment requires the network tests to run
+
+#### Scenario: End-to-end mocks do not collide with the development stack
+- **WHEN** the local development stack is running and the end-to-end suite starts
+- **THEN** the per-worker mock services listen on ports the stack does not publish
+
+#### Scenario: A rescued flake is visible
+- **WHEN** a Playwright retry makes a failing test pass in continuous integration
+- **THEN** the run summary lists that test as flaky

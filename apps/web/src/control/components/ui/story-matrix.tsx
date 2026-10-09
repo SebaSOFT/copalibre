@@ -1,6 +1,6 @@
 /**
  * The side-by-side view every library component ships alongside its controls
- * story (OpenSpec 0213, design.md Decision 3).
+ * story.
  *
  * A controls story lets a reviewer vary one prop at a time; it never puts two
  * variants on screen together, and a difference between two variants is only

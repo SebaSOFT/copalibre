@@ -21,6 +21,8 @@ export type SlotSource =
       readonly entrantId?: string;
       readonly clubId?: string;
       readonly emblemObjectId?: string;
+      /** Where this entrant came from, so a played match stays linked to the ones that fed it. */
+      readonly from?: { readonly matchId: string; readonly outcome: 'winner' | 'loser' };
     }
   | { readonly kind: 'winner-of'; readonly matchNumber?: number; readonly matchId?: string }
   | { readonly kind: 'loser-of'; readonly matchNumber?: number; readonly matchId?: string }
@@ -46,11 +48,43 @@ export function selectStageLayout(format?: string): StageLayout {
   return eliminationFormats.includes(format) ? 'bracket' : 'grid';
 }
 
+/**
+ * How each zone of a stage is drawn, and whether the stage mixes layouts.
+ *
+ * A zone plays its own format when it declares one and its stage's otherwise, so a stage can hold
+ * knockout zones beside a league zone. A stage whose zones all draw the same way keeps the
+ * single-layout page it always had; `mixed` is true only when they differ.
+ */
+export function resolveZoneLayouts(
+  zones: readonly { readonly format?: string | undefined }[],
+  stageFormat?: string,
+): { readonly layouts: readonly StageLayout[]; readonly mixed: boolean } {
+  const layouts = zones.map((zone) => selectStageLayout(zone.format ?? stageFormat));
+  return { layouts, mixed: new Set(layouts).size > 1 };
+}
+
+/**
+ * The zones a bracket widget draws: those playing an elimination format, each with matches to show.
+ * A league zone beside them is a table, not a bracket, so it is left out rather than drawn empty.
+ */
+export function bracketZonesOf<
+  Zone extends { readonly format?: string | undefined; readonly matches: readonly unknown[] },
+>(projection: { readonly format?: string | undefined; readonly zones: readonly Zone[] }): Zone[] {
+  return projection.zones.filter(
+    (zone) =>
+      zone.matches.length > 0 && selectStageLayout(zone.format ?? projection.format) === 'bracket',
+  );
+}
+
 export interface BracketMatch {
   readonly matchId?: string;
   readonly matchNumber: number;
   readonly roundNumber: number;
-  /** `winners`, `losers`, `final` — a label, not an enum the engine owns. */
+  /** 1-based position within the round, in fixture order. */
+  readonly position?: number;
+  /** A placement game's part in its zone (`place-3`, `places-5-8`); absent for the graph's own matches. */
+  readonly role?: string;
+  /** `winners`, `losers`, `final`, `placement` — a label, not an enum the engine owns. */
   readonly branch: string;
   readonly slots: readonly SlotSource[];
   readonly scores?: readonly (number | undefined)[];
@@ -83,6 +117,8 @@ export interface NodeSlotView {
   /** Absent, or `played`, renders nothing — only an unusual reason is shown. */
   readonly resultReason?: Exclude<ResultReason, 'played'>;
   readonly state: ResultState;
+  /** True on the side that won a decided match: both cards mark it in bold. */
+  readonly winner?: boolean;
   /** True while the entrant is not known yet: rendered dashed, never blank. */
   readonly pending: boolean;
 }
@@ -119,6 +155,10 @@ export function toRounds(matches: readonly BracketMatch[]): readonly BracketRoun
  * has to happen before their team plays.
  */
 export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNodeView {
+  const scored = (match.scores ?? []).filter((score): score is number => score !== undefined);
+  const top = Math.max(...scored);
+  const decided =
+    match.state === 'final' && scored.length > 1 && scored.some((score) => score !== top);
   return {
     matchNumber: match.matchNumber,
     state: match.state,
@@ -141,6 +181,7 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
         ...(score === undefined ? {} : { score }),
         ...(resultReason === undefined || resultReason === 'played' ? {} : { resultReason }),
         state: pending ? 'tbd' : match.state,
+        ...(decided && score === top ? { winner: true } : {}),
         pending,
       };
     }),
@@ -239,9 +280,11 @@ export function stagePath(input: {
  * chosen by guessing which of them matters more.
  */
 export function championshipMatch(matches: readonly BracketMatch[]): BracketMatch | undefined {
-  if (matches.length === 0) return undefined;
-  const last = Math.max(...matches.map((match) => match.roundNumber));
-  const final = matches.filter((match) => match.roundNumber === last);
+  // Placement games play beside the final, in the same round; they do not contest the title.
+  const contested = matches.filter((match) => match.branch !== 'placement');
+  if (contested.length === 0) return undefined;
+  const last = Math.max(...contested.map((match) => match.roundNumber));
+  const final = contested.filter((match) => match.roundNumber === last);
   return final.length === 1 ? final[0] : undefined;
 }
 

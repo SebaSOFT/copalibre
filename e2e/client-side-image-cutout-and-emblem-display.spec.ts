@@ -86,7 +86,7 @@ async function mockIdentityUploadApi(page: import('@playwright/test').Page): Pro
   );
 }
 
-test.describe('client-side image cutout and emblem display (Tasks 4.1, 4.2, 4.3)', () => {
+test.describe('client-side image cutout and emblem display', () => {
   test('handles modal cancellation without submitting unconfirmed upload', async ({ page }) => {
     await mockIdentityUploadApi(page);
     const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
@@ -168,10 +168,10 @@ test.describe('client-side image cutout and emblem display (Tasks 4.1, 4.2, 4.3)
     expect(submittedUploads[0].contentType).toBe('image/png');
     expect(submittedUploads[0].contentBase64.length).toBeGreaterThan(0);
 
-    // Verify no failed local model requests (Task 4.3)
+    // Verify no failed local model requests
     expect(failedLocalModelRequests).toHaveLength(0);
 
-    // Verify no remote third-party source-image transfers (Task 4.3)
+    // Verify no remote third-party source-image transfers
     const thirdPartyRequests = requestedUrls.filter((url) => {
       if (url.startsWith('blob:') || url.startsWith('data:')) return false;
       try {
@@ -191,9 +191,7 @@ test.describe('client-side image cutout and emblem display (Tasks 4.1, 4.2, 4.3)
     expect(thirdPartyRequests).toHaveLength(0);
   });
 
-  test('verifies square emblem display atom dimensions and containment (Task 4.2)', async ({
-    page,
-  }) => {
+  test('verifies square emblem display atom dimensions and containment', async ({ page }) => {
     // Visit the home page where organizations are rendered using EmblemImage
     await page.goto('/');
 

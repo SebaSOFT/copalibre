@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * Regression test for the 0258 JSON-LD script-breakout fix
+ * Regression test for the JSON-LD script-breakout fix
  * (`apps/web/src/lib/seo.ts`'s `serializeJsonLd`): an admin-set tournament
  * name containing a `</script>` sequence must never close the surrounding
  * `<script type="application/ld+json">` tag early (`PublicLayout.astro`'s
@@ -88,7 +88,7 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test.describe('JSON-LD script-breakout regression (0258)', () => {
+test.describe('JSON-LD script-breakout regression', () => {
   test('a tournament name containing </script> never breaks out of the structured-data tag', async ({
     page,
   }) => {

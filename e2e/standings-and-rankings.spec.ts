@@ -49,7 +49,7 @@ const groupStandingsFixture = {
   label: 'Group Standings',
   columns: [
     { code: 'name', header: 'Team', format: 'text' },
-    { code: 'gf', header: 'GF', format: 'number' },
+    { code: 'gf', header: 'GF', description: 'Goals for', format: 'number' },
     { code: 'ga', header: 'GA', shortHeader: 'GC', format: 'number' },
     { code: 'gd', header: 'GD', shortHeader: 'Dif', format: 'number' },
     { code: 'goal-average', header: 'Avg', format: 'decimal-2' },
@@ -170,7 +170,7 @@ const playerProfileFixtureNoStats = {
   careerStatistics: [],
 };
 
-// 0244: tournament-scoped drilldown for the "top-scorers" layout — the
+// Tournament-scoped drilldown for the "top-scorers" layout — the
 // tournament total keeps the composite `cards` (Y/R Cards) column, but each
 // match row carries only the collector-kind `goals` cell, never `cards`.
 const topScorersStatisticsFixture = {
@@ -491,6 +491,10 @@ test.describe('B2: public tournament page', () => {
         res.end(JSON.stringify(overview));
         return;
       }
+      if (req.url?.split('?')[0] === `${TOURNAMENT}/matches-view`) {
+        res.end(JSON.stringify({ matches: overview.matches }));
+        return;
+      }
       if (req.url === `${TOURNAMENT}/live`) {
         res.end(JSON.stringify(liveFixture));
         return;
@@ -596,15 +600,17 @@ test.describe('B2: public tournament page', () => {
   test('switches a constrained entrant name to its persisted abbreviation with a tooltip', async ({
     page,
   }) => {
-    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    // A state filter asks for a list of matches rather than a bracket; this mock's stage has no format.
+    await page.goto(
+      `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches?view=cards&state=final`,
+    );
 
     const entrantName = page.getByTestId('entrant-name').first();
     await expect(entrantName).toBeVisible({ timeout: 15_000 });
     await expect(
       page.locator('astro-island').filter({ has: entrantName }).first(),
     ).not.toHaveAttribute('ssr', '', { timeout: 15_000 });
-    // `flex: none` on top of the existing forced width (openspec 0225 task
-    // 8.1): this span is now a real `flex: 1 1 auto` item of
+    // `flex: none` on top of the existing forced width: this span is now a real `flex: 1 1 auto` item of
     // `.cl-match-card__side` (its ownership-scanner selector fix widened
     // what it matches — the entrant name previously fell outside it
     // entirely, past the `<astro-island>` a `client:load` wrapper inserts),
@@ -639,6 +645,80 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByText('Events are not yet available.')).toBeVisible();
   });
 
+  test('a tab and a club chip change the table in place, without a reload or a scroll jump', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 320 });
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    await page.evaluate(() => {
+      (window as unknown as { __sameDocument: boolean }).__sameDocument = true;
+      document.querySelector('.cl-standings-section')?.scrollIntoView();
+    });
+    const scrolled = await page.evaluate(() => window.scrollY);
+    expect(scrolled).toBeGreaterThan(0);
+
+    await page.getByRole('tab', { name: 'Top Scorers' }).click();
+    await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toBeVisible();
+    await expect(page).toHaveURL(/tab=top-scorers/);
+    expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+
+    const chip = page.getByRole('link', { name: 'Club Atlético Independiente' });
+    await chip.click();
+    await expect(page).toHaveURL(/clubId=club-independiente/);
+    await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toHaveCount(0);
+    expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+
+    // Same document throughout: nothing reloaded, and the selection is still exposed.
+    expect(
+      await page.evaluate(() => (window as unknown as { __sameDocument?: boolean }).__sameDocument),
+    ).toBe(true);
+    await expect(page.getByRole('link', { name: 'Club Atlético Independiente' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.getByRole('tab', { name: 'Top Scorers' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  test('an abbreviated header explains itself on focus, and the legend lists every abbreviation', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    // `ga` declares a short header: it shows GC, its long header is the hint.
+    await page.getByRole('button', { name: 'GC', exact: true }).focus();
+    await expect(page.getByRole('tooltip', { name: 'GA' })).toBeVisible();
+    // `gf` is explained by its own description.
+    await page.getByRole('button', { name: 'GF', exact: true }).focus();
+    await expect(page.getByRole('tooltip', { name: 'Goals for' })).toBeVisible();
+
+    const legend = page.getByRole('group', { name: 'Table abbreviations' });
+    await expect(legend).toContainText('GF');
+    await expect(legend).toContainText('Goals for');
+    await expect(legend).toContainText('GC');
+    // A header that already says everything gets no legend entry.
+    await expect(legend).not.toContainText('Team');
+  });
+
+  test('club chips are compact, show an emblem or initials, and mark the selection by more than colour', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const chip = page.locator('a[data-club-filter="club-talleres"]');
+    // No emblem uploaded in this fixture: the club's initials stand in.
+    await expect(chip.locator('.cl-club-chip__monogram')).toHaveText('CA');
+
+    const primary = page.locator('a.cl-pill').first();
+    const [chipBox, primaryBox] = await Promise.all([chip.boundingBox(), primary.boundingBox()]);
+    expect(chipBox && primaryBox && chipBox.height < primaryBox.height).toBe(true);
+
+    await expect(page.locator('a[data-club-filter="all"]')).toContainText('✓');
+    await expect(chip).not.toContainText('✓');
+  });
+
   test('a bracket match card links to its report page', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);
 
@@ -654,7 +734,7 @@ test.describe('B2: public tournament page', () => {
     await page.waitForURL(`**/stages/1/matches/2`);
   });
 
-  test('a resolved bracket renders real scores and never NaN or corrupted placeholders (task 5.1)', async ({
+  test('a resolved bracket renders real scores and never NaN or corrupted placeholders', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);
@@ -719,7 +799,7 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('heading', { name: 'Matches' })).toBeVisible();
   });
 
-  test('0199: standings render a visible header row and never overflow the page at 375px', async ({
+  test('standings render a visible header row and never overflow the page at 375px', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 800 });
@@ -781,7 +861,7 @@ test.describe('B2: public tournament page', () => {
     await expect(page.locator('.cl-image-frame img')).toBeVisible();
   });
 
-  test('0244: shows tournament-total and match-by-match statistics, excluding composite columns from match rows, and switches declared layouts', async ({
+  test('shows tournament-total and match-by-match statistics, excluding composite columns from match rows, and switches declared layouts', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1`);
@@ -804,7 +884,7 @@ test.describe('B2: public tournament page', () => {
     // renders that layout's own columns, without mixing in the previous
     // layout's values. "Assists" is a collector-kind stat, so it legitimately
     // appears as a column header in both the tournament-total and
-    // match-by-match tables (0257) — scope to the total table specifically
+    // match-by-match tables — scope to the total table specifically
     // rather than the ambiguous whole-section text match.
     await page.getByRole('tab', { name: 'Discipline Drilldown' }).click();
     await page.waitForURL(/\?layout=discipline-drilldown/);
@@ -836,7 +916,7 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('heading', { name: 'Goleador Dos' })).toBeVisible();
     await expect(page.getByText('No career statistics recorded.')).toBeVisible();
     await expect(page.getByText('No competition history recorded.')).toBeVisible();
-    // 0244: no inferred tournament-total or zero-valued match rows either.
+    // No inferred tournament-total or zero-valued match rows either.
     await expect(
       page.getByText('No tournament statistics recorded for this player.'),
     ).toBeVisible();
@@ -857,12 +937,12 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('heading', { name: 'Finished & Archive' })).toBeVisible();
 
     // No tournament in this seed carries the organizer's featured flag, so the
-    // block falls back to naming the live one exactly as it did before 0207 —
+    // block falls back to naming the live one exactly as it did before the featured flag —
     // the regression that proves an organization which never touches the toggle
     // sees no change at all.
     await expect(page.getByRole('heading', { name: 'Featured' })).toBeVisible();
 
-    // Live is urgent and comes first; featured is curated and follows it (0207).
+    // Live is urgent and comes first; featured is curated and follows it.
     const sectionHeadings = await page
       .locator('h2.cl-section-title')
       .allTextContents()

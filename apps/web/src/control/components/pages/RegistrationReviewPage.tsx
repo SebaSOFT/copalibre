@@ -88,7 +88,7 @@ export function RegistrationReviewPage({
         if (live) setAbbreviationCandidates(loaded);
       })
       .catch(() => {
-        // A quiet, empty-by-default section (design.md) — a failed load
+        // A quiet, empty-by-default section — a failed load
         // just leaves it empty rather than adding a second error state.
       });
     return () => {

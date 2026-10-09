@@ -8,8 +8,7 @@ const SOURCE_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const CLI_EXECUTABLE = resolve(SOURCE_DIRECTORY, '../../dist/main.js');
 
 /**
- * Drives the real `copalibre mcp` command over real stdio (openspec 0163,
- * task 6.1) — the same way an AI client actually speaks to it, rather than
+ * Drives the real `copalibre mcp` command over real stdio — the same way an AI client actually speaks to it, rather than
  * calling `buildServer`/`buildTools` in-process as server.test.ts does.
  */
 describe('copalibre mcp — descriptor authoring over stdio', () => {

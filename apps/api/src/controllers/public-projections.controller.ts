@@ -29,7 +29,7 @@ import {
 import { TableLayoutListResponse, TableProjectionResponse } from '../dto/table-projections.dto.js';
 import { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
-import { readStandings } from '../standings/read.js';
+import { readStandings, readStandingsByZone } from '../standings/read.js';
 import { readMatchesView } from '../matches-view/read.js';
 import {
   listEffectiveTableLayouts,
@@ -41,30 +41,25 @@ import {
 
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
 import { resolveStageZones } from './bracket-zones.js';
+import { bracketLinks, graphRecordsOf, placementMatchOf } from './bracket-placements.js';
 import { readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
 import { reconstructChampionshipFixture } from './tournament-winner-resolution.js';
 import { segmentedTableResponse, tableResponse } from './table-projections.controller.js';
+import { eventLabelFields, rosterRolesOf } from './public-match-labels.js';
+import { segmentSummariesOf } from './public-segments.js';
+import { publicRuleset } from './public-ruleset.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
 import {
   resolveLabel,
   ageAt,
   primaryScoreOf,
-  compileEffectiveRuleset,
+  effectiveFormat,
   type DisciplineDescriptor,
   type StatisticCollector,
   type Tournament,
-  type LocalizedLabel,
   deriveTournamentStatus,
   runningTimers,
 } from '@copalibre/domain';
-
-/** A dot-path's value in a compiled ruleset's nested config tree, `undefined` when absent. */
-function fieldValueAt(config: Record<string, unknown>, dotPath: string): unknown {
-  return dotPath.split('.').reduce<unknown>((node, key) => {
-    if (node === undefined || node === null || typeof node !== 'object') return undefined;
-    return (node as Record<string, unknown>)[key];
-  }, config);
-}
 
 @ApiTags('Public Projections')
 @Controller('organizations/:organizationAlias/public/tournaments')
@@ -187,11 +182,12 @@ export async function resolveTournamentWinners(
     .orderBy('number')
     .execute();
 
-  const zonesToProcess: { zoneId?: string; zoneName?: string }[] =
+  const zonesToProcess: { zoneId?: string; zoneName?: string; format?: string }[] =
     zoneRows.length > 0
       ? zoneRows.map((z) => ({
           zoneId: z.zone_id,
           zoneName: z.name,
+          ...(z.format === null ? {} : { format: z.format }),
         }))
       : [{ zoneId: undefined, zoneName: undefined }];
 
@@ -200,19 +196,19 @@ export async function resolveTournamentWinners(
   for (const zone of zonesToProcess) {
     // Each zone is resolved independently: one zone's error or ambiguous
     // terminal round must never prevent the other zones from resolving
-    // (openspec 0245 — previously an uncaught error in this loop's duel
+    // (previously an uncaught error in this loop's duel
     // branch aborted every zone's result, not just the failing one).
     try {
-      const isDuel =
-        terminalStage.format === 'single-elimination' ||
-        terminalStage.format === 'double-elimination';
+      // A zone playing its own format is judged by that format, not by its stage's.
+      const zoneFormat = zone.format ?? terminalStage.format;
+      const isDuel = zoneFormat === 'single-elimination' || zoneFormat === 'double-elimination';
 
       if (isDuel) {
         const readModel = new StageReadModel(db);
         const record = await readModel.stageRecord(terminalStage.stageId, undefined, zone.zoneId);
         const fixtures = await readModel.matches(terminalStage.stageId, undefined, zone.zoneId);
         const generated = generateFixtures({
-          format: terminalStage.format,
+          format: zoneFormat as Parameters<typeof generateFixtures>[0]['format'],
           entrants: (record?.entrantIds ?? []).map((entrantId, index) => ({
             entrantId,
             seed: index + 1,
@@ -386,12 +382,30 @@ export class PublicProjectionsController {
     }
     const organization = await this.db
       .selectFrom('organizations')
-      .select('name')
+      .select(['name', 'timezone'])
       .where('organization_id', '=', tournament.organizationId)
       .executeTakeFirst();
     if (!organization) throw new NotFoundException({ errorCode: 'public-projection-not-found' });
 
-    return { tournament, organizationName: organization.name };
+    return {
+      tournament,
+      organizationName: organization.name,
+      organizationTimeZone: organization.timezone,
+    };
+  }
+
+  /**
+   * The stage ordinal of every match of a tournament, keyed by match id: the same 1-based position
+   * the public match route and the matches view address a match by, taken from each stage's full,
+   * unscoped match list. `matches.number` cannot stand in for it, being a per-fixture series index.
+   */
+  private async stageOrdinalsOf(tournamentId: string): Promise<ReadonlyMap<string, number>> {
+    const stages = await new CompetitionRepository(this.db).listStagesOfTournament(tournamentId);
+    const readModel = new StageReadModel(this.db);
+    const perStage = await Promise.all(
+      stages.map(async (stage) => stageMatchOrdinals(await readModel.matches(stage.stageId))),
+    );
+    return new Map(perStage.flatMap((ordinals) => [...ordinals]));
   }
 
   @Get('overview')
@@ -402,10 +416,8 @@ export class PublicProjectionsController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
   ): Promise<PublicOverviewResponse> {
-    const { tournament, organizationName } = await this.resolvePublishedTournament(
-      organizationAlias,
-      tournamentAlias,
-    );
+    const { tournament, organizationName, organizationTimeZone } =
+      await this.resolvePublishedTournament(organizationAlias, tournamentAlias);
     const season = await withTransaction(this.db, (uow) =>
       new CompetitionRepository(this.db).currentSeason(uow, {
         tournamentId: tournament.tournamentId,
@@ -418,6 +430,7 @@ export class PublicProjectionsController {
     const matches = await new PublicOverviewReadModel(this.db).matchesForTournament(
       tournament.tournamentId,
     );
+    const ordinalByMatchId = await this.stageOrdinalsOf(tournament.tournamentId);
 
     const entrantIds = new Set<string>();
     for (const match of matches) {
@@ -435,21 +448,10 @@ export class PublicProjectionsController {
       tournament.disciplineRef.descriptorId,
       tournament.disciplineRef.version,
     );
-    const ruleset: Record<string, string> = {};
-    const rulesetLabels: Record<string, string | LocalizedLabel> = {};
-    if (rulesetData) {
-      // The compiled *effective* value (discipline default merged with the
-      // tournament's overrides, per each field's merge strategy) — never the
-      // raw override delta, which for a `merged` field is only the addition
-      // (openspec 0267). Falls back to the raw delta if compilation fails or
-      // the descriptor is unavailable, so the public page never breaks.
-      const compiled = descriptor ? compileEffectiveRuleset(descriptor, rulesetData) : undefined;
-      for (const [k, v] of Object.entries(rulesetData.overrides)) {
-        ruleset[k] = compiled?.ok ? String(fieldValueAt(compiled.value.config, k)) : String(v);
-        const label = descriptor?.fieldPolicies[k]?.label;
-        if (label !== undefined) rulesetLabels[k] = label;
-      }
-    }
+    const { ruleset, labels: rulesetLabels } = publicRuleset(
+      descriptor ?? undefined,
+      rulesetData ?? undefined,
+    );
 
     const stages = await new CompetitionRepository(this.db).listStages(season.seasonId);
     let standingsPreview: PublicOverviewResponse['standingsPreview'] = undefined;
@@ -457,7 +459,17 @@ export class PublicProjectionsController {
     if (stages.length > 0) {
       const stage = stages[0];
       if (stage) {
-        const standings = await readStandings(this.db, tournament, stage.number);
+        // A stage mixing formats ranks each of its table zones on its own; its rows say which zone
+        // they belong to so a client does not present them as one table.
+        const byZone = await readStandingsByZone(this.db, tournament, stage.number);
+        const standings = byZone
+          ? {
+              rows: byZone.zones.flatMap((zone) =>
+                zone.result.rows.map((row) => ({ ...row, zoneName: zone.zoneName })),
+              ),
+              grain: byZone.zones.find((zone) => 'grain' in zone.result)?.result.grain,
+            }
+          : await readStandings(this.db, tournament, stage.number);
 
         const standingsEntrantIds = standings.rows.map((r) => r.entrantId);
         const standingsNames = await new EnrollmentRepository(this.db).resolveEntrantNames(
@@ -471,6 +483,7 @@ export class PublicProjectionsController {
           abbreviation: standingsNames.get(r.entrantId)?.abbreviation,
           sharedRank: r.sharedRank,
           statistics: r.statistics,
+          ...('zoneName' in r && typeof r.zoneName === 'string' ? { zoneName: r.zoneName } : {}),
         }));
         standingsGrain = standings.grain;
       }
@@ -500,6 +513,7 @@ export class PublicProjectionsController {
     return {
       organizationAlias,
       organizationName,
+      organizationTimeZone,
       tournamentAlias,
       tournamentName: tournament.name,
       seasonName: season.name,
@@ -512,6 +526,9 @@ export class PublicProjectionsController {
       matches: matches.map((m) => ({
         matchId: m.matchId,
         matchNumber: m.matchNumber,
+        ...(ordinalByMatchId.has(m.matchId)
+          ? { stageOrdinal: ordinalByMatchId.get(m.matchId) }
+          : {}),
         stageNumber: m.stageNumber,
         round: m.round,
         status: m.status as PublicOverviewMatchResponse['status'],
@@ -575,7 +592,7 @@ export class PublicProjectionsController {
     // `matches.number` is a per-fixture series-game index (always 1 for a
     // non-series fixture) — never stage-unique, so this resolves the target
     // match by indexing into the stage's own deterministic order instead of
-    // filtering by that column (openspec 0249).
+    // filtering by that column.
     const stageMatches = await new StageReadModel(this.db).matches(stage.stageId);
     const targetRecord = stageMatches[matchNumber - 1];
     if (!targetRecord)
@@ -602,6 +619,17 @@ export class PublicProjectionsController {
       throw new NotFoundException(`No match ${matchNumberValue} in stage ${stageNumberValue}`, {
         errorCode: 'public-projection-not-found',
       });
+
+    // The match is shown in the layout of the format its zone plays, which is the stage's unless the
+    // zone declares its own.
+    const zoneFormatOfMatch = (
+      await this.db
+        .selectFrom('fixtures')
+        .innerJoin('zones', 'zones.zone_id', 'fixtures.zone_id')
+        .select('zones.format')
+        .where('fixtures.fixture_id', '=', targetRecord.fixtureId)
+        .executeTakeFirst()
+    )?.format;
 
     const [schedule, officials, rosterRows, segments, events, descriptor] = await Promise.all([
       this.db
@@ -661,6 +689,7 @@ export class PublicProjectionsController {
     const result = match.result as unknown as {
       readonly sides?: readonly { readonly statistics?: Record<string, number> }[];
     } | null;
+    const rosterRoles = rosterRolesOf(descriptor);
     const scores = result?.sides === undefined ? undefined : publicScores(result.sides, descriptor);
 
     return {
@@ -672,7 +701,7 @@ export class PublicProjectionsController {
         ? {}
         : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),
       stageNumber,
-      stageFormat: stage.format,
+      stageFormat: zoneFormatOfMatch ?? stage.format,
       matchNumber,
       round: match.round,
       status: publicMatchStatus(match.status),
@@ -701,6 +730,7 @@ export class PublicProjectionsController {
         name: official.display_name,
         roles: [...official.roles],
       })),
+      ...(rosterRoles === undefined ? {} : { rosterRoles }),
       rosters: {
         home: match.home_entrant_id
           ? (rosterByEntrant.get(match.home_entrant_id) ?? []).map(({ roles, ...member }) => ({
@@ -723,7 +753,7 @@ export class PublicProjectionsController {
         return {
           eventId: event.eventId,
           definitionCode: event.definitionCode,
-          label: definition ? resolveLabel(definition.label, 'en') : event.definitionCode,
+          ...eventLabelFields(definition, event.definitionCode),
           ...(workflowOutcomeCodes === undefined ? {} : { workflowOutcomeCodes }),
           occurredAt: event.occurredAt,
           sequence: event.sequence,
@@ -735,6 +765,14 @@ export class PublicProjectionsController {
           payload: event.payload,
         };
       }),
+      ...(segments.length === 0
+        ? {}
+        : {
+            segments: segmentSummariesOf(descriptor, segments, events, [
+              match.home_entrant_id ?? undefined,
+              match.away_entrant_id ?? undefined,
+            ]),
+          }),
     };
   }
 
@@ -754,6 +792,7 @@ export class PublicProjectionsController {
       tournament.tournamentId,
     );
     const liveMatches = matches.filter((m) => m.status === 'in-progress');
+    const ordinalByMatchId = await this.stageOrdinalsOf(tournament.tournamentId);
 
     const entrantIds = new Set<string>();
     for (const match of liveMatches) {
@@ -775,16 +814,17 @@ export class PublicProjectionsController {
       ),
     );
     const competition = new CompetitionRepository(this.db);
-    const penaltiesByMatch = await Promise.all(
+    const detailByMatch = await Promise.all(
       liveMatches.map(async (match) => {
-        const [events, resolvedTimerIds] = await Promise.all([
+        const [events, resolvedTimerIds, segments] = await Promise.all([
           competition.listEvents(match.matchId),
           competition.resolvedTimerIds(match.matchId),
+          competition.listSegments(match.matchId),
         ]);
         const participants = new Set(
           [match.homeEntrantId, match.awayEntrantId].filter((id): id is string => !!id),
         );
-        return runningTimers(
+        const penalties = runningTimers(
           events,
           { starts: timerStarts, stops: [] },
           Date.now(),
@@ -799,14 +839,28 @@ export class PublicProjectionsController {
             },
           ];
         });
+        return {
+          penalties,
+          segments:
+            descriptor === null || descriptor === undefined || segments.length === 0
+              ? []
+              : segmentSummariesOf(descriptor, segments, events, [
+                  match.homeEntrantId,
+                  match.awayEntrantId,
+                ]),
+        };
       }),
     );
+    const penaltiesByMatch = detailByMatch.map((detail) => detail.penalties);
 
     return {
       matches: liveMatches.map((m, index) => ({
         matchId: m.matchId,
         stageNumber: m.stageNumber,
         matchNumber: m.matchNumber ?? m.round,
+        ...(ordinalByMatchId.has(m.matchId)
+          ? { stageOrdinal: ordinalByMatchId.get(m.matchId) }
+          : {}),
         state: 'live',
         projectionVersion: 1,
         sides: [
@@ -832,6 +886,9 @@ export class PublicProjectionsController {
             : []),
         ],
         ...(penaltiesByMatch[index]?.length ? { activePenalties: penaltiesByMatch[index] } : {}),
+        ...(detailByMatch[index]?.segments.length
+          ? { segments: detailByMatch[index]?.segments }
+          : {}),
       })),
     };
   }
@@ -870,12 +927,14 @@ export class PublicProjectionsController {
 
     // Computed once, from every zone combined — a per-zone fetch below cannot
     // reconstruct this on its own, since it has no visibility into how many
-    // matches other zones contribute ahead of it (openspec 0249).
+    // matches other zones contribute ahead of it.
     const ordinalByMatchId = stageMatchOrdinals(await readModel.matches(stage.stageId));
 
     const zoneResponses = await Promise.all(
       zones.map(async (zone) => {
-        const stageMatchesMapped = await readModel.matches(stage.stageId, undefined, zone.zoneId);
+        const zoneRecords = await readModel.matches(stage.stageId, undefined, zone.zoneId);
+        // Placement games sit beside the generated graph, not on it.
+        const stageMatchesMapped = graphRecordsOf(zoneRecords);
         const record = await readModel.stageRecord(stage.stageId, undefined, zone.zoneId);
 
         // Seeded from this zone's own entrants, the same way the control panel's bracket is: the
@@ -883,16 +942,17 @@ export class PublicProjectionsController {
         // entrant list produces no graph at all — which is what this endpoint used to return for
         // every stage, an empty bracket the public web then rendered as an empty page. Scoping the
         // entrant list (and every match lookup below) to this one zone is what stops a multi-zone
-        // stage's zones from colliding on the same round/position (openspec 0246).
+        // stage's zones from colliding on the same round/position.
+        const format = effectiveFormat(zone, stage);
         const generated = generateFixtures({
-          format: stage.format as Parameters<typeof generateFixtures>[0]['format'],
+          format: format as Parameters<typeof generateFixtures>[0]['format'],
           entrants: (record?.entrantIds ?? []).map((entrantId, index) => ({
             entrantId,
             seed: index + 1,
           })),
         });
         if (!generated.ok) {
-          return { ...zone, matches: [] };
+          return { ...zone, format, matches: [] };
         }
         const graph = generated.value;
 
@@ -905,10 +965,21 @@ export class PublicProjectionsController {
           }),
         );
 
+        const { placements, sourcesOf } = bracketLinks(
+          bracketMatches,
+          zoneRecords,
+          stageMatchesMapped,
+        );
+
         const entrantIds = new Set<string>();
         for (const match of bracketMatches) {
           for (const slot of match.slots) {
             if (slot.entrantId) entrantIds.add(slot.entrantId);
+          }
+        }
+        for (const node of placements) {
+          for (const id of [node.record.homeEntrantId, node.record.awayEntrantId]) {
+            if (id) entrantIds.add(id);
           }
         }
         const details = await enrollmentRepo.resolveEntrantPodiumDetails(Array.from(entrantIds));
@@ -920,40 +991,67 @@ export class PublicProjectionsController {
         const seriesByPosition = await readStageSeriesByPosition(this.db, {
           tournamentId: tournament.tournamentId,
           stageId: stage.stageId,
+          zoneId: zone.zoneId,
           records: stageMatchesMapped,
         });
 
         return {
           ...zone,
-          matches: bracketMatches.map((m) => {
-            const series = seriesByPosition.get(`${m.round}:${m.position}`);
-            return {
-              matchId: m.matchId,
-              bracket: m.bracket,
-              round: m.round,
-              position: m.position,
-              status: m.status,
-              format: m.format,
-              ...(m.persistedMatchId === undefined
-                ? {}
-                : { matchNumber: ordinalByMatchId.get(m.persistedMatchId) }),
-              slots: m.slots.map((s) => {
-                const detail = s.entrantId ? details.get(s.entrantId) : undefined;
-                return {
-                  kind: s.kind,
-                  entrantId: s.entrantId,
-                  name: s.entrantId ? (detail?.name ?? 'Unknown') : undefined,
-                  abbreviation: detail?.abbreviation,
-                  clubId: detail?.clubId,
-                  emblemObjectId: detail?.emblemObjectId,
-                  matchId: s.matchId,
-                  score: s.score,
-                  resultReason: s.resultReason,
-                };
-              }),
-              ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
-            };
-          }),
+          format,
+          matches: [
+            ...bracketMatches.map((m) => {
+              const series = seriesByPosition.get(`${m.round}:${m.position}`);
+              return {
+                matchId: m.matchId,
+                bracket: m.bracket,
+                round: m.round,
+                position: m.position,
+                status: m.status,
+                format: m.format,
+                ...(m.persistedMatchId === undefined
+                  ? {}
+                  : { matchNumber: ordinalByMatchId.get(m.persistedMatchId) }),
+                slots: m.slots.map((s, slotIndex) => {
+                  const detail = s.entrantId ? details.get(s.entrantId) : undefined;
+                  const from = s.kind === 'entrant' ? sourcesOf(m)[slotIndex] : undefined;
+                  return {
+                    kind: s.kind,
+                    entrantId: s.entrantId,
+                    name: s.entrantId ? (detail?.name ?? 'Unknown') : undefined,
+                    abbreviation: detail?.abbreviation,
+                    clubId: detail?.clubId,
+                    emblemObjectId: detail?.emblemObjectId,
+                    matchId: s.matchId,
+                    ...(from === undefined ? {} : { from }),
+                    score: s.score,
+                    resultReason: s.resultReason,
+                  };
+                }),
+                ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
+              };
+            }),
+            ...placements.map((node) => ({
+              ...placementMatchOf(node),
+              matchNumber: ordinalByMatchId.get(node.record.matchId),
+              slots: [node.record.homeEntrantId, node.record.awayEntrantId].map(
+                (entrantId, index) => {
+                  const detail = entrantId ? details.get(entrantId) : undefined;
+                  const source = node.sources[index];
+                  return {
+                    kind: 'entrant' as const,
+                    entrantId,
+                    name: entrantId ? (detail?.name ?? 'Unknown') : undefined,
+                    abbreviation: detail?.abbreviation,
+                    clubId: detail?.clubId,
+                    emblemObjectId: detail?.emblemObjectId,
+                    ...(source === undefined ? {} : { from: source }),
+                    score: node.record.scores?.[index],
+                    resultReason: node.record.resultReasons?.[index],
+                  };
+                },
+              ),
+            })),
+          ],
         };
       }),
     );

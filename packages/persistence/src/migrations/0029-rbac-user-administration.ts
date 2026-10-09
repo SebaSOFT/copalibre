@@ -4,8 +4,7 @@ import type { Migration } from 'kysely/migration';
 /**
  * adds `club-admin` to the organization role taxonomy and introduces
  * `installation_role_assignments` as the queryable, floor-invariant-protected
- * source of truth for "who holds installation-level `super-admin`" — see
- * design.md decision #1. No backfill step: this codebase has no existing
+ * source of truth for "who holds installation-level `super-admin`". No backfill step: this codebase has no existing
  * queryable source of current super-admins to backfill from (the
  * `copalibre.super-admin` scope was, until this change, either supplied
  * directly by an external OIDC provider's own token claims — unaffected by

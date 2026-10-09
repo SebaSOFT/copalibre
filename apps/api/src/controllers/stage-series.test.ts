@@ -2,6 +2,8 @@ import {
   guaranteedMatchCount,
   previewSeriesCorrection,
   publicSeriesState,
+  seriesDeclarationOf,
+  zoneOverridePrefix,
 } from './stage-series.js';
 import type { SeriesDeclaration } from '@copalibre/domain';
 
@@ -45,7 +47,7 @@ describe('guaranteedMatchCount', () => {
   });
 });
 
-describe('previewSeriesCorrection (0159 tasks 3.1, 3.2)', () => {
+describe('previewSeriesCorrection', () => {
   it('previews a correction that reverses a three-nil: no longer decided, four and five return', () => {
     const outlook = previewSeriesCorrection({
       declaration: BEST_OF_FIVE,
@@ -142,7 +144,7 @@ describe('previewSeriesCorrection (0159 tasks 3.1, 3.2)', () => {
   });
 });
 
-describe('publicSeriesState (0159 tasks 4.1, 4.3, 4.4)', () => {
+describe('publicSeriesState', () => {
   it('reports every game in play order, however out of order they were finalized', () => {
     const state = publicSeriesState({
       declaration: BEST_OF_FIVE,
@@ -238,5 +240,66 @@ describe('publicSeriesState (0159 tasks 4.1, 4.3, 4.4)', () => {
     expect(
       publicSeriesState({ declaration: BEST_OF_FIVE, homeEntrantId: 'alfa', games: [] }),
     ).toBeUndefined();
+  });
+});
+
+describe('seriesDeclarationOf resolves zone, then stage, then ruleset', () => {
+  const zone3 = zoneOverridePrefix('zone-3');
+  const stageOverrides = { 'series.span': 3, 'series.resolutionClass': 'best-of' };
+  const rulesetOverrides = { 'series.span': 2, 'series.resolutionClass': 'aggregate' };
+
+  it('declares nothing when no level declares a span', () => {
+    expect(seriesDeclarationOf({ zoneId: 'zone-3', stageOverrides: {} })).toBeUndefined();
+    expect(seriesDeclarationOf({})).toBeUndefined();
+  });
+
+  it('prefers the zone entry over the stage and the ruleset', () => {
+    const declaration = seriesDeclarationOf({
+      zoneId: 'zone-3',
+      stageOverrides: {
+        ...stageOverrides,
+        [`${zone3}series.span`]: 5,
+        [`${zone3}series.resolutionClass`]: 'best-of',
+      },
+      rulesetOverrides,
+    });
+    expect(declaration).toEqual({ span: 5, resolutionClass: 'best-of' });
+  });
+
+  it('leaves a zone without an entry on the stage declaration', () => {
+    const declaration = seriesDeclarationOf({
+      zoneId: 'zone-1',
+      stageOverrides: { ...stageOverrides, [`${zone3}series.span`]: 5 },
+      rulesetOverrides,
+    });
+    expect(declaration).toEqual({ span: 3, resolutionClass: 'best-of' });
+  });
+
+  it('falls back to the ruleset when neither zone nor stage declares', () => {
+    expect(seriesDeclarationOf({ zoneId: 'zone-1', stageOverrides: {}, rulesetOverrides })).toEqual(
+      { span: 2, resolutionClass: 'aggregate' },
+    );
+  });
+
+  it('ignores zone entries when asked without a zone, as before zones could declare', () => {
+    expect(
+      seriesDeclarationOf({ stageOverrides: { [`${zone3}series.span`]: 5 }, rulesetOverrides }),
+    ).toEqual({ span: 2, resolutionClass: 'aggregate' });
+  });
+
+  it('treats a null zone entry as cleared and falls back to the stage', () => {
+    const declaration = seriesDeclarationOf({
+      zoneId: 'zone-3',
+      stageOverrides: { ...stageOverrides, [`${zone3}series.span`]: null },
+    });
+    expect(declaration).toEqual({ span: 3, resolutionClass: 'best-of' });
+  });
+
+  it('never merges a zone field into another level’s span', () => {
+    const declaration = seriesDeclarationOf({
+      zoneId: 'zone-3',
+      stageOverrides: { ...stageOverrides, [`${zone3}series.neutralGround`]: true },
+    });
+    expect(declaration).toEqual({ span: 3, resolutionClass: 'best-of' });
   });
 });

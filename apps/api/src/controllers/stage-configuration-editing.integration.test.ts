@@ -13,8 +13,7 @@ import { TournamentsController } from './tournaments.controller.js';
 
 /**
  * A stage's configuration override fields become editable and previewable
- * for as long as the stage holds no generated fixture (openspec 0169, tasks
- * 2.1-2.3, 6.1).
+ * for as long as the stage holds no generated fixture.
  */
 
 let app: INestApplication;
@@ -83,7 +82,7 @@ async function seedTournamentAndStage(): Promise<{
   return { tournamentAlias, tournamentId, stageId, stageNumber };
 }
 
-describe('stage-configuration edit and preview (openspec 0169)', () => {
+describe('stage-configuration edit and preview', () => {
   it('reads an empty override document for a stage with no configuration yet', async () => {
     const { tournamentAlias, stageNumber } = await seedTournamentAndStage();
     const response = await request({
@@ -128,6 +127,72 @@ describe('stage-configuration edit and preview (openspec 0169)', () => {
       segments: { overtimeEnabled: true },
       tiebreakers: ['points', 'goals-for'],
     });
+  });
+
+  it('persists, updates, reads, and clears explicit group configuration', async () => {
+    const { tournamentAlias, stageNumber } = await seedTournamentAndStage();
+    const url = `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`;
+    const initialGroups = {
+      groupCount: 3,
+      groupSize: 5,
+      distribution: 'manual',
+      manualGroupSizes: [4, 5, 6],
+    };
+
+    const created = await request({
+      method: 'PUT',
+      url,
+      token: 'organizer-org1',
+      payload: { overrides: {}, groupConfiguration: initialGroups },
+    });
+    expect(created.statusCode).toBe(200);
+    expect(created.json().groupConfiguration).toEqual(initialGroups);
+
+    const changedGroups = {
+      groupCount: 2,
+      groupSize: 6,
+      distribution: 'overflow-last',
+    };
+    const updated = await request({
+      method: 'PUT',
+      url,
+      token: 'organizer-org1',
+      payload: { overrides: {}, groupConfiguration: changedGroups },
+    });
+    expect(updated.statusCode).toBe(200);
+    expect(updated.json().groupConfiguration).toEqual(changedGroups);
+
+    const read = await request({ method: 'GET', url, token: 'organizer-org1' });
+    expect(read.statusCode).toBe(200);
+    expect(read.json().groupConfiguration).toEqual(changedGroups);
+
+    const cleared = await request({
+      method: 'PUT',
+      url,
+      token: 'organizer-org1',
+      payload: { overrides: {}, groupConfiguration: null },
+    });
+    expect(cleared.statusCode).toBe(200);
+    expect(cleared.json()).toEqual({ overrides: {} });
+  });
+
+  it('refuses malformed group configuration before persisting it', async () => {
+    const { tournamentAlias, stageNumber } = await seedTournamentAndStage();
+    const response = await request({
+      method: 'PUT',
+      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
+      token: 'organizer-org1',
+      payload: {
+        overrides: {},
+        groupConfiguration: {
+          groupCount: 3,
+          groupSize: 4,
+          distribution: 'manual',
+          manualGroupSizes: [4, 4],
+        },
+      },
+    });
+    expect(response.statusCode).toBe(400);
   });
 
   it('a preview never writes a new configuration version', async () => {

@@ -35,7 +35,7 @@ const ROLE_LABEL: Record<OrganizationRole, MessageDescriptor> = {
   viewer: messages.rolesRoleViewer,
 };
 
-/** Condensed from each role's own "What this role is for" help page (openspec 0251). */
+/** Condensed from each role's own "What this role is for" help page. */
 const ROLE_DESCRIPTION: Record<OrganizationRole, MessageDescriptor> = {
   admin: messages.rolesDescriptionAdmin,
   'club-admin': messages.rolesDescriptionClubAdmin,
@@ -45,7 +45,7 @@ const ROLE_DESCRIPTION: Record<OrganizationRole, MessageDescriptor> = {
   viewer: messages.rolesDescriptionViewer,
 };
 
-/** The "learn more" link beside a role `DecisionHint` — a plain `<a>`, not a `DecisionHint` prop (design.md - "Role hints link to the full manual page"): a real navigation to a separate Starlight route, the same reason `ControlShell.tsx`'s own help link opens this way. */
+/** The "learn more" link beside a role `DecisionHint` — a plain `<a>`, not a `DecisionHint` prop: a real navigation to a separate Starlight route, the same reason `ControlShell.tsx`'s own help link opens this way. */
 function RoleLearnMoreLink({
   role,
   language,
@@ -104,7 +104,7 @@ export function RolesPermissionsTemplate({
   readonly clubs?: readonly ClubResponse[];
   /** Tournaments in this organization, for the tournament-admin invite picker. Empty until loaded. */
   readonly tournaments?: readonly TournamentResponse[];
-  /** Invitations not yet accepted, not rescinded, not expired (openspec 0170). */
+  /** Invitations not yet accepted, not rescinded, not expired. */
   readonly pendingInvitations?: readonly PendingOrganizationInvitationResponse[];
   readonly onChange: (
     assignmentId: string,
@@ -131,7 +131,7 @@ export function RolesPermissionsTemplate({
 
   // A load/action failure is an operation result, not an in-progress field
   // validation problem — it belongs to the toast mechanism, never a
-  // screen-local alert (design.md Decision 6). The `error` prop (a load
+  // screen-local alert. The `error` prop (a load
   // failure surfaced by the owning route) is reported the same way.
   useEffect(() => {
     if (error) toast.push({ severity: 'error', message: error });
@@ -223,7 +223,7 @@ export function RolesPermissionsTemplate({
         title={<FormattedMessage {...messages.rolesTitle} />}
         toolbar={
           <Button onClick={() => setInviteOpen(true)} type="button">
-            <FormattedMessage {...messages.rolesAddRecipient} />
+            <FormattedMessage {...messages.rolesAddUser} />
           </Button>
         }
       />
@@ -307,24 +307,28 @@ function RoleSelect({
     : [row.role, ...assignableRoles];
   const hintId = `role-hint-${row.assignmentId}`;
   return (
-    <>
-      <Select
-        aria-describedby={hintId}
-        aria-label={intl.formatMessage(messages.rolesRoleOf, { email: row.email })}
-        disabled={disabled}
-        onValueChange={(val) => onChange(val as OrganizationRole)}
-        options={roles.map((role) => ({
-          value: role,
-          label: intl.formatMessage(ROLE_LABEL[role]),
-        }))}
-        title={
-          isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
-        }
-        value={row.role}
-      />
-      <DecisionHint id={hintId} text={intl.formatMessage(ROLE_DESCRIPTION[row.role])} />
-      <RoleLearnMoreLink language={language} role={row.role} />
-    </>
+    <div className="cl-role-cell">
+      <div className="cl-role-cell__select">
+        <Select
+          aria-describedby={hintId}
+          aria-label={intl.formatMessage(messages.rolesRoleOf, { email: row.email })}
+          disabled={disabled}
+          onValueChange={(val) => onChange(val as OrganizationRole)}
+          options={roles.map((role) => ({
+            value: role,
+            label: intl.formatMessage(ROLE_LABEL[role]),
+          }))}
+          title={
+            isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
+          }
+          value={row.role}
+        />
+      </div>
+      <div className="cl-role-cell__details">
+        <DecisionHint id={hintId} text={intl.formatMessage(ROLE_DESCRIPTION[row.role])} />
+        <RoleLearnMoreLink language={language} role={row.role} />
+      </div>
+    </div>
   );
 }
 
@@ -448,7 +452,7 @@ export function InviteDialog({
         if (!next) onClose();
       }}
       open={open}
-      title={intl.formatMessage(messages.rolesAddRecipient)}
+      title={intl.formatMessage(messages.rolesAddUser)}
     >
       <Form
         id="invite-dialog-form"

@@ -16,7 +16,7 @@ import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
 export { renumbered } from './stage-authoring.js';
 
 /**
- * The tournament profile builder wizard (openspec 0164).
+ * The tournament profile builder wizard.
  *
  * A profile is discipline-neutral by schema — it never names a discipline —
  * but this wizard asks for one anyway, purely to check each stage's format
@@ -39,8 +39,7 @@ export const PROFILE_STEPS: readonly {
 ];
 
 /**
- * A profile's stage shares `TournamentSetupWizard`'s stage shape (design.md,
- * "one shared stage-editor component") but never declares `series` — a
+ * A profile's stage shares `TournamentSetupWizard`'s stage shape (one shared stage-editor component) but never declares `series` — a
  * profile is discipline-neutral and has no per-tournament series concept of
  * its own; it declares only format and a default seeding `allocation`.
  */
@@ -177,6 +176,9 @@ export function toAuthoredDocument(state: ProfileWizardState): Record<string, un
       name: stage.name,
       format: stage.format,
       ...(stage.allocation === undefined ? {} : { allocation: stage.allocation }),
+      ...(stage.groupConfiguration === undefined
+        ? {}
+        : { groupConfiguration: stage.groupConfiguration }),
     })),
     points: { win: state.pointsWin, draw: state.pointsDraw, loss: state.pointsLoss },
     tiebreak: [],

@@ -3,6 +3,7 @@ title: 'Primeiros passos: auto-hospedagem'
 description: Execute o CopaLibre a partir do código-fonte no Windows, macOS ou Linux, depois escolha uma topologia de implantação com proxy reverso ou Kubernetes.
 capabilities:
   - platform/self-hosted-deployment
+  - platform/email-notifications
 roles:
   - super-admin
 ---
@@ -51,8 +52,13 @@ Antes de iniciar, edite `.env`: use `COPALIBRE_IMAGE=copalibre:local` e `COPALIB
 ```bash
 ../copalibre doctor
 ../copalibre start
+../copalibre status
+../copalibre restart
+../copalibre stop
 ../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
+
+Use copalibre status para verificar contêineres e gateway. copalibre restart verifica o PostgreSQL e o doctor antes de iniciar os serviços novamente. copalibre stop preserva volumes; --down remove contêineres e redes. No modo Kubernetes, start/stop/restart mostram instruções do Helm ou kubectl.
 
 O gateway publica HTTP em `http://localhost:8080` (`COPALIBRE_PORT`). Compose também publica portas dos serviços; restrinja sua exposição no host e na rede. TLS termina no proxy de borda.
 
@@ -73,7 +79,7 @@ Helm (`deploy/helm/copalibre/`) implanta as mesmas imagens, contrato de ambiente
 saúde e processo de migração que a instalação Compose — instalá-lo com valores padrão se comporta de
 forma idêntica ao chart base sozinho.
 
-Execute Helm na raiz do repositório após configurar `my-values.yaml` com banco, identidade, email e URLs públicas. Use uma versão já publicada para ambas as imagens; 1.2.5 ficará disponível após a publicação.
+Execute Helm na raiz do repositório após configurar `my-values.yaml` com banco, identidade, email e URLs públicas. Use uma versão já publicada para ambas as imagens; 1.2.6 ficará disponível após a publicação.
 
 ```bash
 cd ..
@@ -82,8 +88,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6
 ```
 
 Adicione estes grupos aditivos de `values.yaml`, desativados por padrão, conforme necessário —
@@ -115,7 +121,18 @@ Lista completa de pré-requisitos e as evidências medidas de failover multi-nó
 segurança de upgrade nas quais essa afirmação se baseia: `docs/deployment/enterprise-kubernetes.md`
 no repositório.
 
-## 4. Próximos passos
+## 4. E-mail de notificações
+
+A atividade de torneios e da organização é avisada por e-mail através do provedor configurado para os convites (`COPALIBRE_EMAIL_PROVIDER`); não é preciso nenhuma outra configuração. No ambiente de desenvolvimento, os e-mails chegam ao Mailpit.
+
+- Um novo torneio e um novo clube são avisados aos administradores da organização.
+- Uma nova inscrição, e um clube que envia o seu elenco, são avisados aos administradores da organização e aos administradores desse torneio. Quem causou o evento não recebe o e-mail.
+- Os e-mails usam o idioma principal da organização, levam o seu emblema e nome no cabeçalho e são assinados pela Copa Libre com um link para [copalibre.app](https://copalibre.app).
+- As importações CSV e `copalibre dev demo` não enviam e-mail.
+- O mesmo e-mail nunca é enviado duas vezes ao mesmo destinatário. Se um provedor expirar antes de confirmar, esse e-mail não é reenviado, por isso pode faltar em vez de duplicar.
+- Quem opera pode ver quantos e-mails podem ter faltado: o worker conta cada tentativa de envio por resultado (enviado, já enviado, recusado, desconhecido) na resposta de `/jobs/metrics`, em `emailDelivery`, e registra cada resultado desconhecido sem o endereço do destinatário. Um `unknown` diferente de zero merece um alerta; os contadores voltam a zero quando o worker reinicia.
+
+## 5. Próximos passos
 
 - [Seu primeiro torneio](/help/getting-started/) — crie e publique uma competição assim que a
   instalação estiver no ar.

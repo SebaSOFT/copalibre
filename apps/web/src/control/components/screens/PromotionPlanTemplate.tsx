@@ -62,8 +62,7 @@ function initialFormState(zone: ZoneResponse | undefined): {
 }
 
 /**
- * Composes the screen from the data `PromotionPlanPage` supplies (openspec
- * 0225 task 6.2): the plan-configuration form and band rows below are this
+ * Composes the screen from the data `PromotionPlanPage` supplies: the plan-configuration form and band rows below are this
  * component's own screen state, seeded once from the zone's existing plan;
  * `onSave` is the only call back to the page.
  */

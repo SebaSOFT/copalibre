@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # Produces measured evidence for the "Measured backup and restore evidence"
-# requirement (0035-kubernetes-enterprise-deployment): a PostgreSQL and
+# requirement (Kubernetes enterprise deployment): a PostgreSQL and
 # object-storage backup restores into a clean Kubernetes installation and
 # passes the same integrity checks
-# 0030-deployment-docker-compose-cli's Compose-level backup/restore
+# the Docker Compose deployment's Compose-level backup/restore
 # requirement uses (packages/persistence/src/test-support/backup-drill.js
 # seed/snapshot, the same script .github/workflows/backup-restore-drill.yml
 # runs). PostgreSQL backup/restore uses the same pg_dump/pg_restore
@@ -14,10 +14,10 @@ set -euo pipefail
 # single `/garage ...` invocation at a time directly against the pod's
 # distroless image — no shell needed there since each call is independent)
 # and mirrors object data with the MinIO client (mc), which still works
-# against Garage as an ordinary S3-compatible data-plane client (0297) —
-# this repo has no object-storage backup CLI of its own yet (that's 0041's
+# against Garage as an ordinary S3-compatible data-plane client —
+# this repo has no object-storage backup CLI of its own yet (that's the object-storage adapter's
 # job), and none is needed here: mirroring a bucket with standard S3 tooling
-# is deployment tooling, not new application code, matching design.md's
+# is deployment tooling, not new application code, matching the deployment's
 # non-goals.
 # Always tears the cluster down on exit — this is a validation environment,
 # never a production target.
@@ -315,7 +315,7 @@ main() {
     echo "# Backup/restore validation"
     echo
     echo "- Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    echo "- PostgreSQL integrity check (packages/persistence's backup-drill snapshot, same as 0030's Compose-level check): $([ "${pg_ok}" -eq 1 ] && echo PASS || echo FAIL)"
+    echo "- PostgreSQL integrity check (packages/persistence's backup-drill snapshot, same as the Compose-level check): $([ "${pg_ok}" -eq 1 ] && echo PASS || echo FAIL)"
     echo "- Object-storage integrity check (SHA-256 of a known test object before/after): $([ "${object_ok}" -eq 1 ] && echo PASS || echo FAIL)"
     if [ "${pg_ok}" -eq 1 ] && [ "${object_ok}" -eq 1 ]; then
       echo "- Result: PASS — the latest PostgreSQL and object-storage backup restored into a clean Kubernetes installation and passed integrity checks"

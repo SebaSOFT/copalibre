@@ -15,6 +15,8 @@ export interface OverviewMatch {
   readonly matchId?: string;
   /** Absent while a generated fixture has not become a persisted match. */
   readonly matchNumber?: number;
+  /** The match's 1-based position in its stage, which the public and TV match routes address it by. */
+  readonly stageOrdinal?: number;
   readonly stageNumber: number;
   readonly home: SideView;
   readonly away: SideView;
@@ -37,6 +39,29 @@ export interface StandingsRowView {
   readonly abbreviation?: string;
   readonly played: number;
   readonly points: number;
+  /** The zone this row is ranked in; set only when the stage mixes formats and ranks each zone on its own. */
+  readonly zoneName?: string;
+}
+
+/**
+ * Splits standings rows into one block per zone, in the order the zones first appear, so rows of
+ * different zones are never read as one ranking. Rows that name no zone — a stage with a single
+ * table — stay together as one block without a name.
+ */
+export function groupStandingsByZone(
+  rows: readonly StandingsRowView[],
+): readonly { readonly zoneName?: string; readonly rows: readonly StandingsRowView[] }[] {
+  const blocks: { zoneName?: string; rows: StandingsRowView[] }[] = [];
+  for (const row of rows) {
+    const block = blocks.find((candidate) => candidate.zoneName === row.zoneName);
+    if (block) block.rows.push(row);
+    else
+      blocks.push({
+        ...(row.zoneName === undefined ? {} : { zoneName: row.zoneName }),
+        rows: [row],
+      });
+  }
+  return blocks;
 }
 
 export interface ClubView {
@@ -59,6 +84,8 @@ export interface OverviewModel {
   readonly organizationAlias?: string;
   readonly tournamentAlias?: string;
   readonly organizationName: string;
+  /** The IANA zone the organization's schedule is read in. */
+  readonly organizationTimeZone?: string;
   readonly tournamentName: string;
   readonly seasonName?: string;
   readonly status?: 'upcoming' | 'live' | 'finished';
@@ -77,6 +104,7 @@ export interface OverviewModel {
 
 export interface OverviewInput extends RouteInput {
   readonly organizationName: string;
+  readonly organizationTimeZone?: string;
   readonly tournamentName: string;
   readonly seasonName?: string;
   readonly status?: 'upcoming' | 'live' | 'finished';
@@ -94,6 +122,9 @@ export function buildOverview(input: OverviewInput): OverviewModel {
     organizationAlias: input.organizationAlias,
     tournamentAlias: input.tournamentAlias,
     organizationName: input.organizationName,
+    ...(input.organizationTimeZone === undefined
+      ? {}
+      : { organizationTimeZone: input.organizationTimeZone }),
     tournamentName: input.tournamentName,
     ...(input.seasonName === undefined ? {} : { seasonName: input.seasonName }),
     ...(input.status === undefined ? {} : { status: input.status }),

@@ -18,7 +18,7 @@ import { ClubManagementTemplate } from '../screens/ClubManagementTemplate.js';
  * abbreviation, and upload or replace its emblem through the route
  * previously built with no caller until now.
  *
- * Fetches and mutates (openspec 0225 task 6.2): every call into the API
+ * Fetches and mutates: every call into the API
  * client lives here; `ClubManagementTemplate` composes the club list, the
  * new-club form, and the edit/emblem-upload panel from the resulting data
  * and the callbacks below.
@@ -67,7 +67,7 @@ export function ClubManagementPage({
   }, [api, organizationAlias]);
 
   // Client-side guard only, same "unknown role sees everything" convention
-  // as DashboardPage's own capability guards (openspec 0301) — the Club
+  // as DashboardPage's own capability guards — the Club
   // Portal's own backend routes stay server-enforced regardless.
   const canManageClubMembers =
     role === undefined || capabilitiesForRole(role).includes('org.manage-club-members');

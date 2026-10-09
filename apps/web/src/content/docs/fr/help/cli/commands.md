@@ -45,6 +45,14 @@ Flux complet, y compris le bootstrap du premier administrateur comme un Job Helm
 - `--context <ctx>` : kube-context à enregistrer (par défaut : aucun — à passer explicitement à
   chaque fois)
 
+Options e-mail et réparation :
+
+- `--repair` : sauvegarde `.env` et `docker-compose.yml`, ajoute les valeurs et fichiers manquants et préserve le Compose existant. Les services par défaut absents sont affichés avec leurs extraits YAML à examiner manuellement.
+- `--email-provider <provider>` : `smtp`, `resend`, `brevo` ou `mailgun` (par défaut : SMTP local).
+- `--email-from <address>` : adresse d'expéditeur (par défaut : `noreply@copalibre.local`).
+- `--email-credential <value>` : URL de connexion SMTP ou clé API du fournisseur.
+- `--email-domain <domain>` : requis pour Mailgun.
+
 ## doctor
 
 `copalibre doctor [--check-proxy] [--proxy-url <url>]`
@@ -64,9 +72,27 @@ Exécute un environnement de développement, conteneurisé ou hybride.
 
 ## start
 
-`copalibre start`
+`copalibre start [--dev]`
 
-Démarre PostgreSQL, exécute doctor, et lance tous les rôles de processus.
+Démarre PostgreSQL, exécute doctor puis lance tous les rôles de processus. Dans une installation Kubernetes, la commande affiche les instructions Helm. Avec --dev, elle démarre le profil de développement conteneurisé.
+
+## stop
+
+`copalibre stop [--dev] [--down]`
+
+Arrête les conteneurs Compose sans supprimer les volumes. --down supprime les conteneurs et réseaux. En mode Kubernetes, la commande affiche des instructions kubectl/Helm. --dev ne gère que Compose, pas les processus Yarn lancés sur l’hôte.
+
+## restart
+
+`copalibre restart [--dev] [--no-doctor]`
+
+Arrête Compose, démarre PostgreSQL, exécute doctor puis relance les autres services en attendant leur état sain. --no-doctor ignore doctor ; --dev redémarre les profil d’infrastructure Compose de développement.
+
+## status
+
+`copalibre status [--json] [--dev]`
+
+Affiche l’état des conteneurs, les ports d’entrée publiés et la santé de la passerelle. --json produit un JSON lisible par machine et --dev consulte Compose de développement. En mode Kubernetes, la commande affiche release, namespace et contexte, puis interroge les pods si kubectl est disponible.
 
 ## migrate
 

@@ -442,7 +442,7 @@ describe('table projections (integration)', () => {
     expect(talleresRow.rank).toBe(1);
     expect(talleresRow.cells.name.formatted).toBe('Talleres');
     expect(talleresRow.cells.points).toEqual({ raw: 3, formatted: '3' });
-    // openspec 0247: a team row's own headline identity is `actorName`
+    // A team row's own headline identity is `actorName`
     // (identical to `entrantName` for a team-granularity row).
     expect(talleresRow.actorName).toBe('Talleres');
     expect(talleresRow.entrantName).toBe('Talleres');
@@ -460,7 +460,7 @@ describe('table projections (integration)', () => {
     expect(body.rows[0]).toMatchObject({ actorId: personScorer });
     expect(body.rows[0].cells.player.formatted).toBe('Goleador');
     expect(body.rows[0].cells.goals).toEqual({ raw: 1, formatted: '1' });
-    // openspec 0247: a person-granularity row's own name, its affiliated
+    // A person-granularity row's own name, its affiliated
     // entrant's name/abbreviation, and its recorded nationality must all
     // reach the wire — previously all three were computed and then silently
     // dropped before the response left `tableResponse()`.
@@ -468,6 +468,14 @@ describe('table projections (integration)', () => {
     expect(body.rows[0].entrantName).toBe('Talleres');
     expect(body.rows[0].entrantAbbreviation).toBe('TALR');
     expect(body.rows[0].nationality).toBe('AR');
+    // A collector column carries the full wording its collector declares, so an
+    // abbreviated header can be explained without a glossary of the platform's own.
+    expect(body.columns.find((column: { code: string }) => column.code === 'goals')).toMatchObject({
+      description: 'Goals',
+    });
+    expect(
+      body.columns.find((column: { code: string }) => column.code === 'player').description,
+    ).toBeUndefined();
   });
 
   it('serves the same tournament-wide table as CSV', async () => {

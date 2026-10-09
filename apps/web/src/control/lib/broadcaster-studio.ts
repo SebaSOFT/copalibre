@@ -1,9 +1,9 @@
 /**
- * The Broadcaster Studio's own pure logic (openspec 0300): turning an issued
+ * The Broadcaster Studio's own pure logic: turning an issued
  * display token's launch URL into a ready-to-paste OBS Browser Source URL.
  * `mode`/`chroma` are query params the overlay route already understands
- * (`?mode=`, `?chroma=`, verified against `[match].astro`/`TvLayout.astro`)
- * — this needed no new backend or route support, only a caller.
+ * (`?mode=`, `?chroma=`, verified against `[match].astro`/`TvLayout.astro`) —
+ * this needed no new backend or route support, only a caller.
  */
 
 export type BroadcastOverlayMode = 'overlay-lower' | 'overlay-full';
@@ -47,7 +47,7 @@ export interface ObsResolutionPreset {
   readonly fps: number;
 }
 
-/** Informational only (design.md Decision 1) — never encoded into the URL; OBS's own Browser Source dialog has its own width/height/FPS fields. */
+/** Informational only — never encoded into the URL; OBS's own Browser Source dialog has its own width/height/FPS fields. */
 export const OBS_RESOLUTION_PRESETS: readonly ObsResolutionPreset[] = [
   { id: '1080p', width: 1920, height: 1080, fps: 60 },
   { id: '720p', width: 1280, height: 720, fps: 60 },

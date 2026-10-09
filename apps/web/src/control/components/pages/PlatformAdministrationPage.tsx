@@ -18,7 +18,7 @@ import type { DisciplineOption } from '../../lib/wizard.js';
 import { PlatformAdministrationTemplate } from '../screens/PlatformAdministrationTemplate.js';
 
 /**
- * Fetches and mutates (openspec 0225 task 6.1): every call into the API
+ * Fetches and mutates: every call into the API
  * client lives here, `PlatformAdministrationTemplate` composes the screen
  * from the resulting data and the callbacks below.
  *
@@ -26,7 +26,7 @@ import { PlatformAdministrationTemplate } from '../screens/PlatformAdministratio
  * toasts stay here rather than in the template: each one is built from a
  * value the API response itself carries (a created alias, an installed
  * module's version, a pull request URL) — the page "supplies catalogues"
- * role design.md's tier table names, not screen composition.
+ * role the tier table names, not screen composition.
  */
 export function PlatformAdministrationPage({
   client,

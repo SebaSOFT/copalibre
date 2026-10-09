@@ -76,7 +76,7 @@ describe('what a public stream may say', () => {
           definitionCode: 'goal',
           side: 'home',
           // The same field already public via PublicMatchReportResponse.timeline[].personId
-          // (apps/api/src/controllers/public-projections.controller.ts) — openspec 0300
+          // (apps/api/src/controllers/public-projections.controller.ts) —
           // exposes it here too, so the live channel can name an actor the REST snapshot
           // already names, not a new disclosure.
           personId: 'person-7',

@@ -36,9 +36,9 @@ const noopObjectStorage: ObjectStorageAdapter = {
 };
 
 /**
- * Club and tournament resource ownership, through the real HTTP stack
- * (openspec 0165, tasks 6.2–6.5). The mechanism itself is unit-tested
- * against a fabricated subject in resource-policy.test.ts (task 3.1/3.4);
+ * Club and tournament resource ownership, through the real HTTP stack.
+ * The mechanism itself is unit-tested
+ * against a fabricated subject in resource-policy.test.ts;
  * this proves the same refusal reaches a caller who only ever sees an HTTP
  * response, and that admin's inherited reach and a scoped role's
  * organization-wide refusals hold at that boundary too.
@@ -193,7 +193,7 @@ describe('club and tournament resource scope (integration)', () => {
     await scratch?.drop();
   });
 
-  describe('club-admin (task 6.2)', () => {
+  describe('club-admin', () => {
     it('is admitted to the club it administers', async () => {
       const response = await patch(
         'clubAdminA',
@@ -217,7 +217,7 @@ describe('club and tournament resource scope (integration)', () => {
     });
   });
 
-  describe('admin reaches club-admin resources by inheritance (task 6.3)', () => {
+  describe('admin reaches club-admin resources by inheritance', () => {
     it('updates a club no assignment scopes it to, unlike club-admin', async () => {
       const response = await patch(
         'admin',
@@ -230,7 +230,7 @@ describe('club and tournament resource scope (integration)', () => {
     });
   });
 
-  describe('tournament-admin (task 6.4)', () => {
+  describe('tournament-admin', () => {
     it('is admitted within the tournament its assignment names', async () => {
       const response = await request(
         'tournamentAdminA',
@@ -248,7 +248,7 @@ describe('club and tournament resource scope (integration)', () => {
     });
   });
 
-  describe('tournament-admin holds no organization-wide authority (task 6.5)', () => {
+  describe('tournament-admin holds no organization-wide authority', () => {
     it('is refused user administration', async () => {
       const response = await request(
         'tournamentAdminA',

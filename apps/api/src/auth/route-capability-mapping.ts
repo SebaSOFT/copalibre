@@ -2,11 +2,11 @@ import type { OrganizationCapability } from '@copalibre/domain';
 
 /**
  * Which capability each currently `@RequireOrganizationRole(...)`-guarded route
- * will require once its guard is converted (task 2.2). Keyed by
+ * will require once its guard is converted. Keyed by
  * `${ControllerName}.${methodName}`, matching how `access-coverage.test.ts`
  * walks `OPENAPI_CONTROLLERS`.
  *
- * This table is the oracle `capability-guard-equivalence.test.ts` (task 1.4)
+ * This table is the oracle `capability-guard-equivalence.test.ts`
  * checks against, written before any guard is actually converted — the
  * mapping is derived from, and named-exceptions aside must resolve back to,
  * the roles each route admits today.
@@ -29,13 +29,13 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   // org.manage-clubs — deliberate exception, see CLUB_ADMIN_EXCEPTIONS below:
   // today these admit only `admin`; the mapping resolves to `admin` and
   // `club-admin`, narrowed to administered clubs by the ownership check
-  // added in task 3.1/3.2.
+  // added with this mapping.
   'ClubMediaController.uploadEmblem': 'org.manage-clubs',
   'ClubsController.create': 'org.manage-clubs',
   'ClubsController.list': 'org.manage-clubs',
   'ClubsController.update': 'org.manage-clubs',
 
-  // org.manage-club-members (openspec 0301) — new routes, not a conversion of
+  // org.manage-club-members — new routes, not a conversion of
   // any prior role-guarded route; no DELIBERATE_EQUIVALENCE_EXCEPTIONS entry.
   'ClubPortalController.listMembers': 'org.manage-club-members',
   'ClubPortalController.createMember': 'org.manage-club-members',
@@ -108,6 +108,7 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'ZonesGroupsController.createGroup': 'org.manage-zones-groups',
   'ZonesGroupsController.createZone': 'org.manage-zones-groups',
   'ZonesGroupsController.renameZone': 'org.manage-zones-groups',
+  'ZonesGroupsController.configureZone': 'org.manage-zones-groups',
   'ZonesGroupsController.deleteZone': 'org.manage-zones-groups',
   'ZonesGroupsController.renameGroup': 'org.manage-zones-groups',
   'ZonesGroupsController.deleteGroup': 'org.manage-zones-groups',
@@ -189,9 +190,9 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
 /**
  * Routes whose mapped capability resolves to more roles than the route
  * admits today, by design rather than by mistake. Every entry here must be
- * named in `design.md`'s Decisions — currently only `club-admin`'s deliberate
+ * a deliberate, documented exception — currently only `club-admin`'s deliberate
  * addition to `org.manage-clubs` routes, immediately narrowed to administered
- * clubs by the ownership check in task 3.1/3.2. Nothing else may use this
+ * clubs by the ownership check. Nothing else may use this
  * escape hatch; the equivalence test enforces that everywhere else, the
  * mapping-resolved roles equal today's roles exactly.
  */

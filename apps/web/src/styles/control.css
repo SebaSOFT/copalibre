@@ -17,6 +17,27 @@ body {
   margin-top: var(--cl-space-4);
 }
 
+.cl-role-cell {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--cl-space-2);
+  min-width: 0;
+}
+
+.cl-role-cell__select {
+  flex: 0 1 220px;
+  max-width: 220px;
+  min-width: 0;
+}
+
+.cl-role-cell__details {
+  display: grid;
+  flex: 1 1 12rem;
+  gap: var(--cl-space-1);
+  min-width: 0;
+}
+
 @media (max-width: 374px) {
   .cl-standings-distribution-row {
     grid-template-columns: minmax(0, 1fr) auto;

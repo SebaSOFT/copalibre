@@ -175,7 +175,7 @@ function humanizeKey(key: string): string {
 /**
  * Renders a configured field value as localized display text, in the
  * operator's active language — never raw JSON syntax, a literal `"null"`, or
- * an untranslated `"true"`/`"false"` (openspec 0285). `null` and `undefined`
+ * an untranslated `"true"`/`"false"`. `null` and `undefined`
  * both mean "not set", the same dash either way; a `segments`-shaped object
  * gets its own plain-language sentence; any other object falls back to
  * readable `Key: value` pairs rather than `JSON.stringify`.
@@ -220,7 +220,7 @@ export function observedFieldValue(
 
 /**
  * Which control shape edits a field, derived from its declared policy and
- * observed value — never a new per-field schema (design.md's Non-Goals).
+ * observed value — never a new per-field schema.
  * `undefined` means the field is not editable at all (`forbidden`/`inherited`).
  */
 export type ControlKind =

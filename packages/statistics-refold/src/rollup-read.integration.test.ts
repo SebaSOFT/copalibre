@@ -14,8 +14,8 @@ import {
 import { readRolledUpTotals } from './rollup-read.js';
 
 /**
- * The rollup read path against real `EnrollmentRepository` membership,
- * task 3.1) — `rollup.test.ts` proves the aggregation core against hand-built
+ * The rollup read path against real `EnrollmentRepository` membership.
+ * `rollup.test.ts` proves the aggregation core against hand-built
  * membership maps; this proves the maps themselves come out of real
  * PostgreSQL rows correctly.
  */

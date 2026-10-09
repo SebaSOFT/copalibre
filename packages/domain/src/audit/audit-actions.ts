@@ -94,6 +94,7 @@ export const AUDIT_ACTIONS = [
   'season.created',
   'zone.created',
   'zone.renamed',
+  'zone.format-set',
   'zone.deleted',
   'group.created',
   'group.renamed',
@@ -172,7 +173,7 @@ export const AUDIT_ACTIONS = [
   // Import / export
   'csv-import.committed',
 
-  // Sensitive reads (openspec 0166) — bulk extraction and personal-data
+  // Sensitive reads — bulk extraction and personal-data
   // reads, recorded at the route once the read succeeds. Ordinary browsing
   // (standings, a bracket, the match console) records nothing.
   'tournament.configuration-exported',
@@ -189,7 +190,7 @@ export const AUDIT_ACTIONS = [
   'object.scan-failed',
   'object.deleted',
 
-  // Data-integrity repair (openspec 0296) — a correction `copalibre doctor
+  // Data-integrity repair — a correction `copalibre doctor
   // --fix` applies to a record found structurally inconsistent (a
   // non-canonical status, for instance), never a normal business
   // transition. One generic action; the specific anomaly and the value
@@ -197,7 +198,7 @@ export const AUDIT_ACTIONS = [
   // the same way `mutation.refused` covers every refusal reason below.
   'data-integrity.repaired',
 
-  // Refused attempts (openspec 0166) — recorded centrally by the API
+  // Refused attempts — recorded centrally by the API
   // exception filter (or, for a classification consulted but never thrown,
   // at the point of classification), covering every refusal uniformly
   // rather than growing one bespoke action per refusal reason. The specific

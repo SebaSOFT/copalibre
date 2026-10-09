@@ -270,7 +270,7 @@ describe('drainQueue sequential semantics', () => {
   });
 });
 
-describe('describeQueuedAction (0159 task 3.6)', () => {
+describe('describeQueuedAction', () => {
   it('shows what was recorded in a finalize, so the operator can place it elsewhere', () => {
     expect(describeQueuedAction(FINALIZE_ACTION)).toBe(
       'Final result: entrant-a goals 2 — entrant-b goals 1, winner entrant-a',

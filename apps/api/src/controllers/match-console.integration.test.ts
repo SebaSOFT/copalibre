@@ -352,9 +352,9 @@ describe('live match console (integration)', () => {
     expect((await request('GET', `${base()}/console`, 'inactive')).statusCode).toBe(403);
   });
 
-  it('records no audit entry for ordinary browsing of the match console (task 3.3)', async () => {
+  it('records no audit entry for ordinary browsing of the match console', async () => {
     // Scoped to this match's own aggregate, not a table-wide row count: an
-    // unrelated sibling test's fire-and-forget refusal recording (task 2.1
+    // unrelated sibling test's fire-and-forget refusal recording (which
     // is deliberately not awaited by its caller) can still be landing when
     // this test starts, and a whole-table count races against it.
     const before = await scratch.db
@@ -1127,7 +1127,7 @@ describe('live match console — real catalogue foul/throw-in vocabulary', () =>
     });
   }
 
-  it("preserves the client-supplied occurrence time when recording a foul workflow's outcome (task 3.1)", async () => {
+  it("preserves the client-supplied occurrence time when recording a foul workflow's outcome", async () => {
     const consoleRead = await request('GET', `${base()}/console`, 'referee');
     expect(consoleRead.statusCode).toBe(200);
     expect(consoleRead.json().eventDefinitions).toEqual(
@@ -1159,7 +1159,7 @@ describe('live match console — real catalogue foul/throw-in vocabulary', () =>
     });
   });
 
-  it('increments the same red-card collector for a card reached through the foul workflow (task 3.2)', async () => {
+  it('increments the same red-card collector for a card reached through the foul workflow', async () => {
     const recorded = await request('POST', `${base()}/events`, 'referee', {
       definitionCode: 'red-card',
       segmentId,
@@ -1186,7 +1186,7 @@ describe('live match console — real catalogue foul/throw-in vocabulary', () =>
   });
 });
 
-describe('org-admin match authority without prior match assignment (openspec 0193 task 4.2)', () => {
+describe('org-admin match authority without prior match assignment', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId = '';

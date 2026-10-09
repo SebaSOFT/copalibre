@@ -8,14 +8,17 @@
  * disagree.
  *
  * These are demonstrations, not records. They never reach a production surface:
- * the compositions that consume them (`0223`) read real projections, and the
+ * the compositions that consume them read real projections, and the
  * workbench labels every value here as fixture data.
  *
  * Identifiers follow the repository's contract — UUIDv7 for entities, kebab-case
  * for aliases, and match display numbers (`M01`) as labels rather than as
  * anything a URL resolves.
  */
+import { humanizeCode } from './descriptor-label.ts';
 import type { BracketMatch } from './bracket.js';
+import type { MatchCardData } from './matches-view.js';
+import type { ScheduleStage } from './match-schedule.js';
 import type { LiveDashboard } from './live-state.js';
 import type { MatchReportModel, MatchReportTimelineGroup } from './match-report.js';
 import {
@@ -723,6 +726,11 @@ const REFERENCE_OFFICIALS: PublicMatchOfficialResponse[] = [
   { name: 'Noor Al-Rashid', roles: ['assistant-referee', 'var'] },
 ];
 
+/** Reference roles carry no descriptor, so each reads as its humanized code. */
+function withReferenceRoleLabels(member: PublicMatchRosterMemberResponse) {
+  return { ...member, roleLabels: (member.roles ?? []).map(humanizeCode) };
+}
+
 /** The full match-report model: rosters, officials and a mixed single/workflow timeline. */
 export function referenceMatchReportModel(): MatchReportModel {
   const [home, away] = REFERENCE_ENTRANTS;
@@ -766,18 +774,21 @@ export function referenceMatchReportModel(): MatchReportModel {
       name: home.name,
       abbreviation: home.abbreviation,
       score: 3,
-      roster: REFERENCE_ROSTER_HOME,
+      roster: REFERENCE_ROSTER_HOME.map(withReferenceRoleLabels),
     },
     away: {
       name: away.name,
       abbreviation: away.abbreviation,
       score: 1,
-      roster: REFERENCE_ROSTER_AWAY,
+      roster: REFERENCE_ROSTER_AWAY.map(withReferenceRoleLabels),
     },
     scheduledAt: '2026-09-01T18:00:00.000Z',
     venueName: 'Meridian Central Stadium',
     schedulePublished: true,
-    officials: REFERENCE_OFFICIALS,
+    officials: REFERENCE_OFFICIALS.map((official) => ({
+      name: official.name,
+      roleLabels: official.roles.map(humanizeCode),
+    })),
     timeline,
   };
 }
@@ -840,13 +851,13 @@ export function referenceTableProjection(): TableProjectionResponse {
     target: 'group-phase',
     label: 'Group Table',
     columns: [
-      { code: 'played', header: 'PJ', format: 'number' },
-      { code: 'wins', header: 'W', format: 'number' },
-      { code: 'draws', header: 'D', format: 'number' },
-      { code: 'losses', header: 'L', format: 'number' },
-      { code: 'goals-for', header: 'GF', format: 'number' },
-      { code: 'goals-against', header: 'GA', format: 'number' },
-      { code: 'score-difference', header: 'GD', format: 'number' },
+      { code: 'played', header: 'P', description: 'Played', format: 'number' },
+      { code: 'wins', header: 'W', description: 'Wins', format: 'number' },
+      { code: 'draws', header: 'D', description: 'Draws', format: 'number' },
+      { code: 'losses', header: 'L', description: 'Losses', format: 'number' },
+      { code: 'goals-for', header: 'GF', description: 'Goals for', format: 'number' },
+      { code: 'goals-against', header: 'GA', description: 'Goals against', format: 'number' },
+      { code: 'score-difference', header: 'GD', description: 'GF − GA', format: 'number' },
       { code: 'points', header: 'Pts', format: 'number' },
     ],
     defaultSort: [{ columnCode: 'points', direction: 'desc' }],
@@ -886,4 +897,88 @@ export function referenceJourneyBracket(complete = false): readonly BracketMatch
       return { ...match, state: 'final' as const, slots: [slot(0), slot(1)], scores: [2, 1] };
     return match;
   });
+}
+
+/** The reference bracket with its two semi-final losers' third-place game, drawn as a placement branch. */
+export function referencePlacementBracket(): readonly BracketMatch[] {
+  const bracket = referenceJourneyBracket(true);
+  const semiLosers = bracket
+    .filter((match) => match.roundNumber === 2)
+    .map((match) => match.matchNumber);
+  return [
+    ...bracket,
+    {
+      matchNumber: 8,
+      roundNumber: 3,
+      position: 1,
+      role: 'place-3',
+      branch: 'placement',
+      state: 'final',
+      slots: [
+        { kind: 'loser-of', matchNumber: semiLosers[0] },
+        { kind: 'loser-of', matchNumber: semiLosers[1] },
+      ],
+      scores: [1, 0],
+    },
+  ];
+}
+
+/**
+ * A two-stage schedule: a group stage of two groups and a cup stage drawn as its bracket, so the
+ * schedule organism's tables, round sub-headings and bracket zone each have something to show.
+ */
+export function referenceSchedule(): readonly ScheduleStage[] {
+  const [meridian, ironclad, obsidian, echo] = REFERENCE_ENTRANTS;
+  const row = (
+    matchNumber: number,
+    round: number,
+    groupName: string,
+    home: (typeof REFERENCE_ENTRANTS)[number],
+    away: (typeof REFERENCE_ENTRANTS)[number],
+    scores?: readonly [number, number],
+  ): MatchCardData => ({
+    matchId: `reference-${matchNumber}`,
+    stageNumber: 1,
+    matchNumber,
+    round,
+    state: scores ? 'final' : 'upcoming',
+    homeName: home.name,
+    homeAbbreviation: home.abbreviation,
+    awayName: away.name,
+    awayAbbreviation: away.abbreviation,
+    ...(scores ? { homeScore: scores[0], awayScore: scores[1] } : {}),
+    venueName: 'Reference Arena',
+    scheduledAt: `2026-09-0${round}T18:00:00.000Z`,
+    zoneName: 'Groups',
+    groupName,
+  });
+  return [
+    {
+      stageNumber: 1,
+      stageName: 'Group stage',
+      zones: [
+        {
+          kind: 'rows',
+          groups: [
+            {
+              name: 'Group A',
+              rounds: [
+                { round: 1, matches: [row(1, 1, 'Group A', meridian, obsidian, [2, 1])] },
+                { round: 2, matches: [row(3, 2, 'Group A', meridian, ironclad)] },
+              ],
+            },
+            {
+              name: 'Group B',
+              rounds: [{ round: 1, matches: [row(2, 1, 'Group B', ironclad, echo, [0, 0])] }],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      stageNumber: 2,
+      stageName: 'Cup',
+      zones: [{ kind: 'bracket', name: 'Gold Cup', matches: referenceBracket() }],
+    },
+  ];
 }

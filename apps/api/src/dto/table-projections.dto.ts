@@ -72,6 +72,12 @@ export class TableProjectionSegmentResponse {
   @ApiPropertyOptional({ description: 'The group\u2019s own name, e.g. "Group A"' })
   groupName?: string;
 
+  @ApiPropertyOptional({
+    description:
+      'The zone this group belongs to; absent for a stage that has only its implicit zone',
+  })
+  zoneName?: string;
+
   @ApiProperty({ type: TableRowResponse, isArray: true })
   rows!: TableRowResponse[];
 }
@@ -85,6 +91,12 @@ export class TableColumnResponse {
 
   @ApiPropertyOptional()
   shortHeader?: string | LocalizedLabel;
+
+  @ApiPropertyOptional({
+    description:
+      'The full wording behind an abbreviated header, from the discipline descriptor’s own statistic labels',
+  })
+  description?: string | LocalizedLabel;
 
   @ApiPropertyOptional({ description: 'Displayed text when the numeric value is exactly zero' })
   zeroDisplay?: string;

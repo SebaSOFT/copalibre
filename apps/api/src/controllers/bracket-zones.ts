@@ -1,15 +1,18 @@
 import type { Kysely } from 'kysely';
+import type { TournamentFormat } from '@copalibre/domain';
 import type { Database } from '@copalibre/persistence';
 
 /**
  * A stage's terminal-stage zone, or the implicit single zone every un-zoned
  * stage has. Shared by every reader that must project one bracket per zone
- * (0245's `resolveTournamentWinners`, 0246's public bracket and operator
+ * (`resolveTournamentWinners`, the public bracket and operator
  * seeding canvas) so the "no zones declared" fallback is defined exactly once.
  */
 export interface StageZone {
   readonly zoneId?: string;
   readonly zoneName?: string;
+  /** The zone's own format; absent means it plays its stage's (`effectiveFormat`). */
+  readonly format?: TournamentFormat;
 }
 
 /**
@@ -29,6 +32,10 @@ export async function resolveStageZones(
     .execute();
 
   return rows.length > 0
-    ? rows.map((row) => ({ zoneId: row.zone_id, zoneName: row.name }))
+    ? rows.map((row) => ({
+        zoneId: row.zone_id,
+        zoneName: row.name,
+        ...(row.format === null ? {} : { format: row.format as TournamentFormat }),
+      }))
     : [{ zoneId: undefined, zoneName: undefined }];
 }

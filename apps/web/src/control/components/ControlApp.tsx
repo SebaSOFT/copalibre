@@ -361,11 +361,9 @@ function renderForScreen(route: ControlRoute): React.JSX.Element {
 }
 
 /**
- * Restated in English (openspec 0225 task 8.3, found by `/impeccable
- * critique`) — exact titles from the eight `.astro` files this replaced were
- * hardcoded Spanish, the same `auth.*`/`invitation.*` namespace gap task 2.6
- * and this task's own AcceptInvitationForm fix already restated in English
- * elsewhere. Not routed through `react-intl` here: `document.title` is set
+ * Restated in English — exact titles from the eight `.astro` files this replaced were
+ * hardcoded Spanish, the same `auth.*`/`invitation.*` namespace gap already restated in English
+ * elsewhere (`AcceptInvitationForm` among them). Not routed through `react-intl` here: `document.title` is set
  * from `useEffect` in `ControlApp` itself, which creates `ControlIntl` for
  * its children rather than rendering inside one, and `createIntl`/
  * `createIntlCache` — the only formatting API outside a component tree —
@@ -606,7 +604,7 @@ function SilentRenewCallback(): null {
  * organization never reaches here, `CompletingLogin` navigates straight to it.
  * Colocated with `CompletingLogin`/`NotFound` rather than a new `ControlRoute`:
  * it is a transient render on `/control/callback`, not a screen that needs its
- * own bookmarkable URL (design.md). Wrapped in `ControlIntl`, mirroring
+ * own bookmarkable URL. Wrapped in `ControlIntl`, mirroring
  * `ControlShell`, because — unlike `CompletingLogin`'s own pre-existing
  * hardcoded-Spanish text — every operator reaches this, not just the ones who
  * read the replaced `.astro` files' original copy.

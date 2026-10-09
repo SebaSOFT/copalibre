@@ -238,7 +238,7 @@ export class MatchControlController {
 
     // Finalize alone requires a key (irreversible, so "just resend it" must be
     // safe by construction); start/pause/resume accept one but don't require
-    // it — additive only, per design.md's Migration Plan — and fingerprint on
+    // it — additive only — and fingerprint on
     // the command name itself, since they carry no meaningful request body.
     const fingerprint =
       command === 'finalize' ? finalizeFingerprint(body) : fingerprintOf({ command });
@@ -392,7 +392,7 @@ export class MatchControlController {
           // In the same transaction as the result that caused it: a series decided by this
           // finalize anulls the games it no longer needs and releases their slots, and a
           // record where the result landed but the anulling did not is exactly the incoherent
-          // state the product refuses. `anullSurplusMatches` is 0158's; deciding *when* to
+          // state the product refuses. `anullSurplusMatches` belongs to the multi-match series logic; deciding *when* to
           // call it is what was missing, and without it every surface downstream of here —
           // the builder's contingency marks, the public bar, the offline conflict — describes
           // a state the engine never reaches.
@@ -1733,6 +1733,7 @@ export class MatchControlController {
     const declaration = await readStageSeries(this.db, {
       tournamentId: tournament.tournamentId,
       stageId,
+      zoneId: await competition.findFixtureZoneId(match.fixtureId),
     });
     if (declaration === undefined) return undefined;
 
@@ -1972,15 +1973,16 @@ export class MatchControlController {
       readonly authorizationContext: string;
     },
   ): Promise<void> {
-    const declaration = await readStageSeries(this.db, {
-      tournamentId: input.tournamentId,
-      stageId: input.stageId,
-    });
-    if (declaration === undefined) return;
-
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(input.matchId, uow);
     if (!match) return;
+
+    const declaration = await readStageSeries(this.db, {
+      tournamentId: input.tournamentId,
+      stageId: input.stageId,
+      zoneId: await competition.findFixtureZoneId(match.fixtureId, uow),
+    });
+    if (declaration === undefined) return;
 
     const fixtures = await competition.listFixturesOfStage(input.stageId);
     const fixture = fixtures.find((candidate) => candidate.fixtureId === match.fixtureId);
@@ -2316,8 +2318,7 @@ export class MatchControlController {
 
   /**
    * A team entrant's roster candidates are its registered players; a person
-   * entrant (an individual competitor) rosters exactly themselves
-   * design.md).
+   * entrant (an individual competitor) rosters exactly themselves.
    */
   private async eligiblePersonIdsFor(entrant: {
     readonly entrant_kind: string;

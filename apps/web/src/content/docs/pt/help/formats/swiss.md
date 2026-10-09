@@ -30,3 +30,12 @@ O sistema suíço emparelha os participantes ao longo de várias rodadas sem eli
 ## Classificação e Desempates
 
 Utiliza critérios de força de tabela (Buchholz e Sonneborn-Berger) para classificar com precisão os concorrentes rumo aos playoffs eliminatórios.
+
+## Gerar a próxima rodada
+
+As fases suíças e de eliminatória simples montam cada rodada a partir da anterior, então a operação só gera uma rodada depois que a anterior termina.
+
+- **Por zona**: Rodadas, emparceiramentos e resultados pertencem a uma zona. Uma fase com várias zonas avança cada zona separadamente, e uma zona nunca emparelha participantes de outra.
+- **Onde**: Com a fase semeada, a tela da fase oferece a ação **Gerar a próxima rodada** para cada zona que joga no sistema suíço ou em eliminatória simples. Zonas com outro formato, como pontos corridos, não a têm.
+- **Quando é recusada**: Uma zona não avança enquanto houver partida inacabada na rodada atual. Isso bloqueia só essa zona; as outras podem avançar.
+- **Pela API**: `POST .../stages/{stageNumber}/rounds/next` com `{ "zoneNumber": 2 }`. A zona é obrigatória quando a fase tem mais de uma; uma fase com uma única zona não precisa de corpo.

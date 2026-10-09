@@ -12,8 +12,8 @@ import {
 /**
  * Every mutating console command the operator can attempt while offline
  * — the durable queue's own record of *what to replay*, not the HTTP
- * request itself. Finalize is included (design.md: "a queued finalize... is
- * refused and surfaced for the operator to resolve explicitly", not
+ * request itself. Finalize is included (a queued finalize... is
+ * refused and surfaced for the operator to resolve explicitly, not
  * excluded from the queue), and so are the segment clock commands now that
  * the console issues them: a whistle blown in a dead zone is exactly the
  * action the accepted requirement means by one the console "cannot send".
@@ -100,7 +100,7 @@ function database(): Promise<IDBPDatabase<OfflineQueueSchema>> {
   return dbPromise;
 }
 
-/** Write-ahead: called before the live send is even attempted (design.md). */
+/** Write-ahead: called before the live send is even attempted. */
 export async function enqueue(
   action: QueuedAction,
   idempotencyKey: string,
@@ -117,7 +117,7 @@ export async function enqueue(
   });
 }
 
-/** In original attempt order — the sequential-replay requirement (design.md). */
+/** In original attempt order — the sequential-replay requirement. */
 export async function listPending(matchId: string): Promise<readonly QueuedMutation[]> {
   const db = await database();
   const all = await db.getAllFromIndex(STORE, 'by-match', matchId);
@@ -140,7 +140,7 @@ export async function markSent(id: string): Promise<void> {
 /**
  * The server refused it on replay — the same refusal a live attempt would
  * get. Retained (not removed) so the sync-status UI can show it, but never
- * automatically retried again (design.md, task 2.2).
+ * automatically retried again.
  */
 export async function markRefused(id: string, reason: string): Promise<void> {
   const db = await database();
@@ -167,8 +167,7 @@ export type DrainOutcome =
   | { readonly kind: 'network-failure'; readonly id: string };
 
 /**
- * Sequential, one item at a time, in original order (design.md's "Queue
- * replay order" decision). A refusal marks that one item refused and moves
+ * Sequential, one item at a time, in original order. A refusal marks that one item refused and moves
  * on to the next; a network-level failure stops the whole drain immediately
  * — the caller's own trigger (an `online` event, an SSE reconnect, the
  * periodic fallback) is what schedules the next attempt, not this function

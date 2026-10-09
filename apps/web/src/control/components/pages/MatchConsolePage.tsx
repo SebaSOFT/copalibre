@@ -47,7 +47,7 @@ export type ConsoleStatus =
   | { readonly kind: 'error'; readonly message: string };
 
 /**
- * Fetches, subscribes, and queues (openspec 0225 task 6.1): every effect and
+ * Fetches, subscribes, and queues: every effect and
  * every function that reaches the API client or the durable offline queue
  * lives here. `MatchConsoleTemplate` composes the screen from the data and
  * callbacks this passes down, and holds none of its own — the split the
@@ -126,7 +126,7 @@ export function MatchConsolePage({
       .then((seeding) => {
         // This match's own zone only — flattening every zone's matches back together would
         // reintroduce the cross-zone round/position collision the zone-scoped canvas exists to
-        // avoid (openspec 0246), inside the journey-highlight/context logic instead of the
+        // avoid, inside the journey-highlight/context logic instead of the
         // canvas itself.
         const ownZone = seeding.zones.find((zone) =>
           zone.matches.some((m) => m.persistedMatchId === matchId),
@@ -144,8 +144,7 @@ export function MatchConsolePage({
   }, [matchId]);
 
   // The durable-queue counterpart to `reload()` above: drains every queued
-  // action for this match, sequentially, in original order (design.md's
-  // "Queue replay order" decision) — a refusal surfaces against that one
+  // action for this match, sequentially, in original order — a refusal surfaces against that one
   // item and the drain continues; a network-level failure just pauses it
   // for the next trigger (`online`, an SSE reconnect, or the periodic
   // fallback below), without treating "still offline" as an error.
@@ -178,7 +177,7 @@ export function MatchConsolePage({
     }
   }, [api, matchId, reload, refreshPendingMutations]);
 
-  // Refresh-survivability (design.md): reopening the console for this match
+  // Refresh-survivability: reopening the console for this match
   // reloads whatever was already queued and resumes draining it. Nested
   // inside a promise chain rather than called directly — the same
   // react-hooks/set-state-in-effect workaround `PreferencesPage.tsx`
@@ -190,8 +189,7 @@ export function MatchConsolePage({
       .then(() => drain());
   }, [refreshPendingMutations, drain]);
 
-  // `navigator.onLine` is a hint, not the source of truth (design.md's
-  // "Reachability" decision) — it triggers a drain attempt promptly, but a
+  // `navigator.onLine` is a hint, not the source of truth — it triggers a drain attempt promptly, but a
   // drain that then fails with a network error just re-pauses rather than
   // trusting the browser's own online/offline signal.
   useEffect(() => {
@@ -240,8 +238,8 @@ export function MatchConsolePage({
       },
       onProjectionRequired: () => void reload(),
       onFailure: () => setStale(true),
-      // A successful (re)connection is one of the queue's drain triggers
-      // (design.md task 3.3) — it fires on the very first connect too, which
+      // A successful (re)connection is one of the queue's drain triggers —
+      // it fires on the very first connect too, which
       // is exactly the "reopening the console resumes draining" moment.
       onOpen: () => void drain(),
     });
@@ -254,10 +252,10 @@ export function MatchConsolePage({
     return () => globalThis.clearTimeout(timeout);
   }, [reload, stale]);
 
-  // Write-ahead (design.md's own decision, by name): persisted to the
+  // Write-ahead: persisted to the
   // durable queue *before* any send is attempted, so a dropped connection —
-  // whether detected up front or discovered only when the send itself fails
-  // — never loses the action. `drain()` performs (and reports) the actual
+  // whether detected up front or discovered only when the send itself fails —
+  // never loses the action. `drain()` performs (and reports) the actual
   // attempt; this only ever queues, applies the optimistic patch, and then
   // asks for a drain.
   async function mutate(action: QueuedAction, optimistic?: () => void): Promise<void> {
@@ -269,7 +267,7 @@ export function MatchConsolePage({
   }
 
   /**
-   * Queued like every other mutating command (0123's requirement covers these
+   * Queued like every other mutating command (the offline-resilience requirement covers these
    * too), so a whistle blown in a dead zone is replayed rather than lost. The
    * optimistic patch mirrors what the server does: only one segment runs, so
    * starting one stops whichever was running.
@@ -433,8 +431,8 @@ export function MatchConsolePage({
       sides: current.entrants.map(({ entrantId }) => ({ entrantId, statistics: {} })),
       ...(winnerEntrantId ? { winnerEntrantId } : {}),
     };
-    // Write-ahead here too (design.md: "a queued finalize... is refused and
-    // surfaced for the operator to resolve explicitly", not excluded from
+    // Write-ahead here too (a queued finalize... is refused and
+    // surfaced for the operator to resolve explicitly, not excluded from
     // the durable queue) — but finalize keeps its own direct send rather
     // than the generic `drain()`, so its existing explicit-confirm UX and
     // idempotency-key-reuse-across-retries behavior stay exactly as they

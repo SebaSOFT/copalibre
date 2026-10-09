@@ -3,6 +3,7 @@ title: 'Начало работы: самостоятельный хостинг
 description: Запустите CopaLibre из исходного кода на Windows, macOS или Linux, затем выберите топологию развёртывания с обратным прокси или Kubernetes.
 capabilities:
   - platform/self-hosted-deployment
+  - platform/email-notifications
 roles:
   - super-admin
 ---
@@ -51,8 +52,13 @@ mkdir my-league && cd my-league
 ```bash
 ../copalibre doctor
 ../copalibre start
+../copalibre status
+../copalibre restart
+../copalibre stop
 ../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
+
+Используйте copalibre status для проверки контейнеров и шлюза. copalibre restart проверяет PostgreSQL и doctor перед повторным запуском служб. copalibre stop сохраняет тома; --down удаляет контейнеры и сети. В Kubernetes команды start/stop/restart выводят инструкции Helm или kubectl.
 
 Шлюз публикует HTTP на `http://localhost:8080` (`COPALIBRE_PORT`). Compose также публикует порты сервисов; ограничьте доступ на уровне хоста и сети. TLS завершается на внешнем прокси.
 
@@ -73,7 +79,7 @@ mkdir my-league && cd my-league
 процесс миграции, что и установка через Compose — установка со значениями по умолчанию ведёт себя
 идентично одному базовому чарту.
 
-Запускайте Helm из корня репозитория после настройки `my-values.yaml`: база данных, идентификация, почта и публичные URL. Для обоих образов используйте опубликованную версию; 1.2.5 станет доступна после публикации.
+Запускайте Helm из корня репозитория после настройки `my-values.yaml`: база данных, идентификация, почта и публичные URL. Для обоих образов используйте опубликованную версию; 1.2.6 станет доступна после публикации.
 
 ```bash
 cd ..
@@ -82,8 +88,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6
 ```
 
 Накладывайте эти аддитивные, отключённые по умолчанию группы `values.yaml` по мере необходимости — ни
@@ -115,7 +121,18 @@ k3d cluster create --config deploy/helm/k3s-dev-cluster.yaml
 резервного копирования-восстановления и безопасности обновлений, на которых основано это
 утверждение: `docs/deployment/enterprise-kubernetes.md` в репозитории.
 
-## 4. Дальнейшие шаги
+## 4. Уведомления по электронной почте
+
+О событиях турниров и организации сообщается по электронной почте через провайдера, настроенного для приглашений (`COPALIBRE_EMAIL_PROVIDER`); дополнительных настроек не требуется. В среде разработки письма попадают в Mailpit.
+
+- О новом турнире и новом клубе сообщается администраторам организации.
+- О новой регистрации и об отправке клубом состава сообщается администраторам организации и администраторам этого турнира. Инициатор события письмо не получает.
+- Письма используют основной язык организации, содержат её эмблему и название в шапке и подписаны Copa Libre со ссылкой на [copalibre.app](https://copalibre.app).
+- Импорт CSV и `copalibre dev demo` письма не отправляют.
+- Одно и то же письмо никогда не отправляется одному получателю дважды. Если провайдер не успевает подтвердить отправку, письмо не повторяется, поэтому оно может не дойти, но не продублируется.
+- Оператор видит, сколько писем могло не дойти: worker считает каждую попытку отправки по результату (отправлено, уже отправлено, отклонено, неизвестно) в ответе `/jobs/metrics` под ключом `emailDelivery` и записывает в журнал каждый неизвестный результат без адреса получателя. Ненулевое значение `unknown` стоит настроить как оповещение; счётчики обнуляются при перезапуске worker.
+
+## 5. Дальнейшие шаги
 
 - [Ваш первый турнир](/help/getting-started/) — создайте и опубликуйте соревнование, как только
   установка заработает.

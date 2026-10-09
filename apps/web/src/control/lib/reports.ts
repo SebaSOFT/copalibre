@@ -7,7 +7,7 @@ import { messages } from '../i18n/messages.en.js';
  * Deliberately thin: unlike registration review, there is no bulk action and
  * no filter to preserve across a re-render — "pending reports/disputes
  * surface as a queue... not as automatic interruptions, and can be dismissed
- * by an operator without applying a correction" (design.md) is the whole
+ * by an operator without applying a correction" is the whole
  * shape of this screen.
  */
 

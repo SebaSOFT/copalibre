@@ -5916,7 +5916,7 @@
     },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/rounds/next": {
       "post": {
-        "description": "Validates that all matches in the current round are finalized, calculates standings, and generates pairings for the next round.",
+        "description": "Scoped to one zone: validates that all matches in the zone’s current round are finalized, calculates standings from that zone’s results, and generates pairings among that zone’s entrants only. A stage with several zones requires `zoneNumber`.",
         "operationId": "StagesController_nextRound",
         "parameters": [
           {
@@ -5944,6 +5944,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NextRoundRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -5951,6 +5961,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StageFixturesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             }
@@ -6001,7 +6021,7 @@
             "bearer": []
           }
         ],
-        "summary": "Generate the next round of a Swiss stage",
+        "summary": "Generate the next round of one zone of a Swiss or single-elimination stage",
         "tags": [
           "stages"
         ]
@@ -10173,6 +10193,127 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/configuration": {
+      "put": {
+        "description": "A zone without its own format plays its stage’s. Refused once the stage holds a fixture, and for a format the tournament’s discipline does not offer.",
+        "operationId": "ZonesGroupsController_configureZone",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "zoneNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ZoneConfigurationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZoneResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set or clear the format and series a zone declares itself",
+        "tags": [
+          "zones and groups"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/entrants": {
       "get": {
         "operationId": "ZonesGroupsController_zoneEntrants",
@@ -12238,6 +12379,38 @@
           "status"
         ]
       },
+      "SegmentCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "segmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The group id, or the zone id when it has no groups"
+          },
+          "name": {
+            "type": "string",
+            "description": "The group name, or the zone name when it has no groups"
+          },
+          "zoneName": {
+            "type": "string",
+            "description": "The zone a named group belongs to"
+          },
+          "totalMatches": {
+            "type": "number",
+            "example": 6
+          },
+          "resolvedMatches": {
+            "type": "number",
+            "example": 4
+          }
+        },
+        "required": [
+          "segmentId",
+          "name",
+          "totalMatches",
+          "resolvedMatches"
+        ]
+      },
       "StageCompletionResponse": {
         "type": "object",
         "properties": {
@@ -12285,6 +12458,13 @@
             "type": "number",
             "description": "Forfeited matches",
             "example": 1
+          },
+          "segments": {
+            "description": "Per declared zone/group progress; empty when the stage declared none",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SegmentCompletionResponse"
+            }
           }
         },
         "required": [
@@ -12296,7 +12476,8 @@
           "liveMatches",
           "scheduledMatches",
           "finalizedMatches",
-          "forfeitedMatches"
+          "forfeitedMatches",
+          "segments"
         ]
       },
       "TournamentCompletionResponse": {
@@ -12452,6 +12633,48 @@
           "effective"
         ]
       },
+      "StageGroupConfigurationRequest": {
+        "type": "object",
+        "properties": {
+          "groupCount": {
+            "type": "number",
+            "minimum": 2,
+            "example": 4
+          },
+          "groupSize": {
+            "type": "number",
+            "minimum": 2,
+            "example": 5
+          },
+          "distribution": {
+            "type": "string",
+            "enum": [
+              "balanced",
+              "exact-size",
+              "overflow-last",
+              "manual"
+            ]
+          },
+          "manualGroupSizes": {
+            "minItems": 2,
+            "example": [
+              4,
+              5,
+              5,
+              4
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "groupCount",
+          "groupSize",
+          "distribution"
+        ]
+      },
       "TournamentConfigurationStageLayerResponse": {
         "type": "object",
         "properties": {
@@ -12465,6 +12688,9 @@
           "effective": {
             "type": "object",
             "additionalProperties": true
+          },
+          "groupConfiguration": {
+            "$ref": "#/components/schemas/StageGroupConfigurationRequest"
           }
         },
         "required": [
@@ -12903,6 +13129,32 @@
           "mode"
         ]
       },
+      "CreateTournamentZoneRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Unique within its stage.",
+            "example": "Copa Oro"
+          },
+          "format": {
+            "type": "string",
+            "description": "The zone’s own format. Absent: the zone plays its stage’s. Must be a format the tournament’s discipline offers.",
+            "example": "round-robin"
+          },
+          "series": {
+            "description": "The zone’s own series. Absent: the zone inherits its stage’s, then the tournament’s.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
       "CreateTournamentStageRequest": {
         "type": "object",
         "properties": {
@@ -12935,6 +13187,16 @@
                 "$ref": "#/components/schemas/StageAllocationRequest"
               }
             ]
+          },
+          "groupConfiguration": {
+            "$ref": "#/components/schemas/StageGroupConfigurationRequest"
+          },
+          "zones": {
+            "description": "The stage’s zones, numbered by list position. Absent creates none. Entrants are assigned to zones afterwards.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateTournamentZoneRequest"
+            }
           }
         },
         "required": [
@@ -15342,6 +15604,10 @@
           "shortHeader": {
             "type": "object"
           },
+          "description": {
+            "type": "object",
+            "description": "The full wording behind an abbreviated header, from the discipline descriptor’s own statistic labels"
+          },
           "zeroDisplay": {
             "type": "string",
             "description": "Displayed text when the numeric value is exactly zero"
@@ -15472,6 +15738,10 @@
             "type": "string",
             "description": "The group’s own name, e.g. \"Group A\""
           },
+          "zoneName": {
+            "type": "string",
+            "description": "The zone this group belongs to; absent for a stage that has only its implicit zone"
+          },
           "rows": {
             "type": "array",
             "items": {
@@ -15573,6 +15843,27 @@
           "entrantId"
         ]
       },
+      "BracketSlotSourceResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "description": "The bracket match this side advanced or dropped from"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "winner",
+              "loser"
+            ],
+            "description": "Whether the side won or lost that match, which is what carried it here"
+          }
+        },
+        "required": [
+          "matchId",
+          "outcome"
+        ]
+      },
       "BracketSlotResponse": {
         "type": "object",
         "properties": {
@@ -15593,6 +15884,14 @@
           "matchId": {
             "type": "string",
             "description": "Match this slot sources its participant from"
+          },
+          "from": {
+            "description": "Where this side came from, kept once the slot holds the entrant that got here, so the link between the two matches can still be drawn",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BracketSlotSourceResponse"
+              }
+            ]
           },
           "score": {
             "type": "number",
@@ -15659,6 +15958,11 @@
             "description": "Declared match format, e.g. BO3 — absent when the stage declares none",
             "example": "BO3"
           },
+          "role": {
+            "type": "string",
+            "description": "A placement game’s part in its zone, such as `place-3` or `places-5-8`",
+            "example": "place-3"
+          },
           "slots": {
             "type": "array",
             "items": {
@@ -15695,6 +15999,10 @@
             "type": "string",
             "description": "Absent for an un-zoned stage"
           },
+          "format": {
+            "type": "string",
+            "description": "The format this zone plays: its own when it declares one, otherwise the stage’s."
+          },
           "matches": {
             "type": "array",
             "items": {
@@ -15703,6 +16011,7 @@
           }
         },
         "required": [
+          "format",
           "matches"
         ]
       },
@@ -15962,6 +16271,9 @@
                 "$ref": "#/components/schemas/StageAllocationRequest"
               }
             ]
+          },
+          "groupConfiguration": {
+            "$ref": "#/components/schemas/StageGroupConfigurationRequest"
           }
         }
       },
@@ -15993,6 +16305,9 @@
           "overrides": {
             "type": "object",
             "description": "The full stage-configuration override document, not only the changed fields."
+          },
+          "groupConfiguration": {
+            "$ref": "#/components/schemas/StageGroupConfigurationRequest"
           }
         },
         "required": [
@@ -16008,6 +16323,15 @@
             "example": {
               "segments.overtimeEnabled": true
             }
+          },
+          "groupConfiguration": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StageGroupConfigurationRequest"
+              }
+            ]
           }
         },
         "required": [
@@ -16169,6 +16493,16 @@
           "fixtures"
         ]
       },
+      "NextRoundRequest": {
+        "type": "object",
+        "properties": {
+          "zoneNumber": {
+            "type": "number",
+            "description": "The 1-based number of the zone to generate the next round for. Required when the stage has more than one zone; a stage with a single zone needs no value. Rounds, pairings and results are per zone.",
+            "example": 2
+          }
+        }
+      },
       "DisplayTokenResponse": {
         "type": "object",
         "properties": {
@@ -16303,7 +16637,7 @@
         "properties": {
           "roles": {
             "type": "array",
-            "description": "Roles the caller may grant in this organization, per the 0140 role-granting hierarchy.",
+            "description": "Roles the caller may grant in this organization, per the role-granting hierarchy.",
             "items": {
               "type": "string",
               "enum": [
@@ -17109,7 +17443,11 @@
           },
           "matchNumber": {
             "type": "number",
-            "description": "1-based sequential number within the stage"
+            "description": "The match number as persisted: a per-fixture series-game index"
+          },
+          "stageOrdinal": {
+            "type": "number",
+            "description": "The 1-based ordinal of the match within its stage, the one the public match route addresses it by. Absent before a fixture becomes a match."
           },
           "stageNumber": {
             "type": "number"
@@ -17187,6 +17525,10 @@
             "additionalProperties": {
               "type": "number"
             }
+          },
+          "zoneName": {
+            "type": "string",
+            "description": "The zone this row is ranked in. Present only when the stage mixes formats, so each table zone is ranked on its own; absent for a stage with a single table."
           }
         },
         "required": [
@@ -17205,6 +17547,10 @@
           },
           "organizationName": {
             "type": "string"
+          },
+          "organizationTimeZone": {
+            "type": "string",
+            "description": "The IANA time zone of the organization, in which its schedule times are read."
           },
           "tournamentAlias": {
             "type": "string"
@@ -17256,7 +17602,7 @@
           "rulesetLabels": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Each `ruleset` key's declared display label, when the installed discipline's field policy declares one — absent keys fall back to a humanized dot-path client-side (openspec 0267)."
+            "description": "Each `ruleset` key's declared display label, when the installed discipline's field policy declares one — absent keys fall back to a humanized dot-path client-side ."
           },
           "status": {
             "type": "string",
@@ -17366,6 +17712,26 @@
           "away"
         ]
       },
+      "PublicRosterRoleResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "badge": {
+            "type": "string"
+          },
+          "label": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The role label: a plain string, or a localized label with `en` always present."
+          }
+        },
+        "required": [
+          "code",
+          "label"
+        ]
+      },
       "PublicMatchEventResponse": {
         "type": "object",
         "properties": {
@@ -17377,7 +17743,15 @@
             "type": "string"
           },
           "label": {
-            "type": "string"
+            "type": "string",
+            "description": "The English label; `labels` carries every language the descriptor ships."
+          },
+          "labels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The event definition's label in every language the discipline descriptor declares (`en` always present); absent when the descriptor declares a plain string."
           },
           "workflowOutcomeCodes": {
             "type": "array",
@@ -17415,6 +17789,48 @@
           "occurredAt",
           "sequence",
           "payload"
+        ]
+      },
+      "PublicSegmentSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "1-based order within the match"
+          },
+          "type": {
+            "type": "string",
+            "description": "The discipline's own segment type name"
+          },
+          "label": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The segment type's display label in every language the discipline wrote it in."
+          },
+          "timed": {
+            "type": "boolean",
+            "description": "Whether the segment runs against a clock; false for one played to a target"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "active",
+              "completed"
+            ]
+          },
+          "scores": {
+            "description": "What each side scored in this segment alone, home first",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "number",
+          "type",
+          "state"
         ]
       },
       "PublicMatchReportResponse": {
@@ -17504,10 +17920,24 @@
           "rosters": {
             "$ref": "#/components/schemas/PublicMatchRostersResponse"
           },
+          "rosterRoles": {
+            "description": "The discipline's declared roster roles, so a client can label each member's role codes.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicRosterRoleResponse"
+            }
+          },
           "timeline": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PublicMatchEventResponse"
+            }
+          },
+          "segments": {
+            "description": "The match’s segments and what each side scored in each",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicSegmentSummaryResponse"
             }
           }
         },
@@ -17584,6 +18014,17 @@
           },
           "matchNumber": {
             "type": "number"
+          },
+          "stageOrdinal": {
+            "type": "number",
+            "description": "The 1-based ordinal of the match within its stage, the one the public match route addresses it by."
+          },
+          "segments": {
+            "description": "The match’s segments and what each side scored in each",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicSegmentSummaryResponse"
+            }
           },
           "state": {
             "type": "string"
@@ -17668,6 +18109,14 @@
             "type": "string",
             "description": "Match this slot sources its participant from"
           },
+          "from": {
+            "description": "Where this side came from, kept once the slot holds the entrant that got here, so the link between the two matches can still be drawn",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BracketSlotSourceResponse"
+              }
+            ]
+          },
           "score": {
             "type": "number",
             "description": "Score recorded for this side, when the match is finalized"
@@ -17719,6 +18168,11 @@
             "type": "number",
             "description": "The match's stage-unique ordinal for the public report page's URL — present only when this graph node resolved to a real persisted match; a purely theoretical winner-of/loser-of placeholder has none yet"
           },
+          "role": {
+            "type": "string",
+            "description": "A placement game’s part in its zone, such as `place-3` or `places-5-8`",
+            "example": "place-3"
+          },
           "slots": {
             "type": "array",
             "items": {
@@ -17755,6 +18209,10 @@
             "type": "string",
             "description": "Absent for an un-zoned stage"
           },
+          "format": {
+            "type": "string",
+            "description": "The format this zone plays: its own when it declares one, otherwise the stage’s. Decides how the zone is drawn."
+          },
           "matches": {
             "type": "array",
             "items": {
@@ -17763,6 +18221,7 @@
           }
         },
         "required": [
+          "format",
           "matches"
         ]
       },
@@ -19510,13 +19969,32 @@
           "name": {
             "type": "string",
             "example": "Zona 1"
+          },
+          "format": {
+            "type": "string",
+            "description": "The format this zone declares itself. Absent: the zone inherits its stage’s format.",
+            "example": "round-robin"
+          },
+          "effectiveFormat": {
+            "type": "string",
+            "description": "The format this zone plays: its own when it declares one, otherwise the stage’s.",
+            "example": "single-elimination"
+          },
+          "series": {
+            "description": "The series this zone declares itself. Absent: the zone inherits its stage’s declaration, then the ruleset’s.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
           }
         },
         "required": [
           "zoneId",
           "stageId",
           "number",
-          "name"
+          "name",
+          "effectiveFormat"
         ]
       },
       "CreateZoneRequest": {
@@ -19547,6 +20025,27 @@
         "required": [
           "name"
         ]
+      },
+      "ZoneConfigurationRequest": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "object",
+            "nullable": true,
+            "description": "Sets the zone’s own format; `null` clears it so the zone inherits its stage’s. Absent leaves it unchanged. Must be a format the tournament’s discipline offers.",
+            "example": "round-robin"
+          },
+          "series": {
+            "nullable": true,
+            "description": "Sets the zone’s own series; `null` clears it so the zone inherits its stage’s. Absent leaves it unchanged.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
+          }
+        }
       },
       "GroupResponse": {
         "type": "object",

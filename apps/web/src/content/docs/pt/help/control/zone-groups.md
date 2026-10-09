@@ -28,6 +28,18 @@ que toda fase já tem.
 - **Posicionamento manual**: atribuir cada entrante diretamente a um número de zona ou grupo,
   registrado exatamente como ficaria o resultado de um sorteio automático.
 
+## Jogar um formato diferente em uma zona
+
+Por padrão, cada zona joga o formato da sua fase. Abra **Alterar o formato da zona** em uma zona para dar
+a ela um formato próprio — por exemplo, duas zonas de mata-mata e uma liga de pontos corridos para os
+clubes restantes — e, se o formato exigir, seu próprio tamanho de série. A tela marca a zona personalizada
+e mostra o formato que as demais herdam; escolher **Formato da fase** devolve a zona ao da fase. A lista de
+formatos é a que a modalidade do torneio oferece. Depois que a fase tem jogos, o formato e a série das
+zonas ficam bloqueados.
+
+A página pública da fase então desenha cada zona como seu formato pede: uma chave para uma zona de
+mata-mata, e os jogos com a tabela de classificação para uma zona de liga.
+
 ## O que você não pode fazer aqui
 
 Renomear uma zona ou grupo já criado ainda não está disponível — nomeie com cuidado ao criar.

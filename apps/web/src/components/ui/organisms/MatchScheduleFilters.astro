@@ -1,6 +1,6 @@
 ---
 /**
- * Consolidated hierarchical match-schedule filter bar (openspec 0245):
+ * Consolidated hierarchical match-schedule filter bar:
  * stage tabs -> zone pills (only when the active stage has >1 zone) ->
  * group pills (only when the active zone has >1 group) -> state pills.
  * Replaces the page's former flat state-only pills + raw `groupId` param.
@@ -13,12 +13,23 @@ export interface MatchScheduleStageOption {
 }
 
 export type MatchScheduleState = 'all' | 'live' | 'upcoming' | 'final';
+export type MatchScheduleView = 'rows' | 'cards';
 
 export interface MatchScheduleFiltersLabels {
   readonly stageFilterAriaLabel: string;
   readonly zoneFilterAriaLabel: string;
   readonly groupFilterAriaLabel: string;
   readonly stateFilterAriaLabel: string;
+  readonly viewFilterAriaLabel: string;
+  /** The visible title of each row, in the page's language. */
+  readonly titles: {
+    readonly stage: string;
+    readonly zone: string;
+    readonly group: string;
+    readonly state: string;
+    readonly view: string;
+  };
+  readonly viewOptions: { readonly rows: string; readonly cards: string };
   readonly filters: {
     readonly all: string;
     readonly live: string;
@@ -35,6 +46,9 @@ interface Props {
   readonly groups: readonly string[];
   readonly activeGroup?: string;
   readonly state: MatchScheduleState;
+  readonly view: MatchScheduleView;
+  /** Whether the viewer may choose between rows and cards: only for a short scope. */
+  readonly offerView: boolean;
   readonly labels: MatchScheduleFiltersLabels;
   readonly buildUrl: (
     overrides: Partial<{
@@ -42,6 +56,7 @@ interface Props {
       zone: string | undefined;
       group: string | undefined;
       state: MatchScheduleState;
+      view: MatchScheduleView;
     }>,
   ) => string;
 }
@@ -54,6 +69,8 @@ const {
   groups,
   activeGroup,
   state,
+  view,
+  offerView,
   labels,
   buildUrl,
 } = Astro.props;
@@ -61,100 +78,158 @@ const {
 
 {
   stages.length > 1 && (
-    <nav class="cl-pill-group" aria-label={labels.stageFilterAriaLabel}>
-      <a
-        class="cl-pill cl-focusable"
-        href={buildUrl({ stageNumber: undefined, zone: undefined, group: undefined })}
-        aria-current={activeStageNumber === undefined ? 'true' : undefined}
-      >
-        {labels.filters.all}
-      </a>
-      {stages.map((stage) => (
+    <div class="cl-filter-row">
+      <span class="cl-filter-row__title">{labels.titles.stage}</span>
+      <nav class="cl-pill-group" aria-label={labels.stageFilterAriaLabel}>
         <a
           class="cl-pill cl-focusable"
-          href={buildUrl({ stageNumber: stage.stageNumber, zone: undefined, group: undefined })}
-          aria-current={activeStageNumber === stage.stageNumber ? 'true' : undefined}
+          href={buildUrl({ stageNumber: undefined, zone: undefined, group: undefined })}
+          aria-current={activeStageNumber === undefined ? 'true' : undefined}
         >
-          {stage.stageName}
+          {labels.filters.all}
         </a>
-      ))}
-    </nav>
+        {stages.map((stage) => (
+          <a
+            class="cl-pill cl-focusable"
+            href={buildUrl({ stageNumber: stage.stageNumber, zone: undefined, group: undefined })}
+            aria-current={activeStageNumber === stage.stageNumber ? 'true' : undefined}
+          >
+            {stage.stageName}
+          </a>
+        ))}
+      </nav>
+    </div>
   )
 }
 
 {
   zones.length > 1 && (
-    <nav class="cl-pill-group" aria-label={labels.zoneFilterAriaLabel}>
-      <a
-        class="cl-pill cl-focusable"
-        href={buildUrl({ zone: undefined, group: undefined })}
-        aria-current={activeZone === undefined ? 'true' : undefined}
-      >
-        {labels.filters.all}
-      </a>
-      {zones.map((zone) => (
+    <div class="cl-filter-row">
+      <span class="cl-filter-row__title">{labels.titles.zone}</span>
+      <nav class="cl-pill-group" aria-label={labels.zoneFilterAriaLabel}>
         <a
           class="cl-pill cl-focusable"
-          href={buildUrl({ zone, group: undefined })}
-          aria-current={activeZone === zone ? 'true' : undefined}
+          href={buildUrl({ zone: undefined, group: undefined })}
+          aria-current={activeZone === undefined ? 'true' : undefined}
         >
-          {zone}
+          {labels.filters.all}
         </a>
-      ))}
-    </nav>
+        {zones.map((zone) => (
+          <a
+            class="cl-pill cl-focusable"
+            href={buildUrl({ zone, group: undefined })}
+            aria-current={activeZone === zone ? 'true' : undefined}
+          >
+            {zone}
+          </a>
+        ))}
+      </nav>
+    </div>
   )
 }
 
 {
   groups.length > 1 && (
-    <nav class="cl-pill-group" aria-label={labels.groupFilterAriaLabel}>
-      <a
-        class="cl-pill cl-focusable"
-        href={buildUrl({ group: undefined })}
-        aria-current={activeGroup === undefined ? 'true' : undefined}
-      >
-        {labels.filters.all}
-      </a>
-      {groups.map((group) => (
+    <div class="cl-filter-row">
+      <span class="cl-filter-row__title">{labels.titles.group}</span>
+      <nav class="cl-pill-group" aria-label={labels.groupFilterAriaLabel}>
         <a
           class="cl-pill cl-focusable"
-          href={buildUrl({ group })}
-          aria-current={activeGroup === group ? 'true' : undefined}
+          href={buildUrl({ group: undefined })}
+          aria-current={activeGroup === undefined ? 'true' : undefined}
         >
-          {group}
+          {labels.filters.all}
         </a>
-      ))}
-    </nav>
+        {groups.map((group) => (
+          <a
+            class="cl-pill cl-focusable"
+            href={buildUrl({ group })}
+            aria-current={activeGroup === group ? 'true' : undefined}
+          >
+            {group}
+          </a>
+        ))}
+      </nav>
+    </div>
   )
 }
 
-<nav class="cl-pill-group" aria-label={labels.stateFilterAriaLabel}>
-  <a
-    class="cl-pill cl-focusable"
-    href={buildUrl({ state: 'all' })}
-    aria-current={state === 'all' ? 'true' : undefined}
-  >
-    {labels.filters.all}
-  </a>
-  <a
-    class="cl-pill cl-focusable"
-    href={buildUrl({ state: 'live' })}
-    aria-current={state === 'live' ? 'true' : undefined}
-  >
-    {labels.filters.live}
-  </a>
-  <a
-    class="cl-pill cl-focusable"
-    href={buildUrl({ state: 'upcoming' })}
-    aria-current={state === 'upcoming' ? 'true' : undefined}
-  >
-    {labels.filters.upcoming}
-  </a>
-  <a
-    class="cl-pill cl-focusable"
-    href={buildUrl({ state: 'final' })}
-    aria-current={state === 'final' ? 'true' : undefined}
-  >
-    {labels.filters.final}
-  </a>
-</nav>
+<div class="cl-filter-row">
+  <span class="cl-filter-row__title">{labels.titles.state}</span>
+  <nav class="cl-pill-group" aria-label={labels.stateFilterAriaLabel}>
+    <a
+      class="cl-pill cl-focusable"
+      href={buildUrl({ state: 'all' })}
+      aria-current={state === 'all' ? 'true' : undefined}
+    >
+      {labels.filters.all}
+    </a>
+    <a
+      class="cl-pill cl-focusable"
+      href={buildUrl({ state: 'live' })}
+      aria-current={state === 'live' ? 'true' : undefined}
+    >
+      {labels.filters.live}
+    </a>
+    <a
+      class="cl-pill cl-focusable"
+      href={buildUrl({ state: 'upcoming' })}
+      aria-current={state === 'upcoming' ? 'true' : undefined}
+    >
+      {labels.filters.upcoming}
+    </a>
+    <a
+      class="cl-pill cl-focusable"
+      href={buildUrl({ state: 'final' })}
+      aria-current={state === 'final' ? 'true' : undefined}
+    >
+      {labels.filters.final}
+    </a>
+  </nav>
+</div>
+
+{
+  offerView && (
+    <div class="cl-filter-row">
+      <span class="cl-filter-row__title">{labels.titles.view}</span>
+      <nav class="cl-pill-group" aria-label={labels.viewFilterAriaLabel}>
+        <a
+          class="cl-pill cl-focusable"
+          href={buildUrl({ view: 'rows' })}
+          aria-current={view === 'rows' ? 'true' : undefined}
+        >
+          {labels.viewOptions.rows}
+        </a>
+        <a
+          class="cl-pill cl-focusable"
+          href={buildUrl({ view: 'cards' })}
+          aria-current={view === 'cards' ? 'true' : undefined}
+        >
+          {labels.viewOptions.cards}
+        </a>
+      </nav>
+    </div>
+  )
+}
+
+<style>
+  .cl-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--cl-space-2) var(--cl-space-3);
+  }
+  @media (max-width: 767px) {
+    .cl-filter-row__title {
+      flex-basis: 100%;
+    }
+  }
+  .cl-filter-row__title {
+    min-width: 4.5rem;
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--cl-tracking-wide);
+  }
+</style>

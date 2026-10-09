@@ -1,6 +1,6 @@
 /**
- * French translations, keyed to match `public-messages.en.ts`'s IDs exactly
- *. Best-effort translation; native-speaker review is a later pass
+ * French translations, keyed to match `public-messages.en.ts`'s IDs exactly.
+ * Best-effort translation; native-speaker review is a later pass
  * (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
@@ -47,6 +47,8 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.heading': 'Classement',
   'publicWeb.standings.tableLayouts': 'Dispositions de tableau',
   'publicWeb.standings.filterByClub': 'Filtrer par club',
+  'publicWeb.standings.filterClubLabel': 'Club',
+  'publicWeb.standings.columnLegend': 'Abréviations du tableau',
   'publicWeb.standings.closeDialog': 'Fermer la boîte de dialogue',
   'publicWeb.home.pageTitle': 'CopaLibre — Gestion de tournois',
   'publicWeb.home.organizationsLabel': 'Organisations',
@@ -93,9 +95,15 @@ export const messages: Record<string, string> = {
 
   'publicWeb.bracket.roundAriaLabel': '{branch} — tour {round}',
   'publicWeb.bracket.roundHeading': 'Tour {round}',
+  'publicWeb.bracket.branch.winners': 'Tableau principal',
+  'publicWeb.bracket.branch.losers': 'Tableau des perdants',
+  'publicWeb.bracket.branch.grandFinal': 'Grande finale',
+  'publicWeb.bracket.branch.placement': 'Matchs de classement',
+  'publicWeb.bracket.role.place': 'Place {place}',
+  'publicWeb.bracket.role.places': 'Places {from} à {to}',
 
-  'publicWeb.broadcastStatus.note':
-    'Les résultats se mettent à jour automatiquement en cas de connexion. Sinon, cette page contient déjà tout.',
+  'publicWeb.broadcastStatus.disconnected':
+    'Les mises à jour en direct sont indisponibles. Cette page affiche les derniers résultats connus.',
 
   'publicWeb.matchGrid.heading': 'Matchs',
   'publicWeb.matchGrid.empty': 'Aucun match programmé pour le moment.',
@@ -116,6 +124,9 @@ export const messages: Record<string, string> = {
 
   'publicWeb.livePage.title': 'En direct',
   'publicWeb.livePage.breadcrumb': 'Fil d’Ariane',
+  'publicWeb.breadcrumb.stage': 'Phase {stage}',
+  'publicWeb.breadcrumb.match': 'Match {match}',
+  'publicWeb.breadcrumb.collapsed': 'Afficher les niveaux masqués',
   'publicWeb.livePage.noMatches': 'Aucun match en direct',
   'publicWeb.livePage.nextKickoff': 'Prochain match programmé',
   'publicWeb.livePage.noUpcoming': 'Aucun match à venir programmé.',
@@ -124,6 +135,7 @@ export const messages: Record<string, string> = {
   'publicWeb.livePage.leadersHeading': 'Meneurs',
 
   'publicWeb.bracketPage.title': 'Tableau',
+  'publicWeb.stageZonesPage.title': 'Phase',
 
   'publicWeb.playerProfile.heading': 'Profil du Joueur',
   'publicWeb.playerProfile.age': 'Âge : {age}',
@@ -176,6 +188,20 @@ export const messages: Record<string, string> = {
   'publicWeb.matchesView.zoneFilterAriaLabel': 'Filtrer par zone',
   'publicWeb.matchesView.groupFilterAriaLabel': 'Filtrer par groupe',
   'publicWeb.matchesView.stateFilterAriaLabel': 'Filtrer par statut',
+  'publicWeb.schedule.columnKickoff': 'Coup d’envoi',
+  'publicWeb.schedule.columnHome': 'Domicile',
+  'publicWeb.schedule.columnScore': 'Score',
+  'publicWeb.schedule.columnAway': 'Extérieur',
+  'publicWeb.schedule.columnState': 'État',
+  'publicWeb.schedule.columnVenue': 'Lieu',
+  'publicWeb.matchesView.stageFilterTitle': 'Phase',
+  'publicWeb.matchesView.zoneFilterTitle': 'Zone',
+  'publicWeb.matchesView.groupFilterTitle': 'Groupe',
+  'publicWeb.matchesView.stateFilterTitle': 'État',
+  'publicWeb.matchesView.viewFilterTitle': 'Affichage',
+  'publicWeb.matchesView.viewFilterAriaLabel': 'Choisir l’affichage des matchs',
+  'publicWeb.matchesView.viewRows': 'Tableau',
+  'publicWeb.matchesView.viewCards': 'Cartes',
   'publicWeb.matchesView.positionInGroup': '{group} — position n° {position}',
   'publicWeb.matchesView.position': 'Position n° {position}',
   'publicWeb.matchesView.decidedBy': 'Décidé par : {factor}',
@@ -213,7 +239,7 @@ export const messages: Record<string, string> = {
   'publicWeb.tvStats.standingsRecord': '1er · {points} pts · {played} joués',
   'publicWeb.tvStats.grandFinalRecord': 'Vainqueur de la grande finale ({winner} – {loser})',
 
-  // 0223 — ticker conditions, bracket stage chrome, public header.
+  // ticker conditions, bracket stage chrome, public header.
   'publicWeb.ticker.pause': 'Mettre le bandeau en pause',
   'publicWeb.ticker.resume': 'Reprendre le bandeau',
   'publicWeb.ticker.stale': 'Derniers scores connus — la connexion en direct a été perdue',
@@ -233,11 +259,12 @@ export const messages: Record<string, string> = {
   'publicWeb.header.closeMenu': 'Fermer le menu',
   'publicWeb.header.language': 'Langue',
   'publicWeb.header.navHome': 'Accueil',
+  'publicWeb.header.navTv': 'TV Streaming',
   'publicWeb.header.navHelp': 'Aide',
   'publicWeb.header.navApiReference': 'Référence de l’API',
   'publicWeb.header.controlPanel': 'Panneau de contrôle',
 
-  // TvDashboard.tsx's own chrome (openspec 0225 task 2.6).
+  // TvDashboard.tsx's own chrome.
   'publicWeb.tvDashboard.noMatchesScheduled': 'Aucun match programmé pour le moment',
   'publicWeb.tvDashboard.standingsUnavailable': 'Classement indisponible',
   'publicWeb.tvDashboard.clubColumn': 'Club',
@@ -251,10 +278,19 @@ export const messages: Record<string, string> = {
   'publicWeb.tvDashboard.performersTab': 'Meilleurs joueurs',
   'publicWeb.tvDashboard.statisticsTab': 'Statistiques',
   'publicWeb.tvDashboard.bracketTab': 'Tableau',
+  'publicWeb.tvDashboard.fixturesTab': 'Matchs',
   'publicWeb.tvDashboard.bracketRound': 'Tour',
   'publicWeb.tvDashboard.bracketMatch': 'Match',
   'publicWeb.tvDashboard.possession': 'Possession',
   'publicWeb.tvDashboard.penalty': 'Pénalité',
+  'publicWeb.tvDashboard.clockLabel': 'Heure locale',
+  'publicWeb.tvDashboard.finishedOn': 'Terminé le {date}',
+  'publicWeb.tvDashboard.matchNotFound': 'Ce match n’existe pas',
+  'publicWeb.tvDashboard.pageOf': 'Page {page} sur {total}',
+  'publicWeb.tvDashboard.seriesState': 'Série {home}–{away} · Match {game} sur {span}',
+  'publicWeb.tvDashboard.setsLabel': 'Sets',
+  'publicWeb.tvDashboard.overlayNoMatch': 'Aucun match sélectionné',
+  'publicWeb.tvDashboard.overlayNoCourtMatch': 'Aucun match en direct sur ce terrain',
   'publicWeb.tvMultiCourtGrid.noMatches': 'Aucun match en direct actuellement',
   'publicWeb.tvMultiCourtGrid.ariaLabel': 'Matchs en direct, vue multi-terrains',
   'publicWeb.completion.heading': 'Progression du tournoi',
@@ -268,6 +304,10 @@ export const messages: Record<string, string> = {
   'publicWeb.matchOfficials.heading': 'Officiels',
   'publicWeb.matchOfficials.scheduleNotPublished': 'L’horaire n’a pas encore été publié.',
   'publicWeb.matchOfficials.noneAssigned': 'Aucun officiel assigné.',
+  'publicWeb.matchOfficials.role.referee': 'Arbitre',
+  'publicWeb.matchOfficials.role.assistant': 'Arbitre assistant',
+  'publicWeb.matchOfficials.role.tableOfficial': 'Officiel de table',
+  'publicWeb.matchOfficials.role.observer': 'Observateur',
   'publicWeb.matchRosters.heading': 'Compositions',
   'publicWeb.matchRosters.empty': 'Les compositions ne sont pas encore disponibles.',
   'publicWeb.matchRosters.teamEmpty': 'Composition pas encore disponible.',

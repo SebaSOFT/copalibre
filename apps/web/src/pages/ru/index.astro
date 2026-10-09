@@ -1,0 +1,14 @@
+---
+import PublicHomeLayout from '../../layouts/PublicHomeLayout.astro';
+import { fetchOrganizations } from '../../lib/public-api-client.ts';
+import { publicIntl } from '../../lib/i18n/public-intl.ts';
+import type { SupportedLanguage } from '@copalibre/domain';
+
+export const prerender = false;
+
+const locale: SupportedLanguage = 'ru';
+const intl = publicIntl(locale);
+const organizations = (await fetchOrganizations()) ?? [];
+---
+
+<PublicHomeLayout locale={locale} intl={intl} organizations={organizations} />

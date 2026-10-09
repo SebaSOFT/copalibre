@@ -16,3 +16,7 @@ test-results
 !.env.example
 openspec/changes
 .copalibre
+
+# Demo datasets and the scraper cache are development-only; production images carry no demo data
+packages/demo-datasets/datasets
+packages/demo-datasets/cache

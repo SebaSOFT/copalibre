@@ -18,6 +18,12 @@ const HOOK_VOCABULARY: HookScriptVocabulary = {
   hooks: ['event.recorded'],
   entries: [
     {
+      kind: 'condition',
+      type: 'score-event',
+      description: 'the event is a score',
+      phraseTemplate: 'the event is a score',
+    },
+    {
       kind: 'action',
       type: 'notify',
       description: 'Declare notification',
@@ -75,13 +81,13 @@ describe('the tournament setup wizard screen', () => {
     fireEvent.click(add);
 
     // The `notify` entry declares no phraseTemplate here, so the row falls
-    // back to `type — description` (openspec 0266) rather than the raw type.
-    expect(screen.getByText(/always → notify — Declare notification/)).toBeDefined();
+    // back to `type — description` rather than the raw type.
+    expect(screen.getByText(/notify — Declare notification/)).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
-    expect(screen.queryByText(/always → notify — Declare notification/)).toBeNull();
+    expect(screen.queryByText(/notify — Declare notification/)).toBeNull();
   });
 
-  it('renders a configured rule using its phrase template rendered against the operator’s own values (openspec 0266)', () => {
+  it('renders a configured rule using its phrase template rendered against the operator’s own values', () => {
     const vocabularyWithPhrase: HookScriptVocabulary = {
       hooks: ['event.recorded'],
       entries: [
@@ -121,13 +127,78 @@ describe('the tournament setup wizard screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByLabelText('Add rule for every recorded event'));
+
+    const givenText = screen.getByText(/system supplies the recorded discipline-defined event/i);
+    expect(givenText.textContent).toContain('event.recorded');
+    expect(givenText.parentElement?.querySelector('input, select, textarea, button')).toBeNull();
+
     fireEvent.change(screen.getByLabelText('Action'), { target: { value: 'notify' } });
     fireEvent.change(screen.getByLabelText('Notification title *'), {
       target: { value: 'Match update' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add another rule' }));
 
-    expect(screen.getByText(/always → Notify: Match update/)).toBeDefined();
+    expect(screen.getByText(/Notify: Match update/)).toBeDefined();
+  });
+
+  it('builds AND conditions and keeps THEN actions in the selected order', () => {
+    const orderedVocabulary: HookScriptVocabulary = {
+      ...HOOK_VOCABULARY,
+      entries: [
+        ...HOOK_VOCABULARY.entries,
+        { kind: 'action', type: 'audit', description: 'Record an audit event' },
+      ],
+    };
+    render(
+      withIntl(
+        <TournamentSetupWizard disciplines={sampleDisciplines()} vocabulary={orderedVocabulary} />,
+      ),
+    );
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Reglas' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-reglas' } });
+    for (let step = 0; step < 4; step += 1) {
+      fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    }
+    fireEvent.click(screen.getByLabelText('Add rule for every recorded event'));
+
+    fireEvent.change(screen.getByLabelText('Condition'), { target: { value: 'score-event' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add condition' }));
+    expect(screen.getByText('the event is a score', { selector: 'span' })).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    expect(screen.queryByText('the event is a score', { selector: 'span' })).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Condition'), { target: { value: 'score-event' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add condition' }));
+    fireEvent.change(screen.getByLabelText('Condition'), { target: { value: 'score-event' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add condition' }));
+    fireEvent.change(screen.getByLabelText('Action'), { target: { value: 'notify' } });
+    fireEvent.change(screen.getByLabelText('Notification title *'), {
+      target: { value: 'First action' },
+    });
+    fireEvent.change(screen.getByLabelText('Notification message *'), {
+      target: { value: 'First message' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add action' }));
+
+    fireEvent.change(screen.getByLabelText('Action'), { target: { value: 'audit' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add action' }));
+
+    const moveSecondUp = screen.getAllByRole('button', { name: 'Move action up' })[1];
+    if (!moveSecondUp) throw new Error('Second action move control is missing');
+    fireEvent.click(moveSecondUp);
+    fireEvent.click(screen.getByRole('button', { name: 'Add another rule' }));
+
+    const ruleText = screen
+      .getAllByRole('list')
+      .map((list) => list.textContent ?? '')
+      .find((text) => text.includes('→'));
+    expect(ruleText).toContain('AND');
+    expect(ruleText?.indexOf('audit —')).toBeLessThan(ruleText?.indexOf('notify —') ?? -1);
+    const removeRule = screen.getAllByRole('button', { name: 'Remove' }).at(-1);
+    if (!removeRule) throw new Error('Rule remove control is missing');
+    fireEvent.click(removeRule);
+    expect(screen.queryByText(/the event is a score.*AND/)).toBeNull();
   });
 
   it('gates progression and submits the descriptor version', () => {
@@ -152,7 +223,7 @@ describe('the tournament setup wizard screen', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
-    expect(screen.getByLabelText('Stage format').textContent).toContain('single-elimination');
+    expect(screen.getByLabelText('Stage format').textContent).toContain('Single elimination');
     expect(screen.getByLabelText('Stage format').textContent).not.toContain('placement');
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
@@ -252,7 +323,7 @@ describe('the tournament setup wizard screen', () => {
     render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
 
     const progressTile = screen.getByTestId('wizard-progress');
-    expect(progressTile.textContent).toContain('14%');
+    expect(progressTile.textContent).toBe('14% configured');
 
     const nameInput = screen.getByLabelText('Name') as HTMLInputElement;
     const aliasInput = screen.getByLabelText('Alias') as HTMLInputElement;
@@ -285,7 +356,7 @@ describe('the tournament setup wizard screen', () => {
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Liga San Rafael');
   });
 
-  it('offers the accounting-grain control only once series is enabled, preselecting match grain (0160)', () => {
+  it('offers the accounting-grain control only once series is enabled, preselecting match grain', () => {
     render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Grano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-grano' } });
@@ -305,7 +376,7 @@ describe('the tournament setup wizard screen', () => {
     expect(screen.queryByLabelText('Count standings per series, not per match')).toBeNull();
   });
 
-  it('captures an explicit choice of series grain in the control’s own value (0160)', () => {
+  it('captures an explicit choice of series grain in the control’s own value', () => {
     render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Grano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-grano' } });
@@ -331,7 +402,7 @@ describe('the tournament setup wizard screen', () => {
   });
 });
 
-describe('discipline rule overrides at creation (openspec 0265)', () => {
+describe('discipline rule overrides at creation', () => {
   const DISCIPLINE_WITH_RULESET_FIELDS = [
     {
       descriptorId: 'd-ruleset',
@@ -417,7 +488,7 @@ describe('discipline rule overrides at creation (openspec 0265)', () => {
   });
 });
 
-describe('decision descriptions (openspec 0161)', () => {
+describe('decision descriptions', () => {
   const DISCIPLINE_WITH_DESCRIPTIONS = [
     {
       descriptorId: '01890000-0000-7000-8000-000000000010',
@@ -702,7 +773,7 @@ describe('the registration review screen', () => {
   });
 
   it('renders structure preview for stage 1 on the format step and updates on format change', () => {
-    render(
+    const { container } = render(
       withIntl(
         <TournamentSetupWizard
           disciplines={sampleDisciplines()}
@@ -719,19 +790,21 @@ describe('the registration review screen', () => {
     expect(screen.getByText('Structure preview')).toBeDefined();
     expect(screen.getByTestId('wizard-preview-demonstration')).toBeDefined();
     expect(screen.getByText('Illustrative preview (8 entrants)')).toBeDefined();
-    expect(screen.getByText('SE-R3-M1')).toBeDefined();
+    expect(container.querySelectorAll('.cl-bracket-slot-skeleton').length).toBeGreaterThan(0);
+    expect(screen.queryByText('SE-R3-M1')).toBeNull();
 
     // Select round-robin
     fireEvent.change(screen.getByLabelText('Stage format'), {
       target: { value: 'round-robin' },
     });
 
-    // Round-robin with 8 entrants produces RR matches
-    expect(screen.getByText('RR-R1-M1')).toBeDefined();
+    // Round-robin renders match-card skeletons without exposing engine identifiers.
+    expect(container.querySelectorAll('.cl-match-card--skeleton').length).toBeGreaterThan(0);
+    expect(screen.queryByText('RR-R1-M1')).toBeNull();
   });
 
   it('shows capacity-derived count and hides illustrative label when capacity is declared', () => {
-    render(
+    const { container } = render(
       withIntl(
         <TournamentSetupWizard
           disciplines={sampleDisciplines()}
@@ -750,7 +823,8 @@ describe('the registration review screen', () => {
     expect(screen.getByTestId('wizard-preview-capacity')).toBeDefined();
     expect(screen.getByText('4 entrants')).toBeDefined();
     // 4 entrants in single elimination has 2 rounds: final is SE-R2-M1
-    expect(screen.getByText('SE-R2-M1')).toBeDefined();
+    expect(container.querySelectorAll('.cl-bracket-slot-skeleton').length).toBeGreaterThan(0);
+    expect(screen.queryByText('SE-R2-M1')).toBeNull();
   });
 
   it('shows only one preview panel when multiple stages exist', () => {

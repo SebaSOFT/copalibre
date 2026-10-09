@@ -153,7 +153,7 @@ export const Matrix: Story = {
 };
 
 /**
- * The full canonical chrome (openspec 0248): descriptor subtitle, verified
+ * The full canonical chrome: descriptor subtitle, verified
  * badge, compact sticky-header table, sortable+described column headers,
  * signed goal-difference colouring, an emphasised primary metric, and an
  * audit proof code beside the tiebreaker pipeline title.

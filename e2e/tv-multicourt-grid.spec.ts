@@ -1,8 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * The `?layout=multicourt` grid mode on the `/tv/**` kiosk route (openspec
- * 0303) — the same unattended-surface constraints as `broadcast-tv.spec.ts`
+ * The `?layout=multicourt` grid mode on the `/tv/**` kiosk route — the same unattended-surface constraints as `broadcast-tv.spec.ts`
  * apply: nobody is present to click anything, so this checks the grid
  * actually mounts and reacts to a live SSE event, not just that the flag
  * parses.

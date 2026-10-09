@@ -4,8 +4,8 @@ import { messages } from '../i18n/messages.en.js';
 /**
  * The stage list both `TournamentSetupWizard` and `ProfileBuilderWizard` author —
  * one shared shape and one shared set of helpers, so the two wizards' stage
- * editors never drift (design.md, "Stage list replaces the single `format`/series
- * fields, not a superset of them").
+ * editors never drift (the stage list replaces the single `format`/series
+ * fields, not a superset of them).
  */
 
 export type SeriesResolutionClass = 'best-of' | 'aggregate' | 'points-per-leg';
@@ -42,6 +42,16 @@ export interface StageAllocationDraft {
   readonly direction?: SeedDirection;
 }
 
+/**
+ * A zone declared inside a stage. `format` and `series` absent mean the zone inherits its stage's;
+ * the zone's number is its position in the stage's list, never authored.
+ */
+export interface WizardZoneDraft {
+  readonly name: string;
+  readonly format?: string;
+  readonly series?: StageSeriesDraft;
+}
+
 export interface WizardStageDraft {
   /** 1-based order within the wizard's stage list. */
   readonly number: number;
@@ -49,6 +59,16 @@ export interface WizardStageDraft {
   readonly format: string;
   readonly series?: StageSeriesDraft;
   readonly allocation?: StageAllocationDraft;
+  readonly groupConfiguration?: StageGroupConfigurationDraft;
+  /** Absent or empty declares no zones: the stage is created exactly as it was before zones existed. */
+  readonly zones?: readonly WizardZoneDraft[];
+}
+
+export interface StageGroupConfigurationDraft {
+  readonly groupCount: number;
+  readonly groupSize: number;
+  readonly distribution: 'balanced' | 'exact-size' | 'overflow-last' | 'manual';
+  readonly manualGroupSizes?: readonly number[];
 }
 
 /** A stage list of one, the shape every wizard starts from. */
@@ -83,6 +103,29 @@ export function replaceStage(
   return stages.map((stage) => (stage.number === number ? { ...stage, ...patch } : stage));
 }
 
+export function addZone(stage: WizardStageDraft): readonly WizardZoneDraft[] {
+  return [...(stage.zones ?? []), { name: '' }];
+}
+
+export function removeZone(stage: WizardStageDraft, index: number): readonly WizardZoneDraft[] {
+  return (stage.zones ?? []).filter((_, candidate) => candidate !== index);
+}
+
+export function replaceZone(
+  stage: WizardStageDraft,
+  index: number,
+  patch: Partial<WizardZoneDraft>,
+): readonly WizardZoneDraft[] {
+  return (stage.zones ?? []).map((zone, candidate) =>
+    candidate === index ? { ...zone, ...patch } : zone,
+  );
+}
+
+/** The format a zone plays: its own, else its stage's. */
+export function zoneEffectiveFormat(stage: WizardStageDraft, zone: WizardZoneDraft): string {
+  return zone.format ?? stage.format;
+}
+
 /**
  * Placement formats produce an ordering, not two sides that could contest a
  * series — a stage carrying one of these cannot also declare a series. Client
@@ -96,23 +139,36 @@ export const PLACEMENT_FORMATS: readonly string[] = ['free-for-all', 'heats'];
  * change, now scoped to one stage — a placement-format stage among several
  * stages is refused independent of the other stages' validity.
  */
+function seriesProblems(
+  series: StageSeriesDraft | undefined,
+  format: string,
+): readonly MessageDescriptor[] {
+  if (series === undefined) return [];
+  const problems: MessageDescriptor[] = [];
+  if (PLACEMENT_FORMATS.includes(format)) {
+    problems.push(messages.wizardProblemSeriesOnPlacementFormat);
+  }
+  if (series.span === undefined || !Number.isInteger(series.span) || series.span < 2) {
+    problems.push(messages.wizardProblemSeriesSpan);
+  } else if (series.resolutionClass === 'best-of' && series.span % 2 === 0) {
+    problems.push(messages.wizardProblemSeriesEvenBestOf);
+  }
+  return problems;
+}
+
 export function stageProblems(stage: WizardStageDraft): readonly MessageDescriptor[] {
   const problems: MessageDescriptor[] = [];
   if (stage.format.trim() === '') problems.push(messages.wizardProblemChooseFormat);
 
-  if (stage.series !== undefined) {
-    if (PLACEMENT_FORMATS.includes(stage.format)) {
-      problems.push(messages.wizardProblemSeriesOnPlacementFormat);
-    }
-    if (
-      stage.series.span === undefined ||
-      !Number.isInteger(stage.series.span) ||
-      stage.series.span < 2
-    ) {
-      problems.push(messages.wizardProblemSeriesSpan);
-    } else if (stage.series.resolutionClass === 'best-of' && stage.series.span % 2 === 0) {
-      problems.push(messages.wizardProblemSeriesEvenBestOf);
-    }
+  problems.push(...seriesProblems(stage.series, stage.format));
+
+  const zoneNames = new Set<string>();
+  for (const zone of stage.zones ?? []) {
+    const name = zone.name.trim();
+    if (name === '') problems.push(messages.wizardProblemZoneName);
+    else if (zoneNames.has(name)) problems.push(messages.wizardProblemZoneDuplicate);
+    zoneNames.add(name);
+    problems.push(...seriesProblems(zone.series, zoneEffectiveFormat(stage, zone)));
   }
 
   if (

@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import { NotFoundException } from '@nestjs/common';
 import type { Kysely } from 'kysely';
 import type { Database } from '@copalibre/persistence';
@@ -10,8 +10,8 @@ import type { Tournament, TournamentCompletionSummary } from '@copalibre/domain'
 describe('TournamentsController - completion', () => {
   let controller: TournamentsController;
   let mockDb: Kysely<Database>;
-  let spyFindByScopedAlias: ReturnType<typeof jest.spyOn>;
-  let spyGetTournamentCompletion: ReturnType<typeof jest.spyOn>;
+  let spyFindByScopedAlias: ReturnType<typeof vi.spyOn>;
+  let spyGetTournamentCompletion: ReturnType<typeof vi.spyOn>;
 
   const publishedTournament = {
     tournamentId: '01936f4a-0001-7000-8000-000000000001',
@@ -45,6 +45,7 @@ describe('TournamentsController - completion', () => {
         scheduledMatches: 0,
         finalizedMatches: 5,
         forfeitedMatches: 1,
+        segments: [],
       },
       {
         stageId: '01936f4a-0002-7000-8000-000000000002',
@@ -56,13 +57,14 @@ describe('TournamentsController - completion', () => {
         scheduledMatches: 3,
         finalizedMatches: 0,
         forfeitedMatches: 0,
+        segments: [],
       },
     ],
   };
 
   beforeEach(() => {
-    spyFindByScopedAlias = jest.spyOn(TournamentRepository.prototype, 'findByScopedAlias');
-    spyGetTournamentCompletion = jest.spyOn(
+    spyFindByScopedAlias = vi.spyOn(TournamentRepository.prototype, 'findByScopedAlias');
+    spyGetTournamentCompletion = vi.spyOn(
       CompetitionRepository.prototype,
       'getTournamentCompletion',
     );
@@ -72,7 +74,7 @@ describe('TournamentsController - completion', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('throws NotFoundException when tournament does not exist', async () => {

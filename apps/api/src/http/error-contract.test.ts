@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import { BadRequestException as NestBadRequestException } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import type { HttpAdapterHost } from '@nestjs/core';
@@ -76,7 +76,7 @@ describe('API error contract', () => {
   });
 
   it('writes the additive response through the HTTP adapter', async () => {
-    const reply = jest.fn();
+    const reply = vi.fn();
     const adapterHost = { httpAdapter: { reply } } as unknown as HttpAdapterHost;
     const response = {};
     const host = {

@@ -1,6 +1,6 @@
 /**
  * Original composition — the inline alert the product has been writing by hand
- * since it first needed one (OpenSpec 0214).
+ * since it first needed one.
  *
  * `.cl-inline-alert` has existed in the token layer all along, so 68 places
  * across 29 files type the class and decide the rest for themselves. Measured

@@ -21,6 +21,51 @@ installation's directory refuses rather than overwriting it. `--module-dev` addi
 supported email provider configuration. Then run `copalibre start` or
 `docker compose up --detach --wait`.
 
+### Notification email
+
+Lifecycle email uses the provider already configured for invitations (`COPALIBRE_EMAIL_PROVIDER`,
+`COPALIBRE_EMAIL_FROM`, `COPALIBRE_APP_URL` and the provider's credentials); it needs no other
+setting, and the development stack delivers it to Mailpit. `apps/worker` sends it from the
+transactional outbox (lifecycle email notifications):
+
+| Event                                           | Goes to                                                                                                 |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `tournament.created`, `club.created`            | The organization's `admin` assignments                                                                  |
+| `entrant.registered`, `entrant.squad-submitted` | The organization's `admin` assignments and the `tournament-admin` assignments scoped to that tournament |
+
+The actor is not emailed about their own action, and an address held through several assignments gets
+one email. Every email, including invitations and password resets, renders in the organization's
+primary language (English for a password reset, which has no organization) with the organization's
+emblem and name in the header and a Copa Libre signature linking to `https://copalibre.app`. A club
+submitting its squad sends one email, for `entrant.squad-submitted`. CSV imports and `copalibre dev
+demo` mark their events `origin: 'import'` and send none.
+
+**The same email is never sent twice to the same recipient.** The worker reserves each
+`(outbox event, recipient)` pair in `processed_markers` before calling the provider, so a retry, a
+crash and redelivery, two workers, or an operator re-enqueue from the dead-letter inspector cannot
+send it again. The reservation is released only when the provider definitely rejects the message. When
+the outcome is unknown, such as a timeout after the request was sent, the email is not retried: a
+possibly missed email is accepted over a possible duplicate, and an operator can resend it by hand.
+
+**How many emails may have been missed is visible.** The worker counts every delivery attempt by
+outcome (`sent`, `already-sent`, `rejected` for a definite refusal, `unknown`) and returns the counts
+under `emailDelivery` in `GET /jobs/metrics`, beside the relay's own queue figures. The worker listens on
+port 3003 inside the Compose network and is not published to the host. A non-zero `unknown` is a
+recipient who may have missed an email, so it is the figure to alert on. The counts are per replica and
+start from zero when it restarts. Each unknown outcome is also logged as one JSON line,
+`Email delivery outcome unknown; not retried`, with the event type, the event id, a hash of the recipient
+and the error class. It never carries the address, nor the provider's error message, which can repeat
+the address it failed on.
+
+From the installation directory, `copalibre status` reports container state, the published ingress
+port, and gateway health. `copalibre restart` stops the stack, starts PostgreSQL, runs `doctor`, then
+starts the remaining services after health checks pass. `copalibre stop` stops containers while
+preserving volumes; `copalibre stop --down` removes containers and networks but still retains
+volumes. Add `--dev` to use the checkout's development Compose file. Those flags manage Compose
+containers only; they do not stop host Yarn processes started by a separate `copalibre dev --hybrid`
+invocation. In Kubernetes mode, `start`, `stop`, and `restart` print `helm`/`kubectl` guidance;
+`status` reads the installation marker and queries pods when `kubectl` is available.
+
 The standalone binary needs Docker and Docker Compose v2. The source checkout's `./copalibre`
 wrapper additionally needs Node.js 24 and Corepack. Run that wrapper by its path from the empty
 installation directory; do not run `init` in the checkout root. The generated `.env` pins published
@@ -179,7 +224,7 @@ copalibre upgrade
 
 To upgrade only the CLI binary itself, run `copalibre upgrade --self`.
 
-### Manual Compose upgrade to 1.2.5
+### Manual Compose upgrade to 1.2.6
 
 Use this procedure after the target images have been published. Keep the existing installation
 directory, Compose project name and named volumes; a new `init` directory is a separate installation,
@@ -203,13 +248,13 @@ against a partially upgraded database to fit the budget.
    storage endpoints; a PostgreSQL backup does not contain those objects.
 3. Set **both** image references in `.env`:
    ```dotenv
-   COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.5
-   COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.5
+   COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.6
+   COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.6
    ```
 4. Pull images and run the target runtime's compatibility check without starting dependencies:
    ```bash
    docker compose pull
-   docker compose run --rm --no-deps upgrade-check --target-version 1.2.5
+   docker compose run --rm --no-deps upgrade-check --target-version 1.2.6
    ```
    The check reports incompatible installed modules and pending migrations without applying them.
    Resolve failures before proceeding. Keep PostgreSQL running for this check.

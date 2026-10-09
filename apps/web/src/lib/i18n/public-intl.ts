@@ -10,6 +10,7 @@ import { messages as zhMessages } from './public-messages.zh.js';
 import { messages } from './public-messages.en.js';
 import type { ResultReason } from '@copalibre/domain';
 import type { ResultState, ResultStateLabels } from '../result-state.js';
+import { parseBracketRole } from '../bracket-role.js';
 import { seriesScore, seriesSegments, type SegmentState, type SeriesInput } from '../series.js';
 import { displayName, type OverviewModel } from '../overview.js';
 
@@ -159,10 +160,25 @@ export function tvDashboardLabels(intl: IntlShape) {
     performersTab: intl.formatMessage(messages.tvDashboardPerformersTab),
     statisticsTab: intl.formatMessage(messages.tvDashboardStatisticsTab),
     bracketTab: intl.formatMessage(messages.tvDashboardBracketTab),
+    fixturesTab: intl.formatMessage(messages.tvDashboardFixturesTab),
     bracketRound: intl.formatMessage(messages.tvDashboardBracketRound),
     bracketMatch: intl.formatMessage(messages.tvDashboardBracketMatch),
     possession: intl.formatMessage(messages.tvDashboardPossession),
     penalty: intl.formatMessage(messages.tvDashboardPenalty),
+    clockLabel: intl.formatMessage(messages.tvDashboardClockLabel),
+    // Raw templates, filled in the island: a function would not survive its JSON props.
+    finishedOn: intl.formatMessage(messages.tvDashboardFinishedOn, { date: '{date}' }),
+    matchNotFound: intl.formatMessage(messages.tvDashboardMatchNotFound),
+    pageOf: intl.formatMessage(messages.tvDashboardPageOf, { page: '{page}', total: '{total}' }),
+    seriesState: intl.formatMessage(messages.tvDashboardSeriesState, {
+      home: '{home}',
+      away: '{away}',
+      game: '{game}',
+      span: '{span}',
+    }),
+    setsLabel: intl.formatMessage(messages.tvDashboardSetsLabel),
+    overlayNoMatch: intl.formatMessage(messages.tvDashboardOverlayNoMatch),
+    overlayNoCourtMatch: intl.formatMessage(messages.tvDashboardOverlayNoCourtMatch),
   };
 }
 
@@ -222,7 +238,7 @@ export interface MatchCardLabels {
   readonly seriesPending: string;
   readonly seriesDecided: string;
   readonly seriesAggregate: string;
-  /** The compact ticker's separator (openspec 0299), e.g. "CPC 4 vs 3 UVT". Absent means `MatchCard` falls back to the literal `vs`. */
+  /** The compact ticker's separator, e.g. "CPC 4 vs 3 UVT". Absent means `MatchCard` falls back to the literal `vs`. */
   readonly versus?: string;
 }
 
@@ -435,8 +451,8 @@ function rulesetValue(intl: IntlShape, value: string): string {
 
 /**
  * `RulesetBriefing.astro`'s rows, fully resolved — the field's label (already
- * localized by `mapOverviewResponse`) paired with its localized display value
- * (openspec 0267). i18n formatting stays at this organism-and-above tier
+ * localized by `mapOverviewResponse`) paired with its localized display value.
+ * I18n formatting stays at this organism-and-above tier
  * (`check-atomic-composition.mjs` R6); the molecule only ever renders strings.
  */
 export function rulesetBriefingRows(
@@ -489,4 +505,33 @@ export function completionFigureLabels(
     stateGlyph,
     unmeasuredLabel: intl.formatMessage(messages.completionUnmeasured),
   };
+}
+
+/** A bracket band's name: the engine's own branch code, said in the page's language. */
+export function bracketBranchLabel(intl: IntlShape, branch: string): string {
+  switch (branch) {
+    case 'winners':
+      return intl.formatMessage(messages.bracketBranchWinners);
+    case 'losers':
+      return intl.formatMessage(messages.bracketBranchLosers);
+    case 'grand-final':
+      return intl.formatMessage(messages.bracketBranchGrandFinal);
+    case 'placement':
+      return intl.formatMessage(messages.bracketBranchPlacement);
+    default:
+      return branch;
+  }
+}
+
+/** What a placement game decides, in the page's language: "3rd place", "Places 5–8". */
+export function bracketRoleLabel(intl: IntlShape, role: string): string {
+  const parsed = parseBracketRole(role);
+  switch (parsed.kind) {
+    case 'place':
+      return intl.formatMessage(messages.bracketRolePlace, { place: parsed.place });
+    case 'places':
+      return intl.formatMessage(messages.bracketRolePlaces, { from: parsed.from, to: parsed.to });
+    default:
+      return parsed.code;
+  }
 }

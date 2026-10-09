@@ -11,7 +11,7 @@ enterprise-readiness claim is made.
 
 ### Requirement: Additive, opt-in enterprise values
 Every enterprise capability SHALL be expressed as a `values.yaml` group defaulted to disabled, such
-that installing the chart with default values produces identical behavior to `0034-k3s-helm-deployment`
+that installing the chart with default values produces identical behavior to the K3s Helm deployment
 alone.
 
 #### Scenario: Default install has no enterprise behavior active

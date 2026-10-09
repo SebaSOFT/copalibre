@@ -11,10 +11,17 @@ import {
 } from '@copalibre/persistence';
 import { sql } from 'kysely';
 import { createRemoteJWKSet, customFetch, type FetchImplementation } from 'jose';
+import { LOCAL_DEFAULTS } from './init.js';
 import { evaluateDataIntegrity, type DataIntegritySnapshot } from './doctor-data.js';
+import {
+  evaluateModuleAssets,
+  probeModuleAssets,
+  type ModuleAssetsSnapshot,
+} from './doctor-module-assets.js';
 import { probeDataIntegrity } from './doctor-data-probe.js';
 
-export type DoctorCheckStatus = 'pass' | 'fail' | 'skip';
+/** `warn` reports something an operator should fix without blocking: it never fails the run. */
+export type DoctorCheckStatus = 'pass' | 'warn' | 'fail' | 'skip';
 
 export interface DoctorCheck {
   readonly name: string;
@@ -37,12 +44,17 @@ export interface DoctorDependencies {
   readonly probeDatabase: (connectionString: string) => Promise<void>;
   readonly ensureWritable: (path: string) => Promise<void>;
   readonly fetch: typeof fetch;
-  /** Installed community discipline versions no started/finished tournament references (task 4.7). */
+  /** Installed community discipline versions no started/finished tournament references. */
   readonly retirableModules: (connectionString: string) => Promise<readonly RetirableModule[]>;
   /** Puts, reads back, and deletes a small probe object against the configured profile. */
   readonly objectStorageRoundTrip: (environment: NodeJS.ProcessEnv) => Promise<void>;
-  /** Structural data-integrity snapshot for `evaluateDataIntegrity` (openspec 0296). */
+  /** Structural data-integrity snapshot for `evaluateDataIntegrity`. */
   readonly probeDataIntegrity: (connectionString: string) => Promise<DataIntegritySnapshot>;
+  /** Every installed module asset, read through the active storage profile. */
+  readonly probeModuleAssets: (
+    connectionString: string,
+    environment: NodeJS.ProcessEnv,
+  ) => Promise<ModuleAssetsSnapshot>;
 }
 
 export interface DoctorOptions {
@@ -53,6 +65,15 @@ export interface DoctorOptions {
 
 const EMAIL_PROVIDERS = ['resend', 'brevo', 'mailgun', 'smtp'] as const;
 type EmailProvider = (typeof EMAIL_PROVIDERS)[number];
+
+const PLACEHOLDER_SECRETS: Readonly<Record<string, readonly string[]>> = {
+  POSTGRES_PASSWORD: [LOCAL_DEFAULTS.POSTGRES_PASSWORD],
+  COPALIBRE_BOOTSTRAP_TOKEN: [
+    LOCAL_DEFAULTS.COPALIBRE_BOOTSTRAP_TOKEN,
+    'copalibre_dev_bootstrap_only',
+  ],
+  GARAGE_RPC_SECRET: [LOCAL_DEFAULTS.GARAGE_RPC_SECRET],
+};
 
 export async function runDoctor(
   environment: NodeJS.ProcessEnv = process.env,
@@ -68,6 +89,7 @@ export async function runDoctor(
   checks.push(...(await validateDatabase(environment, dependencies)));
   checks.push(await validateRetirableModules(environment, dependencies));
   checks.push(...(await validateDataIntegrity(environment, dependencies)));
+  checks.push(await validateModuleAssets(environment, dependencies));
   checks.push(await validateObjectStorage(environment, dependencies));
   checks.push(...(await validatePersistentPath(environment, dependencies)));
   if (options.checkProxy) checks.push(await validateReverseProxy(options, dependencies));
@@ -96,6 +118,68 @@ export function validateRequiredConfiguration(
   }
   checks.push(validateEmailConfiguration(environment));
   return checks;
+}
+
+/** Validates an installation's parsed `.env` before the host starts Compose. */
+export function validateHostEnvironment(environment: NodeJS.ProcessEnv): DoctorReport {
+  const checks: DoctorCheck[] = [];
+  if (!environment.DATABASE_URL?.trim() && !environment.POSTGRES_PASSWORD?.trim()) {
+    checks.push(fail('host-env:database', 'DATABASE_URL or POSTGRES_PASSWORD must be configured'));
+  }
+
+  for (const name of [
+    'COPALIBRE_APP_URL',
+    'COPALIBRE_BOOTSTRAP_TOKEN',
+    'COPALIBRE_JWKS_URI',
+    'COPALIBRE_JWT_ISSUER',
+    'COPALIBRE_JWT_AUDIENCE',
+    'COPALIBRE_OIDC_CLIENT_ID',
+    'COPALIBRE_EMAIL_FROM',
+    'GARAGE_RPC_SECRET',
+  ]) {
+    if (!environment[name]?.trim()) {
+      checks.push(
+        fail(`host-env:${name}`, `${name} is required and must not be blank; configure it in .env`),
+      );
+    }
+  }
+
+  for (const [name, placeholders] of Object.entries(PLACEHOLDER_SECRETS)) {
+    const value = environment[name]?.trim();
+    if (value && placeholders.includes(value)) {
+      checks.push(
+        fail(
+          `host-env:${name}`,
+          `${name} still has its default placeholder; replace it with a unique secret`,
+        ),
+      );
+    }
+  }
+
+  const emailProvider = environment.COPALIBRE_EMAIL_PROVIDER;
+  if (!isEmailProvider(emailProvider)) {
+    checks.push(
+      fail('host-env:email', 'COPALIBRE_EMAIL_PROVIDER must be resend, brevo, mailgun, or smtp'),
+    );
+  } else {
+    const providerSecrets: Record<EmailProvider, readonly string[]> = {
+      resend: ['COPALIBRE_RESEND_API_KEY'],
+      brevo: ['COPALIBRE_BREVO_API_KEY'],
+      mailgun: ['COPALIBRE_MAILGUN_API_KEY', 'COPALIBRE_MAILGUN_DOMAIN'],
+      smtp: ['COPALIBRE_SMTP_URL'],
+    };
+    const missing = providerSecrets[emailProvider].filter((name) => !environment[name]?.trim());
+    checks.push(
+      missing.length === 0
+        ? pass('host-env:email', `Email provider ${emailProvider} is configured`)
+        : fail(
+            'host-env:email',
+            `Email provider ${emailProvider} is missing: ${missing.join(', ')}`,
+          ),
+    );
+  }
+
+  return { checks, ok: checks.every((check) => check.status !== 'fail') };
 }
 
 export function validateServicePorts(environment: NodeJS.ProcessEnv): readonly DoctorCheck[] {
@@ -203,7 +287,7 @@ export async function validateDatabase(
   }
 }
 
-/** Reports installed community discipline versions no live tournament references (task 4.7) — informational, never `fail`. */
+/** Reports installed community discipline versions no live tournament references — informational, never `fail`. */
 export async function validateRetirableModules(
   environment: NodeJS.ProcessEnv,
   dependencies: Pick<DoctorDependencies, 'retirableModules'>,
@@ -227,7 +311,7 @@ export async function validateRetirableModules(
 }
 
 /**
- * Structural data diagnostics (openspec 0296) — non-canonical tournament
+ * Structural data diagnostics — non-canonical tournament
  * statuses. Always `pass` when the probe itself succeeds (see
  * `evaluateDataIntegrity`'s doc comment for why, and for the further checks
  * the proposal named that turned out to have no sound, false-positive-free
@@ -253,6 +337,28 @@ export async function validateDataIntegrity(
         `Could not run data integrity diagnostics: ${errorMessage(error)}`,
       ),
     ];
+  }
+}
+
+/**
+ * Whether every installed module asset is where the active storage looks for it. Skipped without a
+ * database, or when the probe itself fails — the same "never block startup on this" treatment the
+ * data checks get.
+ */
+export async function validateModuleAssets(
+  environment: NodeJS.ProcessEnv,
+  dependencies: Pick<DoctorDependencies, 'probeModuleAssets'>,
+): Promise<DoctorCheck> {
+  const connectionString = environment.DATABASE_URL;
+  if (!connectionString) {
+    return skip('data:module-assets', 'DATABASE_URL is not configured');
+  }
+  try {
+    return evaluateModuleAssets(
+      await dependencies.probeModuleAssets(connectionString, environment),
+    );
+  } catch (error) {
+    return skip('data:module-assets', `Could not inspect module assets: ${errorMessage(error)}`);
   }
 }
 
@@ -433,6 +539,17 @@ function systemDoctorDependencies(): DoctorDependencies {
       const database = createDatabase({ connectionString, maxConnections: 1 });
       try {
         return await probeDataIntegrity(database);
+      } finally {
+        await database.destroy();
+      }
+    },
+    probeModuleAssets: async (connectionString, environment) => {
+      const database = createDatabase({ connectionString, maxConnections: 1 });
+      try {
+        return await probeModuleAssets(
+          database,
+          createObjectStorageAdapter(objectStorageConfigFromEnv(environment)),
+        );
       } finally {
         await database.destroy();
       }

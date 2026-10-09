@@ -172,7 +172,7 @@ describe('registry rule/condition registration', () => {
     expect(registry.has('condition', 'noop-condition')).toBe(true);
   });
 
-  it('gives every hook-script condition/action a non-empty phraseTemplate (openspec 0266)', () => {
+  it('gives every hook-script condition/action a non-empty phraseTemplate', () => {
     const registry = createHookScriptRegistry();
     const offenders = registry
       .list()

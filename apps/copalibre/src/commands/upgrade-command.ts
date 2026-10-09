@@ -184,7 +184,7 @@ export class UpgradeCommand extends Command<CliContext> {
         await processes.run('docker', ['compose', 'run', '--rm', 'migrate']);
 
         process.stdout.write('Restarting CopaLibre stack...\n');
-        await processes.run('docker', ['compose', 'up', '-d']);
+        await processes.run('docker', ['compose', 'up', '-d', '--force-recreate']);
       }
 
       // 5. Module Update Inspection

@@ -9,7 +9,7 @@ export interface ParityEntry {
  * exemption — the same technique `cli-docs-parity.test.ts` uses one level up
  * (reading the real command/tool lists, not a duplicated list), so a future
  * CLI-only or MCP-only addition fails `cli-mcp-parity.test.ts` instead of
- * silently reopening the asymmetry `0252`-`0254` closed.
+ * silently reopening the asymmetry the CLI/MCP parity work closed.
  *
  * Exactly one of `mcpTool`/`exemptReason` accompanies a given `cliCommand`
  * (and symmetrically for an `mcpTool`-only entry) — enforced by
@@ -40,16 +40,29 @@ export const CLI_MCP_PARITY: readonly ParityEntry[] = [
   {
     cliCommand: 'init',
     exemptReason:
-      "Generates an installation's own secrets (JWT signing material, initial admin bootstrap) — the same class of risk as create-admin/login, per 0253's Why.",
+      "Generates an installation's own secrets (JWT signing material, initial admin bootstrap) — the same class of risk as create-admin/login.",
   },
   {
     cliCommand: 'dev',
-    exemptReason: 'A long-running development process, not a request/response tool call.',
+    exemptReason:
+      'A long-running development process (and `dev demo`, which needs a checkout and the host Docker development stack), not a request/response tool call.',
   },
   {
     cliCommand: 'start',
     exemptReason:
       'A long-running process (starts every process role), not a request/response tool call.',
+  },
+  {
+    cliCommand: 'stop',
+    exemptReason: 'Host-level Compose lifecycle operation, not a request/response tool call.',
+  },
+  {
+    cliCommand: 'restart',
+    exemptReason: 'Host-level Compose lifecycle operation, not a request/response tool call.',
+  },
+  {
+    cliCommand: 'status',
+    exemptReason: 'Inspects the local host/container runtime, not a remote MCP operation.',
   },
   {
     cliCommand: 'mcp',
@@ -62,7 +75,7 @@ export const CLI_MCP_PARITY: readonly ParityEntry[] = [
   },
 
   // CLI-only, security: mints/bootstraps/revokes credentials, or is an
-  // irreversible data/schema mutation (excluded per 0253's own Why).
+  // irreversible data/schema mutation (excluded from MCP on purpose).
   {
     cliCommand: 'migrate',
     exemptReason:
@@ -79,10 +92,6 @@ export const CLI_MCP_PARITY: readonly ParityEntry[] = [
   {
     cliCommand: 'login',
     exemptReason: 'Mints/stores a personal access token.',
-  },
-  {
-    cliCommand: 'revoke-legacy-personal-access-tokens',
-    exemptReason: 'Revokes credentials as a security cutover.',
   },
 
   // MCP-only, agent-specific authoring ergonomics, not a human capability

@@ -133,14 +133,14 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
   </section>
 
   <section>
-    <h2>Controles de formulario (atoms — 0141)</h2>
+    <h2>Controles de formulario (atoms)</h2>
     <div class="row">
       ${formControls}
     </div>
   </section>
 
   <section>
-    <h2>Diálogo (organism — 0141)</h2>
+    <h2>Diálogo (organism)</h2>
     <div class="row">
       <div class="cl-dialog-surface cl-chamfer" style="padding: var(--cl-space-4); width: 240px;">
         <p>Superficie del diálogo</p>
@@ -152,7 +152,7 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
   </section>
 
   <section>
-    <h2>Niveles de superficie y alternancia (0222)</h2>
+    <h2>Niveles de superficie y alternancia</h2>
     <div class="cl-band cl-chamfer" style="padding: var(--cl-space-4); margin-bottom: var(--cl-space-4); width: 100%;">
       <p>Banda nivel panel (base: <code>--cl-surface-panel</code>)</p>
       <div class="cl-card" style="padding: var(--cl-space-3);">
@@ -189,7 +189,7 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
   </section>
 
   <section>
-    <h2>Plantillas (templates — 0141 / 0147)</h2>
+    <h2>Plantillas (templates)</h2>
     <div class="row">
       <div class="cl-list-screen cl-chamfer" style="width: 320px; padding: var(--cl-space-4); background: var(--cl-surface-panel);">
         <div class="cl-list-screen__header"><h3 class="cl-list-screen__title">Roles</h3></div>
@@ -217,7 +217,7 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
   </section>
 
   <section>
-    <h2>Niveles de superficie — calibración 0220</h2>
+    <h2>Niveles de superficie — calibración</h2>
     <p>
       El nivel de un contenedor sale de <strong>qué es</strong>, no de cuán profundo está.
       El contenido <strong>alterna</strong> contra la banda sobre la que se apoya; el cromo
@@ -284,7 +284,7 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
   </section>
 
   <section>
-    <h2>Acción primaria — calibración 0220</h2>
+    <h2>Acción primaria — calibración</h2>
     <p>
       <code>--cl-primary</code> quedó donde estaba: el control primario de la referencia se rellena
       con <code>--cl-state-live</code>, el mismo <code>cyan-400</code> del que ya partía. Leerlo del
@@ -318,7 +318,7 @@ yarn workspace @copalibre/web storybook</code></pre>
       soportado, y nunca marcado. Sin el servidor, cada historia lo dice y nombra el comando.
     </p>
     <p>
-      <strong>Pendiente para 0223:</strong> las composiciones — tabla de posiciones, etiquetas y
+      <strong>Pendiente:</strong> las composiciones — tabla de posiciones, etiquetas y
       leyenda de resultados, cinta, llave, cabecera pública móvil, tarjetas informativas y bloque de
       código con cabecera de archivo — junto con su adopción en superficies reales y la revisión de
       paridad. Esta mitad entrega los niveles, los roles, la tipografía, los datos de ejemplo y la

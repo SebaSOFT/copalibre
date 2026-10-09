@@ -414,6 +414,29 @@ export class RulesetOverridesResponse {
   disciplineDefaults!: Record<string, unknown>;
 }
 
+export class StageGroupConfigurationRequest {
+  @IsInt()
+  @Min(2)
+  @ApiProperty({ minimum: 2, example: 4 })
+  groupCount!: number;
+
+  @IsInt()
+  @Min(2)
+  @ApiProperty({ minimum: 2, example: 5 })
+  groupSize!: number;
+
+  @IsIn(['balanced', 'exact-size', 'overflow-last', 'manual'])
+  @ApiProperty({ enum: ['balanced', 'exact-size', 'overflow-last', 'manual'] })
+  distribution!: 'balanced' | 'exact-size' | 'overflow-last' | 'manual';
+
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @ApiPropertyOptional({ type: [Number], minItems: 2, example: [4, 5, 5, 4] })
+  readonly manualGroupSizes?: readonly number[];
+}
+
 /** Same shape as `RulesetOverridesRequest`/`Response`, one layer down: a stage's own overrides. */
 export class StageConfigurationRequest {
   @IsObject()
@@ -425,6 +448,12 @@ export class StageConfigurationRequest {
     example: { 'segments.overtimeEnabled': true },
   })
   overrides!: Record<string, unknown>;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StageGroupConfigurationRequest)
+  @ApiPropertyOptional({ type: () => StageGroupConfigurationRequest, nullable: true })
+  groupConfiguration?: StageGroupConfigurationRequest | null;
 }
 
 export class StageConfigurationResponse {
@@ -433,6 +462,9 @@ export class StageConfigurationResponse {
     description: 'The full stage-configuration override document, not only the changed fields.',
   })
   overrides!: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: () => StageGroupConfigurationRequest })
+  groupConfiguration?: StageGroupConfigurationRequest;
 }
 
 export class HookScriptAttachmentRequest {
@@ -611,6 +643,33 @@ export class StageAllocationRequest {
   direction?: 'higher-first' | 'lower-first';
 }
 
+/** One zone of a stage declared at creation time — see `CreateTournamentStageRequest.zones`. */
+export class CreateTournamentZoneRequest {
+  @IsString()
+  @ApiProperty({ description: 'Unique within its stage.', example: 'Copa Oro' })
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description:
+      'The zone’s own format. Absent: the zone plays its stage’s. Must be a format the ' +
+      'tournament’s discipline offers.',
+    example: 'round-robin',
+  })
+  format?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SeriesDeclarationRequest)
+  @ApiPropertyOptional({
+    type: SeriesDeclarationRequest,
+    description:
+      'The zone’s own series. Absent: the zone inherits its stage’s, then the tournament’s.',
+  })
+  series?: SeriesDeclarationRequest;
+}
+
 /** One stage of a tournament declared at creation time — see `CreateTournamentRequest.stages`. */
 export class CreateTournamentStageRequest {
   @IsOptional()
@@ -651,6 +710,24 @@ export class CreateTournamentStageRequest {
       'explicitly when opening the stage’s seeding view.',
   })
   allocation?: StageAllocationRequest;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StageGroupConfigurationRequest)
+  @ApiPropertyOptional({ type: () => StageGroupConfigurationRequest })
+  groupConfiguration?: StageGroupConfigurationRequest;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateTournamentZoneRequest)
+  @ApiPropertyOptional({
+    type: [CreateTournamentZoneRequest],
+    description:
+      'The stage’s zones, numbered by list position. Absent creates none. Entrants are assigned ' +
+      'to zones afterwards.',
+  })
+  zones?: CreateTournamentZoneRequest[];
 }
 
 export class CreateTournamentRequest {
@@ -807,6 +884,25 @@ export class CreateStageRequest {
       'explicitly when opening the stage’s seeding view.',
   })
   allocation?: StageAllocationRequest;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StageGroupConfigurationRequest)
+  @ApiPropertyOptional({ type: StageGroupConfigurationRequest })
+  groupConfiguration?: StageGroupConfigurationRequest;
+}
+
+export class NextRoundRequest {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @ApiPropertyOptional({
+    description:
+      'The 1-based number of the zone to generate the next round for. Required when the stage has more than one zone; ' +
+      'a stage with a single zone needs no value. Rounds, pairings and results are per zone.',
+    example: 2,
+  })
+  zoneNumber?: number;
 }
 
 export class SeriesMutationFieldPreview {
@@ -1078,7 +1174,7 @@ export class GrantableRolesResponse {
     enum: ['super-admin', ...ORGANIZATION_ROLES],
     isArray: true,
     description:
-      'Roles the caller may grant in this organization, per the 0140 role-granting hierarchy.',
+      'Roles the caller may grant in this organization, per the role-granting hierarchy.',
   })
   roles!: readonly ('super-admin' | OrganizationRole)[];
 }

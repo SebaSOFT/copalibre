@@ -62,12 +62,12 @@ retry; connection loss and data unavailability SHALL resolve automatically witho
   requiring a click to dismiss
 
 ### Requirement: Long-running memory stability
-A `/tv/**` route SHALL sustain multi-day continuous rendering without unbounded memory growth.
+A `/tv/**` route SHALL sustain multi-day continuous rendering without unbounded memory growth. The automated scheduled verification pipeline SHALL compile all required workspace domain and engine dependencies before building the production web preview, guaranteeing the headless Chromium soak measurement executes to completion and produces an evaluated report artifact.
 
 #### Scenario: Multi-day soak does not leak
 - **WHEN** a `/tv/**` route runs continuously in a headless browser for the duration of the soak-test
   window
-- **THEN** measured memory usage does not grow unbounded over that window
+- **THEN** measured memory usage does not grow unbounded over that window, and the automated pipeline uploads `tv-soak-report.json` with evaluation results
 
 ### Requirement: Organizer event branding
 A `/tv/**` route SHALL support an organizer-supplied logo and accent color layered over the base
@@ -349,3 +349,229 @@ The system SHALL support a multi-court grid presentation mode (`?layout=multicou
 #### Scenario: Multi-page rotation for large venues
 - **WHEN** more active live matches exist than the selected grid display limit
 - **THEN** the multi-court presentation rotates through groups of matches on a 20-second interval, respecting `prefers-reduced-motion` settings
+
+### Requirement: Root TV kiosk launcher and display configuration
+The system SHALL serve an interactive kiosk launcher at `/tv` allowing operators and unattended kiosk
+displays to configure their destination screen parameters. The launcher SHALL present its controls in
+a floating configuration panel above a full-bleed viewport background layer. The launcher SHALL
+provide selectors for organization alias, active tournament, display view mode (full dashboard,
+standings table, a selected pinned match, or broadcast overlay), background style (blurred discipline
+background, neutral, chroma green, football grass, or basketball court), and interface language. When
+the operator changes the background selection, the underlying full-bleed viewport layer SHALL mutate
+in real time beneath the panel to provide progressive visual feedback. Selecting the pinned-match view
+SHALL expose stage and match selectors and SHALL require a selected match before launch. On submission,
+the launcher SHALL navigate to the fully configured TV surface URL and persist the configuration in
+client storage for automatic recovery on display reboot. Launching an overlay without an explicit
+background SHALL default to transparent output for browser-source compositing.
+
+#### Scenario: Root TV route provides interactive kiosk launcher
+- **WHEN** a user or kiosk device visits `/tv`
+- **THEN** the page renders a floating kiosk launcher popup above a full-bleed background allowing
+  selection of organization, tournament, view mode, background theme, and language rather than
+  returning a 404
+
+#### Scenario: Real-time background mutation beneath launcher popup
+- **WHEN** an operator selects or changes a background style in the `/tv` launcher popup
+- **THEN** the full-screen viewport layer behind the popup updates immediately in real-time to reflect
+  the selected theme
+
+#### Scenario: Kiosk launcher pre-fills persisted display settings
+- **WHEN** a kiosk device that previously launched a TV display reloads `/tv`
+- **THEN** the form inputs pre-populate with the previously selected configuration values
+
+#### Scenario: Pinned-match view requires a selected match
+- **WHEN** an operator selects the `Matches` view
+- **THEN** the launcher presents stage and match selectors from the selected tournament and does not
+  launch until a valid match is selected
+
+#### Scenario: Pinned-match selection launches the existing match route
+- **WHEN** an operator selects a stage and match in the `Matches` view
+- **THEN** the launcher opens that match's existing TV route with the chosen language, presentation,
+  and background parameters
+
+### Requirement: Universal background composition across all TV screens
+The TV broadcast layout SHALL decouple background rendering from specific overlay modes, allowing any TV
+screen and layout mode (full dashboard, multi-court grid, pinned match view, standings table, lower
+third, or full overlay) to be combined with any supported background style: blurred subtle discipline
+imagery (`bg=discipline`), neutral dark surface (`bg=neutral`), solid chroma key color (`bg=chroma`),
+turf green (`bg=football`), hardwood court (`bg=court`), or transparent alpha channel
+(`bg=transparent`).
+
+#### Scenario: Kiosk screen renders with selected background query
+- **WHEN** any `/tv/**` screen is requested with a `?bg=` or `?background=` parameter (e.g.
+  `?bg=court` or `?bg=chroma`)
+- **THEN** the TV layout renders that background style behind the screen content, regardless of whether
+  the route is a full kiosk dashboard or a pinned match view
+
+#### Scenario: Blurred discipline background is applied to arbitrary TV screens
+- **WHEN** a TV route is requested with `?bg=discipline`
+- **THEN** the TV layout renders the blurred, subtle atmospheric discipline backdrop image matching the
+  tournament's declared discipline
+
+### Requirement: TV surfaces present each zone of a mixed-format stage by its effective format
+A full-frame TV surface SHALL present a stage whose zones play different formats zone by zone: every table-producing zone SHALL appear as its own standings table headed by the zone's name, every elimination zone SHALL appear in the bracket view, and a league zone SHALL list its matches grouped by round. Rows of different zones SHALL NOT be interleaved in one table. A stage whose zones all play the stage's own format, and a stage without declared zones, SHALL render exactly as before. The lower-third overlay SHALL be unchanged.
+
+#### Scenario: Two league zones show two headed tables
+- **WHEN** the kiosk shows the standings of a stage with two table-producing zones
+- **THEN** each zone renders as its own table headed by that zone's name
+- **AND** no row of one zone appears in the other zone's table
+
+#### Scenario: A league zone beside knockout zones has a fixtures view
+- **WHEN** a stage has knockout zones and one league zone
+- **THEN** the bracket view draws the knockout zones only
+- **AND** the league zone's matches are available as a view grouped by round, with each match's state and score
+
+#### Scenario: A uniform stage is unchanged
+- **WHEN** every zone plays the stage's own format, or the stage declares no zones
+- **THEN** the standings tab and bracket view render as they did before zone formats could differ
+
+### Requirement: TV club emblems resolve through the same-origin club emblem route
+A TV surface SHALL request a club's emblem from the same-origin club emblem route built from the club's identifier, SHALL NOT build image URLs from an object identifier, and SHALL show the club's monogram when the club has no emblem or the request fails.
+
+#### Scenario: Standings, spotlight, performers and the recap show emblems
+- **WHEN** the kiosk shows standings, the match spotlight, the performers view or the champion recap for clubs that have emblems
+- **THEN** each emblem image loads from the club emblem route
+
+#### Scenario: A missing emblem shows a monogram
+- **WHEN** a club has no emblem or its request fails
+- **THEN** the surface shows the club's abbreviation instead of a broken image
+
+### Requirement: The TV recap of a finished tournament names the resolved champions
+When every match of a tournament is final and the tournament has resolved winners, the kiosk's recap SHALL present each resolved zone's champion or co-champions under the zone's name, and SHALL NOT present a standings leader of an earlier stage as the tournament's champion. A tournament without resolved winners (such as a single league) MAY present its first-ranked entrant as champion.
+
+#### Scenario: Three cups show three champions
+- **WHEN** a finished tournament has resolved winners for three zones of its last stage
+- **THEN** the recap shows each zone's champion headed by that zone's name
+
+#### Scenario: A group-stage leader is not the champion
+- **WHEN** the first stage's standings leader did not win a final
+- **THEN** the recap does not name that entrant as champion
+
+#### Scenario: A league tournament keeps its champion
+- **WHEN** a finished tournament is one league with no elimination stage
+- **THEN** the recap names the first-ranked entrant as champion
+
+### Requirement: TV surfaces show formatted dates and a labelled status
+No TV surface SHALL print a machine timestamp. Dates and times SHALL render through the shared timestamp atom in the viewer's language and the organization's time zone. The header of a finished tournament SHALL show the date of its last match, without a ticking clock; the header of a live tournament SHALL show a labelled clock without seconds.
+
+#### Scenario: The ticker shows a readable date
+- **WHEN** the ticker lists a match with a kick-off time
+- **THEN** the date reads as a localized date and time, not as an ISO string
+
+#### Scenario: A finished tournament has no ticking clock
+- **WHEN** every match is final
+- **THEN** the header shows the finish date and no running clock
+
+### Requirement: Every TV route keeps the same outer margin
+Every TV route and panel SHALL keep the same outer margin on all four sides, including the bottom edge.
+
+#### Scenario: The bottom margin is present on the dashboard
+- **WHEN** the rotating dashboard and the pinned-match route are shown at the same size
+- **THEN** both leave the same margin below their lowest panel
+
+### Requirement: Each TV view shows what it is named for
+The `standings` view SHALL show the standings full-frame, the `matches` view the paged match list full-frame, and a pinned match SHALL show that match's own data and events whether or not it is finished. The champion recap SHALL appear only in the rotating dashboard of a finished tournament.
+
+#### Scenario: Standings differ from the dashboard
+- **WHEN** a finished tournament is opened with `view=standings`
+- **THEN** the kiosk shows the standings, not the champion recap
+
+#### Scenario: A finished pinned match shows its data
+- **WHEN** a pinned match of a finished tournament is opened
+- **THEN** the kiosk shows that match's score, sides and recorded events
+
+### Requirement: A pinned match is identified by its stage ordinal
+The pinned-match route SHALL resolve its match by the same stage ordinal the public match route uses, and overview and live match data SHALL carry that ordinal.
+
+#### Scenario: Match 34 of stage 1 is found
+- **WHEN** the pinned route for stage 1 and match 34 is opened for a stage with 36 matches
+- **THEN** it shows the thirty-fourth match of the stage
+
+#### Scenario: An unknown ordinal is reported
+- **WHEN** the ordinal is beyond the stage's matches
+- **THEN** the kiosk reports that the match does not exist instead of showing another view
+
+### Requirement: The TV match list is compact
+The TV match list SHALL render as a compact table showing two matches per row at broadcast size and SHALL page through long lists with the rotation.
+
+#### Scenario: Seventy-two matches page
+- **WHEN** a tournament has seventy-two matches
+- **THEN** the list shows them two per row, several rows per page, advancing page by page
+
+### Requirement: The kiosk refreshes from addresses that are served
+The kiosk's client-side refreshes of live matches and of the featured stage's bracket SHALL request addresses that the deployed API or web application serves.
+
+#### Scenario: A live refresh is answered
+- **WHEN** the kiosk's refresh interval elapses
+- **THEN** it requests the tournament's live matches at an address that answers with the live projection
+
+### Requirement: The launcher names stages and pins a match for the overlay
+The TV display launcher SHALL show each stage with its number and name, SHALL list match choices grouped by stage and zone or group with the round and the entrants' names, and SHALL offer the match choice for the overlay view and put the explicit match in the launch link. The launcher SHALL use the TV typography and control styles.
+
+#### Scenario: Stages have names
+- **WHEN** the viewer opens the stage select for a tournament with a group stage and cups
+- **THEN** each option shows its number and name
+
+#### Scenario: The overlay view asks for a match
+- **WHEN** the viewer selects the overlay view
+- **THEN** the match fields are shown and the launch link carries the chosen match
+
+#### Scenario: The overlay may stay on the live match
+- **WHEN** the overlay's match is left on the automatic choice
+- **THEN** the launch link names no match and the overlay shows the court's live match
+
+#### Scenario: Two overlays, two matches
+- **WHEN** two overlay links are launched with different matches
+- **THEN** each overlay shows its own match
+
+### Requirement: The public main menu links to the TV display launcher
+The public site's main navigation SHALL include a "TV Streaming" link to the TV display launcher, carrying the page's language.
+
+#### Scenario: The menu reaches the launcher
+- **WHEN** a spectator opens the main menu of any public page
+- **THEN** a TV Streaming link leads to the launcher in the page's language
+
+### Requirement: The overlay shows only the match it was given
+The broadcast overlay SHALL show the match named in its address, SHALL show a "no match selected" state when none is named, and SHALL NOT choose an arbitrary match. An overlay addressed to a court MAY follow that court's live match.
+
+#### Scenario: No match, no guess
+- **WHEN** the overlay is opened without a match and without a court
+- **THEN** it shows the no-match state and no match's score
+
+#### Scenario: Two overlays show two matches
+- **WHEN** two overlays are opened for different matches
+- **THEN** each shows only its own match
+
+#### Scenario: A court overlay follows its live match
+- **WHEN** the overlay is addressed to a court that has a live match
+- **THEN** it shows that match
+
+### Requirement: The overlay presents series and set state
+For a match inside a series the overlay SHALL show the series state next to the score, and for a match played in sets it SHALL show the sets already played and the current one, with labels from the discipline descriptor in the viewer's language. A match with neither SHALL render as before.
+
+#### Scenario: A best-of-three shows the series
+- **WHEN** the overlay shows the second game of a best-of-three series
+- **THEN** it shows games won by each side and the game number
+
+#### Scenario: A set-based match shows its sets
+- **WHEN** the overlay shows a match in its third set
+- **THEN** it shows the two completed sets and the current one
+
+### Requirement: The overlay names the segment in play by its place
+The overlay SHALL name the segment in play with the viewer's language's ordinal and the discipline's label for the segment type ("2nd Half", "2da vuelta", "3er Set"), counting among the segments of that type. A type the match plays once SHALL be named without a number. On a portrait frame the lower third SHALL use at most two rows, the score and the segment on the first and the series and sets on the second, none of them wrapping.
+
+#### Scenario: The second half
+- **WHEN** the overlay shows a match in the second of two halves
+- **THEN** it names the segment "2nd Half", in the viewer's language
+
+#### Scenario: A lap is counted among laps
+- **WHEN** the active segment is the second lap of a match that also played a half
+- **THEN** it is named "2nd Lap", not "3rd Lap"
+
+#### Scenario: A phone-shaped frame keeps two rows
+- **WHEN** the lower third shows a series, sets and a segment in a portrait frame
+- **THEN** the score and segment share one row, the series and sets another, and nothing wraps
+
+#### Scenario: A plain match is unchanged
+- **WHEN** the match is neither in a series nor played in sets
+- **THEN** the overlay renders as before

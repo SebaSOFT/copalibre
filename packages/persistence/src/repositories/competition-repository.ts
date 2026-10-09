@@ -7,6 +7,7 @@ import {
   validateSeason,
   validateZone,
   foldTournamentCompletion,
+  type RawSegmentStatusCount,
 } from '@copalibre/domain';
 import type {
   Fixture,
@@ -159,6 +160,8 @@ export class CompetitionRepository {
       readonly stageId: string;
       readonly number: number;
       readonly name: string;
+      /** Omitted: the zone inherits its stage's format. */
+      readonly format?: Zone['format'];
     } & AuditContext,
   ): Promise<Zone> {
     await this.assertStageHasNoFixtures(uow, input.stageId);
@@ -172,6 +175,7 @@ export class CompetitionRepository {
         stage_id: zone.stageId,
         number: zone.number,
         name: zone.name,
+        format: zone.format ?? null,
         draw_seed: null,
         draw_constraints: null,
         created_at: new Date(),
@@ -212,6 +216,42 @@ export class CompetitionRepository {
       actor: input.actor,
       authorizationContext: input.authorizationContext,
       resultingState: { name: input.name },
+    });
+    return toZone(row);
+  }
+
+  /**
+   * Sets a zone's own format, or clears it (`null`) so the zone inherits its stage's again.
+   * Refused once the stage holds a fixture: a zone's format decides the fixtures it generates. The
+   * caller validates the format against the discipline's `availableFormats`.
+   */
+  async setZoneFormat(
+    uow: UnitOfWork,
+    input: { readonly zoneId: string; readonly format: Zone['format'] | null } & AuditContext,
+  ): Promise<Zone> {
+    const existing = await uow.tx
+      .selectFrom('zones')
+      .select('stage_id')
+      .where('zone_id', '=', input.zoneId)
+      .executeTakeFirst();
+    if (!existing) {
+      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
+    }
+    await this.assertStageHasNoFixtures(uow, existing.stage_id);
+    const row = await uow.tx
+      .updateTable('zones')
+      .set({ format: input.format })
+      .where('zone_id', '=', input.zoneId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'zone',
+      entityId: input.zoneId,
+      action: 'zone.format-set',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { format: input.format },
     });
     return toZone(row);
   }
@@ -1045,6 +1085,7 @@ export class CompetitionRepository {
         readonly awayEntrantId?: string;
         readonly zoneId?: string;
         readonly groupId?: string;
+        readonly role?: string;
         readonly matchCount?: number;
       }[];
     } & AuditContext,
@@ -1076,6 +1117,7 @@ export class CompetitionRepository {
           zone_id: fixture.zoneId,
           group_id: fixture.groupId,
           round: fixture.round,
+          role: fixture.role ?? null,
           home_entrant_id: fixture.homeEntrantId ?? null,
           away_entrant_id: fixture.awayEntrantId ?? null,
           created_at: new Date(),
@@ -1140,6 +1182,29 @@ export class CompetitionRepository {
    * graph's own node ids (`packages/tournament-engine`'s `match.id`), which
    * are never persisted and never equal a `fixtureId`.
    */
+  /**
+   * The zone one fixture belongs to — all a caller needs to pick the zone's own series declaration
+   * without listing the stage's fixtures. `undefined` for a fixture that does not exist.
+   */
+  async findFixtureZoneId(fixtureId: string, uow?: UnitOfWork): Promise<string | undefined> {
+    const row = await (uow?.tx ?? this.db)
+      .selectFrom('fixtures')
+      .select('zone_id')
+      .where('fixture_id', '=', fixtureId)
+      .executeTakeFirst();
+    return row?.zone_id ?? undefined;
+  }
+
+  /** The zone a group belongs to, or `undefined` for a group that does not exist. */
+  async findGroupZoneId(groupId: string): Promise<string | undefined> {
+    const row = await this.db
+      .selectFrom('groups')
+      .select('zone_id')
+      .where('group_id', '=', groupId)
+      .executeTakeFirst();
+    return row?.zone_id;
+  }
+
   async listFixturesOfStage(stageId: string): Promise<readonly Fixture[]> {
     const rows = await this.db
       .selectFrom('fixtures')
@@ -2266,11 +2331,58 @@ export class CompetitionRepository {
   }
 
   /**
+   * Match counts per stage, zone and group, for the per-segment progress of a
+   * tournament. A fixture without a zone or group contributes no row.
+   */
+  async countTournamentMatchesBySegment(
+    tournamentId: string,
+  ): Promise<readonly RawSegmentStatusCount[]> {
+    const rows = await this.db
+      .selectFrom('stages')
+      .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
+      .innerJoin('fixtures', 'fixtures.stage_id', 'stages.stage_id')
+      .innerJoin('zones', 'zones.zone_id', 'fixtures.zone_id')
+      .innerJoin('groups', 'groups.group_id', 'fixtures.group_id')
+      .leftJoin('matches', 'matches.fixture_id', 'fixtures.fixture_id')
+      .select([
+        'stages.stage_id as stageId',
+        'zones.zone_id as zoneId',
+        'zones.name as zoneName',
+        'zones.number as zoneNumber',
+        'groups.group_id as groupId',
+        'groups.name as groupName',
+        'groups.number as groupNumber',
+        'matches.status as status',
+        this.db.fn.count<string>('matches.match_id').as('count'),
+      ])
+      .where('seasons.tournament_id', '=', tournamentId)
+      .groupBy([
+        'stages.stage_id',
+        'zones.zone_id',
+        'zones.name',
+        'zones.number',
+        'groups.group_id',
+        'groups.name',
+        'groups.number',
+        'matches.status',
+      ])
+      .execute();
+
+    return rows.map((r) => ({
+      ...r,
+      count: parseInt(String(r.count), 10) || 0,
+    }));
+  }
+
+  /**
    * Tournament-wide completion summary rolled up across every stage.
    * Reuses the platform definition: resolved = finalized + forfeited.
    */
   async getTournamentCompletion(tournamentId: string): Promise<TournamentCompletionSummary> {
-    const counts = await this.countTournamentMatchesByStatus(tournamentId);
-    return foldTournamentCompletion(counts);
+    const [counts, segments] = await Promise.all([
+      this.countTournamentMatchesByStatus(tournamentId),
+      this.countTournamentMatchesBySegment(tournamentId),
+    ]);
+    return foldTournamentCompletion(counts, segments);
   }
 }

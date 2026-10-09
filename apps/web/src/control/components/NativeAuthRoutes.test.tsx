@@ -23,11 +23,10 @@ describe('NativeAuthRoutes', () => {
     globalThis.fetch = jest.fn() as any;
   });
 
-  // `locale="en"`, not `"es"`: openspec 0225 task 2.6 restated every
-  // `auth.*` defaultMessage in the source language. There is still no
-  // real per-locale catalogue for this namespace (a separate concern), so
-  // every locale — Spanish included — now falls back to English rather
-  // than to the Spanish these tests used to see by coincidence.
+  // `locale="en"`, not `"es"`: every
+  // `auth.*` defaultMessage is restated in the source language. The public return link
+  // is translated in each control catalog; remaining auth copy still uses
+  // English source messages.
 
   it('renders LoginRoute and handles success', async () => {
     (globalThis.fetch as jest.Mock<typeof fetch>).mockResolvedValueOnce({
@@ -44,18 +43,21 @@ describe('NativeAuthRoutes', () => {
     const forgotLink = screen.getByRole('link', { name: /Forgot your password\?/i });
     expect(forgotLink.className).toContain('cl-link');
     expect(forgotLink.className).toContain('cl-focusable');
+    expect(screen.getByRole('link', { name: 'Return to public site' }).getAttribute('href')).toBe(
+      '/',
+    );
 
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'test@example.com' } });
     fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'password' } });
     fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
-    // openspec 0302: a successful native login records which mechanism
+    // A successful native login records which mechanism
     // established the session, so a later silent renewal knows which one to use.
     expect(readAuthMethod()).toBe('native');
   });
 
-  it('shows an info toast when reached after a session-expired redirect (openspec 0302)', () => {
+  it('shows an info toast when reached after a session-expired redirect', () => {
     window.history.pushState(
       {},
       '',

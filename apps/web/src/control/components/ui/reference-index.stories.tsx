@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { REFERENCE_INDEX } from './reference-index.js';
 
 /**
- * The reference index (OpenSpec 0223).
+ * The reference index.
  *
  * Every supplied reference, the story that renders it, and the production
  * surface that consumes it. Read the rows with an empty consumer column first:
@@ -33,7 +33,7 @@ export const Index: Story = {
     <div className="cl-data-table cl-card cl-chamfer cl-chamfer--control">
       <table className="cl-data-table__table">
         <caption className="cl-data-table__caption">
-          0223 — references, stories and their production consumers
+          References, stories and their production consumers
         </caption>
         <thead>
           <tr>

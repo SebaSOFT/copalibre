@@ -1,16 +1,19 @@
 {
   "name": "@copalibre/seed",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "build": "tsc --build",
     "start": "tsc --build && node dist/main.js",
+    "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
     "test:integration": "node --env-file-if-exists=../../.env.test --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand",
     "test:sqlite": "COPALIBRE_TEST_DIALECT=sqlite node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand"
   },
   "dependencies": {
+    "@copalibre/demo-datasets": "workspace:^",
+    "@copalibre/domain": "workspace:^",
     "@copalibre/module-catalogue": "workspace:^",
     "@copalibre/object-storage": "workspace:^",
     "@copalibre/persistence": "workspace:^",

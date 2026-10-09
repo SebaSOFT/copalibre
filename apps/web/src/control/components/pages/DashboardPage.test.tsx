@@ -238,6 +238,22 @@ describe('DashboardPage', () => {
     expect(link.getAttribute('href')).toBe('/control/liga-mendocina/tournaments/new');
   });
 
+  it('offers public overview and TV shortcuts on tournament cards', async () => {
+    await act(async () => {
+      render(
+        <DashboardPage
+          client={client({ listActiveTournaments: async () => [tournament()] })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
+    });
+
+    const publicLink = await screen.findByRole('link', { name: 'Sitio público' });
+    const tvLink = screen.getByRole('link', { name: 'Pantalla TV' });
+    expect(publicLink.getAttribute('href')).toBe('/liga-mendocina/tournaments/apertura-2026');
+    expect(tvLink.getAttribute('href')).toBe('/tv/liga-mendocina/tournaments/apertura-2026');
+  });
+
   it('renders an actionable empty-state "Create tournament" CTA with the wizard href', async () => {
     await act(async () => {
       render(

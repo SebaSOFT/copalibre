@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * The public bracket for a cross settled by a series (0159 tasks 7.3, 7.4).
+ * The public bracket for a cross settled by a series.
  *
  * Two things a spectator has to be able to read here: how many games are left, and — where the
  * series is a two-legged tie — what the score is on aggregate. Both without color, because the

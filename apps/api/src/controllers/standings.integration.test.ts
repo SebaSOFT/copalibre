@@ -270,9 +270,9 @@ describe('standings and seeding routes (integration)', () => {
     expect((await request({ method: 'GET', url: `${base}/standings` })).statusCode).toBe(401);
   });
 
-  it('records no audit entry for ordinary browsing of standings or a bracket (task 3.3)', async () => {
+  it('records no audit entry for ordinary browsing of standings or a bracket', async () => {
     // Scoped to this stage's own aggregate, not a table-wide row count: an
-    // unrelated sibling test's fire-and-forget refusal recording (task 2.1
+    // unrelated sibling test's fire-and-forget refusal recording (which
     // is deliberately not awaited by its caller) can still be landing when
     // this test starts, and a whole-table count races against it. The
     // stage's own setup already wrote a couple of entries (stage.created,
@@ -347,7 +347,7 @@ describe('standings and seeding routes (integration)', () => {
     expect(notYetMaterialized?.persistedMatchId).toBeUndefined();
   });
 
-  it('projects one correctly-scoped bracket per zone on the operator seeding read (openspec 0246)', async () => {
+  it('projects one correctly-scoped bracket per zone on the operator seeding read', async () => {
     // Reproduces the same cross-zone round/position collision as the public bracket endpoint's
     // own test (public-projections.integration.test.ts): 2 zones, each with a round-1/position-1
     // fixture. Before the fix, `seeding()` generated one flat graph from every zone's entrants
@@ -421,7 +421,7 @@ describe('standings and seeding routes (integration)', () => {
 
     expect(response.statusCode).toBe(200);
     const body = response.json();
-    // Seed order stays one flat list across every zone (design.md Decision 3b) — unaffected by
+    // Seed order stays one flat list across every zone — unaffected by
     // the zone-scoped `zones` display below.
     expect(body.seeds).toHaveLength(4);
     expect(body.zones).toHaveLength(2);
@@ -646,8 +646,7 @@ describe('standings and seeding routes (integration)', () => {
       .execute();
     expect(after).toEqual(before);
 
-    // The refusal itself is recorded — who attempted it, and why (openspec
-    // 0166, task 6.1) — through the central exception filter, with no code
+    // The refusal itself is recorded — who attempted it, and why — through the central exception filter, with no code
     // added at this route.
     const refusal = await scratch.db
       .selectFrom('audit_log')

@@ -1,11 +1,17 @@
 ---
+import Breadcrumb from '../../../../../../components/ui/organisms/Breadcrumb.astro';
+import { publicTrail, trailBaseOf } from '../../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import BracketView from '../../../../../../components/ui/organisms/BracketView.astro';
 import ResultLegend from '../../../../../../components/ui/molecules/ResultLegend.astro';
 import StandingsTable from '../../../../../../components/ui/organisms/StandingsTable.astro';
 import { MatchCard } from '../../../../../../components/ui/organisms/MatchCard.tsx';
 import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
-import { selectStageLayout, matchReportUrl } from '../../../../../../lib/bracket.ts';
+import {
+  resolveZoneLayouts,
+  selectStageLayout,
+  matchReportUrl,
+} from '../../../../../../lib/bracket.ts';
 import {
   fetchBracket,
   fetchMatchesView,
@@ -51,9 +57,15 @@ if (!overviewData || !bracketData) {
   return Astro.rewrite('/404');
 }
 
-const layoutMode = selectStageLayout(bracketData.format);
+// Each zone is drawn by the format it plays. A stage whose zones all draw the same way keeps its
+// single bracket-or-grid page; only a stage mixing knockout and league zones is laid out zone by zone.
+const { layouts: zoneLayouts, mixed: mixedZones } = resolveZoneLayouts(
+  bracketData.zones,
+  bracketData.format,
+);
+const layoutMode = mixedZones ? 'zones' : (zoneLayouts[0] ?? selectStageLayout(bracketData.format));
 const stageMatches =
-  layoutMode === 'grid'
+  layoutMode === 'grid' || layoutMode === 'zones'
     ? await fetchMatchesView(organization!, tournament!, { stageNumber }).then((res) =>
         res ? mapMatchesViewResponse(res).matches : [],
       )
@@ -79,16 +91,44 @@ const standingsProjection = groupPhaseLayout
     )
   : undefined;
 
-const pageTitle =
-  layoutMode === 'grid'
-    ? `${intl.formatMessage(messages.matchesViewPageTitle)} — ${displayName(model)}`
-    : `${intl.formatMessage(messages.bracketPageTitle)} — ${displayName(model)}`;
+const pageHeading =
+  layoutMode === 'zones'
+    ? intl.formatMessage(messages.stageZonesPageTitle)
+    : layoutMode === 'grid'
+      ? intl.formatMessage(messages.matchesViewPageTitle)
+      : intl.formatMessage(messages.bracketPageTitle);
+const pageTitle = `${pageHeading} — ${displayName(model)}`;
+
+// A zone's own table: the ranked blocks of the groups it holds, which the API labels with the zone.
+const zoneProjection = (zoneName: string | undefined) => {
+  if (!standingsProjection || zoneName === undefined) return undefined;
+  const segments = (standingsProjection.segments ?? []).filter(
+    (segment) => segment.zoneName === zoneName,
+  );
+  return segments.length === 0
+    ? undefined
+    : { ...standingsProjection, rows: segments.flatMap((segment) => segment.rows) };
+};
 
 const structuredData = {
   '@type': 'SportsEvent' as const,
   name: pageTitle,
   url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${stagePath}`,
 };
+const trailBase = trailBaseOf({
+  organizationAlias: organization!,
+  organizationName: model.organizationName,
+  tournamentName: displayName(model),
+  canonicalPath: model.canonicalPath,
+  localePrefix,
+});
+const trail = publicTrail(trailBase, [
+  {
+    label: intl.formatMessage(messages.matchesViewPageTitle),
+    href: `${localePrefix}${model.canonicalPath}/matches?stageNumber=${stageNumber}`,
+  },
+  { label: intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber }) },
+]);
 ---
 
 <PublicLayout
@@ -98,20 +138,86 @@ const structuredData = {
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
-  <h1>
-    {
-      layoutMode === 'grid'
-        ? intl.formatMessage(messages.matchesViewPageTitle)
-        : intl.formatMessage(messages.bracketPageTitle)
-    }
-  </h1>
+  <Breadcrumb
+    items={trail}
+    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+  />
+  <h1>{pageHeading}</h1>
   <p>
     <a href={`${localePrefix}${model.canonicalPath}/matches?stageNumber=${stageNumber}`}>
       {intl.formatMessage(messages.matchesViewSeeAll)}
     </a>
   </p>
   {
-    layoutMode === 'bracket' ? (
+    layoutMode === 'zones' ? (
+      <>
+        <nav aria-label={intl.formatMessage(messages.bracketZoneJumpAriaLabel)}>
+          <ul class="cl-bracket-zone-jump">
+            {bracketData.zones.map((zone, index) => (
+              <li>
+                <a href={`#cl-bracket-zone-${index}`}>{zone.zoneName}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        {bracketData.zones.map((zone, index) => (
+          <section aria-labelledby={`cl-bracket-zone-${index}`}>
+            <h2 id={`cl-bracket-zone-${index}`}>{zone.zoneName}</h2>
+            {zoneLayouts[index] === 'bracket' ? (
+              <BracketView
+                intl={intl}
+                localePrefix={localePrefix}
+                matches={zone.matches}
+                organizationAlias={organization!}
+                stageNumber={stageNumber}
+                tournamentAlias={tournament!}
+              />
+            ) : (
+              <>
+                <div class="cl-matches-view__grid">
+                  {stageMatches
+                    .filter((match) => match.zoneName === zone.zoneName)
+                    .map((match) => (
+                      <MatchCard
+                        client:load
+                        locale={intl.locale}
+                        match={match}
+                        labels={labels}
+                        reportUrl={matchReportUrl({
+                          organizationAlias: organization!,
+                          tournamentAlias: tournament!,
+                          stageNumber: match.stageNumber,
+                          matchNumber: match.matchNumber,
+                          localePrefix,
+                        })}
+                      />
+                    ))}
+                </div>
+                {zoneProjection(zone.zoneName) && (
+                  <StandingsTable
+                    activeClubId={activeClubId}
+                    canonicalPath={stagePath}
+                    clubs={model.clubs}
+                    intl={intl}
+                    layout={groupPhaseLayout}
+                    organizationAlias={organization}
+                    projection={zoneProjection(zone.zoneName)}
+                    tournamentAlias={tournament}
+                  />
+                )}
+              </>
+            )}
+          </section>
+        ))}
+        {zoneLayouts.includes('bracket') && (
+          <ResultLegend
+            heading={intl.formatMessage(messages.legendHeading)}
+            labels={resultStateLabels(intl)}
+          />
+        )}
+      </>
+    ) : layoutMode === 'bracket' ? (
       <>
         {bracketData.zones.length > 1 && (
           <nav aria-label={intl.formatMessage(messages.bracketZoneJumpAriaLabel)}>
@@ -168,7 +274,7 @@ const structuredData = {
     )
   }
   {
-    standingsProjection && (
+    standingsProjection && layoutMode !== 'zones' && (
       <StandingsTable
         activeClubId={activeClubId}
         canonicalPath={stagePath}

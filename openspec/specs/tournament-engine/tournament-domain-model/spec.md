@@ -278,3 +278,51 @@ declared before this requirement existed SHALL continue to compile a ruleset exa
 - **THEN** ruleset compilation, override validation, and mutation classification behave exactly as
   they did before this requirement — the absence of these fields never affects override permission
   or enforcement
+
+### Requirement: Inheritable Zone Format and Overrides
+The `Zone` aggregate and its persistence record SHALL support an optional `format: TournamentFormat`. When a zone leaves `format` unset, its effective format SHALL be its parent `Stage.format`; when set, that format SHALL take precedence for the zone and every group within it. A format declared on a zone SHALL be one of the tournament discipline's `availableFormats`. A zone's series and rule overrides SHALL be held in the stage configuration's override set under a `zones.<zoneId>.` prefix, resolved zone entry first, then the stage's, then the ruleset's, and SHALL NOT be stored in a separate column or table. Changing a zone's format or overrides SHALL be refused once its stage holds a fixture.
+
+#### Scenario: Zone inherits stage format by default
+- **WHEN** a zone is created or queried without a format
+- **THEN** its effective format resolves to the parent `Stage.format`
+- **AND** existing tournaments without zone formats operate identically
+
+#### Scenario: Zone overrides stage format for heterogeneous entrant pools
+- **WHEN** a stage has the default format `single-elimination` and Zone 3 declares `round-robin`
+- **THEN** Zone 1 and Zone 2 resolve to `single-elimination`
+- **AND** Zone 3 resolves to `round-robin`
+
+#### Scenario: Zone format must be supported by the discipline
+- **WHEN** a format that is not in the installed discipline's `availableFormats` is assigned to a zone
+- **THEN** the mutation is rejected with an invalid format error
+
+#### Scenario: Zone series falls back to the stage's
+- **WHEN** Zone 3 has a `zones.<zoneId>.series.span` entry and Zone 1 has none
+- **THEN** Zone 3 resolves its own series declaration
+- **AND** Zone 1 resolves the stage's declaration, or the ruleset's, or none, exactly as before this change
+
+#### Scenario: Locked once fixtures exist
+- **WHEN** a stage holds at least one fixture and a zone's format or override is changed
+- **THEN** the mutation is refused and nothing is persisted
+
+### Requirement: Tournament creation creates the declared zones with their format and series
+Creating a tournament SHALL create, for each declared stage, the zones the request lists, numbered by list position, each with its declared `format` when present. A declared zone series SHALL be stored as zone-scoped entries in the stage's configuration, in the same keys the zone management endpoint writes, so that a zone's format and series resolve exactly as if they had been set after creation. The request SHALL be refused, with nothing stored, when a zone format is not supported by the discipline, when a zone whose effective format is a placement format declares a series, when a series declaration is invalid, or when two zones of a stage share a name. A stage that lists no zones SHALL be created without zones.
+
+#### Scenario: Zones are created with the tournament
+- **WHEN** a tournament is created with a `single-elimination` stage declaring zones "Copa Oro" and "Liga", the latter with format `round-robin` and a best-of-three series
+- **THEN** the stage has two zones numbered 1 and 2
+- **AND** "Liga" has format `round-robin` and "Copa Oro" has none and inherits `single-elimination`
+- **AND** the series resolved for "Liga" is best-of-three while "Copa Oro" resolves the stage's
+
+#### Scenario: An unsupported zone format refuses the whole request
+- **WHEN** a request declares a zone format the discipline does not support
+- **THEN** the request is refused as a bad request
+- **AND** no tournament, stage or zone is created
+
+#### Scenario: A series on a placement-format zone is refused
+- **WHEN** a request declares a series for a zone whose effective format is a placement format
+- **THEN** the request is refused and nothing is stored
+
+#### Scenario: A stage without zones is created as before
+- **WHEN** a tournament is created with stages that list no zones
+- **THEN** it has no zones, exactly as a tournament created before this capability existed

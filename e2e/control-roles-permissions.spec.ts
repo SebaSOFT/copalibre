@@ -111,10 +111,10 @@ test('admin invites a referee and changes a user status immediately', async ({ p
   await page.waitForURL(`**${target}`);
   await expect(page.getByText('referee@example.test')).toBeVisible();
 
-  await page.getByText('Añadir destinatario').click();
+  await page.getByText('Invitar usuario').click();
   await page.getByLabel('Rol de invitación').selectOption('club-admin');
   await page.screenshot({
-    path: 'docs/assets/screenshots/0286-control-roles-after.png',
+    path: 'docs/assets/screenshots/control-roles-after.png',
     fullPage: true,
   });
   await page.getByLabel('Correo electrónico').fill('new-referee@example.test');
@@ -140,7 +140,7 @@ test('admin invites a referee and changes a user status immediately', async ({ p
   });
 });
 
-test('admin creates a pending invitation and rescinds it (openspec 0170)', async ({ page }) => {
+test('admin creates a pending invitation and rescinds it', async ({ page }) => {
   await mockRolesApi(page);
   const target = '/control/liga-mendocina/roles';
   await seedLoginTransaction(page, target);
@@ -148,7 +148,7 @@ test('admin creates a pending invitation and rescinds it (openspec 0170)', async
   await page.waitForURL(`**${target}`);
   await expect(page.getByText('referee@example.test')).toBeVisible();
 
-  await page.getByText('Añadir destinatario').click();
+  await page.getByText('Invitar usuario').click();
   await page.getByLabel('Correo electrónico').fill('pendiente@example.test');
   await page.getByLabel('Rol de invitación').selectOption('viewer');
   await page.getByText('Enviar invitación').click();

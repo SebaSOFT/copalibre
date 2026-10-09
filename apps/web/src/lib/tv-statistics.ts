@@ -53,7 +53,7 @@ export interface TopPerformer {
   readonly name: string;
   readonly clubName?: string;
   readonly clubAbbreviation?: string;
-  readonly clubEmblemObjectId?: string;
+  readonly clubEmblemUrl?: string;
   readonly nationalityCode?: string;
   readonly statLabel: string;
   readonly statValue: string | number;
@@ -68,7 +68,7 @@ export interface TournamentFact {
 export interface ChampionInfo {
   readonly name: string;
   readonly abbreviation?: string;
-  readonly emblemObjectId?: string;
+  readonly emblemUrl?: string;
   readonly title: string;
   readonly record?: string;
 }
@@ -112,7 +112,7 @@ export function deriveTopPerformers(
   language: SupportedLanguage,
   tableProjection?: TableProjectionResponse,
   standings?: readonly StandingsRowView[],
-  clubs?: readonly { name: string; emblemObjectId?: string }[],
+  clubs?: readonly { name: string; emblemUrl?: string }[],
 ): readonly TopPerformer[] {
   if (tableProjection && tableProjection.rows.length > 0) {
     const column = primaryColumn(tableProjection);
@@ -129,7 +129,7 @@ export function deriveTopPerformers(
       // person played for, or a team row's own name again. Matching the
       // club lookup against `entrantName` rather than the performer's own
       // name is what makes it actually resolve for a person row
-      // (openspec 0247 — previously this read `row.entrantName` for both,
+      // (previously this read `row.entrantName` for both,
       // which is never a person's own name, so a player's name always fell
       // through to the "unnamed actor" placeholder and its club never matched).
       const name =
@@ -144,7 +144,7 @@ export function deriveTopPerformers(
         name,
         clubName: row.entrantName,
         clubAbbreviation: row.entrantAbbreviation,
-        clubEmblemObjectId: clubMatch?.emblemObjectId,
+        clubEmblemUrl: clubMatch?.emblemUrl,
         nationalityCode: row.nationality,
         statLabel: statHeader,
         statValue: rawVal,
@@ -159,7 +159,7 @@ export function deriveTopPerformers(
         rank: s.position,
         name: s.name,
         clubName: s.name,
-        clubEmblemObjectId: clubMatch?.emblemObjectId,
+        clubEmblemUrl: clubMatch?.emblemUrl,
         statLabel: labels.pointsShort,
         statValue: s.points,
       };
@@ -227,23 +227,27 @@ export function resolveChampion(
   labels: TvStatisticsLabels,
   matches: readonly (LiveMatch | OverviewMatch)[],
   standings?: readonly StandingsRowView[],
-  clubs?: readonly { name: string; emblemObjectId?: string }[],
+  clubs?: readonly { name: string; emblemUrl?: string }[],
 ): ChampionInfo | undefined {
   if (matches.length === 0 && (!standings || standings.length === 0)) {
     return undefined;
   }
 
   const allFinal = matches.length > 0 && matches.every((m) => m.state === 'final');
+  // A tournament that played several stages is decided by its last one, so the standings leader of
+  // an earlier stage is never named its champion; the final match below or the resolved winners
+  // the dashboard is given name it instead.
+  const stagesPlayed = new Set(matches.map((m) => m.stageNumber ?? 0)).size;
 
   // Check 1: Standings rank 1 if all matches are final
-  if (allFinal && standings && standings.length > 0) {
+  if (allFinal && stagesPlayed <= 1 && standings && standings.length > 0) {
     const leader = standings.find((s) => s.position === 1) ?? standings[0];
     if (leader) {
       const clubMatch = clubs?.find((c) => c.name.toLowerCase() === leader.name.toLowerCase());
       return {
         name: leader.name,
         abbreviation: leader.abbreviation,
-        emblemObjectId: clubMatch?.emblemObjectId,
+        emblemUrl: clubMatch?.emblemUrl,
         title: labels.championTitle,
         record: fill(labels.standingsRecord, { points: leader.points, played: leader.played }),
       };
@@ -275,7 +279,7 @@ export function resolveChampion(
         return {
           name: homeName,
           abbreviation: homeAbbr,
-          emblemObjectId: clubMatch?.emblemObjectId,
+          emblemUrl: clubMatch?.emblemUrl,
           title: labels.championTitle,
           record: fill(labels.grandFinalRecord, { winner: homeScore, loser: awayScore }),
         };
@@ -285,7 +289,7 @@ export function resolveChampion(
         return {
           name: awayName,
           abbreviation: awayAbbr,
-          emblemObjectId: clubMatch?.emblemObjectId,
+          emblemUrl: clubMatch?.emblemUrl,
           title: labels.championTitle,
           record: fill(labels.grandFinalRecord, { winner: awayScore, loser: homeScore }),
         };
@@ -301,7 +305,7 @@ export function resolveChampion(
       return {
         name: leader.name,
         abbreviation: leader.abbreviation,
-        emblemObjectId: clubMatch?.emblemObjectId,
+        emblemUrl: clubMatch?.emblemUrl,
         title: labels.tableLeaderTitle,
         record: fill(labels.standingsRecord, { points: leader.points, played: leader.played }),
       };

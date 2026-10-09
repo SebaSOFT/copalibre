@@ -178,7 +178,8 @@ only a summary of it.
 Every action that operates on one tournament SHALL be presented inside that tournament's own card, and
 SHALL be ranked rather than presented as a row of equal-weight controls: one primary action, the
 tournament's export actions collected behind a single grouped control, and a destructive action
-separated from both.
+separated from both. Each tournament card SHALL also provide direct navigation shortcuts to view the
+tournament on the public site and launch its live TV display.
 
 #### Scenario: Exports are one grouped control, not four buttons
 - **WHEN** a tournament card is rendered
@@ -194,6 +195,11 @@ separated from both.
 - **WHEN** the dashboard lists two tournaments
 - **THEN** each tournament's actions render within that tournament's own card, so no action sits
   between two cards where the tournament it applies to is ambiguous
+
+#### Scenario: Card provides direct shortcuts to public and TV surfaces
+- **WHEN** an operator views a tournament card
+- **THEN** the card renders direct shortcut links to the tournament's public overview page and its
+  broadcast TV display
 
 ### Requirement: A tournament card offers a way to reach its stage list
 
@@ -236,3 +242,14 @@ allowing authorized operators to navigate directly to the tournament setup wizar
 #### Scenario: Operators lacking tournament management permissions do not see the creation action
 - **WHEN** a user whose role lacks tournament management capabilities views the dashboard
 - **THEN** the tournament creation action button is omitted or hidden
+
+### Requirement: Organization preferences card hierarchy and identification
+The organization preferences screen SHALL present its functional sections in a priority sequence based on operational frequency and data importance: Organization Identity first, Storage Usage and unreferenced media second, Statistics Rebuild third, and Personal Access Tokens at the end. When rendered for organization preferences, the screen title SHALL identify the page as "Organización" (or localized equivalent) rather than personal preferences.
+
+#### Scenario: Sections appear in frequency-based priority sequence
+- **WHEN** an authenticated operator navigates to organization preferences
+- **THEN** the Identity card renders first, followed by Storage Usage, Statistics Rebuild, and Personal Access Tokens at the bottom of the page
+
+#### Scenario: Organization scope heading names organization
+- **WHEN** viewing the organization properties screen
+- **THEN** the primary page heading displays "Organización" (or the localized equivalent in the active language)

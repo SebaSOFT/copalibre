@@ -163,7 +163,7 @@ export interface ControlApiClient {
     stageNumber: number,
   ) => Promise<StandingsData>;
   /**
-   * The matches view (openspec 0172): tournament-scoped by default, one
+   * The matches view: tournament-scoped by default, one
    * stage/group/state when filtered — a query, not a distinct route.
    */
   readonly fetchMatchesView?: (
@@ -176,7 +176,7 @@ export interface ControlApiClient {
     },
   ) => Promise<{ readonly matches: readonly MatchCardData[] }>;
   /**
-   * Tournament completion aggregate summary (openspec 0241).
+   * Tournament completion aggregate summary.
    */
   readonly fetchCompletion?: (
     organizationAlias: string,
@@ -290,6 +290,16 @@ export interface ControlApiClient {
     stageNumber: number,
     request: StageConfigurationRequest,
   ) => Promise<StageConfigurationResponse>;
+  /**
+   * Generates the next round of one zone of a Swiss or single-elimination stage. The zone is
+   * required when the stage has several; rounds, pairings and results are per zone.
+   */
+  readonly generateNextRound?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    request: NextRoundRequest,
+  ) => Promise<StageFixturesResponse>;
   /** Zone/Group management, entrant assignment, and promotion plans. */
   readonly listZones?: (
     organizationAlias: string,
@@ -321,6 +331,14 @@ export interface ControlApiClient {
     stageNumber: number,
     zoneNumber: number,
     request: RenameRequest,
+  ) => Promise<ZoneResponse>;
+  /** Refused once the stage holds a fixture, and for a format the discipline does not offer. */
+  readonly configureZone?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+    request: ZoneConfigurationRequest,
   ) => Promise<ZoneResponse>;
   readonly deleteZone?: (
     organizationAlias: string,
@@ -419,7 +437,7 @@ export interface ControlApiClient {
     organizationAlias: string,
     request: InviteOrganizationUserRequest,
   ) => Promise<InvitationResponse>;
-  /** Not yet accepted, not rescinded, not expired (openspec 0170). */
+  /** Not yet accepted, not rescinded, not expired. */
   readonly listPendingInvitations?: (
     organizationAlias: string,
   ) => Promise<readonly PendingOrganizationInvitationResponse[]>;
@@ -473,7 +491,7 @@ export interface ControlApiClient {
     tournamentAlias: string,
   ) => Promise<readonly DisplayTokenResponse[]>;
   /**
-   * Issues a device-scoped `/tv/**` token (openspec 0300's Broadcaster
+   * Issues a device-scoped `/tv/**` token (the Broadcaster
    * Studio, but not exclusive to it — a kiosk device uses the same call).
    * The raw token and its ready-to-use launch URL are returned once; neither
    * is retrievable again afterward.
@@ -570,7 +588,7 @@ export interface ControlApiClient {
     request: UploadImageRequest,
   ) => Promise<{ readonly objectId: string }>;
   /**
-   * The Club Portal (openspec 0301): a club-admin's own scoped member
+   * The Club Portal: a club-admin's own scoped member
    * directory, team list, and tournament roster submission.
    */
   readonly listClubMembers?: (
@@ -1175,11 +1193,13 @@ export interface TableProjectionResponseData {
 /**
  * One zone's own independent bracket in the seeding canvas — or the stage's only bracket, for an
  * un-zoned stage, which always comes back as exactly one zone entry with no
- * `zoneId`/`zoneName` (openspec 0246).
+ * `zoneId`/`zoneName`.
  */
 export interface SeedingZoneResponse {
   readonly zoneId?: string;
   readonly zoneName?: string;
+  /** The format this zone plays: its own when it declares one, otherwise the stage's. */
+  readonly format?: string;
   readonly matches: readonly CanvasMatch[];
 }
 
@@ -1209,6 +1229,23 @@ export interface ZoneResponse {
   readonly stageId: string;
   readonly number: number;
   readonly name: string;
+  /** The format this zone declares itself; absent means it inherits its stage's. */
+  readonly format?: string;
+  /** The format this zone plays: its own when it declares one, otherwise the stage's. */
+  readonly effectiveFormat?: string;
+  /** The series this zone declares itself; absent means it inherits its stage's. */
+  readonly series?: SeriesDeclaration;
+}
+
+export interface NextRoundRequest {
+  /** The 1-based number of the zone to advance. */
+  readonly zoneNumber?: number;
+}
+
+/** Absent leaves a field unchanged; `null` clears it so the zone inherits its stage's again. */
+export interface ZoneConfigurationRequest {
+  readonly format?: string | null;
+  readonly series?: SeriesDeclaration | null;
 }
 
 export interface GroupResponse {
@@ -1258,10 +1295,10 @@ export interface TournamentSettingsResponse {
 
 export type TournamentSettingsRequest = Partial<TournamentSettingsResponse>;
 
-/** Dot-path → value for a tournament ruleset's override fields (openspec 0169). */
+/** Dot-path → value for a tournament ruleset's override fields. */
 export interface RulesetOverridesResponse {
   readonly overrides: Readonly<Record<string, unknown>>;
-  /** The installed discipline's field policies — context for the plain-language summary (0263). */
+  /** The installed discipline's field policies — context for the plain-language summary. */
   readonly fieldPolicies: Readonly<Record<string, unknown>>;
   /** The installed discipline's own default configuration tree, before any override. */
   readonly disciplineDefaults: Readonly<Record<string, unknown>>;
@@ -1271,13 +1308,15 @@ export interface RulesetOverridesRequest {
   readonly overrides: Readonly<Record<string, unknown>>;
 }
 
-/** Same shape one layer down: a stage's own configuration overrides (openspec 0169). */
+/** Same shape one layer down: a stage's own configuration overrides. */
 export interface StageConfigurationResponse {
   readonly overrides: Readonly<Record<string, unknown>>;
+  readonly groupConfiguration?: StageGroupConfigurationDeclaration;
 }
 
 export interface StageConfigurationRequest {
   readonly overrides: Readonly<Record<string, unknown>>;
+  readonly groupConfiguration?: StageGroupConfigurationDeclaration | null;
 }
 
 /** One field's classification from a mutation-preview endpoint. */
@@ -1425,6 +1464,24 @@ export interface CreateTournamentStageRequest {
   readonly format: string;
   readonly series?: SeriesDeclaration;
   readonly allocation?: StageAllocationDeclaration;
+  readonly groupConfiguration?: StageGroupConfigurationDeclaration;
+  /** The stage's zones, numbered by position; absent creates none. */
+  readonly zones?: readonly CreateTournamentZoneRequest[];
+}
+
+export interface CreateTournamentZoneRequest {
+  readonly name: string;
+  /** Absent: the zone plays its stage's format. */
+  readonly format?: string;
+  /** Absent: the zone inherits its stage's series. */
+  readonly series?: SeriesDeclaration;
+}
+
+export interface StageGroupConfigurationDeclaration {
+  readonly groupCount: number;
+  readonly groupSize: number;
+  readonly distribution: 'balanced' | 'exact-size' | 'overflow-last' | 'manual';
+  readonly manualGroupSizes?: readonly number[];
 }
 
 export type SeriesResolutionClass = 'best-of' | 'aggregate' | 'points-per-leg';
@@ -1518,7 +1575,7 @@ export interface RegistrationResponse {
   readonly nationality?: string;
   readonly photoObjectId?: string;
   readonly teamMembers?: readonly TeamMemberResponse[];
-  /** Whether this person entrant already carries a participant identity link (openspec 0170). */
+  /** Whether this person entrant already carries a participant identity link. */
   readonly hasIdentityLink?: boolean;
 }
 
@@ -1659,7 +1716,7 @@ export interface InvitationResponse {
   readonly expiresAt: string;
 }
 
-/** A pending (not yet accepted, not rescinded, not expired) invitation (openspec 0170). */
+/** A pending (not yet accepted, not rescinded, not expired) invitation. */
 export interface PendingOrganizationInvitationResponse {
   readonly invitationId: string;
   readonly recipientEmail: string;
@@ -2435,6 +2492,13 @@ export function createControlApiClient(input: {
         { method: 'PUT', body, token: input.accessToken?.() },
       ),
 
+    generateNextRound: (organizationAlias, tournamentAlias, stageNumber, body) =>
+      requestJson<StageFixturesResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/rounds/next`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
     listZones: (organizationAlias, tournamentAlias, stageNumber) =>
       requestJson<readonly ZoneResponse[]>(
         input.fetch,
@@ -2468,6 +2532,13 @@ export function createControlApiClient(input: {
         input.fetch,
         zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber),
         { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    configureZone: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
+      requestJson<ZoneResponse>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/configuration`,
+        { method: 'PUT', body, token: input.accessToken?.() },
       ),
 
     deleteZone: (organizationAlias, tournamentAlias, stageNumber, zoneNumber) =>

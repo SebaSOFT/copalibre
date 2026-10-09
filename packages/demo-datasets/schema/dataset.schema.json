@@ -1,0 +1,364 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://copalibre.dev/schemas/demo-dataset.schema.json",
+  "title": "CopaLibre demo dataset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "alias",
+    "name",
+    "discipline",
+    "organization",
+    "tournament",
+    "clubs",
+    "teams",
+    "players",
+    "phases",
+    "venues",
+    "games"
+  ],
+  "definitions": {
+    "alias": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "assetPath": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9/_-]*\\.png$"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "person": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["givenNames", "surname"],
+      "properties": {
+        "givenNames": {
+          "$ref": "#/definitions/text"
+        },
+        "surname": {
+          "$ref": "#/definitions/text"
+        }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "alias": {
+      "$ref": "#/definitions/alias"
+    },
+    "name": {
+      "$ref": "#/definitions/text"
+    },
+    "discipline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alias", "version"],
+      "properties": {
+        "alias": {
+          "$ref": "#/definitions/alias"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        }
+      }
+    },
+    "organization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alias", "name", "description", "primaryLanguage", "timezone"],
+      "properties": {
+        "alias": {
+          "$ref": "#/definitions/alias"
+        },
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "primaryLanguage": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 8
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 64
+        },
+        "emblem": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
+    },
+    "tournament": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alias", "name", "season", "emblem"],
+      "properties": {
+        "alias": {
+          "$ref": "#/definitions/alias"
+        },
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "season": {
+          "$ref": "#/definitions/text"
+        },
+        "emblem": {
+          "$ref": "#/definitions/assetPath"
+        }
+      }
+    },
+    "clubs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["alias", "name", "abbreviation", "emblem"],
+        "properties": {
+          "alias": {
+            "$ref": "#/definitions/alias"
+          },
+          "name": {
+            "$ref": "#/definitions/text"
+          },
+          "abbreviation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8
+          },
+          "emblem": {
+            "$ref": "#/definitions/assetPath"
+          }
+        }
+      }
+    },
+    "teams": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["alias", "clubAlias", "name", "abbreviation"],
+        "properties": {
+          "alias": {
+            "$ref": "#/definitions/alias"
+          },
+          "clubAlias": {
+            "$ref": "#/definitions/alias"
+          },
+          "name": {
+            "$ref": "#/definitions/text"
+          },
+          "abbreviation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8
+          }
+        }
+      }
+    },
+    "players": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["alias", "teamAlias", "givenNames", "surname", "roles", "goals", "assists"],
+        "properties": {
+          "alias": {
+            "$ref": "#/definitions/alias"
+          },
+          "teamAlias": {
+            "$ref": "#/definitions/alias"
+          },
+          "givenNames": {
+            "$ref": "#/definitions/text"
+          },
+          "surname": {
+            "$ref": "#/definitions/text"
+          },
+          "dorsal": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 99
+          },
+          "nationality": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "roles": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": ["goalkeeper", "captain"]
+            }
+          },
+          "goals": {
+            "$ref": "#/definitions/count"
+          },
+          "assists": {
+            "$ref": "#/definitions/count"
+          }
+        }
+      }
+    },
+    "phases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["alias", "name", "kind", "teamAliases"],
+        "properties": {
+          "alias": {
+            "$ref": "#/definitions/alias"
+          },
+          "name": {
+            "$ref": "#/definitions/text"
+          },
+          "kind": {
+            "enum": ["group", "cup"]
+          },
+          "teamAliases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/alias"
+            }
+          }
+        }
+      }
+    },
+    "games": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "phaseAlias",
+          "homeTeamAlias",
+          "awayTeamAlias",
+          "scheduledAt",
+          "homeGoals",
+          "awayGoals",
+          "officials",
+          "scorerKnown",
+          "events",
+          "round",
+          "roundNumber"
+        ],
+        "properties": {
+          "key": {
+            "$ref": "#/definitions/alias"
+          },
+          "phaseAlias": {
+            "$ref": "#/definitions/alias"
+          },
+          "round": {
+            "$ref": "#/definitions/text"
+          },
+          "homeTeamAlias": {
+            "$ref": "#/definitions/alias"
+          },
+          "awayTeamAlias": {
+            "$ref": "#/definitions/alias"
+          },
+          "scheduledAt": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2})?$"
+          },
+          "homeGoals": {
+            "$ref": "#/definitions/count"
+          },
+          "awayGoals": {
+            "$ref": "#/definitions/count"
+          },
+          "officials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/person"
+            }
+          },
+          "scorerKnown": {
+            "type": "boolean"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["period", "clock", "teamAlias", "type"],
+              "properties": {
+                "period": {
+                  "$ref": "#/definitions/text"
+                },
+                "clock": {
+                  "type": "string",
+                  "pattern": "^\\d{1,3}:\\d{2}$"
+                },
+                "teamAlias": {
+                  "$ref": "#/definitions/alias"
+                },
+                "type": {
+                  "$ref": "#/definitions/alias"
+                },
+                "playerAlias": {
+                  "$ref": "#/definitions/alias"
+                },
+                "assistAlias": {
+                  "$ref": "#/definitions/alias"
+                },
+                "detail": {
+                  "$ref": "#/definitions/text"
+                }
+              }
+            }
+          },
+          "roundNumber": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "venueAlias": {
+            "$ref": "#/definitions/alias"
+          }
+        }
+      }
+    },
+    "venues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["alias", "name"],
+        "properties": {
+          "alias": {
+            "$ref": "#/definitions/alias"
+          },
+          "name": {
+            "$ref": "#/definitions/text"
+          }
+        }
+      }
+    }
+  }
+}

@@ -364,7 +364,7 @@ and preserve the generated reduced-motion behavior.
 A card or section SHALL resolve its surface level from what it is, with no modifier class, prop, or
 decision at the call site. A content container SHALL alternate against the level it sits on; chrome — a
 panel header, a footer, a chip, a tag, an eyebrow, an icon well — SHALL lift to the chrome level at any
-depth. `0220` calibrates those levels against the reference project; this change makes the assignment
+depth. The operational surface parity work calibrates those levels against the reference project; this change makes the assignment
 automatic so a screen never states it.
 
 The levels SHALL be their own semantic roles rather than reusing `surface-raised`, whose contracted

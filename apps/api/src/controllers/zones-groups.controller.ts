@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   Req,
 } from '@nestjs/common';
 import {
@@ -28,7 +29,17 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { IMPLICIT_ZONE_NAME, type DrawConstraint } from '@copalibre/domain';
+import {
+  IMPLICIT_ZONE_NAME,
+  effectiveFormat,
+  isPlacementFormat,
+  validateSeriesDeclaration,
+  validateZoneFormat,
+  type DrawConstraint,
+  type Stage,
+  type TournamentFormat,
+  type Zone,
+} from '@copalibre/domain';
 import {
   computeAccounting,
   drawGroups,
@@ -58,6 +69,7 @@ import {
   ConfirmZoneDrawResponse,
   CreateGroupRequest,
   CreateZoneRequest,
+  ZoneConfigurationRequest,
   DrawGroupsRequest,
   DrawPreviewResponse,
   DrawZonesRequest,
@@ -75,7 +87,7 @@ import {
 } from '../dto/zones-groups.dto.js';
 import { resolveTournament } from './standings.controller.js';
 import { standingsPipeline } from '../standings/pipeline.js';
-import { readStageSeries } from './stage-series.js';
+import { ownZoneSeriesOf, readStageSeries, zoneSeriesOverrides } from './stage-series.js';
 
 @ApiTags('zones and groups')
 @Controller('organizations/:organizationAlias/tournaments/:tournamentAlias/stages/:stageNumber')
@@ -93,7 +105,10 @@ export class ZonesGroupsController {
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
   ): Promise<readonly ZoneResponse[]> {
     const { stage } = await this.publicStage(organizationAlias, tournamentAlias, stageNumber);
-    return new CompetitionRepository(this.db).listZonesOfStage(stage.stageId);
+    return this.zoneResponses(
+      stage,
+      await new CompetitionRepository(this.db).listZonesOfStage(stage.stageId),
+    );
   }
 
   @Post('zones')
@@ -118,7 +133,7 @@ export class ZonesGroupsController {
     const existing = await competition.listZonesOfStage(context.stage.stageId);
     const number = body.number ?? existing.length + 1;
     try {
-      return await withTransaction(this.db, (uow) =>
+      const created = await withTransaction(this.db, (uow) =>
         competition.createZone(uow, {
           stageId: context.stage.stageId,
           number,
@@ -126,6 +141,7 @@ export class ZonesGroupsController {
           ...context.audit,
         }),
       );
+      return (await this.zoneResponses(context.stage, [created]))[0] as ZoneResponse;
     } catch (error) {
       throwConflict(error);
     }
@@ -150,13 +166,127 @@ export class ZonesGroupsController {
   ): Promise<ZoneResponse> {
     const context = await this.adminStage(organizationAlias, tournamentAlias, stageNumber, request);
     const zone = await this.zone(context.stage.stageId, zoneNumber);
-    return withTransaction(this.db, (uow) =>
+    const renamed = await withTransaction(this.db, (uow) =>
       new CompetitionRepository(this.db).renameZone(uow, {
         zoneId: zone.zoneId,
         name: body.name,
         ...context.audit,
       }),
     );
+    return (await this.zoneResponses(context.stage, [renamed]))[0] as ZoneResponse;
+  }
+
+  @Put('zones/:zoneNumber/configuration')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-zones-groups')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Set or clear the format and series a zone declares itself',
+    description:
+      'A zone without its own format plays its stage’s. Refused once the stage holds a fixture, ' +
+      'and for a format the tournament’s discipline does not offer.',
+  })
+  @ApiOkResponse({ type: ZoneResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async configureZone(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Param('zoneNumber', ParseIntPipe) zoneNumber: number,
+    @Body() body: ZoneConfigurationRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<ZoneResponse> {
+    const context = await this.adminStage(organizationAlias, tournamentAlias, stageNumber, request);
+    const zone = await this.zone(context.stage.stageId, zoneNumber);
+    const tournaments = new TournamentRepository(this.db);
+
+    if (typeof body.format === 'string') {
+      const descriptor = await tournaments.findDescriptor(
+        context.tournament.disciplineRef.descriptorId,
+        context.tournament.disciplineRef.version,
+      );
+      if (!descriptor)
+        throw new NotFoundException('Tournament discipline is not installed', {
+          errorCode: 'zone-group-not-found',
+        });
+      const valid = validateZoneFormat(
+        zone,
+        body.format as TournamentFormat,
+        descriptor.availableFormats,
+      );
+      if (!valid.ok)
+        throw new BadRequestException(valid.error.message, {
+          errorCode: 'zone-group-bad-request',
+        });
+    }
+
+    const nextFormat =
+      body.format === undefined
+        ? effectiveFormat(zone, context.stage)
+        : ((body.format ?? context.stage.format) as TournamentFormat);
+    if (body.series != null) {
+      // A placement format produces an ordering, not two sides that could contest a series.
+      if (isPlacementFormat(nextFormat))
+        throw new BadRequestException(
+          `Format "${nextFormat}" produces an ordering rather than two sides, so a zone playing it cannot declare a series`,
+          { errorCode: 'zone-group-bad-request' },
+        );
+      const validated = validateSeriesDeclaration(body.series);
+      if (!validated.ok)
+        throw new BadRequestException(validated.error.message, {
+          errorCode: 'zone-group-bad-request',
+        });
+    }
+
+    const ruleset =
+      body.series === undefined
+        ? undefined
+        : await tournaments.findLatestRuleset(context.tournamentId);
+    if (body.series !== undefined && !ruleset)
+      throw new BadRequestException(
+        'This tournament has no configured ruleset to attach a zone series declaration to',
+        { errorCode: 'zone-group-bad-request' },
+      );
+
+    try {
+      const updated = await withTransaction(this.db, async (uow) => {
+        const competition = new CompetitionRepository(this.db);
+        await competition.assertStageHasNoFixtures(uow, context.stage.stageId);
+        let current: Zone = zone;
+        if (body.format !== undefined) {
+          current = await competition.setZoneFormat(uow, {
+            zoneId: zone.zoneId,
+            format: (body.format as TournamentFormat | null) ?? null,
+            ...context.audit,
+          });
+        }
+        if (body.series !== undefined && ruleset) {
+          const overrides = zoneSeriesOverrides(zone.zoneId, body.series);
+          if (await tournaments.findLatestStageConfiguration(context.stage.stageId)) {
+            await tournaments.updateStageConfiguration(uow, {
+              stageId: context.stage.stageId,
+              changedOverrides: overrides,
+              ...context.audit,
+            });
+          } else {
+            await tournaments.createStageConfiguration(uow, {
+              stageId: context.stage.stageId,
+              rulesetId: ruleset.rulesetId,
+              overrides,
+              ...context.audit,
+            });
+          }
+        }
+        return current;
+      });
+      return (await this.zoneResponses(context.stage, [updated]))[0] as ZoneResponse;
+    } catch (error) {
+      throwConflict(error);
+    }
   }
 
   @Delete('zones/:zoneNumber')
@@ -183,12 +313,13 @@ export class ZonesGroupsController {
     const context = await this.adminStage(organizationAlias, tournamentAlias, stageNumber, request);
     const zone = await this.zone(context.stage.stageId, zoneNumber);
     try {
-      return await withTransaction(this.db, (uow) =>
+      const deleted = await withTransaction(this.db, (uow) =>
         new CompetitionRepository(this.db).deleteZone(uow, {
           zoneId: zone.zoneId,
           ...context.audit,
         }),
       );
+      return (await this.zoneResponses(context.stage, [deleted]))[0] as ZoneResponse;
     } catch (error) {
       throwConflict(error);
     }
@@ -393,7 +524,7 @@ export class ZonesGroupsController {
           ...context.audit,
         }),
       );
-      return { ...outcome, zones: [...persisted.entities] };
+      return { ...outcome, zones: await this.zoneResponses(context.stage, persisted.entities) };
     } catch (error) {
       throwConflict(error);
     }
@@ -493,7 +624,7 @@ export class ZonesGroupsController {
       );
       return {
         assignment: assignmentResponse(persisted.assignment),
-        zones: [...persisted.entities],
+        zones: await this.zoneResponses(context.stage, persisted.entities),
       };
     } catch (error) {
       throwConflict(error);
@@ -600,7 +731,7 @@ export class ZonesGroupsController {
     const saved = await competition.findPromotionPlan(zone.zoneId);
     if (!saved)
       // A distinct code from the shared `zone-group-not-found` this endpoint's
-      // own stage/zone lookups above also throw (openspec 0284) — an operator
+      // own stage/zone lookups above also throw — an operator
       // viewing a zone with no saved plan yet is an expected, benign state,
       // not the same condition as a deleted/renumbered stage or zone, so the
       // console needs to tell the two apart rather than treat every 404 here
@@ -669,7 +800,7 @@ export class ZonesGroupsController {
           };
         } catch {
           // Not yet resolvable (e.g. group standings incomplete) — omitted,
-          // not an error for this reverse lookup as a whole (design.md).
+          // not an error for this reverse lookup as a whole.
           return undefined;
         }
       }),
@@ -720,6 +851,7 @@ export class ZonesGroupsController {
     const seriesDeclaration = await readStageSeries(this.db, {
       tournamentId,
       stageId: sourceStageId,
+      zoneId: zone.zoneId,
     });
     const groupAccountings = new Map(
       groupRecords.map((entry) => [
@@ -841,6 +973,24 @@ export class ZonesGroupsController {
         authorizationContext: (request.subject?.scopes ?? []).join(' '),
       },
     };
+  }
+
+  /** Zones with the format they play and the series they declare themselves, if any. */
+  private async zoneResponses(
+    stage: Pick<Stage, 'stageId' | 'format'>,
+    zones: readonly Zone[],
+  ): Promise<ZoneResponse[]> {
+    const configuration = await new TournamentRepository(this.db).findLatestStageConfiguration(
+      stage.stageId,
+    );
+    return zones.map((zone) => {
+      const series = ownZoneSeriesOf(configuration?.overrides, zone.zoneId);
+      return {
+        ...zone,
+        effectiveFormat: effectiveFormat(zone, stage),
+        ...(series === undefined ? {} : { series }),
+      };
+    });
   }
 
   private async stageOf(tournamentId: string, stageNumber: number) {

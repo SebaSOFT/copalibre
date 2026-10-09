@@ -19,7 +19,7 @@ import { buildEliminationTree, nextPowerOfTwo } from './single-elimination.js';
  *   - LB round 1 is minor and consumes the `S/2` losers of WB round 1;
  *   - total LB rounds = `2k - 2`.
  *
- * Note on the design doc: `design.md` states `2*log2(N)-1` LB rounds. That is off
+ * Note: an earlier design draft stated `2*log2(N)-1` LB rounds. That is off
  * by one — verified against S=4 (2 rounds), S=8 (4), S=16 (6). The implementation
  * uses `2k-2`; the golden fixtures encode the verified structure.
  */
@@ -165,7 +165,7 @@ export function buildDoubleElimination(
  * Builds one match, or one per series game, for a fixed slot pair — the
  * span>1/span<=1 duplication that previously appeared at all three call
  * sites (losers-bracket round, grand final, bracket reset), extracted
- * verbatim (openspec 0230). `extra` carries the one field that differs
+ * verbatim. `extra` carries the one field that differs
  * between them (`conditional: 'bracket-reset'`); every other field, and the
  * conditional inclusion of `series` only in the multi-game shape, matches
  * each site's original object exactly.

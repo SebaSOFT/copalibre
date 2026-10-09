@@ -1,6 +1,5 @@
 /**
- * `Field` composed with `LocalizedInput`/`LocalizedTextarea` (openspec 0233
- * follow-up) — the shared replacement for the "one stacked `Input` per
+ * `Field` composed with `LocalizedInput`/`LocalizedTextarea` — the shared replacement for the "one stacked `Input` per
  * language" `LocalizedField` helper that was duplicated byte-for-byte across
  * `ProfileBuilderWizard.tsx` and `DescriptorBuilderWizard.tsx`. Presentation
  * only: which language is active and what that language's own translations

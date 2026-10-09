@@ -6,9 +6,9 @@ Deterministic fixture generation, standings, advancement, and qualification acro
 - **Placement formats**: `free-for-all`, `heats`, `ffa-bracket` (multi-round elimination bracket), `ffa-bracket-groups`, and `ffa-league` (multi-division FFA league).
 - **Standings & Tiebreakers**: multi-scope evaluation (`overall`, `head-to-head`, `match-losses`), Strength-of-Schedule (`buchholz`, `median-buchholz`, `sonneborn-berger`), progressive scoring, and forfeit tracking.
 
-## Why this is its own package (decision, 0007)
+## Why this is its own package
 
-`0007`'s proposal left the location open: `packages/domain` or a dedicated package. It is dedicated,
+The original proposal left the location open: `packages/domain` or a dedicated package. It is dedicated,
 because standings computation must delegate tiebreak resolution to `@copalibre/rules`, and `rules`
 already depends on `domain` — putting standings in `domain` would create a dependency cycle.
 

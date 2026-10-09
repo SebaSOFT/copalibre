@@ -10,7 +10,7 @@ import { parse } from 'yaml';
  * @returns {{ ok: boolean, errors: string[] }}
  */
 export function validateDevCompose(composeYaml) {
-  const compose = parse(composeYaml);
+  const compose = parse(composeYaml, { merge: true });
   const errors = [];
 
   const services = compose.services ?? {};
@@ -36,6 +36,24 @@ export function validateDevCompose(composeYaml) {
     const healthcheck = initService.healthcheck;
     if (!healthcheck || !healthcheck.test) {
       errors.push('object-storage-init must define a healthcheck to signal bucket readiness');
+    }
+  }
+
+  // api serves uploaded and demo-loaded emblems and worker scans them; both must read the dev Garage, not
+  // each container's own filesystem, or an object written from the host is invisible to them.
+  for (const name of ['api', 'worker']) {
+    const service = services[name];
+    if (!service) continue;
+    const environment = service.environment ?? {};
+    if (environment.COPALIBRE_OBJECT_STORAGE_URL !== 'http://object-storage:3900') {
+      errors.push(`${name} must use the dev Garage object storage (COPALIBRE_OBJECT_STORAGE_URL)`);
+    }
+    if (environment.COPALIBRE_OBJECT_STORAGE_BUCKET !== 'copalibre-dev') {
+      errors.push(`${name} must use the copalibre-dev bucket (COPALIBRE_OBJECT_STORAGE_BUCKET)`);
+    }
+    const dependsOn = Object.keys(service.depends_on ?? {});
+    if (!dependsOn.includes('object-storage-init')) {
+      errors.push(`${name} must wait for object-storage-init so the bucket exists`);
     }
   }
 

@@ -25,7 +25,7 @@ import type { ModuleSource } from './fetch.js';
 import type { ModuleManifest } from './manifest.js';
 import type { ValidatedModule } from './validate.js';
 
-/** An alias already held by a module of different attribution — task 3.6. */
+/** An alias already held by a module of different attribution. */
 export class ModuleAliasConflictError extends Error {
   constructor(
     readonly alias: string,
@@ -39,7 +39,7 @@ export class ModuleAliasConflictError extends Error {
   }
 }
 
-/** A profile's required capabilities are unsatisfied by every installed discipline, and no override was given — task 3.5. */
+/** A profile's required capabilities are unsatisfied by every installed discipline, and no override was given. */
 export class UnsatisfiedModuleCapabilitiesError extends Error {
   constructor(readonly unsatisfied: readonly string[]) {
     super(
@@ -54,7 +54,7 @@ export interface ImportModuleOptions {
   readonly source: ModuleSource;
   /** Recorded on the audit trail — the operator/CLI invocation, not an organization: modules are installation-wide, never org-scoped. */
   readonly actor: string;
-  /** Proceeds despite no installed discipline satisfying the profile's required capabilities (task 3.5). */
+  /** Proceeds despite no installed discipline satisfying the profile's required capabilities. */
   readonly overrideUnsatisfiedCapabilities?: boolean;
 }
 
@@ -111,13 +111,13 @@ async function uploadModuleAssets(
 }
 
 /**
- * Imports an already-validated module (task 3.2-3.7): checks the reserved-
+ * Imports an already-validated module: checks the reserved-
  * alias-shadowing rule, reports (and optionally overrides) unsatisfied
  * profile capabilities, uploads assets, and writes the artifact + install
  * record in one transaction. Assets upload *before* the transaction opens —
  * object storage has no transaction spanning Postgres — and are deleted as
  * a compensating action if the transaction subsequently fails, so a refused
- * import leaves neither a row nor an asset behind (task 3.4).
+ * import leaves neither a row nor an asset behind.
  */
 export async function importValidatedModule(
   db: Kysely<Database>,

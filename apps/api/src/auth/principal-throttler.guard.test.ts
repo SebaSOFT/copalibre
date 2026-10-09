@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import type { ExecutionContext } from '@nestjs/common';
 import type { ThrottlerRequest } from '@nestjs/throttler';
 import {
@@ -41,9 +41,9 @@ interface GuardInternals {
 /* ------------------------------------------------------------------ */
 
 function createGuard(reflectorOverrides: Record<string, unknown> = {}) {
-  const storage = { increment: jest.fn(), onApplicationShutdown: jest.fn() };
+  const storage = { increment: vi.fn(), onApplicationShutdown: vi.fn() };
   const reflector = {
-    getAllAndOverride: jest.fn((key: string) => reflectorOverrides[key]),
+    getAllAndOverride: vi.fn((key: string) => reflectorOverrides[key]),
   };
   const db = {} as never;
 
@@ -81,12 +81,12 @@ function fakeRequestProps(
 ) {
   const headers: Record<string, unknown> = {};
   const res = {
-    header: jest.fn((k: string, v: unknown) => {
+    header: vi.fn((k: string, v: unknown) => {
       headers[k] = v;
     }),
   };
   const req = fakeRequest({ principalId: 'p-1' });
-  const handler = jest.fn();
+  const handler = vi.fn();
   const classRef = class Target {};
   const context = {
     getHandler: () => handler,
@@ -98,10 +98,10 @@ function fakeRequestProps(
   } as unknown as ExecutionContext;
 
   const throttlerName = overrides.throttlerName ?? 'default';
-  const getTrackerFn = jest
+  const getTrackerFn = vi
     .fn<(_req: unknown, _context: unknown) => Promise<string>>()
     .mockResolvedValue(overrides.tracker ?? 'principal-p-1');
-  const generateKeyFn = jest.fn(
+  const generateKeyFn = vi.fn(
     (_ctx: unknown, tracker: string, name: string) => `${name}:${tracker}`,
   );
 
@@ -124,9 +124,9 @@ function fakeRequestProps(
 /* ------------------------------------------------------------------ */
 
 describe('PrincipalThrottlerGuard', () => {
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => vi.restoreAllMocks());
 
-  /* ---------- getTracker (task 2.3) ---------- */
+  /* ---------- getTracker ---------- */
 
   describe('getTracker', () => {
     it('returns principal-prefixed key when principalId is present', async () => {
@@ -162,13 +162,13 @@ describe('PrincipalThrottlerGuard', () => {
     });
   });
 
-  /* ---------- handleRequest route-policy selection (task 2.2) ---------- */
+  /* ---------- handleRequest route-policy selection ---------- */
 
   describe('handleRequest — route-policy selection', () => {
     it('delegates to parent (local storage) when @SharedThrottle is absent', async () => {
       const { guard } = createGuard({ [SHARED_THROTTLE_KEY]: undefined });
       const internals = guard as unknown as GuardInternals;
-      const parentHandleRequest = jest
+      const parentHandleRequest = vi
         .spyOn(Object.getPrototypeOf(Object.getPrototypeOf(guard)), 'handleRequest')
         .mockResolvedValue(true);
 
@@ -181,7 +181,7 @@ describe('PrincipalThrottlerGuard', () => {
     it('delegates to parent when reflector returns false for SHARED_THROTTLE_KEY', async () => {
       const { guard } = createGuard({ [SHARED_THROTTLE_KEY]: false });
       const internals = guard as unknown as GuardInternals;
-      const parentHandleRequest = jest
+      const parentHandleRequest = vi
         .spyOn(Object.getPrototypeOf(Object.getPrototypeOf(guard)), 'handleRequest')
         .mockResolvedValue(true);
 
@@ -193,7 +193,7 @@ describe('PrincipalThrottlerGuard', () => {
     it('uses shared storage when @SharedThrottle is true', async () => {
       const { guard } = createGuard({ [SHARED_THROTTLE_KEY]: true });
       const internals = guard as unknown as GuardInternals;
-      const sharedIncrement = jest.spyOn(internals.sharedStorage, 'increment').mockResolvedValue({
+      const sharedIncrement = vi.spyOn(internals.sharedStorage, 'increment').mockResolvedValue({
         totalHits: 1,
         timeToExpire: 60,
         isBlocked: false,
@@ -201,7 +201,7 @@ describe('PrincipalThrottlerGuard', () => {
       });
 
       const props = fakeRequestProps();
-      jest.spyOn(internals, 'getRequestResponse').mockReturnValue({
+      vi.spyOn(internals, 'getRequestResponse').mockReturnValue({
         req: props.req,
         res: props.res,
       });
@@ -224,7 +224,7 @@ describe('PrincipalThrottlerGuard', () => {
     function setupSharedGuard() {
       const { guard, reflector } = createGuard({ [SHARED_THROTTLE_KEY]: true });
       const internals = guard as unknown as GuardInternals;
-      const sharedIncrement = jest.spyOn(internals.sharedStorage, 'increment');
+      const sharedIncrement = vi.spyOn(internals.sharedStorage, 'increment');
       return { guard, internals, reflector, sharedIncrement };
     }
 
@@ -238,7 +238,7 @@ describe('PrincipalThrottlerGuard', () => {
       });
 
       const props = fakeRequestProps({ limit: 10 });
-      jest.spyOn(internals, 'getRequestResponse').mockReturnValue({
+      vi.spyOn(internals, 'getRequestResponse').mockReturnValue({
         req: props.req,
         res: props.res,
       });
@@ -259,7 +259,7 @@ describe('PrincipalThrottlerGuard', () => {
       });
 
       const props = fakeRequestProps({ limit: 10 });
-      jest.spyOn(internals, 'getRequestResponse').mockReturnValue({
+      vi.spyOn(internals, 'getRequestResponse').mockReturnValue({
         req: props.req,
         res: props.res,
       });
@@ -278,11 +278,11 @@ describe('PrincipalThrottlerGuard', () => {
       });
 
       const props = fakeRequestProps({ limit: 10 });
-      jest.spyOn(internals, 'getRequestResponse').mockReturnValue({
+      vi.spyOn(internals, 'getRequestResponse').mockReturnValue({
         req: props.req,
         res: props.res,
       });
-      const throwSpy = jest
+      const throwSpy = vi
         .spyOn(internals, 'throwThrottlingException')
         .mockRejectedValue(new Error('throttled'));
 
@@ -314,7 +314,7 @@ describe('PrincipalThrottlerGuard', () => {
       });
 
       const props = fakeRequestProps({ throttlerName: 'resource', limit: 20 });
-      jest.spyOn(internals, 'getRequestResponse').mockReturnValue({
+      vi.spyOn(internals, 'getRequestResponse').mockReturnValue({
         req: props.req,
         res: props.res,
       });
@@ -338,11 +338,11 @@ describe('PrincipalThrottlerGuard', () => {
       });
 
       const props = fakeRequestProps({ throttlerName: 'resource', limit: 20 });
-      jest.spyOn(internals, 'getRequestResponse').mockReturnValue({
+      vi.spyOn(internals, 'getRequestResponse').mockReturnValue({
         req: props.req,
         res: props.res,
       });
-      jest.spyOn(internals, 'throwThrottlingException').mockRejectedValue(new Error('blocked'));
+      vi.spyOn(internals, 'throwThrottlingException').mockRejectedValue(new Error('blocked'));
 
       await expect(internals.handleRequest(props as unknown as ThrottlerRequest)).rejects.toThrow(
         'blocked',
@@ -360,7 +360,7 @@ describe('PrincipalThrottlerGuard', () => {
       });
 
       const props = fakeRequestProps();
-      jest.spyOn(internals, 'getRequestResponse').mockReturnValue({
+      vi.spyOn(internals, 'getRequestResponse').mockReturnValue({
         req: props.req,
         res: props.res,
       });
@@ -370,15 +370,16 @@ describe('PrincipalThrottlerGuard', () => {
     });
   });
 
-  /* ---------- operational visibility (task 1.5) ---------- */
+  /* ---------- operational visibility ---------- */
 
   describe('sharedStorageSnapshot', () => {
     it('delegates to SharedThrottlerStorage.operationalSnapshot', async () => {
       const { guard } = createGuard();
       const internals = guard as unknown as GuardInternals;
-      jest
-        .spyOn(internals.sharedStorage, 'operationalSnapshot')
-        .mockResolvedValue({ activeBuckets: 7, lastCleanupDeleted: 3 });
+      vi.spyOn(internals.sharedStorage, 'operationalSnapshot').mockResolvedValue({
+        activeBuckets: 7,
+        lastCleanupDeleted: 3,
+      });
 
       await expect(guard.sharedStorageSnapshot()).resolves.toEqual({
         activeBuckets: 7,

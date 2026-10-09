@@ -12,11 +12,14 @@ import { sampleDashboard } from '../../../../../../../../lib/live-sample.ts';
 import {
   fetchLive,
   fetchMatchReport,
+  fetchMatchesView,
+  mapMatchesViewResponse,
   fetchOverview,
   fetchBracket,
   mapLiveResponse,
   mapOverviewResponse,
   mapBracketResponse,
+  clubEmblemUrl,
   tournamentEmblemUrl,
 } from '../../../../../../../../lib/public-api-client.ts';
 import {
@@ -25,11 +28,20 @@ import {
   type TvMatchEvent,
 } from '../../../../../../../../lib/tv-match-events.ts';
 import type { PublicObjectReference } from '../../../../../../../../lib/discipline-background.ts';
+import type { PublicMatchReportResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type { PublicSeriesState } from '../../../../../../../../lib/series.ts';
 import type { LiveDashboard } from '../../../../../../../../lib/live-state.ts';
-import type { ResultState } from '../../../../../../../../lib/result-state.ts';
+import {
+  dashboardFromOverview,
+  lastMatchAt,
+  overlayLive,
+} from '../../../../../../../../lib/tv-dashboard-source.ts';
 import type { StandingsRowView } from '../../../../../../../../lib/overview.ts';
-import { selectStageLayout } from '../../../../../../../../lib/bracket.ts';
+import type { TvWinnerZone } from '../../../../../../../../components/tv/tv-types.ts';
+import { winnerZonesOf } from '../../../../../../../../lib/tv-winners.ts';
+import { bracketZonesOf } from '../../../../../../../../lib/bracket.ts';
 import type { BracketZone } from '../../../../../../../../lib/bracket-projection.ts';
+import { TV_BACKGROUNDS, type TvBackground } from '../../../../../../../../lib/tv-background.ts';
 
 export const prerender = false;
 
@@ -37,27 +49,30 @@ const { organization, tournament, stage, match } = Astro.params;
 const organizationAlias = organization ?? 'liga-mendocina';
 const tournamentAlias = tournament ?? 'apertura-2026';
 const stageNumber = Number(stage ?? '1');
-const matchNumber = Number(match ?? '1');
+// Named the way the public match route names it: by its ordinal within the stage.
+const matchOrdinal = Number(match ?? '1');
 const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
 
 // Reuses the same fetch the public match report page makes (`fetchMatchReport`) — a second
-// consumer of that data, not a new endpoint (openspec 0270). Kept in its own guard, same
+// consumer of that data, not a new endpoint. Kept in its own guard, same
 // reasoning as the ticker/standings fetch on the general kiosk route: a failure here must cost
 // only the event ticker, never replace the whole live dashboard with sample data.
 let matchEvents: readonly TvMatchEvent[] = [];
+let pinnedSegments: PublicMatchReportResponse['segments'];
 let rosterActors: Readonly<Record<string, string>> = {};
 try {
   const report = await fetchMatchReport(
     organizationAlias,
     tournamentAlias,
     stageNumber,
-    matchNumber,
+    matchOrdinal,
   );
   if (report) {
     matchEvents = buildTvMatchEvents(report);
-    // openspec 0300: resolves a *live* event's actor the same way the initial
+    // Resolves a *live* event's actor the same way the initial
     // timeline above already resolves one, for `BroadcastAlertBanner`.
     rosterActors = buildActorDirectory(report.rosters);
+    pinnedSegments = report.segments;
   }
 } catch {
   matchEvents = [];
@@ -71,11 +86,14 @@ let dashboard: LiveDashboard = {
 let tournamentName = tournamentAlias;
 let organizationName = organizationAlias;
 let tournamentEmblem: string | undefined;
-let clubs: { name: string; emblemObjectId?: string }[] = [];
+let clubs: { name: string; emblemUrl?: string }[] = [];
+let winnerZones: readonly TvWinnerZone[] = [];
 /* The kiosk carries the tournament's own discipline imagery, the same source the
  * public pages already render. An overlay never does — see TvLayout. */
 let disciplineImages: PublicObjectReference[] | undefined;
 let standings: StandingsRowView[] = [];
+let organizationTimeZone: string | undefined;
+let overviewLastMatchAt: string | undefined;
 
 try {
   const [live, overview] = await Promise.all([
@@ -91,44 +109,24 @@ try {
     if (mappedOverview.emblemObjectId) {
       tournamentEmblem = tournamentEmblemUrl(organizationAlias, tournamentAlias);
     }
+    winnerZones = winnerZonesOf(organizationAlias, mappedOverview.winners);
     if (mappedOverview.clubs) {
       clubs = mappedOverview.clubs.map((c) => ({
         name: c.name,
-        emblemObjectId: c.emblemObjectId,
+        ...(c.emblemObjectId ? { emblemUrl: clubEmblemUrl(organizationAlias, c.clubId) } : {}),
       }));
     }
     standings = mappedOverview.standings ? [...mappedOverview.standings] : [];
+    organizationTimeZone = mappedOverview.organizationTimeZone;
+    overviewLastMatchAt = lastMatchAt(mappedOverview.matches);
 
+    // The pinned match need not be in progress, so the live projection is laid over every match
+    // of the overview rather than standing in for them.
+    const fromOverview = dashboardFromOverview(mappedOverview.matches);
     if (live && live.matches.length > 0) {
-      dashboard = mapLiveResponse(live);
+      dashboard = overlayLive(fromOverview, mapLiveResponse(live));
     } else if (mappedOverview.matches.length > 0) {
-      dashboard = {
-        standingsVersion: 0,
-        usingLastKnown: true,
-        matches: mappedOverview.matches.map((m, idx) => ({
-          matchId: `overview-${m.stageNumber}-${m.matchNumber ?? idx + 1}`,
-          stageNumber: m.stageNumber,
-          matchNumber: m.matchNumber ?? idx + 1,
-          state: m.state as ResultState,
-          projectionVersion: 0,
-          sides: [
-            {
-              entrantId: `home-${idx}`,
-              name: m.home.name,
-              abbreviation: m.home.abbreviation,
-              score: m.home.score ?? 0,
-              state: m.state as ResultState,
-            },
-            {
-              entrantId: `away-${idx}`,
-              name: m.away.name,
-              abbreviation: m.away.abbreviation,
-              score: m.away.score ?? 0,
-              state: m.state as ResultState,
-            },
-          ],
-        })),
-      };
+      dashboard = fromOverview;
     } else if (organizationAlias === 'liga-mendocina') {
       dashboard = sampleDashboard();
     }
@@ -137,6 +135,38 @@ try {
   }
 } catch {
   dashboard = sampleDashboard();
+}
+
+/*
+  The pinned match's segments (the sets of a set-based match, the half in play) come from its match
+  report, which names them for a match that is not in progress too; the live projection, when it has
+  the match, is fresher and is left as it is. The series it belongs to comes from the matches view of
+  its stage, in its own guard so that a failure costs the series indication and nothing else.
+*/
+if (pinnedSegments !== undefined) {
+  dashboard = {
+    ...dashboard,
+    matches: dashboard.matches.map((candidate) =>
+      candidate.stageNumber === stageNumber &&
+      candidate.stageOrdinal === matchOrdinal &&
+      candidate.segments === undefined
+        ? { ...candidate, segments: pinnedSegments }
+        : candidate,
+    ),
+  };
+}
+let seriesByMatchId: Record<string, PublicSeriesState> = {};
+try {
+  const view = await fetchMatchesView(organizationAlias, tournamentAlias, { stageNumber });
+  if (view) {
+    seriesByMatchId = Object.fromEntries(
+      mapMatchesViewResponse(view).matches.flatMap((row) =>
+        row.series === undefined ? [] : [[row.matchId, row.series]],
+      ),
+    );
+  }
+} catch {
+  seriesByMatchId = {};
 }
 
 /*
@@ -152,6 +182,10 @@ const overlayMode =
       ? 'full'
       : undefined;
 const chromaKey = Astro.url.searchParams.get('chroma') ?? undefined;
+const requestedBackground =
+  Astro.url.searchParams.get('bg') ?? Astro.url.searchParams.get('background');
+const background = TV_BACKGROUNDS.find((value) => value === requestedBackground) as
+  TvBackground | undefined;
 const presentation = overlayMode ?? 'kiosk';
 
 let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
@@ -160,8 +194,8 @@ if (presentation !== 'lower') {
     const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, stageNumber);
     if (rawBracket) {
       const mapped = mapBracketResponse(rawBracket);
-      const zones = mapped.zones.filter((zone) => zone.matches.length > 0);
-      if (selectStageLayout(mapped.format) === 'bracket' && zones.length > 0) {
+      const zones = bracketZonesOf(mapped);
+      if (zones.length > 0) {
         initialBracket = { stageNumber, zones };
       }
     }
@@ -176,9 +210,10 @@ const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam :
 ---
 
 <TvLayout
-  title={`TV — ${tournamentName} — Partido ${matchNumber}`}
+  title={`TV — ${tournamentName} — Partido ${matchOrdinal}`}
   overlayMode={overlayMode}
   chromaKey={chromaKey}
+  background={background}
   disciplineImages={disciplineImages}
 >
   <TvDashboard
@@ -191,7 +226,10 @@ const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam :
     initialBracket={initialBracket}
     streamPath={streamPath}
     branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
-    pinnedMatchNumber={matchNumber}
+    pinnedMatch={{ stageNumber, ordinal: matchOrdinal }}
+    seriesByMatchId={seriesByMatchId}
+    timeZone={organizationTimeZone}
+    lastMatchAt={overviewLastMatchAt}
     matchEvents={matchEvents}
     rosterActors={rosterActors}
     tournamentName={tournamentName}
@@ -199,6 +237,7 @@ const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam :
     organizationAlias={organizationAlias}
     tournamentAlias={tournamentAlias}
     clubs={clubs}
+    winners={winnerZones}
     standings={standings}
   />
 </TvLayout>

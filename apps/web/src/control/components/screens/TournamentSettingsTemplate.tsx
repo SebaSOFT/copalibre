@@ -39,7 +39,7 @@ const FIELD_LABEL: Record<string, string> = {
 /**
  * A tournament's editable name/region/capacity/check-in close time, with a
  * preview step reporting each changed field's classification before it is
- * applied — the same shape a series-mutation preview already uses (design.md).
+ * applied — the same shape a series-mutation preview already uses.
  */
 export function TournamentSettingsTemplate({
   organizationAlias,
@@ -54,7 +54,7 @@ export function TournamentSettingsTemplate({
   readonly organizationAlias: string;
   readonly tournamentAlias: string;
   readonly settings: TournamentSettingsResponse;
-  /** Additive context for the plain-language summary below (openspec 0267). */
+  /** Additive context for the plain-language summary below. */
   readonly ruleset?: RulesetOverridesResponse;
   readonly onPreview?: (
     request: TournamentSettingsRequest,

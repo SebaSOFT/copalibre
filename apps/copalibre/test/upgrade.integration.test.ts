@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -69,6 +69,17 @@ describe('copalibre upgrade (integration)', () => {
       const initResult = await runCli(['init', '--non-interactive', '--skip-preflight'], directory);
       expect(initResult.code).toBe(0);
 
+      const envPath = resolve(directory, '.env');
+      const envContent = await readFile(envPath, 'utf8');
+      await writeFile(envPath, `${envContent}COPALIBRE_VERSION=1.2.5\n`, 'utf8');
+      const composePath = resolve(directory, 'docker-compose.yml');
+      const composeContent = await readFile(composePath, 'utf8');
+      await writeFile(
+        composePath,
+        `${composeContent}\nx-copalibre-version: \${COPALIBRE_VERSION:-1.2.0}\n`,
+        'utf8',
+      );
+
       const upgradeResult = await runCli(
         ['upgrade', '--target-version', '1.3.0', '--skip-services', '--skip-self-update', '--yes'],
         directory,
@@ -78,16 +89,51 @@ describe('copalibre upgrade (integration)', () => {
       expect(upgradeResult.stdout).toContain('CopaLibre upgrade to v1.3.0 completed successfully');
 
       const updatedEnv = await readFile(resolve(directory, '.env'), 'utf8');
+      expect(updatedEnv).toContain('COPALIBRE_VERSION=1.3.0');
       expect(updatedEnv).toContain('COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.3.0');
       expect(updatedEnv).toContain('COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.3.0');
 
       const updatedCompose = await readFile(resolve(directory, 'docker-compose.yml'), 'utf8');
       expect(updatedCompose).toContain('${COPALIBRE_IMAGE:-');
+      expect(updatedCompose).toContain('x-copalibre-version: ${COPALIBRE_VERSION:-1.3.0}');
 
       const updatedMarker = JSON.parse(
         await readFile(resolve(directory, '.copalibre', 'installation.json'), 'utf8'),
       );
       expect(updatedMarker.version).toBe('1.3.0');
+    });
+  });
+
+  it('recreates the compose stack after pulling images and applying migrations', async () => {
+    await withInstanceDirectory(async (directory) => {
+      const initResult = await runCli(['init', '--non-interactive', '--skip-preflight'], directory);
+      expect(initResult.code).toBe(0);
+
+      const binDirectory = resolve(directory, 'bin');
+      await mkdir(binDirectory);
+      const dockerLog = resolve(directory, 'docker.log');
+      const fakeDocker = resolve(binDirectory, 'docker');
+      await writeFile(
+        fakeDocker,
+        '#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$COPALIBRE_DOCKER_LOG"\n',
+        'utf8',
+      );
+      await chmod(fakeDocker, 0o755);
+
+      const upgradeResult = await runCli(
+        ['upgrade', '--target-version', '1.3.0', '--skip-self-update', '--yes'],
+        directory,
+        {
+          ...process.env,
+          COPALIBRE_IN_CONTAINER: 'false',
+          COPALIBRE_DOCKER_LOG: dockerLog,
+          DATABASE_URL: '',
+          PATH: `${binDirectory}:${process.env.PATH ?? ''}`,
+        },
+      );
+
+      expect(upgradeResult.code).toBe(0);
+      expect(await readFile(dockerLog, 'utf8')).toContain('compose up -d --force-recreate');
     });
   });
 

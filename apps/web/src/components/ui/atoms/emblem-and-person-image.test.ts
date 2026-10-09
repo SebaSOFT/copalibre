@@ -25,6 +25,16 @@ describe('EmblemImage display atom', () => {
   });
 });
 
+describe('EmblemImage bare mode', () => {
+  it('drops the frame, chamfer and inset and keeps only the 1:1 image', () => {
+    expect(emblemAstro).toContain("bare && 'cl-emblem-frame--bare'");
+    expect(emblemAstro).toMatch(/\.cl-emblem-frame--bare\s*\{[^}]*border:\s*0/);
+    expect(emblemAstro).toMatch(/\.cl-emblem-frame--bare\s*\{[^}]*background:\s*none/);
+    expect(emblemAstro).toMatch(/\.cl-emblem-frame--bare\s*\{[^}]*border-radius:\s*0/);
+    expect(emblemAstro).toMatch(/\.cl-emblem-frame--bare img\s*\{[^}]*padding:\s*0/);
+  });
+});
+
 describe('PersonPhotoImage display atom', () => {
   it('keeps person-photo geometry separate without imposing emblem 1:1 aspect-ratio', () => {
     expect(personAstro).toContain('style={`width: ${size}px`}');

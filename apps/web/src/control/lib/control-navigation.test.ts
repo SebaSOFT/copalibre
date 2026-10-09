@@ -1,5 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { jest } from '@jest/globals';
+import { SUPPORTED_LANGUAGES } from '@copalibre/domain';
 import type { MouseEvent } from 'react';
 import {
   controlLinkClick,
@@ -121,17 +122,14 @@ describe('loginRedirectUrl', () => {
   });
 });
 
-describe('helpPageUrl (openspec 0251 task 6.1)', () => {
-  it('leaves English unprefixed', () => {
-    expect(helpPageUrl('en', 'control/seeding')).toBe('/help/control/seeding');
+describe('helpPageUrl', () => {
+  it.each(SUPPORTED_LANGUAGES)('emits a canonical path for %s', (locale) => {
+    const prefix = locale === 'en' ? '' : `/${locale}`;
+    expect(helpPageUrl(locale, 'control/overview')).toBe(`${prefix}/help/control/overview/`);
   });
 
-  it('prefixes a non-English locale', () => {
-    expect(helpPageUrl('es', 'control/seeding')).toBe('/es/help/control/seeding');
-  });
-
-  it('builds a role help page path the same way', () => {
-    expect(helpPageUrl('fr', 'roles/admin')).toBe('/fr/help/roles/admin');
+  it('normalizes surrounding slashes without duplicating path segments', () => {
+    expect(helpPageUrl('fr', '/roles/admin/')).toBe('/fr/help/roles/admin/');
   });
 });
 

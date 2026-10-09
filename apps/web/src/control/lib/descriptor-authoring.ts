@@ -13,12 +13,12 @@ import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
 import type { DisciplineSummaryData, EventSummaryData } from './discipline-summary.js';
 
 /**
- * The discipline builder wizard (openspec 0164).
+ * The discipline builder wizard.
  *
  * Produces a plain JSON document matching `DisciplineDescriptorDocument`'s
  * shape — never a typed domain object — because the server is the single
- * validation authority (design.md's "Validation is the domain's, at every
- * step"): this file's job is to compose the document and refuse an
+ * validation authority (validation is the domain's, at every
+ * step): this file's job is to compose the document and refuse an
  * incoherent one *before* it is sent, not to re-implement schema validation.
  *
  * Scope cut, deliberate: tags, rosterRoles, tableLayouts, collectors, series
@@ -203,7 +203,7 @@ export interface EventDefinitionDraft {
   readonly category: EventCategory;
   readonly actorRequirement: ActorRequirement;
   readonly permittedSegmentTypes: readonly string[];
-  /** The one statistic this event's occurrence awards, if any — task 2.3's "relationship between them". */
+  /** The one statistic this event's occurrence awards, if any. */
   readonly awardsStatisticCode?: string;
   readonly awardsDelta: number;
 }
@@ -368,7 +368,7 @@ function param(id: string, type: 'simple_string' | 'simple_number', value: strin
 /**
  * Composes `winCondition` from the three core-owned actions
  * (`requireMargin`/`winSegment`/`winMatch`) — never a fourth, since the
- * vocabulary is core-owned (0163's authoring guide). `simple` mode mirrors
+ * vocabulary is core-owned (the authoring guide). `simple` mode mirrors
  * football's no-segment shape; `segmented` mirrors tennis's margin-gated,
  * segment-closing shape.
  */
@@ -543,8 +543,8 @@ export function toAuthoredModuleRequest(state: DescriptorWizardState): AuthoredM
 
 /**
  * Narrows the wizard's draft state to `DisciplineSummary`'s data contract —
- * the plain-language review the final step shows before installing
- * (openspec 0263). Mirrors `toAuthoredDocument`'s `segmentTypes`/
+ * the plain-language review the final step shows before installing.
+ * Mirrors `toAuthoredDocument`'s `segmentTypes`/
  * `eventDefinitions` mapping exactly, so the summary always describes the
  * same document the raw-JSON toggle would show, never a second derivation
  * that could drift from it.

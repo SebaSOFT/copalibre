@@ -30,6 +30,18 @@ die implizite, die jede Phase bereits hat.
 - **Manuelle Platzierung**: jeden Teilnehmer direkt einer Zonen- oder Gruppennummer zuweisen, genau so
   erfasst, wie es das Ergebnis einer automatischen Auslosung wäre.
 
+## In einer Zone ein anderes Format spielen
+
+Standardmäßig spielt jede Zone das Format ihrer Phase. Öffnen Sie bei einer Zone **Zonenformat ändern**,
+um ihr ein eigenes zu geben — zum Beispiel zwei K.-o.-Zonen und eine Ligazone für die übrigen Vereine —
+und, wenn das Format es braucht, eine eigene Serienlänge. Die Ansicht kennzeichnet eine abweichende Zone
+und zeigt das Format, das die anderen erben; mit **Format der Phase** kehrt eine Zone zum Format der Phase
+zurück. Die Formatliste ist die, die die Disziplin des Turniers anbietet. Sobald die Phase Spiele hat,
+sind Format und Serie der Zonen gesperrt.
+
+Die öffentliche Phasenseite zeichnet dann jede Zone so, wie ihr Format es verlangt: einen Turnierbaum für
+eine K.-o.-Zone und die Spiele mit ihrer Tabelle für eine Ligazone.
+
 ## Was Sie hier nicht tun können
 
 Eine bereits erstellte Zone oder Gruppe umzubenennen ist noch nicht möglich — benennen Sie sie bei der

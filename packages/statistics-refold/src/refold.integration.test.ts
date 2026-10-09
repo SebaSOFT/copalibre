@@ -330,7 +330,7 @@ describe('refold against real PostgreSQL (integration)', () => {
     expect(await resolveMatchFold(scratch.db, newId())).toBeUndefined();
   });
 
-  it('folds real roster/event/statistic/participation facts into stored totals matching a direct foldStatistics call (task 7.1)', async () => {
+  it('folds real roster/event/statistic/participation facts into stored totals matching a direct foldStatistics call', async () => {
     await project('match.finalized');
     const statistics = new StatisticRepository(scratch.db);
 
@@ -394,7 +394,7 @@ describe('refold against real PostgreSQL (integration)', () => {
     expect(goalsExpected.reduce((total, f) => total + f.value, 0)).toBe(3);
   });
 
-  it("a collector-sourced collector's total is correct after finalization (task 7.2)", async () => {
+  it("a collector-sourced collector's total is correct after finalization", async () => {
     const statistics = new StatisticRepository(scratch.db);
     const goalsAgain = await statistics.readTotals(
       {
@@ -454,7 +454,7 @@ describe('refold against real PostgreSQL (integration)', () => {
     expect(goalsAgainst).toHaveLength(2);
   });
 
-  it('recomputes on a correction, leaving no stale total behind (task 7.5)', async () => {
+  it('recomputes on a correction, leaving no stale total behind', async () => {
     const statistics = new StatisticRepository(scratch.db);
 
     // A protest upheld: one of Atlas's goals is disallowed, recorded as a

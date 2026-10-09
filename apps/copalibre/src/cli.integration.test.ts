@@ -38,6 +38,7 @@ describe('CLI subprocess execution (integration)', () => {
     expect(result.stdout).toContain('Usage: copalibre <command> [options]');
     expect(result.stdout).toMatch(/statistics-rebuild\s{3,}\S/);
     expect(result.stdout).toMatch(/upgrade-check\s{3,}\S/);
+    expect(result.stdout).not.toContain('revoke-legacy-personal-access-tokens');
   });
 
   it('prints bare semver on stdout when piped, and logo on stderr for --version', async () => {

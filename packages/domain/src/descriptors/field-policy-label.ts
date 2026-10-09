@@ -6,17 +6,70 @@ import type { SupportedLanguage } from '../i18n.js';
  * Display names for dot-paths common enough to appear across many
  * disciplines' own field policies, so an operator sees a translated name
  * instead of a humanized-but-still-English dot-path the moment a specific
- * discipline declares no `label` of its own (openspec 0285). A humanized
+ * discipline declares no `label` of its own. A humanized
  * fallback is still correct for anything discipline-specific this catalogue
  * doesn't name — this is a plain-language upgrade for the handful of
  * genuinely standard paths, not a replacement for `humanizeFieldPath`.
  */
 const STANDARD_FIELD_LABELS: Readonly<Record<string, LocalizedLabel>> = {
-  format: { en: 'Format', es: 'Formato' },
+  format: {
+    en: 'Format',
+    es: 'Formato',
+    de: 'Format',
+    fr: 'Format',
+    it: 'Formato',
+    pt: 'Formato',
+    ru: 'Формат',
+    zh: '赛制',
+  },
   segments: { en: 'Segments', es: 'Segmentos' },
   'registration.capacity': { en: 'Registration Capacity', es: 'Cupo de Inscripción' },
-  'scoring.pointsPerWin': { en: 'Points Per Win', es: 'Puntos Por Victoria' },
+  'scoring.pointsPerWin': {
+    en: 'Points Per Win',
+    es: 'Puntos Por Victoria',
+    de: 'Punkte pro Sieg',
+    fr: 'Points par victoire',
+    it: 'Punti per vittoria',
+    pt: 'Pontos por vitória',
+    ru: 'Очки за победу',
+    zh: '胜场积分',
+  },
+  'scoring.pointsPerDraw': {
+    en: 'Points Per Draw',
+    es: 'Puntos Por Empate',
+    de: 'Punkte pro Unentschieden',
+    fr: 'Points par match nul',
+    it: 'Punti per pareggio',
+    pt: 'Pontos por empate',
+    ru: 'Очки за ничью',
+    zh: '平局积分',
+  },
+  tiebreakers: {
+    en: 'Tiebreakers',
+    es: 'Desempates',
+    de: 'Tie-Break-Regeln',
+    fr: 'Critères de départage',
+    it: 'Criteri di spareggio',
+    pt: 'Critérios de desempate',
+    ru: 'Критерии при равенстве',
+    zh: '同分判定',
+  },
+  'venuePolicy.neutralGround': {
+    en: 'Neutral Ground',
+    es: 'Sede Neutral',
+    de: 'Neutraler Platz',
+    fr: 'Terrain neutre',
+    it: 'Campo neutro',
+    pt: 'Campo neutro',
+    ru: 'Нейтральное поле',
+    zh: '中立场地',
+  },
 };
+
+/** This platform's own name for a standard dot-path, in every language it ships; `undefined` for any other. */
+export function standardFieldLabel(dotPath: string): LocalizedLabel | undefined {
+  return STANDARD_FIELD_LABELS[dotPath];
+}
 
 /**
  * Turns a configuration dot-path into a readable name when the field's own

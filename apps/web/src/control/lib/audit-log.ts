@@ -15,7 +15,7 @@ import { defineMessages } from '../../lib/i18n/define-messages.js';
 import type { AuditRecordResponse } from './api-client.js';
 import type { AuditLogItem } from '../components/ui/organisms/audit-log-panel.js';
 
-// Common audit-diff field names, translated (openspec 0225 task 8.3, found
+// Common audit-diff field names, translated (found
 // by /impeccable critique): a correction's changed keys come from whatever
 // entity the record touched, so this covers the frequent ones and
 // `auditFieldLabel` below humanizes anything else from its own raw camelCase
@@ -34,8 +34,7 @@ const fieldMessages = defineMessages({
 });
 
 /**
- * A changed field's display label (openspec 0225 task 8.3, found by
- * `/impeccable critique`): a correction's field is any key the touched
+ * A changed field's display label: a correction's field is any key the touched
  * entity declares, so this cannot be an exhaustive catalogue. A recognized
  * field resolves through the message catalogue; anything else is humanized
  * from its own camelCase name (`venueCapacity` → "Venue Capacity") rather

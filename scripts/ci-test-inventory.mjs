@@ -1,5 +1,5 @@
 /**
- * OpenSpec 0221 CI Test Inventory & Partitioning Plan.
+ * CI Test Inventory & Partitioning Plan.
  *
  * Records the test inventory for full and focused invocations, defines
  * duration-balanced unit and integration groups, and validates that zero
@@ -14,6 +14,7 @@ export const UNIT_GROUPS = {
       { workspace: '@copalibre/rules', command: 'test:coverage', dialect: 'none' },
       { workspace: '@copalibre/tournament-engine', command: 'test:coverage', dialect: 'none' },
       { workspace: '@copalibre/statistics-refold', command: 'test:coverage', dialect: 'none' },
+      { workspace: '@copalibre/demo-datasets', command: 'test:coverage', dialect: 'none' },
       { workspace: '@copalibre/module-catalogue', command: 'test:coverage', dialect: 'none' },
       { workspace: '@copalibre/module-distribution', command: 'test:coverage', dialect: 'none' },
       { workspace: '@copalibre/auth', command: 'test:coverage', dialect: 'none' },
@@ -27,6 +28,7 @@ export const UNIT_GROUPS = {
       { workspace: '@copalibre/api', command: 'test:coverage', dialect: 'none' },
       { workspace: '@copalibre/api', command: 'test:sqlite', dialect: 'sqlite' },
       { workspace: '@copalibre/persistence', command: 'test:sqlite', dialect: 'sqlite' },
+      { workspace: '@copalibre/seed', command: 'test', dialect: 'none' },
       { workspace: '@copalibre/seed', command: 'test:sqlite', dialect: 'sqlite' },
       { workspace: '@copalibre/object-storage', command: 'test:coverage', dialect: 'none' },
       { workspace: '@copalibre/worker', command: 'test:coverage', dialect: 'none' },
@@ -43,7 +45,7 @@ export const UNIT_GROUPS = {
 
 export const INTEGRATION_GROUPS = {
   1: {
-    name: 'Integration Group 1 (Persistence & Core API - Postgres)',
+    name: 'Integration Group 1 (Persistence, Core API & Module Distribution - Postgres)',
     services: ['postgres'],
     workspaces: [
       { workspace: '@copalibre/persistence', command: 'test:integration', dialect: 'postgresql' },
@@ -56,6 +58,11 @@ export const INTEGRATION_GROUPS = {
       },
       {
         workspace: '@copalibre/statistics-refold',
+        command: 'test:integration',
+        dialect: 'postgresql',
+      },
+      {
+        workspace: '@copalibre/module-distribution',
         command: 'test:integration',
         dialect: 'postgresql',
       },

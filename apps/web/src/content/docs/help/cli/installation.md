@@ -16,7 +16,7 @@ Rosetta), and Windows (x86_64).
 
 ## Steps
 
-Run these commands in Bash (on Windows, use WSL2 or Git Bash). The PATH export applies the installer’s directory to the current shell. To select a published release explicitly, pipe the installer to `VERSION=1.2.5 bash`; that version must already be published.
+Run these commands in Bash (on Windows, use WSL2 or Git Bash). The PATH export applies the installer’s directory to the current shell. To select a published release explicitly, pipe the installer to `VERSION=1.2.6 bash`; that version must already be published.
 
 ```bash
 curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash

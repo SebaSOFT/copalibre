@@ -18,7 +18,7 @@ type Story = StoryObj<typeof meta>;
 
 /**
  * Prompt, constraints, clear button, and file-count text all come from
- * `filePickerLabels(intl)` (openspec 0285), not literals — the toolbar's
+ * `filePickerLabels(intl)`, not literals — the toolbar's
  * language selector shows a real translation for every one of them, the
  * same way `Button`'s story does for its label.
  */

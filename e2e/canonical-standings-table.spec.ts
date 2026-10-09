@@ -3,13 +3,13 @@ import type { Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * openspec 0248: the canonical table molecule's own behaviour on the operator
+ * The canonical table molecule's own behaviour on the operator
  * standings screen — compact density, a floating sticky header, tri-state
  * bidirectional column sorting with `aria-sort`, and a column description
  * tooltip. Not a pixel comparison against the reference mock
- * (`openspec/changes/0248-operator-standings-and-points-distribution/uploaded_media_1789615576845.png`):
+ * (the uploaded reference image):
  * a hand-built mock's font rendering never matches a real browser's, so this
- * spec asserts the structural/behavioural claims the mock and design.md make
+ * spec asserts the structural/behavioural claims the mock makes
  * instead.
  */
 

@@ -35,7 +35,7 @@ interface ToastRecord extends ToastInput {
  * control-web/admin-interface-components). A toast reports the result of a
  * completed/submitted operation ("invite sent", "save failed"); it is never
  * the right place for an in-progress field-validation problem — that is the
- * `ui/molecules/form-field.tsx` error slot's job (design.md Decision 6). No
+ * `ui/molecules/form-field.tsx` error slot's job. No
  * screen should hand-build its own alert/toast pattern instead of `useToast()`.
  */
 const AUTO_DISMISS_MS = 5_000;

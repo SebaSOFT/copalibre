@@ -10,8 +10,9 @@ import { localizedText } from '../../../lib/localized-label.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
 import type { ClubView, StandingsRowView } from '../../../lib/overview.ts';
-import EmblemImage from '../atoms/EmblemImage.astro';
+import { columnHint } from '../../../lib/column-hints.ts';
 import Button from '../atoms/Button.astro';
+import ClubFilterChip from '../molecules/ClubFilterChip.astro';
 import { EntrantName } from '../atoms/EntrantName.tsx';
 import { ResponsivePlayerName } from '../atoms/ResponsivePlayerName.tsx';
 
@@ -99,6 +100,8 @@ const columns =
           : column,
       )
     : rawColumns;
+const hints = columns.map((column) => columnHint(column, intl.locale));
+const legend = hints.filter((one) => one.hint !== undefined);
 const isPlayerRanking =
   layout?.target === 'player-ranking' ||
   layout?.entityGranularity === 'person' ||
@@ -170,48 +173,29 @@ const playerDialogLabels = {
         role="group"
         aria-label={intl.formatMessage(messages.standingsFilterByClub)}
       >
-        <span class="cl-club-filter__label">Club:</span>
-        <a
+        <span class="cl-club-filter__label">
+          {intl.formatMessage(messages.standingsFilterClubLabel)}
+        </span>
+        <ClubFilterChip
           href={`${canonicalPath}${effectiveLayoutCode ? `?tab=${encodeURIComponent(effectiveLayoutCode)}` : ''}`}
-          class={`cl-pill cl-focusable ${!activeClubId ? 'cl-pill--active' : ''}`}
-          aria-pressed={!activeClubId ? 'true' : 'false'}
-          data-club-filter="all"
-        >
-          All
-        </a>
-        {clubs.map((club) => {
-          const isClubActive = club.clubId === activeClubId;
-          const clubUrl = `${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}clubId=${encodeURIComponent(club.clubId)}`;
-          return (
-            <a
-              href={clubUrl}
-              class={`cl-pill cl-focusable ${isClubActive ? 'cl-pill--active' : ''}`}
-              aria-pressed={isClubActive ? 'true' : 'false'}
-              data-club-filter={club.clubId}
-              title={club.name}
-            >
-              {
-                // The interaction 0103 named as its motivation: a rendered
-                // club emblem, clickable to filter — this link is that
-                // click target. Every club gets one (placeholder or real),
-                // matching the organization page's own club grid.
-                organizationAlias && (
-                  <EmblemImage
-                    alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
-                    placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-                    size={20}
-                    src={
-                      club.emblemObjectId
-                        ? clubEmblemUrl(organizationAlias, club.clubId)
-                        : undefined
-                    }
-                  />
-                )
-              }
-              {club.name}
-            </a>
-          );
-        })}
+          label={intl.formatMessage(messages.matchesViewFilterAll)}
+          active={!activeClubId}
+          filter="all"
+        />
+        {clubs.map((club) => (
+          <ClubFilterChip
+            href={`${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}clubId=${encodeURIComponent(club.clubId)}`}
+            label={club.name}
+            active={club.clubId === activeClubId}
+            filter={club.clubId}
+            club
+            emblemSrc={
+              organizationAlias && club.emblemObjectId
+                ? clubEmblemUrl(organizationAlias, club.clubId)
+                : undefined
+            }
+          />
+        ))}
       </div>
     )
   }
@@ -223,22 +207,41 @@ const playerDialogLabels = {
         <table class="cl-table" data-sortable-table={previewRows === undefined ? true : undefined}>
           <thead>
             <tr>
-              {columns.map((column) => {
-                const header = localizedText(column.header, intl.locale);
+              {columns.map((column, columnIndex) => {
+                const { label, hint } = hints[columnIndex] ?? { label: '' };
+                const bubbleId = `column-hint-${column.code}`;
                 return (
-                  <th scope="col" title={header} aria-sort="none">
-                    {previewRows === undefined ? (
+                  <th scope="col" aria-sort="none">
+                    {previewRows !== undefined ? (
+                      label
+                    ) : hint === undefined ? (
                       <Button
                         type="button"
                         class="cl-table__sort"
                         data-table-sort-button
                         data-column-code={column.code}
-                        aria-label={localizedText(column.shortHeader ?? column.header, intl.locale)}
                       >
-                        {localizedText(column.shortHeader ?? column.header, intl.locale)}
+                        {label}
                       </Button>
                     ) : (
-                      localizedText(column.shortHeader ?? column.header, intl.locale)
+                      <span class="cl-column-header-tooltip">
+                        <Button
+                          type="button"
+                          class="cl-table__sort cl-column-header-tooltip__trigger"
+                          data-table-sort-button
+                          data-column-code={column.code}
+                          aria-describedby={bubbleId}
+                        >
+                          {label}
+                        </Button>
+                        <span
+                          class="cl-column-header-tooltip__bubble cl-table__hint"
+                          id={bubbleId}
+                          role="tooltip"
+                        >
+                          {hint}
+                        </span>
+                      </span>
                     )}
                   </th>
                 );
@@ -324,6 +327,23 @@ const playerDialogLabels = {
     }
   </div>
 
+  {
+    legend.length > 0 && (
+      <dl
+        class="cl-table-legend"
+        role="group"
+        aria-label={intl.formatMessage(messages.standingsColumnLegend)}
+      >
+        {legend.map((one) => (
+          <div class="cl-table-legend__item">
+            <dt>{one.label}</dt>
+            <dd>{one.hint}</dd>
+          </div>
+        ))}
+      </dl>
+    )
+  }
+
   <dialog id="cl-player-dialog" class="cl-player-dialog" aria-labelledby="cl-player-dialog-title">
     <div class="cl-player-dialog__content">
       <div class="cl-player-dialog__header">
@@ -353,8 +373,8 @@ const playerDialogLabels = {
 </section>
 
 <script>
-  function initTableSorting() {
-    document.querySelectorAll<HTMLTableElement>('[data-sortable-table]').forEach((table) => {
+  function initTableSorting(root: ParentNode = document) {
+    root.querySelectorAll<HTMLTableElement>('[data-sortable-table]').forEach((table) => {
       const body = table.tBodies.item(0);
       if (!body) return;
 
@@ -420,7 +440,7 @@ const playerDialogLabels = {
     loadError: string;
   }
 
-  function readPlayerDialogLabels(): PlayerDialogLabels {
+  function readPlayerDialogLabels(root: ParentNode): PlayerDialogLabels {
     const fallback: PlayerDialogLabels = {
       fallbackTitle: 'Player Profile',
       loadingPlaceholder: 'Loading player details...',
@@ -434,7 +454,7 @@ const playerDialogLabels = {
       noCompetitionHistory: 'No competition history recorded.',
       loadError: 'Unable to load player details.',
     };
-    const payload = document.querySelector('[data-player-dialog-labels]');
+    const payload = root.querySelector('[data-player-dialog-labels]');
     if (!payload?.textContent) return fallback;
     try {
       return { ...fallback, ...(JSON.parse(payload.textContent) as Partial<PlayerDialogLabels>) };
@@ -443,13 +463,13 @@ const playerDialogLabels = {
     }
   }
 
-  function initPlayerDialog() {
-    const dialog = document.getElementById('cl-player-dialog') as HTMLDialogElement | null;
+  function initPlayerDialog(root: ParentNode = document) {
+    const dialog = root.querySelector<HTMLDialogElement>('#cl-player-dialog');
     if (!dialog) return;
 
-    const labels = readPlayerDialogLabels();
-    const body = document.getElementById('cl-player-dialog-body');
-    const title = document.getElementById('cl-player-dialog-title');
+    const labels = readPlayerDialogLabels(root);
+    const body = dialog.querySelector('#cl-player-dialog-body');
+    const title = dialog.querySelector('#cl-player-dialog-title');
     const closeBtn = dialog.querySelector('[data-close-dialog]');
 
     closeBtn?.addEventListener('click', () => dialog.close());
@@ -457,7 +477,7 @@ const playerDialogLabels = {
       if (e.target === dialog) dialog.close();
     });
 
-    document.querySelectorAll<HTMLAnchorElement>('.cl-player-link').forEach((link) => {
+    root.querySelectorAll<HTMLAnchorElement>('.cl-player-link').forEach((link) => {
       link.addEventListener('click', async (e) => {
         e.preventDefault();
         const profileUrl = link.dataset.profileUrl || link.href;
@@ -553,14 +573,82 @@ const playerDialogLabels = {
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      initTableSorting();
-      initPlayerDialog();
+  /*
+    A tab or a club chip changes the table, not the page: the choice is fetched as the
+    same server-rendered page, the standings section is swapped in place, and the query
+    string is recorded with `replaceState`. The scroll position and the focused control
+    survive the swap. Without this script every control is still a link to the same page
+    in that state, and a failed fetch falls back to following it.
+  */
+  const CONTROL = 'a.cl-table-tab, a[data-club-filter]';
+  let pending: AbortController | undefined;
+
+  function controlKey(control: Element): string {
+    return control.matches('.cl-table-tab')
+      ? `tab:${control.getAttribute('data-layout-code') ?? ''}`
+      : `club:${control.getAttribute('data-club-filter') ?? ''}`;
+  }
+
+  async function swapStandings(link: HTMLAnchorElement): Promise<void> {
+    const section = link.closest<HTMLElement>('.cl-standings-section');
+    if (!section) return;
+    const sections = Array.from(document.querySelectorAll('.cl-standings-section'));
+    const index = sections.indexOf(section);
+    const key = controlKey(link);
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+
+    pending?.abort();
+    pending = new AbortController();
+    section.setAttribute('aria-busy', 'true');
+    try {
+      const response = await fetch(link.href, {
+        signal: pending.signal,
+        headers: { accept: 'text/html' },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const parsed = new DOMParser().parseFromString(await response.text(), 'text/html');
+      const next = parsed.querySelectorAll('.cl-standings-section').item(index);
+      if (!next) throw new Error('no standings section');
+
+      const fresh = document.importNode(next, true) as HTMLElement;
+      section.replaceWith(fresh);
+      history.replaceState(history.state, '', link.href);
+      initTableSorting(fresh);
+      initPlayerDialog(fresh);
+      window.scrollTo(scrollX, scrollY);
+      const same = Array.from(fresh.querySelectorAll<HTMLElement>(CONTROL)).find(
+        (control) => controlKey(control) === key,
+      );
+      same?.focus({ preventScroll: true });
+    } catch (error) {
+      if ((error as { name?: string }).name === 'AbortError') return;
+      section.removeAttribute('aria-busy');
+      window.location.href = link.href;
+    }
+  }
+
+  function initStandingsControls() {
+    document.addEventListener('click', (event) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = (event.target as Element | null)?.closest<HTMLAnchorElement>(CONTROL);
+      if (!link || !link.closest('.cl-standings-section')) return;
+      event.preventDefault();
+      void swapStandings(link);
     });
-  } else {
+  }
+
+  function init() {
     initTableSorting();
     initPlayerDialog();
+    initStandingsControls();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 </script>
 
@@ -597,6 +685,39 @@ const playerDialogLabels = {
     gap: 8px;
     margin-bottom: 16px;
     flex-wrap: wrap;
+  }
+  .cl-table-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cl-space-1) var(--cl-space-4);
+    margin: var(--cl-space-3) 0 0 0;
+    font-size: var(--cl-font-size-xs);
+    color: var(--cl-text-muted);
+  }
+  .cl-table-legend__item {
+    display: inline-flex;
+    gap: var(--cl-space-1);
+  }
+  .cl-table-legend dt {
+    font-weight: var(--cl-weight-semibold);
+    color: var(--cl-text-secondary);
+  }
+  .cl-table-legend dt::after {
+    content: ':';
+  }
+  .cl-table-legend dd {
+    margin: 0;
+  }
+  /* The bubble opens under the header: the table's own scroll box would clip one opening above it. */
+  .cl-table__hint {
+    bottom: auto;
+    top: calc(100% + var(--cl-space-2));
+    left: 0;
+    transform: none;
+  }
+  th:last-child .cl-table__hint {
+    left: auto;
+    right: 0;
   }
   .cl-club-filter__label {
     font-size: var(--cl-font-size-sm);

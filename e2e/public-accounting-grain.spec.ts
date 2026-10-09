@@ -3,7 +3,7 @@ import { expect, test } from './fixtures.js';
 
 /**
  * The public standings preview and the live page's leaders table state the
- * accounting grain (0160 tasks 7.3, 7.4).
+ * accounting grain.
  *
  * Both pages are server-rendered — `[tournament].astro` and `live.astro`
  * both declare `prerender = false` and fetch every figure in frontmatter, so
@@ -95,6 +95,10 @@ test.beforeAll(async ({ workerPort }) => {
       res.end(JSON.stringify(overview));
       return;
     }
+    if (req.url?.split('?')[0] === `${TOURNAMENT}/matches-view`) {
+      res.end(JSON.stringify({ matches: overview.matches }));
+      return;
+    }
     if (req.url === `${TOURNAMENT}/live`) {
       res.end(JSON.stringify({ matches: [] }));
       return;
@@ -178,7 +182,7 @@ test('7.4: the grain statement is legible with color disabled', async ({ page })
   await expect(page.getByText('This table counts one result per series.')).toBeVisible();
 });
 
-test('0293: public standings figures and adjacent match cards keep their numeric and surface treatments without JavaScript', async ({
+test('public standings figures and the schedule scores keep their numeric treatment without JavaScript', async ({
   browser,
 }) => {
   overview = {
@@ -201,31 +205,11 @@ test('0293: public standings figures and adjacent match cards keep their numeric
     /cl-tabular-nums/,
   );
 
-  const cards = page.locator('.cl-match-card-grid .cl-match-card');
-  await expect(cards).toHaveCount(2);
-  const scores = cards.locator('.cl-match-card__side .cl-tabular-nums');
-  await expect(scores).toHaveCount(4);
+  const scores = page.locator('.cl-match-schedule td a');
+  await expect(scores).toHaveCount(2);
   for (const score of await scores.all()) {
     await expect(score).toHaveCSS('font-variant-numeric', 'tabular-nums');
   }
-  const bands = await cards.evaluateAll((elements) => {
-    const reference = document.createElement('div');
-    document.body.append(reference);
-    const resolve = (token: string) => {
-      reference.style.backgroundColor = `var(${token})`;
-      return getComputedStyle(reference).backgroundColor;
-    };
-    const panel = resolve('--cl-surface-panel');
-    const base = resolve('--cl-surface-base');
-    reference.remove();
-    return {
-      expected: [panel, base],
-      actual: elements.map((element) => getComputedStyle(element).backgroundColor),
-    };
-  });
-  expect(bands.expected[0]).not.toBe(bands.expected[1]);
-  expect(bands.actual).toEqual(bands.expected);
-  expect(bands.actual.every((color) => /^rgb\(/.test(color))).toBe(true);
 
   await context.close();
 });

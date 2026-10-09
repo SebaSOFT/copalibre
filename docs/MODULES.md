@@ -225,7 +225,21 @@ community-authored and can be retracted.
 ## Distribution
 
 Packaging, `copalibre module add`, asset handling and the module-repository CI are
-`0036-community-module-distribution`. This document covers the model those build on.
+the community module distribution. This document covers the model those build on.
+
+### Object storage when adding a module
+
+`copalibre module add` writes a module's images (its background and logo) to the object-storage profile
+the process resolves from its environment: the S3-compatible profile when `COPALIBRE_OBJECT_STORAGE_URL`,
+`COPALIBRE_OBJECT_STORAGE_ACCESS_KEY`, `COPALIBRE_OBJECT_STORAGE_SECRET_KEY` and
+`COPALIBRE_OBJECT_STORAGE_BUCKET` are all set, the filesystem profile otherwise. Each asset records the
+profile it was written under. Run against a containerised stack (Compose or Kubernetes) from the host,
+pass the stack's variables, or the images land where the API does not read.
+
+`copalibre module verify` compares each asset's recorded profile with the active one and reads it through
+the active storage; a mismatch or a missing object is reported as a failure that names the asset and both
+profiles. `copalibre doctor` runs the same check as a `data:module-assets` warning. The remedy for either
+is to run `module add` again with the stack's object-storage variables.
 
 ### Authoring, running, and submitting a new module locally
 

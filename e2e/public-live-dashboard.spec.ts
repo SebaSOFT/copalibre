@@ -93,7 +93,7 @@ test.beforeEach(() => {
   liveResponse = { matches: [] };
 });
 
-test('0275: empty live view has a localized next kickoff and owned leaders table without JavaScript', async ({
+test('empty live view has a localized next kickoff and owned leaders table without JavaScript', async ({
   page,
 }) => {
   const response = await page.goto(`/es${PAGE}`);
@@ -104,16 +104,18 @@ test('0275: empty live view has a localized next kickoff and owned leaders table
   const kickoff = page.locator('time[datetime="2026-09-24T16:00:00.000Z"]').first();
   await expect(kickoff).toBeVisible();
   expect(await kickoff.textContent()).not.toContain('2026-09-24T16:00:00.000Z');
-  await expect(
-    page.getByRole('navigation', { name: 'Ruta de navegación' }).getByRole('link'),
-  ).toHaveAttribute('href', `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}`);
+  const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
+  await expect(trail.getByRole('link')).toHaveCount(2);
+  await expect(trail.getByRole('link').nth(1)).toHaveAttribute(
+    'href',
+    `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}`,
+  );
+  await expect(trail.locator('[aria-current="page"]')).toHaveText('En vivo');
   await expect(page.locator('.cl-standings-section table.cl-table')).toBeVisible();
   await expect(page.locator('.cl-standings-section tbody tr.cl-row')).toHaveCount(1);
 });
 
-test('0275: each active match renders once in the live hero without JavaScript', async ({
-  page,
-}) => {
+test('each active match renders once in the live hero without JavaScript', async ({ page }) => {
   liveResponse = {
     matches: [
       {

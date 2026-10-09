@@ -120,7 +120,7 @@ describe('formatFieldValue', () => {
     expect(formatFieldValue('x', intl)).toBe('x');
   });
 
-  it('renders booleans as localized Yes/No, not the raw word (openspec 0285)', () => {
+  it('renders booleans as localized Yes/No, not the raw word', () => {
     expect(formatFieldValue(true, intl)).toBe('Yes');
     expect(formatFieldValue(false, intl)).toBe('No');
   });
@@ -129,12 +129,12 @@ describe('formatFieldValue', () => {
     expect(formatFieldValue(['points', 'score-difference'], intl)).toBe('points, score-difference');
   });
 
-  it('renders undefined and null as the same em dash, not the literal word "null" (openspec 0285)', () => {
+  it('renders undefined and null as the same em dash, not the literal word "null"', () => {
     expect(formatFieldValue(undefined, intl)).toBe('—');
     expect(formatFieldValue(null, intl)).toBe('—');
   });
 
-  it('renders a segments-shaped object as a plain-language sentence, not JSON (openspec 0285)', () => {
+  it('renders a segments-shaped object as a plain-language sentence, not JSON', () => {
     expect(formatFieldValue({ overtimeEnabled: false, regulationCount: 2 }, intl)).toBe(
       '2 regulation segments (without overtime)',
     );
@@ -143,7 +143,7 @@ describe('formatFieldValue', () => {
     );
   });
 
-  it('renders an arbitrary object as readable key-value pairs, not JSON (openspec 0285)', () => {
+  it('renders an arbitrary object as readable key-value pairs, not JSON', () => {
     expect(formatFieldValue({ neutralGround: false }, intl)).toBe('Neutral Ground: No');
   });
 });

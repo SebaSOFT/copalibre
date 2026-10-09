@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "coverage": {
+    "from": "2026-09-13",
+    "through": "2026-10-07",
+    "historicalBaseline": "partial"
+  },
+  "events": [
+    {
+      "id": "js-yaml-ghsa-2883-xcg3-v3hh-2026-09-13",
+      "advisoryId": "GHSA-2883-xcg3-v3hh",
+      "transitivePackage": {
+        "name": "js-yaml",
+        "affectedRanges": [">= 3.0.0, < 3.15.2", ">= 4.0.0, < 4.3.2"],
+        "affectedVersions": ["3.15.1", "4.3.1"],
+        "fixedVersions": ["3.15.2", "4.3.2"]
+      },
+      "remediation": {
+        "kind": "resolution",
+        "summary": "Pin affected js-yaml 3.x and 4.x selectors to patched releases"
+      },
+      "detectedAt": null,
+      "remediatedAt": "2026-09-13",
+      "status": "resolved",
+      "directRoots": [
+        {
+          "package": "@astrojs/starlight",
+          "workspaces": ["apps/web"],
+          "dependencyPaths": [["@astrojs/starlight", "js-yaml"]]
+        },
+        {
+          "package": "astro",
+          "workspaces": ["apps/web"],
+          "dependencyPaths": [["astro", "@astrojs/internal-helpers", "js-yaml"]]
+        },
+        {
+          "package": "jest",
+          "workspaces": [
+            ".",
+            "apps/api",
+            "apps/copalibre",
+            "apps/events",
+            "apps/scheduler",
+            "apps/seed",
+            "apps/web",
+            "apps/worker",
+            "packages/auth",
+            "packages/design-tokens",
+            "packages/domain",
+            "packages/module-catalogue",
+            "packages/module-distribution",
+            "packages/object-storage",
+            "packages/persistence",
+            "packages/realtime",
+            "packages/routing",
+            "packages/rules",
+            "packages/statistics-refold",
+            "packages/tournament-engine"
+          ],
+          "dependencyPaths": [["jest", "@jest/core", "@istanbuljs/load-nyc-config", "js-yaml"]]
+        },
+        {
+          "package": "openapi-typescript",
+          "workspaces": ["packages/contracts"],
+          "dependencyPaths": [["openapi-typescript", "@redocly/openapi-core", "js-yaml"]]
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "remediation",
+          "label": "Remediation commit",
+          "url": "https://github.com/SebaSOFT/copalibre/commit/c69b61e7"
+        },
+        {
+          "kind": "advisory",
+          "label": "GitHub advisory",
+          "url": "https://github.com/advisories/GHSA-2883-xcg3-v3hh"
+        }
+      ]
+    },
+    {
+      "id": "js-yaml-ghsa-r3ph-w7gj-g6xm-2026-09-30",
+      "advisoryId": "GHSA-r3ph-w7gj-g6xm",
+      "transitivePackage": {
+        "name": "js-yaml",
+        "affectedRanges": [">= 5.0.0, <= 5.4.0"],
+        "affectedVersions": ["5.2.2"],
+        "fixedVersions": ["5.4.2"]
+      },
+      "remediation": {
+        "kind": "resolution",
+        "summary": "Raise the js-yaml 5.x resolution to a release that fixes the advisory"
+      },
+      "detectedAt": null,
+      "remediatedAt": "2026-09-30",
+      "status": "resolved",
+      "directRoots": [
+        {
+          "package": "@nestjs/swagger",
+          "workspaces": ["apps/api"],
+          "dependencyPaths": [["@nestjs/swagger", "js-yaml"]]
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "remediation",
+          "label": "Remediation commit",
+          "url": "https://github.com/SebaSOFT/copalibre/commit/c5951efb"
+        },
+        {
+          "kind": "advisory",
+          "label": "GitHub advisory",
+          "url": "https://github.com/advisories/GHSA-r3ph-w7gj-g6xm"
+        }
+      ]
+    }
+  ]
+}

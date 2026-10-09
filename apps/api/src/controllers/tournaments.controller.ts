@@ -51,8 +51,11 @@ import {
   validateAllocation,
   validateHookScriptAttachment,
   validateSeriesDeclaration,
+  validateStageGroupConfiguration,
+  validateZoneFormat,
   type HookScriptAttachment,
   type StageAllocation,
+  type StageGroupConfiguration,
   type TournamentFormat,
   type TournamentProfile,
 } from '@copalibre/domain';
@@ -69,6 +72,7 @@ import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
   CreateTournamentRequest,
+  type CreateTournamentStageRequest,
   EntrantAttributeKeysResponse,
   HookScriptVocabularyResponse,
   ProblemResponse,
@@ -94,6 +98,7 @@ import {
 import { readMatchesView, type MatchesViewRow } from '../matches-view/read.js';
 import { seriesResponseOf } from './public-projections.controller.js';
 import { assertAllocationRequestComplete } from './stages.controller.js';
+import { zoneSeriesOverrides } from './stage-series.js';
 
 /**
  * Organization-scoped tournament routes. The path shape mirrors the URL contract
@@ -346,9 +351,7 @@ export class TournamentsController {
   /**
    * Backs weighted allocation's attribute picker (`stage-qualification`'s "An operator can
    * discover a tournament's known entrant-attribute keys"). Reads distinct keys off this
-   * tournament's own recorded entrant attributes, never a discipline-level catalogue — see
-   * design.md's "Weighted allocation's attribute comes from the tournament's own recorded
-   * entrant attributes".
+   * tournament's own recorded entrant attributes, never a discipline-level catalogue.
    */
   @Get(':tournamentAlias/entrant-attribute-keys')
   @SecurityPlaneTag('admin-control')
@@ -484,6 +487,18 @@ export class TournamentsController {
           });
         }
       }
+      if (stage.groupConfiguration !== undefined) {
+        const groupError = validateStageGroupConfiguration(stage.groupConfiguration);
+        if (groupError) {
+          throw new BadRequestException(groupError, { errorCode: 'tournament-bad-request' });
+        }
+      }
+      assertZonePlanValid(
+        number,
+        format as TournamentFormat,
+        stage.zones,
+        descriptor.availableFormats,
+      );
     });
 
     const customScripts = validateCustomScripts(body.customScripts ?? []);
@@ -532,7 +547,7 @@ export class TournamentsController {
           descriptor,
           overrides: {
             // Organizer-supplied overrides for any other discipline-declared field
-            // (openspec 0265) go first, so the wizard's own dedicated fields below —
+            // go first, so the wizard's own dedicated fields below —
             // which already exclude these paths from their generic control list —
             // still win if one somehow collides.
             ...(body.ruleOverrides ?? {}),
@@ -568,6 +583,8 @@ export class TournamentsController {
           const profileDefault = profileToBind?.stages.find(
             (candidate) => candidate.number === number,
           );
+          const groupConfiguration = (stage.groupConfiguration ??
+            profileDefault?.groupConfiguration) as StageGroupConfiguration | undefined;
 
           const createdStage = await competition.createStageInTournament(uow, {
             organizationId: organization.organizationId,
@@ -579,8 +596,27 @@ export class TournamentsController {
             authorizationContext: (subject?.scopes ?? []).join(' '),
           });
 
+          // The declared zones are created now so their ids can key the zone-scoped series
+          // entries below, the same keys the zone management endpoint writes.
+          const zoneSeries: Record<string, unknown> = {};
+          for (const [zoneIndex, zone] of (stage.zones ?? []).entries()) {
+            const createdZone = await competition.createZone(uow, {
+              stageId: createdStage.stageId,
+              number: zoneIndex + 1,
+              name: zone.name.trim(),
+              ...(zone.format === undefined ? {} : { format: zone.format as TournamentFormat }),
+              organizationId: organization.organizationId,
+              actor: `user:${subject?.subjectId ?? 'unknown'}`,
+              authorizationContext: (subject?.scopes ?? []).join(' '),
+            });
+            if (zone.series !== undefined) {
+              Object.assign(zoneSeries, zoneSeriesOverrides(createdZone.zoneId, zone.series));
+            }
+          }
+
           const overrides = {
             ...(profileDefault?.overrides ?? {}),
+            ...zoneSeries,
             ...(stage.series === undefined
               ? {}
               : {
@@ -597,17 +633,22 @@ export class TournamentsController {
                 }),
           };
           // The operator's own declaration overrides the profile's stage default,
-          // per "a tournament instance may override it per-stage" (design.md).
+          // per "a tournament instance may override it per-stage".
           const allocation = (stage.allocation ?? profileDefault?.allocation) as
             StageAllocation | undefined;
 
-          if (Object.keys(overrides).length > 0 || allocation !== undefined) {
+          if (
+            Object.keys(overrides).length > 0 ||
+            allocation !== undefined ||
+            groupConfiguration !== undefined
+          ) {
             const stageConfiguration = await tournaments.createStageConfiguration(uow, {
               organizationId: organization.organizationId,
               stageId: createdStage.stageId,
               rulesetId: ruleset.rulesetId,
               overrides,
               ...(allocation === undefined ? {} : { allocation }),
+              ...(groupConfiguration === undefined ? {} : { groupConfiguration }),
               actor: `user:${subject?.subjectId ?? 'unknown'}`,
               authorizationContext: (subject?.scopes ?? []).join(' '),
             });
@@ -1503,6 +1544,54 @@ function controlMatchResponseOf(
     ...(homeTrace.length === 0 ? {} : { homeTrace: [...homeTrace] }),
     ...(awayTrace.length === 0 ? {} : { awayTrace: [...awayTrace] }),
   };
+}
+
+/**
+ * Refuses, before anything is stored, a zone plan the zone management endpoint would refuse: a
+ * format the discipline does not offer, a series on a placement format, an invalid series, an
+ * empty name or two zones of one stage sharing one.
+ */
+function assertZonePlanValid(
+  stageNumber: number,
+  stageFormat: TournamentFormat,
+  zones: CreateTournamentStageRequest['zones'],
+  availableFormats: readonly TournamentFormat[],
+): void {
+  const refuse = (message: string): never => {
+    throw new BadRequestException(message, { errorCode: 'tournament-bad-request' });
+  };
+  const names = new Set<string>();
+  for (const zone of zones ?? []) {
+    const name = zone.name.trim();
+    if (name === '') refuse(`Stage ${stageNumber} declares a zone without a name`);
+    if (names.has(name)) refuse(`Stage ${stageNumber} declares the zone "${name}" more than once`);
+    names.add(name);
+
+    if (zone.format !== undefined) {
+      if (!(SUPPORTED_FORMATS as readonly string[]).includes(zone.format)) {
+        refuse(
+          `Zone "${name}" of stage ${stageNumber} declares an unsupported format "${zone.format}"`,
+        );
+      }
+      const valid = validateZoneFormat(
+        { zoneId: name },
+        zone.format as TournamentFormat,
+        availableFormats,
+      );
+      if (!valid.ok) refuse(`Zone "${name}" of stage ${stageNumber}: ${valid.error.message}`);
+    }
+
+    if (zone.series !== undefined) {
+      const effective = (zone.format ?? stageFormat) as TournamentFormat;
+      if (isPlacementFormat(effective)) {
+        refuse(
+          `Zone "${name}" of stage ${stageNumber} plays "${effective}", which produces an ordering rather than two sides, so it cannot declare a series`,
+        );
+      }
+      const validated = validateSeriesDeclaration(zone.series);
+      if (!validated.ok) refuse(validated.error.message);
+    }
+  }
 }
 
 function validateCustomScripts(

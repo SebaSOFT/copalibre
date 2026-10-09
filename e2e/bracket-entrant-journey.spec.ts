@@ -127,9 +127,9 @@ test('without JavaScript names and match report navigation remain available', as
   await expect(page.getByRole('button', { name: /Highlight path/ })).toHaveCount(0);
   await expect(page.locator('[data-entrant-path]')).toHaveCount(0);
   await expect(
-    page.locator('.cl-bracket-stage__rounds').getByText('Talleres', { exact: true }).first(),
+    page.locator('.cl-bracket-stage__canvas').getByText('Talleres', { exact: true }).first(),
   ).toBeVisible();
-  await expect(page.locator('.cl-bracket-stage__rounds a').first()).toHaveAttribute(
+  await expect(page.locator('.cl-bracket-stage__canvas a').first()).toHaveAttribute(
     'href',
     /\/matches\/1$/,
   );

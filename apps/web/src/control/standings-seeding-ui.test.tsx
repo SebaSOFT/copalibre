@@ -495,8 +495,8 @@ describe('control routes', () => {
       />,
     );
 
-    // English, not translated: this id has no Spanish catalogue entry yet
-    // (openspec 0225 task 8.3), the same `auth.*`/`invitation.*` namespace
+    // English, not translated: this id has no Spanish catalogue entry yet,
+    // the same `auth.*`/`invitation.*` namespace
     // gap other screens already restate in English.
     expect(await screen.findByText('Could not load the seeding.')).toBeTruthy();
   });
@@ -569,7 +569,7 @@ describe('control routes', () => {
         .map((row) => row.textContent),
     ).toEqual([expect.stringContaining('tll')]);
     // Existing seeds are the API's own signal not to look further — the
-    // reverse lookup is never even called (design.md: no override, ever).
+    // reverse lookup is never even called (no override, ever).
     expect(fetchPromotionPlansTargetingStage).not.toHaveBeenCalled();
   });
 

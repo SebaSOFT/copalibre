@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * End-to-end coverage for OpenSpec 0223.
+ * End-to-end coverage for the operational surface compositions.
  *
  * Every case here is one a unit test cannot settle, because the thing being
  * checked is the browser's own behaviour: a menu that has to push the page down
@@ -207,7 +207,7 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
-test.describe('Public header, expanding in page flow (0223)', () => {
+test.describe('Public header, expanding in page flow', () => {
   test.use({ viewport: { width: 375, height: 720 } });
 
   test('opening the menu pushes the ticker and content down rather than covering them', async ({
@@ -282,21 +282,19 @@ test.describe('Public header, expanding in page flow (0223)', () => {
   });
 });
 
-test.describe('The public page without JavaScript (0223)', () => {
+test.describe('The public page without JavaScript', () => {
   test.use({ javaScriptEnabled: false, viewport: { width: 375, height: 720 } });
 
-  test('navigation is already expanded, and its destinations are locale-aware', async ({
-    page,
-  }) => {
-    await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT}`);
+  test('navigation is already expanded and keeps the public home destination', async ({ page }) => {
+    await page.goto('/es/');
 
     const nav = page.locator('#cl-public-nav');
     await expect(nav).toBeVisible();
     // The toggle never appears: nothing would answer it.
     await expect(page.locator('[data-public-nav-toggle]')).toBeHidden();
 
-    const help = nav.locator('a[href="/es/help/"]');
-    await expect(help).toBeVisible();
+    await expect(nav.locator('a[href="/es/"]')).toBeVisible();
+    await expect(nav.locator('a[href="/es/help/"]')).toHaveCount(0);
   });
 
   test('the ticker still reads, with no control that would do nothing', async ({ page }) => {
@@ -309,7 +307,7 @@ test.describe('The public page without JavaScript (0223)', () => {
   });
 });
 
-test.describe('The ticker in a browser (0223)', () => {
+test.describe('The ticker in a browser', () => {
   test('pause is keyboard-operable and reports its state', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}`);
 
@@ -348,7 +346,7 @@ test.describe('The ticker in a browser (0223)', () => {
   });
 });
 
-test.describe('Standings and bracket in a browser (0223)', () => {
+test.describe('Standings and bracket in a browser', () => {
   test('the tied leaders show the comparator that separated them', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/1`);
 
@@ -394,7 +392,7 @@ test.describe('Standings and bracket in a browser (0223)', () => {
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/1`);
 
-    await expect(page.locator('.cl-bracket-stage__scroll')).toHaveCSS('overflow-x', 'auto');
+    await expect(page.locator('.cl-bracket-stage__scroll--full')).toHaveCSS('overflow-x', 'auto');
     const overflows = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     );
@@ -408,13 +406,15 @@ test.describe('Standings and bracket in a browser (0223)', () => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/1`);
 
     await expect(page.locator('.cl-bracket-stage__outline')).toBeVisible();
-    await expect(page.locator('.cl-bracket-stage__scroll')).toBeHidden();
+    // Both drawings (full and compact) give way to the textual view at this width.
+    await expect(page.locator('.cl-bracket-stage__scroll').first()).toBeHidden();
+    await expect(page.locator('.cl-bracket-stage__scroll').last()).toBeHidden();
     // The sources a pending cross is waiting on are named, not blank.
     await expect(page.locator('.cl-bracket-stage__outline')).toContainText('Ganador');
   });
 });
 
-test.describe('Representative widths keep the page inside the viewport (0223)', () => {
+test.describe('Representative widths keep the page inside the viewport', () => {
   for (const width of [375, 768, 1024, 1440]) {
     test(`no body-level horizontal overflow at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -439,7 +439,7 @@ test.describe('Representative widths keep the page inside the viewport (0223)', 
   });
 });
 
-test.describe('Eight languages at the narrow floor (0223)', () => {
+test.describe('Eight languages at the narrow floor', () => {
   // The workbench's declared zoom floor. German and Russian are the cases that
   // actually break at it, and they only break in their own catalogue — which is
   // why this sweeps every language rather than checking the one the reviewer
@@ -471,9 +471,7 @@ test.describe('Eight languages at the narrow floor (0223)', () => {
   }
 });
 
-test('the rendered faces and accent are the ones the token contract declares (0223)', async ({
-  page,
-}) => {
+test('the rendered faces and accent are the ones the token contract declares', async ({ page }) => {
   await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/1`);
 
   // Recorded rather than eyeballed: what a reviewer would otherwise write down

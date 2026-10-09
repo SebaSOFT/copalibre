@@ -150,7 +150,7 @@ describe('Spanish catalog reproduces pre-extraction wording', () => {
     );
 
     expect(screen.getByText('Roles y permisos')).toBeTruthy();
-    expect(screen.getByText('Añadir destinatario')).toBeTruthy();
+    expect(screen.getByText('Invitar usuario')).toBeTruthy();
     expect(screen.getByText('No hay usuarios asignados.')).toBeTruthy();
   });
 });

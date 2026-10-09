@@ -3,6 +3,7 @@ import { act, render, screen, fireEvent } from '@testing-library/react';
 import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
 import { TvDashboard } from './TvDashboard.js';
 import type { LiveDashboard, LiveMatch } from '../../lib/live-state.js';
+import type { PublicSeriesState } from '../../lib/series.js';
 import type { StandingsRowView } from '../../lib/overview.js';
 import { publicIntl, tvDashboardLabels, tvStatisticsLabels } from '../../lib/i18n/public-intl.js';
 
@@ -26,6 +27,7 @@ describe('TvDashboard', () => {
         matchId: 'm1',
         stageNumber: 1,
         matchNumber: 1,
+        stageOrdinal: 1,
         state: 'final',
         projectionVersion: 1,
         sides: [
@@ -37,6 +39,7 @@ describe('TvDashboard', () => {
         matchId: 'm2',
         stageNumber: 1,
         matchNumber: 2,
+        stageOrdinal: 2,
         state: 'final',
         projectionVersion: 1,
         sides: [
@@ -57,8 +60,8 @@ describe('TvDashboard', () => {
   ];
 
   const sampleClubs = [
-    { name: 'Boca Juniors', emblemObjectId: 'boca-emblem-123' },
-    { name: 'River Plate', emblemObjectId: 'river-emblem-456' },
+    { name: 'Boca Juniors', emblemUrl: '/organizations/o/clubs/boca/emblem' },
+    { name: 'River Plate', emblemUrl: '/organizations/o/clubs/river/emblem' },
   ];
 
   beforeEach(() => {
@@ -112,6 +115,60 @@ describe('TvDashboard', () => {
     expect(screen.getByText('Torneo Apertura 2026')).toBeDefined();
   });
 
+  it('shows the champions of every zone of the last stage instead of a standings leader', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={sampleInitial}
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        tournamentName="Torneo Apertura 2026"
+        organizationName="Liga Argentina"
+        clubs={sampleClubs}
+        standings={sampleStandings}
+        winners={[
+          { zoneName: 'Gold Cup', champions: [{ name: 'River Plate', abbreviation: 'RIV' }] },
+          {
+            zoneName: 'Bronze Cup',
+            champions: [{ name: 'Racing Club' }, { name: 'Independiente' }],
+          },
+        ]}
+        pollIntervalMs={0}
+      />,
+    );
+
+    const zones = screen.getAllByTestId('tv-champions-zone');
+    expect(zones).toHaveLength(2);
+    expect(zones[0]?.textContent).toContain('Gold Cup');
+    expect(zones[0]?.textContent).toContain('River Plate');
+    expect(zones[1]?.textContent).toContain('Racing Club');
+    expect(zones[1]?.textContent).toContain('Independiente');
+    expect(screen.queryByTestId('tv-champion-panel')).toBeNull();
+    // The standings leader (Boca Juniors) is not presented as a champion.
+    expect(screen.queryByText(/Tournament champion/)).toBeNull();
+  });
+
+  it('keeps the single-champion panel for one unnamed winner', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        labels={tvLabels}
+        language="en"
+        initial={sampleInitial}
+        streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
+        tournamentName="Torneo Apertura 2026"
+        organizationName="Liga Argentina"
+        standings={sampleStandings}
+        winners={[{ champions: [{ name: 'River Plate', abbreviation: 'RIV' }] }]}
+        pollIntervalMs={0}
+      />,
+    );
+
+    expect(screen.getByTestId('tv-champion-panel')).toBeDefined();
+    expect(screen.getAllByText('River Plate').length).toBeGreaterThan(0);
+  });
+
   it('renders champion spotlight when all tournament matches are final', () => {
     render(
       <TvDashboard
@@ -135,7 +192,7 @@ describe('TvDashboard', () => {
 
     // Club emblem should be rendered
     const emblem = screen.getByAltText('Boca Juniors');
-    expect(emblem.getAttribute('src')).toBe('/api/objects/boca-emblem-123');
+    expect(emblem.getAttribute('src')).toBe('/organizations/o/clubs/boca/emblem');
   });
 
   it('renders live match spotlight when a live match is in progress', () => {
@@ -145,6 +202,7 @@ describe('TvDashboard', () => {
           matchId: 'm-live',
           stageNumber: 1,
           matchNumber: 1,
+          stageOrdinal: 1,
           state: 'live',
           projectionVersion: 2,
           sides: [
@@ -178,7 +236,7 @@ describe('TvDashboard', () => {
     expect(screen.getAllByText(dashboardLabels.resultState.live).length).toBeGreaterThan(0);
   });
 
-  describe('pinned-match event ticker (openspec 0270)', () => {
+  describe('pinned-match event ticker', () => {
     // Not all-final, unlike `sampleInitial` — an all-final dashboard renders the champion
     // presentation instead of the match spotlight the ticker sits inside.
     const pinnedDashboard: LiveDashboard = {
@@ -187,6 +245,7 @@ describe('TvDashboard', () => {
           matchId: 'm-pinned',
           stageNumber: 1,
           matchNumber: 1,
+          stageOrdinal: 1,
           state: 'live',
           projectionVersion: 1,
           sides: [
@@ -207,7 +266,7 @@ describe('TvDashboard', () => {
           language="en"
           initial={pinnedDashboard}
           streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
-          pinnedMatchNumber={1}
+          pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
           matchEvents={[
             {
               eventId: 'ev-1',
@@ -243,7 +302,7 @@ describe('TvDashboard', () => {
           language="en"
           initial={pinnedDashboard}
           streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
-          pinnedMatchNumber={1}
+          pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
           matchEvents={[]}
           standings={sampleStandings}
           pollIntervalMs={0}
@@ -332,7 +391,7 @@ describe('TvDashboard', () => {
   });
 });
 
-describe('overlay presentations (openspec 0201)', () => {
+describe('overlay presentations', () => {
   const baseProps = {
     initial: { matches: [], standingsVersion: 0, usingLastKnown: true },
     streamPath: '/stream',
@@ -346,6 +405,7 @@ describe('overlay presentations (openspec 0201)', () => {
         matchId: 'm1',
         stageNumber: 1,
         matchNumber: 1,
+        stageOrdinal: 1,
         state: 'live',
         projectionVersion: 1,
         sides: [
@@ -383,6 +443,7 @@ describe('overlay presentations (openspec 0201)', () => {
         labels={tvLabels}
         language="en"
         {...matchProps}
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
         presentation="lower"
       />,
     );
@@ -424,28 +485,83 @@ describe('overlay presentations (openspec 0201)', () => {
   });
 });
 
-describe('scorebug clock (openspec 0225 task 2.7)', () => {
-  it('formats the clock for the selected locale, not a fixed presentation', () => {
-    const spy = jest.spyOn(Date.prototype, 'toLocaleTimeString');
+describe('scorebug clock', () => {
+  it('shows a labelled wall clock to the minute, in the selected locale and the organization zone', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-01T22:34:10.000Z'));
+    try {
+      render(
+        <TvDashboard
+          dashboardLabels={tvDashboardLabels(publicIntl('de'))}
+          labels={tvLabels}
+          language="de"
+          initial={{
+            matches: [
+              {
+                matchId: 'm1',
+                stageNumber: 1,
+                matchNumber: 1,
+                state: 'upcoming',
+                projectionVersion: 0,
+                sides: [
+                  { entrantId: 'h', name: 'A', score: 0, state: 'upcoming' },
+                  { entrantId: 'a', name: 'B', score: 0, state: 'upcoming' },
+                ],
+              },
+            ],
+            standingsVersion: 0,
+            usingLastKnown: true,
+          }}
+          pollIntervalMs={0}
+          streamPath="/stream"
+          timeZone="America/Argentina/San_Juan"
+        />,
+      );
 
+      const clock = document.querySelector('.tv-scorebug__clock');
+      // 22:34 UTC is 19:34 in San Juan; the seconds are not shown.
+      expect(clock?.getAttribute('data-time')).toBe('19:34');
+      expect(document.querySelector('.tv-scorebug__clock-label')?.textContent).toBe('Ortszeit');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('shows the date a finished tournament ended and no running clock', () => {
     render(
       <TvDashboard
         dashboardLabels={dashboardLabels}
         labels={tvLabels}
-        language="de"
-        initial={{ matches: [], standingsVersion: 0, usingLastKnown: true }}
+        language="en"
+        initial={{
+          matches: [
+            {
+              matchId: 'm1',
+              stageNumber: 1,
+              matchNumber: 1,
+              state: 'final',
+              projectionVersion: 1,
+              sides: [
+                { entrantId: 'h', name: 'A', score: 2, state: 'final' },
+                { entrantId: 'a', name: 'B', score: 1, state: 'final' },
+              ],
+            },
+          ],
+          standingsVersion: 0,
+          usingLastKnown: true,
+        }}
+        lastMatchAt="2025-11-02T22:00:00.000Z"
+        pollIntervalMs={0}
         streamPath="/stream"
+        timeZone="America/Argentina/San_Juan"
       />,
     );
 
-    // A fixed 12-hour presentation calls `toLocaleTimeString` with no locale
-    // (or a hardcoded one); the broadcast overlay's own language must drive it.
-    expect(spy).toHaveBeenCalledWith(
-      'de',
-      expect.objectContaining({ hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    );
-
-    spy.mockRestore();
+    const clocks = [...document.querySelectorAll('.tv-scorebug__clock')];
+    expect(clocks.map((clock) => clock.getAttribute('data-time'))).toEqual([
+      'Finished November 2, 2025',
+    ]);
+    expect(document.querySelector('.tv-scorebug__clock-label')).toBeNull();
   });
 
   it('renders match clock formatted when spotlightMatch has clockSeconds', () => {
@@ -457,6 +573,7 @@ describe('scorebug clock (openspec 0225 task 2.7)', () => {
           matchId: 'm1',
           stageNumber: 1,
           matchNumber: 1,
+          stageOrdinal: 1,
           state: 'live',
           projectionVersion: 1,
           clockSeconds: 2045, // 34:05
@@ -475,6 +592,7 @@ describe('scorebug clock (openspec 0225 task 2.7)', () => {
         language="en"
         initial={liveMatchWithClock}
         streamPath="/stream"
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
         presentation="lower"
       />,
     );
@@ -484,11 +602,12 @@ describe('scorebug clock (openspec 0225 task 2.7)', () => {
   });
 });
 
-describe('TvDashboard broadcast alert dispatch (openspec 0300)', () => {
+describe('TvDashboard broadcast alert dispatch', () => {
   const pinnedMatch: LiveMatch = {
     matchId: 'm-pinned',
     stageNumber: 1,
     matchNumber: 1,
+    stageOrdinal: 1,
     state: 'live',
     projectionVersion: 1,
     sides: [
@@ -556,7 +675,7 @@ describe('TvDashboard broadcast alert dispatch (openspec 0300)', () => {
         organizationAlias="liga-argentina"
         tournamentAlias="apertura-2026"
         presentation="lower"
-        pinnedMatchNumber={1}
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
         matchEvents={[
           {
             eventId: 'ev-0',
@@ -620,7 +739,7 @@ describe('TvDashboard broadcast alert dispatch (openspec 0300)', () => {
         organizationAlias="liga-argentina"
         tournamentAlias="apertura-2026"
         presentation="lower"
-        pinnedMatchNumber={1}
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
         matchEvents={[
           {
             eventId: 'ev-0',
@@ -680,7 +799,7 @@ describe('TvDashboard broadcast alert dispatch (openspec 0300)', () => {
         organizationAlias="liga-argentina"
         tournamentAlias="apertura-2026"
         presentation="lower"
-        pinnedMatchNumber={1}
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
         matchEvents={[]}
         pollIntervalMs={0}
       />,
@@ -735,7 +854,7 @@ describe('TvDashboard broadcast alert dispatch (openspec 0300)', () => {
         streamPath="/events/tv/liga-argentina/tournaments/apertura-2026"
         organizationAlias="liga-argentina"
         tournamentAlias="apertura-2026"
-        pinnedMatchNumber={1}
+        pinnedMatch={{ stageNumber: 1, ordinal: 1 }}
         matchEvents={[]}
         pollIntervalMs={0}
       />,
@@ -761,5 +880,510 @@ describe('TvDashboard broadcast alert dispatch (openspec 0300)', () => {
     act(() => jest.advanceTimersByTime(0));
 
     expect(screen.queryByRole('status')).toBeNull();
+  });
+});
+
+describe('TvDashboard zone presentation', () => {
+  const initial: LiveDashboard = {
+    matches: [
+      {
+        matchId: 'm1',
+        stageNumber: 1,
+        matchNumber: 1,
+        stageOrdinal: 1,
+        state: 'final',
+        projectionVersion: 1,
+        sides: [
+          { entrantId: 'e1', name: 'Boca Juniors', score: 3, state: 'final' },
+          { entrantId: 'e2', name: 'River Plate', score: 1, state: 'final' },
+        ],
+      },
+    ],
+    standingsVersion: 1,
+    usingLastKnown: true,
+  };
+  const zonedStandings: StandingsRowView[] = [
+    { position: 1, name: 'Boca Juniors', played: 2, points: 6, zoneName: 'Liga A' },
+    { position: 1, name: 'Lanús', played: 2, points: 4, zoneName: 'Liga B' },
+  ];
+  const leagueZone = {
+    zoneId: 'z-league',
+    zoneName: 'Liga A',
+    matches: [
+      {
+        matchId: 'lm1',
+        matchNumber: 1,
+        roundNumber: 1,
+        branch: 'winners',
+        state: 'final' as const,
+        scores: [2, 1],
+        slots: [
+          { kind: 'entrant' as const, entrantId: 'e1', name: 'Boca Juniors' },
+          { kind: 'entrant' as const, entrantId: 'e2', name: 'River Plate' },
+        ],
+      },
+    ],
+  };
+  const listEntry = {
+    key: 'lm1',
+    scope: 'Liga A · Round 1',
+    stateLabel: 'Final',
+    home: { label: 'BOC', name: 'Boca Juniors', score: 2 },
+    away: { label: 'RIV', name: 'River Plate', score: 1 },
+  };
+  const knockoutZone = {
+    zoneId: 'z-cup',
+    zoneName: 'Copa',
+    matches: [{ ...leagueZone.matches[0], matchId: 'km1' }],
+  };
+
+  function renderDashboard(
+    overrides: Partial<React.ComponentProps<typeof TvDashboard>> = {},
+  ): ReturnType<typeof render> {
+    return render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={initial}
+        labels={tvLabels}
+        language="en"
+        pollIntervalMs={0}
+        standings={zonedStandings}
+        streamPath="/events/tv/liga/tournaments/apertura"
+        {...overrides}
+      />,
+    );
+  }
+
+  it('heads each zone’s standings with the zone’s name instead of one merged list', () => {
+    renderDashboard();
+
+    const zones = screen.getAllByTestId('tv-standings-zone');
+    expect(zones).toHaveLength(2);
+    expect(zones[0]?.textContent).toContain('Liga A');
+    expect(zones[0]?.textContent).not.toContain('Lanús');
+    expect(zones[1]?.textContent).toContain('Lanús');
+  });
+
+  it('offers the match list as a tab beside the bracket', () => {
+    renderDashboard({
+      initialBracket: { stageNumber: 1, zones: [knockoutZone] },
+      matchList: [listEntry],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: dashboardLabels.fixturesTab }));
+    expect(screen.getByTestId('tv-match-list')).toBeDefined();
+    expect(screen.queryByTestId('tv-bracket')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: dashboardLabels.bracketTab }));
+    expect(screen.getByTestId('tv-bracket')).toBeDefined();
+  });
+
+  it('opens straight on the match list when the view selector asks for it', () => {
+    renderDashboard({
+      initialView: 'matches',
+      matchList: [listEntry],
+    });
+
+    expect(screen.getByTestId('tv-match-list')).toBeDefined();
+    // A fixed view fills the frame: no focal panel, no tabs to choose between.
+    expect(document.querySelector('.tv-focal-panel')).toBeNull();
+    expect(document.querySelector('.tv-rail-nav')).toBeNull();
+  });
+
+  it('shows no match-list tab without matches, and no bracket tab without knockout zones', () => {
+    const { unmount } = renderDashboard({
+      initialBracket: { stageNumber: 1, zones: [knockoutZone] },
+    });
+    expect(screen.queryByRole('button', { name: dashboardLabels.fixturesTab })).toBeNull();
+    expect(screen.getByRole('button', { name: dashboardLabels.bracketTab })).toBeDefined();
+    unmount();
+
+    renderDashboard({ matchList: [listEntry] });
+    expect(screen.queryByRole('button', { name: dashboardLabels.bracketTab })).toBeNull();
+    expect(screen.getByRole('button', { name: dashboardLabels.fixturesTab })).toBeDefined();
+  });
+
+  describe('rotation', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    const activeTab = (): string | undefined =>
+      screen
+        .getAllByRole('button')
+        .find((button) => button.classList.contains('tv-rail-tab--active'))?.textContent ??
+      undefined;
+    const next = (): void => {
+      act(() => jest.advanceTimersByTime(10_000));
+    };
+
+    it('visits the bracket and then the match list for a stage that has both', () => {
+      renderDashboard({
+        initialBracket: { stageNumber: 1, zones: [knockoutZone] },
+        matchList: [listEntry],
+      });
+
+      const visited = [activeTab()];
+      for (let step = 0; step < 5; step += 1) {
+        next();
+        visited.push(activeTab());
+      }
+
+      expect(visited).toEqual([
+        dashboardLabels.standingsTab,
+        dashboardLabels.performersTab,
+        dashboardLabels.statisticsTab,
+        dashboardLabels.bracketTab,
+        dashboardLabels.fixturesTab,
+        dashboardLabels.standingsTab,
+      ]);
+    });
+
+    it('skips the match list when there are no matches', () => {
+      renderDashboard({ initialBracket: { stageNumber: 1, zones: [knockoutZone] } });
+
+      const visited = [activeTab()];
+      for (let step = 0; step < 5; step += 1) {
+        next();
+        visited.push(activeTab());
+      }
+
+      expect(visited).not.toContain(dashboardLabels.fixturesTab);
+    });
+  });
+});
+
+describe('TvDashboard pinned match and views', () => {
+  const dashboardLabels = tvDashboardLabels(publicIntl('en'));
+  const tvLabels = tvStatisticsLabels(publicIntl('en'));
+  const clubNames = ['Alfa', 'Beta', 'Gama', 'Delta', 'Epsilon', 'Zeta'];
+
+  /** Three matches of one stage that all carry `matches.number = 1`, as every non-series fixture does. */
+  const stageOfThree = (state: 'final' | 'live'): LiveDashboard => ({
+    standingsVersion: 0,
+    usingLastKnown: true,
+    matches: [1, 2, 3].map((ordinal) => ({
+      matchId: `m${ordinal}`,
+      stageNumber: 1,
+      matchNumber: 1,
+      stageOrdinal: ordinal,
+      state,
+      projectionVersion: 1,
+      sides: [
+        {
+          entrantId: `h${ordinal}`,
+          name: clubNames[ordinal * 2 - 2] ?? '',
+          score: ordinal,
+          state,
+        },
+        {
+          entrantId: `a${ordinal}`,
+          name: clubNames[ordinal * 2 - 1] ?? '',
+          score: 0,
+          state,
+        },
+      ],
+    })),
+  });
+  const standings: StandingsRowView[] = [
+    { position: 1, name: 'Alfa', abbreviation: 'ALF', played: 1, points: 3 },
+  ];
+  const champions = [{ zoneName: undefined, champions: [{ name: 'Alfa', abbreviation: 'ALF' }] }];
+
+  function renderTv(overrides: Partial<React.ComponentProps<typeof TvDashboard>> = {}): void {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={stageOfThree('final')}
+        labels={tvLabels}
+        language="en"
+        pollIntervalMs={0}
+        standings={standings}
+        streamPath="/stream"
+        tournamentName="Apertura"
+        winners={champions}
+        {...overrides}
+      />,
+    );
+  }
+
+  it('finds a pinned match by its stage ordinal even when every match shares one match number', () => {
+    renderTv({ pinnedMatch: { stageNumber: 1, ordinal: 3 } });
+
+    const spotlight = screen.getByTestId('tv-match-spotlight');
+    expect(spotlight.textContent).toContain('Epsilon');
+    expect(spotlight.textContent).toContain('Zeta');
+    expect(spotlight.textContent).toContain('Partido 3');
+    expect(spotlight.textContent).not.toContain('Alfa');
+  });
+
+  it('shows the data of a pinned match of a finished tournament, not the champion recap', () => {
+    renderTv({ pinnedMatch: { stageNumber: 1, ordinal: 2 } });
+
+    expect(screen.getByTestId('tv-match-spotlight').textContent).toContain('Delta');
+    expect(screen.queryByTestId('tv-champion-panel')).toBeNull();
+    expect(document.querySelector('.tv-champions')).toBeNull();
+  });
+
+  it('says a pinned match does not exist instead of showing another view', () => {
+    renderTv({ pinnedMatch: { stageNumber: 1, ordinal: 99 } });
+
+    expect(screen.getByTestId('tv-match-not-found').textContent).toContain(
+      dashboardLabels.matchNotFound,
+    );
+    expect(screen.queryByTestId('tv-match-spotlight')).toBeNull();
+    expect(screen.queryByTestId('tv-champion-panel')).toBeNull();
+  });
+
+  it('keeps the champion recap for the rotating dashboard of a finished tournament', () => {
+    renderTv();
+
+    expect(screen.getByTestId('tv-champion-panel')).toBeDefined();
+  });
+
+  it('shows the standings full-frame for the standings view of a finished tournament', () => {
+    renderTv({ initialView: 'standings' });
+
+    expect(screen.queryByTestId('tv-champion-panel')).toBeNull();
+    expect(document.querySelector('.tv-focal-panel')).toBeNull();
+    expect(document.querySelector('.tv-main-stage--single')).not.toBeNull();
+    expect(screen.getByText('Pts')).toBeDefined();
+  });
+
+  describe('the match list', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    const matchList = Array.from({ length: 30 }, (_, index) => ({
+      key: `lm${index}`,
+      scope: `Round ${Math.floor(index / 6) + 1}`,
+      stateLabel: 'Final',
+      home: { label: `H${index}`, name: `Home ${index}`, score: 1 },
+      away: { label: `A${index}`, name: `Away ${index}`, score: 0 },
+    }));
+
+    it('lists two matches to a row and pages through a long list with its rotation', () => {
+      renderTv({
+        initialView: 'matches',
+        matchList,
+      });
+
+      const entries = (): number => screen.getAllByRole('listitem').length;
+      // 12 rows of 2 fill a page; the other 6 matches wait on the next one.
+      expect(entries()).toBe(24);
+      expect(screen.getByText('Page 1 of 2')).toBeDefined();
+
+      act(() => jest.advanceTimersByTime(10_000));
+      expect(entries()).toBe(6);
+      expect(screen.getByText('Page 2 of 2')).toBeDefined();
+
+      act(() => jest.advanceTimersByTime(10_000));
+      expect(entries()).toBe(24);
+    });
+
+    it('keeps paging a fixed match view when the viewer prefers reduced motion', () => {
+      const original = window.matchMedia;
+      window.matchMedia = ((query: string) => ({
+        matches: query.includes('prefers-reduced-motion'),
+        media: query,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      })) as unknown as typeof window.matchMedia;
+      try {
+        renderTv({ initialView: 'matches', matchList });
+
+        expect(screen.getByText('Page 1 of 2')).toBeDefined();
+        act(() => jest.advanceTimersByTime(10_000));
+        expect(screen.getByText('Page 2 of 2')).toBeDefined();
+      } finally {
+        window.matchMedia = original;
+      }
+    });
+  });
+});
+
+describe('TvDashboard overlays', () => {
+  const dashboardLabels = tvDashboardLabels(publicIntl('en'));
+  const tvLabels = tvStatisticsLabels(publicIntl('en'));
+
+  const liveMatch = (ordinal: number, home: string, away: string): LiveMatch => ({
+    matchId: `m${ordinal}`,
+    stageNumber: 1,
+    matchNumber: 1,
+    stageOrdinal: ordinal,
+    state: 'live',
+    projectionVersion: 1,
+    sides: [
+      {
+        entrantId: `h${ordinal}`,
+        name: home,
+        abbreviation: home.slice(0, 3).toUpperCase(),
+        score: 1,
+        state: 'live',
+      },
+      {
+        entrantId: `a${ordinal}`,
+        name: away,
+        abbreviation: away.slice(0, 3).toUpperCase(),
+        score: 0,
+        state: 'live',
+      },
+    ],
+  });
+  const twoLive: LiveDashboard = {
+    standingsVersion: 0,
+    usingLastKnown: true,
+    matches: [liveMatch(1, 'Talleres', 'Andes'), liveMatch(2, 'Boca', 'River')],
+  };
+
+  function renderOverlay(
+    overrides: Partial<React.ComponentProps<typeof TvDashboard>> = {},
+    presentation: 'lower' | 'full' = 'lower',
+  ): ReturnType<typeof render> {
+    return render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={twoLive}
+        labels={tvLabels}
+        language="en"
+        pollIntervalMs={0}
+        presentation={presentation}
+        streamPath="/stream"
+        {...overrides}
+      />,
+    );
+  }
+
+  it.each(['lower', 'full'] as const)(
+    'shows no match, and no score, for a %s overlay given neither a match nor a court',
+    (presentation) => {
+      renderOverlay({}, presentation);
+
+      expect(screen.getByTestId('tv-overlay-no-match').textContent).toContain(
+        dashboardLabels.overlayNoMatch,
+      );
+      expect(document.body.textContent).not.toContain('Talleres');
+      expect(document.body.textContent).not.toContain('TAL');
+    },
+  );
+
+  it('shows only the match each overlay was given: two overlays, two matches', () => {
+    const { unmount } = renderOverlay({ pinnedMatch: { stageNumber: 1, ordinal: 1 } });
+    expect(screen.getByTestId('tv-lower-third').textContent).toContain('TAL');
+    expect(screen.getByTestId('tv-lower-third').textContent).not.toContain('BOC');
+    unmount();
+
+    renderOverlay({ pinnedMatch: { stageNumber: 1, ordinal: 2 } });
+    expect(screen.getByTestId('tv-lower-third').textContent).toContain('BOC');
+    expect(screen.getByTestId('tv-lower-third').textContent).not.toContain('TAL');
+  });
+
+  it('follows the live match of its court, and says so when the court has none', () => {
+    const venues = { m1: 'Cancha 1', m2: 'Cancha 2' };
+    const { unmount } = renderOverlay({ court: 'Cancha 2', venueNameByMatchId: venues });
+    expect(screen.getByTestId('tv-lower-third').textContent).toContain('BOC');
+    unmount();
+
+    renderOverlay({ court: 'Cancha 3', venueNameByMatchId: venues });
+    expect(screen.getByTestId('tv-overlay-no-match').textContent).toContain(
+      dashboardLabels.overlayNoCourtMatch,
+    );
+  });
+
+  it('keeps showing a first live match on the kiosk, which is not an overlay', () => {
+    render(
+      <TvDashboard
+        dashboardLabels={dashboardLabels}
+        initial={twoLive}
+        labels={tvLabels}
+        language="en"
+        pollIntervalMs={0}
+        streamPath="/stream"
+      />,
+    );
+    expect(screen.getByTestId('tv-match-spotlight').textContent).toContain('Talleres');
+  });
+
+  describe('series and sets', () => {
+    const best3: PublicSeriesState = {
+      span: 3,
+      resolutionClass: 'best-of',
+      games: [
+        { number: 1, status: 'finalized', winner: 'home' },
+        { number: 2, status: 'in-progress' },
+        { number: 3, status: 'scheduled' },
+      ],
+      homeGamesWon: 1,
+      awayGamesWon: 0,
+      status: 'undecided',
+      explanation: '',
+    };
+    const withSets = (): LiveDashboard => ({
+      ...twoLive,
+      matches: [
+        {
+          ...liveMatch(1, 'Talleres', 'Andes'),
+          segments: [
+            {
+              number: 1,
+              type: 'set',
+              label: { en: 'Set' },
+              timed: false,
+              state: 'completed',
+              scores: [6, 4],
+            },
+            {
+              number: 2,
+              type: 'set',
+              label: { en: 'Set' },
+              timed: false,
+              state: 'completed',
+              scores: [3, 6],
+            },
+            {
+              number: 3,
+              type: 'set',
+              label: { en: 'Set' },
+              timed: false,
+              state: 'active',
+              scores: [2, 1],
+            },
+          ],
+        },
+      ],
+    });
+
+    it('shows the series: games won by each side and the game in play', () => {
+      renderOverlay({
+        pinnedMatch: { stageNumber: 1, ordinal: 1 },
+        seriesByMatchId: { m1: best3 },
+      });
+
+      expect(screen.getByTestId('tv-series').getAttribute('title')).toBe(
+        'Series 1–0 · Game 2 of 3',
+      );
+      expect(document.querySelectorAll('.tv-progress__pip')).toHaveLength(3);
+      expect(document.querySelector('.tv-progress__pip--current')).not.toBeNull();
+    });
+
+    it('shows the two completed sets and the current one', () => {
+      renderOverlay({ initial: withSets(), pinnedMatch: { stageNumber: 1, ordinal: 1 } });
+
+      const sets = screen.getByTestId('tv-sets');
+      const scores = [...sets.querySelectorAll('.tv-progress__set-score')].map(
+        (node) => node.textContent,
+      );
+      expect(scores).toEqual(['6–4', '3–6', '2–1']);
+      expect(sets.querySelectorAll('[aria-current="true"]')).toHaveLength(1);
+    });
+
+    it('shows the kiosk’s spotlight the same series and sets', () => {
+      renderOverlay({ initial: withSets(), pinnedMatch: { stageNumber: 1, ordinal: 1 } }, 'full');
+      expect(screen.getByTestId('tv-sets')).toBeDefined();
+    });
+
+    it('renders a plain match as before: no progress strip at all', () => {
+      renderOverlay({ pinnedMatch: { stageNumber: 1, ordinal: 1 } });
+      expect(screen.queryByTestId('tv-match-progress')).toBeNull();
+    });
   });
 });

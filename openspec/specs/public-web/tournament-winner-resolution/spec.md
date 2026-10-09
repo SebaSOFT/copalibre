@@ -67,3 +67,20 @@ When a single- or double-elimination terminal stage's deepest round contains mor
 
 - **WHEN** a double-elimination terminal stage cannot be mapped uniquely to the generated grand-final or reset path
 - **THEN** the system reports the zone's champion as unresolved without applying the single-elimination fallback
+
+### Requirement: Several lineage candidates resolve to the entrants that never lost in the zone
+When the outcome-lineage reading of a single-elimination zone leaves more than one deepest-round candidate for the championship fixture, the system SHALL keep only the candidates whose two entrants have no lost finalized match in that zone and SHALL resolve the zone from the single survivor. When no candidate or more than one candidate survives, the zone SHALL resolve no champion and SHALL NOT affect any other zone.
+
+#### Scenario: A final and a fifth-place game share the deepest round
+- **WHEN** a cup zone's deepest round holds the final, a third-place game and a fifth-place game
+- **AND** both the final and the fifth-place game pass the latest-prior-round win test
+- **AND** only the final's two entrants have never lost a finalized match in the zone
+- **THEN** the zone's champion resolves from the final
+
+#### Scenario: The data cannot single out one fixture
+- **WHEN** zero or several deepest-round fixtures have two entrants who never lost
+- **THEN** that zone resolves no champion and the other zones of the stage still resolve
+
+#### Scenario: Every decided zone of the last stage is listed
+- **WHEN** a finished tournament's last stage has three elimination zones whose finals are decided
+- **THEN** the overview's winners list one entry per zone, each with its own champion

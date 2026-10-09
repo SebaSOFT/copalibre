@@ -1,3 +1,57 @@
+## [1.2.6](https://github.com/SebaSOFT/copalibre/compare/v1.2.5...v1.2.6) (2026-10-09)
+
+### Infrastructure and supply chain
+
+- Repair the TV soak-test pipeline and build its web dependencies before execution ([737a3082](https://github.com/SebaSOFT/copalibre/commit/737a3082)).
+- Gate releases on Dependabot advisories, absorb verified updates, paginate alert queries, restore the audit gate, grant the required read access, and clear resulting advisories ([b2c44436](https://github.com/SebaSOFT/copalibre/commit/b2c44436), [bb1f14ad](https://github.com/SebaSOFT/copalibre/commit/bb1f14ad), [3c470956](https://github.com/SebaSOFT/copalibre/commit/3c470956), [b2a361f9](https://github.com/SebaSOFT/copalibre/commit/b2a361f9), [eceaae79](https://github.com/SebaSOFT/copalibre/commit/eceaae79), [7f812569](https://github.com/SebaSOFT/copalibre/commit/7f812569)).
+- Upgrade the NestJS services to Nest 12 and move the API's unit and integration tests to Vitest, with an install-time guard that keeps the NestJS major versions aligned; API contracts and rate-limit behavior are unchanged ([#385](https://github.com/SebaSOFT/copalibre/pull/385)).
+- Report confirmed transitive dependency security remediations from a versioned register, grouped by direct dependency root, in the CI summary ([#387](https://github.com/SebaSOFT/copalibre/pull/387)).
+- Make test runs trustworthy under load: a timeout a workspace declares now applies when integration tests run from the root, suites that clone the module repository skip with a stated reason when it is unreachable and fail in CI, end-to-end mock ports no longer collide with the development stack, rescued retries are listed as flaky in each job summary, and the module distribution integration suites now run in CI ([#394](https://github.com/SebaSOFT/copalibre/pull/394)).
+- Keep tracked content free of references to ignored planning artifacts, and fail CI when one reappears ([#392](https://github.com/SebaSOFT/copalibre/pull/392), [#393](https://github.com/SebaSOFT/copalibre/pull/393)).
+
+### Self-hosted CLI
+
+- Reconcile application upgrades and validate host environment with `doctor` ([d4958b78](https://github.com/SebaSOFT/copalibre/commit/d4958b78)).
+- Repair `init` installations, configure email, and add process lifecycle commands for stop, restart, and status ([ab7d72af](https://github.com/SebaSOFT/copalibre/commit/ab7d72af), [ab65f0e2](https://github.com/SebaSOFT/copalibre/commit/ab65f0e2)).
+- Remove the unused bulk personal-access-token cutover command; active tokens stay valid until they expire or their owner revokes them ([#384](https://github.com/SebaSOFT/copalibre/pull/384)).
+- Load the committed Panamericano demo tournament, with its clubs, emblems, schedule and results, into a running development stack with `copalibre dev demo` ([#386](https://github.com/SebaSOFT/copalibre/pull/386)).
+- Report a module's images stored under another object-storage profile than the active one, or missing: `module verify` fails naming both profiles, `copalibre doctor` warns with a new `warn` status, and the API logs once per key when a referenced background cannot be served ([#411](https://github.com/SebaSOFT/copalibre/pull/411)).
+
+### Public and control experience
+
+- Fix localized home routing and language switching across public pages ([ff35ce1d](https://github.com/SebaSOFT/copalibre/commit/ff35ce1d), [f812f2bc](https://github.com/SebaSOFT/copalibre/commit/f812f2bc), [eb960bc2](https://github.com/SebaSOFT/copalibre/commit/eb960bc2)).
+- Refine organization dashboard hierarchy, role terminology, and reverse-proxy help; separate operator documentation from public navigation ([0c0423ea](https://github.com/SebaSOFT/copalibre/commit/0c0423ea), [7939ff30](https://github.com/SebaSOFT/copalibre/commit/7939ff30)).
+- Serve the discipline backdrop and the TV emblems from the web origin ([#399](https://github.com/SebaSOFT/copalibre/pull/399)).
+- Draw one fixed, faint (6 %), blurred discipline backdrop behind the whole public page instead of a second full-strength copy in the tournament hero ([#412](https://github.com/SebaSOFT/copalibre/pull/412)).
+- Keep organization listing cards legible at any width ([#401](https://github.com/SebaSOFT/copalibre/pull/401)).
+- Show the match report in the page's language, on the shared width and panel ([#402](https://github.com/SebaSOFT/copalibre/pull/402)).
+- Add a localized breadcrumb to every public page below the organization ([#403](https://github.com/SebaSOFT/copalibre/pull/403)).
+- Explain table columns, filter in place and offer compact club chips ([#404](https://github.com/SebaSOFT/copalibre/pull/404)).
+- Show progress per stage and zone, list the rules in force, and warn only when the viewer is offline ([#405](https://github.com/SebaSOFT/copalibre/pull/405)).
+- Draw the knockout bracket with its links and its placement games, with a winner and an elimination shown by weight, and a compact card on phones ([#406](https://github.com/SebaSOFT/copalibre/pull/406)).
+- Present the match schedule as tables grouped by stage and round ([#407](https://github.com/SebaSOFT/copalibre/pull/407)).
+- Resolve and show the champions of every zone of the last stage ([#400](https://github.com/SebaSOFT/copalibre/pull/400)).
+
+### Tournament authoring
+
+- Add adaptive stage previews, configurable group allocation, and a visual WHEN/THEN rules editor ([405967c4](https://github.com/SebaSOFT/copalibre/commit/405967c4)).
+- Let a zone play its own format, inherited from its stage when it declares none, so one stage can hold a league zone beside knockout zones ([#390](https://github.com/SebaSOFT/copalibre/pull/390)).
+- Declare a tournament's zones, their formats and series in the setup wizard and review them, with each zone's effective format, before creating the tournament ([#391](https://github.com/SebaSOFT/copalibre/pull/391)).
+- Generate the next round of a Swiss or single-elimination stage one zone at a time: pairings, round numbers and results are per zone and a zone never pairs entrants of another. A stage with several zones now requires `zoneNumber` on the request, and the stage hub offers a "Generate next round" action for every eligible zone ([#395](https://github.com/SebaSOFT/copalibre/pull/395)).
+
+### TV broadcast
+
+- Add the `/tv` launcher, display shortcuts, and direct navigation to tournament broadcasts ([0fdbc730](https://github.com/SebaSOFT/copalibre/commit/0fdbc730), [22dec1a0](https://github.com/SebaSOFT/copalibre/commit/22dec1a0)).
+- Present each zone of a mixed-format stage by the format it plays: one standings table per zone under the zone's name, the bracket for knockout zones, and a fixtures view grouped by round for league zones, reachable with `?view=fixtures` ([#396](https://github.com/SebaSOFT/copalibre/pull/396)).
+- Give the kiosk its own identity and dates in the organization's time zone, a match list view, stage and pinned-match views, stacked layouts on phones, and a paging that always cycles ([#408](https://github.com/SebaSOFT/copalibre/pull/408)).
+- Correct the launcher's language, stages and overlay match, add a "TV Streaming" link to the public main menu, and let overlays follow a court ([#409](https://github.com/SebaSOFT/copalibre/pull/409)).
+- Make the overlay show only the match it was given, with the series' pips and standing, the sets played and the segment in play named by its place ("2nd Half", "3rd Set"), in the viewer's language; the lower third keeps two rows on a phone-shaped frame ([#410](https://github.com/SebaSOFT/copalibre/pull/410)).
+
+### Email notifications
+
+- Send lifecycle emails to the roles that act on them (new tournament, new club, new registration, submitted squad), in the organization's language with its emblem and name, at most once per recipient ([#389](https://github.com/SebaSOFT/copalibre/pull/389)).
+- Count every email delivery attempt by outcome and return the counts under `emailDelivery` in the worker's `/jobs/metrics`, so an operator can alert on a recipient who may have missed an email; log each unknown outcome as one structured line without the recipient's address ([#397](https://github.com/SebaSOFT/copalibre/pull/397)).
+
 ## [1.2.5](https://github.com/SebaSOFT/copalibre/compare/v1.2.1...v1.2.5) (2026-10-03)
 
 ### Features

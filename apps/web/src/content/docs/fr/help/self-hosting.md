@@ -3,6 +3,7 @@ title: 'Premiers pas : auto-hébergement'
 description: Exécutez CopaLibre depuis les sources sur Windows, macOS ou Linux, puis choisissez une topologie de déploiement à proxy inverse ou Kubernetes.
 capabilities:
   - platform/self-hosted-deployment
+  - platform/email-notifications
 roles:
   - super-admin
 ---
@@ -51,8 +52,13 @@ Avant le démarrage, modifiez `.env` : utilisez `COPALIBRE_IMAGE=copalibre:local
 ```bash
 ../copalibre doctor
 ../copalibre start
+../copalibre status
+../copalibre restart
+../copalibre stop
 ../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
+
+Utilisez copalibre status pour vérifier les conteneurs et la passerelle. copalibre restart vérifie PostgreSQL et doctor avant de relancer les services. copalibre stop conserve les volumes ; --down supprime les conteneurs et réseaux. En mode Kubernetes, start/stop/restart affichent les instructions Helm ou kubectl.
 
 La passerelle expose HTTP sur `http://localhost:8080` (`COPALIBRE_PORT`). Compose expose aussi les ports des services ; limitez leur accès au niveau de l’hôte et du réseau. TLS se termine au proxy de bordure.
 
@@ -73,7 +79,7 @@ chart Helm (`deploy/helm/copalibre/`) déploie les mêmes images, contrat d'envi
 santé et processus de migration que l'installation Compose — l'installer avec les valeurs par défaut
 se comporte de façon identique au chart de base seul.
 
-Exécutez Helm depuis la racine du dépôt après avoir configuré `my-values.yaml` : base de données, identité, messagerie et URL publiques. Utilisez une version déjà publiée pour les deux images ; 1.2.5 sera disponible après publication.
+Exécutez Helm depuis la racine du dépôt après avoir configuré `my-values.yaml` : base de données, identité, messagerie et URL publiques. Utilisez une version déjà publiée pour les deux images ; 1.2.6 sera disponible après publication.
 
 ```bash
 cd ..
@@ -82,8 +88,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.5 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.5
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6
 ```
 
 Superposez ces groupes `values.yaml` additifs, désactivés par défaut, selon vos besoins — aucun ne
@@ -115,7 +121,18 @@ Liste complète des prérequis et les preuves mesurées de basculement multi-nœ
 sauvegarde-restauration et de sécurité de mise à niveau sur lesquelles repose cette affirmation :
 `docs/deployment/enterprise-kubernetes.md` dans le dépôt.
 
-## 4. Étapes suivantes
+## 4. E-mails de notification
+
+L'activité des tournois et de l'organisation est signalée par e-mail via le fournisseur configuré pour les invitations (`COPALIBRE_EMAIL_PROVIDER`) ; aucun autre réglage n'est nécessaire. Dans l'environnement de développement, les e-mails arrivent dans Mailpit.
+
+- Un nouveau tournoi et un nouveau club sont signalés aux administrateurs de l'organisation.
+- Une nouvelle inscription, et un club qui envoie son effectif, sont signalés aux administrateurs de l'organisation et aux administrateurs de ce tournoi. La personne à l'origine de l'événement ne reçoit pas l'e-mail.
+- Les e-mails utilisent la langue principale de l'organisation, portent son emblème et son nom en en-tête, et sont signés Copa Libre avec un lien vers [copalibre.app](https://copalibre.app).
+- Les importations CSV et `copalibre dev demo` n'envoient aucun e-mail.
+- Le même e-mail n'est jamais envoyé deux fois au même destinataire. Si un fournisseur expire avant de confirmer, cet e-mail n'est pas renvoyé : il peut donc manquer plutôt qu'être dupliqué.
+- Un opérateur peut voir combien d'e-mails ont pu manquer : le worker compte chaque tentative d'envoi par résultat (envoyé, déjà envoyé, refusé, inconnu) dans la réponse de `/jobs/metrics`, sous `emailDelivery`, et journalise chaque résultat inconnu sans l'adresse du destinataire. Un `unknown` non nul mérite une alerte ; les compteurs repartent de zéro au redémarrage du worker.
+
+## 5. Étapes suivantes
 
 - [Votre premier tournoi](/help/getting-started/) — créez et publiez une compétition une fois
   l'installation en place.

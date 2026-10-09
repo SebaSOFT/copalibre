@@ -276,8 +276,7 @@ export function computeAccounting(
 }
 
 /**
- * `computeAccounting`'s series-grain fold, extracted verbatim (openspec
- * 0230): one series outcome per fixture, folded once it resolves, rather
+ * `computeAccounting`'s series-grain fold, extracted verbatim: one series outcome per fixture, folded once it resolves, rather
  * than once per game. Mutates `accumulators` in place, matching the
  * function it was extracted from.
  */
@@ -378,8 +377,7 @@ function foldSeriesGrainAccounting(
 }
 
 /**
- * `computeAccounting`'s match-grain fold, extracted verbatim (openspec
- * 0230): every side of every outcome folds independently, the accounting
+ * `computeAccounting`'s match-grain fold, extracted verbatim: every side of every outcome folds independently, the accounting
  * engine's default when no series declaration opts a stage into series-grain
  * standings.
  */
@@ -419,8 +417,8 @@ function foldMatchGrainAccounting(
 }
 
 /**
- * `computeAccounting`'s Strength-of-Schedule (SoS) pass, extracted verbatim
- * (openspec 0230): Buchholz/median-Buchholz/Sonneborn-Berger, computed only
+ * `computeAccounting`'s Strength-of-Schedule (SoS) pass, extracted verbatim:
+ * Buchholz/median-Buchholz/Sonneborn-Berger, computed only
  * for the statistic codes the discipline actually declares.
  */
 function foldStrengthOfScheduleStatistics(
@@ -486,8 +484,7 @@ function foldStrengthOfScheduleStatistics(
 }
 
 /**
- * `computeAccounting`'s cumulative-score pass, extracted verbatim (openspec
- * 0230): cumulative own score and cumulative opponent points, computed only
+ * `computeAccounting`'s cumulative-score pass, extracted verbatim: cumulative own score and cumulative opponent points, computed only
  * for the statistic codes the discipline actually declares.
  */
 function foldCumulativeStatistics(

@@ -98,33 +98,27 @@ route even if the old alias string collides.
 
 ### Requirement: Public routes carry a locale prefix, primary locale excepted
 
-Every public canonical route SHALL be available in each of the platform's supported interface
-languages that have populated content, as a `/{locale}/{organization}/...` prefixed variant, except
-the primary locale (English), which SHALL remain unprefixed at
-`/{organization}/tournaments/{tournament}` and its public children. Interface chrome (navigation,
-footer, section headings, status labels) SHALL render in the variant's own language; organizer-entered
-content (tournament names, participant names, organization names) is never translated. A route's
-locale variant is resolved from the request path at the time it is served — for a route that is
-rendered per request against live backend data, this resolution SHALL happen on every request rather
-than being limited to a fixed, pre-generated set of locale/alias combinations.
+Every public canonical route SHALL be available in each of the platform's supported interface languages that have populated content, as a `/{locale}/{organization}/...` prefixed variant, except the primary locale (English), which SHALL remain unprefixed at `/{organization}/tournaments/{tournament}` and its public children. Interface chrome (navigation, footer, section headings, status labels) SHALL render in the variant's own language; organizer-entered content (tournament names, participant names, organization names) is never translated. A route's locale variant is resolved from the request path at the time it is served — for a route that is rendered per request against live backend data, this resolution SHALL happen on every request rather than being limited to a fixed, pre-generated set of locale/alias combinations. The root public home page SHALL also be reachable under non-primary locale prefixes (e.g. `/{locale}`) serving the localized home landing page. When switching languages, the system SHALL replace the active locale prefix cleanly without accumulating duplicated or nested locale segments.
 
 #### Scenario: English is served unprefixed
-
 - **WHEN** an anonymous visitor requests `/{organization}/tournaments/{tournament}`
 - **THEN** the page renders with English interface chrome and no locale prefix in the URL
 
 #### Scenario: A non-primary locale is served under its prefix
-
-- **WHEN** an anonymous visitor requests `/es/{organization}/tournaments/{tournament}` for a
-  tournament that also has an English variant
-- **THEN** the page renders the same tournament's data with Spanish interface chrome, and organizer-
-  entered names render identically to the English variant
+- **WHEN** an anonymous visitor requests `/es/{organization}/tournaments/{tournament}` for a tournament that also has an English variant
+- **THEN** the page renders the same tournament's data with Spanish interface chrome, and organizer-entered names render identically to the English variant
 
 #### Scenario: The document language attribute matches the served locale
-
 - **WHEN** any public page is requested
-- **THEN** its `<html lang>` attribute matches the locale actually served, never a value hardcoded
-  independent of the requested variant
+- **THEN** its `<html lang>` attribute matches the locale actually served, never a value hardcoded independent of the requested variant
+
+#### Scenario: Non-primary locale home page is served under its prefix
+- **WHEN** an anonymous visitor requests `/{locale}` for any supported non-primary locale (e.g. `/es`, `/fr`)
+- **THEN** the public site serves the localized home landing page in that locale, and does not treat the locale code as an organization alias
+
+#### Scenario: Switching language replaces locale prefix without segment duplication
+- **WHEN** a visitor on a localized route (e.g. `/es/org/tournaments/t1`) selects another language (e.g. French or English)
+- **THEN** the target URL cleanly swaps the prefix (e.g. `/fr/org/tournaments/t1` or `/org/tournaments/t1`), never producing duplicated segments like `/es/es/...`
 
 ### Requirement: Sitemap advertises every locale variant of a public route
 
@@ -759,7 +753,7 @@ surface happens to use.
 Public Astro document chrome, navigation, cards, badges, and image presentation SHALL resolve their
 colour, typography, spacing, border, and motion values from declared CopaLibre tokens. This requirement
 governs what a public style may reference, not where the component that declares it lives; the owned
-public UI tier is established by `0220-operational-surface-parity`.
+public UI tier is established by the operational surface parity work.
 
 #### Scenario: A public page declares presentation styling
 - **WHEN** a public page or layout declares a card, badge, or image treatment
@@ -781,24 +775,6 @@ Components moved into that tier SHALL continue to resolve every value through de
 - **WHEN** an existing public component moves into the owned tier
 - **THEN** its rendered output is unchanged and it introduces no undeclared token or unapproved raw
   colour
-
-### Requirement: Generic Discipline Hero Backdrop
-The tournament overview's hero SHALL fill its full section with the active discipline's background
-image, when one is declared, at full visual strength (no low-opacity wash), with a gradient scrim
-behind the title/emblem content for legibility, dynamically resolving for any installed discipline via
-the same mechanism the public shell already uses for its page-wide background. The hero SHALL NOT be
-rendered as an enclosed card (no card border/background framing it).
-
-#### Scenario: Renders discipline hero background
-- **WHEN** viewing a tournament's public overview whose discipline declares background imagery
-- **THEN** the hero's image fills the entire hero section, visibly showing the photo (not a faint
-  wash), with its title and other content legible over a gradient scrim
-
-#### Scenario: A discipline with no imagery keeps a plain fill
-- **WHEN** viewing a tournament's public overview whose discipline declares no background imagery
-- **THEN** the hero renders a flat surface fill, with no other discipline's imagery substituted and no
-  card framing
-  substituted
 
 ### Requirement: Standardized Tournament Progress Spacing
 The tournament progress component SHALL enforce a minimum top margin of `--space-6` (24px) separating
@@ -944,7 +920,7 @@ directory. It SHALL NOT render as an unstyled, pure-white browser document.
   seamlessly
 
 ### Requirement: Public-web header layout and interaction integrity
-The public-web header (`.cl-public-header`) SHALL attach flush to the top edge of the browser viewport without unintended margin or padding leakage from parent document body styles. The language selection popover (`.cl-public-header__locale-list`) SHALL render endonyms without horizontal squishing, sizing to its own content (`min-width: max-content`) with `white-space: nowrap` so language names do not break across individual syllables or characters. The header navigation links SHALL focus cleanly on core destinations ("Home" and "Help"), omitting the API Reference link from primary public chrome.
+The public-web header (`.cl-public-header`) SHALL attach flush to the top edge of the browser viewport without unintended margin or padding leakage from parent document body styles. The language selection popover (`.cl-public-header__locale-list`) SHALL render endonyms without horizontal squishing, sizing to its own content (`min-width: max-content`) with `white-space: nowrap` so language names do not break across individual syllables or characters. The header navigation links SHALL focus cleanly on public spectator destinations, omitting operator-oriented help and API Reference links from primary public chrome.
 
 #### Scenario: Public header attaches flush to top edge
 - **WHEN** any public page is rendered
@@ -956,4 +932,80 @@ The public-web header (`.cl-public-header`) SHALL attach flush to the top edge o
 
 #### Scenario: Header navigation links are streamlined to core destinations
 - **WHEN** the public header renders on any public page
-- **THEN** its primary navigation links expose "Home" and "Help" without exposing an "API Reference" navigation link
+- **THEN** its primary navigation links focus on public spectator destinations ("Home" and language selection) without exposing operator-facing "Help" or "API Reference" navigation links
+
+### Requirement: Every public image URL resolves without gateway-specific routing
+Every image URL a public page builds, including the discipline backdrop, SHALL resolve through the web application's own origin on a deployment that runs only the web application and the API, and SHALL resolve unchanged behind the Docker Compose gateway and the Kubernetes ingress.
+
+#### Scenario: The backdrop loads on a bare web process
+- **WHEN** a tournament page for a tournament of a discipline with background images is opened on the web application with no gateway in front
+- **THEN** the backdrop image request returns an image and the page shows it
+
+#### Scenario: A gateway keeps working
+- **WHEN** the same page is opened behind a gateway that forwards `/objects` to the API
+- **THEN** the backdrop request returns the same image
+
+### Requirement: A tournament listing card stays legible at any width
+A tournament listing card on the organization page SHALL lay its winners out by the card's own available width: side by side only while each winner's name has room to be read without breaking inside a word, and stacked vertically otherwise. A card SHALL NOT be wider than half of the page content area, and the grid SHALL adapt to the number of cards. A tournament name SHALL wrap to two lines before it is truncated.
+
+#### Scenario: A narrow card stacks its winners
+- **WHEN** a card is narrower than two readable winner columns
+- **THEN** each winner renders on its own row with its emblem, role and full name
+- **AND** no name breaks inside a word
+
+#### Scenario: A single card is not stretched
+- **WHEN** an organization lists one finished tournament
+- **THEN** its card is at most half the width of the page content area
+
+#### Scenario: A wide card keeps columns
+- **WHEN** a card has room for readable columns
+- **THEN** its winners render side by side
+
+### Requirement: Public pages below the organization carry a localized breadcrumb
+Every public page below the organization page — tournament, matches, live, stage and match — SHALL render one breadcrumb landmark listing its ancestors from the organization down, each ancestor a link within the current locale and the current page plain text marked as the current page. Labels SHALL be localized and SHALL use the organization, tournament, stage and zone names. The match page SHALL NOT print a separate English position tag for stage, round and match.
+
+#### Scenario: A match page links back up
+- **WHEN** a viewer opens a match page
+- **THEN** the breadcrumb links to the organization, the tournament, the stage and the matches list, and marks the match as current
+
+#### Scenario: Links keep the locale
+- **WHEN** the page is shown in Spanish
+- **THEN** every breadcrumb link points to the Spanish route
+
+#### Scenario: Narrow viewports collapse the middle
+- **WHEN** the viewport is narrow
+- **THEN** the first and last two items remain visible and the rest collapse behind an ellipsis link
+
+### Requirement: Public tables draw a subtle vertical rule between columns
+Every public table SHALL draw a low-contrast vertical rule on the left edge of each column from the second onward, taken from a design token defined for every theme the site ships.
+
+#### Scenario: Rules start at the second column
+- **WHEN** a public table renders
+- **THEN** every column except the first has a left rule and the first has none
+
+#### Scenario: The rule is quieter than the text
+- **WHEN** a public table renders
+- **THEN** the rule is visible and lower in contrast than the row rule
+
+### Requirement: One fixed, subtle, blurred discipline backdrop serves the whole public page
+A public page inside a tournament SHALL draw the tournament discipline's background image at most once, behind the whole information column rather than behind one section, at 6 % opacity and blurred. The image SHALL stay fixed to the viewport while the page scrolls and SHALL cover the viewport on desktop and phone widths. No section of the page, including the tournament hero, SHALL draw a second copy of the discipline image.
+
+#### Scenario: The backdrop is faint and soft
+- **WHEN** a public page renders for a discipline that declares background imagery
+- **THEN** the page's backdrop image is rendered at 6 % opacity with a blur applied, and no transparent edge of the blur shows inside the viewport
+
+#### Scenario: Every public page of a tournament has it
+- **WHEN** a viewer opens a tournament's overview, matches, live, stage, match report or player page
+- **THEN** each shows the same single backdrop treatment
+
+#### Scenario: The backdrop does not scroll
+- **WHEN** a viewer scrolls a long public page
+- **THEN** the backdrop stays in place relative to the viewport and the content moves over it
+
+#### Scenario: Only one discipline image exists on the page
+- **WHEN** the tournament overview renders for a discipline that declares background imagery
+- **THEN** exactly one discipline background image is in the document and the hero section contains none
+
+#### Scenario: The hero stays legible without its own image
+- **WHEN** the tournament overview renders
+- **THEN** the hero's title, emblem and live-count remain legible over the page backdrop at desktop and phone widths

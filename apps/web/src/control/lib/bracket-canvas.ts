@@ -10,6 +10,13 @@
 
 import type { components } from '@copalibre/contracts';
 import { entrantPath, type BracketMatch } from '../../lib/bracket.js';
+import {
+  DEFAULT_GEOMETRY,
+  placeBracket,
+  snap,
+  type BracketGeometry,
+  type Connector,
+} from '../../lib/bracket-layout.js';
 
 export type CanvasSeriesState = components['schemas']['PublicSeriesStateResponse'];
 export type CanvasSlotKind = 'entrant' | 'bye' | 'winner-of' | 'loser-of';
@@ -47,11 +54,15 @@ export interface CanvasSlot {
   readonly entrantId?: string;
   /** The match this slot's participant comes from, for the non-entrant kinds. */
   readonly matchId?: string;
+  /** Where a filled slot's entrant came from, so a played match stays linked to its sources. */
+  readonly from?: { readonly matchId: string; readonly outcome: 'winner' | 'loser' };
   readonly score?: number;
 }
 
 export interface CanvasMatch {
   readonly matchId: string;
+  /** The engine emits the reset grand final as a possible, conditional match. */
+  readonly conditional?: 'bracket-reset';
   /** The real persisted matches.match_id — absent for a not-yet-materialized node. */
   readonly persistedMatchId?: string;
   readonly bracket: string;
@@ -65,24 +76,9 @@ export interface CanvasMatch {
   readonly series?: CanvasSeriesState;
 }
 
-export interface CanvasGeometry {
-  readonly nodeWidth: number;
-  readonly nodeHeight: number;
-  readonly columnGap: number;
-  readonly rowGap: number;
-  readonly bracketGap: number;
-  /** Positions are snapped to this, so nodes line up under zoom. */
-  readonly grid: number;
-}
-
-export const DEFAULT_GEOMETRY: CanvasGeometry = {
-  nodeWidth: 200,
-  nodeHeight: 64,
-  columnGap: 72,
-  rowGap: 24,
-  bracketGap: 64,
-  grid: 8,
-};
+export type CanvasGeometry = BracketGeometry;
+export { DEFAULT_GEOMETRY, snap };
+export type { Connector };
 
 export interface LaidOutSlot {
   readonly label: string;
@@ -96,6 +92,7 @@ export interface LaidOutSlot {
 
 export interface LaidOutMatch {
   readonly matchId: string;
+  readonly conditional?: 'bracket-reset';
   readonly persistedMatchId?: string;
   readonly bracket: string;
   readonly round: number;
@@ -110,14 +107,6 @@ export interface LaidOutMatch {
   readonly slots: readonly LaidOutSlot[];
 }
 
-export interface Connector {
-  readonly fromMatchId: string;
-  readonly toMatchId: string;
-  readonly kind: 'winner-of' | 'loser-of';
-  /** Polyline in canvas coordinates: source edge, elbow, elbow, target edge. */
-  readonly points: readonly { readonly x: number; readonly y: number }[];
-}
-
 export interface BracketLayout {
   readonly matches: readonly LaidOutMatch[];
   readonly connectors: readonly Connector[];
@@ -125,176 +114,50 @@ export interface BracketLayout {
   readonly height: number;
 }
 
-/** Winners before losers before the final: the order a bracket is read in. */
-const BRACKET_ORDER: readonly string[] = [
-  'winners',
-  'losers',
-  'grand-final',
-  'round-robin',
-  'placement',
-];
-
+/**
+ * Where the operator canvas draws each match. The geometry itself — columns, centring on the
+ * feeding matches, connectors — is `placeBracket`'s, shared with the public bracket; this adds
+ * what only the canvas shows (each slot's label and score).
+ */
 export function layoutBracket(
   matches: readonly CanvasMatch[],
   geometry: CanvasGeometry = DEFAULT_GEOMETRY,
 ): BracketLayout {
-  const laidOut = new Map<string, LaidOutMatch>();
-  const columns = new Map<string, number>();
-  let cursorY = 0;
+  const placed = placeBracket(matches, geometry);
+  const byId = new Map(matches.map((match) => [match.matchId, match]));
 
-  for (const bracket of bracketsOf(matches)) {
-    const inBracket = matches.filter((match) => match.bracket === bracket);
-    const baseY = cursorY;
-    let bottom = cursorY;
-
-    for (const round of roundsOf(inBracket)) {
-      const inRound = inBracket
-        .filter((match) => match.round === round)
-        .sort((a, b) => a.position - b.position);
-
-      for (const [index, match] of inRound.entries()) {
-        const column = columnOf(match, columns);
-        columns.set(match.matchId, column);
-
-        const x = snap(column * (geometry.nodeWidth + geometry.columnGap), geometry.grid);
-        const y = snap(
-          sourceCentre(match, laidOut, geometry) ??
-            baseY + index * (geometry.nodeHeight + geometry.rowGap),
-          geometry.grid,
-        );
-
-        laidOut.set(match.matchId, {
-          matchId: match.matchId,
-          ...(match.persistedMatchId === undefined
-            ? {}
-            : { persistedMatchId: match.persistedMatchId }),
-          bracket: match.bracket,
-          round: match.round,
-          position: match.position,
-          status: match.status,
-          ...(match.format === undefined ? {} : { format: match.format }),
-          ...(match.series === undefined ? {} : { series: match.series }),
-          x,
-          y,
-          width: geometry.nodeWidth,
-          height: geometry.nodeHeight,
-          slots: match.slots.map((slot, slotIndex) => ({
-            label: describeSlot(slot),
-            ...(slot.entrantId === undefined ? {} : { entrantId: slot.entrantId }),
-            ...(slot.score === undefined ? {} : { score: slot.score }),
-            pending: slot.kind !== 'entrant',
-            y: y + slotCentre(slotIndex, match.slots.length, geometry.nodeHeight),
-          })),
-        });
-        bottom = Math.max(bottom, y + geometry.nodeHeight);
-      }
-    }
-
-    cursorY = bottom + geometry.bracketGap;
-  }
-
-  const nodes = [...laidOut.values()];
   return {
-    matches: nodes,
-    connectors: connectorsOf(matches, laidOut),
-    width: nodes.reduce((widest, node) => Math.max(widest, node.x + node.width), 0),
-    height: nodes.reduce((tallest, node) => Math.max(tallest, node.y + node.height), 0),
+    matches: placed.nodes.map((node): LaidOutMatch => {
+      const match = byId.get(node.matchId) as CanvasMatch;
+      return {
+        matchId: match.matchId,
+        ...(match.conditional === undefined ? {} : { conditional: match.conditional }),
+        ...(match.persistedMatchId === undefined
+          ? {}
+          : { persistedMatchId: match.persistedMatchId }),
+        bracket: match.bracket,
+        round: match.round,
+        position: match.position,
+        status: match.status,
+        ...(match.format === undefined ? {} : { format: match.format }),
+        ...(match.series === undefined ? {} : { series: match.series }),
+        x: node.x,
+        y: node.y,
+        width: node.width,
+        height: node.height,
+        slots: match.slots.map((slot, slotIndex) => ({
+          label: describeSlot(slot),
+          ...(slot.entrantId === undefined ? {} : { entrantId: slot.entrantId }),
+          ...(slot.score === undefined ? {} : { score: slot.score }),
+          pending: slot.kind !== 'entrant',
+          y: node.slotYs[slotIndex] ?? node.y,
+        })),
+      };
+    }),
+    connectors: placed.connectors,
+    width: placed.width,
+    height: placed.height,
   };
-}
-
-/**
- * Which column a match belongs in: after every match that feeds it.
- *
- * Round number alone is not enough. A losers'-bracket round one takes the loser
- * of a winners'-bracket round one, so it is played *after* it — placing both in
- * column zero would draw a connector going backwards, and stack two nodes on
- * the same coordinates.
- */
-function columnOf(match: CanvasMatch, columns: ReadonlyMap<string, number>): number {
-  const sourceColumns = match.slots
-    .map((slot) => (slot.matchId === undefined ? undefined : columns.get(slot.matchId)))
-    .filter((column): column is number => column !== undefined);
-
-  return Math.max(match.round - 1, ...sourceColumns.map((column) => column + 1));
-}
-
-/**
- * Where a match sits vertically: centred between the matches that feed it.
- *
- * This is what makes a bracket read as a bracket. Without it a round-two match
- * sits beside the wrong pair and an operator reading down a column sees an
- * advancement that never existed.
- *
- * Only same-bracket sources count. A losers' bracket drawing its vertical
- * position from the winners' bracket would interleave the two, and the whole
- * point of drawing them as two bands is that an operator can see at a glance
- * which one they are looking at.
- */
-function sourceCentre(
-  match: CanvasMatch,
-  laidOut: ReadonlyMap<string, LaidOutMatch>,
-  geometry: CanvasGeometry,
-): number | undefined {
-  const sources = match.slots
-    .map((slot) => (slot.matchId === undefined ? undefined : laidOut.get(slot.matchId)))
-    .filter((source): source is LaidOutMatch => source !== undefined)
-    .filter((source) => source.bracket === match.bracket);
-  if (sources.length === 0) return undefined;
-
-  const centres = sources.map((source) => source.y + source.height / 2);
-  const middle = (Math.min(...centres) + Math.max(...centres)) / 2;
-  return middle - geometry.nodeHeight / 2;
-}
-
-function connectorsOf(
-  matches: readonly CanvasMatch[],
-  laidOut: ReadonlyMap<string, LaidOutMatch>,
-): readonly Connector[] {
-  const connectors: Connector[] = [];
-
-  for (const match of matches) {
-    const target = laidOut.get(match.matchId);
-    if (!target) continue;
-
-    for (const [index, slot] of match.slots.entries()) {
-      if (slot.kind !== 'winner-of' && slot.kind !== 'loser-of') continue;
-      const source = slot.matchId === undefined ? undefined : laidOut.get(slot.matchId);
-      if (!source) continue;
-
-      const from = { x: source.x + source.width, y: source.y + source.height / 2 };
-      const to = { x: target.x, y: target.slots[index]?.y ?? target.y + target.height / 2 };
-      // An elbow at the midpoint rather than a diagonal: two lines crossing at a
-      // right angle stay readable where a dozen diagonals become a cat's cradle.
-      const elbowX = (from.x + to.x) / 2;
-
-      connectors.push({
-        fromMatchId: source.matchId,
-        toMatchId: target.matchId,
-        kind: slot.kind,
-        points: [from, { x: elbowX, y: from.y }, { x: elbowX, y: to.y }, to],
-      });
-    }
-  }
-
-  return connectors;
-}
-
-function bracketsOf(matches: readonly CanvasMatch[]): readonly string[] {
-  const present = [...new Set(matches.map((match) => match.bracket))];
-  return present.sort((a, b) => rankOf(a) - rankOf(b) || a.localeCompare(b));
-}
-
-function rankOf(bracket: string): number {
-  const index = BRACKET_ORDER.indexOf(bracket);
-  return index === -1 ? BRACKET_ORDER.length : index;
-}
-
-function roundsOf(matches: readonly CanvasMatch[]): readonly number[] {
-  return [...new Set(matches.map((match) => match.round))].sort((a, b) => a - b);
-}
-
-function slotCentre(index: number, count: number, height: number): number {
-  return count === 0 ? height / 2 : (height / count) * (index + 0.5);
 }
 
 /**
@@ -314,10 +177,6 @@ export function describeSlot(slot: CanvasSlot): string {
     case 'loser-of':
       return `Perdedor del ${slot.matchId ?? '—'}`;
   }
-}
-
-export function snap(value: number, grid: number): number {
-  return grid <= 0 ? value : Math.round(value / grid) * grid;
 }
 
 /** Zoom stops, so the control is a set of steps rather than a free float. */

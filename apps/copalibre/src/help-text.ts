@@ -21,13 +21,19 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     name: 'init',
     summary: 'Write a new installation into the current directory — no checkout required',
     usage:
-      'copalibre init [--module-dev] [--proxy <name>] [--non-interactive] [--skip-preflight] ' +
-      '[--app-url <url>] [--api-url <url>] [--disciplines <list>] | ' +
+      'copalibre init [--module-dev] [--repair] [--proxy <name>] [--non-interactive] [--skip-preflight] ' +
+      '[--app-url <url>] [--api-url <url>] [--disciplines <list>] [--email-provider <provider>] ' +
+      '[--email-from <address>] [--email-credential <value>] [--email-domain <domain>] | ' +
       'copalibre init --kubernetes [--namespace <ns>] [--release <name>] [--context <ctx>]',
     flags: [
       {
         flag: '--module-dev',
         description: 'Also write docker-compose.module-dev.yml, for local module development',
+      },
+      {
+        flag: '--repair',
+        description:
+          'Back up and repair an existing installation while preserving its Compose file',
       },
       {
         flag: '--proxy <name>',
@@ -53,6 +59,22 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
         flag: '--disciplines <list>',
         description:
           'Comma-separated starter sport disciplines to provision (default: football, tennis)',
+      },
+      {
+        flag: '--email-provider <provider>',
+        description: 'Email provider: smtp, resend, brevo, or mailgun (default: local SMTP)',
+      },
+      {
+        flag: '--email-from <address>',
+        description: 'Email sender address (default: noreply@copalibre.local)',
+      },
+      {
+        flag: '--email-credential <value>',
+        description: 'SMTP connection URL or the selected provider API key',
+      },
+      {
+        flag: '--email-domain <domain>',
+        description: 'Mailgun sending domain (required for the mailgun provider)',
       },
       {
         flag: '--kubernetes',
@@ -90,18 +112,53 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'dev',
     summary: 'Run a development environment (containerized or hybrid)',
-    usage: 'copalibre dev [--hybrid]',
+    usage: 'copalibre dev [--hybrid]\n       copalibre dev demo [--list] [<dataset>]',
     flags: [
       {
         flag: '--hybrid',
         description: 'Run infrastructure in Docker but application processes on the host',
+      },
+      {
+        flag: 'demo [--list] [<dataset>]',
+        description: 'Load a demo dataset into the running development stack, or list the datasets',
       },
     ],
   },
   {
     name: 'start',
     summary: 'Start PostgreSQL, run doctor, then start every process role',
-    usage: 'copalibre start',
+    usage: 'copalibre start [--dev]',
+    flags: [{ flag: '--dev', description: 'Start the containerized development Compose profile' }],
+  },
+  {
+    name: 'stop',
+    summary: 'Stop the running Compose installation without removing volumes',
+    usage: 'copalibre stop [--dev] [--down]',
+    flags: [
+      { flag: '--dev', description: 'Stop development Compose services' },
+      { flag: '--down', description: 'Remove containers and networks while retaining volumes' },
+    ],
+  },
+  {
+    name: 'restart',
+    summary: 'Restart Compose services and wait for them to become healthy',
+    usage: 'copalibre restart [--dev] [--no-doctor]',
+    flags: [
+      { flag: '--dev', description: 'Restart development Compose services' },
+      {
+        flag: '--no-doctor',
+        description: 'Skip the doctor check before starting application services',
+      },
+    ],
+  },
+  {
+    name: 'status',
+    summary: 'Show installation mode, container health, and ingress endpoints',
+    usage: 'copalibre status [--json] [--dev]',
+    flags: [
+      { flag: '--json', description: 'Print machine-readable JSON status' },
+      { flag: '--dev', description: 'Inspect development Compose services' },
+    ],
   },
   {
     name: 'migrate',
@@ -212,15 +269,6 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     ],
   },
   {
-    name: 'revoke-legacy-personal-access-tokens',
-    summary: 'Revoke every currently active personal access token as a security cutover',
-    usage: 'copalibre revoke-legacy-personal-access-tokens (--confirm | --dry-run)',
-    flags: [
-      { flag: '--dry-run', description: 'Show the number of active tokens without changing any' },
-      { flag: '--confirm', description: 'Required to revoke every active token' },
-    ],
-  },
-  {
     name: 'module',
     summary: 'Manage installed discipline and tournament-profile modules',
     usage: 'copalibre module <add|list|remove|verify|scaffold|validate-local|submit>',
@@ -322,8 +370,8 @@ export const MODULE_SUBCOMMAND_HELP: readonly CommandHelp[] = [
  * `copalibre tournament <subcommand>` help table, mirroring
  * `MODULE_SUBCOMMAND_HELP`'s shape — kept separate from `COMMAND_HELP`
  * because these only exist under the `tournament` command. Each subcommand
- * calls the exact same `apps/api` HTTP endpoint its MCP counterpart does
- * (openspec 0252); flag names mirror the MCP tools' input schema field
+ * calls the exact same `apps/api` HTTP endpoint its MCP counterpart does;
+ * flag names mirror the MCP tools' input schema field
  * names translated to kebab-case.
  */
 export const TOURNAMENT_SUBCOMMAND_HELP: readonly CommandHelp[] = [

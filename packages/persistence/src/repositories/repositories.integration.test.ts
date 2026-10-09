@@ -117,6 +117,119 @@ describe('repositories (integration)', () => {
     ).resolves.toBeUndefined();
   });
 
+  describe('lifecycle events that notification email is built on', () => {
+    async function eventsOf(eventType: string, entityId: string) {
+      const rows = await scratch.db
+        .selectFrom('outbox_events')
+        .select(['payload', 'stream'])
+        .where('event_type', '=', eventType)
+        .where('entity_id', '=', entityId)
+        .execute();
+      return rows.map((row) => ({
+        stream: row.stream,
+        payload: row.payload as Record<string, unknown>,
+      }));
+    }
+
+    it('publishes club.created with the club and its actor, flagging an import', async () => {
+      const [direct, imported] = await withTransaction(scratch.db, async (uow) => [
+        await participants.createClub(uow, { organizationId, name: 'Club Directo', ...AUDIT }),
+        await participants.createClub(uow, {
+          organizationId,
+          name: 'Club Importado',
+          origin: 'import',
+          ...AUDIT,
+        }),
+      ]);
+
+      const [event] = await eventsOf('club.created', direct.clubId);
+      expect(event?.payload).toEqual({
+        clubId: direct.clubId,
+        alias: direct.alias,
+        name: 'Club Directo',
+        actor: AUDIT.actor,
+      });
+      const [importedEvent] = await eventsOf('club.created', imported.clubId);
+      expect(importedEvent?.payload).toMatchObject({ origin: 'import' });
+    });
+
+    it('publishes no club.created when the creating transaction rolls back', async () => {
+      let clubId = '';
+      await expect(
+        withTransaction(scratch.db, async (uow) => {
+          clubId = (
+            await participants.createClub(uow, { organizationId, name: 'Club Fantasma', ...AUDIT })
+          ).clubId;
+          throw new Error('rolled back');
+        }),
+      ).rejects.toThrow('rolled back');
+      expect(await eventsOf('club.created', clubId)).toHaveLength(0);
+    });
+
+    it('extends tournament.created and entrant.registered without removing a field', async () => {
+      const disciplineDescriptor = descriptor();
+      const { tournament, entrant } = await withTransaction(scratch.db, async (uow) => {
+        await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+        const created = await tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-aviso-importada',
+          name: 'Copa Aviso Importada',
+          descriptor: disciplineDescriptor,
+          origin: 'import',
+          ...AUDIT,
+        });
+        const team = await participants.createTeam(uow, {
+          organizationId,
+          name: 'Equipo Eventos',
+          ...AUDIT,
+        });
+        const registered = await participants.registerEntrant(uow, {
+          tournamentId: created.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          organizationId,
+          origin: 'club-portal',
+          ...AUDIT,
+        });
+        return { tournament: created, entrant: registered };
+      });
+
+      const [tournamentEvent] = await eventsOf('tournament.created', tournament.tournamentId);
+      expect(tournamentEvent?.payload).toEqual({
+        tournamentId: tournament.tournamentId,
+        alias: 'copa-aviso-importada',
+        status: 'draft',
+        name: 'Copa Aviso Importada',
+        actor: AUDIT.actor,
+        origin: 'import',
+      });
+      const [entrantEvent] = await eventsOf('entrant.registered', entrant.entrantId);
+      expect(entrantEvent?.payload).toEqual({
+        entrantId: entrant.entrantId,
+        tournamentId: tournament.tournamentId,
+        status: 'pending',
+        entrantKind: 'team',
+        actor: AUDIT.actor,
+        origin: 'club-portal',
+      });
+    });
+
+    it('leaves origin out of the payload when the mutation was a direct operator action', async () => {
+      const disciplineDescriptor = descriptor();
+      const tournament = await withTransaction(scratch.db, async (uow) => {
+        await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+        return tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-aviso-directa',
+          name: 'Copa Aviso Directa',
+          descriptor: disciplineDescriptor,
+          ...AUDIT,
+        });
+      });
+      const [event] = await eventsOf('tournament.created', tournament.tournamentId);
+      expect(event?.payload).not.toHaveProperty('origin');
+    });
+  });
+
   it('compiles the effective ruleset before persisting a ruleset version', async () => {
     const disciplineDescriptor = descriptor();
     const tournament = await withTransaction(scratch.db, async (uow) => {
@@ -341,7 +454,7 @@ describe('repositories (integration)', () => {
     const outboxCount = await new OutboxReader(scratch.db).countFor(matchId);
     expect(outboxCount).toBeGreaterThanOrEqual(3);
 
-    // openspec 0300: the outbox payload carries matchId/side/personId/occurredAt
+    // The outbox payload carries matchId/side/personId/occurredAt
     // alongside eventId/definitionCode — every field `PUBLIC_EVENT_FIELDS`
     // allowlists for `match.event-recorded`, previously inert because the
     // payload never actually carried them.
@@ -934,6 +1047,114 @@ describe('repositories (integration)', () => {
     expect(result.first[0]?.groupId).toBe(result.second[0]?.groupId);
   });
 
+  it('stores a zone format, clears it back to inheritance, and locks it once fixtures exist', async () => {
+    const descriptorDocument = descriptor();
+    const setup = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptorDocument, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-formato-zona',
+        name: 'Copa Formato Zona',
+        descriptor: descriptorDocument,
+        ...AUDIT,
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Fase mixta',
+        format: 'single-elimination',
+        organizationId,
+        ...AUDIT,
+      });
+      const inheriting = await competition.createZone(uow, {
+        stageId: stage.stageId,
+        number: 1,
+        name: 'Zona 1',
+        organizationId,
+        ...AUDIT,
+      });
+      const declared = await competition.createZone(uow, {
+        stageId: stage.stageId,
+        number: 2,
+        name: 'Zona 2',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      return { stage, inheriting, declared };
+    });
+
+    expect(setup.inheriting.format).toBeUndefined();
+    expect(setup.declared.format).toBe('round-robin');
+
+    const set = await withTransaction(scratch.db, (uow) =>
+      competition.setZoneFormat(uow, {
+        zoneId: setup.inheriting.zoneId,
+        format: 'league',
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    expect(set.format).toBe('league');
+    await expect(competition.findZoneById(setup.inheriting.zoneId)).resolves.toMatchObject({
+      format: 'league',
+    });
+
+    const cleared = await withTransaction(scratch.db, (uow) =>
+      competition.setZoneFormat(uow, {
+        zoneId: setup.inheriting.zoneId,
+        format: null,
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    expect(cleared.format).toBeUndefined();
+    const [first, second] = await competition.listZonesOfStage(setup.stage.stageId);
+    expect(first?.format).toBeUndefined();
+    expect(second?.format).toBe('round-robin');
+
+    const audited = await scratch.db
+      .selectFrom('audit_log')
+      .select('action')
+      .where('entity_id', '=', setup.inheriting.zoneId)
+      .where('action', '=', 'zone.format-set')
+      .execute();
+    expect(audited).toHaveLength(2);
+
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        competition.setZoneFormat(uow, {
+          zoneId: newId(),
+          format: 'league',
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(NotFoundError);
+
+    await withTransaction(scratch.db, (uow) =>
+      competition.createFixtures(uow, {
+        stageId: setup.stage.stageId,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        competition.setZoneFormat(uow, {
+          zoneId: setup.declared.zoneId,
+          format: null,
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvariantViolationError);
+    await expect(competition.findZoneById(setup.declared.zoneId)).resolves.toMatchObject({
+      format: 'round-robin',
+    });
+  });
+
   it('upserts a zone promotion plan and records its declared rule in the audit trail', async () => {
     const descriptorDocument = descriptor();
     const result = await withTransaction(scratch.db, async (uow) => {
@@ -1135,7 +1356,7 @@ describe('repositories (integration)', () => {
     ).resolves.toEqual([result.entrantIds[3]]);
   });
 
-  it("affiliates a person with a club and lists only that club's members (openspec 0301)", async () => {
+  it("affiliates a person with a club and lists only that club's members", async () => {
     const people = new PersonRepository(scratch.db);
     const club = await withTransaction(scratch.db, (uow) =>
       participants.createClub(uow, { organizationId, name: 'Club Portal FC', ...AUDIT }),
@@ -1169,7 +1390,7 @@ describe('repositories (integration)', () => {
     expect(members[0]?.clubId).toBe(club.clubId);
   });
 
-  it('lists only the teams belonging to one club (openspec 0301)', async () => {
+  it('lists only the teams belonging to one club', async () => {
     const club = await withTransaction(scratch.db, (uow) =>
       participants.createClub(uow, { organizationId, name: 'Roster Club FC', ...AUDIT }),
     );
@@ -1263,8 +1484,8 @@ describe('entrant attributes (integration)', () => {
       }),
     );
 
-    // Ordered by key, and each value comes back as the type it was stored under
-    // — a ranking must never resurface as the string "12".
+    // Ordered by key, and each value comes back as the type it was stored under —
+    // a ranking must never resurface as the string "12".
     await expect(participants.listEntrantAttributes(entrant.entrantId)).resolves.toEqual([
       { key: 'ranking', value: 12, kind: 'numeric' },
       { key: 'region', value: 'san-juan', kind: 'categorical' },
@@ -2258,6 +2479,9 @@ describe('public overview projection (integration)', () => {
     expect(completion.stages[0]?.liveMatches).toBe(1);
     expect(completion.stages[0]?.scheduledMatches).toBe(1);
 
+    // Neither the stage's implicit zone nor its implicit group is a segment worth reporting.
+    expect(completion.stages[0]?.segments).toEqual([]);
+
     expect(completion.stages[1]?.stageId).toBe(stage2.stageId);
     expect(completion.stages[1]?.stageName).toBe('Playoffs');
     expect(completion.stages[1]?.totalMatches).toBe(0);
@@ -2269,5 +2493,81 @@ describe('public overview projection (integration)', () => {
     expect(completion.forfeitedMatches).toBe(1);
     expect(completion.liveMatches).toBe(1);
     expect(completion.scheduledMatches).toBe(1);
+  });
+
+  it('reports tournament progress per declared group of a stage', async () => {
+    const competition = new CompetitionRepository(scratch.db);
+    const tournaments = new TournamentRepository(scratch.db);
+
+    const setup = await withTransaction(scratch.db, async (uow) => {
+      const d = descriptor();
+      await tournaments.saveDescriptor(uow, d, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-segment-progress',
+        name: 'Copa Segment Progress',
+        descriptor: d,
+        ...AUDIT,
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Fase de grupos',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const zone = await competition.createZone(uow, {
+        stageId: stage.stageId,
+        number: 1,
+        name: 'Grupos',
+        organizationId,
+        ...AUDIT,
+      });
+      const groupA = await competition.createGroup(uow, {
+        zoneId: zone.zoneId,
+        number: 1,
+        name: 'Grupo A',
+        organizationId,
+        ...AUDIT,
+      });
+      const groupB = await competition.createGroup(uow, {
+        zoneId: zone.zoneId,
+        number: 2,
+        name: 'Grupo B',
+        organizationId,
+        ...AUDIT,
+      });
+      const [fixtureA, fixtureB] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        matchCount: 2,
+        fixtures: [
+          { round: 1, zoneId: zone.zoneId, groupId: groupA.groupId },
+          { round: 1, zoneId: zone.zoneId, groupId: groupB.groupId },
+        ],
+        organizationId,
+        ...AUDIT,
+      });
+      return { tournament, fixtureA, fixtureB, groupA, groupB };
+    });
+    if (!setup.fixtureA || !setup.fixtureB) throw new Error('expected two fixtures');
+
+    const firstOfA = await scratch.db
+      .selectFrom('matches')
+      .select('match_id')
+      .where('fixture_id', '=', setup.fixtureA.fixtureId)
+      .orderBy('number', 'asc')
+      .executeTakeFirstOrThrow();
+    await scratch.db
+      .updateTable('matches')
+      .set({ status: 'finalized' })
+      .where('match_id', '=', firstOfA.match_id)
+      .execute();
+
+    const completion = await competition.getTournamentCompletion(setup.tournament.tournamentId);
+    expect(completion.stages[0]?.segments).toEqual([
+      { segmentId: setup.groupA.groupId, name: 'Grupo A', totalMatches: 2, resolvedMatches: 1 },
+      { segmentId: setup.groupB.groupId, name: 'Grupo B', totalMatches: 2, resolvedMatches: 0 },
+    ]);
   });
 });

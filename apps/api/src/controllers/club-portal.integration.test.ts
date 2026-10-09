@@ -24,7 +24,7 @@ import { DATABASE } from '../database.token.js';
 import { ClubPortalController } from './club-portal.controller.js';
 
 /**
- * The Club Portal (openspec 0301) through the real HTTP stack: a club-admin
+ * The Club Portal through the real HTTP stack: a club-admin
  * scoped to one club manages that club's own members and teams and submits a
  * tournament registration, and is refused on another club's resources —
  * exactly the ownership check `role-scope.integration.test.ts` already
@@ -230,6 +230,22 @@ describe('Club Portal (integration)', () => {
 
     const squad = await people.squadOf(teamId);
     expect(squad.map((p) => p.personId)).toEqual([player.personId]);
+
+    // The submission is announced once, by the squad event; the registration event is marked so
+    // notification email does not announce it a second time.
+    const { entrantId } = submitted.json() as { entrantId: string };
+    const events = await scratch.db
+      .selectFrom('outbox_events')
+      .select(['event_type', 'payload'])
+      .where('entity_id', '=', entrantId)
+      .execute();
+    const byType = new Map(events.map((event) => [event.event_type, event.payload]));
+    expect(byType.get('entrant.registered')).toMatchObject({ origin: 'club-portal' });
+    expect(byType.get('entrant.squad-submitted')).toMatchObject({
+      entrantId,
+      teamId,
+      memberCount: 1,
+    });
   });
 
   it('refuses a squad naming a person from a different club', async () => {

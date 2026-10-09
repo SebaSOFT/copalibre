@@ -13,7 +13,7 @@ import type { Migration } from 'kysely/migration';
  *
  * `organization_id` has no FK to `organizations` (matching `audit_log`'s own
  * column) so a system-level object can carry `SYSTEM_ORGANIZATION`'s
- * sentinel value — a failed scan is audited (task 2.5), and `recordAudit`
+ * sentinel value — a failed scan is audited, and `recordAudit`
  * requires an organization to scope the entry to.
  */
 export const objectStorageMetadata: Migration = {

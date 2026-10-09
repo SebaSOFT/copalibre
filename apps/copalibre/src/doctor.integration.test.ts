@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
-import { chmod, mkdtemp, rm } from 'node:fs/promises';
+import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderBanner } from './banner.js';
 
@@ -25,6 +25,31 @@ describe('copalibre doctor command (integration)', () => {
       expect(result.stderr).toBe(renderBanner());
     } finally {
       await rm(dataDirectory, { force: true, recursive: true });
+    }
+  });
+
+  it('checks the host .env and stops before Docker Compose when required values are missing', async () => {
+    const dataDirectory = await mkdtemp(resolve(tmpdir(), 'copalibre-doctor-data-'));
+    const installationDirectory = await mkdtemp(resolve(tmpdir(), 'copalibre-doctor-host-'));
+    try {
+      await writeFile(join(installationDirectory, '.env'), 'COPALIBRE_APP_URL=\n', 'utf8');
+      const result = await runDoctorProcess(
+        dataDirectory,
+        { COMPOSE_FILE: 'docker-compose.yml' },
+        ['doctor'],
+        {
+          cwd: installationDirectory,
+          inContainer: false,
+        },
+      );
+
+      expect(result.code).toBe(1);
+      expect(result.stdout).toContain('FAIL host-env:database:');
+      expect(result.stdout).toContain('FAIL host-env:COPALIBRE_APP_URL:');
+      expect(result.stdout).not.toContain('preflight:docker-socket');
+    } finally {
+      await rm(dataDirectory, { force: true, recursive: true });
+      await rm(installationDirectory, { force: true, recursive: true });
     }
   });
 
@@ -67,8 +92,7 @@ describe('copalibre doctor command (integration)', () => {
   /**
    * `--fix` piped through a child process's stdout/stderr has no TTY —
    * exactly the "operator ran this from a script or CI job" case
-   * design.md's Non-Goals rule out ever mutating data for (openspec 0296,
-   * task 4.1). The real `DATABASE_URL` is required to reach the repair step
+   * in which `doctor` must never mutate data. The real `DATABASE_URL` is required to reach the repair step
    * at all; without it `--fix` is a silent no-op, which is not what this
    * test is verifying.
    */
@@ -92,6 +116,7 @@ function runDoctorProcess(
   dataDirectory: string,
   extraEnvironment: NodeJS.ProcessEnv = {},
   args: readonly string[] = ['doctor'],
+  options: { readonly cwd?: string; readonly inContainer?: boolean } = {},
 ): Promise<{
   readonly code: number | null;
   readonly stdout: string;
@@ -99,10 +124,10 @@ function runDoctorProcess(
 }> {
   return new Promise((resolveResult, reject) => {
     const child = spawn(process.execPath, [CLI_EXECUTABLE, ...args], {
-      cwd: REPOSITORY_ROOT,
+      cwd: options.cwd ?? REPOSITORY_ROOT,
       env: {
         ...process.env,
-        COPALIBRE_IN_CONTAINER: 'true',
+        COPALIBRE_IN_CONTAINER: options.inContainer === false ? 'false' : 'true',
         COPALIBRE_DATA_DIR: dataDirectory,
         DATABASE_URL: '',
         COPALIBRE_APP_URL: '',

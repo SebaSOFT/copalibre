@@ -1,11 +1,13 @@
 import { describe, it, expect } from '@jest/globals';
 import {
+  bracketZonesOf,
   championshipMatch,
   describeSlot,
   isResolved,
   matchReportUrl,
   nodeOutcomes,
   stageOutcomes,
+  resolveZoneLayouts,
   selectStageLayout,
   stagePath,
   toRounds,
@@ -177,6 +179,7 @@ describe('toNode', () => {
       abbreviation: 'ALP',
       score: 3,
       state: 'final',
+      winner: true,
       pending: false,
     });
     expect(node.slots[1]).toEqual({
@@ -187,6 +190,20 @@ describe('toNode', () => {
       state: 'final',
       pending: false,
     });
+  });
+
+  it('marks no winner on a tie, a live score or a match without scores', () => {
+    const entrants: BracketMatch['slots'] = [
+      { kind: 'entrant', name: 'Club Alpha' },
+      { kind: 'entrant', name: 'Club Beta' },
+    ];
+    const base = { matchNumber: 3, roundNumber: 1, branch: 'winners', slots: entrants };
+    const winnersOf = (match: BracketMatch): readonly (boolean | undefined)[] =>
+      toNode(match, labels).slots.map((slot) => slot.winner);
+
+    expect(winnersOf({ ...base, state: 'final', scores: [2, 2] })).toEqual([undefined, undefined]);
+    expect(winnersOf({ ...base, state: 'live', scores: [2, 1] })).toEqual([undefined, undefined]);
+    expect(winnersOf({ ...base, state: 'upcoming' })).toEqual([undefined, undefined]);
   });
 
   it('builds node view for pending match without scores', () => {
@@ -282,6 +299,80 @@ describe('selectStageLayout', () => {
 
   it('defaults to bracket when format is unspecified', () => {
     expect(selectStageLayout(undefined)).toBe('bracket');
+  });
+});
+
+describe('resolveZoneLayouts', () => {
+  it('draws every zone with the stage layout when none declares a format', () => {
+    const result = resolveZoneLayouts([{}, {}], 'single-elimination');
+
+    expect(result.layouts).toEqual(['bracket', 'bracket']);
+    expect(result.mixed).toBe(false);
+  });
+
+  it('draws a zone by its own format, not by its stage’s', () => {
+    const result = resolveZoneLayouts(
+      [
+        { format: 'single-elimination' },
+        { format: 'single-elimination' },
+        { format: 'round-robin' },
+      ],
+      'single-elimination',
+    );
+
+    expect(result.layouts).toEqual(['bracket', 'bracket', 'grid']);
+    expect(result.mixed).toBe(true);
+  });
+
+  it('is not mixed when every zone declares a format that draws the same way', () => {
+    const result = resolveZoneLayouts(
+      [{ format: 'round-robin' }, { format: 'league' }],
+      'single-elimination',
+    );
+
+    expect(result.layouts).toEqual(['grid', 'grid']);
+    expect(result.mixed).toBe(false);
+  });
+
+  it('falls back to the stage format for a zone that reports none', () => {
+    expect(resolveZoneLayouts([{ format: undefined }], 'round-robin').layouts).toEqual(['grid']);
+  });
+
+  it('treats a stage with no zones as not mixed', () => {
+    expect(resolveZoneLayouts([], 'round-robin')).toEqual({ layouts: [], mixed: false });
+  });
+});
+
+describe('bracketZonesOf', () => {
+  const some = [{ matchId: 'm' }];
+
+  it('keeps the elimination zones of a mixed stage and drops the league zone', () => {
+    const zones = bracketZonesOf({
+      format: 'single-elimination',
+      zones: [
+        { zoneName: 'A', matches: some },
+        { zoneName: 'B', matches: some },
+        { zoneName: 'C', format: 'round-robin', matches: some },
+      ],
+    });
+
+    expect(zones.map((zone) => zone.zoneName)).toEqual(['A', 'B']);
+  });
+
+  it('keeps a zone that declares an elimination format inside a league stage', () => {
+    const zones = bracketZonesOf({
+      format: 'round-robin',
+      zones: [
+        { zoneName: 'A', matches: some },
+        { zoneName: 'B', format: 'single-elimination', matches: some },
+      ],
+    });
+
+    expect(zones.map((zone) => zone.zoneName)).toEqual(['B']);
+  });
+
+  it('drops a bracket zone with nothing to show', () => {
+    expect(bracketZonesOf({ format: 'single-elimination', zones: [{ matches: [] }] })).toEqual([]);
   });
 });
 

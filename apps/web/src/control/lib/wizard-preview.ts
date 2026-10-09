@@ -6,6 +6,7 @@ import {
   type SlotSource,
 } from '@copalibre/tournament-engine';
 import type { CanvasMatch, CanvasSlot } from './bracket-canvas.js';
+import type { StageGroupConfigurationDraft } from './stage-authoring.js';
 
 /**
  * The fixed illustrative default entrant count when no capacity is declared.
@@ -65,6 +66,35 @@ export function generatePreviewNames(
   return names;
 }
 
+export function groupSlotCounts(
+  configuration: StageGroupConfigurationDraft,
+  entrantCount: number,
+): readonly number[] {
+  const count = configuration.groupCount;
+  const totalEntrants = Math.max(0, Math.floor(entrantCount));
+  switch (configuration.distribution) {
+    case 'balanced': {
+      const base = Math.floor(totalEntrants / count);
+      const remainder = totalEntrants % count;
+      return Array.from({ length: count }, (_, index) =>
+        Math.min(configuration.groupSize, base + (index < remainder ? 1 : 0)),
+      );
+    }
+    case 'exact-size':
+      return Array.from({ length: count }, () => configuration.groupSize);
+    case 'overflow-last':
+      return [
+        ...Array.from({ length: count - 1 }, () => configuration.groupSize),
+        Math.max(configuration.groupSize, totalEntrants - (count - 1) * configuration.groupSize),
+      ];
+    case 'manual':
+      return (
+        configuration.manualGroupSizes ??
+        Array.from({ length: count }, () => configuration.groupSize)
+      );
+  }
+}
+
 function toCanvasSlot(slot: SlotSource): CanvasSlot {
   switch (slot.kind) {
     case 'entrant':
@@ -85,6 +115,9 @@ function toCanvasSlot(slot: SlotSource): CanvasSlot {
 export function mapFixtureGraphToCanvasMatches(graph: FixtureGraph): readonly CanvasMatch[] {
   return graph.matches.map((match) => ({
     matchId: match.id,
+    ...(match.shape === 'duel' && match.conditional !== undefined
+      ? { conditional: match.conditional }
+      : {}),
     bracket: match.bracket,
     round: match.round,
     position: match.position,

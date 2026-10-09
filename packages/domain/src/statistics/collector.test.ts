@@ -207,7 +207,9 @@ describe('a granularity nothing populates yet', () => {
     if (!result.ok) return;
     // Returning zero for a question nobody can populate is a page of blanks
     // with a feature's name on it.
-    expect(result.value.inert).toEqual([{ code: 'goals', granularity: 'season', owedBy: '0015' }]);
+    expect(result.value.inert).toEqual([
+      { code: 'goals', granularity: 'season', owedBy: 'competition identity and seasons' },
+    ]);
   });
 
   it('reports nothing inert now that every granularity is populated', () => {

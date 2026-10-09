@@ -1,8 +1,8 @@
 /**
- * Original composition — the missing templates tier (proposal.md's
- * central gap). A screen's *layout* (section order, inter-section spacing)
+ * Original composition — the missing templates tier (the central
+ * gap). A screen's *layout* (section order, inter-section spacing)
  * is decided here, once, content-agnostic; a page/route component supplies
- * only content and handlers (design.md Decisions 7-8). No data-fetching or
+ * only content and handlers. No data-fetching or
  * business logic lives in this file.
  */
 import type { ReactNode } from 'react';

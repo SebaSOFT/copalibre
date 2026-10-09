@@ -203,6 +203,11 @@ function ControlShellChrome({
           </li>
         )}
       </ul>
+      {organizationAlias && (
+        <a className="cl-focusable" href={`/${organizationAlias}`} style={navLinkStyle}>
+          <FormattedMessage {...messages.shellPublicOverview} />
+        </a>
+      )}
       <LanguageSwitcher onChange={onLocaleChange} value={locale} />
       <Button onClick={logout} style={logoutButtonStyle} type="button" variant="secondary">
         <FormattedMessage {...messages.shellLogout} />
@@ -211,8 +216,8 @@ function ControlShellChrome({
   );
 
   return (
-    // data-density scopes the denser Control-web spacing composition,
-    // design.md Decision 4) to every screen under this shell — never the
+    // data-density scopes the denser Control-web spacing composition
+    // to every screen under this shell — never the
     // public/marketing Astro surfaces, which never render this component.
     <div className="cl-control" data-density="control">
       <header className="cl-control__mobile-header">

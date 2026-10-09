@@ -1,7 +1,7 @@
 /**
  * Translates a discipline's segments, rules, and events into plain language,
- * in place of the raw JSON document those three ever showed before
- * (openspec 0263). Presentation only — no fetching, so every consumer (the
+ * in place of the raw JSON document those three ever showed before.
+ * Presentation only — no fetching, so every consumer (the
  * authoring wizard's review step, the ruleset override editor's explanatory
  * context, and the installed-discipline detail view) feeds it data it
  * already holds.
