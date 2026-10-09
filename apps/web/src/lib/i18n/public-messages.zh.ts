@@ -95,7 +95,7 @@ export const messages: Record<string, string> = {
   'publicWeb.bracket.roundAriaLabel': '{branch} — 第 {round} 轮',
   'publicWeb.bracket.roundHeading': '第 {round} 轮',
 
-  'publicWeb.broadcastStatus.note': '连接正常时结果会自动更新。若未连接，本页面已包含所有信息。',
+  'publicWeb.broadcastStatus.disconnected': '实时更新不可用，本页显示的是最近已知的结果。',
 
   'publicWeb.matchGrid.heading': '比赛',
   'publicWeb.matchGrid.empty': '暂无已安排的比赛。',

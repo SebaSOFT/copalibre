@@ -2479,6 +2479,9 @@ describe('public overview projection (integration)', () => {
     expect(completion.stages[0]?.liveMatches).toBe(1);
     expect(completion.stages[0]?.scheduledMatches).toBe(1);
 
+    // Neither the stage's implicit zone nor its implicit group is a segment worth reporting.
+    expect(completion.stages[0]?.segments).toEqual([]);
+
     expect(completion.stages[1]?.stageId).toBe(stage2.stageId);
     expect(completion.stages[1]?.stageName).toBe('Playoffs');
     expect(completion.stages[1]?.totalMatches).toBe(0);
@@ -2490,5 +2493,81 @@ describe('public overview projection (integration)', () => {
     expect(completion.forfeitedMatches).toBe(1);
     expect(completion.liveMatches).toBe(1);
     expect(completion.scheduledMatches).toBe(1);
+  });
+
+  it('reports tournament progress per declared group of a stage', async () => {
+    const competition = new CompetitionRepository(scratch.db);
+    const tournaments = new TournamentRepository(scratch.db);
+
+    const setup = await withTransaction(scratch.db, async (uow) => {
+      const d = descriptor();
+      await tournaments.saveDescriptor(uow, d, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-segment-progress',
+        name: 'Copa Segment Progress',
+        descriptor: d,
+        ...AUDIT,
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Fase de grupos',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const zone = await competition.createZone(uow, {
+        stageId: stage.stageId,
+        number: 1,
+        name: 'Grupos',
+        organizationId,
+        ...AUDIT,
+      });
+      const groupA = await competition.createGroup(uow, {
+        zoneId: zone.zoneId,
+        number: 1,
+        name: 'Grupo A',
+        organizationId,
+        ...AUDIT,
+      });
+      const groupB = await competition.createGroup(uow, {
+        zoneId: zone.zoneId,
+        number: 2,
+        name: 'Grupo B',
+        organizationId,
+        ...AUDIT,
+      });
+      const [fixtureA, fixtureB] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        matchCount: 2,
+        fixtures: [
+          { round: 1, zoneId: zone.zoneId, groupId: groupA.groupId },
+          { round: 1, zoneId: zone.zoneId, groupId: groupB.groupId },
+        ],
+        organizationId,
+        ...AUDIT,
+      });
+      return { tournament, fixtureA, fixtureB, groupA, groupB };
+    });
+    if (!setup.fixtureA || !setup.fixtureB) throw new Error('expected two fixtures');
+
+    const firstOfA = await scratch.db
+      .selectFrom('matches')
+      .select('match_id')
+      .where('fixture_id', '=', setup.fixtureA.fixtureId)
+      .orderBy('number', 'asc')
+      .executeTakeFirstOrThrow();
+    await scratch.db
+      .updateTable('matches')
+      .set({ status: 'finalized' })
+      .where('match_id', '=', firstOfA.match_id)
+      .execute();
+
+    const completion = await competition.getTournamentCompletion(setup.tournament.tournamentId);
+    expect(completion.stages[0]?.segments).toEqual([
+      { segmentId: setup.groupA.groupId, name: 'Grupo A', totalMatches: 2, resolvedMatches: 1 },
+      { segmentId: setup.groupB.groupId, name: 'Grupo B', totalMatches: 2, resolvedMatches: 0 },
+    ]);
   });
 });

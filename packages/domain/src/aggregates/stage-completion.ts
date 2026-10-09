@@ -1,4 +1,6 @@
 import { DomainError } from '../errors.js';
+import { IMPLICIT_GROUP_NAME } from './group.js';
+import { IMPLICIT_ZONE_NAME } from './zone.js';
 import { err, ok, type Result } from '../result.js';
 
 /**
@@ -105,6 +107,34 @@ export interface RawStageStatusCount {
   readonly count: number;
 }
 
+/** Match counts of one stage's zone/group pair, as grouped by the database. */
+export interface RawSegmentStatusCount {
+  readonly stageId: string;
+  readonly zoneId: string | null;
+  readonly zoneName: string | null;
+  readonly zoneNumber: number | null;
+  readonly groupId: string | null;
+  readonly groupName: string | null;
+  readonly groupNumber: number | null;
+  readonly status: string | null;
+  readonly count: number;
+}
+
+/**
+ * One zone or group of a stage and how far its matches are. A stage's implicit
+ * zone and implicit group are storage devices, so a stage that never declared
+ * either has no segments.
+ */
+export interface SegmentCompletionSummary {
+  readonly segmentId: string;
+  /** The group's name, or the zone's when the zone has no declared groups. */
+  readonly name: string;
+  /** The zone the group belongs to, when it is a declared one and the name above is a group's. */
+  readonly zoneName?: string;
+  readonly totalMatches: number;
+  readonly resolvedMatches: number;
+}
+
 export interface StageCompletionSummary {
   readonly stageId: string;
   readonly stageNumber: number;
@@ -115,6 +145,8 @@ export interface StageCompletionSummary {
   readonly scheduledMatches: number;
   readonly finalizedMatches: number;
   readonly forfeitedMatches: number;
+  /** Per declared zone/group progress; empty for a stage that declared none. */
+  readonly segments: readonly SegmentCompletionSummary[];
 }
 
 export interface TournamentCompletionSummary {
@@ -134,6 +166,7 @@ export interface TournamentCompletionSummary {
  */
 export function foldTournamentCompletion(
   stageCounts: readonly RawStageStatusCount[],
+  segmentCounts: readonly RawSegmentStatusCount[] = [],
 ): TournamentCompletionSummary {
   const stageMap = new Map<
     string,
@@ -147,8 +180,10 @@ export function foldTournamentCompletion(
       scheduledMatches: number;
       finalizedMatches: number;
       forfeitedMatches: number;
+      segments: readonly SegmentCompletionSummary[];
     }
   >();
+  const segmentsByStage = foldSegments(segmentCounts);
 
   for (const row of stageCounts) {
     let entry = stageMap.get(row.stageId);
@@ -163,6 +198,7 @@ export function foldTournamentCompletion(
         scheduledMatches: 0,
         finalizedMatches: 0,
         forfeitedMatches: 0,
+        segments: segmentsByStage.get(row.stageId) ?? [],
       };
       stageMap.set(row.stageId, entry);
     }
@@ -214,4 +250,81 @@ export function foldTournamentCompletion(
     forfeitedMatches,
     stages,
   };
+}
+
+const isImplicitZoneRow = (row: RawSegmentStatusCount): boolean =>
+  row.zoneNumber === 1 && row.zoneName === IMPLICIT_ZONE_NAME;
+const isImplicitGroupRow = (row: RawSegmentStatusCount): boolean =>
+  row.groupNumber === 1 && row.groupName === IMPLICIT_GROUP_NAME;
+
+type MutableSegment = {
+  -readonly [K in keyof SegmentCompletionSummary]: SegmentCompletionSummary[K];
+};
+
+/** Adds a row's matches to a segment: resolved ones count as played, every live or scheduled one as pending. */
+function addMatches(segment: MutableSegment, status: string | null, count: number): void {
+  if (count <= 0 || status === null) return;
+  if (status === 'finalized' || status === 'forfeited') {
+    segment.resolvedMatches += count;
+    segment.totalMatches += count;
+  } else if (status === 'live' || status === 'in-progress' || status === 'scheduled') {
+    segment.totalMatches += count;
+  }
+}
+
+function openSegment(
+  row: RawSegmentStatusCount,
+  groupDeclared: boolean,
+  zoneDeclared: boolean,
+): MutableSegment {
+  return {
+    segmentId: (groupDeclared ? row.groupId : row.zoneId) ?? '',
+    name: (groupDeclared ? row.groupName : row.zoneName) ?? '',
+    ...(groupDeclared && zoneDeclared && row.zoneName ? { zoneName: row.zoneName } : {}),
+    totalMatches: 0,
+    resolvedMatches: 0,
+  };
+}
+
+function foldSegments(
+  rows: readonly RawSegmentStatusCount[],
+): ReadonlyMap<string, readonly SegmentCompletionSummary[]> {
+  const bySegment = new Map<string, { stageId: string; order: number; summary: MutableSegment }>();
+  // A zone name only tells groups apart when the stage has more than one zone to tell apart.
+  const zonesOfStage = new Map<string, Set<string>>();
+
+  for (const row of rows) {
+    if (row.zoneId === null || row.groupId === null) continue;
+    const zoneDeclared = !isImplicitZoneRow(row);
+    const groupDeclared = !isImplicitGroupRow(row);
+    if (!zoneDeclared && !groupDeclared) continue;
+    if (zoneDeclared) {
+      zonesOfStage.set(row.stageId, (zonesOfStage.get(row.stageId) ?? new Set()).add(row.zoneId));
+    }
+
+    const key = `${row.zoneId}:${row.groupId}`;
+    const entry = bySegment.get(key) ?? {
+      stageId: row.stageId,
+      order: (row.zoneNumber ?? 0) * 1000 + (row.groupNumber ?? 0),
+      summary: openSegment(row, groupDeclared, zoneDeclared),
+    };
+    bySegment.set(key, entry);
+    addMatches(entry.summary, row.status, row.count);
+  }
+
+  const byStage = new Map<string, { order: number; summary: SegmentCompletionSummary }[]>();
+  for (const entry of bySegment.values()) {
+    const { zoneName, ...withoutZone } = entry.summary;
+    const keepZone = zoneName !== undefined && (zonesOfStage.get(entry.stageId)?.size ?? 0) > 1;
+    byStage.set(entry.stageId, [
+      ...(byStage.get(entry.stageId) ?? []),
+      { order: entry.order, summary: keepZone ? entry.summary : withoutZone },
+    ]);
+  }
+  return new Map(
+    [...byStage].map(([stageId, list]) => [
+      stageId,
+      list.sort((a, b) => a.order - b.order).map((one) => one.summary),
+    ]),
+  );
 }

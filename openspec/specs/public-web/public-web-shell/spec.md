@@ -993,3 +993,14 @@ Every public page below the organization page — tournament, matches, live, sta
 #### Scenario: Narrow viewports collapse the middle
 - **WHEN** the viewport is narrow
 - **THEN** the first and last two items remain visible and the rest collapse behind an ellipsis link
+
+### Requirement: Public tables draw a subtle vertical rule between columns
+Every public table SHALL draw a low-contrast vertical rule on the left edge of each column from the second onward, taken from a design token defined for every theme the site ships.
+
+#### Scenario: Rules start at the second column
+- **WHEN** a public table renders
+- **THEN** every column except the first has a left rule and the first has none
+
+#### Scenario: The rule is quieter than the text
+- **WHEN** a public table renders
+- **THEN** the rule is visible and lower in contrast than the row rule

@@ -45,6 +45,7 @@ describe('TournamentsController - completion', () => {
         scheduledMatches: 0,
         finalizedMatches: 5,
         forfeitedMatches: 1,
+        segments: [],
       },
       {
         stageId: '01936f4a-0002-7000-8000-000000000002',
@@ -56,6 +57,7 @@ describe('TournamentsController - completion', () => {
         scheduledMatches: 3,
         finalizedMatches: 0,
         forfeitedMatches: 0,
+        segments: [],
       },
     ],
   };

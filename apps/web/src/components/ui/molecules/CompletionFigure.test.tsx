@@ -85,6 +85,92 @@ describe('the CompletionFigure component', () => {
     expect(within(list).getByText('0 / 8')).not.toBeNull();
   });
 
+  it('draws one bar for the whole tournament and one named by its own counts per stage', () => {
+    render(
+      <CompletionFigure
+        totalMatches={32}
+        resolvedMatches={18}
+        stages={[
+          {
+            stageId: 's1',
+            stageNumber: 1,
+            stageName: 'Group Stage',
+            totalMatches: 24,
+            resolvedMatches: 18,
+          },
+          {
+            stageId: 's2',
+            stageNumber: 2,
+            stageName: 'Playoffs',
+            totalMatches: 8,
+            resolvedMatches: 0,
+          },
+        ]}
+        labels={SAMPLE_LABELS}
+      />,
+    );
+
+    const overall = screen.getByLabelText('18 of 32 matches played') as HTMLProgressElement;
+    expect([overall.value, overall.max]).toEqual([18, 32]);
+    const stage = screen.getByLabelText('Group Stage: 18 / 24') as HTMLProgressElement;
+    expect([stage.value, stage.max]).toEqual([18, 24]);
+  });
+
+  it('nests a bar per declared zone or group under its stage, naming a group by its zone', () => {
+    render(
+      <CompletionFigure
+        totalMatches={12}
+        resolvedMatches={9}
+        stages={[
+          {
+            stageId: 's1',
+            stageNumber: 1,
+            stageName: 'Group Stage',
+            totalMatches: 12,
+            resolvedMatches: 9,
+            segments: [
+              { segmentId: 'g1', name: 'Group A', totalMatches: 6, resolvedMatches: 6 },
+              {
+                segmentId: 'g2',
+                name: 'Group B',
+                zoneName: 'North',
+                totalMatches: 6,
+                resolvedMatches: 3,
+              },
+            ],
+          },
+        ]}
+        labels={SAMPLE_LABELS}
+      />,
+    );
+
+    // One stage alone still lists its breakdown when it has segments.
+    expect(screen.getByLabelText('Group A: 6 / 6')).not.toBeNull();
+    expect(screen.getByLabelText('North · Group B: 3 / 6')).not.toBeNull();
+    expect(screen.getByText('3 / 6')).not.toBeNull();
+  });
+
+  it('shows no bar for a tournament or segment with nothing to measure', () => {
+    render(
+      <CompletionFigure
+        totalMatches={0}
+        resolvedMatches={0}
+        stages={[
+          {
+            stageId: 's1',
+            stageNumber: 1,
+            stageName: 'Group Stage',
+            totalMatches: 0,
+            resolvedMatches: 0,
+            segments: [{ segmentId: 'g1', name: 'Group A', totalMatches: 0, resolvedMatches: 0 }],
+          },
+        ]}
+        labels={UNMEASURED_LABELS}
+      />,
+    );
+    expect(document.querySelectorAll('progress')).toHaveLength(0);
+  });
+
   it('omits per-stage list when only one stage is present', () => {
     const stages = [
       {

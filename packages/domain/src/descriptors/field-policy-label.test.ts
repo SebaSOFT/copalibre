@@ -1,4 +1,8 @@
-import { humanizeFieldPath, resolveFieldPolicyLabel } from './field-policy-label.js';
+import {
+  humanizeFieldPath,
+  resolveFieldPolicyLabel,
+  standardFieldLabel,
+} from './field-policy-label.js';
 import type { FieldPolicy } from './override-policy.js';
 
 describe('humanizeFieldPath', () => {
@@ -34,9 +38,7 @@ describe('resolveFieldPolicyLabel', () => {
   });
 
   it('falls back to the humanized dot-path when no label is declared and the path is not standard', () => {
-    expect(resolveFieldPolicyLabel('scoring.pointsPerDraw', basePolicy, 'en')).toBe(
-      'Scoring › Points Per Draw',
-    );
+    expect(resolveFieldPolicyLabel('series.span', basePolicy, 'en')).toBe('Series › Span');
   });
 
   it('resolves a localized name for a standard dot-path when no label is declared', () => {
@@ -53,6 +55,15 @@ describe('resolveFieldPolicyLabel', () => {
     );
   });
 
+  it('names a standard path in every shipped language', () => {
+    expect(standardFieldLabel('scoring.pointsPerDraw')).toMatchObject({
+      en: 'Points Per Draw',
+      es: 'Puntos Por Empate',
+      zh: '平局积分',
+    });
+    expect(standardFieldLabel('series.span')).toBeUndefined();
+  });
+
   it('a declared label still wins over a standard dot-path name', () => {
     const policy: FieldPolicy = { ...basePolicy, label: 'Custom points label' };
     expect(resolveFieldPolicyLabel('scoring.pointsPerWin', policy, 'en')).toBe(
@@ -61,6 +72,6 @@ describe('resolveFieldPolicyLabel', () => {
   });
 
   it('falls back to English for a standard dot-path in a language it has no translation for', () => {
-    expect(resolveFieldPolicyLabel('format', basePolicy, 'zh')).toBe('Format');
+    expect(resolveFieldPolicyLabel('segments', basePolicy, 'zh')).toBe('Segments');
   });
 });

@@ -3135,6 +3135,21 @@ export interface components {
              */
             emblemObjectId?: string;
         };
+        SegmentCompletionResponse: {
+            /**
+             * Format: uuid
+             * @description The group id, or the zone id when it has no groups
+             */
+            segmentId: string;
+            /** @description The group name, or the zone name when it has no groups */
+            name: string;
+            /** @description The zone a named group belongs to */
+            zoneName?: string;
+            /** @example 6 */
+            totalMatches: number;
+            /** @example 4 */
+            resolvedMatches: number;
+        };
         StageCompletionResponse: {
             /**
              * Format: uuid
@@ -3181,6 +3196,8 @@ export interface components {
              * @example 1
              */
             forfeitedMatches: number;
+            /** @description Per declared zone/group progress; empty when the stage declared none */
+            segments: components["schemas"]["SegmentCompletionResponse"][];
         };
         TournamentCompletionResponse: {
             /**
