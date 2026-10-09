@@ -466,6 +466,12 @@ export const messages = defineMessages({
   // pages/[organization]/tournaments/[tournament]/live.astro
   livePageTitle: { id: 'publicWeb.livePage.title', defaultMessage: 'Live' },
   livePageBreadcrumb: { id: 'publicWeb.livePage.breadcrumb', defaultMessage: 'Breadcrumb' },
+  breadcrumbStage: { id: 'publicWeb.breadcrumb.stage', defaultMessage: 'Stage {stage}' },
+  breadcrumbMatch: { id: 'publicWeb.breadcrumb.match', defaultMessage: 'Match {match}' },
+  breadcrumbCollapsed: {
+    id: 'publicWeb.breadcrumb.collapsed',
+    defaultMessage: 'Show the hidden levels',
+  },
   livePageNoMatches: {
     id: 'publicWeb.livePage.noMatches',
     defaultMessage: 'No live matches in progress',

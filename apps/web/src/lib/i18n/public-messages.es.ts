@@ -116,6 +116,9 @@ export const messages: Record<string, string> = {
 
   'publicWeb.livePage.title': 'En vivo',
   'publicWeb.livePage.breadcrumb': 'Ruta de navegación',
+  'publicWeb.breadcrumb.stage': 'Fase {stage}',
+  'publicWeb.breadcrumb.match': 'Partido {match}',
+  'publicWeb.breadcrumb.collapsed': 'Mostrar los niveles ocultos',
   'publicWeb.livePage.noMatches': 'No hay partidos en vivo',
   'publicWeb.livePage.nextKickoff': 'Próximo partido programado',
   'publicWeb.livePage.noUpcoming': 'No hay próximos partidos programados.',

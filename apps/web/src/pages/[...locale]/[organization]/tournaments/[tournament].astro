@@ -1,4 +1,6 @@
 ---
+import Breadcrumb from '../../../../components/ui/organisms/Breadcrumb.astro';
+import { publicTrail, trailBaseOf } from '../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../layouts/PublicLayout.astro';
 import TournamentHero from '../../../../components/ui/molecules/TournamentHero.astro';
 import ChampionPodium from '../../../../components/ui/organisms/ChampionPodium.astro';
@@ -144,6 +146,14 @@ const structuredData = {
   ...(earliestStart ? { startDate: earliestStart } : {}),
   description,
 };
+const trailBase = trailBaseOf({
+  organizationAlias: organization!,
+  organizationName: model.organizationName,
+  tournamentName: displayName(model),
+  canonicalPath: model.canonicalPath,
+  localePrefix,
+});
+const trail = publicTrail(trailBase, []);
 ---
 
 <PublicLayout
@@ -154,6 +164,11 @@ const structuredData = {
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
+  <Breadcrumb
+    items={trail}
+    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+  />
   <ScoreTicker
     emptyLabel={tickerChrome.empty}
     items={tickerItems}

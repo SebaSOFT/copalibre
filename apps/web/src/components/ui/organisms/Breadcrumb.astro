@@ -1,0 +1,122 @@
+---
+/**
+ * The way up from any public page below the organization. Each ancestor is a link within the
+ * current locale (the page passes locale-prefixed hrefs); the last item is the current page.
+ * Narrow viewports keep the first and the last two items and fold the rest behind an ellipsis
+ * link to the deepest folded level.
+ */
+import type { TrailItem } from '../../../lib/breadcrumb.ts';
+import { collapsedRange } from '../../../lib/breadcrumb.ts';
+
+export interface Props {
+  readonly items: readonly TrailItem[];
+  readonly ariaLabel: string;
+  readonly collapsedLabel: string;
+}
+
+const { items, ariaLabel, collapsedLabel } = Astro.props;
+const range = collapsedRange(items.length);
+const isCollapsed = (index: number) =>
+  range !== undefined && index >= range.from && index <= range.to;
+const ellipsisHref = range === undefined ? undefined : items[range.to]?.href;
+---
+
+<nav class="cl-breadcrumb" aria-label={ariaLabel}>
+  <ol>
+    {
+      items.map((item, index) => (
+        <>
+          {range !== undefined && index === range.from && ellipsisHref !== undefined && (
+            <li class="cl-crumb cl-crumb--ellipsis">
+              <a href={ellipsisHref} aria-label={collapsedLabel} title={collapsedLabel}>
+                …
+              </a>
+            </li>
+          )}
+          <li class:list={['cl-crumb', { 'cl-crumb--collapsible': isCollapsed(index) }]}>
+            {item.href !== undefined && index < items.length - 1 ? (
+              <a href={item.href} title={item.label}>
+                {item.label}
+              </a>
+            ) : (
+              <span aria-current="page" title={item.label}>
+                {item.label}
+              </span>
+            )}
+          </li>
+        </>
+      ))
+    }
+  </ol>
+</nav>
+
+<style>
+  .cl-breadcrumb {
+    padding: var(--cl-space-3) var(--cl-space-4);
+    font-size: var(--cl-font-size-sm);
+  }
+
+  .cl-breadcrumb ol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--cl-space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cl-crumb {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+    min-width: 0;
+    max-width: 24rem;
+  }
+
+  .cl-crumb + .cl-crumb::before {
+    content: '›';
+    color: var(--cl-text-muted);
+  }
+
+  .cl-crumb a,
+  .cl-crumb span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cl-crumb a {
+    color: var(--cl-text-secondary);
+    text-decoration: none;
+  }
+
+  .cl-crumb a:hover {
+    color: var(--cl-primary-hover);
+    text-decoration: underline;
+  }
+
+  .cl-crumb [aria-current='page'] {
+    color: var(--cl-text-primary);
+    font-weight: var(--cl-weight-semibold);
+  }
+
+  .cl-crumb--ellipsis {
+    display: none;
+  }
+
+  /* BREAKPOINTS.md (768px): a phone shows the first and the last two levels. */
+  @media (max-width: 768px) {
+    .cl-crumb--collapsible {
+      display: none;
+    }
+
+    .cl-crumb--ellipsis {
+      display: inline-flex;
+    }
+
+    .cl-crumb {
+      max-width: 11rem;
+    }
+  }
+</style>

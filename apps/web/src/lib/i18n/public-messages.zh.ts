@@ -114,6 +114,9 @@ export const messages: Record<string, string> = {
 
   'publicWeb.livePage.title': '实时',
   'publicWeb.livePage.breadcrumb': '面包屑导航',
+  'publicWeb.breadcrumb.stage': '第 {stage} 阶段',
+  'publicWeb.breadcrumb.match': '第 {match} 场',
+  'publicWeb.breadcrumb.collapsed': '显示隐藏的层级',
   'publicWeb.livePage.noMatches': '当前没有正在进行的比赛',
   'publicWeb.livePage.nextKickoff': '下一场已安排的比赛',
   'publicWeb.livePage.noUpcoming': '暂无即将进行的比赛。',

@@ -1,4 +1,6 @@
 ---
+import Breadcrumb from '../../../../../../components/ui/organisms/Breadcrumb.astro';
+import { publicTrail, trailBaseOf } from '../../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import BracketView from '../../../../../../components/ui/organisms/BracketView.astro';
 import ResultLegend from '../../../../../../components/ui/molecules/ResultLegend.astro';
@@ -113,6 +115,20 @@ const structuredData = {
   name: pageTitle,
   url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${stagePath}`,
 };
+const trailBase = trailBaseOf({
+  organizationAlias: organization!,
+  organizationName: model.organizationName,
+  tournamentName: displayName(model),
+  canonicalPath: model.canonicalPath,
+  localePrefix,
+});
+const trail = publicTrail(trailBase, [
+  {
+    label: intl.formatMessage(messages.matchesViewPageTitle),
+    href: `${localePrefix}${model.canonicalPath}/matches?stageNumber=${stageNumber}`,
+  },
+  { label: intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber }) },
+]);
 ---
 
 <PublicLayout
@@ -122,6 +138,11 @@ const structuredData = {
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
+  <Breadcrumb
+    items={trail}
+    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+  />
   <h1>{pageHeading}</h1>
   <p>
     <a href={`${localePrefix}${model.canonicalPath}/matches?stageNumber=${stageNumber}`}>

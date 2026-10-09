@@ -1,4 +1,6 @@
 ---
+import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
+import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
 import { MatchCard } from '../../../../../components/ui/organisms/MatchCard.tsx';
 import MatchScheduleFilters, {
@@ -132,6 +134,16 @@ const structuredData = {
   name: `${intl.formatMessage(messages.matchesViewPageTitle)} — ${displayName(model)}`,
   url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${canonicalPath}`,
 };
+const trailBase = trailBaseOf({
+  organizationAlias: organization!,
+  organizationName: model.organizationName,
+  tournamentName: displayName(model),
+  canonicalPath: model.canonicalPath,
+  localePrefix,
+});
+const trail = publicTrail(trailBase, [
+  { label: intl.formatMessage(messages.matchesViewPageTitle) },
+]);
 ---
 
 <PublicLayout
@@ -141,6 +153,11 @@ const structuredData = {
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
+  <Breadcrumb
+    items={trail}
+    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+  />
   <h1>{intl.formatMessage(messages.matchesViewPageTitle)}</h1>
 
   <MatchScheduleFilters
