@@ -32,3 +32,25 @@ never as a raw machine timestamp format.
 - **WHEN** the event timeline section renders a recorded match event
 - **THEN** its timestamp renders humanized and localized to the active language, and no raw ISO-8601
   string is visible to the spectator
+
+### Requirement: The match page uses the shared content width and panel
+The match page SHALL use the same content width as the other public pages and SHALL present its officials, rosters and timeline sections in the site's chamfered panel.
+
+#### Scenario: No special column
+- **WHEN** the match page and the tournament page are opened at the same desktop width
+- **THEN** their content areas have the same width
+
+#### Scenario: Sections are chamfered
+- **WHEN** the match page renders officials, rosters and timeline
+- **THEN** each section uses the chamfered panel
+
+### Requirement: Roles and event names are shown in the page language
+Roster roles, official roles and timeline event names SHALL be resolved from the bound discipline descriptor's labels in the page's language, falling back through the language, the tournament's primary language and the descriptor's first label, and SHALL NOT show a raw code while a label exists.
+
+#### Scenario: A Spanish page shows Spanish labels
+- **WHEN** the page language is Spanish and the descriptor has Spanish labels
+- **THEN** the timeline shows each event's Spanish label and the roster shows each role's Spanish label
+
+#### Scenario: A missing language falls back
+- **WHEN** the descriptor has no label in the page language
+- **THEN** the label of the fallback chain is shown and never the raw code
