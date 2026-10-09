@@ -978,3 +978,18 @@ A tournament listing card on the organization page SHALL lay its winners out by 
 #### Scenario: A wide card keeps columns
 - **WHEN** a card has room for readable columns
 - **THEN** its winners render side by side
+
+### Requirement: Public pages below the organization carry a localized breadcrumb
+Every public page below the organization page — tournament, matches, live, stage and match — SHALL render one breadcrumb landmark listing its ancestors from the organization down, each ancestor a link within the current locale and the current page plain text marked as the current page. Labels SHALL be localized and SHALL use the organization, tournament, stage and zone names. The match page SHALL NOT print a separate English position tag for stage, round and match.
+
+#### Scenario: A match page links back up
+- **WHEN** a viewer opens a match page
+- **THEN** the breadcrumb links to the organization, the tournament, the stage and the matches list, and marks the match as current
+
+#### Scenario: Links keep the locale
+- **WHEN** the page is shown in Spanish
+- **THEN** every breadcrumb link points to the Spanish route
+
+#### Scenario: Narrow viewports collapse the middle
+- **WHEN** the viewport is narrow
+- **THEN** the first and last two items remain visible and the rest collapse behind an ellipsis link
