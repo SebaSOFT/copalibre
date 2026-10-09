@@ -102,3 +102,36 @@ The stage header SHALL provide quick navigation anchors or tabs allowing spectat
 #### Scenario: TV dashboard highlights zone format accurately
 - **WHEN** the TV display kiosk presents matches or rankings for a zone
 - **THEN** it renders the layout component (bracket view or standings ticker) corresponding to that specific zone's effective format
+
+### Requirement: Tournament progress is shown per stage, zone and group
+The tournament page's progress card SHALL show an overall bar and one bar per stage, and for a stage with zones or groups one bar per zone or group, each labelled with its name and its played and total counts. Every bar SHALL have a text alternative and SHALL NOT convey state by colour alone. The card SHALL size to its content and SHALL NOT span the page width when it has little to show.
+
+#### Scenario: A staged tournament shows nested progress
+- **WHEN** a tournament has a group stage of six groups and a cup stage of three zones
+- **THEN** the card shows the overall bar, one bar for each stage and one bar for each group and zone with its counts
+
+#### Scenario: A tournament with no matches stays unmeasured
+- **WHEN** the tournament has no matches
+- **THEN** the card states that progress is unmeasured and shows no bar
+
+### Requirement: A connection alert appears only when the live connection fails
+The tournament page SHALL NOT show an informational note describing normal behaviour. It SHALL show a status notice only while its live connection is lost or its data is known to be stale, and SHALL remove the notice when the connection recovers.
+
+#### Scenario: Normal operation shows no note
+- **WHEN** the live connection is healthy or the page is rendered without JavaScript
+- **THEN** no connection note is shown
+
+#### Scenario: A lost connection is announced and cleared
+- **WHEN** the live connection drops and later recovers
+- **THEN** a status notice appears while it is down and disappears when it recovers
+
+### Requirement: The ruleset section lists every effective rule, not only overrides
+The ruleset section SHALL list each rule field the tournament's discipline declares with a printable value with its effective value, whether the value is the discipline default or the tournament's override. A tournament that overrides nothing SHALL still list its defaults. The section SHALL NOT render empty when the discipline declares labelled fields.
+
+#### Scenario: A tournament on defaults shows its rules
+- **WHEN** a tournament has no overrides and its discipline declares labelled rule fields
+- **THEN** the section lists those fields with their default values
+
+#### Scenario: An override replaces its default
+- **WHEN** a tournament overrides one field
+- **THEN** that field shows the effective value and the others show their defaults
