@@ -770,7 +770,7 @@ jobs:
     if: needs.detect-changes.outputs.frontend_only != 'true'
     services:
       postgres:
-        image: postgres:17
+        image: mirror.gcr.io/library/postgres:17
         env:
           POSTGRES_USER: copalibre
           POSTGRES_PASSWORD: copalibre_ci_only
@@ -812,7 +812,7 @@ jobs:
     if: needs.detect-changes.outputs.frontend_only != 'true'
     services:
       postgres:
-        image: postgres:17
+        image: mirror.gcr.io/library/postgres:17
         env:
           POSTGRES_USER: copalibre
           POSTGRES_PASSWORD: copalibre_ci_only
@@ -825,7 +825,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
       clamd:
-        image: clamav/clamav:1.5.4-debian13-slim
+        image: mirror.gcr.io/clamav/clamav:1.5.4-debian13-slim
         ports:
           - 3310:3310
     env:
@@ -847,7 +847,7 @@ jobs:
           docker run -d --name garage --network host \
             -e GARAGE_RPC_SECRET=c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e \
             -v "$(pwd)/deploy/garage/garage.toml:/etc/garage.toml:ro" \
-            dxflrs/garage:v1.1.0
+            mirror.gcr.io/dxflrs/garage:v1.1.0
       - name: Wait for Garage and provision its bucket and key
         run: |
           for i in $(seq 1 30); do
@@ -973,7 +973,17 @@ jobs:
       needs.e2e-tests.result != 'cancelled'
     steps:
       - uses: actions/checkout@v7
+      # The builder image comes through the daemon's mirror; BuildKit resolves base images itself, so
+      # it gets the same mirror in its own configuration.
+      - name: Pull Docker Hub images through a mirror
+        run: |
+          echo '{"registry-mirrors":["https://mirror.gcr.io"]}' | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
       - uses: docker/setup-buildx-action@v4
+        with:
+          buildkitd-config-inline: |
+            [registry."docker.io"]
+              mirrors = ["mirror.gcr.io"]
       # buildx's own GitHub Actions cache backend (type=gha) — no extra
       # action needed beyond setup-buildx-action, it talks to the runner's
       # built-in cache API directly. Every GitHub-hosted runner is a fresh
@@ -1052,6 +1062,13 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: copalibre-images
+      # Docker Hub rate-limits anonymous pulls per runner address and GitHub's runners share a few,
+      # so pulls through it fail in bursts. Google's public mirror of Docker Hub serves the same
+      # images without an account and falls back to Docker Hub for anything it lacks.
+      - name: Pull Docker Hub images through a mirror
+        run: |
+          echo '{"registry-mirrors":["https://mirror.gcr.io"]}' | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
       - run: gzip --decompress --stdout copalibre-images.tar.gz | docker load
       - name: Start JWKS stub
         run: docker compose -f docker-compose.yml -f docker-compose.jwks-test.yml --profile jwks-test up --detach jwks-stub
@@ -1118,6 +1135,13 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: copalibre-images
+      # Docker Hub rate-limits anonymous pulls per runner address and GitHub's runners share a few,
+      # so pulls through it fail in bursts. Google's public mirror of Docker Hub serves the same
+      # images without an account and falls back to Docker Hub for anything it lacks.
+      - name: Pull Docker Hub images through a mirror
+        run: |
+          echo '{"registry-mirrors":["https://mirror.gcr.io"]}' | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
       - name: Load tested images
         run: gzip --decompress --stdout copalibre-images.tar.gz | docker load
       - name: Start all runtime roles
