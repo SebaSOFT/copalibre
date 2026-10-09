@@ -35,6 +35,11 @@ legitimate ordering, not an error).
   `verify`.
 - `copalibre doctor` includes a `retirable-modules` check: installed discipline versions no
   started or finished tournament references, safe to `module remove`.
+- `copalibre doctor` also includes a `data:module-assets` check: a module's images recorded under
+  another object-storage profile than the active one (a host-side `module add` that fell back to the
+  filesystem while the stack serves from S3), or missing from the active storage, are reported as a
+  warning. `module verify` fails on the same condition. Run `module add` again with the stack's
+  `COPALIBRE_OBJECT_STORAGE_*` variables.
 
 ## Installing from a private or alternate source
 

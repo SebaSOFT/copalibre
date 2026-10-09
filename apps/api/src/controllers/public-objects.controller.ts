@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Query, Res } from '@nestjs/common';
+import { Controller, Get, Inject, Logger, Query, Res } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import type { Kysely } from 'kysely';
@@ -9,14 +9,30 @@ import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { DATABASE } from '../database.token.js';
 import { NotFoundException } from '../http/error-contract.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
+import { MissingObjectLog } from './missing-object-log.js';
 
 @ApiTags('Public objects')
 @Controller('objects')
 export class PublicObjectsController {
+  private readonly missing: MissingObjectLog;
+
   constructor(
     @Inject(DATABASE) private readonly db: Kysely<Database>,
     @Inject(OBJECT_STORAGE) private readonly storage: ObjectStorageAdapter,
-  ) {}
+  ) {
+    this.missing = new MissingObjectLog(
+      new Logger(PublicObjectsController.name),
+      async (key) =>
+        (
+          await this.db
+            .selectFrom('module_assets')
+            .select('storage_bucket')
+            .where('storage_key', '=', key)
+            .executeTakeFirst()
+        )?.storage_bucket,
+      () => this.storage.profile,
+    );
+  }
 
   @Get('discipline-background-image')
   @SecurityPlaneTag('public-read')
@@ -52,6 +68,7 @@ export class PublicObjectsController {
       reply.header('Cache-Control', 'public, max-age=31536000, immutable');
       return Buffer.from(stored.body);
     } catch {
+      await this.missing.report(key);
       throw backgroundNotFound();
     }
   }
