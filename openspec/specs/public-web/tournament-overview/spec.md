@@ -135,3 +135,57 @@ The ruleset section SHALL list each rule field the tournament's discipline decla
 #### Scenario: An override replaces its default
 - **WHEN** a tournament overrides one field
 - **THEN** that field shows the effective value and the others show their defaults
+
+### Requirement: The public bracket draws the dependencies between matches
+An elimination zone's bracket SHALL draw a visible connector from every match to the match its winner advances to, and from a classification match's feeding round to it, without relying on colour and without JavaScript.
+
+#### Scenario: A quarter-final is connected to its semi-final
+- **WHEN** a zone's bracket is shown
+- **THEN** each quarter-final has a connector to the semi-final its winner plays
+
+#### Scenario: Connectors print
+- **WHEN** the page is printed
+- **THEN** the connectors are still drawn
+
+### Requirement: A knockout bracket is drawn as two halves meeting at the final
+A single-elimination zone's bracket SHALL draw the final in the middle, the match that feeds one side of it with its own earlier rounds on the left reading left to right, and the one that feeds the other side with its rounds on the right reading right to left, each match centred between the two that feed it.
+
+#### Scenario: Two halves meet at the final
+- **WHEN** a cup with quarter-finals, semi-finals and a final is shown on a desktop viewport
+- **THEN** each semi-final sits on its own side with its two quarter-finals beside it, and the final stands between them
+
+### Requirement: A narrow screen draws a reduced match card
+Below the tablet breakpoint the bracket SHALL be drawn with a reduced card showing each side's abbreviation and score and a state mark, small enough that a split bracket's columns fit a phone's width, and each card SHALL be one link to the match report whose accessible name states both sides and the score.
+
+#### Scenario: A phone shows the compact bracket
+- **WHEN** a three-round cup is shown at 390 px
+- **THEN** the compact drawing is shown instead of the full one, every match is a one-link card, and the page does not scroll sideways
+
+### Requirement: The API computes the precedence of an elimination
+For every recorded side of a knockout game the API SHALL state the earlier game it came from and whether it won or lost there, taken from the games the entrants played; a tied game SHALL be settled by where each side went next.
+
+#### Scenario: A drawn quarter-final still links forward
+- **WHEN** a quarter-final ended level and one side then plays a semi-final while the other plays a placement game
+- **THEN** the first side is stated as the winner of that quarter-final and the other as its loser
+
+### Requirement: Classification games appear in the bracket
+Every persisted fixture of an elimination zone SHALL appear in that zone's bracket. A classification game — third place, fifth place, a placement round — SHALL be listed beneath the bracket under the label of what it decides, and SHALL NOT be drawn in the bracket.
+
+#### Scenario: A cup with twelve fixtures shows twelve matches
+- **WHEN** a zone has quarter-finals, semi-finals, a 5th–8th round, a final and three placement games
+- **THEN** the bracket shows its seven matches and the five placement games are listed beneath it, each under its own label
+
+#### Scenario: A zone without roles renders as before
+- **WHEN** a zone's fixtures carry no role
+- **THEN** its bracket renders from the generated structure only
+
+### Requirement: The match page shows its zone's whole bracket
+The match page SHALL show the complete bracket of the match's zone with the current match highlighted, SHALL NOT cap its height, and SHALL scroll horizontally only when the bracket is wider than its container.
+
+#### Scenario: Nothing is cut off
+- **WHEN** a match page of a three-round zone is opened on a desktop viewport
+- **THEN** every match of the zone is fully visible without vertical scrolling inside the bracket panel
+
+#### Scenario: The current match is marked
+- **WHEN** the match page is shown
+- **THEN** the bracket highlights that match with a non-colour indicator
