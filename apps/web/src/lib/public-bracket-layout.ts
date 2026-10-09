@@ -23,6 +23,20 @@ export const PUBLIC_GEOMETRY: BracketGeometry = {
 };
 const SERIES_NODE_HEIGHT = 200;
 
+/**
+ * The same bracket for a narrow screen: a card that is only abbreviations and scores, so a split bracket's five columns fit a phone's width.
+ */
+export const COMPACT_GEOMETRY: BracketGeometry = {
+  ...DEFAULT_GEOMETRY,
+  nodeWidth: 66,
+  nodeHeight: 56,
+  columnGap: 6,
+  rowGap: 14,
+  bracketGap: 96,
+};
+
+export type BracketDensity = 'full' | 'compact';
+
 export interface PublicBracketNode {
   readonly match: BracketMatch;
   readonly x: number;
@@ -75,11 +89,17 @@ export function placementGamesOf(matches: readonly BracketMatch[]): readonly Bra
     );
 }
 
-export function layoutPublicBracket(allMatches: readonly BracketMatch[]): PublicBracketLayout {
+export function layoutPublicBracket(
+  allMatches: readonly BracketMatch[],
+  density: BracketDensity = 'full',
+): PublicBracketLayout {
   const matches = allMatches.filter((match) => !isPlacementGame(match));
-  const geometry: BracketGeometry = matches.some((match) => match.series !== undefined)
-    ? { ...PUBLIC_GEOMETRY, nodeHeight: SERIES_NODE_HEIGHT }
-    : PUBLIC_GEOMETRY;
+  const geometry: BracketGeometry =
+    density === 'compact'
+      ? COMPACT_GEOMETRY
+      : matches.some((match) => match.series !== undefined)
+        ? { ...PUBLIC_GEOMETRY, nodeHeight: SERIES_NODE_HEIGHT }
+        : PUBLIC_GEOMETRY;
   const idByNumber = new Map(matches.map((match) => [match.matchNumber, layoutIdOf(match)]));
   const input: LayoutMatch[] = matches.map((match) => ({
     matchId: layoutIdOf(match),

@@ -193,6 +193,16 @@ export const BracketPlacementGame: Story = {
   args: { component: 'bracket-placement', height: 900 },
 };
 
+/** The whole bracket at the compact density a narrow screen draws. */
+export const BracketGraphCompact: Story = {
+  args: { component: 'bracket-graph', height: 420 },
+};
+
+/** The card a bracket draws on a narrow screen: abbreviations and scores only. */
+export const MatchNodeCompactCard: Story = {
+  args: { component: 'match-node-compact', height: 120 },
+};
+
 /** The placement games listed under what each decides, the current one marked. */
 export const PlacementGamesList: Story = {
   args: { component: 'placement-games', height: 260 },

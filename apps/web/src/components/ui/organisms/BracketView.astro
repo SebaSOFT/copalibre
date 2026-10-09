@@ -1,11 +1,10 @@
 ---
 import type { IntlShape } from 'react-intl';
-import MatchNode from './MatchNode.astro';
+import BracketGraph from './BracketGraph.astro';
 import Button from '../atoms/Button.astro';
 import '../../../styles/entrant-path.css';
 import { OutcomeLegend, type BracketOutcome } from '../molecules/OutcomeLegend.tsx';
 import {
-  championshipMatch,
   bracketMatchId,
   describeSlot,
   nodeOutcomes,
@@ -14,7 +13,7 @@ import {
   type BracketMatch,
 } from '../../../lib/bracket.ts';
 import PlacementGames from '../molecules/PlacementGames.astro';
-import { layoutPublicBracket, placementGamesOf } from '../../../lib/public-bracket-layout.ts';
+import { placementGamesOf } from '../../../lib/public-bracket-layout.ts';
 import { bracketBranchLabel, bracketRoleLabel } from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
@@ -37,32 +36,7 @@ const {
   highlightMatchNumber,
 } = Astro.props;
 const rounds = toRounds(Astro.props.matches);
-const championship = championshipMatch(Astro.props.matches);
-const layout = layoutPublicBracket(Astro.props.matches);
 const placementGames = placementGamesOf(Astro.props.matches);
-// Room above the first band for its column headings (and its name, when a zone draws several).
-const HEAD = layout.bands.length > 1 ? 104 : 64;
-const bandTop = new Map(layout.bands.map((band) => [band.branch, band.y]));
-// A round is the matches of one branch and round number; its column is where the first of them sits.
-const placedRounds = rounds
-  .map((round) => {
-    const nodes = layout.nodes.filter(
-      (node) => node.match.branch === round.branch && node.match.roundNumber === round.roundNumber,
-    );
-    // A split bracket has the same round on both sides, so a round can have several columns.
-    const heads = [...new Set(nodes.map((node) => node.x))].map((x) => ({
-      x,
-      width: nodes.find((node) => node.x === x)?.width ?? 0,
-    }));
-    return { round, nodes, heads };
-  })
-  .filter((entry) => entry.nodes.length > 0);
-const captionOf = (match: (typeof layout.nodes)[number]['match']): string | undefined =>
-  match.role !== undefined
-    ? bracketRoleLabel(intl, match.role)
-    : championship?.matchNumber === match.matchNumber && championship?.branch === match.branch
-      ? intl.formatMessage(messages.bracketChampionshipTitle)
-      : undefined;
 
 const outcomeLabels: Readonly<Record<BracketOutcome, string>> = {
   advancing: intl.formatMessage(messages.bracketOutcomeAdvancing),
@@ -110,105 +84,33 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
     )
   }
 
-  <div
-    aria-label={intl.formatMessage(messages.bracketScrollAriaLabel)}
-    class="cl-bracket-stage__scroll"
-    role="group"
-    tabindex="0"
-  >
-    <div
-      class="cl-bracket-stage__canvas cl-bracket"
-      style={`width: ${layout.width}px; height: ${layout.height + HEAD}px;`}
-    >
-      {
-        /*
-        Nodes and links on two layers of one fixed-size box, the links as polylines from the right
-        edge of a match to the left edge of the one it feeds. A solid line carries a winner, a dashed
-        one a loser, so nothing leans on colour, and it all prints as drawn.
-      */
-      }
-      <svg
-        aria-hidden="true"
-        class="cl-bracket-stage__links"
-        height={layout.height + HEAD}
-        viewBox={`0 0 ${layout.width} ${layout.height + HEAD}`}
-        width={layout.width}
+  {
+    /*
+    The same bracket twice, each at a density: cards with emblems and highlight controls where
+    there is room, abbreviations and scores where there is not. The stylesheet shows one.
+  */
+  }
+  {
+    (['full', 'compact'] as const).map((density) => (
+      <div
+        aria-label={intl.formatMessage(messages.bracketScrollAriaLabel)}
+        class={`cl-bracket-stage__scroll cl-bracket-stage__scroll--${density}`}
+        role="group"
+        tabindex="0"
       >
-        <g transform={`translate(0 ${HEAD})`}>
-          {
-            layout.connectors.map((connector) => (
-              <polyline
-                class:list={[
-                  'cl-bracket-link',
-                  connector.kind === 'loser-of' && 'cl-bracket-link--loser',
-                ]}
-                data-link-from={connector.fromMatchId}
-                data-link-to={connector.toMatchId}
-                points={connector.points.map((point) => `${point.x},${point.y}`).join(' ')}
-              />
-            ))
-          }
-        </g>
-      </svg>
-      {
-        layout.bands.length > 1 &&
-          layout.bands.map((band) => (
-            <h3 class="cl-bracket-stage__band" style={`left: ${band.x}px; top: ${HEAD - 100}px;`}>
-              {bracketBranchLabel(intl, band.branch)}
-            </h3>
-          ))
-      }
-      {
-        placedRounds.map(({ round, nodes, heads }) => (
-          <section
-            aria-label={intl.formatMessage(messages.bracketRoundAriaLabel, {
-              branch: round.branch,
-              round: round.roundNumber,
-            })}
-            class="cl-bracket-stage__round"
-          >
-            {heads.map((head) => (
-              <h3
-                class="cl-bracket-stage__round-label"
-                style={`left: ${head.x}px; top: ${(bandTop.get(round.branch) ?? 0) + HEAD - 56}px; width: ${head.width}px;`}
-              >
-                {intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}
-              </h3>
-            ))}
-            {nodes.map((node) => {
-              const caption = captionOf(node.match);
-              const focused = highlightMatchNumber === node.match.matchNumber;
-              return (
-                <div
-                  aria-current={focused ? 'true' : undefined}
-                  data-journey-match={bracketMatchId(node.match)}
-                  class:list={[
-                    'cl-bracket-stage__node',
-                    championship?.matchNumber === node.match.matchNumber &&
-                      championship?.branch === node.match.branch &&
-                      'cl-bracket-stage__node--championship',
-                    focused && 'cl-bracket-stage__node--focused',
-                  ]}
-                  style={`left: ${node.x}px; top: ${node.y + HEAD}px; width: ${node.width}px; height: ${node.height}px;`}
-                >
-                  {caption !== undefined && <p class="cl-bracket-stage__caption">{caption}</p>}
-                  <MatchNode
-                    highlightEntrants
-                    intl={intl}
-                    localePrefix={localePrefix}
-                    match={node.match}
-                    organizationAlias={organizationAlias}
-                    stageNumber={stageNumber}
-                    tournamentAlias={tournamentAlias}
-                  />
-                </div>
-              );
-            })}
-          </section>
-        ))
-      }
-    </div>
-  </div>
+        <BracketGraph
+          density={density}
+          highlightMatchNumber={highlightMatchNumber}
+          intl={intl}
+          localePrefix={localePrefix}
+          matches={Astro.props.matches}
+          organizationAlias={organizationAlias}
+          stageNumber={stageNumber}
+          tournamentAlias={tournamentAlias}
+        />
+      </div>
+    ))
+  }
 
   <PlacementGames
     games={placementGames}
@@ -289,30 +191,3 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
   initialize();
   document.addEventListener('astro:page-load', initialize);
 </script>
-
-<style>
-  /*
-    The championship node reads as the stage's last cross: a heavier edge, not a
-    different card. Emphasis only — `championshipMatch` marks it from the
-    structure the projection produced, and declines to mark anything where the
-    last round holds more than one match.
-  */
-  .cl-bracket-stage__node--championship :global(.cl-card) {
-    border-width: 2px;
-    border-color: var(--cl-primary);
-  }
-  /* The match a report page is about: a heavier edge and an outline, so it reads without colour. */
-  .cl-bracket-stage__node--focused :global(.cl-card) {
-    border-width: 3px;
-    border-color: var(--cl-primary);
-    outline: 2px dashed var(--cl-primary);
-    outline-offset: 3px;
-  }
-  .cl-bracket-stage__node :global(article),
-  .cl-bracket-stage__node > :global(a) {
-    display: block;
-    box-sizing: border-box;
-    height: 100%;
-    overflow: hidden;
-  }
-</style>

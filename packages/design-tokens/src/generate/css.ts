@@ -1904,6 +1904,14 @@ function compositions(): string {
     `@media (max-width: ${BREAKPOINTS.sm}) {`,
     '  .cl-bracket-stage__scroll { display: none; }',
     '}',
+    // Two drawings of one bracket: cards where there is room, abbreviations and scores where there
+    // is not. The breakpoint is the one the textual view already uses.
+    `@media (width < ${BREAKPOINTS.md}) {`,
+    '  .cl-bracket-stage__scroll--full { display: none; }',
+    '}',
+    `@media (min-width: ${BREAKPOINTS.md}) {`,
+    '  .cl-bracket-stage__scroll--compact { display: none; }',
+    '}',
     `@media (min-width: ${BREAKPOINTS.md}) {`,
     '  .cl-bracket-stage__outline { display: none; }',
     '}',

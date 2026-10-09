@@ -1,0 +1,107 @@
+---
+import type { IntlShape } from 'react-intl';
+import { matchReportUrl, toNode, type BracketMatch } from '../../../lib/bracket.ts';
+import { resultStateLabels } from '../../../lib/i18n/public-intl.ts';
+
+/**
+ * A bracket card for a narrow screen: each side's abbreviation and score, a mark for the state,
+ * and nothing else. The whole card is one link to the match report, which carries the full names
+ * the abbreviation stands for (the link's name spells them out too).
+ */
+interface Props {
+  readonly match: BracketMatch;
+  readonly intl: IntlShape;
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly localePrefix?: string;
+}
+const {
+  match,
+  intl,
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  localePrefix = '',
+} = Astro.props;
+const node = toNode(match, resultStateLabels(intl));
+const sides = node.slots.map((slot, index) => ({
+  short:
+    slot.fullName === undefined
+      ? '—'
+      : (slot.abbreviation ?? Array.from(slot.fullName).slice(0, 3).join('').toLocaleUpperCase()),
+  name: slot.fullName ?? slot.label,
+  score: slot.score,
+  decided: match.state === 'final' && node.slots[0]?.score !== node.slots[1]?.score,
+  leads:
+    slot.score !== undefined &&
+    node.slots.every((other) => other.score === undefined || other.score <= slot.score!),
+  index,
+}));
+const spoken = `${sides[0]?.name ?? ''} ${sides[0]?.score ?? '—'} – ${sides[1]?.score ?? '—'} ${sides[1]?.name ?? ''} (${node.badge.label})`;
+---
+
+<a
+  aria-label={spoken}
+  class="cl-match-compact cl-focusable"
+  data-match={node.matchNumber}
+  href={matchReportUrl({
+    organizationAlias,
+    tournamentAlias,
+    stageNumber,
+    matchNumber: node.matchNumber,
+    localePrefix,
+  })}
+>
+  <span aria-hidden="true" class="cl-match-compact__state">{node.badge.icon}</span>
+  <ol aria-hidden="true">
+    {
+      sides.map((side) => (
+        <li class:list={[side.decided && side.leads && 'cl-match-compact__winner']}>
+          <span class="cl-match-compact__name">{side.short}</span>
+          <span class="cl-match-compact__score cl-tabular-nums">{side.score ?? '—'}</span>
+        </li>
+      ))
+    }
+  </ol>
+</a>
+
+<style>
+  .cl-match-compact {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: var(--cl-space-1);
+    box-sizing: border-box;
+    height: 100%;
+    padding: var(--cl-space-1) var(--cl-space-2);
+    border: 1px solid var(--cl-border-muted);
+    background: var(--cl-surface-panel);
+    color: var(--cl-text-primary);
+    text-decoration: none;
+  }
+  .cl-match-compact__state {
+    color: var(--cl-text-secondary);
+    font-size: 0.625rem;
+  }
+  .cl-match-compact ol {
+    display: grid;
+    gap: var(--cl-space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .cl-match-compact li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--cl-space-1);
+    font-size: var(--cl-font-size-xs);
+  }
+  .cl-match-compact__name {
+    font-family: var(--cl-font-display);
+    letter-spacing: var(--cl-tracking-wide);
+  }
+  .cl-match-compact__winner {
+    font-weight: var(--cl-weight-bold);
+  }
+</style>

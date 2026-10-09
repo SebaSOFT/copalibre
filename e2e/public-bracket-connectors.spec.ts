@@ -183,7 +183,7 @@ test.describe('public knockout bracket', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(STAGE);
 
-    const canvas = page.locator('.cl-bracket-stage__canvas');
+    const canvas = page.locator('.cl-bracket-stage__canvas[data-density="full"]');
     await expect(canvas.locator('.cl-bracket-stage__node')).toHaveCount(7);
     await expect(canvas.getByText('Final', { exact: true })).toBeVisible();
 
@@ -201,20 +201,28 @@ test.describe('public knockout bracket', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(STAGE);
 
-    await expect(page.locator('[data-link-from="SE-R1-M1"][data-link-to="SE-R2-M1"]')).toHaveCount(
-      1,
-    );
-    await expect(page.locator('[data-link-from="SE-R1-M4"][data-link-to="SE-R2-M1"]')).toHaveCount(
-      1,
-    );
-    await expect(page.locator('[data-link-from="SE-R2-M2"][data-link-to="SE-R3-M1"]')).toHaveCount(
-      1,
-    );
+    await expect(
+      page.locator(
+        '.cl-bracket-stage__canvas[data-density="full"] [data-link-from="SE-R1-M1"][data-link-to="SE-R2-M1"]',
+      ),
+    ).toHaveCount(1);
+    await expect(
+      page.locator(
+        '.cl-bracket-stage__canvas[data-density="full"] [data-link-from="SE-R1-M4"][data-link-to="SE-R2-M1"]',
+      ),
+    ).toHaveCount(1);
+    await expect(
+      page.locator(
+        '.cl-bracket-stage__canvas[data-density="full"] [data-link-from="SE-R2-M2"][data-link-to="SE-R3-M1"]',
+      ),
+    ).toHaveCount(1);
     // Nothing is drawn for the placement games.
-    await expect(page.locator('[data-link-to^="PL-"]')).toHaveCount(0);
+    await expect(
+      page.locator('.cl-bracket-stage__canvas[data-density="full"] [data-link-to^="PL-"]'),
+    ).toHaveCount(0);
 
     const boxes = await page
-      .locator('.cl-bracket-stage__canvas .cl-bracket-stage__node')
+      .locator('.cl-bracket-stage__canvas[data-density="full"] .cl-bracket-stage__node')
       .evaluateAll((nodes) =>
         nodes.map((node) => {
           const { x, y, width, height } = node.getBoundingClientRect();
@@ -240,7 +248,9 @@ test.describe('public knockout bracket', () => {
     await page.goto(STAGE);
     const left = async (from: string, to: string) =>
       page
-        .locator(`[data-link-from="${from}"][data-link-to="${to}"]`)
+        .locator(
+          `.cl-bracket-stage__canvas[data-density="full"] [data-link-from="${from}"][data-link-to="${to}"]`,
+        )
         .evaluate((el) => el.getBoundingClientRect().left);
     // The first semi-final (fed by matches 1 and 4) sits left of the final, the second right of it.
     expect(await left('SE-R2-M1', 'SE-R3-M1')).toBeLessThan(await left('SE-R2-M2', 'SE-R3-M1'));
@@ -255,27 +265,60 @@ test.describe('public knockout bracket', () => {
     await page.goto(`${STAGE}/matches/12`);
 
     const panel = page.locator('.cl-bracket-context');
-    await expect(panel.locator('.cl-bracket-stage__node')).toHaveCount(7);
+    await expect(
+      panel.locator('.cl-bracket-stage__canvas[data-density="full"] .cl-bracket-stage__node'),
+    ).toHaveCount(7);
     const current = panel.locator('.cl-placement-games__game--current');
     await expect(current).toHaveCount(1);
     await expect(current).toHaveAttribute('aria-current', 'true');
 
     // No inner scroll box shorter than the bracket: nothing is cut off.
-    const clipped = await panel.locator('.cl-bracket-stage__scroll').evaluate((el) => {
+    const clipped = await panel.locator('.cl-bracket-stage__scroll--full').evaluate((el) => {
       const canvas = el.querySelector('.cl-bracket-stage__canvas') as HTMLElement;
       return el.clientHeight < canvas.offsetHeight;
     });
     expect(clipped).toBe(false);
   });
 
-  test('a phone scrolls the bracket sideways inside its own box, never the page', async ({
+  test('a phone draws the compact cards: abbreviations and scores, much narrower than the full ones', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(STAGE);
-    await expect(page.locator('.cl-bracket-stage__canvas')).toBeVisible();
+
+    const compact = page.locator('.cl-bracket-stage__canvas[data-density="compact"]');
+    await expect(compact).toBeVisible();
+    await expect(page.locator('.cl-bracket-stage__canvas[data-density="full"]')).toBeHidden();
+    await expect(compact.locator('.cl-bracket-stage__node')).toHaveCount(7);
+
+    // Each card is one link naming both sides and the score, but shows only abbreviations.
+    const card = compact.getByRole('link', { name: /^A 3 – 1 B/ });
+    await expect(card).toBeVisible();
+    await expect(card.locator('.cl-match-compact__name').first()).toHaveText('A');
+
+    const widths = await page.evaluate(() => {
+      // The full drawing is hidden here, so read the width each one was drawn with.
+      const width = (density: string) =>
+        Number.parseInt(
+          (
+            document.querySelector(
+              `.cl-bracket-stage__canvas[data-density="${density}"]`,
+            ) as HTMLElement
+          ).style.width,
+          10,
+        );
+      return { full: width('full'), compact: width('compact') };
+    });
+    expect(widths.compact).toBeLessThan(widths.full * 0.6);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
+  });
+
+  test('a desktop keeps the full cards and hides the compact drawing', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(STAGE);
+    await expect(page.locator('.cl-bracket-stage__canvas[data-density="full"]')).toBeVisible();
+    await expect(page.locator('.cl-bracket-stage__canvas[data-density="compact"]')).toBeHidden();
   });
 });

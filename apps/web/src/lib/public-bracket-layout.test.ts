@@ -168,4 +168,15 @@ describe('layoutPublicBracket', () => {
     const ys = ['A', 'D', 'B', 'C'].map(y);
     expect(ys).toEqual([...ys].sort((a, b) => a - b));
   });
+
+  it('draws the compact density much narrower than the full one', () => {
+    const full = layoutPublicBracket(bracket, 'full');
+    const compact = layoutPublicBracket(bracket, 'compact');
+    expect(compact.width).toBeLessThan(full.width * 0.6);
+    expect(compact.nodes).toHaveLength(full.nodes.length);
+    // Same tree, same sides: only the size changed.
+    expect(compact.connectors.map((c) => `${c.fromMatchId}>${c.toMatchId}`)).toEqual(
+      full.connectors.map((c) => `${c.fromMatchId}>${c.toMatchId}`),
+    );
+  });
 });

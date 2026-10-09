@@ -31,6 +31,8 @@ import TournamentHero from '../components/ui/molecules/TournamentHero.astro';
 import BracketView from '../components/ui/organisms/BracketView.astro';
 import Breadcrumb from '../components/ui/organisms/Breadcrumb.astro';
 import ChampionPodium from '../components/ui/organisms/ChampionPodium.astro';
+import BracketGraph from '../components/ui/organisms/BracketGraph.astro';
+import MatchNodeCompact from '../components/ui/molecules/MatchNodeCompact.astro';
 import PlacementGames from '../components/ui/molecules/PlacementGames.astro';
 import ClubFilterChip from '../components/ui/molecules/ClubFilterChip.astro';
 import DataTable from '../components/ui/organisms/DataTable.astro';
@@ -98,6 +100,8 @@ const PREVIEWABLE = new Set([
   'bracket-stage',
   'bracket-placement',
   'placement-games',
+  'match-node-compact',
+  'bracket-graph',
   'bracket-journey-alive',
   'bracket-journey-champion',
   'bracket-journey-eliminated',
@@ -188,6 +192,7 @@ const dataTableColumns = [
   },
 ];
 const tournaments = referenceTournamentListing();
+const [compactSample] = referenceJourneyBracket(true);
 ---
 
 <html lang={locale}>
@@ -254,6 +259,33 @@ const tournaments = referenceTournamentListing();
           stageNumber={1}
           tournamentAlias="reference-cup"
         />
+      )
+    }
+    {
+      /* One drawing of a bracket at the compact density: the whole tree, abbreviations and scores. */
+      component === 'bracket-graph' && (
+        <BracketGraph
+          density="compact"
+          intl={intl}
+          matches={referencePlacementBracket()}
+          organizationAlias="reference-league"
+          stageNumber={1}
+          tournamentAlias="reference-cup"
+        />
+      )
+    }
+    {
+      /* The bracket card for a narrow screen: abbreviations and scores, one link to the report. */
+      component === 'match-node-compact' && compactSample && (
+        <div style="width: 66px; height: 56px;">
+          <MatchNodeCompact
+            intl={intl}
+            match={compactSample}
+            organizationAlias="reference-league"
+            stageNumber={1}
+            tournamentAlias="reference-cup"
+          />
+        </div>
       )
     }
     {
