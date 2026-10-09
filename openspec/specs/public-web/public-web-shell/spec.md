@@ -962,3 +962,19 @@ Every image URL a public page builds, including the discipline backdrop, SHALL r
 #### Scenario: A gateway keeps working
 - **WHEN** the same page is opened behind a gateway that forwards `/objects` to the API
 - **THEN** the backdrop request returns the same image
+
+### Requirement: A tournament listing card stays legible at any width
+A tournament listing card on the organization page SHALL lay its winners out by the card's own available width: side by side only while each winner's name has room to be read without breaking inside a word, and stacked vertically otherwise. A card SHALL NOT be wider than half of the page content area, and the grid SHALL adapt to the number of cards. A tournament name SHALL wrap to two lines before it is truncated.
+
+#### Scenario: A narrow card stacks its winners
+- **WHEN** a card is narrower than two readable winner columns
+- **THEN** each winner renders on its own row with its emblem, role and full name
+- **AND** no name breaks inside a word
+
+#### Scenario: A single card is not stretched
+- **WHEN** an organization lists one finished tournament
+- **THEN** its card is at most half the width of the page content area
+
+#### Scenario: A wide card keeps columns
+- **WHEN** a card has room for readable columns
+- **THEN** its winners render side by side

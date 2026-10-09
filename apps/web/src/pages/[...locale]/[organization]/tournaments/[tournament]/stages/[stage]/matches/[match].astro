@@ -12,6 +12,8 @@ import {
   mapBracketResponse,
 } from '../../../../../../../../lib/public-api-client.ts';
 import { selectStageLayout } from '../../../../../../../../lib/bracket.ts';
+import { humanizeCode } from '../../../../../../../../lib/descriptor-label.ts';
+import { messages } from '../../../../../../../../lib/i18n/public-messages.en.ts';
 import { publicIntl } from '../../../../../../../../lib/i18n/public-intl.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
@@ -37,7 +39,19 @@ if (!response) {
   return Astro.rewrite('/404');
 }
 
-const model = buildMatchReport(response);
+const officialRoleMessages = {
+  referee: messages.matchOfficialRoleReferee,
+  assistant: messages.matchOfficialRoleAssistant,
+  'table-official': messages.matchOfficialRoleTableOfficial,
+  observer: messages.matchOfficialRoleObserver,
+} as const;
+const model = buildMatchReport(response, {
+  locale: resolvedLocale,
+  officialRoleLabel: (code) =>
+    code in officialRoleMessages
+      ? intl.formatMessage(officialRoleMessages[code as keyof typeof officialRoleMessages])
+      : humanizeCode(code),
+});
 
 // Gated on the stage's own format, already known from `response.stageFormat` — a round-robin/
 // league/placement match report issues no second request at all (a report is requested far more often per stage than a bracket changes).
@@ -103,7 +117,7 @@ const structuredData = {
 
 <style>
   .cl-match-page {
-    max-width: 960px;
+    /* The shared public width: no page-specific column. */
     margin: 0 auto;
     padding: var(--cl-space-6) var(--cl-space-4);
     overflow-x: hidden;

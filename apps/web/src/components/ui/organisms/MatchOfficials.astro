@@ -15,7 +15,7 @@ export interface Props {
 const { model, intl } = Astro.props;
 ---
 
-<section class="cl-section-card" aria-labelledby="officials-heading">
+<section class="cl-section-card cl-chamfer" aria-labelledby="officials-heading">
   <h2 id="officials-heading" class="cl-section-title">
     {intl.formatMessage(messages.matchOfficialsHeading)}
   </h2>
@@ -29,7 +29,7 @@ const { model, intl } = Astro.props;
         {model.officials.map((official) => (
           <li>
             <span class="cl-official-name">{official.name}</span> —{' '}
-            <span class="cl-official-roles">{official.roles.join(', ')}</span>
+            <span class="cl-official-roles">{official.roleLabels.join(', ')}</span>
           </li>
         ))}
       </ul>
@@ -41,7 +41,6 @@ const { model, intl } = Astro.props;
   .cl-section-card {
     background: var(--cl-surface-panel);
     border: 1px solid var(--cl-border-muted);
-    border-radius: var(--cl-radius-lg);
     padding: var(--cl-space-5);
   }
 

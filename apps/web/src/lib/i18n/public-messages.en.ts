@@ -805,6 +805,22 @@ export const messages = defineMessages({
     id: 'publicWeb.matchOfficials.noneAssigned',
     defaultMessage: 'No officials assigned.',
   },
+  matchOfficialRoleReferee: {
+    id: 'publicWeb.matchOfficials.role.referee',
+    defaultMessage: 'Referee',
+  },
+  matchOfficialRoleAssistant: {
+    id: 'publicWeb.matchOfficials.role.assistant',
+    defaultMessage: 'Assistant referee',
+  },
+  matchOfficialRoleTableOfficial: {
+    id: 'publicWeb.matchOfficials.role.tableOfficial',
+    defaultMessage: 'Table official',
+  },
+  matchOfficialRoleObserver: {
+    id: 'publicWeb.matchOfficials.role.observer',
+    defaultMessage: 'Observer',
+  },
   matchRostersHeading: {
     id: 'publicWeb.matchRosters.heading',
     defaultMessage: 'Rosters',

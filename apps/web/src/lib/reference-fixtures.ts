@@ -15,6 +15,7 @@
  * for aliases, and match display numbers (`M01`) as labels rather than as
  * anything a URL resolves.
  */
+import { humanizeCode } from './descriptor-label.ts';
 import type { BracketMatch } from './bracket.js';
 import type { LiveDashboard } from './live-state.js';
 import type { MatchReportModel, MatchReportTimelineGroup } from './match-report.js';
@@ -723,6 +724,11 @@ const REFERENCE_OFFICIALS: PublicMatchOfficialResponse[] = [
   { name: 'Noor Al-Rashid', roles: ['assistant-referee', 'var'] },
 ];
 
+/** Reference roles carry no descriptor, so each reads as its humanized code. */
+function withReferenceRoleLabels(member: PublicMatchRosterMemberResponse) {
+  return { ...member, roleLabels: (member.roles ?? []).map(humanizeCode) };
+}
+
 /** The full match-report model: rosters, officials and a mixed single/workflow timeline. */
 export function referenceMatchReportModel(): MatchReportModel {
   const [home, away] = REFERENCE_ENTRANTS;
@@ -766,18 +772,21 @@ export function referenceMatchReportModel(): MatchReportModel {
       name: home.name,
       abbreviation: home.abbreviation,
       score: 3,
-      roster: REFERENCE_ROSTER_HOME,
+      roster: REFERENCE_ROSTER_HOME.map(withReferenceRoleLabels),
     },
     away: {
       name: away.name,
       abbreviation: away.abbreviation,
       score: 1,
-      roster: REFERENCE_ROSTER_AWAY,
+      roster: REFERENCE_ROSTER_AWAY.map(withReferenceRoleLabels),
     },
     scheduledAt: '2026-09-01T18:00:00.000Z',
     venueName: 'Meridian Central Stadium',
     schedulePublished: true,
-    officials: REFERENCE_OFFICIALS,
+    officials: REFERENCE_OFFICIALS.map((official) => ({
+      name: official.name,
+      roleLabels: official.roles.map(humanizeCode),
+    })),
     timeline,
   };
 }
