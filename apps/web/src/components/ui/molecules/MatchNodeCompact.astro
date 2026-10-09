@@ -32,10 +32,7 @@ const sides = node.slots.map((slot, index) => ({
       : (slot.abbreviation ?? Array.from(slot.fullName).slice(0, 3).join('').toLocaleUpperCase()),
   name: slot.fullName ?? slot.label,
   score: slot.score,
-  decided: match.state === 'final' && node.slots[0]?.score !== node.slots[1]?.score,
-  leads:
-    slot.score !== undefined &&
-    node.slots.every((other) => other.score === undefined || other.score <= slot.score!),
+  winner: slot.winner === true,
   index,
 }));
 const spoken = `${sides[0]?.name ?? ''} ${sides[0]?.score ?? '—'} – ${sides[1]?.score ?? '—'} ${sides[1]?.name ?? ''} (${node.badge.label})`;
@@ -57,7 +54,7 @@ const spoken = `${sides[0]?.name ?? ''} ${sides[0]?.score ?? '—'} – ${sides[
   <ol aria-hidden="true">
     {
       sides.map((side) => (
-        <li class:list={[side.decided && side.leads && 'cl-match-compact__winner']}>
+        <li class:list={[side.winner && 'cl-match-compact__winner']}>
           <span class="cl-match-compact__name">{side.short}</span>
           <span class="cl-match-compact__score cl-tabular-nums">{side.score ?? '—'}</span>
         </li>

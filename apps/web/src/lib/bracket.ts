@@ -130,6 +130,8 @@ export interface NodeSlotView {
   /** Absent, or `played`, renders nothing — only an unusual reason is shown. */
   readonly resultReason?: Exclude<ResultReason, 'played'>;
   readonly state: ResultState;
+  /** True on the side that won a decided match: both cards mark it in bold. */
+  readonly winner?: boolean;
   /** True while the entrant is not known yet: rendered dashed, never blank. */
   readonly pending: boolean;
 }
@@ -166,6 +168,10 @@ export function toRounds(matches: readonly BracketMatch[]): readonly BracketRoun
  * has to happen before their team plays.
  */
 export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNodeView {
+  const scored = (match.scores ?? []).filter((score): score is number => score !== undefined);
+  const top = Math.max(...scored);
+  const decided =
+    match.state === 'final' && scored.length > 1 && scored.some((score) => score !== top);
   return {
     matchNumber: match.matchNumber,
     state: match.state,
@@ -188,6 +194,7 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
         ...(score === undefined ? {} : { score }),
         ...(resultReason === undefined || resultReason === 'played' ? {} : { resultReason }),
         state: pending ? 'tbd' : match.state,
+        ...(decided && score === top ? { winner: true } : {}),
         pending,
       };
     }),

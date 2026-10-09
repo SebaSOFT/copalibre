@@ -180,6 +180,7 @@ describe('toNode', () => {
       abbreviation: 'ALP',
       score: 3,
       state: 'final',
+      winner: true,
       pending: false,
     });
     expect(node.slots[1]).toEqual({
@@ -190,6 +191,20 @@ describe('toNode', () => {
       state: 'final',
       pending: false,
     });
+  });
+
+  it('marks no winner on a tie, a live score or a match without scores', () => {
+    const entrants: BracketMatch['slots'] = [
+      { kind: 'entrant', name: 'Club Alpha' },
+      { kind: 'entrant', name: 'Club Beta' },
+    ];
+    const base = { matchNumber: 3, roundNumber: 1, branch: 'winners', slots: entrants };
+    const winnersOf = (match: BracketMatch): readonly (boolean | undefined)[] =>
+      toNode(match, labels).slots.map((slot) => slot.winner);
+
+    expect(winnersOf({ ...base, state: 'final', scores: [2, 2] })).toEqual([undefined, undefined]);
+    expect(winnersOf({ ...base, state: 'live', scores: [2, 1] })).toEqual([undefined, undefined]);
+    expect(winnersOf({ ...base, state: 'upcoming' })).toEqual([undefined, undefined]);
   });
 
   it('builds node view for pending match without scores', () => {
