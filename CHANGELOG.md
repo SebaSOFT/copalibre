@@ -1,4 +1,4 @@
-## [1.2.6](https://github.com/SebaSOFT/copalibre/compare/v1.2.5...v1.2.6) (2026-10-08)
+## [1.2.6](https://github.com/SebaSOFT/copalibre/compare/v1.2.5...v1.2.6) (2026-10-09)
 
 ### Infrastructure and supply chain
 
@@ -15,11 +15,22 @@
 - Repair `init` installations, configure email, and add process lifecycle commands for stop, restart, and status ([ab7d72af](https://github.com/SebaSOFT/copalibre/commit/ab7d72af), [ab65f0e2](https://github.com/SebaSOFT/copalibre/commit/ab65f0e2)).
 - Remove the unused bulk personal-access-token cutover command; active tokens stay valid until they expire or their owner revokes them ([#384](https://github.com/SebaSOFT/copalibre/pull/384)).
 - Load the committed Panamericano demo tournament, with its clubs, emblems, schedule and results, into a running development stack with `copalibre dev demo` ([#386](https://github.com/SebaSOFT/copalibre/pull/386)).
+- Report a module's images stored under another object-storage profile than the active one, or missing: `module verify` fails naming both profiles, `copalibre doctor` warns with a new `warn` status, and the API logs once per key when a referenced background cannot be served ([#411](https://github.com/SebaSOFT/copalibre/pull/411)).
 
 ### Public and control experience
 
 - Fix localized home routing and language switching across public pages ([ff35ce1d](https://github.com/SebaSOFT/copalibre/commit/ff35ce1d), [f812f2bc](https://github.com/SebaSOFT/copalibre/commit/f812f2bc), [eb960bc2](https://github.com/SebaSOFT/copalibre/commit/eb960bc2)).
 - Refine organization dashboard hierarchy, role terminology, and reverse-proxy help; separate operator documentation from public navigation ([0c0423ea](https://github.com/SebaSOFT/copalibre/commit/0c0423ea), [7939ff30](https://github.com/SebaSOFT/copalibre/commit/7939ff30)).
+- Serve the discipline backdrop and the TV emblems from the web origin ([#399](https://github.com/SebaSOFT/copalibre/pull/399)).
+- Draw one fixed, faint (6 %), blurred discipline backdrop behind the whole public page instead of a second full-strength copy in the tournament hero ([#412](https://github.com/SebaSOFT/copalibre/pull/412)).
+- Keep organization listing cards legible at any width ([#401](https://github.com/SebaSOFT/copalibre/pull/401)).
+- Show the match report in the page's language, on the shared width and panel ([#402](https://github.com/SebaSOFT/copalibre/pull/402)).
+- Add a localized breadcrumb to every public page below the organization ([#403](https://github.com/SebaSOFT/copalibre/pull/403)).
+- Explain table columns, filter in place and offer compact club chips ([#404](https://github.com/SebaSOFT/copalibre/pull/404)).
+- Show progress per stage and zone, list the rules in force, and warn only when the viewer is offline ([#405](https://github.com/SebaSOFT/copalibre/pull/405)).
+- Draw the knockout bracket with its links and its placement games, with a winner and an elimination shown by weight, and a compact card on phones ([#406](https://github.com/SebaSOFT/copalibre/pull/406)).
+- Present the match schedule as tables grouped by stage and round ([#407](https://github.com/SebaSOFT/copalibre/pull/407)).
+- Resolve and show the champions of every zone of the last stage ([#400](https://github.com/SebaSOFT/copalibre/pull/400)).
 
 ### Tournament authoring
 
@@ -32,6 +43,9 @@
 
 - Add the `/tv` launcher, display shortcuts, and direct navigation to tournament broadcasts ([0fdbc730](https://github.com/SebaSOFT/copalibre/commit/0fdbc730), [22dec1a0](https://github.com/SebaSOFT/copalibre/commit/22dec1a0)).
 - Present each zone of a mixed-format stage by the format it plays: one standings table per zone under the zone's name, the bracket for knockout zones, and a fixtures view grouped by round for league zones, reachable with `?view=fixtures` ([#396](https://github.com/SebaSOFT/copalibre/pull/396)).
+- Give the kiosk its own identity and dates in the organization's time zone, a match list view, stage and pinned-match views, stacked layouts on phones, and a paging that always cycles ([#408](https://github.com/SebaSOFT/copalibre/pull/408)).
+- Correct the launcher's language, stages and overlay match, add a "TV Streaming" link to the public main menu, and let overlays follow a court ([#409](https://github.com/SebaSOFT/copalibre/pull/409)).
+- Make the overlay show only the match it was given, with the series' pips and standing, the sets played and the segment in play named by its place ("2nd Half", "3rd Set"), in the viewer's language; the lower third keeps two rows on a phone-shaped frame ([#410](https://github.com/SebaSOFT/copalibre/pull/410)).
 
 ### Email notifications
 
