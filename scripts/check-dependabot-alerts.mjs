@@ -37,6 +37,16 @@ export const KNOWN_UNPATCHED_ADVISORIES = Object.freeze({
     runtimeExposure: 'none; static site build caching and CI license scan only',
     dismissalReason: 'tolerable_risk',
   }),
+  73: Object.freeze({
+    package: 'sprintf-js',
+    ghsa: 'GHSA-hp3w-g68c-fv3c',
+    upstreamIssue: 'https://github.com/alexei/sprintf.js/issues/237',
+    dependencyPath:
+      'every workspace -> jest -> @jest/core -> @jest/reporters -> @jest/transform -> babel-plugin-istanbul -> @istanbuljs/load-nyc-config -> js-yaml@3 -> argparse@1 -> sprintf-js',
+    runtimeExposure:
+      'none; test-time coverage tooling only, which reads YAML configuration and never formats a string with attacker-controlled precision specifiers',
+    dismissalReason: 'not_used',
+  }),
 });
 
 export function compareStableVersions(left, right) {
