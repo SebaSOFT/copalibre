@@ -77,6 +77,7 @@ const legScores =
                   <EmblemImage
                     alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: slot.fullName })}
                     placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                    bare
                     size={20}
                     src={
                       slot.clubId && slot.emblemObjectId
@@ -162,5 +163,12 @@ const legScores =
     display: flex;
     align-items: center;
     gap: var(--cl-space-2);
+  }
+  /* The name takes the row's slack and reads from the left, next to its emblem. */
+  .cl-slot :global(.cl-entrant-name),
+  .cl-slot--pending :global(.cl-entrant-name),
+  .cl-slot :global(.cl-journey-name) {
+    flex: 1;
+    text-align: left;
   }
 </style>

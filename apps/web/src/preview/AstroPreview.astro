@@ -400,6 +400,24 @@ const [compactSample] = referenceJourneyBracket(true);
       )
     }
     {
+      component === 'emblem-image-bare' && (
+        <div class="cl-preview-emblem-matrix">
+          {[20, 32, 48].map((size) => (
+            <EmblemImage
+              alt={intl.formatMessage({
+                id: 'preview.emblemImage.alt',
+                defaultMessage: 'Reference League emblem',
+              })}
+              bare
+              placeholderAlt="No emblem set"
+              size={size}
+              src="/preview-fixtures/emblem-display.svg"
+            />
+          ))}
+        </div>
+      )
+    }
+    {
       component === 'emblem-image-matrix' && (
         <div class="cl-preview-emblem-matrix">
           {[48, 96, 160].map((size) => (

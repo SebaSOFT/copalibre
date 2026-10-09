@@ -136,6 +136,11 @@ export const EmblemImage: Story = {
   args: { component: 'emblem-image', height: 180 },
 };
 
+/** The `bare` emblem: no background, border, chamfer or inset, only the 1:1 image for inline use. */
+export const EmblemImageBare: Story = {
+  args: { component: 'emblem-image-bare', height: 120 },
+};
+
 /** The same emblem at three `size` values; every frame remains square. */
 export const EmblemImageMatrix: Story = {
   args: { component: 'emblem-image-matrix', height: 200 },
