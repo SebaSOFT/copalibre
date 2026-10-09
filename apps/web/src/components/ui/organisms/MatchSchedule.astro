@@ -1,0 +1,301 @@
+---
+import type { IntlShape } from 'react-intl';
+import BracketView from './BracketView.astro';
+import DataTable, { type DataTableColumn, type DataTableSection } from './DataTable.astro';
+import { MatchCard } from './MatchCard.tsx';
+import { matchReportUrl } from '../../../lib/bracket.ts';
+import type { MatchCardData } from '../../../lib/matches-view.ts';
+import type { ScheduleStage, ScheduleZone } from '../../../lib/match-schedule.ts';
+import { presentState } from '../../../lib/result-state.ts';
+import { matchCardLabels, resultStateLabels } from '../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
+
+/**
+ * A tournament's matches as a schedule: stage, then zone, then group, then round, each level named
+ * only when it has company. A large scope is a table of rows (kick-off, sides, score, state,
+ * venue); a short one may be cards instead; a knockout zone is its bracket, never rows as well.
+ *
+ * Everything renders on the server. The one script only re-writes the kick-off times into the
+ * viewer's own time zone, which the server cannot know.
+ */
+interface Props {
+  readonly stages: readonly ScheduleStage[];
+  readonly intl: IntlShape;
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly localePrefix?: string;
+  readonly presentation?: 'rows' | 'cards' | 'compact-cards';
+  /** First heading level of the schedule; each level below it is one deeper. */
+  readonly headingLevel?: 2 | 3;
+  /** Renders each stage as a collapsible block; only this stage starts open. */
+  readonly collapsible?: boolean;
+  readonly openStage?: number;
+  readonly emptyLabel: string;
+}
+const {
+  stages,
+  intl,
+  organizationAlias,
+  tournamentAlias,
+  localePrefix = '',
+  presentation = 'rows',
+  headingLevel = 2,
+  collapsible = false,
+  openStage,
+  emptyLabel,
+} = Astro.props;
+
+const cardLabels = matchCardLabels(intl);
+const stateLabels = resultStateLabels(intl);
+const kickoff = new Intl.DateTimeFormat(intl.locale, {
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'UTC',
+  timeZoneName: 'short',
+});
+const stageLabel = (stage: ScheduleStage): string =>
+  stage.stageName || intl.formatMessage(messages.breadcrumbStage, { stage: stage.stageNumber });
+const heading = (depth: number): string => `h${Math.min(headingLevel + depth, 6)}`;
+
+const reportOf = (stage: number, match: number): string =>
+  matchReportUrl({
+    organizationAlias,
+    tournamentAlias,
+    stageNumber: stage,
+    matchNumber: match,
+    localePrefix,
+  });
+
+const columns: readonly DataTableColumn[] = [
+  {
+    key: 'kickoff',
+    header: intl.formatMessage(messages.scheduleColumnKickoff),
+    render: (row) => {
+      const { scheduledAt } = row as MatchCardData;
+      return scheduledAt ? kickoff.format(new Date(scheduledAt)) : '—';
+    },
+    datetime: (row) => (row as MatchCardData).scheduledAt,
+  },
+  {
+    key: 'home',
+    header: intl.formatMessage(messages.scheduleColumnHome),
+    render: (row) => (row as MatchCardData).homeName ?? '—',
+    abbreviation: (row) => (row as MatchCardData).homeAbbreviation,
+  },
+  {
+    key: 'score',
+    header: intl.formatMessage(messages.scheduleColumnScore),
+    render: (row) => {
+      const { homeScore, awayScore } = row as MatchCardData;
+      return homeScore === undefined || awayScore === undefined
+        ? 'vs'
+        : `${homeScore} – ${awayScore}`;
+    },
+    href: (row) => {
+      const match = row as MatchCardData;
+      return reportOf(match.stageNumber, match.matchNumber);
+    },
+  },
+  {
+    key: 'away',
+    header: intl.formatMessage(messages.scheduleColumnAway),
+    render: (row) => (row as MatchCardData).awayName ?? '—',
+    abbreviation: (row) => (row as MatchCardData).awayAbbreviation,
+  },
+  {
+    key: 'state',
+    header: intl.formatMessage(messages.scheduleColumnState),
+    render: (row) => {
+      const shown = presentState((row as MatchCardData).state, stateLabels);
+      return `${shown.icon} ${shown.label}`;
+    },
+  },
+  {
+    key: 'venue',
+    header: intl.formatMessage(messages.scheduleColumnVenue),
+    render: (row) => (row as MatchCardData).venueName ?? '—',
+  },
+];
+
+const roundLabel = (round: number): string =>
+  intl.formatMessage(messages.bracketRoundHeading, { round });
+const sectionsOf = (rounds: readonly { round: number; matches: readonly MatchCardData[] }[]) =>
+  rounds.map<DataTableSection>((one) => ({
+    ...(rounds.length > 1 ? { heading: roundLabel(one.round) } : {}),
+    rows: one.matches,
+  }));
+const scopeOf = (...names: readonly (string | undefined)[]): string =>
+  names.filter(Boolean).join(' · ') || intl.formatMessage(messages.matchGridHeading);
+const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.name ?? ''}`;
+---
+
+<div class="cl-match-schedule">
+  {stages.length === 0 && <p class="cl-empty-state">{emptyLabel}</p>}
+  {
+    stages.map((stage) => {
+      const StageHeading = heading(0);
+      const ZoneHeading = heading(1);
+      const GroupHeading = heading(2);
+      const named = stages.length > 1;
+      const body = (
+        <>
+          {stage.zones.map((zone, zoneIndex) => (
+            <section class="cl-match-schedule__zone" data-zone={zoneKey(zone, zoneIndex)}>
+              {stage.zones.length > 1 && zone.name && <ZoneHeading>{zone.name}</ZoneHeading>}
+              {zone.kind === 'bracket' ? (
+                <BracketView
+                  intl={intl}
+                  localePrefix={localePrefix}
+                  matches={zone.matches}
+                  organizationAlias={organizationAlias}
+                  stageNumber={stage.stageNumber}
+                  tournamentAlias={tournamentAlias}
+                />
+              ) : (
+                zone.groups.map((group) => (
+                  <div class="cl-match-schedule__group">
+                    {zone.groups.length > 1 && group.name && (
+                      <GroupHeading>{group.name}</GroupHeading>
+                    )}
+                    {presentation === 'rows' ? (
+                      <DataTable
+                        ariaLabel={scopeOf(
+                          stages.length > 1 ? stageLabel(stage) : undefined,
+                          zone.name,
+                          group.name,
+                        )}
+                        columns={columns}
+                        compact
+                        rows={[]}
+                        sections={sectionsOf(group.rounds)}
+                      />
+                    ) : (
+                      group.rounds.map((one) => (
+                        <section>
+                          {group.rounds.length > 1 && (
+                            <h6 class="cl-match-schedule__round">{roundLabel(one.round)}</h6>
+                          )}
+                          <div
+                            class={
+                              presentation === 'compact-cards'
+                                ? 'cl-matches-view__grid cl-matches-view__grid--compact'
+                                : 'cl-matches-view__grid'
+                            }
+                          >
+                            {one.matches.map((match) => (
+                              <MatchCard
+                                client:load
+                                compact={presentation === 'compact-cards'}
+                                labels={cardLabels}
+                                locale={intl.locale}
+                                match={match}
+                                reportUrl={reportOf(match.stageNumber, match.matchNumber)}
+                              />
+                            ))}
+                          </div>
+                        </section>
+                      ))
+                    )}
+                  </div>
+                ))
+              )}
+            </section>
+          ))}
+        </>
+      );
+      return collapsible && named ? (
+        <details class="cl-match-schedule__stage" open={stage.stageNumber === openStage}>
+          <summary>{stageLabel(stage)}</summary>
+          {body}
+        </details>
+      ) : (
+        <section class="cl-match-schedule__stage" data-stage={stage.stageNumber}>
+          {named && <StageHeading>{stageLabel(stage)}</StageHeading>}
+          {body}
+        </section>
+      );
+    })
+  }
+</div>
+
+<script>
+  // The server prints each kick-off in UTC; the viewer reads it in their own time zone.
+  const format = new Intl.DateTimeFormat(document.documentElement.lang || undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+  for (const time of document.querySelectorAll<HTMLTimeElement>(
+    '.cl-match-schedule time[datetime]',
+  )) {
+    const instant = new Date(time.dateTime);
+    if (!Number.isNaN(instant.getTime())) time.textContent = format.format(instant);
+  }
+</script>
+
+<style>
+  .cl-match-schedule > section.cl-match-schedule__stage,
+  .cl-match-schedule__zone,
+  .cl-match-schedule__group {
+    display: grid;
+    gap: var(--cl-space-3);
+    min-width: 0;
+  }
+  .cl-match-schedule > section.cl-match-schedule__stage {
+    margin-block-start: var(--cl-space-6);
+  }
+  .cl-match-schedule__zone {
+    margin-block-start: var(--cl-space-4);
+  }
+  .cl-match-schedule__group {
+    margin-block-start: var(--cl-space-2);
+  }
+  .cl-match-schedule :global(h2),
+  .cl-match-schedule :global(h3),
+  .cl-match-schedule :global(h4),
+  .cl-match-schedule :global(h5) {
+    margin: 0;
+  }
+  /* A zone or group heading reads as a heading however deep the page nests it. */
+  .cl-match-schedule :global(h4),
+  .cl-match-schedule :global(h5) {
+    font-size: var(--cl-font-size-md);
+  }
+  /* Every table fills the page's width, so the columns of one group line up with the next's. */
+  .cl-match-schedule :global(.cl-data-table) {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .cl-match-schedule :global(.cl-data-table__table) {
+    display: table;
+    width: 100%;
+  }
+  /* On a wide screen every table shares one column grid, so groups line up under each other. */
+  @media (min-width: 768px) {
+    .cl-match-schedule :global(.cl-data-table__table) {
+      table-layout: fixed;
+    }
+    .cl-match-schedule :global(.cl-data-table__table td) {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  /* A row stays one line; a narrow screen scrolls the table inside its own region. */
+  .cl-match-schedule :global(.cl-data-table__table td) {
+    white-space: nowrap;
+  }
+  details.cl-match-schedule__stage {
+    margin-block-start: var(--cl-space-4);
+  }
+  .cl-match-schedule__stage > summary {
+    cursor: pointer;
+    font-family: var(--cl-font-display);
+    font-size: var(--cl-font-size-lg);
+  }
+  .cl-match-schedule__round {
+    margin: 0;
+    font-size: var(--cl-font-size-sm);
+    color: var(--cl-text-muted);
+  }
+</style>

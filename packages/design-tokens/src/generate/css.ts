@@ -745,6 +745,11 @@ function components(): string {
     // most callers have no need to pin their header.
     '.cl-data-table--sticky .cl-data-table__table thead th { position: sticky; top: 0; z-index: 1; background: var(--cl-surface-panel); box-shadow: 0 1px 0 var(--cl-border-muted); }',
     '',
+    // A sub-heading row inside the table (a round of a group's schedule), and a cell that links.
+    '.cl-data-table__section th { background: var(--cl-surface-chrome); color: var(--cl-text-primary); border-bottom: 1px solid var(--cl-border-muted); }',
+    '.cl-data-table__table td a { color: var(--cl-primary); font-variant-numeric: tabular-nums; }',
+    '.cl-data-table__table td time { white-space: nowrap; }',
+    '',
     '.cl-modal__overlay { position: fixed; inset: 0; }',
     '.cl-modal__content { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(480px, calc(100vw - var(--cl-space-8))); max-height: 85vh; overflow-y: auto; padding: var(--cl-space-4); }',
     // The title and the close control share a row, and a long compound title

@@ -123,7 +123,7 @@ test.describe('Public Match Presentation and Badge Polish', () => {
   test('4.2 rank badge in matches-view card uses monospace font and is spaced >= 6px from score', async ({
     page,
   }) => {
-    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches`);
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches?view=cards`);
 
     // The rank badge is rendered with cl-badge--rank.
     const rankBadge = page.locator('.cl-badge--rank').first();

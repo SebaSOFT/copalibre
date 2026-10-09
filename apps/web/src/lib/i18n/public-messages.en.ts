@@ -406,6 +406,62 @@ export const messages = defineMessages({
     id: 'publicWeb.matchesView.stateFilterAriaLabel',
     defaultMessage: 'Filter by match state',
   },
+  scheduleColumnKickoff: {
+    id: 'publicWeb.schedule.columnKickoff',
+    defaultMessage: 'Kick-off',
+  },
+  scheduleColumnHome: {
+    id: 'publicWeb.schedule.columnHome',
+    defaultMessage: 'Home',
+  },
+  scheduleColumnScore: {
+    id: 'publicWeb.schedule.columnScore',
+    defaultMessage: 'Score',
+  },
+  scheduleColumnAway: {
+    id: 'publicWeb.schedule.columnAway',
+    defaultMessage: 'Away',
+  },
+  scheduleColumnState: {
+    id: 'publicWeb.schedule.columnState',
+    defaultMessage: 'State',
+  },
+  scheduleColumnVenue: {
+    id: 'publicWeb.schedule.columnVenue',
+    defaultMessage: 'Venue',
+  },
+  matchesViewStageFilterTitle: {
+    id: 'publicWeb.matchesView.stageFilterTitle',
+    defaultMessage: 'Stage',
+  },
+  matchesViewZoneFilterTitle: {
+    id: 'publicWeb.matchesView.zoneFilterTitle',
+    defaultMessage: 'Zone',
+  },
+  matchesViewGroupFilterTitle: {
+    id: 'publicWeb.matchesView.groupFilterTitle',
+    defaultMessage: 'Group',
+  },
+  matchesViewStateFilterTitle: {
+    id: 'publicWeb.matchesView.stateFilterTitle',
+    defaultMessage: 'State',
+  },
+  matchesViewViewFilterTitle: {
+    id: 'publicWeb.matchesView.viewFilterTitle',
+    defaultMessage: 'View',
+  },
+  matchesViewViewFilterAriaLabel: {
+    id: 'publicWeb.matchesView.viewFilterAriaLabel',
+    defaultMessage: 'Choose how matches are shown',
+  },
+  matchesViewViewRows: {
+    id: 'publicWeb.matchesView.viewRows',
+    defaultMessage: 'Table',
+  },
+  matchesViewViewCards: {
+    id: 'publicWeb.matchesView.viewCards',
+    defaultMessage: 'Cards',
+  },
   matchesViewPositionInGroup: {
     id: 'publicWeb.matchesView.positionInGroup',
     defaultMessage: '{group} — position #{position}',

@@ -42,6 +42,7 @@ import MatchHero from '../components/ui/organisms/MatchHero.astro';
 import MatchNode from '../components/ui/organisms/MatchNode.astro';
 import MatchOfficials from '../components/ui/organisms/MatchOfficials.astro';
 import MatchRosters from '../components/ui/organisms/MatchRosters.astro';
+import MatchSchedule from '../components/ui/organisms/MatchSchedule.astro';
 import MatchScheduleFilters from '../components/ui/organisms/MatchScheduleFilters.astro';
 import MatchTimeline from '../components/ui/organisms/MatchTimeline.astro';
 import Modal from '../components/ui/organisms/Modal.astro';
@@ -67,6 +68,7 @@ import {
 import { messages } from '../lib/i18n/public-messages.en.ts';
 import {
   referenceBracket,
+  referenceSchedule,
   referenceJourneyBracket,
   referencePlacementBracket,
   referenceClubs,
@@ -135,6 +137,7 @@ const PREVIEWABLE = new Set([
   'match-node',
   'match-officials',
   'match-rosters',
+  'match-schedule',
   'match-schedule-filters',
   'match-timeline',
   'modal',
@@ -609,14 +612,42 @@ const [compactSample] = referenceJourneyBracket(true);
             zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
             groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
             stateFilterAriaLabel: intl.formatMessage(messages.matchesViewStateFilterAriaLabel),
+            viewFilterAriaLabel: intl.formatMessage(messages.matchesViewViewFilterAriaLabel),
+            titles: {
+              stage: intl.formatMessage(messages.matchesViewStageFilterTitle),
+              zone: intl.formatMessage(messages.matchesViewZoneFilterTitle),
+              group: intl.formatMessage(messages.matchesViewGroupFilterTitle),
+              state: intl.formatMessage(messages.matchesViewStateFilterTitle),
+              view: intl.formatMessage(messages.matchesViewViewFilterTitle),
+            },
+            viewOptions: {
+              rows: intl.formatMessage(messages.matchesViewViewRows),
+              cards: intl.formatMessage(messages.matchesViewViewCards),
+            },
             filters: matchCardLabels(intl).filters,
           }}
           stages={[
             { stageNumber: 1, stageName: 'Group Stage' },
             { stageNumber: 2, stageName: 'Playoffs' },
           ]}
+          offerView
           state="all"
+          view="rows"
           zones={['Copa de Oro', 'Copa de Plata']}
+        />
+      )
+    }
+    {
+      component === 'match-schedule' && (
+        <MatchSchedule
+          collapsible
+          emptyLabel="No matches yet."
+          intl={intl}
+          localePrefix=""
+          openStage={1}
+          organizationAlias="reference-league"
+          stages={referenceSchedule()}
+          tournamentAlias="reference-cup"
         />
       )
     }

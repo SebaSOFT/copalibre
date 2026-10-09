@@ -168,16 +168,16 @@ test.describe('TV kiosk', () => {
 
 test.describe('public matches page', () => {
   test('a same-day kickoff renders as a bare HH:mm, not a raw ISO string', async ({ page }) => {
-    await page.goto(`${PUBLIC_BASE}/matches`);
-    const now = new Date();
+    await page.goto(`${PUBLIC_BASE}/matches?view=cards`);
+    const [firstMatch] = overview.matches;
+    if (firstMatch === undefined) throw new Error('Fixture must declare at least one match');
+    // The fixture's own kick-off, not "now": the suite can cross a minute before this test runs.
     const expected = new Intl.DateTimeFormat('en', {
       hour: '2-digit',
       minute: '2-digit',
       hourCycle: 'h23',
-    }).format(now);
+    }).format(new Date(firstMatch.scheduledAt));
     await expect(page.getByText(expected, { exact: true }).first()).toBeVisible();
-    const [firstMatch] = overview.matches;
-    if (firstMatch === undefined) throw new Error('Fixture must declare at least one match');
     await expect(page.getByText(firstMatch.scheduledAt, { exact: true })).toHaveCount(0);
   });
 });
