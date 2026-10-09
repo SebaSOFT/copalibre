@@ -98,18 +98,13 @@ const BRACKET_ORDER: readonly string[] = [
   'placement',
 ];
 
-/** The brackets a reader follows from the right edge inward: what the winners' side sends them. */
-const MIRRORED_BRACKETS: ReadonlySet<string> = new Set(['losers', 'placement']);
-
 export interface PlaceOptions {
   /**
-   * Draw the winners' bracket on the left and the losers' (or placement) bracket on the right,
-   * mirrored so each reads from its own outer edge toward the middle, instead of stacking one
-   * under the other. The links that drop a loser across from one side to the other are left out:
-   * they would cross the whole drawing, and each game on the far side names where its sides came
-   * from.
+   * Draw a single-elimination tree the way a printed bracket is: the final in the middle, the two
+   * halves that feed it on either side, the left half reading left to right and the right half
+   * right to left. A drawing that is not one tree ending in one final is placed as usual.
    */
-  readonly sides?: boolean;
+  readonly split?: boolean;
 }
 
 export function placeBracket(
@@ -117,6 +112,10 @@ export function placeBracket(
   geometry: BracketGeometry = DEFAULT_GEOMETRY,
   options: PlaceOptions = {},
 ): PlacedBracket {
+  if (options.split) {
+    const split = placeSplit(matches, geometry);
+    if (split !== undefined) return split;
+  }
   const placed = new Map<string, PlacedNode & { readonly bracket: string }>();
   const columns = new Map<string, number>();
   let cursorY = 0;
@@ -163,45 +162,106 @@ export function placeBracket(
       }
     }
 
-    // Side by side, every bracket starts at the top; stacked, the next one starts below this one.
-    if (!options.sides) cursorY = bottom + geometry.bracketGap;
+    cursorY = bottom + geometry.bracketGap;
   }
-
-  if (options.sides) mirrorSides(placed, geometry);
 
   const nodes = [...placed.values()];
   return {
     nodes,
-    connectors: connectorsOf(matches, placed, options.sides === true),
+    connectors: connectorsOf(matches, placed),
     width: nodes.reduce((widest, node) => Math.max(widest, node.x + node.width), 0),
     height: nodes.reduce((tallest, node) => Math.max(tallest, node.y + node.height), 0),
   };
 }
 
 /**
- * Moves the mirrored brackets to the right of everything else and flips them, so their first round
- * lies on the outer edge and their last one next to the middle.
+ * The split drawing: the one match nothing follows is the final, each of its two sources roots a
+ * half, and the halves are placed on their own (so every centring rule holds inside each), the
+ * right one flipped, with the final between them at the height of what feeds it. Undefined when
+ * the matches are not a single tree with a single final fed by two matches.
  */
-function mirrorSides(
-  placed: Map<string, PlacedNode & { readonly bracket: string }>,
+function placeSplit(
+  matches: readonly LayoutMatch[],
   geometry: BracketGeometry,
-): void {
-  const all = [...placed.values()];
-  const mirrored = all.filter((node) => MIRRORED_BRACKETS.has(node.bracket));
-  if (mirrored.length === 0) return;
-  const leftEdge = all
-    .filter((node) => !MIRRORED_BRACKETS.has(node.bracket))
-    .reduce((widest, node) => Math.max(widest, node.x + node.width), 0);
-  const last = Math.max(...mirrored.map((node) => node.x));
-  // The two sides are one column gap apart, with a gap more where they meet.
-  const start = leftEdge + geometry.columnGap * 2;
+): PlacedBracket | undefined {
+  if (new Set(matches.map((match) => match.bracket)).size !== 1) return undefined;
+  const byId = new Map(matches.map((match) => [match.matchId, match]));
+  const sourcesOf = (match: LayoutMatch): readonly LayoutMatch[] =>
+    match.slots.flatMap((slot) => {
+      const source = sourceOfSlot(slot);
+      const found = source === undefined ? undefined : byId.get(source.matchId);
+      return found === undefined ? [] : [found];
+    });
+  const fed = new Set(matches.flatMap((match) => sourcesOf(match).map((m) => m.matchId)));
+  const finals = matches.filter((match) => !fed.has(match.matchId));
+  const final = finals[0];
+  if (finals.length !== 1 || final === undefined) return undefined;
+  const roots = sourcesOf(final);
+  const [leftRoot, rightRoot] = roots;
+  if (roots.length !== 2 || leftRoot === undefined || rightRoot === undefined) return undefined;
 
-  for (const node of mirrored) {
+  const subtree = (root: LayoutMatch): ReadonlySet<string> => {
+    const seen = new Set<string>();
+    const walk = (match: LayoutMatch): void => {
+      if (seen.has(match.matchId)) return;
+      seen.add(match.matchId);
+      for (const source of sourcesOf(match)) walk(source);
+    };
+    walk(root);
+    return seen;
+  };
+  const leftIds = subtree(leftRoot);
+  const rightIds = subtree(rightRoot);
+  // A match both halves share is not a tree; draw it the ordinary way instead.
+  if ([...leftIds].some((id) => rightIds.has(id))) return undefined;
+  if (leftIds.size + rightIds.size + 1 !== matches.length) return undefined;
+
+  const left = placeBracket(
+    matches.filter((m) => leftIds.has(m.matchId)),
+    geometry,
+  );
+  const right = placeBracket(
+    matches.filter((m) => rightIds.has(m.matchId)),
+    geometry,
+  );
+  const finalX = snap(left.width + geometry.columnGap, geometry.grid);
+  const rightStart = finalX + geometry.nodeWidth + geometry.columnGap;
+  const nodeOf = (nodes: readonly PlacedNode[], id: string): PlacedNode | undefined =>
+    nodes.find((node) => node.matchId === id);
+  const leftRootNode = nodeOf(left.nodes, leftRoot.matchId);
+  const rightRootNode = nodeOf(right.nodes, rightRoot.matchId);
+  if (leftRootNode === undefined || rightRootNode === undefined) return undefined;
+
+  const placed = new Map<string, PlacedNode & { readonly bracket: string }>();
+  for (const node of left.nodes) placed.set(node.matchId, { ...node, bracket: final.bracket });
+  for (const node of right.nodes) {
     placed.set(node.matchId, {
       ...node,
-      x: snap(start + (last - node.x), geometry.grid),
+      bracket: final.bracket,
+      x: snap(rightStart + (right.width - (node.x + node.width)), geometry.grid),
     });
   }
+  const centre = (leftRootNode.y + rightRootNode.y) / 2 + geometry.nodeHeight / 2;
+  const finalY = snap(centre - geometry.nodeHeight / 2, geometry.grid);
+  placed.set(final.matchId, {
+    matchId: final.matchId,
+    bracket: final.bracket,
+    x: finalX,
+    y: finalY,
+    width: geometry.nodeWidth,
+    height: geometry.nodeHeight,
+    slotYs: final.slots.map(
+      (_slot, index) => finalY + slotCentre(index, final.slots.length, geometry.nodeHeight),
+    ),
+  });
+
+  const nodes = [...placed.values()];
+  return {
+    nodes,
+    connectors: connectorsOf(matches, placed),
+    width: nodes.reduce((widest, node) => Math.max(widest, node.x + node.width), 0),
+    height: nodes.reduce((tallest, node) => Math.max(tallest, node.y + node.height), 0),
+  };
 }
 
 /**
@@ -292,8 +352,7 @@ function sourceCentre(
 
 function connectorsOf(
   matches: readonly LayoutMatch[],
-  placed: ReadonlyMap<string, PlacedNode & { readonly bracket?: string }>,
-  sides: boolean,
+  placed: ReadonlyMap<string, PlacedNode>,
 ): readonly Connector[] {
   const connectors: Connector[] = [];
 
@@ -305,9 +364,6 @@ function connectorsOf(
       const link = sourceOfSlot(slot);
       const source = link === undefined ? undefined : placed.get(link.matchId);
       if (link === undefined || !source) continue;
-      // Across the two sides a link would run the width of the drawing; skip it (see `sides`).
-      if (sides && link.kind === 'loser-of' && source.bracket !== match.bracket) continue;
-
       // A link runs from the edge of the source that faces the target to the facing edge of the
       // target: rightward on the winners' side, leftward on the mirrored one.
       const leftward = source.x > target.x;

@@ -58,7 +58,25 @@ function layoutSlot(slot: SlotSource, idByNumber: ReadonlyMap<number, string>): 
     : { kind: 'entrant' };
 }
 
-export function layoutPublicBracket(matches: readonly BracketMatch[]): PublicBracketLayout {
+/** A placement game is listed under the bracket rather than drawn in it. */
+export const isPlacementGame = (match: BracketMatch): boolean => match.branch === 'placement';
+
+/**
+ * The placement games, best-ranked round first (third, fifth and seventh place before the round
+ * that sorts the fifth to eighth), the order a results list reads in.
+ */
+export function placementGamesOf(matches: readonly BracketMatch[]): readonly BracketMatch[] {
+  return matches
+    .filter(isPlacementGame)
+    .sort(
+      (a, b) =>
+        b.roundNumber - a.roundNumber ||
+        (a.position ?? a.matchNumber) - (b.position ?? b.matchNumber),
+    );
+}
+
+export function layoutPublicBracket(allMatches: readonly BracketMatch[]): PublicBracketLayout {
+  const matches = allMatches.filter((match) => !isPlacementGame(match));
   const geometry: BracketGeometry = matches.some((match) => match.series !== undefined)
     ? { ...PUBLIC_GEOMETRY, nodeHeight: SERIES_NODE_HEIGHT }
     : PUBLIC_GEOMETRY;
@@ -70,7 +88,7 @@ export function layoutPublicBracket(matches: readonly BracketMatch[]): PublicBra
     position: match.position ?? match.matchNumber,
     slots: match.slots.map((slot) => layoutSlot(slot, idByNumber)),
   }));
-  const placed = placeBracket(input, geometry, { sides: true });
+  const placed = placeBracket(input, geometry, { split: true });
   const byId = new Map(matches.map((match) => [layoutIdOf(match), match]));
 
   const nodes = placed.nodes.map((node): PublicBracketNode => ({

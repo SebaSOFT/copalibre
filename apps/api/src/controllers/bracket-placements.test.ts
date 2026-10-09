@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { StageMatchRecord } from '@copalibre/persistence';
-import { graphRecordsOf, placementNodesOf } from './bracket-placements.js';
+import { graphRecordsOf, placementNodesOf, recordedSources } from './bracket-placements.js';
 
 const record = (
   fixtureId: string,
@@ -87,12 +87,34 @@ describe('placementNodesOf', () => {
     expect(nodes[4]?.sources.map((s) => s?.outcome)).toEqual(['loser', 'loser']);
   });
 
-  it('states nothing for a side whose earlier game was not decided', () => {
-    const undecided = cup.map((r) => (r.fixtureId === 'q1' ? { ...r, scores: [1, 1] } : r));
-    const [first] = placementNodesOf(undecided as StageMatchRecord[], (r) =>
-      graphIds.get(r.fixtureId),
-    );
-    expect(first?.sources[0]).toBeUndefined();
-    expect(first?.sources[1]).toEqual({ matchId: 'SE-R1-M2', outcome: 'loser' });
+  it('reads a tied earlier game from where its sides went next', () => {
+    const tied = cup.map((r) => (r.fixtureId === 'q1' ? { ...r, scores: [1, 1] } : r));
+    const [first] = placementNodesOf(tied as StageMatchRecord[], (r) => graphIds.get(r.fixtureId));
+    // B dropped to a placement round while A went on to the semi-final.
+    expect(first?.sources[0]).toEqual({ matchId: 'SE-R1-M1', outcome: 'loser' });
+  });
+
+  it('settles a tied game by where each side went next, so a shoot-out still links forward', () => {
+    // C and D drew their quarter-final; C reached the final and D dropped to a placement round.
+    const drawn: StageMatchRecord[] = [
+      record('q1', 1, 1, 'A', 'B', [3, 1]),
+      record('q2', 1, 2, 'C', 'D', [2, 2]),
+      record('f', 2, 1, 'A', 'C', [1, 0]),
+      record('p', 2, 2, 'B', 'D', [1, 0], 'places-5-8'),
+    ];
+    const ids = new Map([
+      ['q1', 'SE-R1-M1'],
+      ['q2', 'SE-R1-M2'],
+      ['f', 'SE-R2-M1'],
+    ]);
+    const final = drawn[2] as StageMatchRecord;
+    expect(
+      recordedSources(final, drawn, (r) => ids.get(r.fixtureId)).map((s) => s?.outcome),
+    ).toEqual(['winner', 'winner']);
+    const [placement] = placementNodesOf(drawn, (r) => ids.get(r.fixtureId));
+    expect(placement?.sources).toEqual([
+      { matchId: 'SE-R1-M1', outcome: 'loser' },
+      { matchId: 'SE-R1-M2', outcome: 'loser' },
+    ]);
   });
 });

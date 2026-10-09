@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { layoutPublicBracket, PUBLIC_GEOMETRY } from './public-bracket-layout.ts';
+import { layoutPublicBracket, placementGamesOf, PUBLIC_GEOMETRY } from './public-bracket-layout.ts';
 import type { BracketMatch } from './bracket.ts';
 
 const entrant = (name: string, from?: { matchId: string; outcome: 'winner' | 'loser' }) =>
@@ -75,38 +75,52 @@ describe('layoutPublicBracket', () => {
     expect(pairs).toContain('R1-M3>R2-M2:winner-of');
   });
 
-  it('leaves out the links that drop a loser from one side to the other', () => {
-    const pairs = layout.connectors.map((c) => `${c.fromMatchId}>${c.toMatchId}`);
-    expect(pairs).not.toContain('R2-M1>PL-R3-M1');
-    expect(pairs).not.toContain('R2-M2>PL-R3-M1');
+  it('draws the final in the middle, the two halves that feed it on either side', () => {
+    const left = at('R1-M1').x;
+    const right = at('R1-M3').x;
+    const final = at('R3-M1').x;
+    // One half reads left to right, the other right to left, and both end at the final.
+    expect(left).toBeLessThan(final);
+    expect(right).toBeGreaterThan(final);
+    expect(at('R2-M1').x).toBeLessThan(final);
+    expect(at('R2-M2').x).toBeGreaterThan(final);
+    expect(at('R1-M2').x).toBe(left);
+    expect(at('R1-M4').x).toBe(right);
   });
 
-  it('draws the winners’ bracket on the left and the placement bracket on the right', () => {
-    expect(layout.bands.map((band) => band.branch)).toEqual(['winners', 'placement']);
-    const winnersRight = Math.max(
-      ...layout.nodes
-        .filter((node) => node.match.branch === 'winners')
-        .map((node) => node.x + node.width),
+  it('links the halves to the final from both sides', () => {
+    const links = layout.connectors.filter((c) => c.toMatchId === 'R3-M1');
+    expect(links.map((c) => c.fromMatchId).sort()).toEqual(['R2-M1', 'R2-M2']);
+    const [toLeft, toRight] = ['R2-M1', 'R2-M2'].map((id) =>
+      links.find((c) => c.fromMatchId === id),
     );
-    expect(at('PL-R3-M1').x).toBeGreaterThan(winnersRight);
-    // Both start at the top, side by side rather than stacked.
-    expect(layout.bands[1]?.y).toBe(layout.bands[0]?.y);
+    // The right half's link runs leftward, into the final's right edge.
+    expect(toRight?.points[0]?.x ?? 0).toBeGreaterThan(toRight?.points.at(-1)?.x ?? 0);
+    expect(toLeft?.points[0]?.x ?? 0).toBeLessThan(toLeft?.points.at(-1)?.x ?? 0);
   });
 
-  it('mirrors the right side, so its last round is the one next to the middle', () => {
-    const placement = [
-      match('P1', 2, 1, 'placement', [entrant('X'), entrant('Y')]),
-      match('P2', 3, 1, 'placement', [
-        entrant('X', { matchId: 'P1', outcome: 'winner' }),
-        entrant('Z', { matchId: 'P1', outcome: 'loser' }),
-      ]),
-    ];
-    const placed = layoutPublicBracket([...bracket, ...placement]);
-    const x = (id: string) => placed.nodes.find((n) => n.match.matchId === id)?.x ?? Number.NaN;
-    expect(x('P2')).toBeLessThan(x('P1'));
-    const link = placed.connectors.find((c) => c.fromMatchId === 'P1' && c.toMatchId === 'P2');
-    // It runs leftward: from the left edge of the first round to the right edge of the next.
-    expect(link?.points[0]?.x ?? 0).toBeGreaterThan(link?.points.at(-1)?.x ?? 0);
+  it('centres the final between the halves', () => {
+    const middle = (at('R2-M1').y + at('R2-M2').y) / 2;
+    expect(Math.abs(at('R3-M1').y - middle)).toBeLessThanOrEqual(PUBLIC_GEOMETRY.grid);
+  });
+
+  it('draws no placement game in the bracket and lists them best-ranked round first', () => {
+    expect(layout.nodes.some((node) => node.match.branch === 'placement')).toBe(false);
+    const games = placementGamesOf([
+      ...bracket,
+      { ...match('PL-R2-M1', 2, 1, 'placement', []), role: 'places-5-8' },
+      { ...match('PL-R3-M2', 3, 2, 'placement', []), role: 'place-5' },
+    ]);
+    expect(games.map((game) => game.matchId)).toEqual(['PL-R3-M1', 'PL-R3-M2', 'PL-R2-M1']);
+  });
+
+  it('falls back to the ordinary layout when the matches are not one tree with one final', () => {
+    const forest = layoutPublicBracket([
+      match('A', 1, 1, 'winners', [entrant('A1'), entrant('A2')]),
+      match('B', 1, 2, 'winners', [entrant('B1'), entrant('B2')]),
+    ]);
+    expect(forest.nodes).toHaveLength(2);
+    expect(forest.nodes[0]?.x).toBe(forest.nodes[1]?.x);
   });
 
   it('never draws two matches on top of each other', () => {

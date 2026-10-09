@@ -13,7 +13,8 @@ import {
   toRounds,
   type BracketMatch,
 } from '../../../lib/bracket.ts';
-import { layoutPublicBracket } from '../../../lib/public-bracket-layout.ts';
+import PlacementGames from '../molecules/PlacementGames.astro';
+import { layoutPublicBracket, placementGamesOf } from '../../../lib/public-bracket-layout.ts';
 import { bracketBranchLabel, bracketRoleLabel } from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
@@ -38,16 +39,24 @@ const {
 const rounds = toRounds(Astro.props.matches);
 const championship = championshipMatch(Astro.props.matches);
 const layout = layoutPublicBracket(Astro.props.matches);
+const placementGames = placementGamesOf(Astro.props.matches);
 // Room above the first band for its column headings (and its name, when a zone draws several).
 const HEAD = layout.bands.length > 1 ? 104 : 64;
 const bandTop = new Map(layout.bands.map((band) => [band.branch, band.y]));
 // A round is the matches of one branch and round number; its column is where the first of them sits.
-const placedRounds = rounds.map((round) => {
-  const nodes = layout.nodes.filter(
-    (node) => node.match.branch === round.branch && node.match.roundNumber === round.roundNumber,
-  );
-  return { round, nodes, x: Math.min(...nodes.map((node) => node.x)), width: nodes[0]?.width ?? 0 };
-});
+const placedRounds = rounds
+  .map((round) => {
+    const nodes = layout.nodes.filter(
+      (node) => node.match.branch === round.branch && node.match.roundNumber === round.roundNumber,
+    );
+    // A split bracket has the same round on both sides, so a round can have several columns.
+    const heads = [...new Set(nodes.map((node) => node.x))].map((x) => ({
+      x,
+      width: nodes.find((node) => node.x === x)?.width ?? 0,
+    }));
+    return { round, nodes, heads };
+  })
+  .filter((entry) => entry.nodes.length > 0);
 const captionOf = (match: (typeof layout.nodes)[number]['match']): string | undefined =>
   match.role !== undefined
     ? bracketRoleLabel(intl, match.role)
@@ -150,7 +159,7 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
           ))
       }
       {
-        placedRounds.map(({ round, nodes, x, width }) => (
+        placedRounds.map(({ round, nodes, heads }) => (
           <section
             aria-label={intl.formatMessage(messages.bracketRoundAriaLabel, {
               branch: round.branch,
@@ -158,12 +167,14 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
             })}
             class="cl-bracket-stage__round"
           >
-            <h3
-              class="cl-bracket-stage__round-label"
-              style={`left: ${x}px; top: ${(bandTop.get(round.branch) ?? 0) + HEAD - 56}px; width: ${width}px;`}
-            >
-              {intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}
-            </h3>
+            {heads.map((head) => (
+              <h3
+                class="cl-bracket-stage__round-label"
+                style={`left: ${head.x}px; top: ${(bandTop.get(round.branch) ?? 0) + HEAD - 56}px; width: ${head.width}px;`}
+              >
+                {intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}
+              </h3>
+            ))}
             {nodes.map((node) => {
               const caption = captionOf(node.match);
               const focused = highlightMatchNumber === node.match.matchNumber;
@@ -198,6 +209,16 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
       }
     </div>
   </div>
+
+  <PlacementGames
+    games={placementGames}
+    highlightMatchNumber={highlightMatchNumber}
+    intl={intl}
+    localePrefix={localePrefix}
+    organizationAlias={organizationAlias}
+    stageNumber={stageNumber}
+    tournamentAlias={tournamentAlias}
+  />
 
   {
     /*

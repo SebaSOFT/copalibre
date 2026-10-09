@@ -177,46 +177,41 @@ test.afterAll(async () => {
 });
 
 test.describe('public knockout bracket', () => {
-  test('draws all twelve matches, each placement game under its own label', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(STAGE);
-
-    const canvas = page.locator('.cl-bracket-stage__canvas');
-    await expect(canvas.locator('.cl-bracket-stage__node')).toHaveCount(12);
-    await expect(canvas.getByText('3º puesto', { exact: true })).toBeVisible();
-    await expect(canvas.getByText('5º puesto', { exact: true })).toBeVisible();
-    await expect(canvas.getByText('7º puesto', { exact: true })).toBeVisible();
-    await expect(canvas.getByText('5º al 8º puesto', { exact: true })).toHaveCount(2);
-    await expect(canvas.getByText('Final', { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Partidos de clasificación' })).toBeVisible();
-  });
-
-  test('links every match to the ones that fed it, losers dashed, with no card on another', async ({
+  test('draws the tree with the final in the middle and lists the placement games under it', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(STAGE);
 
-    const links = page.locator('.cl-bracket-link');
-    // Quarter-finals and semi-finals feed forward on the left; the placement games feed each other on the right.
+    const canvas = page.locator('.cl-bracket-stage__canvas');
+    await expect(canvas.locator('.cl-bracket-stage__node')).toHaveCount(7);
+    await expect(canvas.getByText('Final', { exact: true })).toBeVisible();
+
+    // The five placement games are not in the tree; they are listed under what each decides.
+    const list = page.locator('.cl-placement-games');
+    await expect(list.locator('.cl-placement-games__game')).toHaveCount(5);
+    await expect(list.getByText('3º puesto', { exact: true })).toBeVisible();
+    await expect(list.getByText('5º puesto', { exact: true })).toBeVisible();
+    await expect(list.getByText('7º puesto', { exact: true })).toBeVisible();
+    await expect(list.getByText('5º al 8º puesto', { exact: true })).toHaveCount(1);
+    await expect(list.getByRole('link', { name: 'G 2 – 2 C' })).toBeVisible();
+  });
+
+  test('links every match to the ones that fed it, with no card on another', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(STAGE);
+
     await expect(page.locator('[data-link-from="SE-R1-M1"][data-link-to="SE-R2-M1"]')).toHaveCount(
       1,
     );
     await expect(page.locator('[data-link-from="SE-R1-M4"][data-link-to="SE-R2-M1"]')).toHaveCount(
       1,
     );
-    // Within the placement side the loser's link is dashed and the winner's is solid.
-    await expect(page.locator('[data-link-from="PL-R2-M1"][data-link-to="PL-R3-M3"]')).toHaveClass(
-      /cl-bracket-link--loser/,
+    await expect(page.locator('[data-link-from="SE-R2-M2"][data-link-to="SE-R3-M1"]')).toHaveCount(
+      1,
     );
-    await expect(
-      page.locator('[data-link-from="PL-R2-M1"][data-link-to="PL-R3-M2"]'),
-    ).not.toHaveClass(/cl-bracket-link--loser/);
-    // The drop from one side to the other is not drawn across the whole bracket.
-    await expect(page.locator('[data-link-from="SE-R2-M1"][data-link-to="PL-R3-M1"]')).toHaveCount(
-      0,
-    );
-    expect(await links.count()).toBeGreaterThanOrEqual(10);
+    // Nothing is drawn for the placement games.
+    await expect(page.locator('[data-link-to^="PL-"]')).toHaveCount(0);
 
     const boxes = await page
       .locator('.cl-bracket-stage__canvas .cl-bracket-stage__node')
@@ -238,29 +233,32 @@ test.describe('public knockout bracket', () => {
     }
   });
 
-  test('keeps the two matches that feed a semi-final side by side', async ({ page }) => {
+  test('puts one semi-final on each side of the final, each with its own two feeders', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(STAGE);
-    const top = async (matchId: string) =>
+    const left = async (from: string, to: string) =>
       page
-        .locator(`.cl-bracket-stage__canvas [data-link-from="${matchId}"]`)
-        .first()
-        .evaluate((el) => el.getBoundingClientRect().top);
-    // Matches 1 and 4 feed the first semi-final, so they are drawn together, above 2 and 3.
-    expect(await top('SE-R1-M4')).toBeLessThan(await top('SE-R1-M2'));
+        .locator(`[data-link-from="${from}"][data-link-to="${to}"]`)
+        .evaluate((el) => el.getBoundingClientRect().left);
+    // The first semi-final (fed by matches 1 and 4) sits left of the final, the second right of it.
+    expect(await left('SE-R2-M1', 'SE-R3-M1')).toBeLessThan(await left('SE-R2-M2', 'SE-R3-M1'));
+    // Matches 1 and 4 feed the same semi-final, so they are drawn in the same column.
+    expect(await left('SE-R1-M1', 'SE-R2-M1')).toBeCloseTo(await left('SE-R1-M4', 'SE-R2-M1'), 0);
   });
 
-  test('the match page shows the whole zone with the current match marked, uncapped', async ({
+  test('the match page shows the whole zone, with the current game marked in the list', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`${STAGE}/matches/12`);
 
     const panel = page.locator('.cl-bracket-context');
-    await expect(panel.locator('.cl-bracket-stage__node')).toHaveCount(12);
-    const focused = panel.locator('.cl-bracket-stage__node--focused');
-    await expect(focused).toHaveCount(1);
-    await expect(focused).toHaveAttribute('aria-current', 'true');
+    await expect(panel.locator('.cl-bracket-stage__node')).toHaveCount(7);
+    const current = panel.locator('.cl-placement-games__game--current');
+    await expect(current).toHaveCount(1);
+    await expect(current).toHaveAttribute('aria-current', 'true');
 
     // No inner scroll box shorter than the bracket: nothing is cut off.
     const clipped = await panel.locator('.cl-bracket-stage__scroll').evaluate((el) => {

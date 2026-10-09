@@ -86,6 +86,39 @@ export function recordedSources(
   );
 }
 
+/**
+ * How far a game is from the title, lowest first: the generated graph's own matches (no role) lead,
+ * then a placement game by the best place it can decide (`place-3` is 3, `places-5-8` is 5).
+ */
+function stakesOf(record: StageMatchRecord): number {
+  if (record.role === undefined) return 0;
+  const place = /^places?-(\d+)/.exec(record.role);
+  return place ? Number(place[1]) : Number.MAX_SAFE_INTEGER;
+}
+
+/** The first game an entrant plays after the given round, if any. */
+function nextGameOf(
+  entrantId: string | undefined,
+  afterRound: number,
+  records: readonly StageMatchRecord[],
+): StageMatchRecord | undefined {
+  return records
+    .filter(
+      (candidate) =>
+        candidate.round > afterRound &&
+        (candidate.homeEntrantId === entrantId || candidate.awayEntrantId === entrantId),
+    )
+    .sort((a, b) => a.round - b.round)[0];
+}
+
+/**
+ * The precedence of one side of a game: the earlier game it came from and whether it won or lost
+ * there.
+ *
+ * A decided score says it directly. A tied one (a shoot-out the record does not carry) is settled by
+ * where each side went next: the one whose next game is closer to the title advanced and the other
+ * dropped, so a drawn quarter-final still links to the semi-final its winner plays.
+ */
 function sourceOf(
   entrantId: string | undefined,
   record: StageMatchRecord,
@@ -101,15 +134,23 @@ function sourceOf(
     )
     .sort((a, b) => b.round - a.round)[0];
   if (earlier === undefined) return undefined;
-
   const matchId = idOf(earlier);
+  if (matchId === undefined) return undefined;
+
   const isHome = earlier.homeEntrantId === entrantId;
   const own = earlier.scores?.[isHome ? 0 : 1];
   const other = earlier.scores?.[isHome ? 1 : 0];
-  if (matchId === undefined || own === undefined || other === undefined || own === other) {
-    return undefined;
+  if (own !== undefined && other !== undefined && own !== other) {
+    return { matchId, outcome: own > other ? 'winner' : 'loser' };
   }
-  return { matchId, outcome: own > other ? 'winner' : 'loser' };
+
+  const opponent = isHome ? earlier.awayEntrantId : earlier.homeEntrantId;
+  const mine = stakesOf(record);
+  const theirs = stakesOf(
+    nextGameOf(opponent, earlier.round, records) ?? { ...record, role: 'eliminated' },
+  );
+  if (mine === theirs) return undefined;
+  return { matchId, outcome: mine < theirs ? 'winner' : 'loser' };
 }
 
 /**
