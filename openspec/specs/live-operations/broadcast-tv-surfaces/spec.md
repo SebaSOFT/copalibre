@@ -450,3 +450,57 @@ When every match of a tournament is final and the tournament has resolved winner
 #### Scenario: A league tournament keeps its champion
 - **WHEN** a finished tournament is one league with no elimination stage
 - **THEN** the recap names the first-ranked entrant as champion
+
+### Requirement: TV surfaces show formatted dates and a labelled status
+No TV surface SHALL print a machine timestamp. Dates and times SHALL render through the shared timestamp atom in the viewer's language and the organization's time zone. The header of a finished tournament SHALL show the date of its last match, without a ticking clock; the header of a live tournament SHALL show a labelled clock without seconds.
+
+#### Scenario: The ticker shows a readable date
+- **WHEN** the ticker lists a match with a kick-off time
+- **THEN** the date reads as a localized date and time, not as an ISO string
+
+#### Scenario: A finished tournament has no ticking clock
+- **WHEN** every match is final
+- **THEN** the header shows the finish date and no running clock
+
+### Requirement: Every TV route keeps the same outer margin
+Every TV route and panel SHALL keep the same outer margin on all four sides, including the bottom edge.
+
+#### Scenario: The bottom margin is present on the dashboard
+- **WHEN** the rotating dashboard and the pinned-match route are shown at the same size
+- **THEN** both leave the same margin below their lowest panel
+
+### Requirement: Each TV view shows what it is named for
+The `standings` view SHALL show the standings full-frame, the `matches` view the paged match list full-frame, and a pinned match SHALL show that match's own data and events whether or not it is finished. The champion recap SHALL appear only in the rotating dashboard of a finished tournament.
+
+#### Scenario: Standings differ from the dashboard
+- **WHEN** a finished tournament is opened with `view=standings`
+- **THEN** the kiosk shows the standings, not the champion recap
+
+#### Scenario: A finished pinned match shows its data
+- **WHEN** a pinned match of a finished tournament is opened
+- **THEN** the kiosk shows that match's score, sides and recorded events
+
+### Requirement: A pinned match is identified by its stage ordinal
+The pinned-match route SHALL resolve its match by the same stage ordinal the public match route uses, and overview and live match data SHALL carry that ordinal.
+
+#### Scenario: Match 34 of stage 1 is found
+- **WHEN** the pinned route for stage 1 and match 34 is opened for a stage with 36 matches
+- **THEN** it shows the thirty-fourth match of the stage
+
+#### Scenario: An unknown ordinal is reported
+- **WHEN** the ordinal is beyond the stage's matches
+- **THEN** the kiosk reports that the match does not exist instead of showing another view
+
+### Requirement: The TV match list is compact
+The TV match list SHALL render as a compact table showing two matches per row at broadcast size and SHALL page through long lists with the rotation.
+
+#### Scenario: Seventy-two matches page
+- **WHEN** a tournament has seventy-two matches
+- **THEN** the list shows them two per row, several rows per page, advancing page by page
+
+### Requirement: The kiosk refreshes from addresses that are served
+The kiosk's client-side refreshes of live matches and of the featured stage's bracket SHALL request addresses that the deployed API or web application serves.
+
+#### Scenario: A live refresh is answered
+- **WHEN** the kiosk's refresh interval elapses
+- **THEN** it requests the tournament's live matches at an address that answers with the live projection
