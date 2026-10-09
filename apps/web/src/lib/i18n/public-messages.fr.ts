@@ -116,6 +116,9 @@ export const messages: Record<string, string> = {
 
   'publicWeb.livePage.title': 'En direct',
   'publicWeb.livePage.breadcrumb': 'Fil d’Ariane',
+  'publicWeb.breadcrumb.stage': 'Phase {stage}',
+  'publicWeb.breadcrumb.match': 'Match {match}',
+  'publicWeb.breadcrumb.collapsed': 'Afficher les niveaux masqués',
   'publicWeb.livePage.noMatches': 'Aucun match en direct',
   'publicWeb.livePage.nextKickoff': 'Prochain match programmé',
   'publicWeb.livePage.noUpcoming': 'Aucun match à venir programmé.',

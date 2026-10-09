@@ -17,10 +17,10 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count after the descriptor label resolver (339/1298)', () => {
+test('the graph resolves the current node/edge count after the public breadcrumb (341/1311)', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 339);
-  assert.equal(graph.edges.length, 1298);
+  assert.equal(graph.nodes.size, 341);
+  assert.equal(graph.edges.length, 1311);
 });
 
 test('a type-only import is not counted as a render', () => {

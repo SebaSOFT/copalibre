@@ -10,18 +10,17 @@ import type { MatchReportModel } from '../../../lib/match-report.ts';
 export interface Props {
   readonly model: MatchReportModel;
   readonly locale: string;
+  /** The match state in the page language. The stage/round/match position lives in the breadcrumb. */
+  readonly statusLabel: string;
 }
 
-const { model, locale } = Astro.props;
+const { model, locale, statusLabel } = Astro.props;
 ---
 
 <header class="cl-match-hero">
   <div class="cl-match-hero__meta">
-    <Badge className="cl-badge--stage">
-      Stage {model.stageNumber} · Round {model.round} · Match {model.matchNumber}
-    </Badge>
     <Badge className={`cl-badge--${model.status.toLowerCase()}`}>
-      {model.status}
+      {statusLabel}
     </Badge>
   </div>
 

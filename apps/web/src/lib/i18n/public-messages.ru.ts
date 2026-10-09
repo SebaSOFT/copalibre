@@ -116,6 +116,9 @@ export const messages: Record<string, string> = {
 
   'publicWeb.livePage.title': 'В эфире',
   'publicWeb.livePage.breadcrumb': 'Навигационная цепочка',
+  'publicWeb.breadcrumb.stage': 'Этап {stage}',
+  'publicWeb.breadcrumb.match': 'Матч {match}',
+  'publicWeb.breadcrumb.collapsed': 'Показать скрытые уровни',
   'publicWeb.livePage.noMatches': 'Сейчас нет матчей в эфире',
   'publicWeb.livePage.nextKickoff': 'Следующий запланированный матч',
   'publicWeb.livePage.noUpcoming': 'Предстоящих матчей нет.',

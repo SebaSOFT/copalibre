@@ -117,6 +117,9 @@ export const messages: Record<string, string> = {
 
   'publicWeb.livePage.title': 'Live',
   'publicWeb.livePage.breadcrumb': 'Brotkrumennavigation',
+  'publicWeb.breadcrumb.stage': 'Phase {stage}',
+  'publicWeb.breadcrumb.match': 'Spiel {match}',
+  'publicWeb.breadcrumb.collapsed': 'Ausgeblendete Ebenen anzeigen',
   'publicWeb.livePage.noMatches': 'Derzeit keine Live-Spiele',
   'publicWeb.livePage.nextKickoff': 'Nächstes angesetztes Spiel',
   'publicWeb.livePage.noUpcoming': 'Keine weiteren Spiele angesetzt.',

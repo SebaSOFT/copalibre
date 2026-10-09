@@ -29,6 +29,7 @@ import RulesetBriefing from '../components/ui/molecules/RulesetBriefing.astro';
 import SeriesStateBar from '../components/ui/molecules/SeriesStateBar.astro';
 import TournamentHero from '../components/ui/molecules/TournamentHero.astro';
 import BracketView from '../components/ui/organisms/BracketView.astro';
+import Breadcrumb from '../components/ui/organisms/Breadcrumb.astro';
 import ChampionPodium from '../components/ui/organisms/ChampionPodium.astro';
 import DataTable from '../components/ui/organisms/DataTable.astro';
 import MatchCardGrid from '../components/ui/organisms/MatchCardGrid.astro';
@@ -115,6 +116,8 @@ const PREVIEWABLE = new Set([
   'champion-podium-shared-title',
   'champion-podium-empty',
   'champion-podium-narrow',
+  'breadcrumb',
+  'breadcrumb-collapsed',
   'champion-podium-medium',
   'tournament-card-finished-narrow',
   'data-table',
@@ -404,6 +407,34 @@ const tournaments = referenceTournamentListing();
     }
     {component === 'champion-podium-empty' && <ChampionPodium intl={intl} winners={[]} />}
     {
+      component === 'breadcrumb' && (
+        <Breadcrumb
+          ariaLabel="Breadcrumb"
+          collapsedLabel="Show the hidden levels"
+          items={[
+            { label: 'Reference League', href: '/reference-league' },
+            { label: 'Reference Cup', href: '/reference-league/tournaments/reference-cup' },
+            { label: 'Stage 2' },
+          ]}
+        />
+      )
+    }
+    {
+      component === 'breadcrumb-collapsed' && (
+        <Breadcrumb
+          ariaLabel="Breadcrumb"
+          collapsedLabel="Show the hidden levels"
+          items={[
+            { label: 'Reference League', href: '/reference-league' },
+            { label: 'Reference Cup', href: '/reference-league/tournaments/reference-cup' },
+            { label: 'Matches', href: '/reference-league/tournaments/reference-cup/matches' },
+            { label: 'Stage 2', href: '/reference-league/tournaments/reference-cup/stages/2' },
+            { label: 'Round 1 · Match 2' },
+          ]}
+        />
+      )
+    }
+    {
       component === 'champion-podium-narrow' && (
         <div style="width: 16rem">
           <ChampionPodium intl={intl} winners={referenceWinnerZones()} />
@@ -447,7 +478,11 @@ const tournaments = referenceTournamentListing();
         <MatchCardGrid intl={intl} localePrefix="" model={overview} />
       )
     }
-    {component === 'match-hero' && <MatchHero locale={intl.locale} model={matchReport} />}
+    {
+      component === 'match-hero' && (
+        <MatchHero locale={intl.locale} model={matchReport} statusLabel="LIVE" />
+      )
+    }
     {
       component === 'match-node' && (
         <MatchNode

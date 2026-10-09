@@ -1,5 +1,7 @@
 ---
 import PublicLayout from '../../../../../../../../layouts/PublicLayout.astro';
+import Breadcrumb from '../../../../../../../../components/ui/organisms/Breadcrumb.astro';
+import { publicTrail, trailBaseOf } from '../../../../../../../../lib/breadcrumb.ts';
 import MatchHero from '../../../../../../../../components/ui/organisms/MatchHero.astro';
 import MatchOfficials from '../../../../../../../../components/ui/organisms/MatchOfficials.astro';
 import MatchRosters from '../../../../../../../../components/ui/organisms/MatchRosters.astro';
@@ -14,7 +16,7 @@ import {
 import { selectStageLayout } from '../../../../../../../../lib/bracket.ts';
 import { humanizeCode } from '../../../../../../../../lib/descriptor-label.ts';
 import { messages } from '../../../../../../../../lib/i18n/public-messages.en.ts';
-import { publicIntl } from '../../../../../../../../lib/i18n/public-intl.ts';
+import { publicIntl, resultStateLabels } from '../../../../../../../../lib/i18n/public-intl.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
 export const prerender = false;
@@ -69,6 +71,27 @@ if (selectStageLayout(response.stageFormat) === 'bracket') {
   }
 }
 
+const trailBase = trailBaseOf({
+  organizationAlias: organization!,
+  organizationName: model.organizationName,
+  tournamentName: model.tournamentName,
+  canonicalPath: `/${encodeURIComponent(organization!)}/tournaments/${encodeURIComponent(tournament!)}`,
+  localePrefix,
+});
+const trail = publicTrail(trailBase, [
+  {
+    label: intl.formatMessage(messages.matchesViewPageTitle),
+    href: `${trailBase.tournamentPath}/matches?stageNumber=${stageNumber}`,
+  },
+  {
+    label: intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber }),
+    href: `${trailBase.tournamentPath}/stages/${stageNumber}`,
+  },
+  {
+    label: `${intl.formatMessage(messages.bracketRoundHeading, { round: model.round })} · ${intl.formatMessage(messages.breadcrumbMatch, { match: matchNumber })}`,
+  },
+]);
+const statusLabels = resultStateLabels(intl);
 const structuredData = {
   '@type': 'SportsEvent' as const,
   name: `${model.home.name} vs ${model.away.name} — ${model.tournamentName}`,
@@ -84,8 +107,13 @@ const structuredData = {
   disciplineImages={response.disciplineImages}
   structuredData={structuredData}
 >
+  <Breadcrumb
+    items={trail}
+    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+  />
   <article class="cl-match-page">
-    <MatchHero locale={intl.locale} model={model} />
+    <MatchHero locale={intl.locale} model={model} statusLabel={statusLabels[model.status]} />
 
     {
       bracketMatches.length > 0 && (

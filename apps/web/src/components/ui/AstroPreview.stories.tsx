@@ -50,6 +50,16 @@ export const ChampionPodiumSharedTitle: Story = {
   args: { component: 'champion-podium-shared-title', height: 260 },
 };
 
+/** Organization › tournament › current stage: every ancestor a link, the page itself plain text. */
+export const BreadcrumbTrail: Story = {
+  args: { component: 'breadcrumb', height: 120 },
+};
+
+/** Five levels; below 768px the first and the last two stay and the middle folds behind an ellipsis link. */
+export const BreadcrumbCollapsed: Story = {
+  args: { component: 'breadcrumb-collapsed', height: 120 },
+};
+
 /** A podium squeezed into a quarter-width card stacks its placings instead of breaking names. */
 export const ChampionPodiumNarrow: Story = {
   args: { component: 'champion-podium-narrow', height: 760 },
