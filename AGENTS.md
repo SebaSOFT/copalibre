@@ -255,6 +255,10 @@ Before creating or updating a PR, you MUST guarantee the CI will pass by running
 - `yarn typecheck`
 - `yarn test` and/or `yarn test:integration` (for backend)
 - `yarn test:e2e` (for frontend)
+- `yarn workspace @copalibre/design-tokens scan:forbidden` and `yarn workspace @copalibre/design-tokens check:integrity` (the `forbidden-token-scan` job runs both). The `--cl-*` custom-property namespace is reserved for declared design tokens, so name a component-local property without that prefix.
+- `node scripts/check-change-number-references.mjs`, and every `node --test` suite under `scripts/`, `scripts/lib/` and `apps/web/scripts/`
+
+Running `yarn test:e2e` rewrites some tracked screenshots under `docs/assets/screenshots` (the `tv-mixed-stage-*` and `control-series-progress-*` families). Restore them with `git checkout` before committing unless the change meant to refresh them.
 
 Crucially, if you modify **any** infrastructure or deployment file, you MUST explicitly run the repository's custom validation scripts locally before committing:
 
@@ -262,9 +266,41 @@ Crucially, if you modify **any** infrastructure or deployment file, you MUST exp
 - `node scripts/check-enterprise-readiness-docs.mjs`
 - `node scripts/check-third-party-notices.mjs`
 
+### Releasing
+
+A release is a `develop` to `main` pull request; merging it runs `.github/workflows/release.yml`
+(audits, builds and pushes the multi-arch images to GHCR, tags `vX.Y.Z`, creates the GitHub Release),
+which triggers `copalibre-cli-release.yml` for the CLI binaries. Versions, image tags in
+`docker-compose.yml`, the Helm chart, the version pins in `docs/` and the help pages (all eight
+languages) and the `CHANGELOG.md` section are prepared and merged into `develop` first.
+
+- **Release-candidate jobs.** `Deployment E2E`, `Deploy smoke test`, `Release image build` and the
+  TV soak step run only when the pull request targets `main` or the run is a `workflow_dispatch`, so
+  nothing exercises them between releases. Before opening the release pull request, run
+  `gh workflow run ci.yml --ref <branch>` on a branch that holds the release content and fix what it
+  shows; a dispatched run counts as a release candidate.
+- **Dependabot alerts exist only on `main`.** GitHub creates them when the lockfile reaches the
+  default branch, so `scripts/check-dependabot-alerts.mjs` can pass on `develop` and fail the
+  `Release` workflow right after the merge. An alert with no patched version is recorded in
+  `KNOWN_UNPATCHED_ADVISORIES` in that script (package, GHSA, upstream issue, dependency path, runtime
+  exposure) after the owner approves the risk; that needs a second `develop` to `main` pull request,
+  because the script that runs is the one on `main`.
+- **No direct Docker Hub pulls in workflows.** Anonymous pulls share one rate limit across GitHub's
+  runners and the Docker Hub token endpoint times out from them, so even an authenticated login is
+  unreliable. Take images from `mirror.gcr.io`: by image name in a job's `services` and in `docker
+run` steps, through `registry-mirrors` in the daemon's configuration for `docker compose`, and
+  through `buildkitd-config-inline` for BuildKit. A `credentials:` block with an empty secret
+  invalidates the whole job.
+- **Rerun only the latest run.** `ci.yml` cancels an in-progress run of the same ref when another
+  starts, so `gh run rerun` on an older run cancels the newer one and leaves cancelled checks on the
+  pull request.
+- **Clean-host flow.** `copalibre init` writes placeholder secrets that `doctor` rejects by design, so
+  the `Deployment E2E` job writes its own into the installation's `.env` before `doctor`; `doctor`
+  starts its dependencies with `--pull missing`, never `never`.
+
 ## Changes and Reviews
 
-Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes. Git ignore rules are authoritative: never force-add anything under `openspec/changes/`, whether active or archived. Commit only accepted specification deltas under `openspec/specs/`. Never commit `.env` files, credentials, or production connection strings.
+Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes: commit them under `docs/assets/screenshots` and embed them in the PR body as `https://github.com/SebaSOFT/copalibre/blob/<branch>/docs/assets/screenshots/<file>.png?raw=true`, at desktop 1440x900 (TV 1920x1080) and mobile 390x844. A change with no UI (CLI, API, CI) shows the real command output instead. Git ignore rules are authoritative: never force-add anything under `openspec/changes/`, whether active or archived. Commit only accepted specification deltas under `openspec/specs/`. Never commit `.env` files, credentials, or production connection strings.
 
 Before every commit, run `node --test scripts/lib/component-graph.test.mjs`. When a change alters the web component graph, update the asserted node and edge counts and baseline description in that same commit; keep the zero-unresolved-import assertion passing.
 
@@ -385,6 +421,9 @@ own initiative, and an earlier approval does not carry forward to the next PR. O
 change artifacts. Keep resulting accepted-spec deltas uncommitted on `develop`; on the next feature
 branch, commit only those `openspec/specs/` deltas first
 (`docs(openspec): promote NNNN specs into the accepted baseline`). Do not create a standalone PR for
-promotion. Only then implement the next queued change, unless told to work ahead.
+promotion. The last change of a queue has no next branch: its promotion is the first commit of the
+release-preparation branch (see "Releasing"). Only then implement the next queued change, unless told
+to work ahead. Deleting the remote feature branch may fail harmlessly because GitHub removes it when the
+pull request merges.
 
 @RTK.md
