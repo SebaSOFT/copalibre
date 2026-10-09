@@ -776,24 +776,6 @@ Components moved into that tier SHALL continue to resolve every value through de
 - **THEN** its rendered output is unchanged and it introduces no undeclared token or unapproved raw
   colour
 
-### Requirement: Generic Discipline Hero Backdrop
-The tournament overview's hero SHALL fill its full section with the active discipline's background
-image, when one is declared, at full visual strength (no low-opacity wash), with a gradient scrim
-behind the title/emblem content for legibility, dynamically resolving for any installed discipline via
-the same mechanism the public shell already uses for its page-wide background. The hero SHALL NOT be
-rendered as an enclosed card (no card border/background framing it).
-
-#### Scenario: Renders discipline hero background
-- **WHEN** viewing a tournament's public overview whose discipline declares background imagery
-- **THEN** the hero's image fills the entire hero section, visibly showing the photo (not a faint
-  wash), with its title and other content legible over a gradient scrim
-
-#### Scenario: A discipline with no imagery keeps a plain fill
-- **WHEN** viewing a tournament's public overview whose discipline declares no background imagery
-- **THEN** the hero renders a flat surface fill, with no other discipline's imagery substituted and no
-  card framing
-  substituted
-
 ### Requirement: Standardized Tournament Progress Spacing
 The tournament progress component SHALL enforce a minimum top margin of `--space-6` (24px) separating
 it from the hero banner.
@@ -1004,3 +986,26 @@ Every public table SHALL draw a low-contrast vertical rule on the left edge of e
 #### Scenario: The rule is quieter than the text
 - **WHEN** a public table renders
 - **THEN** the rule is visible and lower in contrast than the row rule
+
+### Requirement: One fixed, subtle, blurred discipline backdrop serves the whole public page
+A public page inside a tournament SHALL draw the tournament discipline's background image at most once, behind the whole information column rather than behind one section, at 6 % opacity and blurred. The image SHALL stay fixed to the viewport while the page scrolls and SHALL cover the viewport on desktop and phone widths. No section of the page, including the tournament hero, SHALL draw a second copy of the discipline image.
+
+#### Scenario: The backdrop is faint and soft
+- **WHEN** a public page renders for a discipline that declares background imagery
+- **THEN** the page's backdrop image is rendered at 6 % opacity with a blur applied, and no transparent edge of the blur shows inside the viewport
+
+#### Scenario: Every public page of a tournament has it
+- **WHEN** a viewer opens a tournament's overview, matches, live, stage, match report or player page
+- **THEN** each shows the same single backdrop treatment
+
+#### Scenario: The backdrop does not scroll
+- **WHEN** a viewer scrolls a long public page
+- **THEN** the backdrop stays in place relative to the viewport and the content moves over it
+
+#### Scenario: Only one discipline image exists on the page
+- **WHEN** the tournament overview renders for a discipline that declares background imagery
+- **THEN** exactly one discipline background image is in the document and the hero section contains none
+
+#### Scenario: The hero stays legible without its own image
+- **WHEN** the tournament overview renders
+- **THEN** the hero's title, emblem and live-count remain legible over the page backdrop at desktop and phone widths
