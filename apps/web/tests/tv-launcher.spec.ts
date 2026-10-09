@@ -4,7 +4,7 @@ test('TV launcher previews background changes and exposes pinned match controls'
   page,
 }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await page.goto('/tv?lang=es&view=matches&bg=football');
+  await page.goto('/tv?lang=es&view=match&bg=football');
 
   await expect(page.getByRole('heading', { name: 'Lanzador de pantalla TV' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-tv-background', 'football');

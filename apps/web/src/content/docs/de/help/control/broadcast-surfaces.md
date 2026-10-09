@@ -51,6 +51,10 @@ Eine Phase kann Formate mischen, daher stellt die Anzeige jede Zone nach dem For
 
 Die Bauchbinde bleibt unverändert: Sie nennt ein Spiel, keine Phase.
 
+### Der Anzeige-Starter
+
+`/tv` ist ein Starter, der die Adresse einer Hallenanzeige oder eines Overlays zusammenstellt: Organisation, Turnier und Ansicht (rotierende Anzeige, Tabelle, Spielliste, ein angeheftetes Spiel oder das Übertragungs-Overlay), Hintergrund und Sprache wählen. Die Sprache ändert die Beschriftungen des Starters sofort, ohne Neuladen. Phasen erscheinen mit Nummer und Name, Spiele nach Zone und Gruppe gruppiert mit Runde, beiden Teilnehmenden und ihrer Nummer (`#34`). Die Ansichten für ein angeheftetes Spiel und das Overlay fragen nach einem Spiel, und der Startlink trägt es, sodass mehrere Overlays je ein eigenes Spiel zeigen können; ein Overlay mit der automatischen Auswahl zeigt das Live-Spiel des Platzes.
+
 ## Was ein Zuschauer auf der öffentlichen Website sieht
 
 Die öffentliche Website (ohne Anmeldung) zeigt Tabellen, Turnierbaum und Spielberichte eines Turniers so,
