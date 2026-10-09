@@ -104,4 +104,4 @@ jobs:
         run: |
           docker run --rm --platform linux/arm64 \
             -v "$PWD/apps/copalibre/dist/binaries/copalibre-${{ matrix.target }}:/copalibre:ro" \
-            node:26-bookworm-slim sh -c '/copalibre --version && /copalibre --help'
+            mirror.gcr.io/library/node:26-bookworm-slim sh -c '/copalibre --version && /copalibre --help'

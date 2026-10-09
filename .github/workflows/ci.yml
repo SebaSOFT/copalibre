@@ -847,7 +847,7 @@ jobs:
           docker run -d --name garage --network host \
             -e GARAGE_RPC_SECRET=c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e \
             -v "$(pwd)/deploy/garage/garage.toml:/etc/garage.toml:ro" \
-            dxflrs/garage:v1.1.0
+            mirror.gcr.io/dxflrs/garage:v1.1.0
       - name: Wait for Garage and provision its bucket and key
         run: |
           for i in $(seq 1 30); do
